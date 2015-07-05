@@ -1,0 +1,16 @@
+Polly is a parrot
+Molly is a dog
+Woof!
+Constructing Example5..
+In Example5::callback() 
+Polly is a parrot
+Molly is a dog
+The following error is expected: Incompatible function arguments. The following argument types are supported:
+    1. dog_bark(Dog) -> None
+
+Callback function 1 called!
+False
+Callback function 2 called : Hello, True, 5
+5
+got callback: 3 4
+Destructing Example5..

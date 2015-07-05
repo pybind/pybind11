@@ -1,0 +1,18 @@
+Value constructor: Creating a sequence with 5 entries
+Value constructor: Creating a sequence with 5 entries
+Copy constructor: Creating a sequence with 5 entries
+Freeing a sequence with 5 entries
+s = <example.Sequence object at 0x100380fb0>
+len(s) = 5
+s[0], s[3] = 0.000000 0.000000
+12.34 in s: False
+12.34 in s: True
+s[0], s[3] = 12.340000 56.779999
+rev[0], rev[1], rev[2], rev[3], rev[4] = 0.000000 56.779999 0.000000 0.000000 12.340000
+12.34000015258789
+0.0
+0.0
+56.779998779296875
+0.0
+Freeing a sequence with 5 entries
+Freeing a sequence with 5 entries

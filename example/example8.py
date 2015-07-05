@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+import sys
+sys.path.append('.')
+
+from example import MyObject
+from example import make_object_1
+from example import make_object_2
+from example import make_myobject_4
+from example import make_myobject_5
+from example import print_object_1
+from example import print_object_2
+from example import print_object_3
+from example import print_object_4
+from example import print_myobject_1
+from example import print_myobject_2
+from example import print_myobject_3
+from example import print_myobject_4
+
+for o in [make_object_1(), make_object_2(), MyObject(3)]:
+    print("Reference count = %i" % o.getRefCount())
+    print_object_1(o)
+    print_object_2(o)
+    print_object_3(o)
+    print_object_4(o)
+
+for o in [make_myobject_4(), make_myobject_5(), MyObject(6), 7]:
+    print(o)
+    if not isinstance(o, int):
+        print_object_1(o)
+        print_object_2(o)
+        print_object_3(o)
+        print_object_4(o)
+    print_myobject_1(o)
+    print_myobject_2(o)
+    print_myobject_3(o)
+    print_myobject_4(o)

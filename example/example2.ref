@@ -1,0 +1,91 @@
+key: key, value=value
+key: key2, value=value2
+key: key, value=value
+key: key2, value=value2
+Entry at positon 0: value
+list item 0: overwritten
+list item 1: value2
+list item 0: value
+list item 1: value2
+15
+5
+example.Example2: No constructor defined!
+can't set attribute
+This exception was intentionally thrown.
+('test', True)
+(5, 'test', True)
+Help on class Example2 in module example
+
+class EExxaammppllee22(builtins.object)
+ |  Methods defined here:
+ |  
+ |  ____iinniitt____(self, /, *args, **kwargs)
+ |      Initialize self.  See help(type(self)) for accurate signature.
+ |  
+ |  ____nneeww____ = <built-in method __new__ of example.Example2_meta object>
+ |  ggeett__ddiicctt(...) from builtins.PyCapsule
+ |      Signature : get_dict(Example2) -> dict
+ |      
+ |      Return a Python dictionary
+ |  
+ |  ggeett__ddiicctt__22(...) from builtins.PyCapsule
+ |      Signature : get_dict_2(Example2) -> dict<str, str>
+ |      
+ |      Return a C++ dictionary
+ |  
+ |  ggeett__lliisstt(...) from builtins.PyCapsule
+ |      Signature : get_list(Example2) -> list
+ |      
+ |      Return a Python list
+ |  
+ |  ggeett__lliisstt__22(...) from builtins.PyCapsule
+ |      Signature : get_list_2(Example2) -> list<str>
+ |      
+ |      Return a C++ list
+ |  
+ |  nneeww__iinnssttaannccee(...) from builtins.PyCapsule
+ |      Signature : new_instance() -> Example2
+ |      
+ |      Return an instance
+ |  
+ |  ppaaiirr__ppaasssstthhrroouugghh(...) from builtins.PyCapsule
+ |      Signature : pair_passthrough(Example2, (bool, str)) -> (str, bool)
+ |      
+ |      Return a pair in reversed order
+ |  
+ |  pprriinntt__ddiicctt(...) from builtins.PyCapsule
+ |      Signature : print_dict(Example2, dict) -> None
+ |      
+ |      Print entries of a Python dictionary
+ |  
+ |  pprriinntt__ddiicctt__22(...) from builtins.PyCapsule
+ |      Signature : print_dict_2(Example2, dict<str, str>) -> None
+ |      
+ |      Print entries of a C++ dictionary
+ |  
+ |  pprriinntt__lliisstt(...) from builtins.PyCapsule
+ |      Signature : print_list(Example2, list) -> None
+ |      
+ |      Print entries of a Python list
+ |  
+ |  pprriinntt__lliisstt__22(...) from builtins.PyCapsule
+ |      Signature : print_list_2(Example2, list<str>) -> None
+ |      
+ |      Print entries of a C++ list
+ |  
+ |  tthhrrooww__eexxcceeppttiioonn(...) from builtins.PyCapsule
+ |      Signature : throw_exception(Example2) -> None
+ |      
+ |      Throw an exception
+ |  
+ |  ttuuppllee__ppaasssstthhrroouugghh(...) from builtins.PyCapsule
+ |      Signature : tuple_passthrough(Example2, (bool, str, int32_t)) -> (int32_t, str, bool)
+ |      
+ |      Return a triple in reversed order
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data and other attributes defined here:
+ |  
+ |  ____iinnssttaannccee__ssiizzee____ = 1
+
+Destructing Example2
