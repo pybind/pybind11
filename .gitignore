@@ -18,3 +18,4 @@ Debug
 .vs
 CTestTestfile.cmake
 Testing
+autogen

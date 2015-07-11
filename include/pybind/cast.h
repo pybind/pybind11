@@ -8,12 +8,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if !defined(__PYBIND_CAST)
-#define __PYBIND_CAST
+#pragma once
 
-#include "pytypes.h"
-#include "mpl.h"
-#include "typeid.h"
+#include <pybind/pytypes.h>
+#include <pybind/mpl.h>
+#include <pybind/typeid.h>
 #include <map>
 #include <array>
 
@@ -474,10 +473,11 @@ TYPE_CASTER_PYTYPE(int_)
 TYPE_CASTER_PYTYPE(list)
 TYPE_CASTER_PYTYPE(slice)
 TYPE_CASTER_PYTYPE(tuple)
+TYPE_CASTER_PYTYPE(function)
 
 #undef TYPE_CASTER
-#undef TYPE_CASTER_NUMBER
 #undef TYPE_CASTER_PYTYPE
+#undef TYPE_CASTER_NUMBER
 
 NAMESPACE_END(detail)
 
@@ -522,5 +522,3 @@ template <typename ... Args> inline object handle::call(Args&&... args_) {
 }
 
 NAMESPACE_END(pybind)
-
-#endif /* __PYBIND_CAST */

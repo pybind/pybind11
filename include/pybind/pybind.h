@@ -7,8 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if !defined(__PYBIND_H)
-#define __PYBIND_H
+#pragma once
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -19,32 +18,31 @@
 #pragma warning(disable: 4512) // warning C4512: Assignment operator was implicitly defined as deleted
 #endif
 
-#include "cast.h"
+#include <pybind/cast.h>
 
 NAMESPACE_BEGIN(pybind)
 
-class function : public object {
-private:
+class cpp_function : public function {
+public:
     struct function_entry {
         std::function<PyObject* (PyObject *)> impl;
         std::string signature, doc;
         bool is_constructor;
         function_entry *next = nullptr;
     };
-public:
-    PYTHON_OBJECT_DEFAULT(function, object, PyFunction_Check)
 
-    template <typename Func>
-    function(const char *name, Func _func, bool is_method,
-             function overload_sibling = function(), const char *doc = nullptr,
-             return_value_policy policy = return_value_policy::automatic) {
+    cpp_function() { }
+    template <typename Func> cpp_function(
+        Func &&_func, const char *name = nullptr, const char *doc = nullptr,
+        return_value_policy policy = return_value_policy::automatic,
+        function sibling = function(), bool is_method = false) {
         /* Function traits extracted from the template type 'Func' */
         typedef mpl::function_traits<Func> f_traits;
 
         /* Suitable input and output casters */
         typedef typename detail::type_caster<typename f_traits::args_type> cast_in;
         typedef typename detail::type_caster<typename mpl::normalize_type<typename f_traits::return_type>::type> cast_out;
-        typename f_traits::f_type func = f_traits::cast(_func);
+        typename f_traits::f_type func = f_traits::cast(std::forward<Func>(_func));
 
         auto impl = [func, policy](PyObject *pyArgs) -> PyObject *{
             cast_in args;
@@ -53,20 +51,13 @@ public:
             PyObject *parent = policy != return_value_policy::reference_internal
                 ? nullptr : PyTuple_GetItem(pyArgs, 0);
             return cast_out::cast(
-                f_traits::dispatch(func, (typename f_traits::args_type) args),
+                f_traits::dispatch(func, args.operator typename f_traits::args_type()),
                 policy, parent);
         };
 
-        /* Linked list of function call handlers (for overloading) */
-        function_entry *entry = new function_entry();
-        entry->impl = impl;
-        entry->signature = std::string(name) + cast_in::name() + std::string(" -> ") + cast_out::name();
-        entry->is_constructor = !strcmp(name, "__init__");
-        if (doc) entry->doc = doc;
-
-        install_function(name, entry, is_method, overload_sibling);
+        initialize(name, doc, cast_in::name() + std::string(" -> ") + cast_out::name(),
+                    sibling, is_method, std::move(impl));
     }
-
 private:
     static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject * /* kwargs */) {
         function_entry *overloads = (function_entry *) PyCapsule_GetPointer(self, nullptr);
@@ -107,19 +98,31 @@ private:
         }
     }
 
-    void install_function(const char *name, function_entry *entry, bool is_method, function overload_sibling) {
-        if (!overload_sibling.ptr() || !PyCFunction_Check(overload_sibling.ptr())) {
+    void initialize(const char *name, const char *doc,
+                    const std::string &signature, function sibling,
+                    bool is_method, std::function<PyObject *(PyObject *)> &&impl) {
+        if (name == nullptr)
+            name = "";
+
+        /* Linked list of function call handlers (for overloading) */
+        function_entry *entry = new function_entry();
+        entry->impl = std::move(impl);
+        entry->is_constructor = !strcmp(name, "__init__");
+        entry->signature = signature;
+        if (doc) entry->doc = doc;
+
+        if (!sibling.ptr() || !PyCFunction_Check(sibling.ptr())) {
             PyMethodDef *def = new PyMethodDef();
             memset(def, 0, sizeof(PyMethodDef));
-            def->ml_name = strdup(name);
+            def->ml_name = name != nullptr ? strdup(name) : name;
             def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
             def->ml_flags = METH_VARARGS | METH_KEYWORDS;
             capsule entry_capsule(entry);
             m_ptr = PyCFunction_New(def, entry_capsule.ptr());
             if (!m_ptr)
-                throw std::runtime_error("function::function(): Could not allocate function object");
+                throw std::runtime_error("cpp_function::cpp_function(): Could not allocate function object");
         } else {
-            m_ptr = overload_sibling.ptr();
+            m_ptr = sibling.ptr();
             inc_ref();
             capsule entry_capsule(PyCFunction_GetSelf(m_ptr), true);
             function_entry *parent = (function_entry *) entry_capsule, *backup = parent;
@@ -144,10 +147,20 @@ private:
         if (is_method) {
             m_ptr = PyInstanceMethod_New(m_ptr);
             if (!m_ptr)
-                throw std::runtime_error("function::function(): Could not allocate instance method object");
+                throw std::runtime_error("cpp_function::cpp_function(): Could not allocate instance method object");
             Py_DECREF(func);
         }
     }
+};
+
+class cpp_method : public cpp_function {
+public:
+    cpp_method () { }
+    template <typename Func>
+    cpp_method(Func &&_func, const char *name = nullptr, const char *doc = nullptr,
+               return_value_policy policy = return_value_policy::automatic,
+               function sibling = function())
+        : cpp_function(std::forward<Func>(_func), name, doc, policy, sibling, true) { }
 };
 
 class module : public object {
@@ -167,17 +180,21 @@ public:
         inc_ref();
     }
 
-    template <typename Func> module& def(const char *name, Func f, const char *doc = nullptr) {
-        function func(name, f, false, (function) attr(name), doc);
+    template <typename Func>
+    module &def(const char *name, Func f, const char *doc = nullptr,
+                return_value_policy policy = return_value_policy::automatic) {
+        cpp_function func(f, name, doc, policy, (function) attr(name));
         func.inc_ref(); /* The following line steals a reference to 'func' */
         PyModule_AddObject(ptr(), name, func.ptr());
         return *this;
     }
 
-    module def_submodule(const char *name) {
+    module def_submodule(const char *name, const char *doc = nullptr) {
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
         module result(PyImport_AddModule(full_name.c_str()), true);
+        if (doc)
+            result.attr("__doc__") = pybind::str(doc);
         attr(name) = result;
         return result;
     }
@@ -218,7 +235,6 @@ public:
         type->ht_name = type->ht_qualname = name;
         type->ht_type.tp_name = strdup(full_name.c_str());
         type->ht_type.tp_basicsize = instance_size;
-        type->ht_type.tp_doc = doc;
         type->ht_type.tp_init = (initproc) init;
         type->ht_type.tp_new = (newfunc) new_instance;
         type->ht_type.tp_dealloc = dealloc;
@@ -244,6 +260,8 @@ public:
         type_info.type_size = type_size;
         type_info.init_holder = init_holder;
         attr("__pybind__") = capsule(&type_info);
+        if (doc)
+            attr("__doc__") = pybind::str(doc);
 
         scope.attr(name) = *this;
     }
@@ -366,14 +384,14 @@ public:
     template <typename Func>
     class_ &def(const char *name, Func f, const char *doc = nullptr,
                 return_value_policy policy = return_value_policy::automatic) {
-        attr(name) = function(name, f, true, (function) attr(name), doc, policy);
+        attr(name) = cpp_method(f, name, doc, policy, (function) attr(name));
         return *this;
     }
 
     template <typename Func> class_ &
     def_static(const char *name, Func f, const char *doc = nullptr,
                return_value_policy policy = return_value_policy::automatic) {
-        attr(name) = function(name, f, false, (function) attr(name), doc, policy);
+        attr(name) = cpp_function(f, name, doc, policy, (function) attr(name));
         return *this;
     }
 
@@ -409,19 +427,19 @@ public:
 
     template <typename C, typename D>
     class_ &def_readwrite(const char *name, D C::*pm,
-                          const char *doc = nullptr) {
-        function fget("", [=](C * ptr) -> D & { return ptr->*pm; }, true,
-                      function(), doc, return_value_policy::reference_internal),
-                 fset("", [=](C *ptr, const D &value) { ptr->*pm = value; }, true, function(), doc);
+                         const char *doc = nullptr) {
+        cpp_method fget([pm](const C &c) -> const D &{ return c.*pm; }, nullptr,
+                        nullptr, return_value_policy::reference_internal),
+                   fset([pm](C &c, const D &value) { c.*pm = value; });
         def_property(name, fget, fset, doc);
         return *this;
     }
 
     template <typename C, typename D>
     class_ &def_readonly(const char *name, const D C::*pm,
-                         const char *doc = nullptr) {
-        function fget("", [=](C * ptr) -> const D & { return ptr->*pm; }, true,
-                      function(), doc, return_value_policy::reference_internal);
+                          const char *doc = nullptr) {
+        cpp_method fget([pm](const C &c) -> const D &{ return c.*pm; }, nullptr,
+                        nullptr, return_value_policy::reference_internal);
         def_property(name, fget, doc);
         return *this;
     }
@@ -429,8 +447,9 @@ public:
     template <typename D>
     class_ &def_readwrite_static(const char *name, D *pm,
                                  const char *doc = nullptr) {
-        function fget("", [=](object) -> D & { return *pm; }, true),
-                 fset("", [=](object, const D &value) { *pm = value; }, true);
+        cpp_function fget([pm](object) -> const D &{ return *pm; }, nullptr,
+                        nullptr, return_value_policy::reference_internal),
+                     fset([pm](object, const D &value) { *pm = value; });
         def_property_static(name, fget, fset, doc);
         return *this;
     }
@@ -438,25 +457,26 @@ public:
     template <typename D>
     class_ &def_readonly_static(const char *name, const D *pm,
                                 const char *doc = nullptr) {
-        function fget("", [=](object) -> const D & { return *pm; }, true);
+        cpp_function fget([pm](object) -> const D &{ return *pm; }, nullptr,
+                        nullptr, return_value_policy::reference_internal);
         def_property_static(name, fget, doc);
         return *this;
     }
 
-    class_ &def_property(const char *name, const function &fget,
+    class_ &def_property(const char *name, const cpp_method &fget,
                          const char *doc = nullptr) {
-        def_property(name, fget, function(), doc);
+        def_property(name, fget, cpp_method(), doc);
         return *this;
     }
 
-    class_ &def_property_static(const char *name, const function &fget,
+    class_ &def_property_static(const char *name, const cpp_function &fget,
                                 const char *doc = nullptr) {
-        def_property_static(name, fget, function(), doc);
+        def_property_static(name, fget, cpp_function(), doc);
         return *this;
     }
 
-    class_ &def_property(const char *name, const function &fget,
-                         const function &fset, const char *doc = nullptr) {
+    class_ &def_property(const char *name, const cpp_method &fget,
+                         const cpp_method &fset, const char *doc = nullptr) {
         object property(
             PyObject_CallFunction((PyObject *)&PyProperty_Type,
                                   const_cast<char *>("OOOs"), fget.ptr() ? fget.ptr() : Py_None,
@@ -465,8 +485,8 @@ public:
         return *this;
     }
 
-    class_ &def_property_static(const char *name, const function &fget,
-                                const function &fset,
+    class_ &def_property_static(const char *name, const cpp_function &fget,
+                                const cpp_function &fset,
                                 const char *doc = nullptr) {
         object property(
             PyObject_CallFunction((PyObject *)&PyProperty_Type,
@@ -583,5 +603,3 @@ NAMESPACE_END(pybind)
 
 #undef PYTHON_OBJECT
 #undef PYTHON_OBJECT_DEFAULT
-
-#endif /* __PYBIND_H */

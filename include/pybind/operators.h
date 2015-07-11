@@ -7,10 +7,9 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if !defined(__PYBIND_OPERATOR)
-#define __PYBIND_OPERATOR
+#pragma once
 
-#include "pybind.h"
+#include <pybind/pybind.h>
 #include <type_traits>
 
 NAMESPACE_BEGIN(pybind)
@@ -147,5 +146,3 @@ NAMESPACE_END(detail)
 using detail::self;
 
 NAMESPACE_END(pybind)
-
-#endif /* __PYBIND_OPERATOR */

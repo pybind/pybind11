@@ -7,10 +7,9 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if !defined(__PYBIND_TYPEID_H)
-#define __PYBIND_TYPEID_H
+#pragma once
 
-#include "common.h"
+#include <pybind/typeid.h>
 #include <cstdio>
 #include <cstdlib>
 #if defined(__GNUG__)
@@ -48,6 +47,3 @@ template <typename T> static std::string type_id() {
 }
 
 NAMESPACE_END(pybind)
-
-#endif /* __PYBIND_TYPEID_H */
-

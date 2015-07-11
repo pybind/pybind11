@@ -7,10 +7,9 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if !defined(__PYBIND_PYTYPES_H)
-#define __PYBIND_PYTYPES_H
+#pragma once
 
-#include "common.h"
+#include <pybind/common.h>
 #include <utility>
 
 NAMESPACE_BEGIN(pybind)
@@ -208,7 +207,7 @@ inline detail::accessor handle::attr(const char *key) { return detail::accessor(
 
 #define PYTHON_OBJECT_DEFAULT(Name, Parent, CheckFun) \
     PYTHON_OBJECT(Name, Parent, CheckFun) \
-    Name() : object() { }
+    Name() : Parent() { }
 
 class str : public object {
 public:
@@ -295,6 +294,11 @@ public:
     void append(const object &object) { PyList_Append(m_ptr, (PyObject *) object.ptr()); }
 };
 
+class function : public object {
+public:
+    PYTHON_OBJECT_DEFAULT(function, object, PyFunction_Check)
+};
+
 class buffer : public object {
 public:
     PYTHON_OBJECT_DEFAULT(buffer, object, PyObject_CheckBuffer)
@@ -335,5 +339,3 @@ inline internals &get_internals() {
 }
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind)
-
-#endif /* __PYBIND_PYTYPES_H */

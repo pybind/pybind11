@@ -7,8 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if !defined(__PYBIND_COMMON_H)
-#define __PYBIND_COMMON_H
+#pragma once
 
 #if !defined(NAMESPACE_BEGIN)
 #define NAMESPACE_BEGIN(name) namespace name {
@@ -145,5 +144,3 @@ inline internals &get_internals();
 
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind)
-
-#endif /* __PYBIND_COMMON_H */

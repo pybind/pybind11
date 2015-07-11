@@ -7,10 +7,9 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if !defined(__PYBIND_MPL_H)
-#define __PYBIND_MPL_H
+#pragma once
 
-#include "common.h"
+#include <pybind/common.h>
 #include <tuple>
 
 NAMESPACE_BEGIN(pybind)
@@ -80,7 +79,15 @@ template <> struct tuple_dispatch<void> {
 NAMESPACE_END(detail)
 
 /// For lambda functions delegate to their 'operator()'
-template <typename T> struct function_traits : public function_traits<typename detail::make_function_type<T>> { };
+template <typename T> struct function_traits : function_traits<typename detail::make_function_type<T>> { };
+
+/* Deal with reference arguments */
+template <typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(*&)(Args...)> : function_traits<ReturnType(*)(Args...)> {};
+template <typename ClassType, typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(ClassType::*&)(Args...)> : function_traits<ReturnType(ClassType::*)(Args...)> {};
+template <typename ClassType, typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(ClassType::*&)(Args...) const> : function_traits<ReturnType(ClassType::*)(Args...) const> {};
 
 /// Type traits for function pointers
 template <typename ReturnType, typename... Args>
@@ -186,5 +193,3 @@ struct function_traits<std::function<ReturnType(Args...)>> {
 
 NAMESPACE_END(mpl)
 NAMESPACE_END(pybind)
-
-#endif /* __PYBIND_MPL_H */
