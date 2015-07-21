@@ -17,7 +17,7 @@ become an excessively large and unnecessary dependency.
 
 Think of this library as a tiny self-contained version of Boost.Python with
 everything stripped away that isn't relevant for binding generation. The whole
-codebase requires less than 2000 lines of code and just depends on Python and
+codebase requires just over 2000 lines of code and just depends on Python and
 the C++ standard library. This compact implementation was possible thanks to
 some of the new C++11 language features (tuples, lambda functions and variadic
 templates), and by only targeting Python 3.x and higher.

@@ -132,7 +132,10 @@ private:
             entry = backup;
         }
         std::string signatures;
+        int it = 0;
         while (entry) { /* Create pydoc entry */
+            if (sibling.ptr())
+                signatures += std::to_string(++it) + ". ";
             signatures += "Signature : " + std::string(entry->signature) + "\n";
             if (!entry->doc.empty())
                 signatures += "\n" + std::string(entry->doc) + "\n";

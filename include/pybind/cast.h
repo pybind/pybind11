@@ -206,6 +206,22 @@ public:
     TYPE_CASTER(std::string, "str");
 };
 
+#ifdef HAVE_WCHAR_H
+template <> class type_caster<std::wstring> {
+public:
+    bool load(PyObject *src, bool) {
+        const wchar_t *ptr = PyUnicode_AsWideCharString(src, nullptr);
+        if (!ptr) { PyErr_Clear(); return false; }
+        value = std::wstring(ptr);
+        return true;
+    }
+    static PyObject *cast(const std::wstring &src, return_value_policy /* policy */, PyObject * /* parent */) {
+        return PyUnicode_FromWideChar(src.c_str(), src.length());
+    }
+    TYPE_CASTER(std::wstring, "wstr");
+};
+#endif
+
 template <> class type_caster<char> {
 public:
     bool load(PyObject *src, bool) {
@@ -474,6 +490,7 @@ TYPE_CASTER_PYTYPE(list)
 TYPE_CASTER_PYTYPE(slice)
 TYPE_CASTER_PYTYPE(tuple)
 TYPE_CASTER_PYTYPE(function)
+TYPE_CASTER_PYTYPE(array)
 
 #undef TYPE_CASTER
 #undef TYPE_CASTER_PYTYPE
