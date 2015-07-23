@@ -9,6 +9,8 @@ import os, sys, platform, re, textwrap
 from clang import cindex
 from clang.cindex import CursorKind
 from collections import OrderedDict
+from threading import Thread, Semaphore
+from multiprocessing import cpu_count
 
 if platform.system() == 'Darwin':
     libclang = '/opt/llvm/lib/libclang.dylib'
@@ -44,6 +46,9 @@ CPP_OPERATORS = {
     'div', '%' : 'mod', '<' : 'lt', '>' : 'gt', '=' : 'assign'
 }
 CPP_OPERATORS = OrderedDict(sorted(CPP_OPERATORS.items(), key=lambda t: -len(t[0])))
+
+job_count = cpu_count()
+job_semaphore = Semaphore(job_count)
 
 registered_names = dict()
 
@@ -91,7 +96,7 @@ def process_comment(comment):
     s = re.sub(r'\\e\s+%s' % cpp_group, r'*\1*', s)
     s = re.sub(r'\\em\s+%s' % cpp_group, r'*\1*', s)
     s = re.sub(r'\\b\s+%s' % cpp_group, r'**\1**', s)
-    s = re.sub(r'\\param%s?\s+%s' % (param_group, cpp_group), r'\n\n$Parameter "\2":\n\n', s)
+    s = re.sub(r'\\param%s?\s+%s' % (param_group, cpp_group), r'\n\n$Parameter ``\2``:\n\n', s)
 
     for in_, out_ in {
         'return' : 'Returns',
@@ -112,10 +117,11 @@ def process_comment(comment):
     s = re.sub(r'\\short\s*', r'', s)
     s = re.sub(r'\\ref\s*', r'', s)
 
-    # HTML tags 
+    # HTML/TeX tags
     s = re.sub(r'<tt>([^<]*)</tt>', r'``\1``', s)
     s = re.sub(r'<em>([^<]*)</em>', r'*\1*', s)
     s = re.sub(r'<b>([^<]*)</b>', r'**\1**', s)
+    s = re.sub(r'\\f\$([^\$]*)\\f\$', r'$\1$', s)
 
     s = s.replace('``true``', '``True``')
     s = s.replace('``false``', '``False``')
@@ -139,7 +145,7 @@ def process_comment(comment):
     return result.rstrip()
 
 
-def extract(filename, node, prefix):
+def extract(filename, node, prefix, output):
     num_extracted = 0
     if not (node.location.file is None or os.path.samefile(d(node.location.file.name), filename)):
         return 0
@@ -150,16 +156,33 @@ def extract(filename, node, prefix):
                 sub_prefix += '_'
             sub_prefix += d(node.spelling)
         for i in node.get_children():
-            num_extracted += extract(filename, i, sub_prefix)
+            num_extracted += extract(filename, i, sub_prefix, output)
         if num_extracted == 0:
             return 0
     if node.kind in PRINT_LIST:
         comment = d(node.raw_comment) if node.raw_comment is not None else ''
         comment = process_comment(comment)
         name = sanitize_name(prefix + '_' + d(node.spelling))
-        print('\nstatic const char *%s = %sR"doc(%s)doc";' % (name, '\n' if '\n' in comment else '', comment))
+        output.append('\nstatic const char *%s = %sR"doc(%s)doc";' % (name, '\n' if '\n' in comment else '', comment))
         num_extracted += 1
     return num_extracted
+
+class ExtractionThread(Thread):
+    def __init__ (self, filename, parameters, output):
+        Thread.__init__(self)
+        self.filename = filename
+        self.parameters = parameters
+        self.output = output
+        job_semaphore.acquire()
+
+    def run(self):
+        print('Processing "%s" ..' % self.filename, file = sys.stderr)
+        try:
+            index = cindex.Index(cindex.conf.lib.clang_createIndex(False, True))
+            tu = index.parse(self.filename, self.parameters)
+            extract(self.filename, tu.cursor, '', self.output)
+        finally:
+            job_semaphore.release()
 
 if __name__ == '__main__':
     parameters = ['-x', 'c++', '-std=c++11']
@@ -190,8 +213,16 @@ if __name__ == '__main__':
 #define __DOC4(n1, n2, n3, n4)                   __doc_##n1##_##n2##_##n3##_##n4
 #define __DOC5(n1, n2, n3, n4, n5)               __doc_##n1##_##n2##_##n3##_##n4_##n5
 #define DOC(...)                                 __CAT2(__DOC, __VA_SIZE(__VA_ARGS__))(__VA_ARGS__)''')
+
+    output = []
     for filename in filenames:
-        print('Processing "%s"..' % filename, file = sys.stderr)
-        index = cindex.Index(cindex.conf.lib.clang_createIndex(False, True))
-        tu = index.parse(filename, parameters)
-        extract(filename, tu.cursor, '')
+        thr = ExtractionThread(filename, parameters, output)
+        thr.start()
+
+    print('Waiting for jobs to finish ..', file = sys.stderr)
+    for i in range(job_count):
+        job_semaphore.acquire()
+
+    output.sort()
+    for l in output:
+        print(l)
