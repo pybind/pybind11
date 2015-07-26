@@ -19,9 +19,7 @@ class object;
 class str;
 class object;
 class dict;
-NAMESPACE_BEGIN(detail)
-class accessor;
-NAMESPACE_END(detail)
+namespace detail { class accessor; }
 
 /// Holds a reference to a Python object (no reference counting)
 class handle {
@@ -189,7 +187,6 @@ private:
     PyObject *dict, *key, *value;
     ssize_t pos = 0;
 };
-
 NAMESPACE_END(detail)
 
 inline detail::accessor handle::operator[](handle key) { return detail::accessor(ptr(), key.ptr(), false); }
@@ -197,21 +194,24 @@ inline detail::accessor handle::operator[](const char *key) { return detail::acc
 inline detail::accessor handle::attr(handle key) { return detail::accessor(ptr(), key.ptr(), true); }
 inline detail::accessor handle::attr(const char *key) { return detail::accessor(ptr(), key, true); }
 
-#define PYTHON_OBJECT(Name, Parent, CheckFun) \
-    Name(const handle &h, bool borrowed) : Parent(h, borrowed) { } \
-    Name(const object& o): Parent(o) { } \
-    Name(object&& o): Parent(std::move(o)) { } \
-    Name& operator=(object&& o) { return static_cast<Name&>(object::operator=(std::move(o))); } \
-    Name& operator=(object& o) { return static_cast<Name&>(object::operator=(o)); } \
+#define PYBIND_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
+    Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
+    Name(const object& o): Parent(o) { CvtStmt; } \
+    Name(object&& o): Parent(std::move(o)) { CvtStmt; } \
+    Name& operator=(object&& o) { return static_cast<Name&>(object::operator=(std::move(o))); CvtStmt; } \
+    Name& operator=(object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
     bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
 
-#define PYTHON_OBJECT_DEFAULT(Name, Parent, CheckFun) \
-    PYTHON_OBJECT(Name, Parent, CheckFun) \
+#define PYBIND_OBJECT(Name, Parent, CheckFun) \
+    PYBIND_OBJECT_CVT(Name, Parent, CheckFun, )
+
+#define PYBIND_OBJECT_DEFAULT(Name, Parent, CheckFun) \
+    PYBIND_OBJECT(Name, Parent, CheckFun) \
     Name() : Parent() { }
 
 class str : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(str, object, PyUnicode_Check)
+    PYBIND_OBJECT_DEFAULT(str, object, PyUnicode_Check)
     str(const char *s) : object(PyUnicode_FromString(s), false) { }
     operator const char *() const { return PyUnicode_AsUTF8(m_ptr); }
 };
@@ -221,13 +221,13 @@ inline std::ostream &operator<<(std::ostream &os, const object &obj) { os << (co
 
 class bool_ : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(bool_, object, PyBool_Check)
+    PYBIND_OBJECT_DEFAULT(bool_, object, PyBool_Check)
     operator bool() const { return m_ptr && PyLong_AsLong(m_ptr) != 0; }
 };
 
 class int_ : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(int_, object, PyLong_Check)
+    PYBIND_OBJECT_DEFAULT(int_, object, PyLong_Check)
     int_(int value) : object(PyLong_FromLong((long) value), false) { }
     int_(size_t value) : object(PyLong_FromSize_t(value), false) { }
     int_(ssize_t value) : object(PyLong_FromSsize_t(value), false) { }
@@ -236,7 +236,7 @@ public:
 
 class float_ : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(float_, object, PyFloat_Check)
+    PYBIND_OBJECT_DEFAULT(float_, object, PyFloat_Check)
     float_(float value) : object(PyFloat_FromDouble((double) value), false) { }
     float_(double value) : object(PyFloat_FromDouble((double) value), false) { }
     operator float() const { return (float) PyFloat_AsDouble(m_ptr); }
@@ -245,7 +245,7 @@ public:
 
 class slice : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(slice, object, PySlice_Check)
+    PYBIND_OBJECT_DEFAULT(slice, object, PySlice_Check)
     slice(ssize_t start_, ssize_t stop_, ssize_t step_) {
         int_ start(start_), stop(stop_), step(step_);
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
@@ -257,7 +257,7 @@ public:
 
 class capsule : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
+    PYBIND_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
     capsule(void *value) : object(PyCapsule_New(value, nullptr, nullptr), false) { }
     template <typename T> operator T *() const {
         T * result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, nullptr));
@@ -268,7 +268,7 @@ public:
 
 class tuple : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(tuple, object, PyTuple_Check)
+    PYBIND_OBJECT_DEFAULT(tuple, object, PyTuple_Check)
     tuple(size_t size) : object(PyTuple_New((Py_ssize_t) size), false) { }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     detail::tuple_accessor operator[](size_t index) { return detail::tuple_accessor(ptr(), index); }
@@ -276,7 +276,7 @@ public:
 
 class dict : public object {
 public:
-    PYTHON_OBJECT(dict, object, PyDict_Check)
+    PYBIND_OBJECT(dict, object, PyDict_Check)
     dict() : object(PyDict_New(), false) { }
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     detail::dict_iterator begin() { return (++detail::dict_iterator(ptr(), 0)); }
@@ -285,7 +285,7 @@ public:
 
 class list : public object {
 public:
-    PYTHON_OBJECT(list, object, PyList_Check)
+    PYBIND_OBJECT(list, object, PyList_Check)
     list(size_t size = 0) : object(PyList_New((ssize_t) size), false) { }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_iterator begin() { return detail::list_iterator(ptr(), 0); }
@@ -296,12 +296,12 @@ public:
 
 class function : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(function, object, PyFunction_Check)
+    PYBIND_OBJECT_DEFAULT(function, object, PyFunction_Check)
 };
 
 class buffer : public object {
 public:
-    PYTHON_OBJECT_DEFAULT(buffer, object, PyObject_CheckBuffer)
+    PYBIND_OBJECT_DEFAULT(buffer, object, PyObject_CheckBuffer)
 
     buffer_info request(bool writable = false) {
         int flags = PyBUF_STRIDES | PyBUF_FORMAT;
@@ -321,88 +321,6 @@ public:
 private:
     Py_buffer *view = nullptr;
 };
-
-class array : public buffer {
-protected:
-    struct API {
-        enum Entries {
-            API_PyArray_Type = 2,
-            API_PyArray_DescrFromType = 45,
-            API_PyArray_NewCopy = 85,
-            API_PyArray_NewFromDescr = 94
-        };
-
-        static API lookup() {
-            PyObject *numpy = PyImport_ImportModule("numpy.core.multiarray");
-            PyObject *capsule = numpy ? PyObject_GetAttrString(numpy, "_ARRAY_API") : nullptr;
-            void **api_ptr = (void **) (capsule ? PyCapsule_GetPointer(capsule, NULL) : nullptr);
-            Py_XDECREF(capsule);
-            Py_XDECREF(numpy);
-            if (api_ptr == nullptr)
-                throw std::runtime_error("Could not acquire pointer to NumPy API!");
-            API api;
-            api.PyArray_DescrFromType = (decltype(api.PyArray_DescrFromType)) api_ptr[API_PyArray_DescrFromType];
-            api.PyArray_NewFromDescr  = (decltype(api.PyArray_NewFromDescr))  api_ptr[API_PyArray_NewFromDescr];
-            api.PyArray_NewCopy       = (decltype(api.PyArray_NewCopy))       api_ptr[API_PyArray_NewCopy];
-            api.PyArray_Type          = (decltype(api.PyArray_Type))          api_ptr[API_PyArray_Type];
-            return api;
-        }
-
-        bool PyArray_Check(PyObject *obj) const {
-            return (bool) PyObject_TypeCheck(obj, PyArray_Type);
-        }
-
-        PyObject *(*PyArray_DescrFromType)(int);
-        PyObject *(*PyArray_NewFromDescr)
-            (PyTypeObject *, PyObject *, int, Py_intptr_t *,
-             Py_intptr_t *, void *, int, PyObject *);
-        PyObject *(*PyArray_NewCopy)(PyObject *, int);
-        PyTypeObject *PyArray_Type;
-    };
-public:
-    PYTHON_OBJECT_DEFAULT(array, buffer, lookup_api().PyArray_Check)
-    
-    template <typename Type> array(size_t size, const Type *ptr) {
-        API& api = lookup_api();
-        PyObject *descr = api.PyArray_DescrFromType(
-            (int) format_descriptor<Type>::value()[0]);
-        if (descr == nullptr)
-            throw std::runtime_error("NumPy: unsupported buffer format!");
-        Py_intptr_t shape = (Py_intptr_t) size;
-        PyObject *tmp = api.PyArray_NewFromDescr(
-            api.PyArray_Type, descr, 1, &shape, nullptr, (void *) ptr, 0, nullptr);
-        if (tmp == nullptr)
-            throw std::runtime_error("NumPy: unable to create array!");
-        m_ptr = api.PyArray_NewCopy(tmp, -1 /* any order */);
-        Py_DECREF(tmp);
-        if (m_ptr == nullptr)
-            throw std::runtime_error("NumPy: unable to copy array!");
-    }
-
-    array(const buffer_info &info) {
-        API& api = lookup_api();
-        if (info.format.size() != 1)
-            throw std::runtime_error("Unsupported buffer format!");
-        PyObject *descr = api.PyArray_DescrFromType(info.format[0]);
-        if (descr == nullptr)
-            throw std::runtime_error("NumPy: unsupported buffer format '" + info.format + "'!");
-        PyObject *tmp = api.PyArray_NewFromDescr(
-            api.PyArray_Type, descr, info.ndim, (Py_intptr_t *) &info.shape[0],
-            (Py_intptr_t *) &info.strides[0], info.ptr, 0, nullptr);
-        if (tmp == nullptr)
-            throw std::runtime_error("NumPy: unable to create array!");
-        m_ptr = api.PyArray_NewCopy(tmp, -1 /* any order */);
-        Py_DECREF(tmp);
-        if (m_ptr == nullptr)
-            throw std::runtime_error("NumPy: unable to copy array!");
-    }
-protected:
-    static API &lookup_api() {
-        static API api = API::lookup();
-        return api;
-    }
-};
-
 
 NAMESPACE_BEGIN(detail)
 inline internals &get_internals() {

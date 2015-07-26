@@ -30,10 +30,10 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
-#include <functional>
 #include <unordered_map>
 #include <iostream>
 #include <memory>
+#include <functional>
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
@@ -79,31 +79,27 @@ enum class return_value_policy : int {
 
 /// Format strings for basic number types
 template <typename type> struct format_descriptor { };
-template<> struct format_descriptor<int8_t>   { static std::string value() { return "b"; }; };
-template<> struct format_descriptor<uint8_t>  { static std::string value() { return "B"; }; };
-template<> struct format_descriptor<int16_t>  { static std::string value() { return "h"; }; };
-template<> struct format_descriptor<uint16_t> { static std::string value() { return "H"; }; };
-template<> struct format_descriptor<int32_t>  { static std::string value() { return "i"; }; };
-template<> struct format_descriptor<uint32_t> { static std::string value() { return "I"; }; };
-template<> struct format_descriptor<int64_t>  { static std::string value() { return "q"; }; };
-template<> struct format_descriptor<uint64_t> { static std::string value() { return "Q"; }; };
-template<> struct format_descriptor<float>    { static std::string value() { return "f"; }; };
-template<> struct format_descriptor<double>   { static std::string value() { return "d"; }; };
+#define DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; };
+DECL_FMT(int8_t,  "b"); DECL_FMT(uint8_t,  "B"); DECL_FMT(int16_t, "h"); DECL_FMT(uint16_t, "H");
+DECL_FMT(int32_t, "i"); DECL_FMT(uint32_t, "I"); DECL_FMT(int64_t, "q"); DECL_FMT(uint64_t, "Q");
+DECL_FMT(float ,  "f"); DECL_FMT(double,   "d");
+#undef DECL_FMT
 
 /// Information record describing a Python buffer object
 struct buffer_info {
     void *ptr;
-    size_t itemsize;
+    size_t itemsize, count;
     std::string format; // for dense contents, this should be set to format_descriptor<T>::value
     int ndim;
     std::vector<size_t> shape;
     std::vector<size_t> strides;
 
-    buffer_info(void *ptr, size_t itemsize, const std::string &format,
-                int ndim, const std::vector<size_t> &shape,
-                const std::vector<size_t> &strides)
+    buffer_info(void *ptr, size_t itemsize, const std::string &format, int ndim,
+                const std::vector<size_t> &shape, const std::vector<size_t> &strides)
         : ptr(ptr), itemsize(itemsize), format(format), ndim(ndim),
-          shape(shape), strides(strides) {}
+          shape(shape), strides(strides) {
+        count = 1; for (int i=0; i<ndim; ++i) count *= shape[i];
+    }
 };
 
 // C++ bindings of core Python exceptions
@@ -140,7 +136,29 @@ struct internals {
     std::unordered_map<void *, PyObject *> registered_instances;
 };
 
+/// Return a reference to the current 'internals' information
 inline internals &get_internals();
 
+/// Index sequence for convenient template metaprogramming involving tuples
+template<size_t ...> struct index_sequence  { };
+template<size_t N, size_t ...S> struct make_index_sequence : make_index_sequence <N - 1, N - 1, S...> { };
+template<size_t ...S> struct make_index_sequence <0, S...> { typedef index_sequence<S...> type; };
+
+/// Strip the class from a method type
+template <typename T> struct remove_class {};
+template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...)> { typedef R type(A...); };
+template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...) const> { typedef R type(A...); };
+
+/// Helper template to strip away type modifiers
+template <typename T> struct decay                       { typedef T type; };
+template <typename T> struct decay<const T>              { typedef typename decay<T>::type type; };
+template <typename T> struct decay<T*>                   { typedef typename decay<T>::type type; };
+template <typename T> struct decay<T&>                   { typedef typename decay<T>::type type; };
+template <typename T> struct decay<T&&>                  { typedef typename decay<T>::type type; };
+template <typename T, size_t N> struct decay<const T[N]> { typedef typename decay<T>::type type; };
+template <typename T, size_t N> struct decay<T[N]>       { typedef typename decay<T>::type type; };
+
+/// Helper type to replace 'void' in some expressions
+struct void_type { };
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind)

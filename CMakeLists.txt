@@ -44,11 +44,11 @@ include_directories(${PYTHON_INCLUDE_DIR} include)
 add_library(example SHARED
   include/pybind/cast.h
   include/pybind/common.h
-  include/pybind/mpl.h
   include/pybind/operators.h
   include/pybind/pybind.h
   include/pybind/pytypes.h
   include/pybind/typeid.h
+  include/pybind/numpy.h
   example/example.cpp
   example/example1.cpp
   example/example2.cpp
@@ -59,6 +59,7 @@ add_library(example SHARED
   example/example7.cpp
   example/example8.cpp
   example/example9.cpp
+  example/example10.cpp
 )
 
 set_target_properties(example PROPERTIES PREFIX "")

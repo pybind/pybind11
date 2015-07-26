@@ -11,7 +11,6 @@
 #pragma once
 
 #include <pybind/pytypes.h>
-#include <pybind/mpl.h>
 #include <pybind/typeid.h>
 #include <map>
 #include <array>
@@ -63,7 +62,8 @@ public:
             return Py_None;
         }
         // avoid an issue with internal references matching their parent's address
-        bool dont_cache = parent && ((instance<void> *) parent)->value == (void *) src;
+        bool dont_cache = policy == return_value_policy::reference_internal &&
+                          parent && ((instance<void> *) parent)->value == (void *) src;
         auto& internals = get_internals();
         auto it_instance = internals.registered_instances.find(src);
         if (it_instance != internals.registered_instances.end() && !dont_cache) {
@@ -126,7 +126,7 @@ protected:
     object temp;
 };
 
-#define TYPE_CASTER(type, py_name) \
+#define PYBIND_TYPE_CASTER(type, py_name) \
     protected: \
         type value; \
     public: \
@@ -137,7 +137,7 @@ protected:
         operator type*() { return &value; } \
         operator type&() { return value; } \
 
-#define TYPE_CASTER_NUMBER(type, py_type, from_type, to_pytype) \
+#define PYBIND_TYPE_CASTER_NUMBER(type, py_type, from_type, to_pytype) \
     template <> class type_caster<type> { \
     public: \
         bool load(PyObject *src, bool) { \
@@ -151,30 +151,30 @@ protected:
         static PyObject *cast(type src, return_value_policy /* policy */, PyObject * /* parent */) { \
             return to_pytype((py_type) src); \
         } \
-        TYPE_CASTER(type, #type); \
+        PYBIND_TYPE_CASTER(type, #type); \
     };
 
-TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
-TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong, PyLong_FromLongLong)
-TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong, PyLong_FromUnsignedLongLong)
+PYBIND_TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
+PYBIND_TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
+PYBIND_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong, PyLong_FromLongLong)
+PYBIND_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong, PyLong_FromUnsignedLongLong)
 
 #if defined(__APPLE__) // size_t/ssize_t are separate types on Mac OS X
-TYPE_CASTER_NUMBER(ssize_t, Py_ssize_t, PyLong_AsSsize_t, PyLong_FromSsize_t)
-TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
+PYBIND_TYPE_CASTER_NUMBER(ssize_t, Py_ssize_t, PyLong_AsSsize_t, PyLong_FromSsize_t)
+PYBIND_TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
 #endif
 
-TYPE_CASTER_NUMBER(float, float, PyFloat_AsDouble, PyFloat_FromDouble)
-TYPE_CASTER_NUMBER(double, double, PyFloat_AsDouble, PyFloat_FromDouble)
+PYBIND_TYPE_CASTER_NUMBER(float, float, PyFloat_AsDouble, PyFloat_FromDouble)
+PYBIND_TYPE_CASTER_NUMBER(double, double, PyFloat_AsDouble, PyFloat_FromDouble)
 
-template <> class type_caster<mpl::detail::void_type> {
+template <> class type_caster<detail::void_type> {
 public:
     bool load(PyObject *, bool) { return true; }
-    static PyObject *cast(mpl::detail::void_type, return_value_policy /* policy */, PyObject * /* parent */) {
+    static PyObject *cast(detail::void_type, return_value_policy /* policy */, PyObject * /* parent */) {
         Py_INCREF(Py_None);
         return Py_None;
     }
-    TYPE_CASTER(mpl::detail::void_type, "None");
+    PYBIND_TYPE_CASTER(detail::void_type, "None");
 };
 
 template <> class type_caster<bool> {
@@ -189,7 +189,7 @@ public:
         Py_INCREF(result);
         return result;
     }
-    TYPE_CASTER(bool, "bool");
+    PYBIND_TYPE_CASTER(bool, "bool");
 };
 
 template <> class type_caster<std::string> {
@@ -203,7 +203,7 @@ public:
     static PyObject *cast(const std::string &src, return_value_policy /* policy */, PyObject * /* parent */) {
         return PyUnicode_FromString(src.c_str());
     }
-    TYPE_CASTER(std::string, "str");
+    PYBIND_TYPE_CASTER(std::string, "str");
 };
 
 #ifdef HAVE_WCHAR_H
@@ -218,7 +218,7 @@ public:
     static PyObject *cast(const std::wstring &src, return_value_policy /* policy */, PyObject * /* parent */) {
         return PyUnicode_FromWideChar(src.c_str(), src.length());
     }
-    TYPE_CASTER(std::wstring, "wstr");
+    PYBIND_TYPE_CASTER(std::wstring, "wstr");
 };
 #endif
 
@@ -280,7 +280,7 @@ public:
         }
         return list;
     }
-    TYPE_CASTER(type, "list<" + value_conv::name() + ">");
+    PYBIND_TYPE_CASTER(type, "list<" + value_conv::name() + ">");
 };
 
 template <typename Key, typename Value> struct type_caster<std::map<Key, Value>> {
@@ -322,7 +322,7 @@ public:
         }
         return dict;
     }
-    TYPE_CASTER(type, "dict<" + key_conv::name() + ", " + value_conv::name() + ">");
+    PYBIND_TYPE_CASTER(type, "dict<" + key_conv::name() + ", " + value_conv::name() + ">");
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
@@ -337,8 +337,8 @@ public:
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        PyObject *o1 = type_caster<typename mpl::normalize_type<T1>::type>::cast(src.first, policy, parent);
-        PyObject *o2 = type_caster<typename mpl::normalize_type<T2>::type>::cast(src.second, policy, parent);
+        PyObject *o1 = type_caster<typename detail::decay<T1>::type>::cast(src.first, policy, parent);
+        PyObject *o2 = type_caster<typename detail::decay<T2>::type>::cast(src.second, policy, parent);
         if (!o1 || !o2) {
             Py_XDECREF(o1);
             Py_XDECREF(o2);
@@ -358,8 +358,8 @@ public:
         return type(first, second);
     }
 protected:
-    type_caster<typename mpl::normalize_type<T1>::type> first;
-    type_caster<typename mpl::normalize_type<T2>::type> second;
+    type_caster<typename detail::decay<T1>::type> first;
+    type_caster<typename detail::decay<T2>::type> second;
 };
 
 template <typename ... Tuple> class type_caster<std::tuple<Tuple...>> {
@@ -368,16 +368,16 @@ public:
     enum { size = sizeof...(Tuple) };
 
     bool load(PyObject *src, bool convert) {
-        return load(src, convert, typename mpl::make_index_sequence<sizeof...(Tuple)>::type());
+        return load(src, convert, typename make_index_sequence<sizeof...(Tuple)>::type());
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        return cast(src, policy, parent, typename mpl::make_index_sequence<size>::type());
+        return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }
 
     static std::string name() {
         std::array<std::string, size> names {{
-            type_caster<typename mpl::normalize_type<Tuple>::type>::name()...
+            type_caster<typename detail::decay<Tuple>::type>::name()...
         }};
         std::string result("(");
         int counter = 0;
@@ -390,15 +390,29 @@ public:
         return result;
     }
 
-    operator type() {
-        return cast(typename mpl::make_index_sequence<sizeof...(Tuple)>::type());
+    template <typename ReturnValue, typename Func> typename std::enable_if<!std::is_void<ReturnValue>::value, ReturnValue>::type call(Func &f) {
+        return call<ReturnValue, Func>(f, typename make_index_sequence<sizeof...(Tuple)>::type());
     }
+
+    template <typename ReturnValue, typename Func> typename std::enable_if<std::is_void<ReturnValue>::value, detail::void_type>::type call(Func &f) {
+        call<ReturnValue, Func>(f, typename make_index_sequence<sizeof...(Tuple)>::type());
+        return detail::void_type();
+    }
+
+    operator type() {
+        return cast(typename make_index_sequence<sizeof...(Tuple)>::type());
+    }
+
 protected:
-    template <size_t ... Index> type cast(mpl::index_sequence<Index...>) {
+    template <typename ReturnValue, typename Func, size_t ... Index> ReturnValue call(Func &f, index_sequence<Index...>) {
+        return f((Tuple) std::get<Index>(value)...);
+    }
+
+    template <size_t ... Index> type cast(index_sequence<Index...>) {
         return type((Tuple) std::get<Index>(value)...);
     }
 
-    template <size_t ... Indices> bool load(PyObject *src, bool convert, mpl::index_sequence<Indices...>) {
+    template <size_t ... Indices> bool load(PyObject *src, bool convert, index_sequence<Indices...>) {
         if (!PyTuple_Check(src))
             return false;
         if (PyTuple_Size(src) != size)
@@ -413,9 +427,9 @@ protected:
     }
 
     /* Implementation: Convert a C++ tuple into a Python tuple */
-    template <size_t ... Indices> static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent, mpl::index_sequence<Indices...>) {
+    template <size_t ... Indices> static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent, index_sequence<Indices...>) {
         std::array<PyObject *, size> results {{
-            type_caster<typename mpl::normalize_type<Tuple>::type>::cast(std::get<Indices>(src), policy, parent)...
+            type_caster<typename detail::decay<Tuple>::type>::cast(std::get<Indices>(src), policy, parent)...
         }};
         bool success = true;
         for (auto result : results)
@@ -436,7 +450,7 @@ protected:
     }
 
 protected:
-    std::tuple<type_caster<typename mpl::normalize_type<Tuple>::type>...> value;
+    std::tuple<type_caster<typename detail::decay<Tuple>::type>...> value;
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
@@ -467,39 +481,29 @@ public:
         src.inc_ref();
         return (PyObject *) src.ptr();
     }
-    TYPE_CASTER(handle, "handle");
+    PYBIND_TYPE_CASTER(handle, "handle");
 };
 
-#define TYPE_CASTER_PYTYPE(name) \
+#define PYBIND_TYPE_CASTER_PYTYPE(name) \
     template <> class type_caster<name> { \
     public: \
         bool load(PyObject *src, bool) { value = name(src, true); return true; } \
         static PyObject *cast(const name &src, return_value_policy /* policy */, PyObject * /* parent */) { \
             src.inc_ref(); return (PyObject *) src.ptr(); \
         } \
-        TYPE_CASTER(name, #name); \
+        PYBIND_TYPE_CASTER(name, #name); \
     };
 
-TYPE_CASTER_PYTYPE(object)
-TYPE_CASTER_PYTYPE(buffer)
-TYPE_CASTER_PYTYPE(capsule)
-TYPE_CASTER_PYTYPE(dict)
-TYPE_CASTER_PYTYPE(float_)
-TYPE_CASTER_PYTYPE(int_)
-TYPE_CASTER_PYTYPE(list)
-TYPE_CASTER_PYTYPE(slice)
-TYPE_CASTER_PYTYPE(tuple)
-TYPE_CASTER_PYTYPE(function)
-TYPE_CASTER_PYTYPE(array)
-
-#undef TYPE_CASTER
-#undef TYPE_CASTER_PYTYPE
-#undef TYPE_CASTER_NUMBER
+PYBIND_TYPE_CASTER_PYTYPE(object)  PYBIND_TYPE_CASTER_PYTYPE(buffer)
+PYBIND_TYPE_CASTER_PYTYPE(capsule) PYBIND_TYPE_CASTER_PYTYPE(dict)
+PYBIND_TYPE_CASTER_PYTYPE(float_)  PYBIND_TYPE_CASTER_PYTYPE(int_)
+PYBIND_TYPE_CASTER_PYTYPE(list)    PYBIND_TYPE_CASTER_PYTYPE(slice)
+PYBIND_TYPE_CASTER_PYTYPE(tuple)   PYBIND_TYPE_CASTER_PYTYPE(function)
 
 NAMESPACE_END(detail)
 
 template <typename T> inline T cast(PyObject *object) {
-    detail::type_caster<typename mpl::normalize_type<T>::type> conv;
+    detail::type_caster<typename detail::decay<T>::type> conv;
     if (!conv.load(object, true))
         throw cast_error("Unable to cast Python object to C++ type");
     return conv;
@@ -508,7 +512,7 @@ template <typename T> inline T cast(PyObject *object) {
 template <typename T> inline object cast(const T &value, return_value_policy policy = return_value_policy::automatic, PyObject *parent = nullptr) {
     if (policy == return_value_policy::automatic)
         policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
-    return object(detail::type_caster<typename mpl::normalize_type<T>::type>::cast(value, policy, parent), false);
+    return object(detail::type_caster<typename detail::decay<T>::type>::cast(value, policy, parent), false);
 }
 
 template <typename T> inline T handle::cast() { return pybind::cast<T>(m_ptr); }
@@ -516,7 +520,7 @@ template <typename T> inline T handle::cast() { return pybind::cast<T>(m_ptr); }
 template <typename ... Args> inline object handle::call(Args&&... args_) {
     const size_t size = sizeof...(Args);
     std::array<PyObject *, size> args{
-        { detail::type_caster<typename mpl::normalize_type<Args>::type>::cast(
+        { detail::type_caster<typename detail::decay<Args>::type>::cast(
             std::forward<Args>(args_), return_value_policy::automatic, nullptr)... }
     };
     bool fail = false;
