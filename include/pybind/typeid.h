@@ -26,23 +26,27 @@ inline void erase_all(std::string &string, const std::string &search) {
         string.erase(pos, search.length());
     }
 }
-NAMESPACE_END(detail)
 
-/// Return a string representation of a C++ type
-template <typename T> static std::string type_id() {
-    std::string name(typeid(T).name());
-    #if defined(__GNUG__)
-        int status = 0;
-        std::unique_ptr<char, void (*)(void *)> res {
-            abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status), std::free };
-        if (status == 0)
-            name = res.get();
+inline void clean_type_id(std::string &name) {
+#if defined(__GNUG__)
+    int status = 0;
+    std::unique_ptr<char, void (*)(void *)> res {
+        abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status), std::free };
+    if (status == 0)
+        name = res.get();
     #else
         detail::erase_all(name, "class ");
         detail::erase_all(name, "struct ");
         detail::erase_all(name, "enum ");
     #endif
     detail::erase_all(name, "pybind::");
+}
+NAMESPACE_END(detail)
+
+/// Return a string representation of a C++ type
+template <typename T> static std::string type_id() {
+    std::string name(typeid(T).name());
+    detail::clean_type_id(name);
     return name;
 }
 
