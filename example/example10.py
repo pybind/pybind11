@@ -7,6 +7,9 @@ import numpy as np
 
 from example import vectorized_func
 from example import vectorized_func2
+from example import vectorized_func3
+
+print(vectorized_func3(np.array(3+7j)))
 
 for f in [vectorized_func, vectorized_func2]:
     print(f(1, 2, 3))

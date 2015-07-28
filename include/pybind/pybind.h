@@ -393,22 +393,27 @@ protected:
         Py_TYPE(self)->tp_free((PyObject*) self);
     }
 
-    void install_buffer_funcs(const std::function<buffer_info *(PyObject *)> &func) {
+    void install_buffer_funcs(
+            buffer_info *(*get_buffer)(PyObject *, void *),
+            void *get_buffer_data) {
         PyHeapTypeObject *type = (PyHeapTypeObject*) m_ptr;
         type->ht_type.tp_as_buffer = &type->as_buffer;
         type->as_buffer.bf_getbuffer = getbuffer;
         type->as_buffer.bf_releasebuffer = releasebuffer;
-        ((detail::type_info *) capsule(attr("__pybind__")))->get_buffer = func;
+        auto info = ((detail::type_info *) capsule(attr("__pybind__")));
+        info->get_buffer = get_buffer;
+        info->get_buffer_data = get_buffer_data;
     }
 
     static int getbuffer(PyObject *obj, Py_buffer *view, int flags) {
-        auto const &info_func = ((detail::type_info *) capsule(handle(obj).attr("__pybind__")))->get_buffer;
-        if (view == nullptr || obj == nullptr || !info_func) {
+        auto const &typeinfo = ((detail::type_info *) capsule(handle(obj).attr("__pybind__")));
+
+        if (view == nullptr || obj == nullptr || !typeinfo || !typeinfo->get_buffer) {
             PyErr_SetString(PyExc_BufferError, "Internal error");
             return -1;
         }
         memset(view, 0, sizeof(Py_buffer));
-        buffer_info *info = info_func(obj);
+        buffer_info *info = typeinfo->get_buffer(obj, typeinfo->get_buffer_data);
         view->obj = obj;
         view->ndim = 1;
         view->internal = info;
@@ -483,13 +488,16 @@ public:
         return *this;
     }
 
-    class_& def_buffer(const std::function<buffer_info(type&)> &func) {
-        install_buffer_funcs([func](PyObject *obj) -> buffer_info* {
+    template <typename Func>
+    class_& def_buffer(Func &&func) {
+        struct capture { Func func; };
+        capture *ptr = new capture { std::forward<Func>(func) };
+        install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
             detail::type_caster<type> caster;
             if (!caster.load(obj, false))
                 return nullptr;
-            return new buffer_info(func(caster));
-        });
+            return new buffer_info(((capture *) ptr)->func(caster));
+        }, ptr);
         return *this;
     }
 

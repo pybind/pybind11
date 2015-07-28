@@ -192,6 +192,23 @@ public:
     PYBIND_TYPE_CASTER(bool, "bool");
 };
 
+template <typename T> class type_caster<std::complex<T>> {
+public:
+    bool load(PyObject *src, bool) {
+        Py_complex result = PyComplex_AsCComplex(src);
+        if (result.real == -1.0 && PyErr_Occurred()) {
+            PyErr_Clear();
+            return false;
+        }
+        value = std::complex<T>((T) result.real, (T) result.imag);
+        return true;
+    }
+    static PyObject *cast(const std::complex<T> &src, return_value_policy /* policy */, PyObject * /* parent */) {
+        return PyComplex_FromDoubles((double) src.real(), (double) src.imag());
+    }
+    PYBIND_TYPE_CASTER(std::complex<T>, "complex");
+};
+
 template <> class type_caster<std::string> {
 public:
     bool load(PyObject *src, bool) {

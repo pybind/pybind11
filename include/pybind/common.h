@@ -33,7 +33,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <memory>
-#include <functional>
+#include <complex>
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
@@ -82,7 +82,8 @@ template <typename type> struct format_descriptor { };
 #define DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; };
 DECL_FMT(int8_t,  "b"); DECL_FMT(uint8_t,  "B"); DECL_FMT(int16_t, "h"); DECL_FMT(uint16_t, "H");
 DECL_FMT(int32_t, "i"); DECL_FMT(uint32_t, "I"); DECL_FMT(int64_t, "q"); DECL_FMT(uint64_t, "Q");
-DECL_FMT(float ,  "f"); DECL_FMT(double,   "d");
+DECL_FMT(float,   "f"); DECL_FMT(double,   "d"); DECL_FMT(bool,    "?");
+DECL_FMT(std::complex<float>, "Zf"); DECL_FMT(std::complex<double>, "Zd");
 #undef DECL_FMT
 
 /// Information record describing a Python buffer object
@@ -126,11 +127,12 @@ struct type_info {
     PyTypeObject *type;
     size_t type_size;
     void (*init_holder)(PyObject *);
-    std::function<buffer_info *(PyObject *)> get_buffer;
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
+    buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
+    void *get_buffer_data = nullptr;
 };
 
-/// Internal data struture used to track registered instances and types 
+/// Internal data struture used to track registered instances and types
 struct internals {
     std::unordered_map<std::string, type_info> registered_types;
     std::unordered_map<void *, PyObject *> registered_instances;
