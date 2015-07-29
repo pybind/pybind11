@@ -22,16 +22,48 @@
 
 NAMESPACE_BEGIN(pybind)
 
+template <typename T> struct arg_t;
+
+/// Annotation for keyword arguments
+struct arg {
+    arg(const char *name) : name(name) { }
+    template <typename T> inline arg_t<T> operator=(const T &value);
+    const char *name;
+};
+
+/// Annotation for keyword arguments with default values
+template <typename T> struct arg_t : public arg {
+    arg_t(const char *name, const T &value) : arg(name), value(value) { }
+    T value;
+};
+template <typename T> inline arg_t<T> arg::operator=(const T &value) { return arg_t<T>(name, value); }
+
+/// Annotation for methods
+struct is_method { };
+
+/// Annotation for documentation
+struct doc { const char *value; doc(const char *value) : value(value) { } };
+
+/// Annotation for function names
+struct name { const char *value; name(const char *value) : value(value) { } };
+
+/// Annotation for function siblings
+struct sibling { PyObject *value; sibling(handle value) : value(value.ptr()) { } };
+
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
 private:
     /// Chained list of function entries for overloading
     struct function_entry {
-        PyObject * (*impl) (function_entry *, PyObject *, PyObject *);
+        const char *name = nullptr;
+        PyObject * (*impl) (function_entry *, PyObject *, PyObject *, PyObject *);
         void *data;
-        std::string signature, doc;
-        bool is_constructor;
-        return_value_policy policy;
+        bool is_constructor = false, is_method = false;
+        short keywords = 0;
+        return_value_policy policy = return_value_policy::automatic;
+        std::string signature;
+        PyObject *sibling = nullptr;
+        const char *doc = nullptr;
         function_entry *next = nullptr;
     };
 
@@ -41,93 +73,121 @@ private:
             std::is_void<T>::value, detail::void_type, typename detail::decay<T>::type>::type>;
 
     /// Picks a suitable argument value converter from cast.h
-    template <typename ... T> using arg_value_caster =
+    template <typename... T> using arg_value_caster =
         detail::type_caster<typename std::tuple<T...>>;
+
+
+    template <typename... T> void process_args(const std::tuple<T...> &args, function_entry *entry) {
+        process_args(args, entry, typename detail::make_index_sequence<sizeof...(T)>::type());
+    }
+
+    template <typename... T, size_t ... Index> void process_args(const
+            std::tuple<T...> &args, function_entry *entry,
+            detail::index_sequence<Index...>) {
+        int unused[] = { 0, (process_arg(std::get<Index>(args), entry), 0)... };
+        (void) unused;
+    }
+
+    void process_arg(const char *doc, function_entry *entry) { entry->doc = doc; }
+    void process_arg(const pybind::doc &d, function_entry *entry) { entry->doc = d.value; }
+    void process_arg(const pybind::name &n, function_entry *entry) { entry->name = n.value; }
+    void process_arg(const pybind::arg &, function_entry *entry) { entry->keywords++; }
+    void process_arg(const pybind::is_method &, function_entry *entry) { entry->is_method = true; }
+    void process_arg(const pybind::return_value_policy p, function_entry *entry) { entry->policy = p; }
+    void process_arg(pybind::sibling s, function_entry *entry) { entry->sibling = s.value; }
+
 public:
     cpp_function() { }
 
     /// Vanilla function pointers
-    template <typename return_type, typename... arg_type>
-    cpp_function(return_type (*f)(arg_type...), const char *name = nullptr,
-                 const char *doc = nullptr, return_value_policy policy = return_value_policy::automatic,
-                 const function &sibling = function(), bool is_method = false) {
-
-        typedef arg_value_caster<arg_type...> cast_in;
-        typedef return_value_caster<return_type> cast_out;
-
-        auto impl = [](function_entry *entry, PyObject *pyArgs, PyObject *parent) -> PyObject * {
-            cast_in args;
-            if (!args.load(pyArgs, true)) return nullptr;
-            auto f = (return_type (*) (arg_type...)) entry->data;
-            return cast_out::cast(args.template call<return_type>(f),
-                                  entry->policy, parent);
+    template <typename Return, typename... Arg, typename... Extra>
+    cpp_function(Return (*f)(Arg...), Extra&&... extra) {
+        struct capture {
+            Return (*f)(Arg...);
+            std::tuple<Extra...> extra;
         };
 
-        initialize(name, doc, cast_in::name() + std::string(" -> ") + cast_out::name(),
-                    sibling, is_method, policy, impl, (void *) f);
+        function_entry *entry = new function_entry();
+        entry->data = new capture { f, std::tuple<Extra...>(std::forward<Extra>(extra)...) };
+
+        typedef arg_value_caster<Arg...> cast_in;
+        typedef return_value_caster<Return> cast_out;
+
+        entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject * {
+            cast_in args;
+            if (!args.load(pyArgs, true)) return nullptr;
+            auto f = ((capture *) entry->data)->f;
+            (void)kwargs;
+            return cast_out::cast(args.template call<Return>(f), entry->policy, parent);
+        };
+
+        entry->signature = cast_in::name();
+        entry->signature += " -> ";
+        entry->signature += cast_out::name();
+        process_args(((capture *) entry->data)->extra, entry);
+        initialize(entry);
     }
 
     /// Delegating helper constructor to deal with lambda functions
-    template <typename func>
-    cpp_function(func &&f, const char *name = nullptr,
-                 const char *doc = nullptr,
-                 return_value_policy policy = return_value_policy::automatic,
-                 const function &sibling = function(), bool is_method = false) {
-        initialize(std::forward<func>(f), name, doc, policy, sibling, is_method,
+    template <typename Func, typename... Extra> cpp_function(Func &&f, Extra&&... extra) {
+        initialize(std::forward<Func>(f),
                    (typename detail::remove_class<decltype(
-                       &std::remove_reference<func>::type::operator())>::type *) nullptr);
+                       &std::remove_reference<Func>::type::operator())>::type *) nullptr,
+                   std::forward<Extra>(extra)...);
     }
 
 
     /// Class methods (non-const)
-    template <typename return_type, typename class_type, typename ... arg_type> cpp_function(
-            return_type (class_type::*f)(arg_type...), const char *name = nullptr,
-            const char *doc = nullptr, return_value_policy policy = return_value_policy::automatic,
-            const function &sibling = function(), bool is_method = false) {
-        initialize([f](class_type *c, arg_type... args) -> return_type { return (c->*f)(args...); },
-            name, doc, policy, sibling, is_method, (return_type (*)(class_type *, arg_type ...)) nullptr);
+    template <typename Return, typename Class, typename... Arg, typename... Extra> cpp_function(
+            Return (Class::*f)(Arg...), Extra&&... extra) {
+        initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(args...); },
+                   (Return (*) (Class *, Arg...)) nullptr, std::forward<Extra>(extra)...);
     }
 
     /// Class methods (const)
-    template <typename return_type, typename class_type, typename ... arg_type> cpp_function(
-            return_type (class_type::*f)(arg_type...) const, const char *name = nullptr,
-            const char *doc = nullptr, return_value_policy policy = return_value_policy::automatic,
-            const function &sibling = function(), bool is_method = false) {
-        initialize([f](const class_type *c, arg_type... args) -> return_type { return (c->*f)(args...); },
-            name, doc, policy, sibling, is_method, (return_type (*)(const class_type *, arg_type ...)) nullptr);
+    template <typename Return, typename Class, typename... Arg, typename... Extra> cpp_function(
+            Return (Class::*f)(Arg...) const, Extra&&... extra) {
+        initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(args...); },
+                   (Return (*)(const Class *, Arg ...)) nullptr, std::forward<Extra>(extra)...);
     }
 
 private:
     /// Functors, lambda functions, etc.
-    template <typename func, typename return_type, typename... arg_type>
-    void initialize(func &&f, const char *name, const char *doc,
-                 return_value_policy policy, const function &sibling,
-                 bool is_method, return_type (*)(arg_type...)) {
-
-        typedef arg_value_caster<arg_type...> cast_in;
-        typedef return_value_caster<return_type> cast_out;
-        struct capture { typename std::remove_reference<func>::type f; };
-        void *ptr = new capture { std::forward<func>(f) };
-
-        auto impl = [](function_entry *entry, PyObject *pyArgs, PyObject *parent) -> PyObject *{
-            cast_in args;
-            if (!args.load(pyArgs, true)) return nullptr;
-            func &f = ((capture *) entry->data)->f;
-            return cast_out::cast(args.template call<return_type>(f),
-                                  entry->policy, parent);
+    template <typename Func, typename Return, typename... Arg, typename... Extra>
+    void initialize(Func &&f, Return (*)(Arg...), Extra&&... extra) {
+        struct capture {
+            typename std::remove_reference<Func>::type f;
+            std::tuple<Extra...> extra;
         };
 
-        initialize(name, doc, cast_in::name() + std::string(" -> ") + cast_out::name(),
-                    sibling, is_method, policy, impl, ptr);
+        function_entry *entry = new function_entry();
+        entry->data = new capture { std::forward<Func>(f), std::tuple<Extra...>(std::forward<Extra>(extra)...) };
+
+        typedef arg_value_caster<Arg...> cast_in;
+        typedef return_value_caster<Return> cast_out;
+
+        entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject *{
+            cast_in args;
+            if (!args.load(pyArgs, true)) return nullptr;
+            Func &f = ((capture *) entry->data)->f;
+            (void)kwargs;
+            return cast_out::cast(args.template call<Return>(f), entry->policy, parent);
+        };
+
+        entry->signature = cast_in::name();
+        entry->signature += " -> ";
+        entry->signature += cast_out::name();
+        process_args(((capture *) entry->data)->extra, entry);
+        initialize(entry);
     }
 
-    static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject * /* kwargs */) {
+    static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject *kwargs ) {
         function_entry *overloads = (function_entry *) PyCapsule_GetPointer(self, nullptr);
         PyObject *result = nullptr;
         PyObject *parent = PyTuple_Size(args) > 0 ? PyTuple_GetItem(args, 0) : nullptr;
         try {
             for (function_entry *it = overloads; it != nullptr; it = it->next) {
-                if ((result = it->impl(it, args, parent)) != nullptr)
+                if ((result = it->impl(it, args, kwargs, parent)) != nullptr)
                     break;
             }
         } catch (const error_already_set &) {                                               return nullptr;
@@ -161,27 +221,16 @@ private:
         }
     }
 
-    void initialize(const char *name, const char *doc,
-                    const std::string &signature, function sibling,
-                    bool is_method, return_value_policy policy,
-                    PyObject *(*impl) (function_entry *, PyObject *, PyObject *),
-                    void *data) {
-        if (name == nullptr)
-            name = "";
+    void initialize(function_entry *entry) {
+        if (entry->name == nullptr)
+            entry->name = "";
 
-        /* Linked list of function call handlers (for overloading) */
-        function_entry *entry = new function_entry();
-        entry->impl = impl;
-        entry->is_constructor = !strcmp(name, "__init__");
-        entry->policy = policy;
-        entry->signature = signature;
-        entry->data = data;
-        if (doc) entry->doc = doc;
+        entry->is_constructor = !strcmp(entry->name, "__init__");
 
-        if (!sibling.ptr() || !PyCFunction_Check(sibling.ptr())) {
+        if (!entry->sibling || !PyCFunction_Check(entry->sibling)) {
             PyMethodDef *def = new PyMethodDef();
             memset(def, 0, sizeof(PyMethodDef));
-            def->ml_name = name != nullptr ? strdup(name) : name;
+            def->ml_name = entry->name;
             def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
             def->ml_flags = METH_VARARGS | METH_KEYWORDS;
             capsule entry_capsule(entry);
@@ -189,7 +238,7 @@ private:
             if (!m_ptr)
                 throw std::runtime_error("cpp_function::cpp_function(): Could not allocate function object");
         } else {
-            m_ptr = sibling.ptr();
+            m_ptr = entry->sibling;
             inc_ref();
             capsule entry_capsule(PyCFunction_GetSelf(m_ptr), true);
             function_entry *parent = (function_entry *) entry_capsule, *backup = parent;
@@ -199,37 +248,29 @@ private:
             entry = backup;
         }
         std::string signatures;
-        int it = 0;
-        while (entry) { /* Create pydoc entry */
-            if (sibling.ptr())
-                signatures += std::to_string(++it) + ". ";
-            signatures += "Signature : " + std::string(entry->signature) + "\n";
-            if (!entry->doc.empty())
-                signatures += "\n" + std::string(entry->doc) + "\n";
-            if (entry->next)
+        int index = 0;
+        function_entry *it = entry;
+        while (it) { /* Create pydoc it */
+            if (it->sibling)
+                signatures += std::to_string(++index) + ". ";
+            signatures += "Signature : " + std::string(it->signature) + "\n";
+            if (it->doc && strlen(it->doc) > 0)
+                signatures += "\n" + std::string(it->doc) + "\n";
+            if (it->next)
                 signatures += "\n";
-            entry = entry->next;
+            it = it->next;
         }
         PyCFunctionObject *func = (PyCFunctionObject *) m_ptr;
         if (func->m_ml->ml_doc)
             std::free((char *) func->m_ml->ml_doc);
         func->m_ml->ml_doc = strdup(signatures.c_str());
-        if (is_method) {
+        if (entry->is_method) {
             m_ptr = PyInstanceMethod_New(m_ptr);
             if (!m_ptr)
                 throw std::runtime_error("cpp_function::cpp_function(): Could not allocate instance method object");
             Py_DECREF(func);
         }
     }
-};
-
-class cpp_method : public cpp_function {
-public:
-    cpp_method () { }
-    template <typename func> cpp_method(func &&f, const char *name = nullptr,
-               const char *doc = nullptr, return_value_policy
-               policy = return_value_policy::automatic, function sibling = function())
-        : cpp_function(std::forward<func>(f), name, doc, policy, sibling, true) {}
 };
 
 class module : public object {
@@ -249,12 +290,12 @@ public:
         inc_ref();
     }
 
-    template <typename Func>
-    module &def(const char *name, Func f, const char *doc = nullptr,
-                return_value_policy policy = return_value_policy::automatic) {
-        cpp_function func(f, name, doc, policy, (function) attr(name));
+    template <typename Func, typename... Extra>
+    module &def(const char *name_, Func &&f, Extra&& ... extra) {
+        cpp_function func(std::forward<Func>(f), name(name_),
+                          sibling((handle) attr(name_)), std::forward<Extra>(extra)...);
         func.inc_ref(); /* The following line steals a reference to 'func' */
-        PyModule_AddObject(ptr(), name, func.ptr());
+        PyModule_AddObject(ptr(), name_, func.ptr());
         return *this;
     }
 
@@ -270,13 +311,6 @@ public:
 };
 
 NAMESPACE_BEGIN(detail)
-/* Forward declarations */
-enum op_id : int;
-enum op_type : int;
-struct undefined_t;
-template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-template <typename ... Args> struct init;
-
 /// Basic support for creating new Python heap types
 class custom_type : public object {
 public:
@@ -435,6 +469,13 @@ protected:
 
     static void releasebuffer(PyObject *, Py_buffer *view) { delete (buffer_info *) view->internal; }
 };
+
+/* Forward declarations */
+enum op_id : int;
+enum op_type : int;
+struct undefined_t;
+template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
+template <typename... Args> struct init;
 NAMESPACE_END(detail)
 
 template <typename type, typename holder_type = std::unique_ptr<type>> class class_ : public detail::custom_type {
@@ -454,42 +495,41 @@ public:
                               sizeof(instance_type), init_holder, dealloc,
                               parent.ptr(), doc) { }
 
-    template <typename Func>
-    class_ &def(const char *name, Func f, const char *doc = nullptr,
-                return_value_policy policy = return_value_policy::automatic) {
-        attr(name) = cpp_method(f, name, doc, policy, (function) attr(name));
+    template <typename Func, typename... Extra>
+    class_ &def(const char *name_, Func&& f, Extra&&... extra) {
+        attr(name_) = cpp_function(std::forward<Func>(f), name(name_),
+                                   sibling(attr(name_)), is_method(),
+                                   std::forward<Extra>(extra)...);
         return *this;
     }
 
-    template <typename Func> class_ &
-    def_static(const char *name, Func f, const char *doc = nullptr,
-               return_value_policy policy = return_value_policy::automatic) {
-        attr(name) = cpp_function(f, name, doc, policy, (function) attr(name));
+    template <typename Func, typename... Extra> class_ &
+    def_static(const char *name_, Func f, Extra&&... extra) {
+        attr(name_) = cpp_function(std::forward<Func>(f), name(name_),
+                                   sibling(attr(name_)),
+                                   std::forward<Extra>(extra)...);
         return *this;
     }
 
-    template <detail::op_id id, detail::op_type ot, typename L, typename R>
-    class_ &def(const detail::op_<id, ot, L, R> &op, const char *doc = nullptr,
-                return_value_policy policy = return_value_policy::automatic) {
-        op.template execute<type>(*this, doc, policy);
+    template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
+    class_ &def(const detail::op_<id, ot, L, R> &op, Extra&&... extra) {
+        op.template execute<type>(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
-    template <detail::op_id id, detail::op_type ot, typename L, typename R> class_ &
-    def_cast(const detail::op_<id, ot, L, R> &op, const char *doc = nullptr,
-             return_value_policy policy = return_value_policy::automatic) {
-        op.template execute_cast<type>(*this, doc, policy);
+    template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
+    class_ & def_cast(const detail::op_<id, ot, L, R> &op, Extra&&... extra) {
+        op.template execute_cast<type>(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
-    template <typename... Args>
-    class_ &def(const detail::init<Args...> &init, const char *doc = nullptr) {
-        init.template execute<type>(*this, doc);
+    template <typename... Args, typename... Extra>
+    class_ &def(const detail::init<Args...> &init, Extra&&... extra) {
+        init.template execute<type>(*this, std::forward<Extra>(extra)...);
         return *this;
     }
 
-    template <typename Func>
-    class_& def_buffer(Func &&func) {
+    template <typename Func> class_& def_buffer(Func &&func) {
         struct capture { Func func; };
         capture *ptr = new capture { std::forward<Func>(func) };
         install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
@@ -501,73 +541,69 @@ public:
         return *this;
     }
 
-    template <typename C, typename D>
-    class_ &def_readwrite(const char *name, D C::*pm,
-                         const char *doc = nullptr) {
-        cpp_method fget([pm](const C &c) -> const D &{ return c.*pm; }, nullptr,
-                        nullptr, return_value_policy::reference_internal),
-                   fset([pm](C &c, const D &value) { c.*pm = value; });
-        def_property(name, fget, fset, doc);
+    template <typename C, typename D, typename... Extra>
+    class_ &def_readwrite(const char *name, D C::*pm, Extra&&... extra) {
+        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; },
+                          return_value_policy::reference_internal,
+                          is_method(), extra...),
+                     fset([pm](C &c, const D &value) { c.*pm = value; },
+                          is_method(), extra...);
+        def_property(name, fget, fset);
         return *this;
     }
 
-    template <typename C, typename D>
-    class_ &def_readonly(const char *name, const D C::*pm,
-                          const char *doc = nullptr) {
-        cpp_method fget([pm](const C &c) -> const D &{ return c.*pm; }, nullptr,
-                        nullptr, return_value_policy::reference_internal);
-        def_property(name, fget, doc);
+    template <typename C, typename D, typename... Extra>
+    class_ &def_readonly(const char *name, const D C::*pm, Extra&& ...extra) {
+        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; },
+                          return_value_policy::reference_internal,
+                          is_method(), std::forward<Extra>(extra)...);
+        def_property_readonly(name, fget);
         return *this;
     }
 
-    template <typename D>
-    class_ &def_readwrite_static(const char *name, D *pm,
-                                 const char *doc = nullptr) {
+    template <typename D, typename... Extra>
+    class_ &def_readwrite_static(const char *name, D *pm, Extra&& ...extra) {
         cpp_function fget([pm](object) -> const D &{ return *pm; }, nullptr,
-                        nullptr, return_value_policy::reference_internal),
-                     fset([pm](object, const D &value) { *pm = value; });
-        def_property_static(name, fget, fset, doc);
+                          return_value_policy::reference_internal, extra...),
+                     fset([pm](object, const D &value) { *pm = value; }, extra...);
+        def_property_static(name, fget, fset);
         return *this;
     }
 
-    template <typename D>
-    class_ &def_readonly_static(const char *name, const D *pm,
-                                const char *doc = nullptr) {
+    template <typename D, typename... Extra>
+    class_ &def_readonly_static(const char *name, const D *pm, Extra&& ...extra) {
         cpp_function fget([pm](object) -> const D &{ return *pm; }, nullptr,
-                        nullptr, return_value_policy::reference_internal);
-        def_property_static(name, fget, doc);
+                          return_value_policy::reference_internal, std::forward<Extra>(extra)...);
+        def_property_readonly_static(name, fget);
         return *this;
     }
 
-    class_ &def_property(const char *name, const cpp_method &fget,
-                         const char *doc = nullptr) {
-        def_property(name, fget, cpp_method(), doc);
+    class_ &def_property_readonly(const char *name, const cpp_function &fget) {
+        def_property(name, fget, cpp_function());
         return *this;
     }
 
-    class_ &def_property_static(const char *name, const cpp_function &fget,
-                                const char *doc = nullptr) {
-        def_property_static(name, fget, cpp_function(), doc);
+    class_ &def_property_readonly_static(const char *name, const cpp_function &fget) {
+        def_property_static(name, fget, cpp_function());
         return *this;
     }
 
-    class_ &def_property(const char *name, const cpp_method &fget,
-                         const cpp_method &fset, const char *doc = nullptr) {
+    class_ &def_property(const char *name, const cpp_function &fget, const cpp_function &fset) {
         object property(
             PyObject_CallFunction((PyObject *)&PyProperty_Type,
-                                  const_cast<char *>("OOOs"), fget.ptr() ? fget.ptr() : Py_None,
-                                  fset.ptr() ? fset.ptr() : Py_None, Py_None, doc), false);
+                                  const_cast<char *>("OOOO"), fget.ptr() ? fget.ptr() : Py_None,
+                                  fset.ptr() ? fset.ptr() : Py_None, Py_None,
+                                  ((object) const_cast<cpp_function&>(fget).attr("__doc__")).ptr()), false);
         attr(name) = property;
         return *this;
     }
 
-    class_ &def_property_static(const char *name, const cpp_function &fget,
-                                const cpp_function &fset,
-                                const char *doc = nullptr) {
+    class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset) {
         object property(
             PyObject_CallFunction((PyObject *)&PyProperty_Type,
-                                  const_cast<char *>("OOOs"), fget.ptr() ? fget.ptr() : Py_None,
-                                  fset.ptr() ? fset.ptr() : Py_None, Py_None, doc), false);
+                                  const_cast<char *>("OOOO"), fget.ptr() ? fget.ptr() : Py_None,
+                                  fset.ptr() ? fset.ptr() : Py_None, Py_None,
+                                  ((object) const_cast<cpp_function&>(fget).attr("__doc__")).ptr()), false);
         metaclass().attr(name) = property;
         return *this;
     }
@@ -626,10 +662,10 @@ private:
 };
 
 NAMESPACE_BEGIN(detail)
-template <typename ... Args> struct init {
-    template <typename Base, typename Holder> void execute(pybind::class_<Base, Holder> &class_, const char *doc) const {
+template <typename... Args> struct init {
+    template <typename Base, typename Holder, typename... Extra> void execute(pybind::class_<Base, Holder> &class_, Extra&&... extra) const {
         /// Function which calls a specific C++ in-place constructor
-        class_.def("__init__", [](Base *instance, Args... args) { new (instance) Base(args...); }, doc);
+        class_.def("__init__", [](Base *instance, Args... args) { new (instance) Base(args...); }, std::forward<Extra>(extra)...);
     }
 };
 NAMESPACE_END(detail)
