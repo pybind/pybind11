@@ -1,5 +1,5 @@
 /*
-    example/example4.cpp -- Example 4: global constants and functions, enumerations
+    example/example4.cpp -- global constants and functions, enumerations
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

@@ -1,5 +1,6 @@
 /*
-    example/example10.cpp -- Example 10: auto-vectorize functions for NumPy
+    example/example10.cpp -- auto-vectorize functions over NumPy array
+    arguments
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -20,14 +21,16 @@ std::complex<double> my_func3(std::complex<double> c) {
 }
 
 void init_ex10(py::module &m) {
-    // Vectorize all arguments (though non-vector arguments are also allowed)
+    // Vectorize all arguments of a function (though non-vector arguments are also allowed)
     m.def("vectorized_func", py::vectorize(my_func));
+
     // Vectorize a lambda function with a capture object (e.g. to exclude some arguments from the vectorization)
     m.def("vectorized_func2",
         [](py::array_dtype<int> x, py::array_dtype<float> y, float z) {
             return py::vectorize([z](int x, float y) { return my_func(x, y, z); })(x, y);
         }
     );
-    // Vectorize all arguments (complex numbers)
+
+    // Vectorize a complex-valued function
     m.def("vectorized_func3", py::vectorize(my_func3));
 }

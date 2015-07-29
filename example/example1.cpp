@@ -1,6 +1,6 @@
 /*
-    example/example1.cpp -- Example 1: constructors, deconstructors,
-    attribute access, __str__, argument and return value conventions
+    example/example1.cpp -- constructors, deconstructors, attribute access,
+    __str__, argument and return value conventions
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

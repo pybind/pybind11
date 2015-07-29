@@ -1,6 +1,6 @@
 /*
-    example/example2.cpp2 -- Example 2: singleton design pattern, static
-    functions and variables, passing and interacting with Python types
+    example/example2.cpp2 -- singleton design pattern, static functions and
+    variables, passing and interacting with Python types
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

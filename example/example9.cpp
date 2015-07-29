@@ -1,6 +1,5 @@
 /*
-    example/example9.cpp -- Example 9: nested modules
-    and internal references
+    example/example9.cpp -- nested modules and internal references
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

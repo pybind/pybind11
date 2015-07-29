@@ -1,5 +1,5 @@
 /*
-    example/example7.cpp -- Example 7: supporting Pythons' buffer protocol
+    example/example7.cpp -- supporting Pythons' buffer protocol
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

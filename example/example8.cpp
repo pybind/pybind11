@@ -1,6 +1,6 @@
 /*
-    example/example8.cpp -- Example 8: binding classes with
-    custom reference counting, implicit conversions between types
+    example/example8.cpp -- binding classes with custom reference counting,
+    implicit conversions between types
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

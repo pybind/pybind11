@@ -1,6 +1,6 @@
 /*
-    example/example6.cpp -- Example 6: supporting Pythons' sequence
-    protocol, iterators, etc.
+    example/example6.cpp -- supporting Pythons' sequence protocol, iterators,
+    etc.
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

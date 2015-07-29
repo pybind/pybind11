@@ -56,19 +56,6 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 - It is possible to bind C++11 lambda functions with captured variables. The
   lambda capture data is stored inside the resulting Python function object.
 
-## Limitations
-Various things that Boost.Python can do remain unsupported, e.g.:
-
-- Fine grained exception translation: currently, all exceptions derived from
-  `std::exception` are mapped to a Python `Exception`, but that's it.
-
-- Default arguments in C++ functions are ignored, though their effect can be
-  emulated by binding multiple overloads using anonymous functions.
-
-- Python keyword arguments are not supported in bindings
-
-- Weak pointers are not supported
-
 ## What does the binding code look like?
 Here is a simple example. The directory `example` contains many more.
 ```C++
@@ -180,7 +167,7 @@ objects (e.g. a NumPy matrix).
 py::class_<Eigen::MatrixXd>(m, "MatrixXd")
     .def("__init__", [](Eigen::MatrixXd &m, py::buffer b) {
         /* Request a buffer descriptor from Python */
-        py::buffer_info info = b.request(); 
+        py::buffer_info info = b.request();
 
         /* Some sanity checks ... */
         if (info.format != py::format_descriptor<double>::value())
@@ -231,7 +218,7 @@ m.def("vectorized_func", py::vectorize(my_func));
 ```
 Invoking the function like below causes 4 calls to be made to ``my_func`` with
 each of the the array elements. The result is returned as a NumPy array of type
-``numpy.dtype.float64``. 
+``numpy.dtype.float64``.
 ```Python
 >>> x = np.array([[1, 3],[5, 7]])
 >>> y = np.array([[2, 4],[6, 8]])

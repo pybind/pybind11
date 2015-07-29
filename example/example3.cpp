@@ -1,5 +1,5 @@
 /*
-    example/example3.cpp -- Example 3: operator overloading
+    example/example3.cpp -- operator overloading
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

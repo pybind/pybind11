@@ -24,7 +24,7 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 if (UNIX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-unsequenced")
   if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -flto")
   endif()
 endif()
 
@@ -60,6 +60,7 @@ add_library(example SHARED
   example/example8.cpp
   example/example9.cpp
   example/example10.cpp
+  example/example11.cpp
 )
 
 set_target_properties(example PROPERTIES PREFIX "")

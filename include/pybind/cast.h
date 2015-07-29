@@ -392,14 +392,22 @@ public:
         return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }
 
-    static std::string name() {
+    static std::string name(const char **keywords = nullptr, const char **values = nullptr) {
         std::array<std::string, size> names {{
             type_caster<typename detail::decay<Tuple>::type>::name()...
         }};
         std::string result("(");
         int counter = 0;
         for (auto const &name : names) {
+            if (keywords && keywords[counter]) {
+                result += keywords[counter];
+                result += " : ";
+            }
             result += name;
+            if (values && values[counter]) {
+                result += " = ";
+                result += values[counter];
+            }
             if (++counter < size)
                 result += ", ";
         }
@@ -407,12 +415,12 @@ public:
         return result;
     }
 
-    template <typename ReturnValue, typename Func> typename std::enable_if<!std::is_void<ReturnValue>::value, ReturnValue>::type call(Func &f) {
-        return call<ReturnValue, Func>(f, typename make_index_sequence<sizeof...(Tuple)>::type());
+    template <typename ReturnValue, typename Func> typename std::enable_if<!std::is_void<ReturnValue>::value, ReturnValue>::type call(Func &&f) {
+        return call<ReturnValue>(std::forward<Func>(f), typename make_index_sequence<sizeof...(Tuple)>::type());
     }
 
-    template <typename ReturnValue, typename Func> typename std::enable_if<std::is_void<ReturnValue>::value, detail::void_type>::type call(Func &f) {
-        call<ReturnValue, Func>(f, typename make_index_sequence<sizeof...(Tuple)>::type());
+    template <typename ReturnValue, typename Func> typename std::enable_if<std::is_void<ReturnValue>::value, detail::void_type>::type call(Func &&f) {
+        call<ReturnValue>(std::forward<Func>(f), typename make_index_sequence<sizeof...(Tuple)>::type());
         return detail::void_type();
     }
 
@@ -421,7 +429,7 @@ public:
     }
 
 protected:
-    template <typename ReturnValue, typename Func, size_t ... Index> ReturnValue call(Func &f, index_sequence<Index...>) {
+    template <typename ReturnValue, typename Func, size_t ... Index> ReturnValue call(Func &&f, index_sequence<Index...>) {
         return f((Tuple) std::get<Index>(value)...);
     }
 

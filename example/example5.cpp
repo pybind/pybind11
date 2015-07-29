@@ -1,6 +1,6 @@
 /*
-    example/example5.cpp -- Example 5: inheritance, callbacks, acquiring
-    and releasing the global interpreter lock
+    example/example5.cpp -- inheritance, callbacks, acquiring and releasing the
+    global interpreter lock
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 

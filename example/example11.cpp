@@ -1,0 +1,17 @@
+/*
+    example/example11.cpp -- keyword arguments and default values
+
+    Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
+
+    All rights reserved. Use of this source code is governed by a
+    BSD-style license that can be found in the LICENSE file.
+*/
+
+#include "example.h"
+
+void kw_func(int x, int y) { std::cout << "kw_func(x=" << x << ", y=" << y << ")" << std::endl; }
+
+void init_ex11(py::module &m) {
+    m.def("kw_func", &kw_func, py::arg("x"), py::arg("y"));
+    m.def("kw_func2", &kw_func, py::arg("x") = 100, py::arg("y") = 200);
+}
