@@ -10,7 +10,7 @@
 #pragma once
 
 #include <pybind/pybind.h>
-#include <functional>
+#include <pybind/complex.h>
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -126,6 +126,8 @@ public:
     array_dtype() : array() { }
     static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
     PyObject *ensure(PyObject *ptr) {
+        if (ptr == nullptr)
+            return nullptr;
         API &api = lookup_api();
         PyObject *descr = api.PyArray_DescrFromType(npy_format_descriptor<T>::value);
         return api.PyArray_FromAny(ptr, descr, 0, 0,
@@ -158,7 +160,8 @@ template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {
     typename std::remove_reference<Func>::type f;
 
-    vectorize_helper(const Func &f) : f(f) { }
+    template <typename T>
+    vectorize_helper(T&&f) : f(std::forward<T>(f)) { }
 
     object operator()(array_dtype<Args>... args) {
         return run(args..., typename make_index_sequence<sizeof...(Args)>::type());

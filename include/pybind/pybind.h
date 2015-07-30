@@ -16,9 +16,15 @@
 #pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
 #pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #pragma warning(disable: 4512) // warning C4512: Assignment operator was implicitly defined as deleted
+#elif defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
 
 #include <pybind/cast.h>
+#include <iostream>
 
 NAMESPACE_BEGIN(pybind)
 
@@ -57,7 +63,8 @@ private:
     struct function_entry {
         const char *name = nullptr;
         PyObject * (*impl) (function_entry *, PyObject *, PyObject *, PyObject *);
-        void *data;
+        PyMethodDef *def;
+        void *data = nullptr;
         bool is_constructor = false, is_method = false;
         short keywords = 0;
         return_value_policy policy = return_value_policy::automatic;
@@ -304,6 +311,17 @@ private:
         }
     }
 
+    static void destruct(function_entry *entry) {
+        while (entry) {
+            delete entry->def;
+            operator delete(entry->data);
+            Py_XDECREF(entry->sibling);
+            function_entry *next = entry->next;
+            delete entry;
+            entry = next;
+        }
+    }
+
     void initialize(function_entry *entry, int args) {
         if (entry->name == nullptr)
             entry->name = "";
@@ -316,13 +334,13 @@ private:
         entry->is_constructor = !strcmp(entry->name, "__init__");
 
         if (!entry->sibling || !PyCFunction_Check(entry->sibling)) {
-            PyMethodDef *def = new PyMethodDef();
-            memset(def, 0, sizeof(PyMethodDef));
-            def->ml_name = entry->name;
-            def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
-            def->ml_flags = METH_VARARGS | METH_KEYWORDS;
-            capsule entry_capsule(entry);
-            m_ptr = PyCFunction_New(def, entry_capsule.ptr());
+            entry->def = new PyMethodDef();
+            memset(entry->def, 0, sizeof(PyMethodDef));
+            entry->def->ml_name = entry->name;
+            entry->def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
+            entry->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
+            capsule entry_capsule(entry, [](PyObject *o) { destruct((function_entry *) PyCapsule_GetPointer(o, nullptr)); });
+            m_ptr = PyCFunction_New(entry->def, entry_capsule.ptr());
             if (!m_ptr)
                 throw std::runtime_error("cpp_function::cpp_function(): Could not allocate function object");
         } else {
@@ -335,6 +353,7 @@ private:
             parent->next = entry;
             entry = backup;
         }
+
         std::string signatures;
         int index = 0;
         function_entry *it = entry;
@@ -799,4 +818,7 @@ NAMESPACE_END(pybind)
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
+#elif defined(__GNUG__)
+#pragma GCC diagnostic pop
 #endif
+

@@ -22,6 +22,8 @@ except Exception as e:
 from example import test_callback1
 from example import test_callback2
 from example import test_callback3
+from example import test_callback4
+from example import test_callback5
 from example import Example5
 
 def func1():
@@ -43,3 +45,7 @@ print(test_callback2(func2))
 
 callback = MyCallback(3)
 test_callback3(callback, 4)
+
+test_callback4(lambda i: i+1)
+f = test_callback5()
+print("func(43) = %i" % f(43))

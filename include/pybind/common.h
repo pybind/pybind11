@@ -31,9 +31,7 @@
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
-#include <iostream>
 #include <memory>
-#include <complex>
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
@@ -46,6 +44,15 @@
 #endif
 #endif
 #include <Python.h>
+#ifdef isalnum
+#undef isalnum
+#undef isalpha
+#undef islower
+#undef isspace
+#undef isupper
+#undef tolower
+#undef toupper
+#endif
 #if defined(_MSC_VER)
 #if defined(_DEBUG_MARKER)
 #define _DEBUG
@@ -79,12 +86,10 @@ enum class return_value_policy : int {
 
 /// Format strings for basic number types
 template <typename type> struct format_descriptor { };
-#define DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; };
-DECL_FMT(int8_t,  "b"); DECL_FMT(uint8_t,  "B"); DECL_FMT(int16_t, "h"); DECL_FMT(uint16_t, "H");
-DECL_FMT(int32_t, "i"); DECL_FMT(uint32_t, "I"); DECL_FMT(int64_t, "q"); DECL_FMT(uint64_t, "Q");
-DECL_FMT(float,   "f"); DECL_FMT(double,   "d"); DECL_FMT(bool,    "?");
-DECL_FMT(std::complex<float>, "Zf"); DECL_FMT(std::complex<double>, "Zd");
-#undef DECL_FMT
+#define PYBIND_DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; };
+PYBIND_DECL_FMT(int8_t,  "b"); PYBIND_DECL_FMT(uint8_t,  "B"); PYBIND_DECL_FMT(int16_t, "h"); PYBIND_DECL_FMT(uint16_t, "H");
+PYBIND_DECL_FMT(int32_t, "i"); PYBIND_DECL_FMT(uint32_t, "I"); PYBIND_DECL_FMT(int64_t, "q"); PYBIND_DECL_FMT(uint64_t, "Q");
+PYBIND_DECL_FMT(float,   "f"); PYBIND_DECL_FMT(double,   "d"); PYBIND_DECL_FMT(bool,    "?");
 
 /// Information record describing a Python buffer object
 struct buffer_info {
@@ -162,5 +167,6 @@ template <typename T, size_t N> struct decay<T[N]>       { typedef typename deca
 
 /// Helper type to replace 'void' in some expressions
 struct void_type { };
+
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind)

@@ -217,7 +217,6 @@ public:
 };
 
 inline pybind::str handle::str() const { return pybind::str(PyObject_Str(m_ptr), false); }
-inline std::ostream &operator<<(std::ostream &os, const object &obj) { os << (const char *) obj.str(); return os; }
 
 class bool_ : public object {
 public:
@@ -258,7 +257,8 @@ public:
 class capsule : public object {
 public:
     PYBIND_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
-    capsule(void *value) : object(PyCapsule_New(value, nullptr, nullptr), false) { }
+    capsule(PyObject *obj, bool borrowed) : object(obj, borrowed) { }
+    capsule(void *value, void (*destruct)(PyObject *) = nullptr) : object(PyCapsule_New(value, nullptr, destruct), false) { }
     template <typename T> operator T *() const {
         T * result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, nullptr));
         if (!result) throw std::runtime_error("Unable to extract capsule contents!");

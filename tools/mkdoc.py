@@ -212,7 +212,13 @@ if __name__ == '__main__':
 #define __DOC3(n1, n2, n3)                       __doc_##n1##_##n2##_##n3
 #define __DOC4(n1, n2, n3, n4)                   __doc_##n1##_##n2##_##n3##_##n4
 #define __DOC5(n1, n2, n3, n4, n5)               __doc_##n1##_##n2##_##n3##_##n4_##n5
-#define DOC(...)                                 __CAT2(__DOC, __VA_SIZE(__VA_ARGS__))(__VA_ARGS__)''')
+#define DOC(...)                                 __CAT2(__DOC, __VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
+
+#if defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+''')
 
     output = []
     for filename in filenames:
@@ -226,3 +232,9 @@ if __name__ == '__main__':
     output.sort()
     for l in output:
         print(l)
+
+    print('''
+#if defined(__GNUG__)
+#pragma GCC diagnostic pop
+#endif
+''')

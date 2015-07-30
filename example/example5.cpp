@@ -9,6 +9,7 @@
 */
 
 #include "example.h"
+#include <pybind/functional.h>
 
 
 class Pet {
@@ -73,6 +74,14 @@ void test_callback3(Example5 *ex, int value) {
     ex->callback(value);
 }
 
+void test_callback4(const std::function<int(int)> &func) {
+    cout << "func(43) = " << func(43)<< std::endl;
+}
+
+std::function<int(int)> test_callback5() {
+    return [](int i) { return i+1; };
+}
+
 void init_ex5(py::module &m) {
     py::class_<Pet> pet_class(m, "Pet");
     pet_class
@@ -89,6 +98,8 @@ void init_ex5(py::module &m) {
     m.def("test_callback1", &test_callback1);
     m.def("test_callback2", &test_callback2);
     m.def("test_callback3", &test_callback3);
+    m.def("test_callback4", &test_callback4);
+    m.def("test_callback5", &test_callback5);
 
     py::class_<Example5>(m, "Example5")
         .def(py::init<py::object, int>());

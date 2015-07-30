@@ -12,7 +12,6 @@
 
 #include <pybind/pytypes.h>
 #include <pybind/typeid.h>
-#include <map>
 #include <array>
 
 NAMESPACE_BEGIN(pybind)
@@ -167,14 +166,14 @@ PYBIND_TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
 PYBIND_TYPE_CASTER_NUMBER(float, float, PyFloat_AsDouble, PyFloat_FromDouble)
 PYBIND_TYPE_CASTER_NUMBER(double, double, PyFloat_AsDouble, PyFloat_FromDouble)
 
-template <> class type_caster<detail::void_type> {
+template <> class type_caster<void_type> {
 public:
     bool load(PyObject *, bool) { return true; }
-    static PyObject *cast(detail::void_type, return_value_policy /* policy */, PyObject * /* parent */) {
+    static PyObject *cast(void_type, return_value_policy /* policy */, PyObject * /* parent */) {
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PYBIND_TYPE_CASTER(detail::void_type, "None");
+    PYBIND_TYPE_CASTER(void_type, "None");
 };
 
 template <> class type_caster<bool> {
@@ -190,23 +189,6 @@ public:
         return result;
     }
     PYBIND_TYPE_CASTER(bool, "bool");
-};
-
-template <typename T> class type_caster<std::complex<T>> {
-public:
-    bool load(PyObject *src, bool) {
-        Py_complex result = PyComplex_AsCComplex(src);
-        if (result.real == -1.0 && PyErr_Occurred()) {
-            PyErr_Clear();
-            return false;
-        }
-        value = std::complex<T>((T) result.real, (T) result.imag);
-        return true;
-    }
-    static PyObject *cast(const std::complex<T> &src, return_value_policy /* policy */, PyObject * /* parent */) {
-        return PyComplex_FromDoubles((double) src.real(), (double) src.imag());
-    }
-    PYBIND_TYPE_CASTER(std::complex<T>, "complex");
 };
 
 template <> class type_caster<std::string> {
@@ -265,83 +247,6 @@ protected:
     char *value;
 };
 
-template <typename Value> struct type_caster<std::vector<Value>> {
-    typedef std::vector<Value> type;
-    typedef type_caster<Value> value_conv;
-public:
-    bool load(PyObject *src, bool convert) {
-        if (!PyList_Check(src))
-            return false;
-        size_t size = (size_t) PyList_GET_SIZE(src);
-        value.reserve(size);
-        value.clear();
-        for (size_t i=0; i<size; ++i) {
-            value_conv conv;
-            if (!conv.load(PyList_GetItem(src, (ssize_t) i), convert))
-                return false;
-            value.push_back((Value) conv);
-        }
-        return true;
-    }
-
-    static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        PyObject *list = PyList_New(src.size());
-        size_t index = 0;
-        for (auto const &value: src) {
-            PyObject *value_ = value_conv::cast(value, policy, parent);
-            if (!value_) {
-                Py_DECREF(list);
-                return nullptr;
-            }
-            PyList_SetItem(list, index++, value_);
-        }
-        return list;
-    }
-    PYBIND_TYPE_CASTER(type, "list<" + value_conv::name() + ">");
-};
-
-template <typename Key, typename Value> struct type_caster<std::map<Key, Value>> {
-public:
-    typedef std::map<Key, Value>  type;
-    typedef type_caster<Key>   key_conv;
-    typedef type_caster<Value> value_conv;
-
-    bool load(PyObject *src, bool convert) {
-        if (!PyDict_Check(src))
-            return false;
-
-        value.clear();
-        PyObject *key_, *value_;
-        ssize_t pos = 0;
-        key_conv kconv;
-        value_conv vconv;
-        while (PyDict_Next(src, &pos, &key_, &value_)) {
-            if (!kconv.load(key_, convert) || !vconv.load(value_, convert))
-                return false;
-            value[kconv] = vconv;
-        }
-        return true;
-    }
-
-    static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        PyObject *dict = PyDict_New();
-        for (auto const &kv: src) {
-            PyObject *key   = key_conv::cast(kv.first, policy, parent);
-            PyObject *value = value_conv::cast(kv.second, policy, parent);
-            if (!key || !value || PyDict_SetItem(dict, key, value) < 0) {
-                Py_XDECREF(key);
-                Py_XDECREF(value);
-                Py_DECREF(dict);
-                return nullptr;
-            }
-            Py_DECREF(key);
-            Py_DECREF(value);
-        }
-        return dict;
-    }
-    PYBIND_TYPE_CASTER(type, "dict<" + key_conv::name() + ", " + value_conv::name() + ">");
-};
-
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
     typedef std::pair<T1, T2> type;
 public:
@@ -354,8 +259,8 @@ public:
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        PyObject *o1 = type_caster<typename detail::decay<T1>::type>::cast(src.first, policy, parent);
-        PyObject *o2 = type_caster<typename detail::decay<T2>::type>::cast(src.second, policy, parent);
+        PyObject *o1 = type_caster<typename decay<T1>::type>::cast(src.first, policy, parent);
+        PyObject *o2 = type_caster<typename decay<T2>::type>::cast(src.second, policy, parent);
         if (!o1 || !o2) {
             Py_XDECREF(o1);
             Py_XDECREF(o2);
@@ -375,11 +280,11 @@ public:
         return type(first, second);
     }
 protected:
-    type_caster<typename detail::decay<T1>::type> first;
-    type_caster<typename detail::decay<T2>::type> second;
+    type_caster<typename decay<T1>::type> first;
+    type_caster<typename decay<T2>::type> second;
 };
 
-template <typename ... Tuple> class type_caster<std::tuple<Tuple...>> {
+template <typename... Tuple> class type_caster<std::tuple<Tuple...>> {
     typedef std::tuple<Tuple...> type;
 public:
     enum { size = sizeof...(Tuple) };
@@ -394,7 +299,7 @@ public:
 
     static std::string name(const char **keywords = nullptr, const char **values = nullptr) {
         std::array<std::string, size> names {{
-            type_caster<typename detail::decay<Tuple>::type>::name()...
+            type_caster<typename decay<Tuple>::type>::name()...
         }};
         std::string result("(");
         int counter = 0;
@@ -419,9 +324,9 @@ public:
         return call<ReturnValue>(std::forward<Func>(f), typename make_index_sequence<sizeof...(Tuple)>::type());
     }
 
-    template <typename ReturnValue, typename Func> typename std::enable_if<std::is_void<ReturnValue>::value, detail::void_type>::type call(Func &&f) {
+    template <typename ReturnValue, typename Func> typename std::enable_if<std::is_void<ReturnValue>::value, void_type>::type call(Func &&f) {
         call<ReturnValue>(std::forward<Func>(f), typename make_index_sequence<sizeof...(Tuple)>::type());
-        return detail::void_type();
+        return void_type();
     }
 
     operator type() {
@@ -443,8 +348,9 @@ protected:
         if (PyTuple_Size(src) != size)
             return false;
         std::array<bool, size> results {{
-            std::get<Indices>(value).load(PyTuple_GetItem(src, Indices), convert)...
+            (PyTuple_GET_ITEM(src, Indices) != nullptr ? std::get<Indices>(value).load(PyTuple_GET_ITEM(src, Indices), convert) : false)...
         }};
+	(void) convert; /* avoid a warning when the tuple is empty */
         for (bool r : results)
             if (!r)
                 return false;
@@ -454,7 +360,7 @@ protected:
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <size_t ... Indices> static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent, index_sequence<Indices...>) {
         std::array<PyObject *, size> results {{
-            type_caster<typename detail::decay<Tuple>::type>::cast(std::get<Indices>(src), policy, parent)...
+            type_caster<typename decay<Tuple>::type>::cast(std::get<Indices>(src), policy, parent)...
         }};
         bool success = true;
         for (auto result : results)
@@ -475,7 +381,7 @@ protected:
     }
 
 protected:
-    std::tuple<type_caster<typename detail::decay<Tuple>::type>...> value;
+    std::tuple<type_caster<typename decay<Tuple>::type>...> value;
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
@@ -542,7 +448,7 @@ template <typename T> inline object cast(const T &value, return_value_policy pol
 
 template <typename T> inline T handle::cast() { return pybind::cast<T>(m_ptr); }
 
-template <typename ... Args> inline object handle::call(Args&&... args_) {
+template <typename... Args> inline object handle::call(Args&&... args_) {
     const size_t size = sizeof...(Args);
     std::array<PyObject *, size> args{
         { detail::type_caster<typename detail::decay<Args>::type>::cast(
