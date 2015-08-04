@@ -1,4 +1,6 @@
-# pybind11 -- Seamless operability between C++11 and Python
+![pybind11 logo](https://github.com/wjakob/pybind11/raw/master/logo.png)
+
+# pybind11 — Seamless operability between C++11 and Python
 
 **pybind11** is a lightweight header library that exposes C++ types in Python
 and vice versa, mainly to create Python bindings of existing C++ code. Its
