@@ -103,7 +103,7 @@ private:
             PyObject *pyArgs, PyObject *kwargs, bool is_method, detail::index_sequence<Index...>) {
         int index = is_method ? 1 : 0;
         int unused[] = { 0, (process_extra(std::get<Index>(args), index, pyArgs, kwargs), 0)... };
-        (void) unused;
+        (void) unused; (void) index;
     }
 
     static void process_extra(const char *doc, function_entry *entry, const char **, const char **) { entry->doc = doc; }
