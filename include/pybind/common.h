@@ -139,7 +139,7 @@ struct type_info {
 
 /// Internal data struture used to track registered instances and types
 struct internals {
-    std::unordered_map<std::string, type_info> registered_types;
+    std::unordered_map<const std::type_info *, type_info> registered_types;
     std::unordered_map<void *, PyObject *> registered_instances;
 };
 

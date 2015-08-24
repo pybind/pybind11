@@ -17,16 +17,98 @@
 NAMESPACE_BEGIN(pybind)
 NAMESPACE_BEGIN(detail)
 
+#if defined(_MSC_VER)
+#define NOINLINE __declspec(noinline)
+#else
+#define NOINLINE __attribute__ ((noinline))
+#endif
+
+/** Linked list descriptor type for function signatures (produces smaller binaries
+ * compared to a previous solution using std::string and operator +=) */
+class descr {
+public:
+    struct entry {
+        const std::type_info *type = nullptr;
+        const char *str = nullptr;
+        entry *next = nullptr;
+        entry(const std::type_info *type) : type(type) { }
+        entry(const char *str) : str(str) { }
+    };
+
+    descr() { }
+    descr(descr &&d) : first(d.first), last(d.last) { d.first = d.last = nullptr; }
+    NOINLINE descr(const char *str) { first = last = new entry { str }; }
+    NOINLINE descr(const std::type_info &type) { first = last = new entry { &type }; }
+
+    NOINLINE void operator+(const char *str) {
+        entry *next = new entry { str };
+        last->next = next;
+        last = next;
+    }
+
+    NOINLINE void operator+(const std::type_info *type) {
+        entry *next = new entry { type };
+        last->next = next;
+        last = next;
+    }
+
+    NOINLINE void operator+=(descr &&other) {
+        last->next = other.first;
+        while (last->next)
+            last = last->next;
+        other.first = other.last = nullptr;
+    }
+
+    NOINLINE friend descr operator+(descr &&l, descr &&r) {
+        descr result(std::move(l));
+        result += std::move(r);
+        return result;
+    }
+
+    NOINLINE std::string str() const {
+        std::string result;
+        auto const& registered_types = get_internals().registered_types;
+        for (entry *it = first; it != nullptr; it = it->next) {
+            if (it->type) {
+                auto it2 = registered_types.find(it->type);
+                if (it2 != registered_types.end()) {
+                    result += it2->second.type->tp_name;
+                } else {
+                    std::string tname(it->type->name());
+                    detail::clean_type_id(tname);
+                    result += tname;
+                }
+            } else {
+                result += it->str;
+            }
+        }
+        return result;
+    }
+
+    NOINLINE ~descr() {
+        while (first) {
+            entry *tmp = first->next;
+            delete first;
+            first = tmp;
+        }
+    }
+
+    entry *first = nullptr;
+    entry *last = nullptr;
+};
+
+#undef NOINLINE
+
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster {
 public:
     typedef instance<type> instance_type;
 
-    static std::string name() { return type_id<type>(); }
+    static descr descr() { return typeid(type); }
 
     type_caster() {
         auto const& registered_types = get_internals().registered_types;
-        auto it = registered_types.find(type_id<type>());
+        auto it = registered_types.find(&typeid(type));
         if (it != registered_types.end())
             typeinfo = &it->second;
     }
@@ -70,7 +152,7 @@ public:
             Py_INCREF(inst);
             return inst;
         }
-        auto it = internals.registered_types.find(type_id<type>());
+        auto it = internals.registered_types.find(&typeid(type));
         if (it == internals.registered_types.end()) {
             std::string msg = std::string("Unregistered type : ") + type_id<type>();
             PyErr_SetString(PyExc_TypeError, msg.c_str());
@@ -129,7 +211,7 @@ protected:
     protected: \
         type value; \
     public: \
-        static std::string name() { return py_name; } \
+        static descr descr() { return py_name; } \
         static PyObject *cast(const type *src, return_value_policy policy, PyObject *parent) { \
             return cast(*src, policy, parent); \
         } \
@@ -239,7 +321,7 @@ public:
         return PyUnicode_DecodeLatin1(str, 1, nullptr);
     }
 
-    static std::string name() { return "str"; }
+    static descr descr() { return "str"; }
 
     operator char*() { return value; }
     operator char() { return *value; }
@@ -272,8 +354,13 @@ public:
         return tuple;
     }
 
-    static std::string name() {
-        return "(" + type_caster<T1>::name() + ", " + type_caster<T2>::name() + ")";
+    static descr descr() {
+        class descr result("(");
+        result += std::move(type_caster<typename decay<T1>::type>::descr());
+        result += ", ";
+        result += std::move(type_caster<typename decay<T2>::type>::descr());
+        result += ")";
+        return result;
     }
 
     operator type() {
@@ -297,23 +384,22 @@ public:
         return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }
 
-    static std::string name(const char **keywords = nullptr, const char **values = nullptr) {
-        std::array<std::string, size> names {{
-            type_caster<typename decay<Tuple>::type>::name()...
+    static descr descr(const char **keywords = nullptr, const char **values = nullptr) {
+        std::array<class descr, size> descrs {{
+            type_caster<typename decay<Tuple>::type>::descr()...
         }};
-        std::string result("(");
-        int counter = 0;
-        for (auto const &name : names) {
-            if (keywords && keywords[counter]) {
-                result += keywords[counter];
+        class descr result("(");
+        for (int i=0; i<size; ++i) {
+            if (keywords && keywords[i]) {
+                result += keywords[i];
                 result += " : ";
             }
-            result += name;
-            if (values && values[counter]) {
+            result += std::move(descrs[i]);
+            if (values && values[i]) {
                 result += " = ";
-                result += values[counter];
+                result += values[i];
             }
-            if (++counter < size)
+            if (i+1 < size)
                 result += ", ";
         }
         result += ")";
@@ -350,7 +436,7 @@ protected:
         std::array<bool, size> results {{
             (PyTuple_GET_ITEM(src, Indices) != nullptr ? std::get<Indices>(value).load(PyTuple_GET_ITEM(src, Indices), convert) : false)...
         }};
-	(void) convert; /* avoid a warning when the tuple is empty */
+        (void) convert; /* avoid a warning when the tuple is empty */
         for (bool r : results)
             if (!r)
                 return false;

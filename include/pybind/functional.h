@@ -38,7 +38,11 @@ public:
         return f.ptr();
     }
 
-    PYBIND_TYPE_CASTER(type, "function<" + type_caster<std::tuple<Args...>>::name() + " -> " + type_caster<typename decay<Return>::type>::name() + ">");
+
+    PYBIND_TYPE_CASTER(type, detail::descr("function<") +
+            type_caster<std::tuple<Args...>>::descr() + detail::descr(" -> ") +
+            type_caster<typename decay<Return>::type>::descr() +
+            detail::descr(">"));
 };
 
 NAMESPACE_END(detail)

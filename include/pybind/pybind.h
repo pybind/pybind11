@@ -189,11 +189,12 @@ public:
         std::array<const char *, N> kw{}, def{};
         process_extras(((capture *) entry->data)->extras, entry, kw.data(), def.data());
 
-        entry->signature = cast_in::name(kw.data(), def.data());
-        entry->signature += " -> ";
-        entry->signature += cast_out::name();
 
-        initialize(entry, sizeof...(Arg));
+        detail::descr d = cast_in::descr(kw.data(), def.data());
+        d += " -> ";
+        d += std::move(cast_out::descr());
+
+        initialize(entry, d, sizeof...(Arg));
     }
 
     /// Delegating helper constructor to deal with lambda functions
@@ -246,11 +247,11 @@ private:
         std::array<const char *, N> kw{}, def{};
         process_extras(((capture *) entry->data)->extras, entry, kw.data(), def.data());
 
-        entry->signature = cast_in::name(kw.data(), def.data());
-        entry->signature += " -> ";
-        entry->signature += cast_out::name();
+        detail::descr d = cast_in::descr(kw.data(), def.data());
+        d += " -> ";
+        d += std::move(cast_out::descr());
 
-        initialize(entry, sizeof...(Arg));
+        initialize(entry, d, sizeof...(Arg));
     }
 
     static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject *kwargs ) {
@@ -322,9 +323,10 @@ private:
         }
     }
 
-    void initialize(function_entry *entry, int args) {
+    void initialize(function_entry *entry, const detail::descr &descr, int args) {
         if (entry->name == nullptr)
             entry->name = "";
+
         if (entry->keywords != 0 && entry->keywords != args)
             throw std::runtime_error(
                 "cpp_function(): function \"" + std::string(entry->name) + "\" takes " +
@@ -332,6 +334,7 @@ private:
                 " pybind::arg entries were specified!");
 
         entry->is_constructor = !strcmp(entry->name, "__init__");
+        entry->signature = descr.str();
 
         if (!entry->sibling || !PyCFunction_Check(entry->sibling)) {
             entry->def = new PyMethodDef();
@@ -423,7 +426,7 @@ class custom_type : public object {
 public:
     PYBIND_OBJECT_DEFAULT(custom_type, object, PyType_Check)
 
-    custom_type(object &scope, const char *name_, const std::string &type_name,
+    custom_type(object &scope, const char *name_, const std::type_info *tinfo,
                 size_t type_size, size_t instance_size,
                 void (*init_holder)(PyObject *), const destructor &dealloc,
                 PyObject *parent, const char *doc) {
@@ -465,7 +468,7 @@ public:
         if (((module &) scope).check())
             attr("__module__") = scope_name;
 
-        auto &type_info = detail::get_internals().registered_types[type_name];
+        auto &type_info = detail::get_internals().registered_types[tinfo];
         type_info.type = (PyTypeObject *) m_ptr;
         type_info.type_size = type_size;
         type_info.init_holder = init_holder;
@@ -592,13 +595,13 @@ public:
     PYBIND_OBJECT(class_, detail::custom_type, PyType_Check)
 
     class_(object &scope, const char *name, const char *doc = nullptr)
-        : detail::custom_type(scope, name, type_id<type>(), sizeof(type),
+        : detail::custom_type(scope, name, &typeid(type), sizeof(type),
                               sizeof(instance_type), init_holder, dealloc,
                               nullptr, doc) { }
 
     class_(object &scope, const char *name, object &parent,
            const char *doc = nullptr)
-        : detail::custom_type(scope, name, type_id<type>(), sizeof(type),
+        : detail::custom_type(scope, name, &typeid(type), sizeof(type),
                               sizeof(instance_type), init_holder, dealloc,
                               parent.ptr(), doc) { }
 
@@ -790,11 +793,10 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
             PyErr_Clear();
         return result;
     };
-    std::string output_type_name = type_id<OutputType>();
     auto & registered_types = detail::get_internals().registered_types;
-    auto it = registered_types.find(output_type_name);
+    auto it = registered_types.find(&typeid(OutputType));
     if (it == registered_types.end())
-        throw std::runtime_error("implicitly_convertible: Unable to find type " + output_type_name);
+        throw std::runtime_error("implicitly_convertible: Unable to find type " + type_id<OutputType>());
     it->second.implicit_conversions.push_back(implicit_caster);
 }
 
