@@ -190,9 +190,9 @@ public:
         process_extras(((capture *) entry->data)->extras, entry, kw.data(), def.data());
 
 
-        detail::descr d = cast_in::descr(kw.data(), def.data());
+        detail::descr d = cast_in::name(kw.data(), def.data());
         d += " -> ";
-        d += std::move(cast_out::descr());
+        d += std::move(cast_out::name());
 
         initialize(entry, d, sizeof...(Arg));
     }
@@ -247,9 +247,9 @@ private:
         std::array<const char *, N> kw{}, def{};
         process_extras(((capture *) entry->data)->extras, entry, kw.data(), def.data());
 
-        detail::descr d = cast_in::descr(kw.data(), def.data());
+        detail::descr d = cast_in::name(kw.data(), def.data());
         d += " -> ";
-        d += std::move(cast_out::descr());
+        d += std::move(cast_out::name());
 
         initialize(entry, d, sizeof...(Arg));
     }
