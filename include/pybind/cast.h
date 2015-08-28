@@ -13,6 +13,7 @@
 #include <pybind/pytypes.h>
 #include <pybind/typeid.h>
 #include <array>
+#include <limits>
 
 NAMESPACE_BEGIN(pybind)
 NAMESPACE_BEGIN(detail)
@@ -224,8 +225,10 @@ protected:
         bool load(PyObject *src, bool) { \
             py_type py_value = from_type(src); \
             if ((py_value == (py_type) -1 && PyErr_Occurred()) || \
-                py_value < std::numeric_limits<type>::min() || \
-                py_value > std::numeric_limits<type>::max()) { \
+                (std::numeric_limits<type>::is_integer && \
+                 sizeof(py_type) != sizeof(type) && \
+                 (py_value < std::numeric_limits<type>::min() || \
+                  py_value > std::numeric_limits<type>::max()))) { \
                 PyErr_Clear(); \
                 return false; \
             } \

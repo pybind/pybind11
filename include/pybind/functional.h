@@ -24,7 +24,7 @@ public:
             return false;
         object src(src_, true);
         value = [src](Args... args) -> Return {
-            object retval(pybind::handle(src).call<Args...>(std::move(args)...));
+            object retval(pybind::handle(src).call(std::move(args)...));
             /* Visual studio 2015 parser issue: need parentheses around this expression */
             return (retval.template cast<Return>());
         };
