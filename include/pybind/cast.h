@@ -227,8 +227,8 @@ protected:
             if ((py_value == (py_type) -1 && PyErr_Occurred()) || \
                 (std::numeric_limits<type>::is_integer && \
                  sizeof(py_type) != sizeof(type) && \
-                 (py_value < std::numeric_limits<type>::min() || \
-                  py_value > std::numeric_limits<type>::max()))) { \
+                 (py_value < (py_type) std::numeric_limits<type>::min() || \
+                  py_value > (py_type) std::numeric_limits<type>::max()))) { \
                 PyErr_Clear(); \
                 return false; \
             } \
@@ -255,7 +255,7 @@ PYBIND_TYPE_CASTER_NUMBER(ssize_t, Py_ssize_t, PyLong_AsSsize_t, PyLong_FromSsiz
 PYBIND_TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
 #endif
 
-PYBIND_TYPE_CASTER_NUMBER(float, float, PyFloat_AsDouble, PyFloat_FromDouble)
+PYBIND_TYPE_CASTER_NUMBER(float, double, PyFloat_AsDouble, PyFloat_FromDouble)
 PYBIND_TYPE_CASTER_NUMBER(double, double, PyFloat_AsDouble, PyFloat_FromDouble)
 
 template <> class type_caster<void_type> {
