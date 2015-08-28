@@ -29,8 +29,8 @@ from example import Example5
 def func1():
     print('Callback function 1 called!')
 
-def func2(a, b, c):
-    print('Callback function 2 called : ' + str(a) + ", " + str(b) + ", "+ str(c))
+def func2(a, b, c, d):
+    print('Callback function 2 called : ' + str(a) + ", " + str(b) + ", " + str(c) + ", "+ str(d))
     return c
 
 class MyCallback(Example5):

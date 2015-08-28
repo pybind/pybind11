@@ -222,11 +222,14 @@ protected:
     template <> class type_caster<type> { \
     public: \
         bool load(PyObject *src, bool) { \
-            value = (type) from_type(src); \
-            if (value == (type) -1 && PyErr_Occurred()) { \
+            py_type py_value = from_type(src); \
+            if ((py_value == (py_type) -1 && PyErr_Occurred()) || \
+                py_value < std::numeric_limits<type>::min() || \
+                py_value > std::numeric_limits<type>::max()) { \
                 PyErr_Clear(); \
                 return false; \
             } \
+            value = (type) py_value; \
             return true; \
         } \
         static PyObject *cast(type src, return_value_policy /* policy */, PyObject * /* parent */) { \
@@ -235,6 +238,10 @@ protected:
         PYBIND_TYPE_CASTER(type, #type); \
     };
 
+PYBIND_TYPE_CASTER_NUMBER(int8_t, long, PyLong_AsLong, PyLong_FromLong)
+PYBIND_TYPE_CASTER_NUMBER(uint8_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
+PYBIND_TYPE_CASTER_NUMBER(int16_t, long, PyLong_AsLong, PyLong_FromLong)
+PYBIND_TYPE_CASTER_NUMBER(uint16_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
 PYBIND_TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
 PYBIND_TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
 PYBIND_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong, PyLong_FromLongLong)
