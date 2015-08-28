@@ -104,7 +104,7 @@ template <typename type> class type_caster {
 public:
     typedef instance<type> instance_type;
 
-    static descr descr() { return typeid(type); }
+    static descr name() { return typeid(type); }
 
     type_caster() {
         auto const& registered_types = get_internals().registered_types;
@@ -211,7 +211,7 @@ protected:
     protected: \
         type value; \
     public: \
-        static descr descr() { return py_name; } \
+        static descr name() { return py_name; } \
         static PyObject *cast(const type *src, return_value_policy policy, PyObject *parent) { \
             return cast(*src, policy, parent); \
         } \
@@ -328,7 +328,7 @@ public:
         return PyUnicode_DecodeLatin1(str, 1, nullptr);
     }
 
-    static descr descr() { return "str"; }
+    static descr name() { return "str"; }
 
     operator char*() { return value; }
     operator char() { return *value; }
@@ -361,11 +361,11 @@ public:
         return tuple;
     }
 
-    static descr descr() {
+    static descr name() {
         class descr result("(");
-        result += std::move(type_caster<typename decay<T1>::type>::descr());
+        result += std::move(type_caster<typename decay<T1>::type>::name());
         result += ", ";
-        result += std::move(type_caster<typename decay<T2>::type>::descr());
+        result += std::move(type_caster<typename decay<T2>::type>::name());
         result += ")";
         return result;
     }
@@ -391,9 +391,9 @@ public:
         return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }
 
-    static descr descr(const char **keywords = nullptr, const char **values = nullptr) {
-        std::array<class descr, size> descrs {{
-            type_caster<typename decay<Tuple>::type>::descr()...
+    static descr name(const char **keywords = nullptr, const char **values = nullptr) {
+        std::array<class descr, size> names {{
+            type_caster<typename decay<Tuple>::type>::name()...
         }};
         class descr result("(");
         for (int i=0; i<size; ++i) {
@@ -401,7 +401,7 @@ public:
                 result += keywords[i];
                 result += " : ";
             }
-            result += std::move(descrs[i]);
+            result += std::move(names[i]);
             if (values && values[i]) {
                 result += " = ";
                 result += values[i];
