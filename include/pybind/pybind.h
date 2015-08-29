@@ -742,7 +742,7 @@ public:
       : class_<Type>(scope, name, doc), m_parent(scope) {
         auto entries = new std::unordered_map<int, const char *>();
         this->def("__str__", [name, entries](Type value) -> std::string {
-            auto it = entries->find(value);
+            auto it = entries->find((int) value);
             return std::string(name) + "." +
                 ((it == entries->end()) ? std::string("???")
                                         : std::string(it->second));
