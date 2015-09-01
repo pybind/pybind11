@@ -69,7 +69,9 @@ set_target_properties(example PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOUR
 if (WIN32)
   if (MSVC)
     # Enforce size-based optimization and link time code generation on MSVC (~30% smaller binaries in experiments)
-    set_target_properties(example PROPERTIES COMPILE_FLAGS "/Os /GL")
+    # /bigobj is needed for bigger binding projects due to the limit to 64k addressable sections
+    # /MP enables multithreaded builds
+    set_target_properties(example PROPERTIES COMPILE_FLAGS "/Os /GL /MP /bigobj")
     set_target_properties(example PROPERTIES LINK_FLAGS "/LTCG")
   endif()
 
