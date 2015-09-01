@@ -62,8 +62,8 @@ private:
     /// Chained list of function entries for overloading
     struct function_entry {
         const char *name = nullptr;
-        PyObject * (*impl) (function_entry *, PyObject *, PyObject *, PyObject *);
-        PyMethodDef *def;
+        PyObject * (*impl) (function_entry *, PyObject *, PyObject *, PyObject *) = nullptr;
+        PyMethodDef *def = nullptr;
         void *data = nullptr;
         bool is_constructor = false, is_method = false;
         short keywords = 0;
@@ -316,7 +316,6 @@ private:
         while (entry) {
             delete entry->def;
             operator delete(entry->data);
-            Py_XDECREF(entry->sibling);
             function_entry *next = entry->next;
             delete entry;
             entry = next;
