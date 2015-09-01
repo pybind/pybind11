@@ -10,6 +10,7 @@
 
 #include "example.h"
 #include <pybind/operators.h>
+#include <pybind/stl.h>
 
 class Sequence {
 public:
