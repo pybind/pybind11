@@ -47,7 +47,11 @@ public:
         static API lookup() {
             PyObject *numpy = PyImport_ImportModule("numpy.core.multiarray");
             PyObject *capsule = numpy ? PyObject_GetAttrString(numpy, "_ARRAY_API") : nullptr;
+#if PY_MAJOR_VERSION >= 3
             void **api_ptr = (void **) (capsule ? PyCapsule_GetPointer(capsule, NULL) : nullptr);
+#else
+            void **api_ptr = (void **) (capsule ? PyCObject_AsVoidPtr(capsule) : nullptr);
+#endif
             Py_XDECREF(capsule);
             Py_XDECREF(numpy);
             if (api_ptr == nullptr)

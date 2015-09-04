@@ -103,7 +103,11 @@ inline op_<op_##id, op_u, self_t, undefined_t> op(const self_t &) {             
 PYBIND_BINARY_OPERATOR(sub,       rsub,         operator-,    l - r)
 PYBIND_BINARY_OPERATOR(add,       radd,         operator+,    l + r)
 PYBIND_BINARY_OPERATOR(mul,       rmul,         operator*,    l * r)
+#if PY_MAJOR_VERSION >= 3
 PYBIND_BINARY_OPERATOR(truediv,   rtruediv,     operator/,    l / r)
+#else
+PYBIND_BINARY_OPERATOR(div,       rdiv,         operator/,    l / r)
+#endif
 PYBIND_BINARY_OPERATOR(mod,       rmod,         operator%,    l % r)
 PYBIND_BINARY_OPERATOR(lshift,    rlshift,      operator<<,   l << r)
 PYBIND_BINARY_OPERATOR(rshift,    rrshift,      operator>>,   l >> r)

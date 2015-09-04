@@ -25,7 +25,7 @@ NAMESPACE_BEGIN(detail)
 #endif
 
 /** Linked list descriptor type for function signatures (produces smaller binaries
- * compared to a previous solution using std::string and operator +=) */
+    compared to a previous solution using std::string and operator +=) */
 class descr {
 public:
     struct entry {
@@ -241,18 +241,42 @@ protected:
         PYBIND_TYPE_CASTER(type, #type); \
     };
 
+#if PY_MAJOR_VERSION >= 3
+#define PyLong_AsUnsignedLongLong_Fixed PyLong_AsUnsignedLongLong
+#define PyLong_AsLongLong_Fixed PyLong_AsLongLong
+#else
+inline PY_LONG_LONG PyLong_AsLongLong_Fixed(PyObject *o) {
+    if (PyInt_Check(o))
+        return (PY_LONG_LONG) PyLong_AsLong(o);
+    else
+        return ::PyLong_AsLongLong(o);
+}
+
+inline unsigned PY_LONG_LONG PyLong_AsUnsignedLongLong_Fixed(PyObject *o) {
+    if (PyInt_Check(o))
+        return (unsigned PY_LONG_LONG) PyLong_AsUnsignedLong(o);
+    else
+        return ::PyLong_AsUnsignedLongLong(o);
+}
+#endif
+
 PYBIND_TYPE_CASTER_NUMBER(int8_t, long, PyLong_AsLong, PyLong_FromLong)
 PYBIND_TYPE_CASTER_NUMBER(uint8_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
 PYBIND_TYPE_CASTER_NUMBER(int16_t, long, PyLong_AsLong, PyLong_FromLong)
 PYBIND_TYPE_CASTER_NUMBER(uint16_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
 PYBIND_TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
 PYBIND_TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-PYBIND_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong, PyLong_FromLongLong)
-PYBIND_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong, PyLong_FromUnsignedLongLong)
+PYBIND_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
+PYBIND_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
 
 #if defined(__APPLE__) // size_t/ssize_t are separate types on Mac OS X
+#if PY_MAJOR_VERSION >= 3
 PYBIND_TYPE_CASTER_NUMBER(ssize_t, Py_ssize_t, PyLong_AsSsize_t, PyLong_FromSsize_t)
 PYBIND_TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
+#else
+PYBIND_TYPE_CASTER_NUMBER(ssize_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
+PYBIND_TYPE_CASTER_NUMBER(size_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
+#endif
 #endif
 
 PYBIND_TYPE_CASTER_NUMBER(float, double, PyFloat_AsDouble, PyFloat_FromDouble)
@@ -286,7 +310,19 @@ public:
 template <> class type_caster<std::string> {
 public:
     bool load(PyObject *src, bool) {
+#if PY_MAJOR_VERSION >= 3
         const char *ptr = PyUnicode_AsUTF8(src);
+#else
+        const char *ptr = nullptr;
+        object temp;
+        if (PyString_Check(src)) {
+            ptr = PyString_AsString(src);
+        } else {
+            temp = object(PyUnicode_AsUTF8String(src), false);
+            if (temp.ptr() != nullptr)
+                ptr = PyString_AsString(temp.ptr());
+        }
+#endif
         if (!ptr) { PyErr_Clear(); return false; }
         value = std::string(ptr);
         return true;
@@ -301,13 +337,25 @@ public:
 template <> class type_caster<std::wstring> {
 public:
     bool load(PyObject *src, bool) {
+#if PY_MAJOR_VERSION >= 3
         const wchar_t *ptr = PyUnicode_AsWideCharString(src, nullptr);
+#else
+        object temp(PyUnicode_AsUTF16String(src), false);
+        if (temp.ptr() == nullptr)
+            return false;
+        const wchar_t *ptr = (wchar_t*) PyString_AsString(temp.ptr());
+#endif
+
         if (!ptr) { PyErr_Clear(); return false; }
         value = std::wstring(ptr);
         return true;
     }
     static PyObject *cast(const std::wstring &src, return_value_policy /* policy */, PyObject * /* parent */) {
+#if PY_MAJOR_VERSION >= 3
         return PyUnicode_FromWideChar(src.c_str(), src.length());
+#else
+        return PyUnicode_DecodeUTF16((const char *) src.c_str(), src.length() * 2, "strict", nullptr);
+#endif
     }
     PYBIND_TYPE_CASTER(std::wstring, "wstr");
 };
@@ -316,7 +364,14 @@ public:
 template <> class type_caster<char> {
 public:
     bool load(PyObject *src, bool) {
+#if PY_MAJOR_VERSION >= 3
         char *ptr = PyUnicode_AsUTF8(src);
+#else
+        temp = object(PyUnicode_AsLatin1String(src), false);
+        if (temp.ptr() == nullptr)
+            return false;
+        char *ptr = PyString_AsString(temp.ptr());
+#endif
         if (!ptr) { PyErr_Clear(); return false; }
         value = ptr;
         return true;
@@ -337,6 +392,9 @@ public:
     operator char() { return *value; }
 protected:
     char *value;
+#if PY_MAJOR_VERSION < 3
+    object temp;
+#endif
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {

@@ -24,9 +24,6 @@
 #endif
 #endif
 
-#define PYTHON_PLUGIN(name) \
-    extern "C" PYTHON_EXPORT PyObject *PyInit_##name()
-
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -37,7 +34,7 @@
 #if defined(_MSC_VER)
 #define HAVE_ROUND
 #pragma warning(push)
-#pragma warning(disable: 4510 4610 4512)
+#pragma warning(disable: 4510 4610 4512 4005)
 #if _DEBUG
 #define _DEBUG_MARKER
 #undef _DEBUG
@@ -59,6 +56,14 @@
 #undef _DEBUG_MARKER
 #endif
 #pragma warning(pop)
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+#define PYTHON_PLUGIN(name) \
+    extern "C" PYTHON_EXPORT PyObject *PyInit_##name()
+#else
+#define PYTHON_PLUGIN(name) \
+    extern "C" PYTHON_EXPORT PyObject *init##name()
 #endif
 
 NAMESPACE_BEGIN(pybind)

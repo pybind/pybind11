@@ -213,10 +213,30 @@ class str : public object {
 public:
     PYBIND_OBJECT_DEFAULT(str, object, PyUnicode_Check)
     str(const char *s) : object(PyUnicode_FromString(s), false) { }
-    operator const char *() const { return PyUnicode_AsUTF8(m_ptr); }
+    operator const char *() const {
+#if PY_MAJOR_VERSION >= 3
+        return PyUnicode_AsUTF8(m_ptr);
+#else
+        m_temp = object(PyUnicode_AsUTF8String(m_ptr), false);
+        if (m_temp.ptr() == nullptr)
+            return nullptr;
+        return PyString_AsString(m_temp.ptr());
+#endif
+    }
+private:
+#if PY_MAJOR_VERSION < 3
+    mutable object m_temp;
+#endif
 };
 
-inline pybind::str handle::str() const { return pybind::str(PyObject_Str(m_ptr), false); }
+inline pybind::str handle::str() const {
+    PyObject *str = PyObject_Str(m_ptr);
+#if PY_MAJOR_VERSION < 3
+    PyObject *unicode = PyUnicode_FromEncodedObject(str, "utf-8", nullptr);
+    Py_XDECREF(str); str = unicode;
+#endif
+    return pybind::str(str, false);
+}
 
 class bool_ : public object {
 public:
@@ -252,7 +272,13 @@ public:
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
     }
     bool compute(ssize_t length, ssize_t *start, ssize_t *stop, ssize_t *step, ssize_t *slicelength) const {
-        return PySlice_GetIndicesEx(m_ptr, length, start, stop, step, slicelength) == 0;
+        return PySlice_GetIndicesEx(
+#if PY_MAJOR_VERSION >= 3
+                m_ptr,
+#else
+                (PySliceObject *) m_ptr,
+#endif
+                length, start, stop, step, slicelength) == 0;
     }
 };
 

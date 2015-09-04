@@ -100,9 +100,10 @@ public:
     PYBIND_TYPE_CASTER(type, detail::descr("dict<") + key_conv::name() + detail::descr(", ") + value_conv::name() + detail::descr(">"));
 };
 
+NAMESPACE_END(detail)
+
 inline std::ostream &operator<<(std::ostream &os, const object &obj) { os << (const char *) obj.str(); return os; }
 
-NAMESPACE_END(detail)
 NAMESPACE_END(pybind)
 
 #if defined(_MSC_VER)

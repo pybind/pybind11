@@ -45,7 +45,14 @@ template <typename T> struct arg_t : public arg {
 template <typename T> inline arg_t<T> arg::operator=(const T &value) { return arg_t<T>(name, value); }
 
 /// Annotation for methods
-struct is_method { };
+struct is_method {
+#if PY_MAJOR_VERSION < 3
+    PyObject *class_;
+    is_method(object *o) : class_(o->ptr()) { }
+#else
+    is_method(object *) { }
+#endif
+};
 
 /// Annotation for documentation
 struct doc { const char *value; doc(const char *value) : value(value) { } };
@@ -69,10 +76,15 @@ private:
         short keywords = 0;
         return_value_policy policy = return_value_policy::automatic;
         std::string signature;
+#if PY_MAJOR_VERSION < 3
+        PyObject *class_ = nullptr;
+#endif
         PyObject *sibling = nullptr;
         const char *doc = nullptr;
         function_entry *next = nullptr;
     };
+
+    function_entry *m_entry;
 
     /// Picks a suitable return value converter from cast.h
     template <typename T> using return_value_caster =
@@ -122,7 +134,14 @@ private:
         def[entry->keywords++] = strdup(std::to_string(a.value).c_str());
     }
 
-    static void process_extra(const pybind::is_method &, function_entry *entry, const char **, const char **) { entry->is_method = true; }
+    static void process_extra(const pybind::is_method &m, function_entry *entry, const char **, const char **) {
+        entry->is_method = true;
+#if PY_MAJOR_VERSION < 3
+        entry->class_ = m.class_;
+#else
+        (void) m;
+#endif
+    }
     static void process_extra(const pybind::return_value_policy p, function_entry *entry, const char **, const char **) { entry->policy = p; }
     static void process_extra(pybind::sibling s, function_entry *entry, const char **, const char **) { entry->sibling = s.value; }
 
@@ -170,13 +189,13 @@ public:
             std::tuple<Extra...> extras;
         };
 
-        function_entry *entry = new function_entry();
-        entry->data = new capture { f, std::tuple<Extra...>(std::forward<Extra>(extra)...) };
+        m_entry = new function_entry();
+        m_entry->data = new capture { f, std::tuple<Extra...>(std::forward<Extra>(extra)...) };
 
         typedef arg_value_caster<Arg...> cast_in;
         typedef return_value_caster<Return> cast_out;
 
-        entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject * {
+        m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject * {
             capture *data = (capture *) entry->data;
             process_extras(data->extras, pyArgs, kwargs, entry->is_method);
             cast_in args;
@@ -187,14 +206,14 @@ public:
 
         const int N = sizeof...(Extra) > sizeof...(Arg) ? sizeof...(Extra) : sizeof...(Arg);
         std::array<const char *, N> kw{}, def{};
-        process_extras(((capture *) entry->data)->extras, entry, kw.data(), def.data());
+        process_extras(((capture *) m_entry->data)->extras, m_entry, kw.data(), def.data());
 
 
         detail::descr d = cast_in::name(kw.data(), def.data());
         d += " -> ";
         d += std::move(cast_out::name());
 
-        initialize(entry, d, sizeof...(Arg));
+        initialize(d, sizeof...(Arg));
     }
 
     /// Delegating helper constructor to deal with lambda functions
@@ -219,6 +238,9 @@ public:
                    (Return (*)(const Class *, Arg ...)) nullptr, std::forward<Extra>(extra)...);
     }
 
+    /// Return the function name
+    const char *name() const { return m_entry->name; }
+
 private:
     /// Functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Arg, typename... Extra>
@@ -228,13 +250,13 @@ private:
             std::tuple<Extra...> extras;
         };
 
-        function_entry *entry = new function_entry();
-        entry->data = new capture { std::forward<Func>(f), std::tuple<Extra...>(std::forward<Extra>(extra)...) };
+        m_entry = new function_entry();
+        m_entry->data = new capture { std::forward<Func>(f), std::tuple<Extra...>(std::forward<Extra>(extra)...) };
 
         typedef arg_value_caster<Arg...> cast_in;
         typedef return_value_caster<Return> cast_out;
 
-        entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject *{
+        m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject *{
             capture *data = (capture *)entry->data;
             process_extras(data->extras, pyArgs, kwargs, entry->is_method);
             cast_in args;
@@ -245,13 +267,13 @@ private:
 
         const int N = sizeof...(Extra) > sizeof...(Arg) ? sizeof...(Extra) : sizeof...(Arg);
         std::array<const char *, N> kw{}, def{};
-        process_extras(((capture *) entry->data)->extras, entry, kw.data(), def.data());
+        process_extras(((capture *) m_entry->data)->extras, m_entry, kw.data(), def.data());
 
         detail::descr d = cast_in::name(kw.data(), def.data());
         d += " -> ";
         d += std::move(cast_out::name());
 
-        initialize(entry, d, sizeof...(Arg));
+        initialize(d, sizeof...(Arg));
     }
 
     static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject *kwargs ) {
@@ -322,19 +344,31 @@ private:
         }
     }
 
-    void initialize(function_entry *entry, const detail::descr &descr, int args) {
-        if (entry->name == nullptr)
-            entry->name = "";
+    void initialize(const detail::descr &descr, int args) {
+        if (m_entry->name == nullptr)
+            m_entry->name = "";
 
-        if (entry->keywords != 0 && entry->keywords != args)
+#if PY_MAJOR_VERSION < 3
+        if (strcmp(m_entry->name, "__next__") == 0)
+            m_entry->name = "next";
+#endif
+
+        if (m_entry->keywords != 0 && m_entry->keywords != args)
             throw std::runtime_error(
-                "cpp_function(): function \"" + std::string(entry->name) + "\" takes " +
-                std::to_string(args) + " arguments, but " + std::to_string(entry->keywords) +
+                "cpp_function(): function \"" + std::string(m_entry->name) + "\" takes " +
+                std::to_string(args) + " arguments, but " + std::to_string(m_entry->keywords) +
                 " pybind::arg entries were specified!");
 
-        entry->is_constructor = !strcmp(entry->name, "__init__");
-        entry->signature = descr.str();
+        m_entry->is_constructor = !strcmp(m_entry->name, "__init__");
+        m_entry->signature = descr.str();
 
+#if PY_MAJOR_VERSION < 3
+        if (m_entry->sibling && PyMethod_Check(m_entry->sibling))
+            m_entry->sibling = PyMethod_GET_FUNCTION(m_entry->sibling);
+#endif
+
+        function_entry *entry = m_entry;
+        bool overloaded = false;
         if (!entry->sibling || !PyCFunction_Check(entry->sibling)) {
             entry->def = new PyMethodDef();
             memset(entry->def, 0, sizeof(PyMethodDef));
@@ -354,13 +388,14 @@ private:
                 parent = parent->next;
             parent->next = entry;
             entry = backup;
+            overloaded = true;
         }
 
         std::string signatures;
         int index = 0;
         function_entry *it = entry;
         while (it) { /* Create pydoc it */
-            if (it->sibling)
+            if (overloaded)
                 signatures += std::to_string(++index) + ". ";
             signatures += "Signature : " + std::string(it->signature) + "\n";
             if (it->doc && strlen(it->doc) > 0)
@@ -374,7 +409,11 @@ private:
             std::free((char *) func->m_ml->ml_doc);
         func->m_ml->ml_doc = strdup(signatures.c_str());
         if (entry->is_method) {
+#if PY_MAJOR_VERSION >= 3
             m_ptr = PyInstanceMethod_New(m_ptr);
+#else
+            m_ptr = PyMethod_New(m_ptr, nullptr, entry->class_);
+#endif
             if (!m_ptr)
                 throw std::runtime_error("cpp_function::cpp_function(): Could not allocate instance method object");
             Py_DECREF(func);
@@ -387,6 +426,7 @@ public:
     PYBIND_OBJECT_DEFAULT(module, object, PyModule_Check)
 
     module(const char *name, const char *doc = nullptr) {
+#if PY_MAJOR_VERSION >= 3
         PyModuleDef *def = new PyModuleDef();
         memset(def, 0, sizeof(PyModuleDef));
         def->m_name = name;
@@ -394,6 +434,9 @@ public:
         def->m_size = -1;
         Py_INCREF(def);
         m_ptr = PyModule_Create(def);
+#else
+        m_ptr = Py_InitModule3(name, nullptr, doc);
+#endif
         if (m_ptr == nullptr)
             throw std::runtime_error("Internal error in module::module()");
         inc_ref();
@@ -430,7 +473,11 @@ public:
                 void (*init_holder)(PyObject *), const destructor &dealloc,
                 PyObject *parent, const char *doc) {
         PyHeapTypeObject *type = (PyHeapTypeObject*) PyType_Type.tp_alloc(&PyType_Type, 0);
+#if PY_MAJOR_VERSION >= 3
         PyObject *name = PyUnicode_FromString(name_);
+#else
+        PyObject *name = PyString_FromString(name_);
+#endif
         if (type == nullptr || name == nullptr)
             throw std::runtime_error("Internal error in custom_type::custom_type()");
         Py_INCREF(name);
@@ -444,7 +491,10 @@ public:
         if (module_name.check())
             full_name =  std::string(module_name) + "." + full_name;
 
-        type->ht_name = type->ht_qualname = name;
+        type->ht_name = name;
+#if PY_MAJOR_VERSION >= 3
+        type->ht_qualname = name;
+#endif
         type->ht_type.tp_name = strdup(full_name.c_str());
         type->ht_type.tp_basicsize = instance_size;
         type->ht_type.tp_init = (initproc) init;
@@ -453,6 +503,9 @@ public:
         type->ht_type.tp_flags |=
             Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
         type->ht_type.tp_flags &= ~Py_TPFLAGS_HAVE_GC;
+#if PY_MAJOR_VERSION < 3
+        type->ht_type.tp_flags |= Py_TPFLAGS_CHECKTYPES;
+#endif
         type->ht_type.tp_as_number = &type->as_number;
         type->ht_type.tp_as_sequence = &type->as_sequence;
         type->ht_type.tp_as_mapping = &type->as_mapping;
@@ -482,7 +535,12 @@ protected:
     /* Allocate a metaclass on demand (for static properties) */
     handle metaclass() {
         auto &ht_type = ((PyHeapTypeObject *) m_ptr)->ht_type;
+#if PY_MAJOR_VERSION >= 3
         auto &ob_type = ht_type.ob_base.ob_base.ob_type;
+#else
+        auto &ob_type = ht_type.ob_type;
+#endif
+
         if (ob_type == &PyType_Type) {
             std::string name_ = std::string(ht_type.tp_name) + "_meta";
             PyHeapTypeObject *type = (PyHeapTypeObject*) PyType_Type.tp_alloc(&PyType_Type, 0);
@@ -490,7 +548,10 @@ protected:
             if (type == nullptr || name == nullptr)
                 throw std::runtime_error("Internal error in custom_type::metaclass()");
             Py_INCREF(name);
-            type->ht_name = type->ht_qualname = name;
+            type->ht_name = name;
+#if PY_MAJOR_VERSION >= 3
+            type->ht_qualname = name;
+#endif
             type->ht_type.tp_name = strdup(name_.c_str());
             type->ht_type.tp_base = &PyType_Type;
             type->ht_type.tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE;
@@ -541,6 +602,9 @@ protected:
             void *get_buffer_data) {
         PyHeapTypeObject *type = (PyHeapTypeObject*) m_ptr;
         type->ht_type.tp_as_buffer = &type->as_buffer;
+#if PY_MAJOR_VERSION < 3
+        type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_NEWBUFFER;
+#endif
         type->as_buffer.bf_getbuffer = getbuffer;
         type->as_buffer.bf_releasebuffer = releasebuffer;
         auto info = ((detail::type_info *) capsule(attr("__pybind__")));
@@ -606,17 +670,19 @@ public:
 
     template <typename Func, typename... Extra>
     class_ &def(const char *name_, Func&& f, Extra&&... extra) {
-        attr(name_) = cpp_function(std::forward<Func>(f), name(name_),
-                                   sibling(attr(name_)), is_method(),
-                                   std::forward<Extra>(extra)...);
+        cpp_function cf(std::forward<Func>(f), name(name_),
+                        sibling(attr(name_)), is_method(this),
+                        std::forward<Extra>(extra)...);
+        attr(cf.name()) = cf;
         return *this;
     }
 
     template <typename Func, typename... Extra> class_ &
     def_static(const char *name_, Func f, Extra&&... extra) {
-        attr(name_) = cpp_function(std::forward<Func>(f), name(name_),
-                                   sibling(attr(name_)),
-                                   std::forward<Extra>(extra)...);
+        cpp_function cf(std::forward<Func>(f), name(name_),
+                        sibling(attr(name_)),
+                        std::forward<Extra>(extra)...);
+        attr(cf.name()) = cf;
         return *this;
     }
 
@@ -654,9 +720,9 @@ public:
     class_ &def_readwrite(const char *name, D C::*pm, Extra&&... extra) {
         cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; },
                           return_value_policy::reference_internal,
-                          is_method(), extra...),
+                          is_method(this), extra...),
                      fset([pm](C &c, const D &value) { c.*pm = value; },
-                          is_method(), extra...);
+                          is_method(this), extra...);
         def_property(name, fget, fset);
         return *this;
     }
@@ -665,7 +731,7 @@ public:
     class_ &def_readonly(const char *name, const D C::*pm, Extra&& ...extra) {
         cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; },
                           return_value_policy::reference_internal,
-                          is_method(), std::forward<Extra>(extra)...);
+                          is_method(this), std::forward<Extra>(extra)...);
         def_property_readonly(name, fget);
         return *this;
     }
