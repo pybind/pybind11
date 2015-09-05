@@ -100,7 +100,7 @@ const int Example2::value2 = 5;
 void init_ex2(py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
-    py::class_<Example2>(m, "Example2")
+    py::class_<Example2>(m, "Example2", "Example 2 documentation")
         .def("get_dict", &Example2::get_dict, "Return a Python dictionary")
         .def("get_dict_2", &Example2::get_dict_2, "Return a C++ dictionary")
         .def("get_list", &Example2::get_list, "Return a Python list")

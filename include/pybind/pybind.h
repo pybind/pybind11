@@ -510,6 +510,11 @@ public:
         type->ht_type.tp_as_sequence = &type->as_sequence;
         type->ht_type.tp_as_mapping = &type->as_mapping;
         type->ht_type.tp_base = (PyTypeObject *) parent;
+        if (doc) {
+            size_t size = strlen(doc)+1;
+            type->ht_type.tp_doc = (char *)PyObject_MALLOC(size);
+            memcpy((void *) type->ht_type.tp_doc, doc, size);
+        }
         Py_XINCREF(parent);
 
         if (PyType_Ready(&type->ht_type) < 0)
@@ -525,8 +530,6 @@ public:
         type_info.type_size = type_size;
         type_info.init_holder = init_holder;
         attr("__pybind__") = capsule(&type_info);
-        if (doc)
-            attr("__doc__") = pybind::str(doc);
 
         scope.attr(name) = *this;
     }
