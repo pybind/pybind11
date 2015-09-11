@@ -42,9 +42,15 @@ public:
     Vector2& operator-=(const Vector2 &v) { x -= v.x; y -= v.y; return *this; }
     Vector2& operator*=(float v) { x *= v; y *= v; return *this; }
     Vector2& operator/=(float v) { x /= v; y /= v; return *this; }
+
+    friend Vector2 operator+(float f, const Vector2 &v) { return Vector2(f + v.x, f + v.y); }
+    friend Vector2 operator-(float f, const Vector2 &v) { return Vector2(f - v.x, f - v.y); }
+    friend Vector2 operator*(float f, const Vector2 &v) { return Vector2(f * v.x, f * v.y); }
+    friend Vector2 operator/(float f, const Vector2 &v) { return Vector2(f / v.x, f / v.y); }
 private:
     float x, y;
 };
+
 
 void init_ex3(py::module &m) {
     py::class_<Vector2>(m, "Vector2")
@@ -59,6 +65,10 @@ void init_ex3(py::module &m) {
         .def(py::self -= py::self)
         .def(py::self *= float())
         .def(py::self /= float())
+        .def(float() + py::self)
+        .def(float() - py::self)
+        .def(float() * py::self)
+        .def(float() / py::self)
         .def("__str__", &Vector2::toString);
 
     m.attr("Vector") = m.attr("Vector2");

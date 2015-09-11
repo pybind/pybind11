@@ -16,6 +16,10 @@ print("v1-8  = " + str(v1-8))
 print("v1+8  = " + str(v1+8))
 print("v1*8  = " + str(v1*8))
 print("v1/8  = " + str(v1/8))
+print("8-v1  = " + str(8-v1))
+print("8+v1  = " + str(8+v1))
+print("8*v1  = " + str(8*v1))
+print("8/v1  = " + str(8/v1))
 
 v1 += v2
 v1 *= 2
