@@ -25,6 +25,8 @@ public:
         object src(src_, true);
         value = [src](Args... args) -> Return {
             object retval(pybind::handle(src).call(std::move(args)...));
+            if (retval.ptr() == nullptr && PyErr_Occurred())
+                throw error_already_set();
             /* Visual studio 2015 parser issue: need parentheses around this expression */
             return (retval.template cast<Return>());
         };
