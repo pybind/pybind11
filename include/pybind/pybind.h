@@ -208,7 +208,6 @@ public:
         std::array<const char *, N> kw{}, def{};
         process_extras(((capture *) m_entry->data)->extras, m_entry, kw.data(), def.data());
 
-
         detail::descr d = cast_in::name(kw.data(), def.data());
         d += " -> ";
         d += std::move(cast_out::name());
@@ -276,7 +275,7 @@ private:
         initialize(d, sizeof...(Arg));
     }
 
-    static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject *kwargs ) {
+    static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject *kwargs) {
         function_entry *overloads = (function_entry *) PyCapsule_GetPointer(self, nullptr);
         int nargs = (int) PyTuple_Size(args);
         PyObject *result = nullptr;
@@ -285,7 +284,7 @@ private:
             for (function_entry *it = overloads; it != nullptr; it = it->next) {
                 PyObject *args_ = args;
 
-                if (it->keywords != 0 && it->keywords != nargs) {
+                if (it->keywords != 0 && nargs < it->keywords) {
                     args_ = PyTuple_New(it->keywords);
                     for (int i=0; i<nargs; ++i) {
                         PyObject *item = PyTuple_GET_ITEM(args, i);
