@@ -883,6 +883,8 @@ public:
 
 inline function get_overload(const void *this_ptr, const char *name)  {
     handle py_object = detail::get_object_handle(this_ptr);
+    if (!py_object)
+        return function();
     handle type = py_object.get_type();
     auto key = std::make_pair(type.ptr(), name);
 

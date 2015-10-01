@@ -400,7 +400,7 @@ inline handle get_object_handle(const void *ptr) {
     auto instances = get_internals().registered_instances;
     auto it = instances.find(ptr);
     if (it == instances.end())
-        throw std::runtime_error("Internal error: could not acquire Python handle of a C++ object");
+        return handle();
     return it->second;
 }
 
