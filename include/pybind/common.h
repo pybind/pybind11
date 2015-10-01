@@ -17,7 +17,7 @@
 #endif
 
 #if !defined(PYTHON_EXPORT)
-#if defined(WIN32)
+#if defined(WIN32) || defined(_WIN32)
 #define PYTHON_EXPORT __declspec(dllexport)
 #else
 #define PYTHON_EXPORT __attribute__ ((visibility("default")))
