@@ -404,5 +404,13 @@ inline handle get_object_handle(const void *ptr) {
     return it->second;
 }
 
+inline handle get_type_handle(const std::type_info &tp) {
+    auto instances = get_internals().registered_types;
+    auto it = instances.find(&tp);
+    if (it == instances.end())
+        return handle();
+    return handle((PyObject *) it->second.type);
+}
+
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind)
