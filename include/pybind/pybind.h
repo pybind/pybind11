@@ -521,8 +521,7 @@ public:
         m_ptr = (PyObject *) type;
 
         /* Needed by pydoc */
-        if (((module &) scope).check())
-            attr("__module__") = scope_name;
+        attr("__module__") = scope_name;
 
         auto &type_info = detail::get_internals().registered_types[tinfo];
         type_info.type = (PyTypeObject *) m_ptr;
