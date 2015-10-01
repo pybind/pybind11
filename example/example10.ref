@@ -1,0 +1,35 @@
+(6+14j)
+my_func(x:int=1, y:float=2, z:float=3)
+6.0
+my_func(x:int=1, y:float=2, z:float=3)
+6.0
+my_func(x:int=1, y:float=2, z:float=3)
+my_func(x:int=3, y:float=4, z:float=3)
+[  6.  36.]
+my_func(x:int=1, y:float=2, z:float=3)
+my_func(x:int=3, y:float=4, z:float=3)
+my_func(x:int=5, y:float=6, z:float=3)
+my_func(x:int=7, y:float=8, z:float=3)
+my_func(x:int=9, y:float=10, z:float=3)
+my_func(x:int=11, y:float=12, z:float=3)
+[[   6.   36.   90.]
+ [ 168.  270.  396.]]
+[[  6  36  90]
+ [168 270 396]]
+my_func(x:int=1, y:float=2, z:float=3)
+6.0
+my_func(x:int=1, y:float=2, z:float=3)
+6.0
+my_func(x:int=1, y:float=2, z:float=3)
+my_func(x:int=3, y:float=4, z:float=3)
+[  6.  36.]
+my_func(x:int=1, y:float=2, z:float=3)
+my_func(x:int=3, y:float=4, z:float=3)
+my_func(x:int=5, y:float=6, z:float=3)
+my_func(x:int=7, y:float=8, z:float=3)
+my_func(x:int=9, y:float=10, z:float=3)
+my_func(x:int=11, y:float=12, z:float=3)
+[[   6.   36.   90.]
+ [ 168.  270.  396.]]
+[[  6  36  90]
+ [168 270 396]]

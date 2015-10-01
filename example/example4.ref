@@ -1,16 +1,16 @@
-test_function()
-test_function(7)
-test_function(enum=1)
-test_function(enum=2)
-Example4::test_function(enum=1)
 <class 'example.EMyEnumeration'>
 EMyEnumeration.EFirstEntry
 EMyEnumeration.ESecondEntry
 EMyEnumeration.EFirstEntry
+test_function()
 False
+test_function(7)
 3.5
+test_function(enum=1)
 None
+test_function(enum=2)
 None
-<class 'example.Example4.EMode'>
+<class 'Example4.EMode'>
 EMode.EFirstMode
 EMode.EFirstMode
+Example4::test_function(enum=1)

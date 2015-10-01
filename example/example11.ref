@@ -1,0 +1,19 @@
+Help on built-in function kw_func
+
+kkww__ffuunncc(...)
+    Signature : (x : int32_t, y : int32_t) -> None
+
+Help on built-in function kw_func2
+
+kkww__ffuunncc22(...)
+    Signature : (x : int32_t = 100, y : int32_t = 200) -> None
+
+kw_func(x=5, y=10)
+kw_func(x=5, y=10)
+kw_func(x=5, y=10)
+kw_func(x=100, y=200)
+kw_func(x=5, y=200)
+kw_func(x=5, y=200)
+kw_func(x=100, y=10)
+kw_func(x=5, y=10)
+kw_func(x=5, y=10)
