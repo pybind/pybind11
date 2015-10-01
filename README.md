@@ -38,6 +38,7 @@ The following core C++ features can be mapped to Python
 - STL data structures
 - Smart pointers with reference counting like `std::shared_ptr`
 - Internal references with correct reference counting
+- C++ classes with virtual (and pure virtual) methods can be extended in Python
 
 ## Goodies
 In addition to the core functionality, pybind11 provides some extra goodies:

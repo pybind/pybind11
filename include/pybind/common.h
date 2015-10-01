@@ -27,6 +27,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <unordered_set>
 #include <unordered_map>
 #include <memory>
 
@@ -114,13 +115,6 @@ struct buffer_info {
     }
 };
 
-// C++ bindings of core Python exceptions
-struct stop_iteration    : public std::runtime_error { public: stop_iteration(const std::string &w="") : std::runtime_error(w)   {} };
-struct index_error       : public std::runtime_error { public: index_error(const std::string &w="")    : std::runtime_error(w)   {} };
-struct error_already_set : public std::exception     { public: error_already_set()                                               {} };
-/// Thrown when pybind::cast or handle::call fail due to a type casting error
-struct cast_error        : public std::runtime_error { public: cast_error(const std::string &w = "") : std::runtime_error(w) {} };
-
 NAMESPACE_BEGIN(detail)
 
 inline std::string error_string();
@@ -145,10 +139,19 @@ struct type_info {
     void *get_buffer_data = nullptr;
 };
 
+struct overload_hash {
+    inline std::size_t operator()(const std::pair<const PyObject *, const char *>& v) const {
+        size_t value = std::hash<const void *>()(v.first);
+        value ^= std::hash<const void *>()(v.second)  + 0x9e3779b9 + (value<<6) + (value>>2);
+        return value;
+    }
+};
+
 /// Internal data struture used to track registered instances and types
 struct internals {
     std::unordered_map<const std::type_info *, type_info> registered_types;
-    std::unordered_map<void *, PyObject *> registered_instances;
+    std::unordered_map<const void *, PyObject *> registered_instances;
+    std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
 };
 
 /// Return a reference to the current 'internals' information
@@ -176,5 +179,20 @@ template <typename T, size_t N> struct decay<T[N]>       { typedef typename deca
 /// Helper type to replace 'void' in some expressions
 struct void_type { };
 
+/// to_string variant which also accepts strings
+template <typename T> inline typename std::enable_if<!std::is_enum<T>::value, std::string>::type
+to_string(const T &value) { return std::to_string(value); }
+template <> inline std::string to_string(const std::string &value) { return value; }
+template <typename T> inline typename std::enable_if<std::is_enum<T>::value, std::string>::type
+to_string(T value) { return std::to_string((int) value); }
+
 NAMESPACE_END(detail)
+
+// C++ bindings of core Python exceptions
+struct stop_iteration    : public std::runtime_error { public: stop_iteration(const std::string &w="") : std::runtime_error(w)   {} };
+struct index_error       : public std::runtime_error { public: index_error(const std::string &w="")    : std::runtime_error(w)   {} };
+struct error_already_set : public std::runtime_error { public: error_already_set() : std::runtime_error(detail::error_string())  {} };
+/// Thrown when pybind::cast or handle::call fail due to a type casting error
+struct cast_error        : public std::runtime_error { public: cast_error(const std::string &w = "") : std::runtime_error(w)     {} };
+
 NAMESPACE_END(pybind)

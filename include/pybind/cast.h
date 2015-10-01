@@ -601,6 +601,7 @@ template <typename T> inline object cast(const T &value, return_value_policy pol
 }
 
 template <typename T> inline T handle::cast() { return pybind::cast<T>(m_ptr); }
+template <> inline void handle::cast() { return; }
 
 template <typename... Args> inline object handle::call(Args&&... args_) {
     const size_t size = sizeof...(Args);
@@ -624,6 +625,8 @@ template <typename... Args> inline object handle::call(Args&&... args_) {
         PyTuple_SetItem(tuple, counter++, result);
     PyObject *result = PyObject_CallObject(m_ptr, tuple);
     Py_DECREF(tuple);
+    if (result == nullptr && PyErr_Occurred())
+        throw error_already_set();
     return object(result, false);
 }
 

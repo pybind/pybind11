@@ -24,7 +24,6 @@
 #endif
 
 #include <pybind/cast.h>
-#include <iostream>
 
 NAMESPACE_BEGIN(pybind)
 
@@ -46,12 +45,8 @@ template <typename T> inline arg_t<T> arg::operator=(const T &value) { return ar
 
 /// Annotation for methods
 struct is_method {
-#if PY_MAJOR_VERSION < 3
     PyObject *class_;
     is_method(object *o) : class_(o->ptr()) { }
-#else
-    is_method(object *) { }
-#endif
 };
 
 /// Annotation for documentation
@@ -76,9 +71,7 @@ private:
         short keywords = 0;
         return_value_policy policy = return_value_policy::automatic;
         std::string signature;
-#if PY_MAJOR_VERSION < 3
         PyObject *class_ = nullptr;
-#endif
         PyObject *sibling = nullptr;
         const char *doc = nullptr;
         function_entry *next = nullptr;
@@ -126,21 +119,18 @@ private:
             kw[entry->keywords++] = "self";
         kw[entry->keywords++] = a.name;
     }
+
     template <typename T>
     static void process_extra(const pybind::arg_t<T> &a, function_entry *entry, const char **kw, const char **def) {
         if (entry->is_method && entry->keywords == 0)
             kw[entry->keywords++] = "self";
         kw[entry->keywords] = a.name;
-        def[entry->keywords++] = strdup(std::to_string(a.value).c_str());
+        def[entry->keywords++] = strdup(detail::to_string(a.value).c_str());
     }
 
     static void process_extra(const pybind::is_method &m, function_entry *entry, const char **, const char **) {
         entry->is_method = true;
-#if PY_MAJOR_VERSION < 3
         entry->class_ = m.class_;
-#else
-        (void) m;
-#endif
     }
     static void process_extra(const pybind::return_value_policy p, function_entry *entry, const char **, const char **) { entry->policy = p; }
     static void process_extra(pybind::sibling s, function_entry *entry, const char **, const char **) { entry->sibling = s.value; }
@@ -366,35 +356,38 @@ private:
             m_entry->sibling = PyMethod_GET_FUNCTION(m_entry->sibling);
 #endif
 
-        function_entry *entry = m_entry;
-        bool overloaded = false;
-        if (!entry->sibling || !PyCFunction_Check(entry->sibling)) {
-            entry->def = new PyMethodDef();
-            memset(entry->def, 0, sizeof(PyMethodDef));
-            entry->def->ml_name = entry->name;
-            entry->def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
-            entry->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
-            capsule entry_capsule(entry, [](PyObject *o) { destruct((function_entry *) PyCapsule_GetPointer(o, nullptr)); });
-            m_ptr = PyCFunction_New(entry->def, entry_capsule.ptr());
+        function_entry *s_entry = nullptr, *entry = m_entry;
+        if (m_entry->sibling && PyCFunction_Check(m_entry->sibling)) {
+            capsule entry_capsule(PyCFunction_GetSelf(m_entry->sibling), true);
+            s_entry = (function_entry *) entry_capsule;
+            if (s_entry->class_ != m_entry->class_)
+                s_entry = nullptr; /* Method override */
+        }
+
+        if (!s_entry) {
+            m_entry->def = new PyMethodDef();
+            memset(m_entry->def, 0, sizeof(PyMethodDef));
+            m_entry->def->ml_name = m_entry->name;
+            m_entry->def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
+            m_entry->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
+            capsule entry_capsule(m_entry, [](PyObject *o) { destruct((function_entry *) PyCapsule_GetPointer(o, nullptr)); });
+            m_ptr = PyCFunction_New(m_entry->def, entry_capsule.ptr());
             if (!m_ptr)
                 throw std::runtime_error("cpp_function::cpp_function(): Could not allocate function object");
         } else {
-            m_ptr = entry->sibling;
+            m_ptr = m_entry->sibling;
             inc_ref();
-            capsule entry_capsule(PyCFunction_GetSelf(m_ptr), true);
-            function_entry *parent = (function_entry *) entry_capsule, *backup = parent;
-            while (parent->next)
-                parent = parent->next;
-            parent->next = entry;
-            entry = backup;
-            overloaded = true;
+            entry = s_entry;
+            while (s_entry->next)
+                s_entry = s_entry->next;
+            s_entry->next = m_entry;
         }
 
         std::string signatures;
         int index = 0;
         function_entry *it = entry;
         while (it) { /* Create pydoc it */
-            if (overloaded)
+            if (s_entry)
                 signatures += std::to_string(++index) + ". ";
             signatures += "Signature : " + std::string(it->signature) + "\n";
             if (it->doc && strlen(it->doc) > 0)
@@ -783,6 +776,12 @@ public:
         metaclass().attr(name) = property;
         return *this;
     }
+
+    template <typename target> class_ alias() {
+        auto &instances = pybind::detail::get_internals().registered_types;
+        instances[&typeid(target)] = instances[&typeid(type)];
+        return *this;
+    }
 private:
     static void init_holder(PyObject *inst_) {
         instance_type *inst = (instance_type *) inst_;
@@ -881,6 +880,43 @@ public:
     inline gil_scoped_release() { state = PyEval_SaveThread(); }
     inline ~gil_scoped_release() { PyEval_RestoreThread(state); }
 };
+
+inline function get_overload(const void *this_ptr, const char *name)  {
+    handle py_object = detail::get_object_handle(this_ptr);
+    handle type = py_object.get_type();
+    auto key = std::make_pair(type.ptr(), name);
+
+    /* Cache functions that aren't overloaded in python to avoid
+       many costly dictionary lookups in Python */
+    auto &cache = detail::get_internals().inactive_overload_cache;
+    if (cache.find(key) != cache.end())
+        return function();
+
+    function overload = (function) py_object.attr(name);
+    if (overload.is_cpp_function()) {
+        cache.insert(key);
+        return function();
+    }
+    PyFrameObject *frame = PyThreadState_Get()->frame;
+    pybind::str caller = pybind::handle(frame->f_code->co_name).str();
+    if (strcmp((const char *) caller, name) == 0)
+        return function();
+    return overload;
+}
+
+#define PYBIND_OVERLOAD_INT(ret_type, class_name, name, ...) { \
+        pybind::gil_scoped_acquire gil; \
+        pybind::function overload = pybind::get_overload(this, #name); \
+        if (overload) \
+            return overload.call(__VA_ARGS__).cast<ret_type>();  }
+
+#define PYBIND_OVERLOAD(ret_type, class_name, name, ...) \
+    PYBIND_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
+    return class_name::name(__VA_ARGS__)
+
+#define PYBIND_OVERLOAD_PURE(ret_type, class_name, name, ...) \
+    PYBIND_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
+    throw std::runtime_error("Tried to call pure virtual function \"" #name "\"");
 
 NAMESPACE_END(pybind)
 

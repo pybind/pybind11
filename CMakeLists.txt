@@ -61,6 +61,7 @@ add_library(example SHARED
   example/example9.cpp
   example/example10.cpp
   example/example11.cpp
+  example/example12.cpp
 )
 
 set_target_properties(example PROPERTIES PREFIX "")

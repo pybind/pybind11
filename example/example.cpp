@@ -20,6 +20,7 @@ void init_ex8(py::module &);
 void init_ex9(py::module &);
 void init_ex10(py::module &);
 void init_ex11(py::module &);
+void init_ex12(py::module &);
 
 PYTHON_PLUGIN(example) {
     py::module m("example", "pybind example plugin");
@@ -35,6 +36,7 @@ PYTHON_PLUGIN(example) {
     init_ex9(m);
     init_ex10(m);
     init_ex11(m);
+    init_ex12(m);
 
     return m.ptr();
 }

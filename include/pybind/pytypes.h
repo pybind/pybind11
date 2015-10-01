@@ -331,10 +331,12 @@ public:
         PyObject *ptr = m_ptr;
         if (ptr == nullptr)
             return false;
-#if PY_MAJOR_VERSION < 3
+#if PY_MAJOR_VERSION >= 3
+        if (PyInstanceMethod_Check(ptr))
+            ptr = PyInstanceMethod_GET_FUNCTION(ptr);
+#endif
         if (PyMethod_Check(ptr))
             ptr = PyMethod_GET_FUNCTION(ptr);
-#endif
         return PyCFunction_Check(ptr);
     }
 };

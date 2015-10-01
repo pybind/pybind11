@@ -37,28 +37,6 @@ void dog_bark(const Dog &dog) {
     dog.bark();
 }
 
-class Example5  {
-public:
-    Example5(py::handle self, int state)
-        : self(self), state(state) {
-        cout << "Constructing Example5.." << endl;
-    }
-
-    ~Example5() {
-        cout << "Destructing Example5.." << endl;
-    }
-
-    void callback(int value) {
-		py::gil_scoped_acquire gil;
-        cout << "In Example5::callback() " << endl;
-        py::object method = self.attr("callback");
-        method.call(state, value);
-    }
-private:
-    py::handle self;
-    int state;
-};
-
 bool test_callback1(py::object func) {
     func.call();
     return false;
@@ -69,16 +47,11 @@ int test_callback2(py::object func) {
     return result.cast<int>();
 }
 
-void test_callback3(Example5 *ex, int value) {
-	py::gil_scoped_release gil;
-    ex->callback(value);
-}
-
-void test_callback4(const std::function<int(int)> &func) {
+void test_callback3(const std::function<int(int)> &func) {
     cout << "func(43) = " << func(43)<< std::endl;
 }
 
-std::function<int(int)> test_callback5() {
+std::function<int(int)> test_callback4() {
     return [](int i) { return i+1; };
 }
 
@@ -99,8 +72,4 @@ void init_ex5(py::module &m) {
     m.def("test_callback2", &test_callback2);
     m.def("test_callback3", &test_callback3);
     m.def("test_callback4", &test_callback4);
-    m.def("test_callback5", &test_callback5);
-
-    py::class_<Example5>(m, "Example5")
-        .def(py::init<py::object, int>());
 }
