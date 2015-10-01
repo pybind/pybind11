@@ -1,12 +1,44 @@
-import subprocess, sys, os
+import sys
+import os
+import re
+import subprocess
+
+remove_unicode_marker = re.compile(r'u(\'[^\']*\')')
+remove_long_marker    = re.compile(r'([0-9])L')
+remove_hex            = re.compile(r'0x[0-9a-f]+')
+shorten_floats        = re.compile(r'([1-9][0-9]*\.[0-9]{4})[0-9]*')
+
+
+def sanitize(lines):
+    lines = lines.split('\n')
+    for i in range(len(lines)):
+        line = lines[i]
+        if line.startswith(" |"):
+            line = ""
+        line = remove_unicode_marker.sub(r'\1', line)
+        line = remove_long_marker.sub(r'\1', line)
+        line = remove_hex.sub(r'0xHEX', line)
+        line = shorten_floats.sub(r'\1', line)
+        line = line.replace('__builtin__', 'builtins')
+        line = line.replace('example.', '')
+        line = line.replace('method of builtins.PyCapsule instance', '')
+        line = line.strip()
+        lines[i] = line
+
+    lines = '\n'.join(sorted([l for l in lines if l != ""]))
+
+    print('==================')
+    print(lines)
+    return lines
 
 path = os.path.dirname(__file__)
 if path != '':
     os.chdir(path)
 
 name = sys.argv[1]
-output    = subprocess.check_output([sys.executable, name + ".py"]).decode('utf-8')
-reference = open(name + '.ref', 'r').read()
+output_bytes = subprocess.check_output([sys.executable, name + ".py"])
+output    = sanitize(output_bytes.decode('utf-8'))
+reference = sanitize(open(name + '.ref', 'r').read())
 
 if output == reference:
     print('Test "%s" succeeded.' % name)

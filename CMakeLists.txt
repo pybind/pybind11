@@ -113,6 +113,6 @@ endif()
 
 enable_testing()
 set(RUN_TEST ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/example/run_test.py)
-foreach(i RANGE 1 7)
+foreach(i RANGE 1 12)
   add_test(NAME example${i} COMMAND ${RUN_TEST} example${i})
 endforeach()
