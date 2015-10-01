@@ -32,6 +32,7 @@ public:
     void inc_ref() const { Py_XINCREF(m_ptr); }
     void dec_ref() const { Py_XDECREF(m_ptr); }
     int ref_count() const { return (int) Py_REFCNT(m_ptr); }
+    handle get_type() { return (PyObject *) Py_TYPE(m_ptr); }
     inline detail::accessor operator[](handle key);
     inline detail::accessor operator[](const char *key);
     inline detail::accessor attr(handle key);
@@ -325,6 +326,17 @@ public:
 class function : public object {
 public:
     PYBIND_OBJECT_DEFAULT(function, object, PyFunction_Check)
+
+    bool is_cpp_function() {
+        PyObject *ptr = m_ptr;
+        if (ptr == nullptr)
+            return false;
+#if PY_MAJOR_VERSION < 3
+        if (PyMethod_Check(ptr))
+            ptr = PyMethod_GET_FUNCTION(ptr);
+#endif
+        return PyCFunction_Check(ptr);
+    }
 };
 
 class buffer : public object {
@@ -365,5 +377,30 @@ inline internals &get_internals() {
     }
     return *internals_ptr;
 }
+
+inline std::string error_string() {
+    std::string errorString;
+    PyThreadState *tstate = PyThreadState_GET();
+    if (tstate == nullptr)
+        return "";
+
+    if (tstate->curexc_type) {
+        errorString += (const char *) handle(tstate->curexc_type).str();
+        errorString += ": ";
+    }
+    if (tstate->curexc_value)
+        errorString += (const char *) handle(tstate->curexc_value).str();
+
+    return errorString;
+}
+
+inline handle get_object_handle(const void *ptr) {
+    auto instances = get_internals().registered_instances;
+    auto it = instances.find(ptr);
+    if (it == instances.end())
+        throw std::runtime_error("Internal error: could not acquire Python handle of a C++ object");
+    return it->second;
+}
+
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind)

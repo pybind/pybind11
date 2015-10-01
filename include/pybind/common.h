@@ -41,6 +41,7 @@
 #endif
 #endif
 #include <Python.h>
+#include <frameobject.h>
 #ifdef isalnum
 #undef isalnum
 #undef isalpha
@@ -121,6 +122,8 @@ struct error_already_set : public std::exception     { public: error_already_set
 struct cast_error        : public std::runtime_error { public: cast_error(const std::string &w = "") : std::runtime_error(w) {} };
 
 NAMESPACE_BEGIN(detail)
+
+inline std::string error_string();
 
 /// PyObject wrapper around generic types
 template <typename type, typename holder_type = std::unique_ptr<type>> struct instance {
