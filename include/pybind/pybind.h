@@ -812,6 +812,7 @@ public:
                 ((it == entries->end()) ? std::string("???")
                                         : std::string(it->second));
         });
+        this->def("__int__", [](Type value) { return (int) value; });
         m_entries = entries;
     }
 
