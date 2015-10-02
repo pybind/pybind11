@@ -610,7 +610,7 @@ template <typename... Args> inline object handle::call(Args&&... args_) {
     const size_t size = sizeof...(Args);
     std::array<PyObject *, size> args{
         { detail::type_caster<typename detail::decay<Args>::type>::cast(
-            std::forward<Args>(args_), return_value_policy::automatic, nullptr)... }
+            std::forward<Args>(args_), return_value_policy::reference, nullptr)... }
     };
     bool fail = false;
     for (auto result : args)
