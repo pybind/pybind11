@@ -190,7 +190,7 @@ public:
             process_extras(data->extras, pyArgs, kwargs, entry->is_method);
             cast_in args;
             if (!args.load(pyArgs, true))
-                return nullptr;
+                return (PyObject *) 1; /* Special return code: try next overload */
             return cast_out::cast(args.template call<Return>(data->f), entry->policy, parent);
         };
 
@@ -246,11 +246,11 @@ private:
         typedef return_value_caster<Return> cast_out;
 
         m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject *{
-            capture *data = (capture *)entry->data;
+            capture *data = (capture *) entry->data;
             process_extras(data->extras, pyArgs, kwargs, entry->is_method);
             cast_in args;
             if (!args.load(pyArgs, true))
-                return nullptr;
+                return (PyObject *) 1; /* Special return code: try next overload */
             return cast_out::cast(args.template call<Return>(data->f), entry->policy, parent);
         };
 
@@ -270,8 +270,9 @@ private:
         int nargs = (int) PyTuple_Size(args);
         PyObject *result = nullptr;
         PyObject *parent = nargs > 0 ? PyTuple_GetItem(args, 0) : nullptr;
+        function_entry *it = overloads;
         try {
-            for (function_entry *it = overloads; it != nullptr; it = it->next) {
+            for (; it != nullptr; it = it->next) {
                 PyObject *args_ = args;
 
                 if (it->keywords != 0 && nargs < it->keywords) {
@@ -289,7 +290,7 @@ private:
                     Py_DECREF(args_);
                 }
 
-                if (result != nullptr)
+                if (result != (PyObject *) 1)
                     break;
             }
         } catch (const error_already_set &) {                                               return nullptr;
@@ -300,7 +301,24 @@ private:
             PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
             return nullptr;
         }
-        if (result) {
+        if (result == (PyObject *) 1) {
+            std::string msg = "Incompatible function arguments. The "
+                              "following argument types are supported:\n";
+            int ctr = 0;
+            for (function_entry *it = overloads; it != nullptr; it = it->next) {
+                msg += "    "+ std::to_string(++ctr) + ". ";
+                msg += it->signature;
+                msg += "\n";
+            }
+            PyErr_SetString(PyExc_TypeError, msg.c_str());
+            return nullptr;
+        } else if (result == nullptr) {
+            std::string msg = "Unable to convert function return value to a "
+                              "Python type! The signature was\n\t";
+            msg += it->signature;
+            PyErr_SetString(PyExc_TypeError, msg.c_str());
+            return nullptr;
+        } else {
             if (overloads->is_constructor) {
                 PyObject *inst = PyTuple_GetItem(args, 0);
                 const detail::type_info *type_info =
@@ -309,17 +327,6 @@ private:
                 type_info->init_holder(inst);
             }
             return result;
-        } else {
-            std::string signatures = "Incompatible function arguments. The "
-                                     "following argument types are supported:\n";
-            int ctr = 0;
-            for (function_entry *it = overloads; it != nullptr; it = it->next) {
-                signatures += "    "+ std::to_string(++ctr) + ". ";
-                signatures += it->signature;
-                signatures += "\n";
-            }
-            PyErr_SetString(PyExc_TypeError, signatures.c_str());
-            return nullptr;
         }
     }
 
