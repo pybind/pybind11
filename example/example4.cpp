@@ -31,13 +31,13 @@ bool test_function1() {
     return false;
 }
 
-float test_function2(int i) {
-    std::cout << "test_function(" << i << ")" << std::endl;
-    return i / 2.f;
+void test_function2(EMyEnumeration k) {
+    std::cout << "test_function(enum=" << k << ")" << std::endl;
 }
 
-void test_function3(EMyEnumeration k) {
-    std::cout << "test_function(enum=" << k << ")" << std::endl;
+float test_function3(int i) {
+    std::cout << "test_function(" << i << ")" << std::endl;
+    return i / 2.f;
 }
 
 void init_ex4(py::module &m) {
