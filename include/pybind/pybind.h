@@ -305,9 +305,9 @@ private:
             std::string msg = "Incompatible function arguments. The "
                               "following argument types are supported:\n";
             int ctr = 0;
-            for (function_entry *it = overloads; it != nullptr; it = it->next) {
+            for (function_entry *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
-                msg += it->signature;
+                msg += it2->signature;
                 msg += "\n";
             }
             PyErr_SetString(PyExc_TypeError, msg.c_str());
