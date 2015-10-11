@@ -16,9 +16,11 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
+set(PYBIND_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
+
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
-find_package(PythonLibs REQUIRED)
-find_package(PythonInterp REQUIRED)
+find_package(PythonLibs ${PYBIND_PYTHON_VERSION} REQUIRED)
+find_package(PythonInterp ${PYBIND_PYTHON_VERSION} REQUIRED)
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 if (UNIX)

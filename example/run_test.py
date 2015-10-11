@@ -17,7 +17,7 @@ def sanitize(lines):
             line = ""
         line = remove_unicode_marker.sub(r'\1', line)
         line = remove_long_marker.sub(r'\1', line)
-        line = remove_hex.sub(r'0xHEX', line)
+        line = remove_hex.sub(r'0', line)
         line = shorten_floats.sub(r'\1', line)
         line = line.replace('__builtin__', 'builtins')
         line = line.replace('example.', '')
