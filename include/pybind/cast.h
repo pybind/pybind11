@@ -24,6 +24,12 @@ NAMESPACE_BEGIN(detail)
 #define NOINLINE __attribute__ ((noinline))
 #endif
 
+#if PY_MAJOR_VERSION >= 3
+#define PYBIND_AS_STRING PyBytes_AsString
+#else
+#define PYBIND_AS_STRING PyString_AsString
+#endif
+
 /** Linked list descriptor type for function signatures (produces smaller binaries
     compared to a previous solution using std::string and operator +=) */
 class descr {
@@ -313,21 +319,15 @@ public:
 template <> class type_caster<std::string> {
 public:
     bool load(PyObject *src, bool) {
-#if PY_MAJOR_VERSION >= 3
-        const char *ptr = PyUnicode_AsUTF8(src);
-#else
-        const char *ptr = nullptr;
-        object temp;
-        if (PyString_Check(src)) {
-            ptr = PyString_AsString(src);
-        } else {
-            temp = object(PyUnicode_AsUTF8String(src), false);
-            if (temp.ptr() != nullptr)
-                ptr = PyString_AsString(temp.ptr());
-        }
+#if PY_MAJOR_VERSION < 3
+        if (PyString_Check(src)) { value = PyString_AsString(src); return true; }
 #endif
+        object temp(PyUnicode_AsUTF8String(src), false);
+        const char *ptr = nullptr;
+        if (temp)
+            ptr = PYBIND_AS_STRING(temp.ptr());
         if (!ptr) { PyErr_Clear(); return false; }
-        value = std::string(ptr);
+        value = ptr;
         return true;
     }
     static PyObject *cast(const std::string &src, return_value_policy /* policy */, PyObject * /* parent */) {
@@ -336,45 +336,16 @@ public:
     PYBIND_TYPE_CASTER(std::string, "str");
 };
 
-#ifdef HAVE_WCHAR_H
-template <> class type_caster<std::wstring> {
-public:
-    bool load(PyObject *src, bool) {
-#if PY_MAJOR_VERSION >= 3
-        const wchar_t *ptr = PyUnicode_AsWideCharString(src, nullptr);
-#else
-        object temp(PyUnicode_AsUTF16String(src), false);
-        if (temp.ptr() == nullptr)
-            return false;
-        const wchar_t *ptr = (wchar_t*) PyString_AsString(temp.ptr());
-#endif
-
-        if (!ptr) { PyErr_Clear(); return false; }
-        value = std::wstring(ptr);
-        return true;
-    }
-    static PyObject *cast(const std::wstring &src, return_value_policy /* policy */, PyObject * /* parent */) {
-#if PY_MAJOR_VERSION >= 3
-        return PyUnicode_FromWideChar(src.c_str(), src.length());
-#else
-        return PyUnicode_DecodeUTF16((const char *) src.c_str(), src.length() * 2, "strict", nullptr);
-#endif
-    }
-    PYBIND_TYPE_CASTER(std::wstring, "wstr");
-};
-#endif
-
 template <> class type_caster<char> {
 public:
     bool load(PyObject *src, bool) {
-#if PY_MAJOR_VERSION >= 3
-        char *ptr = PyUnicode_AsUTF8(src);
-#else
-        temp = object(PyUnicode_AsLatin1String(src), false);
-        if (temp.ptr() == nullptr)
-            return false;
-        char *ptr = PyString_AsString(temp.ptr());
+#if PY_MAJOR_VERSION < 3
+        if (PyString_Check(src)) { value = PyString_AsString(src); return true; }
 #endif
+        object temp(PyUnicode_AsUTF8String(src), false);
+        const char *ptr = nullptr;
+        if (temp)
+            ptr = PYBIND_AS_STRING(temp.ptr());
         if (!ptr) { PyErr_Clear(); return false; }
         value = ptr;
         return true;
@@ -391,13 +362,10 @@ public:
 
     static descr name() { return "str"; }
 
-    operator char*() { return value; }
-    operator char() { return *value; }
+    operator char*() { return (char *) value.c_str(); }
+    operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
 protected:
-    char *value;
-#if PY_MAJOR_VERSION < 3
-    object temp;
-#endif
+    std::string value;
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
