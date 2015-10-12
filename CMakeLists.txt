@@ -9,22 +9,28 @@ cmake_minimum_required(VERSION 2.8)
 
 project(pybind)
 
+# Add a CMake parameter for choosing a desired Python version
+set(PYBIND_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
+
+# Set a default build configuration if none is specified. 'MinSizeRel' produces the smallest binaries
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'MinSizeRel' as none was specified.")
   set(CMAKE_BUILD_TYPE MinSizeRel CACHE STRING "Choose the type of build." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
     "MinSizeRel" "RelWithDebInfo")
 endif()
-
-set(PYBIND_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
+string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
 find_package(PythonLibs ${PYBIND_PYTHON_VERSION} REQUIRED)
 find_package(PythonInterp ${PYBIND_PYTHON_VERSION} REQUIRED)
 
-string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 if (UNIX)
+  # Enable C++11 mode
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+  # Enable link time optimization and set the default symbol
+  # visibility to hidden (very important to obtain small binaries)
   if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -flto")
   endif()
@@ -41,8 +47,13 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
-include_directories(${PYTHON_INCLUDE_DIR} include)
+# Include path for Python header files
+include_directories(${PYTHON_INCLUDE_DIR})
 
+# Include path for pybind11 header files
+include_directories(include)
+
+# Create the binding library
 add_library(example SHARED
   include/pybind/cast.h
   include/pybind/common.h
@@ -66,14 +77,18 @@ add_library(example SHARED
   example/example12.cpp
 )
 
+# Don't add a 'lib' prefix to the shared library
 set_target_properties(example PROPERTIES PREFIX "")
+
+# Write the output file directly into the 'example' directory
 set_target_properties(example PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/example)
 
 if (WIN32)
   if (MSVC)
-    # Enforce size-based optimization and link time code generation on MSVC (~30% smaller binaries in experiments)
-    # /bigobj is needed for bigger binding projects due to the limit to 64k addressable sections
-    # /MP enables multithreaded builds
+    # Enforce size-based optimization and link time code generation
+    # on MSVC (~30% smaller binaries in experiments). /bigobj is needed
+    # for bigger binding projects due to the limit to 64k addressable sections
+    # /MP enables multithreaded builds (relevant when there are many files).
     set_target_properties(example PROPERTIES COMPILE_FLAGS "/Os /GL /MP /bigobj")
     set_target_properties(example PROPERTIES LINK_FLAGS "/LTCG")
   endif()
@@ -91,10 +106,11 @@ elseif (UNIX)
   # into Blender or Maya later on, this will cause segfaults when multiple
   # conflicting Python instances are active at the same time.
 
-  # Windows does not seem to be affected by this issue. The solution for Linux
-  # and Mac OS is simple: we just don't link against the Python library. The
-  # resulting shared library will have missing symbols, but that's perfectly
-  # fine -- they will be resolved at import time.
+  # Windows is not affected by this issue since it handles DLL imports 
+  # differently. The solution for Linux and Mac OS is simple: we just don't
+  # link against the Python library. The resulting shared library will have
+  # missing symbols, but that's perfectly fine -- they will be resolved at
+  # import time.
 
   # .SO file extension on Linux/Mac OS
   set_target_properties(example PROPERTIES SUFFIX ".so")
