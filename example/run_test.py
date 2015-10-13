@@ -5,7 +5,7 @@ import subprocess
 
 remove_unicode_marker = re.compile(r'u(\'[^\']*\')')
 remove_long_marker    = re.compile(r'([0-9])L')
-remove_hex            = re.compile(r'0x[0-9a-f]+')
+remove_hex            = re.compile(r'0x[0-9a-fA-F]+')
 shorten_floats        = re.compile(r'([1-9][0-9]*\.[0-9]{4})[0-9]*')
 
 
@@ -23,6 +23,10 @@ def sanitize(lines):
         line = line.replace('example.', '')
         line = line.replace('method of builtins.PyCapsule instance', '')
         line = line.strip()
+        if sys.platform == 'win32':
+            lower = line.lower()
+            if 'constructor' in lower or 'destructor' in lower or 'ref' in lower:
+                line = ""
         lines[i] = line
 
     lines = '\n'.join(sorted([l for l in lines if l != ""]))

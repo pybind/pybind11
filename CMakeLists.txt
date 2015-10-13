@@ -80,8 +80,16 @@ add_library(example SHARED
 # Don't add a 'lib' prefix to the shared library
 set_target_properties(example PROPERTIES PREFIX "")
 
-# Write the output file directly into the 'example' directory
-set_target_properties(example PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/example)
+# Always write the output file directly into the 'example' directory (even on MSVC)
+set(CompilerFlags
+  LIBRARY_OUTPUT_DIRECTORY LIBRARY_OUTPUT_DIRECTORY_RELEASE LIBRARY_OUTPUT_DIRECTORY_DEBUG
+  LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO
+  RUNTIME_OUTPUT_DIRECTORY RUNTIME_OUTPUT_DIRECTORY_RELEASE RUNTIME_OUTPUT_DIRECTORY_DEBUG
+  RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO)
+
+foreach(CompilerFlag ${CompilerFlags})
+  set_target_properties(example PROPERTIES ${CompilerFlag} ${PROJECT_SOURCE_DIR}/example)
+endforeach()
 
 if (WIN32)
   if (MSVC)
