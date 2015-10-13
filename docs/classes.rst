@@ -24,10 +24,10 @@ The binding code for ``Pet`` looks as follows:
 .. code-block:: cpp
 
     #include <pybind/pybind.h>
-    
+
     namespace py = pybind;
 
-    PYTHON_PLUGIN(example) {
+    PYBIND_PLUGIN(example) {
         py::module m("example", "pybind example plugin");
 
         py::class_<Pet>(m, "Pet")
@@ -140,7 +140,8 @@ that can only be accessed via setters and getters.
 
 In this case, the method :func:`class_::def_property`
 (:func:`class_::def_property_readonly` for read-only data) can be used to
-provide an interface that is indistinguishable from within Python:
+provide a field-like interface within Python that will transparently call
+the setter and getter functions:
 
 .. code-block:: cpp
 
@@ -190,7 +191,7 @@ class.
 
 Instances then expose fields and methods of both types:
 
-.. code-block:: python 
+.. code-block:: python
 
     >>> p = example.Dog('Molly')
     >>> p.name
@@ -249,13 +250,18 @@ The overload signatures are also visible in the method's docstring:
      |      2. Signature : (Pet, str) -> None
      |
      |      Set the pet's name
-     |
+
+.. note::
+
+    To define multiple overloaded constructors, simply declare one after the
+    other using the ``.def(py::init<...>())`` syntax. The existing machinery
+    for specifying keyword and default arguments also works.
 
 Enumerations and internal types
 ===============================
 
-Let's now suppose that the example class also contains an internal enumeration
-type.
+Let's now suppose that the example class contains an internal enumeration type,
+e.g.:
 
 .. code-block:: cpp
 
@@ -288,9 +294,9 @@ The binding code for this example looks as follows:
 
 To ensure that the ``Kind`` type is created within the scope of ``Pet``, the
 ``pet`` :class:`class_` instance must be supplied to the :class:`enum_`.
-constructor. The :func:`enum_::export_values` function ensures that the enum
-entries are exported into the parent scope; skip this call for new C++11-style
-strongly typed enums.
+constructor. The :func:`enum_::export_values` function exports the enum entries
+into the parent scope, which should be skipped for newer C++11-style strongly
+typed enums.
 
 .. code-block:: python
 
@@ -301,4 +307,4 @@ strongly typed enums.
     1L
 
 
-.. [#f1] (those with an empty pair of brackets ``[]`` as the capture object) 
+.. [#f1] Stateless closures are those with an empty pair of brackets ``[]`` as the capture object.

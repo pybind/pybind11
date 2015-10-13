@@ -80,14 +80,14 @@ a file named :file:`example.cpp` with the following contents:
 .. code-block:: cpp
 
     #include <pybind/pybind.h>
-    
+
     int add(int i, int j) {
         return i + j;
     }
 
     namespace py = pybind;
 
-    PYTHON_PLUGIN(example) {
+    PYBIND_PLUGIN(example) {
         py::module m("example", "pybind example plugin");
 
         m.def("add", &add, "A function which adds two numbers");
@@ -95,7 +95,7 @@ a file named :file:`example.cpp` with the following contents:
         return m.ptr();
     }
 
-The :func:`PYTHON_PLUGIN` macro creates a function that will be called when an
+The :func:`PYBIND_PLUGIN` macro creates a function that will be called when an
 ``import`` statement is issued from within Python. The next line creates a
 module named ``example`` (with the supplied docstring). The method
 :func:`module::def` generates binding code that exposes the
@@ -130,13 +130,14 @@ shows how to load and execute the example.
 
 .. code-block:: python
 
-    % python
+    $ python
     Python 2.7.10 (default, Aug 22 2015, 20:33:39)
     [GCC 4.2.1 Compatible Apple LLVM 7.0.0 (clang-700.0.59.1)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import example
     >>> example.add(1, 2)
     3L
+    >>>
 
 .. _keyword_args:
 
@@ -219,7 +220,7 @@ Supported data types
 
 The following basic data types are supported out of the box (some may require
 an additional extension header to be included). To pass other data structures
-as arguments and return values, refer to the section on :ref:`classes`.
+as arguments and return values, refer to the section on binding :ref:`classes`.
 
 +------------------------+--------------------------+---------------------+
 |  Data type             |  Description             | Header file         |

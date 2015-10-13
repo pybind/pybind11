@@ -3,23 +3,506 @@
 Advanced topics
 ###############
 
+For brevity, the rest of this chapter assumes that the following two lines are
+present:
+
+.. code-block:: cpp
+
+    #include <pybind/pybind.h>
+
+    namespace py = pybind;
+
 Operator overloading
 ====================
+
+Suppose that we're given the following ``Vector2`` class with a vector addition
+and scalar multiplication operation, all implemented using overloaded operators
+in C++.
+
+.. code-block:: cpp
+
+    class Vector2 {
+    public:
+        Vector2(float x, float y) : x(x), y(y) { }
+
+        std::string toString() const { return "[" + std::to_string(x) + ", " + std::to_string(y) + "]"; }
+
+        Vector2 operator+(const Vector2 &v) const { return Vector2(x + v.x, y + v.y); }
+        Vector2 operator*(float value) const { return Vector2(x * value, y * value); }
+        Vector2& operator+=(const Vector2 &v) { x += v.x; y += v.y; return *this; }
+        Vector2& operator*=(float v) { x *= v; y *= v; return *this; }
+
+        friend Vector2 operator*(float f, const Vector2 &v) { return Vector2(f * v.x, f * v.y); }
+
+    private:
+        float x, y;
+    };
+
+The following snippet shows how the above operators can be conveniently exposed
+to Python.
+
+.. code-block:: cpp
+
+    #include <pybind/operators.h>
+
+    PYBIND_PLUGIN(example) {
+        py::module m("example", "pybind example plugin");
+
+        py::class_<Vector2>(m, "Vector2")
+            .def(py::init<float, float>())
+            .def(py::self + py::self)
+            .def(py::self += py::self)
+            .def(py::self *= float())
+            .def(float() * py::self)
+            .def("__repr__", &Vector2::toString);
+
+        return m.ptr();
+    }
+
+Note that a line like
+
+.. code-block:: cpp
+
+            .def(py::self * float())
+
+is really just short hand notation for
+
+.. code-block:: cpp
+
+    .def("__mul__", [](const Vector2 &a, float b) {
+        return a * b;
+    })
+
+This can be useful for exposing additional operators that don't exist on the
+C++ side, or to perform other types of customization.
+
+.. note::
+
+    To use the more convenient ``py::self`` notation, the additional
+    header file :file:`pybind/operators.h` must be included.
+
+.. seealso::
+
+    The file :file:`example/example3.cpp` contains a complete example that
+    demonstrates how to work with overloaded operators in more detail.
+
+Callbacks and passing anonymous functions
+=========================================
+
+The C++11 standard brought lambda functions and the generic polymorphic
+function wrapper ``std::function<>`` to the C++ programming language, which
+enable powerful new ways of working with functions. Lambda functions come in
+two flavors: stateless lambda function resemble classic function pointers that
+link to an anonymous piece of code, while stateful lambda functions
+additionally depend on captured variables that are stored in an anonymous
+*lambda closure object*.
+
+Here is a simple example of a C++ function that takes an arbitrary function
+(stateful or stateless) with signature ``int -> int`` as an argument and runs
+it with the value 10.
+
+.. code-block:: cpp
+
+    int func_arg(const std::function<int(int)> &f) {
+        return f(10);
+    }
+
+The example below is more involved: it takes a function of signature ``int -> int``
+and returns another function of the same kind. The return value is a stateful
+lambda function, which stores the value ``f`` in the capture object and adds 1 to
+its return value upon execution.
+
+.. code-block:: cpp
+
+    std::function<int(int)> func_ret(const std::function<int(int)> &f) {
+        return [f](int i) {
+            return f(i) + 1;
+        };
+    }
+
+After including the extra header file :file:`pybind/functional.h`, it is almost
+trivial to generate binding code for both of these functions.
+
+.. code-block:: cpp
+
+    #include <pybind/functional.h>
+
+    PYBIND_PLUGIN(example) {
+        py::module m("example", "pybind example plugin");
+
+        m.def("func_arg", &func_arg);
+        m.def("func_ret", &func_ret);
+
+        return m.ptr();
+    }
+
+The following interactive session shows how to call them from Python.
+
+.. code-block:: python
+
+    $ python
+    >>> import example
+    >>> def square(i):
+    ...     return i * i
+    ...
+    >>> example.func_arg(square)
+    100L
+    >>> square_plus_1 = example.func_ret(square)
+    >>> square_plus_1(4)
+    17L
+    >>>
+
+.. note::
+
+    This functionality is very useful when generating bindings for callbacks in
+    C++ libraries (e.g. a graphical user interface library).
+
+    The file :file:`example/example5.cpp` contains a complete example that
+    demonstrates how to work with callbacks and anonymous functions in more detail.
 
 Overriding virtual functions in Python
 ======================================
 
-Passing anonymous functions
+Suppose that a C++ class or interface has a virtual function that we'd like to
+to override from within Python (we'll focus on the class ``Animal``; ``Dog`` is
+given as a specific example of how one would do this with traditional C++
+code).
+
+.. code-block:: cpp
+
+    class Animal {
+    public:
+        virtual ~Animal() { }
+        virtual std::string go(int n_times) = 0;
+    };
+
+    class Dog : public Animal {
+    public:
+        std::string go(int n_times) {
+            std::string result;
+            for (int i=0; i<n_times; ++i)
+                result += "woof! ";
+            return result;
+        }
+    };
+
+Let's also suppose that we are given a plain function which calls the
+function ``go()`` on an arbitrary ``Animal`` instance.
+
+.. code-block:: cpp
+
+    std::string call_go(Animal *animal) {
+        return animal->go(3);
+    }
+
+Normally, the binding code for these classes would look as follows:
+
+.. code-block:: cpp
+
+    PYBIND_PLUGIN(example) {
+        py::module m("example", "pybind example plugin");
+
+        py::class_<Animal> animal(m, "Animal");
+        animal
+            .def("go", &Animal::go);
+
+        py::class_<Dog>(m, "Dog", animal)
+            .def(py::init<>());
+
+        m.def("call_go", &call_go);
+
+        return m.ptr();
+    }
+
+However, these bindings are impossible to extend: ``Animal`` is not
+constructible, and we clearly require some kind of "trampoline" that
+redirects virtual calls back to Python.
+
+Defining a new type of ``Animal`` from within Python is possible but requires a
+helper class that is defined as follows:
+
+.. code-block:: cpp
+
+    class PyAnimal : public Animal {
+    public:
+        /* Inherit the constructors */
+        using Animal::Animal;
+
+        /* Trampoline (need one for each virtual function) */
+        std::string go(int n_times) {
+            PYBIND_OVERLOAD_PURE(
+                std::string, /* Return type */
+                Animal,      /* Parent class */
+                go,          /* Name of function */
+                n_times      /* Argument(s) */
+            );
+        }
+    };
+
+The macro :func:`PYBIND_OVERLOAD_PURE` should be used for pure virtual
+functions, and :func:`PYBIND_OVERLOAD` should be used for functions which have
+a default implementation. The binding code also needs a few minor adaptations
+(highlighted):
+
+.. code-block:: cpp
+    :emphasize-lines: 4,6,7
+
+    PYBIND_PLUGIN(example) {
+        py::module m("example", "pybind example plugin");
+
+        py::class_<PyAnimal> animal(m, "Animal");
+        animal
+            .alias<Animal>()
+            .def(py::init<>())
+            .def("go", &Animal::go);
+
+        py::class_<Dog>(m, "Dog", animal)
+            .def(py::init<>());
+
+        m.def("call_go", &call_go);
+
+        return m.ptr();
+    }
+
+Importantly, the trampoline helper class is used as the template argument to
+:class:`class_`, and a call to :func:`class_::alias` informs the binding
+generator that this is merely an alias for the underlying type ``Animal``.
+Following this, we are able to define a constructor as usual.
+
+The Python session below shows how to override ``Animal::go`` and invoke it via
+a virtual method call.
+
+.. code-block:: cpp
+
+    >>> from example import *
+    >>> d = Dog()
+    >>> call_go(d)
+    u'woof! woof! woof! '
+    >>> class Cat(Animal):
+    ...     def go(self, n_times):
+    ...             return "meow! " * n_times
+    ...
+    >>> c = Cat()
+    >>> call_go(c)
+    u'meow! meow! meow! '
+
+.. seealso::
+
+    The file :file:`example/example12.cpp` contains a complete example that
+    demonstrates how to override virtual functions using pybind11 in more
+    detail.
+
+Passing STL data structures
 ===========================
+
+When including the additional header file :file:`pybind/stl.h`, conversions
+between ``std::vector<>`` and ``std::map<>`` and the Python ``list`` and
+``dict`` data structures are automatically enabled. The types ``std::pair<>``
+and ``std::tuple<>`` are already supported out of the box with just the core
+:file:`pybind/pybind.h` header.
+
+.. note::
+
+    Arbitrary nesting of any of these types is explicitly permitted.
+
+.. seealso::
+
+    The file :file:`example/example2.cpp` contains a complete example that
+    demonstrates how to pass STL data types in more detail.
+
+Binding sequence data types, the slicing protocol, etc.
+=======================================================
+
+Please refer to the supplemental example for details.
+
+.. seealso::
+
+    The file :file:`example/example6.cpp` contains a complete example that
+    shows how to bind a sequence data type, including length queries
+    (``__len__``), iterators (``__iter__``), the slicing protocol and other
+    kinds of useful operations.
 
 Return value policies
 =====================
 
-Functions taking Python objects as arguments
-============================================
+Python and C++ use wildly different ways of managing the memory and lifetime of
+objects managed by them. This can lead to issues when creating bindings for
+functions that return a non-trivial type. Just by looking at the type
+information, it is not clear whether Python should take charge of the returned
+value and eventually free its resources, or if this is handled on the C++ side.
+For this reason, pybind11 provides a several `return value policy` annotations
+that can be passed to the :func:`module::def` and :func:`class_::def`
+functions. The default policy is :enum:`return_value_policy::automatic``.
 
-Callbacks
-=========
+
++--------------------------------------------------+---------------------------------------------------------------------------+
+| Return value policy                              | Description                                                               |
++==================================================+===========================================================================+
+| :enum:`return_value_policy::automatic`           | Automatic: copy objects returned as values and take ownership of          |
+|                                                  | objects returned as pointers                                              |
++--------------------------------------------------+---------------------------------------------------------------------------+
+| :enum:`return_value_policy::copy`                | Create a new copy of the returned object, which will be owned by Python   |
++--------------------------------------------------+---------------------------------------------------------------------------+
+| :enum:`return_value_policy::take_ownership`      | Reference the existing object and take ownership. Python will call        |
+|                                                  | the destructor and delete operator when the reference count reaches zero  |
++--------------------------------------------------+---------------------------------------------------------------------------+
+| :enum:`return_value_policy::reference`           | Reference the object, but do not take ownership and defer responsibility  |
+|                                                  | for deleting it to C++ (dangerous when C++ code at some point decides to  |
+|                                                  | delete it while Python still has a nonzero reference count)               |
++--------------------------------------------------+---------------------------------------------------------------------------+
+| :enum:`return_value_policy::reference_internal`  | Reference the object, but do not take ownership. The object is considered |
+|                                                  | be owned by the C++ instance whose method or property returned it. The    |
+|                                                  | Python object will increase the reference count of this 'parent' by 1     |
+|                                                  | to ensure that it won't be deallocated while Python is using the 'child'  |
++--------------------------------------------------+---------------------------------------------------------------------------+
+
+.. warning::
+
+    Code with invalid call policies might access unitialized memory and free
+    data structures multiple times, which can lead to hard-to-debug
+    non-determinism and segmentation faults, hence it is worth spending the
+    time to understand all the different options above.
+
+See below for an example that uses the
+:enum:`return_value_policy::reference_internal` policy.
+
+.. code-block:: cpp
+
+    class Example {
+    public:
+        Internal &get_internal() { return internal; }
+    private:
+        Internal internal;
+    };
+
+    PYBIND_PLUGIN(example) {
+        py::module m("example", "pybind example plugin");
+
+        py::class_<Example>(m, "Example")
+            .def(py::init<>())
+            .def("get_internal", &Example::get_internal, "Return the internal data", py::return_value_policy::reference_internal)
+
+        return m.ptr();
+    }
+
+Implicit type conversions
+=========================
+
+Suppose that instances of two types ``A`` and ``B`` are used in a project, and
+that an ``A`` can easily be converted into a an instance of type ``B`` (examples of this
+could be a fixed and an arbitrary precision number type).
+
+.. code-block:: cpp
+
+    py::class_<A>(m, "A")
+        /// ... members ...
+
+    py::class_<B>(m, "B")
+        .def(py::init<A>())
+        /// ... members ...
+
+    m.def("func",
+        [](const B &) { /* .... */ }
+    );
+
+To invoke the function ``func`` using a variable ``a`` containing an ``A``
+instance, we'd have to write ``func(B(a))`` in Python. On the other hand, C++
+will automatically apply an implicit type conversion, which makes it possible
+to directly write ``func(a)``.
+
+In this situation (i.e. where ``B`` has a constructor that converts from
+``A``), the following statement enables similar implicit conversions on the
+Python side:
+
+.. code-block:: cpp
+
+    py::implicitly_convertible<A, B>();
+
+Smart pointers
+==============
+
+The binding generator for classes (:class:`class_`) takes an optional second
+template type, which denotes a special *holder* type that is used to manage
+references to the object. When wrapping a type named ``Type``, the default
+value of this template parameter is ``std::unique_ptr<Type>``, which means that
+the object is deallocated when Python's reference count goes to zero.
+
+It is possible to switch to other types of smart pointers, which is useful in
+codebases that rely on them. For instance, the following snippet causes
+``std::shared_ptr`` to be used instead.
+
+.. code-block:: cpp
+
+    py::class_<Example, std::shared_ptr<Example>> obj(m, "Example");
+
+.. seealso::
+
+    The file :file:`example/example8.cpp` contains a complete example that
+    demonstrates how to work with custom smart pointer types in more detail.
+
+.. _custom_constructors:
+
+Custom constructors
+===================
+
+The syntax for binding constructors was previously introduced, but it only
+works when a constructor with the given parameters actually exists on the C++
+side. To extend this to more general cases, let's take a look at what actually
+happens under the hood: the following statement
+
+.. code-block:: cpp
+
+    py::class_<Example>(m, "Example")
+        .def(py::init<int>());
+
+is short hand notation for
+
+.. code-block:: cpp
+
+    py::class_<Example>(m, "Example")
+        .def("__init__",
+            [](Example &instance, int arg) {
+                new (&instance) Example(arg);
+            }
+        );
+
+In other words, :func:`init` creates an anonymous function that invokes an
+in-place constructor. Memory allocation etc. is already take care of beforehand
+within pybind11.
+
+Catching and throwing exceptions
+================================
+
+When C++ code invoked from Python throws an ``std::exception``, it is
+automatically converted into a Python ``Exception``. pybind11 defines multiple
+special exception classes that will map to different types of Python
+exceptions:
+
++----------------------------+------------------------------+
+|  C++ exception type        |  Python exception type       |
++============================+==============================+
+| :class:`std::exception`    | ``Exception``                |
++----------------------------+------------------------------+
+| :class:`stop_iteration`    | ``StopIteration`` (used to   |
+|                            | implement custom iterators)  |
++----------------------------+------------------------------+
+| :class:`index_error`       | ``IndexError`` (used to      |
+|                            | indicate out of bounds       |
+|                            | accesses in ``__getitem__``, |
+|                            | ``__setitem__``, etc.)       |
++----------------------------+------------------------------+
+| :class:`error_already_set` | Indicates that the Python    |
+|                            | exception flag has already   |
+|                            | been initialized.            |
++----------------------------+------------------------------+
+
+When a Python function invoked from C++ throws an exception, it is converted
+into a C++ exception of type :class:`error_already_set` whose string payload
+contains a textual summary.
+
+There is also a special exception :class:`cast_error` that is thrown by
+:func:`handle::call` when the input arguments cannot be converted to Python
+objects.
 
 Buffer protocol
 ===============
@@ -114,6 +597,11 @@ objects (e.g. a NumPy matrix).
             }
         });
 
+.. seealso::
+
+    The file :file:`example/example7.cpp` contains a complete example that
+    demonstrates using the buffer protocol with pybind11 in more detail.
+
 NumPy support
 =============
 
@@ -122,13 +610,13 @@ restrict the function so that it only accepts NumPy arrays (rather than any
 type of Python object satisfying the buffer object protocol).
 
 In many situations, we want to define a function which only accepts a NumPy
-array of a certain data type. This is possible via the ``py::array_dtype<T>``
+array of a certain data type. This is possible via the ``py::array_t<T>``
 template. For instance, the following function requires the argument to be a
 dense array of doubles in C-style ordering.
 
 .. code-block:: cpp
 
-    void f(py::array_dtype<double> array);
+    void f(py::array_t<double> array);
 
 When it is invoked with a different type (e.g. an integer), the binding code
 will attempt to cast the input into a NumPy array of the requested type.
@@ -181,22 +669,41 @@ This can be done with a stateful Lambda closure:
 
     // Vectorize a lambda function with a capture object (e.g. to exclude some arguments from the vectorization)
     m.def("vectorized_func",
-        [](py::array_dtype<int> x, py::array_dtype<float> y, my_custom_type *z) {
+        [](py::array_t<int> x, py::array_t<float> y, my_custom_type *z) {
             auto stateful_closure = [z](int x, float y) { return my_func(x, y, z); };
             return py::vectorize(stateful_closure)(x, y);
         }
     );
 
-Throwing exceptions
-===================
+.. seealso::
 
-STL data structures
-===================
+    The file :file:`example/example10.cpp` contains a complete example that
+    demonstrates using :func:`vectorize` in more detail.
 
-Smart pointers
-==============
+Functions taking Python objects as arguments
+============================================
 
-.. _custom_constructors:
+pybind11 exposes all major Python types using thin C++ wrapper classes. These
+wrapper classes can also be used as parameters of functions in bindings, which
+makes it possible to directly work with native Python types on the C++ side.
+For instance, the following statement iterates over a Python ``dict``:
 
-Custom constructors
-===================
+.. code-block:: cpp
+
+    void print_dict(py::dict dict) {
+        /* Easily interact with Python types */
+        for (auto item : dict)
+            std::cout << "key=" << item.first << ", "
+                      << "value=" << item.second << std::endl;
+    }
+
+Available types include :class:`handle`, :class:`object`, :class:`bool_`,
+:class:`int_`, :class:`float_`, :class:`str`, :class:`tuple`, :class:`list`,
+:class:`dict`, :class:`slice`, :class:`capsule`, :class:`function`,
+:class:`buffer`, :class:`array`, and :class:`array_t`.
+
+.. seealso::
+
+    The file :file:`example/example2.cpp` contains a complete example that
+    demonstrates passing native Python types in more detail.
+

@@ -1,12 +1,18 @@
 .. _reference:
 
+.. warning::
+
+    Please be advised that the reference documentation discussing pybind11
+    internals is currently incomplete. Please refer to the previous sections
+    and the pybind header files for the nitty gritty details.
+
 Reference
 #########
 
 Macros
 ======
 
-.. function:: PYTHON_PLUGIN(const char *name)
+.. function:: PYBIND_PLUGIN(const char *name)
 
     This macro creates the entry point that will be invoked when the Python
     interpreter imports a plugin library. Please create a
@@ -15,7 +21,7 @@ Macros
 
     .. code-block:: cpp
 
-        PYTHON_PLUGIN(example) {
+        PYBIND_PLUGIN(example) {
             pybind::module m("example", "pybind example plugin");
             /// Set up bindings here
             return m.ptr();
@@ -37,7 +43,7 @@ Without reference counting
     various Python API functions.
 
 .. seealso::
-    
+
     The :class:`object` class inherits from :class:`handle` and adds automatic
     reference counting features.
 
@@ -122,7 +128,7 @@ Without reference counting
     Assuming the Python object is a function or implements the ``__call__``
     protocol, ``call()`` invokes the underlying function, passing an arbitrary
     set of parameters. The result is returned as a :class:`object` and may need
-    to be converted back into a Python object using :func:`template <typename T> handle::cast`.
+    to be converted back into a Python object using :func:`handle::cast`.
 
     When some of the arguments cannot be converted to Python objects, the
     function will throw a :class:`cast_error` exception. When the Python
@@ -206,7 +212,7 @@ Passing extra arguments to the def function
 .. class:: template <typename T> arg_t<T> : public arg
 
     Represents a named argument with a default value
-    
+
 .. class:: sibling
 
     Used to specify a handle to an existing sibling function; used internally

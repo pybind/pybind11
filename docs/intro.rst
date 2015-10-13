@@ -4,7 +4,7 @@ About this project
 and vice versa, mainly to create Python bindings of existing C++ code. Its
 goals and syntax are similar to the excellent `Boost.Python`_ library by David
 Abrahams: to minimize boilerplate code in traditional extension modules by
-inferring type information using compile-time introspection. 
+inferring type information using compile-time introspection.
 
 .. _Boost.Python: http://www.boost.org/doc/libs/release/libs/python/doc/index.html
 
@@ -21,7 +21,9 @@ everything stripped away that isn't relevant for binding generation. The whole
 codebase requires less than 3000 lines of code and only depends on Python (2.7
 or 3.x) and the C++ standard library. This compact implementation was possible
 thanks to some of the new C++11 language features (tuples, lambda functions and
-variadic templates).
+variadic templates). Since its creation, this library has grown beyond
+Boost.Python in many ways, leading to dramatically simpler binding code in many
+common situations.
 
 Core features
 *************
