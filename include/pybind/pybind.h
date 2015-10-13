@@ -69,6 +69,7 @@ private:
         void *data = nullptr;
         bool is_constructor = false, is_method = false;
         short keywords = 0;
+        void (*free) (void *ptr) = nullptr;
         return_value_policy policy = return_value_policy::automatic;
         std::string signature;
         PyObject *class_ = nullptr;
@@ -242,6 +243,9 @@ private:
         m_entry = new function_entry();
         m_entry->data = new capture { std::forward<Func>(f), std::tuple<Extra...>(std::forward<Extra>(extra)...) };
 
+        if (!std::is_trivially_destructible<Func>::value)
+            m_entry->free = [](void *ptr) { delete (capture *) ptr; };
+
         typedef arg_value_caster<Arg...> cast_in;
         typedef return_value_caster<Return> cast_out;
 
@@ -333,7 +337,10 @@ private:
     static void destruct(function_entry *entry) {
         while (entry) {
             delete entry->def;
-            operator delete(entry->data);
+            if (entry->free)
+                entry->free(entry->data);
+            else
+                operator delete(entry->data);
             function_entry *next = entry->next;
             delete entry;
             entry = next;

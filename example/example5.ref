@@ -12,3 +12,9 @@ Callback function 2 called : Hello, x, True, 5
 5
 func(43) = 44
 func(43) = 44
+Payload constructor
+Payload copy constructor
+Payload move constructor
+Payload destructor
+Payload destructor
+Payload destructor

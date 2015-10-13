@@ -72,4 +72,29 @@ void init_ex5(py::module &m) {
     m.def("test_callback2", &test_callback2);
     m.def("test_callback3", &test_callback3);
     m.def("test_callback4", &test_callback4);
+
+    /* Test cleanup of lambda closure */
+
+    struct Payload {
+        Payload() {
+            std::cout << "Payload constructor" << std::endl;
+        }
+        ~Payload() {
+            std::cout << "Payload destructor" << std::endl;
+        }
+        Payload(const Payload &) {
+            std::cout << "Payload copy constructor" << std::endl;
+        }
+        Payload(Payload &&) {
+            std::cout << "Payload move constructor" << std::endl;
+        }
+    };
+
+    m.def("test_cleanup", []() -> std::function<void(void)> { 
+        Payload p;
+
+        return [p]() {
+            /* p should be cleaned up when the returned function is garbage collected */
+        };
+    });
 }

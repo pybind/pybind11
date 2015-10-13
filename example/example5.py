@@ -24,6 +24,7 @@ from example import test_callback1
 from example import test_callback2
 from example import test_callback3
 from example import test_callback4
+from example import test_cleanup
 
 def func1():
     print('Callback function 1 called!')
@@ -38,3 +39,5 @@ print(test_callback2(func2))
 test_callback3(lambda i: i + 1)
 f = test_callback4()
 print("func(43) = %i" % f(43))
+
+test_cleanup()
