@@ -1,5 +1,6 @@
 /*
-    example/example9.cpp -- nested modules and internal references
+    example/example9.cpp -- nested modules, importing modules, and
+                            internal references
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -49,4 +50,6 @@ void init_ex9(py::module &m) {
         .def("get_a2", &B::get_a2, "Return the internal A 2", py::return_value_policy::reference_internal)
         .def_readwrite("a1", &B::a1)  // def_readonly uses an internal reference return policy by default
         .def_readwrite("a2", &B::a2);
+
+    m.attr("OD") = py::module::import("collections").attr("OrderedDict");
 }

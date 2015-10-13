@@ -466,6 +466,10 @@ public:
         attr(name) = result;
         return result;
     }
+
+    static module import(const char *name) {
+        return module(PyImport_ImportModule(name), false);
+    }
 };
 
 NAMESPACE_BEGIN(detail)

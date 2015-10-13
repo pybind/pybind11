@@ -9,6 +9,7 @@ print(example.__name__)
 print(example.submodule.__name__)
 
 from example.submodule import *
+from example import OD
 
 submodule_func()
 
@@ -26,3 +27,4 @@ print(b.a1)
 print(b.get_a2())
 print(b.a2)
 
+print(OD([(1, 'a'), (2, 'b')]))

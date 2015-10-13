@@ -16,6 +16,7 @@ A[42]
 A[42]
 A[43]
 A[43]
+OrderedDict([(1, 'a'), (2, 'b')])
 B destructor
 A destructor
 A destructor
