@@ -124,10 +124,10 @@ protected:
     }
 };
 
-template <typename T> class array_dtype : public array {
+template <typename T> class array_t : public array {
 public:
-    PYBIND_OBJECT_CVT(array_dtype, array, is_non_null, m_ptr = ensure(m_ptr));
-    array_dtype() : array() { }
+    PYBIND_OBJECT_CVT(array_t, array, is_non_null, m_ptr = ensure(m_ptr));
+    array_t() : array() { }
     static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
     PyObject *ensure(PyObject *ptr) {
         if (ptr == nullptr)
@@ -151,14 +151,14 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE);
 
 NAMESPACE_BEGIN(detail)
 PYBIND_TYPE_CASTER_PYTYPE(array)
-PYBIND_TYPE_CASTER_PYTYPE(array_dtype<int8_t>)  PYBIND_TYPE_CASTER_PYTYPE(array_dtype<uint8_t>)
-PYBIND_TYPE_CASTER_PYTYPE(array_dtype<int16_t>) PYBIND_TYPE_CASTER_PYTYPE(array_dtype<uint16_t>)
-PYBIND_TYPE_CASTER_PYTYPE(array_dtype<int32_t>) PYBIND_TYPE_CASTER_PYTYPE(array_dtype<uint32_t>)
-PYBIND_TYPE_CASTER_PYTYPE(array_dtype<int64_t>) PYBIND_TYPE_CASTER_PYTYPE(array_dtype<uint64_t>)
-PYBIND_TYPE_CASTER_PYTYPE(array_dtype<float>)   PYBIND_TYPE_CASTER_PYTYPE(array_dtype<double>)
-PYBIND_TYPE_CASTER_PYTYPE(array_dtype<std::complex<float>>)
-PYBIND_TYPE_CASTER_PYTYPE(array_dtype<std::complex<double>>)
-PYBIND_TYPE_CASTER_PYTYPE(array_dtype<bool>)
+PYBIND_TYPE_CASTER_PYTYPE(array_t<int8_t>)  PYBIND_TYPE_CASTER_PYTYPE(array_t<uint8_t>)
+PYBIND_TYPE_CASTER_PYTYPE(array_t<int16_t>) PYBIND_TYPE_CASTER_PYTYPE(array_t<uint16_t>)
+PYBIND_TYPE_CASTER_PYTYPE(array_t<int32_t>) PYBIND_TYPE_CASTER_PYTYPE(array_t<uint32_t>)
+PYBIND_TYPE_CASTER_PYTYPE(array_t<int64_t>) PYBIND_TYPE_CASTER_PYTYPE(array_t<uint64_t>)
+PYBIND_TYPE_CASTER_PYTYPE(array_t<float>)   PYBIND_TYPE_CASTER_PYTYPE(array_t<double>)
+PYBIND_TYPE_CASTER_PYTYPE(array_t<std::complex<float>>)
+PYBIND_TYPE_CASTER_PYTYPE(array_t<std::complex<double>>)
+PYBIND_TYPE_CASTER_PYTYPE(array_t<bool>)
 
 template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {
@@ -167,11 +167,11 @@ struct vectorize_helper {
     template <typename T>
     vectorize_helper(T&&f) : f(std::forward<T>(f)) { }
 
-    object operator()(array_dtype<Args>... args) {
+    object operator()(array_t<Args>... args) {
         return run(args..., typename make_index_sequence<sizeof...(Args)>::type());
     }
 
-    template <size_t ... Index> object run(array_dtype<Args>&... args, index_sequence<Index...>) {
+    template <size_t ... Index> object run(array_t<Args>&... args, index_sequence<Index...>) {
         /* Request buffers from all parameters */
         const size_t N = sizeof...(Args);
         std::array<buffer_info, N> buffers {{ args.request()... }};

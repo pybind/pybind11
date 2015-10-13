@@ -16,11 +16,11 @@
 #define NAMESPACE_END(name) }
 #endif
 
-#if !defined(PYTHON_EXPORT)
+#if !defined(PYBIND_EXPORT)
 #if defined(WIN32) || defined(_WIN32)
-#define PYTHON_EXPORT __declspec(dllexport)
+#define PYBIND_EXPORT __declspec(dllexport)
 #else
-#define PYTHON_EXPORT __attribute__ ((visibility("default")))
+#define PYBIND_EXPORT __attribute__ ((visibility("default")))
 #endif
 #endif
 
@@ -61,11 +61,11 @@
 #endif
 
 #if PY_MAJOR_VERSION >= 3
-#define PYTHON_PLUGIN(name) \
-    extern "C" PYTHON_EXPORT PyObject *PyInit_##name()
+#define PYBIND_PLUGIN(name) \
+    extern "C" PYBIND_EXPORT PyObject *PyInit_##name()
 #else
-#define PYTHON_PLUGIN(name) \
-    extern "C" PYTHON_EXPORT PyObject *init##name()
+#define PYBIND_PLUGIN(name) \
+    extern "C" PYBIND_EXPORT PyObject *init##name()
 #endif
 
 NAMESPACE_BEGIN(pybind)

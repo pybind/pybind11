@@ -26,7 +26,7 @@ void init_ex10(py::module &m) {
 
     // Vectorize a lambda function with a capture object (e.g. to exclude some arguments from the vectorization)
     m.def("vectorized_func2",
-        [](py::array_dtype<int> x, py::array_dtype<float> y, float z) {
+        [](py::array_t<int> x, py::array_t<float> y, float z) {
             return py::vectorize([z](int x, float y) { return my_func(x, y, z); })(x, y);
         }
     );
