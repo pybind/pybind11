@@ -85,7 +85,7 @@ a file named :file:`example.cpp` with the following contents:
         return i + j;
     }
 
-    namespace py = pybind11
+    namespace py = pybind11;
 
     PYBIND_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");

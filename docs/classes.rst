@@ -25,7 +25,7 @@ The binding code for ``Pet`` looks as follows:
 
     #include <pybind11/pybind11.h>
 
-    namespace py = pybind11
+    namespace py = pybind11;
 
     PYBIND_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
