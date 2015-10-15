@@ -8,7 +8,7 @@
 */
 
 #include "example.h"
-#include <pybind/operators.h>
+#include <pybind11/operators.h>
 
 class Vector2 {
 public:

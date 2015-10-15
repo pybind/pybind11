@@ -1,7 +1,7 @@
-#include <pybind/pybind.h>
+#include <pybind11/pybind11.h>
 #include <iostream>
 
 using std::cout;
 using std::endl;
 
-namespace py = pybind;
+namespace py = pybind11;

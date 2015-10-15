@@ -9,7 +9,7 @@
 */
 
 #include "example.h"
-#include <pybind/stl.h>
+#include <pybind11/stl.h>
 
 class Example2 {
 public:

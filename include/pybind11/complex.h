@@ -1,5 +1,5 @@
 /*
-    pybind/complex.h: Complex number support
+    pybind11/complex.h: Complex number support
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <pybind/pybind.h>
+#include "pybind11.h"
 #include <complex>
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 
 PYBIND_DECL_FMT(std::complex<float>, "Zf");
 PYBIND_DECL_FMT(std::complex<double>, "Zd");
@@ -37,4 +37,4 @@ public:
     PYBIND_TYPE_CASTER(std::complex<T>, "complex");
 };
 NAMESPACE_END(detail)
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)

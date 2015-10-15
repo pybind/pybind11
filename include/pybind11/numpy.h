@@ -1,5 +1,5 @@
 /*
-    pybind/numpy.h: Basic NumPy support, auto-vectorization support
+    pybind11/numpy.h: Basic NumPy support, auto-vectorization support
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -9,15 +9,15 @@
 
 #pragma once
 
-#include <pybind/pybind.h>
-#include <pybind/complex.h>
+#include "pybind11.h"
+#include "complex.h"
 
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 
 template <typename type> struct npy_format_descriptor { };
 
@@ -196,7 +196,7 @@ struct vectorize_helper {
         /* Check if the parameters are actually compatible */
         for (size_t i=0; i<N; ++i) {
             if (buffers[i].count != 1 && (buffers[i].ndim != ndim || buffers[i].shape != shape))
-                throw std::runtime_error("pybind::vectorize: incompatible size/dimension of inputs!");
+                throw std::runtime_error("pybind11::vectorize: incompatible size/dimension of inputs!");
         }
 
         /* Call the function */
@@ -234,7 +234,7 @@ template <typename func> auto vectorize(func &&f) -> decltype(
                    &std::remove_reference<func>::type::operator())>::type *) nullptr);
 }
 
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

@@ -23,12 +23,12 @@ The binding code for ``Pet`` looks as follows:
 
 .. code-block:: cpp
 
-    #include <pybind/pybind.h>
+    #include <pybind11/pybind11.h>
 
-    namespace py = pybind;
+    namespace py = pybind11
 
     PYBIND_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
+        py::module m("example", "pybind11 example plugin");
 
         py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())

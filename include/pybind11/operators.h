@@ -1,5 +1,5 @@
 /*
-    pybind/operator.h: Metatemplates for operator overloading
+    pybind11/operator.h: Metatemplates for operator overloading
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <pybind/pybind.h>
+#include "pybind11.h"
 #include <type_traits>
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
 /// Enumeration with all supported operator types
@@ -45,13 +45,13 @@ template <op_id, op_type, typename B, typename L, typename R> struct op_impl { }
 
 /// Operator implementation generator
 template <op_id id, op_type ot, typename L, typename R> struct op_ {
-    template <typename Base, typename Holder, typename... Extra> void execute(pybind::class_<Base, Holder> &class_, Extra&&... extra) const {
+    template <typename Base, typename Holder, typename... Extra> void execute(pybind11::class_<Base, Holder> &class_, Extra&&... extra) const {
         typedef typename std::conditional<std::is_same<L, self_t>::value, Base, L>::type L_type;
         typedef typename std::conditional<std::is_same<R, self_t>::value, Base, R>::type R_type;
         typedef op_impl<id, ot, Base, L_type, R_type> op;
         class_.def(op::name(), &op::execute, std::forward<Extra>(extra)...);
     }
-    template <typename Base, typename Holder, typename... Extra> void execute_cast(pybind::class_<Base, Holder> &class_, Extra&&... extra) const {
+    template <typename Base, typename Holder, typename... Extra> void execute_cast(pybind11::class_<Base, Holder> &class_, Extra&&... extra) const {
         typedef typename std::conditional<std::is_same<L, self_t>::value, Base, L>::type L_type;
         typedef typename std::conditional<std::is_same<R, self_t>::value, Base, R>::type R_type;
         typedef op_impl<id, ot, Base, L_type, R_type> op;
@@ -146,4 +146,4 @@ NAMESPACE_END(detail)
 
 using detail::self;
 
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)

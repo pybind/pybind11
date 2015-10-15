@@ -9,7 +9,7 @@
 */
 
 #include "example.h"
-#include <pybind/numpy.h>
+#include <pybind11/numpy.h>
 
 double my_func(int x, float y, double z) {
     std::cout << "my_func(x:int=" << x << ", y:float=" << y << ", z:float=" << z << ")" << std::endl;

@@ -32,10 +32,7 @@ private:
 };
 
 /// Make pybind aware of the ref-counted wrapper type
-namespace pybind { namespace detail {
-template <typename T> class type_caster<ref<T>>
-    : public type_caster_holder<T, ref<T>> { };
-}}
+PYBIND_DECLARE_HOLDER_TYPE(T, ref<T>);
 
 Object *make_object_1() { return new MyObject(1); }
 ref<Object> make_object_2() { return new MyObject(2); }

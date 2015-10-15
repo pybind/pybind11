@@ -1,5 +1,5 @@
 /*
-    pybind/typeid.h: Compiler-independent access to type identifiers
+    pybind11/typeid.h: Compiler-independent access to type identifiers
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -9,14 +9,13 @@
 
 #pragma once
 
-#include <pybind/typeid.h>
 #include <cstdio>
 #include <cstdlib>
 #if defined(__GNUG__)
 #include <cxxabi.h>
 #endif
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 /// Erase all occurrences of a substring
 inline void erase_all(std::string &string, const std::string &search) {
@@ -39,7 +38,7 @@ inline void clean_type_id(std::string &name) {
         detail::erase_all(name, "struct ");
         detail::erase_all(name, "enum ");
     #endif
-    detail::erase_all(name, "pybind::");
+    detail::erase_all(name, "pybind11::");
 }
 NAMESPACE_END(detail)
 
@@ -50,4 +49,4 @@ template <typename T> static std::string type_id() {
     return name;
 }
 
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)

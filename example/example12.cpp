@@ -8,7 +8,7 @@
 */
 
 #include "example.h"
-#include <pybind/functional.h>
+#include <pybind11/functional.h>
 
 /* This is an example class that we'll want to be able to extend from Python */
 class Example12  {

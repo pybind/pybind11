@@ -1,5 +1,5 @@
 /*
-    pybind/complex.h: Complex number support
+    pybind11/complex.h: Complex number support
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <pybind/pybind.h>
+#include "pybind11.h"
 #include <map>
 #include <iostream>
 
@@ -19,7 +19,7 @@
 #pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
 template <typename Value> struct type_caster<std::vector<Value>> {
@@ -104,7 +104,7 @@ NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const object &obj) { os << (const char *) obj.str(); return os; }
 
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

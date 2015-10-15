@@ -1,5 +1,5 @@
 /*
-    pybind/typeid.h: Convenience wrapper classes for basic Python types
+    pybind11/typeid.h: Convenience wrapper classes for basic Python types
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <pybind/common.h>
+#include "common.h"
 #include <utility>
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 
 /* A few forward declarations */
 class object;
@@ -37,7 +37,7 @@ public:
     inline detail::accessor operator[](const char *key);
     inline detail::accessor attr(handle key);
     inline detail::accessor attr(const char *key);
-    inline pybind::str str() const;
+    inline pybind11::str str() const;
     template <typename T> T cast();
     template <typename ... Args> object call(Args&&... args_);
     operator bool() const { return m_ptr != nullptr; }
@@ -230,13 +230,13 @@ private:
 #endif
 };
 
-inline pybind::str handle::str() const {
+inline pybind11::str handle::str() const {
     PyObject *str = PyObject_Str(m_ptr);
 #if PY_MAJOR_VERSION < 3
     PyObject *unicode = PyUnicode_FromEncodedObject(str, "utf-8", nullptr);
     Py_XDECREF(str); str = unicode;
 #endif
-    return pybind::str(str, false);
+    return pybind11::str(str, false);
 }
 
 class bool_ : public object {
@@ -370,12 +370,12 @@ inline internals &get_internals() {
     if (internals_ptr)
         return *internals_ptr;
     handle builtins(PyEval_GetBuiltins());
-    capsule caps(builtins["__pybind__"]);
+    capsule caps(builtins["__pybind11__"]);
     if (caps.check()) {
         internals_ptr = caps;
     } else {
         internals_ptr = new internals();
-        builtins["__pybind__"] = capsule(internals_ptr);
+        builtins["__pybind11__"] = capsule(internals_ptr);
     }
     return *internals_ptr;
 }
@@ -413,4 +413,4 @@ inline handle get_type_handle(const std::type_info &tp) {
 }
 
 NAMESPACE_END(detail)
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)

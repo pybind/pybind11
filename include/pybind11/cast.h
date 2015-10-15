@@ -1,5 +1,5 @@
 /*
-    pybind/cast.h: Partial template specializations to cast between
+    pybind11/cast.h: Partial template specializations to cast between
     C++ and Python types
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
@@ -10,12 +10,12 @@
 
 #pragma once
 
-#include <pybind/pytypes.h>
-#include <pybind/typeid.h>
+#include "pytypes.h"
+#include "typeid.h"
 #include <array>
 #include <limits>
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
 #if defined(_MSC_VER)
@@ -527,6 +527,12 @@ protected:
     holder_type holder;
 };
 
+#define PYBIND_DECLARE_HOLDER_TYPE(type, holder_type) \
+    namespace pybind11 { namespace detail { \
+    template <typename type> class type_caster<holder_type> \
+        : public type_caster_holder<type, holder_type> { }; \
+    }}
+
 template <> class type_caster<handle> {
 public:
     bool load(PyObject *src) {
@@ -571,7 +577,7 @@ template <typename T> inline object cast(const T &value, return_value_policy pol
     return object(detail::type_caster<typename detail::decay<T>::type>::cast(value, policy, parent), false);
 }
 
-template <typename T> inline T handle::cast() { return pybind::cast<T>(m_ptr); }
+template <typename T> inline T handle::cast() { return pybind11::cast<T>(m_ptr); }
 template <> inline void handle::cast() { return; }
 
 template <typename... Args> inline object handle::call(Args&&... args_) {
@@ -601,4 +607,4 @@ template <typename... Args> inline object handle::call(Args&&... args_) {
     return object(result, false);
 }
 
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)

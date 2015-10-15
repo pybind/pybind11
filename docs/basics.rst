@@ -37,7 +37,7 @@ Windows
 On Windows, use the `CMake GUI`_ to create a Visual Studio project. Note that
 only the 2015 release and newer versions are supported since pybind11 relies on
 various C++11 language features that break older versions of Visual Studio.
-After running CMake, open the created :file:`pybind.sln` file and perform a
+After running CMake, open the created :file:`pybind11.sln` file and perform a
 release build, which will will produce a file named
 :file:`Release\\example.pyd`. Copy this file to the :file:`example` directory
 and run :file:`example\\run_test.py` using the targeted Python version.
@@ -79,16 +79,16 @@ a file named :file:`example.cpp` with the following contents:
 
 .. code-block:: cpp
 
-    #include <pybind/pybind.h>
+    #include <pybind11/pybind11.h>
 
     int add(int i, int j) {
         return i + j;
     }
 
-    namespace py = pybind;
+    namespace py = pybind11
 
     PYBIND_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
+        py::module m("example", "pybind11 example plugin");
 
         m.def("add", &add, "A function which adds two numbers");
 
@@ -117,7 +117,7 @@ example can be compiled using the following command
 
 .. code-block:: bash
 
-    $ c++ -O3 -shared -std=c++11 -I <path-to-pybind>/include `python-config --cflags --libs` example.cpp -o example.so
+    $ c++ -O3 -shared -std=c++11 -I <path-to-pybind11>/include `python-config --cflags --libs` example.cpp -o example.so
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section
@@ -222,41 +222,41 @@ The following basic data types are supported out of the box (some may require
 an additional extension header to be included). To pass other data structures
 as arguments and return values, refer to the section on binding :ref:`classes`.
 
-+------------------------+--------------------------+---------------------+
-|  Data type             |  Description             | Header file         |
-+========================+==========================+=====================+
-| int8_t, uint8_t        | 8-bit integers           | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| int16_t, uint16_t      | 16-bit integers          | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| int32_t, uint32_t      | 32-bit integers          | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| int64_t, uint64_t      | 64-bit integers          | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| ssize_t, size_t        | Platform-dependent size  | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| float, double          | Floating point types     | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| bool                   | Two-state Boolean type   | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| char                   | Character literal        | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| const char *           | UTF-8 string literal     | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| std::string            | STL dynamic UTF-8 string | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| std::pair<T1, T2>      | Pair of two custom types | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| std::tuple<....>       | Arbitrary tuple of types | pybind/pybind.h     |
-+------------------------+--------------------------+---------------------+
-| std::complex<T>        | Complex numbers          | pybind/complex.h    |
-+------------------------+--------------------------+---------------------+
-| std::vector<T>         | STL dynamic array        | pybind/stl.h        |
-+------------------------+--------------------------+---------------------+
-| std::map<T1, T2>       | STL dynamic maps         | pybind/stl.h        |
-+------------------------+--------------------------+---------------------+
-| std::function<...>     | STL polymorphic function | pybind/functional.h |
-+------------------------+--------------------------+---------------------+
++------------------------+--------------------------+-----------------------+
+|  Data type             |  Description             | Header file           |
++========================+==========================+=======================+
+| int8_t, uint8_t        | 8-bit integers           | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| int16_t, uint16_t      | 16-bit integers          | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| int32_t, uint32_t      | 32-bit integers          | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| int64_t, uint64_t      | 64-bit integers          | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| ssize_t, size_t        | Platform-dependent size  | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| float, double          | Floating point types     | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| bool                   | Two-state Boolean type   | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| char                   | Character literal        | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| const char *           | UTF-8 string literal     | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| std::string            | STL dynamic UTF-8 string | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| std::pair<T1, T2>      | Pair of two custom types | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| std::tuple<....>       | Arbitrary tuple of types | pybind11/pybind11.h   |
++------------------------+--------------------------+-----------------------+
+| std::complex<T>        | Complex numbers          | pybind11/complex.h    |
++------------------------+--------------------------+-----------------------+
+| std::vector<T>         | STL dynamic array        | pybind11/stl.h        |
++------------------------+--------------------------+-----------------------+
+| std::map<T1, T2>       | STL dynamic maps         | pybind11/stl.h        |
++------------------------+--------------------------+-----------------------+
+| std::function<...>     | STL polymorphic function | pybind11/functional.h |
++------------------------+--------------------------+-----------------------+
 
 
 .. [#f1] In practice, implementation and binding code will generally be located

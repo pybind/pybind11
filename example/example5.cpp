@@ -9,7 +9,7 @@
 */
 
 #include "example.h"
-#include <pybind/functional.h>
+#include <pybind11/functional.h>
 
 
 class Pet {

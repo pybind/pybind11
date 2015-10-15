@@ -1,5 +1,5 @@
 /*
-    pybind/pybind.h: Main header file of the C++11 python binding generator library
+    pybind11/pybind11.h: Main header file of the C++11 python binding generator library
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -23,9 +23,9 @@
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
 
-#include <pybind/cast.h>
+#include "cast.h"
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 
 template <typename T> struct arg_t;
 
@@ -113,31 +113,31 @@ private:
     }
 
     static void process_extra(const char *doc, function_entry *entry, const char **, const char **) { entry->doc = doc; }
-    static void process_extra(const pybind::doc &d, function_entry *entry, const char **, const char **) { entry->doc = d.value; }
-    static void process_extra(const pybind::name &n, function_entry *entry, const char **, const char **) { entry->name = n.value; }
-    static void process_extra(const pybind::arg &a, function_entry *entry, const char **kw, const char **) {
+    static void process_extra(const pybind11::doc &d, function_entry *entry, const char **, const char **) { entry->doc = d.value; }
+    static void process_extra(const pybind11::name &n, function_entry *entry, const char **, const char **) { entry->name = n.value; }
+    static void process_extra(const pybind11::arg &a, function_entry *entry, const char **kw, const char **) {
         if (entry->is_method && entry->keywords == 0)
             kw[entry->keywords++] = "self";
         kw[entry->keywords++] = a.name;
     }
 
     template <typename T>
-    static void process_extra(const pybind::arg_t<T> &a, function_entry *entry, const char **kw, const char **def) {
+    static void process_extra(const pybind11::arg_t<T> &a, function_entry *entry, const char **kw, const char **def) {
         if (entry->is_method && entry->keywords == 0)
             kw[entry->keywords++] = "self";
         kw[entry->keywords] = a.name;
         def[entry->keywords++] = strdup(detail::to_string(a.value).c_str());
     }
 
-    static void process_extra(const pybind::is_method &m, function_entry *entry, const char **, const char **) {
+    static void process_extra(const pybind11::is_method &m, function_entry *entry, const char **, const char **) {
         entry->is_method = true;
         entry->class_ = m.class_;
     }
-    static void process_extra(const pybind::return_value_policy p, function_entry *entry, const char **, const char **) { entry->policy = p; }
-    static void process_extra(pybind::sibling s, function_entry *entry, const char **, const char **) { entry->sibling = s.value; }
+    static void process_extra(const pybind11::return_value_policy p, function_entry *entry, const char **, const char **) { entry->policy = p; }
+    static void process_extra(pybind11::sibling s, function_entry *entry, const char **, const char **) { entry->sibling = s.value; }
 
     template <typename T> static void process_extra(T, int &, PyObject *, PyObject *) { }
-    static void process_extra(const pybind::arg &a, int &index, PyObject *args, PyObject *kwargs) {
+    static void process_extra(const pybind11::arg &a, int &index, PyObject *args, PyObject *kwargs) {
         if (kwargs) {
             if (PyTuple_GET_ITEM(args, index) != nullptr) {
                 index++;
@@ -152,7 +152,7 @@ private:
         index++;
     }
     template <typename T>
-    static void process_extra(const pybind::arg_t<T> &a, int &index, PyObject *args, PyObject *kwargs) {
+    static void process_extra(const pybind11::arg_t<T> &a, int &index, PyObject *args, PyObject *kwargs) {
         if (PyTuple_GET_ITEM(args, index) != nullptr) {
             index++;
             return;
@@ -327,7 +327,7 @@ private:
                 PyObject *inst = PyTuple_GetItem(args, 0);
                 const detail::type_info *type_info =
                     capsule(PyObject_GetAttrString((PyObject *) Py_TYPE(inst),
-                                const_cast<char *>("__pybind__")), false);
+                                const_cast<char *>("__pybind11__")), false);
                 type_info->init_holder(inst);
             }
             return result;
@@ -360,7 +360,7 @@ private:
             throw std::runtime_error(
                 "cpp_function(): function \"" + std::string(m_entry->name) + "\" takes " +
                 std::to_string(args) + " arguments, but " + std::to_string(m_entry->keywords) +
-                " pybind::arg entries were specified!");
+                " pybind11::arg entries were specified!");
 
         m_entry->is_constructor = !strcmp(m_entry->name, "__init__");
         m_entry->signature = descr.str();
@@ -462,7 +462,7 @@ public:
             + std::string(".") + std::string(name);
         module result(PyImport_AddModule(full_name.c_str()), true);
         if (doc)
-            result.attr("__doc__") = pybind::str(doc);
+            result.attr("__doc__") = pybind11::str(doc);
         attr(name) = result;
         return result;
     }
@@ -493,7 +493,7 @@ public:
         Py_INCREF(name);
         std::string full_name(name_);
 
-        pybind::str scope_name = (object) scope.attr("__name__"),
+        pybind11::str scope_name = (object) scope.attr("__name__"),
                     module_name = (object) scope.attr("__module__");
 
         if (scope_name.check())
@@ -538,7 +538,7 @@ public:
         type_info.type = (PyTypeObject *) m_ptr;
         type_info.type_size = type_size;
         type_info.init_holder = init_holder;
-        attr("__pybind__") = capsule(&type_info);
+        attr("__pybind11__") = capsule(&type_info);
 
         scope.attr(name) = *this;
     }
@@ -584,7 +584,7 @@ protected:
 
     static PyObject *new_instance(PyTypeObject *type, PyObject *, PyObject *) {
         const detail::type_info *type_info = capsule(
-            PyObject_GetAttrString((PyObject *) type, const_cast<char*>("__pybind__")), false);
+            PyObject_GetAttrString((PyObject *) type, const_cast<char*>("__pybind11__")), false);
         instance<void> *self = (instance<void> *) PyType_GenericAlloc(type, 0);
         self->value = ::operator new(type_info->type_size);
         self->owned = true;
@@ -619,13 +619,13 @@ protected:
 #endif
         type->as_buffer.bf_getbuffer = getbuffer;
         type->as_buffer.bf_releasebuffer = releasebuffer;
-        auto info = ((detail::type_info *) capsule(attr("__pybind__")));
+        auto info = ((detail::type_info *) capsule(attr("__pybind11__")));
         info->get_buffer = get_buffer;
         info->get_buffer_data = get_buffer_data;
     }
 
     static int getbuffer(PyObject *obj, Py_buffer *view, int flags) {
-        auto const &typeinfo = ((detail::type_info *) capsule(handle(obj).attr("__pybind__")));
+        auto const &typeinfo = ((detail::type_info *) capsule(handle(obj).attr("__pybind11__")));
 
         if (view == nullptr || obj == nullptr || !typeinfo || !typeinfo->get_buffer) {
             PyErr_SetString(PyExc_BufferError, "Internal error");
@@ -776,7 +776,7 @@ public:
     }
 
     class_ &def_property(const char *name, const cpp_function &fget, const cpp_function &fset, const char *doc = nullptr) {
-        object doc_obj = doc ? pybind::str(doc) : (object) const_cast<cpp_function&>(fget).attr("__doc__");
+        object doc_obj = doc ? pybind11::str(doc) : (object) const_cast<cpp_function&>(fget).attr("__doc__");
         object property(
             PyObject_CallFunction((PyObject *)&PyProperty_Type,
                                   const_cast<char *>("OOOO"), fget.ptr() ? fget.ptr() : Py_None,
@@ -786,7 +786,7 @@ public:
     }
 
     class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const char *doc = nullptr) {
-        object doc_obj = doc ? pybind::str(doc) : (object) const_cast<cpp_function&>(fget).attr("__doc__");
+        object doc_obj = doc ? pybind11::str(doc) : (object) const_cast<cpp_function&>(fget).attr("__doc__");
         object property(
             PyObject_CallFunction((PyObject *)&PyProperty_Type,
                                   const_cast<char *>("OOOs"), fget.ptr() ? fget.ptr() : Py_None,
@@ -796,7 +796,7 @@ public:
     }
 
     template <typename target> class_ alias() {
-        auto &instances = pybind::detail::get_internals().registered_types;
+        auto &instances = pybind11::detail::get_internals().registered_types;
         instances[&typeid(target)] = instances[&typeid(type)];
         return *this;
     }
@@ -846,7 +846,7 @@ public:
 
     /// Add an enumeration entry
     enum_& value(char const* name, Type value) {
-        this->attr(name) = pybind::cast(value, return_value_policy::copy);
+        this->attr(name) = pybind11::cast(value, return_value_policy::copy);
         (*m_entries)[(int) value] = name;
         return *this;
     }
@@ -857,7 +857,7 @@ private:
 
 NAMESPACE_BEGIN(detail)
 template <typename... Args> struct init {
-    template <typename Base, typename Holder, typename... Extra> void execute(pybind::class_<Base, Holder> &class_, Extra&&... extra) const {
+    template <typename Base, typename Holder, typename... Extra> void execute(pybind11::class_<Base, Holder> &class_, Extra&&... extra) const {
         /// Function which calls a specific C++ in-place constructor
         class_.def("__init__", [](Base *instance, Args... args) { new (instance) Base(args...); }, std::forward<Extra>(extra)...);
     }
@@ -919,15 +919,15 @@ inline function get_overload(const void *this_ptr, const char *name)  {
         return function();
     }
     PyFrameObject *frame = PyThreadState_Get()->frame;
-    pybind::str caller = pybind::handle(frame->f_code->co_name).str();
+    pybind11::str caller = pybind11::handle(frame->f_code->co_name).str();
     if (strcmp((const char *) caller, name) == 0)
         return function();
     return overload;
 }
 
 #define PYBIND_OVERLOAD_INT(ret_type, class_name, name, ...) { \
-        pybind::gil_scoped_acquire gil; \
-        pybind::function overload = pybind::get_overload(this, #name); \
+        pybind11::gil_scoped_acquire gil; \
+        pybind11::function overload = pybind11::get_overload(this, #name); \
         if (overload) \
             return overload.call(__VA_ARGS__).cast<ret_type>();  }
 
@@ -939,7 +939,7 @@ inline function get_overload(const void *this_ptr, const char *name)  {
     PYBIND_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
     throw std::runtime_error("Tried to call pure virtual function \"" #name "\"");
 
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

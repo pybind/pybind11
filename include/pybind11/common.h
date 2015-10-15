@@ -1,5 +1,5 @@
 /*
-    pybind/common.h -- Basic macros
+    pybind11/common.h -- Basic macros
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -68,7 +68,7 @@
     extern "C" PYBIND_EXPORT PyObject *init##name()
 #endif
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 
 typedef Py_ssize_t ssize_t;
 
@@ -192,7 +192,7 @@ NAMESPACE_END(detail)
 struct stop_iteration    : public std::runtime_error { public: stop_iteration(const std::string &w="") : std::runtime_error(w)   {} };
 struct index_error       : public std::runtime_error { public: index_error(const std::string &w="")    : std::runtime_error(w)   {} };
 struct error_already_set : public std::runtime_error { public: error_already_set() : std::runtime_error(detail::error_string())  {} };
-/// Thrown when pybind::cast or handle::call fail due to a type casting error
+/// Thrown when pybind11::cast or handle::call fail due to a type casting error
 struct cast_error        : public std::runtime_error { public: cast_error(const std::string &w = "") : std::runtime_error(w)     {} };
 
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)

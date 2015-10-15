@@ -4,7 +4,7 @@
 
     Please be advised that the reference documentation discussing pybind11
     internals is currently incomplete. Please refer to the previous sections
-    and the pybind header files for the nitty gritty details.
+    and the pybind11 header files for the nitty gritty details.
 
 Reference
 #########
@@ -22,7 +22,7 @@ Macros
     .. code-block:: cpp
 
         PYBIND_PLUGIN(example) {
-            pybind::module m("example", "pybind example plugin");
+            pybind11::module m("example", "pybind11 example plugin");
             /// Set up bindings here
             return m.ptr();
         }
@@ -188,9 +188,9 @@ Convenience classes for specific Python types
 
     .. code-block:: cpp
 
-        pybind::module m("example", "pybind example plugin");
-        pybind::module m2 = m.def_submodule("sub", "A submodule of 'example'");
-        pybind::module m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
+        pybind11::module m("example", "pybind11 example plugin");
+        pybind11::module m2 = m.def_submodule("sub", "A submodule of 'example'");
+        pybind11::module m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
 
 .. cpp:function:: template <typename Func, typename ... Extra> module& module::def(const char *name, Func && f, Extra && ... extra)
 

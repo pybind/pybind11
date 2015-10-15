@@ -7,7 +7,7 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-project(pybind)
+project(pybind11)
 
 # Add a CMake parameter for choosing a desired Python version
 set(PYBIND_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
@@ -55,13 +55,13 @@ include_directories(include)
 
 # Create the binding library
 add_library(example SHARED
-  include/pybind/cast.h
-  include/pybind/common.h
-  include/pybind/operators.h
-  include/pybind/pybind.h
-  include/pybind/pytypes.h
-  include/pybind/typeid.h
-  include/pybind/numpy.h
+  include/pybind11/cast.h
+  include/pybind11/common.h
+  include/pybind11/operators.h
+  include/pybind11/pybind11.h
+  include/pybind11/pytypes.h
+  include/pybind11/typeid.h
+  include/pybind11/numpy.h
   example/example.cpp
   example/example1.cpp
   example/example2.cpp

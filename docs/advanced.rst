@@ -8,9 +8,9 @@ present:
 
 .. code-block:: cpp
 
-    #include <pybind/pybind.h>
+    #include <pybind11/pybind11.h>
 
-    namespace py = pybind;
+    namespace py = pybind11
 
 Operator overloading
 ====================
@@ -43,10 +43,10 @@ to Python.
 
 .. code-block:: cpp
 
-    #include <pybind/operators.h>
+    #include <pybind11/operators.h>
 
     PYBIND_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
+        py::module m("example", "pybind11 example plugin");
 
         py::class_<Vector2>(m, "Vector2")
             .def(py::init<float, float>())
@@ -79,7 +79,7 @@ C++ side, or to perform other types of customization.
 .. note::
 
     To use the more convenient ``py::self`` notation, the additional
-    header file :file:`pybind/operators.h` must be included.
+    header file :file:`pybind11/operators.h` must be included.
 
 .. seealso::
 
@@ -120,15 +120,15 @@ its return value upon execution.
         };
     }
 
-After including the extra header file :file:`pybind/functional.h`, it is almost
+After including the extra header file :file:`pybind11/functional.h`, it is almost
 trivial to generate binding code for both of these functions.
 
 .. code-block:: cpp
 
-    #include <pybind/functional.h>
+    #include <pybind11/functional.h>
 
     PYBIND_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
+        py::module m("example", "pybind11 example plugin");
 
         m.def("func_arg", &func_arg);
         m.def("func_ret", &func_ret);
@@ -200,7 +200,7 @@ Normally, the binding code for these classes would look as follows:
 .. code-block:: cpp
 
     PYBIND_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
+        py::module m("example", "pybind11 example plugin");
 
         py::class_<Animal> animal(m, "Animal");
         animal
@@ -248,7 +248,7 @@ a default implementation. The binding code also needs a few minor adaptations
     :emphasize-lines: 4,6,7
 
     PYBIND_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
+        py::module m("example", "pybind11 example plugin");
 
         py::class_<PyAnimal> animal(m, "Animal");
         animal
@@ -295,11 +295,11 @@ a virtual method call.
 Passing STL data structures
 ===========================
 
-When including the additional header file :file:`pybind/stl.h`, conversions
+When including the additional header file :file:`pybind11/stl.h`, conversions
 between ``std::vector<>`` and ``std::map<>`` and the Python ``list`` and
 ``dict`` data structures are automatically enabled. The types ``std::pair<>``
 and ``std::tuple<>`` are already supported out of the box with just the core
-:file:`pybind/pybind.h` header.
+:file:`pybind11/pybind11.h` header.
 
 .. note::
 
@@ -376,7 +376,7 @@ See below for an example that uses the
     };
 
     PYBIND_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
+        py::module m("example", "pybind11 example plugin");
 
         py::class_<Example>(m, "Example")
             .def(py::init<>())
@@ -620,7 +620,7 @@ dense array of doubles in C-style ordering.
 
 When it is invoked with a different type (e.g. an integer), the binding code
 will attempt to cast the input into a NumPy array of the requested type.
-Note that this feature requires the ``pybind/numpy.h`` header to be included.
+Note that this feature requires the ``pybind11/numpy.h`` header to be included.
 
 Vectorizing functions
 =====================
@@ -633,7 +633,7 @@ N-D arrays) in addition to its normal arguments:
 
     double my_func(int x, float y, double z);
 
-After including the ``pybind/numpy.h`` header, this is extremely simple:
+After including the ``pybind11/numpy.h`` header, this is extremely simple:
 
 .. code-block:: cpp
 

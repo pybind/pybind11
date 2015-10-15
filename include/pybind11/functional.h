@@ -1,5 +1,5 @@
 /*
-    pybind/functional.h: std::function<> support
+    pybind11/functional.h: std::function<> support
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <pybind/pybind.h>
+#include "pybind11.h"
 #include <functional>
 
-NAMESPACE_BEGIN(pybind)
+NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
 template <typename Return, typename... Args> struct type_caster<std::function<Return(Args...)>> {
@@ -24,7 +24,7 @@ public:
             return false;
         object src(src_, true);
         value = [src](Args... args) -> Return {
-            object retval(pybind::handle(src).call(std::move(args)...));
+            object retval(pybind11::handle(src).call(std::move(args)...));
             /* Visual studio 2015 parser issue: need parentheses around this expression */
             return (retval.template cast<Return>());
         };
@@ -46,4 +46,4 @@ public:
 };
 
 NAMESPACE_END(detail)
-NAMESPACE_END(pybind)
+NAMESPACE_END(pybind11)
