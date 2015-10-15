@@ -123,6 +123,11 @@ elseif (UNIX)
   # .SO file extension on Linux/Mac OS
   set_target_properties(example PROPERTIES SUFFIX ".so")
 
+  # Optimize for a small binary size
+  if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
+    set_target_properties(example PROPERTIES COMPILE_FLAGS "-Os")
+  endif()
+
   # Strip unnecessary sections of the binary on Linux/Mac OS
   if(APPLE)
     set_target_properties(example PROPERTIES MACOSX_RPATH ".")
