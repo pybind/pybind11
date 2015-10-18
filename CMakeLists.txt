@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 2.8)
 project(pybind11)
 
 # Add a CMake parameter for choosing a desired Python version
-set(PYBIND_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
+set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
 
 # Set a default build configuration if none is specified. 'MinSizeRel' produces the smallest binaries
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -22,8 +22,8 @@ endif()
 string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
-find_package(PythonLibs ${PYBIND_PYTHON_VERSION} REQUIRED)
-find_package(PythonInterp ${PYBIND_PYTHON_VERSION} REQUIRED)
+find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
+find_package(PythonInterp ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 if (UNIX)
   # Enable C++11 mode

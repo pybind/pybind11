@@ -14,8 +14,8 @@
 
 NAMESPACE_BEGIN(pybind11)
 
-PYBIND_DECL_FMT(std::complex<float>, "Zf");
-PYBIND_DECL_FMT(std::complex<double>, "Zd");
+PYBIND11_DECL_FMT(std::complex<float>, "Zf");
+PYBIND11_DECL_FMT(std::complex<double>, "Zd");
 
 NAMESPACE_BEGIN(detail)
 template <typename T> class type_caster<std::complex<T>> {
@@ -34,7 +34,7 @@ public:
         return PyComplex_FromDoubles((double) src.real(), (double) src.imag());
     }
 
-    PYBIND_TYPE_CASTER(std::complex<T>, "complex");
+    PYBIND11_TYPE_CASTER(std::complex<T>, "complex");
 };
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind11)

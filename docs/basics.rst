@@ -87,7 +87,7 @@ a file named :file:`example.cpp` with the following contents:
 
     namespace py = pybind11;
 
-    PYBIND_PLUGIN(example) {
+    PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
         m.def("add", &add, "A function which adds two numbers");
@@ -95,7 +95,7 @@ a file named :file:`example.cpp` with the following contents:
         return m.ptr();
     }
 
-The :func:`PYBIND_PLUGIN` macro creates a function that will be called when an
+The :func:`PYBIND11_PLUGIN` macro creates a function that will be called when an
 ``import`` statement is issued from within Python. The next line creates a
 module named ``example`` (with the supplied docstring). The method
 :func:`module::def` generates binding code that exposes the

@@ -54,7 +54,7 @@ public:
         }
         return list;
     }
-    PYBIND_TYPE_CASTER(type, detail::descr("list<") + value_conv::name() + detail::descr(">"));
+    PYBIND11_TYPE_CASTER(type, detail::descr("list<") + value_conv::name() + detail::descr(">"));
 };
 
 template <typename Key, typename Value> struct type_caster<std::map<Key, Value>> {
@@ -97,7 +97,7 @@ public:
         return dict;
     }
 
-    PYBIND_TYPE_CASTER(type, detail::descr("dict<") + key_conv::name() + detail::descr(", ") + value_conv::name() + detail::descr(">"));
+    PYBIND11_TYPE_CASTER(type, detail::descr("dict<") + key_conv::name() + detail::descr(", ") + value_conv::name() + detail::descr(">"));
 };
 
 NAMESPACE_END(detail)

@@ -25,9 +25,9 @@ NAMESPACE_BEGIN(detail)
 #endif
 
 #if PY_MAJOR_VERSION >= 3
-#define PYBIND_AS_STRING PyBytes_AsString
+#define PYBIND11_AS_STRING PyBytes_AsString
 #else
-#define PYBIND_AS_STRING PyString_AsString
+#define PYBIND11_AS_STRING PyString_AsString
 #endif
 
 /** Linked list descriptor type for function signatures (produces smaller binaries
@@ -214,7 +214,7 @@ protected:
     object temp;
 };
 
-#define PYBIND_TYPE_CASTER(type, py_name) \
+#define PYBIND11_TYPE_CASTER(type, py_name) \
     protected: \
         type value; \
     public: \
@@ -225,7 +225,7 @@ protected:
         operator type*() { return &value; } \
         operator type&() { return value; } \
 
-#define PYBIND_TYPE_CASTER_NUMBER(type, py_type, from_type, to_pytype) \
+#define PYBIND11_TYPE_CASTER_NUMBER(type, py_type, from_type, to_pytype) \
     template <> class type_caster<type> { \
     public: \
         bool load(PyObject *src, bool) { \
@@ -244,7 +244,7 @@ protected:
         static PyObject *cast(type src, return_value_policy /* policy */, PyObject * /* parent */) { \
             return to_pytype((py_type) src); \
         } \
-        PYBIND_TYPE_CASTER(type, #type); \
+        PYBIND11_TYPE_CASTER(type, #type); \
     };
 
 #if PY_MAJOR_VERSION >= 3
@@ -266,27 +266,27 @@ inline unsigned PY_LONG_LONG PyLong_AsUnsignedLongLong_Fixed(PyObject *o) {
 }
 #endif
 
-PYBIND_TYPE_CASTER_NUMBER(int8_t, long, PyLong_AsLong, PyLong_FromLong)
-PYBIND_TYPE_CASTER_NUMBER(uint8_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-PYBIND_TYPE_CASTER_NUMBER(int16_t, long, PyLong_AsLong, PyLong_FromLong)
-PYBIND_TYPE_CASTER_NUMBER(uint16_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-PYBIND_TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
-PYBIND_TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-PYBIND_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
-PYBIND_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
+PYBIND11_TYPE_CASTER_NUMBER(int8_t, long, PyLong_AsLong, PyLong_FromLong)
+PYBIND11_TYPE_CASTER_NUMBER(uint8_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
+PYBIND11_TYPE_CASTER_NUMBER(int16_t, long, PyLong_AsLong, PyLong_FromLong)
+PYBIND11_TYPE_CASTER_NUMBER(uint16_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
+PYBIND11_TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
+PYBIND11_TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
+PYBIND11_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
+PYBIND11_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
 
 #if defined(__APPLE__) // size_t/ssize_t are separate types on Mac OS X
 #if PY_MAJOR_VERSION >= 3
-PYBIND_TYPE_CASTER_NUMBER(ssize_t, Py_ssize_t, PyLong_AsSsize_t, PyLong_FromSsize_t)
-PYBIND_TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
+PYBIND11_TYPE_CASTER_NUMBER(ssize_t, Py_ssize_t, PyLong_AsSsize_t, PyLong_FromSsize_t)
+PYBIND11_TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
 #else
-PYBIND_TYPE_CASTER_NUMBER(ssize_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
-PYBIND_TYPE_CASTER_NUMBER(size_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
+PYBIND11_TYPE_CASTER_NUMBER(ssize_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
+PYBIND11_TYPE_CASTER_NUMBER(size_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
 #endif
 #endif
 
-PYBIND_TYPE_CASTER_NUMBER(float, double, PyFloat_AsDouble, PyFloat_FromDouble)
-PYBIND_TYPE_CASTER_NUMBER(double, double, PyFloat_AsDouble, PyFloat_FromDouble)
+PYBIND11_TYPE_CASTER_NUMBER(float, double, PyFloat_AsDouble, PyFloat_FromDouble)
+PYBIND11_TYPE_CASTER_NUMBER(double, double, PyFloat_AsDouble, PyFloat_FromDouble)
 
 template <> class type_caster<void_type> {
 public:
@@ -295,7 +295,7 @@ public:
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PYBIND_TYPE_CASTER(void_type, "None");
+    PYBIND11_TYPE_CASTER(void_type, "None");
 };
 
 template <> class type_caster<void> : public type_caster<void_type> {
@@ -313,7 +313,7 @@ public:
         Py_INCREF(result);
         return result;
     }
-    PYBIND_TYPE_CASTER(bool, "bool");
+    PYBIND11_TYPE_CASTER(bool, "bool");
 };
 
 template <> class type_caster<std::string> {
@@ -325,7 +325,7 @@ public:
         object temp(PyUnicode_AsUTF8String(src), false);
         const char *ptr = nullptr;
         if (temp)
-            ptr = PYBIND_AS_STRING(temp.ptr());
+            ptr = PYBIND11_AS_STRING(temp.ptr());
         if (!ptr) { PyErr_Clear(); return false; }
         value = ptr;
         return true;
@@ -333,7 +333,7 @@ public:
     static PyObject *cast(const std::string &src, return_value_policy /* policy */, PyObject * /* parent */) {
         return PyUnicode_FromString(src.c_str());
     }
-    PYBIND_TYPE_CASTER(std::string, "str");
+    PYBIND11_TYPE_CASTER(std::string, "str");
 };
 
 template <> class type_caster<char> {
@@ -345,7 +345,7 @@ public:
         object temp(PyUnicode_AsUTF8String(src), false);
         const char *ptr = nullptr;
         if (temp)
-            ptr = PYBIND_AS_STRING(temp.ptr());
+            ptr = PYBIND11_AS_STRING(temp.ptr());
         if (!ptr) { PyErr_Clear(); return false; }
         value = ptr;
         return true;
@@ -527,7 +527,7 @@ protected:
     holder_type holder;
 };
 
-#define PYBIND_DECLARE_HOLDER_TYPE(type, holder_type) \
+#define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type) \
     namespace pybind11 { namespace detail { \
     template <typename type> class type_caster<holder_type> \
         : public type_caster_holder<type, holder_type> { }; \
@@ -543,24 +543,24 @@ public:
         src.inc_ref();
         return (PyObject *) src.ptr();
     }
-    PYBIND_TYPE_CASTER(handle, "handle");
+    PYBIND11_TYPE_CASTER(handle, "handle");
 };
 
-#define PYBIND_TYPE_CASTER_PYTYPE(name) \
+#define PYBIND11_TYPE_CASTER_PYTYPE(name) \
     template <> class type_caster<name> { \
     public: \
         bool load(PyObject *src, bool) { value = name(src, true); return true; } \
         static PyObject *cast(const name &src, return_value_policy /* policy */, PyObject * /* parent */) { \
             src.inc_ref(); return (PyObject *) src.ptr(); \
         } \
-        PYBIND_TYPE_CASTER(name, #name); \
+        PYBIND11_TYPE_CASTER(name, #name); \
     };
 
-PYBIND_TYPE_CASTER_PYTYPE(object)  PYBIND_TYPE_CASTER_PYTYPE(buffer)
-PYBIND_TYPE_CASTER_PYTYPE(capsule) PYBIND_TYPE_CASTER_PYTYPE(dict)
-PYBIND_TYPE_CASTER_PYTYPE(float_)  PYBIND_TYPE_CASTER_PYTYPE(int_)
-PYBIND_TYPE_CASTER_PYTYPE(list)    PYBIND_TYPE_CASTER_PYTYPE(slice)
-PYBIND_TYPE_CASTER_PYTYPE(tuple)   PYBIND_TYPE_CASTER_PYTYPE(function)
+PYBIND11_TYPE_CASTER_PYTYPE(object)  PYBIND11_TYPE_CASTER_PYTYPE(buffer)
+PYBIND11_TYPE_CASTER_PYTYPE(capsule) PYBIND11_TYPE_CASTER_PYTYPE(dict)
+PYBIND11_TYPE_CASTER_PYTYPE(float_)  PYBIND11_TYPE_CASTER_PYTYPE(int_)
+PYBIND11_TYPE_CASTER_PYTYPE(list)    PYBIND11_TYPE_CASTER_PYTYPE(slice)
+PYBIND11_TYPE_CASTER_PYTYPE(tuple)   PYBIND11_TYPE_CASTER_PYTYPE(function)
 
 NAMESPACE_END(detail)
 

@@ -39,7 +39,7 @@ public:
     }
 
 
-    PYBIND_TYPE_CASTER(type, detail::descr("function<") +
+    PYBIND11_TYPE_CASTER(type, detail::descr("function<") +
             type_caster<std::tuple<Args...>>::name() + detail::descr(" -> ") +
             type_caster<typename decay<Return>::type>::name() +
             detail::descr(">"));

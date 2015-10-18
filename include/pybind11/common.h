@@ -16,11 +16,11 @@
 #define NAMESPACE_END(name) }
 #endif
 
-#if !defined(PYBIND_EXPORT)
+#if !defined(PYBIND11_EXPORT)
 #if defined(WIN32) || defined(_WIN32)
-#define PYBIND_EXPORT __declspec(dllexport)
+#define PYBIND11_EXPORT __declspec(dllexport)
 #else
-#define PYBIND_EXPORT __attribute__ ((visibility("default")))
+#define PYBIND11_EXPORT __attribute__ ((visibility("default")))
 #endif
 #endif
 
@@ -61,11 +61,11 @@
 #endif
 
 #if PY_MAJOR_VERSION >= 3
-#define PYBIND_PLUGIN(name) \
-    extern "C" PYBIND_EXPORT PyObject *PyInit_##name()
+#define PYBIND11_PLUGIN(name) \
+    extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 #else
-#define PYBIND_PLUGIN(name) \
-    extern "C" PYBIND_EXPORT PyObject *init##name()
+#define PYBIND11_PLUGIN(name) \
+    extern "C" PYBIND11_EXPORT PyObject *init##name()
 #endif
 
 NAMESPACE_BEGIN(pybind11)
@@ -93,10 +93,10 @@ enum class return_value_policy : int {
 
 /// Format strings for basic number types
 template <typename type> struct format_descriptor { };
-#define PYBIND_DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; };
-PYBIND_DECL_FMT(int8_t,  "b"); PYBIND_DECL_FMT(uint8_t,  "B"); PYBIND_DECL_FMT(int16_t, "h"); PYBIND_DECL_FMT(uint16_t, "H");
-PYBIND_DECL_FMT(int32_t, "i"); PYBIND_DECL_FMT(uint32_t, "I"); PYBIND_DECL_FMT(int64_t, "q"); PYBIND_DECL_FMT(uint64_t, "Q");
-PYBIND_DECL_FMT(float,   "f"); PYBIND_DECL_FMT(double,   "d"); PYBIND_DECL_FMT(bool,    "?");
+#define PYBIND11_DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; };
+PYBIND11_DECL_FMT(int8_t,  "b"); PYBIND11_DECL_FMT(uint8_t,  "B"); PYBIND11_DECL_FMT(int16_t, "h"); PYBIND11_DECL_FMT(uint16_t, "H");
+PYBIND11_DECL_FMT(int32_t, "i"); PYBIND11_DECL_FMT(uint32_t, "I"); PYBIND11_DECL_FMT(int64_t, "q"); PYBIND11_DECL_FMT(uint64_t, "Q");
+PYBIND11_DECL_FMT(float,   "f"); PYBIND11_DECL_FMT(double,   "d"); PYBIND11_DECL_FMT(bool,    "?");
 
 /// Information record describing a Python buffer object
 struct buffer_info {

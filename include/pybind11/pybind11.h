@@ -429,7 +429,7 @@ private:
 
 class module : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(module, object, PyModule_Check)
+    PYBIND11_OBJECT_DEFAULT(module, object, PyModule_Check)
 
     module(const char *name, const char *doc = nullptr) {
 #if PY_MAJOR_VERSION >= 3
@@ -476,7 +476,7 @@ NAMESPACE_BEGIN(detail)
 /// Basic support for creating new Python heap types
 class custom_type : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(custom_type, object, PyType_Check)
+    PYBIND11_OBJECT_DEFAULT(custom_type, object, PyType_Check)
 
     custom_type(object &scope, const char *name_, const std::type_info *tinfo,
                 size_t type_size, size_t instance_size,
@@ -667,7 +667,7 @@ template <typename type, typename holder_type = std::unique_ptr<type>> class cla
 public:
     typedef detail::instance<type, holder_type> instance_type;
 
-    PYBIND_OBJECT(class_, detail::custom_type, PyType_Check)
+    PYBIND11_OBJECT(class_, detail::custom_type, PyType_Check)
 
     class_(object &scope, const char *name, const char *doc = nullptr)
         : detail::custom_type(scope, name, &typeid(type), sizeof(type),
@@ -925,18 +925,18 @@ inline function get_overload(const void *this_ptr, const char *name)  {
     return overload;
 }
 
-#define PYBIND_OVERLOAD_INT(ret_type, class_name, name, ...) { \
+#define PYBIND11_OVERLOAD_INT(ret_type, class_name, name, ...) { \
         pybind11::gil_scoped_acquire gil; \
         pybind11::function overload = pybind11::get_overload(this, #name); \
         if (overload) \
             return overload.call(__VA_ARGS__).cast<ret_type>();  }
 
-#define PYBIND_OVERLOAD(ret_type, class_name, name, ...) \
-    PYBIND_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
+#define PYBIND11_OVERLOAD(ret_type, class_name, name, ...) \
+    PYBIND11_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
     return class_name::name(__VA_ARGS__)
 
-#define PYBIND_OVERLOAD_PURE(ret_type, class_name, name, ...) \
-    PYBIND_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
+#define PYBIND11_OVERLOAD_PURE(ret_type, class_name, name, ...) \
+    PYBIND11_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
     throw std::runtime_error("Tried to call pure virtual function \"" #name "\"");
 
 NAMESPACE_END(pybind11)

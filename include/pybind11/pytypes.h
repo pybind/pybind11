@@ -195,7 +195,7 @@ inline detail::accessor handle::operator[](const char *key) { return detail::acc
 inline detail::accessor handle::attr(handle key) { return detail::accessor(ptr(), key.ptr(), true); }
 inline detail::accessor handle::attr(const char *key) { return detail::accessor(ptr(), key, true); }
 
-#define PYBIND_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
+#define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
     Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
     Name(const object& o): Parent(o) { CvtStmt; } \
     Name(object&& o): Parent(std::move(o)) { CvtStmt; } \
@@ -203,16 +203,16 @@ inline detail::accessor handle::attr(const char *key) { return detail::accessor(
     Name& operator=(object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
     bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
 
-#define PYBIND_OBJECT(Name, Parent, CheckFun) \
-    PYBIND_OBJECT_CVT(Name, Parent, CheckFun, )
+#define PYBIND11_OBJECT(Name, Parent, CheckFun) \
+    PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, )
 
-#define PYBIND_OBJECT_DEFAULT(Name, Parent, CheckFun) \
-    PYBIND_OBJECT(Name, Parent, CheckFun) \
+#define PYBIND11_OBJECT_DEFAULT(Name, Parent, CheckFun) \
+    PYBIND11_OBJECT(Name, Parent, CheckFun) \
     Name() : Parent() { }
 
 class str : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(str, object, PyUnicode_Check)
+    PYBIND11_OBJECT_DEFAULT(str, object, PyUnicode_Check)
     str(const char *s) : object(PyUnicode_FromString(s), false) { }
     operator const char *() const {
 #if PY_MAJOR_VERSION >= 3
@@ -241,13 +241,13 @@ inline pybind11::str handle::str() const {
 
 class bool_ : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(bool_, object, PyBool_Check)
+    PYBIND11_OBJECT_DEFAULT(bool_, object, PyBool_Check)
     operator bool() const { return m_ptr && PyLong_AsLong(m_ptr) != 0; }
 };
 
 class int_ : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(int_, object, PyLong_Check)
+    PYBIND11_OBJECT_DEFAULT(int_, object, PyLong_Check)
     int_(int value) : object(PyLong_FromLong((long) value), false) { }
     int_(size_t value) : object(PyLong_FromSize_t(value), false) { }
 #if !defined(WIN32) || defined(_WIN64)
@@ -258,7 +258,7 @@ public:
 
 class float_ : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(float_, object, PyFloat_Check)
+    PYBIND11_OBJECT_DEFAULT(float_, object, PyFloat_Check)
     float_(float value) : object(PyFloat_FromDouble((double) value), false) { }
     float_(double value) : object(PyFloat_FromDouble((double) value), false) { }
     operator float() const { return (float) PyFloat_AsDouble(m_ptr); }
@@ -267,7 +267,7 @@ public:
 
 class slice : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(slice, object, PySlice_Check)
+    PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
     slice(ssize_t start_, ssize_t stop_, ssize_t step_) {
         int_ start(start_), stop(stop_), step(step_);
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
@@ -285,7 +285,7 @@ public:
 
 class capsule : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
+    PYBIND11_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
     capsule(PyObject *obj, bool borrowed) : object(obj, borrowed) { }
     capsule(void *value, void (*destruct)(PyObject *) = nullptr) : object(PyCapsule_New(value, nullptr, destruct), false) { }
     template <typename T> operator T *() const {
@@ -297,7 +297,7 @@ public:
 
 class tuple : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(tuple, object, PyTuple_Check)
+    PYBIND11_OBJECT_DEFAULT(tuple, object, PyTuple_Check)
     tuple(size_t size) : object(PyTuple_New((Py_ssize_t) size), false) { }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     detail::tuple_accessor operator[](size_t index) { return detail::tuple_accessor(ptr(), index); }
@@ -305,7 +305,7 @@ public:
 
 class dict : public object {
 public:
-    PYBIND_OBJECT(dict, object, PyDict_Check)
+    PYBIND11_OBJECT(dict, object, PyDict_Check)
     dict() : object(PyDict_New(), false) { }
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     detail::dict_iterator begin() { return (++detail::dict_iterator(ptr(), 0)); }
@@ -314,7 +314,7 @@ public:
 
 class list : public object {
 public:
-    PYBIND_OBJECT(list, object, PyList_Check)
+    PYBIND11_OBJECT(list, object, PyList_Check)
     list(size_t size = 0) : object(PyList_New((ssize_t) size), false) { }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_iterator begin() { return detail::list_iterator(ptr(), 0); }
@@ -325,7 +325,7 @@ public:
 
 class function : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(function, object, PyFunction_Check)
+    PYBIND11_OBJECT_DEFAULT(function, object, PyFunction_Check)
 
     bool is_cpp_function() {
         PyObject *ptr = m_ptr;
@@ -343,7 +343,7 @@ public:
 
 class buffer : public object {
 public:
-    PYBIND_OBJECT_DEFAULT(buffer, object, PyObject_CheckBuffer)
+    PYBIND11_OBJECT_DEFAULT(buffer, object, PyObject_CheckBuffer)
 
     buffer_info request(bool writable = false) {
         int flags = PyBUF_STRIDES | PyBUF_FORMAT;

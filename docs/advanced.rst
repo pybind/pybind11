@@ -45,7 +45,7 @@ to Python.
 
     #include <pybind11/operators.h>
 
-    PYBIND_PLUGIN(example) {
+    PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
         py::class_<Vector2>(m, "Vector2")
@@ -127,7 +127,7 @@ trivial to generate binding code for both of these functions.
 
     #include <pybind11/functional.h>
 
-    PYBIND_PLUGIN(example) {
+    PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
         m.def("func_arg", &func_arg);
@@ -199,7 +199,7 @@ Normally, the binding code for these classes would look as follows:
 
 .. code-block:: cpp
 
-    PYBIND_PLUGIN(example) {
+    PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
         py::class_<Animal> animal(m, "Animal");
@@ -230,7 +230,7 @@ helper class that is defined as follows:
 
         /* Trampoline (need one for each virtual function) */
         std::string go(int n_times) {
-            PYBIND_OVERLOAD_PURE(
+            PYBIND11_OVERLOAD_PURE(
                 std::string, /* Return type */
                 Animal,      /* Parent class */
                 go,          /* Name of function */
@@ -239,15 +239,15 @@ helper class that is defined as follows:
         }
     };
 
-The macro :func:`PYBIND_OVERLOAD_PURE` should be used for pure virtual
-functions, and :func:`PYBIND_OVERLOAD` should be used for functions which have
+The macro :func:`PYBIND11_OVERLOAD_PURE` should be used for pure virtual
+functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
 a default implementation. The binding code also needs a few minor adaptations
 (highlighted):
 
 .. code-block:: cpp
     :emphasize-lines: 4,6,7
 
-    PYBIND_PLUGIN(example) {
+    PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
         py::class_<PyAnimal> animal(m, "Animal");
@@ -375,7 +375,7 @@ See below for an example that uses the
         Internal internal;
     };
 
-    PYBIND_PLUGIN(example) {
+    PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
         py::class_<Example>(m, "Example")
@@ -441,7 +441,7 @@ be declared at the top level before any binding code:
 
 .. code-block:: cpp
 
-    PYBIND_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+    PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 
 .. seealso::
 

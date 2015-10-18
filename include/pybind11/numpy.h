@@ -76,7 +76,7 @@ public:
         PyObject *(*PyArray_FromAny) (PyObject *, PyObject *, int, int, int, PyObject *);
     };
 
-    PYBIND_OBJECT_DEFAULT(array, buffer, lookup_api().PyArray_Check)
+    PYBIND11_OBJECT_DEFAULT(array, buffer, lookup_api().PyArray_Check)
 
     template <typename Type> array(size_t size, const Type *ptr) {
         API& api = lookup_api();
@@ -126,7 +126,7 @@ protected:
 
 template <typename T> class array_t : public array {
 public:
-    PYBIND_OBJECT_CVT(array_t, array, is_non_null, m_ptr = ensure(m_ptr));
+    PYBIND11_OBJECT_CVT(array_t, array, is_non_null, m_ptr = ensure(m_ptr));
     array_t() : array() { }
     static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
     PyObject *ensure(PyObject *ptr) {
@@ -150,15 +150,15 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE);
 
 
 NAMESPACE_BEGIN(detail)
-PYBIND_TYPE_CASTER_PYTYPE(array)
-PYBIND_TYPE_CASTER_PYTYPE(array_t<int8_t>)  PYBIND_TYPE_CASTER_PYTYPE(array_t<uint8_t>)
-PYBIND_TYPE_CASTER_PYTYPE(array_t<int16_t>) PYBIND_TYPE_CASTER_PYTYPE(array_t<uint16_t>)
-PYBIND_TYPE_CASTER_PYTYPE(array_t<int32_t>) PYBIND_TYPE_CASTER_PYTYPE(array_t<uint32_t>)
-PYBIND_TYPE_CASTER_PYTYPE(array_t<int64_t>) PYBIND_TYPE_CASTER_PYTYPE(array_t<uint64_t>)
-PYBIND_TYPE_CASTER_PYTYPE(array_t<float>)   PYBIND_TYPE_CASTER_PYTYPE(array_t<double>)
-PYBIND_TYPE_CASTER_PYTYPE(array_t<std::complex<float>>)
-PYBIND_TYPE_CASTER_PYTYPE(array_t<std::complex<double>>)
-PYBIND_TYPE_CASTER_PYTYPE(array_t<bool>)
+PYBIND11_TYPE_CASTER_PYTYPE(array)
+PYBIND11_TYPE_CASTER_PYTYPE(array_t<int8_t>)  PYBIND11_TYPE_CASTER_PYTYPE(array_t<uint8_t>)
+PYBIND11_TYPE_CASTER_PYTYPE(array_t<int16_t>) PYBIND11_TYPE_CASTER_PYTYPE(array_t<uint16_t>)
+PYBIND11_TYPE_CASTER_PYTYPE(array_t<int32_t>) PYBIND11_TYPE_CASTER_PYTYPE(array_t<uint32_t>)
+PYBIND11_TYPE_CASTER_PYTYPE(array_t<int64_t>) PYBIND11_TYPE_CASTER_PYTYPE(array_t<uint64_t>)
+PYBIND11_TYPE_CASTER_PYTYPE(array_t<float>)   PYBIND11_TYPE_CASTER_PYTYPE(array_t<double>)
+PYBIND11_TYPE_CASTER_PYTYPE(array_t<std::complex<float>>)
+PYBIND11_TYPE_CASTER_PYTYPE(array_t<std::complex<double>>)
+PYBIND11_TYPE_CASTER_PYTYPE(array_t<bool>)
 
 template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {

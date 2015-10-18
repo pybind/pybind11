@@ -12,7 +12,7 @@ Reference
 Macros
 ======
 
-.. function:: PYBIND_PLUGIN(const char *name)
+.. function:: PYBIND11_PLUGIN(const char *name)
 
     This macro creates the entry point that will be invoked when the Python
     interpreter imports a plugin library. Please create a
@@ -21,7 +21,7 @@ Macros
 
     .. code-block:: cpp
 
-        PYBIND_PLUGIN(example) {
+        PYBIND11_PLUGIN(example) {
             pybind11::module m("example", "pybind11 example plugin");
             /// Set up bindings here
             return m.ptr();

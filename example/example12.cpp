@@ -39,7 +39,7 @@ public:
 
     virtual int run(int value) {
         /* Generate wrapping code that enables native function overloading */
-        PYBIND_OVERLOAD(
+        PYBIND11_OVERLOAD(
             int,        /* Return type */
             Example12,  /* Parent class */
             run,        /* Name of function */
@@ -48,7 +48,7 @@ public:
     }
 
     virtual void pure_virtual() {
-        PYBIND_OVERLOAD_PURE(
+        PYBIND11_OVERLOAD_PURE(
             void,         /* Return type */
             Example12,    /* Parent class */
             pure_virtual  /* Name of function */

@@ -59,7 +59,7 @@ template <op_id id, op_type ot, typename L, typename R> struct op_ {
     }
 };
 
-#define PYBIND_BINARY_OPERATOR(id, rid, op, expr)                                      \
+#define PYBIND11_BINARY_OPERATOR(id, rid, op, expr)                                      \
 template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L, R> { \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(const L &l, const R &r) -> decltype(expr) { return (expr); }   \
@@ -80,7 +80,7 @@ template <typename T> op_<op_##id, op_r, T, self_t> op(const T &, const self_t &
     return op_<op_##id, op_r, T, self_t>();                                            \
 };
 
-#define PYBIND_INPLACE_OPERATOR(id, op, expr)                                          \
+#define PYBIND11_INPLACE_OPERATOR(id, op, expr)                                          \
 template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L, R> { \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(L &l, const R &r) -> decltype(expr) { return expr; }           \
@@ -90,7 +90,7 @@ template <typename T> op_<op_##id, op_l, self_t, T> op(const self_t &, const T &
     return op_<op_##id, op_l, self_t, T>();                                            \
 };
 
-#define PYBIND_UNARY_OPERATOR(id, op, expr)                                            \
+#define PYBIND11_UNARY_OPERATOR(id, op, expr)                                            \
 template <typename B, typename L> struct op_impl<op_##id, op_u, B, L, undefined_t> {   \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(const L &l) -> decltype(expr) { return expr; }                 \
@@ -100,48 +100,48 @@ inline op_<op_##id, op_u, self_t, undefined_t> op(const self_t &) {             
     return op_<op_##id, op_u, self_t, undefined_t>();                                  \
 };
 
-PYBIND_BINARY_OPERATOR(sub,       rsub,         operator-,    l - r)
-PYBIND_BINARY_OPERATOR(add,       radd,         operator+,    l + r)
-PYBIND_BINARY_OPERATOR(mul,       rmul,         operator*,    l * r)
+PYBIND11_BINARY_OPERATOR(sub,       rsub,         operator-,    l - r)
+PYBIND11_BINARY_OPERATOR(add,       radd,         operator+,    l + r)
+PYBIND11_BINARY_OPERATOR(mul,       rmul,         operator*,    l * r)
 #if PY_MAJOR_VERSION >= 3
-PYBIND_BINARY_OPERATOR(truediv,   rtruediv,     operator/,    l / r)
+PYBIND11_BINARY_OPERATOR(truediv,   rtruediv,     operator/,    l / r)
 #else
-PYBIND_BINARY_OPERATOR(div,       rdiv,         operator/,    l / r)
+PYBIND11_BINARY_OPERATOR(div,       rdiv,         operator/,    l / r)
 #endif
-PYBIND_BINARY_OPERATOR(mod,       rmod,         operator%,    l % r)
-PYBIND_BINARY_OPERATOR(lshift,    rlshift,      operator<<,   l << r)
-PYBIND_BINARY_OPERATOR(rshift,    rrshift,      operator>>,   l >> r)
-PYBIND_BINARY_OPERATOR(and,       rand,         operator&,    l & r)
-PYBIND_BINARY_OPERATOR(xor,       rxor,         operator^,    l ^ r)
-PYBIND_BINARY_OPERATOR(eq,        eq,           operator==,   l == r)
-PYBIND_BINARY_OPERATOR(ne,        ne,           operator!=,   l != r)
-PYBIND_BINARY_OPERATOR(or,        ror,          operator|,    l | r)
-PYBIND_BINARY_OPERATOR(gt,        lt,           operator>,    l > r)
-PYBIND_BINARY_OPERATOR(ge,        le,           operator>=,   l >= r)
-PYBIND_BINARY_OPERATOR(lt,        gt,           operator<,    l < r)
-PYBIND_BINARY_OPERATOR(le,        ge,           operator<=,   l <= r)
-//PYBIND_BINARY_OPERATOR(pow,       rpow,         pow,          std::pow(l,  r))
-PYBIND_INPLACE_OPERATOR(iadd,     operator+=,   l += r)
-PYBIND_INPLACE_OPERATOR(isub,     operator-=,   l -= r)
-PYBIND_INPLACE_OPERATOR(imul,     operator*=,   l *= r)
-PYBIND_INPLACE_OPERATOR(idiv,     operator/=,   l /= r)
-PYBIND_INPLACE_OPERATOR(imod,     operator%=,   l %= r)
-PYBIND_INPLACE_OPERATOR(ilshift,  operator<<=,  l <<= r)
-PYBIND_INPLACE_OPERATOR(irshift,  operator>>=,  l >>= r)
-PYBIND_INPLACE_OPERATOR(iand,     operator&=,   l &= r)
-PYBIND_INPLACE_OPERATOR(ixor,     operator^=,   l ^= r)
-PYBIND_INPLACE_OPERATOR(ior,      operator|=,   l |= r)
-PYBIND_UNARY_OPERATOR(neg,        operator-,    -l)
-PYBIND_UNARY_OPERATOR(pos,        operator+,    +l)
-PYBIND_UNARY_OPERATOR(abs,        abs,          std::abs(l))
-PYBIND_UNARY_OPERATOR(invert,     operator~,    ~l)
-PYBIND_UNARY_OPERATOR(bool,       operator!,    !!l)
-PYBIND_UNARY_OPERATOR(int,        int_,         (int) l)
-PYBIND_UNARY_OPERATOR(float,      float_,       (double) l)
+PYBIND11_BINARY_OPERATOR(mod,       rmod,         operator%,    l % r)
+PYBIND11_BINARY_OPERATOR(lshift,    rlshift,      operator<<,   l << r)
+PYBIND11_BINARY_OPERATOR(rshift,    rrshift,      operator>>,   l >> r)
+PYBIND11_BINARY_OPERATOR(and,       rand,         operator&,    l & r)
+PYBIND11_BINARY_OPERATOR(xor,       rxor,         operator^,    l ^ r)
+PYBIND11_BINARY_OPERATOR(eq,        eq,           operator==,   l == r)
+PYBIND11_BINARY_OPERATOR(ne,        ne,           operator!=,   l != r)
+PYBIND11_BINARY_OPERATOR(or,        ror,          operator|,    l | r)
+PYBIND11_BINARY_OPERATOR(gt,        lt,           operator>,    l > r)
+PYBIND11_BINARY_OPERATOR(ge,        le,           operator>=,   l >= r)
+PYBIND11_BINARY_OPERATOR(lt,        gt,           operator<,    l < r)
+PYBIND11_BINARY_OPERATOR(le,        ge,           operator<=,   l <= r)
+//PYBIND11_BINARY_OPERATOR(pow,       rpow,         pow,          std::pow(l,  r))
+PYBIND11_INPLACE_OPERATOR(iadd,     operator+=,   l += r)
+PYBIND11_INPLACE_OPERATOR(isub,     operator-=,   l -= r)
+PYBIND11_INPLACE_OPERATOR(imul,     operator*=,   l *= r)
+PYBIND11_INPLACE_OPERATOR(idiv,     operator/=,   l /= r)
+PYBIND11_INPLACE_OPERATOR(imod,     operator%=,   l %= r)
+PYBIND11_INPLACE_OPERATOR(ilshift,  operator<<=,  l <<= r)
+PYBIND11_INPLACE_OPERATOR(irshift,  operator>>=,  l >>= r)
+PYBIND11_INPLACE_OPERATOR(iand,     operator&=,   l &= r)
+PYBIND11_INPLACE_OPERATOR(ixor,     operator^=,   l ^= r)
+PYBIND11_INPLACE_OPERATOR(ior,      operator|=,   l |= r)
+PYBIND11_UNARY_OPERATOR(neg,        operator-,    -l)
+PYBIND11_UNARY_OPERATOR(pos,        operator+,    +l)
+PYBIND11_UNARY_OPERATOR(abs,        abs,          std::abs(l))
+PYBIND11_UNARY_OPERATOR(invert,     operator~,    ~l)
+PYBIND11_UNARY_OPERATOR(bool,       operator!,    !!l)
+PYBIND11_UNARY_OPERATOR(int,        int_,         (int) l)
+PYBIND11_UNARY_OPERATOR(float,      float_,       (double) l)
 
-#undef PYBIND_BINARY_OPERATOR
-#undef PYBIND_INPLACE_OPERATOR
-#undef PYBIND_UNARY_OPERATOR
+#undef PYBIND11_BINARY_OPERATOR
+#undef PYBIND11_INPLACE_OPERATOR
+#undef PYBIND11_UNARY_OPERATOR
 NAMESPACE_END(detail)
 
 using detail::self;
