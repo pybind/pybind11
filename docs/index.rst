@@ -1,5 +1,5 @@
-Welcome to pybind11's documentation!
-====================================
+pybind11 --- Seamless operability between C++11 and Python
+==========================================================
 
 
 Contents:

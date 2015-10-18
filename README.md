@@ -5,7 +5,7 @@
 [![Build Status](https://travis-ci.org/wjakob/pybind11.svg?branch=master)](https://travis-ci.org/wjakob/pybind11)
 [![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=latest)](http://pybind11.readthedocs.org/en/latest/?badge=latest)
 
-**pybind11** is a lightweight header library that exposes C++ types in Python
+**pybind11** is a lightweight header-only library that exposes C++ types in Python
 and vice versa, mainly to create Python bindings of existing C++ code. Its
 goals and syntax are similar to the excellent
 [Boost.Python](http://www.boost.org/doc/libs/1_58_0/libs/python/doc/) library
@@ -21,10 +21,10 @@ C++11-compatible compilers are widely available, this heavy machinery has
 become an excessively large and unnecessary dependency.
 
 Think of this library as a tiny self-contained version of Boost.Python with
-everything stripped away that isn't relevant for binding generation. The whole
-codebase requires less than 3000 lines of code and only depends on Python (2.7
-or 3.x) and the C++ standard library. This compact implementation was possible
-thanks to some of the new C++11 language features (tuples, lambda functions and
+everything stripped away that isn't relevant for binding generation. The core
+header files only require ~2K lines of code and depend on Python (2.7 or 3.x)
+and the C++ standard library. This compact implementation was possible thanks
+to some of the new C++11 language features (tuples, lambda functions and
 variadic templates). Since its creation, this library has grown beyond
 Boost.Python in many ways, leading to dramatically simpler binding code in many
 common situations.
@@ -67,4 +67,5 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 - Python's slice-based access and assignment operations can be supported with
   just a few lines of code.
 
-
+- Everything is contained in just a few header files; there no need to link
+  against any additional libraries.
