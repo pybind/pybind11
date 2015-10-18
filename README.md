@@ -2,8 +2,9 @@
 
 # pybind11 — Seamless operability between C++11 and Python
 
-[![Build Status](https://travis-ci.org/wjakob/pybind11.svg?branch=master)](https://travis-ci.org/wjakob/pybind11)
 [![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=latest)](http://pybind11.readthedocs.org/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.org/wjakob/pybind11.svg?branch=master)](https://travis-ci.org/wjakob/pybind11)
+[![Build status](https://ci.appveyor.com/api/projects/status/rfbxqkgxkcrxdu0f?svg=true)](https://ci.appveyor.com/project/wjakob/pybind11)
 
 **pybind11** is a lightweight header-only library that exposes C++ types in Python
 and vice versa, mainly to create Python bindings of existing C++ code. Its

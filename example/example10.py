@@ -4,7 +4,11 @@ import sys
 sys.path.append('.')
 
 import example
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    print('NumPy missing')
+    exit(0)
 
 from example import vectorized_func
 from example import vectorized_func2

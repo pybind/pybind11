@@ -1,0 +1,16 @@
+version: 1.0.{build}
+os: Visual Studio 2015
+clone_folder: C:\projects\pybind11
+branches:
+  only:
+    - master
+install:
+  - cinstall: python
+build_script:
+  - echo Running cmake...
+  - cd c:\projects\pybind11
+  - cmake -G "Visual Studio 14 2015 Win64" -DPYTHON_INCLUDE_DIR:PATH=C:/Python34-x64/include -DPYTHON_LIBRARY:FILEPATH=C:/Python34-x64/libs/python34.lib -DPYTHON_EXECUTABLE:FILEPATH=C:/Python34-x64/python.exe
+  - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - set MSBuildOptions=/v:m /p:Configuration=Release /logger:%MSBuildLogger%
+  - msbuild %MSBuildOptions% pybind11.sln
+  - ctest -C "Release"

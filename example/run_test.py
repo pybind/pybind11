@@ -25,7 +25,8 @@ def sanitize(lines):
         line = line.strip()
         if sys.platform == 'win32':
             lower = line.lower()
-            if 'constructor' in lower or 'destructor' in lower or 'ref' in lower:
+            if 'constructor' in lower or 'destructor' in lower \
+               or 'ref' in lower:
                 line = ""
         lines[i] = line
 
@@ -40,11 +41,16 @@ if path != '':
     os.chdir(path)
 
 name = sys.argv[1]
-output_bytes = subprocess.check_output([sys.executable, name + ".py"])
+output_bytes = subprocess.check_output([sys.executable, name + ".py"],
+                                       stderr=subprocess.STDOUT)
+
 output    = sanitize(output_bytes.decode('utf-8'))
 reference = sanitize(open(name + '.ref', 'r').read())
 
-if output == reference:
+if 'NumPy missing' in output:
+    print('Test "%s" could not be run.' % name)
+    exit(0)
+elif output == reference:
     print('Test "%s" succeeded.' % name)
     exit(0)
 else:

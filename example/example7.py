@@ -4,7 +4,12 @@ import sys
 sys.path.append('.')
 
 from example import Matrix
-import numpy as np
+
+try:
+    import numpy as np
+except ImportError:
+    print('NumPy missing')
+    exit(0)
 
 m = Matrix(5, 5)
 
