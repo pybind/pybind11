@@ -427,18 +427,27 @@ references to the object. When wrapping a type named ``Type``, the default
 value of this template parameter is ``std::unique_ptr<Type>``, which means that
 the object is deallocated when Python's reference count goes to zero.
 
-It is possible to switch to other types of smart pointers, which is useful in
-codebases that rely on them. For instance, the following snippet causes
-``std::shared_ptr`` to be used instead.
+It is possible to switch to other types of reference counting wrappers or smart
+pointers, which is useful in codebases that rely on them. For instance, the
+following snippet causes ``std::shared_ptr`` to be used instead.
 
 .. code-block:: cpp
 
     py::class_<Example, std::shared_ptr<Example>> obj(m, "Example");
 
+To enable transparent conversions for functions that take shared pointers as an
+argument or that return them, a macro invocation similar to the following must 
+be declared at the top level before any binding code:
+
+.. code-block:: cpp
+
+    PYBIND_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+
 .. seealso::
 
     The file :file:`example/example8.cpp` contains a complete example that
-    demonstrates how to work with custom smart pointer types in more detail.
+    demonstrates how to work with custom reference-counting holder types in
+    more detail.
 
 .. _custom_constructors:
 
