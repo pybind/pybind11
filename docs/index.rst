@@ -12,4 +12,5 @@ Contents:
    classes
    advanced
    cmake
+   benchmark
    reference
