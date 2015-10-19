@@ -23,6 +23,12 @@
 #define PYBIND11_EXPORT __attribute__ ((visibility("default")))
 #endif
 #endif
+#if defined(_MSC_VER)
+#define PYBIND11_NOINLINE __declspec(noinline)
+#else
+#define PYBIND11_NOINLINE __attribute__ ((noinline))
+#endif
+
 
 #include <vector>
 #include <string>

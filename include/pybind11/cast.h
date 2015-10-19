@@ -18,12 +18,6 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
-#if defined(_MSC_VER)
-#define NOINLINE __declspec(noinline)
-#else
-#define NOINLINE __attribute__ ((noinline))
-#endif
-
 #if PY_MAJOR_VERSION >= 3
 #define PYBIND11_AS_STRING PyBytes_AsString
 #else
@@ -44,35 +38,35 @@ public:
 
     descr() { }
     descr(descr &&d) : first(d.first), last(d.last) { d.first = d.last = nullptr; }
-    NOINLINE descr(const char *str) { first = last = new entry { str }; }
-    NOINLINE descr(const std::type_info &type) { first = last = new entry { &type }; }
+    PYBIND11_NOINLINE descr(const char *str) { first = last = new entry { str }; }
+    PYBIND11_NOINLINE descr(const std::type_info &type) { first = last = new entry { &type }; }
 
-    NOINLINE void operator+(const char *str) {
+    PYBIND11_NOINLINE void operator+(const char *str) {
         entry *next = new entry { str };
         last->next = next;
         last = next;
     }
 
-    NOINLINE void operator+(const std::type_info *type) {
+    PYBIND11_NOINLINE void operator+(const std::type_info *type) {
         entry *next = new entry { type };
         last->next = next;
         last = next;
     }
 
-    NOINLINE void operator+=(descr &&other) {
+    PYBIND11_NOINLINE void operator+=(descr &&other) {
         last->next = other.first;
         while (last->next)
             last = last->next;
         other.first = other.last = nullptr;
     }
 
-    NOINLINE friend descr operator+(descr &&l, descr &&r) {
+    PYBIND11_NOINLINE friend descr operator+(descr &&l, descr &&r) {
         descr result(std::move(l));
         result += std::move(r);
         return result;
     }
 
-    NOINLINE std::string str() const {
+    PYBIND11_NOINLINE std::string str() const {
         std::string result;
         auto const& registered_types = get_internals().registered_types;
         for (entry *it = first; it != nullptr; it = it->next) {
@@ -92,7 +86,7 @@ public:
         return result;
     }
 
-    NOINLINE ~descr() {
+    PYBIND11_NOINLINE ~descr() {
         while (first) {
             entry *tmp = first->next;
             delete first;
@@ -104,27 +98,20 @@ public:
     entry *last = nullptr;
 };
 
-#undef NOINLINE
-
-/// Generic type caster for objects stored on the heap
-template <typename type> class type_caster {
+class type_caster_custom {
 public:
-    typedef instance<type> instance_type;
-
-    static descr name() { return typeid(type); }
-
-    type_caster() {
+    PYBIND11_NOINLINE type_caster_custom(const std::type_info *type_info) {
         auto const& registered_types = get_internals().registered_types;
-        auto it = registered_types.find(&typeid(type));
+        auto it = registered_types.find(type_info);
         if (it != registered_types.end())
             typeinfo = &it->second;
     }
 
-    bool load(PyObject *src, bool convert) {
+    PYBIND11_NOINLINE bool load(PyObject *src, bool convert) {
         if (src == nullptr || typeinfo == nullptr)
             return false;
         if (PyType_IsSubtype(Py_TYPE(src), typeinfo->type)) {
-            value = ((instance_type *) src)->value;
+            value = ((instance<void> *) src)->value;
             return true;
         }
         if (convert) {
@@ -137,14 +124,9 @@ public:
         return false;
     }
 
-    static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        if (policy == return_value_policy::automatic)
-            policy = return_value_policy::copy;
-        return cast(&src, policy, parent);
-    }
-
-    static PyObject *cast(const type *_src, return_value_policy policy, PyObject *parent) {
-        type *src = const_cast<type *>(_src);
+    PYBIND11_NOINLINE static PyObject *cast(const void *_src, return_value_policy policy, PyObject *parent,
+                                            const std::type_info *type_info, void *(*copy_constructor)(const void *)) {
+        void *src = const_cast<void *>(_src);
         if (src == nullptr) {
             Py_INCREF(Py_None);
             return Py_None;
@@ -159,59 +141,70 @@ public:
             Py_INCREF(inst);
             return inst;
         }
-        auto it = internals.registered_types.find(&typeid(type));
+        auto it = internals.registered_types.find(type_info);
         if (it == internals.registered_types.end()) {
-            std::string msg = std::string("Unregistered type : ") + type_id<type>();
+            std::string msg = std::string("Unregistered type : ") + type_info->name();
+            detail::clean_type_id(msg);
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
-        auto &type_info = it->second;
-        instance_type *inst = (instance_type *) PyType_GenericAlloc(type_info.type, 0);
+        auto &reg_type = it->second;
+        instance<void> *inst = (instance<void> *) PyType_GenericAlloc(reg_type.type, 0);
         inst->value = src;
         inst->owned = true;
         inst->parent = nullptr;
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::take_ownership;
-        handle_return_value_policy<type>(inst, policy, parent);
+        if (policy == return_value_policy::copy) {
+            inst->value = copy_constructor(inst->value);
+            if (inst->value == nullptr)
+                throw cast_error("return_value_policy = copy, but the object is non-copyable!");
+        } else if (policy == return_value_policy::reference) {
+            inst->owned = false;
+        } else if (policy == return_value_policy::reference_internal) {
+            inst->owned = false;
+            inst->parent = parent;
+            Py_XINCREF(parent);
+        }
         PyObject *inst_pyobj = (PyObject *) inst;
-        type_info.init_holder(inst_pyobj);
+        reg_type.init_holder(inst_pyobj);
         if (!dont_cache)
             internals.registered_instances[inst->value] = inst_pyobj;
         return inst_pyobj;
     }
 
-    template <class T, typename std::enable_if<std::is_copy_constructible<T>::value, int>::type = 0>
-    static void handle_return_value_policy(instance<T> *inst, return_value_policy policy, PyObject *parent) {
-        if (policy == return_value_policy::copy) {
-            inst->value = new T(*(inst->value));
-        } else if (policy == return_value_policy::reference) {
-            inst->owned = false;
-        } else if (policy == return_value_policy::reference_internal) {
-            inst->owned = false;
-            inst->parent = parent;
-            Py_XINCREF(parent);
-        }
-    }
-
-    template <class T, typename std::enable_if<!std::is_copy_constructible<T>::value, int>::type = 0>
-    static void handle_return_value_policy(instance<T> *inst, return_value_policy policy, PyObject *parent) {
-        if (policy == return_value_policy::copy) {
-            throw cast_error("return_value_policy = copy, but the object is non-copyable!");
-        } else if (policy == return_value_policy::reference) {
-            inst->owned = false;
-        } else if (policy == return_value_policy::reference_internal) {
-            inst->owned = false;
-            inst->parent = parent;
-            Py_XINCREF(parent);
-        }
-    }
-
-    operator type*() { return value; }
-    operator type&() { return *value; }
 protected:
-    type *value = nullptr;
     const type_info *typeinfo = nullptr;
+    void *value = nullptr;
     object temp;
+};
+
+/// Generic type caster for objects stored on the heap
+template <typename type> class type_caster : public type_caster_custom {
+public:
+    static descr name() { return typeid(type); }
+
+    type_caster() : type_caster_custom(&typeid(type)) { }
+
+    static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
+        if (policy == return_value_policy::automatic)
+            policy = return_value_policy::copy;
+        return type_caster_custom::cast(&src, policy, parent, &typeid(type), &copy_constructor);
+    }
+
+    static PyObject *cast(const type *src, return_value_policy policy, PyObject *parent) {
+        return type_caster_custom::cast(src, policy, parent, &typeid(type), &copy_constructor);
+    }
+
+    operator type*() { return (type *) value; }
+    operator type&() { return (type &) *value; }
+protected:
+    template <typename T = type, typename std::enable_if<std::is_copy_constructible<T>::value, int>::type = 0>
+    static void *copy_constructor(const void *arg) {
+        return new type((const type &)*arg);
+    }
+    template <typename T = type, typename std::enable_if<!std::is_copy_constructible<T>::value, int>::type = 0>
+    static void *copy_constructor(const void *) { return nullptr; }
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name) \
@@ -516,7 +509,7 @@ public:
     bool load(PyObject *src, bool convert) {
         if (!parent::load(src, convert))
             return false;
-        holder = holder_type(parent::value);
+        holder = holder_type((type *) parent::value);
         return true;
     }
     explicit operator type*() { return this->value; }
