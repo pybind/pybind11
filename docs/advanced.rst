@@ -711,6 +711,23 @@ Available types include :class:`handle`, :class:`object`, :class:`bool_`,
 :class:`dict`, :class:`slice`, :class:`capsule`, :class:`function`,
 :class:`buffer`, :class:`array`, and :class:`array_t`.
 
+In this kind of mixed code, it is often necessary to convert arbitrary C++
+types to Python, which can be done using :func:`cast`:
+
+.. code-block:: cpp
+
+    MyClass *cls = ..;
+    py::object obj = py::cast(cls);
+
+The reverse direction uses the following syntax:
+
+.. code-block:: cpp
+
+    py::object obj = ...;
+    MyClass *cls = obj.cast<MyClass *>();
+
+When conversion fails, both directions throw the exception :class:`cast_error`.
+
 .. seealso::
 
     The file :file:`example/example2.cpp` contains a complete example that
