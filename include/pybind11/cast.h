@@ -278,8 +278,10 @@ PYBIND11_TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
 PYBIND11_TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
 PYBIND11_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
 PYBIND11_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
+#ifdef __linux__
 PYBIND11_TYPE_CASTER_NUMBER(long long, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
 PYBIND11_TYPE_CASTER_NUMBER(unsigned long long, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
+#endif
 
 #if defined(__APPLE__) // size_t/ssize_t are separate types on Mac OS X
 #if PY_MAJOR_VERSION >= 3
