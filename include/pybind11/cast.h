@@ -101,10 +101,21 @@ public:
 class type_caster_custom {
 public:
     PYBIND11_NOINLINE type_caster_custom(const std::type_info *type_info) {
-        auto const& registered_types = get_internals().registered_types;
+        auto & registered_types = get_internals().registered_types;
         auto it = registered_types.find(type_info);
-        if (it != registered_types.end())
+        if (it != registered_types.end()) {
             typeinfo = &it->second;
+        } else {
+            /* Unknown type?! Since std::type_info* often varies across
+               module boundaries, the following does an explicit check */
+            for (auto const &type : registered_types) {
+                if (strcmp(type.first->name(), type_info->name()) == 0) {
+                    registered_types[type_info] = type.second;
+                    typeinfo = &type.second;
+                    break;
+                }
+            }
+        }
     }
 
     PYBIND11_NOINLINE bool load(PyObject *src, bool convert) {

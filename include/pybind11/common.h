@@ -135,7 +135,7 @@ template <typename type, typename holder_type = std::unique_ptr<type>> struct in
     holder_type holder;
 };
 
-/// Additional type information which does not fit into the PyTypeObjet
+/// Additional type information which does not fit into the PyTypeObject
 struct type_info {
     PyTypeObject *type;
     size_t type_size;
