@@ -253,6 +253,9 @@ public:
 #if !(defined(WIN32) || defined(__i386__)) || defined(_WIN64)
     int_(ssize_t value) : object(PyLong_FromSsize_t(value), false) { }
 #endif
+    int_(unsigned value) : object(PyLong_FromUnsignedLong((unsigned long) value), false) { }
+    int_(long long value) : object(PyLong_FromLongLong(value), false) { }
+    int_(unsigned long long value) : object(PyLong_FromUnsignedLongLong(value), false) { }
     operator int() const { return (int) PyLong_AsLong(m_ptr); }
 };
 
