@@ -32,7 +32,7 @@ template <typename T> struct arg_t;
 /// Annotation for keyword arguments
 struct arg {
     arg(const char *name) : name(name) { }
-    template <typename T> inline arg_t<T> operator=(const T &value);
+    template <typename T> arg_t<T> operator=(const T &value);
     const char *name;
 };
 
@@ -41,13 +41,10 @@ template <typename T> struct arg_t : public arg {
     arg_t(const char *name, const T &value) : arg(name), value(value) { }
     T value;
 };
-template <typename T> inline arg_t<T> arg::operator=(const T &value) { return arg_t<T>(name, value); }
+template <typename T> arg_t<T> arg::operator=(const T &value) { return arg_t<T>(name, value); }
 
 /// Annotation for methods
-struct is_method {
-    PyObject *class_;
-    is_method(object *o) : class_(o->ptr()) { }
-};
+struct is_method { PyObject *class_; is_method(object *o) : class_(o->ptr()) { } };
 
 /// Annotation for documentation
 struct doc { const char *value; doc(const char *value) : value(value) { } };
@@ -67,9 +64,9 @@ private:
         PyObject * (*impl) (function_entry *, PyObject *, PyObject *, PyObject *) = nullptr;
         PyMethodDef *def = nullptr;
         void *data = nullptr;
+        void (*free) (void *ptr) = nullptr;
         bool is_constructor = false, is_method = false;
         short keywords = 0;
-        void (*free) (void *ptr) = nullptr;
         return_value_policy policy = return_value_policy::automatic;
         std::string signature;
         PyObject *class_ = nullptr;
