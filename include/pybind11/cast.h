@@ -527,6 +527,12 @@ public:
     explicit operator type&() { return *(this->value); }
     explicit operator holder_type&() { return holder; }
     explicit operator holder_type*() { return &holder; }
+
+    using type_caster<type>::cast;
+    static PyObject *cast(const holder_type &src, return_value_policy policy, PyObject *parent) {
+        return type_caster<type>::cast(src.get(), policy, parent);
+    }
+
 protected:
     holder_type holder;
 };
