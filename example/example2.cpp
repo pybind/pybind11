@@ -27,10 +27,26 @@ public:
         return dict;
     }
 
+    /* Create and return a Python set */
+    py::set get_set() {
+        py::set set;
+        set.insert(py::str("key1"));
+        set.insert(py::str("key2"));
+        return set;
+    }
+
     /* Create and return a C++ dictionary */
     std::map<std::string, std::string> get_dict_2() {
         std::map<std::string, std::string> result;
         result["key"] = "value";
+        return result;
+    }
+
+    /* Create and return a C++ set */
+    std::set<std::string> get_set_2() {
+        std::set<std::string> result;
+        result.insert("key1");
+        result.insert("key2");
         return result;
     }
 
@@ -60,6 +76,18 @@ public:
     void print_dict_2(const std::map<std::string, std::string> &dict) {
         for (auto item : dict)
             std::cout << "key: " << item.first << ", value=" << item.second << std::endl;
+    }
+
+    /* Easily iterate over a setionary using a C++11 range-based for loop */
+    void print_set(py::set set) {
+        for (auto item : set)
+            std::cout << "key: " << item << std::endl;
+    }
+
+    /* STL data types are automatically casted from Python */
+    void print_set_2(const std::set<std::string> &set) {
+        for (auto item : set)
+            std::cout << "key: " << item << std::endl;
     }
 
     /* Easily iterate over a list using a C++11 range-based for loop */
@@ -105,8 +133,12 @@ void init_ex2(py::module &m) {
         .def("get_dict_2", &Example2::get_dict_2, "Return a C++ dictionary")
         .def("get_list", &Example2::get_list, "Return a Python list")
         .def("get_list_2", &Example2::get_list_2, "Return a C++ list")
+        .def("get_set", &Example2::get_set, "Return a Python set")
+        .def("get_set2", &Example2::get_set, "Return a C++ set")
         .def("print_dict", &Example2::print_dict, "Print entries of a Python dictionary")
         .def("print_dict_2", &Example2::print_dict_2, "Print entries of a C++ dictionary")
+        .def("print_set", &Example2::print_set, "Print entries of a Python set")
+        .def("print_set_2", &Example2::print_set_2, "Print entries of a C++ set")
         .def("print_list", &Example2::print_list, "Print entries of a Python list")
         .def("print_list_2", &Example2::print_list_2, "Print entries of a C++ list")
         .def("pair_passthrough", &Example2::pair_passthrough, "Return a pair in reversed order")

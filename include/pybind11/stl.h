@@ -11,6 +11,7 @@
 
 #include "pybind11.h"
 #include <map>
+#include <set>
 #include <iostream>
 
 
@@ -22,8 +23,8 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
-template <typename Value> struct type_caster<std::vector<Value>> {
-    typedef std::vector<Value> type;
+template <typename Value, typename Alloc> struct type_caster<std::vector<Value, Alloc>> {
+    typedef std::vector<Value, Alloc> type;
     typedef type_caster<Value> value_conv;
 public:
     bool load(PyObject *src, bool convert) {
@@ -32,8 +33,8 @@ public:
         size_t size = (size_t) PyList_GET_SIZE(src);
         value.reserve(size);
         value.clear();
+        value_conv conv;
         for (size_t i=0; i<size; ++i) {
-            value_conv conv;
             if (!conv.load(PyList_GetItem(src, (ssize_t) i), convert))
                 return false;
             value.push_back((Value) conv);
@@ -57,9 +58,46 @@ public:
     PYBIND11_TYPE_CASTER(type, detail::descr("list<") + value_conv::name() + detail::descr(">"));
 };
 
-template <typename Key, typename Value> struct type_caster<std::map<Key, Value>> {
+template <typename Value, typename Compare, typename Alloc> struct type_caster<std::set<Value, Compare, Alloc>> {
+    typedef std::set<Value, Compare, Alloc> type;
+    typedef type_caster<Value> value_conv;
 public:
-    typedef std::map<Key, Value>  type;
+    bool load(PyObject *src, bool convert) {
+        pybind11::set s(src, true);
+        if (!s.check())
+            return false;
+        value.clear();
+        value_conv conv;
+        for (const object &o: s) {
+            if (!conv.load((PyObject *) o.ptr(), convert))
+                return false;
+            value.insert((Value) conv);
+        }
+        return true;
+    }
+
+    static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
+        PyObject *set = PySet_New(nullptr);
+        for (auto const &value: src) {
+            PyObject *value_ = value_conv::cast(value, policy, parent);
+            if (!value_) {
+                Py_DECREF(set);
+                return nullptr;
+            }
+            if (PySet_Add(set, value) != 0) {
+                Py_DECREF(value);
+                Py_DECREF(set);
+                return nullptr;
+            }
+        }
+        return set;
+    }
+    PYBIND11_TYPE_CASTER(type, detail::descr("set<") + value_conv::name() + detail::descr(">"));
+};
+
+template <typename Key, typename Value, typename Compare, typename Alloc> struct type_caster<std::map<Key, Value, Compare, Alloc>> {
+public:
+    typedef std::map<Key, Value, Compare, Alloc>  type;
     typedef type_caster<Key>   key_conv;
     typedef type_caster<Value> value_conv;
 

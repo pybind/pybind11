@@ -6,6 +6,12 @@ key: key2, value=value2
 key: key, value=value
 key: key, value=value
 key: key2, value=value2
+key: key3
+key: key2
+key: key1
+key: key1
+key: key2
+key: key3
 Entry at positon 0: value
 list item 0: overwritten
 list item 1: value2
@@ -44,6 +50,16 @@ class EExxaammppllee22(__builtin__.object)
  |      
  |      Return a C++ list
  |  
+ |  ggeett__sseett(...)
+ |      Signature : (Example2) -> set
+ |      
+ |      Return a Python set
+ |  
+ |  ggeett__sseett22(...)
+ |      Signature : (Example2) -> set
+ |      
+ |      Return a C++ set
+ |  
  |  ppaaiirr__ppaasssstthhrroouugghh(...)
  |      Signature : (Example2, (bool, str)) -> (str, bool)
  |      
@@ -69,6 +85,16 @@ class EExxaammppllee22(__builtin__.object)
  |      
  |      Print entries of a C++ list
  |  
+ |  pprriinntt__sseett(...)
+ |      Signature : (Example2, set) -> None
+ |      
+ |      Print entries of a Python set
+ |  
+ |  pprriinntt__sseett__22(...)
+ |      Signature : (Example2, set<str>) -> None
+ |      
+ |      Print entries of a C++ set
+ |  
  |  tthhrrooww__eexxcceeppttiioonn(...)
  |      Signature : (Example2) -> None
  |      
@@ -85,7 +111,7 @@ class EExxaammppllee22(__builtin__.object)
  |  ____nneeww____ = <built-in method __new__ of Example2_meta object>
  |      T.__new__(S, ...) -> a new object with type S, a subtype of T
  |  
- |  ____ppyybbiinndd____ = <capsule object NULL>
+ |  ____ppyybbiinndd1111____ = <capsule object NULL>
  |  
  |  nneeww__iinnssttaannccee = <built-in method new_instance of PyCapsule object>
  |      Signature : () -> Example2

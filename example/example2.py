@@ -29,6 +29,14 @@ dict_result = instance.get_dict_2()
 dict_result['key2'] = 'value2'
 instance.print_dict_2(dict_result)
 
+set_result = instance.get_set()
+set_result.add(u'key3')
+instance.print_set(set_result)
+
+set_result = instance.get_set2()
+set_result.add(u'key3')
+instance.print_set_2(set_result)
+
 list_result = instance.get_list()
 list_result.append('value2')
 instance.print_list(list_result)

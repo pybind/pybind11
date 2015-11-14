@@ -19,6 +19,7 @@ class object;
 class str;
 class object;
 class dict;
+class iterator;
 namespace detail { class accessor; }
 
 /// Holds a reference to a Python object (no reference counting)
@@ -33,6 +34,8 @@ public:
     void dec_ref() const { Py_XDECREF(m_ptr); }
     int ref_count() const { return (int) Py_REFCNT(m_ptr); }
     handle get_type() { return (PyObject *) Py_TYPE(m_ptr); }
+    inline iterator begin();
+    inline iterator end();
     inline detail::accessor operator[](handle key);
     inline detail::accessor operator[](const char *key);
     inline detail::accessor attr(handle key);
@@ -71,6 +74,23 @@ public:
         }
         return *this;
     }
+};
+
+class iterator : public object {
+public:
+    iterator(PyObject *obj, bool borrowed = false) : object(obj, borrowed) { ++*this; }
+    iterator& operator++() {
+        if (ptr())
+            value = object(PyIter_Next(ptr()), false);
+        return *this;
+    }
+    bool operator==(const iterator &it) const { return *it == **this; }
+    bool operator!=(const iterator &it) const { return *it != **this; }
+    object operator*() { return value; }
+    const object &operator*() const { return value; }
+    bool check() const { return PyIter_Check(ptr()); }
+private:
+    object value;
 };
 
 NAMESPACE_BEGIN(detail)
@@ -159,18 +179,6 @@ private:
     size_t index;
 };
 
-class list_iterator {
-public:
-    list_iterator(PyObject *list, ssize_t pos) : list(list), pos(pos) { }
-    list_iterator& operator++() { ++pos; return *this; }
-    object operator*() { return object(PyList_GetItem(list, pos), true); }
-    bool operator==(const list_iterator &it) const { return it.pos == pos; }
-    bool operator!=(const list_iterator &it) const { return it.pos != pos; }
-private:
-    PyObject *list;
-    ssize_t pos;
-};
-
 struct dict_iterator {
 public:
     dict_iterator(PyObject *dict = nullptr, ssize_t pos = -1) : dict(dict), pos(pos) { }
@@ -194,6 +202,8 @@ inline detail::accessor handle::operator[](handle key) { return detail::accessor
 inline detail::accessor handle::operator[](const char *key) { return detail::accessor(ptr(), key, false); }
 inline detail::accessor handle::attr(handle key) { return detail::accessor(ptr(), key.ptr(), true); }
 inline detail::accessor handle::attr(const char *key) { return detail::accessor(ptr(), key, true); }
+inline iterator handle::begin() { return iterator(PyObject_GetIter(ptr())); }
+inline iterator handle::end() { return iterator(nullptr); }
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
     Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
@@ -310,6 +320,7 @@ public:
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     detail::dict_iterator begin() { return (++detail::dict_iterator(ptr(), 0)); }
     detail::dict_iterator end() { return detail::dict_iterator(); }
+    void clear() { PyDict_Clear(ptr()); }
 };
 
 class list : public object {
@@ -317,10 +328,17 @@ public:
     PYBIND11_OBJECT(list, object, PyList_Check)
     list(size_t size = 0) : object(PyList_New((ssize_t) size), false) { }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
-    detail::list_iterator begin() { return detail::list_iterator(ptr(), 0); }
-    detail::list_iterator end() { return detail::list_iterator(ptr(), (ssize_t) size()); }
     detail::list_accessor operator[](size_t index) { return detail::list_accessor(ptr(), index); }
     void append(const object &object) { PyList_Append(m_ptr, (PyObject *) object.ptr()); }
+};
+
+class set : public object {
+public:
+    PYBIND11_OBJECT(set, object, PySet_Check)
+    set() : object(PySet_New(nullptr), false) { }
+    size_t size() const { return (size_t) PySet_Size(m_ptr); }
+    void insert(const object &object) { PySet_Add(m_ptr, (PyObject *) object.ptr()); }
+    void clear() { PySet_Clear(ptr()); }
 };
 
 class function : public object {
