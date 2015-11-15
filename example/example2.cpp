@@ -30,8 +30,8 @@ public:
     /* Create and return a Python set */
     py::set get_set() {
         py::set set;
-        set.insert(py::str("key1"));
-        set.insert(py::str("key2"));
+        set.add(py::str("key1"));
+        set.add(py::str("key2"));
         return set;
     }
 

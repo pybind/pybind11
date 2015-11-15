@@ -337,7 +337,7 @@ public:
     PYBIND11_OBJECT(set, object, PySet_Check)
     set() : object(PySet_New(nullptr), false) { }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
-    void insert(const object &object) { PySet_Add(m_ptr, (PyObject *) object.ptr()); }
+    void add(const object &object) { PySet_Add(m_ptr, (PyObject *) object.ptr()); }
     void clear() { PySet_Clear(ptr()); }
 };
 
