@@ -94,6 +94,18 @@ private:
 };
 
 NAMESPACE_BEGIN(detail)
+inline PyObject *get_function(PyObject *value) {
+    if (value == nullptr)
+        return nullptr;
+#if PY_MAJOR_VERSION >= 3
+    if (PyInstanceMethod_Check(value))
+        value = PyInstanceMethod_GET_FUNCTION(value);
+#endif
+    if (PyMethod_Check(value))
+        value = PyMethod_GET_FUNCTION(value);
+    return value;
+}
+
 class accessor {
 public:
     accessor(PyObject *obj, PyObject *key, bool attr)
@@ -346,16 +358,8 @@ public:
     PYBIND11_OBJECT_DEFAULT(function, object, PyFunction_Check)
 
     bool is_cpp_function() {
-        PyObject *ptr = m_ptr;
-        if (ptr == nullptr)
-            return false;
-#if PY_MAJOR_VERSION >= 3
-        if (PyInstanceMethod_Check(ptr))
-            ptr = PyInstanceMethod_GET_FUNCTION(ptr);
-#endif
-        if (PyMethod_Check(ptr))
-            ptr = PyMethod_GET_FUNCTION(ptr);
-        return PyCFunction_Check(ptr);
+        PyObject *ptr = detail::get_function(m_ptr);
+        return ptr != nullptr && PyCFunction_Check(ptr);
     }
 };
 
