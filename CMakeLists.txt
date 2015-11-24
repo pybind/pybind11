@@ -53,8 +53,7 @@ include_directories(${PYTHON_INCLUDE_DIR})
 # Include path for pybind11 header files
 include_directories(include)
 
-# Create the binding library
-add_library(example SHARED
+set(PYBIND11_HEADERS
   include/pybind11/cast.h
   include/pybind11/common.h
   include/pybind11/operators.h
@@ -62,6 +61,11 @@ add_library(example SHARED
   include/pybind11/pytypes.h
   include/pybind11/typeid.h
   include/pybind11/numpy.h
+)
+
+# Create the binding library
+add_library(example SHARED
+  ${PYBIND11_HEADERS}
   example/example.cpp
   example/example1.cpp
   example/example2.cpp
@@ -147,3 +151,8 @@ set(RUN_TEST ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/example/run_test.p
 foreach(i RANGE 1 12)
   add_test(NAME example${i} COMMAND ${RUN_TEST} example${i})
 endforeach()
+
+if (UNIX)
+    install(FILES ${PYBIND11_HEADERS} DESTINATION include/pybind11)
+endif()
+
