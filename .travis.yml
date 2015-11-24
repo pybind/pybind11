@@ -7,9 +7,12 @@ addons:
       - deadsnakes
     packages:
       - g++-4.8
+      - g++-4.8-multilib
+      - g++-multilib
       - python3.5
       - python3.5-dev
       - python3.5-venv
+      - python3.5-dev:i386
 matrix:
   include:
     - os: linux
@@ -27,3 +30,9 @@ matrix:
         - cmake -DPYBIND11_PYTHON_VERSION=2.7
         - make -j 2
         - CTEST_OUTPUT_ON_FAILURE=TRUE make test
+    #- os: linux
+      #compiler: gcc-4.8
+      #script:
+        #- pyvenv-3.5 venv
+        #- cmake -DPYBIND11_PYTHON_VERSION=3.5 -DPYTHON_INCLUDE_DIR:PATH=/usr/include/python3.5m -DPYTHON_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libpython3.5m.so -DPYTHON_EXECUTABLE:FILEPATH=`pwd`/venv/bin/python3.5 -DCMAKE_CXX_COMPILER=g++-4.8 -DCMAKE_CXX_FLAGS=-m32
+        #- make -j 2
