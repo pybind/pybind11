@@ -9,6 +9,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project(pybind11)
 
+option(PYBIND11_INSTALL "Install pybind11 header files?" ON)
+
 # Add a CMake parameter for choosing a desired Python version
 set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
 
@@ -152,7 +154,6 @@ foreach(i RANGE 1 12)
   add_test(NAME example${i} COMMAND ${RUN_TEST} example${i})
 endforeach()
 
-if (UNIX)
+if (PYBIND11_INSTALL)
     install(FILES ${PYBIND11_HEADERS} DESTINATION include/pybind11)
 endif()
-
