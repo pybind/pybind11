@@ -517,12 +517,25 @@ protected:
 template <typename type, typename holder_type> class type_caster_holder : public type_caster<type> {
 public:
     typedef type_caster<type> parent;
+
+    template <typename T = holder_type,
+              typename std::enable_if<std::is_same<std::shared_ptr<type>, T>::value, int>::type = 0>
+    bool load(PyObject *src, bool convert) {
+        if (!parent::load(src, convert))
+            return false;
+        holder = holder_type(((type *) parent::value)->shared_from_this());
+        return true;
+    }
+
+    template <typename T = holder_type,
+              typename std::enable_if<!std::is_same<std::shared_ptr<type>, T>::value, int>::type = 0>
     bool load(PyObject *src, bool convert) {
         if (!parent::load(src, convert))
             return false;
         holder = holder_type((type *) parent::value);
         return true;
     }
+
     explicit operator type*() { return this->value; }
     explicit operator type&() { return *(this->value); }
     explicit operator holder_type&() { return holder; }

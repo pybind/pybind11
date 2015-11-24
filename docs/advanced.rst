@@ -457,6 +457,14 @@ be declared at the top level before any binding code:
     demonstrates how to work with custom reference-counting holder types in
     more detail.
 
+.. warning::
+
+   To ensure correct reference counting among Python and C++, the use of
+   ``std::shared_ptr<T>`` as a holder type requires that ``T`` inherits from
+   ``std::enable_shared_from_this<T>`` (see cppreference_ for details).
+
+.. _cppreference: http://en.cppreference.com/w/cpp/memory/enable_shared_from_this
+
 .. _custom_constructors:
 
 Custom constructors

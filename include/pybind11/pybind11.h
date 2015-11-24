@@ -798,11 +798,29 @@ public:
         return *this;
     }
 private:
+    template <typename T = holder_type,
+              typename std::enable_if<!std::is_same<std::shared_ptr<type>, T>::value, int>::type = 0>
     static void init_holder(PyObject *inst_) {
         instance_type *inst = (instance_type *) inst_;
         new (&inst->holder) holder_type(inst->value);
         inst->constructed = true;
     }
+
+    template <typename T = holder_type,
+              typename std::enable_if<std::is_same<std::shared_ptr<type>, T>::value, int>::type = 0>
+    static void init_holder(PyObject *inst_) {
+        instance_type *inst = (instance_type *) inst_;
+        try {
+            new (&inst->holder) holder_type(
+                inst->value->shared_from_this()
+            );
+        } catch (const std::bad_weak_ptr &) {
+            new (&inst->holder) holder_type(inst->value);
+        }
+        inst->constructed = true;
+    }
+
+
     static void dealloc(PyObject *inst_) {
         instance_type *inst = (instance_type *) inst_;
         if (inst->owned) {
