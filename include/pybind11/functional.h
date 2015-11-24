@@ -20,7 +20,8 @@ template <typename Return, typename... Args> struct type_caster<std::function<Re
 public:
 
     bool load(PyObject *src_, bool) {
-        if (!PyFunction_Check(src_))
+        src_ = detail::get_function(src_);
+        if (!src_ || !(PyFunction_Check(src_) || PyCFunction_Check(src_)))
             return false;
         object src(src_, true);
         value = [src](Args... args) -> Return {

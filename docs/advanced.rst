@@ -160,6 +160,14 @@ The following interactive session shows how to call them from Python.
     The file :file:`example/example5.cpp` contains a complete example that
     demonstrates how to work with callbacks and anonymous functions in more detail.
 
+.. warning::
+
+    Keep in mind that passing a function from C++ to Python (or vice versa)
+    will instantiate a piece of wrapper code that translates function
+    invocations between the two languages. Copying the same function back and
+    forth between Python and C++ many times in a row will cause these wrappers
+    to accumulate, which can decrease performance.
+
 Overriding virtual functions in Python
 ======================================
 
