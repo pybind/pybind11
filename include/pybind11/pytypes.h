@@ -272,7 +272,7 @@ public:
     PYBIND11_OBJECT_DEFAULT(int_, object, PyLong_Check)
     int_(int value) : object(PyLong_FromLong((long) value), false) { }
     int_(size_t value) : object(PyLong_FromSize_t(value), false) { }
-#if !(defined(WIN32) || defined(__i386__)) || defined(_WIN64)
+#if !(defined(_WIN32) || defined(__i386__)) || defined(_WIN64)
     int_(ssize_t value) : object(PyLong_FromSsize_t(value), false) { }
 #endif
     operator int() const { return (int) PyLong_AsLong(m_ptr); }
