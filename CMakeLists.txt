@@ -27,8 +27,8 @@ set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
 find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
 find_package(PythonInterp ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
-if (UNIX)
-  # Enable C++11 mode
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+  # Enable C++11 mode on C++ / Clang
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
   # Enable link time optimization and set the default symbol
@@ -45,7 +45,7 @@ if(MSVC)
   else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
   endif()
-else()
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
