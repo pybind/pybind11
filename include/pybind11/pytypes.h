@@ -264,6 +264,7 @@ inline pybind11::str handle::str() const {
 class bool_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(bool_, object, PyBool_Check)
+    bool_(bool value) : object(value ? Py_True : Py_False, true) { }
     operator bool() const { return m_ptr && PyLong_AsLong(m_ptr) != 0; }
 };
 
