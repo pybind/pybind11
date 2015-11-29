@@ -227,7 +227,7 @@ protected:
             return cast(*src, policy, parent); \
         } \
         operator type*() { return &value; } \
-        operator type&() { return value; } \
+        operator type&() { return value; }
 
 #define PYBIND11_TYPE_CASTER_NUMBER(type, py_type, from_type, to_pytype) \
     template <> class type_caster<type> { \
@@ -251,41 +251,22 @@ protected:
         PYBIND11_TYPE_CASTER(type, #type); \
     };
 
-#if PY_MAJOR_VERSION >= 3
-#define PyLong_AsUnsignedLongLong_Fixed PyLong_AsUnsignedLongLong
-#define PyLong_AsLongLong_Fixed PyLong_AsLongLong
-#else
-inline PY_LONG_LONG PyLong_AsLongLong_Fixed(PyObject *o) {
-    if (PyInt_Check(o))
-        return (PY_LONG_LONG) PyLong_AsLong(o);
-    else
-        return ::PyLong_AsLongLong(o);
-}
-
-inline unsigned PY_LONG_LONG PyLong_AsUnsignedLongLong_Fixed(PyObject *o) {
-    if (PyInt_Check(o))
-        return (unsigned PY_LONG_LONG) PyLong_AsUnsignedLong(o);
-    else
-        return ::PyLong_AsUnsignedLongLong(o);
-}
-#endif
-
 PYBIND11_TYPE_CASTER_NUMBER(int8_t, long, PyLong_AsLong, PyLong_FromLong)
 PYBIND11_TYPE_CASTER_NUMBER(uint8_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
 PYBIND11_TYPE_CASTER_NUMBER(int16_t, long, PyLong_AsLong, PyLong_FromLong)
 PYBIND11_TYPE_CASTER_NUMBER(uint16_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
 PYBIND11_TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
 PYBIND11_TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-PYBIND11_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
-PYBIND11_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
+PYBIND11_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, detail::PyLong_AsLongLong, PyLong_FromLongLong)
+PYBIND11_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, detail::PyLong_AsUnsignedLongLong, PyLong_FromUnsignedLongLong)
 
 #if defined(__APPLE__) // size_t/ssize_t are separate types on Mac OS X
 #if PY_MAJOR_VERSION >= 3
 PYBIND11_TYPE_CASTER_NUMBER(ssize_t, Py_ssize_t, PyLong_AsSsize_t, PyLong_FromSsize_t)
 PYBIND11_TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
 #else
-PYBIND11_TYPE_CASTER_NUMBER(ssize_t, PY_LONG_LONG, PyLong_AsLongLong_Fixed, PyLong_FromLongLong)
-PYBIND11_TYPE_CASTER_NUMBER(size_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong_Fixed, PyLong_FromUnsignedLongLong)
+PYBIND11_TYPE_CASTER_NUMBER(ssize_t, PY_LONG_LONG, detail::PyLong_AsLongLong, PyLong_FromLongLong)
+PYBIND11_TYPE_CASTER_NUMBER(size_t, unsigned PY_LONG_LONG, detail::PyLong_AsUnsignedLongLong, PyLong_FromUnsignedLongLong)
 #endif
 #endif
 

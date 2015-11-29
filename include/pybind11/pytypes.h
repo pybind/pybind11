@@ -208,6 +208,26 @@ private:
     PyObject *dict, *key, *value;
     ssize_t pos = 0;
 };
+
+#if PY_MAJOR_VERSION >= 3
+using ::PyLong_AsUnsignedLongLong;
+using ::PyLong_AsLongLong;
+#else
+inline PY_LONG_LONG PyLong_AsLongLong(PyObject *o) {
+    if (PyInt_Check(o))
+        return (PY_LONG_LONG) PyLong_AsLong(o);
+    else
+        return ::PyLong_AsLongLong(o);
+}
+
+inline unsigned PY_LONG_LONG PyLong_AsUnsignedLongLong(PyObject *o) {
+    if (PyInt_Check(o))
+        return (unsigned PY_LONG_LONG) PyLong_AsUnsignedLong(o);
+    else
+        return ::PyLong_AsUnsignedLongLong(o);
+}
+#endif
+
 NAMESPACE_END(detail)
 
 inline detail::accessor handle::operator[](handle key) { return detail::accessor(ptr(), key.ptr(), false); }
@@ -271,12 +291,27 @@ public:
 class int_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(int_, object, PyLong_Check)
-    int_(int value) : object(PyLong_FromLong((long) value), false) { }
+    int_(int32_t value) : object(PyLong_FromLong((long) value), false) { }
+    int_(int64_t value) : object(PyLong_FromLongLong((long long) value), false) { }
+    int_(uint32_t value) : object(PyLong_FromUnsignedLong((unsigned long) value), false) { }
+    int_(uint64_t value) : object(PyLong_FromUnsignedLongLong((unsigned long long) value), false) { }
+    operator int32_t() const { return (int32_t) PyLong_AsLong(m_ptr); }
+    operator uint32_t() const { return (uint32_t) PyLong_AsUnsignedLong(m_ptr); }
+    operator int64_t() const { return (int64_t) detail::PyLong_AsLongLong(m_ptr); }
+    operator uint64_t() const { return (uint64_t) detail::PyLong_AsUnsignedLongLong(m_ptr); }
+#if defined(__APPLE__) // size_t/ssize_t are separate types on Mac OS X
+#if PY_MAJOR_VERSION >= 3
     int_(size_t value) : object(PyLong_FromSize_t(value), false) { }
-#if !(defined(_WIN32) || defined(__i386__)) || defined(_WIN64)
     int_(ssize_t value) : object(PyLong_FromSsize_t(value), false) { }
+    operator size_t() const { return (size_t) PyLong_AsSize_t(m_ptr); }
+    operator ssize_t() const { return (ssize_t) PyLong_AsSsize_t(m_ptr); }
+#else
+    int_(size_t value) : object(PyLong_FromUnsignedLongLong((unsigned long long) value), false) { }
+    int_(ssize_t value) : object(PyLong_FromLongLong((long long) value), false) { }
+    operator size_t() const { return (size_t) detail::PyLong_AsUnsignedLongLong(m_ptr); }
+    operator ssize_t() const { return (ssize_t) detail::PyLong_AsLongLong(m_ptr); }
 #endif
-    operator int() const { return (int) PyLong_AsLong(m_ptr); }
+#endif
 };
 
 class float_ : public object {
