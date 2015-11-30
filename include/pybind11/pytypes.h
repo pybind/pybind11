@@ -11,6 +11,7 @@
 
 #include "common.h"
 #include <utility>
+#include <type_traits>
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -213,16 +214,16 @@ private:
 using ::PyLong_AsUnsignedLongLong;
 using ::PyLong_AsLongLong;
 #else
-inline PY_LONG_LONG PyLong_AsLongLong(PyObject *o) {
-    if (PyInt_Check(o))
-        return (PY_LONG_LONG) PyLong_AsLong(o);
+inline long long PyLong_AsLongLong(PyObject *o) {
+    if (PyInt_Check(o)) /// workaround: PyLong_AsLongLong doesn't accept 'int' on Python 2.x
+        return (long long) PyLong_AsLong(o);
     else
         return ::PyLong_AsLongLong(o);
 }
 
-inline unsigned PY_LONG_LONG PyLong_AsUnsignedLongLong(PyObject *o) {
-    if (PyInt_Check(o))
-        return (unsigned PY_LONG_LONG) PyLong_AsUnsignedLong(o);
+inline unsigned long long PyLong_AsUnsignedLongLong(PyObject *o) {
+    if (PyInt_Check(o)) /// workaround: PyLong_AsUnsignedLongLong doesn't accept 'int' on Python 2.x
+        return (unsigned long long) PyLong_AsUnsignedLong(o);
     else
         return ::PyLong_AsUnsignedLongLong(o);
 }
@@ -291,27 +292,37 @@ public:
 class int_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(int_, object, PyLong_Check)
-    int_(int32_t value) : object(PyLong_FromLong((long) value), false) { }
-    int_(int64_t value) : object(PyLong_FromLongLong((long long) value), false) { }
-    int_(uint32_t value) : object(PyLong_FromUnsignedLong((unsigned long) value), false) { }
-    int_(uint64_t value) : object(PyLong_FromUnsignedLongLong((unsigned long long) value), false) { }
-    operator int32_t() const { return (int32_t) PyLong_AsLong(m_ptr); }
-    operator uint32_t() const { return (uint32_t) PyLong_AsUnsignedLong(m_ptr); }
-    operator int64_t() const { return (int64_t) detail::PyLong_AsLongLong(m_ptr); }
-    operator uint64_t() const { return (uint64_t) detail::PyLong_AsUnsignedLongLong(m_ptr); }
-#if defined(__APPLE__) // size_t/ssize_t are separate types on Mac OS X
-#if PY_MAJOR_VERSION >= 3
-    int_(size_t value) : object(PyLong_FromSize_t(value), false) { }
-    int_(ssize_t value) : object(PyLong_FromSsize_t(value), false) { }
-    operator size_t() const { return (size_t) PyLong_AsSize_t(m_ptr); }
-    operator ssize_t() const { return (ssize_t) PyLong_AsSsize_t(m_ptr); }
-#else
-    int_(size_t value) : object(PyLong_FromUnsignedLongLong((unsigned long long) value), false) { }
-    int_(ssize_t value) : object(PyLong_FromLongLong((long long) value), false) { }
-    operator size_t() const { return (size_t) detail::PyLong_AsUnsignedLongLong(m_ptr); }
-    operator ssize_t() const { return (ssize_t) detail::PyLong_AsLongLong(m_ptr); }
-#endif
-#endif
+    template <typename T,
+              typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+    int_(T value) {
+        if (sizeof(T) <= sizeof(long)) {
+            if (std::is_signed<T>::value)
+                m_ptr = PyLong_FromLong((long) value);
+            else
+                m_ptr = PyLong_FromUnsignedLong((unsigned long) value);
+        } else {
+            if (std::is_signed<T>::value)
+                m_ptr = PyLong_FromLongLong((long long) value);
+            else
+                m_ptr = PyLong_FromUnsignedLongLong((unsigned long long) value);
+        }
+    }
+
+    template <typename T,
+              typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+    operator T() const {
+        if (sizeof(T) <= sizeof(long)) {
+            if (std::is_signed<T>::value)
+                return (T) PyLong_AsLong(m_ptr);
+            else
+                return (T) PyLong_AsUnsignedLong(m_ptr);
+        } else {
+            if (std::is_signed<T>::value)
+                return (T) detail::PyLong_AsLongLong(m_ptr);
+            else
+                return (T) detail::PyLong_AsUnsignedLongLong(m_ptr);
+        }
+    }
 };
 
 class float_ : public object {

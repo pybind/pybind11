@@ -191,7 +191,7 @@ protected:
 };
 
 /// Generic type caster for objects stored on the heap
-template <typename type> class type_caster : public type_caster_custom {
+template <typename type, typename Enable = void> class type_caster : public type_caster_custom {
 public:
     static descr name() { return typeid(type); }
 
@@ -229,49 +229,74 @@ protected:
         operator type*() { return &value; } \
         operator type&() { return value; }
 
-#define PYBIND11_TYPE_CASTER_NUMBER(type, py_type, from_type, to_pytype) \
-    template <> class type_caster<type> { \
-    public: \
-        bool load(PyObject *src, bool) { \
-            py_type py_value = from_type(src); \
-            if ((py_value == (py_type) -1 && PyErr_Occurred()) || \
-                (std::numeric_limits<type>::is_integer && \
-                 sizeof(py_type) != sizeof(type) && \
-                 (py_value < (py_type) std::numeric_limits<type>::min() || \
-                  py_value > (py_type) std::numeric_limits<type>::max()))) { \
-                PyErr_Clear(); \
-                return false; \
-            } \
-            value = (type) py_value; \
-            return true; \
-        } \
-        static PyObject *cast(type src, return_value_policy /* policy */, PyObject * /* parent */) { \
-            return to_pytype((py_type) src); \
-        } \
-        PYBIND11_TYPE_CASTER(type, #type); \
-    };
+template <typename T>
+struct type_caster<
+    T, typename std::enable_if<std::is_integral<T>::value ||
+                               std::is_floating_point<T>::value>::type> {
+    typedef typename std::conditional<sizeof(T) <= sizeof(long), long, long long>::type _py_type_0;
+    typedef typename std::conditional<std::is_signed<T>::value, _py_type_0, typename std::make_unsigned<_py_type_0>::type>::type _py_type_1;
+    typedef typename std::conditional<std::is_floating_point<T>::value, double, _py_type_1>::type py_type;
+public:
 
-PYBIND11_TYPE_CASTER_NUMBER(int8_t, long, PyLong_AsLong, PyLong_FromLong)
-PYBIND11_TYPE_CASTER_NUMBER(uint8_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-PYBIND11_TYPE_CASTER_NUMBER(int16_t, long, PyLong_AsLong, PyLong_FromLong)
-PYBIND11_TYPE_CASTER_NUMBER(uint16_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-PYBIND11_TYPE_CASTER_NUMBER(int32_t, long, PyLong_AsLong, PyLong_FromLong)
-PYBIND11_TYPE_CASTER_NUMBER(uint32_t, unsigned long, PyLong_AsUnsignedLong, PyLong_FromUnsignedLong)
-PYBIND11_TYPE_CASTER_NUMBER(int64_t, PY_LONG_LONG, detail::PyLong_AsLongLong, PyLong_FromLongLong)
-PYBIND11_TYPE_CASTER_NUMBER(uint64_t, unsigned PY_LONG_LONG, detail::PyLong_AsUnsignedLongLong, PyLong_FromUnsignedLongLong)
+    bool load(PyObject *src, bool) {
+        py_type py_value;
 
-#if defined(__APPLE__) // size_t/ssize_t are separate types on Mac OS X
-#if PY_MAJOR_VERSION >= 3
-PYBIND11_TYPE_CASTER_NUMBER(ssize_t, Py_ssize_t, PyLong_AsSsize_t, PyLong_FromSsize_t)
-PYBIND11_TYPE_CASTER_NUMBER(size_t, size_t, PyLong_AsSize_t, PyLong_FromSize_t)
-#else
-PYBIND11_TYPE_CASTER_NUMBER(ssize_t, PY_LONG_LONG, detail::PyLong_AsLongLong, PyLong_FromLongLong)
-PYBIND11_TYPE_CASTER_NUMBER(size_t, unsigned PY_LONG_LONG, detail::PyLong_AsUnsignedLongLong, PyLong_FromUnsignedLongLong)
-#endif
-#endif
+        if (std::is_floating_point<T>::value) {
+            py_value = (py_type) PyFloat_AsDouble(src);
+        } else if (sizeof(T) <= sizeof(long)) {
+            if (std::is_signed<T>::value)
+                py_value = (py_type) PyLong_AsLong(src);
+            else
+                py_value = (py_type) PyLong_AsUnsignedLong(src);
+        } else {
+            if (std::is_signed<T>::value)
+                py_value = (py_type) detail::PyLong_AsLongLong(src);
+            else
+                py_value = (py_type) detail::PyLong_AsUnsignedLongLong(src);
+        }
 
-PYBIND11_TYPE_CASTER_NUMBER(float, double, PyFloat_AsDouble, PyFloat_FromDouble)
-PYBIND11_TYPE_CASTER_NUMBER(double, double, PyFloat_AsDouble, PyFloat_FromDouble)
+        if ((py_value == (py_type) -1 && PyErr_Occurred()) ||
+            (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) &&
+               (py_value < (py_type) std::numeric_limits<T>::min() ||
+                py_value > (py_type) std::numeric_limits<T>::max()))) {
+            PyErr_Clear();
+            return false;
+        }
+
+        value = (T) py_value;
+        return true;
+    }
+
+    static PyObject *cast(T src, return_value_policy /* policy */, PyObject * /* parent */) {
+        if (std::is_floating_point<T>::value) {
+            return PyFloat_FromDouble((double) src);
+        } else if (sizeof(T) <= sizeof(long)) {
+            if (std::is_signed<T>::value)
+                return PyLong_FromLong((long) src);
+            else
+                return PyLong_FromUnsignedLong((unsigned long) src);
+        } else {
+            if (std::is_signed<T>::value)
+                return PyLong_FromLongLong((long long) src);
+            else
+                return PyLong_FromUnsignedLongLong((unsigned long long) src);
+        }
+    }
+
+    static PyObject *cast(const T *src, return_value_policy policy, PyObject *parent) {
+        return cast(*src, policy, parent);
+    }
+
+    static descr name() {
+        return std::is_floating_point<T>::value ? "float" : "int";
+    }
+
+    operator T*() { return &value; }
+    operator T&() { return value; }
+
+protected:
+    T value;
+};
 
 template <> class type_caster<void_type> {
 public:

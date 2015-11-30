@@ -1,14 +1,10 @@
-15
-5
-Example2: No constructor defined!
-can't set attribute
-key: key2, value=value2
 key: key, value=value
+key: key2, value=value2
 key: key, value=value
 key: key2, value=value2
 key: key3
-key: key2
 key: key1
+key: key2
 key: key1
 key: key2
 key: key3
@@ -17,105 +13,107 @@ list item 0: overwritten
 list item 1: value2
 list item 0: value
 list item 1: value2
+15
+5
+example.Example2: No constructor defined!
+can't set attribute
 This exception was intentionally thrown.
-(u'test', True)
-(5L, u'test', True)
+('test', True)
+(5, 'test', True)
 Help on class Example2 in module example
 
-class EExxaammppllee22(__builtin__.object)
+class EExxaammppllee22(builtins.object)
  |  Example 2 documentation
  |  
  |  Methods defined here:
  |  
- |  ____iinniitt____(...)
- |      x.__init__(...) initializes x; see help(type(x)) for signature
+ |  ____iinniitt____(self, /, *args, **kwargs)
+ |      Initialize self.  See help(type(self)) for accurate signature.
  |  
- |  ggeett__ddiicctt(...)
- |      Signature : (Example2) -> dict
+ |  ____nneeww____ = <built-in method __new__ of example.Example2_meta object>
+ |  ggeett__ddiicctt(...) from builtins.PyCapsule
+ |      Signature : (example.Example2) -> dict
  |      
  |      Return a Python dictionary
  |  
- |  ggeett__ddiicctt__22(...)
- |      Signature : (Example2) -> dict<str, str>
+ |  ggeett__ddiicctt__22(...) from builtins.PyCapsule
+ |      Signature : (example.Example2) -> dict<str, str>
  |      
  |      Return a C++ dictionary
  |  
- |  ggeett__lliisstt(...)
- |      Signature : (Example2) -> list
+ |  ggeett__lliisstt(...) from builtins.PyCapsule
+ |      Signature : (example.Example2) -> list
  |      
  |      Return a Python list
  |  
- |  ggeett__lliisstt__22(...)
- |      Signature : (Example2) -> list<str>
+ |  ggeett__lliisstt__22(...) from builtins.PyCapsule
+ |      Signature : (example.Example2) -> list<str>
  |      
  |      Return a C++ list
  |  
- |  ggeett__sseett(...)
- |      Signature : (Example2) -> set
+ |  ggeett__sseett(...) from builtins.PyCapsule
+ |      Signature : (example.Example2) -> set
  |      
  |      Return a Python set
  |  
- |  ggeett__sseett22(...)
- |      Signature : (Example2) -> set
+ |  ggeett__sseett22(...) from builtins.PyCapsule
+ |      Signature : (example.Example2) -> set
  |      
  |      Return a C++ set
  |  
- |  ppaaiirr__ppaasssstthhrroouugghh(...)
- |      Signature : (Example2, (bool, str)) -> (str, bool)
+ |  nneeww__iinnssttaannccee(...) from builtins.PyCapsule
+ |      Signature : () -> example.Example2
+ |      
+ |      Return an instance
+ |  
+ |  ppaaiirr__ppaasssstthhrroouugghh(...) from builtins.PyCapsule
+ |      Signature : (example.Example2, (bool, str)) -> (str, bool)
  |      
  |      Return a pair in reversed order
  |  
- |  pprriinntt__ddiicctt(...)
- |      Signature : (Example2, dict) -> None
+ |  pprriinntt__ddiicctt(...) from builtins.PyCapsule
+ |      Signature : (example.Example2, dict) -> None
  |      
  |      Print entries of a Python dictionary
  |  
- |  pprriinntt__ddiicctt__22(...)
- |      Signature : (Example2, dict<str, str>) -> None
+ |  pprriinntt__ddiicctt__22(...) from builtins.PyCapsule
+ |      Signature : (example.Example2, dict<str, str>) -> None
  |      
  |      Print entries of a C++ dictionary
  |  
- |  pprriinntt__lliisstt(...)
- |      Signature : (Example2, list) -> None
+ |  pprriinntt__lliisstt(...) from builtins.PyCapsule
+ |      Signature : (example.Example2, list) -> None
  |      
  |      Print entries of a Python list
  |  
- |  pprriinntt__lliisstt__22(...)
- |      Signature : (Example2, list<str>) -> None
+ |  pprriinntt__lliisstt__22(...) from builtins.PyCapsule
+ |      Signature : (example.Example2, list<str>) -> None
  |      
  |      Print entries of a C++ list
  |  
- |  pprriinntt__sseett(...)
- |      Signature : (Example2, set) -> None
+ |  pprriinntt__sseett(...) from builtins.PyCapsule
+ |      Signature : (example.Example2, set) -> None
  |      
  |      Print entries of a Python set
  |  
- |  pprriinntt__sseett__22(...)
- |      Signature : (Example2, set<str>) -> None
+ |  pprriinntt__sseett__22(...) from builtins.PyCapsule
+ |      Signature : (example.Example2, set<str>) -> None
  |      
  |      Print entries of a C++ set
  |  
- |  tthhrrooww__eexxcceeppttiioonn(...)
- |      Signature : (Example2) -> None
+ |  tthhrrooww__eexxcceeppttiioonn(...) from builtins.PyCapsule
+ |      Signature : (example.Example2) -> None
  |      
  |      Throw an exception
  |  
- |  ttuuppllee__ppaasssstthhrroouugghh(...)
- |      Signature : (Example2, (bool, str, int32_t)) -> (int32_t, str, bool)
+ |  ttuuppllee__ppaasssstthhrroouugghh(...) from builtins.PyCapsule
+ |      Signature : (example.Example2, (bool, str, int)) -> (int, str, bool)
  |      
  |      Return a triple in reversed order
  |  
  |  ----------------------------------------------------------------------
  |  Data and other attributes defined here:
  |  
- |  ____nneeww____ = <built-in method __new__ of Example2_meta object>
- |      T.__new__(S, ...) -> a new object with type S, a subtype of T
- |  
  |  ____ppyybbiinndd1111____ = <capsule object NULL>
- |  
- |  nneeww__iinnssttaannccee = <built-in method new_instance of PyCapsule object>
- |      Signature : () -> Example2
- |      
- |      Return an instance
 
 Destructing Example2
