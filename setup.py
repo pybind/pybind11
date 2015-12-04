@@ -48,7 +48,7 @@ Boost.Python library by David Abrahams: to minimize boilerplate code in
 traditional extension modules by inferring type information using compile-time
 introspection.
 
-The main issue with Boost.Python—and the reason for creating such a similar
+The main issue with Boost.Python-and the reason for creating such a similar
 project—is Boost. Boost is an enormously large and complex suite of utility
 libraries that works with almost every C++ compiler in existence. This
 compatibility has its cost: arcane template tricks and workarounds are
