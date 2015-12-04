@@ -68,5 +68,5 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 - Python's slice-based access and assignment operations can be supported with
   just a few lines of code.
 
-- Everything is contained in just a few header files; there no need to link
+- Everything is contained in just a few header files; there is no need to link
   against any additional libraries.
