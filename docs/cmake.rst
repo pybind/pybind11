@@ -29,14 +29,21 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
     set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
     find_package(PythonLibs ${EXAMPLE_PYTHON_VERSION} REQUIRED)
 
-    if (UNIX)
-      # Enable C++11 mode
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+      # Enable C++11 mode on C++ / Clang
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
       # Enable link time optimization and set the default symbol
       # visibility to hidden (very important to obtain small binaries)
       if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -flto")
+        # Default symbol visibility
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+
+        # Check for Link Time Optimization support
+        CHECK_CXX_COMPILER_FLAG("-flto" HAS_LTO_FLAG)
+        if (HAS_LTO_FLAG)
+          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+        endif()
       endif()
     endif()
 
