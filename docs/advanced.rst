@@ -300,6 +300,59 @@ a virtual method call.
     demonstrates how to override virtual functions using pybind11 in more
     detail.
 
+
+Global Interpreter Lock (GIL)
+=============================
+
+The classes :class:`gil_scoped_release` and :class:`gil_scoped_acquire` can be
+used to acquire and release the global interpreter lock in the body of a C++
+function call. In this way, long-running C++ code can be parallelized using
+multiple Python threads. Taking the previous section as an example, this could
+be realized as follows (important changes highlighted):
+
+.. code-block:: cpp
+    :emphasize-lines: 8,9,33,34
+
+    class PyAnimal : public Animal {
+    public:
+        /* Inherit the constructors */
+        using Animal::Animal;
+
+        /* Trampoline (need one for each virtual function) */
+        std::string go(int n_times) {
+            /* Acquire GIL before calling Python code */
+            gil_scoped_acquire acquire;
+
+            PYBIND11_OVERLOAD_PURE(
+                std::string, /* Return type */
+                Animal,      /* Parent class */
+                go,          /* Name of function */
+                n_times      /* Argument(s) */
+            );
+        }
+    };
+
+    PYBIND11_PLUGIN(example) {
+        py::module m("example", "pybind11 example plugin");
+
+        py::class_<PyAnimal> animal(m, "Animal");
+        animal
+            .alias<Animal>()
+            .def(py::init<>())
+            .def("go", &Animal::go);
+
+        py::class_<Dog>(m, "Dog", animal)
+            .def(py::init<>());
+
+        m.def("call_go", [](Animal *animal) -> std::string {
+            /* Release GIL before calling into (potentially long-running) C++ code */
+            gil_scoped_release release;
+            return call_go(animal);
+        });
+
+        return m.ptr();
+    }
+
 Passing STL data structures
 ===========================
 
@@ -748,4 +801,3 @@ When conversion fails, both directions throw the exception :class:`cast_error`.
 
     The file :file:`example/example2.cpp` contains a complete example that
     demonstrates passing native Python types in more detail.
-
