@@ -300,7 +300,7 @@ protected:
 
 template <> class type_caster<void_type> {
 public:
-    bool load(PyObject *, bool) { return true; }
+    bool load(PyObject *, bool) { return false; }
     static PyObject *cast(void_type, return_value_policy /* policy */, PyObject * /* parent */) {
         Py_INCREF(Py_None);
         return Py_None;
