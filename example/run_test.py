@@ -25,8 +25,10 @@ def sanitize(lines):
         line = line.strip()
         if sys.platform == 'win32':
             lower = line.lower()
+            # The precise pattern of allocations and deallocations is dependent on the compiler
+            # and optimization level, so we unfortunately can't reliably check it in this kind of test case
             if 'constructor' in lower or 'destructor' in lower \
-               or 'ref' in lower:
+               or 'ref' in lower or 'freeing' in lower:
                 line = ""
         lines[i] = line
 
