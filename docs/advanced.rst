@@ -357,14 +357,14 @@ Passing STL data structures
 ===========================
 
 When including the additional header file :file:`pybind11/stl.h`, conversions
-between ``std::vector<>`` and ``std::map<>`` and the Python ``list`` and
-``dict`` data structures are automatically enabled. The types ``std::pair<>``
-and ``std::tuple<>`` are already supported out of the box with just the core
-:file:`pybind11/pybind11.h` header.
+between ``std::vector<>``, ``std::map<>``, and ``std::map<>`` and the Python
+``list``, ``set`` and ``dict`` data structures are automatically enabled. The
+types ``std::pair<>`` and ``std::tuple<>`` are already supported out of the box
+with just the core :file:`pybind11/pybind11.h` header.
 
 .. note::
 
-    Arbitrary nesting of any of these types is explicitly permitted.
+    Arbitrary nesting of any of these types is supported.
 
 .. seealso::
 
