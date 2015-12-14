@@ -321,7 +321,7 @@ be realized as follows (important changes highlighted):
         /* Trampoline (need one for each virtual function) */
         std::string go(int n_times) {
             /* Acquire GIL before calling Python code */
-            gil_scoped_acquire acquire;
+            py::gil_scoped_acquire acquire;
 
             PYBIND11_OVERLOAD_PURE(
                 std::string, /* Return type */
@@ -346,7 +346,7 @@ be realized as follows (important changes highlighted):
 
         m.def("call_go", [](Animal *animal) -> std::string {
             /* Release GIL before calling into (potentially long-running) C++ code */
-            gil_scoped_release release;
+            py::gil_scoped_release release;
             return call_go(animal);
         });
 
