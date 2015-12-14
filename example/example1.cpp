@@ -35,16 +35,16 @@ public:
     void operator=(const Example1 &e) { cout << "Assignment operator" << endl; value = e.value; }
     void operator=(Example1 &&e) { cout << "Move assignment operator" << endl; value = e.value; e.value = 0;}
 
-    void add1(Example1 other) { value += other.value; }           // passing py value
+    void add1(Example1 other) { value += other.value; }           // passing by value
     void add2(Example1 &other) { value += other.value; }          // passing by reference
     void add3(const Example1 &other) { value += other.value; }    // passing by const reference
-    void add4(Example1 *other) { value += other->value; }         // passing py pointer
+    void add4(Example1 *other) { value += other->value; }         // passing by pointer
     void add5(const Example1 *other) { value += other->value; }   // passing by const pointer
 
-    void add6(int other) { value += other; }                      // passing py value
+    void add6(int other) { value += other; }                      // passing by value
     void add7(int &other) { value += other; }                     // passing by reference
     void add8(const int &other) { value += other; }               // passing by const reference
-    void add9(int *other) { value += *other; }                    // passing py pointer
+    void add9(int *other) { value += *other; }                    // passing by pointer
     void add10(const int *other) { value += *other; }             // passing by const pointer
 
     Example1 self1() { return *this; }                            // return by value
