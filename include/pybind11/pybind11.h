@@ -294,10 +294,16 @@ private:
                 if (result != (PyObject *) 1)
                     break;
             }
-        } catch (const error_already_set &) {                                               return nullptr;
-        } catch (const index_error &e)    { PyErr_SetString(PyExc_IndexError,    e.what()); return nullptr;
-        } catch (const stop_iteration &e) { PyErr_SetString(PyExc_StopIteration, e.what()); return nullptr;
-        } catch (const std::exception &e) { PyErr_SetString(PyExc_RuntimeError,  e.what()); return nullptr;
+        } catch (const error_already_set &)      {                                                 return nullptr;
+        } catch (const index_error &e)           { PyErr_SetString(PyExc_IndexError,    e.what()); return nullptr;
+        } catch (const stop_iteration &e)        { PyErr_SetString(PyExc_StopIteration, e.what()); return nullptr;
+        } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return nullptr;
+        } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
+        } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
+        } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
+        } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return nullptr;
+        } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
+        } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return nullptr;
         } catch (...) {
             PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
             return nullptr;
