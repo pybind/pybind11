@@ -72,6 +72,7 @@ set(PYBIND11_HEADERS
   include/pybind11/pytypes.h
   include/pybind11/typeid.h
   include/pybind11/numpy.h
+  include/pybind11/complex.h
 )
 
 # Create the binding library
