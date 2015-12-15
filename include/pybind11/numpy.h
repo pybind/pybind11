@@ -96,7 +96,7 @@ public:
 
     array(const buffer_info &info) {
         API& api = lookup_api();
-        if (info.format.size() != 1)
+        if ((info.format.size() < 1) || (info.format.size() > 2))
             throw std::runtime_error("Unsupported buffer format!");
         int fmt = (int) info.format[0];
         if (info.format == "Zd")
