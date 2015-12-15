@@ -494,10 +494,16 @@ following snippet causes ``std::shared_ptr`` to be used instead.
 
 .. code-block:: cpp
 
-    py::class_<Example, std::shared_ptr<Example>> obj(m, "Example");
+    /// Type declaration
+    class Example : public std::enable_shared_from_this<Example> /* <- important, see below */ {
+        // ...
+    };
+
+    /// .... code within PYBIND11_PLUGIN declaration .....
+    py::class_<Example, std::shared_ptr<Example> /* <- important */> obj(m, "Example");
 
 To enable transparent conversions for functions that take shared pointers as an
-argument or that return them, a macro invocation similar to the following must 
+argument or that return them, a macro invocation similar to the following must
 be declared at the top level before any binding code:
 
 .. code-block:: cpp
@@ -512,19 +518,30 @@ be declared at the top level before any binding code:
     both sides; also, don't use the name of a type that already exists in your
     codebase.
 
-.. seealso::
-
-    The file :file:`example/example8.cpp` contains a complete example that
-    demonstrates how to work with custom reference-counting holder types in
-    more detail.
-
 .. warning::
 
    To ensure correct reference counting among Python and C++, the use of
    ``std::shared_ptr<T>`` as a holder type requires that ``T`` inherits from
    ``std::enable_shared_from_this<T>`` (see cppreference_ for details).
 
+If you encounter issues (failure to compile, ``bad_weak_ptr`` exceptions),
+please check that you really did all three steps:
+
+1. invoking the ``PYBIND11_DECLARE_HOLDER_TYPE`` macro in every file that
+   contains pybind11 code and uses your chosen smart pointer type.
+
+2. specifying the holder types to ``class_``.
+
+3. extending from ``std::enable_shared_from_this`` when using
+   ``std::shared_ptr``.
+
 .. _cppreference: http://en.cppreference.com/w/cpp/memory/enable_shared_from_this
+
+.. seealso::
+
+    The file :file:`example/example8.cpp` contains a complete example that
+    demonstrates how to work with custom reference-counting holder types in
+    more detail.
 
 .. _custom_constructors:
 
