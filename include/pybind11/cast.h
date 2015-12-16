@@ -308,8 +308,8 @@ public:
     PYBIND11_TYPE_CASTER(void_type, "None");
 };
 
-template <> class type_caster<void> : public type_caster<void_type> {
-};
+template <> class type_caster<void> : public type_caster<void_type> { };
+template <> class type_caster<std::nullptr_t> : public type_caster<void_type> { };
 
 template <> class type_caster<bool> {
 public:
