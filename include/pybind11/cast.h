@@ -229,6 +229,13 @@ protected:
         operator type*() { return &value; } \
         operator type&() { return value; }
 
+#define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type) \
+    namespace pybind11 { namespace detail { \
+    template <typename type> class type_caster<holder_type> \
+        : public type_caster_holder<type, holder_type> { }; \
+    }}
+
+
 template <typename T>
 struct type_caster<
     T, typename std::enable_if<std::is_integral<T>::value ||
@@ -250,9 +257,9 @@ public:
                 py_value = (py_type) PyLong_AsUnsignedLong(src);
         } else {
             if (std::is_signed<T>::value)
-                py_value = (py_type) detail::PyLong_AsLongLong(src);
+                py_value = (py_type) detail::PyLong_AsLongLong_(src);
             else
-                py_value = (py_type) detail::PyLong_AsUnsignedLongLong(src);
+                py_value = (py_type) detail::PyLong_AsUnsignedLongLong_(src);
         }
 
         if ((py_value == (py_type) -1 && PyErr_Occurred()) ||
@@ -556,41 +563,21 @@ protected:
     holder_type holder;
 };
 
-#define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type) \
-    namespace pybind11 { namespace detail { \
-    template <typename type> class type_caster<holder_type> \
-        : public type_caster_holder<type, holder_type> { }; \
-    }}
-
-template <> class type_caster<handle> {
+template <typename type>
+struct type_caster<type, typename std::enable_if<std::is_base_of<handle, type>::value>::type> {
 public:
-    bool load(PyObject *src) {
-        value = handle(src);
-        return true;
-    }
+    template <typename T = type, typename std::enable_if<std::is_same<T, handle>::value, int>::type = 0>
+    bool load(PyObject *src, bool /* convert */) { value = handle(src); return value.check(); }
+
+    template <typename T = type, typename std::enable_if<!std::is_same<T, handle>::value, int>::type = 0>
+    bool load(PyObject *src, bool /* convert */) { value = type(src, true); return value.check(); }
+
     static PyObject *cast(const handle &src, return_value_policy /* policy */, PyObject * /* parent */) {
         src.inc_ref();
         return (PyObject *) src.ptr();
     }
-    PYBIND11_TYPE_CASTER(handle, "handle");
+    PYBIND11_TYPE_CASTER(type, typeid(type));
 };
-
-#define PYBIND11_TYPE_CASTER_PYTYPE(name) \
-    template <> class type_caster<name> { \
-    public: \
-        bool load(PyObject *src, bool) { value = name(src, true); return true; } \
-        static PyObject *cast(const name &src, return_value_policy /* policy */, PyObject * /* parent */) { \
-            src.inc_ref(); return (PyObject *) src.ptr(); \
-        } \
-        PYBIND11_TYPE_CASTER(name, #name); \
-    };
-
-PYBIND11_TYPE_CASTER_PYTYPE(object)  PYBIND11_TYPE_CASTER_PYTYPE(buffer)
-PYBIND11_TYPE_CASTER_PYTYPE(capsule) PYBIND11_TYPE_CASTER_PYTYPE(dict)
-PYBIND11_TYPE_CASTER_PYTYPE(float_)  PYBIND11_TYPE_CASTER_PYTYPE(int_)
-PYBIND11_TYPE_CASTER_PYTYPE(list)    PYBIND11_TYPE_CASTER_PYTYPE(slice)
-PYBIND11_TYPE_CASTER_PYTYPE(tuple)   PYBIND11_TYPE_CASTER_PYTYPE(function)
-PYBIND11_TYPE_CASTER_PYTYPE(set)     PYBIND11_TYPE_CASTER_PYTYPE(iterator)
 
 NAMESPACE_END(detail)
 

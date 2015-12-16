@@ -148,17 +148,7 @@ DECL_FMT(double, NPY_DOUBLE); DECL_FMT(bool, NPY_BOOL); DECL_FMT(std::complex<fl
 DECL_FMT(std::complex<double>, NPY_CDOUBLE);
 #undef DECL_FMT
 
-
 NAMESPACE_BEGIN(detail)
-PYBIND11_TYPE_CASTER_PYTYPE(array)
-PYBIND11_TYPE_CASTER_PYTYPE(array_t<int8_t>)  PYBIND11_TYPE_CASTER_PYTYPE(array_t<uint8_t>)
-PYBIND11_TYPE_CASTER_PYTYPE(array_t<int16_t>) PYBIND11_TYPE_CASTER_PYTYPE(array_t<uint16_t>)
-PYBIND11_TYPE_CASTER_PYTYPE(array_t<int32_t>) PYBIND11_TYPE_CASTER_PYTYPE(array_t<uint32_t>)
-PYBIND11_TYPE_CASTER_PYTYPE(array_t<int64_t>) PYBIND11_TYPE_CASTER_PYTYPE(array_t<uint64_t>)
-PYBIND11_TYPE_CASTER_PYTYPE(array_t<float>)   PYBIND11_TYPE_CASTER_PYTYPE(array_t<double>)
-PYBIND11_TYPE_CASTER_PYTYPE(array_t<std::complex<float>>)
-PYBIND11_TYPE_CASTER_PYTYPE(array_t<std::complex<double>>)
-PYBIND11_TYPE_CASTER_PYTYPE(array_t<bool>)
 
 template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {

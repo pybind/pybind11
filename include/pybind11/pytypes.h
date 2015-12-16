@@ -45,6 +45,7 @@ public:
     template <typename T> T cast();
     template <typename ... Args> object call(Args&&... args_);
     operator bool() const { return m_ptr != nullptr; }
+    bool check() const { return m_ptr != nullptr; }
 protected:
     PyObject *m_ptr;
 };
@@ -211,21 +212,26 @@ private:
 };
 
 #if PY_MAJOR_VERSION >= 3
-using ::PyLong_AsUnsignedLongLong;
-using ::PyLong_AsLongLong;
+inline long long PyLong_AsLongLong_(PyObject *o) { return PyLong_AsLongLong(o); }
+inline unsigned long long PyLong_AsUnsignedLongLong_(PyObject *o) { return PyLong_AsUnsignedLongLong(o); }
+inline bool PyLong_Check_(PyObject *o) { return PyLong_Check(o); }
 #else
-inline long long PyLong_AsLongLong(PyObject *o) {
+inline long long PyLong_AsLongLong_(PyObject *o) {
     if (PyInt_Check(o)) /// workaround: PyLong_AsLongLong doesn't accept 'int' on Python 2.x
         return (long long) PyLong_AsLong(o);
     else
-        return ::PyLong_AsLongLong(o);
+        return PyLong_AsLongLong(o);
 }
 
-inline unsigned long long PyLong_AsUnsignedLongLong(PyObject *o) {
+inline unsigned long long PyLong_AsUnsignedLongLong_(PyObject *o) {
     if (PyInt_Check(o)) /// workaround: PyLong_AsUnsignedLongLong doesn't accept 'int' on Python 2.x
         return (unsigned long long) PyLong_AsUnsignedLong(o);
     else
-        return ::PyLong_AsUnsignedLongLong(o);
+        return PyLong_AsUnsignedLongLong(o);
+}
+
+inline bool PyLong_Check_(PyObject *o) {
+    return PyInt_Check(o) || PyLong_Check(o);
 }
 #endif
 
@@ -291,7 +297,7 @@ public:
 
 class int_ : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(int_, object, PyLong_Check)
+    PYBIND11_OBJECT_DEFAULT(int_, object, detail::PyLong_Check_)
     template <typename T,
               typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
     int_(T value) {
@@ -318,9 +324,9 @@ public:
                 return (T) PyLong_AsUnsignedLong(m_ptr);
         } else {
             if (std::is_signed<T>::value)
-                return (T) detail::PyLong_AsLongLong(m_ptr);
+                return (T) detail::PyLong_AsLongLong_(m_ptr);
             else
-                return (T) detail::PyLong_AsUnsignedLongLong(m_ptr);
+                return (T) detail::PyLong_AsUnsignedLongLong_(m_ptr);
         }
     }
 };
