@@ -51,7 +51,7 @@ public:
                 Py_DECREF(list);
                 return nullptr;
             }
-            PyList_SetItem(list, index++, value_);
+            PyList_SET_ITEM(list, index++, value_); // steals a reference
         }
         return list;
     }
@@ -80,15 +80,12 @@ public:
         PyObject *set = PySet_New(nullptr);
         for (auto const &value: src) {
             PyObject *value_ = value_conv::cast(value, policy, parent);
-            if (!value_) {
+            if (!value_ || PySet_Add(set, value_) != 0) {
+                Py_XDECREF(value_);
                 Py_DECREF(set);
                 return nullptr;
             }
-            if (PySet_Add(set, value) != 0) {
-                Py_DECREF(value);
-                Py_DECREF(set);
-                return nullptr;
-            }
+            Py_DECREF(value_);
         }
         return set;
     }
@@ -123,7 +120,7 @@ public:
         for (auto const &kv: src) {
             PyObject *key   = key_conv::cast(kv.first, policy, parent);
             PyObject *value = value_conv::cast(kv.second, policy, parent);
-            if (!key || !value || PyDict_SetItem(dict, key, value) < 0) {
+            if (!key || !value || PyDict_SetItem(dict, key, value) != 0) {
                 Py_XDECREF(key);
                 Py_XDECREF(value);
                 Py_DECREF(dict);
