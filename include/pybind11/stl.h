@@ -110,7 +110,8 @@ public:
         while (PyDict_Next(src, &pos, &key_, &value_)) {
             if (!kconv.load(key_, convert) || !vconv.load(value_, convert))
                 return false;
-            value[kconv] = vconv;
+            Value & _v = vconv;
+            value[kconv] = _v;
         }
         return true;
     }
