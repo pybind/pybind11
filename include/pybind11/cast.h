@@ -24,6 +24,24 @@ NAMESPACE_BEGIN(detail)
 #define PYBIND11_AS_STRING PyString_AsString
 #endif
 
+#if PY_MAJOR_VERSION >= 3
+#define PYBIND11_AS_STRING_AND_SIZE PyBytes_AsStringAndSize
+#else
+#define PYBIND11_AS_STRING_AND_SIZE PyString_AsStringAndSize
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+#define PYBIND11_FROM_STRING PyBytes_FromString
+#else
+#define PYBIND11_FROM_STRING PyString_FromString
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+#define PYBIND11_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
+#else
+#define PYBIND11_FROM_STRING_AND_SIZE PyString_FromStringAndSize
+#endif
+
 /** Linked list descriptor type for function signatures (produces smaller binaries
     compared to a previous solution using std::string and operator +=) */
 class descr {
@@ -336,19 +354,22 @@ public:
 template <> class type_caster<std::string> {
 public:
     bool load(PyObject *src, bool) {
-#if PY_MAJOR_VERSION < 3
-        if (PyString_Check(src)) { value = PyString_AsString(src); return true; }
-#endif
-        object temp(PyUnicode_AsUTF8String(src), false);
-        const char *ptr = nullptr;
-        if (temp)
-            ptr = PYBIND11_AS_STRING(temp.ptr());
-        if (!ptr) { PyErr_Clear(); return false; }
-        value = ptr;
+        object temp;
+        PyObject *load_src = src;
+        if (PyUnicode_Check(src)) {
+            temp = object(PyUnicode_AsUTF8String(src), false);
+            if (!temp) { PyErr_Clear(); return false; }  // UnicodeEncodeError
+            load_src = temp.ptr();
+        }
+        char *buffer;
+        Py_ssize_t length;
+        int err = PYBIND11_AS_STRING_AND_SIZE(load_src, &buffer, &length);
+        if (err == -1) { PyErr_Clear(); return false; }  // TypeError
+        value = std::string(buffer, length);
         return true;
     }
     static PyObject *cast(const std::string &src, return_value_policy /* policy */, PyObject * /* parent */) {
-        return PyUnicode_FromString(src.c_str());
+        return PYBIND11_FROM_STRING_AND_SIZE(src.c_str(), src.size());
     }
     PYBIND11_TYPE_CASTER(std::string, "str");
 };
@@ -356,25 +377,26 @@ public:
 template <> class type_caster<char> {
 public:
     bool load(PyObject *src, bool) {
-#if PY_MAJOR_VERSION < 3
-        if (PyString_Check(src)) { value = PyString_AsString(src); return true; }
-#endif
-        object temp(PyUnicode_AsUTF8String(src), false);
-        const char *ptr = nullptr;
-        if (temp)
-            ptr = PYBIND11_AS_STRING(temp.ptr());
-        if (!ptr) { PyErr_Clear(); return false; }
-        value = ptr;
+        object temp;
+        PyObject *load_src = src;
+        if (PyUnicode_Check(src)) {
+            temp = object(PyUnicode_AsUTF8String(src), false);
+            if (!temp) { PyErr_Clear(); return false; }  // UnicodeEncodeError
+            load_src = temp.ptr();
+        }
+        const char *ptr = PYBIND11_AS_STRING(load_src);
+        if (!ptr) { PyErr_Clear(); return false; }  // TypeError
+        value = std::string(ptr);
         return true;
     }
 
     static PyObject *cast(const char *src, return_value_policy /* policy */, PyObject * /* parent */) {
-        return PyUnicode_FromString(src);
+        return PYBIND11_FROM_STRING(src);
     }
 
     static PyObject *cast(char src, return_value_policy /* policy */, PyObject * /* parent */) {
         char str[2] = { src, '\0' };
-        return PyUnicode_DecodeLatin1(str, 1, nullptr);
+        return PYBIND11_FROM_STRING(str);
     }
 
     static descr name() { return "str"; }
