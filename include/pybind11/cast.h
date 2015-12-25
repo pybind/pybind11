@@ -369,9 +369,25 @@ public:
         return true;
     }
     static PyObject *cast(const std::string &src, return_value_policy /* policy */, PyObject * /* parent */) {
+        return PyUnicode_FromString(src.c_str());
+    }
+#if PY_MAJOR_VERSION >= 3
+    PYBIND11_TYPE_CASTER(std::string, "str");
+#else
+    PYBIND11_TYPE_CASTER(std::string, "unicode");
+#endif
+};
+
+template <> class type_caster<bytestring> : public type_caster<std::string> {
+public:
+    static PyObject *cast(const bytestring &src, return_value_policy /* policy */, PyObject * /* parent */) {
         return PYBIND11_FROM_STRING_AND_SIZE(src.c_str(), src.size());
     }
-    PYBIND11_TYPE_CASTER(std::string, "str");
+#if PY_MAJOR_VERSION >= 3
+    PYBIND11_TYPE_CASTER(bytestring, "bytes");
+#else
+    PYBIND11_TYPE_CASTER(bytestring, "str");
+#endif
 };
 
 template <> class type_caster<char> {
@@ -391,12 +407,12 @@ public:
     }
 
     static PyObject *cast(const char *src, return_value_policy /* policy */, PyObject * /* parent */) {
-        return PYBIND11_FROM_STRING(src);
+        return PyUnicode_FromString(src);
     }
 
     static PyObject *cast(char src, return_value_policy /* policy */, PyObject * /* parent */) {
         char str[2] = { src, '\0' };
-        return PYBIND11_FROM_STRING(str);
+        return PyUnicode_DecodeLatin1(str, 1, nullptr);
     }
 
     static descr name() { return "str"; }
@@ -405,6 +421,13 @@ public:
     operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
 protected:
     std::string value;
+};
+
+template <> class type_caster<bytepchar> : public type_caster<char> {
+public:
+    static PyObject *cast(const bytepchar src, return_value_policy /* policy */, PyObject * /* parent */) {
+        return PYBIND11_FROM_STRING(src);
+    }
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {

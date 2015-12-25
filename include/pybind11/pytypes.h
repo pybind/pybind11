@@ -259,6 +259,24 @@ inline iterator handle::end() { return iterator(nullptr); }
     PYBIND11_OBJECT(Name, Parent, CheckFun) \
     Name() : Parent() { }
 
+class bytestring : public std::string {
+public:
+    using std::string::string;
+
+    bytestring(const std::string& src) : std::string(src) {}
+    bytestring() : std::string() {}
+};
+
+class bytepchar {
+public:
+    bytepchar(const char* src) : ptr(const_cast<char*>(src)) {}
+    operator const char*() const {
+        return ptr;
+    }
+private:
+    char* ptr;
+};
+
 class str : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(str, object, PyUnicode_Check)
