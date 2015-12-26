@@ -263,8 +263,9 @@ class bytestring : public std::string {
 public:
     using std::string::string;
 
-    bytestring(const std::string& src) : std::string(src) {}
-    bytestring() : std::string() {}
+    bytestring(const std::string& src) : std::string(src) { }
+    bytestring(std::string&& src) : std::string(std::move(src)) { }
+    bytestring() : std::string() { }
 };
 
 class str : public object {
