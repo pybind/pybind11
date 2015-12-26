@@ -423,13 +423,6 @@ protected:
     std::string value;
 };
 
-template <> class type_caster<bytepchar> : public type_caster<char> {
-public:
-    static PyObject *cast(const bytepchar src, return_value_policy /* policy */, PyObject * /* parent */) {
-        return PYBIND11_FROM_STRING(src);
-    }
-};
-
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
     typedef std::pair<T1, T2> type;
 public:

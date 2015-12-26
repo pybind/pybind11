@@ -267,16 +267,6 @@ public:
     bytestring() : std::string() {}
 };
 
-class bytepchar {
-public:
-    bytepchar(const char* src) : ptr(const_cast<char*>(src)) {}
-    operator const char*() const {
-        return ptr;
-    }
-private:
-    char* ptr;
-};
-
 class str : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(str, object, PyUnicode_Check)
