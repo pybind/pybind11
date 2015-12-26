@@ -67,12 +67,24 @@
 #endif
 
 #if PY_MAJOR_VERSION >= 3
-#define PYBIND11_PLUGIN(name) \
+#define PYBIND11_PLUGIN_IMPL(name) \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 #else
-#define PYBIND11_PLUGIN(name) \
+#define PYBIND11_PLUGIN_IMPL(name) \
     extern "C" PYBIND11_EXPORT PyObject *init##name()
 #endif
+#define PYBIND11_PLUGIN(name) \
+    static PyObject *pybind11_init(); \
+    PYBIND11_PLUGIN_IMPL(name) { \
+        try { \
+            return pybind11_init(); \
+        } catch (const std::exception &e) { \
+            PyErr_SetString(PyExc_ImportError, e.what()); \
+            return nullptr; \
+        } \
+    } \
+    PyObject *pybind11_init()
+
 
 NAMESPACE_BEGIN(pybind11)
 

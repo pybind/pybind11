@@ -471,7 +471,10 @@ public:
     }
 
     static module import(const char *name) {
-        return module(PyImport_ImportModule(name), false);
+        PyObject *obj = PyImport_ImportModule(name);
+        if (!obj)
+            throw std::runtime_error("Module \"" + std::string(name) + "\" not found!");
+        return module(obj, false);
     }
 };
 
