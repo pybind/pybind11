@@ -42,7 +42,7 @@ public:
     inline detail::accessor attr(handle key);
     inline detail::accessor attr(const char *key);
     inline pybind11::str str() const;
-    template <typename T> T cast();
+    template <typename T> T cast() const;
     template <typename ... Args> object call(Args&&... args_);
     operator bool() const { return m_ptr != nullptr; }
     bool check() const { return m_ptr != nullptr; }

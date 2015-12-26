@@ -118,7 +118,7 @@ Without reference counting
     Return a string representation of the object. This is analogous to
     the ``str()`` function in Python.
 
-.. function:: template <typename T> T handle::cast()
+.. function:: template <typename T> T handle::cast() const
 
     Attempt to cast the Python object into the given C++ type. A
     :class:`cast_error` will be throw upon failure.
