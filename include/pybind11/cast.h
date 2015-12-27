@@ -594,8 +594,8 @@ template <typename T> inline object cast(const T &value, return_value_policy pol
     return object(detail::type_caster<typename detail::decay<T>::type>::cast(value, policy, parent), false);
 }
 
-template <typename T> inline T handle::cast() { return pybind11::cast<T>(m_ptr); }
-template <> inline void handle::cast() { return; }
+template <typename T> inline T handle::cast() const { return pybind11::cast<T>(m_ptr); }
+template <> inline void handle::cast() const { return; }
 
 template <typename... Args> inline object handle::call(Args&&... args_) {
     const size_t size = sizeof...(Args);
