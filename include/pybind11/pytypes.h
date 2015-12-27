@@ -372,8 +372,8 @@ public:
 
 class tuple : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(tuple, object, PyTuple_Check)
-    tuple(size_t size) : object(PyTuple_New((Py_ssize_t) size), false) { }
+    PYBIND11_OBJECT(tuple, object, PyTuple_Check)
+    tuple(size_t size = 0) : object(PyTuple_New((Py_ssize_t) size), false) { }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     detail::tuple_accessor operator[](size_t index) { return detail::tuple_accessor(ptr(), index); }
 };
