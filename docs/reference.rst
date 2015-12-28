@@ -59,31 +59,31 @@ Without reference counting
 
     Creates a :class:`handle` from the given raw Python object pointer.
 
-.. function:: PyObject * handle::ptr()
+.. function:: PyObject * handle::ptr() const
 
     Return the ``PyObject *`` underlying a :class:`handle`.
 
-.. function:: void handle::inc_ref()
+.. function:: void handle::inc_ref() const
 
     Manually increase the reference count of the Python object. Usually, it is
     preferable to use the :class:`object` class which derives from
     :class:`handle` and calls this function automatically.
 
-.. function:: void handle::dec_ref()
+.. function:: void handle::dec_ref() const
 
     Manually decrease the reference count of the Python object. Usually, it is
     preferable to use the :class:`object` class which derives from
     :class:`handle` and calls this function automatically.
 
-.. function:: void handle::ref_count()
+.. function:: void handle::ref_count() const
 
     Return the object's current reference count
 
-.. function:: handle handle::get_type()
+.. function:: handle handle::get_type() const
 
     Return a handle to the Python type object underlying the instance
 
-.. function detail::accessor handle::operator[](handle key)
+.. function detail::accessor handle::operator[](handle key) const
 
     Return an internal functor to invoke the object's sequence protocol.
     Casting the returned ``detail::accessor`` instance to a :class:`handle` or
@@ -91,12 +91,12 @@ Without reference counting
     Assigning a :class:`handle` or :class:`object` subclass causes a call to
     ``__setitem__``.
 
-.. function detail::accessor handle::operator[](const char *key)
+.. function detail::accessor handle::operator[](const char *key) const
 
     See the above function (the only difference is that they key is provided as
     a string literal).
 
-.. function detail::accessor handle::attr(handle key)
+.. function detail::accessor handle::attr(handle key) const
 
     Return an internal functor to access the object's attributes.
     Casting the returned ``detail::accessor`` instance to a :class:`handle` or
@@ -104,7 +104,7 @@ Without reference counting
     Assigning a :class:`handle` or :class:`object` subclass causes a call to
     ``__setattr``.
 
-.. function detail::accessor handle::attr(const char *key)
+.. function detail::accessor handle::attr(const char *key) const
 
     See the above function (the only difference is that they key is provided as
     a string literal).
@@ -123,7 +123,7 @@ Without reference counting
     Attempt to cast the Python object into the given C++ type. A
     :class:`cast_error` will be throw upon failure.
 
-.. function:: template <typename ... Args> object handle::call(Args&&... args)
+.. function:: template <typename ... Args> object handle::call(Args&&... args) const
 
     Assuming the Python object is a function or implements the ``__call__``
     protocol, ``call()`` invokes the underlying function, passing an arbitrary
@@ -169,7 +169,7 @@ With reference counting
 
 .. function:: object::~object()
 
-    Constructor, which automatically calls :func:`handle::dec_ref()`.
+    Destructor, which automatically calls :func:`handle::dec_ref()`.
 
 Convenience classes for specific Python types
 =============================================
