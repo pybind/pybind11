@@ -154,8 +154,9 @@ public:
         }
         auto it = internals.registered_types.find(type_info);
         if (it == internals.registered_types.end()) {
-            std::string msg = std::string("Unregistered type : ") + type_info->name();
-            detail::clean_type_id(msg);
+            std::string tname = type_info->name();
+            detail::clean_type_id(tname);
+            std::string msg = "Unregistered type : " + tname;
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
