@@ -398,16 +398,15 @@ public:
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        PyObject *o1 = type_caster<typename decay<T1>::type>::cast(src.first, policy, parent);
-        PyObject *o2 = type_caster<typename decay<T2>::type>::cast(src.second, policy, parent);
-        if (!o1 || !o2) {
-            Py_XDECREF(o1);
-            Py_XDECREF(o2);
+        object o1(type_caster<typename decay<T1>::type>::cast(src.first, policy, parent), false);
+        object o2(type_caster<typename decay<T2>::type>::cast(src.second, policy, parent), false);
+        if (!o1 || !o2)
             return nullptr;
-        }
         PyObject *tuple = PyTuple_New(2);
-        PyTuple_SetItem(tuple, 0, o1);
-        PyTuple_SetItem(tuple, 1, o2);
+        if (!tuple)
+            return nullptr;
+        PyTuple_SetItem(tuple, 0, o1.release());
+        PyTuple_SetItem(tuple, 1, o2.release());
         return tuple;
     }
 
@@ -502,25 +501,19 @@ protected:
 
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <size_t ... Indices> static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent, index_sequence<Indices...>) {
-        std::array<PyObject *, size> results {{
-            type_caster<typename decay<Tuple>::type>::cast(std::get<Indices>(src), policy, parent)...
+        std::array<object, size> results {{
+            object(type_caster<typename decay<Tuple>::type>::cast(std::get<Indices>(src), policy, parent), false)...
         }};
-        bool success = true;
-        for (auto result : results)
-            if (result == nullptr)
-                success = false;
-        if (success) {
-            PyObject *tuple = PyTuple_New(size);
-            int counter = 0;
-            for (auto result : results)
-                PyTuple_SetItem(tuple, counter++, result);
-            return tuple;
-        } else {
-            for (auto result : results) {
-                Py_XDECREF(result);
-            }
+        for (const auto & result : results)
+            if (!result)
+                return nullptr;
+        PyObject *tuple = PyTuple_New(size);
+        if (!tuple)
             return nullptr;
-        }
+        int counter = 0;
+        for (auto & result : results)
+            PyTuple_SetItem(tuple, counter++, result.release());
+        return tuple;
     }
 
 protected:
@@ -600,26 +593,20 @@ template <> inline void handle::cast() const { return; }
 
 template <typename... Args> inline object handle::call(Args&&... args_) {
     const size_t size = sizeof...(Args);
-    std::array<PyObject *, size> args{
-        { detail::type_caster<typename detail::decay<Args>::type>::cast(
-            std::forward<Args>(args_), return_value_policy::reference, nullptr)... }
+    std::array<object, size> args{
+        { object(detail::type_caster<typename detail::decay<Args>::type>::cast(
+            std::forward<Args>(args_), return_value_policy::reference, nullptr), false)... }
     };
-    bool fail = false;
-    for (auto result : args)
-        if (result == nullptr)
-            fail = true;
-    if (fail) {
-        for (auto result : args) {
-            Py_XDECREF(result);
-        }
+    for (const auto & result : args)
+        if (!result)
+            throw cast_error("handle::call(): unable to convert input arguments to Python objects");
+    object tuple(PyTuple_New(size), false);
+    if (!tuple)
         throw cast_error("handle::call(): unable to convert input arguments to Python objects");
-    }
-    PyObject *tuple = PyTuple_New(size);
     int counter = 0;
-    for (auto result : args)
-        PyTuple_SetItem(tuple, counter++, result);
-    PyObject *result = PyObject_CallObject(m_ptr, tuple);
-    Py_DECREF(tuple);
+    for (auto & result : args)
+        PyTuple_SetItem(tuple.ptr(), counter++, result.release());
+    PyObject *result = PyObject_CallObject(m_ptr, tuple.ptr());
     if (result == nullptr && PyErr_Occurred())
         throw error_already_set();
     return object(result, false);

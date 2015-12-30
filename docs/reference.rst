@@ -59,7 +59,7 @@ Without reference counting
 
     Creates a :class:`handle` from the given raw Python object pointer.
 
-.. function:: PyObject * handle::ptr()
+.. function:: PyObject * handle::ptr() const
 
     Return the ``PyObject *`` underlying a :class:`handle`.
 
@@ -166,6 +166,12 @@ With reference counting
 
     Move constructor; steals the object from ``other`` and preserves its
     reference count.
+
+.. function:: PyObject* object::release()
+
+    Release ownership of underlying ``PyObject *``. Returns raw Python object
+    pointer without decreasing its reference count and resets handle to
+    ``nullptr``-valued pointer.
 
 .. function:: object::~object()
 

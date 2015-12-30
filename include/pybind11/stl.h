@@ -43,17 +43,17 @@ public:
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        PyObject *list = PyList_New(src.size());
+        object list(PyList_New(src.size()), false);
+        if (!list)
+          return nullptr;
         size_t index = 0;
         for (auto const &value: src) {
-            PyObject *value_ = value_conv::cast(value, policy, parent);
-            if (!value_) {
-                Py_DECREF(list);
+            object value_ (value_conv::cast(value, policy, parent), false);
+            if (!value_)
                 return nullptr;
-            }
-            PyList_SET_ITEM(list, index++, value_); // steals a reference
+            PyList_SET_ITEM(list.ptr(), index++, value_.release()); // steals a reference
         }
-        return list;
+        return list.release();
     }
     PYBIND11_TYPE_CASTER(type, detail::descr("list<") + value_conv::name() + detail::descr(">"));
 };
@@ -77,17 +77,15 @@ public:
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        PyObject *set = PySet_New(nullptr);
+        object set(PySet_New(nullptr), false);
+        if (!set)
+          return nullptr;
         for (auto const &value: src) {
-            PyObject *value_ = value_conv::cast(value, policy, parent);
-            if (!value_ || PySet_Add(set, value_) != 0) {
-                Py_XDECREF(value_);
-                Py_DECREF(set);
+            object value_(value_conv::cast(value, policy, parent), false);
+            if (!value_ || PySet_Add(set.ptr(), value_.ptr()) != 0)
                 return nullptr;
-            }
-            Py_DECREF(value_);
         }
-        return set;
+        return set.release();
     }
     PYBIND11_TYPE_CASTER(type, detail::descr("set<") + value_conv::name() + detail::descr(">"));
 };
@@ -116,20 +114,16 @@ public:
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        PyObject *dict = PyDict_New();
+        object dict(PyDict_New(), false);
+        if (!dict)
+          return nullptr;
         for (auto const &kv: src) {
-            PyObject *key   = key_conv::cast(kv.first, policy, parent);
-            PyObject *value = value_conv::cast(kv.second, policy, parent);
-            if (!key || !value || PyDict_SetItem(dict, key, value) != 0) {
-                Py_XDECREF(key);
-                Py_XDECREF(value);
-                Py_DECREF(dict);
+            object key(key_conv::cast(kv.first, policy, parent), false);
+            object value(value_conv::cast(kv.second, policy, parent), false);
+            if (!key || !value || PyDict_SetItem(dict.ptr(), key.ptr(), value.ptr()) != 0)
                 return nullptr;
-            }
-            Py_DECREF(key);
-            Py_DECREF(value);
         }
-        return dict;
+        return dict.release();
     }
 
     PYBIND11_TYPE_CASTER(type, detail::descr("dict<") + key_conv::name() + detail::descr(", ") + value_conv::name() + detail::descr(">"));
