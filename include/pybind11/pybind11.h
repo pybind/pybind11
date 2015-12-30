@@ -24,6 +24,7 @@
 #endif
 
 #include "cast.h"
+#include <iostream>
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -97,16 +98,17 @@ private:
         (void) unused;
     }
 
-    template <typename... T> static void process_extras(const std::tuple<T...> &args,
+    template <typename... T> static int process_extras(const std::tuple<T...> &args,
             PyObject *pyArgs, PyObject *kwargs, bool is_method) {
-        process_extras(args, pyArgs, kwargs, is_method, typename detail::make_index_sequence<sizeof...(T)>::type());
+        return process_extras(args, pyArgs, kwargs, is_method, typename detail::make_index_sequence<sizeof...(T)>::type());
     }
 
-    template <typename... T, size_t... Index> static void process_extras(const std::tuple<T...> &args,
+    template <typename... T, size_t... Index> static int process_extras(const std::tuple<T...> &args,
             PyObject *pyArgs, PyObject *kwargs, bool is_method, detail::index_sequence<Index...>) {
-        int index = is_method ? 1 : 0;
-        int unused[] = { 0, (process_extra(std::get<Index>(args), index, pyArgs, kwargs), 0)... };
+        int index = is_method ? 1 : 0, kwarg_refs = 0;
+        int unused[] = { 0, (process_extra(std::get<Index>(args), index, kwarg_refs, pyArgs, kwargs), 0)... };
         (void) unused; (void) index;
+        return kwarg_refs;
     }
 
     static void process_extra(const char *doc, function_entry *entry, const char **, const char **) { entry->doc = doc; }
@@ -133,8 +135,8 @@ private:
     static void process_extra(const pybind11::return_value_policy p, function_entry *entry, const char **, const char **) { entry->policy = p; }
     static void process_extra(pybind11::sibling s, function_entry *entry, const char **, const char **) { entry->sibling = s.value; }
 
-    template <typename T> static void process_extra(T, int &, PyObject *, PyObject *) { }
-    static void process_extra(const pybind11::arg &a, int &index, PyObject *args, PyObject *kwargs) {
+    template <typename T> static void process_extra(T, int &, int&, PyObject *, PyObject *) { }
+    static void process_extra(const pybind11::arg &a, int &index, int &kwarg_refs, PyObject *args, PyObject *kwargs) {
         if (kwargs) {
             if (PyTuple_GET_ITEM(args, index) != nullptr) {
                 index++;
@@ -144,12 +146,13 @@ private:
             if (value) {
                 Py_INCREF(value);
                 PyTuple_SetItem(args, index, value);
+                kwarg_refs++;
             }
         }
         index++;
     }
     template <typename T>
-    static void process_extra(const pybind11::arg_t<T> &a, int &index, PyObject *args, PyObject *kwargs) {
+    static void process_extra(const pybind11::arg_t<T> &a, int &index, int &kwarg_refs, PyObject *args, PyObject *kwargs) {
         if (PyTuple_GET_ITEM(args, index) != nullptr) {
             index++;
             return;
@@ -158,6 +161,7 @@ private:
         if (kwargs)
             value = PyDict_GetItemString(kwargs, a.name);
         if (value) {
+            kwarg_refs++;
             Py_INCREF(value);
         } else {
             value = detail::type_caster<typename detail::decay<T>::type>::cast(
@@ -185,9 +189,9 @@ public:
 
         m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject * {
             capture *data = (capture *) entry->data;
-            process_extras(data->extras, pyArgs, kwargs, entry->is_method);
+            int kwarg_refs = process_extras(data->extras, pyArgs, kwargs, entry->is_method);
             cast_in args;
-            if (!args.load(pyArgs, true))
+            if (kwarg_refs != (kwargs ? PyDict_Size(kwargs) : 0) || !args.load(pyArgs, true))
                 return (PyObject *) 1; /* Special return code: try next overload */
             return cast_out::cast(args.template call<Return>(data->f), entry->policy, parent);
         };
@@ -248,9 +252,9 @@ private:
 
         m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject *{
             capture *data = (capture *) entry->data;
-            process_extras(data->extras, pyArgs, kwargs, entry->is_method);
+            int kwarg_refs = process_extras(data->extras, pyArgs, kwargs, entry->is_method);
             cast_in args;
-            if (!args.load(pyArgs, true))
+            if (kwarg_refs != (kwargs ? PyDict_Size(kwargs) : 0) || !args.load(pyArgs, true))
                 return (PyObject *) 1; /* Special return code: try next overload */
             return cast_out::cast(args.template call<Return>(data->f), entry->policy, parent);
         };
