@@ -23,9 +23,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
-set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
+set(Python_ADDITIONAL_VERSIONS 3.6 3.5 3.4 3.3 3.2)
 find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
-find_package(PythonInterp ${PYBIND11_PYTHON_VERSION} REQUIRED)
+#find_package(PythonInterp ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 include(CheckCXXCompilerFlag)
 
@@ -132,7 +132,7 @@ elseif (UNIX)
   # into Blender or Maya later on, this will cause segfaults when multiple
   # conflicting Python instances are active at the same time.
 
-  # Windows is not affected by this issue since it handles DLL imports 
+  # Windows is not affected by this issue since it handles DLL imports
   # differently. The solution for Linux and Mac OS is simple: we just don't
   # link against the Python library. The resulting shared library will have
   # missing symbols, but that's perfectly fine -- they will be resolved at

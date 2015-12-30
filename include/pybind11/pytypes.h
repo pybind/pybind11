@@ -264,17 +264,24 @@ public:
     PYBIND11_OBJECT_DEFAULT(str, object, PyUnicode_Check)
     str(const char *s) : object(PyUnicode_FromString(s), false) { }
     operator const char *() const {
-#if PY_MAJOR_VERSION >= 3
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
         return PyUnicode_AsUTF8(m_ptr);
+#else
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 3
+        m_temp = object(PyUnicode_AsUTF8String(m_ptr), false);
+        if (m_temp.ptr() == nullptr)
+            return nullptr;
+        return PyBytes_AsString(m_temp.ptr());
 #else
         m_temp = object(PyUnicode_AsUTF8String(m_ptr), false);
         if (m_temp.ptr() == nullptr)
             return nullptr;
         return PyString_AsString(m_temp.ptr());
 #endif
+#endif
     }
 private:
-#if PY_MAJOR_VERSION < 3
+#if !(PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3)
     mutable object m_temp;
 #endif
 };

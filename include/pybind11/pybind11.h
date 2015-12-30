@@ -512,7 +512,7 @@ public:
             full_name =  std::string(module_name) + "." + full_name;
 
         type->ht_name = name;
-#if PY_MAJOR_VERSION >= 3
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
         type->ht_qualname = name;
 #endif
         type->ht_type.tp_name = strdup(full_name.c_str());
@@ -571,7 +571,7 @@ protected:
                 throw std::runtime_error("Internal error in custom_type::metaclass()");
             Py_INCREF(name);
             type->ht_name = name;
-#if PY_MAJOR_VERSION >= 3
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
             type->ht_qualname = name;
 #endif
             type->ht_type.tp_name = strdup(name_.c_str());
@@ -974,4 +974,3 @@ NAMESPACE_END(pybind11)
 #elif defined(__GNUG__) and !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
-
