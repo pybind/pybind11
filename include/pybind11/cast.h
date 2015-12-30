@@ -378,15 +378,15 @@ public:
 #endif
 };
 
-template <> class type_caster<bytestring> : public type_caster<std::string> {
+template <typename T> class type_caster<bytes<T>> : public type_caster<T> {
 public:
-    static PyObject *cast(const bytestring &src, return_value_policy /* policy */, PyObject * /* parent */) {
-        return PYBIND11_FROM_STRING_AND_SIZE(src.c_str(), src.size());
+    static PyObject *cast(const bytes<T> &src, return_value_policy /* policy */, PyObject * /* parent */) {
+        return PYBIND11_FROM_STRING_AND_SIZE(src.data(), src.size());
     }
 #if PY_MAJOR_VERSION >= 3
-    PYBIND11_TYPE_CASTER(bytestring, "bytes");
+    PYBIND11_TYPE_CASTER(bytes<T>, "bytes");
 #else
-    PYBIND11_TYPE_CASTER(bytestring, "str");
+    PYBIND11_TYPE_CASTER(bytes<T>, "str");
 #endif
 };
 

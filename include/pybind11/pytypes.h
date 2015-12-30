@@ -259,13 +259,14 @@ inline iterator handle::end() { return iterator(nullptr); }
     PYBIND11_OBJECT(Name, Parent, CheckFun) \
     Name() : Parent() { }
 
-class bytestring : public std::string {
+template <typename T>
+class bytes : public T {
 public:
-    using std::string::string;
+    using T::T;
 
-    bytestring(const std::string& src) : std::string(src) { }
-    bytestring(std::string&& src) : std::string(std::move(src)) { }
-    bytestring() : std::string() { }
+    bytes(const T& src) : T(src) { }
+    bytes(T&& src) : T(std::move(src)) { }
+    bytes() : T() { }
 };
 
 class str : public object {
