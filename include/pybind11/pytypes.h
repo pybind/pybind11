@@ -29,8 +29,7 @@ public:
     handle() : m_ptr(nullptr) { }
     handle(const handle &other) : m_ptr(other.m_ptr) { }
     handle(PyObject *ptr) : m_ptr(ptr) { }
-    PyObject *ptr() { return m_ptr; }
-    const PyObject *ptr() const { return m_ptr; }
+    PyObject *ptr() const { return m_ptr; }
     void inc_ref() const { Py_XINCREF(m_ptr); }
     void dec_ref() const { Py_XDECREF(m_ptr); }
     int ref_count() const { return (int) Py_REFCNT(m_ptr); }
@@ -59,6 +58,12 @@ public:
     object(PyObject *ptr, bool borrowed) : handle(ptr) { if (borrowed) inc_ref(); }
     object(object &&other) { m_ptr = other.m_ptr; other.m_ptr = nullptr; }
     ~object() { dec_ref(); }
+
+    PyObject * release() {
+      PyObject *tmp = m_ptr;
+      m_ptr = nullptr;
+      return tmp;
+    }
 
     object& operator=(object &other) {
         Py_XINCREF(other.m_ptr);
