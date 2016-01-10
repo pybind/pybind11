@@ -591,7 +591,7 @@ template <typename T> inline object cast(const T &value, return_value_policy pol
 template <typename T> inline T handle::cast() const { return pybind11::cast<T>(m_ptr); }
 template <> inline void handle::cast() const { return; }
 
-template <typename... Args> inline object handle::call(Args&&... args_) {
+template <typename... Args> inline object handle::call(Args&&... args_) const {
     const size_t size = sizeof...(Args);
     std::array<object, size> args{
         { object(detail::type_caster<typename detail::decay<Args>::type>::cast(
