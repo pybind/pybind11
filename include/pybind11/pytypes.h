@@ -427,20 +427,21 @@ public:
     buffer_info request(bool writable = false) {
         int flags = PyBUF_STRIDES | PyBUF_FORMAT;
         if (writable) flags |= PyBUF_WRITABLE;
-        view = new Py_buffer();
-        if (PyObject_GetBuffer(m_ptr, view, flags) != 0)
+        Py_buffer view;
+        if (PyObject_GetBuffer(m_ptr, &view, flags) != 0)
             throw error_already_set();
-        std::vector<size_t> shape(view->ndim), strides(view->ndim);
-        for (int i=0; i<view->ndim; ++i) {
-            shape[i] = (size_t) view->shape[i];
-            strides[i] = (size_t) view->strides[i];
+        std::vector<size_t> shape(view.ndim), strides(view.ndim);
+        for (int i = 0; i < view.ndim; ++i) {
+            shape[i] = (size_t)view.shape[i];
+            strides[i] = (size_t)view.strides[i];
         }
-        return buffer_info(view->buf, view->itemsize, view->format,
-                           view->ndim, shape, strides);
+        buffer_info result(view.buf, view.itemsize, view.format,
+                           view.ndim, shape, strides);
+
+        PyBuffer_Release(&view);
+
+        return result;
     }
-    ~buffer() { if (view) { PyBuffer_Release(view); delete view; } }
-private:
-    Py_buffer *view = nullptr;
 };
 
 NAMESPACE_BEGIN(detail)

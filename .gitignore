@@ -5,6 +5,7 @@ cmake_install.cmake
 .DS_Store
 /example/example.so
 /example/example.pyd
+/build/*
 *.sln
 *.sdf
 *.opensdf
