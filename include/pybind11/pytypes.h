@@ -284,12 +284,12 @@ private:
 };
 
 inline pybind11::str handle::str() const {
-    PyObject *str = PyObject_Str(m_ptr);
+    PyObject *myStr = PyObject_Str(m_ptr);
 #if PY_MAJOR_VERSION < 3
-    PyObject *unicode = PyUnicode_FromEncodedObject(str, "utf-8", nullptr);
-    Py_XDECREF(str); str = unicode;
+    PyObject *unicode = PyUnicode_FromEncodedObject(myStr, "utf-8", nullptr);
+    Py_XDECREF(myStr); myStr = unicode;
 #endif
-    return pybind11::str(str, false);
+    return pybind11::str(myStr, false);
 }
 
 class bool_ : public object {
