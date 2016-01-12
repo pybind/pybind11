@@ -24,8 +24,8 @@ endif()
 string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
-find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED)
-find_package(PythonInterp ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED)
+find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
+find_package(PythonInterp ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 include(CheckCXXCompilerFlag)
 
