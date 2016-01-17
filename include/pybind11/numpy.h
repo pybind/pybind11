@@ -150,6 +150,10 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE);
 
 NAMESPACE_BEGIN(detail)
 
+template <typename T> struct handle_type_name<array_t<T>> {
+    static PYBIND11_DESCR name() { return _("array[") + type_caster<T>::name() + _("]"); }
+};
+
 template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {
     typename std::remove_reference<Func>::type f;
