@@ -225,8 +225,8 @@ struct argument_entry {
 /// Internal data struture used to track registered instances and types
 struct internals {
     std::unordered_map<const void *, void*> registered_types_cpp; // std::type_info* -> type_info
-    std::unordered_map<const void *, void*> registered_types_py;  // PyTypeObject* -> type_info 
-    std::unordered_map<const void *, void*> registered_instances; // void * -> PyObject* 
+    std::unordered_map<const void *, void*> registered_types_py;  // PyTypeObject* -> type_info
+    std::unordered_map<const void *, void*> registered_instances; // void * -> PyObject*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
 };
 
@@ -270,5 +270,8 @@ struct index_error       : public std::runtime_error { public: index_error(const
 struct error_already_set : public std::runtime_error { public: error_already_set() : std::runtime_error(detail::error_string())  {} };
 /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 struct cast_error        : public std::runtime_error { public: cast_error(const std::string &w = "") : std::runtime_error(w)     {} };
+
+PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
+PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
 
 NAMESPACE_END(pybind11)

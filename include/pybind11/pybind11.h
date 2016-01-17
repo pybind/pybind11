@@ -24,7 +24,6 @@
 #endif
 
 #include "cast.h"
-#include <iostream>
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -196,9 +195,9 @@ protected:
                 a.value, return_value_policy::automatic, nullptr);
 
         if (obj == nullptr)
-            throw std::runtime_error("arg(): could not convert default keyword "
-                                     "argument into a Python object (type not "
-                                     "registered yet?)");
+            pybind11_fail("arg(): could not convert default keyword "
+                          "argument into a Python object (type not "
+                          "registered yet?)");
 
         entry->args.emplace_back(a.name, a.descr, obj);
     }
@@ -490,7 +489,7 @@ protected:
             } else if (c == '%') {
                 const std::type_info *t = types[type_index++];
                 if (!t)
-                    throw std::runtime_error("Internal error while parsing type signature (1)");
+                    pybind11_fail("Internal error while parsing type signature (1)");
                 auto it = registered_types.find(t);
                 if (it != registered_types.end()) {
                     signature += ((const detail::type_info *) it->second)->type->tp_name;
@@ -504,7 +503,7 @@ protected:
             }
         }
         if (type_depth != 0 || types[type_index] != nullptr)
-            throw std::runtime_error("Internal error while parsing type signature (2)");
+            pybind11_fail("Internal error while parsing type signature (2)");
 
         #if !defined(PYBIND11_CPP14)
             delete[] types;
@@ -519,7 +518,7 @@ protected:
 #endif
 
         if (!m_entry->args.empty() && (int) m_entry->args.size() != args)
-            throw std::runtime_error(
+            pybind11_fail(
                 "cpp_function(): function \"" + std::string(m_entry->name) + "\" takes " +
                 std::to_string(args) + " arguments, but " + std::to_string(m_entry->args.size()) +
                 " pybind11::arg entries were specified!");
@@ -555,7 +554,7 @@ protected:
             });
             m_ptr = PyCFunction_New(m_entry->def, entry_capsule.ptr());
             if (!m_ptr)
-                throw std::runtime_error("cpp_function::cpp_function(): Could not allocate function object");
+                pybind11_fail("cpp_function::cpp_function(): Could not allocate function object");
         } else {
             /* Append at the end of the overload chain */
             m_ptr = m_entry->sibling;
@@ -597,7 +596,7 @@ protected:
             m_ptr = PyMethod_New(m_ptr, nullptr, entry->class_);
 #endif
             if (!m_ptr)
-                throw std::runtime_error("cpp_function::cpp_function(): Could not allocate instance method object");
+                pybind11_fail("cpp_function::cpp_function(): Could not allocate instance method object");
             Py_DECREF(func);
         }
     }
@@ -621,7 +620,7 @@ public:
         m_ptr = Py_InitModule3(name, nullptr, doc);
 #endif
         if (m_ptr == nullptr)
-            throw std::runtime_error("Internal error in module::module()");
+            pybind11_fail("Internal error in module::module()");
         inc_ref();
     }
 
@@ -647,7 +646,7 @@ public:
     static module import(const char *name) {
         PyObject *obj = PyImport_ImportModule(name);
         if (!obj)
-            throw std::runtime_error("Module \"" + std::string(name) + "\" not found!");
+            pybind11_fail("Module \"" + std::string(name) + "\" not found!");
         return module(obj, false);
     }
 };
@@ -668,7 +667,7 @@ public:
         auto type = (PyHeapTypeObject*) type_holder.ptr();
 
         if (!type_holder || !name)
-            throw std::runtime_error("generic_type: unable to create type object!");
+            pybind11_fail("generic_type: unable to create type object!");
 
         /* Register supplemental type information in C++ dict */
         auto &internals = get_internals();
@@ -732,7 +731,7 @@ public:
         }
 
         if (PyType_Ready(&type->ht_type) < 0)
-            throw std::runtime_error("generic_type: PyType_Ready failed!");
+            pybind11_fail("generic_type: PyType_Ready failed!");
 
         m_ptr = type_holder.ptr();
 
@@ -756,7 +755,7 @@ protected:
             object type_holder(PyType_Type.tp_alloc(&PyType_Type, 0), false);
             object name(PYBIND11_FROM_STRING(name_.c_str()), false);
             if (!type_holder || !name)
-                throw std::runtime_error("generic_type::metaclass(): unable to create type object!");
+                pybind11_fail("generic_type::metaclass(): unable to create type object!");
 
             auto type = (PyHeapTypeObject*) type_holder.ptr();
             type->ht_name = name.release();
@@ -767,7 +766,7 @@ protected:
                                       ~Py_TPFLAGS_HAVE_GC;
 
             if (PyType_Ready(&type->ht_type) < 0)
-                throw std::runtime_error("generic_type::metaclass(): PyType_Ready failed!");
+                pybind11_fail("generic_type::metaclass(): PyType_Ready failed!");
 
             ob_type = (PyTypeObject *) type_holder.release();
         }
@@ -798,7 +797,7 @@ protected:
                 auto &registered_instances = detail::get_internals().registered_instances;
                 auto it = registered_instances.find(self->value);
                 if (it == registered_instances.end())
-                    throw std::runtime_error("generic_type::dealloc(): Tried to deallocate unregistered instance!");
+                    pybind11_fail("generic_type::dealloc(): Tried to deallocate unregistered instance!");
                 registered_instances.erase(it);
             }
             Py_XDECREF(self->parent);
@@ -1096,14 +1095,12 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, PyObject *
     handle patient(Patient > 0 ? PyTuple_GetItem(arg, Patient - 1) : ret);
 
     if (!nurse || !patient)
-        throw std::runtime_error("Could not activate keep_alive!");
+        pybind11_fail("Could not activate keep_alive!");
 
     cpp_function disable_lifesupport(
         [patient](handle weakref) { patient.dec_ref(); weakref.dec_ref(); });
 
     weakref wr(nurse, disable_lifesupport);
-    if (!wr)
-        throw std::runtime_error("Could not allocate weak reference!");
 
     patient.inc_ref(); /* reference patient and leak the weak reference */
     (void) wr.release();
@@ -1138,7 +1135,7 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
     auto & registered_types = detail::get_internals().registered_types_cpp;
     auto it = registered_types.find(&typeid(OutputType));
     if (it == registered_types.end())
-        throw std::runtime_error("implicitly_convertible: Unable to find type " + type_id<OutputType>());
+        pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
     ((detail::type_info *) it->second)->implicit_conversions.push_back(implicit_caster);
 }
 
@@ -1196,7 +1193,7 @@ inline function get_overload(const void *this_ptr, const char *name)  {
 
 #define PYBIND11_OVERLOAD_PURE(ret_type, class_name, name, ...) \
     PYBIND11_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
-    throw std::runtime_error("Tried to call pure virtual function \"" #name "\"");
+    pybind11::pybind11_fail("Tried to call pure virtual function \"" #name "\"");
 
 NAMESPACE_END(pybind11)
 
