@@ -39,9 +39,12 @@ struct arg {
 
 /// Annotation for keyword arguments with default values
 template <typename T> struct arg_t : public arg {
-    arg_t(const char *name, const T &value) : arg(name), value(value) { }
+    arg_t(const char *name, const T &value, const char *value_str = nullptr)
+        : arg(name), value(value), value_str(value_str) {}
     T value;
+    const char *value_str;
 };
+
 template <typename T> arg_t<T> arg::operator=(const T &value) { return arg_t<T>(name, value); }
 
 /// Annotation for methods
@@ -59,21 +62,36 @@ struct sibling { PyObject *value; sibling(handle value) : value(value.ptr()) { }
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
 private:
-    /// Chained list of function entries for overloading
+    /// Linked list of function overloads
     struct function_entry {
-        const char *name = nullptr;
-        PyObject * (*impl) (function_entry *, PyObject *, PyObject *, PyObject *) = nullptr;
-        PyMethodDef *def = nullptr;
+        /// Function name and user-specified documentation string
+        const char *name = nullptr, *doc = nullptr;
+        /// List of registered keyword arguments
+        std::list<detail::argument_entry> args; 
+        /// Pointer to lambda function which converts arguments and performs the call
+        PyObject * (*impl) (function_entry *, PyObject *, PyObject *) = nullptr;
+        /// Storage for the wrapped function pointer and captured data, if any
         void *data = nullptr;
+        /// Pointer to custom destructor for 'data' (if needed)
         void (*free) (void *ptr) = nullptr;
-        bool is_constructor = false, is_method = false;
-        short keywords = 0;
+        /// Return value policy associated with this function
         return_value_policy policy = return_value_policy::automatic;
-        std::string signature;
+        /// True if name == '__init__'
+        bool is_constructor = false;
+        /// Python method object
+        PyMethodDef *def = nullptr;
+        /// Pointer to class (if this is method)
         PyObject *class_ = nullptr;
+        /// Pointer to first registered function in overload chain
         PyObject *sibling = nullptr;
-        const char *doc = nullptr;
+        /// Pointer to next overload
         function_entry *next = nullptr;
+
+        ~function_entry() {
+            delete def;
+            if (free)
+                free(data);
+        }
     };
 
     function_entry *m_entry;
@@ -87,88 +105,42 @@ private:
     template <typename... T> using arg_value_caster =
         detail::type_caster<typename std::tuple<T...>>;
 
-    template <typename... T> static void process_extras(const std::tuple<T...> &args,
-            function_entry *entry, const char **kw, const char **def) {
-        process_extras(args, entry, kw, def, typename detail::make_index_sequence<sizeof...(T)>::type());
+    template <typename... T> static void process_extras(const std::tuple<T...> &args, function_entry *entry) {
+        process_extras(args, entry, typename detail::make_index_sequence<sizeof...(T)>::type());
     }
 
     template <typename... T, size_t ... Index> static void process_extras(const std::tuple<T...> &args,
-            function_entry *entry, const char **kw, const char **def, detail::index_sequence<Index...>) {
-        int unused[] = { 0, (process_extra(std::get<Index>(args), entry, kw, def), 0)... };
+            function_entry *entry, detail::index_sequence<Index...>) {
+        int unused[] = { 0, (process_extra(std::get<Index>(args), entry), 0)... };
         (void) unused;
     }
 
-    template <typename... T> static int process_extras(const std::tuple<T...> &args,
-            PyObject *pyArgs, PyObject *kwargs, bool is_method) {
-        return process_extras(args, pyArgs, kwargs, is_method, typename detail::make_index_sequence<sizeof...(T)>::type());
-    }
-
-    template <typename... T, size_t... Index> static int process_extras(const std::tuple<T...> &args,
-            PyObject *pyArgs, PyObject *kwargs, bool is_method, detail::index_sequence<Index...>) {
-        int index = is_method ? 1 : 0, kwarg_refs = 0;
-        int unused[] = { 0, (process_extra(std::get<Index>(args), index, kwarg_refs, pyArgs, kwargs), 0)... };
-        (void) unused; (void) index;
-        return kwarg_refs;
-    }
-
-    static void process_extra(const char *doc, function_entry *entry, const char **, const char **) { entry->doc = doc; }
-    static void process_extra(const pybind11::doc &d, function_entry *entry, const char **, const char **) { entry->doc = d.value; }
-    static void process_extra(const pybind11::name &n, function_entry *entry, const char **, const char **) { entry->name = n.value; }
-    static void process_extra(const pybind11::arg &a, function_entry *entry, const char **kw, const char **) {
-        if (entry->is_method && entry->keywords == 0)
-            kw[entry->keywords++] = "self";
-        kw[entry->keywords++] = a.name;
+    static void process_extra(const char *doc, function_entry *entry) { entry->doc = doc; }
+    static void process_extra(const pybind11::doc &d, function_entry *entry) { entry->doc = d.value; }
+    static void process_extra(const pybind11::name &n, function_entry *entry) { entry->name = n.value; }
+    static void process_extra(const pybind11::return_value_policy p, function_entry *entry) { entry->policy = p; }
+    static void process_extra(const pybind11::sibling s, function_entry *entry) { entry->sibling = s.value; }
+    static void process_extra(const pybind11::is_method &m, function_entry *entry) { entry->class_ = m.class_; }
+    static void process_extra(const pybind11::arg &a, function_entry *entry) {
+        if (entry->class_ && entry->args.empty())
+            entry->args.emplace_back(strdup("self"), nullptr, nullptr);
+        entry->args.emplace_back(strdup(a.name), nullptr, nullptr);
     }
 
     template <typename T>
-    static void process_extra(const pybind11::arg_t<T> &a, function_entry *entry, const char **kw, const char **def) {
-        if (entry->is_method && entry->keywords == 0)
-            kw[entry->keywords++] = "self";
-        kw[entry->keywords] = a.name;
-        def[entry->keywords++] = strdup(detail::to_string(a.value).c_str());
-    }
+    static void process_extra(const pybind11::arg_t<T> &a, function_entry *entry) {
+        if (entry->class_ && entry->args.empty())
+            entry->args.emplace_back(strdup("self"), nullptr, nullptr);
 
-    static void process_extra(const pybind11::is_method &m, function_entry *entry, const char **, const char **) {
-        entry->is_method = true;
-        entry->class_ = m.class_;
-    }
-    static void process_extra(const pybind11::return_value_policy p, function_entry *entry, const char **, const char **) { entry->policy = p; }
-    static void process_extra(pybind11::sibling s, function_entry *entry, const char **, const char **) { entry->sibling = s.value; }
-
-    template <typename T> static void process_extra(T, int &, int&, PyObject *, PyObject *) { }
-    static void process_extra(const pybind11::arg &a, int &index, int &kwarg_refs, PyObject *args, PyObject *kwargs) {
-        if (kwargs) {
-            if (PyTuple_GET_ITEM(args, index) != nullptr) {
-                index++;
-                return;
-            }
-            PyObject *value = PyDict_GetItemString(kwargs, a.name);
-            if (value) {
-                Py_INCREF(value);
-                PyTuple_SetItem(args, index, value);
-                kwarg_refs++;
-            }
-        }
-        index++;
-    }
-    template <typename T>
-    static void process_extra(const pybind11::arg_t<T> &a, int &index, int &kwarg_refs, PyObject *args, PyObject *kwargs) {
-        if (PyTuple_GET_ITEM(args, index) != nullptr) {
-            index++;
-            return;
-        }
-        PyObject *value = nullptr;
-        if (kwargs)
-            value = PyDict_GetItemString(kwargs, a.name);
-        if (value) {
-            kwarg_refs++;
-            Py_INCREF(value);
-        } else {
-            value = detail::type_caster<typename detail::decay<T>::type>::cast(
+        PyObject *obj = detail::type_caster<typename detail::decay<T>::type>::cast(
                 a.value, return_value_policy::automatic, nullptr);
-        }
-        PyTuple_SetItem(args, index, value);
-        index++;
+
+        entry->args.emplace_back(
+            strdup(a.name),
+            strdup(a.value_str != nullptr ? a.value_str : 
+                (const char *) ((object) handle(obj).attr("__repr__")).call().str()),
+            obj
+        );
     }
 public:
     cpp_function() { }
@@ -176,31 +148,22 @@ public:
     /// Vanilla function pointers
     template <typename Return, typename... Arg, typename... Extra>
     cpp_function(Return (*f)(Arg...), Extra&&... extra) {
-        struct capture {
-            Return (*f)(Arg...);
-            std::tuple<Extra...> extras;
-        };
-
         m_entry = new function_entry();
-        m_entry->data = new capture { f, std::tuple<Extra...>(std::forward<Extra>(extra)...) };
+        m_entry->data = (void *) f;
 
         typedef arg_value_caster<Arg...> cast_in;
         typedef return_value_caster<Return> cast_out;
 
-        m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject * {
-            capture *data = (capture *) entry->data;
-            int kwarg_refs = process_extras(data->extras, pyArgs, kwargs, entry->is_method);
+        m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *parent) -> PyObject * {
             cast_in args;
-            if (kwarg_refs != (kwargs ? PyDict_Size(kwargs) : 0) || !args.load(pyArgs, true))
+            if (!args.load(pyArgs, true))
                 return (PyObject *) 1; /* Special return code: try next overload */
-            return cast_out::cast(args.template call<Return>(data->f), entry->policy, parent);
+            return cast_out::cast(args.template call<Return>((Return (*)(Arg...)) entry->data), entry->policy, parent);
         };
 
-        const int N = sizeof...(Extra) > sizeof...(Arg) ? sizeof...(Extra) : sizeof...(Arg);
-        std::array<const char *, N> kw{}, def{};
-        process_extras(((capture *) m_entry->data)->extras, m_entry, kw.data(), def.data());
+        process_extras(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
 
-        detail::descr d = cast_in::name(kw.data(), def.data());
+        detail::descr d = cast_in::name(m_entry->args);
         d += " -> ";
         d += std::move(cast_out::name());
 
@@ -238,32 +201,29 @@ private:
     void initialize(Func &&f, Return (*)(Arg...), Extra&&... extra) {
         struct capture {
             typename std::remove_reference<Func>::type f;
-            std::tuple<Extra...> extras;
         };
 
         m_entry = new function_entry();
-        m_entry->data = new capture { std::forward<Func>(f), std::tuple<Extra...>(std::forward<Extra>(extra)...) };
+        m_entry->data = new capture { std::forward<Func>(f) };
 
         if (!std::is_trivially_destructible<Func>::value)
             m_entry->free = [](void *ptr) { delete (capture *) ptr; };
+        else
+            m_entry->free = operator delete;
 
         typedef arg_value_caster<Arg...> cast_in;
         typedef return_value_caster<Return> cast_out;
 
-        m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *kwargs, PyObject *parent) -> PyObject *{
-            capture *data = (capture *) entry->data;
-            int kwarg_refs = process_extras(data->extras, pyArgs, kwargs, entry->is_method);
+        m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *parent) -> PyObject *{
             cast_in args;
-            if (kwarg_refs != (kwargs ? PyDict_Size(kwargs) : 0) || !args.load(pyArgs, true))
+            if (!args.load(pyArgs, true))
                 return (PyObject *) 1; /* Special return code: try next overload */
-            return cast_out::cast(args.template call<Return>(data->f), entry->policy, parent);
+            return cast_out::cast(args.template call<Return>(((capture *) entry->data)->f), entry->policy, parent);
         };
 
-        const int N = sizeof...(Extra) > sizeof...(Arg) ? sizeof...(Extra) : sizeof...(Arg);
-        std::array<const char *, N> kw{}, def{};
-        process_extras(((capture *) m_entry->data)->extras, m_entry, kw.data(), def.data());
+        process_extras(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
 
-        detail::descr d = cast_in::name(kw.data(), def.data());
+        detail::descr d = cast_in::name(m_entry->args);
         d += " -> ";
         d += std::move(cast_out::name());
 
@@ -271,25 +231,48 @@ private:
     }
 
     static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject *kwargs) {
-        function_entry *overloads = (function_entry *) PyCapsule_GetPointer(self, nullptr);
-        int nargs = (int) PyTuple_Size(args);
-        PyObject *result = nullptr;
-        PyObject *parent = nargs > 0 ? PyTuple_GetItem(args, 0) : nullptr;
-        function_entry *it = overloads;
+        function_entry *overloads = (function_entry *) PyCapsule_GetPointer(self, nullptr),
+                       *it = overloads;
+        int nargs = (int) PyTuple_Size(args),
+            nkwargs = kwargs ? (int) PyDict_Size(kwargs) : 0;
+        PyObject *parent = nargs > 0 ? PyTuple_GetItem(args, 0) : nullptr,
+                 *result = (PyObject *) 1;
         try {
             for (; it != nullptr; it = it->next) {
                 PyObject *args_ = args;
+                int kwargs_consumed = 0;
 
-                if (it->keywords != 0 && nargs < it->keywords) {
-                    args_ = PyTuple_New(it->keywords);
-                    for (int i=0; i<nargs; ++i) {
+                if (nargs < (int) it->args.size()) {
+                    args_ = PyTuple_New(it->args.size());
+                    for (int i = 0; i < nargs; ++i) {
                         PyObject *item = PyTuple_GET_ITEM(args, i);
                         Py_INCREF(item);
                         PyTuple_SET_ITEM(args_, i, item);
                     }
+                    int arg_ctr = 0;
+                    for (auto const &it : it->args) {
+                        int index = arg_ctr++;
+                        if (PyTuple_GET_ITEM(args_, index))
+                            continue;
+                        PyObject *value = nullptr;
+                        if (kwargs)
+                            value = PyDict_GetItemString(kwargs, it.name);
+                        if (value)
+                            kwargs_consumed++;
+                        else if (it.value)
+                            value = it.value;
+                        if (value) {
+                            Py_INCREF(value);
+                            PyTuple_SET_ITEM(args_, index, value);
+                        } else {
+                            kwargs_consumed = -1; /* definite failure */
+                            break;
+                        }
+                    }
                 }
 
-                result = it->impl(it, args_, kwargs, parent);
+                if (kwargs_consumed == nkwargs)
+                    result = it->impl(it, args_, parent);
 
                 if (args_ != args) {
                     Py_DECREF(args_);
@@ -318,7 +301,7 @@ private:
             int ctr = 0;
             for (function_entry *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
-                msg += it2->signature;
+                //msg += it2->signature; XXX
                 msg += "\n";
             }
             PyErr_SetString(PyExc_TypeError, msg.c_str());
@@ -326,7 +309,7 @@ private:
         } else if (result == nullptr) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
-            msg += it->signature;
+            //msg += it->signature;
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         } else {
@@ -343,18 +326,13 @@ private:
 
     static void destruct(function_entry *entry) {
         while (entry) {
-            delete entry->def;
-            if (entry->free)
-                entry->free(entry->data);
-            else
-                operator delete(entry->data);
             function_entry *next = entry->next;
             delete entry;
             entry = next;
         }
     }
 
-    void initialize(const detail::descr &descr, int args) {
+    void initialize(const detail::descr &, int args) {
         if (m_entry->name == nullptr)
             m_entry->name = "";
 
@@ -363,14 +341,14 @@ private:
             m_entry->name = "next";
 #endif
 
-        if (m_entry->keywords != 0 && m_entry->keywords != args)
+        if (!m_entry->args.empty() && (int) m_entry->args.size() != args)
             throw std::runtime_error(
                 "cpp_function(): function \"" + std::string(m_entry->name) + "\" takes " +
-                std::to_string(args) + " arguments, but " + std::to_string(m_entry->keywords) +
+                std::to_string(args) + " arguments, but " + std::to_string(m_entry->args.size()) +
                 " pybind11::arg entries were specified!");
 
         m_entry->is_constructor = !strcmp(m_entry->name, "__init__");
-        m_entry->signature = descr.str();
+        //m_entry->signature = descr.str(); // XXX
 
 #if PY_MAJOR_VERSION < 3
         if (m_entry->sibling && PyMethod_Check(m_entry->sibling))
@@ -407,10 +385,10 @@ private:
         std::string signatures;
         int index = 0;
         function_entry *it = entry;
-        while (it) { /* Create pydoc it */
+        while (it) { /* Create pydoc entry */
             if (s_entry)
                 signatures += std::to_string(++index) + ". ";
-            signatures += "Signature : " + std::string(it->signature) + "\n";
+            //signatures += "Signature : " + std::string(it->signature) + "\n"; XXX
             if (it->doc && strlen(it->doc) > 0)
                 signatures += "\n" + std::string(it->doc) + "\n";
             if (it->next)
@@ -421,7 +399,7 @@ private:
         if (func->m_ml->ml_doc)
             std::free((char *) func->m_ml->ml_doc);
         func->m_ml->ml_doc = strdup(signatures.c_str());
-        if (entry->is_method) {
+        if (entry->class_) {
 #if PY_MAJOR_VERSION >= 3
             m_ptr = PyInstanceMethod_New(m_ptr);
 #else
@@ -895,7 +873,7 @@ NAMESPACE_END(detail)
 template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); };
 
 template <typename InputType, typename OutputType> void implicitly_convertible() {
-    auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject *{
+    auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
         if (!detail::type_caster<InputType>().load(obj, false))
             return nullptr;
         tuple args(1);

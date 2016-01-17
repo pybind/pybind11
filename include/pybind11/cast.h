@@ -13,6 +13,7 @@
 #include "pytypes.h"
 #include "typeid.h"
 #include <array>
+#include <list>
 #include <limits>
 
 NAMESPACE_BEGIN(pybind11)
@@ -440,23 +441,28 @@ public:
         return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }
 
-    static descr name(const char **keywords = nullptr, const char **values = nullptr) {
-        std::array<class descr, size> names {{
+    static descr name(const std::list<argument_entry> &args = std::list<argument_entry>()) {
+        std::array<class descr, size> type_names {{
             type_caster<typename decay<Tuple>::type>::name()...
         }};
+        auto it = args.begin();
         class descr result("(");
         for (int i=0; i<size; ++i) {
-            if (keywords && keywords[i]) {
-                result += keywords[i];
+            if (it != args.end()) {
+                result += it->name;
                 result += " : ";
             }
-            result += std::move(names[i]);
-            if (values && values[i]) {
-                result += " = ";
-                result += values[i];
+            result += std::move(type_names[i]);
+            if (it != args.end()) {
+                if (it->descr) {
+                    result += " = ";
+                    result += it->descr;
+                }
+                ++it;
             }
             if (i+1 < size)
                 result += ", ";
+            ++it;
         }
         result += ")";
         return result;
