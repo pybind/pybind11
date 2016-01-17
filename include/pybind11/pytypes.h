@@ -248,13 +248,13 @@ public:
     }
 
     operator std::string() const {
-#if PY_MAJOR_VERSION >= 3
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
         return PyUnicode_AsUTF8(m_ptr);
 #else
         object temp(PyUnicode_AsUTF8String(m_ptr), false);
         if (temp.ptr() == nullptr)
             pybind11_fail("Unable to extract string contents!");
-        return PyString_AsString(temp.ptr());
+        return PYBIND11_BYTES_AS_STRING(temp.ptr());
 #endif
     }
 };
