@@ -30,10 +30,11 @@ public:
     handle(const handle &other) : m_ptr(other.m_ptr) { }
     handle(PyObject *ptr) : m_ptr(ptr) { }
     PyObject *ptr() const { return m_ptr; }
-    void inc_ref() const { Py_XINCREF(m_ptr); }
-    void dec_ref() const { Py_XDECREF(m_ptr); }
+    PyObject *&ptr() { return m_ptr; }
+    const handle& inc_ref() const { Py_XINCREF(m_ptr); return *this; }
+    const handle& dec_ref() const { Py_XDECREF(m_ptr); return *this; }
     int ref_count() const { return (int) Py_REFCNT(m_ptr); }
-    handle get_type() const { return (PyObject *) Py_TYPE(m_ptr); }
+    handle get_type() const { return handle((PyObject *) Py_TYPE(m_ptr)); }
     inline iterator begin() const;
     inline iterator end() const;
     inline detail::accessor operator[](handle key) const;
@@ -44,6 +45,8 @@ public:
     template <typename T> T cast() const;
     template <typename ... Args> object call(Args&&... args_) const;
     operator bool() const { return m_ptr != nullptr; }
+    bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
+    bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
     bool check() const { return m_ptr != nullptr; }
 protected:
     PyObject *m_ptr;
@@ -59,25 +62,25 @@ public:
     object(object &&other) { m_ptr = other.m_ptr; other.m_ptr = nullptr; }
     ~object() { dec_ref(); }
 
-    PyObject * release() {
+    handle release() {
       PyObject *tmp = m_ptr;
       m_ptr = nullptr;
-      return tmp;
+      return handle(tmp);
     }
 
     object& operator=(object &other) {
-        Py_XINCREF(other.m_ptr);
-        Py_XDECREF(m_ptr);
+        other.inc_ref();
+        dec_ref();
         m_ptr = other.m_ptr;
         return *this;
     }
 
     object& operator=(object &&other) {
         if (this != &other) {
-            PyObject *temp = m_ptr;
+            handle temp(m_ptr);
             m_ptr = other.m_ptr;
             other.m_ptr = nullptr;
-            Py_XDECREF(temp);
+            temp.dec_ref();
         }
         return *this;
     }
@@ -85,7 +88,7 @@ public:
 
 class iterator : public object {
 public:
-    iterator(PyObject *obj, bool borrowed = false) : object(obj, borrowed) { ++*this; }
+    iterator(handle obj, bool borrowed = false) : object(obj, borrowed) { ++*this; }
     iterator& operator++() {
         if (ptr())
             value = object(PyIter_Next(m_ptr), false);
@@ -100,108 +103,106 @@ private:
 };
 
 NAMESPACE_BEGIN(detail)
-inline PyObject *get_function(PyObject *value) {
-    if (value == nullptr)
-        return nullptr;
+inline handle get_function(handle value) {
+    if (value) {
 #if PY_MAJOR_VERSION >= 3
-    if (PyInstanceMethod_Check(value))
-        value = PyInstanceMethod_GET_FUNCTION(value);
+        if (PyInstanceMethod_Check(value.ptr()))
+            value = PyInstanceMethod_GET_FUNCTION(value.ptr());
 #endif
-    if (PyMethod_Check(value))
-        value = PyMethod_GET_FUNCTION(value);
+        if (PyMethod_Check(value.ptr()))
+            value = PyMethod_GET_FUNCTION(value.ptr());
+    }
     return value;
 }
 
 class accessor {
 public:
-    accessor(PyObject *obj, PyObject *key, bool attr)
-        : obj(obj), key(key), attr(attr) { Py_INCREF(key);  }
-    accessor(PyObject *obj, const char *key, bool attr)
-        : obj(obj), key(PyUnicode_FromString(key)), attr(attr) { }
-    accessor(const accessor &a) : obj(a.obj), key(a.key), attr(a.attr)
-        { Py_INCREF(key); }
-    ~accessor() { Py_DECREF(key); }
+    accessor(handle obj, handle key, bool attr)
+        : obj(obj), key(key, true), attr(attr) { }
+    accessor(handle obj, const char *key, bool attr)
+        : obj(obj), key(PyUnicode_FromString(key), false), attr(attr) { }
+    accessor(const accessor &a) : obj(a.obj), key(a.key), attr(a.attr) { }
 
     void operator=(accessor o) { operator=(object(o)); }
 
-    void operator=(const handle &h) {
+    void operator=(const handle &value) {
         if (attr) {
-            if (PyObject_SetAttr(obj, key, (PyObject *) h.ptr()) < 0)
+            if (PyObject_SetAttr(obj.ptr(), key.ptr(), value.ptr()) == -1)
                 pybind11_fail("Unable to set object attribute");
         } else {
-            if (PyObject_SetItem(obj, key, (PyObject *) h.ptr()) < 0)
+            if (PyObject_SetItem(obj.ptr(), key.ptr(), value.ptr()) == -1)
                 pybind11_fail("Unable to set object item");
         }
     }
 
     operator object() const {
-        object result(attr ? PyObject_GetAttr(obj, key)
-                           : PyObject_GetItem(obj, key), false);
-        if (!result) PyErr_Clear();
+        object result(attr ? PyObject_GetAttr(obj.ptr(), key.ptr())
+                           : PyObject_GetItem(obj.ptr(), key.ptr()), false);
+        if (!result) {PyErr_Clear(); }
         return result;
     }
 
     operator bool() const {
         if (attr) {
-            return (bool) PyObject_HasAttr(obj, key);
+            return (bool) PyObject_HasAttr(obj.ptr(), key.ptr());
         } else {
-            object result(PyObject_GetItem(obj, key), false);
+            object result(PyObject_GetItem(obj.ptr(), key.ptr()), false);
             if (!result) PyErr_Clear();
             return (bool) result;
         }
     };
 
 private:
-    PyObject *obj;
-    PyObject *key;
+    handle obj;
+    object key;
     bool attr;
 };
 
 struct list_accessor {
 public:
-    list_accessor(PyObject *list, size_t index) : list(list), index(index) { }
+    list_accessor(handle list, size_t index) : list(list), index(index) { }
     void operator=(list_accessor o) { return operator=(object(o)); }
     void operator=(const handle &o) {
-        o.inc_ref(); // PyList_SetItem steals a reference
-        if (PyList_SetItem(list, (ssize_t) index, (PyObject *) o.ptr()) < 0)
+        // PyList_SetItem steals a reference to 'o'
+        if (PyList_SetItem(list.ptr(), (ssize_t) index, o.inc_ref().ptr()) < 0)
             pybind11_fail("Unable to assign value in Python list!");
     }
     operator object() const {
-        PyObject *result = PyList_GetItem(list, (ssize_t) index);
+        PyObject *result = PyList_GetItem(list.ptr(), (ssize_t) index);
         if (!result)
             pybind11_fail("Unable to retrieve value from Python list!");
         return object(result, true);
     }
 private:
-    PyObject *list;
+    handle list;
     size_t index;
 };
 
 struct tuple_accessor {
 public:
-    tuple_accessor(PyObject *tuple, size_t index) : tuple(tuple), index(index) { }
+    tuple_accessor(handle tuple, size_t index) : tuple(tuple), index(index) { }
     void operator=(tuple_accessor o) { return operator=(object(o)); }
     void operator=(const handle &o) {
-        o.inc_ref(); // PyTuple_SetItem steals a reference
-        if (PyTuple_SetItem(tuple, (ssize_t) index, (PyObject *) o.ptr()) < 0)
+        // PyTuple_SetItem steals a referenceto 'o'
+        if (PyTuple_SetItem(tuple.ptr(), (ssize_t) index, o.inc_ref().ptr()) < 0)
             pybind11_fail("Unable to assign value in Python tuple!");
     }
     operator object() const {
-        PyObject *result = PyTuple_GetItem(tuple, (ssize_t) index);
+        PyObject *result = PyTuple_GetItem(tuple.ptr(), (ssize_t) index);
         if (!result)
             pybind11_fail("Unable to retrieve value from Python tuple!");
         return object(result, true);
     }
 private:
-    PyObject *tuple;
+    handle tuple;
     size_t index;
 };
 
 struct dict_iterator {
 public:
-    dict_iterator(PyObject *dict = nullptr, ssize_t pos = -1) : dict(dict), pos(pos) { }
+    dict_iterator(handle dict = handle(), ssize_t pos = -1) : dict(dict), pos(pos) { }
     dict_iterator& operator++() {
-        if (!PyDict_Next(dict, &pos, &key, &value))
+        if (!PyDict_Next(dict.ptr(), &pos, &key.ptr(), &value.ptr()))
             pos = -1;
         return *this;
     }
@@ -211,7 +212,7 @@ public:
     bool operator==(const dict_iterator &it) const { return it.pos == pos; }
     bool operator!=(const dict_iterator &it) const { return it.pos != pos; }
 private:
-    PyObject *dict, *key, *value;
+    handle dict, key, value;
     ssize_t pos = 0;
 };
 
@@ -410,8 +411,8 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
-    detail::list_accessor operator[](size_t index) const { return detail::list_accessor(ptr(), index); }
-    void append(const object &object) const { PyList_Append(m_ptr, (PyObject *) object.ptr()); }
+    detail::list_accessor operator[](size_t index) const { return detail::list_accessor(*this, index); }
+    void append(const object &object) const { PyList_Append(m_ptr, object.ptr()); }
 };
 
 class set : public object {
@@ -421,7 +422,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate set object!");
     }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
-    bool add(const object &object) const { return PySet_Add(m_ptr, (PyObject *) object.ptr()) == 0; }
+    bool add(const object &object) const { return PySet_Add(m_ptr, object.ptr()) == 0; }
     void clear() const { PySet_Clear(m_ptr); }
 };
 
@@ -429,8 +430,8 @@ class function : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(function, object, PyFunction_Check)
     bool is_cpp_function() const {
-        PyObject *ptr = detail::get_function(m_ptr);
-        return ptr != nullptr && PyCFunction_Check(ptr);
+        handle fun = detail::get_function(m_ptr);
+        return fun && PyCFunction_Check(fun.ptr());
     }
 };
 
@@ -448,57 +449,4 @@ public:
     }
 };
 
-NAMESPACE_BEGIN(detail)
-PYBIND11_NOINLINE inline internals &get_internals() {
-    static internals *internals_ptr = nullptr;
-    if (internals_ptr)
-        return *internals_ptr;
-    handle builtins(PyEval_GetBuiltins());
-    capsule caps(builtins["__pybind11__"]);
-    if (caps.check()) {
-        internals_ptr = caps;
-    } else {
-        internals_ptr = new internals();
-        builtins["__pybind11__"] = capsule(internals_ptr);
-    }
-    return *internals_ptr;
-}
-
-PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
-    auto const &type_dict = get_internals().registered_types_py;
-    do {
-        auto it = type_dict.find(type);
-        if (it != type_dict.end())
-            return (detail::type_info *) it->second;
-        type = type->tp_base;
-        if (type == nullptr)
-            pybind11_fail("pybind11::detail::get_type_info: unable to find type object!");
-    } while (true);
-}
-
-PYBIND11_NOINLINE inline std::string error_string() {
-    std::string errorString;
-    PyThreadState *tstate = PyThreadState_GET();
-    if (tstate == nullptr)
-        return "";
-
-    if (tstate->curexc_type) {
-        errorString += (std::string) handle(tstate->curexc_type).str();
-        errorString += ": ";
-    }
-    if (tstate->curexc_value)
-        errorString += (std::string) handle(tstate->curexc_value).str();
-
-    return errorString;
-}
-
-PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr) {
-    auto instances = get_internals().registered_instances;
-    auto it = instances.find(ptr);
-    if (it == instances.end())
-        return handle();
-    return handle((PyObject *) it->second);
-}
-
-NAMESPACE_END(detail)
 NAMESPACE_END(pybind11)

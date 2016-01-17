@@ -115,7 +115,7 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
       # Strip unnecessary sections of the binary on Linux/Mac OS
       if(APPLE)
         set_target_properties(example PROPERTIES MACOSX_RPATH ".")
-        set_target_properties(example PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -dead_strip")
+        set_target_properties(example PROPERTIES LINK_FLAGS "-undefined dynamic_lookup ")
         if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
           add_custom_command(TARGET example POST_BUILD COMMAND strip -u -r ${PROJECT_BINARY_DIR}/example.so)
         endif()

@@ -18,14 +18,13 @@ NAMESPACE_BEGIN(detail)
 template <typename Return, typename... Args> struct type_caster<std::function<Return(Args...)>> {
     typedef std::function<Return(Args...)> type;
 public:
-
-    bool load(PyObject *src_, bool) {
+    bool load(handle src_, bool) {
         src_ = detail::get_function(src_);
-        if (!src_ || !(PyFunction_Check(src_) || PyCFunction_Check(src_)))
+        if (!src_ || !(PyFunction_Check(src_.ptr()) || PyCFunction_Check(src_.ptr())))
             return false;
         object src(src_, true);
         value = [src](Args... args) -> Return {
-            object retval(pybind11::handle(src).call(std::move(args)...));
+            object retval(src.call(std::move(args)...));
             /* Visual studio 2015 parser issue: need parentheses around this expression */
             return (retval.template cast<Return>());
         };
@@ -33,10 +32,8 @@ public:
     }
 
     template <typename Func>
-    static PyObject *cast(Func &&f_, return_value_policy policy, PyObject *) {
-        cpp_function f(std::forward<Func>(f_), policy);
-        f.inc_ref();
-        return f.ptr();
+    static handle cast(Func &&f_, return_value_policy policy, handle /* parent */) {
+        return cpp_function(std::forward<Func>(f_), policy).release();
     }
 
     PYBIND11_TYPE_CASTER(type, _("function<") +

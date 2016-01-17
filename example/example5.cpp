@@ -29,6 +29,11 @@ public:
     void bark() const { std::cout << "Woof!" << std::endl; }
 };
 
+class Rabbit : public Pet {
+public:
+    Rabbit(const std::string &name) : Pet(name, "parrot") {}
+};
+
 void pet_print(const Pet &pet) {
     std::cout << pet.name() + " is a " + pet.species() << std::endl;
 }
@@ -62,7 +67,12 @@ void init_ex5(py::module &m) {
         .def("name", &Pet::name)
         .def("species", &Pet::species);
 
+    /* One way of declaring a subclass relationship: reference parent's class_ object */
     py::class_<Dog>(m, "Dog", pet_class)
+        .def(py::init<std::string>());
+
+    /* Another way of declaring a subclass relationship: reference parent's C++ type */
+    py::class_<Rabbit>(m, "Rabbit", py::base<Pet>())
         .def(py::init<std::string>());
 
     m.def("pet_print", pet_print);

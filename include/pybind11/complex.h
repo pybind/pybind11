@@ -20,8 +20,8 @@ PYBIND11_DECL_FMT(std::complex<double>, "Zd");
 NAMESPACE_BEGIN(detail)
 template <typename T> class type_caster<std::complex<T>> {
 public:
-    bool load(PyObject *src, bool) {
-        Py_complex result = PyComplex_AsCComplex(src);
+    bool load(handle src, bool) {
+        Py_complex result = PyComplex_AsCComplex(src.ptr());
         if (result.real == -1.0 && PyErr_Occurred()) {
             PyErr_Clear();
             return false;
@@ -30,7 +30,7 @@ public:
         return true;
     }
 
-    static PyObject *cast(const std::complex<T> &src, return_value_policy /* policy */, PyObject * /* parent */) {
+    static handle cast(const std::complex<T> &src, return_value_policy /* policy */, handle /* parent */) {
         return PyComplex_FromDoubles((double) src.real(), (double) src.imag());
     }
 

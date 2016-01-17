@@ -73,6 +73,7 @@
 #include <memory>
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
+#define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
 #define PYBIND11_BYTES_CHECK PyBytes_Check
 #define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
 #define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
@@ -89,6 +90,7 @@
 #define PYBIND11_PLUGIN_IMPL(name) \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 #else
+#define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyMethod_New(ptr, nullptr, class_)
 #define PYBIND11_BYTES_CHECK PyString_Check
 #define PYBIND11_BYTES_FROM_STRING PyString_FromString
 #define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyString_FromStringAndSize
@@ -200,32 +202,12 @@ template <typename type, typename holder_type = std::unique_ptr<type>> struct in
     holder_type holder;
 };
 
-/// Additional type information which does not fit into the PyTypeObject
-struct type_info {
-    PyTypeObject *type;
-    size_t type_size;
-    void (*init_holder)(PyObject *, const void *);
-    std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
-    buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
-    void *get_buffer_data = nullptr;
-};
-
 struct overload_hash {
     inline std::size_t operator()(const std::pair<const PyObject *, const char *>& v) const {
         size_t value = std::hash<const void *>()(v.first);
         value ^= std::hash<const void *>()(v.second)  + 0x9e3779b9 + (value<<6) + (value>>2);
         return value;
     }
-};
-
-/// Stores information about a keyword argument
-struct argument_entry {
-    const char *name;  ///< Argument name
-    const char *descr; ///< Human-readable version of the argument value
-    PyObject *value;   ///< Associated Python object
-
-    argument_entry(const char *name, const char *descr, PyObject *value)
-        : name(name), descr(descr), value(value) { }
 };
 
 /// Internal data struture used to track registered instances and types
