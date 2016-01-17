@@ -975,9 +975,9 @@ public:
     class_ &def_property(const char *name, const cpp_function &fget, const cpp_function &fset, const char *doc = nullptr) {
         object doc_obj = doc ? pybind11::str(doc) : (object) const_cast<cpp_function&>(fget).attr("__doc__");
         object property(
-            PyObject_CallFunction((PyObject *)&PyProperty_Type,
-                                  const_cast<char *>("OOOO"), fget.ptr() ? fget.ptr() : Py_None,
-                                  fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr()), false);
+            PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type,
+                                  fget.ptr() ? fget.ptr() : Py_None,
+                                  fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr), false);
         attr(name) = property;
         return *this;
     }
@@ -985,9 +985,9 @@ public:
     class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const char *doc = nullptr) {
         object doc_obj = doc ? pybind11::str(doc) : (object) const_cast<cpp_function&>(fget).attr("__doc__");
         object property(
-            PyObject_CallFunction((PyObject *)&PyProperty_Type,
-                                  const_cast<char *>("OOOs"), fget.ptr() ? fget.ptr() : Py_None,
-                                  fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr()), false);
+            PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type,
+                                  fget.ptr() ? fget.ptr() : Py_None,
+                                  fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr), false);
         metaclass().attr(name) = property;
         return *this;
     }
