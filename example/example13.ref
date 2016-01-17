@@ -1,0 +1,25 @@
+Allocating parent.
+Allocating child.
+Releasing child.
+<example.Parent object at 0x10eb726c0>
+Releasing parent.
+
+Allocating parent.
+Allocating child.
+Releasing child.
+<example.Parent object at 0x10eb726c0>
+Releasing parent.
+
+Allocating parent.
+Allocating child.
+<example.Parent object at 0x10eb726c0>
+Releasing parent.
+Releasing child.
+
+Allocating parent.
+Allocating child.
+<example.Parent object at 0x10eb726c0>
+Releasing parent.
+Releasing child.
+
+Terminating..
