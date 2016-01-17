@@ -15,6 +15,8 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
 
     # Add a CMake parameter for choosing a desired Python version
     set(EXAMPLE_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example library")
+    
+    include(CheckCXXCompilerFlag)
 
     # Set a default build configuration if none is specified. 'MinSizeRel' produces the smallest binaries
     if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
