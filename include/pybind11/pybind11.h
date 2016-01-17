@@ -337,7 +337,7 @@ private:
             if (a.descr)
                 a.descr = strdup(a.descr);
             else if (a.value)
-                a.descr = strdup(((object) handle(a.value).attr("__repr__")).call().str());
+                a.descr = strdup(((std::string) ((object) handle(a.value).attr("__repr__")).call().str()).c_str());
         }
         auto const &registered_types = detail::get_internals().registered_types;
 
@@ -367,7 +367,7 @@ private:
             } else if (c == '%') {
                 const std::type_info *t = types[type_index++];
                 if (!t) 
-                    throw std::runtime_error("Internal error while generating type signature (1)");
+                    throw std::runtime_error("Internal error while parsing type signature (1)");
                 auto it = registered_types.find(t);
                 if (it != registered_types.end()) {
                     signature += it->second.type->tp_name;
@@ -381,7 +381,7 @@ private:
             }
         }
         if (type_depth != 0 && types[type_index ] != nullptr)
-            throw std::runtime_error("Internal error while generating type signature (2)");
+            throw std::runtime_error("Internal error while parsing type signature (2)");
 
         #if !defined(PYBIND11_CPP14)
             delete[] types;
@@ -694,8 +694,8 @@ protected:
             view->format = const_cast<char *>(info->format.c_str());
         if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
             view->ndim = info->ndim;
-            view->strides = (Py_ssize_t *)&info->strides[0];
-            view->shape = (Py_ssize_t *) &info->shape[0];
+            view->strides = (ssize_t *) &info->strides[0];
+            view->shape = (ssize_t *) &info->shape[0];
         }
         Py_INCREF(view->obj);
         return 0;
@@ -903,7 +903,7 @@ public:
     void export_values() {
         PyObject *dict = ((PyTypeObject *) this->m_ptr)->tp_dict;
         PyObject *key, *value;
-        Py_ssize_t pos = 0;
+        ssize_t pos = 0;
         while (PyDict_Next(dict, &pos, &key, &value))
             if (PyObject_IsInstance(value, this->m_ptr))
                 m_parent.attr(key) = value;
@@ -983,9 +983,10 @@ inline function get_overload(const void *this_ptr, const char *name)  {
         cache.insert(key);
         return function();
     }
+
     PyFrameObject *frame = PyThreadState_Get()->frame;
     pybind11::str caller = pybind11::handle(frame->f_code->co_name).str();
-    if (strcmp((const char *) caller, name) == 0)
+    if ((std::string) caller == name)
         return function();
     return overload;
 }
