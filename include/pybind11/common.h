@@ -143,12 +143,13 @@ PYBIND11_DECL_FMT(float,   "f"); PYBIND11_DECL_FMT(double,   "d"); PYBIND11_DECL
 
 /// Information record describing a Python buffer object
 struct buffer_info {
-    void *ptr;
-    size_t itemsize, size;
-    std::string format; // for dense contents, this should be set to format_descriptor<T>::value
-    int ndim;
-    std::vector<size_t> shape;
-    std::vector<size_t> strides;
+    void *ptr;                   // Pointer to the underlying storage
+    size_t itemsize;             // Size of individual items in bytes
+    size_t size;                 // Total number of entries
+    std::string format;          // For homogeneous buffers, this should be set to format_descriptor<T>::value
+    int ndim;                    // Number of dimensions
+    std::vector<size_t> shape;   // Shape of the tensor (1 entry per dimension)
+    std::vector<size_t> strides; // Number of entries between adjacent entries (for each per dimension)
 
     buffer_info(void *ptr, size_t itemsize, const std::string &format, int ndim,
                 const std::vector<size_t> &shape, const std::vector<size_t> &strides)
