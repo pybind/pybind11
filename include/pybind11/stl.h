@@ -45,7 +45,7 @@ public:
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
         object list(PyList_New(src.size()), false);
         if (!list)
-          return nullptr;
+            return nullptr;
         size_t index = 0;
         for (auto const &value: src) {
             object value_ (value_conv::cast(value, policy, parent), false);
@@ -55,23 +55,23 @@ public:
         }
         return list.release();
     }
-    PYBIND11_TYPE_CASTER(type, detail::descr("list<") + value_conv::name() + detail::descr(">"));
+    PYBIND11_TYPE_CASTER(type, _("list<") + value_conv::name() + _(">"));
 };
 
-template <typename Value, typename Compare, typename Alloc> struct type_caster<std::set<Value, Compare, Alloc>> {
-    typedef std::set<Value, Compare, Alloc> type;
-    typedef type_caster<Value> value_conv;
+template <typename Key, typename Compare, typename Alloc> struct type_caster<std::set<Key, Compare, Alloc>> {
+    typedef std::set<Key, Compare, Alloc> type;
+    typedef type_caster<Key> key_conv;
 public:
     bool load(PyObject *src, bool convert) {
         pybind11::set s(src, true);
         if (!s.check())
             return false;
         value.clear();
-        value_conv conv;
+        key_conv conv;
         for (const object &o: s) {
             if (!conv.load((PyObject *) o.ptr(), convert))
                 return false;
-            value.insert((Value) conv);
+            value.insert((Key) conv);
         }
         return true;
     }
@@ -79,15 +79,15 @@ public:
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
         object set(PySet_New(nullptr), false);
         if (!set)
-          return nullptr;
+            return nullptr;
         for (auto const &value: src) {
-            object value_(value_conv::cast(value, policy, parent), false);
+            object value_(key_conv::cast(value, policy, parent), false);
             if (!value_ || PySet_Add(set.ptr(), value_.ptr()) != 0)
                 return nullptr;
         }
         return set.release();
     }
-    PYBIND11_TYPE_CASTER(type, detail::descr("set<") + value_conv::name() + detail::descr(">"));
+    PYBIND11_TYPE_CASTER(type, _("set<") + key_conv::name() + _(">"));
 };
 
 template <typename Key, typename Value, typename Compare, typename Alloc> struct type_caster<std::map<Key, Value, Compare, Alloc>> {
@@ -116,7 +116,7 @@ public:
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
         object dict(PyDict_New(), false);
         if (!dict)
-          return nullptr;
+            return nullptr;
         for (auto const &kv: src) {
             object key(key_conv::cast(kv.first, policy, parent), false);
             object value(value_conv::cast(kv.second, policy, parent), false);
@@ -126,7 +126,7 @@ public:
         return dict.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, detail::descr("dict<") + key_conv::name() + detail::descr(", ") + value_conv::name() + detail::descr(">"));
+    PYBIND11_TYPE_CASTER(type, _("dict<") + key_conv::name() + _(", ") + value_conv::name() + _(">"));
 };
 
 NAMESPACE_END(detail)

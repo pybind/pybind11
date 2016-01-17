@@ -24,7 +24,6 @@
 #endif
 
 #include "cast.h"
-#include <iostream>
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -39,10 +38,10 @@ struct arg {
 
 /// Annotation for keyword arguments with default values
 template <typename T> struct arg_t : public arg {
-    arg_t(const char *name, const T &value, const char *value_str = nullptr)
-        : arg(name), value(value), value_str(value_str) {}
+    arg_t(const char *name, const T &value, const char *descr = nullptr)
+        : arg(name), value(value), descr(descr) { }
     T value;
-    const char *value_str;
+    const char *descr;
 };
 
 template <typename T> arg_t<T> arg::operator=(const T &value) { return arg_t<T>(name, value); }
@@ -65,15 +64,17 @@ private:
     /// Linked list of function overloads
     struct function_entry {
         /// Function name and user-specified documentation string
-        const char *name = nullptr, *doc = nullptr;
+        char *name = nullptr, *doc = nullptr; /* why no C++ strings? They generate heavier code.. */
+        /// Human-readable version of the function signature
+        char *signature = nullptr;
         /// List of registered keyword arguments
-        std::list<detail::argument_entry> args; 
-        /// Pointer to lambda function which converts arguments and performs the call
+        std::vector<detail::argument_entry> args;
+        /// Pointer to lambda function which converts arguments and performs the actual call
         PyObject * (*impl) (function_entry *, PyObject *, PyObject *) = nullptr;
         /// Storage for the wrapped function pointer and captured data, if any
         void *data = nullptr;
         /// Pointer to custom destructor for 'data' (if needed)
-        void (*free) (void *ptr) = nullptr;
+        void (*free_data) (void *ptr) = nullptr;
         /// Return value policy associated with this function
         return_value_policy policy = return_value_policy::automatic;
         /// True if name == '__init__'
@@ -86,12 +87,6 @@ private:
         PyObject *sibling = nullptr;
         /// Pointer to next overload
         function_entry *next = nullptr;
-
-        ~function_entry() {
-            delete def;
-            if (free)
-                free(data);
-        }
     };
 
     function_entry *m_entry;
@@ -115,59 +110,56 @@ private:
         (void) unused;
     }
 
-    static void process_extra(const char *doc, function_entry *entry) { entry->doc = doc; }
-    static void process_extra(const pybind11::doc &d, function_entry *entry) { entry->doc = d.value; }
-    static void process_extra(const pybind11::name &n, function_entry *entry) { entry->name = n.value; }
+    static void process_extra(const char *doc, function_entry *entry) { entry->doc = (char *) doc; }
+    static void process_extra(const pybind11::doc &d, function_entry *entry) { entry->doc = (char *) d.value; }
+    static void process_extra(const pybind11::name &n, function_entry *entry) { entry->name = (char *) n.value; }
     static void process_extra(const pybind11::return_value_policy p, function_entry *entry) { entry->policy = p; }
     static void process_extra(const pybind11::sibling s, function_entry *entry) { entry->sibling = s.value; }
     static void process_extra(const pybind11::is_method &m, function_entry *entry) { entry->class_ = m.class_; }
     static void process_extra(const pybind11::arg &a, function_entry *entry) {
         if (entry->class_ && entry->args.empty())
-            entry->args.emplace_back(strdup("self"), nullptr, nullptr);
-        entry->args.emplace_back(strdup(a.name), nullptr, nullptr);
+            entry->args.emplace_back("self", nullptr, nullptr);
+        entry->args.emplace_back(a.name, nullptr, nullptr);
     }
 
     template <typename T>
     static void process_extra(const pybind11::arg_t<T> &a, function_entry *entry) {
         if (entry->class_ && entry->args.empty())
-            entry->args.emplace_back(strdup("self"), nullptr, nullptr);
+            entry->args.emplace_back("self", nullptr, nullptr);
 
         PyObject *obj = detail::type_caster<typename detail::decay<T>::type>::cast(
                 a.value, return_value_policy::automatic, nullptr);
 
-        entry->args.emplace_back(
-            strdup(a.name),
-            strdup(a.value_str != nullptr ? a.value_str : 
-                (const char *) ((object) handle(obj).attr("__repr__")).call().str()),
-            obj
-        );
+        if (obj == nullptr)
+            throw std::runtime_error("arg(): could not convert default keyword "
+                                     "argument into a Python object (type not "
+                                     "registered yet?)");
+
+        entry->args.emplace_back(a.name, a.descr, obj);
     }
 public:
     cpp_function() { }
 
     /// Vanilla function pointers
-    template <typename Return, typename... Arg, typename... Extra>
-    cpp_function(Return (*f)(Arg...), Extra&&... extra) {
+    template <typename Return, typename... Args, typename... Extra>
+    cpp_function(Return (*f)(Args...), Extra&&... extra) {
+        using detail::descr;
         m_entry = new function_entry();
         m_entry->data = (void *) f;
 
-        typedef arg_value_caster<Arg...> cast_in;
+        typedef arg_value_caster<Args...> cast_in;
         typedef return_value_caster<Return> cast_out;
 
         m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *parent) -> PyObject * {
             cast_in args;
             if (!args.load(pyArgs, true))
                 return (PyObject *) 1; /* Special return code: try next overload */
-            return cast_out::cast(args.template call<Return>((Return (*)(Arg...)) entry->data), entry->policy, parent);
+            return cast_out::cast(args.template call<Return>((Return (*)(Args...)) entry->data), entry->policy, parent);
         };
 
         process_extras(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
-
-        detail::descr d = cast_in::name(m_entry->args);
-        d += " -> ";
-        d += std::move(cast_out::name());
-
-        initialize(d, sizeof...(Arg));
+        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
+        initialize(signature.text(), signature.types(), sizeof...(Args));
     }
 
     /// Delegating helper constructor to deal with lambda functions
@@ -197,21 +189,21 @@ public:
 
 private:
     /// Functors, lambda functions, etc.
-    template <typename Func, typename Return, typename... Arg, typename... Extra>
-    void initialize(Func &&f, Return (*)(Arg...), Extra&&... extra) {
-        struct capture {
-            typename std::remove_reference<Func>::type f;
-        };
+    template <typename Func, typename Return, typename... Args, typename... Extra>
+    void initialize(Func &&f, Return (*)(Args...), Extra&&... extra) {
+        using detail::descr;
+
+        struct capture { typename std::remove_reference<Func>::type f; };
 
         m_entry = new function_entry();
         m_entry->data = new capture { std::forward<Func>(f) };
 
         if (!std::is_trivially_destructible<Func>::value)
-            m_entry->free = [](void *ptr) { delete (capture *) ptr; };
+            m_entry->free_data = [](void *ptr) { delete (capture *) ptr; };
         else
-            m_entry->free = operator delete;
+            m_entry->free_data = operator delete;
 
-        typedef arg_value_caster<Arg...> cast_in;
+        typedef arg_value_caster<Args...> cast_in;
         typedef return_value_caster<Return> cast_out;
 
         m_entry->impl = [](function_entry *entry, PyObject *pyArgs, PyObject *parent) -> PyObject *{
@@ -222,12 +214,8 @@ private:
         };
 
         process_extras(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
-
-        detail::descr d = cast_in::name(m_entry->args);
-        d += " -> ";
-        d += std::move(cast_out::name());
-
-        initialize(d, sizeof...(Arg));
+        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
+        initialize(signature.text(), signature.types(), sizeof...(Args));
     }
 
     static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -250,17 +238,17 @@ private:
                         PyTuple_SET_ITEM(args_, i, item);
                     }
                     int arg_ctr = 0;
-                    for (auto const &it : it->args) {
+                    for (auto const &it2 : it->args) {
                         int index = arg_ctr++;
                         if (PyTuple_GET_ITEM(args_, index))
                             continue;
                         PyObject *value = nullptr;
                         if (kwargs)
-                            value = PyDict_GetItemString(kwargs, it.name);
+                            value = PyDict_GetItemString(kwargs, it2.name);
                         if (value)
                             kwargs_consumed++;
-                        else if (it.value)
-                            value = it.value;
+                        else if (it2.value)
+                            value = it2.value;
                         if (value) {
                             Py_INCREF(value);
                             PyTuple_SET_ITEM(args_, index, value);
@@ -301,7 +289,7 @@ private:
             int ctr = 0;
             for (function_entry *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
-                //msg += it2->signature; XXX
+                msg += it2->signature;
                 msg += "\n";
             }
             PyErr_SetString(PyExc_TypeError, msg.c_str());
@@ -309,7 +297,7 @@ private:
         } else if (result == nullptr) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
-            //msg += it->signature;
+            msg += it->signature;
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         } else {
@@ -327,18 +315,88 @@ private:
     static void destruct(function_entry *entry) {
         while (entry) {
             function_entry *next = entry->next;
+            delete entry->def;
+            if (entry->free_data)
+                entry->free_data(entry->data);
+            std::free((char *) entry->name);
+            std::free((char *) entry->doc);
+            std::free((char *) entry->signature);
+            for (auto &arg: entry->args) {
+                std::free((char *) arg.name);
+                std::free((char *) arg.descr);
+                Py_XDECREF(arg.value);
+            }
             delete entry;
             entry = next;
         }
     }
 
-    void initialize(const detail::descr &, int args) {
-        if (m_entry->name == nullptr)
-            m_entry->name = "";
+    void initialize(const char *text, const std::type_info * const * types, int args) {
+        /* Create copies of all referenced C-style strings */
+        m_entry->name = strdup(m_entry->name ? m_entry->name : "");
+        if (m_entry->doc) m_entry->doc = strdup(m_entry->doc);
+        for (auto &a: m_entry->args) {
+            if (a.name)
+                a.name = strdup(a.name);
+            if (a.descr)
+                a.descr = strdup(a.descr);
+            else if (a.value)
+                a.descr = strdup(((object) handle(a.value).attr("__repr__")).call().str());
+        }
+        auto const &registered_types = detail::get_internals().registered_types;
+
+        /* Generate a proper function signature */
+        std::string signature;
+        size_t type_depth = 0, char_index = 0, type_index = 0, arg_index = 0;
+        while (true) {
+            char c = text[char_index++];
+            if (c == '\0')
+                break;
+
+            if (c == '{') {
+                if (type_depth == 1 && arg_index < m_entry->args.size()) {
+                    signature += m_entry->args[arg_index].name;
+                    signature += " : ";
+                }
+                ++type_depth;
+            } else if (c == '}') {
+                --type_depth;
+                if (type_depth == 1 && arg_index < m_entry->args.size()) {
+                    if (m_entry->args[arg_index].descr) {
+                        signature += " = ";
+                        signature += m_entry->args[arg_index].descr;
+                    }
+                    arg_index++;
+                }
+            } else if (c == '%') {
+                const std::type_info *t = types[type_index++];
+                if (!t) 
+                    throw std::runtime_error("Internal error while generating type signature (1)");
+                auto it = registered_types.find(t);
+                if (it != registered_types.end()) {
+                    signature += it->second.type->tp_name;
+                } else {
+                    std::string tname(t->name());
+                    detail::clean_type_id(tname);
+                    signature += tname;
+                }
+            } else {
+                signature += c;
+            }
+        }
+        if (type_depth != 0 && types[type_index ] != nullptr)
+            throw std::runtime_error("Internal error while generating type signature (2)");
+
+        #if !defined(PYBIND11_CPP14)
+            delete[] types;
+            delete[] text;
+        #endif
 
 #if PY_MAJOR_VERSION < 3
-        if (strcmp(m_entry->name, "__next__") == 0)
-            m_entry->name = "next";
+        if (strcmp(m_entry->name, "__next__") == 0) {
+            free(m_entry->name);
+            m_entry->name = strdup("next");
+        }
 #endif
 
         if (!m_entry->args.empty() && (int) m_entry->args.size() != args)
@@ -348,7 +406,8 @@ private:
                 " pybind11::arg entries were specified!");
 
         m_entry->is_constructor = !strcmp(m_entry->name, "__init__");
-        //m_entry->signature = descr.str(); // XXX
+        m_entry->signature = strdup(signature.c_str());
+        m_entry->args.shrink_to_fit();
 
 #if PY_MAJOR_VERSION < 3
         if (m_entry->sibling && PyMethod_Check(m_entry->sibling))
@@ -360,10 +419,10 @@ private:
             capsule entry_capsule(PyCFunction_GetSelf(m_entry->sibling), true);
             s_entry = (function_entry *) entry_capsule;
             if (s_entry->class_ != m_entry->class_)
-                s_entry = nullptr; /* Method override */
+                s_entry = nullptr; /* Overridden method, don't append to parent class overloads */
         }
 
-        if (!s_entry) {
+        if (!s_entry) { /* No existing overload was found, create a function object */
             m_entry->def = new PyMethodDef();
             memset(m_entry->def, 0, sizeof(PyMethodDef));
             m_entry->def->ml_name = m_entry->name;
@@ -385,19 +444,24 @@ private:
         std::string signatures;
         int index = 0;
         function_entry *it = entry;
-        while (it) { /* Create pydoc entry */
+        while (it) { /* Create pydoc entry including all function signatures and docstrings of the overload chain */
             if (s_entry)
                 signatures += std::to_string(++index) + ". ";
-            //signatures += "Signature : " + std::string(it->signature) + "\n"; XXX
-            if (it->doc && strlen(it->doc) > 0)
-                signatures += "\n" + std::string(it->doc) + "\n";
+            signatures += "Signature : ";
+            signatures += it->signature;
+            signatures += "\n";
+            if (it->doc && strlen(it->doc) > 0) {
+                signatures += "\n";
+                signatures += it->doc;
+                signatures += "\n";
+            }
             if (it->next)
                 signatures += "\n";
             it = it->next;
         }
         PyCFunctionObject *func = (PyCFunctionObject *) m_ptr;
         if (func->m_ml->ml_doc)
-            std::free((char *) func->m_ml->ml_doc);
+            free((char *) func->m_ml->ml_doc);
         func->m_ml->ml_doc = strdup(signatures.c_str());
         if (entry->class_) {
 #if PY_MAJOR_VERSION >= 3
@@ -510,7 +574,7 @@ public:
         type->ht_type.tp_base = (PyTypeObject *) parent;
         if (doc) {
             size_t size = strlen(doc)+1;
-            type->ht_type.tp_doc = (char *)PyObject_MALLOC(size);
+            type->ht_type.tp_doc = (char *) PyObject_MALLOC(size);
             memcpy((void *) type->ht_type.tp_doc, doc, size);
         }
         Py_XINCREF(parent);
@@ -522,7 +586,8 @@ public:
         /* Needed by pydoc */
         attr("__module__") = scope_name;
 
-        auto &type_info = detail::get_internals().registered_types[tinfo];
+        auto &registered_types = get_internals().registered_types;
+        auto &type_info = registered_types[tinfo];
         type_info.type = (PyTypeObject *) m_ptr;
         type_info.type_size = type_size;
         type_info.init_holder = init_holder;

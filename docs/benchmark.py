@@ -81,7 +81,7 @@ for codegen in [generate_dummy_code_pybind11, generate_dummy_code_boost]:
             f.write(codegen(nclasses))
         n1 = dt.datetime.now()
         os.system("g++ -Os -shared -rdynamic -undefined dynamic_lookup "
-            "-fvisibility=hidden -std=c++11 test.cpp -I include "
+            "-fvisibility=hidden -std=c++14 test.cpp -I include "
             "-I /System/Library/Frameworks/Python.framework/Headers -o test.so")
         n2 = dt.datetime.now()
         elapsed = (n2 - n1).total_seconds()

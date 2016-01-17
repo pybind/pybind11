@@ -39,8 +39,16 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
     # find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-      # Enable C++11 mode on C++ / Clang
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+      CHECK_CXX_COMPILER_FLAG("-std=c++14" HAS_CPP14_FLAG)
+      CHECK_CXX_COMPILER_FLAG("-std=c++11" HAS_CPP11_FLAG)
+
+      if (HAS_CPP14_FLAG)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+      elseif (HAS_CPP11_FLAG)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+      else()
+        message(FATAL_ERROR "Unsupported compiler -- at least C++11 support is needed!")
+      endif()
 
       # Enable link time optimization and set the default symbol
       # visibility to hidden (very important to obtain small binaries)
