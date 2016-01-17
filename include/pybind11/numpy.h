@@ -128,9 +128,11 @@ public:
             return nullptr;
         API &api = lookup_api();
         PyObject *descr = api.PyArray_DescrFromType_(npy_format_descriptor<T>::value);
-        return api.PyArray_FromAny_(ptr, descr, 0, 0,
-                                    API::NPY_C_CONTIGUOUS_ | API::NPY_ENSURE_ARRAY_ |
-                                    API::NPY_ARRAY_FORCECAST_, nullptr);
+        PyObject *result = api.PyArray_FromAny_(
+            ptr, descr, 0, 0, API::NPY_C_CONTIGUOUS_ | API::NPY_ENSURE_ARRAY_
+                            | API::NPY_ARRAY_FORCECAST_, nullptr);
+        Py_DECREF(ptr);
+        return result;
     }
 };
 
