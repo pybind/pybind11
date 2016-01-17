@@ -221,13 +221,13 @@ template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A.
 template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...) const> { typedef R type(A...); };
 
 /// Helper template to strip away type modifiers
-template <typename T> struct decay                       { typedef T type; };
-template <typename T> struct decay<const T>              { typedef typename decay<T>::type type; };
-template <typename T> struct decay<T*>                   { typedef typename decay<T>::type type; };
-template <typename T> struct decay<T&>                   { typedef typename decay<T>::type type; };
-template <typename T> struct decay<T&&>                  { typedef typename decay<T>::type type; };
-template <typename T, size_t N> struct decay<const T[N]> { typedef typename decay<T>::type type; };
-template <typename T, size_t N> struct decay<T[N]>       { typedef typename decay<T>::type type; };
+template <typename T> struct intrinsic_type                       { typedef T type; };
+template <typename T> struct intrinsic_type<const T>              { typedef typename intrinsic_type<T>::type type; };
+template <typename T> struct intrinsic_type<T*>                   { typedef typename intrinsic_type<T>::type type; };
+template <typename T> struct intrinsic_type<T&>                   { typedef typename intrinsic_type<T>::type type; };
+template <typename T> struct intrinsic_type<T&&>                  { typedef typename intrinsic_type<T>::type type; };
+template <typename T, size_t N> struct intrinsic_type<const T[N]> { typedef typename intrinsic_type<T>::type type; };
+template <typename T, size_t N> struct intrinsic_type<T[N]>       { typedef typename intrinsic_type<T>::type type; };
 
 /// Helper type to replace 'void' in some expressions
 struct void_type { };

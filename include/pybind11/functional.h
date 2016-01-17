@@ -41,7 +41,7 @@ public:
 
     PYBIND11_TYPE_CASTER(type, _("function<") +
             type_caster<std::tuple<Args...>>::name() + _(" -> ") +
-            type_caster<typename decay<Return>::type>::name() +
+            type_caster<typename intrinsic_type<Return>::type>::name() +
             _(">"));
 };
 
