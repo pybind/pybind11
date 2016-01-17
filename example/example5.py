@@ -5,11 +5,15 @@ sys.path.append('.')
 
 from example import Pet
 from example import Dog
+from example import Rabbit
 from example import dog_bark
 from example import pet_print
 
 polly = Pet('Polly', 'parrot')
 molly = Dog('Molly')
+roger = Rabbit('Rabbit')
+print(roger.name() + " is a " + roger.species())
+pet_print(roger)
 print(polly.name() + " is a " + polly.species())
 pet_print(polly)
 print(molly.name() + " is a " + molly.species())

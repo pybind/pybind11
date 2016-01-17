@@ -80,6 +80,7 @@ include_directories(${PYTHON_INCLUDE_DIR})
 include_directories(include)
 
 set(PYBIND11_HEADERS
+  include/pybind11/attr.h
   include/pybind11/cast.h
   include/pybind11/common.h
   include/pybind11/complex.h
@@ -167,7 +168,7 @@ elseif (UNIX)
   # Strip unnecessary sections of the binary on Linux/Mac OS
   if(APPLE)
     set_target_properties(example PROPERTIES MACOSX_RPATH ".")
-    set_target_properties(example PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -dead_strip")
+    set_target_properties(example PROPERTIES LINK_FLAGS "-undefined dynamic_lookup ")
     if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
       add_custom_command(TARGET example POST_BUILD COMMAND strip -u -r ${PROJECT_SOURCE_DIR}/example/example.so)
     endif()

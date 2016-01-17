@@ -79,36 +79,36 @@ public:
         API& api = lookup_api();
         PyObject *descr = api.PyArray_DescrFromType_(npy_format_descriptor<Type>::value);
         if (descr == nullptr)
-            throw std::runtime_error("NumPy: unsupported buffer format!");
+            pybind11_fail("NumPy: unsupported buffer format!");
         Py_intptr_t shape = (Py_intptr_t) size;
         object tmp = object(api.PyArray_NewFromDescr_(
             api.PyArray_Type_, descr, 1, &shape, nullptr, (void *) ptr, 0, nullptr), false);
         if (ptr && tmp)
             tmp = object(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */), false);
         if (!tmp)
-            throw std::runtime_error("NumPy: unable to create array!");
-        m_ptr = tmp.release();
+            pybind11_fail("NumPy: unable to create array!");
+        m_ptr = tmp.release().ptr();
     }
 
     array(const buffer_info &info) {
         API& api = lookup_api();
         if ((info.format.size() < 1) || (info.format.size() > 2))
-            throw std::runtime_error("Unsupported buffer format!");
+            pybind11_fail("Unsupported buffer format!");
         int fmt = (int) info.format[0];
         if (info.format == "Zd")      fmt = API::NPY_CDOUBLE_;
         else if (info.format == "Zf") fmt = API::NPY_CFLOAT_;
 
         PyObject *descr = api.PyArray_DescrFromType_(fmt);
         if (descr == nullptr)
-            throw std::runtime_error("NumPy: unsupported buffer format '" + info.format + "'!");
+            pybind11_fail("NumPy: unsupported buffer format '" + info.format + "'!");
         object tmp(api.PyArray_NewFromDescr_(
             api.PyArray_Type_, descr, info.ndim, (Py_intptr_t *) &info.shape[0],
             (Py_intptr_t *) &info.strides[0], info.ptr, 0, nullptr), false);
         if (info.ptr && tmp)
             tmp = object(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */), false);
         if (!tmp)
-            throw std::runtime_error("NumPy: unable to create array!");
-        m_ptr = tmp.release();
+            pybind11_fail("NumPy: unable to create array!");
+        m_ptr = tmp.release().ptr();
     }
 
 protected:
@@ -186,7 +186,7 @@ struct vectorize_helper {
         /* Check if the parameters are actually compatible */
         for (size_t i=0; i<N; ++i)
             if (buffers[i].size != 1 && (buffers[i].ndim != ndim || buffers[i].shape != shape))
-                throw std::runtime_error("pybind11::vectorize: incompatible size/dimension of inputs!");
+                pybind11_fail("pybind11::vectorize: incompatible size/dimension of inputs!");
 
         if (size == 1)
             return cast(f(*((Args *) buffers[Index].ptr)...));

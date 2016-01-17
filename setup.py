@@ -15,6 +15,7 @@ setup(
     packages=[],
     license='BSD',
     headers=[
+        'include/pybind11/attr.h',
         'include/pybind11/cast.h',
         'include/pybind11/complex.h',
         'include/pybind11/descr.h',
@@ -58,10 +59,10 @@ C++11-compatible compilers are widely available, this heavy machinery has
 become an excessively large and unnecessary dependency.
 
 Think of this library as a tiny self-contained version of Boost.Python with
-everything stripped away that isn't relevant for binding generation. The core
-header files only require ~2.5K lines of code and depend on Python (2.7 or 3.x)
-and the C++ standard library. This compact implementation was possible thanks
-to some of the new C++11 language features (specifically: tuples, lambda
-functions and variadic templates). Since its creation, this library has grown
-beyond Boost.Python in many ways, leading to dramatically simpler binding code
-in many common situations.""")
+everything stripped away that isn't relevant for binding generation. Without
+comments, the core header files only require ~2.5K lines of code and depend on
+Python (2.7 or 3.x) and the C++ standard library. This compact implementation
+was possible thanks to some of the new C++11 language features (specifically:
+tuples, lambda functions and variadic templates). Since its creation, this
+library has grown beyond Boost.Python in many ways, leading to dramatically
+simpler binding code in many common situations.""")

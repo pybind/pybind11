@@ -925,7 +925,7 @@ If not available, the signature may not be very helpful, e.g.:
     FUNCTIONS
     ...
     |  myFunction(...)
-    |      Signature : (MyClass, arg : SomeType = <SomeType object at 0x101b7b080>) -> None
+    |      Signature : (MyClass, arg : SomeType = <SomeType object at 0x101b7b080>) -> NoneType
     ...
 
 The first way of addressing this is by defining ``SomeType.__repr__``.

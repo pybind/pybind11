@@ -26,7 +26,7 @@ template <typename Value, typename Alloc> struct type_caster<std::vector<Value, 
     typedef std::vector<Value, Alloc> type;
     typedef type_caster<Value> value_conv;
 public:
-    bool load(PyObject *src, bool convert) {
+    bool load(handle src, bool convert) {
         list l(src, true);
         if (!l.check())
             return false;
@@ -34,21 +34,21 @@ public:
         value.clear();
         value_conv conv;
         for (auto it : l) {
-            if (!conv.load(it.ptr(), convert))
+            if (!conv.load(it, convert))
                 return false;
             value.push_back((Value) conv);
         }
         return true;
     }
 
-    static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
+    static handle cast(const type &src, return_value_policy policy, handle parent) {
         list l(src.size());
         size_t index = 0;
         for (auto const &value: src) {
-            object value_(value_conv::cast(value, policy, parent), false);
+            object value_ = object(value_conv::cast(value, policy, parent), false);
             if (!value_)
-                return nullptr;
-            PyList_SET_ITEM(l.ptr(), index++, value_.release()); // steals a reference
+                return handle();
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -59,26 +59,26 @@ template <typename Key, typename Compare, typename Alloc> struct type_caster<std
     typedef std::set<Key, Compare, Alloc> type;
     typedef type_caster<Key> key_conv;
 public:
-    bool load(PyObject *src, bool convert) {
+    bool load(handle src, bool convert) {
         pybind11::set s(src, true);
         if (!s.check())
             return false;
         value.clear();
         key_conv conv;
         for (auto entry : s) {
-            if (!conv.load(entry.ptr(), convert))
+            if (!conv.load(entry, convert))
                 return false;
             value.insert((Key) conv);
         }
         return true;
     }
 
-    static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
+    static handle cast(const type &src, return_value_policy policy, handle parent) {
         pybind11::set s;
         for (auto const &value: src) {
-            object value_(key_conv::cast(value, policy, parent), false);
+            object value_ = object(key_conv::cast(value, policy, parent), false);
             if (!value_ || !s.add(value))
-                return nullptr;
+                return handle();
         }
         return s.release();
     }
@@ -91,7 +91,7 @@ public:
     typedef type_caster<Key>   key_conv;
     typedef type_caster<Value> value_conv;
 
-    bool load(PyObject *src, bool convert) {
+    bool load(handle src, bool convert) {
         dict d(src, true);
         if (!d.check())
             return false;
@@ -107,13 +107,13 @@ public:
         return true;
     }
 
-    static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
+    static handle cast(const type &src, return_value_policy policy, handle parent) {
         dict d;
         for (auto const &kv: src) {
-            object key(key_conv::cast(kv.first, policy, parent), false);
-            object value(value_conv::cast(kv.second, policy, parent), false);
+            object key = object(key_conv::cast(kv.first, policy, parent), false);
+            object value = object(value_conv::cast(kv.second, policy, parent), false);
             if (!key || !value)
-                return nullptr;
+                return handle();
             d[key] = value;
         }
         return d.release();

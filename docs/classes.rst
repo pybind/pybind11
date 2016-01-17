@@ -177,9 +177,22 @@ inheritance relationship:
         std::string bark() const { return "woof!"; }
     };
 
-To capture the hierarchical relationship in pybind11, we must assign a name to
-the ``Pet`` :class:`class_` instance and reference it when binding the ``Dog``
-class.
+There are two different ways of indicating a hierarchical relationship to
+pybind11: the first is by specifying the C++ base class explicitly during
+construction using the ``base`` attribute:
+
+.. code-block:: cpp
+
+    py::class_<Pet>(m, "Pet")
+       .def(py::init<const std::string &>())
+       .def_readwrite("name", &Pet::name);
+
+    py::class_<Dog>(m, "Dog", py::base<Pet>() /* <- specify C++ parent type */)
+        .def(py::init<const std::string &>())
+        .def("bark", &Dog::bark);
+
+Alternatively, we can also assign a name to the previously bound ``Pet``
+:class:`class_` object and reference it when binding the ``Dog`` class:
 
 .. code-block:: cpp
 
@@ -187,11 +200,12 @@ class.
     pet.def(py::init<const std::string &>())
        .def_readwrite("name", &Pet::name);
 
-    py::class_<Dog>(m, "Dog", pet /* <- specify parent */)
+    py::class_<Dog>(m, "Dog", pet /* <- specify Python parent type */)
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
-Instances then expose fields and methods of both types:
+Functionality-wise, both approaches are completely equivalent. Afterwards,
+instances will expose fields and methods of both types:
 
 .. code-block:: python
 
@@ -242,14 +256,14 @@ The overload signatures are also visible in the method's docstring:
      |  Methods defined here:
      |
      |  __init__(...)
-     |      Signature : (Pet, str, int) -> None
+     |      Signature : (Pet, str, int) -> NoneType
      |
      |  set(...)
-     |      1. Signature : (Pet, int) -> None
+     |      1. Signature : (Pet, int) -> NoneType
      |
      |      Set the pet's age
      |
-     |      2. Signature : (Pet, str) -> None
+     |      2. Signature : (Pet, str) -> NoneType
      |
      |      Set the pet's name
 

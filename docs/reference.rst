@@ -63,17 +63,19 @@ Without reference counting
 
     Return the ``PyObject *`` underlying a :class:`handle`.
 
-.. function:: void handle::inc_ref() const
+.. function:: const handle& handle::inc_ref() const
 
     Manually increase the reference count of the Python object. Usually, it is
     preferable to use the :class:`object` class which derives from
-    :class:`handle` and calls this function automatically.
+    :class:`handle` and calls this function automatically. Returns a reference
+    to itself.
 
-.. function:: void handle::dec_ref() const
+.. function:: const handle& handle::dec_ref() const
 
     Manually decrease the reference count of the Python object. Usually, it is
     preferable to use the :class:`object` class which derives from
-    :class:`handle` and calls this function automatically.
+    :class:`handle` and calls this function automatically. Returns a reference
+    to itself.
 
 .. function:: void handle::ref_count() const
 
@@ -167,11 +169,11 @@ With reference counting
     Move constructor; steals the object from ``other`` and preserves its
     reference count.
 
-.. function:: PyObject* object::release()
+.. function:: handle object::release()
 
-    Release ownership of underlying ``PyObject *``. Returns raw Python object
-    pointer without decreasing its reference count and resets handle to
-    ``nullptr``-valued pointer.
+    Resets the internal pointer to ``nullptr`` without without decreasing the
+    object's reference count. The function returns a raw handle to the original
+    Python object.
 
 .. function:: object::~object()
 
