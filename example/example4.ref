@@ -10,7 +10,7 @@ test_function(enum=1)
 None
 test_function(enum=2)
 None
-<class 'Example4.EMode'>
+<class 'example.EMode'>
 EMode.EFirstMode
 EMode.EFirstMode
 Example4::test_function(enum=1)

@@ -88,12 +88,12 @@ public:
     iterator(PyObject *obj, bool borrowed = false) : object(obj, borrowed) { ++*this; }
     iterator& operator++() {
         if (ptr())
-            value = object(PyIter_Next(ptr()), false);
+            value = object(PyIter_Next(m_ptr), false);
         return *this;
     }
     bool operator==(const iterator &it) const { return *it == **this; }
     bool operator!=(const iterator &it) const { return *it != **this; }
-    const object &operator*() const { return value; }
+    const handle &operator*() const { return value; }
     bool check() const { return PyIter_Check(ptr()); }
 private:
     object value;
@@ -127,10 +127,10 @@ public:
     void operator=(const handle &h) {
         if (attr) {
             if (PyObject_SetAttr(obj, key, (PyObject *) h.ptr()) < 0)
-                throw std::runtime_error("Unable to set object attribute");
+                pybind11_fail("Unable to set object attribute");
         } else {
             if (PyObject_SetItem(obj, key, (PyObject *) h.ptr()) < 0)
-                throw std::runtime_error("Unable to set object item");
+                pybind11_fail("Unable to set object item");
         }
     }
 
@@ -164,12 +164,12 @@ public:
     void operator=(const handle &o) {
         o.inc_ref(); // PyList_SetItem steals a reference
         if (PyList_SetItem(list, (ssize_t) index, (PyObject *) o.ptr()) < 0)
-            throw std::runtime_error("Unable to assign value in Python list!");
+            pybind11_fail("Unable to assign value in Python list!");
     }
     operator object() const {
         PyObject *result = PyList_GetItem(list, (ssize_t) index);
         if (!result)
-            throw std::runtime_error("Unable to retrieve value from Python list!");
+            pybind11_fail("Unable to retrieve value from Python list!");
         return object(result, true);
     }
 private:
@@ -184,12 +184,12 @@ public:
     void operator=(const handle &o) {
         o.inc_ref(); // PyTuple_SetItem steals a reference
         if (PyTuple_SetItem(tuple, (ssize_t) index, (PyObject *) o.ptr()) < 0)
-            throw std::runtime_error("Unable to assign value in Python tuple!");
+            pybind11_fail("Unable to assign value in Python tuple!");
     }
     operator object() const {
         PyObject *result = PyTuple_GetItem(tuple, (ssize_t) index);
         if (!result)
-            throw std::runtime_error("Unable to retrieve value from Python tuple!");
+            pybind11_fail("Unable to retrieve value from Python tuple!");
         return object(result, true);
     }
 private:
@@ -205,8 +205,8 @@ public:
             pos = -1;
         return *this;
     }
-    std::pair<object, object> operator*() const {
-        return std::make_pair(object(key, true), object(value, true));
+    std::pair<handle, handle> operator*() const {
+        return std::make_pair(key, value);
     }
     bool operator==(const dict_iterator &it) const { return it.pos == pos; }
     bool operator!=(const dict_iterator &it) const { return it.pos != pos; }
@@ -242,7 +242,10 @@ inline iterator handle::end() const { return iterator(nullptr); }
 class str : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(str, object, PyUnicode_Check)
-    str(const std::string &s) : object(PyUnicode_FromStringAndSize(s.c_str(), s.length()), false) { }
+    str(const std::string &s)
+        : object(PyUnicode_FromStringAndSize(s.c_str(), s.length()), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate string object!");
+    }
 
     operator std::string() const {
 #if PY_MAJOR_VERSION >= 3
@@ -250,7 +253,7 @@ public:
 #else
         object temp(PyUnicode_AsUTF8String(m_ptr), false);
         if (temp.ptr() == nullptr)
-            throw std::runtime_error("Unable to extract string contents!");
+            pybind11_fail("Unable to extract string contents!");
         return PyString_AsString(temp.ptr());
 #endif
     }
@@ -270,14 +273,16 @@ public:
     PYBIND11_OBJECT_DEFAULT(bytes, object, PYBIND11_BYTES_CHECK)
 
     bytes(const std::string &s)
-        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(s.data(), s.size()), false) { }
+        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(s.data(), s.size()), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
+    }
 
     operator std::string() const {
         char *buffer;
         ssize_t length;
         int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length);
         if (err == -1)
-            throw std::runtime_error("Unable to extract bytes contents!");
+            pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, length);
     }
 };
@@ -306,6 +311,7 @@ public:
             else
                 m_ptr = PyLong_FromUnsignedLongLong((unsigned long long) value);
         }
+        if (!m_ptr) pybind11_fail("Could not allocate int object!");
     }
 
     template <typename T,
@@ -328,8 +334,12 @@ public:
 class float_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(float_, object, PyFloat_Check)
-    float_(float value) : object(PyFloat_FromDouble((double) value), false) { }
-    float_(double value) : object(PyFloat_FromDouble((double) value), false) { }
+    float_(float value) : object(PyFloat_FromDouble((double) value), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate float object!");
+    }
+    float_(double value) : object(PyFloat_FromDouble((double) value), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate float object!");
+    }
     operator float() const { return (float) PyFloat_AsDouble(m_ptr); }
     operator double() const { return (double) PyFloat_AsDouble(m_ptr); }
 };
@@ -337,7 +347,9 @@ public:
 class weakref : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(weakref, object, PyWeakref_Check)
-    weakref(handle obj, handle callback = handle()) : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), false) { }
+    weakref(handle obj, handle callback = handle()) : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate weak reference!");
+    }
 };
 
 class slice : public object {
@@ -346,6 +358,7 @@ public:
     slice(ssize_t start_, ssize_t stop_, ssize_t step_) {
         int_ start(start_), stop(stop_), step(step_);
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
+        if (!m_ptr) pybind11_fail("Could not allocate slice object!");
     }
     bool compute(ssize_t length, ssize_t *start, ssize_t *stop, ssize_t *step, ssize_t *slicelength) const {
         return PySlice_GetIndicesEx((PYBIND11_SLICE_OBJECT *) m_ptr, length,
@@ -357,10 +370,13 @@ class capsule : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
     capsule(PyObject *obj, bool borrowed) : object(obj, borrowed) { }
-    capsule(void *value, void (*destruct)(PyObject *) = nullptr) : object(PyCapsule_New(value, nullptr, destruct), false) { }
+    capsule(void *value, void (*destruct)(PyObject *) = nullptr)
+        : object(PyCapsule_New(value, nullptr, destruct), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate capsule object!");
+    }
     template <typename T> operator T *() const {
         T * result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, nullptr));
-        if (!result) throw std::runtime_error("Unable to extract capsule contents!");
+        if (!result) pybind11_fail("Unable to extract capsule contents!");
         return result;
     }
 };
@@ -368,7 +384,9 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT(tuple, object, PyTuple_Check)
-    tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), false) { }
+    tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
+    }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     detail::tuple_accessor operator[](size_t index) const { return detail::tuple_accessor(ptr(), index); }
 };
@@ -376,7 +394,9 @@ public:
 class dict : public object {
 public:
     PYBIND11_OBJECT(dict, object, PyDict_Check)
-    dict() : object(PyDict_New(), false) { }
+    dict() : object(PyDict_New(), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate dict object!");
+    }
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     detail::dict_iterator begin() const { return (++detail::dict_iterator(ptr(), 0)); }
     detail::dict_iterator end() const { return detail::dict_iterator(); }
@@ -386,7 +406,9 @@ public:
 class list : public object {
 public:
     PYBIND11_OBJECT(list, object, PyList_Check)
-    list(size_t size = 0) : object(PyList_New((ssize_t) size), false) { }
+    list(size_t size = 0) : object(PyList_New((ssize_t) size), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate list object!");
+    }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_accessor operator[](size_t index) const { return detail::list_accessor(ptr(), index); }
     void append(const object &object) const { PyList_Append(m_ptr, (PyObject *) object.ptr()); }
@@ -395,10 +417,12 @@ public:
 class set : public object {
 public:
     PYBIND11_OBJECT(set, object, PySet_Check)
-    set() : object(PySet_New(nullptr), false) { }
+    set() : object(PySet_New(nullptr), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate set object!");
+    }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
-    void add(const object &object) const { PySet_Add(m_ptr, (PyObject *) object.ptr()); }
-    void clear() const { PySet_Clear(ptr()); }
+    bool add(const object &object) const { return PySet_Add(m_ptr, (PyObject *) object.ptr()) == 0; }
+    void clear() const { PySet_Clear(m_ptr); }
 };
 
 class function : public object {
@@ -448,7 +472,7 @@ PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
             return (detail::type_info *) it->second;
         type = type->tp_base;
         if (type == nullptr)
-            throw std::runtime_error("pybind11::detail::get_type_info: unable to find type object!");
+            pybind11_fail("pybind11::detail::get_type_info: unable to find type object!");
     } while (true);
 }
 
