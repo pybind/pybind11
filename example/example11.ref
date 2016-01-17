@@ -11,7 +11,12 @@ kkww__ffuunncc22(...)
 Help on built-in function kw_func3
 
 kkww__ffuunncc33(...)
-    Signature : (data : str = u'Hello world!') -> NoneType
+    Signature : (data : unicode = u'Hello world!') -> NoneType
+
+Help on built-in function kw_func4
+
+kkww__ffuunncc44(...)
+    Signature : (myList : list<int> = [13L, 17L]) -> NoneType
 
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
@@ -25,3 +30,5 @@ kw_func(x=5, y=10)
 Caught expected exception: Incompatible function arguments. The following argument types are supported:
     1. (x : int = 100L, y : int = 200L) -> NoneType
 
+kw_func4: 13 17 
+kw_func4: 1 2 3 
