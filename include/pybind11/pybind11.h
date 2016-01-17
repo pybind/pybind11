@@ -227,20 +227,20 @@ private:
                  *result = (PyObject *) 1;
         try {
             for (; it != nullptr; it = it->next) {
-                PyObject *args_ = args;
+                object args_(args, true);
                 int kwargs_consumed = 0;
 
                 if (nargs < (int) it->args.size()) {
-                    args_ = PyTuple_New(it->args.size());
+                    args_ = object(PyTuple_New(it->args.size()), false);
                     for (int i = 0; i < nargs; ++i) {
                         PyObject *item = PyTuple_GET_ITEM(args, i);
                         Py_INCREF(item);
-                        PyTuple_SET_ITEM(args_, i, item);
+                        PyTuple_SET_ITEM(args_.ptr(), i, item);
                     }
                     int arg_ctr = 0;
                     for (auto const &it2 : it->args) {
                         int index = arg_ctr++;
-                        if (PyTuple_GET_ITEM(args_, index))
+                        if (PyTuple_GET_ITEM(args_.ptr(), index))
                             continue;
                         PyObject *value = nullptr;
                         if (kwargs)
@@ -251,7 +251,7 @@ private:
                             value = it2.value;
                         if (value) {
                             Py_INCREF(value);
-                            PyTuple_SET_ITEM(args_, index, value);
+                            PyTuple_SET_ITEM(args_.ptr(), index, value);
                         } else {
                             kwargs_consumed = -1; /* definite failure */
                             break;
@@ -260,11 +260,7 @@ private:
                 }
 
                 if (kwargs_consumed == nkwargs)
-                    result = it->impl(it, args_, parent);
-
-                if (args_ != args) {
-                    Py_DECREF(args_);
-                }
+                    result = it->impl(it, args_.ptr(), parent);
 
                 if (result != (PyObject *) 1)
                     break;
@@ -868,14 +864,12 @@ private:
         instance_type *inst = (instance_type *) inst_;
         try {
             new (&inst->holder) holder_type(
-                inst->value->shared_from_this()
-            );
+                inst->value->shared_from_this());
         } catch (const std::bad_weak_ptr &) {
             new (&inst->holder) holder_type(inst->value);
         }
         inst->constructed = true;
     }
-
 
     static void dealloc(PyObject *inst_) {
         instance_type *inst = (instance_type *) inst_;
