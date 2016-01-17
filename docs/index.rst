@@ -15,3 +15,4 @@ Contents:
    cmake
    benchmark
    reference
+   changelog
