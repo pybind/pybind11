@@ -177,7 +177,7 @@ template <typename type, typename holder_type = std::unique_ptr<type>> struct in
 struct type_info {
     PyTypeObject *type;
     size_t type_size;
-    void (*init_holder)(PyObject *);
+    void (*init_holder)(PyObject *, const void *);
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;

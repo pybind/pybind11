@@ -334,6 +334,12 @@ public:
     operator double() const { return (double) PyFloat_AsDouble(m_ptr); }
 };
 
+class weakref : public object {
+public:
+    PYBIND11_OBJECT_DEFAULT(weakref, object, PyWeakref_Check)
+    weakref(handle obj, handle callback = handle()) : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), false) { }
+};
+
 class slice : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
