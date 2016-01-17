@@ -4,7 +4,7 @@ Molly is a dog
 Molly is a dog
 Woof!
 The following error is expected: Incompatible function arguments. The following argument types are supported:
-    1. (Dog) -> None
+    1. (Dog) -> NoneType
 
 Callback function 1 called!
 False

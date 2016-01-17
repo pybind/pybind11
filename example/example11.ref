@@ -1,17 +1,17 @@
 Help on built-in function kw_func
 
 kkww__ffuunncc(...)
-    Signature : (x : int, y : int) -> None
+    Signature : (x : int, y : int) -> NoneType
 
 Help on built-in function kw_func2
 
 kkww__ffuunncc22(...)
-    Signature : (x : int = 100L, y : int = 200L) -> None
+    Signature : (x : int = 100L, y : int = 200L) -> NoneType
 
 Help on built-in function kw_func3
 
 kkww__ffuunncc33(...)
-    Signature : (data : str = u'Hello world!') -> None
+    Signature : (data : str = u'Hello world!') -> NoneType
 
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
@@ -23,5 +23,5 @@ kw_func(x=100, y=10)
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
 Caught expected exception: Incompatible function arguments. The following argument types are supported:
-    1. (x : int = 100L, y : int = 200L) -> None
+    1. (x : int = 100L, y : int = 200L) -> NoneType
 

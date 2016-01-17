@@ -235,7 +235,7 @@ public:
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PYBIND11_TYPE_CASTER(void_type, _("None"));
+    PYBIND11_TYPE_CASTER(void_type, _("NoneType"));
 };
 
 template <> class type_caster<void> : public type_caster<void_type> { };
