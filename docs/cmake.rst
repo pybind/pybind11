@@ -100,7 +100,8 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
       # that's statically linked into an application like Blender or Maya.
       # If we link our plugin library against the OS Python here and import it
       # into Blender or Maya later on, this will cause segfaults when multiple
-      # conflicting Python instances are active at the same time.
+      # conflicting Python instances are active at the same time (even when they
+      # are of the same version).
 
       # Windows is not affected by this issue since it handles DLL imports
       # differently. The solution for Linux and Mac OS is simple: we just don't

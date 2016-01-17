@@ -240,10 +240,10 @@ The overload signatures are also visible in the method's docstring:
      |  Methods defined here:
      |
      |  __init__(...)
-     |      Signature : (Pet, str, int32_t) -> None
+     |      Signature : (Pet, str, int) -> None
      |
      |  set(...)
-     |      1. Signature : (Pet, int32_t) -> None
+     |      1. Signature : (Pet, int) -> None
      |
      |      Set the pet's age
      |

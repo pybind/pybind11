@@ -173,7 +173,7 @@ The keyword names also appear in the function signatures within the documentatio
 
     FUNCTIONS
         add(...)
-            Signature : (i: int32_t, j: int32_t) -> int32_t
+            Signature : (i: int, j: int) -> int
 
             A function which adds two numbers
 
@@ -209,7 +209,7 @@ The default values also appear within the documentation.
 
     FUNCTIONS
         add(...)
-            Signature : (i: int32_t = 1L, j: int32_t = 2L) -> int32_t
+            Signature : (i: int = 1, j: int = 2) -> int
 
             A function which adds two numbers
 
@@ -253,7 +253,9 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------+--------------------------+-----------------------+
 | std::vector<T>         | STL dynamic array        | pybind11/stl.h        |
 +------------------------+--------------------------+-----------------------+
-| std::map<T1, T2>       | STL dynamic maps         | pybind11/stl.h        |
+| std::map<T1, T2>       | STL ordered map          | pybind11/stl.h        |
++------------------------+--------------------------+-----------------------+
+| std::set<T>            | STL ordered set          | pybind11/stl.h        |
 +------------------------+--------------------------+-----------------------+
 | std::function<...>     | STL polymorphic function | pybind11/functional.h |
 +------------------------+--------------------------+-----------------------+
