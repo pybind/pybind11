@@ -865,3 +865,36 @@ default argument manually using the ``arg_t`` notation:
     py::class_<MyClass>("MyClass")
         .def("myFunction", py::arg_t<SomeType>("arg", SomeType(123), "SomeType(123)"));
 
+Partitioning code over multiple extension modules
+=================================================
+
+It's straightforward to split binding code over multiple extension modules and
+reference types declared elsewhere. Everything "just" works without any special
+precautions. One exception to this rule occurs when wanting to extend a type declared
+in another extension module. Recall the basic example from Section
+:ref:`inheritance`.
+
+.. code-block:: cpp
+
+    py::class_<Pet> pet(m, "Pet");
+    pet.def(py::init<const std::string &>())
+       .def_readwrite("name", &Pet::name);
+
+    py::class_<Dog>(m, "Dog", pet /* <- specify parent */)
+        .def(py::init<const std::string &>())
+        .def("bark", &Dog::bark);
+
+Suppose now that ``Pet`` bindings are defined in a module named ``basic``,
+whereas the ``Dog`` bindings are defined somewhere else. The challenge is of
+course that the variable ``pet`` is not available anymore though it is needed
+to indicate the inheritance relationship to the constructor of ``class_<Dog>``.
+However, it can be acquired as follows:
+
+.. code-block:: cpp
+
+    py::object pet = (py::object) py::module::import("basic").attr("Pet");
+
+    py::class_<Dog>(m, "Dog", pet)
+        .def(py::init<const std::string &>())
+        .def("bark", &Dog::bark);
+

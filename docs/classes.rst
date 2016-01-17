@@ -157,6 +157,8 @@ the setter and getter functions:
     and :func:`class_::def_property_readonly_static` are provided for binding
     static variables and properties.
 
+.. _inheritance:
+
 Inheritance
 ===========
 
