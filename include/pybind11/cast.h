@@ -320,9 +320,9 @@ public:
     bool load(PyObject *src, bool convert) {
         if (!PyTuple_Check(src) || PyTuple_Size(src) != 2)
             return false;
-        if (!first.load(PyTuple_GetItem(src, 0), convert))
+        if (!first.load(PyTuple_GET_ITEM(src, 0), convert))
             return false;
-        return second.load(PyTuple_GetItem(src, 1), convert);
+        return second.load(PyTuple_GET_ITEM(src, 1), convert);
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
@@ -333,8 +333,8 @@ public:
         PyObject *tuple = PyTuple_New(2);
         if (!tuple)
             return nullptr;
-        PyTuple_SetItem(tuple, 0, o1.release());
-        PyTuple_SetItem(tuple, 1, o2.release());
+        PyTuple_SET_ITEM(tuple, 0, o1.release());
+        PyTuple_SET_ITEM(tuple, 1, o2.release());
         return tuple;
     }
 
@@ -422,7 +422,7 @@ protected:
             return nullptr;
         int counter = 0;
         for (auto & result : results)
-            PyTuple_SetItem(tuple, counter++, result.release());
+            PyTuple_SET_ITEM(tuple, counter++, result.release());
         return tuple;
     }
 
@@ -512,10 +512,10 @@ template <typename... Args> inline object handle::call(Args&&... args_) const {
             throw cast_error("handle::call(): unable to convert input arguments to Python objects");
     object tuple(PyTuple_New(size), false);
     if (!tuple)
-        throw cast_error("handle::call(): unable to convert input arguments to Python objects");
+        throw cast_error("handle::call(): unable to allocate tuple");
     int counter = 0;
     for (auto & result : args)
-        PyTuple_SetItem(tuple.ptr(), counter++, result.release());
+        PyTuple_SET_ITEM(tuple.ptr(), counter++, result.release());
     PyObject *result = PyObject_CallObject(m_ptr, tuple.ptr());
     if (result == nullptr && PyErr_Occurred())
         throw error_already_set();
