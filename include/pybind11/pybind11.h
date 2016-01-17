@@ -341,7 +341,6 @@ private:
     static void destruct(function_entry *entry) {
         while (entry) {
             function_entry *next = entry->next;
-            delete entry->def;
             if (entry->free_data)
                 entry->free_data(entry->data);
             std::free((char *) entry->name);
@@ -351,6 +350,10 @@ private:
                 std::free((char *) arg.name);
                 std::free((char *) arg.descr);
                 Py_XDECREF(arg.value);
+            }
+            if (entry->def) {
+                free((char *) entry->def->ml_doc);
+                delete entry->def;
             }
             delete entry;
             entry = next;
@@ -410,7 +413,7 @@ private:
                 signature += c;
             }
         }
-        if (type_depth != 0 && types[type_index ] != nullptr)
+        if (type_depth != 0 || types[type_index] != nullptr)
             throw std::runtime_error("Internal error while parsing type signature (2)");
 
         #if !defined(PYBIND11_CPP14)
