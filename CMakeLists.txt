@@ -132,7 +132,7 @@ elseif (UNIX)
   # into Blender or Maya later on, this will cause segfaults when multiple
   # conflicting Python instances are active at the same time.
 
-  # Windows is not affected by this issue since it handles DLL imports 
+  # Windows is not affected by this issue since it handles DLL imports
   # differently. The solution for Linux and Mac OS is simple: we just don't
   # link against the Python library. The resulting shared library will have
   # missing symbols, but that's perfectly fine -- they will be resolved at

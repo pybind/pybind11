@@ -5,6 +5,12 @@ sys.path.append('.')
 
 from example import Example2
 
+def u(string):
+    if sys.version_info[0]<3:
+        return unicode(string)
+    else:
+        return string
+
 Example2.value = 15
 print(Example2.value)
 print(Example2.value2)
@@ -30,11 +36,11 @@ dict_result['key2'] = 'value2'
 instance.print_dict_2(dict_result)
 
 set_result = instance.get_set()
-set_result.add(u'key3')
+set_result.add(u('key3'))
 instance.print_set(set_result)
 
 set_result = instance.get_set2()
-set_result.add(u'key3')
+set_result.add(u('key3'))
 instance.print_set_2(set_result)
 
 list_result = instance.get_list()
