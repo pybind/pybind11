@@ -19,9 +19,9 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
-class type_caster_custom {
+class type_caster_generic {
 public:
-    PYBIND11_NOINLINE type_caster_custom(const std::type_info *type_info) {
+    PYBIND11_NOINLINE type_caster_generic(const std::type_info *type_info) {
         auto & registered_types = get_internals().registered_types;
         auto it = registered_types.find(type_info);
         if (it != registered_types.end()) {
@@ -57,7 +57,9 @@ public:
     }
 
     PYBIND11_NOINLINE static PyObject *cast(const void *_src, return_value_policy policy, PyObject *parent,
-                                            const std::type_info *type_info, void *(*copy_constructor)(const void *)) {
+                                            const std::type_info *type_info,
+                                            void *(*copy_constructor)(const void *),
+                                            const void *existing_holder = nullptr) {
         void *src = const_cast<void *>(_src);
         if (src == nullptr) {
             Py_INCREF(Py_None);
@@ -100,7 +102,7 @@ public:
             Py_XINCREF(parent);
         }
         PyObject *inst_pyobj = (PyObject *) inst;
-        reg_type.init_holder(inst_pyobj);
+        reg_type.init_holder(inst_pyobj, existing_holder);
         if (!dont_cache)
             internals.registered_instances[inst->value] = inst_pyobj;
         return inst_pyobj;
@@ -113,20 +115,20 @@ protected:
 };
 
 /// Generic type caster for objects stored on the heap
-template <typename type, typename Enable = void> class type_caster : public type_caster_custom {
+template <typename type, typename Enable = void> class type_caster : public type_caster_generic {
 public:
     static PYBIND11_DESCR name() { return type_descr(_<type>()); }
 
-    type_caster() : type_caster_custom(&typeid(type)) { }
+    type_caster() : type_caster_generic(&typeid(type)) { }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::copy;
-        return type_caster_custom::cast(&src, policy, parent, &typeid(type), &copy_constructor);
+        return type_caster_generic::cast(&src, policy, parent, &typeid(type), &copy_constructor);
     }
 
     static PyObject *cast(const type *src, return_value_policy policy, PyObject *parent) {
-        return type_caster_custom::cast(src, policy, parent, &typeid(type), &copy_constructor);
+        return type_caster_generic::cast(src, policy, parent, &typeid(type), &copy_constructor);
     }
 
     operator type*() { return (type *) value; }
@@ -134,7 +136,7 @@ public:
 protected:
     template <typename T = type, typename std::enable_if<std::is_copy_constructible<T>::value, int>::type = 0>
     static void *copy_constructor(const void *arg) {
-        return new type(*((const type *)arg));
+        return new type(*((const type *) arg));
     }
     template <typename T = type, typename std::enable_if<!std::is_copy_constructible<T>::value, int>::type = 0>
     static void *copy_constructor(const void *) { return nullptr; }
@@ -433,24 +435,29 @@ protected:
 /// Type caster for holder types like std::shared_ptr, etc.
 template <typename type, typename holder_type> class type_caster_holder : public type_caster<type> {
 public:
-    typedef type_caster<type> parent;
+    using type_caster<type>::cast;
+    using type_caster<type>::typeinfo;
+    using type_caster<type>::value;
+    using type_caster<type>::temp;
+    using type_caster<type>::copy_constructor;
 
-    template <typename T = holder_type,
-              typename std::enable_if<std::is_same<std::shared_ptr<type>, T>::value, int>::type = 0>
     bool load(PyObject *src, bool convert) {
-        if (!parent::load(src, convert))
+        if (src == nullptr || typeinfo == nullptr)
             return false;
-        holder = holder_type(((type *) parent::value)->shared_from_this());
-        return true;
-    }
-
-    template <typename T = holder_type,
-              typename std::enable_if<!std::is_same<std::shared_ptr<type>, T>::value, int>::type = 0>
-    bool load(PyObject *src, bool convert) {
-        if (!parent::load(src, convert))
-            return false;
-        holder = holder_type((type *) parent::value);
-        return true;
+        if (PyType_IsSubtype(Py_TYPE(src), typeinfo->type)) {
+            auto inst = (instance<type, holder_type> *) src;
+            value = inst->value;
+            holder = inst->holder;
+            return true;
+        }
+        if (convert) {
+            for (auto &converter : typeinfo->implicit_conversions) {
+                temp = object(converter(src, typeinfo->type), false);
+                if (load(temp.ptr(), false))
+                    return true;
+            }
+        }
+        return false;
     }
 
     explicit operator type*() { return this->value; }
@@ -458,9 +465,9 @@ public:
     explicit operator holder_type&() { return holder; }
     explicit operator holder_type*() { return &holder; }
 
-    using type_caster<type>::cast;
     static PyObject *cast(const holder_type &src, return_value_policy policy, PyObject *parent) {
-        return type_caster<type>::cast(src.get(), policy, parent);
+        return type_caster_generic::cast(
+            src.get(), policy, parent, &typeid(type), &copy_constructor, &src);
     }
 
 protected:

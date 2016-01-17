@@ -122,32 +122,32 @@ private:
     template <typename... T> using arg_value_caster =
         detail::type_caster<typename std::tuple<T...>>;
 
-    template <typename... T> static void process_extras(const std::tuple<T...> &args, function_entry *entry) {
-        process_extras(args, entry, typename detail::make_index_sequence<sizeof...(T)>::type());
+    template <typename... T> static void process_static(const std::tuple<T...> &args, function_entry *entry) {
+        process_static(args, entry, typename detail::make_index_sequence<sizeof...(T)>::type());
     }
 
-    template <typename... T, size_t ... Index> static void process_extras(const std::tuple<T...> &args,
+    template <typename... T, size_t ... Index> static void process_static(const std::tuple<T...> &args,
             function_entry *entry, detail::index_sequence<Index...>) {
-        int unused[] = { 0, (process_extra(std::get<Index>(args), entry), 0)... };
+        int unused[] = { 0, (process_static(std::get<Index>(args), entry), 0)... };
         (void) unused;
     }
 
     template <int Nurse, int Patient>
-    static void process_extra(const keep_alive<Nurse, Patient> &, function_entry *) { }
-    static void process_extra(const char *doc, function_entry *entry) { entry->doc = (char *) doc; }
-    static void process_extra(const pybind11::doc &d, function_entry *entry) { entry->doc = (char *) d.value; }
-    static void process_extra(const pybind11::name &n, function_entry *entry) { entry->name = (char *) n.value; }
-    static void process_extra(const pybind11::return_value_policy p, function_entry *entry) { entry->policy = p; }
-    static void process_extra(const pybind11::sibling s, function_entry *entry) { entry->sibling = s.value; }
-    static void process_extra(const pybind11::is_method &m, function_entry *entry) { entry->class_ = m.class_; }
-    static void process_extra(const pybind11::arg &a, function_entry *entry) {
+    static void process_static(const keep_alive<Nurse, Patient> &, function_entry *) { }
+    static void process_static(const char *doc, function_entry *entry) { entry->doc = (char *) doc; }
+    static void process_static(const pybind11::doc &d, function_entry *entry) { entry->doc = (char *) d.value; }
+    static void process_static(const pybind11::name &n, function_entry *entry) { entry->name = (char *) n.value; }
+    static void process_static(const pybind11::return_value_policy p, function_entry *entry) { entry->policy = p; }
+    static void process_static(const pybind11::sibling s, function_entry *entry) { entry->sibling = s.value; }
+    static void process_static(const pybind11::is_method &m, function_entry *entry) { entry->class_ = m.class_; }
+    static void process_static(const pybind11::arg &a, function_entry *entry) {
         if (entry->class_ && entry->args.empty())
             entry->args.emplace_back("self", nullptr, nullptr);
         entry->args.emplace_back(a.name, nullptr, nullptr);
     }
 
     template <typename T>
-    static void process_extra(const pybind11::arg_t<T> &a, function_entry *entry) {
+    static void process_static(const pybind11::arg_t<T> &a, function_entry *entry) {
         if (entry->class_ && entry->args.empty())
             entry->args.emplace_back("self", nullptr, nullptr);
 
@@ -184,7 +184,7 @@ public:
             return result;
         };
 
-        process_extras(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
+        process_static(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
         PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
         initialize(signature.text(), signature.types(), sizeof...(Args));
     }
@@ -243,7 +243,7 @@ private:
             return result;
         };
 
-        process_extras(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
+        process_static(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
         PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
         initialize(signature.text(), signature.types(), sizeof...(Args));
     }
@@ -332,7 +332,7 @@ private:
                 const detail::type_info *type_info =
                     capsule(PyObject_GetAttrString((PyObject *) Py_TYPE(inst),
                                 const_cast<char *>("__pybind11__")), false);
-                type_info->init_holder(inst);
+                type_info->init_holder(inst, nullptr);
             }
             return result;
         }
@@ -396,7 +396,7 @@ private:
                 }
             } else if (c == '%') {
                 const std::type_info *t = types[type_index++];
-                if (!t) 
+                if (!t)
                     throw std::runtime_error("Internal error while parsing type signature (1)");
                 auto it = registered_types.find(t);
                 if (it != registered_types.end()) {
@@ -558,7 +558,7 @@ public:
 
     custom_type(object &scope, const char *name_, const std::type_info *tinfo,
                 size_t type_size, size_t instance_size,
-                void (*init_holder)(PyObject *), const destructor &dealloc,
+                void (*init_holder)(PyObject *, const void *), const destructor &dealloc,
                 PyObject *parent, const char *doc) {
         PyHeapTypeObject *type = (PyHeapTypeObject*) PyType_Type.tp_alloc(&PyType_Type, 0);
 #if PY_MAJOR_VERSION >= 3
@@ -884,24 +884,37 @@ public:
         return *this;
     }
 private:
-    template <typename T = holder_type,
-              typename std::enable_if<!std::is_same<std::shared_ptr<type>, T>::value, int>::type = 0>
-    static void init_holder(PyObject *inst_) {
-        instance_type *inst = (instance_type *) inst_;
-        new (&inst->holder) holder_type(inst->value);
-        inst->constructed = true;
-    }
-
-    template <typename T = holder_type,
-              typename std::enable_if<std::is_same<std::shared_ptr<type>, T>::value, int>::type = 0>
-    static void init_holder(PyObject *inst_) {
-        instance_type *inst = (instance_type *) inst_;
+    /// Initialize holder object, variant 1: object derives from enable_shared_from_this
+    template <typename T>
+    static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
         try {
-            new (&inst->holder) holder_type(
-                inst->value->shared_from_this());
+            new (&inst->holder) holder_type(inst->value->shared_from_this());
         } catch (const std::bad_weak_ptr &) {
             new (&inst->holder) holder_type(inst->value);
         }
+    }
+
+    /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
+    template <typename T = holder_type,
+              typename std::enable_if<std::is_copy_constructible<T>::value, int>::type = 0>
+    static void init_holder_helper(instance_type *inst, const holder_type *holder_ptr, const void * /* dummy */) {
+        if (holder_ptr)
+            new (&inst->holder) holder_type(*holder_ptr);
+        else
+            new (&inst->holder) holder_type(inst->value);
+    }
+
+    /// Initialize holder object, variant 3: holder is not copy constructible (e.g. unique_ptr), always initialize from raw pointer
+    template <typename T = holder_type,
+              typename std::enable_if<!std::is_copy_constructible<T>::value, int>::type = 0>
+    static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const void * /* dummy */) {
+        new (&inst->holder) holder_type(inst->value);
+    }
+
+    /// Initialize holder object of an instance, possibly given a pointer to an existing holder
+    static void init_holder(PyObject *inst_, const void *holder_ptr) {
+        auto inst = (instance_type *) inst_;
+        init_holder_helper(inst, (const holder_type *) holder_ptr, inst->value);
         inst->constructed = true;
     }
 
@@ -964,21 +977,21 @@ template <typename... Args> struct init {
 
 PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, PyObject *arg, PyObject *ret) {
     /* Clever approach based on weak references taken from Boost.Python */
-    PyObject *nurse   =   Nurse > 0 ? PyTuple_GetItem(arg, Nurse - 1)   : ret;
-    PyObject *patient = Patient > 0 ? PyTuple_GetItem(arg, Patient - 1) : ret;
+    handle nurse  (Nurse   > 0 ? PyTuple_GetItem(arg, Nurse   - 1) : ret);
+    handle patient(Patient > 0 ? PyTuple_GetItem(arg, Patient - 1) : ret);
 
-    if (nurse == nullptr || patient == nullptr)
-        throw std::runtime_error("Could not activate keep_alive");
+    if (!nurse || !patient)
+        throw std::runtime_error("Could not activate keep_alive!");
 
     cpp_function disable_lifesupport(
-        [patient](handle weakref) { Py_DECREF(patient); weakref.dec_ref(); }
-   );
+        [patient](handle weakref) { patient.dec_ref(); weakref.dec_ref(); });
 
-    PyObject *weakref = PyWeakref_NewRef(nurse, disable_lifesupport.ptr());
-    if (weakref == nullptr)
+    weakref wr(nurse, disable_lifesupport);
+    if (!wr)
         throw std::runtime_error("Could not allocate weak reference!");
 
-    Py_INCREF(patient); /* reference patient and leak the weak reference */
+    patient.inc_ref(); /* reference patient and leak the weak reference */
+    (void) wr.release();
 }
 
 template <int Nurse, int Patient> struct process_dynamic<keep_alive<Nurse, Patient>> : public process_dynamic<void> {

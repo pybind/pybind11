@@ -521,13 +521,9 @@ following snippet causes ``std::shared_ptr`` to be used instead.
 
 .. code-block:: cpp
 
-    /// Type declaration
-    class Example : public std::enable_shared_from_this<Example> /* <- important, see below */ {
-        // ...
-    };
+    py::class_<Example, std::shared_ptr<Example> /* <- holder type */> obj(m, "Example");
 
-    /// .... code within PYBIND11_PLUGIN declaration .....
-    py::class_<Example, std::shared_ptr<Example> /* <- important */> obj(m, "Example");
+Note that any particular class can only be associated with a single holder type.
 
 To enable transparent conversions for functions that take shared pointers as an
 argument or that return them, a macro invocation similar to the following must
@@ -537,7 +533,7 @@ be declared at the top level before any binding code:
 
     PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 
-.. warning::
+.. note::
 
     The first argument of :func:`PYBIND11_DECLARE_HOLDER_TYPE` should be a
     placeholder name that is used as a template parameter of the second
@@ -545,24 +541,73 @@ be declared at the top level before any binding code:
     both sides; also, don't use the name of a type that already exists in your
     codebase.
 
-.. warning::
+One potential stumbling block when using holder types is that they need to be
+applied consistently. Can you guess what's broken about the following binding
+code?
 
-   To ensure correct reference counting among Python and C++, the use of
-   ``std::shared_ptr<T>`` as a holder type requires that ``T`` inherits from
-   ``std::enable_shared_from_this<T>`` (see cppreference_ for details).
+.. code-block:: cpp
 
-If you encounter issues (failure to compile, ``bad_weak_ptr`` exceptions),
-please check that you really did all three steps:
+    class Child { };
 
-1. invoking the ``PYBIND11_DECLARE_HOLDER_TYPE`` macro in every file that
-   contains pybind11 code and uses your chosen smart pointer type.
+    class Parent {
+    public:
+       Parent() : child(std::make_shared<Child>()) { }
+       Child *get_child() { return child.get(); }  /* Hint: ** DON'T DO THIS ** */
+    private:
+        std::shared_ptr<Child> child;
+    };
 
-2. specifying the holder types to ``class_``.
+    PYBIND11_PLUGIN(example) {
+        py::module m("example");
 
-3. extending from ``std::enable_shared_from_this`` when using
-   ``std::shared_ptr``.
+        py::class_<Child, std::shared_ptr<Child>>(m, "Child");
+
+        py::class_<Parent, std::shared_ptr<Parent>>(m, "Parent")
+           .def(py::init<>())
+           .def("get_child", &Parent::get_child);
+
+        return m.ptr();
+    }
+
+The following Python code will cause undefined behavior (and likely a
+segmentation fault).
+
+.. code-block:: python
+
+   from example import Parent
+   print(Parent().get_child())
+
+The problem is that ``Parent::get_child()`` returns a pointer to an instance of
+``Child``, but the fact that this instance is already managed by
+``std::shared_ptr<...>`` is lost when passing raw pointers. In this case,
+pybind11 will create a second independent ``std::shared_ptr<...>`` that also
+claims ownership of the pointer. In the end, the object will be freed **twice**
+since these shared pointers have no way of knowing about each other.
+
+There are two ways to resolve this issue:
+
+1. For types that are managed by a smart pointer class, never use raw pointers
+   in function arguments or return values. In other words: always consistently
+   wrap pointers into their designated holder types (such as
+   ``std::shared_ptr<...>``). In this case, the signature of ``get_child()``
+   should be modified as follows:
+
+.. code-block:: cpp
+
+    std::shared_ptr<Child> get_child() { return child; }
+
+2. Adjust the definition of ``Child`` by specifying
+   ``std::enable_shared_from_this<T>`` (see cppreference_ for details) as a
+   base class. This adds a small bit of information to ``Child`` that allows
+   pybind11 to realize that there is already an existing
+   ``std::shared_ptr<...>`` and communicate with it. In this case, the
+   declaration of ``Child`` should look as follows:
 
 .. _cppreference: http://en.cppreference.com/w/cpp/memory/enable_shared_from_this
+
+.. code-block:: cpp
+
+    class Child : public std::enable_shared_from_this<Child> { };
 
 .. seealso::
 
