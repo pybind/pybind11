@@ -81,5 +81,5 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 ### License
 
 pybind11 is provided under a BSD-style license that can be found in the
-``LICENSE.txt`` file. By using, distributing, or contributing to this project,
+``LICENSE`` file. By using, distributing, or contributing to this project,
 you agree to the terms and conditions of this license.
