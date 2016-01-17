@@ -94,7 +94,7 @@ private:
     /// Picks a suitable return value converter from cast.h
     template <typename T> using return_value_caster =
         detail::type_caster<typename std::conditional<
-            std::is_void<T>::value, detail::void_type, typename detail::decay<T>::type>::type>;
+            std::is_void<T>::value, detail::void_type, typename detail::intrinsic_type<T>::type>::type>;
 
     /// Picks a suitable argument value converter from cast.h
     template <typename... T> using arg_value_caster =
@@ -127,7 +127,7 @@ private:
         if (entry->class_ && entry->args.empty())
             entry->args.emplace_back("self", nullptr, nullptr);
 
-        PyObject *obj = detail::type_caster<typename detail::decay<T>::type>::cast(
+        PyObject *obj = detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(
                 a.value, return_value_policy::automatic, nullptr);
 
         if (obj == nullptr)

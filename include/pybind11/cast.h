@@ -326,8 +326,8 @@ public:
     }
 
     static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent) {
-        object o1(type_caster<typename decay<T1>::type>::cast(src.first, policy, parent), false);
-        object o2(type_caster<typename decay<T2>::type>::cast(src.second, policy, parent), false);
+        object o1(type_caster<typename intrinsic_type<T1>::type>::cast(src.first, policy, parent), false);
+        object o2(type_caster<typename intrinsic_type<T2>::type>::cast(src.second, policy, parent), false);
         if (!o1 || !o2)
             return nullptr;
         PyObject *tuple = PyTuple_New(2);
@@ -340,16 +340,16 @@ public:
 
     static PYBIND11_DESCR name() {
         return type_descr(
-            _("(") + type_caster<typename decay<T1>::type>::name() +
-            _(", ") + type_caster<typename decay<T2>::type>::name() + _(")"));
+            _("(") + type_caster<typename intrinsic_type<T1>::type>::name() +
+            _(", ") + type_caster<typename intrinsic_type<T2>::type>::name() + _(")"));
     }
 
     operator type() {
         return type(first, second);
     }
 protected:
-    type_caster<typename decay<T1>::type> first;
-    type_caster<typename decay<T2>::type> second;
+    type_caster<typename intrinsic_type<T1>::type> first;
+    type_caster<typename intrinsic_type<T2>::type> second;
 };
 
 template <typename... Tuple> class type_caster<std::tuple<Tuple...>> {
@@ -368,7 +368,7 @@ public:
     static PYBIND11_DESCR name() {
         return type_descr(
                _("(") +
-               detail::concat(type_caster<typename decay<Tuple>::type>::name()...) +
+               detail::concat(type_caster<typename intrinsic_type<Tuple>::type>::name()...) +
                _(")"));
     }
 
@@ -412,7 +412,7 @@ protected:
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <size_t ... Indices> static PyObject *cast(const type &src, return_value_policy policy, PyObject *parent, index_sequence<Indices...>) {
         std::array<object, size> results {{
-            object(type_caster<typename decay<Tuple>::type>::cast(std::get<Indices>(src), policy, parent), false)...
+            object(type_caster<typename intrinsic_type<Tuple>::type>::cast(std::get<Indices>(src), policy, parent), false)...
         }};
         for (const auto & result : results)
             if (!result)
@@ -427,7 +427,7 @@ protected:
     }
 
 protected:
-    std::tuple<type_caster<typename decay<Tuple>::type>...> value;
+    std::tuple<type_caster<typename intrinsic_type<Tuple>::type>...> value;
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
@@ -488,7 +488,7 @@ public:
 NAMESPACE_END(detail)
 
 template <typename T> inline T cast(PyObject *object) {
-    detail::type_caster<typename detail::decay<T>::type> conv;
+    detail::type_caster<typename detail::intrinsic_type<T>::type> conv;
     if (!conv.load(object, true))
         throw cast_error("Unable to cast Python object to C++ type");
     return conv;
@@ -497,7 +497,7 @@ template <typename T> inline T cast(PyObject *object) {
 template <typename T> inline object cast(const T &value, return_value_policy policy = return_value_policy::automatic, PyObject *parent = nullptr) {
     if (policy == return_value_policy::automatic)
         policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
-    return object(detail::type_caster<typename detail::decay<T>::type>::cast(value, policy, parent), false);
+    return object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(value, policy, parent), false);
 }
 
 template <typename T> inline T handle::cast() const { return pybind11::cast<T>(m_ptr); }
@@ -506,7 +506,7 @@ template <> inline void handle::cast() const { return; }
 template <typename... Args> inline object handle::call(Args&&... args_) const {
     const size_t size = sizeof...(Args);
     std::array<object, size> args{
-        { object(detail::type_caster<typename detail::decay<Args>::type>::cast(
+        { object(detail::type_caster<typename detail::intrinsic_type<Args>::type>::cast(
             std::forward<Args>(args_), return_value_policy::reference, nullptr), false)... }
     };
     for (const auto & result : args)
