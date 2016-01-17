@@ -826,3 +826,42 @@ When conversion fails, both directions throw the exception :class:`cast_error`.
 
     The file :file:`example/example2.cpp` contains a complete example that
     demonstrates passing native Python types in more detail.
+
+Default arguments revisited
+===========================
+
+The section on :ref:`default_args` previously discussed basic usage of default
+arguments using pybind11. One noteworthy aspect of their implementation is that
+default arguments are converted to Python objects right at declaration time.
+Consider the following example:
+
+.. code-block:: cpp
+
+    py::class_<MyClass>("MyClass")
+        .def("myFunction", py::arg("arg") = SomeType(123));
+
+In this case, pybind11 must already be set up to deal with values of the type
+``SomeType`` (via a prior instantiation of ``py::class_<SomeType>``), or an
+exception will be thrown.
+
+Another aspect worth highlighting is that the "preview" of the default argument
+in the function signature is generated using the object's ``__repr__`` method.
+If not available, the signature may not be very helpful, e.g.:
+
+.. code-block:: python
+
+    FUNCTIONS
+    ...
+    |  myFunction(...)
+    |      Signature : (MyClass, arg : SomeType = <SomeType object at 0x101b7b080>) -> None
+    ...
+
+The first way of addressing this is by defining ``SomeType.__repr__``.
+Alternatively, it is possible to specify the human-readable preview of the
+default argument manually using the ``arg_t`` notation:
+
+.. code-block:: cpp
+
+    py::class_<MyClass>("MyClass")
+        .def("myFunction", py::arg_t<SomeType>("arg", SomeType(123), "SomeType(123)"));
+

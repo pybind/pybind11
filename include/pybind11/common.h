@@ -165,6 +165,20 @@ struct overload_hash {
     }
 };
 
+/// Stores information about a keyword argument
+struct argument_entry {
+    char *name;      ///< Argument name
+    char *descr;     ///< Human-readable version of the argument value
+    PyObject *value; ///< Associated Python object
+
+    argument_entry(char *name, char *descr, PyObject *value)
+        : name(name), descr(descr), value(value) { }
+
+    ~argument_entry() {
+        free(name); free(descr); Py_XDECREF(value);
+    }
+};
+
 /// Internal data struture used to track registered instances and types
 struct internals {
     std::unordered_map<const std::type_info *, type_info> registered_types;
