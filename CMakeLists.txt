@@ -14,6 +14,8 @@ option(PYBIND11_INSTALL "Install pybind11 header files?" ON)
 # Add a CMake parameter for choosing a desired Python version
 set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
 
+include(CheckCXXCompilerFlag)
+
 # Set a default build configuration if none is specified. 'MinSizeRel' produces the smallest binaries
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'MinSizeRel' as none was specified.")
@@ -23,11 +25,16 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
-set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
-find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
-find_package(PythonInterp ${PYBIND11_PYTHON_VERSION} REQUIRED)
-
-include(CheckCXXCompilerFlag)
+set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
+if (NOT ${PYBIND11_PYTHON_VERSION} STREQUAL "")
+  find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED)
+  if (NOT PythonLibs_FOUND)
+    find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
+  endif()
+else()
+  find_package(PythonLibs REQUIRED)
+endif()
+find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # Enable C++11 mode on C++ / Clang
