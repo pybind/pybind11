@@ -165,13 +165,13 @@ struct vectorize_helper {
         std::array<buffer_info, N> buffers {{ args.request()... }};
 
         /* Determine dimensions parameters of output array */
-        int ndim = 0; size_t count = 0;
+        int ndim = 0; size_t size = 0;
         std::vector<size_t> shape;
         for (size_t i=0; i<N; ++i) {
-            if (buffers[i].count > count) {
+            if (buffers[i].size > size) {
                 ndim = buffers[i].ndim;
                 shape = buffers[i].shape;
-                count = buffers[i].count;
+                size = buffers[i].size;
             }
         }
         std::vector<size_t> strides(ndim);
@@ -183,10 +183,10 @@ struct vectorize_helper {
 
         /* Check if the parameters are actually compatible */
         for (size_t i=0; i<N; ++i)
-            if (buffers[i].count != 1 && (buffers[i].ndim != ndim || buffers[i].shape != shape))
+            if (buffers[i].size != 1 && (buffers[i].ndim != ndim || buffers[i].shape != shape))
                 throw std::runtime_error("pybind11::vectorize: incompatible size/dimension of inputs!");
 
-        if (count == 1)
+        if (size == 1)
             return cast(f(*((Args *) buffers[Index].ptr)...));
 
         array result(buffer_info(nullptr, sizeof(Return),
@@ -197,8 +197,8 @@ struct vectorize_helper {
         Return *output = (Return *) buf.ptr;
 
         /* Call the function */
-        for (size_t i=0; i<count; ++i)
-            output[i] = f((buffers[Index].count == 1
+        for (size_t i=0; i<size; ++i)
+            output[i] = f((buffers[Index].size == 1
                                ? *((Args *) buffers[Index].ptr)
                                : ((Args *) buffers[Index].ptr)[i])...);
 

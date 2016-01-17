@@ -144,7 +144,7 @@ PYBIND11_DECL_FMT(float,   "f"); PYBIND11_DECL_FMT(double,   "d"); PYBIND11_DECL
 /// Information record describing a Python buffer object
 struct buffer_info {
     void *ptr;
-    size_t itemsize, count;
+    size_t itemsize, size;
     std::string format; // for dense contents, this should be set to format_descriptor<T>::value
     int ndim;
     std::vector<size_t> shape;
@@ -152,10 +152,26 @@ struct buffer_info {
 
     buffer_info(void *ptr, size_t itemsize, const std::string &format, int ndim,
                 const std::vector<size_t> &shape, const std::vector<size_t> &strides)
-        : ptr(ptr), itemsize(itemsize), format(format), ndim(ndim),
-          shape(shape), strides(strides) {
-        count = 1; for (int i=0; i<ndim; ++i) count *= shape[i];
+        : ptr(ptr), itemsize(itemsize), size(1), format(format),
+          ndim(ndim), shape(shape), strides(strides) {
+        for (int i=0; i<ndim; ++i) size *= shape[i];
     }
+
+    buffer_info(Py_buffer *view)
+        : ptr(view->buf), itemsize(view->itemsize), size(1), format(view->format),
+          ndim(view->ndim), shape(view->ndim), strides(view->ndim), view(view) {
+        for (int i = 0; i < view->ndim; ++i) {
+            shape[i] = (size_t) view->shape[i];
+            strides[i] = (size_t) view->strides[i];
+            size *= shape[i];
+        }
+    }
+
+    ~buffer_info() {
+        if (view) { PyBuffer_Release(view); delete view; }
+    }
+private:
+    Py_buffer *view = nullptr;
 };
 
 NAMESPACE_BEGIN(detail)
