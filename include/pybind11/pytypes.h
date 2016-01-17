@@ -263,6 +263,16 @@ inline iterator handle::end() const { return iterator(nullptr); }
     PYBIND11_OBJECT(Name, Parent, CheckFun) \
     Name() : Parent() { }
 
+template <typename T>
+class bytes : public T {
+public:
+    using T::T;
+
+    bytes(const T& src) : T(src) { }
+    bytes(T&& src) : T(std::move(src)) { }
+    bytes() : T() { }
+};
+
 class str : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(str, object, PyUnicode_Check)
