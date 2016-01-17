@@ -22,17 +22,19 @@ NAMESPACE_BEGIN(detail)
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info *type_info) {
-        auto & registered_types = get_internals().registered_types;
-        auto it = registered_types.find(type_info);
-        if (it != registered_types.end()) {
-            typeinfo = &it->second;
+        auto &types = get_internals().registered_types_cpp;
+
+        auto it = types.find(type_info);
+        if (it != types.end()) {
+            typeinfo = (detail::type_info *) it->second;
         } else {
             /* Unknown type?! Since std::type_info* often varies across
                module boundaries, the following does an explicit check */
-            for (auto const &type : registered_types) {
-                if (strcmp(type.first->name(), type_info->name()) == 0) {
-                    registered_types[type_info] = type.second;
-                    typeinfo = &type.second;
+            for (auto const &type : types) {
+                auto *first = (const std::type_info *) type.first;
+                if (strcmp(first->name(), type_info->name()) == 0) {
+                    types[type_info] = type.second;
+                    typeinfo = (detail::type_info *) type.second;
                     break;
                 }
             }
@@ -71,20 +73,20 @@ public:
         auto& internals = get_internals();
         auto it_instance = internals.registered_instances.find(src);
         if (it_instance != internals.registered_instances.end() && !dont_cache) {
-            PyObject *inst = it_instance->second;
+            PyObject *inst = (PyObject *) it_instance->second;
             Py_INCREF(inst);
             return inst;
         }
-        auto it = internals.registered_types.find(type_info);
-        if (it == internals.registered_types.end()) {
+        auto it = internals.registered_types_cpp.find(type_info);
+        if (it == internals.registered_types_cpp.end()) {
             std::string tname = type_info->name();
             detail::clean_type_id(tname);
             std::string msg = "Unregistered type : " + tname;
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
-        auto &reg_type = it->second;
-        instance<void> *inst = (instance<void> *) PyType_GenericAlloc(reg_type.type, 0);
+        auto tinfo = (const detail::type_info *) it->second;
+        instance<void> *inst = (instance<void> *) PyType_GenericAlloc(tinfo->type, 0);
         inst->value = src;
         inst->owned = true;
         inst->parent = nullptr;
@@ -102,7 +104,7 @@ public:
             Py_XINCREF(parent);
         }
         PyObject *inst_pyobj = (PyObject *) inst;
-        reg_type.init_holder(inst_pyobj, existing_holder);
+        tinfo->init_holder(inst_pyobj, existing_holder);
         if (!dont_cache)
             internals.registered_instances[inst->value] = inst_pyobj;
         return inst_pyobj;

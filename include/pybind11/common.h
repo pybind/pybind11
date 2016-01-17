@@ -66,25 +66,6 @@
 #pragma warning(pop)
 #endif
 
-#if PY_MAJOR_VERSION >= 3
-#define PYBIND11_PLUGIN_IMPL(name) \
-    extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
-#else
-#define PYBIND11_PLUGIN_IMPL(name) \
-    extern "C" PYBIND11_EXPORT PyObject *init##name()
-#endif
-#define PYBIND11_PLUGIN(name) \
-    static PyObject *pybind11_init(); \
-    PYBIND11_PLUGIN_IMPL(name) { \
-        try { \
-            return pybind11_init(); \
-        } catch (const std::exception &e) { \
-            PyErr_SetString(PyExc_ImportError, e.what()); \
-            return nullptr; \
-        } \
-    } \
-    PyObject *pybind11_init()
-
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_BYTES_CHECK PyBytes_Check
 #define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
@@ -97,6 +78,10 @@
 #define PYBIND11_BYTES_NAME "bytes"
 #define PYBIND11_STRING_NAME "str"
 #define PYBIND11_SLICE_OBJECT PyObject
+#define PYBIND11_FROM_STRING PyUnicode_FromString
+#define PYBIND11_OB_TYPE(ht_type) (ht_type).ob_base.ob_base.ob_type
+#define PYBIND11_PLUGIN_IMPL(name) \
+    extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 #else
 #define PYBIND11_BYTES_CHECK PyString_Check
 #define PYBIND11_BYTES_FROM_STRING PyString_FromString
@@ -109,7 +94,26 @@
 #define PYBIND11_BYTES_NAME "str"
 #define PYBIND11_STRING_NAME "unicode"
 #define PYBIND11_SLICE_OBJECT PySliceObject
+#define PYBIND11_FROM_STRING PyString_FromString
+#define PYBIND11_OB_TYPE(ht_type) (ht_type).ob_type
+#define PYBIND11_PLUGIN_IMPL(name) \
+    extern "C" PYBIND11_EXPORT PyObject *init##name()
 #endif
+
+#define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
+
+#define PYBIND11_PLUGIN(name) \
+    static PyObject *pybind11_init(); \
+    PYBIND11_PLUGIN_IMPL(name) { \
+        try { \
+            return pybind11_init(); \
+        } catch (const std::exception &e) { \
+            PyErr_SetString(PyExc_ImportError, e.what()); \
+            return nullptr; \
+        } \
+    } \
+    PyObject *pybind11_init()
+
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -220,8 +224,9 @@ struct argument_entry {
 
 /// Internal data struture used to track registered instances and types
 struct internals {
-    std::unordered_map<const std::type_info *, type_info> registered_types;
-    std::unordered_map<const void *, PyObject *> registered_instances;
+    std::unordered_map<const void *, void*> registered_types_cpp; // std::type_info* -> type_info
+    std::unordered_map<const void *, void*> registered_types_py;  // PyTypeObject* -> type_info 
+    std::unordered_map<const void *, void*> registered_instances; // void * -> PyObject* 
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
 };
 

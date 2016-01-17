@@ -404,7 +404,6 @@ public:
 class function : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(function, object, PyFunction_Check)
-
     bool is_cpp_function() const {
         PyObject *ptr = detail::get_function(m_ptr);
         return ptr != nullptr && PyCFunction_Check(ptr);
@@ -426,7 +425,7 @@ public:
 };
 
 NAMESPACE_BEGIN(detail)
-inline internals &get_internals() {
+PYBIND11_NOINLINE inline internals &get_internals() {
     static internals *internals_ptr = nullptr;
     if (internals_ptr)
         return *internals_ptr;
@@ -441,7 +440,19 @@ inline internals &get_internals() {
     return *internals_ptr;
 }
 
-inline std::string error_string() {
+PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
+    auto const &type_dict = get_internals().registered_types_py;
+    do {
+        auto it = type_dict.find(type);
+        if (it != type_dict.end())
+            return (detail::type_info *) it->second;
+        type = type->tp_base;
+        if (type == nullptr)
+            throw std::runtime_error("pybind11::detail::get_type_info: unable to find type object!");
+    } while (true);
+}
+
+PYBIND11_NOINLINE inline std::string error_string() {
     std::string errorString;
     PyThreadState *tstate = PyThreadState_GET();
     if (tstate == nullptr)
@@ -457,20 +468,12 @@ inline std::string error_string() {
     return errorString;
 }
 
-inline handle get_object_handle(const void *ptr) {
+PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr) {
     auto instances = get_internals().registered_instances;
     auto it = instances.find(ptr);
     if (it == instances.end())
         return handle();
-    return it->second;
-}
-
-inline handle get_type_handle(const std::type_info &tp) {
-    auto instances = get_internals().registered_types;
-    auto it = instances.find(&tp);
-    if (it == instances.end())
-        return handle();
-    return handle((PyObject *) it->second.type);
+    return handle((PyObject *) it->second);
 }
 
 NAMESPACE_END(detail)
