@@ -467,6 +467,9 @@ protected:
     holder_type holder;
 };
 
+template <typename T> struct handle_type_name { static PYBIND11_DESCR name() { return _<T>(); } };
+template <> struct handle_type_name<bytes> { static PYBIND11_DESCR name() { return _(PYBIND11_BYTES_NAME); } };
+
 template <typename type>
 struct type_caster<type, typename std::enable_if<std::is_base_of<handle, type>::value>::type> {
 public:
@@ -477,10 +480,9 @@ public:
     bool load(PyObject *src, bool /* convert */) { value = type(src, true); return value.check(); }
 
     static PyObject *cast(const handle &src, return_value_policy /* policy */, PyObject * /* parent */) {
-        src.inc_ref();
-        return (PyObject *) src.ptr();
+        src.inc_ref(); return (PyObject *) src.ptr();
     }
-    PYBIND11_TYPE_CASTER(type, _<type>());
+    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name());
 };
 
 NAMESPACE_END(detail)
