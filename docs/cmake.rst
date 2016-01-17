@@ -28,8 +28,15 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
     string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
     # Try to autodetect Python (can be overridden manually if needed)
-    set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
-    find_package(PythonLibs ${EXAMPLE_PYTHON_VERSION} REQUIRED)
+    set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
+    if (NOT ${PYBIND11_PYTHON_VERSION} STREQUAL "")
+      find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED)
+    else()
+      find_package(PythonLibs REQUIRED)
+    endif()
+
+    # Uncomment the following line if you will also require a matching Python interpreter
+    # find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
       # Enable C++11 mode on C++ / Clang
