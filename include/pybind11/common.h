@@ -10,25 +10,57 @@
 #pragma once
 
 #if !defined(NAMESPACE_BEGIN)
-#define NAMESPACE_BEGIN(name) namespace name {
+#  define NAMESPACE_BEGIN(name) namespace name {
 #endif
 #if !defined(NAMESPACE_END)
-#define NAMESPACE_END(name) }
+#  define NAMESPACE_END(name) }
 #endif
 
 #if !defined(PYBIND11_EXPORT)
-#if defined(WIN32) || defined(_WIN32)
-#define PYBIND11_EXPORT __declspec(dllexport)
-#else
-#define PYBIND11_EXPORT __attribute__ ((visibility("default")))
-#endif
-#endif
-#if defined(_MSC_VER)
-#define PYBIND11_NOINLINE __declspec(noinline)
-#else
-#define PYBIND11_NOINLINE __attribute__ ((noinline))
+#  if defined(WIN32) || defined(_WIN32)
+#    define PYBIND11_EXPORT __declspec(dllexport)
+#  else
+#    define PYBIND11_EXPORT __attribute__ ((visibility("default")))
+#  endif
 #endif
 
+#if defined(_MSC_VER)
+#  define PYBIND11_NOINLINE __declspec(noinline)
+#else
+#  define PYBIND11_NOINLINE __attribute__ ((noinline))
+#endif
+
+/// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
+#if defined(_MSC_VER)
+#  define HAVE_ROUND
+#  pragma warning(push)
+#  pragma warning(disable: 4510 4610 4512 4005)
+#  if _DEBUG
+#    define _DEBUG_MARKER
+#    undef _DEBUG
+#  endif
+#endif
+
+#include <Python.h>
+#include <frameobject.h>
+
+#ifdef isalnum
+#  undef isalnum
+#  undef isalpha
+#  undef islower
+#  undef isspace
+#  undef isupper
+#  undef tolower
+#  undef toupper
+#endif
+
+#if defined(_MSC_VER)
+#  if defined(_DEBUG_MARKER)
+#    define _DEBUG
+#  undef _DEBUG_MARKER
+#endif
+#  pragma warning(pop)
+#endif
 
 #include <vector>
 #include <string>
@@ -36,35 +68,6 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
-
-/// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
-#if defined(_MSC_VER)
-#define HAVE_ROUND
-#pragma warning(push)
-#pragma warning(disable: 4510 4610 4512 4005)
-#if _DEBUG
-#define _DEBUG_MARKER
-#undef _DEBUG
-#endif
-#endif
-#include <Python.h>
-#include <frameobject.h>
-#ifdef isalnum
-#undef isalnum
-#undef isalpha
-#undef islower
-#undef isspace
-#undef isupper
-#undef tolower
-#undef toupper
-#endif
-#if defined(_MSC_VER)
-#if defined(_DEBUG_MARKER)
-#define _DEBUG
-#undef _DEBUG_MARKER
-#endif
-#pragma warning(pop)
-#endif
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_BYTES_CHECK PyBytes_Check
