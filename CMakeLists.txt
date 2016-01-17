@@ -11,8 +11,9 @@ project(pybind11)
 
 option(PYBIND11_INSTALL "Install pybind11 header files?" ON)
 
-# Add a CMake parameter for choosing a desired Python version
-set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
+# To choose a different Python interpreter than the default one, set the
+# the PYTHON_LIBRARY and PYTHON_INCLUDE_DIR flag when calling cmake.
+# See https://cmake.org/cmake/help/v3.0/module/FindPythonLibs.html
 
 # Set a default build configuration if none is specified. 'MinSizeRel' produces the smallest binaries
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -24,8 +25,8 @@ endif()
 string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
-find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
-find_package(PythonInterp ${PYBIND11_PYTHON_VERSION} REQUIRED)
+find_package(PythonLibs REQUIRED)
+find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
 include(CheckCXXCompilerFlag)
 
