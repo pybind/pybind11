@@ -32,9 +32,9 @@ public:
             API_PyArray_NewFromDescr = 94,
             NPY_C_CONTIGUOUS = 0x0001,
             NPY_F_CONTIGUOUS = 0x0002,
-            NPY_NPY_ARRAY_FORCECAST = 0x0010,
+            NPY_ARRAY_FORCECAST = 0x0010,
             NPY_ENSURE_ARRAY = 0x0040,
-            NPY_BOOL=0,
+            NPY_BOOL = 0,
             NPY_BYTE, NPY_UBYTE,
             NPY_SHORT, NPY_USHORT,
             NPY_INT, NPY_UINT,
@@ -136,7 +136,7 @@ public:
         PyObject *descr = api.PyArray_DescrFromType(npy_format_descriptor<T>::value);
         return api.PyArray_FromAny(ptr, descr, 0, 0,
                                    API::NPY_C_CONTIGUOUS | API::NPY_ENSURE_ARRAY |
-                                   API::NPY_NPY_ARRAY_FORCECAST, nullptr);
+                                   API::NPY_ARRAY_FORCECAST, nullptr);
     }
 };
 
