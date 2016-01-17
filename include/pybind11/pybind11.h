@@ -58,6 +58,28 @@ struct name { const char *value; name(const char *value) : value(value) { } };
 /// Annotation for function siblings
 struct sibling { PyObject *value; sibling(handle value) : value(value.ptr()) { } };
 
+/// Keep patient alive while nurse lives
+template <int Nurse, int Patient> struct keep_alive { };
+
+NAMESPACE_BEGIN(detail)
+template <typename... Args> struct process_dynamic;
+template <typename T> struct process_dynamic<T> {
+    static void precall(PyObject *) { }
+    static void postcall(PyObject *, PyObject *) { }
+};
+template <> struct process_dynamic<> : public process_dynamic<void> { };
+template <typename T, typename... Args> struct process_dynamic<T, Args...> {
+    static void precall(PyObject *arg) {
+        process_dynamic<T>::precall(arg);
+        process_dynamic<Args...>::precall(arg);
+    }
+    static void postcall(PyObject *arg, PyObject *ret) {
+        process_dynamic<T>::postcall(arg, ret);
+        process_dynamic<Args...>::postcall(arg, ret);
+    }
+};
+NAMESPACE_END(detail)
+
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
 private:
@@ -110,6 +132,8 @@ private:
         (void) unused;
     }
 
+    template <int Nurse, int Patient>
+    static void process_extra(const keep_alive<Nurse, Patient> &, function_entry *) { }
     static void process_extra(const char *doc, function_entry *entry) { entry->doc = (char *) doc; }
     static void process_extra(const pybind11::doc &d, function_entry *entry) { entry->doc = (char *) d.value; }
     static void process_extra(const pybind11::name &n, function_entry *entry) { entry->name = (char *) n.value; }
@@ -154,7 +178,10 @@ public:
             cast_in args;
             if (!args.load(pyArgs, true))
                 return (PyObject *) 1; /* Special return code: try next overload */
-            return cast_out::cast(args.template call<Return>((Return (*)(Args...)) entry->data), entry->policy, parent);
+            detail::process_dynamic<Extra...>::precall(pyArgs);
+            PyObject *result = cast_out::cast(args.template call<Return>((Return (*)(Args...)) entry->data), entry->policy, parent);
+            detail::process_dynamic<Extra...>::postcall(pyArgs, result);
+            return result;
         };
 
         process_extras(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
@@ -210,7 +237,10 @@ private:
             cast_in args;
             if (!args.load(pyArgs, true))
                 return (PyObject *) 1; /* Special return code: try next overload */
-            return cast_out::cast(args.template call<Return>(((capture *) entry->data)->f), entry->policy, parent);
+            detail::process_dynamic<Extra...>::precall(pyArgs);
+            PyObject *result = cast_out::cast(args.template call<Return>(((capture *) entry->data)->f), entry->policy, parent);
+            detail::process_dynamic<Extra...>::postcall(pyArgs, result);
+            return result;
         };
 
         process_extras(std::make_tuple(std::forward<Extra>(extra)...), m_entry);
@@ -568,8 +598,10 @@ public:
         type->ht_type.tp_as_sequence = &type->as_sequence;
         type->ht_type.tp_as_mapping = &type->as_mapping;
         type->ht_type.tp_base = (PyTypeObject *) parent;
+        type->ht_type.tp_weaklistoffset = offsetof(instance<void>, weakrefs);
+
         if (doc) {
-            size_t size = strlen(doc)+1;
+            size_t size = strlen(doc) + 1;
             type->ht_type.tp_doc = (char *) PyObject_MALLOC(size);
             memcpy((void *) type->ht_type.tp_doc, doc, size);
         }
@@ -654,6 +686,8 @@ protected:
                 registered_instances.erase(it);
             }
             Py_XDECREF(self->parent);
+            if (self->weakrefs)
+                PyObject_ClearWeakRefs((PyObject *) self);
         }
         Py_TYPE(self)->tp_free((PyObject*) self);
     }
@@ -927,6 +961,37 @@ template <typename... Args> struct init {
         class_.def("__init__", [](Base *instance, Args... args) { new (instance) Base(args...); }, std::forward<Extra>(extra)...);
     }
 };
+
+PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, PyObject *arg, PyObject *ret) {
+    /* Clever approach based on weak references taken from Boost.Python */
+    PyObject *nurse   =   Nurse > 0 ? PyTuple_GetItem(arg, Nurse - 1)   : ret;
+    PyObject *patient = Patient > 0 ? PyTuple_GetItem(arg, Patient - 1) : ret;
+
+    if (nurse == nullptr || patient == nullptr)
+        throw std::runtime_error("Could not activate keep_alive");
+
+    cpp_function disable_lifesupport(
+        [patient](handle weakref) { Py_DECREF(patient); weakref.dec_ref(); }
+   );
+
+    PyObject *weakref = PyWeakref_NewRef(nurse, disable_lifesupport.ptr());
+    if (weakref == nullptr)
+        throw std::runtime_error("Could not allocate weak reference!");
+
+    Py_INCREF(patient); /* reference patient and leak the weak reference */
+}
+
+template <int Nurse, int Patient> struct process_dynamic<keep_alive<Nurse, Patient>> : public process_dynamic<void> {
+    template <int N = Nurse, int P = Patient, typename std::enable_if<N != 0 && P != 0, int>::type = 0>
+    static void precall(PyObject *arg) { keep_alive_impl(Nurse, Patient, arg, nullptr); }
+    template <int N = Nurse, int P = Patient, typename std::enable_if<N != 0 && P != 0, int>::type = 0>
+    static void postcall(PyObject *, PyObject *) { }
+    template <int N = Nurse, int P = Patient, typename std::enable_if<N == 0 || P == 0, int>::type = 0>
+    static void precall(PyObject *) { }
+    template <int N = Nurse, int P = Patient, typename std::enable_if<N == 0 || P == 0, int>::type = 0>
+    static void postcall(PyObject *arg, PyObject *ret) { keep_alive_impl(Nurse, Patient, arg, ret); }
+};
+
 NAMESPACE_END(detail)
 
 template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); };

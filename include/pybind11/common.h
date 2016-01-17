@@ -167,6 +167,7 @@ template <typename type, typename holder_type = std::unique_ptr<type>> struct in
     PyObject_HEAD
     type *value;
     PyObject *parent;
+    PyObject *weakrefs;
     bool owned : 1;
     bool constructed : 1;
     holder_type holder;
