@@ -20,3 +20,6 @@ CTestTestfile.cmake
 Testing
 autogen
 MANIFEST
+/.ninja_*
+/*.ninja
+/docs/.build
