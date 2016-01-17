@@ -228,7 +228,7 @@ inline iterator handle::end() const { return iterator(nullptr); }
     Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
     Name(const object& o): Parent(o) { CvtStmt; } \
     Name(object&& o): Parent(std::move(o)) { CvtStmt; } \
-    Name& operator=(object&& o) { return static_cast<Name&>(object::operator=(std::move(o))); CvtStmt; } \
+    Name& operator=(object&& o) { (void) static_cast<Name&>(object::operator=(std::move(o))); CvtStmt; return *this; } \
     Name& operator=(object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
     bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
 
