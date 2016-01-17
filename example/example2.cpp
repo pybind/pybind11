@@ -72,20 +72,8 @@ public:
             std::cout << "key: " << item.first << ", value=" << item.second << std::endl;
     }
 
-    /* STL data types are automatically casted from Python */
-    void print_dict_2(const std::map<std::string, std::string> &dict) {
-        for (auto item : dict)
-            std::cout << "key: " << item.first << ", value=" << item.second << std::endl;
-    }
-
-    /* Easily iterate over a setionary using a C++11 range-based for loop */
+    /* Easily iterate over a set using a C++11 range-based for loop */
     void print_set(py::set set) {
-        for (auto item : set)
-            std::cout << "key: " << item << std::endl;
-    }
-
-    /* STL data types are automatically casted from Python */
-    void print_set_2(const std::set<std::string> &set) {
         for (auto item : set)
             std::cout << "key: " << item << std::endl;
     }
@@ -97,7 +85,19 @@ public:
             std::cout << "list item " << index++ << ": " << item << std::endl;
     }
 
-    /* STL data types are automatically casted from Python */
+    /* STL data types (such as maps) are automatically casted from Python */
+    void print_dict_2(const std::map<std::string, std::string> &dict) {
+        for (auto item : dict)
+            std::cout << "key: " << item.first << ", value=" << item.second << std::endl;
+    }
+
+    /* STL data types (such as sets) are automatically casted from Python */
+    void print_set_2(const std::set<std::string> &set) {
+        for (auto item : set)
+            std::cout << "key: " << item << std::endl;
+    }
+
+    /* STL data types (such as vectors) are automatically casted from Python */
     void print_list_2(std::vector<std::string> &list) {
         int index = 0;
         for (auto item : list)

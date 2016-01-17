@@ -14,3 +14,7 @@ None
 EMode.EFirstMode
 EMode.EFirstMode
 Example4::test_function(enum=1)
+bytes[0]=1
+bytes[1]=0
+bytes[2]=2
+bytes[3]=0

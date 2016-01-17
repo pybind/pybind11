@@ -1,5 +1,5 @@
 /*
-    example/example4.cpp -- global constants and functions, enumerations
+    example/example4.cpp -- global constants and functions, enumerations, raw byte strings
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -40,6 +40,17 @@ float test_function3(int i) {
     return i / 2.f;
 }
 
+py::bytes return_bytes() {
+    const char *data = "\x01\x00\x02\x00";
+    return py::bytes(std::string(data, 4));
+}
+
+void print_bytes(py::bytes bytes) {
+    std::string value = (std::string) bytes;
+    for (size_t i = 0; i < value.length(); ++i)
+        std::cout << "bytes[" << i << "]=" << (int) value[i] << std::endl;
+}
+
 void init_ex4(py::module &m) {
     m.def("test_function", &test_function1);
     m.def("test_function", &test_function2);
@@ -57,4 +68,7 @@ void init_ex4(py::module &m) {
         .value("EFirstMode", Example4::EFirstMode)
         .value("ESecondMode", Example4::ESecondMode)
         .export_values();
+
+    m.def("return_bytes", &return_bytes);
+    m.def("print_bytes", &print_bytes);
 }

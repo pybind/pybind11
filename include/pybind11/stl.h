@@ -131,7 +131,7 @@ public:
 
 NAMESPACE_END(detail)
 
-inline std::ostream &operator<<(std::ostream &os, const object &obj) { os << (const char *) obj.str(); return os; }
+inline std::ostream &operator<<(std::ostream &os, const object &obj) { os << (std::string) obj.str(); return os; }
 
 NAMESPACE_END(pybind11)
 

@@ -215,30 +215,6 @@ private:
     ssize_t pos = 0;
 };
 
-#if PY_MAJOR_VERSION >= 3
-inline long long PyLong_AsLongLong_(PyObject *o) { return PyLong_AsLongLong(o); }
-inline unsigned long long PyLong_AsUnsignedLongLong_(PyObject *o) { return PyLong_AsUnsignedLongLong(o); }
-inline bool PyLong_Check_(PyObject *o) { return PyLong_Check(o); }
-#else
-inline long long PyLong_AsLongLong_(PyObject *o) {
-    if (PyInt_Check(o)) /// workaround: PyLong_AsLongLong doesn't accept 'int' on Python 2.x
-        return (long long) PyLong_AsLong(o);
-    else
-        return PyLong_AsLongLong(o);
-}
-
-inline unsigned long long PyLong_AsUnsignedLongLong_(PyObject *o) {
-    if (PyInt_Check(o)) /// workaround: PyLong_AsUnsignedLongLong doesn't accept 'int' on Python 2.x
-        return (unsigned long long) PyLong_AsUnsignedLong(o);
-    else
-        return PyLong_AsUnsignedLongLong(o);
-}
-
-inline bool PyLong_Check_(PyObject *o) {
-    return PyInt_Check(o) || PyLong_Check(o);
-}
-#endif
-
 NAMESPACE_END(detail)
 
 inline detail::accessor handle::operator[](handle key) const { return detail::accessor(ptr(), key.ptr(), false); }
@@ -266,21 +242,18 @@ inline iterator handle::end() const { return iterator(nullptr); }
 class str : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(str, object, PyUnicode_Check)
-    str(const char *s) : object(PyUnicode_FromString(s), false) { }
-    operator const char *() const {
+    str(const std::string &s) : object(PyUnicode_FromStringAndSize(s.c_str(), s.length()), false) { }
+
+    operator std::string() const {
 #if PY_MAJOR_VERSION >= 3
         return PyUnicode_AsUTF8(m_ptr);
 #else
-        m_temp = object(PyUnicode_AsUTF8String(m_ptr), false);
-        if (m_temp.ptr() == nullptr)
-            return nullptr;
-        return PyString_AsString(m_temp.ptr());
+        object temp(PyUnicode_AsUTF8String(m_ptr), false);
+        if (temp.ptr() == nullptr)
+            throw std::runtime_error("Unable to extract string contents!");
+        return PyString_AsString(temp.ptr());
 #endif
     }
-private:
-#if PY_MAJOR_VERSION < 3
-    mutable object m_temp;
-#endif
 };
 
 inline pybind11::str handle::str() const {
@@ -292,6 +265,23 @@ inline pybind11::str handle::str() const {
     return pybind11::str(str, false);
 }
 
+class bytes : public object {
+public:
+    PYBIND11_OBJECT_DEFAULT(bytes, object, PYBIND11_BYTES_CHECK)
+
+    bytes(const std::string &s)
+        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(s.data(), s.size()), false) { }
+
+    operator std::string() const {
+        char *buffer;
+        ssize_t length;
+        int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length);
+        if (err == -1)
+            throw std::runtime_error("Unable to extract bytes contents!");
+        return std::string(buffer, length);
+    }
+};
+
 class bool_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(bool_, object, PyBool_Check)
@@ -301,7 +291,7 @@ public:
 
 class int_ : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(int_, object, detail::PyLong_Check_)
+    PYBIND11_OBJECT_DEFAULT(int_, object, PYBIND11_LONG_CHECK)
     template <typename T,
               typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
     int_(T value) {
@@ -328,9 +318,9 @@ public:
                 return (T) PyLong_AsUnsignedLong(m_ptr);
         } else {
             if (std::is_signed<T>::value)
-                return (T) detail::PyLong_AsLongLong_(m_ptr);
+                return (T) PYBIND11_LONG_AS_LONGLONG(m_ptr);
             else
-                return (T) detail::PyLong_AsUnsignedLongLong_(m_ptr);
+                return (T) PYBIND11_LONG_AS_UNSIGNED_LONGLONG(m_ptr);
         }
     }
 };
@@ -352,13 +342,8 @@ public:
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
     }
     bool compute(ssize_t length, ssize_t *start, ssize_t *stop, ssize_t *step, ssize_t *slicelength) const {
-        return PySlice_GetIndicesEx(
-#if PY_MAJOR_VERSION >= 3
-                m_ptr,
-#else
-                (PySliceObject *) m_ptr,
-#endif
-                length, start, stop, step, slicelength) == 0;
+        return PySlice_GetIndicesEx((PYBIND11_SLICE_OBJECT *) m_ptr, length,
+                                    start, stop, step, slicelength) == 0;
     }
 };
 
@@ -377,7 +362,7 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT(tuple, object, PyTuple_Check)
-    tuple(size_t size = 0) : object(PyTuple_New((Py_ssize_t) size), false) { }
+    tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), false) { }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     detail::tuple_accessor operator[](size_t index) const { return detail::tuple_accessor(ptr(), index); }
 };
@@ -466,11 +451,11 @@ inline std::string error_string() {
         return "";
 
     if (tstate->curexc_type) {
-        errorString += (const char *) handle(tstate->curexc_type).str();
+        errorString += (std::string) handle(tstate->curexc_type).str();
         errorString += ": ";
     }
     if (tstate->curexc_value)
-        errorString += (const char *) handle(tstate->curexc_value).str();
+        errorString += (std::string) handle(tstate->curexc_value).str();
 
     return errorString;
 }

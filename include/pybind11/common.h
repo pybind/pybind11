@@ -85,6 +85,29 @@
     } \
     PyObject *pybind11_init()
 
+#if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
+#define PYBIND11_BYTES_CHECK PyBytes_Check
+#define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
+#define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
+#define PYBIND11_BYTES_AS_STRING_AND_SIZE PyBytes_AsStringAndSize
+#define PYBIND11_BYTES_AS_STRING PyBytes_AsString
+#define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
+#define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
+#define PYBIND11_LONG_AS_UNSIGNED_LONGLONG(o) PyLong_AsUnsignedLongLong(o)
+#define PYBIND11_STRING_NAME "str"
+#define PYBIND11_SLICE_OBJECT PyObject
+#else
+#define PYBIND11_BYTES_CHECK PyString_Check
+#define PYBIND11_BYTES_FROM_STRING PyString_FromString
+#define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyString_FromStringAndSize
+#define PYBIND11_BYTES_AS_STRING_AND_SIZE PyString_AsStringAndSize
+#define PYBIND11_BYTES_AS_STRING PyString_AsString
+#define PYBIND11_LONG_CHECK(o) (PyInt_Check(o) || PyLong_Check(o))
+#define PYBIND11_LONG_AS_LONGLONG(o) (PyInt_Check(o) ? (long long) PyLong_AsLong(o) : PyLong_AsLongLong(o))
+#define PYBIND11_LONG_AS_UNSIGNED_LONGLONG(o) (PyInt_Check(o) ? (unsigned long long) PyLong_AsUnsignedLong(o) : PyLong_AsUnsignedLongLong(o))
+#define PYBIND11_STRING_NAME "unicode"
+#define PYBIND11_SLICE_OBJECT PySliceObject
+#endif
 
 NAMESPACE_BEGIN(pybind11)
 

@@ -801,9 +801,9 @@ For instance, the following statement iterates over a Python ``dict``:
     }
 
 Available types include :class:`handle`, :class:`object`, :class:`bool_`,
-:class:`int_`, :class:`float_`, :class:`str`, :class:`tuple`, :class:`list`,
-:class:`dict`, :class:`slice`, :class:`capsule`, :class:`function`,
-:class:`buffer`, :class:`array`, and :class:`array_t`.
+:class:`int_`, :class:`float_`, :class:`str`, :class:`bytes`, :class:`tuple`,
+:class:`list`, :class:`dict`, :class:`slice`, :class:`capsule`,
+:class:`function`, :class:`buffer`, :class:`array`, and :class:`array_t`.
 
 In this kind of mixed code, it is often necessary to convert arbitrary C++
 types to Python, which can be done using :func:`cast`:

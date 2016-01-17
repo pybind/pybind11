@@ -21,6 +21,7 @@ def sanitize(lines):
         line = shorten_floats.sub(r'\1', line)
         line = line.replace('__builtin__', 'builtins')
         line = line.replace('example.', '')
+        line = line.replace('unicode', 'str')
         line = line.replace('method of builtins.PyCapsule instance', '')
         line = line.strip()
         if sys.platform == 'win32':
