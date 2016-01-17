@@ -1,3 +1,18 @@
+Help on built-in function kw_func
+
+kkww__ffuunncc(...)
+    Signature : (x : int, y : int) -> None
+
+Help on built-in function kw_func2
+
+kkww__ffuunncc22(...)
+    Signature : (x : int = 100L, y : int = 200L) -> None
+
+Help on built-in function kw_func3
+
+kkww__ffuunncc33(...)
+    Signature : (data : str = u'Hello world!') -> None
+
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
@@ -7,13 +22,6 @@ kw_func(x=5, y=200)
 kw_func(x=100, y=10)
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
-Help on built-in function kw_func
-
-kkww__ffuunncc(...) method of builtins.PyCapsule instance
-    Signature : (x : int, y : int) -> None
-
-Help on built-in function kw_func2
-
-kkww__ffuunncc22(...) method of builtins.PyCapsule instance
-    Signature : (x : int = 100, y : int = 200) -> None
+Caught expected exception: Incompatible function arguments. The following argument types are supported:
+    1. (x : int = 100L, y : int = 200L) -> None
 

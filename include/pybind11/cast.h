@@ -12,8 +12,8 @@
 
 #include "pytypes.h"
 #include "typeid.h"
+#include "descr.h"
 #include <array>
-#include <list>
 #include <limits>
 
 NAMESPACE_BEGIN(pybind11)
@@ -24,80 +24,6 @@ NAMESPACE_BEGIN(detail)
 #else
 #define PYBIND11_AS_STRING PyString_AsString
 #endif
-
-/** Linked list descriptor type for function signatures (produces smaller binaries
-    compared to a previous solution using std::string and operator +=) */
-class descr {
-public:
-    struct entry {
-        const std::type_info *type = nullptr;
-        const char *str = nullptr;
-        entry *next = nullptr;
-        entry(const std::type_info *type) : type(type) { }
-        entry(const char *str) : str(str) { }
-    };
-
-    descr() { }
-    descr(descr &&d) : first(d.first), last(d.last) { d.first = d.last = nullptr; }
-    PYBIND11_NOINLINE descr(const char *str) { first = last = new entry { str }; }
-    PYBIND11_NOINLINE descr(const std::type_info &type) { first = last = new entry { &type }; }
-
-    PYBIND11_NOINLINE void operator+(const char *str) {
-        entry *next = new entry { str };
-        last->next = next;
-        last = next;
-    }
-
-    PYBIND11_NOINLINE void operator+(const std::type_info *type) {
-        entry *next = new entry { type };
-        last->next = next;
-        last = next;
-    }
-
-    PYBIND11_NOINLINE void operator+=(descr &&other) {
-        last->next = other.first;
-        while (last->next)
-            last = last->next;
-        other.first = other.last = nullptr;
-    }
-
-    PYBIND11_NOINLINE friend descr operator+(descr &&l, descr &&r) {
-        descr result(std::move(l));
-        result += std::move(r);
-        return result;
-    }
-
-    PYBIND11_NOINLINE std::string str() const {
-        std::string result;
-        auto const& registered_types = get_internals().registered_types;
-        for (entry *it = first; it != nullptr; it = it->next) {
-            if (it->type) {
-                auto it2 = registered_types.find(it->type);
-                if (it2 != registered_types.end()) {
-                    result += it2->second.type->tp_name;
-                } else {
-                    std::string tname(it->type->name());
-                    detail::clean_type_id(tname);
-                    result += tname;
-                }
-            } else {
-                result += it->str;
-            }
-        }
-        return result;
-    }
-
-    PYBIND11_NOINLINE ~descr() {
-        while (first) {
-            entry *tmp = first->next;
-            delete first;
-            first = tmp;
-        }
-    }
-
-    entry *first = nullptr;
-    entry *last = nullptr;
-};
 
 class type_caster_custom {
 public:
@@ -195,7 +121,7 @@ protected:
 /// Generic type caster for objects stored on the heap
 template <typename type, typename Enable = void> class type_caster : public type_caster_custom {
 public:
-    static descr name() { return typeid(type); }
+    static PYBIND11_DESCR name() { return type_descr(_<type>()); }
 
     type_caster() : type_caster_custom(&typeid(type)) { }
 
@@ -224,7 +150,7 @@ protected:
     protected: \
         type value; \
     public: \
-        static descr name() { return py_name; } \
+        static PYBIND11_DESCR name() { return type_descr(py_name); } \
         static PyObject *cast(const type *src, return_value_policy policy, PyObject *parent) { \
             return cast(*src, policy, parent); \
         } \
@@ -296,9 +222,10 @@ public:
         return cast(*src, policy, parent);
     }
 
-    static descr name() {
-        return std::is_floating_point<T>::value ? "float" : "int";
-    }
+    template <typename T2 = T, typename std::enable_if<std::is_integral<T2>::value, int>::type = 0>
+    static PYBIND11_DESCR name() { return type_descr(_("int")); }
+    template <typename T2 = T, typename std::enable_if<!std::is_integral<T2>::value, int>::type = 0>
+    static PYBIND11_DESCR name() { return type_descr(_("float")); }
 
     operator T*() { return &value; }
     operator T&() { return value; }
@@ -314,7 +241,7 @@ public:
         Py_INCREF(Py_None);
         return Py_None;
     }
-    PYBIND11_TYPE_CASTER(void_type, "None");
+    PYBIND11_TYPE_CASTER(void_type, _("None"));
 };
 
 template <> class type_caster<void> : public type_caster<void_type> { };
@@ -332,7 +259,7 @@ public:
         Py_INCREF(result);
         return result;
     }
-    PYBIND11_TYPE_CASTER(bool, "bool");
+    PYBIND11_TYPE_CASTER(bool, _("bool"));
 };
 
 template <> class type_caster<std::string> {
@@ -352,7 +279,7 @@ public:
     static PyObject *cast(const std::string &src, return_value_policy /* policy */, PyObject * /* parent */) {
         return PyUnicode_FromString(src.c_str());
     }
-    PYBIND11_TYPE_CASTER(std::string, "str");
+    PYBIND11_TYPE_CASTER(std::string, _("str"));
 };
 
 template <> class type_caster<char> {
@@ -379,7 +306,7 @@ public:
         return PyUnicode_DecodeLatin1(str, 1, nullptr);
     }
 
-    static descr name() { return "str"; }
+    static PYBIND11_DESCR name() { return type_descr(_("str")); }
 
     operator char*() { return (char *) value.c_str(); }
     operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
@@ -411,13 +338,10 @@ public:
         return tuple;
     }
 
-    static descr name() {
-        class descr result("(");
-        result += std::move(type_caster<typename decay<T1>::type>::name());
-        result += ", ";
-        result += std::move(type_caster<typename decay<T2>::type>::name());
-        result += ")";
-        return result;
+    static PYBIND11_DESCR name() {
+        return type_descr(
+            _("(") + type_caster<typename decay<T1>::type>::name() +
+            _(", ") + type_caster<typename decay<T2>::type>::name() + _(")"));
     }
 
     operator type() {
@@ -441,31 +365,11 @@ public:
         return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }
 
-    static descr name(const std::list<argument_entry> &args = std::list<argument_entry>()) {
-        std::array<class descr, size> type_names {{
-            type_caster<typename decay<Tuple>::type>::name()...
-        }};
-        auto it = args.begin();
-        class descr result("(");
-        for (int i=0; i<size; ++i) {
-            if (it != args.end()) {
-                result += it->name;
-                result += " : ";
-            }
-            result += std::move(type_names[i]);
-            if (it != args.end()) {
-                if (it->descr) {
-                    result += " = ";
-                    result += it->descr;
-                }
-                ++it;
-            }
-            if (i+1 < size)
-                result += ", ";
-            ++it;
-        }
-        result += ")";
-        return result;
+    static PYBIND11_DESCR name() {
+        return type_descr(
+               _("(") +
+               detail::concat(type_caster<typename decay<Tuple>::type>::name()...) +
+               _(")"));
     }
 
     template <typename ReturnValue, typename Func> typename std::enable_if<!std::is_void<ReturnValue>::value, ReturnValue>::type call(Func &&f) {
@@ -576,7 +480,7 @@ public:
         src.inc_ref();
         return (PyObject *) src.ptr();
     }
-    PYBIND11_TYPE_CASTER(type, typeid(type));
+    PYBIND11_TYPE_CASTER(type, _<type>());
 };
 
 NAMESPACE_END(detail)

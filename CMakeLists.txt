@@ -37,8 +37,16 @@ endif()
 find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  # Enable C++11 mode on C++ / Clang
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  CHECK_CXX_COMPILER_FLAG("-std=c++14" HAS_CPP14_FLAG)
+  CHECK_CXX_COMPILER_FLAG("-std=c++11" HAS_CPP11_FLAG)
+
+  if (HAS_CPP14_FLAG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+  elseif (HAS_CPP11_FLAG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  else()
+    message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
+  endif()
 
   # Enable link time optimization and set the default symbol
   # visibility to hidden (very important to obtain small binaries)
@@ -74,14 +82,15 @@ include_directories(include)
 set(PYBIND11_HEADERS
   include/pybind11/cast.h
   include/pybind11/common.h
+  include/pybind11/complex.h
+  include/pybind11/descr.h
+  include/pybind11/functional.h
+  include/pybind11/numpy.h
   include/pybind11/operators.h
   include/pybind11/pybind11.h
   include/pybind11/pytypes.h
-  include/pybind11/typeid.h
-  include/pybind11/numpy.h
-  include/pybind11/complex.h
   include/pybind11/stl.h
-  include/pybind11/functional.h
+  include/pybind11/typeid.h
 )
 
 # Create the binding library
