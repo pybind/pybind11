@@ -54,13 +54,13 @@ matrix:
             cd -;
           fi
       script:
-        # to do: add a cuda example to compile
         - pyvenv-3.5 venv
         - cmake -DPYBIND11_PYTHON_VERSION=3.5 -DPYTHON_INCLUDE_DIR:PATH=/usr/include/python3.5m -DPYTHON_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libpython3.5m.so -DPYTHON_EXECUTABLE:FILEPATH=`pwd`/venv/bin/python3.5 -DCMAKE_CXX_COMPILER=g++-4.9
         - make -j 2
         - source venv/bin/activate
         - pip install numpy
         - CTEST_OUTPUT_ON_FAILURE=TRUE make test
+        - ./buildCuda.sh
     - os: osx
       compiler: clang
       script:
