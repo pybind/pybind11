@@ -1,14 +1,18 @@
-// Mandelbrot with CUDA
-//
-// Author: Axel Huebl (Serial Code by Matze)
-// Date:   10th Jan 2012
-//
+/*
+    example/example14.cu -- CUDA acceleratred Mandelbrot example
 
-#include <pybind11/pybind11.h>
+    Copyright (c) 2012-2016 Axel Huebl <a.huebl@hzdr.de>
 
-#include <stdio.h>
-#include <math.h>
+    All rights reserved. Use of this source code is governed by a
+    BSD-style license that can be found in the LICENSE file.
+*/
+
+#include "example.h"
+
+#include <cstdio>
+#include <cmath>
 #include <complex.h>
+
 #include "cuda.h"
 
 // simulation parameters
@@ -82,9 +86,9 @@ __global__ void calcMandelbrot( int* color_d, const int num_rows, const int num_
 
 }
 
-int start() {
+int mandelbrot() {
 
-	FILE *output = fopen("mandelbrot.ppm", "w+b");
+    FILE *output = fopen("mandelbrot.ppm", "w+b");
 
         int *color_h, *color_d;
         const int nBytes = num_rows*num_cols*sizeof(int);
@@ -125,37 +129,34 @@ int start() {
         printf( "Copied Memory back to Host...\n" );
 
 
-	fprintf(output, "P3\n");
-	fprintf(output, "%d %d\n%d\n\n", num_cols, num_rows, max_iterations);
+    fprintf(output, "P3\n");
+    fprintf(output, "%d %d\n%d\n\n", num_cols, num_rows, max_iterations);
 
-	for (int x=0; x<num_cols; x++) {
-		for (int y=0; y<num_rows; y++) {
-			// float complex imaginary = 0+1.0i;
-			// c = (c_rmin+(x*dx)) + ((c_imin+(y*dy))*imaginary);
+    for (int x=0; x<num_cols; x++) {
+        for (int y=0; y<num_rows; y++) {
+            // float complex imaginary = 0+1.0i;
+            // c = (c_rmin+(x*dx)) + ((c_imin+(y*dy))*imaginary);
 
-			// color = iterate(c);
-			fprintf(output, "%d\n", color_h[x*num_rows + y]);
-			fprintf(output, "%d\n", color_h[x*num_rows + y]);
-			fprintf(output, "%d\n\n", color_h[x*num_rows + y]);
-		}
-	}
+            // color = iterate(c);
+            fprintf(output, "%d\n", color_h[x*num_rows + y]);
+            fprintf(output, "%d\n", color_h[x*num_rows + y]);
+            fprintf(output, "%d\n\n", color_h[x*num_rows + y]);
+        }
+    }
 
-	fclose(output);
+    fclose(output);
 
         // free host memory
         free(color_h);
         // free devide memory
         cudaFree(color_d);
 
-	return 0;
+    return 0;
 }
+
 
 namespace py = pybind11;
 
-PYBIND11_PLUGIN(example) {
-    py::module m("example", "pybind11 example plugin");
-
-    m.def("start", &start, "Start mandelbrot calc");
-
-    return m.ptr();
+void init_ex14(py::module &m) {
+    m.def("mandelbrot", &mandelbrot, "Start mandelbrot calculation");
 }
