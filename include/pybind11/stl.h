@@ -77,7 +77,7 @@ public:
         pybind11::set s;
         for (auto const &value: src) {
             object value_ = object(key_conv::cast(value, policy, parent), false);
-            if (!value_ || !s.add(value))
+            if (!value_ || !s.add(value_))
                 return handle();
         }
         return s.release();
