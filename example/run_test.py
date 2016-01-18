@@ -55,6 +55,10 @@ reference = sanitize(open(name + '.ref', 'r').read())
 if 'NumPy missing' in output:
     print('Test "%s" could not be run.' % name)
     exit(0)
+elif 'no CUDA-capable device is detected' in output or \
+     'CUDA driver version is insufficient' in output:
+    print('Test "%s" could not be run (missing CUDA device).' % name)
+    exit(0)
 elif output == reference:
     print('Test "%s" succeeded.' % name)
     exit(0)
