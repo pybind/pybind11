@@ -209,11 +209,11 @@ public:
     operator type*() { return (type *) value; }
     operator type&() { return *((type *) value); }
 protected:
-    template <typename T = type, typename std::enable_if<std::is_copy_constructible<T>::value, int>::type = 0>
+    template <typename T = type, typename std::enable_if<detail::is_copy_constructible<T>::value, int>::type = 0>
     static void *copy_constructor(const void *arg) {
         return new type(*((const type *) arg));
     }
-    template <typename T = type, typename std::enable_if<!std::is_copy_constructible<T>::value, int>::type = 0>
+    template <typename T = type, typename std::enable_if<!detail::is_copy_constructible<T>::value, int>::type = 0>
     static void *copy_constructor(const void *) { return nullptr; }
 };
 
