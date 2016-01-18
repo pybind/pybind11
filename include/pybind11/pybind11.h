@@ -22,6 +22,9 @@
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#  if __GNUC__ >= 4
+#    pragma GCC diagnostic ignored "-Wno-invalid-offsetof"
+#  endif
 #endif
 
 #include "attr.h"
