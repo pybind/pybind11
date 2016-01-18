@@ -27,7 +27,7 @@ Changelog
 * Added conversions for additional exception types
 * Documentation improvements (using multiple extension modules, smart pointers,
   other minor clarifications)
-* unified infrastructure for parsing variadic arguments in class_ and cpp_function
+* unified infrastructure for parsing variadic arguments in ``class_`` and cpp_function
 * Fixed license text (was: ZLIB, should have been: 3-clause BSD)
 * Python 3.2 compatibility
 
