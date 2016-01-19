@@ -3,6 +3,7 @@ sudo: false
 
 cache:
   apt: true
+  pip: true
 
 addons:
   apt:
