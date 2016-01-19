@@ -115,6 +115,8 @@ set(PYBIND11_EXAMPLES
   example/example13.cpp
 )
 
+set(PYBIND11_FIRSTEXAMPLE 1)
+set(PYBIND11_LASTEXAMPLE 13)
 
 if(${CUDA_FOUND})
   macro(add_library_wrapper)
@@ -125,7 +127,8 @@ if(${CUDA_FOUND})
   add_definitions(-DPYBIND11_CUDA=1)
   list(APPEND CUDA_NVCC_FLAGS -std=c++11)
   list(APPEND CUDA_NVCC_FLAGS -arch=${CUDA_ARCH})
-  set(PYBIND11_EXAMPLES ${PYBIND11_EXAMPLES} example/example14.cu)
+  set(PYBIND11_EXAMPLES ${PYBIND11_EXAMPLES} example/example0.cu)
+  set(PYBIND11_FIRSTEXAMPLE 0)
 else()
   macro(add_library_wrapper)
     add_library(${ARGV})
@@ -207,9 +210,7 @@ endif()
 
 enable_testing()
 set(RUN_TEST ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/example/run_test.py)
-list(LENGTH PYBIND11_EXAMPLES PYBIND11_NUMEXAMPLES)
-math(EXPR PYBIND11_NUMEXAMPLES "${PYBIND11_NUMEXAMPLES} - 1")
-foreach(i RANGE 1 ${PYBIND11_NUMEXAMPLES})
+foreach(i RANGE ${PYBIND11_FIRSTEXAMPLE} ${PYBIND11_LASTEXAMPLE})
   add_test(NAME example${i} COMMAND ${RUN_TEST} example${i})
 endforeach()
 

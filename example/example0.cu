@@ -1,5 +1,5 @@
 /*
-    example/example14.cu -- CUDA acceleratred Mandelbrot example
+    example/example0.cu -- CUDA acceleratred Mandelbrot example
 
     Copyright (c) 2012-2016 Axel Huebl <a.huebl@hzdr.de>
 
@@ -157,6 +157,6 @@ int mandelbrot() {
 
 namespace py = pybind11;
 
-void init_ex14(py::module &m) {
+void init_ex0(py::module &m) {
     m.def("mandelbrot", &mandelbrot, "Start mandelbrot calculation");
 }
