@@ -261,12 +261,12 @@ public:
 };
 
 inline pybind11::str handle::str() const {
-    PyObject *str = PyObject_Str(m_ptr);
+    PyObject *strValue = PyObject_Str(m_ptr);
 #if PY_MAJOR_VERSION < 3
-    PyObject *unicode = PyUnicode_FromEncodedObject(str, "utf-8", nullptr);
-    Py_XDECREF(str); str = unicode;
+    PyObject *unicode = PyUnicode_FromEncodedObject(strValue, "utf-8", nullptr);
+    Py_XDECREF(strValue); strValue = unicode;
 #endif
-    return pybind11::str(str, false);
+    return pybind11::str(strValue, false);
 }
 
 class bytes : public object {
