@@ -9,7 +9,7 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 2.8)
+    cmake_minimum_required(VERSION 3.1)
 
     project(example)
 
@@ -46,10 +46,10 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
       CHECK_CXX_COMPILER_FLAG("-std=c++14" HAS_CPP14_FLAG)
       CHECK_CXX_COMPILER_FLAG("-std=c++11" HAS_CPP11_FLAG)
 
-      if (HAS_CPP14_FLAG)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-      elseif (HAS_CPP11_FLAG)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+      if (HAS_CPP11_FLAG)
+        set(CMAKE_CXX_STANDARD 14)
+      elseif (HAS_CPP14_FLAG)
+        set(CMAKE_CXX_STANDARD 11)
       else()
         message(FATAL_ERROR "Unsupported compiler -- at least C++11 support is needed!")
       endif()

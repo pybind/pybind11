@@ -1,7 +1,8 @@
 /*
     example/example.cpp -- pybind example plugin
 
-    Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
+    Copyright (c) 2015-2016 Wenzel Jakob <wenzel@inf.ethz.ch>
+                  2016 Axel Huebl <a.huebl@hzdr.de>
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
@@ -9,6 +10,9 @@
 
 #include "example.h"
 
+#if (PYBIND11_CUDA==1)
+void init_ex0(py::module &);
+#endif
 void init_ex1(py::module &);
 void init_ex2(py::module &);
 void init_ex3(py::module &);
@@ -26,6 +30,9 @@ void init_ex13(py::module &);
 PYBIND11_PLUGIN(example) {
     py::module m("example", "pybind example plugin");
 
+#if (PYBIND11_CUDA==1)
+    init_ex0(m);
+#endif
     init_ex1(m);
     init_ex2(m);
     init_ex3(m);

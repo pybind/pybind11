@@ -1,11 +1,20 @@
 language: cpp
 sudo: false
+
+cache:
+  apt: true
+  pip: true
+
 addons:
   apt:
     sources:
+      - george-edison55-precise-backports
       - ubuntu-toolchain-r-test
       - deadsnakes
     packages:
+      - cmake-data
+      - cmake
+      - g++-4.9
       - g++-4.8
       - g++-4.8-multilib
       - g++-multilib
@@ -13,6 +22,7 @@ addons:
       - python3.5-dev
       - python3.5-venv
       - python3.5-dev:i386
+
 matrix:
   include:
     - os: linux
@@ -24,8 +34,43 @@ matrix:
         - source venv/bin/activate
         - pip install numpy
         - CTEST_OUTPUT_ON_FAILURE=TRUE make test
+    - os: linux
+      compiler: gcc-4.9
+      env:
+        - CUDA_DIR: $HOME/.cache/cuda
+      cache:
+        directories:
+          - $HOME/.cache/cuda
+      before_script:
+        - python3.5-config --cflags --ldflags --libs
+        - export LD_LIBRARY_PATH=$CUDA_DIR/lib64:$LD_LIBRARY_PATH
+        - export PATH=$CUDA_DIR/bin:$PATH
+        - NVCC_FOUND=$(which nvcc >/dev/null && { echo 0; } || { echo 1; })
+        - echo $CUDA_DIR
+        - ls $CUDA_DIR/
+        - if [ $NVCC_FOUND -ne 0 ]; then
+            mkdir -p $CUDA_DIR &&
+            cd $CUDA_DIR &&
+            travis_retry wget http://developer.download.nvidia.com/compute/cuda/7.5/Prod/local_installers/cuda_7.5.18_linux.run &&
+            chmod u+x *.run &&
+            ./cuda_7.5.18_linux.run --silent --verbose --toolkit --toolkitpath=$CUDA_DIR &&
+            rm -f cuda_7.5.18_linux.run &&
+            cd -;
+          fi
+      script:
+        - pyvenv-3.5 venv
+        - export CXX=$(which g++-4.9)
+        - export CC=$(which gcc-4.9)
+        - cmake -DPYBIND11_PYTHON_VERSION=3.5 -DPYTHON_INCLUDE_DIR:PATH=/usr/include/python3.5m -DPYTHON_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libpython3.5m.so -DPYTHON_EXECUTABLE:FILEPATH=`pwd`/venv/bin/python3.5
+        - make -j 2
+        - source venv/bin/activate
+        - pip install numpy
+        - CTEST_OUTPUT_ON_FAILURE=TRUE make test
     - os: osx
       compiler: clang
+      before_install:
+        - brew update
+        - brew outdated cmake || brew upgrade cmake
       script:
         - cmake -DPYBIND11_PYTHON_VERSION=2.7
         - make -j 2
