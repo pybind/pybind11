@@ -191,14 +191,18 @@ NAMESPACE_BEGIN(detail)
 
 inline std::string error_string();
 
-/// PyObject wrapper around generic types
-template <typename type, typename holder_type = std::unique_ptr<type>> struct instance {
+/// Core part of the 'instance' type which POD (needed to be able to use 'offsetof')
+template <typename type> struct instance_essentials {
     PyObject_HEAD
     type *value;
     PyObject *parent;
     PyObject *weakrefs;
     bool owned : 1;
     bool constructed : 1;
+};
+
+/// PyObject wrapper around generic types, includes a special holder type that is responsible for lifetime management
+template <typename type, typename holder_type = std::unique_ptr<type>> struct instance : instance_essentials<type> {
     holder_type holder;
 };
 

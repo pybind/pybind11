@@ -22,9 +22,6 @@
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#  if __GNUC__ >= 4
-#    pragma GCC diagnostic ignored "-Wno-invalid-offsetof"
-#  endif
 #endif
 
 #include "attr.h"
@@ -566,7 +563,7 @@ protected:
         type->ht_type.tp_dealloc = rec->dealloc;
 
         /* Support weak references (needed for the keep_alive feature) */
-        type->ht_type.tp_weaklistoffset = offsetof(instance<void>, weakrefs);
+        type->ht_type.tp_weaklistoffset = offsetof(instance_essentials<void>, weakrefs);
 
         /* Flags */
         type->ht_type.tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
