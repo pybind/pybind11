@@ -94,10 +94,7 @@ set(PYBIND11_HEADERS
   include/pybind11/typeid.h
 )
 
-# Create the binding library
-add_library(example SHARED
-  ${PYBIND11_HEADERS}
-  example/example.cpp
+set(PYBIND11_EXAMPLES
   example/example1.cpp
   example/example2.cpp
   example/example3.cpp
@@ -111,6 +108,15 @@ add_library(example SHARED
   example/example11.cpp
   example/example12.cpp
   example/example13.cpp
+)
+set(PYBIND11_FIRSTEXAMPLE 1)
+list(LENGTH PYBIND11_EXAMPLES PYBIND11_LASTEXAMPLE)
+
+# Create the binding library
+add_library(example SHARED
+  ${PYBIND11_HEADERS}
+  example/example.cpp
+  ${PYBIND11_EXAMPLES}
 )
 
 # Don't add a 'lib' prefix to the shared library
@@ -181,7 +187,7 @@ endif()
 
 enable_testing()
 set(RUN_TEST ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/example/run_test.py)
-foreach(i RANGE 1 13)
+foreach(i RANGE ${PYBIND11_FIRSTEXAMPLE} ${PYBIND11_LASTEXAMPLE})
   add_test(NAME example${i} COMMAND ${RUN_TEST} example${i})
 endforeach()
 
