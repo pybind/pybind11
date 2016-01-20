@@ -29,15 +29,14 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
 
     # Try to autodetect Python (can be overridden manually if needed)
     set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
-    if (NOT ${PYBIND11_PYTHON_VERSION} STREQUAL "")
-      find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} EXACT)
+    if (NOT ${EXAMPLE_PYTHON_VERSION} STREQUAL "")
+      find_package(PythonLibs ${EXAMPLE_PYTHON_VERSION} EXACT)
       if (NOT PythonLibs_FOUND)
-        find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
+        find_package(PythonLibs ${EXAMPLE_PYTHON_VERSION} REQUIRED)
       endif()
     else()
       find_package(PythonLibs REQUIRED)
     endif()
-    find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
     # Uncomment the following line if you will also require a matching Python interpreter
     # find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
