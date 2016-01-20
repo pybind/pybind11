@@ -247,7 +247,7 @@ template <typename T, size_t N> struct intrinsic_type<T[N]>       { typedef type
 /** \brief SFINAE helper class to check if a copy constructor is usable (in contrast to 
  * std::is_copy_constructible, this class also checks if the 'new' operator is accessible */
 template <typename T>  struct is_copy_constructible {
-    template <typename T2> static std::true_type test(decltype(new T2(std::declval<std::add_lvalue_reference<T2>::type>())) *);
+    template <typename T2> static std::true_type test(decltype(new T2(std::declval<typename std::add_lvalue_reference<T2>::type>())) *);
     template <typename T2> static std::false_type test(...);
     static const bool value = std::is_same<std::true_type, decltype(test<T>(nullptr))>::value;
 };
