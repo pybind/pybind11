@@ -129,12 +129,17 @@ endforeach()
 
 if (WIN32)
   if (MSVC)
-    # Enforce size-based optimization and link time code generation
-    # on MSVC (~30% smaller binaries in experiments). /bigobj is needed
-    # for bigger binding projects due to the limit to 64k addressable sections
-    # /MP enables multithreaded builds (relevant when there are many files).
-    set_target_properties(example PROPERTIES COMPILE_FLAGS "/Os /GL /MP /bigobj")
-    set_target_properties(example PROPERTIES LINK_FLAGS "/LTCG")
+    # /bigobj is needed for bigger binding projects due to the limit to 64k
+    # addressable sections. /MP enables multithreaded builds (relevant when
+    # there are many files).
+    set_target_properties(example PROPERTIES COMPILE_FLAGS "/MP /bigobj ")
+
+    if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
+      # Enforce size-based optimization and link time code generation on MSVC
+      # (~30% smaller binaries in experiments).
+      set_target_properties(example APPEND_STRING PROPERTY COMPILE_FLAGS "/Os /GL ")
+      set_target_properties(example APPEND_STRING PROPERTY LINK_FLAGS "/LTCG ")
+    endif()
   endif()
 
   # .PYD file extension on Windows
@@ -151,7 +156,7 @@ elseif (UNIX)
   # conflicting Python instances are active at the same time (even when they
   # are of the same version).
 
-  # Windows is not affected by this issue since it handles DLL imports 
+  # Windows is not affected by this issue since it handles DLL imports
   # differently. The solution for Linux and Mac OS is simple: we just don't
   # link against the Python library. The resulting shared library will have
   # missing symbols, but that's perfectly fine -- they will be resolved at
