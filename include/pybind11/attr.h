@@ -250,24 +250,26 @@ template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Pat
     static void postcall(handle args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
 };
 
+/// Ignore that a variable is unused in compiler warnings
+template<class T> void ignore_unused(const T&) { }
 
 /// Recursively iterate over variadic template arguments
 template <typename... Args> struct process_attributes {
     static void init(const Args&... args, function_record *r) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        (void) unused; (void) r;
+        ignore_unused(unused);
     }
     static void init(const Args&... args, type_record *r) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
-        (void) unused; (void) r;
+        ignore_unused(unused);
     }
     static void precall(handle fn_args) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(fn_args), 0) ... };
-        (void) unused; (void) fn_args;
+        ignore_unused(unused);
     }
     static void postcall(handle fn_args, handle fn_ret) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(fn_args, fn_ret), 0) ... };
-        (void) unused; (void) fn_args; (void) fn_ret;
+        ignore_unused(unused);
     }
 };
 
