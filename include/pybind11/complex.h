@@ -12,6 +12,11 @@
 #include "pybind11.h"
 #include <complex>
 
+/// glibc defines I as a macro which breaks things, e.g., boost template names
+#ifdef I
+#  undef I
+#endif
+
 NAMESPACE_BEGIN(pybind11)
 
 PYBIND11_DECL_FMT(std::complex<float>, "Zf");
