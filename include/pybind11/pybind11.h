@@ -907,7 +907,11 @@ public:
                 ((it == entries->end()) ? std::string("???")
                                         : std::string(it->second));
         });
+        this->def("__init__", [](Type& value, int i) { value = (Type) i; });
         this->def("__int__", [](Type value) { return (int) value; });
+        this->def("__eq__", [](const Type &value, Type value2) { return value == value2; });
+        this->def("__ne__", [](const Type &value, Type value2) { return value != value2; });
+        this->def("__hash__", [](const Type &value) { return (int) value; });
         m_entries = entries;
     }
 

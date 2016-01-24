@@ -20,10 +20,39 @@ print(test_function())
 print(test_function(7))
 print(test_function(EMyEnumeration.EFirstEntry))
 print(test_function(EMyEnumeration.ESecondEntry))
+print("enum->integer = %i" % int(EMyEnumeration.ESecondEntry))
+print("integer->enum = %s" % str(EMyEnumeration(2)))
+
+print("A constant = " + str(some_constant))
 
 print(Example4.EMode)
 print(Example4.EMode.EFirstMode)
 print(Example4.EFirstMode)
 Example4.test_function(Example4.EFirstMode)
+
+print("Equality test 1: " + str(
+    Example4.test_function(Example4.EFirstMode) ==
+    Example4.test_function(Example4.EFirstMode)))
+
+print("Inequality test 1: " + str(
+    Example4.test_function(Example4.EFirstMode) !=
+    Example4.test_function(Example4.EFirstMode)))
+
+print("Equality test 2: " + str(
+    Example4.test_function(Example4.EFirstMode) ==
+    Example4.test_function(Example4.ESecondMode)))
+
+print("Inequality test 2: " + str(
+    Example4.test_function(Example4.EFirstMode) !=
+    Example4.test_function(Example4.ESecondMode)))
+
+x = {
+        Example4.test_function(Example4.EFirstMode): 1,
+        Example4.test_function(Example4.ESecondMode): 2
+}
+
+x[Example4.test_function(Example4.EFirstMode)] = 3
+x[Example4.test_function(Example4.ESecondMode)] = 4
+print("Hashing test = " + str(x))
 
 print_bytes(return_bytes())

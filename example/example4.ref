@@ -10,10 +10,30 @@ test_function(enum=1)
 None
 test_function(enum=2)
 None
+enum->integer = 2
+integer->enum = EMyEnumeration.ESecondEntry
+A constant = 14
 <class 'example.EMode'>
 EMode.EFirstMode
 EMode.EFirstMode
 Example4::test_function(enum=1)
+Example4::test_function(enum=1)
+Example4::test_function(enum=1)
+Equality test 1: True
+Example4::test_function(enum=1)
+Example4::test_function(enum=1)
+Inequality test 1: False
+Example4::test_function(enum=1)
+Example4::test_function(enum=2)
+Equality test 2: False
+Example4::test_function(enum=1)
+Example4::test_function(enum=2)
+Inequality test 2: True
+Example4::test_function(enum=1)
+Example4::test_function(enum=2)
+Example4::test_function(enum=1)
+Example4::test_function(enum=2)
+Hashing test = {EMode.EFirstMode: 3, EMode.ESecondMode: 4}
 bytes[0]=1
 bytes[1]=0
 bytes[2]=2

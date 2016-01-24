@@ -21,8 +21,9 @@ public:
         ESecondMode
     };
 
-    static void test_function(EMode mode) {
+    static EMode test_function(EMode mode) {
         std::cout << "Example4::test_function(enum=" << mode << ")" << std::endl;
+        return mode;
     }
 };
 
@@ -42,7 +43,7 @@ float test_function3(int i) {
 
 py::bytes return_bytes() {
     const char *data = "\x01\x00\x02\x00";
-    return py::bytes(std::string(data, 4));
+    return std::string(data, 4);
 }
 
 void print_bytes(py::bytes bytes) {
