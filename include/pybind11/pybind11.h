@@ -1004,9 +1004,6 @@ public:
       PyGILState_Release(state); 
 #endif
     }
-#if defined(WITH_THREAD)
-  PyEval_InitThreads();
-#endif
 };
 
 class gil_scoped_release {
