@@ -983,6 +983,7 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
     ((detail::type_info *) it->second)->implicit_conversions.push_back(implicit_caster);
 }
 
+#if defined(WITH_THREAD)
 inline void init_threading() { PyEval_InitThreads(); }
 
 class gil_scoped_acquire {
@@ -998,6 +999,7 @@ public:
     inline gil_scoped_release() { state = PyEval_SaveThread(); }
     inline ~gil_scoped_release() { PyEval_RestoreThread(state); }
 };
+#endif
 
 inline function get_overload(const void *this_ptr, const char *name)  {
     handle py_object = detail::get_object_handle(this_ptr);
