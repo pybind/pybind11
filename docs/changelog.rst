@@ -30,6 +30,10 @@ Changelog
 * unified infrastructure for parsing variadic arguments in ``class_`` and cpp_function
 * Fixed license text (was: ZLIB, should have been: 3-clause BSD)
 * Python 3.2 compatibility
+* Fixed remaining issues when accessing types in another plugin module
+* Added enum comparison and casting methods
+* Improved SFINAE-based detection of whether types are copy-constructible
+* Eliminated many warnings about unused variables and the use of ``offsetof()``
 
 1.1 (December 7, 2015)
 --------------------------
