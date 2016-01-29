@@ -59,20 +59,9 @@ PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
 PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp) {
     auto &types = get_internals().registered_types_cpp;
 
-    auto it = types.find(&tp);
-    if (it != types.end()) {
+    auto it = types.find(std::type_index(tp));
+    if (it != types.end())
         return (detail::type_info *) it->second;
-    } else {
-        /* Unknown type?! Since std::type_info* often varies across
-           module boundaries, the following does an explicit check */
-        for (auto const &type : types) {
-            auto *first = (const std::type_info *) type.first;
-            if (strcmp(first->name(), tp.name()) == 0) {
-                types[&tp] = type.second;
-                return (detail::type_info *) type.second;
-            }
-        }
-    }
     return nullptr;
 }
 
@@ -144,7 +133,7 @@ public:
         if (it_instance != internals.registered_instances.end() && !dont_cache)
             return handle((PyObject *) it_instance->second).inc_ref();
 
-        auto it = internals.registered_types_cpp.find(type_info);
+        auto it = internals.registered_types_cpp.find(std::type_index(*type_info));
         if (it == internals.registered_types_cpp.end()) {
             std::string tname = type_info->name();
             detail::clean_type_id(tname);

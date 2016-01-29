@@ -204,7 +204,7 @@ protected:
                 const std::type_info *t = types[type_index++];
                 if (!t)
                     pybind11_fail("Internal error while parsing type signature (1)");
-                auto it = registered_types.find(t);
+                auto it = registered_types.find(std::type_index(*t));
                 if (it != registered_types.end()) {
                     signature += ((const detail::type_info *) it->second)->type->tp_name;
                 } else {
@@ -524,7 +524,7 @@ protected:
         tinfo->type = (PyTypeObject *) type;
         tinfo->type_size = rec->type_size;
         tinfo->init_holder = rec->init_holder;
-        internals.registered_types_cpp[rec->type] = tinfo;
+        internals.registered_types_cpp[std::type_index(*(rec->type))] = tinfo;
         internals.registered_types_py[type] = tinfo;
 
         auto scope_module = (object) rec->scope.attr("__module__");
@@ -844,7 +844,7 @@ public:
 
     template <typename target> class_ alias() {
         auto &instances = pybind11::detail::get_internals().registered_types_cpp;
-        instances[&typeid(target)] = instances[&typeid(type)];
+        instances[std::type_index(typeid(target))] = instances[std::type_index(typeid(type))];
         return *this;
     }
 private:
@@ -976,8 +976,8 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
             PyErr_Clear();
         return result;
     };
-    auto & registered_types = detail::get_internals().registered_types_cpp;
-    auto it = registered_types.find(&typeid(OutputType));
+    auto &registered_types = detail::get_internals().registered_types_cpp;
+    auto it = registered_types.find(std::type_index(typeid(OutputType)));
     if (it == registered_types.end())
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
     ((detail::type_info *) it->second)->implicit_conversions.push_back(implicit_caster);

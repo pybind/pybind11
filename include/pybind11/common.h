@@ -71,6 +71,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
+#include <typeindex>
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
@@ -216,9 +217,9 @@ struct overload_hash {
 
 /// Internal data struture used to track registered instances and types
 struct internals {
-    std::unordered_map<const void *, void*> registered_types_cpp; // std::type_info* -> type_info
-    std::unordered_map<const void *, void*> registered_types_py;  // PyTypeObject* -> type_info
-    std::unordered_map<const void *, void*> registered_instances; // void * -> PyObject*
+    std::unordered_map<std::type_index, void*> registered_types_cpp; // std::type_index -> type_info
+    std::unordered_map<const void *, void*> registered_types_py;     // PyTypeObject* -> type_info
+    std::unordered_map<const void *, void*> registered_instances;    // void * -> PyObject*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
 };
 
