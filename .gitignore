@@ -23,3 +23,7 @@ MANIFEST
 /.ninja_*
 /*.ninja
 /docs/.build
+*.py[co]
+*.egg-info
+*~
+.DS_Store

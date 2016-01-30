@@ -3,16 +3,29 @@
 # Setup script for PyPI; use CMakeFile.txt to build the example application
 
 from setuptools import setup
+import os
+
+here = os.path.abspath(os.path.dirname(__file__))
+name = 'pybind11'
+
+packages = []
+for d, _, _ in os.walk(os.path.join(here, name)):
+    if os.path.exists(os.path.join(d, '__init__.py')):
+        packages.append(d[len(here) + 1:].replace(os.path.sep, '.'))
+
+version_ns = {}
+with open(os.path.join(here, name, '_version.py')) as f:
+        exec(f.read(), {}, version_ns)
 
 setup(
-    name='pybind11',
-    version='1.0',
+    name=name,
+    version=version_ns['__version__'],
     description='Seamless operability between C++11 and Python',
     author='Wenzel Jakob',
     author_email='wenzel@inf.ethz.ch',
     url='https://github.com/wjakob/pybind11',
     download_url='https://github.com/wjakob/pybind11/tarball/v1.0',
-    packages=[],
+    packages=packages,
     license='BSD',
     headers=[
         'include/pybind11/attr.h',
