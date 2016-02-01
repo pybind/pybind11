@@ -1,2 +1,1 @@
-include setup.py
 include include/pybind11/*.h
