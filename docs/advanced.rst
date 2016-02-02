@@ -12,6 +12,22 @@ present:
 
     namespace py = pybind11;
 
+Exporting constants and mutable objects
+=======================================
+
+To expose a C++ constant, use the ``attr`` function to register it in a module
+as shown below. The ``int_`` class is one of many small wrapper objects defined
+in ``pybind11/pytypes.h``. General objects (including integers) can also be
+converted using the function ``cast``.
+
+.. code-block:: cpp
+
+    PYBIND11_PLUGIN(example) {
+        py::module m("example", "pybind11 example plugin");
+        m.attr("MY_CONSTANT") = py::int_(123);
+        m.attr("MY_CONSTANT_2") = py::cast(new MyObject());
+    }
+
 Operator overloading
 ====================
 
@@ -280,7 +296,7 @@ Following this, we are able to define a constructor as usual.
 The Python session below shows how to override ``Animal::go`` and invoke it via
 a virtual method call.
 
-.. code-block:: cpp
+.. code-block:: python
 
     >>> from example import *
     >>> d = Dog()
