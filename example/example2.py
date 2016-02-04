@@ -3,6 +3,7 @@ from __future__ import print_function
 import sys, pydoc
 sys.path.append('.')
 
+import example
 from example import Example2
 
 Example2.value = 15
@@ -54,3 +55,9 @@ print(instance.pair_passthrough((True, "test")))
 print(instance.tuple_passthrough((True, "test", 5)))
 
 print(pydoc.render_doc(Example2, "Help on %s"))
+
+print("__name__(example) = %s" % example.__name__)
+print("__name__(example.Example2) = %s" % Example2.__name__)
+print("__module__(example.Example2) = %s" % Example2.__module__)
+print("__name__(example.Example2.get_set) = %s" % Example2.get_set.__name__)
+print("__module__(example.Example2.get_set) = %s" % Example2.get_set.__module__)

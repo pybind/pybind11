@@ -36,6 +36,9 @@ template <typename T> arg_t<T> arg::operator=(const T &value) { return arg_t<T>(
 /// Annotation for methods
 struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
 
+/// Annotation for parent scope
+struct scope { handle value; scope(const handle &s) : value(s) { } };
+
 /// Annotation for documentation
 struct doc { const char *value; doc(const char *value) : value(value) { } };
 
@@ -104,6 +107,9 @@ struct function_record {
 
     /// Python handle to the associated class (if this is method)
     handle class_;
+
+    /// Python handle to the parent scope (a class or a module)
+    handle scope;
 
     /// Python handle to the sibling function representing an overload chain
     handle sibling;
@@ -190,8 +196,14 @@ template <> struct process_attribute<sibling> : process_attribute_default<siblin
 
 /// Process an attribute which indicates that this function is a method
 template <> struct process_attribute<is_method> : process_attribute_default<is_method> {
-    static void init(const is_method &s, function_record *r) { r->class_ = s.class_; }
+    static void init(const is_method &s, function_record *r) { r->class_ = s.class_; r->scope = s.class_; }
 };
+
+/// Process an attribute which indicates the parent scope of a method
+template <> struct process_attribute<scope> : process_attribute_default<scope> {
+    static void init(const scope &s, function_record *r) { r->scope = s.value; }
+};
+
 
 /// Process a keyword argument attribute (*without* a default value)
 template <> struct process_attribute<arg> : process_attribute_default<arg> {

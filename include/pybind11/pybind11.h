@@ -263,10 +263,19 @@ protected:
             rec->def->ml_name = rec->name;
             rec->def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
+
             capsule rec_capsule(rec, [](PyObject *o) {
                 destruct((detail::function_record *) PyCapsule_GetPointer(o, nullptr));
             });
-            m_ptr = PyCFunction_New(rec->def, rec_capsule.ptr());
+
+            object scope_module;
+            if (rec->scope) {
+                scope_module = (object) rec->scope.attr("__module__");
+                if (!scope_module)
+                    scope_module = (object) rec->scope.attr("__name__");
+            }
+
+            m_ptr = PyCFunction_NewEx(rec->def, rec_capsule.ptr(), scope_module.ptr());
             if (!m_ptr)
                 pybind11_fail("cpp_function::cpp_function(): Could not allocate function object");
         } else {
@@ -467,7 +476,7 @@ public:
     template <typename Func, typename... Extra>
     module &def(const char *name_, Func &&f, const Extra& ... extra) {
         cpp_function func(std::forward<Func>(f), name(name_),
-                          sibling((handle) attr(name_)), extra...);
+                          sibling((handle) attr(name_)), scope(*this), extra...);
         /* PyModule_AddObject steals a reference to 'func' */
         PyModule_AddObject(ptr(), name_, func.inc_ref().ptr());
         return *this;
@@ -742,26 +751,26 @@ public:
     template <typename Func, typename... Extra> class_ &
     def_static(const char *name_, Func f, const Extra&... extra) {
         cpp_function cf(std::forward<Func>(f), name(name_),
-                        sibling(attr(name_)), extra...);
+                        sibling(attr(name_)), scope(*this), extra...);
         attr(cf.name()) = cf;
         return *this;
     }
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ &def(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.template execute<type>(*this, extra...);
+        op.template execute<type>(*this, is_method(*this), extra...);
         return *this;
     }
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ & def_cast(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.template execute_cast<type>(*this, extra...);
+        op.template execute_cast<type>(*this, is_method(*this), extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
     class_ &def(const detail::init<Args...> &init, const Extra&... extra) {
-        init.template execute<type>(*this, extra...);
+        init.template execute<type>(*this, is_method(*this), extra...);
         return *this;
     }
 
@@ -800,8 +809,8 @@ public:
     template <typename D, typename... Extra>
     class_ &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
         cpp_function fget([pm](object) -> const D &{ return *pm; },
-                          return_value_policy::reference_internal, extra...),
-                     fset([pm](object, const D &value) { *pm = value; }, extra...);
+                          return_value_policy::reference_internal, scope(*this), extra...),
+                     fset([pm](object, const D &value) { *pm = value; }, scope(*this), extra...);
         def_property_static(name, fget, fset);
         return *this;
     }
@@ -809,7 +818,7 @@ public:
     template <typename D, typename... Extra>
     class_ &def_readonly_static(const char *name, const D *pm, const Extra& ...extra) {
         cpp_function fget([pm](object) -> const D &{ return *pm; },
-                          return_value_policy::reference_internal, extra...);
+                          return_value_policy::reference_internal, scope(*this), extra...);
         def_property_readonly_static(name, fget);
         return *this;
     }

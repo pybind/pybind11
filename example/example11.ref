@@ -1,19 +1,19 @@
-Help on built-in function kw_func
+Help on built-in function kw_func in module example
 
 kkww__ffuunncc(...)
     Signature : (x : int, y : int) -> NoneType
 
-Help on built-in function kw_func2
+Help on built-in function kw_func2 in module example
 
 kkww__ffuunncc22(...)
     Signature : (x : int = 100L, y : int = 200L) -> NoneType
 
-Help on built-in function kw_func3
+Help on built-in function kw_func3 in module example
 
 kkww__ffuunncc33(...)
     Signature : (data : unicode = u'Hello world!') -> NoneType
 
-Help on built-in function kw_func4
+Help on built-in function kw_func4 in module example
 
 kkww__ffuunncc44(...)
     Signature : (myList : list<int> = [13L, 17L]) -> NoneType
