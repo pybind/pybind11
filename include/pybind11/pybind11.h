@@ -479,6 +479,7 @@ public:
                           sibling((handle) attr(name_)), scope(*this), extra...);
         /* PyModule_AddObject steals a reference to 'func' */
         PyModule_AddObject(ptr(), name_, func.inc_ref().ptr());
+        func.attr("__module__") = attr("__name__");
         return *this;
     }
 
