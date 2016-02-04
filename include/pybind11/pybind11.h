@@ -758,19 +758,19 @@ public:
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ &def(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.template execute<type>(*this, is_method(*this), extra...);
+        op.template execute<type>(*this, extra...);
         return *this;
     }
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ & def_cast(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.template execute_cast<type>(*this, is_method(*this), extra...);
+        op.template execute_cast<type>(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
     class_ &def(const detail::init<Args...> &init, const Extra&... extra) {
-        init.template execute<type>(*this, is_method(*this), extra...);
+        init.template execute<type>(*this, extra...);
         return *this;
     }
 
