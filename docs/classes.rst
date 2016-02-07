@@ -57,6 +57,11 @@ interactive Python session demonstrating this example is shown below:
     >>> p.getName()
     u'Charly'
 
+.. seealso::
+
+    Static member functions can be bound in the same way using
+    :func:`class_::def_static`.
+
 Keyword and default arguments
 =============================
 It is possible to specify keyword and default arguments using the syntax
