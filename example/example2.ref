@@ -17,6 +17,9 @@ list item 0: overwritten
 list item 1: value2
 list item 0: value
 list item 1: value2
+[u'array entry 1', u'array entry 2']
+array item 0: array entry 1
+array item 1: array entry 2
 This exception was intentionally thrown.
 (u'test', True)
 (5L, u'test', True)
@@ -29,6 +32,11 @@ class EExxaammppllee22(__builtin__.object)
  |  
  |  ____iinniitt____(...)
  |      x.__init__(...) initializes x; see help(type(x)) for signature
+ |  
+ |  ggeett__aarrrraayy(...)
+ |      Signature : (example.Example2) -> list<unicode>[2]
+ |      
+ |      Return a C++ array
  |  
  |  ggeett__ddiicctt(...)
  |      Signature : (example.Example2) -> dict
@@ -64,6 +72,11 @@ class EExxaammppllee22(__builtin__.object)
  |      Signature : (example.Example2, (bool, unicode)) -> (unicode, bool)
  |      
  |      Return a pair in reversed order
+ |  
+ |  pprriinntt__aarrrraayy(...)
+ |      Signature : (example.Example2, list<unicode>[2]) -> NoneType
+ |      
+ |      Print entries of a C++ array
  |  
  |  pprriinntt__ddiicctt(...)
  |      Signature : (example.Example2, dict) -> NoneType

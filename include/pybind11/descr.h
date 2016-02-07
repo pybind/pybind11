@@ -78,6 +78,15 @@ template <size_t Size> constexpr descr<Size - 1, 0> _(char const(&text)[Size]) {
     return descr<Size - 1, 0>(text, { nullptr });
 }
 
+template <size_t Rem, size_t... Digits> struct int_to_str : int_to_str<Rem/10, Rem%10, Digits...> { };
+template <size_t...Digits> struct int_to_str<0, Digits...> {
+    static constexpr auto digits = descr<sizeof...(Digits), 0>({ ('0' + Digits)..., '\0' }, { nullptr });
+};
+
+template <size_t Size> auto constexpr _() {
+    return int_to_str<Size / 10, Size % 10>::digits;
+}
+
 template <typename Type> constexpr descr<1, 1> _() {
     return descr<1, 1>({ '%', '\0' }, { &typeid(Type), nullptr });
 }
@@ -147,6 +156,11 @@ PYBIND11_NOINLINE inline descr _(const char *text) {
 template <typename Type> PYBIND11_NOINLINE descr _() {
     const std::type_info *types[2] = { &typeid(Type), nullptr };
     return descr("%", types);
+}
+
+template <size_t Size> PYBIND11_NOINLINE descr _() {
+    const std::type_info *types[1] = { nullptr };
+    return descr(std::to_string(Size).c_str(), types);
 }
 
 PYBIND11_NOINLINE inline descr concat() { return _(""); }

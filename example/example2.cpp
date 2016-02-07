@@ -66,6 +66,11 @@ public:
         return list;
     }
 
+    /* C++ STL data types are automatically casted */
+    std::array<std::string, 2> get_array() {
+        return std::array<std::string, 2> {{ "array entry 1" , "array entry 2"}};
+    }
+
     /* Easily iterate over a dictionary using a C++11 range-based for loop */
     void print_dict(py::dict dict) {
         for (auto item : dict)
@@ -114,6 +119,13 @@ public:
         return std::make_tuple(std::get<2>(input), std::get<1>(input), std::get<0>(input));
     }
 
+    /* STL data types (such as arrays) are automatically casted from Python */
+    void print_array(std::array<std::string, 2> &array) {
+        int index = 0;
+        for (auto item : array)
+            std::cout << "array item " << index++ << ": " << item << std::endl;
+    }
+
     void throw_exception() {
         throw std::runtime_error("This exception was intentionally thrown.");
     }
@@ -135,12 +147,14 @@ void init_ex2(py::module &m) {
         .def("get_list_2", &Example2::get_list_2, "Return a C++ list")
         .def("get_set", &Example2::get_set, "Return a Python set")
         .def("get_set2", &Example2::get_set, "Return a C++ set")
+        .def("get_array", &Example2::get_array, "Return a C++ array")
         .def("print_dict", &Example2::print_dict, "Print entries of a Python dictionary")
         .def("print_dict_2", &Example2::print_dict_2, "Print entries of a C++ dictionary")
         .def("print_set", &Example2::print_set, "Print entries of a Python set")
         .def("print_set_2", &Example2::print_set_2, "Print entries of a C++ set")
         .def("print_list", &Example2::print_list, "Print entries of a Python list")
         .def("print_list_2", &Example2::print_list_2, "Print entries of a C++ list")
+        .def("print_array", &Example2::print_array, "Print entries of a C++ array")
         .def("pair_passthrough", &Example2::pair_passthrough, "Return a pair in reversed order")
         .def("tuple_passthrough", &Example2::tuple_passthrough, "Return a triple in reversed order")
         .def("throw_exception", &Example2::throw_exception, "Throw an exception")

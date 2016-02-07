@@ -251,6 +251,8 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------+--------------------------+-----------------------+
 | std::complex<T>        | Complex numbers          | pybind11/complex.h    |
 +------------------------+--------------------------+-----------------------+
+| std::array<T, Size>    | STL static array         | pybind11/stl.h        |
++------------------------+--------------------------+-----------------------+
 | std::vector<T>         | STL dynamic array        | pybind11/stl.h        |
 +------------------------+--------------------------+-----------------------+
 | std::map<T1, T2>       | STL ordered map          | pybind11/stl.h        |

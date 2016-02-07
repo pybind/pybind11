@@ -46,6 +46,10 @@ list_result = instance.get_list_2()
 list_result.append('value2')
 instance.print_list_2(list_result)
 
+array_result = instance.get_array()
+print(array_result)
+instance.print_array(array_result)
+
 try:
     instance.throw_exception()
 except Exception as e:
