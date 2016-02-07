@@ -1,6 +1,7 @@
 To release a new version of pybind11:
 
-- Update `_version.py` (set release version, remove 'dev')
+- Update version macros in `include/pybind11/common.h`
+- Update `pybind11/_version.py` (set release version, remove 'dev')
 - `git add` and `git commit`.
 - `python setup.py sdist upload`.
 - `python setup.py bdist_wheel upload`.

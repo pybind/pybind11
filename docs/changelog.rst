@@ -3,7 +3,11 @@
 Changelog
 #########
 
-1.2 (not yet released)
+1.3 (not yet released)
+--------------------------
+* TBD
+
+1.2 (February 7, 2016)
 --------------------------
 
 * Optional: efficient generation of function signatures at compile time using C++14
@@ -34,6 +38,7 @@ Changelog
 * Added enum comparison and casting methods
 * Improved SFINAE-based detection of whether types are copy-constructible
 * Eliminated many warnings about unused variables and the use of ``offsetof()``
+* Support for ``std::array<>`` conversions
 
 1.1 (December 7, 2015)
 --------------------------
