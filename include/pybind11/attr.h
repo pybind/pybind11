@@ -20,6 +20,7 @@ template <typename T> struct arg_t;
 struct arg {
     arg(const char *name) : name(name) { }
     template <typename T> arg_t<T> operator=(const T &value);
+    template <typename T, size_t N> arg_t<const T *> operator=(T const (&value)[N]);
     const char *name;
 };
 
@@ -32,6 +33,9 @@ template <typename T> struct arg_t : public arg {
 };
 
 template <typename T> arg_t<T> arg::operator=(const T &value) { return arg_t<T>(name, value); }
+template <typename T, size_t N> arg_t<const T *> arg::operator=(T const (&value)[N]) {
+    return operator=((const T *) value);
+}
 
 /// Annotation for methods
 struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
