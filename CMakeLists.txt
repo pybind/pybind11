@@ -34,6 +34,8 @@ if (NOT ${PYBIND11_PYTHON_VERSION} STREQUAL "")
 else()
   find_package(PythonLibs REQUIRED)
 endif()
+# The above sometimes returns version numbers like "3.4.3+"; the "+" must be removed for the next line to work
+string(REPLACE "+" "" PYTHONLIBS_VERSION_STRING "+${PYTHONLIBS_VERSION_STRING}")
 find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")

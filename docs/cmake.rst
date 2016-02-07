@@ -38,6 +38,9 @@ and that the pybind11 repository is located in a subdirectory named :file:`pybin
       find_package(PythonLibs REQUIRED)
     endif()
 
+    # The above sometimes returns version numbers like "3.4.3+"; the "+" must be removed for the next lines to work
+    string(REPLACE "+" "" PYTHONLIBS_VERSION_STRING "+${PYTHONLIBS_VERSION_STRING}")
+
     # Uncomment the following line if you will also require a matching Python interpreter
     # find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
