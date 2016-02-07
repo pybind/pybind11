@@ -12,7 +12,7 @@ setup(
     author='Wenzel Jakob',
     author_email='wenzel@inf.ethz.ch',
     url='https://github.com/wjakob/pybind11',
-    download_url='https://github.com/wjakob/pybind11/tarball/v1.0',
+    download_url='https://github.com/wjakob/pybind11/tarball/v' + __version__,
     packages=['pybind11'],
     license='BSD',
     headers=[
@@ -43,6 +43,7 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'License :: OSI Approved :: BSD License',
     ],
     keywords='C++11, Python bindings',
