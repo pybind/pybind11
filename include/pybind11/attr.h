@@ -229,11 +229,21 @@ struct process_attribute<arg_t<T>> : process_attribute_default<arg_t<T>> {
         object o = object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(
                 a.value, return_value_policy::automatic, handle()), false);
 
-        if (!o)
-            pybind11_fail("arg(): could not convert default keyword "
-                          "argument into a Python object (type not "
-                          "registered yet?)");
-
+        if (!o) {
+#if !defined(NDEBUG)
+            std::string descr(typeid(T).name());
+            detail::clean_type_id(descr);
+            if (r->class_)
+                descr += " in method of " + (std::string) r->class_.str();
+            pybind11_fail("arg(): could not convert default keyword argument "
+                          "of type " + descr +
+                          " into a Python object (type not registered yet?)");
+#else
+            pybind11_fail("arg(): could not convert default keyword argument "
+                          "into a Python object (type not registered yet?). "
+                          "Compile in debug mode for more information.");
+#endif
+        }
         r->args.emplace_back(a.name, a.descr, o.release());
     }
 };
