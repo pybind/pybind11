@@ -215,8 +215,8 @@ struct vectorize_helper {
 				strides[i - 1] = strides[i] * shape[i];
 				size *= shape[i];
 			}
+			size *= shape[0];
         }
-		size *= shape[0];
 
         if (size == 1)
             return cast(f(*((Args *) buffers[Index].ptr)...));
