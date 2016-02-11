@@ -26,7 +26,7 @@ class short_vector
 
 public:
 
-	using std::array<T, N> data_type;
+	using data_type = std::array<T, N>;
 	using value_type = typename data_type::value_type;
 	using size_type = typename data_type::size_type;
 	using difference_type = typename data_type::difference_type;
@@ -47,7 +47,7 @@ public:
 	}
 
 	size_type size() const noexcept { return m_size; }
-	constexpr size_type max_size() noexcept { return m_data.max_size(); }
+	constexpr size_type max_size() const noexcept { return m_data.max_size(); }
 	bool empty() const noexcept { return m_size == 0; }
 
 	void resize(size_type size) { m_size = size; }

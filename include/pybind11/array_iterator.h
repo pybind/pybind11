@@ -16,29 +16,49 @@
 #pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
+/*
+	WARNING: These iterators are not a binding to numpy.nditer, there convenient classes for broadcasting in vectorize
+*/
+
 NAMESPACE_BEGIN(pybind11)
+
+template  <class T>
+using array_iterator = typename std::add_pointer<T>::type;
+
+template <class T>
+array_iterator<T> array_begin(const buffer_info& buffer)
+{
+	return array_iterator<T>(reinterpret_cast<T*>(buffer.ptr));
+}
+
+template <class T>
+array_iterator<T> array_end(const buffer_info& buffer)
+{
+	return array_iterator<T>(reinterpret_cast<T*>(buffer.ptr) + buffer.size);
+}
 
 NAMESPACE_BEGIN(detail)
 
-template <class S>
+template <class C>
 class common_iterator
 {
 
 public:
 
-	common_iterator() : p_ptr(0), m_strides() {}
-	common_iterator(void* ptr, const S& strides, const std::vector<size_t>& shape)
-		: p_ptr(reinterpret_cast<char*>(ptr), m_strides(strides.size())
-	{
-		using value_type = typename S::value_type;
-		using size_type = typename S::size_type;
+	using container_type = C;
+	using value_type = typename container_type::value_type;
+	using size_type = typename container_type::size_type;
 
+	common_iterator() : p_ptr(0), m_strides() {}
+	common_iterator(void* ptr, const container_type& strides, const std::vector<size_t>& shape)
+		: p_ptr(reinterpret_cast<char*>(ptr)), m_strides(strides.size())
+	{
 		m_strides.back() = static_cast<value_type>(strides.back());
-		for (size_type i = m_strides.size() - 1; --i; i != 0)
+		for (size_type i = m_strides.size() - 1; i != 0; --i)
 		{
 			size_type j = i - 1;
 			value_type s = static_cast<value_type>(shape[i]);
-			m_strides[j] = strides[j] - ((s - 1) * strides[i] + m_strides[i]);
+			m_strides[j] = strides[j] + m_strides[i] - strides[i] * s;
 		}
 	}
 
@@ -55,59 +75,44 @@ public:
 private:
 
 	char* p_ptr;
-	S m_strides;
+	container_type m_strides;
 };
-
-template <class C, class U>
-struct rebind_container_impl;
-
-template <class T, class A, class U>
-struct rebind_container_impl<std::vector<T, A>, U>
-{
-	typedef std::vector<U, A> type;
-};
-
-template <class T, size_t N, class U>
-struct rebind_container_impl<short_vector<T, N>, U>
-{
-	typedef short_vector<U, N> type;
-};
-
-template <class C, class U>
-using rebind_container = typename rebind_container_impl<C, U>;
 
 NAMESPACE_END(detail)
 
-template <class S, size_t N>
+template <class C, size_t N>
 class multi_array_iterator
 {
 
-	using int_container = rebind_container<S, int>;
-
 public:
 
+	using container_type = C;
+
 	multi_array_iterator(const std::array<buffer_info, N>& buffers,
-						 const std::vector<size_t>& strides,
 						 const std::vector<size_t>& shape)
 		: m_shape(shape.size()), m_index(shape.size(), 0), m_common_iterator()
 	{
-		std::copy(shape.begin(), shape.end(), m_shape.begin());
+		// Maual copy to avoid conversion warning if using std::copy
+		for (size_t i = 0; i < shape.size(); ++i)
+		{
+			m_shape[i] = static_cast<typename container_type::value_type>(shape[i]);
+		}
 
-		int_container new_strides(strides.size());
+		container_type strides(shape.size());
 		for (size_t i = 0; i < N; ++i)
 		{
-			init_common_iterator(buffers[i], strides, shape, m_common_iter[i], new_strides);
+			init_common_iterator(buffers[i], shape, m_common_iterator[i], strides);
 		}
 	}
 
 	multi_array_iterator& operator++()
 	{
-		for (size_t j = m_index.size(); --j; j != 0)
+		for (size_t j = m_index.size(); j != 0; --j)
 		{
 			size_t i = j - 1;
 			if (++m_index[i] != m_shape[i])
 			{
-				increment_common_iterator(m_index[i]);
+				increment_common_iterator(i);
 				break;
 			}
 			else
@@ -126,42 +131,43 @@ public:
 
 private:
 
-	void init_common_iterator(const buffer_info& buffer, const std::vector<size_t>& strides, const std::vector<size_t>& shape, common_iter& iterator, int_container& new_strides)
+	using common_iter = detail::common_iterator<container_type>;
+
+	void init_common_iterator(const buffer_info& buffer, const std::vector<size_t>& shape, common_iter& iterator, container_type& strides)
 	{
 		auto buffer_shape_iter = buffer.shape.rbegin();
-		auto strides_iter = strides.rbegin();
+		auto buffer_strides_iter = buffer.strides.rbegin();
 		auto shape_iter = shape.rbegin();
-		auto new_strides_iter = new_strides.rbegin();
+		auto strides_iter = strides.rbegin();
 
 		while (buffer_shape_iter != buffer.shape.rend())
 		{
 			if (*shape_iter == *buffer_shape_iter)
-				*new_stride_iter = static_cast<int>(*strides_iter);
+				*strides_iter = static_cast<int>(*buffer_strides_iter);
 			else
-				*new_strides_iter = 0;
+				*strides_iter = 0;
 
 			++buffer_shape_iter;
-			++strides_iter;
+			++buffer_strides_iter;
 			++shape_iter;
-			++new_strides_iter;
+			++strides_iter;
 		}
 
-		std::fill(new_strides_iter, strides.rend(), 0);
+		std::fill(strides_iter, strides.rend(), 0);
 
-		iterator = common_iter(buffer.ptr, new_strides, shape);
+		iterator = common_iter(buffer.ptr, strides, shape);
 	}
 
-	void increment_common_iterator(int dim)
+	void increment_common_iterator(size_t dim)
 	{
-		std::for_each(m_common_iterator.begin(), m_common_iterator.end(), [=](const common_iter& iter)
+		std::for_each(m_common_iterator.begin(), m_common_iterator.end(), [=](common_iter& iter)
 		{
 			iter.increment(dim);
 		});
 	}
 
-	S m_shape;
-	S m_index;
-	using common_iter = detail::common_iterator<int_container>;
+	container_type m_shape;
+	container_type m_index;
 	std::array<common_iter, N> m_common_iterator;
 };
 
