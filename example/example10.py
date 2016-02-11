@@ -22,3 +22,8 @@ for f in [vectorized_func, vectorized_func2]:
     print(f(np.array([1, 3]), np.array([2, 4]), 3))
     print(f(np.array([[1, 3, 5], [7, 9, 11]]), np.array([[2, 4, 6], [8, 10, 12]]), 3))
     print(np.array([[1, 3, 5], [7, 9, 11]])* np.array([[2, 4, 6], [8, 10, 12]])*3)
+    print(f(np.array([[1, 2, 3], [4, 5, 6]]), np.array([2, 3, 4]), 2))
+    print(np.array([[1, 2, 3], [4, 5, 6]])* np.array([2, 3, 4])* 2)
+    print(f(np.array([[1, 2, 3], [4, 5, 6]]), np.array([[2], [3]]), 2))
+    print(np.array([[1, 2, 3], [4, 5, 6]])* np.array([[2], [3]])* 2)
+
