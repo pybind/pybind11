@@ -54,7 +54,8 @@ public:
 	void resize(size_type size, const_reference t)
 	{
 		size_type old_size = m_size;
-		resize(size); std::fill(begin() + old_size, end(), t);
+		resize(size);
+		std::fill(begin() + old_size, end(), t);
 	}
 
 	reference operator[](size_type i) { return m_data[i]; }
