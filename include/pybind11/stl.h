@@ -10,8 +10,10 @@
 #pragma once
 
 #include "pybind11.h"
-#include <map>
 #include <set>
+#include <unordered_set>
+#include <map>
+#include <unordered_map>
 #include <iostream>
 
 #if defined(_MSC_VER)
@@ -22,77 +24,10 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
-template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>> {
-    typedef std::vector<Type, Alloc> vector_type;
-    typedef type_caster<Type> value_conv;
-public:
-    bool load(handle src, bool convert) {
-        list l(src, true);
-        if (!l.check())
-            return false;
-        value.reserve(l.size());
-        value.clear();
-        value_conv conv;
-        for (auto it : l) {
-            if (!conv.load(it, convert))
-                return false;
-            value.push_back((Type) conv);
-        }
-        return true;
-    }
-
-    static handle cast(const vector_type &src, return_value_policy policy, handle parent) {
-        list l(src.size());
-        size_t index = 0;
-        for (auto const &value: src) {
-            object value_ = object(value_conv::cast(value, policy, parent), false);
-            if (!value_)
-                return handle();
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
-        }
-        return l.release();
-    }
-    PYBIND11_TYPE_CASTER(vector_type, _("list<") + value_conv::name() + _(">"));
-};
-
-template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>> {
-    typedef std::array<Type, Size> array_type;
-    typedef type_caster<Type> value_conv;
-public:
-    bool load(handle src, bool convert) {
-        list l(src, true);
-        if (!l.check())
-            return false;
-        if (l.size() != Size)
-            return false;
-        value_conv conv;
-        size_t ctr = 0;
-        for (auto it : l) {
-            if (!conv.load(it, convert))
-                return false;
-            value[ctr++] = (Type) conv;
-        }
-        return true;
-    }
-
-    static handle cast(const array_type &src, return_value_policy policy, handle parent) {
-        list l(Size);
-        size_t index = 0;
-        for (auto const &value: src) {
-            object value_ = object(value_conv::cast(value, policy, parent), false);
-            if (!value_)
-                return handle();
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
-        }
-        return l.release();
-    }
-    PYBIND11_TYPE_CASTER(array_type, _("list<") + value_conv::name() + _(">") + _("[") + _<Size>() + _("]"));
-};
-
-template <typename Key, typename Compare, typename Alloc> struct type_caster<std::set<Key, Compare, Alloc>> {
-    typedef std::set<Key, Compare, Alloc> type;
+template <typename Type, typename Key> struct set_caster {
+    typedef Type type;
     typedef type_caster<Key> key_conv;
-public:
+
     bool load(handle src, bool convert) {
         pybind11::set s(src, true);
         if (!s.check())
@@ -116,12 +51,12 @@ public:
         }
         return s.release();
     }
+
     PYBIND11_TYPE_CASTER(type, _("set<") + key_conv::name() + _(">"));
 };
 
-template <typename Key, typename Value, typename Compare, typename Alloc> struct type_caster<std::map<Key, Value, Compare, Alloc>> {
-public:
-    typedef std::map<Key, Value, Compare, Alloc>  type;
+template <typename Type, typename Key, typename Value> struct map_caster {
+    typedef Type type;
     typedef type_caster<Key>   key_conv;
     typedef type_caster<Value> value_conv;
 
@@ -155,6 +90,85 @@ public:
 
     PYBIND11_TYPE_CASTER(type, _("dict<") + key_conv::name() + _(", ") + value_conv::name() + _(">"));
 };
+
+template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>> {
+    typedef std::vector<Type, Alloc> vector_type;
+    typedef type_caster<Type> value_conv;
+
+    bool load(handle src, bool convert) {
+        list l(src, true);
+        if (!l.check())
+            return false;
+        value.reserve(l.size());
+        value.clear();
+        value_conv conv;
+        for (auto it : l) {
+            if (!conv.load(it, convert))
+                return false;
+            value.push_back((Type) conv);
+        }
+        return true;
+    }
+
+    static handle cast(const vector_type &src, return_value_policy policy, handle parent) {
+        list l(src.size());
+        size_t index = 0;
+        for (auto const &value: src) {
+            object value_ = object(value_conv::cast(value, policy, parent), false);
+            if (!value_)
+                return handle();
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+        }
+        return l.release();
+    }
+    PYBIND11_TYPE_CASTER(vector_type, _("list<") + value_conv::name() + _(">"));
+};
+
+template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>> {
+    typedef std::array<Type, Size> array_type;
+    typedef type_caster<Type> value_conv;
+
+    bool load(handle src, bool convert) {
+        list l(src, true);
+        if (!l.check())
+            return false;
+        if (l.size() != Size)
+            return false;
+        value_conv conv;
+        size_t ctr = 0;
+        for (auto it : l) {
+            if (!conv.load(it, convert))
+                return false;
+            value[ctr++] = (Type) conv;
+        }
+        return true;
+    }
+
+    static handle cast(const array_type &src, return_value_policy policy, handle parent) {
+        list l(Size);
+        size_t index = 0;
+        for (auto const &value: src) {
+            object value_ = object(value_conv::cast(value, policy, parent), false);
+            if (!value_)
+                return handle();
+            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+        }
+        return l.release();
+    }
+    PYBIND11_TYPE_CASTER(array_type, _("list<") + value_conv::name() + _(">") + _("[") + _<Size>() + _("]"));
+};
+
+template <typename Key, typename Compare, typename Alloc> struct type_caster<std::set<Key, Compare, Alloc>>
+  : set_caster<std::set<Key, Compare, Alloc>, Key> { };
+
+template <typename Key, typename Hash, typename Equal, typename Alloc> struct type_caster<std::unordered_set<Key, Hash, Equal, Alloc>>
+  : set_caster<std::unordered_set<Key, Hash, Equal, Alloc>, Key> { };
+
+template <typename Key, typename Value, typename Compare, typename Alloc> struct type_caster<std::map<Key, Value, Compare, Alloc>>
+  : map_caster<std::map<Key, Value, Compare, Alloc>, Key, Value> { };
+
+template <typename Key, typename Value, typename Hash, typename Equal, typename Alloc> struct type_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>>
+  : map_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>, Key, Value> { };
 
 NAMESPACE_END(detail)
 
