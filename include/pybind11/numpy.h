@@ -259,7 +259,7 @@ struct vectorize_helper {
 
 		for (output_iterator iter = array_begin<Return>(output); iter != output_end; ++iter, ++input_iter)
 		{
-			*iter = f((input_iter.data<Index, Args>())...);
+			*iter = f((input_iter.template data<Index, Args>())...);
 		}
 
 	}
