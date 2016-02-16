@@ -17,7 +17,7 @@
 #endif
 
 /*
-	WARNING: These iterators are not a binding to numpy.nditer, there convenient classes for broadcasting in vectorize
+	WARNING: These iterators are not a binding to numpy.nditer, they're convenient classes for broadcasting in vectorize
 */
 
 NAMESPACE_BEGIN(pybind11)
@@ -92,7 +92,7 @@ public:
 						 const std::vector<size_t>& shape)
 		: m_shape(shape.size()), m_index(shape.size(), 0), m_common_iterator()
 	{
-		// Maual copy to avoid conversion warning if using std::copy
+		// Manual copy to avoid conversion warning if using std::copy
 		for (size_t i = 0; i < shape.size(); ++i)
 		{
 			m_shape[i] = static_cast<typename container_type::value_type>(shape[i]);
