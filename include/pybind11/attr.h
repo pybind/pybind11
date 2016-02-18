@@ -277,7 +277,7 @@ template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Pat
 };
 
 /// Ignore that a variable is unused in compiler warnings
-template<class T> void ignore_unused(const T&) { }
+inline void ignore_unused(const int *) { }
 
 /// Recursively iterate over variadic template arguments
 template <typename... Args> struct process_attributes {

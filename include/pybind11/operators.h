@@ -76,13 +76,13 @@ template <typename B, typename L, typename R> struct op_impl<op_##id, op_r, B, L
 };                                                                                     \
 inline op_<op_##id, op_l, self_t, self_t> op(const self_t &, const self_t &) {         \
     return op_<op_##id, op_l, self_t, self_t>();                                       \
-};                                                                                     \
+}                                                                                      \
 template <typename T> op_<op_##id, op_l, self_t, T> op(const self_t &, const T &) {    \
     return op_<op_##id, op_l, self_t, T>();                                            \
-};                                                                                     \
+}                                                                                      \
 template <typename T> op_<op_##id, op_r, T, self_t> op(const T &, const self_t &) {    \
     return op_<op_##id, op_r, T, self_t>();                                            \
-};
+}
 
 #define PYBIND11_INPLACE_OPERATOR(id, op, expr)                                          \
 template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L, R> { \
@@ -92,7 +92,7 @@ template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L
 };                                                                                     \
 template <typename T> op_<op_##id, op_l, self_t, T> op(const self_t &, const T &) {    \
     return op_<op_##id, op_l, self_t, T>();                                            \
-};
+}
 
 #define PYBIND11_UNARY_OPERATOR(id, op, expr)                                            \
 template <typename B, typename L> struct op_impl<op_##id, op_u, B, L, undefined_t> {   \
@@ -102,7 +102,7 @@ template <typename B, typename L> struct op_impl<op_##id, op_u, B, L, undefined_
 };                                                                                     \
 inline op_<op_##id, op_u, self_t, undefined_t> op(const self_t &) {                    \
     return op_<op_##id, op_u, self_t, undefined_t>();                                  \
-};
+}
 
 PYBIND11_BINARY_OPERATOR(sub,       rsub,         operator-,    l - r)
 PYBIND11_BINARY_OPERATOR(add,       radd,         operator+,    l + r)

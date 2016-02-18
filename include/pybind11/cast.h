@@ -519,8 +519,15 @@ public:
 
     explicit operator type*() { return this->value; }
     explicit operator type&() { return *(this->value); }
-    explicit operator holder_type&() { return holder; }
     explicit operator holder_type*() { return &holder; }
+
+    // Workaround for Intel compiler bug
+    // see pybind11 issue 94
+    #if defined(__ICC) || defined(__INTEL_COMPILER)
+    operator holder_type&() { return holder; }
+    #else
+    explicit operator holder_type&() { return holder; }
+    #endif
 
     static handle cast(const holder_type &src, return_value_policy policy, handle parent) {
         return type_caster_generic::cast(
