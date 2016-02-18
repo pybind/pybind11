@@ -155,32 +155,32 @@ template <typename T> struct handle_type_name<array_t<T>> {
 template <size_t N>
 bool broadcast(const std::array<buffer_info, N>& buffers, int& ndim, std::vector<size_t>& shape)
 {
-	ndim = std::accumulate(buffers.begin(), buffers.end(), 0, [](int res, const buffer_info& buf)
-	{
-		return std::max(res, buf.ndim);
-	});
+    ndim = std::accumulate(buffers.begin(), buffers.end(), 0, [](int res, const buffer_info& buf)
+    {
+	return std::max(res, buf.ndim);
+    });
 
-	shape = std::vector<size_t>(static_cast<size_t>(ndim), 1);
-	bool trivial_broadcast = true;
-	for (size_t i = 0; i < N; ++i)
+    shape = std::vector<size_t>(static_cast<size_t>(ndim), 1);
+    bool trivial_broadcast = true;
+    for (size_t i = 0; i < N; ++i)
+    {
+	auto res_iter = shape.rbegin();
+	bool i_trivial_broadcast = (buffers[i].size == 1) || (buffers[i].ndim == ndim);
+	for (auto shape_iter = buffers[i].shape.rbegin(); shape_iter != buffers[i].shape.rend(); ++shape_iter, ++res_iter)
 	{
-		auto res_iter = shape.rbegin();
-		bool i_trivial_broadcast = (buffers[i].size == 1) || (buffers[i].ndim == ndim);
-		for (auto shape_iter = buffers[i].shape.rbegin(); shape_iter != buffers[i].shape.rend(); ++shape_iter, ++res_iter)
-		{
-			if (*res_iter == 1)
-			{
-				*res_iter = *shape_iter;
-			}
-			else if ((*shape_iter != 1) && (*res_iter != *shape_iter))
-			{
-				pybind11_fail("pybind11::vectorize: incompatible size/dimension of inputs!");
-			}
-			i_trivial_broadcast = i_trivial_broadcast && (*res_iter == *shape_iter);
-		}
-		trivial_broadcast = trivial_broadcast && i_trivial_broadcast;
-	}
-	return trivial_broadcast;
+            if (*res_iter == 1)
+            {
+                *res_iter = *shape_iter;
+	    }
+	    else if ((*shape_iter != 1) && (*res_iter != *shape_iter))
+            {
+                pybind11_fail("pybind11::vectorize: incompatible size/dimension of inputs!");
+	    }
+	    i_trivial_broadcast = i_trivial_broadcast && (*res_iter == *shape_iter);
+    	}
+    	trivial_broadcast = trivial_broadcast && i_trivial_broadcast;
+    }
+    return trivial_broadcast;
 }
 
 template <typename Func, typename Return, typename... Args>
@@ -208,14 +208,15 @@ struct vectorize_helper {
 		
 		size_t size = 1;
         std::vector<size_t> strides(ndim);
-        if (ndim > 0) {
+        if (ndim > 0)
+        {
             strides[ndim-1] = sizeof(Return);
-			for (int i = ndim - 1; i > 0; --i)
-			{
-				strides[i - 1] = strides[i] * shape[i];
-				size *= shape[i];
-			}
-			size *= shape[0];
+	    for (int i = ndim - 1; i > 0; --i)
+            {
+		strides[i - 1] = strides[i] * shape[i];
+		size *= shape[i];
+	    }
+	    size *= shape[0];
         }
 
         if (size == 1)
@@ -228,41 +229,42 @@ struct vectorize_helper {
         buffer_info buf = result.request();
         Return *output = (Return *) buf.ptr;
 
-		if(trivial_broadcast)
-		{
-			/* Call the function */
-			for (size_t i=0; i<size; ++i)
-				output[i] = f((buffers[Index].size == 1
-								   ? *((Args *) buffers[Index].ptr)
-								   : ((Args *) buffers[Index].ptr)[i])...);
-		}
-		else if (shape.size() < SMALL_DIM)
-		{
-			apply_broadcast<short_vector<int>, N, Index...>(buffers, buf, index);
-		}
-		else
-		{
-			apply_broadcast<std::vector<int>, N, Index...>(buffers, buf, index);
-		}
+	if(trivial_broadcast)
+	{
+	    /* Call the function */
+	    for (size_t i=0; i<size; ++i)
+            {
+		output[i] = f((buffers[Index].size == 1
+			       ? *((Args *) buffers[Index].ptr)
+			       : ((Args *) buffers[Index].ptr)[i])...);
+            }
+	}
+	else if (shape.size() < SMALL_DIM)
+	{
+	    apply_broadcast<short_vector<int>, N, Index...>(buffers, buf, index);
+	}
+	else
+	{
+	    apply_broadcast<std::vector<int>, N, Index...>(buffers, buf, index);
+	}
 
         return result;
     }
 
-	template <class C, size_t N, size_t... Index>
-	void apply_broadcast(const std::array<buffer_info, N>& buffers, buffer_info& output, index_sequence<Index...>)
+    template <class C, size_t N, size_t... Index>
+    void apply_broadcast(const std::array<buffer_info, N>& buffers, buffer_info& output, index_sequence<Index...>)
+    {
+	using input_iterator = multi_array_iterator<C, N>;
+	using output_iterator = array_iterator<Return>;
+
+	input_iterator input_iter(buffers, output.shape);
+	output_iterator output_end = array_end<Return>(output);
+
+	for (output_iterator iter = array_begin<Return>(output); iter != output_end; ++iter, ++input_iter)
 	{
-		using input_iterator = multi_array_iterator<C, N>;
-		using output_iterator = array_iterator<Return>;
-
-		input_iterator input_iter(buffers, output.shape);
-		output_iterator output_end = array_end<Return>(output);
-
-		for (output_iterator iter = array_begin<Return>(output); iter != output_end; ++iter, ++input_iter)
-		{
-			*iter = f((input_iter.template data<Index, Args>())...);
-		}
-
+	    *iter = f((input_iter.template data<Index, Args>())...);
 	}
+    }
 };
 
 NAMESPACE_END(detail)
