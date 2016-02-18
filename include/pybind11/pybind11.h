@@ -974,7 +974,7 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
 
 NAMESPACE_END(detail)
 
-template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); };
+template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
 
 template <typename InputType, typename OutputType> void implicitly_convertible() {
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
