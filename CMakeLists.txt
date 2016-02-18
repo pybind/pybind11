@@ -38,7 +38,7 @@ endif()
 string(REPLACE "+" "" PYTHONLIBS_VERSION_STRING "+${PYTHONLIBS_VERSION_STRING}")
 find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Intel")
   CHECK_CXX_COMPILER_FLAG("-std=c++14" HAS_CPP14_FLAG)
   CHECK_CXX_COMPILER_FLAG("-std=c++11" HAS_CPP11_FLAG)
 
@@ -57,9 +57,16 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 
     # Check for Link Time Optimization support
+    # (GCC/Clang)
     CHECK_CXX_COMPILER_FLAG("-flto" HAS_LTO_FLAG)
     if (HAS_LTO_FLAG)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+    endif()
+
+    # Intel equivalent to LTO is called IPO
+    CHECK_CXX_COMPILER_FLAG("-ipo" HAS_IPO_FLAG)
+    if (HAS_IPO_FLAG)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ipo")
     endif()
   endif()
 endif()
