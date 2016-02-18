@@ -17,6 +17,8 @@
 #  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4512) // warning C4512: Assignment operator was implicitly defined as deleted
+#elif defined(__ICC) || defined(__INTEL_COMPILER)
+#  pragma warning(disable:2196)  // warning #2196: routine is both "inline" and "noinline"
 #elif defined(__GNUG__) and !defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
