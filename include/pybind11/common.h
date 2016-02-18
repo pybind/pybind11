@@ -149,7 +149,7 @@ enum class return_value_policy : int {
 
 /// Format strings for basic number types
 template <typename type> struct format_descriptor { };
-#define PYBIND11_DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; };
+#define PYBIND11_DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; }
 PYBIND11_DECL_FMT(int8_t,  "b"); PYBIND11_DECL_FMT(uint8_t,  "B"); PYBIND11_DECL_FMT(int16_t, "h"); PYBIND11_DECL_FMT(uint16_t, "H");
 PYBIND11_DECL_FMT(int32_t, "i"); PYBIND11_DECL_FMT(uint32_t, "I"); PYBIND11_DECL_FMT(int64_t, "q"); PYBIND11_DECL_FMT(uint64_t, "Q");
 PYBIND11_DECL_FMT(float,   "f"); PYBIND11_DECL_FMT(double,   "d"); PYBIND11_DECL_FMT(bool,    "?");
