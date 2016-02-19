@@ -64,9 +64,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
     endif()
 
     # Intel equivalent to LTO is called IPO
-    CHECK_CXX_COMPILER_FLAG("-ipo" HAS_IPO_FLAG)
-    if (HAS_IPO_FLAG)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ipo")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+      CHECK_CXX_COMPILER_FLAG("-ipo" HAS_IPO_FLAG)
+      if (HAS_IPO_FLAG)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ipo")
+      endif()
     endif()
   endif()
 endif()
