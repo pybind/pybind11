@@ -47,10 +47,11 @@ if path != '':
     os.chdir(path)
 
 if len(sys.argv) < 2:
-    print("Syntax: %s <example> [--relaxed]" % sys.argv[0])
+    print("Syntax: %s [--relaxed] <test name>" % sys.argv[0])
     exit(0)
 
-if len(sys.argv) == 3 and sys.argv[2] == '--relaxed':
+if len(sys.argv) == 3 and sys.argv[1] == '--relaxed':
+    del sys.argv[1]
     relaxed = True
 
 name = sys.argv[1]
