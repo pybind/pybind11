@@ -8,6 +8,7 @@ remove_long_marker    = re.compile(r'([0-9])L')
 remove_hex            = re.compile(r'0x[0-9a-fA-F]+')
 shorten_floats        = re.compile(r'([1-9][0-9]*\.[0-9]{4})[0-9]*')
 
+relaxed = False
 
 def sanitize(lines):
     lines = lines.split('\n')
@@ -26,7 +27,7 @@ def sanitize(lines):
         line = line.replace('example.EMode', 'EMode')
         line = line.replace('method of builtins.PyCapsule instance', '')
         line = line.strip()
-        if sys.platform == 'win32':
+        if relaxed:
             lower = line.lower()
             # The precise pattern of allocations and deallocations is dependent on the compiler
             # and optimization level, so we unfortunately can't reliably check it in this kind of test case
@@ -44,6 +45,13 @@ def sanitize(lines):
 path = os.path.dirname(__file__)
 if path != '':
     os.chdir(path)
+
+if len(sys.argv) < 2:
+    print("Syntax: %s <example> [--relaxed]" % sys.argv[0])
+    exit(0)
+
+if len(sys.argv) == 3 and sys.argv[2] == '--relaxed':
+    relaxed = True
 
 name = sys.argv[1]
 output_bytes = subprocess.check_output([sys.executable, name + ".py"],
