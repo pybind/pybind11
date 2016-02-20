@@ -162,14 +162,13 @@ array_iterator<T> array_end(const buffer_info& buffer) {
 }
 
 class common_iterator {
-
 public:
-
     using container_type = std::vector<size_t>;
     using value_type = container_type::value_type;
     using size_type = container_type::size_type;
 
     common_iterator() : p_ptr(0), m_strides() {}
+
     common_iterator(void* ptr, const container_type& strides, const std::vector<size_t>& shape)
         : p_ptr(reinterpret_cast<char*>(ptr)), m_strides(strides.size()) {
         m_strides.back() = static_cast<value_type>(strides.back());
@@ -189,30 +188,26 @@ public:
     }
 
 private:
-
     char* p_ptr;
     container_type m_strides;
 };
 
-template <size_t N>
-class multi_array_iterator {
-
+template <size_t N> class multi_array_iterator {
 public:
-
     using container_type = std::vector<size_t>;
 
-    multi_array_iterator(const std::array<buffer_info, N>& buffers,
-                         const std::vector<size_t>& shape)
-        : m_shape(shape.size()), m_index(shape.size(), 0), m_common_iterator() {
+    multi_array_iterator(const std::array<buffer_info, N> &buffers,
+                         const std::vector<size_t> &shape)
+        : m_shape(shape.size()), m_index(shape.size(), 0),
+          m_common_iterator() {
+
         // Manual copy to avoid conversion warning if using std::copy
-        for (size_t i = 0; i < shape.size(); ++i) {
+        for (size_t i = 0; i < shape.size(); ++i)
             m_shape[i] = static_cast<container_type::value_type>(shape[i]);
-        }
 
         container_type strides(shape.size());
-        for (size_t i = 0; i < N; ++i) {
+        for (size_t i = 0; i < N; ++i)
             init_common_iterator(buffers[i], shape, m_common_iterator[i], strides);
-        }
     }
 
     multi_array_iterator& operator++() {
@@ -221,16 +216,14 @@ public:
             if (++m_index[i] != m_shape[i]) {
                 increment_common_iterator(i);
                 break;
-            }
-            else {
+            } else {
                 m_index[i] = 0;
             }
         }
         return *this;
     }
 
-    template <size_t K, class T>
-    const T& data() const {
+    template <size_t K, class T> const T& data() const {
         return *reinterpret_cast<T*>(m_common_iterator[K].data());
     }
 
@@ -238,7 +231,9 @@ private:
 
     using common_iter = common_iterator;
 
-    void init_common_iterator(const buffer_info& buffer, const std::vector<size_t>& shape, common_iter& iterator, container_type& strides) {
+    void init_common_iterator(const buffer_info &buffer,
+                              const std::vector<size_t> &shape,
+                              common_iter &iterator, container_type &strides) {
         auto buffer_shape_iter = buffer.shape.rbegin();
         auto buffer_strides_iter = buffer.strides.rbegin();
         auto shape_iter = shape.rbegin();
@@ -261,18 +256,13 @@ private:
     }
 
     void increment_common_iterator(size_t dim) {
-        std::for_each(m_common_iterator.begin(), m_common_iterator.end(), [=](common_iter& iter) {
+        for (auto &iter : m_common_iterator)
             iter.increment(dim);
-        });
     }
 
     container_type m_shape;
     container_type m_index;
     std::array<common_iter, N> m_common_iterator;
-};
-
-template <typename T> struct handle_type_name<array_t<T>> {
-    static PYBIND11_DESCR name() { return _("array[") + type_caster<T>::name() + _("]"); }
 };
 
 template <size_t N>
@@ -286,13 +276,14 @@ bool broadcast(const std::array<buffer_info, N>& buffers, int& ndim, std::vector
     for (size_t i = 0; i < N; ++i) {
         auto res_iter = shape.rbegin();
         bool i_trivial_broadcast = (buffers[i].size == 1) || (buffers[i].ndim == ndim);
-        for (auto shape_iter = buffers[i].shape.rbegin(); shape_iter != buffers[i].shape.rend(); ++shape_iter, ++res_iter) {
-            if (*res_iter == 1) {
+        for (auto shape_iter = buffers[i].shape.rbegin();
+             shape_iter != buffers[i].shape.rend(); ++shape_iter, ++res_iter) {
+
+            if (*res_iter == 1)
                 *res_iter = *shape_iter;
-            }
-            else if ((*shape_iter != 1) && (*res_iter != *shape_iter)) {
+            else if ((*shape_iter != 1) && (*res_iter != *shape_iter))
                 pybind11_fail("pybind11::vectorize: incompatible size/dimension of inputs!");
-            }
+
             i_trivial_broadcast = i_trivial_broadcast && (*res_iter == *shape_iter);
         }
         trivial_broadcast = trivial_broadcast && i_trivial_broadcast;
@@ -350,8 +341,7 @@ struct vectorize_helper {
                                ? *((Args *) buffers[Index].ptr)
                                : ((Args *) buffers[Index].ptr)[i])...);
             }
-        }
-        else {
+        } else {
             apply_broadcast<N, Index...>(buffers, buf, index);
         }
 
@@ -359,17 +349,23 @@ struct vectorize_helper {
     }
 
     template <size_t N, size_t... Index>
-    void apply_broadcast(const std::array<buffer_info, N>& buffers, buffer_info& output, index_sequence<Index...>) {
+    void apply_broadcast(const std::array<buffer_info, N> &buffers,
+                         buffer_info &output, index_sequence<Index...>) {
         using input_iterator = multi_array_iterator<N>;
         using output_iterator = array_iterator<Return>;
 
         input_iterator input_iter(buffers, output.shape);
         output_iterator output_end = array_end<Return>(output);
 
-        for (output_iterator iter = array_begin<Return>(output); iter != output_end; ++iter, ++input_iter) {
+        for (output_iterator iter = array_begin<Return>(output);
+             iter != output_end; ++iter, ++input_iter) {
             *iter = f((input_iter.template data<Index, Args>())...);
         }
     }
+};
+
+template <typename T> struct handle_type_name<array_t<T>> {
+    static PYBIND11_DESCR name() { return _("array[") + type_caster<T>::name() + _("]"); }
 };
 
 NAMESPACE_END(detail)

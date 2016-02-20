@@ -27,9 +27,7 @@ setup(
         'include/pybind11/functional.h',
         'include/pybind11/operators.h',
         'include/pybind11/pytypes.h',
-        'include/pybind11/typeid.h',
-        'include/pybind11/short_vector.h',
-        'include/pybind11/array_iterator.h'
+        'include/pybind11/typeid.h'
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
