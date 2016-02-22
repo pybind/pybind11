@@ -5,7 +5,12 @@ Changelog
 
 1.3 (not yet released)
 --------------------------
-* TBD
+
+* Added support for the Intel C++ compiler (v15+)
+* Added support for the STL unordered set/map data structures
+* NumPy-style broadcasting support in ``pybind11::vectorize``
+* pybind11 now displays more verbose error messages when ``arg::operator=()`` fails.
+* Removed 'pybind11' python package whose purpose was never quite defined
 
 1.2 (February 7, 2016)
 --------------------------
