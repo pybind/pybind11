@@ -27,3 +27,4 @@ MANIFEST
 *.egg-info
 *~
 .DS_Store
+/dist
