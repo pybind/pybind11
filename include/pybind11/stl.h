@@ -15,6 +15,7 @@
 #include <map>
 #include <unordered_map>
 #include <iostream>
+#include <list>
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -91,26 +92,31 @@ template <typename Type, typename Key, typename Value> struct map_caster {
     PYBIND11_TYPE_CASTER(type, _("dict<") + key_conv::name() + _(", ") + value_conv::name() + _(">"));
 };
 
-template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>> {
-    typedef std::vector<Type, Alloc> vector_type;
-    typedef type_caster<Type> value_conv;
+template <typename Type, typename Value> struct list_caster {
+    typedef Type type;
+    typedef type_caster<Value> value_conv;
 
     bool load(handle src, bool convert) {
         list l(src, true);
         if (!l.check())
             return false;
-        value.reserve(l.size());
-        value.clear();
         value_conv conv;
+        value.clear();
+        reserve_maybe(l, &value);
         for (auto it : l) {
             if (!conv.load(it, convert))
                 return false;
-            value.push_back((Type) conv);
+            value.push_back((Value) conv);
         }
         return true;
     }
 
-    static handle cast(const vector_type &src, return_value_policy policy, handle parent) {
+    template <typename T = Type,
+              typename std::enable_if<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int>::type = 0>
+    void reserve_maybe(list l, Type *) { value.reserve(l.size()); }
+    void reserve_maybe(list, void *) { }
+
+    static handle cast(const Type &src, return_value_policy policy, handle parent) {
         list l(src.size());
         size_t index = 0;
         for (auto const &value: src) {
@@ -121,8 +127,15 @@ template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Al
         }
         return l.release();
     }
-    PYBIND11_TYPE_CASTER(vector_type, _("list<") + value_conv::name() + _(">"));
+
+    PYBIND11_TYPE_CASTER(Type, _("list<") + value_conv::name() + _(">"));
 };
+
+template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>>
+ : list_caster<std::vector<Type, Alloc>, Type> { };
+
+template <typename Type, typename Alloc> struct type_caster<std::list<Type, Alloc>>
+ : list_caster<std::list<Type, Alloc>, Type> { };
 
 template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>> {
     typedef std::array<Type, Size> array_type;
