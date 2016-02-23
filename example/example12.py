@@ -3,7 +3,7 @@ from __future__ import print_function
 import sys
 sys.path.append('.')
 
-from example import Example12, runExample12, runExample12Virtual
+from example import Example12, runExample12, runExample12Virtual, runExample12Bool
 
 
 class ExtendedExample12(Example12):
@@ -14,6 +14,10 @@ class ExtendedExample12(Example12):
     def run(self, value):
         print('ExtendedExample12::run(%i), calling parent..' % value)
         return super(ExtendedExample12, self).run(value + 1)
+
+    def run_bool(self):
+        print('ExtendedExample12::run_bool()')
+        return False
 
     def pure_virtual(self):
         print('ExtendedExample12::pure_virtual(): %s' % self.data)
@@ -28,4 +32,5 @@ except Exception as e:
 
 ex12p = ExtendedExample12(10)
 print(runExample12(ex12p, 20))
+print(runExample12Bool(ex12p))
 runExample12Virtual(ex12p)

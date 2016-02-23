@@ -27,6 +27,7 @@ public:
         return state + value;
     }
 
+    virtual bool run_bool() = 0;
     virtual void pure_virtual() = 0;
 private:
     int state;
@@ -47,6 +48,14 @@ public:
         );
     }
 
+    virtual bool run_bool() {
+        PYBIND11_OVERLOAD_PURE(
+            bool,
+            Example12,
+            run_bool
+        );
+    }
+
     virtual void pure_virtual() {
         PYBIND11_OVERLOAD_PURE(
             void,         /* Return type */
@@ -59,6 +68,10 @@ public:
 
 int runExample12(Example12 *ex, int value) {
     return ex->run(value);
+}
+
+bool runExample12Bool(Example12* ex) {
+    return ex->run_bool();
 }
 
 void runExample12Virtual(Example12 *ex) {
@@ -75,8 +88,10 @@ void init_ex12(py::module &m) {
         .def(py::init<int>())
         /* Reference original class in function definitions */
         .def("run", &Example12::run)
+        .def("run_bool", &Example12::run_bool)
         .def("pure_virtual", &Example12::pure_virtual);
 
     m.def("runExample12", &runExample12);
+    m.def("runExample12Bool", &runExample12Bool);
     m.def("runExample12Virtual", &runExample12Virtual);
 }
