@@ -102,7 +102,10 @@ public:
     PYBIND11_NOINLINE bool load(handle src, bool convert) {
         if (!src || !typeinfo)
             return false;
-        if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
+        if (src.ptr() == Py_None) {
+            value = nullptr;
+            return true;
+        } else if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
             value = ((instance<void> *) src.ptr())->value;
             return true;
         }
