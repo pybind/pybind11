@@ -54,6 +54,7 @@ public:
             Example12,
             run_bool
         );
+        throw std::runtime_error("this will never be reached");
     }
 
     virtual void pure_virtual() {
