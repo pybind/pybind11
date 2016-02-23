@@ -574,6 +574,7 @@ template <typename T> inline object cast(const T &value, return_value_policy pol
     return object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(value, policy, parent), false);
 }
 
+template <> inline bool handle::cast() const { return pybind11::cast<bool>(handle(m_ptr)); }
 template <typename T> inline T handle::cast() const { return pybind11::cast<T>(m_ptr); }
 template <> inline void handle::cast() const { return; }
 
