@@ -303,7 +303,11 @@ protected:
             signatures += "\n";
             if (it->doc && strlen(it->doc) > 0) {
                 signatures += "\n";
-                signatures += it->doc;
+                std::string str = it->doc;
+                size_t first = str.find_first_not_of(" \n\t\r");
+                size_t last = str.find_last_not_of(" \n\t\r");
+                if (first != std::string::npos)
+                    signatures += str.substr(first, last - first + 1);
                 signatures += "\n";
             }
             if (it->next)
