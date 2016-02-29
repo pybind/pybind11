@@ -81,7 +81,7 @@ public:
 
         /* Generate a readable signature describing the function's arguments and return value types */
         using detail::descr;
-        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
+        PYBIND11_DESCR signature = cast_in::name();
 
         /* Register the function with Python from generic (non-templated) code */
         initialize(rec, signature.text(), signature.types(), sizeof...(Args));
@@ -157,7 +157,7 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return value types */
         using detail::descr;
-        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
+        PYBIND11_DESCR signature = cast_in::name();
 
         /* Register the function with Python from generic (non-templated) code */
         initialize(rec, signature.text(), signature.types(), sizeof...(Args));
@@ -298,7 +298,7 @@ protected:
         for (auto it = chain_start; it != nullptr; it = it->next) {
             if (chain)
                 signatures += std::to_string(++index) + ". ";
-            signatures += "Signature : ";
+            signatures += rec->name;
             signatures += it->signature;
             signatures += "\n";
             if (it->doc && strlen(it->doc) > 0) {

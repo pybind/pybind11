@@ -13,7 +13,7 @@ Rabbit is a parrot
 Polly is a parrot
 Molly is a dog
 The following error is expected: Incompatible function arguments. The following argument types are supported:
-    1. (example.Dog) -> NoneType
+    1. (example.Dog)
 
 Callback function 1 called!
 False
