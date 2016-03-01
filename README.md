@@ -85,6 +85,16 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 3. Microsoft Visual Studio 2015 or newer
 4. Intel C++ compiler v15 or newer
 
+## About
+
+This project was created by [Wenzel Jakob](https://www.mitsuba-renderer.org/~wenzel/).
+Significant features and/or improvements to the code were contributed by
+Jonas Adler,
+Sylvain Corlay,
+Axel Huebl,
+Johan Mabille, and
+Tomasz Miąsko.
+
 ### License
 
 pybind11 is provided under a BSD-style license that can be found in the
