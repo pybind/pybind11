@@ -3,8 +3,7 @@
 # Setup script for PyPI; use CMakeFile.txt to build the example application
 
 from setuptools import setup
-
-__version__ = '1.3'
+from pybind11 import __version__
 
 setup(
     name='pybind11',
@@ -14,7 +13,7 @@ setup(
     author_email='wenzel@inf.ethz.ch',
     url='https://github.com/wjakob/pybind11',
     download_url='https://github.com/wjakob/pybind11/tarball/v' + __version__,
-    packages=[],
+    packages=['pybind11'],
     license='BSD',
     headers=[
         'include/pybind11/attr.h',
