@@ -404,6 +404,39 @@ protected:
     std::string value;
 };
 
+template <> class type_caster<wchar_t> {
+public:
+	bool load(handle src, bool) {
+		object temp;
+		handle load_src = src;
+		if (!PyUnicode_Check(load_src.ptr())) {
+			temp = object(PyUnicode_FromObject(load_src.ptr()), false);
+			if (!temp) { PyErr_Clear(); return false; }
+			load_src = temp;
+		}
+		wchar_t *buffer = PyUnicode_AS_UNICODE(load_src.ptr());
+		size_t length = PyUnicode_GET_SIZE(load_src.ptr());
+		value = std::wstring(buffer, length);
+		return true;
+	}
+
+	static handle cast(const wchar_t *src, return_value_policy /* policy */, handle /* parent */) {
+		return PyUnicode_FromWideChar(src, wcslen(src));
+	}
+
+	static handle cast(wchar_t src, return_value_policy /* policy */, handle /* parent */) {
+		wchar_t wstr[2] = { src, L'\0' };
+		return PyUnicode_FromWideChar(wstr, 1);
+	}
+
+	operator wchar_t*() { return (wchar_t *)value.c_str(); }
+	operator wchar_t() { if (value.length() > 0) return value[0]; else return L'\0'; }
+
+	static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
+protected:
+	std::wstring value;
+};
+
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
     typedef std::pair<T1, T2> type;
 public:
