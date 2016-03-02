@@ -348,6 +348,29 @@ public:
     PYBIND11_TYPE_CASTER(std::string, _(PYBIND11_STRING_NAME));
 };
 
+template <> class type_caster<std::wstring> {
+public:
+	bool load(handle src, bool) {
+		object temp;
+		handle load_src = src;
+		if (!PyUnicode_Check(load_src.ptr())) {
+			temp = object(PyUnicode_FromObject(load_src.ptr()), false);
+			if (!temp) { PyErr_Clear(); return false; }
+			load_src = temp;
+		}
+		wchar_t *buffer = PyUnicode_AS_UNICODE(load_src.ptr());
+		size_t length = PyUnicode_GET_SIZE(load_src.ptr());
+		value = std::wstring(buffer, length);
+		return true;
+	}
+
+	static handle cast(const std::wstring &src, return_value_policy /* policy */, handle /* parent */) {
+		return PyUnicode_FromWideChar(src.c_str(), src.length());
+	}
+
+	PYBIND11_TYPE_CASTER(std::wstring, _(PYBIND11_STRING_NAME));
+};
+
 template <> class type_caster<char> {
 public:
     bool load(handle src, bool) {
