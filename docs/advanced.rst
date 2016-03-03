@@ -1007,6 +1007,15 @@ default argument manually using the ``arg_t`` notation:
     py::class_<MyClass>("MyClass")
         .def("myFunction", py::arg_t<SomeType>("arg", SomeType(123), "SomeType(123)"));
 
+Sometimes it may be necessary to pass a null pointer value as a default
+argument. In this case, remember to cast it to the underlying type in question,
+like so:
+
+.. code-block:: cpp
+
+    py::class_<MyClass>("MyClass")
+        .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
+
 Partitioning code over multiple extension modules
 =================================================
 
