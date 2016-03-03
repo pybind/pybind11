@@ -500,10 +500,12 @@ public:
     using type_caster<type>::copy_constructor;
 
     bool load(handle src, bool convert) {
-        if (!src || !typeinfo)
+        if (!src || !typeinfo) {
             return false;
-
-        if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
+        } else if (src.ptr() == Py_None) {
+            value = nullptr;
+            return true;
+        } else if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
             auto inst = (instance<type, holder_type> *) src.ptr();
             value = inst->value;
             holder = inst->holder;
