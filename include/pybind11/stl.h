@@ -72,7 +72,7 @@ template <typename Type, typename Key, typename Value> struct map_caster {
             if (!kconv.load(it.first.ptr(), convert) ||
                 !vconv.load(it.second.ptr(), convert))
                 return false;
-            value[(Key) kconv] = (Value) vconv;
+            value.emplace((Key) kconv, (Value) vconv);
         }
         return true;
     }
