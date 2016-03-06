@@ -1019,8 +1019,8 @@ like so:
 Partitioning code over multiple extension modules
 =================================================
 
-It's straightforward to split binding code over multiple extension modules and
-reference types declared elsewhere. Everything "just" works without any special
+It's straightforward to split binding code over multiple extension modules, while
+referencing types that are declared elsewhere. Everything "just" works without any special
 precautions. One exception to this rule occurs when wanting to extend a type declared
 in another extension module. Recall the basic example from Section
 :ref:`inheritance`.
@@ -1049,3 +1049,17 @@ However, it can be acquired as follows:
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
+Alternatively, we can rely on the ``base`` tag, which performs an automated
+lookup of the corresponding Python type. However, this also requires invoking
+the ``import`` function once to ensure that the pybind11 binding code of the
+module ``basic`` has been executed.
+
+Naturally, both methods will fail when there are cyclic dependencies.
+
+.. code-block:: cpp
+
+    py::module::import("basic");
+
+    py::class_<Dog>(m, "Dog", py::base<Pet>())
+        .def(py::init<const std::string &>())
+        .def("bark", &Dog::bark);

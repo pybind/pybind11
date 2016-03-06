@@ -4,7 +4,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=latest)](http://pybind11.readthedocs.org/en/latest/?badge=latest)
 [![Build Status](https://travis-ci.org/pybind/pybind11.svg?branch=master)](https://travis-ci.org/pybind/pybind11)
-[![Build status](https://ci.appveyor.com/api/projects/status/riaj54pn4h08xy40?svg=true)](https://ci.appveyor.com/project/pybind/pybind11)
+[![Build status](https://ci.appveyor.com/api/projects/status/riaj54pn4h08xy40?svg=true)](https://ci.appveyor.com/project/wjakob/pybind11)
 
 **pybind11** is a lightweight header-only library that exposes C++ types in Python
 and vice versa, mainly to create Python bindings of existing C++ code. Its
@@ -92,8 +92,9 @@ Significant features and/or improvements to the code were contributed by
 Jonas Adler,
 Sylvain Corlay,
 Axel Huebl,
-Johan Mabille, and
-Tomasz Miąsko.
+Johan Mabille,
+Tomasz Miąsko, and
+Ben Pritchard.
 
 ### License
 
