@@ -34,12 +34,13 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     if (internals_ptr)
         return *internals_ptr;
     handle builtins(PyEval_GetBuiltins());
-    capsule caps(builtins["__pybind11__"]);
+    const char *id = PYBIND11_INTERNALS_ID;
+    capsule caps(builtins[id]);
     if (caps.check()) {
         internals_ptr = caps;
     } else {
         internals_ptr = new internals();
-        builtins["__pybind11__"] = capsule(internals_ptr);
+        builtins[id] = capsule(internals_ptr);
     }
     return *internals_ptr;
 }

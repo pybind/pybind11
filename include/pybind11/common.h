@@ -110,6 +110,10 @@
 #endif
 
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
+#define PYBIND11_STRINGIFY(x) #x
+#define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
+#define PYBIND11_INTERNALS_ID "__pybind11_" \
+    PYBIND11_TOSTRING(PYBIND11_VERSION_MAJOR) "_" PYBIND11_TOSTRING(PYBIND11_VERSION_MINOR) "__"
 
 #define PYBIND11_PLUGIN(name) \
     static PyObject *pybind11_init(); \
