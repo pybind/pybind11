@@ -567,7 +567,7 @@ template <typename T> inline T cast(handle handle) {
     detail::type_caster<typename detail::intrinsic_type<T>::type> conv;
     if (!conv.load(handle, true))
         throw cast_error("Unable to cast Python object to C++ type");
-    return conv;
+    return (T) conv;
 }
 
 template <typename T> inline object cast(const T &value, return_value_policy policy = return_value_policy::automatic, handle parent = handle()) {
