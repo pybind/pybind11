@@ -5,8 +5,7 @@ Changelog
 
 1.4 (not yet released)
 --------------------------
-TBD
-
+* Transparent type conversion for ``std::wstring`` and ``wchar_t``
 
 1.3 (March 8, 2016)
 --------------------------

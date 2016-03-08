@@ -60,9 +60,9 @@ public:
     }
 
     /* C++ STL data types are automatically casted */
-    std::vector<std::string> get_list_2() {
-        std::vector<std::string> list;
-        list.push_back("value");
+    std::vector<std::wstring> get_list_2() {
+        std::vector<std::wstring> list;
+        list.push_back(L"value");
         return list;
     }
 
@@ -103,10 +103,10 @@ public:
     }
 
     /* STL data types (such as vectors) are automatically casted from Python */
-    void print_list_2(std::vector<std::string> &list) {
+    void print_list_2(std::vector<std::wstring> &list) {
         int index = 0;
         for (auto item : list)
-            std::cout << "list item " << index++ << ": " << item << std::endl;
+            std::wcout << L"list item " << index++ << L": " << item << std::endl;
     }
 
     /* pybind automatically translates between C++11 and Python tuples */

@@ -92,6 +92,7 @@ Significant features and/or improvements to the code were contributed by
 Jonas Adler,
 Sylvain Corlay,
 Axel Huebl,
+@hulucc,
 Johan Mabille,
 Tomasz Miąsko, and
 Ben Pritchard.

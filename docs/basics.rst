@@ -241,9 +241,13 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +----------------------------+--------------------------+-----------------------+
 | char                       | Character literal        | pybind11/pybind11.h   |
 +----------------------------+--------------------------+-----------------------+
+| wchar_t                    | Wide character literal   | pybind11/pybind11.h   |
++----------------------------+--------------------------+-----------------------+
 | const char *               | UTF-8 string literal     | pybind11/pybind11.h   |
 +----------------------------+--------------------------+-----------------------+
 | std::string                | STL dynamic UTF-8 string | pybind11/pybind11.h   |
++----------------------------+--------------------------+-----------------------+
+| std::wstring               | STL dynamic wide string  | pybind11/pybind11.h   |
 +----------------------------+--------------------------+-----------------------+
 | std::pair<T1, T2>          | Pair of two custom types | pybind11/pybind11.h   |
 +----------------------------+--------------------------+-----------------------+
