@@ -295,6 +295,13 @@ protected:
         int index = 0;
         /* Create a nice pydoc rec including all signatures and
            docstrings of the functions in the overload chain */
+        if (chain) {
+            // First a generic signature
+            signatures += rec->name;
+            signatures += "(*args, **kwargs)\n";
+            signatures += "Overloaded function.\n\n";
+        }
+        // Then specific overload signatures
         for (auto it = chain_start; it != nullptr; it = it->next) {
             if (chain)
                 signatures += std::to_string(++index) + ". ";
