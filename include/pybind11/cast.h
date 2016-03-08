@@ -204,7 +204,7 @@ public:
 protected:
     template <typename T = type, typename std::enable_if<detail::is_copy_constructible<T>::value, int>::type = 0>
     static void *copy_constructor(const void *arg) {
-        return new type(*((const type *) arg));
+        return (void *) new type(*((const type *) arg));
     }
     template <typename T = type, typename std::enable_if<!detail::is_copy_constructible<T>::value, int>::type = 0>
     static void *copy_constructor(const void *) { return nullptr; }
@@ -508,7 +508,7 @@ public:
             return true;
         } else if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
             auto inst = (instance<type, holder_type> *) src.ptr();
-            value = inst->value;
+            value = (void *) inst->value;
             holder = inst->holder;
             return true;
         }
