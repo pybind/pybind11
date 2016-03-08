@@ -3,14 +3,21 @@
 Changelog
 #########
 
-1.3 (not yet released)
+1.4 (not yet released)
+--------------------------
+TBD
+
+
+1.3 (March 8, 2016)
 --------------------------
 
 * Added support for the Intel C++ compiler (v15+)
 * Added support for the STL unordered set/map data structures
+* Added support for the STL linked list data structure
 * NumPy-style broadcasting support in ``pybind11::vectorize``
 * pybind11 now displays more verbose error messages when ``arg::operator=()`` fails.
-* Removed 'pybind11' python package whose purpose was never quite defined
+* pybind11 internal data structures now live in a version-dependent namespace to avoid ABI issues
+* Many, many bugfixes involving corner cases and advanced usage
 
 1.2 (February 7, 2016)
 --------------------------
