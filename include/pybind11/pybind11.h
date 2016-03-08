@@ -81,7 +81,7 @@ public:
 
         /* Generate a readable signature describing the function's arguments and return value types */
         using detail::descr;
-        PYBIND11_DESCR signature = cast_in::name();
+        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
 
         /* Register the function with Python from generic (non-templated) code */
         initialize(rec, signature.text(), signature.types(), sizeof...(Args));
@@ -157,7 +157,7 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return value types */
         using detail::descr;
-        PYBIND11_DESCR signature = cast_in::name();
+        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
 
         /* Register the function with Python from generic (non-templated) code */
         initialize(rec, signature.text(), signature.types(), sizeof...(Args));
