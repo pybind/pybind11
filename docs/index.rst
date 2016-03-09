@@ -14,5 +14,6 @@ Contents:
    advanced
    cmake
    benchmark
+   faq
    reference
    changelog
