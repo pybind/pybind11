@@ -1,11 +1,26 @@
+Build systems
+#############
+
+Building with setuptools
+========================
+
+For projects on PyPI, building with setuptools is the way to go. Sylvain Corlay
+has kindly provided an example project which shows how to set up everything,
+including automatic generation of documentation using Sphinx. Please refer to
+the [pbtest]_ repository.
+
+.. [pbtest] https://github.com/pybind/pbtest
+
 .. _cmake:
 
 Building with CMake
 ===================
 
-The following snippet should be a good starting point to create bindings across
-platforms. It assumes that the code is located in a file named :file:`example.cpp`,
-and that the pybind11 repository is located in a subdirectory named :file:`pybind11`.
+For C++ codebases that already have an existing CMake-based build system, the
+following snippet should be a good starting point to create bindings across
+platforms. It assumes that the code is located in a file named
+:file:`example.cpp`, and that the pybind11 repository is located in a
+subdirectory named :file:`pybind11`.
 
 .. code-block:: cmake
 

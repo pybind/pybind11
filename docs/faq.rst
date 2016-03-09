@@ -30,8 +30,24 @@ provided by the caller -- in fact, it does nothing at all.
     def increment(i):
         i += 1 # nope..
 
-pybind11 is also affected by such language-level conventions, which means
-that binding ``increment`` or ``increment_ptr`` will also create Python functions that don't modify their arguments.
+pybind11 is also affected by such language-level conventions, which means that
+binding ``increment`` or ``increment_ptr`` will also create Python functions
+that don't modify their arguments.
 
-Although inconvenient, one workaround is to encapsulate the immutable types
-in a custom type that does allow modifications.
+Although inconvenient, one workaround is to encapsulate the immutable types in
+a custom type that does allow modifications. 
+
+An other alternative involves binding a small wrapper lambda function that
+returns a tuple with all output arguments (see the remainder of the
+documentation for examples on binding lambda functions). An example:
+
+.. code-block:: cpp
+
+    int foo(int &i) { i++; return 123; }
+
+and the binding code
+
+.. code-block:: cpp
+
+   m.def("foo", [](int i) { int rv = foo(i); return std::make_tuple(rv, i); });
+
