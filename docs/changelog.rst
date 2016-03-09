@@ -6,6 +6,8 @@ Changelog
 1.4 (not yet released)
 --------------------------
 * Transparent type conversion for ``std::wstring`` and ``wchar_t``
+* Improved docstring generation for compatibility with Sphinx
+* Anaconda package generation support
 
 1.3 (March 8, 2016)
 --------------------------
