@@ -1,6 +1,6 @@
 package:
   name: pybind11
-  version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+  version: {{ environ.get('GIT_DESCRIBE_TAG', '').replace('v', '') }}
 
 build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
@@ -22,5 +22,5 @@ test:
     - pybind11
 
 about:
-  home: https://github.com/wjakob/pybind11/
+  home: https://github.com/pybind/pybind11/
   summary: Seamless operability between C++11 and Python
