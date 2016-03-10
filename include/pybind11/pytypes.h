@@ -428,7 +428,7 @@ public:
 
 class function : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(function, object, PyFunction_Check)
+    PYBIND11_OBJECT_DEFAULT(function, object, PyCallable_Check)
     bool is_cpp_function() const {
         handle fun = detail::get_function(m_ptr);
         return fun && PyCFunction_Check(fun.ptr());

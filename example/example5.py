@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from functools import partial
 import sys
 sys.path.append('.')
 
@@ -37,8 +38,13 @@ def func2(a, b, c, d):
     print('Callback function 2 called : ' + str(a) + ", " + str(b) + ", " + str(c) + ", "+ str(d))
     return d
 
+def func3(a):
+    print('Callback function 3 called : ' + str(a))
+
 print(test_callback1(func1))
 print(test_callback2(func2))
+print(test_callback1(partial(func2, "Hello", "from", "partial", "object")))
+print(test_callback1(partial(func3, "Partial object with one argument")))
 
 test_callback3(lambda i: i + 1)
 f = test_callback4()
