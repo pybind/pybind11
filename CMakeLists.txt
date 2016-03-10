@@ -119,9 +119,8 @@ set(PYBIND11_EXAMPLES
   example/example11.cpp
   example/example12.cpp
   example/example13.cpp
+  example/issues.cpp
 )
-set(PYBIND11_FIRSTEXAMPLE 1)
-list(LENGTH PYBIND11_EXAMPLES PYBIND11_LASTEXAMPLE)
 
 # Create the binding library
 add_library(example SHARED
@@ -208,8 +207,9 @@ if (MSVC OR CMAKE_CXX_COMPILER_ID MATCHES "Intel")
   set(RUN_TEST ${RUN_TEST} --relaxed)
 endif()
 
-foreach(i RANGE ${PYBIND11_FIRSTEXAMPLE} ${PYBIND11_LASTEXAMPLE})
-  add_test(NAME example${i} COMMAND ${RUN_TEST} example${i})
+foreach(VALUE ${PYBIND11_EXAMPLES})
+  string(REGEX REPLACE "^example/(.+).cpp$" "\\1" EXAMPLE_NAME "${VALUE}")
+  add_test(NAME ${EXAMPLE_NAME} COMMAND ${RUN_TEST} ${EXAMPLE_NAME})
 endforeach()
 
 if (PYBIND11_INSTALL)

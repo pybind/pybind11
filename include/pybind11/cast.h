@@ -401,8 +401,6 @@ public:
     operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
 
     static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
-protected:
-    std::string value;
 };
 
 template <> class type_caster<wchar_t> : public type_caster<std::wstring> {
@@ -420,8 +418,6 @@ public:
 	operator wchar_t() { if (value.length() > 0) return value[0]; else return L'\0'; }
 
 	static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
-protected:
-	std::wstring value;
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
