@@ -1021,7 +1021,7 @@ Partitioning code over multiple extension modules
 
 It's straightforward to split binding code over multiple extension modules, while
 referencing types that are declared elsewhere. Everything "just" works without any special
-precautions. One exception to this rule occurs when wanting to extend a type declared
+precautions. One exception to this rule occurs when extending a type declared
 in another extension module. Recall the basic example from Section
 :ref:`inheritance`.
 
@@ -1063,3 +1063,55 @@ Naturally, both methods will fail when there are cyclic dependencies.
     py::class_<Dog>(m, "Dog", py::base<Pet>())
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
+
+Treating STL data structures as opaque objects
+==============================================
+
+pybind11 heavily relies on a template matching mechanism to convert parameters
+and return values that are constructed from STL data types such as vectors,
+linked lists, hash tables, etc. This even works in a recursive manner, for
+instance to deal with lists of hash maps of pairs of elementary and custom
+types, etc.
+
+The fundamental limitation of this approach is the internal conversion between
+Python and C++ types involves a copy operation that prevents pass-by-reference
+semantics. What does this mean?
+
+Suppose we bind the following function
+
+.. code-block:: cpp
+
+    void append_1(std::vector<int> &v) {
+       v.push_back(1);
+    }
+
+and call it as follows from Python:
+
+.. code-block:: python
+
+   >>> v = [5, 6]
+   >>> append_1(v)
+   >>> print(v)
+   [5, 6]
+
+As you can see, when passing STL data structures by reference, modifications
+are not propagated back the Python side. To deal with situations where this
+desirable, pybind11 contains a simple template wrapper class named ``opaque<T>``.
+
+``opaque<T>`` disables the underlying template machinery for
+``T`` and can be used to treat STL types as opaque objects, whose contents are
+never inspected or extracted (thus, they can be passed by reference).
+The downside of this approach is that it the binding code becomes a bit more
+wordy. The above function can be bound using the following wrapper code:
+
+.. code-block:: cpp
+
+   m.def("append_1", [](py::opaque<std::vector<int>> &v) { append_1(v); });
+
+Opaque types must also have a dedicated ``class_`` declaration to define a
+set of admissible operations.
+
+.. seealso::
+
+    The file :file:`example/example14.cpp` contains a complete example that
+    demonstrates how to create opaque types using pybind11 in more detail.

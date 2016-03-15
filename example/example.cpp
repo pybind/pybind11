@@ -22,6 +22,7 @@ void init_ex10(py::module &);
 void init_ex11(py::module &);
 void init_ex12(py::module &);
 void init_ex13(py::module &);
+void init_ex14(py::module &);
 void init_issues(py::module &);
 
 PYBIND11_PLUGIN(example) {
@@ -40,6 +41,7 @@ PYBIND11_PLUGIN(example) {
     init_ex11(m);
     init_ex12(m);
     init_ex13(m);
+    init_ex14(m);
     init_issues(m);
 
     return m.ptr();

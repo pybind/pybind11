@@ -17,6 +17,21 @@
 #include <limits>
 
 NAMESPACE_BEGIN(pybind11)
+
+/// Thin wrapper type used to treat certain data types as opaque (e.g. STL vectors, etc.)
+template <typename Type> class opaque {
+public:
+    template <typename... Args> opaque(Args&&... args) : value(std::forward<Args>(args)...) { }
+    operator Type&() { return value; }
+    operator const Type&() const { return value; }
+    operator Type*() { return &value; }
+    operator const Type*() const { return &value; }
+    Type* operator->() { return &value; }
+    const Type* operator->() const { return &value; }
+private:
+    Type value;
+};
+
 NAMESPACE_BEGIN(detail)
 
 /// Additional type information which does not fit into the PyTypeObject
