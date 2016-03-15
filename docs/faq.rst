@@ -51,3 +51,16 @@ and the binding code
 
    m.def("foo", [](int i) { int rv = foo(i); return std::make_tuple(rv, i); });
 
+Working with ancient Visual Studio 2009 builds on Windows
+=========================================================
+
+The official Windows distributions of Python are compiled using truly
+ancient versions of Visual Studio that lack good C++11 support. Some users
+implicitly assume that it would be impossible to load a plugin built with
+Visual Studio 2015 into a Python distribution that was compiled using Visual
+Studio 2009. However, no such issue exists: it's perfectly legitimate to
+interface DLLs that are built with different compilers and/or C libraries.
+Common gotchas to watch out for involve not ``free()``-ing memory region
+that that were ``malloc()``-ed in another shared library, using data
+structures with incompatible ABIs, and so on. pybind11 is very careful not
+to make these types of mistakes.
