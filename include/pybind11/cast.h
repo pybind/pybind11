@@ -401,22 +401,22 @@ public:
 	PYBIND11_TYPE_CASTER(std::wstring, _(PYBIND11_STRING_NAME));
 };
 
-template <> class type_caster<char> : public type_caster<std::string> {
-public:
-    static handle cast(const char *src, return_value_policy /* policy */, handle /* parent */) {
-        return PyUnicode_FromString(src);
-    }
-
-    static handle cast(char src, return_value_policy /* policy */, handle /* parent */) {
-        char str[2] = { src, '\0' };
-        return PyUnicode_DecodeLatin1(str, 1, nullptr);
-    }
-
-    operator char*() { return (char *) value.c_str(); }
-    operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
-
-    static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
-};
+//template <> class type_caster<char> : public type_caster<std::string> {
+//public:
+//    static handle cast(const char *src, return_value_policy /* policy */, handle /* parent */) {
+//        return PyUnicode_FromString(src);
+//    }
+//
+//    static handle cast(char src, return_value_policy /* policy */, handle /* parent */) {
+//        char str[2] = { src, '\0' };
+//        return PyUnicode_DecodeLatin1(str, 1, nullptr);
+//    }
+//
+//    operator char*() { return (char *) value.c_str(); }
+//    operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
+//
+//    static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
+//};
 
 template <> class type_caster<wchar_t> : public type_caster<std::wstring> {
 public:
