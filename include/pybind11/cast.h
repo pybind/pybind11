@@ -404,7 +404,7 @@ public:
 template <> class type_caster<char> {
 public:
 	bool load(handle src, bool) {
-		object temp;
+		//object temp;
 		handle load_src = src;
 		if (load_src.ptr() == Py_None) {
 			value = nullptr;
@@ -442,12 +442,13 @@ public:
 
 protected:
 	const char *value;
+	object temp;
 };
 
 template <> class type_caster<wchar_t> {
 public:
 	bool load(handle src, bool) {
-		object temp;
+		//object temp;
 		handle load_src = src;
 		if (load_src.ptr() == Py_None) {
 			value = nullptr;
@@ -497,6 +498,7 @@ public:
 
 protected:
 	const wchar_t *value;
+	object temp;
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
