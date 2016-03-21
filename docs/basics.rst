@@ -245,6 +245,8 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +----------------------------+--------------------------+-----------------------+
 | const char *               | UTF-8 string literal     | pybind11/pybind11.h   |
 +----------------------------+--------------------------+-----------------------+
+| const wchar_t *            | Wide string literal      | pybind11/pybind11.h   |
++----------------------------+--------------------------+-----------------------+
 | std::string                | STL dynamic UTF-8 string | pybind11/pybind11.h   |
 +----------------------------+--------------------------+-----------------------+
 | std::wstring               | STL dynamic wide string  | pybind11/pybind11.h   |
@@ -258,6 +260,8 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 | std::array<T, Size>        | STL static array         | pybind11/stl.h        |
 +----------------------------+--------------------------+-----------------------+
 | std::vector<T>             | STL dynamic array        | pybind11/stl.h        |
++----------------------------+--------------------------+-----------------------+
+| std::list<T>               | STL linked list          | pybind11/stl.h        |
 +----------------------------+--------------------------+-----------------------+
 | std::map<T1, T2>           | STL ordered map          | pybind11/stl.h        |
 +----------------------------+--------------------------+-----------------------+
