@@ -121,7 +121,7 @@ namespace {
         py::object ref; // keep a reference
         size_t index = 0;
     };
-};
+}
 
 void init_ex6(py::module &m) {
     py::class_<Sequence> seq(m, "Sequence");
