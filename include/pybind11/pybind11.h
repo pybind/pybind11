@@ -49,7 +49,7 @@ public:
     template <typename Return, typename... Args, typename... Extra>
     cpp_function(Return (*f)(Args...), const Extra&... extra) {
         auto rec = new detail::function_record();
-        rec->data = (void *) f;
+        rec->data = detail::func_to_voidp(f);
 
         typedef arg_value_caster<Args...> cast_in;
         typedef return_value_caster<Return> cast_out;
@@ -67,7 +67,7 @@ public:
 
             /* Do the call and convert the return value back into the Python domain */
             handle result = cast_out::cast(
-                args.template call<Return>((Return (*) (Args...)) rec->data),
+                args.template call<Return>(detail::voidp_to_func<Return,Args...>(rec->data)),
                 rec->policy, parent);
 
             /* Invoke call policy post-call hook */
