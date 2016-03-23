@@ -52,7 +52,7 @@ public:
         PYBIND11_OVERLOAD_PURE(
             bool,
             Example12,
-            run_bool
+            run_bool,
         );
         throw std::runtime_error("this will never be reached");
     }
@@ -61,7 +61,7 @@ public:
         PYBIND11_OVERLOAD_PURE(
             void,         /* Return type */
             Example12,    /* Parent class */
-            pure_virtual  /* Name of function */
+            pure_virtual,  /* Name of function */
                           /* This function has no arguments */
         );
     }

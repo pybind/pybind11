@@ -70,8 +70,8 @@ private:
 };
 
 /// Make pybind aware of the ref-counted wrapper type (s)
-PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>);
-PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>)
+PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
 
 Object *make_object_1() { return new MyObject1(1); }
 ref<Object> make_object_2() { return new MyObject1(2); }

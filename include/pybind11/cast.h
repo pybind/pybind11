@@ -34,6 +34,11 @@ private:
 
 NAMESPACE_BEGIN(detail)
 
+/// Convert from any type pointer to another avoding warnings about void* vs (void*()) incompatibility.
+template<typename A, typename B>
+A cast_any_ptr(B x) { return reinterpret_cast<A>(reinterpret_cast<uintptr_t>(x)); }
+
+
 /// Additional type information which does not fit into the PyTypeObject
 struct type_info {
     PyTypeObject *type;
