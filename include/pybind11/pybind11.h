@@ -67,7 +67,7 @@ public:
 
             /* Do the call and convert the return value back into the Python domain */
             handle result = cast_out::cast(
-					   args.template call<Return>(detail::cast_any_ptr<Return (*)(Args...)>(rec->data)),
+                                           args.template call<Return>(detail::cast_any_ptr<Return (*)(Args...)>(rec->data)),
                 rec->policy, parent);
 
             /* Invoke call policy post-call hook */
