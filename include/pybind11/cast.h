@@ -38,15 +38,6 @@ NAMESPACE_BEGIN(detail)
 template<typename A, typename B>
 A cast_any_ptr(B x) { return reinterpret_cast<A>(reinterpret_cast<uintptr_t>(x)); }
 
-/// Return (*)(Args...) -> void*
-template <typename Return, typename... Args>
-void * func_to_voidp(Return (*f)(Args...)) { return cast_any_ptr<void*>(f); }
-
-/// void* -> Return (*)(Args...)
-template <typename Return, typename... Args>
-Return (*voidp_to_func(void * f))(Args...) { return cast_any_ptr<Return (*)(Args...)>(f); }
-
-
 
 /// Additional type information which does not fit into the PyTypeObject
 struct type_info {
