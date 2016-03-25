@@ -798,34 +798,31 @@ public:
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
-        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; },
-                          is_method(*this), extra...),
-                     fset([pm](C &c, const D &value) { c.*pm = value; },
-                          is_method(*this), extra...);
-        def_property(name, fget, fset);
+        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(*this)),
+                     fset([pm](C &c, const D &value) { c.*pm = value; }, is_method(*this));
+        def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
         return *this;
     }
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
-        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; },
-                          is_method(*this), extra...);
-        def_property_readonly(name, fget);
+        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(*this));
+        def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
         return *this;
     }
 
     template <typename D, typename... Extra>
     class_ &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this), extra...),
-                     fset([pm](object, const D &value) { *pm = value; }, scope(*this), extra...);
-        def_property_static(name, fget, fset);
+        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this)),
+                     fset([pm](object, const D &value) { *pm = value; }, scope(*this));
+        def_property_static(name, fget, fset, return_value_policy::reference, extra...);
         return *this;
     }
 
     template <typename D, typename... Extra>
     class_ &def_readonly_static(const char *name, const D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this), extra...);
-        def_property_readonly_static(name, fget);
+        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this));
+        def_property_readonly_static(name, fget, return_value_policy::reference, extra...);
         return *this;
     }
 
@@ -843,8 +840,7 @@ public:
 
     template <typename... Extra>
     class_ &def_property(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
-        return def_property_static(name, fget, fset, is_method(*this),
-                                   return_value_policy::reference_internal, extra...);
+        return def_property_static(name, fget, fset, is_method(*this), extra...);
     }
 
     template <typename... Extra>
