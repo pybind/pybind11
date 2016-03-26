@@ -356,7 +356,8 @@ public:
             return handle(Py_None).inc_ref();
     }
 
-    operator void *() { return value; }
+    template <typename T> using cast_op_type = void*&;
+    operator void *&() { return value; }
 private:
     void *value = nullptr;
 };
