@@ -420,27 +420,89 @@ public:
 	PYBIND11_TYPE_CASTER(std::wstring, _(PYBIND11_STRING_NAME));
 };
 
-template <> class type_caster<char> : public type_caster<std::string> {
+template <> class type_caster<char> {
 public:
-    static handle cast(const char *src, return_value_policy /* policy */, handle /* parent */) {
-        return PyUnicode_FromString(src);
-    }
+	bool load(handle src, bool) {
+		//object temp;
+		handle load_src = src;
+		if (load_src.ptr() == Py_None) {
+			value = nullptr;
+			return true;
+		}
+		if (PyUnicode_Check(load_src.ptr())) {
+			temp = object(PyUnicode_AsUTF8String(load_src.ptr()), false);
+			if (!temp) { PyErr_Clear(); return false; }  // UnicodeEncodeError
+			load_src = temp;
+		}
+		char *buffer;
+		ssize_t length;
+		int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(load_src.ptr(), &buffer, &length);
+		if (err == -1) { PyErr_Clear(); return false; }  // TypeError
+		value = buffer;
+		return true;
+	}
 
-    static handle cast(char src, return_value_policy /* policy */, handle /* parent */) {
-        char str[2] = { src, '\0' };
-        return PyUnicode_DecodeLatin1(str, 1, nullptr);
-    }
+	static handle cast(const char *src, return_value_policy /* policy */, handle /* parent */) {
+		if (src == nullptr)
+			return handle(Py_None).inc_ref();
+		else
+			return PyUnicode_FromString(src);
+	}
 
-    operator char*() { return (char *) value.c_str(); }
-    operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
+	static handle cast(char src, return_value_policy /* policy */, handle /* parent */) {
+		char str[2] = { src, '\0' };
+		return PyUnicode_DecodeLatin1(str, 1, nullptr);
+	}
 
-    static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
+	static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
+
+	operator char*() { return const_cast<char*>(value); }
+	operator char() { if (value == nullptr || strlen(value) == 0) return '\0'; else return value[0]; }
+
+protected:
+	const char *value;
+	object temp;
 };
 
-template <> class type_caster<wchar_t> : public type_caster<std::wstring> {
+template <> class type_caster<wchar_t> {
 public:
+	bool load(handle src, bool) {
+		//object temp;
+		handle load_src = src;
+		if (load_src.ptr() == Py_None) {
+			value = nullptr;
+			return true;
+		}
+		if (!PyUnicode_Check(load_src.ptr())) {
+			temp = object(PyUnicode_FromObject(load_src.ptr()), false);
+			if (!temp) { PyErr_Clear(); return false; }
+			load_src = temp;
+		}
+		wchar_t *buffer = nullptr;
+		ssize_t length = -1;
+#if PY_MAJOR_VERSION >= 3
+		buffer = PyUnicode_AsWideCharString(load_src.ptr(), &length);
+#else
+		temp = object(
+			sizeof(wchar_t) == sizeof(short)
+			? PyUnicode_AsUTF16String(load_src.ptr())
+			: PyUnicode_AsUTF32String(load_src.ptr()), false);
+		if (temp) {
+			int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), (char **)&buffer, &length);
+			if (err == -1) { buffer = nullptr; }  // TypeError
+			length = length / sizeof(wchar_t) - 1; ++buffer; // Skip BOM
+		}
+#endif
+		if (!buffer) { PyErr_Clear(); return false; }
+		value = buffer;
+		return true;
+	}
+
 	static handle cast(const wchar_t *src, return_value_policy /* policy */, handle /* parent */) {
-		return PyUnicode_FromWideChar(src, wcslen(src));
+		if (src == nullptr)
+			return handle(Py_None).inc_ref();
+		else
+			return PyUnicode_FromWideChar(src, wcslen(src));
 	}
 
 	static handle cast(wchar_t src, return_value_policy /* policy */, handle /* parent */) {
@@ -448,10 +510,14 @@ public:
 		return PyUnicode_FromWideChar(wstr, 1);
 	}
 
-	operator wchar_t*() { return (wchar_t *)value.c_str(); }
-	operator wchar_t() { if (value.length() > 0) return value[0]; else return L'\0'; }
-
 	static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
+
+	operator wchar_t*() { return const_cast<wchar_t*>(value); }
+	operator wchar_t() { if (value == nullptr || wcslen(value) == 0) return L'\0'; else return value[0]; }
+
+protected:
+	const wchar_t *value;
+	object temp;
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
