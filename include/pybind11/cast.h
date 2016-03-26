@@ -507,8 +507,9 @@ protected:
     template <typename T> /* Used to select the right casting operator in the two functions below */
     using cast_target =
         typename std::conditional<
-            is_tuple<typename intrinsic_type<T>::type>::value, /* special case: tuple/pair -> pass by value */
-            typename intrinsic_type<T>::type,
+            is_specialization_of<typename intrinsic_type<T>::type, std::tuple>::value ||
+            is_specialization_of<typename intrinsic_type<T>::type, std::pair>::value,
+            typename intrinsic_type<T>::type, /* special case: tuple/pair -> pass by value */
             typename std::conditional<
                 std::is_pointer<T>::value,
                 typename std::add_pointer<typename intrinsic_type<T>::type>::type, /* pass using pointer */
