@@ -1,5 +1,5 @@
 /*
-    example/example14.cpp -- opaque types
+    example/example14.cpp -- opaque types, passing void pointers
 
     Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 
@@ -26,4 +26,7 @@ void init_ex14(py::module &m) {
         for (auto entry : l)
            std::cout << "  " << entry << std::endl; 
     });
+
+    m.def("return_void_ptr", []() { return (void *) 1234; });
+    m.def("print_void_ptr", [](void *ptr) { std::cout << "Got void ptr : " << (uint64_t) ptr << std::endl; });
 }

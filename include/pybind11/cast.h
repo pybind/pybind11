@@ -323,7 +323,26 @@ public:
     PYBIND11_TYPE_CASTER(void_type, _("NoneType"));
 };
 
-template <> class type_caster<void> : public type_caster<void_type> { };
+template <> class type_caster<void> : public type_caster<void_type> {
+public:
+    using type_caster<void_type>::cast;
+
+    bool load(handle h, bool) {
+        capsule c(h, true);
+        if (!c.check())
+            return false;
+        value = (void *) c;
+        return true;
+    }
+
+    static handle cast(void *ptr, return_value_policy /* policy */, handle /* parent */) {
+        return capsule(ptr).inc_ref();
+    }
+    operator void *() { return value; }
+private:
+    void *value;
+};
+
 template <> class type_caster<std::nullptr_t> : public type_caster<void_type> { };
 
 template <> class type_caster<bool> {
