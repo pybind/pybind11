@@ -391,6 +391,7 @@ public:
         int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(load_src.ptr(), &buffer, &length);
         if (err == -1) { PyErr_Clear(); return false; }  // TypeError
         value = std::string(buffer, length);
+        success = true;
         return true;
     }
 
@@ -399,6 +400,8 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(std::string, _(PYBIND11_STRING_NAME));
+protected:
+    bool success = false;
 };
 
 template <> class type_caster<std::wstring> {
@@ -428,6 +431,7 @@ public:
 #endif
         if (!buffer) { PyErr_Clear(); return false; }
 		value = std::wstring(buffer, length);
+		success = true;
 		return true;
 	}
 
@@ -436,11 +440,19 @@ public:
 	}
 
 	PYBIND11_TYPE_CASTER(std::wstring, _(PYBIND11_STRING_NAME));
+protected:
+    bool success = false;
 };
 
 template <> class type_caster<char> : public type_caster<std::string> {
 public:
+	bool load(handle src, bool convert) {
+	    if (src.ptr() == Py_None) { return true; }
+        return type_caster<std::string>::load(src, convert);
+    }
+
     static handle cast(const char *src, return_value_policy /* policy */, handle /* parent */) {
+        if (src == nullptr) return handle(Py_None).inc_ref();
         return PyUnicode_FromString(src);
     }
 
@@ -449,18 +461,21 @@ public:
         return PyUnicode_DecodeLatin1(str, 1, nullptr);
     }
 
-    operator char*() { return (char *) value.c_str(); }
-    operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
-
-    template <typename T>
-    using cast_op_type = typename std::conditional<std::is_pointer<T>::value, char*, char>::type;
+    operator char*() { return success ? (char *) value.c_str() : nullptr; }
+	operator char&() { return value[0]; }
 
     static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
 };
 
 template <> class type_caster<wchar_t> : public type_caster<std::wstring> {
 public:
+	bool load(handle src, bool convert) {
+	    if (src.ptr() == Py_None) { return true; }
+        return type_caster<std::wstring>::load(src, convert);
+    }
+
 	static handle cast(const wchar_t *src, return_value_policy /* policy */, handle /* parent */) {
+        if (src == nullptr) return handle(Py_None).inc_ref();
 		return PyUnicode_FromWideChar(src, wcslen(src));
 	}
 
@@ -469,8 +484,8 @@ public:
 		return PyUnicode_FromWideChar(wstr, 1);
 	}
 
-	operator wchar_t*() { return (wchar_t *)value.c_str(); }
-	operator wchar_t() { if (value.length() > 0) return value[0]; else return L'\0'; }
+    operator wchar_t*() { return success ? (wchar_t *) value.c_str() : nullptr; }
+	operator wchar_t&() { return value[0]; }
 
 	static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
 };

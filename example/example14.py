@@ -4,6 +4,8 @@ import sys
 sys.path.append('.')
 
 from example import StringList, print_opaque_list
+from example import return_void_ptr, print_void_ptr
+from example import return_null_str, print_null_str
 
 l = StringList()
 l.push_back("Element 1")
@@ -13,6 +15,7 @@ print("Back element is %s" % l.back())
 l.pop_back()
 print_opaque_list(l)
 
-from example import return_void_ptr, print_void_ptr
-
 print_void_ptr(return_void_ptr())
+
+print(return_null_str())
+print_null_str(return_null_str())

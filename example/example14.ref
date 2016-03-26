@@ -5,3 +5,5 @@ Back element is Element 2
 Opaque list: 
   Element 1
 Got void ptr : 1234
+None
+Got null str : 0

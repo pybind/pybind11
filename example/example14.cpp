@@ -29,4 +29,6 @@ void init_ex14(py::module &m) {
 
     m.def("return_void_ptr", []() { return (void *) 1234; });
     m.def("print_void_ptr", [](void *ptr) { std::cout << "Got void ptr : " << (uint64_t) ptr << std::endl; });
+    m.def("return_null_str", []() { return (char *) nullptr; });
+    m.def("print_null_str", [](char *ptr) { std::cout << "Got null str : " << (uint64_t) ptr << std::endl; });
 }
