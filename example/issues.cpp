@@ -15,4 +15,7 @@ void init_issues(py::module &m) {
 
     // #137: const char* isn't handled properly
     m2.def("print_cchar", [](const char *string) { std::cout << string << std::endl; });
+
+    // #150: char bindings broken
+    m2.def("print_char", [](char c) { std::cout << c << std::endl; });
 }

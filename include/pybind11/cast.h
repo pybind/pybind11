@@ -197,6 +197,12 @@ protected:
     object temp;
 };
 
+/* Determine suitable casting operator */
+template <typename T>
+using cast_op_type = typename std::conditional<std::is_pointer<T>::value,
+    typename std::add_pointer<typename intrinsic_type<T>::type>::type,
+    typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type>::type;
+
 /// Generic type caster for objects stored on the heap
 template <typename type, typename Enable = void> class type_caster : public type_caster_generic {
 public:
@@ -213,6 +219,8 @@ public:
     static handle cast(const type *src, return_value_policy policy, handle parent) {
         return type_caster_generic::cast(src, policy, parent, &typeid(type), &copy_constructor);
     }
+
+    template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
     operator type*() { return (type *) value; }
     operator type&() { return *((type *) value); }
@@ -234,7 +242,8 @@ protected:
             return cast(*src, policy, parent); \
         } \
         operator type*() { return &value; } \
-        operator type&() { return value; }
+        operator type&() { return value; } \
+        template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type) \
     namespace pybind11 { namespace detail { \
@@ -310,6 +319,7 @@ public:
     operator T*() { return &value; }
     operator T&() { return value; }
 
+    template <typename T2> using cast_op_type = pybind11::detail::cast_op_type<T2>;
 protected:
     T value;
 };
@@ -348,7 +358,7 @@ public:
 
     operator void *() { return value; }
 private:
-    void *value;
+    void *value = nullptr;
 };
 
 template <> class type_caster<std::nullptr_t> : public type_caster<void_type> { };
@@ -442,6 +452,9 @@ public:
     operator char*() { return (char *) value.c_str(); }
     operator char() { if (value.length() > 0) return value[0]; else return '\0'; }
 
+    template <typename T>
+    using cast_op_type = typename std::conditional<std::is_pointer<T>::value, char*, char>::type;
+
     static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
 };
 
@@ -489,6 +502,8 @@ public:
             _(", ") + type_caster<typename intrinsic_type<T2>::type>::name() + _(")"));
     }
 
+    template <typename T> using cast_op_type = type;
+
     operator type() {
         return type(first, second);
     }
@@ -526,29 +541,21 @@ public:
         return void_type();
     }
 
+    template <typename T> using cast_op_type = type;
+
     operator type() {
         return cast(typename make_index_sequence<sizeof...(Tuple)>::type());
     }
 
 protected:
-    template <typename T> /* Used to select the right casting operator in the two functions below */
-    using cast_target =
-        typename std::conditional<
-            is_specialization_of<typename intrinsic_type<T>::type, std::tuple>::value ||
-            is_specialization_of<typename intrinsic_type<T>::type, std::pair>::value,
-            typename intrinsic_type<T>::type, /* special case: tuple/pair -> pass by value */
-            typename std::conditional<
-                std::is_pointer<T>::value,
-                typename std::add_pointer<typename intrinsic_type<T>::type>::type, /* pass using pointer */
-                typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type /* pass using reference */
-            >::type>;
-
     template <typename ReturnValue, typename Func, size_t ... Index> ReturnValue call(Func &&f, index_sequence<Index...>) {
-        return f(std::get<Index>(value).operator typename cast_target<Tuple>::type()...);
+        return f(std::get<Index>(value)
+            .operator typename type_caster<typename intrinsic_type<Tuple>::type>::template cast_op_type<Tuple>()...);
     }
 
     template <size_t ... Index> type cast(index_sequence<Index...>) {
-        return type(std::get<Index>(value).operator typename cast_target<Tuple>::type()...);
+        return type(std::get<Index>(value)
+            .operator typename type_caster<typename intrinsic_type<Tuple>::type>::template cast_op_type<Tuple>()...);
     }
 
     template <size_t ... Indices> bool load(handle src, bool convert, index_sequence<Indices...>) {
