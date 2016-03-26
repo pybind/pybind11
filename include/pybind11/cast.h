@@ -328,6 +328,10 @@ public:
     using type_caster<void_type>::cast;
 
     bool load(handle h, bool) {
+        if (h.ptr() == Py_None) {
+            value = nullptr;
+            return true;
+        }
         capsule c(h, true);
         if (!c.check())
             return false;
@@ -336,8 +340,12 @@ public:
     }
 
     static handle cast(void *ptr, return_value_policy /* policy */, handle /* parent */) {
-        return capsule(ptr).inc_ref();
+        if (ptr)
+            return capsule(ptr).release();
+        else
+            return handle(Py_None).inc_ref();
     }
+
     operator void *() { return value; }
 private:
     void *value;
