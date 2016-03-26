@@ -257,11 +257,6 @@ template <typename T>  struct is_copy_constructible {
     static const bool value = std::is_same<std::true_type, decltype(test<T>(nullptr))>::value;
 };
 
-template <typename T, template <typename...> class Template>
-struct is_specialization_of : std::false_type {};
-template <template <typename...> class Template, typename... Args>
-struct is_specialization_of<Template<Args...>, Template> : std::true_type {};
-
 /// Helper type to replace 'void' in some expressions
 struct void_type { };
 
