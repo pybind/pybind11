@@ -257,6 +257,11 @@ template <typename T>  struct is_copy_constructible {
     static const bool value = std::is_same<std::true_type, decltype(test<T>(nullptr))>::value;
 };
 
+/// Helper type determine if another type is a variant of a pair/tuple
+template <typename T> struct is_tuple : std::false_type { };
+template <typename... Args> struct is_tuple <std::tuple<Args...>> : std::true_type { };
+template <typename... Args> struct is_tuple <std::pair<Args...>> : std::true_type { };
+
 /// Helper type to replace 'void' in some expressions
 struct void_type { };
 

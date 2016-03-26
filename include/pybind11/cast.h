@@ -504,12 +504,23 @@ public:
     }
 
 protected:
+    template <typename T> /* Used to select the right casting operator in the two functions below */
+    using cast_target =
+        typename std::conditional<
+            is_tuple<typename intrinsic_type<T>::type>::value, /* special case: tuple/pair -> pass by value */
+            typename intrinsic_type<T>::type,
+            typename std::conditional<
+                std::is_pointer<T>::value,
+                typename std::add_pointer<typename intrinsic_type<T>::type>::type, /* pass using pointer */
+                typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type /* pass using reference */
+            >::type>;
+
     template <typename ReturnValue, typename Func, size_t ... Index> ReturnValue call(Func &&f, index_sequence<Index...>) {
-        return f((Tuple) std::get<Index>(value)...);
+        return f(std::get<Index>(value).operator typename cast_target<Tuple>::type()...);
     }
 
     template <size_t ... Index> type cast(index_sequence<Index...>) {
-        return type((Tuple) std::get<Index>(value)...);
+        return type(std::get<Index>(value).operator typename cast_target<Tuple>::type()...);
     }
 
     template <size_t ... Indices> bool load(handle src, bool convert, index_sequence<Indices...>) {
