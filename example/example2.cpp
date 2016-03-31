@@ -11,6 +11,11 @@
 #include "example.h"
 #include <pybind11/stl.h>
 
+#ifdef _WIN32
+#  include <io.h>
+#  include <fcntl.h>
+#endif
+
 class Example2 {
 public:
     static Example2 *new_instance() {
@@ -104,6 +109,9 @@ public:
 
     /* STL data types (such as vectors) are automatically casted from Python */
     void print_list_2(std::vector<std::wstring> &list) {
+#ifdef _WIN32 /* Can't easily mix cout and wcout on Windows */
+        _setmode(_fileno(stdout), _O_TEXT);
+#endif
         int index = 0;
         for (auto item : list)
             std::wcout << L"list item " << index++ << L": " << item << std::endl;
