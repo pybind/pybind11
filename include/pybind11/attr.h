@@ -233,11 +233,17 @@ struct process_attribute<arg_t<T>> : process_attribute_default<arg_t<T>> {
 #if !defined(NDEBUG)
             std::string descr(typeid(T).name());
             detail::clean_type_id(descr);
-            if (r->class_)
-                descr += " in method of " + (std::string) r->class_.str();
+            descr = "'" + std::string(a.name) + ": " + descr + "'";
+            if (r->class_) {
+                if (r->name)
+                    descr += " in method '" + (std::string) r->class_.str() + "." + (std::string) r->name + "'";
+                else
+                    descr += " in method of '" + (std::string) r->class_.str() + "'";
+            } else if (r->name) {
+                descr += " in function named '" + (std::string) r->name + "'";
+            }
             pybind11_fail("arg(): could not convert default keyword argument "
-                          "of type " + descr +
-                          " into a Python object (type not registered yet?)");
+                          + descr + " into a Python object (type not registered yet?)");
 #else
             pybind11_fail("arg(): could not convert default keyword argument "
                           "into a Python object (type not registered yet?). "
