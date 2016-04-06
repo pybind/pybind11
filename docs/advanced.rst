@@ -527,8 +527,39 @@ Python side:
 
     py::implicitly_convertible<A, B>();
 
+Unique pointers
+===============
+
+Given a class ``Example`` with Python bindings, it's possible to return
+instances wrapped in C++11 unique pointers, like so
+
+.. code-block:: cpp
+
+    std::unique_ptr<Example> create_example() { return std::unique_ptr<Example>(new Example()); }
+
+.. code-block:: cpp
+
+    m.def("create_example", &create_example);
+
+In other words, there is nothing special that needs to be done. While returning
+unique pointers in this way is allowed, it is *illegal* to use them as function
+arguments. For instance, the following function signature cannot be processed
+by pybind11.
+
+.. code-block:: cpp
+
+    void do_something_with_example(std::unique_ptr<Example> ex) { ... }
+
+The above signature would imply that Python needs to give up ownership of an
+object that is passed to this function, which is generally not possible (for
+instance, the object might be referenced elsewhere).
+
 Smart pointers
 ==============
+
+This section explains how to pass values that are wrapped in "smart" pointer
+types with internal reference counting. For simpler C++11 unique pointers,
+please refer to the previous section.
 
 The binding generator for classes (:class:`class_`) takes an optional second
 template type, which denotes a special *holder* type that is used to manage

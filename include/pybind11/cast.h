@@ -405,6 +405,17 @@ protected:
     bool success = false;
 };
 
+template <typename type> class type_caster<std::unique_ptr<type>> {
+public:
+    static handle cast(std::unique_ptr<type> &&src, return_value_policy policy, handle parent) {
+        handle result = type_caster<type>::cast(src.get(), policy, parent);
+        if (result)
+            src.release();
+        return result;
+    }
+    static PYBIND11_DESCR name() { return type_caster<type>::name(); }
+};
+
 template <> class type_caster<std::wstring> {
 public:
     bool load(handle src, bool) {

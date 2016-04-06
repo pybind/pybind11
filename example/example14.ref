@@ -7,3 +7,4 @@ Opaque list:
 Got void ptr : 1234
 None
 Got null str : 0
+[u'some value']
