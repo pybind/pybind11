@@ -6,7 +6,15 @@ Changelog
 1.4 (not yet released)
 --------------------------
 * Transparent type conversion for ``std::wstring`` and ``wchar_t``
+* Allow passing null pointers for strings
+* Transparent passing of ``void *`` pointers using capsules
+* Transparent support for returning values returned in ``std::unique_ptr``
 * Improved docstring generation for compatibility with Sphinx
+* Nicer debug error message when default parameter construction fails
+* Support for "opaque" types that bypass the transparent conversion layer for STL containers
+* Redesigned type casting interface to avoid ambiguities that could occasionally cause compiler errors
+* Redesigned property implementation; fixes crashes due to an unfortunate
+  default return value policy.
 * Anaconda package generation support
 
 1.3 (March 8, 2016)
