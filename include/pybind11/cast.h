@@ -521,7 +521,8 @@ public:
     template <typename T> using cast_op_type = type;
 
     operator type() {
-        return type(first, second);
+        return type(first .operator typename type_caster<typename intrinsic_type<T1>::type>::template cast_op_type<T1>(),
+                    second.operator typename type_caster<typename intrinsic_type<T2>::type>::template cast_op_type<T2>());
     }
 protected:
     type_caster<typename intrinsic_type<T1>::type> first;
