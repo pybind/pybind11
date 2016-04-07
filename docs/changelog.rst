@@ -6,9 +6,9 @@ Changelog
 1.4 (not yet released)
 --------------------------
 * Transparent type conversion for ``std::wstring`` and ``wchar_t``
-* Allow passing null pointers for strings
+* Allow passing ``nullptr``-valued strings
 * Transparent passing of ``void *`` pointers using capsules
-* Transparent support for returning values returned in ``std::unique_ptr``
+* Transparent support for returning values wrapped in ``std::unique_ptr<>``
 * Improved docstring generation for compatibility with Sphinx
 * Nicer debug error message when default parameter construction fails
 * Support for "opaque" types that bypass the transparent conversion layer for STL containers
