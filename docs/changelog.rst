@@ -3,7 +3,7 @@
 Changelog
 #########
 
-1.4 (not yet released)
+1.4 (April 7, 2016)
 --------------------------
 * Transparent type conversion for ``std::wstring`` and ``wchar_t``
 * Allow passing ``nullptr``-valued strings
@@ -13,8 +13,7 @@ Changelog
 * Nicer debug error message when default parameter construction fails
 * Support for "opaque" types that bypass the transparent conversion layer for STL containers
 * Redesigned type casting interface to avoid ambiguities that could occasionally cause compiler errors
-* Redesigned property implementation; fixes crashes due to an unfortunate
-  default return value policy.
+* Redesigned property implementation; fixes crashes due to an unfortunate default return value policy.
 * Anaconda package generation support
 
 1.3 (March 8, 2016)

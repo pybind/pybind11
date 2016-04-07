@@ -5,6 +5,7 @@ To release a new version of pybind11:
     - ``git add`` and ``git commit``.
     - ``python setup.py sdist upload``.
     - ``python setup.py bdist_wheel upload``.
+    - Tag release date in ``doc/changelog.rst``.
 - Tag the commit and push to anaconda.org
     - ``git tag -a X.X -m '[Release comment]'``.
     - ``conda-build conda.recipe --output``
