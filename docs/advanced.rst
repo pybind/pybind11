@@ -373,10 +373,10 @@ Passing STL data structures
 ===========================
 
 When including the additional header file :file:`pybind11/stl.h`, conversions
-between ``std::vector<>``, ``std::set<>``, and ``std::map<>`` and the Python
-``list``, ``set`` and ``dict`` data structures are automatically enabled. The
-types ``std::pair<>`` and ``std::tuple<>`` are already supported out of the box
-with just the core :file:`pybind11/pybind11.h` header.
+between ``std::vector<>``, ``std::list<>``, ``std::set<>``, and ``std::map<>``
+and the Python ``list``, ``set`` and ``dict`` data structures are automatically
+enabled. The types ``std::pair<>`` and ``std::tuple<>`` are already supported
+out of the box with just the core :file:`pybind11/pybind11.h` header.
 
 .. note::
 
@@ -457,7 +457,7 @@ See below for an example that uses the
 
         py::class_<Example>(m, "Example")
             .def(py::init<>())
-            .def("get_internal", &Example::get_internal, "Return the internal data", py::return_value_policy::reference_internal)
+            .def("get_internal", &Example::get_internal, "Return the internal data", py::return_value_policy::reference_internal);
 
         return m.ptr();
     }
@@ -705,23 +705,35 @@ automatically converted into a Python ``Exception``. pybind11 defines multiple
 special exception classes that will map to different types of Python
 exceptions:
 
-+----------------------------+------------------------------+
-|  C++ exception type        |  Python exception type       |
-+============================+==============================+
-| :class:`std::exception`    | ``Exception``                |
-+----------------------------+------------------------------+
-| :class:`stop_iteration`    | ``StopIteration`` (used to   |
-|                            | implement custom iterators)  |
-+----------------------------+------------------------------+
-| :class:`index_error`       | ``IndexError`` (used to      |
-|                            | indicate out of bounds       |
-|                            | accesses in ``__getitem__``, |
-|                            | ``__setitem__``, etc.)       |
-+----------------------------+------------------------------+
-| :class:`error_already_set` | Indicates that the Python    |
-|                            | exception flag has already   |
-|                            | been initialized.            |
-+----------------------------+------------------------------+
++--------------------------------------+------------------------------+
+|  C++ exception type                  |  Python exception type       |
++======================================+==============================+
+| :class:`std::exception`              | ``RuntimeError``             |
++--------------------------------------+------------------------------+
+| :class:`std::bad_alloc`              | ``MemoryError``              |
++--------------------------------------+------------------------------+
+| :class:`std::domain_error`           | ``ValueError``               |
++--------------------------------------+------------------------------+
+| :class:`std::invalid_argument`       | ``ValueError``               |
++--------------------------------------+------------------------------+
+| :class:`std::length_error`           | ``ValueError``               |
++--------------------------------------+------------------------------+
+| :class:`std::out_of_range`           | ``ValueError``               |
++--------------------------------------+------------------------------+
+| :class:`std::range_error`            | ``ValueError``               |
++--------------------------------------+------------------------------+
+| :class:`pybind11::stop_iteration`    | ``StopIteration`` (used to   |
+|                                      | implement custom iterators)  |
++--------------------------------------+------------------------------+
+| :class:`pybind11::index_error`       | ``IndexError`` (used to      |
+|                                      | indicate out of bounds       |
+|                                      | accesses in ``__getitem__``, |
+|                                      | ``__setitem__``, etc.)       |
++--------------------------------------+------------------------------+
+| :class:`pybind11::error_already_set` | Indicates that the Python    |
+|                                      | exception flag has already   |
+|                                      | been initialized             |
++--------------------------------------+------------------------------+
 
 When a Python function invoked from C++ throws an exception, it is converted
 into a C++ exception of type :class:`error_already_set` whose string payload
@@ -735,9 +747,9 @@ Buffer protocol
 ===============
 
 Python supports an extremely general and convenient approach for exchanging
-data between plugin libraries. Types can expose a buffer view which provides
-fast direct access to the raw internal representation. Suppose we want to bind
-the following simplistic Matrix class:
+data between plugin libraries. Types can expose a buffer view [#f1]_,
+which provides fast direct access to the raw internal representation. Suppose
+we want to bind the following simplistic Matrix class:
 
 .. code-block:: cpp
 
@@ -829,12 +841,14 @@ objects (e.g. a NumPy matrix).
     The file :file:`example/example7.cpp` contains a complete example that
     demonstrates using the buffer protocol with pybind11 in more detail.
 
+.. [#f1] https://docs.python.org/3/c-api/buffer.html
+
 NumPy support
 =============
 
 By exchanging ``py::buffer`` with ``py::array`` in the above snippet, we can
 restrict the function so that it only accepts NumPy arrays (rather than any
-type of Python object satisfying the buffer object protocol).
+type of Python object satisfying the buffer protocol).
 
 In many situations, we want to define a function which only accepts a NumPy
 array of a certain data type. This is possible via the ``py::array_t<T>``
@@ -846,8 +860,9 @@ dense array of doubles in C-style ordering.
     void f(py::array_t<double> array);
 
 When it is invoked with a different type (e.g. an integer), the binding code
-will attempt to cast the input into a NumPy array of the requested type.
-Note that this feature requires the ``pybind11/numpy.h`` header to be included.
+will attempt to cast the input into a NumPy array of the requested type. Note
+that this feature requires the :file:``pybind11/numpy.h`` header to be
+included.
 
 Vectorizing functions
 =====================
@@ -867,7 +882,10 @@ After including the ``pybind11/numpy.h`` header, this is extremely simple:
     m.def("vectorized_func", py::vectorize(my_func));
 
 Invoking the function like below causes 4 calls to be made to ``my_func`` with
-each of the the array elements. The result is returned as a NumPy array of type
+each of the the array elements. The significant advantage of this compared to
+solutions like ``numpy.vectorize()`` is that the loop over the elements runs
+entirely on the C++ side and can be crunched down into a tight, optimized loop
+by the compiler. The result is returned as a NumPy array of type
 ``numpy.dtype.float64``.
 
 .. code-block:: python
@@ -1085,8 +1103,6 @@ lookup of the corresponding Python type. However, this also requires invoking
 the ``import`` function once to ensure that the pybind11 binding code of the
 module ``basic`` has been executed.
 
-Naturally, both methods will fail when there are cyclic dependencies.
-
 .. code-block:: cpp
 
     py::module::import("basic");
@@ -1094,6 +1110,8 @@ Naturally, both methods will fail when there are cyclic dependencies.
     py::class_<Dog>(m, "Dog", py::base<Pet>())
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
+
+Naturally, both methods will fail when there are cyclic dependencies.
 
 Treating STL data structures as opaque objects
 ==============================================
@@ -1104,9 +1122,9 @@ linked lists, hash tables, etc. This even works in a recursive manner, for
 instance to deal with lists of hash maps of pairs of elementary and custom
 types, etc.
 
-The fundamental limitation of this approach is the internal conversion between
-Python and C++ types involves a copy operation that prevents pass-by-reference
-semantics. What does this mean?
+A fundamental limitation of this approach is that the internal conversion
+between Python and C++ types involves a copy operation that prevents
+pass-by-reference semantics. What does this mean?
 
 Suppose we bind the following function
 
