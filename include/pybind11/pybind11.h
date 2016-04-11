@@ -1032,8 +1032,8 @@ inline function get_overload(const void *this_ptr, const char *name)  {
     handle type = py_object.get_type();
     auto key = std::make_pair(type.ptr(), name);
 
-    /* Cache functions that aren't overloaded in python to avoid
-       many costly dictionary lookups in Python */
+    /* Cache functions that aren't overloaded in Python to avoid
+       many costly Python dictionary lookups below */
     auto &cache = detail::get_internals().inactive_overload_cache;
     if (cache.find(key) != cache.end())
         return function();
@@ -1044,10 +1044,16 @@ inline function get_overload(const void *this_ptr, const char *name)  {
         return function();
     }
 
+    /* Don't call dispatch code if invoked from overridden function */
     PyFrameObject *frame = PyThreadState_Get()->frame;
-    pybind11::str caller = pybind11::handle(frame->f_code->co_name).str();
-    if ((std::string) caller == name)
-        return function();
+    if ((std::string) pybind11::handle(frame->f_code->co_name).str() == name &&
+        frame->f_code->co_argcount > 0) {
+        PyFrame_FastToLocals(frame);
+        PyObject *self_caller = PyDict_GetItem(
+            frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));
+        if (self_caller == py_object.ptr())
+            return function();
+    }
     return overload;
 }
 

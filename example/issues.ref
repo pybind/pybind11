@@ -1,2 +1,4 @@
 const char *
 c
+Failed as expected: Tried to call pure virtual function "dispatch"
+Yay..
