@@ -3,6 +3,11 @@
 Changelog
 #########
 
+1.5 (not yet released)
+----------------------
+* Address a rare issue that could confuse the current virtual function dispatcher
+* Documentation improvements: import issues, symbol visibility, limitations
+
 1.4 (April 7, 2016)
 --------------------------
 * Transparent type conversion for ``std::wstring`` and ``wchar_t``
@@ -13,7 +18,7 @@ Changelog
 * Nicer debug error message when default parameter construction fails
 * Support for "opaque" types that bypass the transparent conversion layer for STL containers
 * Redesigned type casting interface to avoid ambiguities that could occasionally cause compiler errors
-* Redesigned property implementation; fixes crashes due to an unfortunate default return value policy.
+* Redesigned property implementation; fixes crashes due to an unfortunate default return value policy
 * Anaconda package generation support
 
 1.3 (March 8, 2016)
@@ -23,7 +28,7 @@ Changelog
 * Added support for the STL unordered set/map data structures
 * Added support for the STL linked list data structure
 * NumPy-style broadcasting support in ``pybind11::vectorize``
-* pybind11 now displays more verbose error messages when ``arg::operator=()`` fails.
+* pybind11 now displays more verbose error messages when ``arg::operator=()`` fails
 * pybind11 internal data structures now live in a version-dependent namespace to avoid ABI issues
 * Many, many bugfixes involving corner cases and advanced usage
 
@@ -39,7 +44,7 @@ Changelog
 * Improved interface for RAII type wrappers in ``pytypes.h``
 * Use RAII type wrappers consistently within pybind11 itself. This
   fixes various potential refcount leaks when exceptions occur
-* Added new ``bytes`` RAII type wrapper (maps to ``string`` in Python 2.7).
+* Added new ``bytes`` RAII type wrapper (maps to ``string`` in Python 2.7)
 * Made handle and related RAII classes const correct, using them more
   consistently everywhere now
 * Got rid of the ugly ``__pybind11__`` attributes on the Python side---they are
