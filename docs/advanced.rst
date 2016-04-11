@@ -1068,11 +1068,11 @@ like so:
 Partitioning code over multiple extension modules
 =================================================
 
-It's straightforward to split binding code over multiple extension modules, while
-referencing types that are declared elsewhere. Everything "just" works without any special
-precautions. One exception to this rule occurs when extending a type declared
-in another extension module. Recall the basic example from Section
-:ref:`inheritance`.
+It's straightforward to split binding code over multiple extension modules,
+while referencing types that are declared elsewhere. Everything "just" works
+without any special precautions. One exception to this rule occurs when
+extending a type declared in another extension module. Recall the basic example
+from Section :ref:`inheritance`.
 
 .. code-block:: cpp
 
@@ -1112,6 +1112,26 @@ module ``basic`` has been executed.
         .def("bark", &Dog::bark);
 
 Naturally, both methods will fail when there are cyclic dependencies.
+
+Note that compiling code which has its default symbol visibility set to
+*hidden* (e.g. via the command line flag ``-fvisibility=hidden`` on GCC/Clang) can interfere with the
+ability to access types defined in another extension module. Workarounds
+include changing the global symbol visibility (not recommended, because it will
+lead unnecessarily large binaries) or manually exporting types that are
+accessed by multiple extension modules:
+
+.. code-block:: cpp
+
+    #ifdef _WIN32
+    #  define EXPORT_TYPE __declspec(dllexport)
+    #else
+    #  define EXPORT_TYPE __attribute__ ((visibility("default")))
+    #endif
+
+    class EXPORT_TYPE Dog : public Animal {
+        ...
+    };
+
 
 Treating STL data structures as opaque objects
 ==============================================
