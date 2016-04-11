@@ -3,6 +3,19 @@ Frequently asked questions
 
 (under construction)
 
+ImportError: dynamic module does not define init function
+=========================================================
+
+1. Make sure that the name specified in ``pybind::module`` and
+   ``PYBIND11_PLUGIN`` is consistent and identical to the filename of the
+   extension library. The latter should not contain any extra prefixes (e.g.
+   ``test.so`` instead of ``libtest.so``).
+
+2. If the above did not fix your issue, then you are likely using an
+   incompatible version of Python (for instance, the extension library was
+   compiled against Python 2, while the interpreter is running on top of some
+   version of Python 3)
+
 Limitations involving reference arguments
 =========================================
 
