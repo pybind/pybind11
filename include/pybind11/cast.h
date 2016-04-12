@@ -707,20 +707,24 @@ template <typename T> inline object cast(const T &value, return_value_policy pol
 template <typename T> inline T handle::cast() const { return pybind11::cast<T>(*this); }
 template <> inline void handle::cast() const { return; }
 
-template <typename... Args> inline object handle::call(Args&&... args_) const {
+template <typename... Args> inline tuple make_tuple(Args&&... args_) {
     const size_t size = sizeof...(Args);
     std::array<object, size> args {
         { object(detail::type_caster<typename detail::intrinsic_type<Args>::type>::cast(
-            std::forward<Args>(args_), return_value_policy::reference, nullptr), false)... }
+            std::forward<Args>(args_), return_value_policy::automatic, nullptr), false)... }
     };
     for (auto &arg_value : args)
         if (!arg_value)
-            throw cast_error("handle::call(): unable to convert input "
-                             "arguments to Python objects");
-    tuple args_tuple(size);
+            throw cast_error("make_tuple(): unable to convert arguments to Python objects");
+    tuple result(size);
     int counter = 0;
     for (auto &arg_value : args)
-        PyTuple_SET_ITEM(args_tuple.ptr(), counter++, arg_value.release().ptr());
+        PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
+    return result;
+}
+
+template <typename... Args> inline object handle::call(Args&&... args) const {
+    tuple args_tuple = make_tuple(std::forward<Args>(args)...);
     object result(PyObject_CallObject(m_ptr, args_tuple.ptr()), false);
     if (!result)
         throw error_already_set();
