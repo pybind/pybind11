@@ -121,6 +121,7 @@ set(PYBIND11_EXAMPLES
   example/example13.cpp
   example/example14.cpp
   example/example15.cpp
+  example/example16.cpp
   example/issues.cpp
 )
 

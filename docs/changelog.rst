@@ -5,7 +5,8 @@ Changelog
 
 1.5 (not yet released)
 ----------------------
-* Pickling support
+* For polymorphic types, use RTTI to try to return the closest type registered with pybind11.
+* Pickling support for serializing and unserializing C++ instances to a byte stream in Python
 * Added a variadic ``make_tuple()`` function
 * Address a rare issue that could confuse the current virtual function dispatcher
 * Documentation improvements: import issues, symbol visibility, pickling, limitations

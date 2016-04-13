@@ -137,6 +137,7 @@ public:
 
     PYBIND11_NOINLINE static handle cast(const void *_src, return_value_policy policy, handle parent,
                                          const std::type_info *type_info,
+                                         const std::type_info *type_info_backup,
                                          void *(*copy_constructor)(const void *),
                                          const void *existing_holder = nullptr) {
         void *src = const_cast<void *>(_src);
@@ -153,6 +154,11 @@ public:
             return handle((PyObject *) it_instance->second).inc_ref();
 
         auto it = internals.registered_types_cpp.find(std::type_index(*type_info));
+        if (it == internals.registered_types_cpp.end()) {
+            type_info = type_info_backup;
+            it = internals.registered_types_cpp.find(std::type_index(*type_info));
+        }
+
         if (it == internals.registered_types_cpp.end()) {
             std::string tname = type_info->name();
             detail::clean_type_id(tname);
@@ -213,11 +219,11 @@ public:
     static handle cast(const type &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::copy;
-        return type_caster_generic::cast(&src, policy, parent, &typeid(type), &copy_constructor);
+        return cast(&src, policy, parent);
     }
 
     static handle cast(const type *src, return_value_policy policy, handle parent) {
-        return type_caster_generic::cast(src, policy, parent, &typeid(type), &copy_constructor);
+        return type_caster_generic::cast(src, policy, parent, src ? &typeid(*src) : nullptr, &typeid(type), &copy_constructor);
     }
 
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
@@ -664,7 +670,9 @@ public:
 
     static handle cast(const holder_type &src, return_value_policy policy, handle parent) {
         return type_caster_generic::cast(
-            src.get(), policy, parent, &typeid(type), &copy_constructor, &src);
+            src.get(), policy, parent,
+            src.get() ? &typeid(*src.get()) : nullptr, &typeid(type),
+            &copy_constructor, &src);
     }
 
 protected:
