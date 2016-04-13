@@ -1190,7 +1190,7 @@ Pickling support
 
 Python's ``pickle`` module provides a powerful facility to serialize and
 de-serialize a Python object graph into a binary data stream. To pickle and
-unpickle C++ classes using pybind11, two additional functions most be provided.
+unpickle C++ classes using pybind11, two additional functions must be provided.
 Suppose the class in question has the following signature:
 
 .. code-block:: cpp
@@ -1243,7 +1243,7 @@ An instance can now be pickled as follows:
 
     p = Pickleable("test_value")
     p.setExtra(15)
-    data = cPickle.dumps(p, -1)
+    data = pickle.dumps(p, -1)
 
 Note that only the cPickle module is supported on Python 2.7. It is also
 important to request usage of the highest protocol version using the ``-1``
