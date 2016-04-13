@@ -1225,7 +1225,8 @@ looks as follows:
             if (t.size() != 2)
                 throw std::runtime_error("Invalid state!");
 
-            /* Invoke the constructor (need to use in-place version) */
+            /* Invoke the in-place constructor. Note that this is needed even
+               when the object just has a trivial default constructor */
             new (&p) Pickleable(t[0].cast<std::string>());
 
             /* Assign any additional state */
@@ -1247,7 +1248,9 @@ An instance can now be pickled as follows:
 
 Note that only the cPickle module is supported on Python 2.7. It is also
 important to request usage of the highest protocol version using the ``-1``
-argument to ``dumps``.
+argument to ``dumps``. Failure to follow these two steps will lead to important
+pybind11 memory allocation routines to be skipped during unpickling, which will
+likely cause memory corruption and/or segmentation faults.
 
 .. seealso::
 
