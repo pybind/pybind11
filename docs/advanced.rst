@@ -841,7 +841,7 @@ objects (e.g. a NumPy matrix).
     The file :file:`example/example7.cpp` contains a complete example that
     demonstrates using the buffer protocol with pybind11 in more detail.
 
-.. [#f1] https://docs.python.org/3/c-api/buffer.html
+.. [#f1] http://docs.python.org/3/c-api/buffer.html
 
 NumPy support
 =============
@@ -1184,3 +1184,74 @@ set of admissible operations.
 
     The file :file:`example/example14.cpp` contains a complete example that
     demonstrates how to create opaque types using pybind11 in more detail.
+
+Pickling support
+================
+
+Python's ``pickle`` module provides a powerful facility to serialize and
+de-serialize a Python object graph into a binary data stream. To pickle and
+unpickle C++ classes using pybind11, two additional functions most be provided.
+Suppose the class in question has the following signature:
+
+.. code-block:: cpp
+
+    class Pickleable {
+    public:
+        Pickleable(const std::string &value) : m_value(value) { }
+        const std::string &value() const { return m_value; }
+
+        void setExtra(int extra) { m_extra = extra; }
+        int extra() const { return m_extra; }
+    private:
+        std::string m_value;
+        int m_extra = 0;
+    };
+
+The binding code including the requisite ``__setstate__`` and ``__getstate__`` methods [#f2]_
+looks as follows:
+
+.. code-block:: cpp
+
+    py::class_<Pickleable>(m, "Pickleable")
+        .def(py::init<std::string>())
+        .def("value", &Pickleable::value)
+        .def("extra", &Pickleable::extra)
+        .def("setExtra", &Pickleable::setExtra)
+        .def("__getstate__", [](const Pickleable &p) {
+            /* Return a tuple that fully encodes the state of the object */
+            return py::make_tuple(p.value(), p.extra());
+        })
+        .def("__setstate__", [](Pickleable &p, py::tuple t) {
+            if (t.size() != 2)
+                throw std::runtime_error("Invalid state!");
+
+            /* Invoke the constructor (need to use in-place version) */
+            new (&p) Pickleable(t[0].cast<std::string>());
+
+            /* Assign any additional state */
+            p.setExtra(t[1].cast<int>());
+        });
+
+An instance can now be pickled as follows:
+
+.. code-block:: python
+
+    try:
+        import cPickle as pickle  # Use cPickle on Python 2.7
+    except ImportError:
+        import pickle
+
+    p = Pickleable("test_value")
+    p.setExtra(15)
+    data = cPickle.dumps(p, -1)
+
+Note that only the cPickle module is supported on Python 2.7. It is also
+important to request usage of the highest protocol version using the ``-1``
+argument to ``dumps``.
+
+.. seealso::
+
+    The file :file:`example/example15.cpp` contains a complete example that
+    demonstrates how to pickle and unpickle types using pybind11 in more detail.
+
+.. [#f2] http://docs.python.org/3/library/pickle.html#pickling-class-instances

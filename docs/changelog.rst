@@ -5,8 +5,10 @@ Changelog
 
 1.5 (not yet released)
 ----------------------
+* Pickling support
+* Added a variadic ``make_tuple()`` function
 * Address a rare issue that could confuse the current virtual function dispatcher
-* Documentation improvements: import issues, symbol visibility, limitations
+* Documentation improvements: import issues, symbol visibility, pickling, limitations
 
 1.4 (April 7, 2016)
 --------------------------

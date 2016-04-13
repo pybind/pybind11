@@ -142,6 +142,8 @@ public:
         return result;
     }
 
+    template <typename T> inline T cast() const { return operator object().cast<T>(); }
+
     operator bool() const {
         if (attr) {
             return (bool) PyObject_HasAttr(obj.ptr(), key.ptr());
@@ -161,18 +163,23 @@ private:
 struct list_accessor {
 public:
     list_accessor(handle list, size_t index) : list(list), index(index) { }
+
     void operator=(list_accessor o) { return operator=(object(o)); }
+
     void operator=(const handle &o) {
         // PyList_SetItem steals a reference to 'o'
         if (PyList_SetItem(list.ptr(), (ssize_t) index, o.inc_ref().ptr()) < 0)
             pybind11_fail("Unable to assign value in Python list!");
     }
+
     operator object() const {
         PyObject *result = PyList_GetItem(list.ptr(), (ssize_t) index);
         if (!result)
             pybind11_fail("Unable to retrieve value from Python list!");
         return object(result, true);
     }
+
+    template <typename T> inline T cast() const { return operator object().cast<T>(); }
 private:
     handle list;
     size_t index;
@@ -181,18 +188,23 @@ private:
 struct tuple_accessor {
 public:
     tuple_accessor(handle tuple, size_t index) : tuple(tuple), index(index) { }
+
     void operator=(tuple_accessor o) { return operator=(object(o)); }
+
     void operator=(const handle &o) {
         // PyTuple_SetItem steals a referenceto 'o'
         if (PyTuple_SetItem(tuple.ptr(), (ssize_t) index, o.inc_ref().ptr()) < 0)
             pybind11_fail("Unable to assign value in Python tuple!");
     }
+
     operator object() const {
         PyObject *result = PyTuple_GetItem(tuple.ptr(), (ssize_t) index);
         if (!result)
             pybind11_fail("Unable to retrieve value from Python tuple!");
         return object(result, true);
     }
+
+    template <typename T> inline T cast() const { return operator object().cast<T>(); }
 private:
     handle tuple;
     size_t index;

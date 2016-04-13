@@ -120,6 +120,7 @@ set(PYBIND11_EXAMPLES
   example/example12.cpp
   example/example13.cpp
   example/example14.cpp
+  example/example15.cpp
   example/issues.cpp
 )
 
