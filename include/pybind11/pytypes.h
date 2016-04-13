@@ -461,4 +461,11 @@ public:
     }
 };
 
+inline size_t len(handle h) {
+    ssize_t result = PyObject_Length(h.ptr());
+    if (result < 0)
+        pybind11_fail("Unable to compute length of object");
+    return (size_t) result;
+}
+
 NAMESPACE_END(pybind11)
