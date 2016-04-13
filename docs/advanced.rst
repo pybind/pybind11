@@ -1258,3 +1258,39 @@ likely cause memory corruption and/or segmentation faults.
     demonstrates how to pickle and unpickle types using pybind11 in more detail.
 
 .. [#f2] http://docs.python.org/3/library/pickle.html#pickling-class-instances
+
+Generating documentation using Sphinx
+=====================================
+
+Sphinx [#f3]_ has the ability to inspect the signatures and documentation
+strings in pybind11-based extension modules to automatically generate beautiful
+documentation in a variety formats. The pbtest repository [#f4]_ contains a
+simple example repository which uses this approach.
+
+There are two potential gotchas when using this approach: first, make sure that
+the resulting strings do not contain any :kbd:`TAB` characters, which break the
+docstring parsing routines. You may want to use C++11 raw string literals,
+which are convenient for multi-line comments. Conveniently, any excess
+indentation will be automatically be removed by Sphinx. However, for this to
+work, it is important that all lines are indented consistently, i.e.:
+
+.. code-block:: cpp
+
+    // ok
+    m.def("foo", &foo, R"mydelimiter(
+        The foo function
+
+        Parameters
+        ----------
+    )mydelimiter");
+
+    // *not ok*
+    m.def("foo", &foo, R"mydelimiter(The foo function
+
+        Parameters
+        ----------
+    )mydelimiter");
+
+.. [#f3] http://www.sphinx-doc.org
+.. [#f4] http://github.com/pybind/pbtest
+
