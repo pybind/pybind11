@@ -37,6 +37,7 @@ The following core C++ features can be mapped to Python
 - Instance attributes and static attributes
 - Exceptions
 - Enumerations
+- Iterators and ranges
 - Callbacks
 - Custom operators
 - STL data structures
@@ -73,6 +74,9 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 - When supported by the compiler, two new C++14 features (relaxed constexpr and
   return value deduction) are used to precompute function signatures at compile
   time, leading to smaller binaries.
+
+- With little extra effort, C++ types can be pickled and unpickled similar to
+  regular Python objects.
 
 Supported compilers
 *******************

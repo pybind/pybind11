@@ -387,8 +387,8 @@ out of the box with just the core :file:`pybind11/pybind11.h` header.
     The file :file:`example/example2.cpp` contains a complete example that
     demonstrates how to pass STL data types in more detail.
 
-Binding sequence data types, the slicing protocol, etc.
-=======================================================
+Binding sequence data types, iterators, the slicing protocol, etc.
+==================================================================
 
 Please refer to the supplemental example for details.
 

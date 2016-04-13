@@ -101,26 +101,12 @@ public:
 
     size_t size() const { return m_size; }
 
+    const float *begin() const { return m_data; }
+    const float *end() const { return m_data+m_size; }
+
 private:
     size_t m_size;
     float *m_data;
-};
-
-namespace {
-    // Special iterator data structure for python
-    struct PySequenceIterator {
-        PySequenceIterator(const Sequence &seq, py::object ref) : seq(seq), ref(ref) { }
-
-        float next() {
-            if (index == seq.size())
-                throw py::stop_iteration();
-            return seq[index++];
-        }
-
-        const Sequence &seq;
-        py::object ref; // keep a reference
-        size_t index = 0;
-    };
 };
 
 void init_ex6(py::module &m) {
@@ -141,7 +127,8 @@ void init_ex6(py::module &m) {
         })
        .def("__len__", &Sequence::size)
        /// Optional sequence protocol operations
-       .def("__iter__", [](py::object s) { return PySequenceIterator(s.cast<const Sequence &>(), s); })
+       .def("__iter__", [](const Sequence &s) { return py::make_iterator(s.begin(), s.end()); },
+                        py::keep_alive<0, 1>() /* Essential: keep object alive while iterator exists */)
        .def("__contains__", [](const Sequence &s, float v) { return s.contains(v); })
        .def("__reversed__", [](const Sequence &s) -> Sequence { return s.reversed(); })
        /// Slicing protocol (optional)
@@ -170,7 +157,30 @@ void init_ex6(py::module &m) {
        .def(py::self != py::self);
        // Could also define py::self + py::self for concatenation, etc.
 
+#if 0
+    // Obsolete: special data structure for exposing custom iterator types to python
+    // kept here for illustrative purposes because there might be some use cases which
+    // are not covered by the much simpler py::make_iterator
+
+    struct PySequenceIterator {
+        PySequenceIterator(const Sequence &seq, py::object ref) : seq(seq), ref(ref) { }
+
+        float next() {
+            if (index == seq.size())
+                throw py::stop_iteration();
+            return seq[index++];
+        }
+
+        const Sequence &seq;
+        py::object ref; // keep a reference
+        size_t index = 0;
+    };
+
     py::class_<PySequenceIterator>(seq, "Iterator")
         .def("__iter__", [](PySequenceIterator &it) -> PySequenceIterator& { return it; })
         .def("__next__", &PySequenceIterator::next);
+
+    On the actual Sequence object, the iterator would be constructed as follows:
+    .def("__iter__", [](py::object s) { return PySequenceIterator(s.cast<const Sequence &>(), s); })
+#endif
 }

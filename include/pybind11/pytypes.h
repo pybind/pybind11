@@ -86,22 +86,6 @@ public:
     }
 };
 
-class iterator : public object {
-public:
-    iterator(handle obj, bool borrowed = false) : object(obj, borrowed) { ++*this; }
-    iterator& operator++() {
-        if (ptr())
-            value = object(PyIter_Next(m_ptr), false);
-        return *this;
-    }
-    bool operator==(const iterator &it) const { return *it == **this; }
-    bool operator!=(const iterator &it) const { return *it != **this; }
-    const handle &operator*() const { return value; }
-    bool check() const { return PyIter_Check(ptr()); }
-private:
-    object value;
-};
-
 NAMESPACE_BEGIN(detail)
 inline handle get_function(handle value) {
     if (value) {
@@ -230,12 +214,6 @@ private:
 
 NAMESPACE_END(detail)
 
-inline detail::accessor handle::operator[](handle key) const { return detail::accessor(ptr(), key.ptr(), false); }
-inline detail::accessor handle::operator[](const char *key) const { return detail::accessor(ptr(), key, false); }
-inline detail::accessor handle::attr(handle key) const { return detail::accessor(ptr(), key.ptr(), true); }
-inline detail::accessor handle::attr(const char *key) const { return detail::accessor(ptr(), key, true); }
-inline iterator handle::begin() const { return iterator(PyObject_GetIter(ptr())); }
-inline iterator handle::end() const { return iterator(nullptr); }
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
     Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
@@ -251,6 +229,33 @@ inline iterator handle::end() const { return iterator(nullptr); }
 #define PYBIND11_OBJECT_DEFAULT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT(Name, Parent, CheckFun) \
     Name() : Parent() { }
+
+class iterator : public object {
+public:
+    PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
+    iterator(handle obj, bool borrowed = false) : object(obj, borrowed) { }
+    iterator& operator++() {
+        if (ptr())
+            value = object(PyIter_Next(m_ptr), false);
+        return *this;
+    }
+    bool operator==(const iterator &it) const { return *it == **this; }
+    bool operator!=(const iterator &it) const { return *it != **this; }
+    const handle &operator*() const {
+        if (m_ptr && !value)
+            value = object(PyIter_Next(m_ptr), false);
+        return value;
+    }
+private:
+    mutable object value;
+};
+
+inline detail::accessor handle::operator[](handle key) const { return detail::accessor(ptr(), key.ptr(), false); }
+inline detail::accessor handle::operator[](const char *key) const { return detail::accessor(ptr(), key, false); }
+inline detail::accessor handle::attr(handle key) const { return detail::accessor(ptr(), key.ptr(), true); }
+inline detail::accessor handle::attr(const char *key) const { return detail::accessor(ptr(), key, true); }
+inline iterator handle::begin() const { return iterator(PyObject_GetIter(ptr())); }
+inline iterator handle::end() const { return iterator(nullptr); }
 
 class str : public object {
 public:

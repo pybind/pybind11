@@ -45,6 +45,7 @@ pybind11 can map the following core C++ features to Python
 - Callbacks
 - Custom operators
 - STL data structures
+- Iterators and ranges
 - Smart pointers with reference counting like `std::shared_ptr`
 - Internal references with correct reference counting
 - C++ classes with virtual (and pure virtual) methods can be extended in Python
@@ -77,6 +78,9 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 - When supported by the compiler, two new C++14 features (relaxed constexpr and
   return value deduction) are used to precompute function signatures at compile
   time, leading to smaller binaries.
+
+- With little extra effort, C++ types can be pickled and unpickled similar to
+  regular Python objects.
 
 ## Supported compilers
 
