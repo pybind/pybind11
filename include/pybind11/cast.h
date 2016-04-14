@@ -178,6 +178,8 @@ public:
 
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::take_ownership;
+        else if (policy == return_value_policy::automatic_reference)
+            policy = return_value_policy::reference;
 
         if (policy == return_value_policy::copy) {
             wrapper->value = copy_constructor(wrapper->value);
@@ -217,7 +219,7 @@ public:
     type_caster() : type_caster_generic(typeid(type)) { }
 
     static handle cast(const type &src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::automatic)
+        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
             policy = return_value_policy::copy;
         return cast(&src, policy, parent);
     }
@@ -706,20 +708,23 @@ template <typename T> inline T cast(handle handle) {
     return (T) conv;
 }
 
-template <typename T> inline object cast(const T &value, return_value_policy policy = return_value_policy::automatic, handle parent = handle()) {
+template <typename T> inline object cast(const T &value, return_value_policy policy = return_value_policy::automatic_reference, handle parent = handle()) {
     if (policy == return_value_policy::automatic)
         policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
+    else if (policy == return_value_policy::automatic_reference)
+        policy = std::is_pointer<T>::value ? return_value_policy::reference : return_value_policy::copy;
     return object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(value, policy, parent), false);
 }
 
 template <typename T> inline T handle::cast() const { return pybind11::cast<T>(*this); }
 template <> inline void handle::cast() const { return; }
 
-template <typename... Args> inline tuple make_tuple(Args&&... args_) {
+template <return_value_policy policy = return_value_policy::automatic_reference,
+          typename... Args> inline tuple make_tuple(Args&&... args_) {
     const size_t size = sizeof...(Args);
     std::array<object, size> args {
         { object(detail::type_caster<typename detail::intrinsic_type<Args>::type>::cast(
-            std::forward<Args>(args_), return_value_policy::automatic, nullptr), false)... }
+            std::forward<Args>(args_), policy, nullptr), false)... }
     };
     for (auto &arg_value : args)
         if (!arg_value)
@@ -732,7 +737,7 @@ template <typename... Args> inline tuple make_tuple(Args&&... args_) {
 }
 
 template <typename... Args> inline object handle::call(Args&&... args) const {
-    tuple args_tuple = make_tuple(std::forward<Args>(args)...);
+    tuple args_tuple = pybind11::make_tuple(std::forward<Args>(args)...);
     object result(PyObject_CallObject(m_ptr, args_tuple.ptr()), false);
     if (!result)
         throw error_already_set();

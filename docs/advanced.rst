@@ -418,6 +418,9 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 | :enum:`return_value_policy::automatic`           | Automatic: copy objects returned as values and take ownership of          |
 |                                                  | objects returned as pointers                                              |
 +--------------------------------------------------+---------------------------------------------------------------------------+
+| :enum:`return_value_policy::automatic_reference` | Automatic variant 2 : copy objects returned as values and reference       |
+|                                                  | objects returned as pointers                                              |
++--------------------------------------------------+---------------------------------------------------------------------------+
 | :enum:`return_value_policy::copy`                | Create a new copy of the returned object, which will be owned by Python   |
 +--------------------------------------------------+---------------------------------------------------------------------------+
 | :enum:`return_value_policy::take_ownership`      | Reference the existing object and take ownership. Python will call        |

@@ -137,6 +137,9 @@ enum class return_value_policy : int {
     /** Automatic: copy objects returned as values and take ownership of objects
         returned as pointers */
     automatic = 0,
+    /** Automatic variant 2: copy objects returned as values and reference objects
+        returned as pointers */
+    automatic_reference,
     /** Reference the object and take ownership. Python will call the
         destructor and delete operator when the reference count reaches zero */
     take_ownership,
