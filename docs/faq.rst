@@ -48,7 +48,7 @@ binding ``increment`` or ``increment_ptr`` will also create Python functions
 that don't modify their arguments.
 
 Although inconvenient, one workaround is to encapsulate the immutable types in
-a custom type that does allow modifications. 
+a custom type that does allow modifications.
 
 An other alternative involves binding a small wrapper lambda function that
 returns a tuple with all output arguments (see the remainder of the
@@ -64,6 +64,25 @@ and the binding code
 
    m.def("foo", [](int i) { int rv = foo(i); return std::make_tuple(rv, i); });
 
+CMake doesn't detect the right Python version, or it finds mismatched interpreter and library versions
+======================================================================================================
+
+The Python detection logic of CMake is flawed and can sometimes fail to find
+the desired Python version, or it chooses mismatched interpreter and library
+versions. A longer discussion is available on the pybind11 issue tracker
+[#f1]_, though this is ultimately not a pybind11 issue.
+
+To force the build system to choose a particular version, delete CMakeCache.txt
+and then invoke CMake as follows:
+
+.. code-block:: bash
+
+    cmake -DPYTHON_EXECUTABLE:FILEPATH=<...> \
+          -DPYTHON_LIBRARY:FILEPATH=<...>  \
+          -DPYTHON_INCLUDE_DIR:PATH=<...> .
+
+.. [#f1] http://github.com/pybind/pybind11/issues/99
+
 Working with ancient Visual Studio 2009 builds on Windows
 =========================================================
 
@@ -77,3 +96,4 @@ Common gotchas to watch out for involve not ``free()``-ing memory region
 that that were ``malloc()``-ed in another shared library, using data
 structures with incompatible ABIs, and so on. pybind11 is very careful not
 to make these types of mistakes.
+
