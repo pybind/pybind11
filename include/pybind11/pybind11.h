@@ -1070,7 +1070,7 @@ inline function get_overload(const void *this_ptr, const char *name)  {
 
     /* Don't call dispatch code if invoked from overridden function */
     PyFrameObject *frame = PyThreadState_Get()->frame;
-    if ((std::string) pybind11::handle(frame->f_code->co_name).str() == name &&
+    if (frame && (std::string) pybind11::handle(frame->f_code->co_name).str() == name &&
         frame->f_code->co_argcount > 0) {
         PyFrame_FastToLocals(frame);
         PyObject *self_caller = PyDict_GetItem(

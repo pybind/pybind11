@@ -10,7 +10,9 @@ Changelog
 * Added a convenience routine ``make_iterator()`` which turns a range indicated
   by a pair of C++ iterators into a iterable Python object
 * Added ``len()`` and a variadic ``make_tuple()`` function
-* Addressed a rare issue that could confuse the current virtual function dispatcher
+* Addressed a rare issue that could confuse the current virtual function
+  dispatcher and another that could lead to crashes in multi-threaded
+  applications
 * Added a ``get_include()`` function to the Python module that returns the path
   of the directory containing the installed pybind11 header files
 * Documentation improvements: import issues, symbol visibility, pickling, limitations
