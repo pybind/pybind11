@@ -10,7 +10,7 @@ setup(
     version=__version__,
     description='Seamless operability between C++11 and Python',
     author='Wenzel Jakob',
-    author_email='wenzel@inf.ethz.ch',
+    author_email='wenzel.jakob@epfl.ch',
     url='https://github.com/wjakob/pybind11',
     download_url='https://github.com/wjakob/pybind11/tarball/v' + __version__,
     packages=['pybind11'],

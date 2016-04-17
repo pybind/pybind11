@@ -1,7 +1,7 @@
 /*
     pybind11/common.h -- Basic macros
 
-    Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
+    Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
@@ -39,7 +39,7 @@
 #  pragma warning(push)
 #  pragma warning(disable: 4510 4610 4512 4005)
 #  if _DEBUG
-#    define _DEBUG_MARKER
+#    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
 #  endif
 #endif
@@ -58,10 +58,10 @@
 #endif
 
 #if defined(_MSC_VER)
-#  if defined(_DEBUG_MARKER)
+#  if defined(PYBIND11_DEBUG_MARKER)
 #    define _DEBUG
-#  undef _DEBUG_MARKER
-#endif
+#    undef PYBIND11_DEBUG_MARKER
+#  endif
 #  pragma warning(pop)
 #endif
 
