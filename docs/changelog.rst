@@ -5,7 +5,7 @@ Changelog
 
 1.5 (not yet released)
 ----------------------
-* For polymorphic types, use RTTI to try to return the closest type registered with pybind11.
+* For polymorphic types, use RTTI to try to return the closest type registered with pybind11
 * Pickling support for serializing and unserializing C++ instances to a byte stream in Python
 * Added a convenience routine ``make_iterator()`` which turns a range indicated
   by a pair of C++ iterators into a iterable Python object
