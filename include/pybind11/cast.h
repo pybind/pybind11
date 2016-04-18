@@ -207,7 +207,7 @@ protected:
 
 /* Determine suitable casting operator */
 template <typename T>
-using cast_op_type = typename std::conditional<std::is_pointer<T>::value,
+using cast_op_type = typename std::conditional<std::is_pointer<typename std::remove_reference<T>::type>::value,
     typename std::add_pointer<typename intrinsic_type<T>::type>::type,
     typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type>::type;
 
