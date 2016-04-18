@@ -251,7 +251,7 @@ protected:
         } \
         operator type*() { return &value; } \
         operator type&() { return value; } \
-        template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
+        template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>
 
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type) \
     namespace pybind11 { namespace detail { \

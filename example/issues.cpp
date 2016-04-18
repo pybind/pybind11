@@ -15,7 +15,7 @@ struct Base {
 
 struct DispatchIssue : Base {
     virtual void dispatch(void) const {
-        PYBIND11_OVERLOAD_PURE(void, Base, dispatch);
+        PYBIND11_OVERLOAD_PURE(void, Base, dispatch, /* no arguments */);
     }
 };
 
