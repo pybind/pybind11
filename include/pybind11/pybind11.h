@@ -1013,6 +1013,10 @@ template <typename Iterator, typename... Extra> iterator make_iterator(Iterator 
     return (iterator) cast(state { first, last });
 }
 
+template <typename Type, typename... Extra> iterator make_iterator(Type &value, Extra&&... extra) {
+    return make_iterator(std::begin(value), std::end(value), extra...);
+}
+
 template <typename InputType, typename OutputType> void implicitly_convertible() {
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
         if (!detail::type_caster<InputType>().load(obj, false))
