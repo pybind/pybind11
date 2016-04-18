@@ -338,7 +338,7 @@ public:
     static handle cast(void_type, return_value_policy /* policy */, handle /* parent */) {
         return handle(Py_None).inc_ref();
     }
-    PYBIND11_TYPE_CASTER(void_type, _("NoneType"));
+    PYBIND11_TYPE_CASTER(void_type, _("NoneType"))
 };
 
 template <> class type_caster<void> : public type_caster<void_type> {
@@ -382,7 +382,7 @@ public:
     static handle cast(bool src, return_value_policy /* policy */, handle /* parent */) {
         return handle(src ? Py_True : Py_False).inc_ref();
     }
-    PYBIND11_TYPE_CASTER(bool, _("bool"));
+    PYBIND11_TYPE_CASTER(bool, _("bool"))
 };
 
 template <> class type_caster<std::string> {
@@ -408,7 +408,7 @@ public:
         return PyUnicode_FromStringAndSize(src.c_str(), src.length());
     }
 
-    PYBIND11_TYPE_CASTER(std::string, _(PYBIND11_STRING_NAME));
+    PYBIND11_TYPE_CASTER(std::string, _(PYBIND11_STRING_NAME))
 protected:
     bool success = false;
 };
@@ -459,7 +459,7 @@ public:
         return PyUnicode_FromWideChar(src.c_str(), src.length());
     }
 
-    PYBIND11_TYPE_CASTER(std::wstring, _(PYBIND11_STRING_NAME));
+    PYBIND11_TYPE_CASTER(std::wstring, _(PYBIND11_STRING_NAME))
 protected:
     bool success = false;
 };
@@ -696,7 +696,7 @@ public:
     static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
         return src.inc_ref();
     }
-    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name());
+    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name())
 };
 
 NAMESPACE_END(detail)
