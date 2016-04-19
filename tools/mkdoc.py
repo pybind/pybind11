@@ -12,11 +12,6 @@ from collections import OrderedDict
 from threading import Thread, Semaphore
 from multiprocessing import cpu_count
 
-if platform.system() == 'Darwin':
-    libclang = '/opt/llvm/lib/libclang.dylib'
-    if os.path.exists(libclang):
-        cindex.Config.set_library_path(os.path.dirname(libclang))
-
 RECURSE_LIST = [
     CursorKind.TRANSLATION_UNIT,
     CursorKind.NAMESPACE,
@@ -187,6 +182,17 @@ class ExtractionThread(Thread):
 if __name__ == '__main__':
     parameters = ['-x', 'c++', '-std=c++11']
     filenames = []
+
+    if platform.system() == 'Darwin':
+        libclang = '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libclang.dylib'
+        if os.path.exists(libclang):
+            cindex.Config.set_library_path(os.path.dirname(libclang))
+
+        base_path = '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs'
+        if os.path.exists(base_path):
+            sysroot = os.path.join(base_path, next(os.walk(base_path))[1][0])
+            parameters.append('-isysroot')
+            parameters.append(sysroot)
 
     for item in sys.argv[1:]:
         if item.startswith('-'):
