@@ -8,6 +8,7 @@
 */
 
 #include "example.h"
+#include <pybind11/stl.h>
 
 struct Base {
     virtual void dispatch(void) const = 0;
@@ -19,15 +20,10 @@ struct DispatchIssue : Base {
     }
 };
 
+struct Placeholder { int i; };
+
 void dispatch_issue_go(const Base * b) { b->dispatch(); }
 
-PYBIND11_PLUGIN(mytest)
-{
-    pybind11::module m("mytest", "A test");
-
-
-    return m.ptr();
-}
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
@@ -38,10 +34,25 @@ void init_issues(py::module &m) {
     m2.def("print_char", [](char c) { std::cout << c << std::endl; });
 
     // #159: virtual function dispatch has problems with similar-named functions
-    pybind11::class_<DispatchIssue> base(m2, "DispatchIssue");
+    py::class_<DispatchIssue> base(m2, "DispatchIssue");
     base.alias<Base>()
-        .def(pybind11::init<>())
+        .def(py::init<>())
         .def("dispatch", &Base::dispatch);
 
     m2.def("dispatch_issue_go", &dispatch_issue_go);
+
+    py::class_<Placeholder>(m2, "Placeholder")
+        .def("__repr__", [](const Placeholder &p) { return "Placeholder[" + std::to_string(p.i) + "]"; });
+
+    // #171: Can't return reference wrappers (or STL datastructures containing them)
+    m2.def("return_vec_of_reference_wrapper", [] {
+        Placeholder *p1 = new Placeholder{1};
+        Placeholder *p2 = new Placeholder{2};
+        Placeholder *p3 = new Placeholder{2};
+        std::vector<std::reference_wrapper<Placeholder>> v;
+        v.push_back(std::ref(*p1));
+        v.push_back(std::ref(*p2));
+        v.push_back(std::ref(*p3));
+        return v;
+    });
 }

@@ -241,6 +241,13 @@ protected:
     static void *copy_constructor(const void *) { return nullptr; }
 };
 
+template <typename type> class type_caster<std::reference_wrapper<type>> : public type_caster<type> {
+public:
+    static handle cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
+        return type_caster<type>::cast(&src.get(), policy, parent);
+    }
+};
+
 #define PYBIND11_TYPE_CASTER(type, py_name) \
     protected: \
         type value; \

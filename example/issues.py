@@ -5,6 +5,7 @@ sys.path.append('.')
 
 from example.issues import print_cchar, print_char
 from example.issues import DispatchIssue, dispatch_issue_go
+from example.issues import return_vec_of_reference_wrapper
 
 print_cchar("const char *")
 print_char('c')
@@ -26,3 +27,5 @@ class PyClass2(DispatchIssue):
 
 b = PyClass2()
 dispatch_issue_go(b)
+
+print(return_vec_of_reference_wrapper())
