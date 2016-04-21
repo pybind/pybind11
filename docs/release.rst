@@ -7,8 +7,8 @@ To release a new version of pybind11:
     - ``python setup.py bdist_wheel upload``.
     - Tag release date in ``doc/changelog.rst``.
 - Tag the commit and push to anaconda.org
-    - ``git tag -a X.X -m '[Release comment]'``.
-    - ``conda-build conda.recipe --output``
+    - ``git tag -a vX.Y -m 'vX.Y release'``.
+    - ``conda-build conda.recipe``
       This should ouput the path of the generated tar.bz2 for the package
     - ``conda-convert --platform all [path/to/tar.bz2] -o .``
     - ``for i in *-32/* *-64/*; do anaconda upload -u pybind $i; done``
