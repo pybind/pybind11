@@ -3,7 +3,11 @@
 Changelog
 #########
 
-1.5 (not yet released)
+1.6 (not yet released)
+----------------------
+* TBD
+
+1.5 (April 21, 2016)
 ----------------------
 * For polymorphic types, use RTTI to try to return the closest type registered with pybind11
 * Pickling support for serializing and unserializing C++ instances to a byte stream in Python
