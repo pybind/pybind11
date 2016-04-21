@@ -20,7 +20,7 @@ struct DispatchIssue : Base {
     }
 };
 
-struct Placeholder { int i; };
+struct Placeholder { int i; Placeholder(int i) : i(i) { } };
 
 void dispatch_issue_go(const Base * b) { b->dispatch(); }
 
@@ -42,17 +42,19 @@ void init_issues(py::module &m) {
     m2.def("dispatch_issue_go", &dispatch_issue_go);
 
     py::class_<Placeholder>(m2, "Placeholder")
+        .def(py::init<int>())
         .def("__repr__", [](const Placeholder &p) { return "Placeholder[" + std::to_string(p.i) + "]"; });
 
     // #171: Can't return reference wrappers (or STL datastructures containing them)
-    m2.def("return_vec_of_reference_wrapper", [] {
+    m2.def("return_vec_of_reference_wrapper", [](std::reference_wrapper<Placeholder> p4){
         Placeholder *p1 = new Placeholder{1};
         Placeholder *p2 = new Placeholder{2};
-        Placeholder *p3 = new Placeholder{2};
+        Placeholder *p3 = new Placeholder{3};
         std::vector<std::reference_wrapper<Placeholder>> v;
         v.push_back(std::ref(*p1));
         v.push_back(std::ref(*p2));
         v.push_back(std::ref(*p3));
+        v.push_back(p4);
         return v;
     });
 }

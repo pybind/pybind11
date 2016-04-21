@@ -16,6 +16,7 @@ Changelog
 * Added a ``get_include()`` function to the Python module that returns the path
   of the directory containing the installed pybind11 header files
 * Documentation improvements: import issues, symbol visibility, pickling, limitations
+* Added casting support for ``std::reference_wrapper<>``
 
 1.4 (April 7, 2016)
 --------------------------
