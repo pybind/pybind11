@@ -212,6 +212,16 @@ private:
     ssize_t pos = 0;
 };
 
+inline bool iterable_check(PyObject *obj) {
+    PyObject *iter = PyObject_GetIter(obj);
+    if (iter) {
+        Py_DECREF(iter);
+        return true;
+    } else {
+        PyErr_Clear();
+        return false;
+    }
+}
 NAMESPACE_END(detail)
 
 
@@ -233,7 +243,6 @@ NAMESPACE_END(detail)
 class iterator : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
-    iterator(handle obj, bool borrowed = false) : object(obj, borrowed) { }
     iterator& operator++() {
         if (ptr())
             value = object(PyIter_Next(m_ptr), false);
@@ -250,12 +259,17 @@ private:
     mutable object value;
 };
 
+class iterable : public object {
+public:
+    PYBIND11_OBJECT_DEFAULT(iterable, object, detail::iterable_check)
+};
+
 inline detail::accessor handle::operator[](handle key) const { return detail::accessor(ptr(), key.ptr(), false); }
 inline detail::accessor handle::operator[](const char *key) const { return detail::accessor(ptr(), key, false); }
 inline detail::accessor handle::attr(handle key) const { return detail::accessor(ptr(), key.ptr(), true); }
 inline detail::accessor handle::attr(const char *key) const { return detail::accessor(ptr(), key, true); }
-inline iterator handle::begin() const { return iterator(PyObject_GetIter(ptr())); }
-inline iterator handle::end() const { return iterator(nullptr); }
+inline iterator handle::begin() const { return iterator(PyObject_GetIter(ptr()), false); }
+inline iterator handle::end() const { return iterator(nullptr, false); }
 
 class str : public object {
 public:
