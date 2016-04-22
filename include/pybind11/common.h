@@ -205,6 +205,7 @@ template <typename type> struct instance_essentials {
     type *value;
     PyObject *parent;
     PyObject *weakrefs;
+    PyObject *dict;
     bool owned : 1;
     bool constructed : 1;
 };
