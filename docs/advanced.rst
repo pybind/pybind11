@@ -1145,8 +1145,8 @@ linked lists, hash tables, etc. This even works in a recursive manner, for
 instance to deal with lists of hash maps of pairs of elementary and custom
 types, etc.
 
-A fundamental limitation of this approach is that the internal conversion
-between Python and C++ types involves a copy operation that prevents
+However, a fundamental limitation of this approach is that internal conversions
+between Python and C++ types involve a copy operation that prevents
 pass-by-reference semantics. What does this mean?
 
 Suppose we bind the following function
@@ -1167,10 +1167,41 @@ and call it as follows from Python:
    [5, 6]
 
 As you can see, when passing STL data structures by reference, modifications
-are not propagated back the Python side. To deal with situations where this
-desirable, pybind11 contains a simple template wrapper class named ``opaque<T>``.
+are not propagated back the Python side. A similar situation arises when
+exposing STL data structures using the ``def_readwrite`` or ``def_readonly``
+functions:
 
-``opaque<T>`` disables the underlying template machinery for
+.. code-block:: cpp
+
+    /* ... definition ... */
+
+    class MyClass {
+        std::vector<int> contents;
+    };
+
+    /* ... binding code ... */
+
+    py::class_<MyClass>(m, "MyClass")
+        .def(py::init<>)
+        .def_readwrite("contents", &MyClass::contents);
+
+In this case, properties can be read and written in their entirety. However, an
+``append`` operaton involving such a list type has no effect:
+
+.. code-block:: python
+
+   >>> m = MyClass()
+   >>> m.contents = [5, 6]
+   >>> print(m.contents)
+   [5, 6]
+   >>> m.contents.append(7)
+   >>> print(m.contents)
+   [5, 6]
+
+To deal with both of the above situations, pybind11 contains a simple template
+wrapper class named ``opaque<T>``.
+
+``opaque<T>`` disables pybind11's template-based conversion machinery for
 ``T`` and can be used to treat STL types as opaque objects, whose contents are
 never inspected or extracted (thus, they can be passed by reference).
 The downside of this approach is that it the binding code becomes a bit more
@@ -1186,7 +1217,8 @@ set of admissible operations.
 .. seealso::
 
     The file :file:`example/example14.cpp` contains a complete example that
-    demonstrates how to create opaque types using pybind11 in more detail.
+    demonstrates how to create and expose opaque types using pybind11 in more
+    detail.
 
 Pickling support
 ================

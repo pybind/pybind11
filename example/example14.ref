@@ -1,9 +1,8 @@
-Opaque list: 
-  Element 1
-  Element 2
+Opaque list: [Element 1, Element 2]
 Back element is Element 2
-Opaque list: 
-  Element 1
+Opaque list: [Element 1]
+Opaque list: []
+Opaque list: [Element 1, Element 3]
 Got void ptr : 1234
 None
 Got null str : 0

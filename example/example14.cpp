@@ -13,6 +13,11 @@
 
 typedef std::vector<std::string> StringList;
 
+class ClassWithSTLVecProperty {
+public:
+    StringList stringList;
+};
+
 void init_ex14(py::module &m) {
     py::class_<py::opaque<StringList>>(m, "StringList")
         .def(py::init<>())
@@ -20,11 +25,24 @@ void init_ex14(py::module &m) {
         .def("pop_back", [](py::opaque<StringList> &l) { l->pop_back(); })
         .def("back", [](py::opaque<StringList> &l) { return l->back(); });
 
+    py::class_<ClassWithSTLVecProperty>(m, "ClassWithSTLVecProperty")
+        .def(py::init<>())
+        /* Need to cast properties to opaque types to avoid pybind11-internal
+           STL conversion code from becoming active */
+        .def_readwrite("stringList", (py::opaque<StringList> ClassWithSTLVecProperty:: *)
+                                     &ClassWithSTLVecProperty::stringList);
+
     m.def("print_opaque_list", [](py::opaque<StringList> &_l) {
         StringList &l = _l;
-        std::cout << "Opaque list: " << std::endl;
-        for (auto entry : l)
-           std::cout << "  " << entry << std::endl; 
+        std::cout << "Opaque list: [";
+        bool first = true;
+        for (auto entry : l) {
+            if (!first)
+                std::cout << ", ";
+            std::cout << entry;
+            first = false;
+        }
+        std::cout << "]" << std::endl;
     });
 
     m.def("return_void_ptr", []() { return (void *) 1234; });
