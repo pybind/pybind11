@@ -294,7 +294,7 @@ template <typename T>  struct is_copy_constructible {
 };
 
 template <typename T>  struct is_move_constructible {
-    template <typename T2> static std::true_type test(decltype(new T2(std::declval<typename std::add_rvalue_reference<T2>::type>())) *);
+    template <typename T2> static std::true_type test(decltype(new T2(std::declval<T2>())) *);
     template <typename T2> static std::false_type test(...);
     static const bool value = std::is_same<std::true_type, decltype(test<T>(nullptr))>::value;
 };
