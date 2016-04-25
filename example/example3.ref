@@ -3,52 +3,52 @@ Value constructor
 v1    = [1.000000, 2.000000]
 v2    = [3.000000, -1.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 v1+v2 = [4.000000, 1.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 v1-v2 = [-2.000000, 3.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 v1-8  = [-7.000000, -6.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 v1+8  = [9.000000, 10.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 v1*8  = [8.000000, 16.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 v1/8  = [0.125000, 0.250000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 8-v1  = [7.000000, 6.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 8+v1  = [9.000000, 10.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 8*v1  = [8.000000, 16.000000]
 Value constructor
-Copy constructor
+Move constructor
 Destructor.
 Destructor.
 8/v1  = [8.000000, 4.000000]

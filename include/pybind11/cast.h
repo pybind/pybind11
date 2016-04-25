@@ -158,6 +158,7 @@ public:
                                          const std::type_info *type_info,
                                          const std::type_info *type_info_backup,
                                          void *(*copy_constructor)(const void *),
+                                         void *(*move_constructor)(const void *),
                                          const void *existing_holder = nullptr) {
         void *src = const_cast<void *>(_src);
         if (src == nullptr)
@@ -204,6 +205,12 @@ public:
             wrapper->value = copy_constructor(wrapper->value);
             if (wrapper->value == nullptr)
                 throw cast_error("return_value_policy = copy, but the object is non-copyable!");
+        } else if (policy == return_value_policy::move) {
+            wrapper->value = move_constructor(wrapper->value);
+            if (wrapper->value == nullptr)
+                wrapper->value = copy_constructor(wrapper->value);
+            if (wrapper->value == nullptr)
+                throw cast_error("return_value_policy = move, but the object is neither movable nor copyable!");
         } else if (policy == return_value_policy::reference) {
             wrapper->owned = false;
         } else if (policy == return_value_policy::reference_internal) {
@@ -243,8 +250,16 @@ public:
         return cast(&src, policy, parent);
     }
 
+    static handle cast(type &&src, return_value_policy policy, handle parent) {
+        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+            policy = return_value_policy::move;
+        return cast(&src, policy, parent);
+    }
+
     static handle cast(const type *src, return_value_policy policy, handle parent) {
-        return type_caster_generic::cast(src, policy, parent, src ? &typeid(*src) : nullptr, &typeid(type), &copy_constructor);
+        return type_caster_generic::cast(
+            src, policy, parent, src ? &typeid(*src) : nullptr, &typeid(type),
+            &copy_constructor, &move_constructor);
     }
 
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
@@ -253,11 +268,13 @@ public:
     operator type&() { return *((type *) value); }
 protected:
     template <typename T = type, typename std::enable_if<detail::is_copy_constructible<T>::value, int>::type = 0>
-    static void *copy_constructor(const void *arg) {
-        return (void *) new type(*((const type *) arg));
-    }
+    static void *copy_constructor(const void *arg) { return (void *) new type(*((const type *) arg)); }
     template <typename T = type, typename std::enable_if<!detail::is_copy_constructible<T>::value, int>::type = 0>
     static void *copy_constructor(const void *) { return nullptr; }
+    template <typename T = type, typename std::enable_if<detail::is_move_constructible<T>::value, int>::type = 0>
+    static void *move_constructor(const void *arg) { return (void *) new type(std::move(*((type *) arg))); }
+    template <typename T = type, typename std::enable_if<!detail::is_move_constructible<T>::value, int>::type = 0>
+    static void *move_constructor(const void *) { return nullptr; }
 };
 
 template <typename type> class type_caster<std::reference_wrapper<type>> : public type_caster<type> {
@@ -662,6 +679,7 @@ public:
     using type_caster<type>::value;
     using type_caster<type>::temp;
     using type_caster<type>::copy_constructor;
+    using type_caster<type>::move_constructor;
 
     bool load(handle src, bool convert) {
         if (!src || !typeinfo) {
@@ -702,7 +720,7 @@ public:
         return type_caster_generic::cast(
             src.get(), policy, parent,
             src.get() ? &typeid(*src.get()) : nullptr, &typeid(type),
-            &copy_constructor, &src);
+            &copy_constructor, &move_constructor, &src);
     }
 
 protected:

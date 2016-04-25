@@ -411,37 +411,62 @@ For this reason, pybind11 provides a several `return value policy` annotations
 that can be passed to the :func:`module::def` and :func:`class_::def`
 functions. The default policy is :enum:`return_value_policy::automatic`.
 
-
-+--------------------------------------------------+---------------------------------------------------------------------------+
-| Return value policy                              | Description                                                               |
-+==================================================+===========================================================================+
-| :enum:`return_value_policy::automatic`           | Automatic: copy objects returned as values and take ownership of          |
-|                                                  | objects returned as pointers                                              |
-+--------------------------------------------------+---------------------------------------------------------------------------+
-| :enum:`return_value_policy::automatic_reference` | Automatic variant 2 : copy objects returned as values and reference       |
-|                                                  | objects returned as pointers                                              |
-+--------------------------------------------------+---------------------------------------------------------------------------+
-| :enum:`return_value_policy::copy`                | Create a new copy of the returned object, which will be owned by Python   |
-+--------------------------------------------------+---------------------------------------------------------------------------+
-| :enum:`return_value_policy::take_ownership`      | Reference the existing object and take ownership. Python will call        |
-|                                                  | the destructor and delete operator when the reference count reaches zero  |
-+--------------------------------------------------+---------------------------------------------------------------------------+
-| :enum:`return_value_policy::reference`           | Reference the object, but do not take ownership and defer responsibility  |
-|                                                  | for deleting it to C++ (dangerous when C++ code at some point decides to  |
-|                                                  | delete it while Python still has a nonzero reference count)               |
-+--------------------------------------------------+---------------------------------------------------------------------------+
-| :enum:`return_value_policy::reference_internal`  | Reference the object, but do not take ownership. The object is considered |
-|                                                  | be owned by the C++ instance whose method or property returned it. The    |
-|                                                  | Python object will increase the reference count of this 'parent' by 1     |
-|                                                  | to ensure that it won't be deallocated while Python is using the 'child'  |
-+--------------------------------------------------+---------------------------------------------------------------------------+
++--------------------------------------------------+----------------------------------------------------------------------------+
+| Return value policy                              | Description                                                                |
++==================================================+============================================================================+
+| :enum:`return_value_policy::automatic`           | This is the default return value policy, which falls back to the policy    |
+|                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
+|                                                  | pointer. Otherwise, it uses :enum::`return_value::move` or                 |
+|                                                  | :enum::`return_value::copy` for rvalue and lvalue references, respectively.|
+|                                                  | See below for a description of what all of these different policies do.    |
++--------------------------------------------------+----------------------------------------------------------------------------+
+| :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
+|                                                  | return value is a pointer.                                                 |
++--------------------------------------------------+----------------------------------------------------------------------------+
+| :enum:`return_value_policy::take_ownership`      | Reference an existing object (i.e. do not create a new copy) and take      |
+|                                                  | ownership. Python will call the destructor and delete operator when the    |
+|                                                  | object's reference count reaches zero. Undefined behavior ensues when the  |
+|                                                  | C++ side does the same..                                                   |
++--------------------------------------------------+----------------------------------------------------------------------------+
+| :enum:`return_value_policy::copy`                | Create a new copy of the returned object, which will be owned by Python.   |
+|                                                  | This policy is comparably safe because the lifetimes of the two instances  |
+|                                                  | are decoupled.                                                             |
++--------------------------------------------------+----------------------------------------------------------------------------+
+| :enum:`return_value_policy::move`                | Use ``std::move`` to move the return value contents into a new instance    |
+|                                                  | that will be owned by Python. This policy is comparably safe because the   |
+|                                                  | lifetimes of the two instances (move source and destination) are decoupled.|
++--------------------------------------------------+----------------------------------------------------------------------------+
+| :enum:`return_value_policy::reference`           | Reference an existing object, but do not take ownership. The C++ side is   |
+|                                                  | responsible for managing the object's lifetime and deallocating it when    |
+|                                                  | it is no longer used. Warning: undefined behavior will ensue when the C++  |
+|                                                  | side deletes an object that is still referenced by Python.                 |
++--------------------------------------------------+----------------------------------------------------------------------------+
+| :enum:`return_value_policy::reference_internal`  | Reference the object, but do not take ownership. The object is considered  |
+|                                                  | be owned by the C++ instance whose method or property returned it. The     |
+|                                                  | Python object will increase the reference count of this 'parent' by 1      |
+|                                                  | to ensure that it won't be deallocated while Python is using the 'child'   |
++--------------------------------------------------+----------------------------------------------------------------------------+
 
 .. warning::
 
-    Code with invalid call policies might access unitialized memory and free
+    Code with invalid call policies might access unitialized memory or free
     data structures multiple times, which can lead to hard-to-debug
     non-determinism and segmentation faults, hence it is worth spending the
     time to understand all the different options above.
+
+.. note::
+
+    The next section on :ref:`call_policies` discusses *call policies* that can be
+    specified *in addition* to a return value policy from the list above. Call
+    policies indicate reference relationships that can involve both return values
+    and parameters of functions.
+
+.. note::
+
+   As an alternative to elaborate call policies and lifetime management logic,
+   consider using smart pointers (see :ref:`smart_pointers` for details) that
+   can be used to share reference count information between C++ and Python.
+
 
 See below for an example that uses the
 :enum:`return_value_policy::reference_internal` policy.
@@ -465,6 +490,8 @@ See below for an example that uses the
         return m.ptr();
     }
 
+
+.. _call_policies:
 
 Additional call policies
 ========================
@@ -556,6 +583,8 @@ by pybind11.
 The above signature would imply that Python needs to give up ownership of an
 object that is passed to this function, which is generally not possible (for
 instance, the object might be referenced elsewhere).
+
+.. _smart_pointers:
 
 Smart pointers
 ==============

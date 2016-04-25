@@ -141,29 +141,46 @@ typedef Py_ssize_t ssize_t;
 
 /// Approach used to cast a previously unknown C++ instance into a Python object
 enum class return_value_policy : int {
-    /** Automatic: copy objects returned as values and take ownership of objects
-        returned as pointers */
+    /** This is the default return value policy, which falls back to the policy
+        return_value_policy::take_ownership when the return value is a pointer.
+        Otherwise, it uses return_value::move or return_value::copy for rvalue
+        and lvalue references, respectively. See below for a description of what
+        all of these different policies do. */
     automatic = 0,
 
-    /** Automatic variant 2: copy objects returned as values and reference objects
-        returned as pointers */
+    /** As above, but use policy return_value_policy::reference when the return
+        value is a pointer. */
     automatic_reference,
 
-    /** Reference the object and take ownership. Python will call the
-        destructor and delete operator when the reference count reaches zero */
+    /** Reference an existing object (i.e. do not create a new copy) and take
+        ownership. Python will call the destructor and delete operator when the
+        object’s reference count reaches zero. Undefined behavior ensues when
+        the C++ side does the same.. */
     take_ownership,
 
-    /** Reference the object, but do not take ownership (dangerous when C++ code
-        deletes it and Python still has a nonzero reference count) */
+    /** Create a new copy of the returned object, which will be owned by
+        Python. This policy is comparably safe because the lifetimes of the two
+        instances are decoupled. */
+    copy,
+
+    /** Use std::move to move the return value contents into a new instance
+        that will be owned by Python. This policy is comparably safe because the
+        lifetimes of the two instances (move source and destination) are
+        decoupled. */
+    move,
+
+    /** Reference an existing object, but do not take ownership. The C++ side
+        is responsible for managing the object’s lifetime and deallocating it
+        when it is no longer used. Warning: undefined behavior will ensue when
+        the C++ side deletes an object that is still referenced by Python. */
     reference,
 
-    /** Reference the object, but do not take ownership. The object is considered
-        be owned by the C++ instance whose method or property returned it. The
-        Python object will increase the reference count of this 'parent' by 1 */
-    reference_internal,
-
-    /// Create a new copy of the returned object, which will be owned by Python
-    copy
+    /** Reference the object, but do not take ownership. The object is
+        considered be owned by the C++ instance whose method or property
+        returned it. The Python object will increase the reference count of this
+        ‘parent’ by 1 to ensure that it won’t be deallocated while Python is
+        using the ‘child’ */
+    reference_internal
 };
 
 /// Format strings for basic number types
@@ -272,6 +289,12 @@ template <typename T, size_t N> struct intrinsic_type<T[N]>       { typedef type
  * std::is_copy_constructible, this class also checks if the 'new' operator is accessible */
 template <typename T>  struct is_copy_constructible {
     template <typename T2> static std::true_type test(decltype(new T2(std::declval<typename std::add_lvalue_reference<T2>::type>())) *);
+    template <typename T2> static std::false_type test(...);
+    static const bool value = std::is_same<std::true_type, decltype(test<T>(nullptr))>::value;
+};
+
+template <typename T>  struct is_move_constructible {
+    template <typename T2> static std::true_type test(decltype(new T2(std::declval<typename std::add_rvalue_reference<T2>::type>())) *);
     template <typename T2> static std::false_type test(...);
     static const bool value = std::is_same<std::true_type, decltype(test<T>(nullptr))>::value;
 };
