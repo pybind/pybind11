@@ -157,7 +157,10 @@ def extract(filename, node, prefix, output):
     if node.kind in PRINT_LIST:
         comment = d(node.raw_comment) if node.raw_comment is not None else ''
         comment = process_comment(comment)
-        name = sanitize_name(prefix + '_' + d(node.spelling))
+        sub_prefix = prefix
+        if len(sub_prefix) > 0:
+            sub_prefix += '_'
+        name = sanitize_name(sub_prefix + d(node.spelling))
         output.append('\nstatic const char *%s = %sR"doc(%s)doc";' % (name, '\n' if '\n' in comment else '', comment))
         num_extracted += 1
     return num_extracted
