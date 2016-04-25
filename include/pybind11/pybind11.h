@@ -1039,21 +1039,106 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
 }
 
 #if defined(WITH_THREAD)
-inline void init_threading() { PyEval_InitThreads(); }
+
+/* The functions below essentially reproduce the PyGILState_* API using a RAII
+ * pattern, but there are a few important differences:
+ *
+ * 1. When acquiring the GIL from an non-main thread during the finalization
+ *    phase, the GILState API blindly terminates the calling thread, which
+ *    is often not what is wanted. This API does not do this.
+ *
+ * 2. The gil_scoped_release function can optionally cut the relationship
+ *    of a PyThreadState and its associated thread, which allows moving it to
+ *    another thread (this is a fairly rare/advanced use case).
+ *
+ * 3. The reference count of an acquired thread state can be controlled. This
+ *    can be handy to prevent cases where callbacks issued from an external
+ *    thread constantly construct and destroy thread state data structures. */
 
 class gil_scoped_acquire {
-    PyGILState_STATE state;
 public:
-    inline gil_scoped_acquire() { state = PyGILState_Ensure(); }
-    inline ~gil_scoped_acquire() { PyGILState_Release(state); }
+    gil_scoped_acquire() {
+        auto const &internals = detail::get_internals();
+        tstate = (PyThreadState *) PyThread_get_key_value(internals.tstate);
+
+        if (!tstate) {
+            tstate = PyThreadState_New(internals.istate);
+            #if !defined(NDEBUG)
+                if (!tstate)
+                    pybind11_fail("scoped_acquire: could not create thread state!");
+            #endif
+            tstate->gilstate_counter = 0;
+            PyThread_set_key_value(internals.tstate, tstate);
+        } else {
+            release = _PyThreadState_Current != tstate;
+        }
+
+        if (release) {
+            PyInterpreterState *interp = tstate->interp;
+            /* Work around an annoying assertion in PyThreadState_Swap */
+            tstate->interp = nullptr;
+            PyEval_AcquireThread(tstate);
+            tstate->interp = interp;
+        }
+
+        inc_ref();
+    }
+
+    void inc_ref() {
+        ++tstate->gilstate_counter;
+    }
+
+    void dec_ref() {
+        --tstate->gilstate_counter;
+        #if !defined(NDEBUG)
+            if (_PyThreadState_Current != tstate)
+                pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
+            if (tstate->gilstate_counter < 0)
+                pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
+        #endif
+        if (tstate->gilstate_counter == 0) {
+            #if !defined(NDEBUG)
+                if (!release)
+                    pybind11_fail("scoped_acquire::dec_ref(): internal error!");
+            #endif
+            PyThreadState_Clear(tstate);
+            PyThreadState_DeleteCurrent();
+            PyThread_set_key_value(detail::get_internals().tstate, nullptr);
+            release = false;
+        }
+    }
+
+    ~gil_scoped_acquire() {
+        dec_ref();
+        if (release)
+           PyEval_SaveThread();
+    }
+private:
+    PyThreadState *tstate = nullptr;
+    bool release = true;
 };
 
 class gil_scoped_release {
-    PyThreadState *state;
 public:
-    inline gil_scoped_release() { state = PyEval_SaveThread(); }
-    inline ~gil_scoped_release() { PyEval_RestoreThread(state); }
+    gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
+        tstate = PyEval_SaveThread();
+        if (disassoc)
+            PyThread_set_key_value(detail::get_internals().tstate, nullptr);
+    }
+    ~gil_scoped_release() {
+        if (!tstate)
+            return;
+        PyEval_RestoreThread(tstate);
+        if (disassoc)
+            PyThread_set_key_value(detail::get_internals().tstate, tstate);
+    }
+private:
+    PyThreadState *tstate;
+    bool disassoc;
 };
+#else
+class gil_scoped_acquire { };
+class gil_scoped_release { };
 #endif
 
 inline function get_overload(const void *this_ptr, const char *name)  {

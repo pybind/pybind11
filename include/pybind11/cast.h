@@ -55,6 +55,13 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         internals_ptr = caps;
     } else {
         internals_ptr = new internals();
+        #if defined(WITH_THREAD)
+            PyEval_InitThreads();
+            PyThreadState *tstate = PyThreadState_Get();
+            internals_ptr->tstate = PyThread_create_key();
+            PyThread_set_key_value(internals_ptr->tstate, tstate);
+            internals_ptr->istate = tstate->interp;
+        #endif
         builtins[id] = capsule(internals_ptr);
     }
     return *internals_ptr;

@@ -46,6 +46,7 @@
 
 #include <Python.h>
 #include <frameobject.h>
+#include <pythread.h>
 
 #ifdef isalnum
 #  undef isalnum
@@ -127,6 +128,9 @@
     } \
     PyObject *pybind11_init()
 
+extern "C" {
+    extern PyThreadState *_PyThreadState_Current;
+};
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -233,6 +237,10 @@ struct internals {
     std::unordered_map<const void *, void*> registered_types_py;     // PyTypeObject* -> type_info
     std::unordered_map<const void *, void*> registered_instances;    // void * -> PyObject*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
+#if defined(WITH_THREAD)
+    int tstate = 0;
+    PyInterpreterState *istate = nullptr;
+#endif
 };
 
 /// Return a reference to the current 'internals' information
