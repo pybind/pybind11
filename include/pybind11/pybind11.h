@@ -511,6 +511,10 @@ public:
 };
 
 NAMESPACE_BEGIN(detail)
+static PyGetSetDef getsetlist[] = {
+    {(char*)"__dict__", PyObject_GenericGetDict, PyObject_GenericSetDict},
+    {NULL}
+};
 /// Generic support for creating new Python heap types
 class generic_type : public object {
     template <typename type, typename holder_type> friend class class_;
@@ -588,6 +592,12 @@ protected:
 
         /* Support weak references (needed for the keep_alive feature) */
         type->ht_type.tp_weaklistoffset = offsetof(instance_essentials<void>, weakrefs);
+        
+        /* Support dynamic attributes */
+        type->ht_type.tp_getattro = PyObject_GenericGetAttr;
+        type->ht_type.tp_setattro = PyObject_GenericSetAttr;
+        type->ht_type.tp_dictoffset = offsetof(instance_essentials<void>, dict);
+        type->ht_type.tp_getset = getsetlist;
 
         /* Flags */
         type->ht_type.tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
