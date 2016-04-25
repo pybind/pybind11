@@ -1122,15 +1122,26 @@ class gil_scoped_release {
 public:
     gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
         tstate = PyEval_SaveThread();
-        if (disassoc)
-            PyThread_set_key_value(detail::get_internals().tstate, nullptr);
+        if (disassoc) {
+            int key = detail::get_internals().tstate;
+            #if PY_MAJOR_VERSION < 3
+                PyThread_delete_key_value(key);
+            #else
+                PyThread_set_key_value(key, nullptr);
+            #endif
+        }
     }
     ~gil_scoped_release() {
         if (!tstate)
             return;
         PyEval_RestoreThread(tstate);
-        if (disassoc)
-            PyThread_set_key_value(detail::get_internals().tstate, tstate);
+        if (disassoc) {
+            int key = detail::get_internals().tstate;
+            #if PY_MAJOR_VERSION < 3
+                PyThread_delete_key_value(key);
+            #endif
+            PyThread_set_key_value(key, tstate);
+        }
     }
 private:
     PyThreadState *tstate;
