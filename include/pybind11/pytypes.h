@@ -212,7 +212,7 @@ private:
     ssize_t pos = 0;
 };
 
-inline bool iterable_check(PyObject *obj) {
+inline bool PyIterable_Check(PyObject *obj) {
     PyObject *iter = PyObject_GetIter(obj);
     if (iter) {
         Py_DECREF(iter);
@@ -222,8 +222,10 @@ inline bool iterable_check(PyObject *obj) {
         return false;
     }
 }
-NAMESPACE_END(detail)
+    
+inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 
+NAMESPACE_END(detail)
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
     Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
@@ -261,7 +263,7 @@ private:
 
 class iterable : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(iterable, object, detail::iterable_check)
+    PYBIND11_OBJECT_DEFAULT(iterable, object, detail::PyIterable_Check)
 };
 
 inline detail::accessor handle::operator[](handle key) const { return detail::accessor(ptr(), key.ptr(), false); }
@@ -317,6 +319,12 @@ public:
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, length);
     }
+};
+
+class none : public object {
+public:
+    PYBIND11_OBJECT(none, object, detail::PyNone_Check)
+    none() : object(Py_None, true) { }
 };
 
 class bool_ : public object {
