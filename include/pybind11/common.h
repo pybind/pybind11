@@ -137,19 +137,24 @@ enum class return_value_policy : int {
     /** Automatic: copy objects returned as values and take ownership of objects
         returned as pointers */
     automatic = 0,
+
     /** Automatic variant 2: copy objects returned as values and reference objects
         returned as pointers */
     automatic_reference,
+
     /** Reference the object and take ownership. Python will call the
         destructor and delete operator when the reference count reaches zero */
     take_ownership,
+
     /** Reference the object, but do not take ownership (dangerous when C++ code
         deletes it and Python still has a nonzero reference count) */
     reference,
+
     /** Reference the object, but do not take ownership. The object is considered
         be owned by the C++ instance whose method or property returned it. The
         Python object will increase the reference count of this 'parent' by 1 */
     reference_internal,
+
     /// Create a new copy of the returned object, which will be owned by Python
     copy
 };
@@ -252,7 +257,7 @@ template <typename T> struct intrinsic_type<T&&>                  { typedef type
 template <typename T, size_t N> struct intrinsic_type<const T[N]> { typedef typename intrinsic_type<T>::type type; };
 template <typename T, size_t N> struct intrinsic_type<T[N]>       { typedef typename intrinsic_type<T>::type type; };
 
-/** \brief SFINAE helper class to check if a copy constructor is usable (in contrast to 
+/** \brief SFINAE helper class to check if a copy constructor is usable (in contrast to
  * std::is_copy_constructible, this class also checks if the 'new' operator is accessible */
 template <typename T>  struct is_copy_constructible {
     template <typename T2> static std::true_type test(decltype(new T2(std::declval<typename std::add_lvalue_reference<T2>::type>())) *);
