@@ -1070,7 +1070,7 @@ public:
             tstate->gilstate_counter = 0;
             PyThread_set_key_value(internals.tstate, tstate);
         } else {
-            release = _PyThreadState_Current != tstate;
+            release = PyThreadState_GET() != tstate;
         }
 
         if (release) {
@@ -1091,7 +1091,7 @@ public:
     void dec_ref() {
         --tstate->gilstate_counter;
         #if !defined(NDEBUG)
-            if (_PyThreadState_Current != tstate)
+            if (PyThreadState_GET() != tstate)
                 pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
             if (tstate->gilstate_counter < 0)
                 pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");

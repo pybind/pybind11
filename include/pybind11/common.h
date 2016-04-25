@@ -128,10 +128,6 @@
     } \
     PyObject *pybind11_init()
 
-extern "C" {
-    extern PyThreadState *_PyThreadState_Current;
-};
-
 NAMESPACE_BEGIN(pybind11)
 
 typedef Py_ssize_t ssize_t;
