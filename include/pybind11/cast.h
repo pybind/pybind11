@@ -117,6 +117,18 @@ PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr) {
     return handle((PyObject *) it->second);
 }
 
+inline PyThreadState *get_thread_state_unchecked() {
+#if   PY_VERSION_HEX < 0x03000000
+    return _PyThreadState_Current;
+#elif PY_VERSION_HEX < 0x03050000
+    return (PyThreadState*) _Py_atomic_load_relaxed(&_PyThreadState_Current);
+#elif PY_VERSION_HEX < 0x03050200
+    return (PyThreadState*) _PyThreadState_Current.value;
+#else
+    return _PyThreadState_UncheckedGet();
+#endif
+}
+
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)

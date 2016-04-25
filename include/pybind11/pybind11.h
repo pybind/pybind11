@@ -1053,11 +1053,13 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
  *
  * 3. The reference count of an acquired thread state can be controlled. This
  *    can be handy to prevent cases where callbacks issued from an external
- *    thread constantly construct and destroy thread state data structures. */
+ *    thread would otherwise constantly construct and destroy thread state data
+ *    structures.
+ */
 
 class gil_scoped_acquire {
 public:
-    gil_scoped_acquire() {
+    PYBIND11_NOINLINE gil_scoped_acquire() {
         auto const &internals = detail::get_internals();
         tstate = (PyThreadState *) PyThread_get_key_value(internals.tstate);
 
@@ -1068,17 +1070,24 @@ public:
                     pybind11_fail("scoped_acquire: could not create thread state!");
             #endif
             tstate->gilstate_counter = 0;
+            #if PY_MAJOR_VERSION < 3
+                PyThread_delete_key_value(internals.tstate);
+            #endif
             PyThread_set_key_value(internals.tstate, tstate);
         } else {
-            release = PyThreadState_GET() != tstate;
+            release = detail::get_thread_state_unchecked() != tstate;
         }
 
         if (release) {
-            PyInterpreterState *interp = tstate->interp;
             /* Work around an annoying assertion in PyThreadState_Swap */
-            tstate->interp = nullptr;
+            #if defined(Py_DEBUG)
+                PyInterpreterState *interp = tstate->interp;
+                tstate->interp = nullptr;
+            #endif
             PyEval_AcquireThread(tstate);
-            tstate->interp = interp;
+            #if defined(Py_DEBUG)
+                tstate->interp = interp;
+            #endif
         }
 
         inc_ref();
@@ -1088,10 +1097,10 @@ public:
         ++tstate->gilstate_counter;
     }
 
-    void dec_ref() {
+    PYBIND11_NOINLINE void dec_ref() {
         --tstate->gilstate_counter;
         #if !defined(NDEBUG)
-            if (PyThreadState_GET() != tstate)
+            if (detail::get_thread_state_unchecked() != tstate)
                 pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
             if (tstate->gilstate_counter < 0)
                 pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
@@ -1103,12 +1112,12 @@ public:
             #endif
             PyThreadState_Clear(tstate);
             PyThreadState_DeleteCurrent();
-            PyThread_set_key_value(detail::get_internals().tstate, nullptr);
+            PyThread_delete_key_value(detail::get_internals().tstate);
             release = false;
         }
     }
 
-    ~gil_scoped_acquire() {
+    PYBIND11_NOINLINE ~gil_scoped_acquire() {
         dec_ref();
         if (release)
            PyEval_SaveThread();

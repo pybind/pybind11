@@ -110,6 +110,13 @@
     extern "C" PYBIND11_EXPORT PyObject *init##name()
 #endif
 
+#if PY_VERSION_HEX >= 0x03050000 && PY_VERSION_HEX < 0x03050200
+extern "C" {
+    struct _Py_atomic_address { void *value; };
+    PyAPI_DATA(_Py_atomic_address) _PyThreadState_Current;
+};
+#endif
+
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
 #define PYBIND11_STRINGIFY(x) #x
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
