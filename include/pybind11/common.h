@@ -149,7 +149,7 @@ enum class return_value_policy : int {
     automatic = 0,
 
     /** As above, but use policy return_value_policy::reference when the return
-        value is a pointer. */
+        value is a pointer. You probably won't need to use this. */
     automatic_reference,
 
     /** Reference an existing object (i.e. do not create a new copy) and take
@@ -172,14 +172,20 @@ enum class return_value_policy : int {
     /** Reference an existing object, but do not take ownership. The C++ side
         is responsible for managing the object’s lifetime and deallocating it
         when it is no longer used. Warning: undefined behavior will ensue when
-        the C++ side deletes an object that is still referenced by Python. */
+        the C++ side deletes an object that is still referenced and used by
+        Python. */
     reference,
 
-    /** Reference the object, but do not take ownership. The object is
-        considered be owned by the C++ instance whose method or property
-        returned it. The Python object will increase the reference count of this
-        ‘parent’ by 1 to ensure that it won’t be deallocated while Python is
-        using the ‘child’ */
+    /** This policy only applies to methods and properties. It references the
+        object without taking ownership similar to the above
+        return_value_policy::reference policy. In contrast to that policy, the
+        function or property’s implicit this argument (called the parent) is
+        considered to be the the owner of the return value (the child).
+        pybind11 then couples the lifetime of the parent to the child via a
+        reference relationship that ensures that the parent cannot be garbage
+        collected while Python is still using the child. More advanced
+        variations of this scheme are also possible using combinations of
+        return_value_policy::reference and the keep_alive call policy */
     reference_internal
 };
 

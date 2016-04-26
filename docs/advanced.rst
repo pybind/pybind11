@@ -416,12 +416,12 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 +==================================================+============================================================================+
 | :enum:`return_value_policy::automatic`           | This is the default return value policy, which falls back to the policy    |
 |                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
-|                                                  | pointer. Otherwise, it uses :enum::`return_value::move` or                 |
-|                                                  | :enum::`return_value::copy` for rvalue and lvalue references, respectively.|
+|                                                  | pointer. Otherwise, it uses :enum:`return_value::move` or                  |
+|                                                  | :enum:`return_value::copy` for rvalue and lvalue references, respectively. |
 |                                                  | See below for a description of what all of these different policies do.    |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
-|                                                  | return value is a pointer.                                                 |
+|                                                  | return value is a pointer. You probably won't need to use this.            |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::take_ownership`      | Reference an existing object (i.e. do not create a new copy) and take      |
 |                                                  | ownership. Python will call the destructor and delete operator when the    |
@@ -439,36 +439,22 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 | :enum:`return_value_policy::reference`           | Reference an existing object, but do not take ownership. The C++ side is   |
 |                                                  | responsible for managing the object's lifetime and deallocating it when    |
 |                                                  | it is no longer used. Warning: undefined behavior will ensue when the C++  |
-|                                                  | side deletes an object that is still referenced by Python.                 |
+|                                                  | side deletes an object that is still referenced and used by Python.        |
 +--------------------------------------------------+----------------------------------------------------------------------------+
-| :enum:`return_value_policy::reference_internal`  | Reference the object, but do not take ownership. The object is considered  |
-|                                                  | be owned by the C++ instance whose method or property returned it. The     |
-|                                                  | Python object will increase the reference count of this 'parent' by 1      |
-|                                                  | to ensure that it won't be deallocated while Python is using the 'child'   |
+| :enum:`return_value_policy::reference_internal`  | This policy only applies to methods and properties. It references the      |
+|                                                  | object without taking ownership similar to the above                       |
+|                                                  | :enum:`return_value_policy::reference` policy. In contrast to that policy, |
+|                                                  | the function or property's implicit ``this`` argument (called the *parent*)|
+|                                                  | is considered to be the the owner of the return value (the *child*).       |
+|                                                  | pybind11 then couples the lifetime of the parent to the child via a        |
+|                                                  | reference relationship that ensures that the parent cannot be garbage      |
+|                                                  | collected while Python is still using the child. More advanced variations  |
+|                                                  | of this scheme are also possible using combinations of                     |
+|                                                  | :enum:`return_value_policy::reference` and the :class:`keep_alive` call    |
+|                                                  | policy described next.                                                     |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
-.. warning::
-
-    Code with invalid call policies might access unitialized memory or free
-    data structures multiple times, which can lead to hard-to-debug
-    non-determinism and segmentation faults, hence it is worth spending the
-    time to understand all the different options above.
-
-.. note::
-
-    The next section on :ref:`call_policies` discusses *call policies* that can be
-    specified *in addition* to a return value policy from the list above. Call
-    policies indicate reference relationships that can involve both return values
-    and parameters of functions.
-
-.. note::
-
-   As an alternative to elaborate call policies and lifetime management logic,
-   consider using smart pointers (see :ref:`smart_pointers` for details) that
-   can be used to share reference count information between C++ and Python.
-
-
-See below for an example that uses the
+The following example snippet shows a use case of the
 :enum:`return_value_policy::reference_internal` policy.
 
 .. code-block:: cpp
@@ -485,11 +471,34 @@ See below for an example that uses the
 
         py::class_<Example>(m, "Example")
             .def(py::init<>())
-            .def("get_internal", &Example::get_internal, "Return the internal data", py::return_value_policy::reference_internal);
+            .def("get_internal", &Example::get_internal, "Return the internal data",
+                                 py::return_value_policy::reference_internal);
 
         return m.ptr();
     }
 
+.. warning::
+
+    Code with invalid call policies might access unitialized memory or free
+    data structures multiple times, which can lead to hard-to-debug
+    non-determinism and segmentation faults, hence it is worth spending the
+    time to understand all the different options in the table above.
+
+.. note::
+
+    The next section on :ref:`call_policies` discusses *call policies* that can be
+    specified *in addition* to a return value policy from the list above. Call
+    policies indicate reference relationships that can involve both return values
+    and parameters of functions.
+
+.. note::
+
+   As an alternative to elaborate call policies and lifetime management logic,
+   consider using smart pointers (see the section on :ref:`smart_pointers` for
+   details). Smart pointers can tell whether an object is still referenced from
+   C++ or Python, which generally eliminates the kinds of inconsistencies that
+   can lead to crashes or undefined behavior. For functions returning smart
+   pointers, it is not necessary to specify a return value policy.
 
 .. _call_policies:
 
@@ -590,10 +599,10 @@ Smart pointers
 ==============
 
 This section explains how to pass values that are wrapped in "smart" pointer
-types with internal reference counting. For simpler C++11 unique pointers,
-please refer to the previous section.
+types with internal reference counting. For the simpler C++11 unique pointers,
+refer to the previous section.
 
-The binding generator for classes (:class:`class_`) takes an optional second
+The binding generator for classes, :class:`class_`, takes an optional second
 template type, which denotes a special *holder* type that is used to manage
 references to the object. When wrapping a type named ``Type``, the default
 value of this template parameter is ``std::unique_ptr<Type>``, which means that

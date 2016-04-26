@@ -253,7 +253,9 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +----------------------------+--------------------------+-----------------------+
 | std::pair<T1, T2>          | Pair of two custom types | pybind11/pybind11.h   |
 +----------------------------+--------------------------+-----------------------+
-| std::tuple<....>           | Arbitrary tuple of types | pybind11/pybind11.h   |
+| std::tuple<...>            | Arbitrary tuple of types | pybind11/pybind11.h   |
++----------------------------+--------------------------+-----------------------+
+| std::reference_wrapper<...>| Reference type wrapper   | pybind11/pybind11.h   |
 +----------------------------+--------------------------+-----------------------+
 | std::complex<T>            | Complex numbers          | pybind11/complex.h    |
 +----------------------------+--------------------------+-----------------------+

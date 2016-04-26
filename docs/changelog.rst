@@ -8,13 +8,13 @@ Changelog
 * Added a new ``move`` return value policy that triggers C++11 move semantics.
   The automatic return value policy falls back to this case when a rvalue
   reference is encountered
+* Significantly more general GIL state routines that are used instead of
+  Python's troublesome ``PyGILState_Ensure`` and ``PyGILState_Release`` API
 * ``keep_alive`` fix: don't fail when there is no patient
 * ``functional.h``: acquire the GIL before calling Python function
 * Added Python RAII type wrappers ``none`` and ``iterable``
 * Added ``*args`` and ``*kwargs`` pass-through parameters to
   ``pybind11.get_include()`` function
-* Significantly more general GIL state routines that are used instead of
-  Python's troublesome ``PyGILState_Ensure`` and ``PyGILState_Release`` API.
 * Documentation improvements: ``opaque``, return value policies
 
 1.5 (April 21, 2016)

@@ -5,3 +5,7 @@
 .rst-content table.docutils td {
     vertical-align: top !important;
 }
+div[class^='highlight'] pre {
+    white-space: pre;
+    white-space: pre-wrap;
+}
