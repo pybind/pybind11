@@ -5,7 +5,12 @@
 #  Extract documentation from C++ header files to use it in Python bindings
 #
 
-import os, sys, platform, re, textwrap
+import os
+import sys
+import platform
+import re
+import textwrap
+
 from clang import cindex
 from clang.cindex import CursorKind
 from collections import OrderedDict
@@ -32,38 +37,42 @@ PRINT_LIST = [
 ]
 
 CPP_OPERATORS = {
-    '<=' : 'le', '>=' : 'ge', '==' : 'eq', '!=' : 'ne', '[]' : 'array',
-    '+=' : 'iadd', '-=' : 'isub', '*=' : 'imul', '/=' : 'idiv', '%=' :
-    'imod', '&=' : 'iand', '|=' : 'ior', '^=' : 'ixor', '<<=' : 'ilshift',
-    '>>=' : 'irshift', '++' : 'inc', '--' : 'dec', '<<' : 'lshift', '>>' :
-    'rshift', '&&' : 'land', '||' : 'lor', '!' : 'lnot', '~' : 'bnot', '&'
-    : 'band', '|' : 'bor', '+' : 'add', '-' : 'sub', '*' : 'mul', '/' :
-    'div', '%' : 'mod', '<' : 'lt', '>' : 'gt', '=' : 'assign'
+    '<=': 'le', '>=': 'ge', '==': 'eq', '!=': 'ne', '[]': 'array',
+    '+=': 'iadd', '-=': 'isub', '*=': 'imul', '/=': 'idiv', '%=':
+    'imod', '&=': 'iand', '|=': 'ior', '^=': 'ixor', '<<=': 'ilshift',
+    '>>=': 'irshift', '++': 'inc', '--': 'dec', '<<': 'lshift', '>>':
+    'rshift', '&&': 'land', '||': 'lor', '!': 'lnot', '~': 'bnot',
+    '&': 'band', '|': 'bor', '+': 'add', '-': 'sub', '*': 'mul', '/':
+    'div', '%': 'mod', '<': 'lt', '>': 'gt', '=': 'assign'
 }
-CPP_OPERATORS = OrderedDict(sorted(CPP_OPERATORS.items(), key=lambda t: -len(t[0])))
+
+CPP_OPERATORS = OrderedDict(
+    sorted(CPP_OPERATORS.items(), key=lambda t: -len(t[0])))
 
 job_count = cpu_count()
 job_semaphore = Semaphore(job_count)
 
 registered_names = dict()
 
+
 def d(s):
     return s.decode('utf8')
+
 
 def sanitize_name(name):
     global registered_names
     for k, v in CPP_OPERATORS.items():
         name = name.replace('operator%s' % k, 'operator_%s' % v)
-    name = name.replace('<', '_')
-    name = name.replace('>', '_')
-    name = name.replace(' ', '_')
-    name = name.replace(',', '_')
+    name = re.sub('<.*>', '', name)
+    name = ''.join([ch if ch.isalnum() else '_' for ch in name])
+    name = re.sub('_$', '', re.sub('_+', '_', name))
     if name in registered_names:
         registered_names[name] += 1
         name += '_' + str(registered_names[name])
     else:
         registered_names[name] = 1
     return '__doc_' + name
+
 
 def process_comment(comment):
     result = ''
@@ -91,20 +100,22 @@ def process_comment(comment):
     s = re.sub(r'\\e\s+%s' % cpp_group, r'*\1*', s)
     s = re.sub(r'\\em\s+%s' % cpp_group, r'*\1*', s)
     s = re.sub(r'\\b\s+%s' % cpp_group, r'**\1**', s)
-    s = re.sub(r'\\param%s?\s+%s' % (param_group, cpp_group), r'\n\n$Parameter ``\2``:\n\n', s)
+    s = re.sub(r'\\param%s?\s+%s' % (param_group, cpp_group),
+               r'\n\n$Parameter ``\2``:\n\n', s)
 
     for in_, out_ in {
-        'return' : 'Returns',
-        'author' : 'Author',
-        'authors' : 'Authors',
-        'copyright' : 'Copyright',
-        'date' : 'Date',
-        'remark' : 'Remark',
-        'sa' : 'See also',
-        'see' : 'See also',
-        'extends' : 'Extends',
-        'throw' : 'Throws',
-        'throws' : 'Throws' }.items():
+        'return': 'Returns',
+        'author': 'Author',
+        'authors': 'Authors',
+        'copyright': 'Copyright',
+        'date': 'Date',
+        'remark': 'Remark',
+        'sa': 'See also',
+        'see': 'See also',
+        'extends': 'Extends',
+        'throw': 'Throws',
+        'throws': 'Throws'
+    }.items():
         s = re.sub(r'\\%s\s*' % in_, r'\n\n$%s:\n\n' % out_, s)
 
     s = re.sub(r'\\details\s*', r'\n\n', s)
@@ -133,7 +144,7 @@ def process_comment(comment):
         wrapped = wrapper.fill(x.strip())
         if len(wrapped) > 0 and wrapped[0] == '$':
             result += wrapped[1:] + '\n'
-            wrapper.initial_indent = wrapper.subsequent_indent = ' '*4
+            wrapper.initial_indent = wrapper.subsequent_indent = ' ' * 4
         else:
             result += wrapped + '\n\n'
             wrapper.initial_indent = wrapper.subsequent_indent = ''
@@ -142,7 +153,8 @@ def process_comment(comment):
 
 def extract(filename, node, prefix, output):
     num_extracted = 0
-    if not (node.location.file is None or os.path.samefile(d(node.location.file.name), filename)):
+    if not (node.location.file is None or
+            os.path.samefile(d(node.location.file.name), filename)):
         return 0
     if node.kind in RECURSE_LIST:
         sub_prefix = prefix
@@ -161,12 +173,14 @@ def extract(filename, node, prefix, output):
         if len(sub_prefix) > 0:
             sub_prefix += '_'
         name = sanitize_name(sub_prefix + d(node.spelling))
-        output.append('\nstatic const char *%s = %sR"doc(%s)doc";' % (name, '\n' if '\n' in comment else '', comment))
+        output.append('\nstatic const char *%s =%sR"doc(%s)doc";' %
+            (name, '\n' if '\n' in comment else ' ', comment))
         num_extracted += 1
     return num_extracted
 
+
 class ExtractionThread(Thread):
-    def __init__ (self, filename, parameters, output):
+    def __init__(self, filename, parameters, output):
         Thread.__init__(self)
         self.filename = filename
         self.parameters = parameters
@@ -174,9 +188,10 @@ class ExtractionThread(Thread):
         job_semaphore.acquire()
 
     def run(self):
-        print('Processing "%s" ..' % self.filename, file = sys.stderr)
+        print('Processing "%s" ..' % self.filename, file=sys.stderr)
         try:
-            index = cindex.Index(cindex.conf.lib.clang_createIndex(False, True))
+            index = cindex.Index(
+                cindex.conf.lib.clang_createIndex(False, True))
             tu = index.parse(self.filename, self.parameters)
             extract(self.filename, tu.cursor, '', self.output)
         finally:
@@ -187,15 +202,18 @@ if __name__ == '__main__':
     filenames = []
 
     if platform.system() == 'Darwin':
-        libclang = '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libclang.dylib'
+        dev_path = '/Applications/Xcode.app/Contents/Developer/'
+        lib_dir = dev_path + 'Toolchains/XcodeDefault.xctoolchain/usr/lib/'
+        sdk_dir = dev_path + 'Platforms/MacOSX.platform/Developer/SDKs'
+        libclang = lib_dir + 'libclang.dylib'
+
         if os.path.exists(libclang):
             cindex.Config.set_library_path(os.path.dirname(libclang))
 
-        base_path = '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs'
-        if os.path.exists(base_path):
-            sysroot = os.path.join(base_path, next(os.walk(base_path))[1][0])
+        if os.path.exists(sdk_dir):
+            sysroot_dir = os.path.join(sdk_dir, next(os.walk(sdk_dir))[1][0])
             parameters.append('-isysroot')
-            parameters.append(sysroot)
+            parameters.append(sysroot_dir)
 
     for item in sys.argv[1:]:
         if item.startswith('-'):
@@ -235,7 +253,7 @@ if __name__ == '__main__':
         thr = ExtractionThread(filename, parameters, output)
         thr.start()
 
-    print('Waiting for jobs to finish ..', file = sys.stderr)
+    print('Waiting for jobs to finish ..', file=sys.stderr)
     for i in range(job_count):
         job_semaphore.acquire()
 
