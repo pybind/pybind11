@@ -250,6 +250,12 @@ public:
             value = object(PyIter_Next(m_ptr), false);
         return *this;
     }
+	iterator operator++(int)
+    {
+        auto tmp(*this); // copy
+        operator++(); // pre-increment
+        return tmp;   // return old value
+    }
     bool operator==(const iterator &it) const { return *it == **this; }
     bool operator!=(const iterator &it) const { return *it != **this; }
     const handle &operator*() const {
