@@ -59,7 +59,7 @@ public:
     object(const object &o) : handle(o) { inc_ref(); }
     object(const handle &h, bool borrowed) : handle(h) { if (borrowed) inc_ref(); }
     object(PyObject *ptr, bool borrowed) : handle(ptr) { if (borrowed) inc_ref(); }
-    object(object &&other) { m_ptr = other.m_ptr; other.m_ptr = nullptr; }
+    object(object &&other) noexcept { m_ptr = other.m_ptr; other.m_ptr = nullptr; }
     ~object() { dec_ref(); }
 
     handle release() {
@@ -75,7 +75,7 @@ public:
         return *this;
     }
 
-    object& operator=(object &&other) {
+    object& operator=(object &&other) noexcept {
         if (this != &other) {
             handle temp(m_ptr);
             m_ptr = other.m_ptr;
@@ -230,8 +230,8 @@ NAMESPACE_END(detail)
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
     Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
     Name(const object& o): Parent(o) { CvtStmt; } \
-    Name(object&& o): Parent(std::move(o)) { CvtStmt; } \
-    Name& operator=(object&& o) { (void) static_cast<Name&>(object::operator=(std::move(o))); CvtStmt; return *this; } \
+    Name(object&& o) noexcept : Parent(std::move(o)) { CvtStmt; } \
+    Name& operator=(object&& o) noexcept { (void) static_cast<Name&>(object::operator=(std::move(o))); CvtStmt; return *this; } \
     Name& operator=(object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
     bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
 
