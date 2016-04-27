@@ -1009,7 +1009,9 @@ template <typename Iterator, typename... Extra> iterator make_iterator(Iterator 
             .def("__next__", [](state &s) -> decltype(*std::declval<Iterator>()) & {
                 if (s.it == s.end)
                     throw stop_iteration();
-                return *s.it++;
+		decltype(*std::declval<Iterator>()) v = *s.it;
+		++s.it;
+                return v;
             }, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
     }
 
