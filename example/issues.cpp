@@ -57,4 +57,9 @@ void init_issues(py::module &m) {
         v.push_back(p4);
         return v;
     });
+
+    // #181: iterator passthrough did not compile
+    m2.def("iterator_passthrough", [](py::iterator s) -> py::iterator {
+        return py::make_iterator(std::begin(s), std::end(s));
+    });
 }

@@ -68,7 +68,7 @@ public:
       return handle(tmp);
     }
 
-    object& operator=(object &other) {
+    object& operator=(const object &other) {
         other.inc_ref();
         dec_ref();
         m_ptr = other.m_ptr;
@@ -231,8 +231,8 @@ NAMESPACE_END(detail)
     Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
     Name(const object& o): Parent(o) { CvtStmt; } \
     Name(object&& o) noexcept : Parent(std::move(o)) { CvtStmt; } \
-    Name& operator=(object&& o) noexcept { (void) static_cast<Name&>(object::operator=(std::move(o))); CvtStmt; return *this; } \
-    Name& operator=(object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
+    Name& operator=(object&& o) noexcept { (void) object::operator=(std::move(o)); CvtStmt; return *this; } \
+    Name& operator=(const object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
     bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
 
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
@@ -244,21 +244,62 @@ NAMESPACE_END(detail)
 
 class iterator : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
-    iterator& operator++() {
-        if (ptr())
-            value = object(PyIter_Next(m_ptr), false);
+    PYBIND11_OBJECT_CVT(iterator, object, PyIter_Check, value = object(); ready = false)
+    iterator() : object(), value(object()), ready(false) { }
+    iterator(const iterator& it) : object(it), value(it.value), ready(it.ready) { }
+    iterator(iterator&& it) : object(std::move(it)), value(std::move(it.value)), ready(it.ready) { }
+
+    /** Caveat: this copy constructor does not (and cannot) clone the internal
+        state of the Python iterable */
+    iterator &operator=(const iterator &it) {
+        (void) object::operator=(it);
+        value = it.value;
+        ready = it.ready;
         return *this;
     }
+
+    iterator &operator=(iterator &&it) noexcept {
+        (void) object::operator=(std::move(it));
+        value = std::move(it.value);
+        ready = it.ready;
+        return *this;
+    }
+
+    iterator& operator++() {
+        if (m_ptr)
+            advance();
+        return *this;
+    }
+
+    /** Caveat: this postincrement operator does not (and cannot) clone the
+        internal state of the Python iterable. It should only be used to
+        retrieve the current iterate using <tt>operator*()</tt> */
+    iterator operator++(int) {
+        iterator rv(*this);
+        rv.value = value;
+        if (m_ptr)
+            advance();
+        return rv;
+    }
+
     bool operator==(const iterator &it) const { return *it == **this; }
     bool operator!=(const iterator &it) const { return *it != **this; }
+
     const handle &operator*() const {
-        if (m_ptr && !value)
-            value = object(PyIter_Next(m_ptr), false);
+        if (!ready && m_ptr) {
+            auto& self = const_cast<iterator &>(*this);
+            self.advance();
+            self.ready = true;
+        }
         return value;
     }
+
 private:
-    mutable object value;
+    void advance() { value = object(PyIter_Next(m_ptr), false); }
+
+private:
+    object value;
+    bool ready;
 };
 
 class iterable : public object {
