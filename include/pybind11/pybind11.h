@@ -995,18 +995,18 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
 }
 
 template <typename Iterator> struct iterator_state {
-
-Iterator it, end;
-Iterator& operator++(){
-    if( x == 0){
+    public iterator_state( const Iterator& a, const Iterator & b): it( a), end( b) {}
+    Iterator it, end;
+    Iterator& operator++(){
+        if( x == 0){
+         ++x;
+         return it;
+        }
         ++x;
-        return it;
+        return ++it;
     }
-    ++x;
-    return ++it;
-}
-std::size_t x = 0;
-};
+    std::size_t x = 0;
+    };
 
 NAMESPACE_END(detail)
 
@@ -1028,7 +1028,8 @@ template <typename Iterator, typename... Extra> iterator make_iterator(Iterator 
 	            return *s.it;
             }, return_value_policy::move, std::forward<Extra>(extra)...);
     }
-    return (iterator) cast(state { first, last });
+    state state1( first,last);
+    return (iterator) cast(state1);
 }
 template <typename Type, typename... Extra> iterator make_iterator(Type &value, Extra&&... extra) {
     return make_iterator(std::begin(value), std::end(value), extra...);
