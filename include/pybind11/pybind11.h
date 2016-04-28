@@ -995,7 +995,7 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
 }
 
 template <typename Iterator> struct iterator_state {
-    public iterator_state( const Iterator& a, const Iterator & b): it( a), end( b) {}
+    iterator_state( const Iterator& a, const Iterator & b): it( a), end( b) {}
     Iterator it, end;
     Iterator& operator++(){
         if( x == 0){
