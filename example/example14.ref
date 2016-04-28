@@ -1,9 +1,12 @@
 Opaque list: [Element 1, Element 2]
 Back element is Element 2
+1/2 : Element 1
+2/2 : Element 2
 Opaque list: [Element 1]
 Opaque list: []
 Opaque list: [Element 1, Element 3]
 Got void ptr : 1234
 None
 Got null str : 0
-[u'some value']
+<example.StringList object at 0x104a47500>
+Opaque list: [some value]

@@ -1203,7 +1203,7 @@ Suppose we bind the following function
        v.push_back(1);
     }
 
-and call it as follows from Python:
+and call it from Python, the following happens:
 
 .. code-block:: python
 
@@ -1244,21 +1244,36 @@ In this case, properties can be read and written in their entirety. However, an
    >>> print(m.contents)
    [5, 6]
 
-To deal with both of the above situations, pybind11 contains a simple template
-wrapper class named ``opaque<T>``.
-
-``opaque<T>`` disables pybind11's template-based conversion machinery for
-``T`` and can be used to treat STL types as opaque objects, whose contents are
-never inspected or extracted (thus, they can be passed by reference).
-The downside of this approach is that it the binding code becomes a bit more
-wordy. The above function can be bound using the following wrapper code:
+To deal with both of the above situations, pybind11 provides a macro named
+``PYBIND11_MAKE_OPAQUE(T)`` that disables the template-based conversion
+machinery of types, thus rendering them *opaque*. The contents of opaque
+objects are never inspected or extracted, hence they can be passed by
+reference. For instance, to turn ``std::vector<int>`` into an opaque type, add
+the declaration
 
 .. code-block:: cpp
 
-   m.def("append_1", [](py::opaque<std::vector<int>> &v) { append_1(v); });
+    PYBIND11_MAKE_OPAQUE(std::vector<int>);
 
-Opaque types must also have a dedicated ``class_`` declaration to define a
-set of admissible operations.
+before any binding code (e.g. invocations to ``class_::def()``, etc). This
+macro must be specified at the top level, since instantiates a partial template
+overload. If your binding code consists of multiple compilation units, it must
+be present in every file preceding any usage of ``std::vector<int>``. Opaque
+types must also have a corresponding ``class_`` declaration to associate them
+with a name in Python, and to define a set of available operations:
+
+.. code-block:: cpp
+
+    py::class_<std::vector<int>>(m, "IntVector")
+        .def(py::init<>())
+        .def("clear", &std::vector<int>::clear)
+        .def("pop_back", &std::vector<int>::pop_back)
+        .def("__len__", [](const std::vector<int> &v) { return v.size(); })
+        .def("__iter__", [](std::vector<int> &v) {
+           return py::make_iterator(v.begin(), v.end());
+        }, py::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */
+        // ....
+
 
 .. seealso::
 

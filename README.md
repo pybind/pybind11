@@ -32,6 +32,8 @@ simpler binding code in many common situations.
 
 Tutorial and reference documentation is provided at
 [http://pybind11.readthedocs.org/en/latest](http://pybind11.readthedocs.org/en/latest).
+A PDF version of the manual is available
+[here](https://media.readthedocs.org/pdf/pybind11/latest/pybind11.pdf).
 
 ## Core features
 pybind11 can map the following core C++ features to Python

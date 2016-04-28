@@ -16,6 +16,8 @@ l.push_back("Element 1")
 l.push_back("Element 2")
 print_opaque_list(l)
 print("Back element is %s" % l.back())
+for i, k in enumerate(l):
+    print("%i/%i : %s" % (i + 1, len(l), k))
 l.pop_back()
 print_opaque_list(l)
 
@@ -36,4 +38,6 @@ print_null_str(return_null_str())
 
 #####
 
-print(return_unique_ptr())
+ptr = return_unique_ptr()
+print(ptr)
+print_opaque_list(ptr)

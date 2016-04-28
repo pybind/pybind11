@@ -17,21 +17,6 @@
 #include <limits>
 
 NAMESPACE_BEGIN(pybind11)
-
-/// Thin wrapper type used to treat certain data types as opaque (e.g. STL vectors, etc.)
-template <typename Type> class opaque {
-public:
-    template <typename... Args> opaque(Args&&... args) : value(std::forward<Args>(args)...) { }
-    operator Type&() { return value; }
-    operator const Type&() const { return value; }
-    operator Type*() { return &value; }
-    operator const Type*() const { return &value; }
-    Type* operator->() { return &value; }
-    const Type* operator->() const { return &value; }
-private:
-    Type value;
-};
-
 NAMESPACE_BEGIN(detail)
 
 /// Additional type information which does not fit into the PyTypeObject
@@ -238,11 +223,11 @@ using cast_op_type = typename std::conditional<std::is_pointer<typename std::rem
     typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type>::type;
 
 /// Generic type caster for objects stored on the heap
-template <typename type, typename Enable = void> class type_caster : public type_caster_generic {
+template <typename type> class type_caster_base : public type_caster_generic {
 public:
     static PYBIND11_DESCR name() { return type_descr(_<type>()); }
 
-    type_caster() : type_caster_generic(typeid(type)) { }
+    type_caster_base() : type_caster_generic(typeid(type)) { }
 
     static handle cast(const type &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
@@ -277,10 +262,12 @@ protected:
     static void *move_constructor(const void *) { return nullptr; }
 };
 
-template <typename type> class type_caster<std::reference_wrapper<type>> : public type_caster<type> {
+template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
+
+template <typename type> class type_caster<std::reference_wrapper<type>> : public type_caster_base<type> {
 public:
     static handle cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
-        return type_caster<type>::cast(&src.get(), policy, parent);
+        return type_caster_base<type>::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
     operator std::reference_wrapper<type>() { return std::ref(*((type *) this->value)); }
@@ -461,12 +448,12 @@ protected:
 template <typename type> class type_caster<std::unique_ptr<type>> {
 public:
     static handle cast(std::unique_ptr<type> &&src, return_value_policy policy, handle parent) {
-        handle result = type_caster<type>::cast(src.get(), policy, parent);
+        handle result = type_caster_base<type>::cast(src.get(), policy, parent);
         if (result)
             src.release();
         return result;
     }
-    static PYBIND11_DESCR name() { return type_caster<type>::name(); }
+    static PYBIND11_DESCR name() { return type_caster_base<type>::name(); }
 };
 
 template <> class type_caster<std::wstring> {
@@ -672,14 +659,14 @@ protected:
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
-template <typename type, typename holder_type> class type_caster_holder : public type_caster<type> {
+template <typename type, typename holder_type> class type_caster_holder : public type_caster_base<type> {
 public:
-    using type_caster<type>::cast;
-    using type_caster<type>::typeinfo;
-    using type_caster<type>::value;
-    using type_caster<type>::temp;
-    using type_caster<type>::copy_constructor;
-    using type_caster<type>::move_constructor;
+    using type_caster_base<type>::cast;
+    using type_caster_base<type>::typeinfo;
+    using type_caster_base<type>::value;
+    using type_caster_base<type>::temp;
+    using type_caster_base<type>::copy_constructor;
+    using type_caster_base<type>::move_constructor;
 
     bool load(handle src, bool convert) {
         if (!src || !typeinfo) {
@@ -789,5 +776,10 @@ template <typename... Args> inline object handle::call(Args&&... args) const {
         throw error_already_set();
     return result;
 }
+
+#define PYBIND11_MAKE_OPAQUE(Type) \
+    namespace pybind11 { namespace detail { \
+        template<> class type_caster<Type> : public type_caster_base<Type> { }; \
+    }}
 
 NAMESPACE_END(pybind11)

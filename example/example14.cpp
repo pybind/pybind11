@@ -18,22 +18,26 @@ public:
     StringList stringList;
 };
 
+/* IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures */
+PYBIND11_MAKE_OPAQUE(StringList); 
+
 void init_ex14(py::module &m) {
-    py::class_<py::opaque<StringList>>(m, "StringList")
+    py::class_<StringList>(m, "StringList")
         .def(py::init<>())
-        .def("push_back", [](py::opaque<StringList> &l, const std::string &str) { l->push_back(str); })
-        .def("pop_back", [](py::opaque<StringList> &l) { l->pop_back(); })
-        .def("back", [](py::opaque<StringList> &l) { return l->back(); });
+        .def("pop_back", &StringList::pop_back)
+        /* There are multiple versions of push_back(), etc. Select the right ones. */
+        .def("push_back", (void (StringList::*)(const std::string &)) &StringList::push_back)
+        .def("back", (std::string &(StringList::*)()) &StringList::back)
+        .def("__len__", [](const StringList &v) { return v.size(); })
+        .def("__iter__", [](StringList &v) {
+           return py::make_iterator(v.begin(), v.end());
+        }, py::keep_alive<0, 1>());
 
     py::class_<ClassWithSTLVecProperty>(m, "ClassWithSTLVecProperty")
         .def(py::init<>())
-        /* Need to cast properties to opaque types to avoid pybind11-internal
-           STL conversion code from becoming active */
-        .def_readwrite("stringList", (py::opaque<StringList> ClassWithSTLVecProperty:: *)
-                                     &ClassWithSTLVecProperty::stringList);
+        .def_readwrite("stringList", &ClassWithSTLVecProperty::stringList);
 
-    m.def("print_opaque_list", [](py::opaque<StringList> &_l) {
-        StringList &l = _l;
+    m.def("print_opaque_list", [](const StringList &l) {
         std::cout << "Opaque list: [";
         bool first = true;
         for (auto entry : l) {
