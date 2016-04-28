@@ -41,15 +41,18 @@ in C++.
     public:
         Vector2(float x, float y) : x(x), y(y) { }
 
-        std::string toString() const { return "[" + std::to_string(x) + ", " + std::to_string(y) + "]"; }
-
         Vector2 operator+(const Vector2 &v) const { return Vector2(x + v.x, y + v.y); }
         Vector2 operator*(float value) const { return Vector2(x * value, y * value); }
         Vector2& operator+=(const Vector2 &v) { x += v.x; y += v.y; return *this; }
         Vector2& operator*=(float v) { x *= v; y *= v; return *this; }
 
-        friend Vector2 operator*(float f, const Vector2 &v) { return Vector2(f * v.x, f * v.y); }
+        friend Vector2 operator*(float f, const Vector2 &v) {
+            return Vector2(f * v.x, f * v.y);
+        }
 
+        std::string toString() const {
+            return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
+        }
     private:
         float x, y;
     };
@@ -411,6 +414,8 @@ For this reason, pybind11 provides a several `return value policy` annotations
 that can be passed to the :func:`module::def` and :func:`class_::def`
 functions. The default policy is :enum:`return_value_policy::automatic`.
 
+.. tabularcolumns:: |p{0.5\textwidth}|p{0.45\textwidth}|
+
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | Return value policy                              | Description                                                                |
 +==================================================+============================================================================+
@@ -746,6 +751,8 @@ automatically converted into a Python ``Exception``. pybind11 defines multiple
 special exception classes that will map to different types of Python
 exceptions:
 
+.. tabularcolumns:: |p{0.5\textwidth}|p{0.45\textwidth}|
+
 +--------------------------------------+------------------------------+
 |  C++ exception type                  |  Python exception type       |
 +======================================+==============================+
@@ -1034,8 +1041,9 @@ For instance, the following statement iterates over a Python ``dict``:
 
 Available types include :class:`handle`, :class:`object`, :class:`bool_`,
 :class:`int_`, :class:`float_`, :class:`str`, :class:`bytes`, :class:`tuple`,
-:class:`list`, :class:`dict`, :class:`slice`, :class:`capsule`,
-:class:`function`, :class:`buffer`, :class:`array`, and :class:`array_t`.
+:class:`list`, :class:`dict`, :class:`slice`, :class:`none`, :class:`capsule`,
+:class:`iterable`, :class:`iterator`, :class:`function`, :class:`buffer`,
+:class:`array`, and :class:`array_t`.
 
 In this kind of mixed code, it is often necessary to convert arbitrary C++
 types to Python, which can be done using :func:`cast`:

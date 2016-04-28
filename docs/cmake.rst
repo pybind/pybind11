@@ -29,11 +29,13 @@ subdirectory named :file:`pybind11`.
     project(example)
 
     # Add a CMake parameter for choosing a desired Python version
-    set(EXAMPLE_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example library")
-    
+    set(EXAMPLE_PYTHON_VERSION "" CACHE STRING
+        "Python version to use for compiling the example library")
+
     include(CheckCXXCompilerFlag)
 
-    # Set a default build configuration if none is specified. 'MinSizeRel' produces the smallest binaries
+    # Set a default build configuration if none is specified.
+    # 'MinSizeRel' produces the smallest binaries
     if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
       message(STATUS "Setting build type to 'MinSizeRel' as none was specified.")
       set(CMAKE_BUILD_TYPE MinSizeRel CACHE STRING "Choose the type of build." FORCE)
@@ -53,7 +55,8 @@ subdirectory named :file:`pybind11`.
       find_package(PythonLibs REQUIRED)
     endif()
 
-    # The above sometimes returns version numbers like "3.4.3+"; the "+" must be removed for the next lines to work
+    # The above sometimes returns version numbers like "3.4.3+";
+    # the "+" must be removed for the next lines to work
     string(REPLACE "+" "" PYTHONLIBS_VERSION_STRING "+${PYTHONLIBS_VERSION_STRING}")
 
     # Uncomment the following line if you will also require a matching Python interpreter
@@ -88,7 +91,8 @@ subdirectory named :file:`pybind11`.
     # Include path for Python header files
     include_directories(${PYTHON_INCLUDE_DIR})
 
-    # Include path for pybind11 header files -- this may need to be changed depending on your setup
+    # Include path for pybind11 header files -- this may need to be
+    # changed depending on your setup
     include_directories(${PROJECT_SOURCE_DIR}/pybind11/include)
 
     # Create the binding library
@@ -143,11 +147,13 @@ subdirectory named :file:`pybind11`.
         set_target_properties(example PROPERTIES MACOSX_RPATH ".")
         set_target_properties(example PROPERTIES LINK_FLAGS "-undefined dynamic_lookup ")
         if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-          add_custom_command(TARGET example POST_BUILD COMMAND strip -u -r ${PROJECT_BINARY_DIR}/example.so)
+          add_custom_command(TARGET example POST_BUILD
+                             COMMAND strip -u -r ${PROJECT_BINARY_DIR}/example.so)
         endif()
       else()
         if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-          add_custom_command(TARGET example POST_BUILD COMMAND strip ${PROJECT_BINARY_DIR}/example.so)
+          add_custom_command(TARGET example POST_BUILD
+                             COMMAND strip ${PROJECT_BINARY_DIR}/example.so)
         endif()
       endif()
     endif()

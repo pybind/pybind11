@@ -120,15 +120,16 @@ the included file :file:`example/example.cpp`.
         return m.ptr();
     }
 
-The various ``init_ex`` functions are contained in separate files that can be
-compiled independently from another. Following this approach will
+The various ``init_ex`` functions should be contained in separate files that
+can be compiled independently from another. Following this approach will
 
-1. enable parallel builds (if desired).
+1. reduce memory requirements per compilation unit.
 
-2. allow for faster incremental builds (e.g. if a single class definiton is
-   changed, only a subset of the binding code may need to be recompiled).
+2. enable parallel builds (if desired).
 
-3. reduce memory requirements.
+3. allow for faster incremental builds. For instance, when a single class
+   definiton is changed, only a subset of the binding code will generally need
+   to be recompiled.
 
 How can I create smaller binaries?
 ==================================
@@ -142,9 +143,17 @@ phase. However, due to the nested nature of these types, the resulting symbol
 names in the compiled extension library can be extremely long. For instance,
 the included test suite contains the following symbol:
 
-.. code-block:: cpp
+.. only:: html
 
-    __ZN8pybind1112cpp_functionC1Iv8Example2JRNSt3__16vectorINS3_12basic_stringIwNS3_11char_traitsIwEENS​3_9allocatorIwEEEENS8_ISA_EEEEEJNS_4nameENS_7siblingENS_9is_methodEA28_cEEEMT0_FT_DpT1_EDpRKT2_
+    .. code-block:: none
+
+        _​_​Z​N​8​p​y​b​i​n​d​1​1​1​2​c​p​p​_​f​u​n​c​t​i​o​n​C​1​I​v​8​E​x​a​m​p​l​e​2​J​R​N​S​t​3​_​_​1​6​v​e​c​t​o​r​I​N​S​3​_​1​2​b​a​s​i​c​_​s​t​r​i​n​g​I​w​N​S​3​_​1​1​c​h​a​r​_​t​r​a​i​t​s​I​w​E​E​N​S​3​_​9​a​l​l​o​c​a​t​o​r​I​w​E​E​E​E​N​S​8​_​I​S​A​_​E​E​E​E​E​J​N​S​_​4​n​a​m​e​E​N​S​_​7​s​i​b​l​i​n​g​E​N​S​_​9​i​s​_​m​e​t​h​o​d​E​A​2​8​_​c​E​E​E​M​T​0​_​F​T​_​D​p​T​1​_​E​D​p​R​K​T​2​_​
+
+.. only:: not html
+
+    .. code-block:: cpp
+
+        __ZN8pybind1112cpp_functionC1Iv8Example2JRNSt3__16vectorINS3_12basic_stringIwNS3_11char_traitsIwEENS3_9allocatorIwEEEENS8_ISA_EEEEEJNS_4nameENS_7siblingENS_9is_methodEA28_cEEEMT0_FT_DpT1_EDpRKT2_
 
 which is the mangled form of the following function type:
 
@@ -152,12 +161,12 @@ which is the mangled form of the following function type:
 
     pybind11::cpp_function::cpp_function<void, Example2, std::__1::vector<std::__1::basic_string<wchar_t, std::__1::char_traits<wchar_t>, std::__1::allocator<wchar_t> >, std::__1::allocator<std::__1::basic_string<wchar_t, std::__1::char_traits<wchar_t>, std::__1::allocator<wchar_t> > > >&, pybind11::name, pybind11::sibling, pybind11::is_method, char [28]>(void (Example2::*)(std::__1::vector<std::__1::basic_string<wchar_t, std::__1::char_traits<wchar_t>, std::__1::allocator<wchar_t> >, std::__1::allocator<std::__1::basic_string<wchar_t, std::__1::char_traits<wchar_t>, std::__1::allocator<wchar_t> > > >&), pybind11::name const&, pybind11::sibling const&, pybind11::is_method const&, char const (&) [28])
 
-The memory needed to store just the name of this function (196 bytes) is larger
-than the actual piece of code (111 bytes) it represents! On the other hand,
-it's silly to even give this function a name -- after all, it's just a tiny
-cog in a bigger piece of machinery that is not exposed to the outside world.
-So we'll generally only want to export symbols for those functions which are
-actually called from the outside.
+The memory needed to store just the mangled name of this function (196 bytes)
+is larger than the actual piece of code (111 bytes) it represents! On the other
+hand, it's silly to even give this function a name -- after all, it's just a
+tiny cog in a bigger piece of machinery that is not exposed to the outside
+world. So we'll generally only want to export symbols for those functions which
+are actually called from the outside.
 
 This can be achieved by specifying the parameter ``-fvisibility=hidden`` to GCC
 and Clang, which sets the default symbol visibility to *hidden*. It's best to

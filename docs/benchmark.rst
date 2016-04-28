@@ -65,7 +65,13 @@ the largest largest file with 2048 classes and a total of 8192 methods -- a
 modest **1.2x** speedup relative to Boost.Python, which required 116.35
 seconds).
 
-.. image:: pybind11_vs_boost_python1.svg
+.. only:: not latex
+
+    .. image:: pybind11_vs_boost_python1.svg
+
+.. only:: latex
+
+    .. image:: pybind11_vs_boost_python1.png
 
 Module size
 -----------
@@ -79,5 +85,12 @@ that it stores many definitions in an external library, whose size was not
 included here, hence the comparison is slightly shifted in Boost.Python's
 favor.
 
-.. image:: pybind11_vs_boost_python2.svg
+.. only:: not latex
+
+    .. image:: pybind11_vs_boost_python2.svg
+
+.. only:: latex
+
+    .. image:: pybind11_vs_boost_python2.png
+
 
