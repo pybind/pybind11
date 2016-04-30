@@ -3,6 +3,10 @@
 Changelog
 #########
 
+1.8 (April 30, 2016)
+----------------------
+TBD
+
 1.7 (April 30, 2016)
 ----------------------
 * Added a new ``move`` return value policy that triggers C++11 move semantics.
