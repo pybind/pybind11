@@ -84,11 +84,11 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}"
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
-# Include path for Python header files
-include_directories(${PYTHON_INCLUDE_DIR})
-
 # Include path for pybind11 header files
 include_directories(include)
+
+# Include path for Python header files
+include_directories(${PYTHON_INCLUDE_DIR})
 
 set(PYBIND11_HEADERS
   include/pybind11/attr.h
