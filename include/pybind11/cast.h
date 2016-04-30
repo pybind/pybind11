@@ -52,15 +52,18 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     return *internals_ptr;
 }
 
-PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
+PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type, bool throw_if_missing = true) {
     auto const &type_dict = get_internals().registered_types_py;
     do {
         auto it = type_dict.find(type);
         if (it != type_dict.end())
             return (detail::type_info *) it->second;
         type = type->tp_base;
-        if (!type)
-            pybind11_fail("pybind11::detail::get_type_info: unable to find type object!");
+        if (!type) {
+            if (throw_if_missing)
+                pybind11_fail("pybind11::detail::get_type_info: unable to find type object!");
+            return nullptr;
+        }
     } while (true);
 }
 
@@ -382,11 +385,22 @@ public:
             value = nullptr;
             return true;
         }
+
+        /* Check if this is a capsule */
         capsule c(h, true);
-        if (!c.check())
-            return false;
-        value = (void *) c;
-        return true;
+        if (c.check()) {
+            value = (void *) c;
+            return true;
+        }
+
+        /* Check if this is a C++ type */
+        if (get_type_info((PyTypeObject *) h.get_type().ptr(), false)) {
+            value = ((instance<void> *) h.ptr())->value;
+            return true;
+        }
+
+        /* Fail */
+        return false;
     }
 
     static handle cast(const void *ptr, return_value_policy /* policy */, handle /* parent */) {

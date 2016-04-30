@@ -450,7 +450,7 @@ protected:
             return nullptr;
         } else {
             if (overloads->is_constructor) {
-                /* When a construtor ran successfully, the corresponding
+                /* When a constructor ran successfully, the corresponding
                    holder type (e.g. std::unique_ptr) must still be initialized. */
                 PyObject *inst = PyTuple_GetItem(args, 0);
                 auto tinfo = detail::get_type_info(Py_TYPE(inst));
