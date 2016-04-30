@@ -100,6 +100,7 @@ def process_comment(comment):
     s = re.sub(r'\\e\s+%s' % cpp_group, r'*\1*', s)
     s = re.sub(r'\\em\s+%s' % cpp_group, r'*\1*', s)
     s = re.sub(r'\\b\s+%s' % cpp_group, r'**\1**', s)
+    s = re.sub(r'\\ingroup\s+%s' % cpp_group, r'', s)
     s = re.sub(r'\\param%s?\s+%s' % (param_group, cpp_group),
                r'\n\n$Parameter ``\2``:\n\n', s)
 
