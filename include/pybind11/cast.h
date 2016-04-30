@@ -720,7 +720,7 @@ public:
 
     static handle cast(const holder_type &src, return_value_policy policy, handle parent) {
         return type_caster_generic::cast(
-            src.get(), policy, parent,
+            src.get(), return_value_policy::take_ownership, parent,
             src.get() ? &typeid(*src.get()) : nullptr, &typeid(type),
             &copy_constructor, &move_constructor, &src);
     }
