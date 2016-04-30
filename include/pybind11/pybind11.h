@@ -1006,7 +1006,7 @@ template <typename Iterator, typename... Extra> iterator make_iterator(Iterator 
     if (!detail::get_type_info(typeid(state))) {
         class_<state>(handle(), "")
             .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> decltype(*std::declval<Iterator>()) & {
+            .def("__next__", [](state &s) -> decltype(*std::declval<Iterator>()) {
                 if (s.it == s.end)
                     throw stop_iteration();
                 return *s.it++;

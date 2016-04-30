@@ -285,7 +285,7 @@ public:
     bool operator==(const iterator &it) const { return *it == **this; }
     bool operator!=(const iterator &it) const { return *it != **this; }
 
-    const handle &operator*() const {
+    handle operator*() const {
         if (!ready && m_ptr) {
             auto& self = const_cast<iterator &>(*this);
             self.advance();
