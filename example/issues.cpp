@@ -10,20 +10,6 @@
 #include "example.h"
 #include <pybind11/stl.h>
 
-struct Base {
-    virtual void dispatch(void) const = 0;
-};
-
-struct DispatchIssue : Base {
-    virtual void dispatch(void) const {
-        PYBIND11_OVERLOAD_PURE(void, Base, dispatch, /* no arguments */);
-    }
-};
-
-struct Placeholder { int i; Placeholder(int i) : i(i) { } };
-
-void dispatch_issue_go(const Base * b) { b->dispatch(); }
-
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
@@ -34,12 +20,22 @@ void init_issues(py::module &m) {
     m2.def("print_char", [](char c) { std::cout << c << std::endl; });
 
     // #159: virtual function dispatch has problems with similar-named functions
+    struct Base { virtual void dispatch(void) const = 0; };
+
+    struct DispatchIssue : Base {
+        virtual void dispatch(void) const {
+            PYBIND11_OVERLOAD_PURE(void, Base, dispatch, /* no arguments */);
+        }
+    };
+
     py::class_<DispatchIssue> base(m2, "DispatchIssue");
     base.alias<Base>()
         .def(py::init<>())
         .def("dispatch", &Base::dispatch);
 
-    m2.def("dispatch_issue_go", &dispatch_issue_go);
+    m2.def("dispatch_issue_go", [](const Base * b) { b->dispatch(); });
+
+    struct Placeholder { int i; Placeholder(int i) : i(i) { } };
 
     py::class_<Placeholder>(m2, "Placeholder")
         .def(py::init<int>())
