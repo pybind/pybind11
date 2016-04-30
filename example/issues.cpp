@@ -10,6 +10,8 @@
 #include "example.h"
 #include <pybind11/stl.h>
 
+PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
@@ -20,7 +22,9 @@ void init_issues(py::module &m) {
     m2.def("print_char", [](char c) { std::cout << c << std::endl; });
 
     // #159: virtual function dispatch has problems with similar-named functions
-    struct Base { virtual void dispatch(void) const = 0; };
+    struct Base { virtual void dispatch(void) const {
+        /* for some reason MSVC2015 can't compile this if the function is pure virtual */
+    }; };
 
     struct DispatchIssue : Base {
         virtual void dispatch(void) const {
@@ -58,4 +62,33 @@ void init_issues(py::module &m) {
     m2.def("iterator_passthrough", [](py::iterator s) -> py::iterator {
         return py::make_iterator(std::begin(s), std::end(s));
     });
-}
+
+    // #187: issue involving std::shared_ptr<> return value policy & garbage collection
+    struct ElementBase { virtual void foo() { } /* Force creation of virtual table */ };
+    struct ElementA : ElementBase {
+        ElementA(int v) : v(v) { }
+        int value() { return v; }
+        int v;
+    };
+
+    struct ElementList {
+        void add(std::shared_ptr<ElementBase> e) { l.push_back(e); }
+        std::vector<std::shared_ptr<ElementBase>> l;
+    };
+
+    py::class_<ElementBase, std::shared_ptr<ElementBase>> (m2, "ElementBase");
+
+    py::class_<ElementA, std::shared_ptr<ElementA>>(m2, "ElementA", py::base<ElementBase>())
+        .def(py::init<int>())
+        .def("value", &ElementA::value);
+
+    py::class_<ElementList, std::shared_ptr<ElementList>>(m2, "ElementList")
+        .def(py::init<>())
+        .def("add", &ElementList::add)
+        .def("get", [](ElementList &el){
+            py::list list;
+            for (auto &e : el.l)
+                list.append(py::cast(e));
+            return list;
+        });
+};
