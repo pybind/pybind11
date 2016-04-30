@@ -56,7 +56,6 @@ public:
                           /* This function has no arguments. The trailing comma
                              in the previous line is needed for some compilers */
         );
-        throw std::runtime_error("this will never be reached");
     }
 
     virtual void pure_virtual() {
