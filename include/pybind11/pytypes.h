@@ -163,7 +163,7 @@ public:
         return object(result, true);
     }
 
-    template <typename T> inline T cast() const { return operator object().cast<T>(); }
+    template <typename T> T cast() const { return operator object().cast<T>(); }
 private:
     handle list;
     size_t index;
@@ -188,7 +188,7 @@ public:
         return object(result, true);
     }
 
-    template <typename T> inline T cast() const { return operator object().cast<T>(); }
+    template <typename T> T cast() const { return operator object().cast<T>(); }
 private:
     handle tuple;
     size_t index;
@@ -224,6 +224,8 @@ inline bool PyIterable_Check(PyObject *obj) {
 }
     
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
+
+inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
 
 NAMESPACE_END(detail)
 
@@ -316,21 +318,26 @@ inline iterator handle::end() const { return iterator(nullptr, false); }
 
 class str : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(str, object, PyUnicode_Check)
+    PYBIND11_OBJECT_DEFAULT(str, object, detail::PyUnicode_Check_Permissive)
+
     str(const std::string &s)
         : object(PyUnicode_FromStringAndSize(s.c_str(), s.length()), false) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
 
     operator std::string() const {
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-        return PyUnicode_AsUTF8(m_ptr);
-#else
-        object temp(PyUnicode_AsUTF8String(m_ptr), false);
-        if (temp.ptr() == nullptr)
-            pybind11_fail("Unable to extract string contents!");
-        return PYBIND11_BYTES_AS_STRING(temp.ptr());
-#endif
+        object temp = *this;
+        if (PyUnicode_Check(m_ptr)) {
+            temp = object(PyUnicode_AsUTF8String(m_ptr), false);
+            if (!temp)
+                pybind11_fail("Unable to extract string contents! (encoding issue)");
+        }
+        char *buffer;
+        ssize_t length;
+        int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length);
+        if (err == -1)
+            pybind11_fail("Unable to extract string contents! (invalid type)");
+        return std::string(buffer, length);
     }
 };
 
