@@ -14,7 +14,7 @@ p = Pickleable("test_value")
 p.setExtra1(15)
 p.setExtra2(48)
 
-data = pickle.dumps(p, -1)  # -1 is important (use highest protocol version)
+data = pickle.dumps(p, 2)  # Must use pickle protocol >= 2
 print("%s %i %i" % (p.value(), p.extra1(), p.extra2()))
 
 p2 = pickle.loads(data)
