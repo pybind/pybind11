@@ -33,7 +33,12 @@ print_opaque_list(cvp.stringList)
 #####
 
 print_void_ptr(return_void_ptr())
-print_void_ptr(Example1()) # Should also work for other C++ types
+print_void_ptr(Example1())  # Should also work for other C++ types
+
+try:
+    print_void_ptr([1, 2, 3])  # This should not work
+except Exception as e:
+    print("Caught expected exception: " + str(e))
 
 print(return_null_str())
 print_null_str(return_null_str())

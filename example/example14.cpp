@@ -49,10 +49,10 @@ void init_ex14(py::module &m) {
         std::cout << "]" << std::endl;
     });
 
-    m.def("return_void_ptr", []() { return (void *) 1234; });
-    m.def("print_void_ptr", [](void *ptr) { std::cout << "Got void ptr : " << (uint64_t) ptr << std::endl; });
+    m.def("return_void_ptr", []() { return (void *) 0x1234; });
+    m.def("print_void_ptr", [](void *ptr) { std::cout << "Got void ptr : 0x" << std::hex << (uint64_t) ptr << std::endl; });
     m.def("return_null_str", []() { return (char *) nullptr; });
-    m.def("print_null_str", [](char *ptr) { std::cout << "Got null str : " << (uint64_t) ptr << std::endl; });
+    m.def("print_null_str", [](char *ptr) { std::cout << "Got null str : 0x" << std::hex << (uint64_t) ptr << std::endl; });
 
     m.def("return_unique_ptr", []() -> std::unique_ptr<StringList> {
         StringList *result = new StringList();
