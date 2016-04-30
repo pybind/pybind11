@@ -451,8 +451,8 @@ class capsule : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
     capsule(PyObject *obj, bool borrowed) : object(obj, borrowed) { }
-    capsule(void *value, void (*destruct)(PyObject *) = nullptr)
-        : object(PyCapsule_New(value, nullptr, destruct), false) {
+    capsule(const void *value, void (*destruct)(PyObject *) = nullptr)
+        : object(PyCapsule_New(const_cast<void*>(value), nullptr, destruct), false) {
         if (!m_ptr) pybind11_fail("Could not allocate capsule object!");
     }
     template <typename T> operator T *() const {

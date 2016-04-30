@@ -389,7 +389,7 @@ public:
         return true;
     }
 
-    static handle cast(void *ptr, return_value_policy /* policy */, handle /* parent */) {
+    static handle cast(const void *ptr, return_value_policy /* policy */, handle /* parent */) {
         if (ptr)
             return capsule(ptr).release();
         else
