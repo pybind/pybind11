@@ -680,8 +680,6 @@ public:
     using type_caster_base<type>::typeinfo;
     using type_caster_base<type>::value;
     using type_caster_base<type>::temp;
-    using type_caster_base<type>::copy_constructor;
-    using type_caster_base<type>::move_constructor;
 
     bool load(handle src, bool convert) {
         if (!src || !typeinfo) {
@@ -718,11 +716,11 @@ public:
     explicit operator holder_type&() { return holder; }
     #endif
 
-    static handle cast(const holder_type &src, return_value_policy policy, handle parent) {
+    static handle cast(const holder_type &src, return_value_policy, handle) {
         return type_caster_generic::cast(
-            src.get(), return_value_policy::take_ownership, parent,
+            src.get(), return_value_policy::take_ownership, handle(),
             src.get() ? &typeid(*src.get()) : nullptr, &typeid(type),
-            &copy_constructor, &move_constructor, &src);
+            nullptr, nullptr, &src);
     }
 
 protected:
