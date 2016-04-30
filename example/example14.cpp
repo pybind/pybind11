@@ -19,7 +19,7 @@ public:
 };
 
 /* IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures */
-PYBIND11_MAKE_OPAQUE(StringList); 
+PYBIND11_MAKE_OPAQUE(StringList);
 
 void init_ex14(py::module &m) {
     py::class_<StringList>(m, "StringList")

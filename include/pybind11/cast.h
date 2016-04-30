@@ -398,6 +398,7 @@ public:
 
     template <typename T> using cast_op_type = void*&;
     operator void *&() { return value; }
+    static PYBIND11_DESCR name() { return _("capsule"); }
 private:
     void *value = nullptr;
 };

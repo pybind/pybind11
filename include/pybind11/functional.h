@@ -17,6 +17,7 @@ NAMESPACE_BEGIN(detail)
 
 template <typename Return, typename... Args> struct type_caster<std::function<Return(Args...)>> {
     typedef std::function<Return(Args...)> type;
+    typedef typename std::conditional<std::is_same<Return, void>::value, void_type, Return>::type retval_type;
 public:
     bool load(handle src_, bool) {
         src_ = detail::get_function(src_);
@@ -39,7 +40,7 @@ public:
 
     PYBIND11_TYPE_CASTER(type, _("function<") +
             type_caster<std::tuple<Args...>>::name() + _(" -> ") +
-            type_caster<typename intrinsic_type<Return>::type>::name() +
+            type_caster<retval_type>::name() +
             _(">"));
 };
 
