@@ -515,12 +515,13 @@ specified to indicate dependencies between parameters. There is currently just
 one policy named ``keep_alive<Nurse, Patient>``, which indicates that the
 argument with index ``Patient`` should be kept alive at least until the
 argument with index ``Nurse`` is freed by the garbage collector; argument
-indices start at one, while zero refers to the return value. Arbitrarily many
-call policies can be specified.
+indices start at one, while zero refers to the return value. For methods, index
+one refers to the implicit ``this`` pointer, while regular arguments begin at
+index two. Arbitrarily many call policies can be specified.
 
-For instance, binding code for a a list append operation that ties the lifetime
-of the newly added element to the underlying container might be declared as
-follows:
+Consider the following example: the binding code for a list append operation
+that ties the lifetime of the newly added element to the underlying container
+might be declared as follows:
 
 .. code-block:: cpp
 
@@ -542,7 +543,7 @@ Implicit type conversions
 =========================
 
 Suppose that instances of two types ``A`` and ``B`` are used in a project, and
-that an ``A`` can easily be converted into a an instance of type ``B`` (examples of this
+that an ``A`` can easily be converted into an instance of type ``B`` (examples of this
 could be a fixed and an arbitrary precision number type).
 
 .. code-block:: cpp
@@ -815,7 +816,7 @@ we want to bind the following simplistic Matrix class:
     };
 
 The following binding code exposes the ``Matrix`` contents as a buffer object,
-making it possible to cast Matrixes into NumPy arrays. It is even possible to
+making it possible to cast Matrices into NumPy arrays. It is even possible to
 completely avoid copy operations with Python expressions like
 ``np.array(matrix_instance, copy = False)``.
 
@@ -930,7 +931,7 @@ After including the ``pybind11/numpy.h`` header, this is extremely simple:
     m.def("vectorized_func", py::vectorize(my_func));
 
 Invoking the function like below causes 4 calls to be made to ``my_func`` with
-each of the the array elements. The significant advantage of this compared to
+each of the array elements. The significant advantage of this compared to
 solutions like ``numpy.vectorize()`` is that the loop over the elements runs
 entirely on the C++ side and can be crunched down into a tight, optimized loop
 by the compiler. The result is returned as a NumPy array of type
@@ -948,7 +949,7 @@ arrays ``x`` and ``y`` are automatically converted into the right types (they
 are of type  ``numpy.dtype.int64`` but need to be ``numpy.dtype.int32`` and
 ``numpy.dtype.float32``, respectively)
 
-Sometimes we might want to explitly exclude an argument from the vectorization
+Sometimes we might want to explicitly exclude an argument from the vectorization
 because it makes little sense to wrap it in a NumPy array. For instance,
 suppose the function signature was
 
@@ -1255,7 +1256,7 @@ the declaration
 
     PYBIND11_MAKE_OPAQUE(std::vector<int>);
 
-before any binding code (e.g. invocations to ``class_::def()``, etc). This
+before any binding code (e.g. invocations to ``class_::def()``, etc.). This
 macro must be specified at the top level, since instantiates a partial template
 overload. If your binding code consists of multiple compilation units, it must
 be present in every file preceding any usage of ``std::vector<int>``. Opaque
