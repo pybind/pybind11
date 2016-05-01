@@ -21,7 +21,7 @@ void init_issues(py::module &m) {
     // #70 compilation issue if operator new is not public
     class NonConstructible { private: void *operator new(size_t bytes) throw(); };
     py::class_<NonConstructible>(m, "Foo");
-    m.def("getstmt", []() -> NonConstructible * { return nullptr; },
+    m2.def("getstmt", []() -> NonConstructible * { return nullptr; },
         py::return_value_policy::reference);
 #endif
 
@@ -101,4 +101,7 @@ void init_issues(py::module &m) {
                 list.append(py::cast(e));
             return list;
         });
-};
+
+    // (no id): should not be able to pass 'None' to a reference argument
+    m2.def("print_element", [](ElementA &el) { std::cout << el.value() << std::endl; });
+}

@@ -225,6 +225,8 @@ using cast_op_type = typename std::conditional<std::is_pointer<typename std::rem
     typename std::add_pointer<typename intrinsic_type<T>::type>::type,
     typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type>::type;
 
+/// Thrown then trying to cast a null pointer into a reference argument
+class invalid_reference_cast : public std::exception { };
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
@@ -254,7 +256,7 @@ public:
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
     operator type*() { return (type *) value; }
-    operator type&() { return *((type *) value); }
+    operator type&() { if (!value) throw invalid_reference_cast(); return *((type *) value); }
 
 protected:
     typedef void *(*Constructor)(const void *stream);

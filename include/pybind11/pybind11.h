@@ -409,8 +409,13 @@ protected:
                         }
                     }
                 }
-                if (kwargs_consumed == nkwargs)
-                    result = it->impl(it, args_, parent);
+
+                try {
+                    if (kwargs_consumed == nkwargs)
+                        result = it->impl(it, args_, parent);
+                } catch (detail::invalid_reference_cast &) {
+                    result = PYBIND11_TRY_NEXT_OVERLOAD;
+                }
 
                 if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
                     break;

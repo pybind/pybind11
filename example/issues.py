@@ -7,7 +7,7 @@ from example.issues import print_cchar, print_char
 from example.issues import DispatchIssue, dispatch_issue_go
 from example.issues import Placeholder, return_vec_of_reference_wrapper
 from example.issues import iterator_passthrough
-from example.issues import ElementList, ElementA
+from example.issues import ElementList, ElementA, print_element
 import gc
 
 print_cchar("const char *")
@@ -42,3 +42,8 @@ gc.collect()
 for i, v in enumerate(el.get()):
     print("%i==%i, " % (i, v.value()), end='')
 print()
+
+try:
+    print_element(None)
+except Exception as e:
+    print("Failed as expected: " + str(e))
