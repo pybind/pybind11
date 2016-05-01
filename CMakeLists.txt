@@ -148,17 +148,19 @@ endforeach()
 
 if (WIN32)
   if (MSVC)
-    # /bigobj is needed for bigger binding projects due to the limit to 64k
-    # addressable sections. /MP enables multithreaded builds (relevant when
-    # there are many files).
-    set_target_properties(example PROPERTIES COMPILE_FLAGS "/MP /bigobj ")
-
-    if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-      # Enforce size-based optimization and link time code generation on MSVC
-      # (~30% smaller binaries in experiments).
-      set_target_properties(example APPEND_STRING PROPERTY COMPILE_FLAGS "/Os /GL ")
-      set_target_properties(example APPEND_STRING PROPERTY LINK_FLAGS "/LTCG ")
-    endif()
+    # /MP enables multithreaded builds (relevant when there are many files), /bigobj is
+    # needed for bigger binding projects due to the limit to 64k addressable sections
+    set_property(TARGET example APPEND PROPERTY COMPILE_OPTIONS /MP /bigobj)
+    # Enforce size-based optimization and link time code generation on MSVC
+    # (~30% smaller binaries in experiments); do nothing in debug mode.
+    set_property(TARGET example APPEND PROPERTY COMPILE_OPTIONS
+      "$<$<CONFIG:Release>:/Os>" "$<$<CONFIG:Release>:/GL>"
+      "$<$<CONFIG:MinSizeRel>:/Os>" "$<$<CONFIG:MinSizeRel>:/GL>"
+      "$<$<CONFIG:RelWithDebInfo>:/Os>" "$<$<CONFIG:RelWithDebInfo>:/GL>"
+    )
+    set_property(TARGET example APPEND_STRING PROPERTY LINK_FLAGS_RELEASE "/LTCG ")
+    set_property(TARGET example APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL "/LTCG ")
+    set_property(TARGET example APPEND_STRING PROPERTY LINK_FLAGS_RELWITHDEBINFO "/LTCG ")
   endif()
 
   # .PYD file extension on Windows
