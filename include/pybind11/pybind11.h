@@ -20,7 +20,7 @@
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
 #  pragma warning(push)
 #  pragma warning(disable:2196)  // warning #2196: routine is both "inline" and "noinline"
-#elif defined(__GNUG__) and !defined(__clang__)
+#elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
@@ -1218,6 +1218,6 @@ NAMESPACE_END(pybind11)
 #  pragma warning(pop)
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
 #  pragma warning(pop)
-#elif defined(__GNUG__) and !defined(__clang__)
+#elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic pop
 #endif
