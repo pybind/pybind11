@@ -32,6 +32,7 @@ PRINT_LIST = [
     CursorKind.CLASS_TEMPLATE,
     CursorKind.FUNCTION_DECL,
     CursorKind.FUNCTION_TEMPLATE,
+    CursorKind.CONVERSION_FUNCTION,
     CursorKind.CXX_METHOD,
     CursorKind.CONSTRUCTOR,
     CursorKind.FIELD_DECL
@@ -62,6 +63,7 @@ def d(s):
 
 def sanitize_name(name):
     global registered_names
+    name = re.sub(r'type-parameter-0-([0-9]+)', r'T\1', name)
     for k, v in CPP_OPERATORS.items():
         name = name.replace('operator%s' % k, 'operator_%s' % v)
     name = re.sub('<.*>', '', name)
@@ -150,7 +152,7 @@ def process_comment(comment):
         else:
             result += wrapped + '\n\n'
             wrapper.initial_indent = wrapper.subsequent_indent = ''
-    return result.rstrip()
+    return result.rstrip().lstrip('\n')
 
 
 def extract(filename, node, prefix, output):
