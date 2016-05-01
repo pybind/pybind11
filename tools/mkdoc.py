@@ -28,6 +28,7 @@ RECURSE_LIST = [
 PRINT_LIST = [
     CursorKind.CLASS_DECL,
     CursorKind.STRUCT_DECL,
+    CursorKind.ENUM_DECL,
     CursorKind.CLASS_TEMPLATE,
     CursorKind.FUNCTION_DECL,
     CursorKind.FUNCTION_TEMPLATE,
