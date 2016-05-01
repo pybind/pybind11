@@ -225,6 +225,7 @@ using cast_op_type = typename std::conditional<std::is_pointer<typename std::rem
     typename std::add_pointer<typename intrinsic_type<T>::type>::type,
     typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type>::type;
 
+
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
 public:
@@ -247,22 +248,35 @@ public:
     static handle cast(const type *src, return_value_policy policy, handle parent) {
         return type_caster_generic::cast(
             src, policy, parent, src ? &typeid(*src) : nullptr, &typeid(type),
-            &copy_constructor, &move_constructor);
+            make_copy_constructor(src), make_move_constructor(src));
     }
 
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
     operator type*() { return (type *) value; }
     operator type&() { return *((type *) value); }
+
 protected:
-    template <typename T = type, typename std::enable_if<detail::is_copy_constructible<T>::value, int>::type = 0>
-    static void *copy_constructor(const void *arg) { return (void *) new type(*((const type *) arg)); }
-    template <typename T = type, typename std::enable_if<!detail::is_copy_constructible<T>::value, int>::type = 0>
-    static void *copy_constructor(const void *) { return nullptr; }
-    template <typename T = type, typename std::enable_if<detail::is_move_constructible<T>::value, int>::type = 0>
-    static void *move_constructor(const void *arg) { return (void *) new type(std::move(*((type *) arg))); }
-    template <typename T = type, typename std::enable_if<!detail::is_move_constructible<T>::value, int>::type = 0>
-    static void *move_constructor(const void *) { return nullptr; }
+    typedef void *(*Constructor)(const void *stream);
+#if !defined(_MSC_VER)
+    /* Only enabled when the types are {copy,move}-constructible *and* when the type
+       does not have a private operator new implementaton. */
+    template <typename T = type> static auto make_copy_constructor(const T *value) -> decltype(new T(*value), Constructor(nullptr)) {
+        return [](const void *arg) -> void * { return new T(*((const T *) arg)); }; }
+    template <typename T = type> static auto make_move_constructor(const T *value) -> decltype(new T(std::move(*((T *) value))), Constructor(nullptr)) {
+        return [](const void *arg) -> void * { return (void *) new T(std::move(*((T *) arg))); }; }
+#else
+    /* Visual Studio 2015's SFINAE implementation doesn't yet handle the above robustly in all situations.
+       Use a workaround that only tests for constructibility for now. */
+    template <typename T = type, typename = typename std::enable_if<std::is_copy_constructible<T>::value>::type>
+    static Constructor make_copy_constructor(const T *value) {
+        return [](const void *arg) -> void * { return new T(*((const T *)arg)); }; }
+    template <typename T = type, typename = typename std::enable_if<std::is_move_constructible<T>::value>::type>
+    static Constructor make_move_constructor(const T *value) {
+        return [](const void *arg) -> void * { return (void *) new T(std::move(*((T *)arg))); }; }
+#endif
+    static Constructor make_copy_constructor(...) { return nullptr; }
+    static Constructor make_move_constructor(...) { return nullptr; }
 };
 
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
