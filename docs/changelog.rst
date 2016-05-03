@@ -3,9 +3,21 @@
 Changelog
 #########
 
-1.8 (April 30, 2016)
+1.8 (Not yet released)
 ----------------------
-TBD
+* Fixed incorrect default return value policy for functions returning a shared
+  pointer
+* Don't allow casting a ``None`` value into a C++ lvalue reference
+* Fixed a crash in ``enum_::operator==`` that was triggered by the ``help()`` command
+* Improved detection of whether or not custom C++ types can be copy/move-constructed
+* Extended ``str`` type to also work with ``bytes`` instances
+* Added ``[[noreturn]]`` attribute to ``pybind11_fail()`` to quench some
+  compiler warnings
+* Various minor ``iterator`` and ``make_iterator()`` improvements
+* Minor CMake build system improvements on Windows
+* Many ``mkdoc.py`` improvements (enumerations, template arguments, ``DOC()``
+  macro accepts more arguments)
+* Documentation improvements (pickling support, ``keep_alive``)
 
 1.7 (April 30, 2016)
 ----------------------
