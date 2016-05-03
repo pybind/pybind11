@@ -1,10 +1,8 @@
 Frequently asked questions
 ##########################
 
-(under construction)
-
-ImportError: dynamic module does not define init function
-=========================================================
+"ImportError: dynamic module does not define init function"
+===========================================================
 
 1. Make sure that the name specified in ``pybind::module`` and
    ``PYBIND11_PLUGIN`` is consistent and identical to the filename of the
@@ -14,7 +12,17 @@ ImportError: dynamic module does not define init function
 2. If the above did not fix your issue, then you are likely using an
    incompatible version of Python (for instance, the extension library was
    compiled against Python 2, while the interpreter is running on top of some
-   version of Python 3)
+   version of Python 3, or vice versa)
+
+"Symbol not found: ``__Py_ZeroStruct`` / ``_PyInstanceMethod_Type``"
+========================================================================
+
+See item 2 of the first answer.
+
+The Python interpreter immediately crashes when importing my module
+===================================================================
+
+See item 2 of the first answer.
 
 Limitations involving reference arguments
 =========================================
@@ -82,20 +90,6 @@ and then invoke CMake as follows:
           -DPYTHON_INCLUDE_DIR:PATH=<...> .
 
 .. [#f1] http://github.com/pybind/pybind11/issues/99
-
-Working with ancient Visual Studio 2009 builds on Windows
-=========================================================
-
-The official Windows distributions of Python are compiled using truly
-ancient versions of Visual Studio that lack good C++11 support. Some users
-implicitly assume that it would be impossible to load a plugin built with
-Visual Studio 2015 into a Python distribution that was compiled using Visual
-Studio 2009. However, no such issue exists: it's perfectly legitimate to
-interface DLLs that are built with different compilers and/or C libraries.
-Common gotchas to watch out for involve not ``free()``-ing memory region
-that that were ``malloc()``-ed in another shared library, using data
-structures with incompatible ABIs, and so on. pybind11 is very careful not
-to make these types of mistakes.
 
 How can I reduce the build time?
 ================================
@@ -204,3 +198,17 @@ enable C++14 language features (using ``-std=c++14`` for GCC/Clang), in which
 case signatures are efficiently pre-generated at compile time. Unfortunately,
 Visual Studio's C++14 support (``constexpr``) is not good enough as of April
 2016, so it always uses the more expensive run-time approach.
+
+Working with ancient Visual Studio 2009 builds on Windows
+=========================================================
+
+The official Windows distributions of Python are compiled using truly
+ancient versions of Visual Studio that lack good C++11 support. Some users
+implicitly assume that it would be impossible to load a plugin built with
+Visual Studio 2015 into a Python distribution that was compiled using Visual
+Studio 2009. However, no such issue exists: it's perfectly legitimate to
+interface DLLs that are built with different compilers and/or C libraries.
+Common gotchas to watch out for involve not ``free()``-ing memory region
+that that were ``malloc()``-ed in another shared library, using data
+structures with incompatible ABIs, and so on. pybind11 is very careful not
+to make these types of mistakes.
