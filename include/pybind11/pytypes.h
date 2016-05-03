@@ -126,7 +126,7 @@ public:
         return result;
     }
 
-    template <typename T> inline T cast() const { return operator object().cast<T>(); }
+    template <typename T> T cast() const { return operator object().cast<T>(); }
 
     operator bool() const {
         if (attr) {

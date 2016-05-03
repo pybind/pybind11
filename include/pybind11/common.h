@@ -280,7 +280,7 @@ template<size_t N, size_t ...S> struct make_index_sequence : make_index_sequence
 template<size_t ...S> struct make_index_sequence <0, S...> { typedef index_sequence<S...> type; };
 
 /// Strip the class from a method type
-template <typename T> struct remove_class {};
+template <typename T> struct remove_class { };
 template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...)> { typedef R type(A...); };
 template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...) const> { typedef R type(A...); };
 
@@ -305,12 +305,18 @@ to_string(T value) { return std::to_string((int) value); }
 
 NAMESPACE_END(detail)
 
+#define PYBIND11_RUNTIME_EXCEPTION(name) \
+    class name : public std::runtime_error { public: \
+        name(const std::string &w) : std::runtime_error(w) { }; \
+        name(const char *s) : std::runtime_error(s) { }; \
+        name() : std::runtime_error("") { } \
+    };
+
 // C++ bindings of core Python exceptions
-struct stop_iteration    : public std::runtime_error { public: stop_iteration(const std::string &w="") : std::runtime_error(w)   {} };
-struct index_error       : public std::runtime_error { public: index_error(const std::string &w="")    : std::runtime_error(w)   {} };
-struct error_already_set : public std::runtime_error { public: error_already_set() : std::runtime_error(detail::error_string())  {} };
-/// Thrown when pybind11::cast or handle::call fail due to a type casting error
-struct cast_error        : public std::runtime_error { public: cast_error(const std::string &w = "") : std::runtime_error(w)     {} };
+class error_already_set : public std::runtime_error { public: error_already_set() : std::runtime_error(detail::error_string())  {} };
+PYBIND11_RUNTIME_EXCEPTION(stop_iteration)
+PYBIND11_RUNTIME_EXCEPTION(index_error)
+PYBIND11_RUNTIME_EXCEPTION(cast_error) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 
 [[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
 [[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }

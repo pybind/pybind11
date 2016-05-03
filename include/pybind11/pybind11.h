@@ -413,7 +413,7 @@ protected:
                 try {
                     if (kwargs_consumed == nkwargs)
                         result = it->impl(it, args_, parent);
-                } catch (detail::invalid_reference_cast &) {
+                } catch (cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
 

@@ -225,9 +225,6 @@ using cast_op_type = typename std::conditional<std::is_pointer<typename std::rem
     typename std::add_pointer<typename intrinsic_type<T>::type>::type,
     typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type>::type;
 
-/// Thrown then trying to cast a null pointer into a reference argument
-class invalid_reference_cast : public std::exception { };
-
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
 public:
@@ -256,7 +253,7 @@ public:
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
     operator type*() { return (type *) value; }
-    operator type&() { if (!value) throw invalid_reference_cast(); return *((type *) value); }
+    operator type&() { if (!value) throw cast_error(); return *((type *) value); }
 
 protected:
     typedef void *(*Constructor)(const void *stream);
@@ -763,7 +760,7 @@ public:
 
 NAMESPACE_END(detail)
 
-template <typename T> inline T cast(handle handle) {
+template <typename T> T cast(handle handle) {
     typedef detail::type_caster<typename detail::intrinsic_type<T>::type> type_caster;
     type_caster conv;
     if (!conv.load(handle, true))
@@ -771,7 +768,7 @@ template <typename T> inline T cast(handle handle) {
     return conv.operator typename type_caster::template cast_op_type<T>();
 }
 
-template <typename T> inline object cast(const T &value, return_value_policy policy = return_value_policy::automatic_reference, handle parent = handle()) {
+template <typename T> object cast(const T &value, return_value_policy policy = return_value_policy::automatic_reference, handle parent = handle()) {
     if (policy == return_value_policy::automatic)
         policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
     else if (policy == return_value_policy::automatic_reference)
@@ -779,11 +776,11 @@ template <typename T> inline object cast(const T &value, return_value_policy pol
     return object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(value, policy, parent), false);
 }
 
-template <typename T> inline T handle::cast() const { return pybind11::cast<T>(*this); }
+template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
 template <> inline void handle::cast() const { return; }
 
 template <return_value_policy policy = return_value_policy::automatic_reference,
-          typename... Args> inline tuple make_tuple(Args&&... args_) {
+          typename... Args> tuple make_tuple(Args&&... args_) {
     const size_t size = sizeof...(Args);
     std::array<object, size> args {
         { object(detail::type_caster<typename detail::intrinsic_type<Args>::type>::cast(
@@ -799,7 +796,7 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
-template <typename... Args> inline object handle::call(Args&&... args) const {
+template <typename... Args> object handle::call(Args&&... args) const {
     tuple args_tuple = pybind11::make_tuple(std::forward<Args>(args)...);
     object result(PyObject_CallObject(m_ptr, args_tuple.ptr()), false);
     if (!result)
