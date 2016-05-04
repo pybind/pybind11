@@ -21,7 +21,7 @@
 
 NAMESPACE_BEGIN(pybind11)
 
-template <typename type> struct npy_format_descriptor { };
+template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
 
 class array : public buffer {
 public:
@@ -138,12 +138,20 @@ public:
     }
 };
 
+template <typename T> struct npy_format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {
+private:
+    constexpr static const int values[] = {
+        array::API::NPY_BYTE_, array::API::NPY_UBYTE_, array::API::NPY_SHORT_,    array::API::NPY_USHORT_,
+        array::API::NPY_INT_,  array::API::NPY_UINT_,  array::API::NPY_LONGLONG_, array::API::NPY_ULONGLONG_ };
+public:
+    enum { value = values[detail::log2(sizeof(T)) * 2 + (std::is_unsigned<T>::value ? 1 : 0)] };
+};
+template <typename T> constexpr const int npy_format_descriptor<
+    T, typename std::enable_if<std::is_integral<T>::value>::type>::values[8];
+
 #define DECL_FMT(t, n) template<> struct npy_format_descriptor<t> { enum { value = array::API::n }; }
-DECL_FMT(int8_t, NPY_BYTE_);  DECL_FMT(uint8_t, NPY_UBYTE_); DECL_FMT(int16_t, NPY_SHORT_);
-DECL_FMT(uint16_t, NPY_USHORT_); DECL_FMT(int32_t, NPY_INT_); DECL_FMT(uint32_t, NPY_UINT_);
-DECL_FMT(int64_t, NPY_LONGLONG_); DECL_FMT(uint64_t, NPY_ULONGLONG_); DECL_FMT(float, NPY_FLOAT_);
-DECL_FMT(double, NPY_DOUBLE_); DECL_FMT(bool, NPY_BOOL_); DECL_FMT(std::complex<float>, NPY_CFLOAT_);
-DECL_FMT(std::complex<double>, NPY_CDOUBLE_);
+DECL_FMT(float, NPY_FLOAT_); DECL_FMT(double, NPY_DOUBLE_); DECL_FMT(bool, NPY_BOOL_);
+DECL_FMT(std::complex<float>, NPY_CFLOAT_); DECL_FMT(std::complex<double>, NPY_CDOUBLE_);
 #undef DECL_FMT
 
 NAMESPACE_BEGIN(detail)
@@ -328,7 +336,7 @@ struct vectorize_helper {
             return cast(f(*((Args *) buffers[Index].ptr)...));
 
         array result(buffer_info(nullptr, sizeof(Return),
-            format_descriptor<Return>::value(),
+            format_descriptor<Return>::value,
             ndim, shape, strides));
 
         buffer_info buf = result.request();

@@ -191,13 +191,6 @@ enum class return_value_policy : int {
     reference_internal
 };
 
-/// Format strings for basic number types
-template <typename type> struct format_descriptor { };
-#define PYBIND11_DECL_FMT(t, n) template<> struct format_descriptor<t> { static std::string value() { return n; }; }
-PYBIND11_DECL_FMT(int8_t,  "b"); PYBIND11_DECL_FMT(uint8_t,  "B"); PYBIND11_DECL_FMT(int16_t, "h"); PYBIND11_DECL_FMT(uint16_t, "H");
-PYBIND11_DECL_FMT(int32_t, "i"); PYBIND11_DECL_FMT(uint32_t, "I"); PYBIND11_DECL_FMT(int64_t, "q"); PYBIND11_DECL_FMT(uint64_t, "Q");
-PYBIND11_DECL_FMT(float,   "f"); PYBIND11_DECL_FMT(double,   "d"); PYBIND11_DECL_FMT(bool,    "?");
-
 /// Information record describing a Python buffer object
 struct buffer_info {
     void *ptr;                   // Pointer to the underlying storage
@@ -233,6 +226,8 @@ private:
 };
 
 NAMESPACE_BEGIN(detail)
+
+static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
 inline std::string error_string();
 
@@ -296,13 +291,6 @@ template <typename T, size_t N> struct intrinsic_type<T[N]>       { typedef type
 /// Helper type to replace 'void' in some expressions
 struct void_type { };
 
-/// to_string variant which also accepts strings
-template <typename T> inline typename std::enable_if<!std::is_enum<T>::value, std::string>::type
-to_string(const T &value) { return std::to_string(value); }
-template <> inline std::string to_string(const std::string &value) { return value; }
-template <typename T> inline typename std::enable_if<std::is_enum<T>::value, std::string>::type
-to_string(T value) { return std::to_string((int) value); }
-
 NAMESPACE_END(detail)
 
 #define PYBIND11_RUNTIME_EXCEPTION(name) \
@@ -320,5 +308,16 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error) /// Thrown when pybind11::cast or handle:
 
 [[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
 [[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
+
+/// Format strings for basic number types
+#define PYBIND11_DECL_FMT(t, v) template<> struct format_descriptor<t> { static constexpr const char *value = v; }
+template <typename T, typename SFINAE = void> struct format_descriptor { };
+template <typename T> struct format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {
+    static constexpr const char value[2] =
+        { "bBhHiIqQ"[detail::log2(sizeof(T))*2 + (std::is_unsigned<T>::value ? 1 : 0)], '\0' };
+};
+template <typename T> constexpr const char format_descriptor<
+    T, typename std::enable_if<std::is_integral<T>::value>::type>::value[2];
+PYBIND11_DECL_FMT(float, "f"); PYBIND11_DECL_FMT(double, "d"); PYBIND11_DECL_FMT(bool, "?");
 
 NAMESPACE_END(pybind11)
