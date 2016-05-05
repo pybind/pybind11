@@ -227,7 +227,7 @@ private:
 
 NAMESPACE_BEGIN(detail)
 
-static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
+inline static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
 inline std::string error_string();
 
