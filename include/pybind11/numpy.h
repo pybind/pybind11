@@ -77,6 +77,11 @@ public:
 
     PYBIND11_OBJECT_DEFAULT(array, buffer, lookup_api().PyArray_Check_)
 
+    enum {
+        c_style = API::NPY_C_CONTIGUOUS_,
+        f_style = API::NPY_F_CONTIGUOUS_
+    };
+
     template <typename Type> array(size_t size, const Type *ptr) {
         API& api = lookup_api();
         PyObject *descr = api.PyArray_DescrFromType_(npy_format_descriptor<Type>::value);
@@ -120,7 +125,7 @@ protected:
     }
 };
 
-template <typename T> class array_t : public array {
+template <typename T, int ExtraFlags = 0> class array_t : public array {
 public:
     PYBIND11_OBJECT_CVT(array_t, array, is_non_null, m_ptr = ensure(m_ptr));
     array_t() : array() { }
@@ -131,8 +136,9 @@ public:
         API &api = lookup_api();
         PyObject *descr = api.PyArray_DescrFromType_(npy_format_descriptor<T>::value);
         PyObject *result = api.PyArray_FromAny_(
-            ptr, descr, 0, 0, API::NPY_C_CONTIGUOUS_ | API::NPY_ENSURE_ARRAY_
-                            | API::NPY_ARRAY_FORCECAST_, nullptr);
+            ptr, descr, 0, 0,
+            API::NPY_ENSURE_ARRAY_ | API::NPY_ARRAY_FORCECAST_ | ExtraFlags,
+            nullptr);
         Py_DECREF(ptr);
         return result;
     }

@@ -902,16 +902,30 @@ type of Python object satisfying the buffer protocol).
 In many situations, we want to define a function which only accepts a NumPy
 array of a certain data type. This is possible via the ``py::array_t<T>``
 template. For instance, the following function requires the argument to be a
-dense array of doubles in C-style ordering.
+NumPy array containing double precision values.
 
 .. code-block:: cpp
 
     void f(py::array_t<double> array);
 
-When it is invoked with a different type (e.g. an integer), the binding code
-will attempt to cast the input into a NumPy array of the requested type. Note
-that this feature requires the :file:``pybind11/numpy.h`` header to be
-included.
+When it is invoked with a different type (e.g. an integer or a list of
+integers), the binding code will attempt to cast the input into a NumPy array
+of the requested type. Note that this feature requires the
+:file:``pybind11/numpy.h`` header to be included.
+
+Data in NumPy arrays is not guaranteed to packed in a dense manner;
+furthermore, entries can be separated by arbitrary column and row strides.
+Sometimes, it can be useful to require a function to only accept dense arrays
+using either the C (row-major) or Fortran (column-major) ordering. This can be
+accomplished via a second template argument with values ``py::array::c_style``
+or ``py::array::f_style``.
+
+.. code-block:: cpp
+
+    void f(py::array_t<double, py::array::c_style> array);
+
+As before, the implementation will attempt to convert non-conforming arguments
+into an array satisfying the specified requirements.
 
 Vectorizing functions
 =====================
