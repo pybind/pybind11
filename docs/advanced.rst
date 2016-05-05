@@ -863,26 +863,28 @@ objects (e.g. a NumPy matrix).
 
     py::class_<Eigen::MatrixXd>(m, "MatrixXd")
         .def("__init__", [](Eigen::MatrixXd &m, py::buffer b) {
+            typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
+            typedef Eigen::MatrixXd Matrix;
+            typedef Matrix::Scalar Scalar;
+
             /* Request a buffer descriptor from Python */
             py::buffer_info info = b.request();
 
             /* Some sanity checks ... */
-            if (info.format != py::format_descriptor<double>::value)
+            if (info.format != py::format_descriptor<Scalar>::value)
                 throw std::runtime_error("Incompatible format: expected a double array!");
 
             if (info.ndim != 2)
                 throw std::runtime_error("Incompatible buffer dimension!");
 
-            if (info.strides[0] == sizeof(double)) {
-                /* Buffer has the right layout -- directly copy. */
-                new (&m) Eigen::MatrixXd(info.shape[0], info.shape[1]);
-                memcpy(m.data(), info.ptr, sizeof(double) * m.size());
-            } else {
-                /* Oops -- the buffer is transposed */
-                new (&m) Eigen::MatrixXd(info.shape[1], info.shape[0]);
-                memcpy(m.data(), info.ptr, sizeof(double) * m.size());
-                m.transposeInPlace();
-            }
+            auto strides = Strides(
+                info.strides[Matrix::Flags & Eigen::RowMajorBit ? 0 : 1] / sizeof(Scalar),
+                info.strides[Matrix::Flags & Eigen::RowMajorBit ? 1 : 0] / sizeof(Scalar));
+
+            auto map = Eigen::Map<Matrix, 0, Strides>(
+                (Scalar *) info.ptr, info.shape[0], info.shape[1], strides);
+
+            new (&m) Matrix(map);
         });
 
 .. seealso::
