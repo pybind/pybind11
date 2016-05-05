@@ -792,13 +792,157 @@ There is also a special exception :class:`cast_error` that is thrown by
 :func:`handle::call` when the input arguments cannot be converted to Python
 objects.
 
+.. _opaque:
+
+Treating STL data structures as opaque objects
+==============================================
+
+pybind11 heavily relies on a template matching mechanism to convert parameters
+and return values that are constructed from STL data types such as vectors,
+linked lists, hash tables, etc. This even works in a recursive manner, for
+instance to deal with lists of hash maps of pairs of elementary and custom
+types, etc.
+
+However, a fundamental limitation of this approach is that internal conversions
+between Python and C++ types involve a copy operation that prevents
+pass-by-reference semantics. What does this mean?
+
+Suppose we bind the following function
+
+.. code-block:: cpp
+
+    void append_1(std::vector<int> &v) {
+       v.push_back(1);
+    }
+
+and call it from Python, the following happens:
+
+.. code-block:: python
+
+   >>> v = [5, 6]
+   >>> append_1(v)
+   >>> print(v)
+   [5, 6]
+
+As you can see, when passing STL data structures by reference, modifications
+are not propagated back the Python side. A similar situation arises when
+exposing STL data structures using the ``def_readwrite`` or ``def_readonly``
+functions:
+
+.. code-block:: cpp
+
+    /* ... definition ... */
+
+    class MyClass {
+        std::vector<int> contents;
+    };
+
+    /* ... binding code ... */
+
+    py::class_<MyClass>(m, "MyClass")
+        .def(py::init<>)
+        .def_readwrite("contents", &MyClass::contents);
+
+In this case, properties can be read and written in their entirety. However, an
+``append`` operaton involving such a list type has no effect:
+
+.. code-block:: python
+
+   >>> m = MyClass()
+   >>> m.contents = [5, 6]
+   >>> print(m.contents)
+   [5, 6]
+   >>> m.contents.append(7)
+   >>> print(m.contents)
+   [5, 6]
+
+To deal with both of the above situations, pybind11 provides a macro named
+``PYBIND11_MAKE_OPAQUE(T)`` that disables the template-based conversion
+machinery of types, thus rendering them *opaque*. The contents of opaque
+objects are never inspected or extracted, hence they can be passed by
+reference. For instance, to turn ``std::vector<int>`` into an opaque type, add
+the declaration
+
+.. code-block:: cpp
+
+    PYBIND11_MAKE_OPAQUE(std::vector<int>);
+
+before any binding code (e.g. invocations to ``class_::def()``, etc.). This
+macro must be specified at the top level, since instantiates a partial template
+overload. If your binding code consists of multiple compilation units, it must
+be present in every file preceding any usage of ``std::vector<int>``. Opaque
+types must also have a corresponding ``class_`` declaration to associate them
+with a name in Python, and to define a set of available operations:
+
+.. code-block:: cpp
+
+    py::class_<std::vector<int>>(m, "IntVector")
+        .def(py::init<>())
+        .def("clear", &std::vector<int>::clear)
+        .def("pop_back", &std::vector<int>::pop_back)
+        .def("__len__", [](const std::vector<int> &v) { return v.size(); })
+        .def("__iter__", [](std::vector<int> &v) {
+           return py::make_iterator(v.begin(), v.end());
+        }, py::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */
+        // ....
+
+
+.. seealso::
+
+    The file :file:`example/example14.cpp` contains a complete example that
+    demonstrates how to create and expose opaque types using pybind11 in more
+    detail.
+
+.. _eigen:
+
+Transparent conversion of dense and sparse Eigen data types
+===========================================================
+
+Eigen [#f1]_ is C++ header-based library for dense and sparse linear algebra. Due to
+its popularity and widespread adoption, pybind11 provides transparent
+conversion support between Eigen and Scientific Python linear algebra data types.
+
+Specifically, when including the optional header file :file:`pybind11/eigen.h`,
+pybind11 will automatically and transparently convert 
+
+1. Static and dynamic Eigen dense vectors and matrices to instances of
+   ``numpy.ndarray`` (and vice versa).
+
+1. Eigen sparse vectors and matrices to instances of
+   ``scipy.sparse.csr_matrix``/``scipy.sparse.csc_matrix`` (and vice versa).
+
+This makes it possible to bind most kinds of functions that rely on these types.
+One major caveat are functions that take Eigen matrices *by reference* and modify
+them somehow, in which case the information won't be propagated to the caller.
+
+.. code-block:: cpp
+
+    /* The Python bindings of this function won't replicate
+       the intended effect of modifying the function argument */
+    void scale_by_2(Eigen::Vector3f &v) {
+       v *= 2;
+    }
+
+To see why this is, refer to the section on :ref:`opaque` (although that
+section specifically covers STL data types, the underlying issue is the same).
+The next two sections discuss an efficient alternative for exposing the
+underlying native Eigen types as opaque objects in a way that still integrates
+with NumPy and SciPy.
+
+.. [#f1] http://eigen.tuxfamily.org
+
+.. seealso::
+
+    The file :file:`example/eigen.cpp` contains a complete example that
+    shows how to pass Eigen sparse and dense data types in more detail.
+
 Buffer protocol
 ===============
 
 Python supports an extremely general and convenient approach for exchanging
-data between plugin libraries. Types can expose a buffer view [#f1]_,
-which provides fast direct access to the raw internal representation. Suppose
-we want to bind the following simplistic Matrix class:
+data between plugin libraries. Types can expose a buffer view [#f2]_, which
+provides fast direct access to the raw internal data representation. Suppose we
+want to bind the following simplistic Matrix class:
 
 .. code-block:: cpp
 
@@ -856,16 +1000,19 @@ in a great variety of configurations, hence some safety checks are usually
 necessary in the function body. Below, you can see an basic example on how to
 define a custom constructor for the Eigen double precision matrix
 (``Eigen::MatrixXd``) type, which supports initialization from compatible
-buffer
-objects (e.g. a NumPy matrix).
+buffer objects (e.g. a NumPy matrix).
 
 .. code-block:: cpp
 
-    py::class_<Eigen::MatrixXd>(m, "MatrixXd")
-        .def("__init__", [](Eigen::MatrixXd &m, py::buffer b) {
+    /* Bind MatrixXd (or some other Eigen type) to Python */
+    typedef Eigen::MatrixXd Matrix;
+
+    typedef Matrix::Scalar Scalar;
+    constexpr bool rowMajor = Matrix::Flags & Eigen::RowMajorBit;
+
+    py::class_<Matrix>(m, "Matrix")
+        .def("__init__", [](Matrix &m, py::buffer b) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
-            typedef Eigen::MatrixXd Matrix;
-            typedef Matrix::Scalar Scalar;
 
             /* Request a buffer descriptor from Python */
             py::buffer_info info = b.request();
@@ -878,21 +1025,46 @@ objects (e.g. a NumPy matrix).
                 throw std::runtime_error("Incompatible buffer dimension!");
 
             auto strides = Strides(
-                info.strides[Matrix::Flags & Eigen::RowMajorBit ? 0 : 1] / sizeof(Scalar),
-                info.strides[Matrix::Flags & Eigen::RowMajorBit ? 1 : 0] / sizeof(Scalar));
+                info.strides[rowMajor ? 0 : 1] / sizeof(Scalar),
+                info.strides[rowMajor ? 1 : 0] / sizeof(Scalar));
 
             auto map = Eigen::Map<Matrix, 0, Strides>(
-                (Scalar *) info.ptr, info.shape[0], info.shape[1], strides);
+                static_cat<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
 
             new (&m) Matrix(map);
         });
+
+For reference, the ``def_buffer()`` call for this Eigen data type should look
+as follows:
+
+.. code-block:: cpp
+
+    .def_buffer([](Matrix &m) -> py::buffer_info {
+        return py::buffer_info(
+            m.data(),                /* Pointer to buffer */
+            sizeof(Scalar),          /* Size of one scalar */
+            /* Python struct-style format descriptor */
+            py::format_descriptor<Scalar>::value,
+            /* Number of dimensions */
+            2,
+            /* Buffer dimensions */
+            { (size_t) m.rows(),
+              (size_t) m.cols() },
+            /* Strides (in bytes) for each index */
+            { sizeof(Scalar) * (rowMajor ? m.cols() : 1),
+              sizeof(Scalar) * (rowMajor ? 1 : m.rows()) }
+        );
+     })
+
+For a much easier approach of binding Eigen types (although with some
+limitations), refer to the section on :ref:`eigen`.
 
 .. seealso::
 
     The file :file:`example/example7.cpp` contains a complete example that
     demonstrates using the buffer protocol with pybind11 in more detail.
 
-.. [#f1] http://docs.python.org/3/c-api/buffer.html
+.. [#f2] http://docs.python.org/3/c-api/buffer.html
 
 NumPy support
 =============
@@ -1199,105 +1371,6 @@ accessed by multiple extension modules:
     };
 
 
-Treating STL data structures as opaque objects
-==============================================
-
-pybind11 heavily relies on a template matching mechanism to convert parameters
-and return values that are constructed from STL data types such as vectors,
-linked lists, hash tables, etc. This even works in a recursive manner, for
-instance to deal with lists of hash maps of pairs of elementary and custom
-types, etc.
-
-However, a fundamental limitation of this approach is that internal conversions
-between Python and C++ types involve a copy operation that prevents
-pass-by-reference semantics. What does this mean?
-
-Suppose we bind the following function
-
-.. code-block:: cpp
-
-    void append_1(std::vector<int> &v) {
-       v.push_back(1);
-    }
-
-and call it from Python, the following happens:
-
-.. code-block:: python
-
-   >>> v = [5, 6]
-   >>> append_1(v)
-   >>> print(v)
-   [5, 6]
-
-As you can see, when passing STL data structures by reference, modifications
-are not propagated back the Python side. A similar situation arises when
-exposing STL data structures using the ``def_readwrite`` or ``def_readonly``
-functions:
-
-.. code-block:: cpp
-
-    /* ... definition ... */
-
-    class MyClass {
-        std::vector<int> contents;
-    };
-
-    /* ... binding code ... */
-
-    py::class_<MyClass>(m, "MyClass")
-        .def(py::init<>)
-        .def_readwrite("contents", &MyClass::contents);
-
-In this case, properties can be read and written in their entirety. However, an
-``append`` operaton involving such a list type has no effect:
-
-.. code-block:: python
-
-   >>> m = MyClass()
-   >>> m.contents = [5, 6]
-   >>> print(m.contents)
-   [5, 6]
-   >>> m.contents.append(7)
-   >>> print(m.contents)
-   [5, 6]
-
-To deal with both of the above situations, pybind11 provides a macro named
-``PYBIND11_MAKE_OPAQUE(T)`` that disables the template-based conversion
-machinery of types, thus rendering them *opaque*. The contents of opaque
-objects are never inspected or extracted, hence they can be passed by
-reference. For instance, to turn ``std::vector<int>`` into an opaque type, add
-the declaration
-
-.. code-block:: cpp
-
-    PYBIND11_MAKE_OPAQUE(std::vector<int>);
-
-before any binding code (e.g. invocations to ``class_::def()``, etc.). This
-macro must be specified at the top level, since instantiates a partial template
-overload. If your binding code consists of multiple compilation units, it must
-be present in every file preceding any usage of ``std::vector<int>``. Opaque
-types must also have a corresponding ``class_`` declaration to associate them
-with a name in Python, and to define a set of available operations:
-
-.. code-block:: cpp
-
-    py::class_<std::vector<int>>(m, "IntVector")
-        .def(py::init<>())
-        .def("clear", &std::vector<int>::clear)
-        .def("pop_back", &std::vector<int>::pop_back)
-        .def("__len__", [](const std::vector<int> &v) { return v.size(); })
-        .def("__iter__", [](std::vector<int> &v) {
-           return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */
-        // ....
-
-
-.. seealso::
-
-    The file :file:`example/example14.cpp` contains a complete example that
-    demonstrates how to create and expose opaque types using pybind11 in more
-    detail.
-
 Pickling support
 ================
 
@@ -1320,7 +1393,7 @@ Suppose the class in question has the following signature:
         int m_extra = 0;
     };
 
-The binding code including the requisite ``__setstate__`` and ``__getstate__`` methods [#f2]_
+The binding code including the requisite ``__setstate__`` and ``__getstate__`` methods [#f3]_
 looks as follows:
 
 .. code-block:: cpp
@@ -1372,14 +1445,14 @@ memory corruption and/or segmentation faults.
     The file :file:`example/example15.cpp` contains a complete example that
     demonstrates how to pickle and unpickle types using pybind11 in more detail.
 
-.. [#f2] http://docs.python.org/3/library/pickle.html#pickling-class-instances
+.. [#f3] http://docs.python.org/3/library/pickle.html#pickling-class-instances
 
 Generating documentation using Sphinx
 =====================================
 
-Sphinx [#f3]_ has the ability to inspect the signatures and documentation
+Sphinx [#f4]_ has the ability to inspect the signatures and documentation
 strings in pybind11-based extension modules to automatically generate beautiful
-documentation in a variety formats. The pbtest repository [#f4]_ contains a
+documentation in a variety formats. The pbtest repository [#f5]_ contains a
 simple example repository which uses this approach.
 
 There are two potential gotchas when using this approach: first, make sure that
@@ -1406,6 +1479,6 @@ work, it is important that all lines are indented consistently, i.e.:
         ----------
     )mydelimiter");
 
-.. [#f3] http://www.sphinx-doc.org
-.. [#f4] http://github.com/pybind/pbtest
+.. [#f4] http://www.sphinx-doc.org
+.. [#f5] http://github.com/pybind/pbtest
 

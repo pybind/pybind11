@@ -84,6 +84,11 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}"
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
+
+# Check if Eigen is available
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools")
+find_package(Eigen3 QUIET)
+
 # Include path for pybind11 header files
 include_directories(include)
 
@@ -96,6 +101,7 @@ set(PYBIND11_HEADERS
   include/pybind11/common.h
   include/pybind11/complex.h
   include/pybind11/descr.h
+  include/pybind11/eigen.h
   include/pybind11/functional.h
   include/pybind11/numpy.h
   include/pybind11/operators.h
@@ -124,6 +130,15 @@ set(PYBIND11_EXAMPLES
   example/example16.cpp
   example/issues.cpp
 )
+
+if (EIGEN3_FOUND)
+  include_directories(${EIGEN3_INCLUDE_DIR})
+  list(APPEND PYBIND11_EXAMPLES example/eigen.cpp)
+  add_definitions(-DPYBIND11_TEST_EIGEN)
+  message(STATUS "Building Eigen testcase")
+else()
+  message(STATUS "NOT Building Eigen testcase")
+endif()
 
 # Create the binding library
 add_library(example SHARED
