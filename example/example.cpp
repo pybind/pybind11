@@ -28,6 +28,10 @@ void init_ex16(py::module &);
 void init_ex17(py::module &);
 void init_issues(py::module &);
 
+#if defined(PYBIND11_TEST_EIGEN)
+    void init_eigen(py::module &);
+#endif
+
 PYBIND11_PLUGIN(example) {
     py::module m("example", "pybind example plugin");
 
@@ -49,6 +53,10 @@ PYBIND11_PLUGIN(example) {
     init_ex16(m);
     init_ex17(m);
     init_issues(m);
+
+    #if defined(PYBIND11_TEST_EIGEN)
+        init_eigen(m);
+    #endif
 
     return m.ptr();
 }

@@ -275,6 +275,10 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +---------------------------------+--------------------------+-------------------------------+
 | ``std::function<...>``          | STL polymorphic function | :file:`pybind11/functional.h` |
 +---------------------------------+--------------------------+-------------------------------+
+| ``Eigen::Matrix<...>``          | Dense Eigen matrices     | :file:`pybind11/eigen.h`      |
++---------------------------------+--------------------------+-------------------------------+
+| ``Eigen::SparseMatrix<...>``    | Sparse Eigen matrices    | :file:`pybind11/eigen.h`      |
++---------------------------------+--------------------------+-------------------------------+
 
 
 .. [#f1] In practice, implementation and binding code will generally be located

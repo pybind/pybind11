@@ -5,6 +5,7 @@ Changelog
 
 1.8 (Not yet released)
 ----------------------
+* Transparent conversion of sparse and dense Eigen data types
 * Fixed incorrect default return value policy for functions returning a shared
   pointer
 * Don't allow casting a ``None`` value into a C++ lvalue reference

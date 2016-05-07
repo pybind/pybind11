@@ -48,7 +48,7 @@ subdirectory named :file:`pybind11`.
     set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
     if (NOT ${EXAMPLE_PYTHON_VERSION} STREQUAL "")
       find_package(PythonLibs ${EXAMPLE_PYTHON_VERSION} EXACT)
-      if (NOT PythonLibs_FOUND)
+      if (NOT PYTHONLIBS_FOUND)
         find_package(PythonLibs ${EXAMPLE_PYTHON_VERSION} REQUIRED)
       endif()
     else()
