@@ -16,6 +16,9 @@ print( v_int != v_int2 )
 
 v_int2.push_back(2)
 v_int2.push_back(3)
+v_int2.insert(0, 1)
+v_int2.insert(0, 2)
+v_int2.insert(0, 3)
 print(v_int2)
 
 v_a = VectorA()
