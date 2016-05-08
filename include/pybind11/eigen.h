@@ -145,7 +145,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
 
         if (obj.get_type() != matrix_type.ptr()) {
             try {
-                obj = matrix_type.call(obj);
+                obj = matrix_type(obj);
             } catch (const error_already_set &) {
                 PyErr_Clear(); 
                 return false;
@@ -233,7 +233,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
             { sizeof(StorageIndex) }
         ));
 
-        return matrix_type.call(
+        return matrix_type(
             std::make_tuple(data, innerIndices, outerIndices),
             std::make_pair(src.rows(), src.cols())
         ).release();

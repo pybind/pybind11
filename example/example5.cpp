@@ -43,12 +43,12 @@ void dog_bark(const Dog &dog) {
 }
 
 bool test_callback1(py::object func) {
-    func.call();
+    func();
     return false;
 }
 
 int test_callback2(py::object func) {
-    py::object result = func.call("Hello", 'x', true, 5);
+    py::object result = func("Hello", 'x', true, 5);
     return result.cast<int>();
 }
 

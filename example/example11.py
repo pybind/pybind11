@@ -5,7 +5,7 @@ import pydoc
 
 sys.path.append('.')
 
-from example import kw_func, kw_func2, kw_func3, kw_func4
+from example import kw_func, kw_func2, kw_func3, kw_func4, call_kw_func
 
 print(pydoc.render_doc(kw_func, "Help on %s"))
 print(pydoc.render_doc(kw_func2, "Help on %s"))
@@ -33,3 +33,5 @@ except Exception as e:
 
 kw_func4()
 kw_func4(myList = [1, 2, 3])
+
+call_kw_func(kw_func2)

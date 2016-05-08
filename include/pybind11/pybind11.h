@@ -176,7 +176,7 @@ protected:
             if (a.descr)
                 a.descr = strdup(a.descr);
             else if (a.value)
-                a.descr = strdup(((std::string) ((object) handle(a.value).attr("__repr__")).call().str()).c_str());
+                a.descr = strdup(((std::string) ((object) handle(a.value).attr("__repr__"))().str()).c_str());
         }
         auto const &registered_types = detail::get_internals().registered_types_cpp;
 
@@ -1202,7 +1202,7 @@ inline function get_overload(const void *this_ptr, const char *name)  {
         pybind11::gil_scoped_acquire gil; \
         pybind11::function overload = pybind11::get_overload(this, #name); \
         if (overload) \
-            return overload.call(__VA_ARGS__).template cast<ret_type>();  }
+            return overload(__VA_ARGS__).template cast<ret_type>();  }
 
 #define PYBIND11_OVERLOAD(ret_type, class_name, name, ...) \
     PYBIND11_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \

@@ -19,6 +19,13 @@ void kw_func4(const std::vector<int> &entries) {
     std::cout << endl;
 }
 
+void call_kw_func(py::function f) {
+    py::tuple args = py::make_tuple(1234);
+    py::dict kwargs;
+    kwargs["y"] = py::cast(5678);
+    f(*args, **kwargs);
+}
+
 void init_ex11(py::module &m) {
     m.def("kw_func", &kw_func, py::arg("x"), py::arg("y"));
     m.def("kw_func2", &kw_func, py::arg("x") = 100, py::arg("y") = 200);
@@ -30,4 +37,5 @@ void init_ex11(py::module &m) {
     list.push_back(17);
 
     m.def("kw_func4", &kw_func4, py::arg("myList") = list);
+    m.def("call_kw_func", &call_kw_func);
 }
