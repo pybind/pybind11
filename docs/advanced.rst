@@ -779,6 +779,10 @@ exceptions:
 |                                      | accesses in ``__getitem__``, |
 |                                      | ``__setitem__``, etc.)       |
 +--------------------------------------+------------------------------+
+| :class:`pybind11::value_error`       | ``ValueError`` (used to      |
+|                                      | indicate wrong value passed  |
+|                                      | in ``container.remove(...)`` |
++--------------------------------------+------------------------------+
 | :class:`pybind11::error_already_set` | Indicates that the Python    |
 |                                      | exception flag has already   |
 |                                      | been initialized             |
@@ -903,7 +907,7 @@ its popularity and widespread adoption, pybind11 provides transparent
 conversion support between Eigen and Scientific Python linear algebra data types.
 
 Specifically, when including the optional header file :file:`pybind11/eigen.h`,
-pybind11 will automatically and transparently convert 
+pybind11 will automatically and transparently convert
 
 1. Static and dynamic Eigen dense vectors and matrices to instances of
    ``numpy.ndarray`` (and vice versa).
@@ -1481,4 +1485,3 @@ work, it is important that all lines are indented consistently, i.e.:
 
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/pbtest
-
