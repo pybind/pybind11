@@ -1,5 +1,5 @@
 /*
-    example/example17.cpp -- Usade of stl_binders functions
+    example/example17.cpp -- Usage of stl_binders functions
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -11,17 +11,27 @@
 
 #include <pybind11/stl_binders.h>
 
-class A
-{
+
+class A {
 public:
 	A() = delete;
+	A(int v) :a(v) {}
+
+	int a;
 };
 
-void init_ex17(py::module &m)
-{
-	pybind11::class_<A>(m, "A");
 
-    py::vector_binder<int>(m, "VectorInt");
+std::ostream & operator<<(std::ostream &s, A const&v) {
+	s << "A{" << v.a << '}';
+	return s;
+}
 
-    py::vector_binder<A>(m, "VectorA");
+
+void init_ex17(py::module &m) {
+	pybind11::class_<A>(m, "A")
+		.def(pybind11::init<int>());
+
+	pybind11::vector_binder<int>(m, "VectorInt");
+
+	pybind11::vector_binder<A>(m, "VectorA");
 }
