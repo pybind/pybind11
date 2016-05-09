@@ -69,7 +69,7 @@ class vector_binder {
 	// template<typename U = T, typename std::enable_if< !std::is_constructible<U>{} >::type * = nullptr>
 	// void maybe_constructible(Class_ &cl) {}
 
-	template<typename U = T, typename std::enable_if< std::is_default_constructible<U>{} >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< std::is_default_constructible<U>::value >::type * = nullptr>
 	void maybe_default_constructible() {
 		cl.def(pybind11::init<SizeType>());
 		cl.def("resize", (void (Vector::*)(SizeType count)) &Vector::resize, "changes the number of elements stored");
@@ -86,16 +86,16 @@ class vector_binder {
 				return seq;
 			});
 	}
-	template<typename U = T, typename std::enable_if< !std::is_default_constructible<U>{} >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< !std::is_default_constructible<U>::value >::type * = nullptr>
 	void maybe_default_constructible() {}
 
 
-	template<typename U = T, typename std::enable_if< std::is_copy_constructible<U>{} >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< std::is_copy_constructible<U>::value >::type * = nullptr>
 	void maybe_copy_constructible() {
 		cl.def(pybind11::init< Vector const &>());
 	}
-	template<typename U = T, typename std::enable_if< !std::is_copy_constructible<U>{} >::type * = nullptr>
-	void vector_bind_maybe_copy_constructible(Class_ &) {}
+	template<typename U = T, typename std::enable_if< !std::is_copy_constructible<U>::value >::type * = nullptr>
+	void maybe_copy_constructible() {}
 
 
 	template<typename U = T, typename std::enable_if< has_equal_operator<U>(0) >::type * = nullptr>
