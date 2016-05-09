@@ -21,15 +21,17 @@
 
 NAMESPACE_BEGIN(pybind11)
 
-#if (!defined _MSC_VER) || (_MSC_VER > 1900)
-	#define INSERTION_OPERATOR_IMPLEMENTATION
-#endif
-
 
 template<typename T>
 constexpr auto has_equal_operator(int) -> decltype(std::declval<T>() == std::declval<T>(), bool()) { return true; }
 template<typename T>
 constexpr bool has_equal_operator(...) { return false; }
+
+// Workaround for MSVC 2015
+template<typename T>
+struct has_equal_operator_s {
+	static const bool value = has_equal_operator<T>(0);
+};
 
 
 
@@ -38,8 +40,13 @@ constexpr auto has_not_equal_operator(int) -> decltype(std::declval<T>() != std:
 template<typename T>
 constexpr bool has_not_equal_operator(...) { return false; }
 
+// Workaround for MSVC 2015
+template<typename T>
+struct has_not_equal_operator_s {
+	static const bool value = has_not_equal_operator<T>(0);
+};
 
-#ifdef INSERTION_OPERATOR_IMPLEMENTATION
+
 namespace has_insertion_operator_implementation {
 enum class False {};
 struct any_type {
@@ -52,7 +59,13 @@ constexpr bool has_insertion_operator() {
 	using namespace has_insertion_operator_implementation;
 	return std::is_same< decltype(std::declval<std::ostream&>() << std::declval<T>()), std::ostream & >::value;
 }
-#endif
+
+// Workaround for MSVC 2015
+template<typename T>
+struct has_insertion_operator_s {
+	static const bool value = has_insertion_operator<T>();
+};
+
 
 
 template <typename T, typename Allocator = std::allocator<T>, typename holder_type = std::unique_ptr< std::vector<T, Allocator> > >
@@ -98,7 +111,7 @@ class vector_binder {
 	void maybe_copy_constructible() {}
 
 
-	template<typename U = T, typename std::enable_if< has_equal_operator<U>(0) >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< has_equal_operator_s<U>::value >::type * = nullptr>
 	void maybe_has_equal_operator() {
 	    cl.def(pybind11::self == pybind11::self);
 	    cl.def(pybind11::self != pybind11::self);
@@ -113,25 +126,24 @@ class vector_binder {
 
 		cl.def("__contains__", [](Vector const &v, T const &t) { return std::find(v.begin(), v.end(), t) != v.end(); }, "return true if item in the container");
 	}
-	template<typename U = T, typename std::enable_if< !has_equal_operator<U>(0) >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< !has_equal_operator_s<U>::value >::type * = nullptr>
 	void maybe_has_equal_operator() {}
 
 
-	template<typename U = T, typename std::enable_if< has_not_equal_operator<U>(0) >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< has_not_equal_operator_s<U>::value >::type * = nullptr>
 	void maybe_has_not_equal_operator() {
 	    cl.def(pybind11::self != pybind11::self);
 	}
-	template<typename U = T, typename std::enable_if< !has_not_equal_operator<U>(0) >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< !has_not_equal_operator_s<U>::value >::type * = nullptr>
 	void maybe_has_not_equal_operator() {}
 
 
-	#ifdef INSERTION_OPERATOR_IMPLEMENTATION
-	template<typename U = T, typename std::enable_if< has_insertion_operator<U>() >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< has_insertion_operator_s<U>::value >::type * = nullptr>
 	void maybe_has_insertion_operator(char const *name) {
 		cl.def("__repr__", [name](typename vector_binder<T>::Vector &v) {
 				std::ostringstream s;
 				s << name << '[';
-				for(uint i=0; i<v.size(); ++i) {
+				for(SizeType i=0; i<v.size(); ++i) {
 					s << v[i];
 					if(i != v.size()-1) s << ", ";
 				}
@@ -140,10 +152,8 @@ class vector_binder {
 			});
 
 	}
-	template<typename U = T, typename std::enable_if< !has_insertion_operator<U>() >::type * = nullptr>
+	template<typename U = T, typename std::enable_if< !has_insertion_operator_s<U>::value >::type * = nullptr>
 	void maybe_has_insertion_operator(char const *) {}
-	#endif
-
 
 
 public:
@@ -242,9 +252,7 @@ public:
 		maybe_has_not_equal_operator();
 
 		// Printing
-		#ifdef INSERTION_OPERATOR_IMPLEMENTATION
 		maybe_has_insertion_operator(name);
-		#endif
 
 		// C++ style functions deprecated, leaving it here as an example
 		//cl.def("empty",         &Vector::empty,         "checks whether the container is empty");
