@@ -95,10 +95,10 @@ struct function_record {
     handle (*impl) (function_record *, handle, handle) = nullptr;
 
     /// Storage for the wrapped function pointer and captured data, if any
-    void *data = nullptr;
+    void *data[3] = { };
 
     /// Pointer to custom destructor for 'data' (if needed)
-    void (*free_data) (void *ptr) = nullptr;
+    void (*free_data) (function_record *ptr) = nullptr;
 
     /// Return value policy associated with this function
     return_value_policy policy = return_value_policy::automatic;

@@ -33,77 +33,32 @@ NAMESPACE_BEGIN(pybind11)
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
-protected:
-    /// Picks a suitable return value converter from cast.h
-    template <typename T> using return_value_caster =
-        detail::type_caster<typename std::conditional<
-            std::is_void<T>::value, detail::void_type, typename detail::intrinsic_type<T>::type>::type>;
-
-    /// Picks a suitable argument value converter from cast.h
-    template <typename... T> using arg_value_caster =
-        detail::type_caster<typename std::tuple<T...>>;
 public:
     cpp_function() { }
 
-    /// Vanilla function pointers
+    /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
     cpp_function(Return (*f)(Args...), const Extra&... extra) {
-        auto rec = new detail::function_record();
-        rec->data = (void *) f;
-
-        typedef arg_value_caster<Args...> cast_in;
-        typedef return_value_caster<Return> cast_out;
-
-        /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](detail::function_record *rec, handle pyArgs, handle parent) -> handle {
-            cast_in args;
-
-            /* Try to cast the function arguments into the C++ domain */
-            if (!args.load(pyArgs, true))
-                return PYBIND11_TRY_NEXT_OVERLOAD;
-
-            /* Invoke call policy pre-call hook */
-            detail::process_attributes<Extra...>::precall(pyArgs);
-
-            /* Do the call and convert the return value back into the Python domain */
-            handle result = cast_out::cast(
-                args.template call<Return>((Return (*) (Args...)) rec->data),
-                rec->policy, parent);
-
-            /* Invoke call policy post-call hook */
-            detail::process_attributes<Extra...>::postcall(pyArgs, result);
-
-            return result;
-        };
-
-        /* Process any user-provided function attributes */
-        detail::process_attributes<Extra...>::init(extra..., rec);
-
-        /* Generate a readable signature describing the function's arguments and return value types */
-        using detail::descr;
-        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
-
-        /* Register the function with Python from generic (non-templated) code */
-        initialize(rec, signature.text(), signature.types(), sizeof...(Args));
+        initialize(f, f, extra...);
     }
 
-    /// Delegating helper constructor to deal with lambda functions
+    /// Construct a cpp_function from a lambda function (possibly with internal state)
     template <typename Func, typename... Extra> cpp_function(Func &&f, const Extra&... extra) {
         initialize(std::forward<Func>(f),
                    (typename detail::remove_class<decltype(
                        &std::remove_reference<Func>::type::operator())>::type *) nullptr, extra...);
     }
 
-    /// Delegating helper constructor to deal with class methods (non-const)
-    template <typename Return, typename Class, typename... Arg, typename... Extra> cpp_function(
-            Return (Class::*f)(Arg...), const Extra&... extra) {
+    /// Construct a cpp_function from a class method (non-const)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+            cpp_function(Return (Class::*f)(Arg...), const Extra&... extra) {
         initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(args...); },
                    (Return (*) (Class *, Arg...)) nullptr, extra...);
     }
 
-    /// Delegating helper constructor to deal with class methods (const)
-    template <typename Return, typename Class, typename... Arg, typename... Extra> cpp_function(
-            Return (Class::*f)(Arg...) const, const Extra&... extra) {
+    /// Construct a cpp_function from a class method (const)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+            cpp_function(Return (Class::*f)(Arg...) const, const Extra&... extra) {
         initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(args...); },
                    (Return (*)(const Class *, Arg ...)) nullptr, extra...);
     }
@@ -119,35 +74,44 @@ protected:
 
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
         auto rec = new detail::function_record();
-        rec->data = new capture { std::forward<Func>(f) };
 
-        /* Create a cleanup handler, but only if we have to (less generated code) */
-        if (!std::is_trivially_destructible<Func>::value)
-            rec->free_data = [](void *ptr) { delete (capture *) ptr; };
-        else
-            rec->free_data = operator delete;
+        /* Store the capture object directly in the function record if there is enough space */
+        if (sizeof(capture) <= sizeof(rec->data)) {
+            new ((capture *) &rec->data) capture { std::forward<Func>(f) };
+            if (!std::is_trivially_destructible<Func>::value)
+                rec->free_data = [](detail::function_record *r) { ((capture *) &r->data)->~capture(); };
+        } else {
+            rec->data[0] = new capture { std::forward<Func>(f) };
+            rec->free_data = [](detail::function_record *r) { delete ((capture *) r->data[0]); };
+        }
 
-        typedef arg_value_caster<Args...> cast_in;
-        typedef return_value_caster<Return> cast_out;
+        /* Type casters for the function arguments and return value */
+        typedef detail::type_caster<typename std::tuple<Args...>> cast_in;
+        typedef detail::type_caster<typename std::conditional<
+            std::is_void<Return>::value, detail::void_type,
+            typename detail::intrinsic_type<Return>::type>::type> cast_out;
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](detail::function_record *rec, handle pyArgs, handle parent) -> handle {
-            cast_in args;
+        rec->impl = [](detail::function_record *rec, handle args, handle parent) -> handle {
+            cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
-            if (!args.load(pyArgs, true))
+            if (!args_converter.load(args, true))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Invoke call policy pre-call hook */
-            detail::process_attributes<Extra...>::precall(pyArgs);
+            detail::process_attributes<Extra...>::precall(args);
 
-            /* Do the call and convert the return value back into the Python domain */
-            handle result = cast_out::cast(
-                args.template call<Return>(((capture *) rec->data)->f),
-                rec->policy, parent);
+            /* Get a pointer to the capture object */
+            capture *cap = (capture *) (sizeof(capture) <= sizeof(rec->data)
+                                        ? &rec->data : rec->data[0]);
+
+            /* Perform the functionc all */
+            handle result = cast_out::cast(args_converter.template call<Return>(cap->f),
+                                           rec->policy, parent);
 
             /* Invoke call policy post-call hook */
-            detail::process_attributes<Extra...>::postcall(pyArgs, result);
+            detail::process_attributes<Extra...>::postcall(args, result);
 
             return result;
         };
@@ -160,12 +124,12 @@ protected:
         PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
 
         /* Register the function with Python from generic (non-templated) code */
-        initialize(rec, signature.text(), signature.types(), sizeof...(Args));
+        initialize_generic(rec, signature.text(), signature.types(), sizeof...(Args));
     }
 
     /// Register a function call with Python (generic non-templated code goes here)
-    void initialize(detail::function_record *rec, const char *text,
-                    const std::type_info *const *types, int args) {
+    void initialize_generic(detail::function_record *rec, const char *text,
+                            const std::type_info *const *types, int args) {
 
         /* Create copies of all referenced C-style strings */
         rec->name = strdup(rec->name ? rec->name : "");
@@ -336,7 +300,7 @@ protected:
         while (rec) {
             detail::function_record *next = rec->next;
             if (rec->free_data)
-                rec->free_data(rec->data);
+                rec->free_data(rec);
             std::free((char *) rec->name);
             std::free((char *) rec->doc);
             std::free((char *) rec->signature);
