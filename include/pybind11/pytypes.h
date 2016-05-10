@@ -16,12 +16,8 @@
 NAMESPACE_BEGIN(pybind11)
 
 /* A few forward declarations */
-class object;
-class str;
-class object;
-class dict;
-class iterator;
-namespace detail { class accessor; class args; class kwargs; }
+class object; class str; class object; class dict; class iterator;
+namespace detail { class accessor; class args_proxy; class kwargs_proxy; }
 
 /// Holds a reference to a Python object (no reference counting)
 class handle {
@@ -43,17 +39,17 @@ public:
     inline detail::accessor attr(const char *key) const;
     inline pybind11::str str() const;
     template <typename T> T cast() const;
-    template <typename ... Args> 
+    template <typename ... Args>
     [[deprecated("call(...) was deprecated in favor of operator()(...)")]]
     object call(Args&&... args) const;
     template <typename ... Args> object operator()(Args&&... args) const;
-    inline object operator()(detail::args args) const;
-    inline object operator()(detail::args args, detail::kwargs kwargs) const;
+    inline object operator()(detail::args_proxy args) const;
+    inline object operator()(detail::args_proxy f_args, detail::kwargs_proxy kwargs) const;
     operator bool() const { return m_ptr != nullptr; }
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
     bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
     bool check() const { return m_ptr != nullptr; }
-    inline detail::args operator*() const;
+    inline detail::args_proxy operator*() const;
 protected:
     PyObject *m_ptr;
 };
@@ -218,17 +214,6 @@ private:
     ssize_t pos = 0;
 };
 
-class kwargs : public handle {
-public:
-    kwargs(handle h) : handle(h) { }
-};
-
-class args : public handle {
-public:
-    args(handle h) : handle(h) { }
-    kwargs operator*() const { return kwargs(*this); }
-};
-
 inline bool PyIterable_Check(PyObject *obj) {
     PyObject *iter = PyObject_GetIter(obj);
     if (iter) {
@@ -239,20 +224,32 @@ inline bool PyIterable_Check(PyObject *obj) {
         return false;
     }
 }
-    
+
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 
 inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
 
+class kwargs_proxy : public handle {
+public:
+    kwargs_proxy(handle h) : handle(h) { }
+};
+
+class args_proxy : public handle {
+public:
+    args_proxy(handle h) : handle(h) { }
+    kwargs_proxy operator*() const { return kwargs_proxy(*this); }
+};
+
 NAMESPACE_END(detail)
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
-    Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
-    Name(const object& o): Parent(o) { CvtStmt; } \
-    Name(object&& o) noexcept : Parent(std::move(o)) { CvtStmt; } \
-    Name& operator=(object&& o) noexcept { (void) object::operator=(std::move(o)); CvtStmt; return *this; } \
-    Name& operator=(const object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
-    bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
+    public: \
+        Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
+        Name(const object& o): Parent(o) { CvtStmt; } \
+        Name(object&& o) noexcept : Parent(std::move(o)) { CvtStmt; } \
+        Name& operator=(object&& o) noexcept { (void) object::operator=(std::move(o)); CvtStmt; return *this; } \
+        Name& operator=(const object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
+        bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
 
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, )
@@ -332,7 +329,7 @@ inline detail::accessor handle::attr(handle key) const { return detail::accessor
 inline detail::accessor handle::attr(const char *key) const { return detail::accessor(ptr(), key, true); }
 inline iterator handle::begin() const { return iterator(PyObject_GetIter(ptr()), false); }
 inline iterator handle::end() const { return iterator(nullptr, false); }
-inline detail::args handle::operator*() const { return detail::args(*this); }
+inline detail::args_proxy handle::operator*() const { return detail::args_proxy(*this); }
 
 class str : public object {
 public:
@@ -519,6 +516,9 @@ public:
     detail::list_accessor operator[](size_t index) const { return detail::list_accessor(*this, index); }
     void append(const object &object) const { PyList_Append(m_ptr, object.ptr()); }
 };
+
+class args : public list { PYBIND11_OBJECT_DEFAULT(args, list, PyList_Check) };
+class kwargs : public dict { PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)  };
 
 class set : public object {
 public:

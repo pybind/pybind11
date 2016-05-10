@@ -26,6 +26,8 @@ NAMESPACE_BEGIN(detail)
 template <typename T> class type_caster<std::complex<T>> {
 public:
     bool load(handle src, bool) {
+        if (!src)
+            return false;
         Py_complex result = PyComplex_AsCComplex(src.ptr());
         if (result.real == -1.0 && PyErr_Occurred()) {
             PyErr_Clear();

@@ -142,7 +142,7 @@ NAMESPACE_BEGIN(pybind11)
 typedef Py_ssize_t ssize_t;
 
 /// Approach used to cast a previously unknown C++ instance into a Python object
-enum class return_value_policy : int {
+enum class return_value_policy : uint8_t {
     /** This is the default return value policy, which falls back to the policy
         return_value_policy::take_ownership when the return value is a pointer.
         Otherwise, it uses return_value::move or return_value::copy for rvalue

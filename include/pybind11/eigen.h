@@ -138,6 +138,9 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
     static constexpr bool rowMajor = Type::Flags & Eigen::RowMajorBit;
 
     bool load(handle src, bool) {
+        if (!src)
+            return false;
+
         object obj(src, true);
         object sparse_module = module::import("scipy.sparse");
         object matrix_type = sparse_module.attr(

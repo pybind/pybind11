@@ -903,7 +903,7 @@ its popularity and widespread adoption, pybind11 provides transparent
 conversion support between Eigen and Scientific Python linear algebra data types.
 
 Specifically, when including the optional header file :file:`pybind11/eigen.h`,
-pybind11 will automatically and transparently convert 
+pybind11 will automatically and transparently convert
 
 1. Static and dynamic Eigen dense vectors and matrices to instances of
    ``numpy.ndarray`` (and vice versa).
@@ -1250,11 +1250,31 @@ The reverse direction uses the following syntax:
     MyClass *cls = obj.cast<MyClass *>();
 
 When conversion fails, both directions throw the exception :class:`cast_error`.
+It is also possible to call python functions via ``operator()``.
+
+.. code-block:: cpp
+
+    py::function f = <...>;
+    py::object result_py = f(1234, "hello", some_instance);
+    MyClass &result = result_py.cast<MyClass>();
+
+The special ``f(*args)`` and ``f(*args, **kwargs)`` syntax is also supported to
+supply arbitrary argument and keyword lists, although these cannot be mixed
+with other parameters.
+
+.. code-block:: cpp
+
+    py::function f = <...>;
+    py::tuple args = py::make_tuple(1234);
+    py::dict kwargs;
+    kwargs["y"] = py::cast(5678);
+    py::object result = f(*args, **kwargs);
 
 .. seealso::
 
     The file :file:`example/example2.cpp` contains a complete example that
-    demonstrates passing native Python types in more detail.
+    demonstrates passing native Python types in more detail. The file
+    :file:`example/example11.cpp` discusses usage of ``args`` and ``kwargs``.
 
 Default arguments revisited
 ===========================
@@ -1302,6 +1322,36 @@ like so:
 
     py::class_<MyClass>("MyClass")
         .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
+
+Binding functions that accept arbitrary numbers of arguments and keywords arguments
+===================================================================================
+
+Python provides a useful mechanism to define functions that accept arbitrary
+numbers of arguments and keyword arguments:
+
+.. code-block:: cpp
+
+   def generic(*args, **kwargs):
+       # .. do something with args and kwargs
+
+Such functions can also be created using pybind11:
+
+.. code-block:: cpp
+
+   void generic(py::args args, py::kwargs kwargs) {
+       /// .. do something with args
+       if (kwargs)
+           /// .. do something with kwargs
+   }
+
+   /// Binding code
+   m.def("generic", &generic);
+
+(See ``example/example11.cpp``). The class ``py::args`` derives from
+``py::list`` and ``py::kwargs`` derives from ``py::dict`` Note that the
+``kwargs`` argument is invalid if no keyword arguments were actually provided.
+Please refer to the other examples for details on how to iterate over these,
+and on how to cast their entries into C++ objects.
 
 Partitioning code over multiple extension modules
 =================================================

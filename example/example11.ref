@@ -33,3 +33,10 @@ Caught expected exception: Incompatible function arguments. The following argume
 kw_func4: 13 17 
 kw_func4: 1 2 3 
 kw_func(x=1234, y=5678)
+got argument: arg1_value
+got argument: arg2_value
+got argument: 3
+got argument: arg1_value
+got argument: arg2_value
+got keyword argument: arg3 -> arg3_value
+got keyword argument: arg4 -> 4

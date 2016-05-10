@@ -92,11 +92,11 @@ protected:
             typename detail::intrinsic_type<Return>::type>::type> cast_out;
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](detail::function_record *rec, handle args, handle parent) -> handle {
+        rec->impl = [](detail::function_record *rec, handle args, handle kwargs, handle parent) -> handle {
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load(args, true))
+            if (!args_converter.load_args(args, kwargs, true))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Invoke call policy pre-call hook */
@@ -106,7 +106,7 @@ protected:
             capture *cap = (capture *) (sizeof(capture) <= sizeof(rec->data)
                                         ? &rec->data : rec->data[0]);
 
-            /* Perform the functionc all */
+            /* Perform the functioncall */
             handle result = cast_out::cast(args_converter.template call<Return>(cap->f),
                                            rec->policy, parent);
 
@@ -125,6 +125,9 @@ protected:
 
         /* Register the function with Python from generic (non-templated) code */
         initialize_generic(rec, signature.text(), signature.types(), sizeof...(Args));
+
+        if (cast_in::has_args) rec->has_args = true;
+        if (cast_in::has_kwargs) rec->has_kwargs = true;
     }
 
     /// Register a function call with Python (generic non-templated code goes here)
@@ -204,9 +207,12 @@ protected:
                 std::to_string(args) + " arguments, but " + std::to_string(rec->args.size()) +
                 " pybind11::arg entries were specified!");
 
-        rec->is_constructor = !strcmp(rec->name, "__init__");
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();
+        rec->is_constructor = !strcmp(rec->name, "__init__");
+        rec->has_args = false;
+        rec->has_kwargs = false;
+        rec->nargs = args;
 
 #if PY_MAJOR_VERSION < 3
         if (rec->sibling && PyMethod_Check(rec->sibling.ptr()))
@@ -325,15 +331,15 @@ protected:
                                 *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
-        int nargs = (int) PyTuple_Size(args),
-            nkwargs = kwargs ? (int) PyDict_Size(kwargs) : 0;
+        size_t nargs = PyTuple_GET_SIZE(args),
+               nkwargs = kwargs ? PyDict_Size(kwargs) : 0;
 
-        handle parent = nargs > 0 ? PyTuple_GetItem(args, 0) : nullptr,
+        handle parent = nargs > 0 ? PyTuple_GET_ITEM(args, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
         try {
             for (; it != nullptr; it = it->next) {
                 tuple args_(args, true);
-                int kwargs_consumed = 0;
+                size_t kwargs_consumed = 0;
 
                 /* For each overload:
                    1. If the required list of arguments is longer than the
@@ -342,10 +348,11 @@ protected:
                    2. Ensure that all keyword arguments were "consumed"
                    3. Call the function call dispatcher (function_record::impl)
                  */
-
-                if (nargs < (int) it->args.size()) {
-                    args_ = tuple(it->args.size());
-                    for (int i = 0; i < nargs; ++i) {
+                size_t nargs_ = nargs;
+                if (nargs < it->args.size()) {
+                    nargs_ = it->args.size();
+                    args_ = tuple(nargs_);
+                    for (size_t i = 0; i < nargs; ++i) {
                         handle item = PyTuple_GET_ITEM(args, i);
                         PyTuple_SET_ITEM(args_.ptr(), i, item.inc_ref().ptr());
                     }
@@ -368,15 +375,16 @@ protected:
                         if (value) {
                             PyTuple_SET_ITEM(args_.ptr(), index, value.inc_ref().ptr());
                         } else {
-                            kwargs_consumed = -1; /* definite failure */
+                            kwargs_consumed = (size_t) -1; /* definite failure */
                             break;
                         }
                     }
                 }
 
                 try {
-                    if (kwargs_consumed == nkwargs)
-                        result = it->impl(it, args_, parent);
+                    if ((kwargs_consumed == nkwargs || it->has_kwargs) &&
+                        (nargs_ == it->nargs || it->has_args))
+                        result = it->impl(it, args_, kwargs, parent);
                 } catch (cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
@@ -420,7 +428,7 @@ protected:
             if (overloads->is_constructor) {
                 /* When a constructor ran successfully, the corresponding
                    holder type (e.g. std::unique_ptr) must still be initialized. */
-                PyObject *inst = PyTuple_GetItem(args, 0);
+                PyObject *inst = PyTuple_GET_ITEM(args, 0);
                 auto tinfo = detail::get_type_info(Py_TYPE(inst));
                 tinfo->init_holder(inst, nullptr);
             }

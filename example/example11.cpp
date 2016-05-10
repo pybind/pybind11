@@ -19,11 +19,25 @@ void kw_func4(const std::vector<int> &entries) {
     std::cout << endl;
 }
 
-void call_kw_func(py::function f) {
+py::object call_kw_func(py::function f) {
     py::tuple args = py::make_tuple(1234);
     py::dict kwargs;
     kwargs["y"] = py::cast(5678);
-    f(*args, **kwargs);
+    return f(*args, **kwargs);
+}
+
+void args_function(py::args args) {
+    for (auto item : args)
+        std::cout << "got argument: " << item << std::endl;
+}
+
+void args_kwargs_function(py::args args, py::kwargs kwargs) {
+    for (auto item : args)
+        std::cout << "got argument: " << item << std::endl;
+    if (kwargs) {
+        for (auto item : kwargs)
+            std::cout << "got keyword argument: " << item.first << " -> " << item.second << std::endl;
+    }
 }
 
 void init_ex11(py::module &m) {
@@ -38,4 +52,7 @@ void init_ex11(py::module &m) {
 
     m.def("kw_func4", &kw_func4, py::arg("myList") = list);
     m.def("call_kw_func", &call_kw_func);
+
+    m.def("args_function", &args_function);
+    m.def("args_kwargs_function", &args_kwargs_function);
 }

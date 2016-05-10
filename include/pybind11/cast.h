@@ -15,6 +15,7 @@
 #include "descr.h"
 #include <array>
 #include <limits>
+#include <iostream>
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
@@ -320,7 +321,9 @@ public:
     bool load(handle src, bool) {
         py_type py_value;
 
-        if (std::is_floating_point<T>::value) {
+        if (!src) {
+            return false;
+        } if (std::is_floating_point<T>::value) {
             py_value = (py_type) PyFloat_AsDouble(src.ptr());
         } else if (sizeof(T) <= sizeof(long)) {
             if (std::is_signed<T>::value)
@@ -394,7 +397,9 @@ public:
     using type_caster<void_type>::cast;
 
     bool load(handle h, bool) {
-        if (h.ptr() == Py_None) {
+        if (!h) {
+            return false;
+        } else if (h.ptr() == Py_None) {
             value = nullptr;
             return true;
         }
@@ -435,7 +440,8 @@ template <> class type_caster<std::nullptr_t> : public type_caster<void_type> { 
 template <> class type_caster<bool> {
 public:
     bool load(handle src, bool) {
-        if (src.ptr() == Py_True) { value = true; return true; }
+        if (!src) return false;
+        else if (src.ptr() == Py_True) { value = true; return true; }
         else if (src.ptr() == Py_False) { value = false; return true; }
         else return false;
     }
@@ -450,7 +456,9 @@ public:
     bool load(handle src, bool) {
         object temp;
         handle load_src = src;
-        if (PyUnicode_Check(load_src.ptr())) {
+        if (!src) {
+            return false;
+        } else if (PyUnicode_Check(load_src.ptr())) {
             temp = object(PyUnicode_AsUTF8String(load_src.ptr()), false);
             if (!temp) { PyErr_Clear(); return false; }  // UnicodeEncodeError
             load_src = temp;
@@ -489,7 +497,9 @@ public:
     bool load(handle src, bool) {
         object temp;
         handle load_src = src;
-        if (!PyUnicode_Check(load_src.ptr())) {
+        if (!src) {
+            return false;
+        } else if (!PyUnicode_Check(load_src.ptr())) {
             temp = object(PyUnicode_FromObject(load_src.ptr()), false);
             if (!temp) { PyErr_Clear(); return false; }
             load_src = temp;
@@ -527,7 +537,7 @@ protected:
 template <> class type_caster<char> : public type_caster<std::string> {
 public:
     bool load(handle src, bool convert) {
-        if (src.ptr() == Py_None) { return true; }
+        if (src.ptr() == Py_None) return true;
         return type_caster<std::string>::load(src, convert);
     }
 
@@ -550,7 +560,7 @@ public:
 template <> class type_caster<wchar_t> : public type_caster<std::wstring> {
 public:
     bool load(handle src, bool convert) {
-        if (src.ptr() == Py_None) { return true; }
+        if (src.ptr() == Py_None) return true;
         return type_caster<std::wstring>::load(src, convert);
     }
 
@@ -574,7 +584,9 @@ template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
     typedef std::pair<T1, T2> type;
 public:
     bool load(handle src, bool convert) {
-        if (!PyTuple_Check(src.ptr()) || PyTuple_Size(src.ptr()) != 2)
+        if (!src)
+            return false;
+        else if (!PyTuple_Check(src.ptr()) || PyTuple_Size(src.ptr()) != 2)
             return false;
         return  first.load(PyTuple_GET_ITEM(src.ptr(), 0), convert) &&
                second.load(PyTuple_GET_ITEM(src.ptr(), 1), convert);
@@ -610,13 +622,41 @@ protected:
 
 template <typename... Tuple> class type_caster<std::tuple<Tuple...>> {
     typedef std::tuple<Tuple...> type;
+    typedef std::tuple<typename intrinsic_type<Tuple>::type...> itype;
+    typedef std::tuple<args> args_type;
+    typedef std::tuple<args, kwargs> args_kwargs_type;
 public:
     enum { size = sizeof...(Tuple) };
 
+    static constexpr const bool has_kwargs = std::is_same<itype, args_kwargs_type>::value;
+    static constexpr const bool has_args = has_kwargs || std::is_same<itype, args_type>::value;
+
     bool load(handle src, bool convert) {
+        if (!src || !PyTuple_Check(src.ptr()) || PyTuple_GET_SIZE(src.ptr()) != size)
+            return false;
         return load(src, convert, typename make_index_sequence<sizeof...(Tuple)>::type());
     }
 
+    template <typename T = itype, typename std::enable_if<
+        !std::is_same<T, args_type>::value &&
+        !std::is_same<T, args_kwargs_type>::value, int>::type = 0>
+    bool load_args(handle args, handle, bool convert) {
+        return load(args, convert, typename make_index_sequence<sizeof...(Tuple)>::type());
+    }
+
+    template <typename T = itype, typename std::enable_if<std::is_same<T, args_type>::value, int>::type = 0>
+    bool load_args(handle args, handle, bool convert) {
+        std::get<0>(value).load(args, convert);
+        return true;
+    }
+
+    template <typename T = itype, typename std::enable_if<std::is_same<T, args_kwargs_type>::value, int>::type = 0>
+    bool load_args(handle args, handle kwargs, bool convert) {
+        std::get<0>(value).load(args, convert);
+        std::get<1>(value).load(kwargs, convert);
+        return true;
+    }
+ 
     static handle cast(const type &src, return_value_policy policy, handle parent) {
         return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }
@@ -655,10 +695,8 @@ protected:
     }
 
     template <size_t ... Indices> bool load(handle src, bool convert, index_sequence<Indices...>) {
-        if (!PyTuple_Check(src.ptr()) || PyTuple_Size(src.ptr()) != size)
-            return false;
         std::array<bool, size> success {{
-            (PyTuple_GET_ITEM(src.ptr(), Indices) != nullptr ? std::get<Indices>(value).load(PyTuple_GET_ITEM(src.ptr(), Indices), convert) : false)...
+            std::get<Indices>(value).load(PyTuple_GET_ITEM(src.ptr(), Indices), convert)...
         }};
         (void) convert; /* avoid a warning when the tuple is empty */
         for (bool r : success)
@@ -742,14 +780,16 @@ protected:
 
 template <typename T> struct handle_type_name { static PYBIND11_DESCR name() { return _<T>(); } };
 template <> struct handle_type_name<bytes> { static PYBIND11_DESCR name() { return _(PYBIND11_BYTES_NAME); } };
+template <> struct handle_type_name<args> { static PYBIND11_DESCR name() { return _("*args"); } };
+template <> struct handle_type_name<kwargs> { static PYBIND11_DESCR name() { return _("**kwargs"); } };
 
 template <typename type>
 struct type_caster<type, typename std::enable_if<std::is_base_of<handle, type>::value>::type> {
 public:
-    template <typename T = type, typename std::enable_if<std::is_same<T, handle>::value, int>::type = 0>
-    bool load(handle src, bool /* convert */) { value = src; return value.check(); }
+    template <typename T = type, typename std::enable_if<!std::is_base_of<object, T>::value, int>::type = 0>
+    bool load(handle src, bool /* convert */) { value = type(src); return value.check(); }
 
-    template <typename T = type, typename std::enable_if<!std::is_same<T, handle>::value, int>::type = 0>
+    template <typename T = type, typename std::enable_if<std::is_base_of<object, T>::value, int>::type = 0>
     bool load(handle src, bool /* convert */) { value = type(src, true); return value.check(); }
 
     static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
@@ -768,7 +808,9 @@ template <typename T> T cast(handle handle) {
     return conv.operator typename type_caster::template cast_op_type<T>();
 }
 
-template <typename T> object cast(const T &value, return_value_policy policy = return_value_policy::automatic_reference, handle parent = handle()) {
+template <typename T> object cast(const T &value,
+        return_value_policy policy = return_value_policy::automatic_reference,
+        handle parent = handle()) {
     if (policy == return_value_policy::automatic)
         policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
     else if (policy == return_value_policy::automatic_reference)
@@ -808,14 +850,14 @@ template <typename... Args> object handle::call(Args &&... args) const {
     return operator()(std::forward<Args>(args)...);
 }
 
-inline object handle::operator()(detail::args args) const {
+inline object handle::operator()(detail::args_proxy args) const {
     object result(PyObject_CallObject(m_ptr, args.ptr()), false);
     if (!result)
         throw error_already_set();
     return result;
 }
 
-inline object handle::operator()(detail::args args, detail::kwargs kwargs) const {
+inline object handle::operator()(detail::args_proxy args, detail::kwargs_proxy kwargs) const {
     object result(PyObject_Call(m_ptr, args.ptr(), kwargs.ptr()), false);
     if (!result)
         throw error_already_set();
