@@ -103,7 +103,6 @@ void vector_maybe_has_equal_operator(Class_ &cl) {
 	using T = typename Vector::value_type;
 
 	cl.def(pybind11::self == pybind11::self);
-	cl.def(pybind11::self != pybind11::self);
 
 	cl.def("count", [](Vector const &v, T const & value) { return std::count(v.begin(), v.end(), value); }, "counts the elements that are equal to value");
 
@@ -186,6 +185,7 @@ pybind11::class_<std::vector<T, Allocator>, holder_type > vector_binder(pybind11
 	// Modifiers, Python style
 	cl.def("append", (void (Vector::*)(const T&)) &Vector::push_back, "adds an element to the end");
 	cl.def("insert", [](Vector &v, SizeType i, const T&t) {v.insert(v.begin()+i, t);}, "insert an item at a given position");
+	cl.def("extend", [](Vector &v, Vector &src) { v.reserve( v.size() + src.size() ); v.insert(v.end(), src.begin(), src.end()); }, "extend the list by appending all the items in the given vector");
 	cl.def("pop", [](Vector &v) {
 			if(v.size()) {
 				T t = v.back();
