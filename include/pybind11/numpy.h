@@ -128,6 +128,7 @@ template <typename T, int ExtraFlags = 0> class array_t : public array {
 public:
     PYBIND11_OBJECT_CVT(array_t, array, is_non_null, m_ptr = ensure(m_ptr));
     array_t() : array() { }
+    array_t(const buffer_info& info) : array(info) {}
     static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
     static PyObject *ensure(PyObject *ptr) {
         if (ptr == nullptr)
@@ -147,7 +148,7 @@ NAMESPACE_BEGIN(detail)
 
 template <typename T> struct npy_format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {
 private:
-    constexpr static const int values[] = {
+    constexpr static const int values[8] = {
         array::API::NPY_BYTE_, array::API::NPY_UBYTE_, array::API::NPY_SHORT_,    array::API::NPY_USHORT_,
         array::API::NPY_INT_,  array::API::NPY_UINT_,  array::API::NPY_LONGLONG_, array::API::NPY_ULONGLONG_ };
 public:

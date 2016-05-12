@@ -26,7 +26,7 @@ public:
         object src(src_, true);
         value = [src](Args... args) -> Return {
             gil_scoped_acquire acq;
-            object retval(src.call(std::move(args)...));
+            object retval(src(std::move(args)...));
             /* Visual studio 2015 parser issue: need parentheses around this expression */
             return (retval.template cast<Return>());
         };

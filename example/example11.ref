@@ -32,3 +32,4 @@ Caught expected exception: Incompatible function arguments. The following argume
 
 kw_func4: 13 17 
 kw_func4: 1 2 3 
+kw_func(x=1234, y=5678)
