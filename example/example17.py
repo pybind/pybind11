@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-from example import VectorInt, VectorA, A
+from example import VectorInt, A, VectorA, VectorVectorA
 
 v_int = VectorInt(2)
 print(len(v_int))
@@ -29,3 +29,6 @@ v_a = VectorA()
 v_a.append(A(1))
 v_a.append(A(2))
 print(v_a)
+
+vv_a = VectorVectorA()
+vv_a.append(v_a)

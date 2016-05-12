@@ -34,4 +34,6 @@ void init_ex17(py::module &m) {
 	pybind11::vector_binder<int>(m, "VectorInt");
 
 	pybind11::vector_binder<A>(m, "VectorA");
+
+	pybind11::vector_binder< std::vector<A> >(m, "VectorVectorA");
 }

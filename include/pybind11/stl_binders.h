@@ -17,33 +17,52 @@
 #include <utility>
 #include <algorithm>
 #include <sstream>
-
+#include <vector>
+#include <map>
+#include <set>
+#include <deque>
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
 template<typename T>
-constexpr auto has_equal_operator(int) -> decltype(std::declval<T>() == std::declval<T>(), bool()) { return true; }
+constexpr auto has_equal_operator(int) -> decltype(std::declval<T>() == std::declval<T>(), std::declval<T>() != std::declval<T>(), bool()) { return true; }
 template<typename T>
 constexpr bool has_equal_operator(...) { return false; }
 
-// Workaround for MSVC 2015
-template<typename T>
+template<typename T, typename SFINAE = void>
 struct has_equal_operator_s {
+	static const bool value = false;
+};
+template<typename T>
+struct has_equal_operator_s<T>
+{
 	static const bool value = has_equal_operator<T>(0);
 };
-
-
-
-template<typename T>
-constexpr auto has_not_equal_operator(int) -> decltype(std::declval<T>() != std::declval<T>(), bool()) { return true; }
-template<typename T>
-constexpr bool has_not_equal_operator(...) { return false; }
-
-// Workaround for MSVC 2015
-template<typename T>
-struct has_not_equal_operator_s {
-	static const bool value = has_not_equal_operator<T>(0);
+template<> template <typename A>
+struct has_equal_operator_s< std::vector<A> >
+{
+	static const bool value = has_equal_operator_s<A>::value;
+};
+template<> template <typename A>
+struct has_equal_operator_s< std::deque<A> >
+{
+	static const bool value = has_equal_operator_s<A>::value;
+};
+template<> template <typename A>
+struct has_equal_operator_s< std::set<A> >
+{
+	static const bool value = has_equal_operator_s<A>::value;
+};
+template<> template <typename A, typename B>
+struct has_equal_operator_s< std::pair<A,B> >
+{
+	static const bool value = has_equal_operator_s<A>::value and has_equal_operator_s<B>::value;
+};
+template<> template <typename A, typename B>
+struct has_equal_operator_s< std::map<A,B> >
+{
+	static const bool value = has_equal_operator_s<A>::value and has_equal_operator_s<B>::value;
 };
 
 
@@ -103,6 +122,7 @@ void vector_maybe_has_equal_operator(Class_ &cl) {
 	using T = typename Vector::value_type;
 
 	cl.def(pybind11::self == pybind11::self);
+	cl.def(pybind11::self != pybind11::self);
 
 	cl.def("count", [](Vector const &v, T const & value) { return std::count(v.begin(), v.end(), value); }, "counts the elements that are equal to value");
 
@@ -116,14 +136,6 @@ void vector_maybe_has_equal_operator(Class_ &cl) {
 }
 template<typename Vector, typename Class_, typename std::enable_if< !has_equal_operator_s<typename Vector::value_type>::value >::type * = nullptr>
 void vector_maybe_has_equal_operator(Class_ &) {}
-
-
-template<typename Vector, typename Class_, typename std::enable_if< has_not_equal_operator_s<typename Vector::value_type>::value >::type * = nullptr>
-void vector_maybe_has_not_equal_operator(Class_ &cl) {
-	cl.def(pybind11::self != pybind11::self);
-}
-template<typename Vector, typename Class_, typename std::enable_if< !has_not_equal_operator_s<typename Vector::value_type>::value >::type * = nullptr>
-void vector_maybe_has_not_equal_operator(Class_ &) {}
 
 
 template<typename Vector, typename Class_, typename std::enable_if< has_insertion_operator_s<typename Vector::value_type>::value >::type * = nullptr>
@@ -244,7 +256,6 @@ pybind11::class_<std::vector<T, Allocator>, holder_type > vector_binder(pybind11
 
 	// Comparisons
 	detail::vector_maybe_has_equal_operator<Vector>(cl);
-	detail::vector_maybe_has_not_equal_operator<Vector>(cl);
 
 	// Printing
 	detail::vector_maybe_has_insertion_operator<Vector>(name, cl);
