@@ -212,7 +212,7 @@ protected:
         rec->is_constructor = !strcmp(rec->name, "__init__");
         rec->has_args = false;
         rec->has_kwargs = false;
-        rec->nargs = args;
+        rec->nargs = (uint16_t) args;
 
 #if PY_MAJOR_VERSION < 3
         if (rec->sibling && PyMethod_Check(rec->sibling.ptr()))
