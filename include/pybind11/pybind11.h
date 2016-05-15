@@ -209,7 +209,7 @@ protected:
 
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();
-        rec->is_constructor = !strcmp(rec->name, "__init__");
+        rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
         rec->has_args = false;
         rec->has_kwargs = false;
         rec->nargs = args;
