@@ -108,6 +108,7 @@ set(PYBIND11_HEADERS
   include/pybind11/pybind11.h
   include/pybind11/pytypes.h
   include/pybind11/stl.h
+  include/pybind11/stl_bind.h
   include/pybind11/typeid.h
 )
 
@@ -128,6 +129,7 @@ set(PYBIND11_EXAMPLES
   example/example14.cpp
   example/example15.cpp
   example/example16.cpp
+  example/example17.cpp
   example/issues.cpp
 )
 

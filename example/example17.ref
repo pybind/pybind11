@@ -1,0 +1,10 @@
+2
+True
+True
+True
+VectorInt[3, 2, 1, 0, 1, 2, 3]
+VectorInt[3, 2, 0, 0, 99, 2, 3]
+VectorInt[3, 0, 99, 2, 3]
+VectorInt[0, 99, 2, 3]
+VectorEl[El{1}, El{2}]
+VectorEl[El{1}, El{2}]

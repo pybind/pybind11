@@ -99,6 +99,7 @@ Jonas Adler,
 Sylvain Corlay,
 Axel Huebl,
 @hulucc,
+Sergey Lyskov
 Johan Mabille,
 Tomasz Miąsko, and
 Ben Pritchard.
