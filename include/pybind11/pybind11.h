@@ -200,6 +200,9 @@ protected:
         if (strcmp(rec->name, "__next__") == 0) {
             std::free(rec->name);
             rec->name = strdup("next");
+        } else if (strcmp(rec->name, "__bool__") == 0) {
+            std::free(rec->name);
+            rec->name = strdup("__nonzero__");
         }
 #endif
 
