@@ -11,6 +11,16 @@ the [pbtest]_ repository.
 
 .. [pbtest] https://github.com/pybind/pbtest
 
+Building with cppimport
+========================
+
+ cppimport is a small Python import hook that determines whether there is a C++
+ source file whose name matches the requested module. If there is, the file is
+ compiled as a Python extension using pybind11 and placed in the same folder as
+ the C++ source file. Python is then able to find the module and load it.
+
+.. [cppimport] https://github.com/tbenthompson/cppimport
+
 .. _cmake:
 
 Building with CMake
