@@ -326,11 +326,15 @@ public:
         } if (std::is_floating_point<T>::value) {
             py_value = (py_type) PyFloat_AsDouble(src.ptr());
         } else if (sizeof(T) <= sizeof(long)) {
+            if (PyFloat_Check(src.ptr()))
+                return false;
             if (std::is_signed<T>::value)
                 py_value = (py_type) PyLong_AsLong(src.ptr());
             else
                 py_value = (py_type) PyLong_AsUnsignedLong(src.ptr());
         } else {
+            if (PyFloat_Check(src.ptr()))
+                return false;
             if (std::is_signed<T>::value)
                 py_value = (py_type) PYBIND11_LONG_AS_LONGLONG(src.ptr());
             else

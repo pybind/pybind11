@@ -104,4 +104,8 @@ void init_issues(py::module &m) {
 
     // (no id): should not be able to pass 'None' to a reference argument
     m2.def("print_element", [](ElementA &el) { std::cout << el.value() << std::endl; });
+
+    // (no id): don't cast doubles to ints
+    m2.def("expect_float", [](float f) { return f; });
+    m2.def("expect_int", [](int i) { return i; });
 }

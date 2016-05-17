@@ -8,6 +8,7 @@ from example.issues import DispatchIssue, dispatch_issue_go
 from example.issues import Placeholder, return_vec_of_reference_wrapper
 from example.issues import iterator_passthrough
 from example.issues import ElementList, ElementA, print_element
+from example.issues import expect_float, expect_int
 import gc
 
 print_cchar("const char *")
@@ -47,3 +48,10 @@ try:
     print_element(None)
 except Exception as e:
     print("Failed as expected: " + str(e))
+
+try:
+    print(expect_int(5.2))
+except Exception as e:
+    print("Failed as expected: " + str(e))
+
+print(expect_float(12))

@@ -8,3 +8,7 @@ Yay..
 Failed as expected: Incompatible function arguments. The following argument types are supported:
     1. (example.issues.ElementA) -> NoneType
 
+Failed as expected: Incompatible function arguments. The following argument types are supported:
+    1. (int) -> int
+
+12.0

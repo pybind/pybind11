@@ -5,6 +5,8 @@ Changelog
 
 1.8 (Not yet released)
 ----------------------
+* Prevent implicit conversion of floating point values to integral types in
+  function arguments
 * Transparent conversion of sparse and dense Eigen data types
 * Fixed incorrect default return value policy for functions returning a shared
   pointer
