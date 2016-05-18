@@ -108,7 +108,7 @@ void vector_if_equal_operator(Class_ &cl) {
     );
 }
 
-template <typename Vector, typename Class_> auto vector_if_insertion_operator(Class_ &cl, const char *name)
+template <typename Vector, typename Class_> auto vector_if_insertion_operator(Class_ &cl, std::string const &name)
     -> decltype(std::declval<std::ostream&>() << std::declval<typename Vector::value_type>(), void()) {
     using size_type = typename Vector::size_type;
 
@@ -132,12 +132,12 @@ NAMESPACE_END(detail)
 
 
 template <typename T, typename Allocator = std::allocator<T>, typename holder_type = std::unique_ptr<std::vector<T, Allocator>>, typename... Args>
-pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::module &m, const char *name, Args&&... args) {
+pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::module &m, std::string const &name, Args&&... args) {
     using Vector = std::vector<T, Allocator>;
     using SizeType = typename Vector::size_type;
     using Class_ = pybind11::class_<Vector, holder_type>;
 
-    Class_ cl(m, name, std::forward<Args>(args)...);
+    Class_ cl(m, name.c_str(), std::forward<Args>(args)...);
 
     cl.def(pybind11::init<>());
 
