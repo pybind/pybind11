@@ -73,3 +73,6 @@ my_func(x:int=6, y:float=3, z:float=2)
  [ 24.  30.  36.]]
 [[ 4  8 12]
  [24 30 36]]
+Int branch taken. 
+Float branch taken. 
+Complex float branch taken. 

@@ -1100,10 +1100,12 @@ or ``py::array::f_style``.
 
 .. code-block:: cpp
 
-    void f(py::array_t<double, py::array::c_style> array);
+    void f(py::array_t<double, py::array::c_style | py::array::forcecast> array);
 
-As before, the implementation will attempt to convert non-conforming arguments
-into an array satisfying the specified requirements.
+The ``py::array::forcecast`` argument is the default value of the second
+template paramenter, and it ensures that non-conforming arguments are converted
+into an array satisfying the specified requirements instead of trying the next
+function overload.
 
 Vectorizing functions
 =====================

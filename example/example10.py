@@ -27,3 +27,8 @@ for f in [vectorized_func, vectorized_func2]:
     print(f(np.array([[1, 2, 3], [4, 5, 6]]), np.array([[2], [3]]), 2))
     print(np.array([[1, 2, 3], [4, 5, 6]])* np.array([[2], [3]])* 2)
 
+from example import selective_func
+
+selective_func(np.array([1], dtype=np.int32))
+selective_func(np.array([1.0], dtype=np.float32))
+selective_func(np.array([1.0j], dtype=np.complex64))

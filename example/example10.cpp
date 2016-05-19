@@ -33,4 +33,9 @@ void init_ex10(py::module &m) {
 
     // Vectorize a complex-valued function
     m.def("vectorized_func3", py::vectorize(my_func3));
+
+    /// Numpy function which only accepts specific data types
+    m.def("selective_func", [](py::array_t<int, py::array::c_style>) { std::cout << "Int branch taken. "<< std::endl; });
+    m.def("selective_func", [](py::array_t<float, py::array::c_style>) { std::cout << "Float branch taken. "<< std::endl; });
+    m.def("selective_func", [](py::array_t<std::complex<float>, py::array::c_style>) { std::cout << "Complex float branch taken. "<< std::endl; });
 }
