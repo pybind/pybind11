@@ -89,6 +89,8 @@ void init_ex12(py::module &m) {
         /* Declare that 'PyExample12' is really an alias for the original type 'Example12' */
         .alias<Example12>()
         .def(py::init<int>())
+        /* Copy constructor (not needed in this case, but should generally be declared in this way) */
+        .def(py::init<const PyExample12 &>())
         /* Reference original class in function definitions */
         .def("run", &Example12::run)
         .def("run_bool", &Example12::run_bool)
