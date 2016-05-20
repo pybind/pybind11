@@ -22,6 +22,7 @@ RECURSE_LIST = [
     CursorKind.NAMESPACE,
     CursorKind.CLASS_DECL,
     CursorKind.STRUCT_DECL,
+    CursorKind.ENUM_DECL,
     CursorKind.CLASS_TEMPLATE
 ]
 
@@ -29,6 +30,7 @@ PRINT_LIST = [
     CursorKind.CLASS_DECL,
     CursorKind.STRUCT_DECL,
     CursorKind.ENUM_DECL,
+    CursorKind.ENUM_CONSTANT_DECL,
     CursorKind.CLASS_TEMPLATE,
     CursorKind.FUNCTION_DECL,
     CursorKind.FUNCTION_TEMPLATE,
@@ -45,7 +47,7 @@ CPP_OPERATORS = {
     '>>=': 'irshift', '++': 'inc', '--': 'dec', '<<': 'lshift', '>>':
     'rshift', '&&': 'land', '||': 'lor', '!': 'lnot', '~': 'bnot',
     '&': 'band', '|': 'bor', '+': 'add', '-': 'sub', '*': 'mul', '/':
-    'div', '%': 'mod', '<': 'lt', '>': 'gt', '=': 'assign'
+    'div', '%': 'mod', '<': 'lt', '>': 'gt', '=': 'assign', '()': 'call'
 }
 
 CPP_OPERATORS = OrderedDict(
@@ -81,17 +83,26 @@ def process_comment(comment):
     result = ''
 
     # Remove C++ comment syntax
-    for s in comment.splitlines():
+    leading_spaces = float('inf')
+    for s in comment.expandtabs(tabsize=4).splitlines():
         s = s.strip()
         if s.startswith('/*'):
-            s = s[2:].lstrip('* \t')
+            s = s[2:].lstrip('*')
         elif s.endswith('*/'):
-            s = s[:-2].rstrip('* \t')
+            s = s[:-2].rstrip('*')
         elif s.startswith('///'):
             s = s[3:]
         if s.startswith('*'):
             s = s[1:]
-        result += s.strip() + '\n'
+        if len(s) > 0:
+            leading_spaces = min(leading_spaces, len(s) - len(s.lstrip()))
+        result += s + '\n'
+
+    if leading_spaces != float('inf'):
+        result2 = ""
+        for s in result.splitlines():
+            result2 += s[leading_spaces:] + '\n'
+        result = result2
 
     # Doxygen tags
     cpp_group = '([\w:]+)'
@@ -106,6 +117,8 @@ def process_comment(comment):
     s = re.sub(r'\\ingroup\s+%s' % cpp_group, r'', s)
     s = re.sub(r'\\param%s?\s+%s' % (param_group, cpp_group),
                r'\n\n$Parameter ``\2``:\n\n', s)
+    s = re.sub(r'\\tparam%s?\s+%s' % (param_group, cpp_group),
+               r'\n\n$Template parameter ``\2``:\n\n', s)
 
     for in_, out_ in {
         'return': 'Returns',
@@ -127,11 +140,18 @@ def process_comment(comment):
     s = re.sub(r'\\short\s*', r'', s)
     s = re.sub(r'\\ref\s*', r'', s)
 
+    s = re.sub(r'\\code\s?(.*?)\s?\\endcode',
+               r"```\n\1\n```\n", s, flags=re.DOTALL)
+
     # HTML/TeX tags
-    s = re.sub(r'<tt>([^<]*)</tt>', r'``\1``', s)
-    s = re.sub(r'<em>([^<]*)</em>', r'*\1*', s)
-    s = re.sub(r'<b>([^<]*)</b>', r'**\1**', s)
-    s = re.sub(r'\\f\$([^\$]*)\\f\$', r'$\1$', s)
+    s = re.sub(r'<tt>(.*?)</tt>', r'``\1``', s, flags=re.DOTALL)
+    s = re.sub(r'<pre>(.*?)</pre>', r"```\n\1\n```\n", s, flags=re.DOTALL)
+    s = re.sub(r'<em>(.*?)</em>', r'*\1*', s, flags=re.DOTALL)
+    s = re.sub(r'<b>(.*?)</b>', r'**\1**', s, flags=re.DOTALL)
+    s = re.sub(r'\\f\$(.*?)\\f\$', r'$\1$', s, flags=re.DOTALL)
+    s = re.sub(r'<li>', r'\n\n* ', s)
+    s = re.sub(r'</?ul>', r'', s)
+    s = re.sub(r'</li>', r'\n\n', s)
 
     s = s.replace('``true``', '``True``')
     s = s.replace('``false``', '``False``')
@@ -140,18 +160,32 @@ def process_comment(comment):
     wrapper = textwrap.TextWrapper()
     wrapper.expand_tabs = True
     wrapper.replace_whitespace = True
-    wrapper.width = 75
+    wrapper.drop_whitespace = True
+    wrapper.width = 70
     wrapper.initial_indent = wrapper.subsequent_indent = ''
 
     result = ''
-    for x in re.split(r'\n{2,}', s):
-        wrapped = wrapper.fill(x.strip())
-        if len(wrapped) > 0 and wrapped[0] == '$':
-            result += wrapped[1:] + '\n'
-            wrapper.initial_indent = wrapper.subsequent_indent = ' ' * 4
+    in_code_segment = False
+    for x in re.split(r'(```)', s):
+        if x == '```':
+            if not in_code_segment:
+                result += '```\n'
+            else:
+                result += '\n```\n\n'
+            in_code_segment = not in_code_segment
+        elif in_code_segment:
+            result += x.strip()
         else:
-            result += wrapped + '\n\n'
-            wrapper.initial_indent = wrapper.subsequent_indent = ''
+            for y in re.split(r'(?: *\n *){2,}', x):
+                wrapped = wrapper.fill(re.sub(r'\s+', ' ', y).strip())
+                if len(wrapped) > 0 and wrapped[0] == '$':
+                    result += wrapped[1:] + '\n'
+                    wrapper.initial_indent = \
+                        wrapper.subsequent_indent = ' ' * 4
+                else:
+                    if len(wrapped) > 0:
+                        result += wrapped + '\n\n'
+                    wrapper.initial_indent = wrapper.subsequent_indent = ''
     return result.rstrip().lstrip('\n')
 
 
@@ -176,10 +210,11 @@ def extract(filename, node, prefix, output):
         sub_prefix = prefix
         if len(sub_prefix) > 0:
             sub_prefix += '_'
-        name = sanitize_name(sub_prefix + d(node.spelling))
-        output.append('\nstatic const char *%s =%sR"doc(%s)doc";' %
-            (name, '\n' if '\n' in comment else ' ', comment))
-        num_extracted += 1
+        if len(node.spelling) > 0:
+            name = sanitize_name(sub_prefix + d(node.spelling))
+            output.append('\nstatic const char *%s =%sR"doc(%s)doc";' %
+                (name, '\n' if '\n' in comment else ' ', comment))
+            num_extracted += 1
     return num_extracted
 
 
