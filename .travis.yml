@@ -3,6 +3,7 @@ sudo: false
 cache:
   directories:
   - $HOME/.cache/pip
+  - ccache
 addons:
   apt:
     sources:
