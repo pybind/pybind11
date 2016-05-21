@@ -313,6 +313,15 @@ a virtual method call.
     >>> call_go(c)
     u'meow! meow! meow! '
 
+.. warning::
+
+    Both :func:`PYBIND11_OVERLOAD` and :func:`PYBIND11_OVERLOAD_PURE` are
+    macros, which means that they can get confused by commas in a template
+    argument such as ``PYBIND11_OVERLOAD(MyReturnValue<T1, T2>, myFunc)``. In
+    this case, the preprocessor assumes that the comma indicates the beginnning
+    of the next parameter. Use a ``typedef`` to bind the template to another
+    name and use it in the macro to avoid this problem.
+
 .. seealso::
 
     The file :file:`example/example12.cpp` contains a complete example that
