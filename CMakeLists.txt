@@ -5,7 +5,7 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 
 project(pybind11)
 
@@ -30,23 +30,9 @@ set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-  CHECK_CXX_COMPILER_FLAG("-std=c++14" HAS_CPP14_FLAG)
-  CHECK_CXX_COMPILER_FLAG("-std=c++11" HAS_CPP11_FLAG)
-
-  if (HAS_CPP14_FLAG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-  elseif (HAS_CPP11_FLAG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-  else()
-    message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
-  endif()
-
   # Enable link time optimization and set the default symbol
   # visibility to hidden (very important to obtain small binaries)
   if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-    # Default symbol visibility
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
-
     # Check for Link Time Optimization support
     # (GCC/Clang)
     CHECK_CXX_COMPILER_FLAG("-flto" HAS_LTO_FLAG)
@@ -75,15 +61,64 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}"
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
+# Cache variables so pybind11_add_module can be used in parent projects
+set(PYBIND11_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/include" CACHE INTERNAL "")
+set(PYTHON_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS} CACHE INTERNAL "")
+set(PYTHON_MODULE_PREFIX ${PYTHON_MODULE_PREFIX} CACHE INTERNAL "")
+set(PYTHON_MODULE_EXTENSION ${PYTHON_MODULE_EXTENSION} CACHE INTERNAL "")
 
-# Check if Eigen is available
-find_package(Eigen3 QUIET)
+# Build a Python extension module:
+# pybind11_add_module(<name> source1 [source2 ...])
+#
+function(pybind11_add_module target_name)
+  add_library(${target_name} MODULE ${ARGN})
+  target_include_directories(${target_name} PUBLIC ${PYBIND11_INCLUDE_DIR} ${PYTHON_INCLUDE_DIRS})
 
-# Include path for pybind11 header files
-include_directories(include)
+  # The prefix and extension are provided by FindPythonLibsNew.cmake
+  set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
+  set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-# Include path for Python header files
-include_directories(${PYTHON_INCLUDE_DIRS})
+  # It's quite common to have multiple copies of the same Python version
+  # installed on one's system. E.g.: one copy from the OS and another copy
+  # that's statically linked into an application like Blender or Maya.
+  # If we link our plugin library against the OS Python here and import it
+  # into Blender or Maya later on, this will cause segfaults when multiple
+  # conflicting Python instances are active at the same time (even when they
+  # are of the same version).
+
+  # Windows is not affected by this issue since it handles DLL imports
+  # differently. The solution for Linux and Mac OS is simple: we just don't
+  # link against the Python library. The resulting shared library will have
+  # missing symbols, but that's perfectly fine -- they will be resolved at
+  # import time.
+  if(MSVC)
+    target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
+  elseif(APPLE)
+    # Make sure OS X does not have any issues with missing symbols
+    set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ".")
+    target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
+  endif()
+
+  # Make sure C++11/14 are enabled
+  if(NOT MSVC)
+    check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
+    check_cxx_compiler_flag("-std=c++11" HAS_CPP11_FLAG)
+
+    if (HAS_CPP14_FLAG)
+      target_compile_options(${target_name} PUBLIC "-std=c++14")
+    elseif (HAS_CPP11_FLAG)
+      target_compile_options(${target_name} PUBLIC "-std=c++11")
+    else()
+      message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
+    endif()
+
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
+    if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
+      # Default symbol visibility
+      target_compile_options(${target_name} PRIVATE "-fvisibility=hidden")
+    endif()
+  endif()
+endfunction()
 
 set(PYBIND11_HEADERS
   include/pybind11/attr.h
@@ -123,24 +158,22 @@ set(PYBIND11_EXAMPLES
   example/issues.cpp
 )
 
+# Check if Eigen is available
+find_package(Eigen3 QUIET)
+
 if (EIGEN3_FOUND)
-  include_directories(${EIGEN3_INCLUDE_DIR})
   list(APPEND PYBIND11_EXAMPLES example/eigen.cpp)
-  add_definitions(-DPYBIND11_TEST_EIGEN)
   message(STATUS "Building Eigen testcase")
 else()
   message(STATUS "NOT Building Eigen testcase")
 endif()
 
 # Create the binding library
-add_library(example SHARED
-  ${PYBIND11_HEADERS}
-  example/example.cpp
-  ${PYBIND11_EXAMPLES}
-)
-
-# Don't add a 'lib' prefix to the shared library
-set_target_properties(example PROPERTIES PREFIX "")
+pybind11_add_module(example example/example.cpp ${PYBIND11_EXAMPLES})
+if (EIGEN3_FOUND)
+  target_include_directories(example PRIVATE ${EIGEN3_INCLUDE_DIR})
+  target_compile_definitions(example PRIVATE -DPYBIND11_TEST_EIGEN)
+endif()
 
 # Always write the output file directly into the 'example' directory (even on MSVC)
 set(CompilerFlags
@@ -169,30 +202,7 @@ if (WIN32)
     set_property(TARGET example APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL "/LTCG ")
     set_property(TARGET example APPEND_STRING PROPERTY LINK_FLAGS_RELWITHDEBINFO "/LTCG ")
   endif()
-
-  # .PYD file extension on Windows
-  set_target_properties(example PROPERTIES SUFFIX ".pyd")
-
-  # Link against the Python shared library
-  target_link_libraries(example ${PYTHON_LIBRARIES})
 elseif (UNIX)
-  # It's quite common to have multiple copies of the same Python version
-  # installed on one's system. E.g.: one copy from the OS and another copy
-  # that's statically linked into an application like Blender or Maya.
-  # If we link our plugin library against the OS Python here and import it
-  # into Blender or Maya later on, this will cause segfaults when multiple
-  # conflicting Python instances are active at the same time (even when they
-  # are of the same version).
-
-  # Windows is not affected by this issue since it handles DLL imports
-  # differently. The solution for Linux and Mac OS is simple: we just don't
-  # link against the Python library. The resulting shared library will have
-  # missing symbols, but that's perfectly fine -- they will be resolved at
-  # import time.
-
-  # .SO file extension on Linux/Mac OS
-  set_target_properties(example PROPERTIES SUFFIX ".so")
-
   # Optimize for a small binary size
   if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
     set_target_properties(example PROPERTIES COMPILE_FLAGS "-Os")
@@ -200,14 +210,12 @@ elseif (UNIX)
 
   # Strip unnecessary sections of the binary on Linux/Mac OS
   if(APPLE)
-    set_target_properties(example PROPERTIES MACOSX_RPATH ".")
-    set_target_properties(example PROPERTIES LINK_FLAGS "-undefined dynamic_lookup ")
     if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-      add_custom_command(TARGET example POST_BUILD COMMAND strip -u -r ${PROJECT_SOURCE_DIR}/example/example.so)
+      add_custom_command(TARGET example POST_BUILD COMMAND strip -u -r $<TARGET_FILE:example>)
     endif()
   else()
     if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-      add_custom_command(TARGET example POST_BUILD COMMAND strip ${PROJECT_SOURCE_DIR}/example/example.so)
+      add_custom_command(TARGET example POST_BUILD COMMAND strip $<TARGET_FILE:example>)
     endif()
   endif()
 endif()
