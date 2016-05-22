@@ -25,18 +25,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools")
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
-if (NOT ${PYBIND11_PYTHON_VERSION} STREQUAL "")
-  find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} EXACT)
-  if (NOT PYTHONLIBS_FOUND)
-    find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
-  endif()
-else()
-  find_package(PythonLibs REQUIRED)
-endif()
-# The above sometimes returns version numbers like "3.4.3+"; the "+" must be removed for the next line to work
-string(REPLACE "+" "" PYTHONLIBS_VERSION_STRING "+${PYTHONLIBS_VERSION_STRING}")
-find_package(PythonInterp ${PYTHONLIBS_VERSION_STRING} EXACT REQUIRED)
+find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Intel")
   CHECK_CXX_COMPILER_FLAG("-std=c++14" HAS_CPP14_FLAG)
@@ -86,14 +77,13 @@ endif()
 
 
 # Check if Eigen is available
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools")
 find_package(Eigen3 QUIET)
 
 # Include path for pybind11 header files
 include_directories(include)
 
 # Include path for Python header files
-include_directories(${PYTHON_INCLUDE_DIR})
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 set(PYBIND11_HEADERS
   include/pybind11/attr.h
@@ -184,7 +174,7 @@ if (WIN32)
   set_target_properties(example PROPERTIES SUFFIX ".pyd")
 
   # Link against the Python shared library
-  target_link_libraries(example ${PYTHON_LIBRARY})
+  target_link_libraries(example ${PYTHON_LIBRARIES})
 elseif (UNIX)
   # It's quite common to have multiple copies of the same Python version
   # installed on one's system. E.g.: one copy from the OS and another copy
