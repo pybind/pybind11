@@ -268,8 +268,14 @@ helper class that is defined as follows:
 
 The macro :func:`PYBIND11_OVERLOAD_PURE` should be used for pure virtual
 functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
-a default implementation. The binding code also needs a few minor adaptations
-(highlighted):
+a default implementation. 
+
+There are also two alternate macros :func:`PYBIND11_OVERLOAD_PURE_NAME` and
+:func:`PYBIND11_OVERLOAD_NAME` which take a string-valued name argument
+after the *Name of the function* slot. This is useful when the C++ and Python
+versions of the function have different names, e.g. ``operator()`` vs ``__call__``.
+
+The binding code also needs a few minor adaptations (highlighted):
 
 .. code-block:: cpp
     :emphasize-lines: 4,6,7

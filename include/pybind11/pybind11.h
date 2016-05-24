@@ -1184,19 +1184,25 @@ inline function get_overload(const void *this_ptr, const char *name)  {
     return overload;
 }
 
-#define PYBIND11_OVERLOAD_INT(ret_type, class_name, name, ...) { \
+#define PYBIND11_OVERLOAD_INT(ret_type, name, ...) { \
         pybind11::gil_scoped_acquire gil; \
-        pybind11::function overload = pybind11::get_overload(this, #name); \
+        pybind11::function overload = pybind11::get_overload(this, name); \
         if (overload) \
             return overload(__VA_ARGS__).template cast<ret_type>();  }
 
-#define PYBIND11_OVERLOAD(ret_type, class_name, name, ...) \
-    PYBIND11_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
-    return class_name::name(__VA_ARGS__)
+#define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
+    PYBIND11_OVERLOAD_INT(ret_type, name, __VA_ARGS__) \
+    return cname::fn(__VA_ARGS__)
 
-#define PYBIND11_OVERLOAD_PURE(ret_type, class_name, name, ...) \
-    PYBIND11_OVERLOAD_INT(ret_type, class_name, name, __VA_ARGS__) \
-    pybind11::pybind11_fail("Tried to call pure virtual function \"" #name "\"");
+#define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
+    PYBIND11_OVERLOAD_INT(ret_type, name, __VA_ARGS__) \
+    pybind11::pybind11_fail("Tried to call pure virtual function \"" #cname "::" name "\"");
+
+#define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
+    PYBIND11_OVERLOAD_NAME(ret_type, cname, #fn, fn, __VA_ARGS__)
+
+#define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
+    PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, #fn, fn, __VA_ARGS__)
 
 NAMESPACE_END(pybind11)
 
