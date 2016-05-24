@@ -133,7 +133,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
     operator Type*() { return &value; }
     operator Type&() { return value; }
 
-private:
+protected:
     template <typename T = Type, typename std::enable_if<T::RowsAtCompileTime == Eigen::Dynamic, int>::type = 0>
     static PYBIND11_DESCR rows() { return _("m"); }
     template <typename T = Type, typename std::enable_if<T::RowsAtCompileTime != Eigen::Dynamic, int>::type = 0>
@@ -143,7 +143,7 @@ private:
     template <typename T = Type, typename std::enable_if<T::ColsAtCompileTime != Eigen::Dynamic, int>::type = 0>
     static PYBIND11_DESCR cols() { return _<T::ColsAtCompileTime>(); }
 
-private:
+protected:
     Type value;
 };
 
@@ -269,7 +269,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
     operator Type*() { return &value; }
     operator Type&() { return value; }
 
-private:
+protected:
     Type value;
 };
 
