@@ -422,6 +422,14 @@ protected:
                 msg += it2->signature;
                 msg += "\n";
             }
+            msg += "    Invoked with: ";
+            tuple args_(args, true);
+            for( std::size_t ti = 0; ti != args_.size(); ++ti)
+            {
+                msg += static_cast<std::string>(static_cast<object>(args_[ti]).str());
+                if ((ti + 1) != args_.size() )
+                    msg += ", ";
+            }
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         } else if (!result) {

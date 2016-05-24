@@ -7,8 +7,8 @@ Yay..
 0==0, 1==1, 2==2, 3==3, 4==4, 5==5, 6==6, 7==7, 8==8, 9==9, 
 Failed as expected: Incompatible function arguments. The following argument types are supported:
     1. (example.issues.ElementA) -> NoneType
-
+    Invoked with: None
 Failed as expected: Incompatible function arguments. The following argument types are supported:
     1. (int) -> int
-
+    Invoked with: 5.2
 12.0
