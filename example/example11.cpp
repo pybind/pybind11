@@ -27,8 +27,8 @@ py::object call_kw_func(py::function f) {
 }
 
 void args_function(py::args args) {
-    for (auto item : args)
-        std::cout << "got argument: " << item << std::endl;
+    for (size_t it=0; it<args.size(); ++it)
+        std::cout << "got argument: " << py::object(args[it]) << std::endl;
 }
 
 void args_kwargs_function(py::args args, py::kwargs kwargs) {

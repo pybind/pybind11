@@ -491,7 +491,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
-    detail::tuple_accessor operator[](size_t index) const { return detail::tuple_accessor(ptr(), index); }
+    detail::tuple_accessor operator[](size_t index) const { return detail::tuple_accessor(*this, index); }
 };
 
 class dict : public object {
@@ -517,7 +517,7 @@ public:
     void append(const object &object) const { PyList_Append(m_ptr, object.ptr()); }
 };
 
-class args : public list { PYBIND11_OBJECT_DEFAULT(args, list, PyList_Check) };
+class args : public tuple { PYBIND11_OBJECT_DEFAULT(args, tuple, PyTuple_Check) };
 class kwargs : public dict { PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)  };
 
 class set : public object {
