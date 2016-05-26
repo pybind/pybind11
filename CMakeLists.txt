@@ -10,13 +10,13 @@ cmake_minimum_required(VERSION 2.8.12)
 project(pybind11)
 
 # Check if pybind11 is being used directly or via add_subdirectory
-set(MASTER_PROJECT OFF)
+set(PYBIND11_MASTER_PROJECT OFF)
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  set(MASTER_PROJECT ON)
+  set(PYBIND11_MASTER_PROJECT ON)
 endif ()
 
-option(PYBIND11_INSTALL "Install pybind11 header files?" ${MASTER_PROJECT})
-option(PYBIND11_TEST "Build tests?" ${MASTER_PROJECT})
+option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
+option(PYBIND11_TEST "Build tests?" ${PYBIND11_MASTER_PROJECT})
 
 # Add a CMake parameter for choosing a desired Python version
 set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
@@ -62,7 +62,6 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
   elseif(APPLE)
     # Make sure OS X does not have any issues with missing symbols
-    set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ".")
     target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
   endif()
 
