@@ -262,7 +262,7 @@ struct internals {
     std::unordered_map<const void *, void*> registered_instances;    // void * -> PyObject*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
 #if defined(WITH_THREAD)
-    int tstate = 0;
+    long tstate = 0;
     PyInterpreterState *istate = nullptr;
 #endif
 };

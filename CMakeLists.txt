@@ -59,7 +59,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
     # Check for Link Time Optimization support
     # (GCC/Clang)
     CHECK_CXX_COMPILER_FLAG("-flto" HAS_LTO_FLAG)
-    if (HAS_LTO_FLAG)
+    if (HAS_LTO_FLAG AND NOT CYGWIN)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
     endif()
 
@@ -149,6 +149,9 @@ add_library(example SHARED
   ${PYBIND11_EXAMPLES}
 )
 
+# Link against the Python shared library
+target_link_libraries(example ${PYTHON_LIBRARY})
+
 # Don't add a 'lib' prefix to the shared library
 set_target_properties(example PROPERTIES PREFIX "")
 
@@ -182,9 +185,6 @@ if (WIN32)
 
   # .PYD file extension on Windows
   set_target_properties(example PROPERTIES SUFFIX ".pyd")
-
-  # Link against the Python shared library
-  target_link_libraries(example ${PYTHON_LIBRARY})
 elseif (UNIX)
   # It's quite common to have multiple copies of the same Python version
   # installed on one's system. E.g.: one copy from the OS and another copy
@@ -200,8 +200,13 @@ elseif (UNIX)
   # missing symbols, but that's perfectly fine -- they will be resolved at
   # import time.
 
-  # .SO file extension on Linux/Mac OS
-  set_target_properties(example PROPERTIES SUFFIX ".so")
+  # .DLL file extension on Cygwin, .SO file extension on Linux/Mac OS
+  if (CYGWIN)
+    set(SUFFIX ".dll")
+  else()
+    set(SUFFIX ".so")
+  endif()
+  set_target_properties(example PROPERTIES SUFFIX ${SUFFIX})
 
   # Optimize for a small binary size
   if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
@@ -213,11 +218,11 @@ elseif (UNIX)
     set_target_properties(example PROPERTIES MACOSX_RPATH ".")
     set_target_properties(example PROPERTIES LINK_FLAGS "-undefined dynamic_lookup ")
     if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-      add_custom_command(TARGET example POST_BUILD COMMAND strip -u -r ${PROJECT_SOURCE_DIR}/example/example.so)
+      add_custom_command(TARGET example POST_BUILD COMMAND strip -u -r ${PROJECT_SOURCE_DIR}/example/example${SUFFIX})
     endif()
   else()
     if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-      add_custom_command(TARGET example POST_BUILD COMMAND strip ${PROJECT_SOURCE_DIR}/example/example.so)
+      add_custom_command(TARGET example POST_BUILD COMMAND strip ${PROJECT_SOURCE_DIR}/example/example${SUFFIX})
     endif()
   endif()
 endif()
