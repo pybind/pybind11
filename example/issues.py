@@ -9,6 +9,7 @@ from example.issues import Placeholder, return_vec_of_reference_wrapper
 from example.issues import iterator_passthrough
 from example.issues import ElementList, ElementA, print_element
 from example.issues import expect_float, expect_int
+from example.issues import A, call_f
 import gc
 
 print_cchar("const char *")
@@ -55,3 +56,19 @@ except Exception as e:
     print("Failed as expected: " + str(e))
 
 print(expect_float(12))
+
+class B(A):
+    def __init__(self):
+        super(B, self).__init__()
+
+    def f(self):
+        print("In python f()")
+
+print("C++ version")
+a = A()
+call_f(a)
+
+print("Python version")
+b = B()
+call_f(b)
+

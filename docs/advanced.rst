@@ -283,9 +283,8 @@ The binding code also needs a few minor adaptations (highlighted):
     PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
-        py::class_<PyAnimal> animal(m, "Animal");
+        py::class_<Animal, std::unique_ptr<Animal>, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
         animal
-            .alias<Animal>()
             .def(py::init<>())
             .def("go", &Animal::go);
 
@@ -297,10 +296,10 @@ The binding code also needs a few minor adaptations (highlighted):
         return m.ptr();
     }
 
-Importantly, the trampoline helper class is used as the template argument to
-:class:`class_`, and a call to :func:`class_::alias` informs the binding
-generator that this is merely an alias for the underlying type ``Animal``.
-Following this, we are able to define a constructor as usual.
+Importantly, pybind11 is made aware of the trampoline trampoline helper class
+by specifying it as the *third* template argument to :class:`class_`. The
+second argument with the unique pointer is simply the default holder type used
+by pybind11. Following this, we are able to define a constructor as usual.
 
 The Python session below shows how to override ``Animal::go`` and invoke it via
 a virtual method call.
@@ -321,12 +320,12 @@ a virtual method call.
 
 .. warning::
 
-    Both :func:`PYBIND11_OVERLOAD` and :func:`PYBIND11_OVERLOAD_PURE` are
-    macros, which means that they can get confused by commas in a template
-    argument such as ``PYBIND11_OVERLOAD(MyReturnValue<T1, T2>, myFunc)``. In
-    this case, the preprocessor assumes that the comma indicates the beginnning
-    of the next parameter. Use a ``typedef`` to bind the template to another
-    name and use it in the macro to avoid this problem.
+    The :func:`PYBIND11_OVERLOAD_*` calls are all just macros, which means that
+    they can get confused by commas in a template argument such as
+    ``PYBIND11_OVERLOAD(MyReturnValue<T1, T2>, myFunc)``. In this case, the
+    preprocessor assumes that the comma indicates the beginnning of the next
+    parameter. Use a ``typedef`` to bind the template to another name and use
+    it in the macro to avoid this problem.
 
 .. seealso::
 
@@ -369,9 +368,8 @@ be realized as follows (important changes highlighted):
     PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
-        py::class_<PyAnimal> animal(m, "Animal");
+        py::class_<Animal, std::unique_ptr<Animal>, PyAnimal> animal(m, "Animal");
         animal
-            .alias<Animal>()
             .def(py::init<>())
             .def("go", &Animal::go);
 

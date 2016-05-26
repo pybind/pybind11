@@ -82,15 +82,11 @@ void runExample12Virtual(Example12 *ex) {
 }
 
 void init_ex12(py::module &m) {
-    /* Important: use the wrapper type as a template
-       argument to class_<>, but use the original name
-       to denote the type */
-    py::class_<PyExample12>(m, "Example12")
-        /* Declare that 'PyExample12' is really an alias for the original type 'Example12' */
-        .alias<Example12>()
+    /* Important: indicate the trampoline class PyExample12 using the third
+       argument to py::class_. The second argument with the unique pointer
+       is simply the default holder type used by pybind11. */
+    py::class_<Example12, std::unique_ptr<Example12>, PyExample12>(m, "Example12")
         .def(py::init<int>())
-        /* Copy constructor (not needed in this case, but should generally be declared in this way) */
-        .def(py::init<const PyExample12 &>())
         /* Reference original class in function definitions */
         .def("run", &Example12::run)
         .def("run_bool", &Example12::run_bool)

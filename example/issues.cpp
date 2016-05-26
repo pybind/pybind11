@@ -42,8 +42,7 @@ void init_issues(py::module &m) {
         }
     };
 
-    py::class_<DispatchIssue> base(m2, "DispatchIssue");
-    base.alias<Base>()
+    py::class_<Base, std::unique_ptr<Base>, DispatchIssue>(m2, "DispatchIssue")
         .def(py::init<>())
         .def("dispatch", &Base::dispatch);
 
@@ -108,4 +107,28 @@ void init_issues(py::module &m) {
     // (no id): don't cast doubles to ints
     m2.def("expect_float", [](float f) { return f; });
     m2.def("expect_int", [](int i) { return i; });
+
+    // (no id): don't invoke Python dispatch code when instantiating C++
+    // classes that were not extended on the Python side
+    struct A {
+        virtual ~A() {}
+        virtual void f() { std::cout << "A.f()" << std::endl; }
+    };
+
+    struct PyA : A {
+        PyA() { std::cout << "PyA.PyA()" << std::endl; }
+
+        void f() override {
+            std::cout << "PyA.f()" << std::endl;
+            PYBIND11_OVERLOAD(void, A, f);
+        }
+    };
+
+    auto call_f = [](A *a) { a->f(); };
+
+	pybind11::class_<A, std::unique_ptr<A>, PyA>(m2, "A")
+	    .def(py::init<>())
+	    .def("f", &A::f);
+
+	 m2.def("call_f", call_f);
 }
