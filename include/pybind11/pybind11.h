@@ -969,7 +969,7 @@ template <typename... Args> struct init {
               typename std::enable_if<std::is_same<Base, Alias>::value, int>::type = 0>
     void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
         /// Function which calls a specific C++ in-place constructor
-        class_.def("__init__", [](Base *self, Args... args) { new (self) Base(args...); }, extra...);
+        class_.def("__init__", [](Base *self_, Args... args) { new (self_) Base(args...); }, extra...);
     }
 
     template <typename Base, typename Holder, typename Alias, typename... Extra,
@@ -977,11 +977,11 @@ template <typename... Args> struct init {
                                        std::is_constructible<Base, Args...>::value, int>::type = 0>
     void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
         handle cl_type = class_;
-        class_.def("__init__", [cl_type](handle self, Args... args) {
-                if (self.get_type() == cl_type)
-                    new (self.cast<Base *>()) Base(args...);
+        class_.def("__init__", [cl_type](handle self_, Args... args) {
+                if (self_.get_type() == cl_type)
+                    new (self_.cast<Base *>()) Base(args...);
                 else
-                    new (self.cast<Alias *>()) Alias(args...);
+                    new (self_.cast<Alias *>()) Alias(args...);
             }, extra...);
     }
 
@@ -1074,6 +1074,11 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
  *    can be handy to prevent cases where callbacks issued from an external
  *    thread would otherwise constantly construct and destroy thread state data
  *    structures.
+ *
+ * See the Python bindings of NanoGUI (http://github.com/wjakob/nanogui) for an
+ * example which uses features 2 and 3 to migrate the Python thread of
+ * execution to another thread (to run the event loop on the original thread,
+ * in this case).
  */
 
 class gil_scoped_acquire {
