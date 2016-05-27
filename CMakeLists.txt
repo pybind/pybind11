@@ -59,14 +59,14 @@ function(pybind11_add_module target_name)
   # missing symbols, but that's perfectly fine -- they will be resolved at
   # import time.
   if(MSVC)
-    target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
+    target_link_libraries(${target_name} PRIVATE ${PYTHON_LIBRARIES})
   elseif(APPLE)
     # Make sure OS X does not have any issues with missing symbols
     target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
   endif()
 
-  # Make sure C++11/14 are enabled
   if(NOT MSVC)
+    # Make sure C++11/14 are enabled
     check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
     check_cxx_compiler_flag("-std=c++11" HAS_CPP11_FLAG)
 
@@ -78,11 +78,58 @@ function(pybind11_add_module target_name)
       message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
     endif()
 
+    # Enable link time optimization and set the default symbol
+    # visibility to hidden (very important to obtain small binaries)
     string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
     if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
+      # Check for Link Time Optimization support (GCC/Clang)
+      check_cxx_compiler_flag("-flto" HAS_LTO_FLAG)
+      if(HAS_LTO_FLAG)
+        target_compile_options(${target_name} PRIVATE -flto)
+      endif()
+
+      # Intel equivalent to LTO is called IPO
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+        check_cxx_compiler_flag("-ipo" HAS_IPO_FLAG)
+        if(HAS_IPO_FLAG)
+          target_compile_options(${target_name} PRIVATE -ipo)
+        endif()
+      endif()
+
       # Default symbol visibility
       target_compile_options(${target_name} PRIVATE "-fvisibility=hidden")
+
+      # Strip unnecessary sections of the binary on Linux/Mac OS
+      if(CMAKE_STRIP)
+        if(APPLE)
+          add_custom_command(TARGET ${target_name} POST_BUILD
+                             COMMAND ${CMAKE_STRIP} -u -r $<TARGET_FILE:${target_name}>)
+        else()
+          add_custom_command(TARGET ${target_name} POST_BUILD
+                             COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${target_name}>)
+        endif()
+      endif()
     endif()
+  elseif(MSVC)
+    # /MP enables multithreaded builds (relevant when there are many files), /bigobj is
+    # needed for bigger binding projects due to the limit to 64k addressable sections
+    target_compile_options(${target_name} PRIVATE /MP /bigobj)
+
+    # Enforce link time code generation on MSVC, except in debug mode
+    target_compile_options(${target_name} PRIVATE $<$<NOT:$<CONFIG:Debug>>:/GL>)
+    # Fancy generator expressions don't work with linker flags, for reasons unknown
+    set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS_RELEASE /LTCG)
+    set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL /LTCG)
+    set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS_RELWITHDEBINFO /LTCG)
+  endif()
+endfunction()
+
+# Compile with compiler warnings turned on
+function(pybind11_turn_on_warnings target_name)
+  if(MSVC)
+    target_compile_options(${target_name} PRIVATE /W4)
+  else()
+    target_compile_options(${target_name} PRIVATE -Wall -Wextra)
   endif()
 endfunction()
 
