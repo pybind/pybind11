@@ -38,7 +38,7 @@ void test_function2(EMyEnumeration k) {
 
 float test_function3(int i) {
     std::cout << "test_function(" << i << ")" << std::endl;
-    return i / 2.f;
+    return (float) i / 2.f;
 }
 
 py::bytes return_bytes() {

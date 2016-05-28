@@ -13,7 +13,7 @@
 
 double my_func(int x, float y, double z) {
     std::cout << "my_func(x:int=" << x << ", y:float=" << y << ", z:float=" << z << ")" << std::endl;
-    return x*y*z;
+    return (float) x*y*z;
 }
 
 std::complex<double> my_func3(std::complex<double> c) {
