@@ -21,11 +21,27 @@ option(PYBIND11_TEST "Build tests?" ${PYBIND11_MASTER_PROJECT})
 # Add a CMake parameter for choosing a desired Python version
 set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
 
-include(CheckCXXCompilerFlag)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools")
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
+
+include(CheckCXXCompilerFlag)
+
+if(NOT MSVC AND NOT PYBIND11_CPP_STANDARD)
+  check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
+  check_cxx_compiler_flag("-std=c++11" HAS_CPP11_FLAG)
+
+  if (HAS_CPP14_FLAG)
+    set(PYBIND11_CPP_STANDARD -std=c++14)
+  elseif (HAS_CPP11_FLAG)
+    set(PYBIND11_CPP_STANDARD -std=c++11)
+  else()
+    message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
+  endif()
+
+  set(PYBIND11_CPP_STANDARD ${PYBIND11_CPP_STANDARD} CACHE STRING
+      "C++ standard flag, e.g. -std=c++11 or -std=c++14. Defaults to latest available.")
+endif()
 
 # Cache variables so pybind11_add_module can be used in parent projects
 set(PYBIND11_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/include" CACHE INTERNAL "")
@@ -67,16 +83,7 @@ function(pybind11_add_module target_name)
 
   if(NOT MSVC)
     # Make sure C++11/14 are enabled
-    check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
-    check_cxx_compiler_flag("-std=c++11" HAS_CPP11_FLAG)
-
-    if (HAS_CPP14_FLAG)
-      target_compile_options(${target_name} PUBLIC "-std=c++14")
-    elseif (HAS_CPP11_FLAG)
-      target_compile_options(${target_name} PUBLIC "-std=c++11")
-    else()
-      message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
-    endif()
+    target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
 
     # Enable link time optimization and set the default symbol
     # visibility to hidden (very important to obtain small binaries)
