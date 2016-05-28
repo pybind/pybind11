@@ -660,7 +660,7 @@ public:
         std::get<1>(value).load(kwargs, convert);
         return true;
     }
- 
+
     static handle cast(const type &src, return_value_policy policy, handle parent) {
         return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }

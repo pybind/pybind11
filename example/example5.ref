@@ -14,7 +14,7 @@ Polly is a parrot
 Molly is a dog
 The following error is expected: Incompatible function arguments. The following argument types are supported:
     1. (example.Dog) -> NoneType
-
+    Invoked with: <Pet object at 0>
 Callback function 1 called!
 False
 Callback function 2 called : Hello, x, True, 5

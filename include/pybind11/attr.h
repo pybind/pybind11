@@ -65,6 +65,7 @@ enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 template <typename... Args> struct init;
+template <typename... Args> struct init_alias;
 inline void keep_alive_impl(int Nurse, int Patient, handle args, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument

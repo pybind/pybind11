@@ -323,10 +323,10 @@ public:
     PYBIND11_OBJECT_DEFAULT(iterable, object, detail::PyIterable_Check)
 };
 
-inline detail::accessor handle::operator[](handle key) const { return detail::accessor(ptr(), key.ptr(), false); }
-inline detail::accessor handle::operator[](const char *key) const { return detail::accessor(ptr(), key, false); }
-inline detail::accessor handle::attr(handle key) const { return detail::accessor(ptr(), key.ptr(), true); }
-inline detail::accessor handle::attr(const char *key) const { return detail::accessor(ptr(), key, true); }
+inline detail::accessor handle::operator[](handle key) const { return detail::accessor(*this, key, false); }
+inline detail::accessor handle::operator[](const char *key) const { return detail::accessor(*this, key, false); }
+inline detail::accessor handle::attr(handle key) const { return detail::accessor(*this, key, true); }
+inline detail::accessor handle::attr(const char *key) const { return detail::accessor(*this, key, true); }
 inline iterator handle::begin() const { return iterator(PyObject_GetIter(ptr()), false); }
 inline iterator handle::end() const { return iterator(nullptr, false); }
 inline detail::args_proxy handle::operator*() const { return detail::args_proxy(*this); }
@@ -491,7 +491,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
-    detail::tuple_accessor operator[](size_t index) const { return detail::tuple_accessor(ptr(), index); }
+    detail::tuple_accessor operator[](size_t index) const { return detail::tuple_accessor(*this, index); }
 };
 
 class dict : public object {
@@ -501,7 +501,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate dict object!");
     }
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
-    detail::dict_iterator begin() const { return (++detail::dict_iterator(ptr(), 0)); }
+    detail::dict_iterator begin() const { return (++detail::dict_iterator(*this, 0)); }
     detail::dict_iterator end() const { return detail::dict_iterator(); }
     void clear() const { PyDict_Clear(ptr()); }
 };
@@ -517,7 +517,7 @@ public:
     void append(const object &object) const { PyList_Append(m_ptr, object.ptr()); }
 };
 
-class args : public list { PYBIND11_OBJECT_DEFAULT(args, list, PyList_Check) };
+class args : public tuple { PYBIND11_OBJECT_DEFAULT(args, tuple, PyTuple_Check) };
 class kwargs : public dict { PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)  };
 
 class set : public object {

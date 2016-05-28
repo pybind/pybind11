@@ -1,7 +1,7 @@
 Constructing Example12..
 Original implementation of Example12::run(state=10, value=20)
 30
-Caught expected exception: Tried to call pure virtual function "pure_virtual"
+Caught expected exception: Tried to call pure virtual function "Example12::pure_virtual"
 Constructing Example12..
 ExtendedExample12::run(20), calling parent..
 Original implementation of Example12::run(state=11, value=21)

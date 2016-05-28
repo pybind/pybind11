@@ -5,9 +5,11 @@ Changelog
 
 1.8 (Not yet released)
 ----------------------
+* Redesigned virtual call mechanism and user-facing syntax (breaking change!)
 * Prevent implicit conversion of floating point values to integral types in
   function arguments
 * Transparent conversion of sparse and dense Eigen data types
+* ``std::vector<>`` type bindings analogous to Boost.Python's ``indexing_suite``
 * Fixed incorrect default return value policy for functions returning a shared
   pointer
 * Don't allow casting a ``None`` value into a C++ lvalue reference
@@ -16,10 +18,19 @@ Changelog
 * Extended ``str`` type to also work with ``bytes`` instances
 * Added ``[[noreturn]]`` attribute to ``pybind11_fail()`` to quench some
   compiler warnings
+* List function arguments in exception text when the dispatch code cannot find
+  a matching overload
 * Various minor ``iterator`` and ``make_iterator()`` improvements
+* Transparently support ``__bool__`` on Python 2.x and Python 3.x
+* Fixed issue with destructor of unpickled object not being called
 * Minor CMake build system improvements on Windows
 * Many ``mkdoc.py`` improvements (enumerations, template arguments, ``DOC()``
   macro accepts more arguments)
+* New ``pybind11::args`` and ``pybind11::kwargs`` types to create functions which
+  take an arbitrary number of arguments and keyword arguments
+* New syntax to call a Python function from C++ using ``*args`` and ``*kwargs``
+* Added an ``ExtraFlags`` template argument to the NumPy ``array_t<>`` wrapper. This
+  can be used to disable an enforced cast that may lose precision
 * Documentation improvements (pickling support, ``keep_alive``)
 
 1.7 (April 30, 2016)
