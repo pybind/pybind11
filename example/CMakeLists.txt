@@ -39,7 +39,7 @@ endif()
 
 # Create the binding library
 pybind11_add_module(example example.cpp ${PYBIND11_EXAMPLES})
-pybind11_turn_on_warnings(example)
+pybind11_enable_warnings(example)
 
 if(EIGEN3_FOUND)
   target_include_directories(example PRIVATE ${EIGEN3_INCLUDE_DIR})

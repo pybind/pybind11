@@ -13,10 +13,10 @@ project(pybind11)
 set(PYBIND11_MASTER_PROJECT OFF)
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(PYBIND11_MASTER_PROJECT ON)
-endif ()
+endif()
 
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
-option(PYBIND11_TEST "Build tests?" ${PYBIND11_MASTER_PROJECT})
+option(PYBIND11_TEST    "Build pybind11 test suite?"     ${PYBIND11_MASTER_PROJECT})
 
 # Add a CMake parameter for choosing a desired Python version
 set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
@@ -61,23 +61,24 @@ function(pybind11_add_module target_name)
   set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
   set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-  # It's quite common to have multiple copies of the same Python version
-  # installed on one's system. E.g.: one copy from the OS and another copy
-  # that's statically linked into an application like Blender or Maya.
-  # If we link our plugin library against the OS Python here and import it
-  # into Blender or Maya later on, this will cause segfaults when multiple
-  # conflicting Python instances are active at the same time (even when they
-  # are of the same version).
-
-  # Windows is not affected by this issue since it handles DLL imports
-  # differently. The solution for Linux and Mac OS is simple: we just don't
-  # link against the Python library. The resulting shared library will have
-  # missing symbols, but that's perfectly fine -- they will be resolved at
-  # import time.
-  if(MSVC)
+  if(WIN32)
+    # Link against the Python shared library on Windows
     target_link_libraries(${target_name} PRIVATE ${PYTHON_LIBRARIES})
   elseif(APPLE)
-    # Make sure OS X does not have any issues with missing symbols
+    # It's quite common to have multiple copies of the same Python version
+    # installed on one's system. E.g.: one copy from the OS and another copy
+    # that's statically linked into an application like Blender or Maya.
+    # If we link our plugin library against the OS Python here and import it
+    # into Blender or Maya later on, this will cause segfaults when multiple
+    # conflicting Python instances are active at the same time (even when they
+    # are of the same version).
+
+    # Windows is not affected by this issue since it handles DLL imports
+    # differently. The solution for Linux and Mac OS is simple: we just don't
+    # link against the Python library. The resulting shared library will have
+    # missing symbols, but that's perfectly fine -- they will be resolved at
+    # import time.
+
     target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
   endif()
 
@@ -124,6 +125,7 @@ function(pybind11_add_module target_name)
 
     # Enforce link time code generation on MSVC, except in debug mode
     target_compile_options(${target_name} PRIVATE $<$<NOT:$<CONFIG:Debug>>:/GL>)
+
     # Fancy generator expressions don't work with linker flags, for reasons unknown
     set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS_RELEASE /LTCG)
     set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL /LTCG)
@@ -132,7 +134,7 @@ function(pybind11_add_module target_name)
 endfunction()
 
 # Compile with compiler warnings turned on
-function(pybind11_turn_on_warnings target_name)
+function(pybind11_enable_warnings target_name)
   if(MSVC)
     target_compile_options(${target_name} PRIVATE /W4)
   else()
