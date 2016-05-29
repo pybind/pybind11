@@ -101,8 +101,10 @@ Axel Huebl,
 @hulucc,
 Sergey Lyskov
 Johan Mabille,
-Tomasz Miąsko, and
-Ben Pritchard.
+Tomasz Miąsko,
+Dean Moldovan,
+Ben Pritchard, and
+Boris Schäling.
 
 ### License
 
