@@ -61,7 +61,7 @@ function(pybind11_add_module target_name)
   set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
   set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-  if(WIN32)
+  if(WIN32 OR CYGWIN)
     # Link against the Python shared library on Windows
     target_link_libraries(${target_name} PRIVATE ${PYTHON_LIBRARIES})
   elseif(APPLE)
