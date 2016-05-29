@@ -197,22 +197,23 @@ struct buffer_info {
     size_t itemsize;             // Size of individual items in bytes
     size_t size;                 // Total number of entries
     std::string format;          // For homogeneous buffers, this should be set to format_descriptor<T>::value
-    int ndim;                    // Number of dimensions
+    size_t ndim;                 // Number of dimensions
     std::vector<size_t> shape;   // Shape of the tensor (1 entry per dimension)
     std::vector<size_t> strides; // Number of entries between adjacent entries (for each per dimension)
 
     buffer_info() : ptr(nullptr), view(nullptr) {}
-    buffer_info(void *ptr, size_t itemsize, const std::string &format, int ndim,
+    buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t ndim,
                 const std::vector<size_t> &shape, const std::vector<size_t> &strides)
         : ptr(ptr), itemsize(itemsize), size(1), format(format),
           ndim(ndim), shape(shape), strides(strides) {
-        for (int i=0; i<ndim; ++i) size *= shape[i];
+        for (size_t i = 0; i < ndim; ++i)
+            size *= shape[i];
     }
 
     buffer_info(Py_buffer *view)
-        : ptr(view->buf), itemsize(view->itemsize), size(1), format(view->format),
-          ndim(view->ndim), shape(view->ndim), strides(view->ndim), view(view) {
-        for (int i = 0; i < view->ndim; ++i) {
+        : ptr(view->buf), itemsize((size_t) view->itemsize), size(1), format(view->format),
+          ndim((size_t) view->ndim), shape((size_t) view->ndim), strides((size_t) view->ndim), view(view) {
+        for (size_t i = 0; i < (size_t) view->ndim; ++i) {
             shape[i] = (size_t) view->shape[i];
             strides[i] = (size_t) view->strides[i];
             size *= shape[i];

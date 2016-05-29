@@ -10,8 +10,18 @@
 #pragma once
 
 #include "numpy.h"
+
+#if defined(__GNUG__) || defined(__clang__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+
+#if defined(__GNUG__) || defined(__clang__)
+#  pragma GCC diagnostic pop
+#endif
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -63,7 +73,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
             auto strides = Strides(info.strides[0] / sizeof(Scalar), 0);
 
             value = Eigen::Map<Type, 0, Strides>(
-                (Scalar *) info.ptr, info.shape[0], 1, strides);
+                (Scalar *) info.ptr, typename Strides::Index(info.shape[0]), 1, strides);
         } else if (info.ndim == 2) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 
@@ -76,7 +86,9 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
                 info.strides[rowMajor ? 1 : 0] / sizeof(Scalar));
 
             value = Eigen::Map<Type, 0, Strides>(
-                (Scalar *) info.ptr, info.shape[0], info.shape[1], strides);
+                (Scalar *) info.ptr,
+                typename Strides::Index(info.shape[0]),
+                typename Strides::Index(info.shape[1]), strides);
         } else {
             return false;
         }
@@ -117,8 +129,8 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
                 { (size_t) src.rows(),
                   (size_t) src.cols() },
                 /* Strides (in bytes) for each index */
-                { sizeof(Scalar) * (rowMajor ? src.cols() : 1),
-                  sizeof(Scalar) * (rowMajor ? 1 : src.rows()) }
+                { sizeof(Scalar) * (rowMajor ? (size_t) src.cols() : 1),
+                  sizeof(Scalar) * (rowMajor ? 1 : (size_t) src.rows()) }
             )).release();
         }
     }

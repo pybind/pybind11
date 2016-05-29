@@ -109,7 +109,7 @@ public:
         if (descr == nullptr)
             pybind11_fail("NumPy: unsupported buffer format '" + info.format + "'!");
         object tmp(api.PyArray_NewFromDescr_(
-            api.PyArray_Type_, descr, info.ndim, (Py_intptr_t *) &info.shape[0],
+            api.PyArray_Type_, descr, (int) info.ndim, (Py_intptr_t *) &info.shape[0],
             (Py_intptr_t *) &info.strides[0], info.ptr, 0, nullptr), false);
         if (info.ptr && tmp)
             tmp = object(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */), false);
@@ -261,7 +261,7 @@ private:
 
         while (buffer_shape_iter != buffer.shape.rend()) {
             if (*shape_iter == *buffer_shape_iter)
-                *strides_iter = static_cast<int>(*buffer_strides_iter);
+                *strides_iter = static_cast<size_t>(*buffer_strides_iter);
             else
                 *strides_iter = 0;
 
@@ -286,12 +286,12 @@ private:
 };
 
 template <size_t N>
-bool broadcast(const std::array<buffer_info, N>& buffers, int& ndim, std::vector<size_t>& shape) {
-    ndim = std::accumulate(buffers.begin(), buffers.end(), 0, [](int res, const buffer_info& buf) {
+bool broadcast(const std::array<buffer_info, N>& buffers, size_t& ndim, std::vector<size_t>& shape) {
+    ndim = std::accumulate(buffers.begin(), buffers.end(), size_t(0), [](size_t res, const buffer_info& buf) {
         return std::max(res, buf.ndim);
     });
 
-    shape = std::vector<size_t>(static_cast<size_t>(ndim), 1);
+    shape = std::vector<size_t>(ndim, 1);
     bool trivial_broadcast = true;
     for (size_t i = 0; i < N; ++i) {
         auto res_iter = shape.rbegin();
@@ -329,7 +329,7 @@ struct vectorize_helper {
         std::array<buffer_info, N> buffers {{ args.request()... }};
 
         /* Determine dimensions parameters of output array */
-        int ndim = 0;
+        size_t ndim = 0;
         std::vector<size_t> shape(0);
         bool trivial_broadcast = broadcast(buffers, ndim, shape);
 
@@ -337,7 +337,7 @@ struct vectorize_helper {
         std::vector<size_t> strides(ndim);
         if (ndim > 0) {
             strides[ndim-1] = sizeof(Return);
-            for (int i = ndim - 1; i > 0; --i) {
+            for (size_t i = ndim - 1; i > 0; --i) {
                 strides[i - 1] = strides[i] * shape[i];
                 size *= shape[i];
             }

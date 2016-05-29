@@ -336,8 +336,8 @@ protected:
                                 *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
-        size_t nargs = PyTuple_GET_SIZE(args),
-               nkwargs = kwargs ? PyDict_Size(kwargs) : 0;
+        size_t nargs = (size_t) PyTuple_GET_SIZE(args),
+               nkwargs = kwargs ? (size_t) PyDict_Size(kwargs) : 0;
 
         handle parent = nargs > 0 ? PyTuple_GET_ITEM(args, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
@@ -547,7 +547,7 @@ protected:
                                               : std::string(rec->name));
         /* Basic type attributes */
         type->ht_type.tp_name = strdup(full_name.c_str());
-        type->ht_type.tp_basicsize = rec->instance_size;
+        type->ht_type.tp_basicsize = (ssize_t) rec->instance_size;
         type->ht_type.tp_base = (PyTypeObject *) rec->base_handle.ptr();
         rec->base_handle.inc_ref();
 
@@ -702,14 +702,14 @@ protected:
         view->ndim = 1;
         view->internal = info;
         view->buf = info->ptr;
-        view->itemsize = info->itemsize;
+        view->itemsize = (ssize_t) info->itemsize;
         view->len = view->itemsize;
         for (auto s : info->shape)
             view->len *= s;
         if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
             view->format = const_cast<char *>(info->format.c_str());
         if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
-            view->ndim = info->ndim;
+            view->ndim = (int) info->ndim;
             view->strides = (ssize_t *) &info->strides[0];
             view->shape = (ssize_t *) &info->shape[0];
         }
