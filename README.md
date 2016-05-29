@@ -90,6 +90,7 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 2. GCC (any non-ancient version with C++11 support)
 3. Microsoft Visual Studio 2015 or newer
 4. Intel C++ compiler v15 or newer
+5. Cygwin
 
 ## About
 

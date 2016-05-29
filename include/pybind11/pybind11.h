@@ -1156,7 +1156,7 @@ public:
     gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
         tstate = PyEval_SaveThread();
         if (disassoc) {
-            int key = detail::get_internals().tstate;
+            auto key = detail::get_internals().tstate;
             #if PY_MAJOR_VERSION < 3
                 PyThread_delete_key_value(key);
             #else
@@ -1169,7 +1169,7 @@ public:
             return;
         PyEval_RestoreThread(tstate);
         if (disassoc) {
-            int key = detail::get_internals().tstate;
+            auto key = detail::get_internals().tstate;
             #if PY_MAJOR_VERSION < 3
                 PyThread_delete_key_value(key);
             #endif
