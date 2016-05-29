@@ -9,6 +9,7 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
       - deadsnakes
+      - kubuntu-backports # cmake 2.8.12
     packages:
       - g++-4.8
       - g++-4.8-multilib
@@ -17,6 +18,7 @@ addons:
       - python3.5-dev
       - python3.5-venv
       - python3.5-dev:i386
+      - cmake
 matrix:
   include:
     - os: linux

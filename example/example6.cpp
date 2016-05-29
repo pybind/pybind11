@@ -133,22 +133,22 @@ void init_ex6(py::module &m) {
        .def("__reversed__", [](const Sequence &s) -> Sequence { return s.reversed(); })
        /// Slicing protocol (optional)
        .def("__getitem__", [](const Sequence &s, py::slice slice) -> Sequence* {
-            py::ssize_t start, stop, step, slicelength;
+            size_t start, stop, step, slicelength;
             if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
                 throw py::error_already_set();
             Sequence *seq = new Sequence(slicelength);
-            for (int i=0; i<slicelength; ++i) {
+            for (size_t i=0; i<slicelength; ++i) {
                 (*seq)[i] = s[start]; start += step;
             }
             return seq;
         })
        .def("__setitem__", [](Sequence &s, py::slice slice, const Sequence &value) {
-            py::ssize_t start, stop, step, slicelength;
+            size_t start, stop, step, slicelength;
             if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
                 throw py::error_already_set();
-            if ((size_t) slicelength != value.size())
+            if (slicelength != value.size())
                 throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
-            for (int i=0; i<slicelength; ++i) {
+            for (size_t i=0; i<slicelength; ++i) {
                 s[start] = value[i]; start += step;
             }
         })
