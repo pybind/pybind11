@@ -163,7 +163,9 @@ pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::m
             throw;
         }
     });
-    cl.def("append", (void (Vector::*) (const T &)) & Vector::push_back,
+
+    cl.def("append",
+           [](Vector &v, const T &value) { v.push_back(value); },
            arg("x"),
            "Add an item to the end of the list");
 
