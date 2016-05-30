@@ -14,6 +14,7 @@
 #if defined(__GNUG__) || defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion"
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 #include <Eigen/Core>
