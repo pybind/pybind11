@@ -29,6 +29,7 @@ void init_ex17(py::module &m) {
 		.def(pybind11::init<int>());
 
 	pybind11::bind_vector<unsigned int>(m, "VectorInt");
+	pybind11::bind_vector<bool>(m, "VectorBool");
 
 	pybind11::bind_vector<El>(m, "VectorEl");
 

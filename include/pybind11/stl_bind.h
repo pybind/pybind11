@@ -136,6 +136,7 @@ pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::m
     using Vector = std::vector<T, Allocator>;
     using SizeType = typename Vector::size_type;
     using DiffType = typename Vector::difference_type;
+    using ItType   = typename Vector::iterator;
     using Class_ = pybind11::class_<Vector, holder_type>;
 
     Class_ cl(m, name.c_str(), std::forward<Args>(args)...);
@@ -214,7 +215,7 @@ pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::m
     );
 
     cl.def("__getitem__",
-        [](const Vector &v, SizeType i) {
+        [](const Vector &v, SizeType i) -> T {
             if (i >= v.size())
                 throw pybind11::index_error();
             return v[i];
@@ -242,7 +243,7 @@ pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::m
 
     cl.def("__iter__",
         [](Vector &v) {
-            return pybind11::make_iterator(v.begin(), v.end());
+            return pybind11::make_iterator<ItType, T>(v.begin(), v.end());
         },
         pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
     );

@@ -1019,13 +1019,16 @@ NAMESPACE_END(detail)
 
 template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
 
-template <typename Iterator, typename... Extra> iterator make_iterator(Iterator first, Iterator last, Extra&&... extra) {
+template <typename Iterator,
+          typename ValueType = decltype(*std::declval<Iterator>()),
+          typename... Extra>
+iterator make_iterator(Iterator first, Iterator last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator> state;
 
     if (!detail::get_type_info(typeid(state))) {
         class_<state>(handle(), "")
             .def("__iter__", [](state &s) -> state& { return s; })
-            .def("__next__", [](state &s) -> decltype(*std::declval<Iterator>()) {
+            .def("__next__", [](state &s) -> ValueType {
                 if (s.it == s.end)
                     throw stop_iteration();
                 return *s.it++;

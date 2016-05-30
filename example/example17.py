@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-from example import VectorInt, El, VectorEl, VectorVectorEl
+from example import VectorInt, El, VectorEl, VectorVectorEl, VectorBool
 
 v_int = VectorInt([0, 0])
 print(len(v_int))
@@ -38,3 +38,11 @@ vv_a = VectorVectorEl()
 vv_a.append(v_a)
 vv_b = vv_a[0]
 print(vv_b)
+
+vv_c = VectorBool()
+for i in range(10):
+    vv_c.append(i % 2 == 0)
+for i in range(10):
+    if vv_c[i] != (i % 2 == 0):
+        print("Error!")
+print(vv_c)
