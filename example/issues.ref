@@ -18,3 +18,4 @@ Python version
 PyA.PyA()
 PyA.f()
 In python f()
+Failed as expected: 'issues.SingularBar' object has no attribute 'id'

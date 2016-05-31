@@ -10,6 +10,7 @@ from example.issues import iterator_passthrough
 from example.issues import ElementList, ElementA, print_element
 from example.issues import expect_float, expect_int
 from example.issues import A, call_f
+from example.issues import SingularBar
 import gc
 
 print_cchar("const char *")
@@ -71,4 +72,10 @@ call_f(a)
 print("Python version")
 b = B()
 call_f(b)
+
+singularBar = SingularBar()
+try:
+    singularBar.id
+except Exception as e:
+    print("Failed as expected: " + str(e))
 
