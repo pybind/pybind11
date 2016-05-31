@@ -520,6 +520,14 @@ protected:
             }
         }
 
+        auto &internals = get_internals();
+        auto tindex = std::type_index(*(rec->type));
+
+        if (internals.registered_types_cpp.find(tindex) !=
+            internals.registered_types_cpp.end())
+            pybind11_fail("generic_type: type \"" + std::string(rec->name) +
+                          "\" is already registered!");
+
         object type_holder(PyType_Type.tp_alloc(&PyType_Type, 0), false);
         object name(PYBIND11_FROM_STRING(rec->name), false);
         auto type = (PyHeapTypeObject*) type_holder.ptr();
@@ -528,12 +536,11 @@ protected:
             pybind11_fail("generic_type: unable to create type object!");
 
         /* Register supplemental type information in C++ dict */
-        auto &internals = get_internals();
         detail::type_info *tinfo = new detail::type_info();
         tinfo->type = (PyTypeObject *) type;
         tinfo->type_size = rec->type_size;
         tinfo->init_holder = rec->init_holder;
-        internals.registered_types_cpp[std::type_index(*(rec->type))] = tinfo;
+        internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[type] = tinfo;
 
         object scope_module;

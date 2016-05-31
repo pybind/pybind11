@@ -131,4 +131,11 @@ void init_issues(py::module &m) {
 	    .def("f", &A::f);
 
 	 m2.def("call_f", call_f);
+
+    try {
+        py::class_<Placeholder>(m2, "Placeholder");
+        throw std::logic_error("Expected an exception!");
+    } catch (std::runtime_error &e) {
+        /* All good */
+    }
 }

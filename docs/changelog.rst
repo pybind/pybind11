@@ -8,10 +8,11 @@ Changelog
 * Redesigned virtual call mechanism and user-facing syntax (breaking change!)
 * Prevent implicit conversion of floating point values to integral types in
   function arguments
-* Transparent conversion of sparse and dense Eigen data types
+* Transparent conversion of sparse and dense Eigen matrices and vectors
 * ``std::vector<>`` type bindings analogous to Boost.Python's ``indexing_suite``
 * Fixed incorrect default return value policy for functions returning a shared
   pointer
+* Don't allow registering a type via ``class_`` twice
 * Don't allow casting a ``None`` value into a C++ lvalue reference
 * Fixed a crash in ``enum_::operator==`` that was triggered by the ``help()`` command
 * Improved detection of whether or not custom C++ types can be copy/move-constructed
