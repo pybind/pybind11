@@ -131,4 +131,25 @@ void init_issues(py::module &m) {
 	    .def("f", &A::f);
 
 	 m2.def("call_f", call_f);
+
+    {
+        struct DuplicateFoo {
+            int id() const { return 1; }
+        };
+
+        struct SingularBar : public DuplicateFoo {
+        };
+
+        pybind11::class_<DuplicateFoo>(m2, "DuplicateFoo")
+            .def_property_readonly("id", &DuplicateFoo::id)
+        ;
+
+        pybind11::class_<SingularBar>(m2, "SingularBar")
+            .def(pybind11::init<>())
+        ;
+
+        // Second time registration
+        pybind11::class_<DuplicateFoo>(m2, "DuplicateFoo")
+        ;
+    }
 }
