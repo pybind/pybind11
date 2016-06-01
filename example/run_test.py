@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import subprocess
+import difflib
 
 remove_unicode_marker = re.compile(r'u(\'[^\']*\')')
 remove_long_marker    = re.compile(r'([0-9])L')
@@ -36,11 +37,7 @@ def sanitize(lines):
                 line = ""
         lines[i] = line
 
-    lines = '\n'.join(sorted([l for l in lines if l != ""]))
-
-    print('==================')
-    print(lines)
-    return lines
+    return '\n'.join(sorted([l for l in lines if l != ""]))
 
 path = os.path.dirname(__file__)
 if path != '':
@@ -69,4 +66,8 @@ elif output == reference:
     exit(0)
 else:
     print('Test "%s" FAILED!' % name)
+    print('--- output')
+    print('+++ reference')
+    print(''.join(difflib.ndiff(output.splitlines(keepends=True),
+                                reference.splitlines(keepends=True))))
     exit(-1)
