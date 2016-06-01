@@ -154,7 +154,7 @@ void init_ex2(py::module &m) {
         .def("get_list", &Example2::get_list, "Return a Python list")
         .def("get_list_2", &Example2::get_list_2, "Return a C++ list")
         .def("get_set", &Example2::get_set, "Return a Python set")
-        .def("get_set2", &Example2::get_set, "Return a C++ set")
+        .def("get_set2", &Example2::get_set_2, "Return a C++ set")
         .def("get_array", &Example2::get_array, "Return a C++ array")
         .def("print_dict", &Example2::print_dict, "Print entries of a Python dictionary")
         .def("print_dict_2", &Example2::print_dict_2, "Print entries of a C++ dictionary")
