@@ -139,7 +139,7 @@ protected:
         const T *it = ptr;
         while (*it++ != (T) 0)
             ;
-        return it - ptr;
+        return static_cast<size_t>(it - ptr);
     }
 
     const std::type_info **m_types = nullptr;

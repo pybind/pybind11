@@ -135,7 +135,7 @@ void init_issues(py::module &m) {
     try {
         py::class_<Placeholder>(m2, "Placeholder");
         throw std::logic_error("Expected an exception!");
-    } catch (std::runtime_error &e) {
+    } catch (std::runtime_error &) {
         /* All good */
     }
 }

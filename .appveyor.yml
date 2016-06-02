@@ -19,8 +19,6 @@ install:
 build_script:
   - echo Running cmake...
   - cd c:\projects\pybind11
-  - cmake -G "%CMAKE_PLATFORM%" -DPYTHON_INCLUDE_DIR:PATH=%PYTHON_DIR%/include -DPYTHON_LIBRARY:FILEPATH=%PYTHON_DIR%/libs/python34.lib -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe
+  - cmake -G "%CMAKE_PLATFORM%" -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe
   - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - set MSBuildOptions=/v:m /p:Configuration=%Configuration% /logger:%MSBuildLogger%
-  - msbuild %MSBuildOptions% pybind11.sln
-  - ctest -C %Configuration%
+  - cmake --build . --config %Configuration% --target check -- /v:m /logger:%MSBuildLogger%
