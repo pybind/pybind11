@@ -26,6 +26,7 @@ matrix:
       install:
         - pyvenv-3.5 venv
         - source venv/bin/activate
+        - pip install -U pip wheel
         - pip install numpy
       script:
         - CXX=g++-4.8 cmake -DPYBIND11_PYTHON_VERSION=3.5
