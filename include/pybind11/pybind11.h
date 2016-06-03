@@ -72,6 +72,9 @@ protected:
     /// Special internal constructor for functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Args, typename... Extra>
     void initialize(Func &&f, Return (*)(Args...), const Extra&... extra) {
+        static_assert(detail::expected_num_args<Extra...>(sizeof...(Args)),
+                      "The number of named arguments does not match the function signature");
+
         struct capture { typename std::remove_reference<Func>::type f; };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
@@ -205,12 +208,6 @@ protected:
             rec->name = strdup("__nonzero__");
         }
 #endif
-
-        if (!rec->args.empty() && (int) rec->args.size() != args)
-            pybind11_fail(
-                "cpp_function(): function \"" + std::string(rec->name) + "\" takes " +
-                std::to_string(args) + " arguments, but " + std::to_string(rec->args.size()) +
-                " pybind11::arg entries were specified!");
 
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();

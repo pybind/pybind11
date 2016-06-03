@@ -321,5 +321,18 @@ template <typename... Args> struct process_attributes {
     }
 };
 
+/// Compile-time integer sum
+constexpr size_t constexpr_sum() { return 0; }
+template <typename T, typename... Ts>
+constexpr size_t constexpr_sum(T n, Ts... ns) { return n + constexpr_sum(ns...); }
+
+/// Check the number of named arguments at compile time
+template <typename... Extra,
+          size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
+          size_t self  = constexpr_sum(std::is_same<is_method, Extra>::value...)>
+constexpr bool expected_num_args(size_t nargs) {
+    return named == 0 || (self + named) == nargs;
+}
+
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind11)
