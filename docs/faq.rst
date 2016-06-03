@@ -24,24 +24,17 @@ The Python interpreter immediately crashes when importing my module
 
 See item 2 of the first answer.
 
-CMake doesn't detect the right Python version, or it finds mismatched interpreter and library versions
-======================================================================================================
+CMake doesn't detect the right Python version
+=============================================
 
-The Python detection logic of CMake is flawed and can sometimes fail to find
-the desired Python version, or it chooses mismatched interpreter and library
-versions. A longer discussion is available on the pybind11 issue tracker
-[#f1]_, though this is ultimately not a pybind11 issue.
-
-To force the build system to choose a particular version, delete CMakeCache.txt
-and then invoke CMake as follows:
+The CMake-based build system will try to automatically detect the installed
+version of Python and link against that. When this fails, or when there are
+multiple versions of Python and it finds the wrong one, delete
+``CMakeCache.txt`` and then invoke CMake as follows:
 
 .. code-block:: bash
 
-    cmake -DPYTHON_EXECUTABLE:FILEPATH=<...> \
-          -DPYTHON_LIBRARY:FILEPATH=<...>  \
-          -DPYTHON_INCLUDE_DIR:PATH=<...> .
-
-.. [#f1] http://github.com/pybind/pybind11/issues/99
+    cmake -DPYTHON_EXECUTABLE:FILEPATH=<path-to-python-executable> .
 
 Limitations involving reference arguments
 =========================================
