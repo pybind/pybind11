@@ -18,6 +18,11 @@ Help on built-in function kw_func4 in module example
 kkww__ffuunncc44(...)
     kw_func4(myList : list<int> = [13L, 17L]) -> NoneType
 
+Help on built-in function kw_func_udl in module example
+
+kkww__ffuunncc__uuddll(...)
+    kw_func_udl(x : int, y : int = 300L) -> NoneType
+
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
@@ -40,3 +45,5 @@ got argument: arg1_value
 got argument: arg2_value
 got keyword argument: arg3 -> arg3_value
 got keyword argument: arg4 -> 4
+
+kw_func(x=5, y=10)
