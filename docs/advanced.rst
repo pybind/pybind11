@@ -318,20 +318,28 @@ a virtual method call.
     >>> call_go(c)
     u'meow! meow! meow! '
 
-.. warning::
-
-    The :func:`PYBIND11_OVERLOAD_*` calls are all just macros, which means that
-    they can get confused by commas in a template argument such as
-    ``PYBIND11_OVERLOAD(MyReturnValue<T1, T2>, myFunc)``. In this case, the
-    preprocessor assumes that the comma indicates the beginnning of the next
-    parameter. Use a ``typedef`` to bind the template to another name and use
-    it in the macro to avoid this problem.
+Please take a look at the :ref:`macro_notes` before using this feature.
 
 .. seealso::
 
     The file :file:`example/example12.cpp` contains a complete example that
     demonstrates how to override virtual functions using pybind11 in more
     detail.
+
+
+.. _macro_notes:
+
+General notes regarding convenience macros
+==========================================
+
+pybind11 provides a few convenience macros such as
+:func:`PYBIND11_MAKE_OPAQUE` and :func:`PYBIND11_DECLARE_HOLDER_TYPE`, and
+``PYBIND11_OVERLOAD_*``. Since these are "just" macros that are evaluated
+in the preprocessor (which has no concept of types), they *will* get confused
+by commas in a template argument such as ``PYBIND11_OVERLOAD(MyReturnValue<T1,
+T2>, myFunc)``. In this case, the preprocessor assumes that the comma indicates
+the beginnning of the next parameter. Use a ``typedef`` to bind the template to
+another name and use it in the macro to avoid this problem.
 
 
 Global Interpreter Lock (GIL)
@@ -721,6 +729,9 @@ There are two ways to resolve this issue:
 
     class Child : public std::enable_shared_from_this<Child> { };
 
+
+Please take a look at the :ref:`macro_notes` before using this feature.
+
 .. seealso::
 
     The file :file:`example/example8.cpp` contains a complete example that
@@ -903,6 +914,7 @@ with a name in Python, and to define a set of available operations:
         }, py::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */
         // ....
 
+Please take a look at the :ref:`macro_notes` before using this feature.
 
 .. seealso::
 
