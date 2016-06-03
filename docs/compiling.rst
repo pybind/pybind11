@@ -50,4 +50,4 @@ installation can be specified by setting ``PYTHON_EXECUTABLE``.
 A working sample project, including a way to invoke CMake from :file:`setup.py` for
 PyPI integration, can be found in the [cmake_example]_  repository.
 
-.. [cmake_example] https://github.com/dean0x7d/pybind11_cmake_example
+.. [cmake_example] https://github.com/pybind/cmake_example
