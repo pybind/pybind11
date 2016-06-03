@@ -7,9 +7,9 @@ Building with setuptools
 For projects on PyPI, building with setuptools is the way to go. Sylvain Corlay
 has kindly provided an example project which shows how to set up everything,
 including automatic generation of documentation using Sphinx. Please refer to
-the [pbtest]_ repository.
+the [python_example]_ repository.
 
-.. [pbtest] https://github.com/pybind/pbtest
+.. [python_example] https://github.com/pybind/python_example
 
 Building with cppimport
 ========================
