@@ -128,7 +128,7 @@ Assuming that the created file :file:`example.so` (:file:`example.pyd` on Window
 is located in the current directory, the following interactive Python session
 shows how to load and execute the example.
 
-.. code-block:: python
+.. code-block:: pycon
 
     $ python
     Python 2.7.10 (default, Aug 22 2015, 20:33:39)
@@ -157,7 +157,7 @@ metadata into :func:`module::def`. With this modified binding code, we can now
 call the function using keyword arguments, which is a more readable alternative
 particularly for functions taking many parameters:
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> import example
     >>> example.add(i=1, j=2)
@@ -165,7 +165,7 @@ particularly for functions taking many parameters:
 
 The keyword names also appear in the function signatures within the documentation.
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> help(example)
 
@@ -201,7 +201,7 @@ using an extension of :class:`arg`:
 
 The default values also appear within the documentation.
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> help(example)
 

@@ -157,7 +157,7 @@ trivial to generate binding code for both of these functions.
 
 The following interactive session shows how to call them from Python.
 
-.. code-block:: python
+.. code-block:: pycon
 
     $ python
     >>> import example
@@ -304,7 +304,7 @@ by pybind11. Following this, we are able to define a constructor as usual.
 The Python session below shows how to override ``Animal::go`` and invoke it via
 a virtual method call.
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> from example import *
     >>> d = Dog()
@@ -834,7 +834,7 @@ Suppose we bind the following function
 
 and call it from Python, the following happens:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> v = [5, 6]
    >>> append_1(v)
@@ -863,7 +863,7 @@ functions:
 In this case, properties can be read and written in their entirety. However, an
 ``append`` operaton involving such a list type has no effect:
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> m = MyClass()
    >>> m.contents = [5, 6]
@@ -1144,7 +1144,7 @@ entirely on the C++ side and can be crunched down into a tight, optimized loop
 by the compiler. The result is returned as a NumPy array of type
 ``numpy.dtype.float64``.
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> x = np.array([[1, 3],[5, 7]])
     >>> y = np.array([[2, 4],[6, 8]])
@@ -1316,7 +1316,7 @@ Another aspect worth highlighting is that the "preview" of the default argument
 in the function signature is generated using the object's ``__repr__`` method.
 If not available, the signature may not be very helpful, e.g.:
 
-.. code-block:: python
+.. code-block:: pycon
 
     FUNCTIONS
     ...
