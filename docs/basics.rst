@@ -117,7 +117,19 @@ example can be compiled using the following command
 
 .. code-block:: bash
 
-    $ c++ -O3 -shared -std=c++11 -I <path-to-pybind11>/include `python-config --cflags --ldflags` example.cpp -o example.so
+    $ c++ -O3 -shared -std=c++11 -I <path-to-pybind11>/include `python3-config --cflags --ldflags` example.cpp -o example.so
+
+.. Note::
+
+    For Python 2 and its virtualenvs, use `python-config --cflags --ldflags`
+    instead.
+
+.. Note::
+
+    The Anaconda Python distribution will not work correctly on OS X because
+    the dynamic loader path is incorrectly set inside `lib/libpython3.Xm.dylib`.
+    It is recommended you use an official Python distribution
+    or the Homebrew version instead.
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section
