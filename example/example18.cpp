@@ -8,6 +8,7 @@
 */
 
 #include "example.h"
+#include <pybind11/exec.h>
 
 int main(int argc, char* argv[])
 {
