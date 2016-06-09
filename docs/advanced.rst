@@ -1562,3 +1562,27 @@ work, it is important that all lines are indented consistently, i.e.:
 
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
+
+Calling Python from C++
+=======================
+
+Pybind11 also allows to call python code from C++.
+
+.. code-block:: cpp
+
+    // initialize the interpreter.
+	Py_Initialize() ;
+	
+	// get the main module, so we can access and declare stuff
+	py::module main_module = py::module::import("__main__");
+	
+	//get the main namespace
+	py::object main_namespace = main_module.attr("__dict__");
+
+    //now execute code
+	py::exec(
+		"print('Hello World1!')",
+        main_namespace);	    
+
+
+

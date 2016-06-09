@@ -244,3 +244,23 @@ Passing extra arguments to the def function
 .. function:: name::name(const char *value)
 
     Used to specify the function name
+    
+Calling Python from C++
+=======================
+
+.. function:: eval(str string, object global, object local)
+     
+     Evaluate a statement, i.e. one that does not yield None.
+     
+.. function:: exec(str string, object global, object local)
+
+     Execute a set of statements.
+     
+.. function:: exec_statement(str string, object global, object local)
+    
+     Execute a single statement.
+     
+.. function:: exec_file(str filename, object global, object local)     
+     
+     Execute a file.
+
