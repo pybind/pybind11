@@ -30,7 +30,6 @@
 #endif
 
 #include "attr.h"
-#include "exec.h"
 
 NAMESPACE_BEGIN(pybind11)
 
