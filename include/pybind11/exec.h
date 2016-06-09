@@ -13,6 +13,8 @@
 
 NAMESPACE_BEGIN(pybind11)
 
+
+
 inline object eval (str string, object global = object(), object local = object())
 {
 	if (!global)
@@ -113,6 +115,25 @@ inline object exec_file(str filename, object global = object(), object local = o
 
   return {res, false};
 
+}
+
+inline object exec (const std::string &string, object global = object(), object local = object())
+{
+	return exec(str(string), global, local);
+}
+
+inline object eval (const std::string & string, object global = object(), object local = object())
+{
+	return eval(str(string), global, local);
+}
+
+inline object exec_file(const std::string & filename, object global = object(), object local = object())
+{
+	return exec_file(str(filename), global, local);
+}
+inline object exec_statement (const std::string & string, object global = object(), object local = object())
+{
+	return exec_statement(str(string), global, local);
 }
 
 NAMESPACE_END(pybind11)
