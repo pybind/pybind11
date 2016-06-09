@@ -1611,3 +1611,33 @@ work, it is important that all lines are indented consistently, i.e.:
 
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
+
+Calling Python from C++
+=======================
+
+Pybind11 also allows to call python code from C++. Note that this code assumes, that the intepreter is already initialized.
+
+.. code-block:: cpp
+
+	// get the main module, so we can access and declare stuff
+	py::module main_module = py::module::import("__main__");
+	
+	//get the main namespace, so I can declare variables
+	py::object main_namespace = main_module.attr("__dict__");
+
+    //now execute code
+	py::exec(
+		"print('Hello World1!')\n"
+		"print('Other Data');",
+        main_namespace);	    
+
+    //execute a single statement
+    py::exec_statement("x=42", main_namespace);
+
+    //ok, now I want to get the result of a statement, we'll use x in this example
+    py::object res = py::eval("x");
+    std:cout <<  "Yielded: " << res.cast<int>() << std::endl;
+    
+    //or we can execute a file within the same content
+    py::exec_file("my_script.py", main_namespace);
+    
