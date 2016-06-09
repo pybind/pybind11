@@ -77,6 +77,52 @@ int main(int argc, char* argv[])
         errored = true;
     }
 
+    executed = false;
+    cout << "exec failure test" << endl;
+    try {
+    	py::exec("non-sense code ...");
+    }
+    catch (py::error_already_set & err) {
+    	executed = true;
+    }
+    if (executed)
+        cout << "exec failure test passed" << endl;
+    else {
+        cout << "exec failure test failed" << endl;
+        errored = true;
+    }
+
+
+    executed = false;
+    cout << "exec_file failure test" << endl;
+    try {
+    	py::exec_file("none-existing file");
+    }
+    catch (std::invalid_argument & err) {
+    	executed = true;
+    }
+    if (executed)
+        cout << "exec_file failure test passed" << endl;
+    else {
+        cout << "exec_file failure test failed" << endl;
+        errored = true;
+    }
+
+    executed = false;
+    cout << "eval failure test" << endl;
+    try {
+    	py::eval("print('dummy')");
+    }
+    catch (py::error_already_set & err) {
+    	executed = true;
+    }
+    if (executed)
+        cout << "eval failure test passed" << endl;
+    else {
+        cout << "eval failure test failed" << endl;
+        errored = true;
+    }
+
     return errored ? 1 : 0;
 }
 
