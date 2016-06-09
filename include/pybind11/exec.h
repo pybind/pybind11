@@ -75,7 +75,7 @@ inline object exec_statement (str string, object global = object(), object local
 	return {res, false};
 }
 
-object exec_file(str filename, object global = object(), object local = object())
+inline object exec_file(str filename, object global = object(), object local = object())
 {
   // Set suitable default values for global and local dicts.
   if (!global)
@@ -94,14 +94,14 @@ object exec_file(str filename, object global = object(), object local = object()
 #if PY_VERSION_HEX >= 0x03040000
   FILE *fs = _Py_fopen(f.c_str(), "r");
 #elif PY_VERSION_HEX >= 0x03000000
-  PyObject *fo = Py_BuildValue("s", f);
+  PyObject *fo = Py_BuildValue("s", f.c_str());
   FILE *fs = _Py_fopen(fo, "r");
   Py_DECREF(fo);
 #else
-  PyObject *pyfile = PyFile_FromString(f, const_cast<char*>("r"));
+  PyObject *pyfile = PyFile_FromString(&f.front(), const_cast<char*>("r"));
   if (!pyfile) throw std::invalid_argument(std::string(f) + " : no such file");
-  python::handle<> file(pyfile);
-  FILE *fs = PyFile_AsFile(file.get());
+  object file(pyfile, false);
+  FILE *fs = PyFile_AsFile(file.ptr());
 #endif
   PyObject* res = PyRun_File(fs,
                 f.c_str(),
