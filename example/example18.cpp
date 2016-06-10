@@ -7,17 +7,13 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "example.h"
+
 #include <pybind11/exec.h>
+#include "example.h"
 
-int main(int argc, char* argv[])
-{
-     Py_Initialize() ;
-
+void example18() {
     py::module main_module = py::module::import("__main__");
     py::object main_namespace = main_module.attr("__dict__");
-
-    bool errored = false;
 
     bool executed = false;
 
@@ -34,7 +30,6 @@ int main(int argc, char* argv[])
         cout << "exec passed" << endl;
     else {
         cout << "exec failed" << endl;
-        errored = true;
     }
 
     cout << "eval test" << endl;
@@ -45,7 +40,6 @@ int main(int argc, char* argv[])
         cout << "eval passed" << endl;
     else {
         cout << "eval failed" << endl;
-        errored = true;
     }
 
 
@@ -59,7 +53,6 @@ int main(int argc, char* argv[])
         cout << "exec_statement passed" << endl;
     else {
         cout << "exec_statement failed" << endl;
-        errored = true;
     }
 
     cout << "exec_file test" << endl;
@@ -68,13 +61,12 @@ int main(int argc, char* argv[])
     main_module.def("call_test2", [&](int value) {val_out = value;});
 
 
-    py::exec_file("example18.py", main_namespace);
+    py::exec_file("example18_call.py", main_namespace);
 
     if (val_out == 42)
         cout << "exec_file passed" << endl;
     else {
         cout << "exec_file failed" << endl;
-        errored = true;
     }
 
     executed = false;
@@ -89,7 +81,6 @@ int main(int argc, char* argv[])
         cout << "exec failure test passed" << endl;
     else {
         cout << "exec failure test failed" << endl;
-        errored = true;
     }
 
 
@@ -105,7 +96,6 @@ int main(int argc, char* argv[])
         cout << "exec_file failure test passed" << endl;
     else {
         cout << "exec_file failure test failed" << endl;
-        errored = true;
     }
 
     executed = false;
@@ -120,10 +110,11 @@ int main(int argc, char* argv[])
         cout << "eval failure test passed" << endl;
     else {
         cout << "eval failure test failed" << endl;
-        errored = true;
     }
+}
 
-    return errored ? 1 : 0;
+void init_ex18(py::module & m) {
+	m.def("example18", &example18);
 }
 
 

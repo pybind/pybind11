@@ -1,1 +1,5 @@
-call_test2(y)
+from example import example18
+
+example18()
+
+

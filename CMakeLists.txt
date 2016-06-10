@@ -145,7 +145,7 @@ endfunction()
 if (PYBIND11_TEST)
   enable_testing()
   add_subdirectory(example)
-  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> DEPENDS example example18)
+  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> DEPENDS example)
 endif()
 
 if (PYBIND11_INSTALL)

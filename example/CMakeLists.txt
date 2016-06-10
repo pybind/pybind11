@@ -24,6 +24,7 @@ set(PYBIND11_EXAMPLES
   example15.cpp
   example16.cpp
   example17.cpp
+  example18.cpp
   issues.cpp
 )
 
@@ -66,13 +67,4 @@ foreach(VALUE ${PYBIND11_EXAMPLES})
   string(REGEX REPLACE "^(.+).cpp$" "\\1" EXAMPLE_NAME "${VALUE}")
   add_test(NAME ${EXAMPLE_NAME} COMMAND ${RUN_TEST} ${EXAMPLE_NAME})
 endforeach()
-
-
-
-# Example 18 is a binary, running python code.
-add_executable(example18 example18.cpp)
-target_include_directories(example18 PUBLIC ${PYBIND11_INCLUDE_DIR} ${PYTHON_INCLUDE_DIRS})
-target_compile_options(example18 PUBLIC ${PYBIND11_CPP_STANDARD})
-target_link_libraries(example18 PRIVATE ${PYTHON_LIBRARIES})
-add_test(example18 ${CMAKE_CURRENT_BINARY_DIR}/example18)
 
