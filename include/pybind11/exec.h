@@ -110,10 +110,10 @@ inline object exec_file(str filename, object global = object(), object local = o
 
     // Let python open the file to avoid potential binary incompatibilities.
 #if PY_VERSION_HEX >= 0x03040000
-    constexpr static int close_it = 1;
+    const static int close_it = 1;
     FILE *fs = _Py_fopen(f.c_str(), "r");
 #elif PY_VERSION_HEX >= 0x03000000
-    constexpr static int close_it = 1;
+    const static int close_it = 1;
     PyObject *fo = Py_BuildValue("s", f.c_str());
     FILE *fs = _Py_fopen(fo, "r");
     Py_DECREF(fo);
