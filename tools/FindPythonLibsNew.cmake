@@ -7,13 +7,10 @@
 #  PYTHON_PREFIX              - path to the Python installation
 #  PYTHON_LIBRARIES           - path to the python library
 #  PYTHON_INCLUDE_DIRS        - path to where Python.h is found
+#  PYTHON_MODULE_EXTENSION    - lib extension, e.g. '.so' or '.pyd'
+#  PYTHON_MODULE_PREFIX       - lib name prefix: usually an empty string
 #  PYTHON_SITE_PACKAGES       - path to installation site-packages
 #  PYTHON_IS_DEBUG            - whether the Python interpreter is a debug build
-#
-#  PYTHON_INCLUDE_PATH        - path to where Python.h is found (deprecated)
-#
-# A function PYTHON_ADD_MODULE(<name> src1 src2 ... srcN) is defined
-# to build modules for python.
 #
 # Thanks to talljimbo for the patch adding the 'LDVERSION' config
 # variable usage.
@@ -53,6 +50,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #=============================================================================
 
+if(PYTHONLIBS_FOUND)
+    return()
+endif()
 
 # Use the Python interpreter to find the libs.
 if(PythonLibsNew_FIND_REQUIRED)
@@ -164,10 +164,6 @@ else()
         set(PYTHON_LIBRARY python${PYTHON_LIBRARY_SUFFIX})
     endif()
 endif()
-
-# For backward compatibility, set PYTHON_INCLUDE_PATH, but make it internal.
-SET(PYTHON_INCLUDE_PATH "${PYTHON_INCLUDE_DIR}" CACHE INTERNAL
-          "Path to where Python.h is found (deprecated)")
 
 MARK_AS_ADVANCED(
   PYTHON_LIBRARY
