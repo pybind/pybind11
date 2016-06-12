@@ -19,7 +19,11 @@ option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJE
 option(PYBIND11_TEST    "Build pybind11 test suite?"     ${PYBIND11_MASTER_PROJECT})
 
 # Add a CMake parameter for choosing a desired Python version
-set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
+if(DEFINED PYBIND11_PYTHON_VERSION)
+  set(PYBIND11_PYTHON_VERSION ${PYBIND11_PYTHON_VERSION} CACHE STRING "Python version to use for compiling the example application")
+else()
+  set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools")
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
