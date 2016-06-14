@@ -15,6 +15,7 @@ To release a new version of pybind11:
     - update checksum to match the one computed by pypi
 - Get back to work
     - Update ``_version.py`` (add 'dev' and increment minor).
+    - Update version in ``docs/conf.py``
     - Update version macros in ``include/pybind11/common.h``
     - ``git add`` and ``git commit``.
       ``git push``
