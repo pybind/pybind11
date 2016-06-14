@@ -500,7 +500,7 @@ public:
 NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
-    template <typename type, typename holder_type, typename type_alias> friend class class_;
+    template <typename type, typename holder_type> friend class class_;
 public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
@@ -725,7 +725,7 @@ protected:
 };
 NAMESPACE_END(detail)
 
-template <typename type, typename holder_type = std::unique_ptr<type>, typename type_alias = type>
+template <typename type, typename holder_type = std::unique_ptr<type>>
 class class_ : public detail::generic_type {
 public:
     typedef detail::instance<type, holder_type> instance_type;
@@ -747,11 +747,6 @@ public:
         detail::process_attributes<Extra...>::init(extra..., &record);
 
         detail::generic_type::initialize(&record);
-
-        if (!std::is_same<type, type_alias>::value) {
-            auto &instances = pybind11::detail::get_internals().registered_types_cpp;
-            instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
-        }
     }
 
     template <typename Func, typename... Extra>
@@ -785,12 +780,6 @@ public:
 
     template <typename... Args, typename... Extra>
     class_ &def(const detail::init<Args...> &init, const Extra&... extra) {
-        init.template execute<type>(*this, extra...);
-        return *this;
-    }
-
-    template <typename... Args, typename... Extra>
-    class_ &def(const detail::init_alias<Args...> &init, const Extra&... extra) {
         init.template execute<type>(*this, extra...);
         return *this;
     }
@@ -882,6 +871,11 @@ public:
         return *this;
     }
 
+    template <typename target> class_ alias() {
+        auto &instances = pybind11::detail::get_internals().registered_types_cpp;
+        instances[std::type_index(typeid(target))] = instances[std::type_index(typeid(type))];
+        return *this;
+    }
 private:
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
@@ -980,31 +974,9 @@ private:
 
 NAMESPACE_BEGIN(detail)
 template <typename... Args> struct init {
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<std::is_same<Base, Alias>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
+    template <typename Base, typename Holder, typename... Extra> void execute(pybind11::class_<Base, Holder> &class_, const Extra&... extra) const {
         /// Function which calls a specific C++ in-place constructor
-        class_.def("__init__", [](Base *self_, Args... args) { new (self_) Base(args...); }, extra...);
-    }
-
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<!std::is_same<Base, Alias>::value &&
-                                       std::is_constructible<Base, Args...>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
-        handle cl_type = class_;
-        class_.def("__init__", [cl_type](handle self_, Args... args) {
-                if (self_.get_type() == cl_type)
-                    new (self_.cast<Base *>()) Base(args...);
-                else
-                    new (self_.cast<Alias *>()) Alias(args...);
-            }, extra...);
-    }
-
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<!std::is_same<Base, Alias>::value &&
-                                      !std::is_constructible<Base, Args...>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
-        class_.def("__init__", [](Alias *self, Args... args) { new (self) Alias(args...); }, extra...);
+        class_.def("__init__", [](Base *instance, Args... args) { new (instance) Base(args...); }, extra...);
     }
 };
 
