@@ -3,18 +3,21 @@
 Changelog
 #########
 
-Breaking changes queued for v2.0 (Not yet released)
+Starting with version 1.8, pybind11 releases use a
+[semantic versioning](http://semver.org) policy.
+
+Breaking changes queued for v2.0.0 (Not yet released)
 ---------------------------------------------------
 * Redesigned virtual call mechanism and user-facing syntax (see
   https://github.com/pybind/pybind11/commit/86d825f3302701d81414ddd3d38bcd09433076bc)
 
 * Remove ``handle.call()`` method
 
-1.9 (Not yet released)
+1.9.0 (Not yet released)
 ----------------------
 * Queued changes: ``py::eval*``, map indexing suite, documentation for indexing suites.
 
-1.8 (June 14, 2016)
+1.8.0 (June 14, 2016)
 ----------------------
 * Redesigned CMake build system which exports a convenient
   ``pybind11_add_module`` function to parent projects.
@@ -40,7 +43,7 @@ Breaking changes queued for v2.0 (Not yet released)
 * List function arguments in exception text when the dispatch code cannot find
   a matching overload
 * Added ``PYBIND11_OVERLOAD_NAME`` and ``PYBIND11_OVERLOAD_PURE_NAME`` macros which
-  can be used to override virtual methods whose name differs in C++ and Python 
+  can be used to override virtual methods whose name differs in C++ and Python
   (e.g. ``__call__`` and ``operator()``)
 * Various minor ``iterator`` and ``make_iterator()`` improvements
 * Transparently support ``__bool__`` on Python 2.x and Python 3.x
