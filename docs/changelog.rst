@@ -3,13 +3,28 @@
 Changelog
 #########
 
-1.8 (Not yet released)
+Breaking changes queued for v2.0 (Not yet released)
+---------------------------------------------------
+* Redesigned virtual call mechanism and user-facing syntax (see
+  https://github.com/pybind/pybind11/commit/86d825f3302701d81414ddd3d38bcd09433076bc)
+
+* Remove ``handle.call()`` method
+
+1.9 (Not yet released)
 ----------------------
-* Redesigned virtual call mechanism and user-facing syntax (breaking change!)
+* Queued changes: ``py::eval*``, map indexing suite, documentation for indexing suites.
+
+1.8 (June 14, 2016)
+----------------------
+* Redesigned CMake build system which exports a convenient
+  ``pybind11_add_module`` function to parent projects.
+* ``std::vector<>`` type bindings analogous to Boost.Python's ``indexing_suite``
+* Transparent conversion of sparse and dense Eigen matrices and vectors (``eigen.h``)
+* Added an ``ExtraFlags`` template argument to the NumPy ``array_t<>`` wrapper
+  to disable an enforced cast that may lose precision, e.g. to create overloads
+  for different precisions and complex vs real-valued matrices.
 * Prevent implicit conversion of floating point values to integral types in
   function arguments
-* Transparent conversion of sparse and dense Eigen matrices and vectors
-* ``std::vector<>`` type bindings analogous to Boost.Python's ``indexing_suite``
 * Fixed incorrect default return value policy for functions returning a shared
   pointer
 * Don't allow registering a type via ``class_`` twice
@@ -17,22 +32,29 @@ Changelog
 * Fixed a crash in ``enum_::operator==`` that was triggered by the ``help()`` command
 * Improved detection of whether or not custom C++ types can be copy/move-constructed
 * Extended ``str`` type to also work with ``bytes`` instances
+* Added a ``"name"_a`` user defined string literal that is equivalent to ``py::arg("name")``.
+* When specifying function arguments via ``py::arg``, the test that verifies
+  the number of arguments now runs at compile time.
 * Added ``[[noreturn]]`` attribute to ``pybind11_fail()`` to quench some
   compiler warnings
 * List function arguments in exception text when the dispatch code cannot find
   a matching overload
+* Added ``PYBIND11_OVERLOAD_NAME`` and ``PYBIND11_OVERLOAD_PURE_NAME`` macros which
+  can be used to override virtual methods whose name differs in C++ and Python 
+  (e.g. ``__call__`` and ``operator()``)
 * Various minor ``iterator`` and ``make_iterator()`` improvements
 * Transparently support ``__bool__`` on Python 2.x and Python 3.x
 * Fixed issue with destructor of unpickled object not being called
 * Minor CMake build system improvements on Windows
-* Many ``mkdoc.py`` improvements (enumerations, template arguments, ``DOC()``
-  macro accepts more arguments)
 * New ``pybind11::args`` and ``pybind11::kwargs`` types to create functions which
   take an arbitrary number of arguments and keyword arguments
 * New syntax to call a Python function from C++ using ``*args`` and ``*kwargs``
-* Added an ``ExtraFlags`` template argument to the NumPy ``array_t<>`` wrapper. This
-  can be used to disable an enforced cast that may lose precision
-* Documentation improvements (pickling support, ``keep_alive``)
+* The functions ``def_property_*`` now correctly process docstring arguments (these
+  formerly caused a segmentation fault)
+* Many ``mkdoc.py`` improvements (enumerations, template arguments, ``DOC()``
+  macro accepts more arguments)
+* Cygwin support
+* Documentation improvements (pickling support, ``keep_alive``, macro usage)
 
 1.7 (April 30, 2016)
 ----------------------
