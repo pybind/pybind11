@@ -18,14 +18,14 @@ template <typename T> struct arg_t;
 
 /// Annotation for keyword arguments
 struct arg {
-    constexpr arg(const char *name) : name(name) { }
+    constexpr explicit arg(const char *name) : name(name) { }
 
     template <typename T>
     constexpr arg_t<T> operator=(const T &value) const { return {name, value}; }
     template <typename T, size_t N>
     constexpr arg_t<const T *> operator=(T const (&value)[N]) const {
         return operator=((const T *) value);
-    };
+    }
 
     const char *name;
 };
@@ -40,7 +40,7 @@ template <typename T> struct arg_t : public arg {
 
 inline namespace literals {
 /// String literal version of arg
-constexpr arg operator"" _a(const char *name, size_t) { return {name}; }
+constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 }
 
 /// Annotation for methods

@@ -6,13 +6,14 @@ import pydoc
 sys.path.append('.')
 
 from example import kw_func, kw_func2, kw_func3, kw_func4, call_kw_func
-from example import args_function, args_kwargs_function, kw_func_udl
+from example import args_function, args_kwargs_function, kw_func_udl, kw_func_udl_z
 
 print(pydoc.render_doc(kw_func, "Help on %s"))
 print(pydoc.render_doc(kw_func2, "Help on %s"))
 print(pydoc.render_doc(kw_func3, "Help on %s"))
 print(pydoc.render_doc(kw_func4, "Help on %s"))
 print(pydoc.render_doc(kw_func_udl, "Help on %s"))
+print(pydoc.render_doc(kw_func_udl_z, "Help on %s"))
 
 kw_func(5, 10)
 kw_func(5, y=10)
@@ -42,3 +43,4 @@ args_function('arg1_value', 'arg2_value', 3)
 args_kwargs_function('arg1_value', 'arg2_value', arg3='arg3_value', arg4=4)
 
 kw_func_udl(x=5, y=10)
+kw_func_udl_z(x=5)

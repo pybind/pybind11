@@ -23,6 +23,11 @@ Help on built-in function kw_func_udl in module example
 kkww__ffuunncc__uuddll(...)
     kw_func_udl(x : int, y : int = 300L) -> NoneType
 
+Help on built-in function kw_func_udl_z in module example
+
+kkww__ffuunncc__uuddll__zz(...)
+    kw_func_udl_z(x : int, y : int = 0L) -> NoneType
+
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
 kw_func(x=5, y=10)
@@ -47,3 +52,4 @@ got keyword argument: arg3 -> arg3_value
 got keyword argument: arg4 -> 4
 
 kw_func(x=5, y=10)
+kw_func(x=5, y=0)
