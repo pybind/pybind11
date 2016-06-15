@@ -40,7 +40,7 @@ template <typename T> struct arg_t : public arg {
 
 inline namespace literals {
 /// String literal version of arg
-constexpr arg operator"" _a(const char *name, size_t) { return {arg(name)}; }
+constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 }
 
 /// Annotation for methods
