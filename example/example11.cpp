@@ -58,4 +58,5 @@ void init_ex11(py::module &m) {
 
     using namespace py::literals;
     m.def("kw_func_udl", &kw_func, "x"_a, "y"_a=300);
+    m.def("kw_func_udl_z", &kw_func, "x"_a, "y"_a=0);
 }
