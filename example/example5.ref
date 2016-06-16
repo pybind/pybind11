@@ -24,3 +24,4 @@ False
 Callback function 3 called : Partial object with one argument
 False
 func(43) = 44
+func(number=43) = 44
