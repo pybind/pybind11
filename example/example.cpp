@@ -27,6 +27,7 @@ void init_ex15(py::module &);
 void init_ex16(py::module &);
 void init_ex17(py::module &);
 void init_ex18(py::module &);
+void init_ex19(py::module &);
 void init_issues(py::module &);
 
 #if defined(PYBIND11_TEST_EIGEN)
@@ -54,6 +55,7 @@ PYBIND11_PLUGIN(example) {
     init_ex16(m);
     init_ex17(m);
     init_ex18(m);
+    init_ex19(m);
     init_issues(m);
 
     #if defined(PYBIND11_TEST_EIGEN)

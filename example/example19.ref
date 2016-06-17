@@ -1,0 +1,15 @@
+Can we catch a MyException?
+MyException : this error should go to a custom type
+
+Can we translate to standard Python exceptions?
+RuntimeError : this error should go to a standard Python exception
+
+Can we handle unknown exceptions?
+RuntimeError : Caught an unknown exception!
+
+Can we delegate to another handler by rethrowing?
+MyException : this error is rethrown
+
+Can we fall-through to the default handler?
+RuntimeError : this error should fall through to the standard handler
+

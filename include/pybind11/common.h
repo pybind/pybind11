@@ -66,6 +66,7 @@
 #  pragma warning(pop)
 #endif
 
+#include <forward_list>
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -264,6 +265,7 @@ struct internals {
     std::unordered_map<const void *, void*> registered_types_py;     // PyTypeObject* -> type_info
     std::unordered_map<const void *, void*> registered_instances;    // void * -> PyObject*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
+    std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
 #if defined(WITH_THREAD)
     decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
     PyInterpreterState *istate = nullptr;
