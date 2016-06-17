@@ -84,7 +84,7 @@ public:
 
     template <typename Type> array(size_t size, const Type *ptr) {
         API& api = lookup_api();
-        PyObject *descr = api.PyArray_DescrFromType_(detail::npy_format_descriptor<Type>::value);
+        PyObject *descr = api.PyArray_DescrFromType_(detail::npy_format_descriptor<Type>::typenum());
         if (descr == nullptr)
             pybind11_fail("NumPy: unsupported buffer format!");
         Py_intptr_t shape = (Py_intptr_t) size;
@@ -135,7 +135,7 @@ public:
         if (ptr == nullptr)
             return nullptr;
         API &api = lookup_api();
-        PyObject *descr = api.PyArray_DescrFromType_(detail::npy_format_descriptor<T>::value);
+        PyObject *descr = api.PyArray_DescrFromType_(detail::npy_format_descriptor<T>::typenum());
         PyObject *result = api.PyArray_FromAny_(ptr, descr, 0, 0, API::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
         if (!result)
             PyErr_Clear();
@@ -152,7 +152,7 @@ private:
         array::API::NPY_BYTE_, array::API::NPY_UBYTE_, array::API::NPY_SHORT_,    array::API::NPY_USHORT_,
         array::API::NPY_INT_,  array::API::NPY_UINT_,  array::API::NPY_LONGLONG_, array::API::NPY_ULONGLONG_ };
 public:
-    enum { value = values[detail::log2(sizeof(T)) * 2 + (std::is_unsigned<T>::value ? 1 : 0)] };
+    static int typenum() { return values[detail::log2(sizeof(T)) * 2 + (std::is_unsigned<T>::value ? 1 : 0)]; }
     template <typename T2 = T, typename std::enable_if<std::is_signed<T2>::value, int>::type = 0>
     static PYBIND11_DESCR name() { return _("int") + _<sizeof(T)*8>(); }
     template <typename T2 = T, typename std::enable_if<!std::is_signed<T2>::value, int>::type = 0>
@@ -162,10 +162,13 @@ template <typename T> constexpr const int npy_format_descriptor<
     T, typename std::enable_if<std::is_integral<T>::value>::type>::values[8];
 
 #define DECL_FMT(Type, NumPyName, Name) template<> struct npy_format_descriptor<Type> { \
-    enum { value = array::API::NumPyName }; \
+    static int typenum() { return array::API::NumPyName; }         \
     static PYBIND11_DESCR name() { return _(Name); } }
-DECL_FMT(float, NPY_FLOAT_, "float32"); DECL_FMT(double, NPY_DOUBLE_, "float64"); DECL_FMT(bool, NPY_BOOL_, "bool");
-DECL_FMT(std::complex<float>, NPY_CFLOAT_, "complex64"); DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
+DECL_FMT(float, NPY_FLOAT_, "float32");
+DECL_FMT(double, NPY_DOUBLE_, "float64");
+DECL_FMT(bool, NPY_BOOL_, "bool");
+DECL_FMT(std::complex<float>, NPY_CFLOAT_, "complex64");
+DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
 #undef DECL_FMT
 
 template  <class T>
