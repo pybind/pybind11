@@ -570,6 +570,19 @@ public:
     }
 };
 
+class memoryview : public object {
+public:
+    memoryview(const buffer_info& info) : memoryview(&info.as_pybuffer()) { }
+
+    memoryview(Py_buffer* view)
+    : object(PyMemoryView_FromBuffer(view), false) {
+        if (!m_ptr)
+            pybind11_fail("Unable to create memoryview from buffer descriptor");
+    }
+
+    PYBIND11_OBJECT_DEFAULT(memoryview, object, PyMemoryView_Check)
+};
+
 inline size_t len(handle h) {
     ssize_t result = PyObject_Length(h.ptr());
     if (result < 0)
