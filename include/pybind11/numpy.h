@@ -55,11 +55,13 @@ public:
             void **api_ptr = (void **) (c ? PyCObject_AsVoidPtr(c.ptr()) : nullptr);
 #endif
             API api;
-            api.PyArray_Type_          = (decltype(api.PyArray_Type_))          api_ptr[API_PyArray_Type];
-            api.PyArray_DescrFromType_ = (decltype(api.PyArray_DescrFromType_)) api_ptr[API_PyArray_DescrFromType];
-            api.PyArray_FromAny_       = (decltype(api.PyArray_FromAny_))       api_ptr[API_PyArray_FromAny];
-            api.PyArray_NewCopy_       = (decltype(api.PyArray_NewCopy_))       api_ptr[API_PyArray_NewCopy];
-            api.PyArray_NewFromDescr_  = (decltype(api.PyArray_NewFromDescr_))  api_ptr[API_PyArray_NewFromDescr];
+#define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
+            DECL_NPY_API(PyArray_Type);
+            DECL_NPY_API(PyArray_DescrFromType);
+            DECL_NPY_API(PyArray_FromAny);
+            DECL_NPY_API(PyArray_NewCopy);
+            DECL_NPY_API(PyArray_NewFromDescr);
+#undef DECL_NPY_API
             return api;
         }
 
