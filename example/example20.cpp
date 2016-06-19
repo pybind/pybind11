@@ -57,7 +57,13 @@ py::array_t<NestedStruct> create_nested(size_t n) {
         ptr[i].b.x = (i + 1) % 2; ptr[i].b.y = (uint32_t) (i + 1); ptr[i].b.z = (float) (i + 1) * 1.5f;
     }
     return arr;
+}
 
+
+void print_format_descriptors() {
+    std::cout << py::format_descriptor<Struct>::value() << std::endl;
+    std::cout << py::format_descriptor<PackedStruct>::value() << std::endl;
+    std::cout << py::format_descriptor<NestedStruct>::value() << std::endl;
 }
 
 void init_ex20(py::module &m) {
@@ -68,4 +74,5 @@ void init_ex20(py::module &m) {
     m.def("create_rec_simple", &create_recarray<Struct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
     m.def("create_rec_nested", &create_nested);
+    m.def("print_format_descriptors", &print_format_descriptors);
 }

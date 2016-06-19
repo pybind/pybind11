@@ -2,11 +2,15 @@
 from __future__ import print_function
 
 import numpy as np
-from example import create_rec_simple, create_rec_packed, create_rec_nested
+from example import (
+    create_rec_simple, create_rec_packed, create_rec_nested, print_format_descriptors
+)
 
 
 def check_eq(arr, data, dtype):
     np.testing.assert_equal(arr, np.array(data, dtype=dtype))
+
+print_format_descriptors()
 
 simple_dtype = np.dtype({'names': ['x', 'y', 'z'],
                          'formats': ['?', 'u4', 'f4'],
