@@ -244,7 +244,7 @@ template <typename T> struct npy_format_descriptor
         args["names"] = names;
         args["offsets"] = offsets;
         args["formats"] = formats;
-        if (!api.PyArray_DescrConverter_(args.ptr(), &descr_()) || !descr_())
+        if (!api.PyArray_DescrConverter_(args.release().ptr(), &descr_()) || !descr_())
             pybind11_fail("NumPy: failed to create structured dtype");
         auto np = module::import("numpy");
         auto empty = (object) np.attr("empty");
