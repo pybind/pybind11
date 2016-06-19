@@ -3,7 +3,7 @@ CMakeFiles
 Makefile
 cmake_install.cmake
 .DS_Store
-/example/example.so
+/example/example*.so
 /example/example.cpython*.so
 /example/example.pyd
 /example/example*.dll
