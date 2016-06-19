@@ -26,6 +26,7 @@ set(PYBIND11_EXAMPLES
   example-stl-binder-vector.cpp
   example-eval.cpp
   example-custom-exceptions.cpp
+  example20.cpp
   issues.cpp
 )
 
@@ -65,4 +66,3 @@ foreach(VALUE ${PYBIND11_EXAMPLES})
   string(REGEX REPLACE "^(.+).cpp$" "\\1" EXAMPLE_NAME "${VALUE}")
   add_test(NAME ${EXAMPLE_NAME} COMMAND ${RUN_TEST} ${EXAMPLE_NAME})
 endforeach()
-
