@@ -240,7 +240,7 @@ template <typename T> struct npy_format_descriptor
             offsets.append(py::int_(field.offset));
             if (!field.descr)
                 pybind11_fail("NumPy: unsupported field dtype");
-            dtypes.emplace_back(field.descr, false);
+            dtypes.emplace_back(field.descr, true);
             formats.append(dtypes.back());
         }
         args["names"] = names;
