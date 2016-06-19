@@ -46,12 +46,11 @@ name = sys.argv[1]
 try:
     output_bytes = subprocess.check_output([sys.executable, "-u", name + ".py"],
                                            stderr=subprocess.STDOUT)
-except subprocess.CalledProcessError as e:
-    if e.returncode == 99:
-        print('Test "%s" could not be run.' % name)
-        exit(0)
-    else:
-        raise
+except subprocess.CalledProcessError as exc:
+    print('Test `{}` failed:\n{}\n'.format(name, '-' * 50))
+    print(exc.output.decode())
+    print('-' * 50)
+    sys.exit(1)
 
 output    = sanitize(output_bytes.decode('utf-8'))
 reference = sanitize(open(name + '.ref', 'r').read())
