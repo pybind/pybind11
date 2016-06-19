@@ -133,7 +133,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
                 /* Size of one scalar */
                 sizeof(Scalar),
                 /* Python struct-style format descriptor */
-                format_descriptor<Scalar>::value,
+                format_descriptor<Scalar>::value(),
                 /* Number of dimensions */
                 1,
                 /* Buffer dimensions */
@@ -148,7 +148,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
                 /* Size of one scalar */
                 sizeof(Scalar),
                 /* Python struct-style format descriptor */
-                format_descriptor<Scalar>::value,
+                format_descriptor<Scalar>::value(),
                 /* Number of dimensions */
                 isVector ? 1 : 2,
                 /* Buffer dimensions */
@@ -233,7 +233,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
             try {
                 obj = matrix_type(obj);
             } catch (const error_already_set &) {
-                PyErr_Clear(); 
+                PyErr_Clear();
                 return false;
             }
         }
@@ -276,7 +276,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
             // Size of one scalar
             sizeof(Scalar),
             // Python struct-style format descriptor
-            format_descriptor<Scalar>::value,
+            format_descriptor<Scalar>::value(),
             // Number of dimensions
             1,
             // Buffer dimensions
@@ -291,7 +291,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
             // Size of one scalar
             sizeof(StorageIndex),
             // Python struct-style format descriptor
-            format_descriptor<StorageIndex>::value,
+            format_descriptor<StorageIndex>::value(),
             // Number of dimensions
             1,
             // Buffer dimensions
@@ -306,7 +306,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
             // Size of one scalar
             sizeof(StorageIndex),
             // Python struct-style format descriptor
-            format_descriptor<StorageIndex>::value,
+            format_descriptor<StorageIndex>::value(),
             // Number of dimensions
             1,
             // Buffer dimensions

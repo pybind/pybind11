@@ -1224,12 +1224,12 @@ completely avoid copy operations with Python expressions like
     py::class_<Matrix>(m, "Matrix")
        .def_buffer([](Matrix &m) -> py::buffer_info {
             return py::buffer_info(
-                m.data(),                            /* Pointer to buffer */
-                sizeof(float),                       /* Size of one scalar */
-                py::format_descriptor<float>::value, /* Python struct-style format descriptor */
-                2,                                   /* Number of dimensions */
-                { m.rows(), m.cols() },              /* Buffer dimensions */
-                { sizeof(float) * m.rows(),          /* Strides (in bytes) for each index */
+                m.data(),                              /* Pointer to buffer */
+                sizeof(float),                         /* Size of one scalar */
+                py::format_descriptor<float>::value(), /* Python struct-style format descriptor */
+                2,                                     /* Number of dimensions */
+                { m.rows(), m.cols() },                /* Buffer dimensions */
+                { sizeof(float) * m.rows(),            /* Strides (in bytes) for each index */
                   sizeof(float) }
             );
         });
@@ -1273,7 +1273,7 @@ buffer objects (e.g. a NumPy matrix).
             py::buffer_info info = b.request();
 
             /* Some sanity checks ... */
-            if (info.format != py::format_descriptor<Scalar>::value)
+            if (info.format != py::format_descriptor<Scalar>::value())
                 throw std::runtime_error("Incompatible format: expected a double array!");
 
             if (info.ndim != 2)
@@ -1299,7 +1299,7 @@ as follows:
             m.data(),                /* Pointer to buffer */
             sizeof(Scalar),          /* Size of one scalar */
             /* Python struct-style format descriptor */
-            py::format_descriptor<Scalar>::value,
+            py::format_descriptor<Scalar>::value(),
             /* Number of dimensions */
             2,
             /* Buffer dimensions */
