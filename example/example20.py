@@ -17,3 +17,8 @@ arr = create_rec_simple(3)
 assert arr.dtype == dtype
 check_eq(arr, [(False, 0, 0.0), (True, 1, 1.5), (False, 2, 3.0)], dtype)
 check_eq(arr, [(False, 0, 0.0), (True, 1, 1.5), (False, 2, 3.0)], base_dtype)
+
+arr = create_rec_simple(0)
+assert arr.dtype == dtype
+check_eq(arr, [], dtype)
+check_eq(arr, [], base_dtype)

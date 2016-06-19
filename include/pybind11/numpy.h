@@ -116,6 +116,8 @@ public:
         auto buf_info = info;
         if (!buf_info.ptr)
             buf_info.ptr = std::calloc(info.size, info.itemsize);
+        if (!buf_info.ptr)
+            pybind11_fail("NumPy: failed to allocate memory for buffer");
         auto view = py::memoryview(buf_info);
 
         API& api = lookup_api();
