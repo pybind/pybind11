@@ -21,16 +21,28 @@ struct Struct {
     float z;
 };
 
+std::ostream& operator<<(std::ostream& os, const Struct& v) {
+    return os << v.x << "," << v.y << "," << v.z;
+}
+
 struct PackedStruct {
     bool x;
     uint32_t y;
     float z;
 } __attribute__((packed));
 
+std::ostream& operator<<(std::ostream& os, const PackedStruct& v) {
+    return os << v.x << "," << v.y << "," << v.z;
+}
+
 struct NestedStruct {
     Struct a;
     PackedStruct b;
 } __attribute__((packed));
+
+std::ostream& operator<<(std::ostream& os, const NestedStruct& v) {
+    return os << v.a << "|" << v.b;
+}
 
 template <typename T>
 py::array mkarray_via_buffer(size_t n) {
@@ -59,6 +71,13 @@ py::array_t<NestedStruct> create_nested(size_t n) {
     return arr;
 }
 
+template <typename S>
+void print_recarray(py::array_t<S> arr) {
+    auto buf = arr.request();
+    auto ptr = static_cast<S*>(buf.ptr);
+    for (size_t i = 0; i < buf.size; i++)
+        std::cout << ptr[i] << std::endl;
+}
 
 void print_format_descriptors() {
     std::cout << py::format_descriptor<Struct>::value() << std::endl;
@@ -75,4 +94,7 @@ void init_ex20(py::module &m) {
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
     m.def("create_rec_nested", &create_nested);
     m.def("print_format_descriptors", &print_format_descriptors);
+    m.def("print_rec_simple", &print_recarray<Struct>);
+    m.def("print_rec_packed", &print_recarray<PackedStruct>);
+    m.def("print_rec_nested", &print_recarray<NestedStruct>);
 }
