@@ -29,6 +29,7 @@ from example import test_callback1
 from example import test_callback2
 from example import test_callback3
 from example import test_callback4
+from example import test_callback5
 from example import test_cleanup
 
 def func1():
@@ -49,5 +50,7 @@ print(test_callback1(partial(func3, "Partial object with one argument")))
 test_callback3(lambda i: i + 1)
 f = test_callback4()
 print("func(43) = %i" % f(43))
+f = test_callback5()
+print("func(number=43) = %i" % f(number=43))
 
 test_cleanup()

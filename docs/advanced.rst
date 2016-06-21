@@ -139,8 +139,19 @@ its return value upon execution.
         };
     }
 
+This example demonstrates using python named parameters in C++ callbacks which
+requires using ``py::cpp_function`` as a wrapper. Usage is similar to defining
+methods of classes:
+
+.. code-block:: cpp
+
+    py::cpp_function func_cpp() {
+        return py::cpp_function([](int i) { return i+1; },
+           py::arg("number"));
+    }
+
 After including the extra header file :file:`pybind11/functional.h`, it is almost
-trivial to generate binding code for both of these functions.
+trivial to generate binding code for all of these functions.
 
 .. code-block:: cpp
 
@@ -151,6 +162,7 @@ trivial to generate binding code for both of these functions.
 
         m.def("func_arg", &func_arg);
         m.def("func_ret", &func_ret);
+        m.def("func_cpp", &func_cpp);
 
         return m.ptr();
     }
@@ -169,7 +181,9 @@ The following interactive session shows how to call them from Python.
     >>> square_plus_1 = example.func_ret(square)
     >>> square_plus_1(4)
     17L
-    >>>
+    >>> plus_1 = func_cpp()
+    >>> plus_1(number=43)
+    44L
 
 .. note::
 

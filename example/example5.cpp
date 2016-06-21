@@ -60,6 +60,11 @@ std::function<int(int)> test_callback4() {
     return [](int i) { return i+1; };
 }
 
+py::cpp_function test_callback5() {
+    return py::cpp_function([](int i) { return i+1; },
+       py::arg("number"));
+}
+
 void init_ex5(py::module &m) {
     py::class_<Pet> pet_class(m, "Pet");
     pet_class
@@ -82,6 +87,7 @@ void init_ex5(py::module &m) {
     m.def("test_callback2", &test_callback2);
     m.def("test_callback3", &test_callback3);
     m.def("test_callback4", &test_callback4);
+    m.def("test_callback5", &test_callback5);
 
     /* Test cleanup of lambda closure */
 
