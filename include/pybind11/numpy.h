@@ -96,7 +96,7 @@ public:
 
     template <typename Type> array(size_t size, const Type *ptr) {
         API& api = lookup_api();
-        PyObject *descr = detail::npy_format_descriptor<Type>::descr();
+        PyObject *descr = object(detail::npy_format_descriptor<Type>::descr(), true).release().ptr();
         Py_intptr_t shape = (Py_intptr_t) size;
         object tmp = object(api.PyArray_NewFromDescr_(
             api.PyArray_Type_, descr, 1, &shape, nullptr, (void *) ptr, 0, nullptr), false);
@@ -147,7 +147,7 @@ public:
         if (ptr == nullptr)
             return nullptr;
         API &api = lookup_api();
-        PyObject *descr = detail::npy_format_descriptor<T>::descr();
+        PyObject *descr = object(detail::npy_format_descriptor<T>::descr(), true).release().ptr();
         PyObject *result = api.PyArray_FromAny_(ptr, descr, 0, 0, API::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
         if (!result)
             PyErr_Clear();

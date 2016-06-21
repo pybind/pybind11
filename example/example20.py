@@ -29,12 +29,10 @@ for func, dtype in [(create_rec_simple, simple_dtype), (create_rec_packed, packe
     check_eq(arr, [(False, 0, 0.0), (True, 1, 1.5), (False, 2, 3.0)], simple_dtype)
     check_eq(arr, [(False, 0, 0.0), (True, 1, 1.5), (False, 2, 3.0)], packed_dtype)
 
-    # uncomment lines below to cause a segfault upon exit in Py_Finalize :(
-
-    # if dtype == simple_dtype:
-    #     print_rec_simple(arr)
-    # else:
-    #     print_rec_packed(arr)
+    if dtype == simple_dtype:
+        print_rec_simple(arr)
+    else:
+        print_rec_packed(arr)
 
 nested_dtype = np.dtype([('a', simple_dtype), ('b', packed_dtype)])
 
@@ -47,4 +45,4 @@ assert arr.dtype == nested_dtype
 check_eq(arr, [((False, 0, 0.0), (True, 1, 1.5)),
                ((True, 1, 1.5), (False, 2, 3.0)),
                ((False, 2, 3.0), (True, 3, 4.5))], nested_dtype)
-# print_rec_nested(arr)
+print_rec_nested(arr)
