@@ -270,27 +270,30 @@ private:
 
 // The main idea of this macro is borrowed from https://github.com/swansontec/map-macro
 // (C) William Swanson, Paul Fultz
-#define EVAL0(...) __VA_ARGS__
-#define EVAL1(...) EVAL0 (EVAL0 (EVAL0 (__VA_ARGS__)))
-#define EVAL2(...) EVAL1 (EVAL1 (EVAL1 (__VA_ARGS__)))
-#define EVAL3(...) EVAL2 (EVAL2 (EVAL2 (__VA_ARGS__)))
-#define EVAL4(...) EVAL3 (EVAL3 (EVAL3 (__VA_ARGS__)))
-#define EVAL(...)  EVAL4 (EVAL4 (EVAL4 (__VA_ARGS__)))
-#define MAP_END(...)
-#define MAP_OUT
-#define MAP_COMMA ,
-#define MAP_GET_END() 0, MAP_END
-#define MAP_NEXT0(test, next, ...) next MAP_OUT
-#define MAP_NEXT1(test, next) MAP_NEXT0 (test, next, 0)
-#define MAP_NEXT(test, next)  MAP_NEXT1 (MAP_GET_END test, next)
-#define MAP_LIST_NEXT1(test, next) MAP_NEXT0 (test, MAP_COMMA next, 0)
-#define MAP_LIST_NEXT(test, next)  MAP_LIST_NEXT1 (MAP_GET_END test, next)
-#define MAP_LIST0(f, t, x, peek, ...) f(t, x) MAP_LIST_NEXT (peek, MAP_LIST1) (f, t, peek, __VA_ARGS__)
-#define MAP_LIST1(f, t, x, peek, ...) f(t, x) MAP_LIST_NEXT (peek, MAP_LIST0) (f, t, peek, __VA_ARGS__)
-#define MAP_LIST(f, t, ...) EVAL (MAP_LIST1 (f, t, __VA_ARGS__, (), 0))
+#define PB11_IMPL_EVAL0(...) __VA_ARGS__
+#define PB11_IMPL_EVAL1(...) PB11_IMPL_EVAL0 (PB11_IMPL_EVAL0 (PB11_IMPL_EVAL0 (__VA_ARGS__)))
+#define PB11_IMPL_EVAL2(...) PB11_IMPL_EVAL1 (PB11_IMPL_EVAL1 (PB11_IMPL_EVAL1 (__VA_ARGS__)))
+#define PB11_IMPL_EVAL3(...) PB11_IMPL_EVAL2 (PB11_IMPL_EVAL2 (PB11_IMPL_EVAL2 (__VA_ARGS__)))
+#define PB11_IMPL_EVAL4(...) PB11_IMPL_EVAL3 (PB11_IMPL_EVAL3 (PB11_IMPL_EVAL3 (__VA_ARGS__)))
+#define PB11_IMPL_EVAL(...)  PB11_IMPL_EVAL4 (PB11_IMPL_EVAL4 (PB11_IMPL_EVAL4 (__VA_ARGS__)))
+#define PB11_IMPL_MAP_END(...)
+#define PB11_IMPL_MAP_OUT
+#define PB11_IMPL_MAP_COMMA ,
+#define PB11_IMPL_MAP_GET_END() 0, PB11_IMPL_MAP_END
+#define PB11_IMPL_MAP_NEXT0(test, next, ...) next PB11_IMPL_MAP_OUT
+#define PB11_IMPL_MAP_NEXT1(test, next) PB11_IMPL_MAP_NEXT0 (test, next, 0)
+#define PB11_IMPL_MAP_NEXT(test, next)  PB11_IMPL_MAP_NEXT1 (PB11_IMPL_MAP_GET_END test, next)
+#define PB11_IMPL_MAP_LIST_NEXT1(test, next) PB11_IMPL_MAP_NEXT0 (test, PB11_IMPL_MAP_COMMA next, 0)
+#define PB11_IMPL_MAP_LIST_NEXT(test, next)  PB11_IMPL_MAP_LIST_NEXT1 (PB11_IMPL_MAP_GET_END test, next)
+#define PB11_IMPL_MAP_LIST0(f, t, x, peek, ...) \
+    f(t, x) PB11_IMPL_MAP_LIST_NEXT (peek, PB11_IMPL_MAP_LIST1) (f, t, peek, __VA_ARGS__)
+#define PB11_IMPL_MAP_LIST1(f, t, x, peek, ...) \
+    f(t, x) PB11_IMPL_MAP_LIST_NEXT (peek, PB11_IMPL_MAP_LIST0) (f, t, peek, __VA_ARGS__)
+#define PB11_IMPL_MAP_LIST(f, t, ...) PB11_IMPL_EVAL (PB11_IMPL_MAP_LIST1 (f, t, __VA_ARGS__, (), 0))
 
 #define PYBIND11_DTYPE(Type, ...) \
-    ::pybind11::detail::npy_format_descriptor<Type>::register_dtype({MAP_LIST(FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
+    ::pybind11::detail::npy_format_descriptor<Type>::register_dtype \
+        ({PB11_IMPL_MAP_LIST(FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
 
 template  <class T>
 using array_iterator = typename std::add_pointer<T>::type;
