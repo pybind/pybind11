@@ -1028,7 +1028,10 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
     (void) wr.release();
 }
 
-template <typename Iterator> struct iterator_state { Iterator it, end; };
+template <typename Iterator> struct iterator_state {
+    Iterator it, end;
+    bool first;
+};
 
 NAMESPACE_END(detail)
 
@@ -1044,13 +1047,17 @@ iterator make_iterator(Iterator first, Iterator last, Extra &&... extra) {
         class_<state>(handle(), "")
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> ValueType {
+                if (!s.first)
+                    ++s.it;
+                else
+                    s.first = false;
                 if (s.it == s.end)
                     throw stop_iteration();
-                return *s.it++;
+                return *s.it;
             }, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
     }
 
-    return (iterator) cast(state { first, last });
+    return (iterator) cast(state { first, last, true });
 }
 
 template <typename Type, typename... Extra> iterator make_iterator(Type &value, Extra&&... extra) {

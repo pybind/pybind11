@@ -116,7 +116,7 @@
 extern "C" {
     struct _Py_atomic_address { void *value; };
     PyAPI_DATA(_Py_atomic_address) _PyThreadState_Current;
-};
+}
 #endif
 
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
