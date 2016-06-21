@@ -96,7 +96,7 @@ public:
 
     template <typename Type> array(size_t size, const Type *ptr) {
         API& api = lookup_api();
-        PyObject *descr = object(detail::npy_format_descriptor<Type>::descr(), true).release().ptr();
+        PyObject *descr = detail::npy_format_descriptor<Type>::descr().release().ptr();
         Py_intptr_t shape = (Py_intptr_t) size;
         object tmp = object(api.PyArray_NewFromDescr_(
             api.PyArray_Type_, descr, 1, &shape, nullptr, (void *) ptr, 0, nullptr), false);
@@ -147,7 +147,7 @@ public:
         if (ptr == nullptr)
             return nullptr;
         API &api = lookup_api();
-        PyObject *descr = object(detail::npy_format_descriptor<T>::descr(), true).release().ptr();
+        PyObject *descr = detail::npy_format_descriptor<T>::descr().release().ptr();
         PyObject *result = api.PyArray_FromAny_(ptr, descr, 0, 0, API::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
         if (!result)
             PyErr_Clear();
@@ -178,8 +178,8 @@ private:
         array::API::NPY_INT_,  array::API::NPY_UINT_,  array::API::NPY_LONGLONG_, array::API::NPY_ULONGLONG_ };
 public:
     static int typenum() { return values[detail::log2(sizeof(T)) * 2 + (std::is_unsigned<T>::value ? 1 : 0)]; }
-    static PyObject* descr() {
-        if (auto obj = array::lookup_api().PyArray_DescrFromType_(typenum())) return obj;
+    static py::object descr() {
+        if (auto ptr = array::lookup_api().PyArray_DescrFromType_(typenum())) return py::object(ptr, true);
         else pybind11_fail("Unsupported buffer format!");
     }
     template <typename T2 = T, typename std::enable_if<std::is_signed<T2>::value, int>::type = 0>
@@ -192,8 +192,8 @@ template <typename T> constexpr const int npy_format_descriptor<
 
 #define DECL_FMT(Type, NumPyName, Name) template<> struct npy_format_descriptor<Type> { \
     static int typenum() { return array::API::NumPyName; } \
-    static PyObject* descr() { \
-        if (auto obj = array::lookup_api().PyArray_DescrFromType_(typenum())) return obj; \
+    static py::object descr() {                                               \
+        if (auto ptr = array::lookup_api().PyArray_DescrFromType_(typenum())) return py::object(ptr, true); \
         else pybind11_fail("Unsupported buffer format!"); \
     } \
     static PYBIND11_DESCR name() { return _(Name); } }
@@ -207,7 +207,7 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
 struct field_descriptor {
     const char *name;
     int offset;
-    PyObject *descr;
+    py::object descr;
 };
 
 template <typename T> struct npy_format_descriptor
@@ -220,10 +220,10 @@ template <typename T> struct npy_format_descriptor
 {
     static PYBIND11_DESCR name() { return _("user-defined"); }
 
-    static PyObject* descr() {
+    static py::object descr() {
         if (!descr_())
             pybind11_fail("NumPy: unsupported buffer format!");
-        return descr_();
+        return py::object(descr_(), true);
     }
 
     static const char* format_str() {
@@ -239,7 +239,7 @@ template <typename T> struct npy_format_descriptor
                 pybind11_fail("NumPy: unsupported field dtype");
             names.append(py::str(field.name));
             offsets.append(py::int_(field.offset));
-            formats.append(object(field.descr, true));
+            formats.append(field.descr);
         }
         args["names"] = names;
         args["offsets"] = offsets;
@@ -265,7 +265,8 @@ private:
 #define FIELD_DESCRIPTOR(Type, Field) \
     ::pybind11::detail::field_descriptor { \
         #Field, offsetof(Type, Field), \
-        ::pybind11::detail::npy_format_descriptor<decltype(static_cast<Type*>(0)->Field)>::descr() }
+        ::pybind11::detail::npy_format_descriptor<decltype(static_cast<Type*>(0)->Field)>::descr() \
+    }
 
 // The main idea of this macro is borrowed from https://github.com/swansontec/map-macro
 // (C) William Swanson, Paul Fultz
