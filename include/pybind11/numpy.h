@@ -118,7 +118,7 @@ public:
             buf_info.ptr = std::calloc(info.size, info.itemsize);
         if (!buf_info.ptr)
             pybind11_fail("NumPy: failed to allocate memory for buffer");
-        auto view = py::memoryview(buf_info);
+        auto view = memoryview(buf_info);
 
         API& api = lookup_api();
         auto res = api.PyArray_GetArrayParamsFromObject_(view.ptr(), nullptr, 1, &descr,
@@ -178,8 +178,8 @@ private:
         array::API::NPY_INT_,  array::API::NPY_UINT_,  array::API::NPY_LONGLONG_, array::API::NPY_ULONGLONG_ };
 public:
     static int typenum() { return values[detail::log2(sizeof(T)) * 2 + (std::is_unsigned<T>::value ? 1 : 0)]; }
-    static py::object descr() {
-        if (auto ptr = array::lookup_api().PyArray_DescrFromType_(typenum())) return py::object(ptr, true);
+    static object descr() {
+        if (auto ptr = array::lookup_api().PyArray_DescrFromType_(typenum())) return object(ptr, true);
         else pybind11_fail("Unsupported buffer format!");
     }
     template <typename T2 = T, typename std::enable_if<std::is_signed<T2>::value, int>::type = 0>
@@ -192,8 +192,8 @@ template <typename T> constexpr const int npy_format_descriptor<
 
 #define DECL_FMT(Type, NumPyName, Name) template<> struct npy_format_descriptor<Type> { \
     static int typenum() { return array::API::NumPyName; } \
-    static py::object descr() {                                               \
-        if (auto ptr = array::lookup_api().PyArray_DescrFromType_(typenum())) return py::object(ptr, true); \
+    static object descr() {                                               \
+        if (auto ptr = array::lookup_api().PyArray_DescrFromType_(typenum())) return object(ptr, true); \
         else pybind11_fail("Unsupported buffer format!"); \
     } \
     static PYBIND11_DESCR name() { return _(Name); } }
@@ -207,7 +207,7 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
 struct field_descriptor {
     const char *name;
     int offset;
-    py::object descr;
+    object descr;
 };
 
 template <typename T> struct npy_format_descriptor
@@ -220,10 +220,10 @@ template <typename T> struct npy_format_descriptor
 {
     static PYBIND11_DESCR name() { return _("user-defined"); }
 
-    static py::object descr() {
+    static object descr() {
         if (!descr_())
             pybind11_fail("NumPy: unsupported buffer format!");
-        return py::object(descr_(), true);
+        return object(descr_(), true);
     }
 
     static const char* format_str() {
@@ -232,13 +232,13 @@ template <typename T> struct npy_format_descriptor
 
     static void register_dtype(std::initializer_list<field_descriptor> fields) {
         array::API& api = array::lookup_api();
-        auto args = py::dict();
-        py::list names { }, offsets { }, formats { };
+        auto args = dict();
+        list names { }, offsets { }, formats { };
         for (auto field : fields) {
             if (!field.descr)
                 pybind11_fail("NumPy: unsupported field dtype");
-            names.append(py::str(field.name));
-            offsets.append(py::int_(field.offset));
+            names.append(str(field.name));
+            offsets.append(int_(field.offset));
             formats.append(field.descr);
         }
         args["names"] = names;
@@ -248,7 +248,7 @@ template <typename T> struct npy_format_descriptor
             pybind11_fail("NumPy: failed to create structured dtype");
         auto np = module::import("numpy");
         auto empty = (object) np.attr("empty");
-        if (auto arr = (object) empty(py::int_(0), object(descr(), true)))
+        if (auto arr = (object) empty(int_(0), object(descr(), true)))
             if (auto view = PyMemoryView_FromObject(arr.ptr()))
                 if (auto info = PyMemoryView_GET_BUFFER(view)) {
                     std::strncpy(format_str_(), info->format, 4096);
