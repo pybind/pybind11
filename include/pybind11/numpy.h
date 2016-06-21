@@ -234,14 +234,12 @@ template <typename T> struct npy_format_descriptor
         array::API& api = array::lookup_api();
         auto args = py::dict();
         py::list names { }, offsets { }, formats { };
-        std::vector<py::object> dtypes;
         for (auto field : fields) {
-            names.append(py::str(field.name));
-            offsets.append(py::int_(field.offset));
             if (!field.descr)
                 pybind11_fail("NumPy: unsupported field dtype");
-            dtypes.emplace_back(field.descr, true);
-            formats.append(dtypes.back());
+            names.append(py::str(field.name));
+            offsets.append(py::int_(field.offset));
+            formats.append(object(field.descr, true));
         }
         args["names"] = names;
         args["offsets"] = offsets;
