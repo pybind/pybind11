@@ -40,7 +40,9 @@ public:
     inline pybind11::str str() const;
     template <typename T> T cast() const;
     template <typename ... Args>
+    #if __cplusplus > 201103L
     [[deprecated("call(...) was deprecated in favor of operator()(...)")]]
+    #endif
     object call(Args&&... args) const;
     template <typename ... Args> object operator()(Args&&... args) const;
     inline object operator()(detail::args_proxy args) const;
