@@ -607,6 +607,26 @@ Python side:
 
     py::implicitly_convertible<A, B>();
 
+.. _static_properties:
+
+Static properties
+=================
+
+The section on :ref:`properties` discussed the creation of instance properties
+that are implemented in terms of C++ getters and setters.
+
+Static properties can also be created in a similar way to expose getters and
+setters of static class attributes. It is important to note that the implicit
+``self`` argument also exists in this case and is used to pass the Python
+``type`` subclass instance. This parameter will often not be needed by the C++
+side, and the following example illustrates how to instantiate a lambda getter
+function that ignores it:
+
+.. code-block:: cpp
+
+    py::class_<Foo>(m, "Foo")
+        .def_property_readonly_static("foo", [](py::object /* self */) { return Foo(); });
+
 Unique pointers
 ===============
 

@@ -7,14 +7,14 @@ Starting with version 1.8, pybind11 releases use a
 [semantic versioning](http://semver.org) policy.
 
 Breaking changes queued for v2.0.0 (Not yet released)
----------------------------------------------------
+-----------------------------------------------------
 * Redesigned virtual call mechanism and user-facing syntax (see
   https://github.com/pybind/pybind11/commit/86d825f3302701d81414ddd3d38bcd09433076bc)
 
 * Remove ``handle.call()`` method
 
 1.9.0 (Not yet released)
-----------------------
+------------------------
 * Queued changes: ``py::eval*``, map indexing suite, documentation for indexing suites.
 
 1.8.0 (June 14, 2016)

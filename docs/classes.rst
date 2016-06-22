@@ -104,6 +104,8 @@ With the above change, the same Python code now produces the following output:
     >>> print(p)
     <example.Pet named 'Molly'>
 
+.. _properties:
+
 Instance and static fields
 ==========================
 
@@ -160,7 +162,8 @@ the setter and getter functions:
     Similar functions :func:`class_::def_readwrite_static`,
     :func:`class_::def_readonly_static` :func:`class_::def_property_static`,
     and :func:`class_::def_property_readonly_static` are provided for binding
-    static variables and properties.
+    static variables and properties. Please also see the section on
+    :ref:`static_properties` in the advanced part of the documentation.
 
 .. _inheritance:
 
