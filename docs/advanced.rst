@@ -461,7 +461,9 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 |                                                  | See below for a description of what all of these different policies do.    |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
-|                                                  | return value is a pointer. You probably won't need to use this.            |
+|                                                  | return value is a pointer. This is the default conversion policy for       |
+|                                                  | function arguments when calling Python functions manually from C++ code    |
+|                                                  | (i.e. via handle::operator()). You probably won't need to use this.        |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::take_ownership`      | Reference an existing object (i.e. do not create a new copy) and take      |
 |                                                  | ownership. Python will call the destructor and delete operator when the    |

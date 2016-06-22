@@ -39,12 +39,13 @@ public:
     inline detail::accessor attr(const char *key) const;
     inline pybind11::str str() const;
     template <typename T> T cast() const;
-    template <typename ... Args>
+    template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
     #if __cplusplus > 201103L
     [[deprecated("call(...) was deprecated in favor of operator()(...)")]]
     #endif
     object call(Args&&... args) const;
-    template <typename ... Args> object operator()(Args&&... args) const;
+    template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
+    object operator()(Args&&... args) const;
     inline object operator()(detail::args_proxy args) const;
     inline object operator()(detail::args_proxy f_args, detail::kwargs_proxy kwargs) const;
     operator bool() const { return m_ptr != nullptr; }

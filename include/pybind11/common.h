@@ -151,7 +151,9 @@ enum class return_value_policy : uint8_t {
     automatic = 0,
 
     /** As above, but use policy return_value_policy::reference when the return
-        value is a pointer. You probably won't need to use this. */
+        value is a pointer. This is the default conversion policy for function
+        arguments when calling Python functions manually from C++ code (i.e. via
+        handle::operator()). You probably won't need to use this. */
     automatic_reference,
 
     /** Reference an existing object (i.e. do not create a new copy) and take

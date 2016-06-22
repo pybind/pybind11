@@ -842,16 +842,18 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
-template <typename... Args> object handle::operator()(Args&&... args) const {
-    tuple args_tuple = pybind11::make_tuple(std::forward<Args>(args)...);
+template <return_value_policy policy,
+          typename... Args> object handle::operator()(Args&&... args) const {
+    tuple args_tuple = pybind11::make_tuple<policy>(std::forward<Args>(args)...);
     object result(PyObject_CallObject(m_ptr, args_tuple.ptr()), false);
     if (!result)
         throw error_already_set();
     return result;
 }
 
-template <typename... Args> object handle::call(Args &&... args) const {
-    return operator()(std::forward<Args>(args)...);
+template <return_value_policy policy,
+          typename... Args> object handle::call(Args &&... args) const {
+    return operator()<policy>(std::forward<Args>(args)...);
 }
 
 inline object handle::operator()(detail::args_proxy args) const {
