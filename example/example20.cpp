@@ -15,14 +15,14 @@
 
 namespace py = pybind11;
 
-struct Struct {
+struct SimpleStruct {
     bool x;
     uint32_t y;
     float z;
 };
 
-std::ostream& operator<<(std::ostream& os, const Struct& v) {
-    return os << v.x << "," << v.y << "," << v.z;
+std::ostream& operator<<(std::ostream& os, const SimpleStruct& v) {
+    return os << "s:" << v.x << "," << v.y << "," << v.z;
 }
 
 struct PackedStruct {
@@ -32,16 +32,16 @@ struct PackedStruct {
 } __attribute__((packed));
 
 std::ostream& operator<<(std::ostream& os, const PackedStruct& v) {
-    return os << v.x << "," << v.y << "," << v.z;
+    return os << "p:" << v.x << "," << v.y << "," << v.z;
 }
 
 struct NestedStruct {
-    Struct a;
+    SimpleStruct a;
     PackedStruct b;
 } __attribute__((packed));
 
 std::ostream& operator<<(std::ostream& os, const NestedStruct& v) {
-    return os << v.a << "|" << v.b;
+    return os << "n:a=" << v.a << ";b=" << v.b;
 }
 
 template <typename T>
@@ -80,21 +80,31 @@ void print_recarray(py::array_t<S> arr) {
 }
 
 void print_format_descriptors() {
-    std::cout << py::format_descriptor<Struct>::value() << std::endl;
+    std::cout << py::format_descriptor<SimpleStruct>::value() << std::endl;
     std::cout << py::format_descriptor<PackedStruct>::value() << std::endl;
     std::cout << py::format_descriptor<NestedStruct>::value() << std::endl;
 }
 
+void print_dtypes() {
+    auto to_str = [](py::object obj) {
+        return (std::string) (py::str) ((py::object) obj.attr("__str__"))();
+    };
+    std::cout << to_str(py::dtype_of<SimpleStruct>()) << std::endl;
+    std::cout << to_str(py::dtype_of<PackedStruct>()) << std::endl;
+    std::cout << to_str(py::dtype_of<NestedStruct>()) << std::endl;
+}
+
 void init_ex20(py::module &m) {
-    PYBIND11_DTYPE(Struct, x, y, z);
+    PYBIND11_DTYPE(SimpleStruct, x, y, z);
     PYBIND11_DTYPE(PackedStruct, x, y, z);
     PYBIND11_DTYPE(NestedStruct, a, b);
 
-    m.def("create_rec_simple", &create_recarray<Struct>);
+    m.def("create_rec_simple", &create_recarray<SimpleStruct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
     m.def("create_rec_nested", &create_nested);
     m.def("print_format_descriptors", &print_format_descriptors);
-    m.def("print_rec_simple", &print_recarray<Struct>);
+    m.def("print_rec_simple", &print_recarray<SimpleStruct>);
     m.def("print_rec_packed", &print_recarray<PackedStruct>);
     m.def("print_rec_nested", &print_recarray<NestedStruct>);
+    m.def("print_dtypes", &print_dtypes);
 }

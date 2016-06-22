@@ -169,6 +169,11 @@ template <typename T> struct format_descriptor
     }
 };
 
+template <typename T>
+object dtype_of() {
+    return detail::npy_format_descriptor<T>::descr();
+}
+
 NAMESPACE_BEGIN(detail)
 
 template <typename T> struct npy_format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {

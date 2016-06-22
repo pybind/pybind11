@@ -4,7 +4,7 @@ from __future__ import print_function
 import numpy as np
 from example import (
     create_rec_simple, create_rec_packed, create_rec_nested, print_format_descriptors,
-    print_rec_simple, print_rec_packed, print_rec_nested
+    print_rec_simple, print_rec_packed, print_rec_nested, print_dtypes
 )
 
 
@@ -12,6 +12,7 @@ def check_eq(arr, data, dtype):
     np.testing.assert_equal(arr, np.array(data, dtype=dtype))
 
 print_format_descriptors()
+print_dtypes()
 
 simple_dtype = np.dtype({'names': ['x', 'y', 'z'],
                          'formats': ['?', 'u4', 'f4'],
