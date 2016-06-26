@@ -44,6 +44,8 @@ std::ostream& operator<<(std::ostream& os, const NestedStruct& v) {
     return os << "n:a=" << v.a << ";b=" << v.b;
 }
 
+struct UnboundStruct { };
+
 template <typename T>
 py::array mkarray_via_buffer(size_t n) {
     return py::array(py::buffer_info(nullptr, sizeof(T),
@@ -59,6 +61,10 @@ py::array_t<S> create_recarray(size_t n) {
         ptr[i].x = i % 2; ptr[i].y = (uint32_t) i; ptr[i].z = (float) i * 1.5f;
     }
     return arr;
+}
+
+std::string get_format_unbound() {
+    return py::format_descriptor<UnboundStruct>::format();
 }
 
 py::array_t<NestedStruct> create_nested(size_t n) {
@@ -107,4 +113,5 @@ void init_ex20(py::module &m) {
     m.def("print_rec_packed", &print_recarray<PackedStruct>);
     m.def("print_rec_nested", &print_recarray<NestedStruct>);
     m.def("print_dtypes", &print_dtypes);
+    m.def("get_format_unbound", &get_format_unbound);
 }

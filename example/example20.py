@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import unittest
 import numpy as np
 from example import (
     create_rec_simple, create_rec_packed, create_rec_nested, print_format_descriptors,
-    print_rec_simple, print_rec_packed, print_rec_nested, print_dtypes
+    print_rec_simple, print_rec_packed, print_rec_nested, print_dtypes, get_format_unbound
 )
 
 
 def check_eq(arr, data, dtype):
     np.testing.assert_equal(arr, np.array(data, dtype=dtype))
+
+unittest.TestCase().assertRaisesRegex(
+    RuntimeError, 'unsupported buffer format', get_format_unbound)
 
 print_format_descriptors()
 print_dtypes()
