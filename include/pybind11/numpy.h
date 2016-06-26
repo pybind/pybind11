@@ -482,7 +482,7 @@ struct vectorize_helper {
             return cast(f(*((Args *) buffers[Index].ptr)...));
 
         array result(buffer_info(nullptr, sizeof(Return),
-                     format_descriptor<Return>::format(),
+            format_descriptor<Return>::format(),
             ndim, shape, strides));
 
         buffer_info buf = result.request();
