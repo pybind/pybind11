@@ -164,8 +164,8 @@ template <typename T> struct format_descriptor
                             !std::is_same<T, std::complex<float>>::value &&
                             !std::is_same<T, std::complex<double>>::value>::type>
 {
-    static const char *value() {
-        return detail::npy_format_descriptor<T>::format_str();
+    static const char *format() {
+        return detail::npy_format_descriptor<T>::format();
     }
 };
 
@@ -231,8 +231,8 @@ template <typename T> struct npy_format_descriptor
         return object(descr_(), true);
     }
 
-    static const char* format_str() {
-        return format_str_();
+    static const char* format() {
+        return format_();
     }
 
     static void register_dtype(std::initializer_list<field_descriptor> fields) {
@@ -256,7 +256,7 @@ template <typename T> struct npy_format_descriptor
         if (auto arr = (object) empty(int_(0), object(descr(), true)))
             if (auto view = PyMemoryView_FromObject(arr.ptr()))
                 if (auto info = PyMemoryView_GET_BUFFER(view)) {
-                    std::strncpy(format_str_(), info->format, 4096);
+                    std::strncpy(format_(), info->format, 4096);
                     return;
                 }
         pybind11_fail("NumPy: failed to extract buffer format");
@@ -264,7 +264,7 @@ template <typename T> struct npy_format_descriptor
 
 private:
     static inline PyObject*& descr_() { static PyObject *ptr = nullptr; return ptr; }
-    static inline char* format_str_() { static char s[4096]; return s; }
+    static inline char* format_() { static char s[4096]; return s; }
 };
 
 #define FIELD_DESCRIPTOR(Type, Field) \
@@ -480,7 +480,7 @@ struct vectorize_helper {
             return cast(f(*((Args *) buffers[Index].ptr)...));
 
         array result(buffer_info(nullptr, sizeof(Return),
-                     format_descriptor<Return>::value(),
+                     format_descriptor<Return>::format(),
             ndim, shape, strides));
 
         buffer_info buf = result.request();

@@ -1224,12 +1224,12 @@ completely avoid copy operations with Python expressions like
     py::class_<Matrix>(m, "Matrix")
        .def_buffer([](Matrix &m) -> py::buffer_info {
             return py::buffer_info(
-                m.data(),                              /* Pointer to buffer */
-                sizeof(float),                         /* Size of one scalar */
-                py::format_descriptor<float>::value(), /* Python struct-style format descriptor */
-                2,                                     /* Number of dimensions */
-                { m.rows(), m.cols() },                /* Buffer dimensions */
-                { sizeof(float) * m.rows(),            /* Strides (in bytes) for each index */
+                m.data(),                               /* Pointer to buffer */
+                sizeof(float),                          /* Size of one scalar */
+                py::format_descriptor<float>::format(), /* Python struct-style format descriptor */
+                2,                                      /* Number of dimensions */
+                { m.rows(), m.cols() },                 /* Buffer dimensions */
+                { sizeof(float) * m.rows(),             /* Strides (in bytes) for each index */
                   sizeof(float) }
             );
         });
@@ -1273,7 +1273,7 @@ buffer objects (e.g. a NumPy matrix).
             py::buffer_info info = b.request();
 
             /* Some sanity checks ... */
-            if (info.format != py::format_descriptor<Scalar>::value())
+            if (info.format != py::format_descriptor<Scalar>::format())
                 throw std::runtime_error("Incompatible format: expected a double array!");
 
             if (info.ndim != 2)
@@ -1299,7 +1299,7 @@ as follows:
             m.data(),                /* Pointer to buffer */
             sizeof(Scalar),          /* Size of one scalar */
             /* Python struct-style format descriptor */
-            py::format_descriptor<Scalar>::value(),
+            py::format_descriptor<Scalar>::format(),
             /* Number of dimensions */
             2,
             /* Buffer dimensions */
@@ -1439,7 +1439,7 @@ simply using ``vectorize``).
         auto result = py::array(py::buffer_info(
             nullptr,            /* Pointer to data (nullptr -> ask NumPy to allocate!) */
             sizeof(double),     /* Size of one item */
-            py::format_descriptor<double>::value, /* Buffer format */
+            py::format_descriptor<double>::format(), /* Buffer format */
             buf1.ndim,          /* How many dimensions? */
             { buf1.shape[0] },  /* Number of elements for each dimension */
             { sizeof(double) }  /* Strides for each dimension */
@@ -1830,4 +1830,3 @@ is always ``none``).
 
     // Evaluate the statements in an separate Python file on disk
     py::eval_file("script.py", scope);
-

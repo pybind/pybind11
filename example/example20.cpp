@@ -47,7 +47,7 @@ std::ostream& operator<<(std::ostream& os, const NestedStruct& v) {
 template <typename T>
 py::array mkarray_via_buffer(size_t n) {
     return py::array(py::buffer_info(nullptr, sizeof(T),
-                                     py::format_descriptor<T>::value(),
+                                     py::format_descriptor<T>::format(),
                                      1, { n }, { sizeof(T) }));
 }
 
@@ -80,9 +80,9 @@ void print_recarray(py::array_t<S> arr) {
 }
 
 void print_format_descriptors() {
-    std::cout << py::format_descriptor<SimpleStruct>::value() << std::endl;
-    std::cout << py::format_descriptor<PackedStruct>::value() << std::endl;
-    std::cout << py::format_descriptor<NestedStruct>::value() << std::endl;
+    std::cout << py::format_descriptor<SimpleStruct>::format() << std::endl;
+    std::cout << py::format_descriptor<PackedStruct>::format() << std::endl;
+    std::cout << py::format_descriptor<NestedStruct>::format() << std::endl;
 }
 
 void print_dtypes() {
