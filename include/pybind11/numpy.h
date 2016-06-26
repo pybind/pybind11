@@ -267,7 +267,7 @@ private:
     static inline char* format_() { static char s[4096]; return s; }
 };
 
-#define FIELD_DESCRIPTOR(Type, Field) \
+#define PB11_IMPL_FIELD_DESCRIPTOR(Type, Field) \
     ::pybind11::detail::field_descriptor { \
         #Field, offsetof(Type, Field), \
         ::pybind11::detail::npy_format_descriptor<decltype(static_cast<Type*>(0)->Field)>::descr() \
@@ -298,7 +298,7 @@ private:
 
 #define PYBIND11_DTYPE(Type, ...) \
     ::pybind11::detail::npy_format_descriptor<Type>::register_dtype \
-        ({PB11_IMPL_MAP_LIST(FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
+        ({PB11_IMPL_MAP_LIST(PB11_IMPL_FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
 
 template  <class T>
 using array_iterator = typename std::add_pointer<T>::type;
