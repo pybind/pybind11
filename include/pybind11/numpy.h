@@ -234,6 +234,8 @@ template <typename T> struct npy_format_descriptor
     }
 
     static const char* format() {
+        if (!dtype_())
+            pybind11_fail("NumPy: unsupported buffer format!");
         return format_();
     }
 
