@@ -23,7 +23,19 @@
 #endif
 
 NAMESPACE_BEGIN(pybind11)
-namespace detail { template <typename type, typename SFINAE = void> struct npy_format_descriptor { }; }
+namespace detail {
+template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
+
+template <typename T>
+struct is_pod_struct {
+    enum { value = std::is_pod<T>::value && // offsetof only works correctly for POD types
+           !std::is_integral<T>::value &&
+           !std::is_same<T, float>::value &&
+           !std::is_same<T, bool>::value &&
+           !std::is_same<T, std::complex<float>>::value &&
+           !std::is_same<T, std::complex<double>>::value };
+};
+}
 
 class array : public buffer {
 public:
@@ -156,14 +168,8 @@ public:
     }
 };
 
-template <typename T> struct format_descriptor
-<T, typename std::enable_if<std::is_pod<T>::value &&
-                            !std::is_integral<T>::value &&
-                            !std::is_same<T, float>::value &&
-                            !std::is_same<T, bool>::value &&
-                            !std::is_same<T, std::complex<float>>::value &&
-                            !std::is_same<T, std::complex<double>>::value>::type>
-{
+template <typename T>
+struct format_descriptor<T, typename std::enable_if<detail::is_pod_struct<T>::value>::type> {
     static const char *format() {
         return detail::npy_format_descriptor<T>::format();
     }
@@ -217,13 +223,8 @@ struct field_descriptor {
     object descr;
 };
 
-template <typename T> struct npy_format_descriptor
-<T, typename std::enable_if<std::is_pod<T>::value && // offsetof only works correctly for POD types
-                            !std::is_integral<T>::value &&
-                            !std::is_same<T, float>::value &&
-                            !std::is_same<T, bool>::value &&
-                            !std::is_same<T, std::complex<float>>::value &&
-                            !std::is_same<T, std::complex<double>>::value>::type>
+template <typename T>
+struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type>
 {
     static PYBIND11_DESCR name() { return _("user-defined"); }
 
