@@ -224,8 +224,7 @@ struct field_descriptor {
 };
 
 template <typename T>
-struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type>
-{
+struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type> {
     static PYBIND11_DESCR name() { return _("user-defined"); }
 
     static object dtype() {
