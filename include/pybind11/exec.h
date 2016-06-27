@@ -1,7 +1,7 @@
 /*
-    pybind11/exec.h: Functions to execute python from C++. Blatantly stolen from boost.python.
+    pybind11/exec.h: Functions to execute python from C++. Based on code from boost.python.
 
-    Copyright (c) 2016 Klemens D. Morgenstern <klemens.morgenstern@gmx.net>
+    Copyright (c) 2005 Stefan Seefeld
 
     This code is based on the boost.python implementation, so a different license applies to this file.
 
