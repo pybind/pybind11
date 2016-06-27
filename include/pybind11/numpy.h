@@ -292,8 +292,15 @@ private:
 #define PB11_IMPL_MAP_NEXT0(test, next, ...) next PB11_IMPL_MAP_OUT
 #define PB11_IMPL_MAP_NEXT1(test, next) PB11_IMPL_MAP_NEXT0 (test, next, 0)
 #define PB11_IMPL_MAP_NEXT(test, next)  PB11_IMPL_MAP_NEXT1 (PB11_IMPL_MAP_GET_END test, next)
-#define PB11_IMPL_MAP_LIST_NEXT1(test, next) PB11_IMPL_MAP_NEXT0 (test, PB11_IMPL_MAP_COMMA next, 0)
-#define PB11_IMPL_MAP_LIST_NEXT(test, next)  PB11_IMPL_MAP_LIST_NEXT1 (PB11_IMPL_MAP_GET_END test, next)
+#ifdef _MSC_VER
+#define PB11_IMPL_MAP_LIST_NEXT1(test, next) \
+    PB11_IMPL_EVAL0 (PB11_IMPL_MAP_NEXT0 (test, PB11_IMPL_MAP_COMMA next, 0))
+#else
+#define PB11_IMPL_MAP_LIST_NEXT1(test, next) \
+    PB11_IMPL_MAP_NEXT0 (test, PB11_IMPL_MAP_COMMA next, 0)
+#endif
+#define PB11_IMPL_MAP_LIST_NEXT(test, next) \
+    PB11_IMPL_MAP_LIST_NEXT1 (PB11_IMPL_MAP_GET_END test, next)
 #define PB11_IMPL_MAP_LIST0(f, t, x, peek, ...) \
     f(t, x) PB11_IMPL_MAP_LIST_NEXT (peek, PB11_IMPL_MAP_LIST1) (f, t, peek, __VA_ARGS__)
 #define PB11_IMPL_MAP_LIST1(f, t, x, peek, ...) \
