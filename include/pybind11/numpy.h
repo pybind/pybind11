@@ -271,7 +271,7 @@ private:
     static inline char* format_() { static char s[4096]; return s; }
 };
 
-#define PB11_IMPL_FIELD_DESCRIPTOR(Type, Field) \
+#define PYBIND11_FIELD_DESCRIPTOR(Type, Field) \
     ::pybind11::detail::field_descriptor { \
         #Field, offsetof(Type, Field), \
         ::pybind11::detail::npy_format_descriptor<decltype(static_cast<Type*>(0)->Field)>::dtype() \
@@ -279,37 +279,38 @@ private:
 
 // The main idea of this macro is borrowed from https://github.com/swansontec/map-macro
 // (C) William Swanson, Paul Fultz
-#define PB11_IMPL_EVAL0(...) __VA_ARGS__
-#define PB11_IMPL_EVAL1(...) PB11_IMPL_EVAL0 (PB11_IMPL_EVAL0 (PB11_IMPL_EVAL0 (__VA_ARGS__)))
-#define PB11_IMPL_EVAL2(...) PB11_IMPL_EVAL1 (PB11_IMPL_EVAL1 (PB11_IMPL_EVAL1 (__VA_ARGS__)))
-#define PB11_IMPL_EVAL3(...) PB11_IMPL_EVAL2 (PB11_IMPL_EVAL2 (PB11_IMPL_EVAL2 (__VA_ARGS__)))
-#define PB11_IMPL_EVAL4(...) PB11_IMPL_EVAL3 (PB11_IMPL_EVAL3 (PB11_IMPL_EVAL3 (__VA_ARGS__)))
-#define PB11_IMPL_EVAL(...)  PB11_IMPL_EVAL4 (PB11_IMPL_EVAL4 (PB11_IMPL_EVAL4 (__VA_ARGS__)))
-#define PB11_IMPL_MAP_END(...)
-#define PB11_IMPL_MAP_OUT
-#define PB11_IMPL_MAP_COMMA ,
-#define PB11_IMPL_MAP_GET_END() 0, PB11_IMPL_MAP_END
-#define PB11_IMPL_MAP_NEXT0(test, next, ...) next PB11_IMPL_MAP_OUT
-#define PB11_IMPL_MAP_NEXT1(test, next) PB11_IMPL_MAP_NEXT0 (test, next, 0)
-#define PB11_IMPL_MAP_NEXT(test, next)  PB11_IMPL_MAP_NEXT1 (PB11_IMPL_MAP_GET_END test, next)
-#ifdef _MSC_VER
-#define PB11_IMPL_MAP_LIST_NEXT1(test, next) \
-    PB11_IMPL_EVAL0 (PB11_IMPL_MAP_NEXT0 (test, PB11_IMPL_MAP_COMMA next, 0))
+#define PYBIND11_EVAL0(...) __VA_ARGS__
+#define PYBIND11_EVAL1(...) PYBIND11_EVAL0 (PYBIND11_EVAL0 (PYBIND11_EVAL0 (__VA_ARGS__)))
+#define PYBIND11_EVAL2(...) PYBIND11_EVAL1 (PYBIND11_EVAL1 (PYBIND11_EVAL1 (__VA_ARGS__)))
+#define PYBIND11_EVAL3(...) PYBIND11_EVAL2 (PYBIND11_EVAL2 (PYBIND11_EVAL2 (__VA_ARGS__)))
+#define PYBIND11_EVAL4(...) PYBIND11_EVAL3 (PYBIND11_EVAL3 (PYBIND11_EVAL3 (__VA_ARGS__)))
+#define PYBIND11_EVAL(...)  PYBIND11_EVAL4 (PYBIND11_EVAL4 (PYBIND11_EVAL4 (__VA_ARGS__)))
+#define PYBIND11_MAP_END(...)
+#define PYBIND11_MAP_OUT
+#define PYBIND11_MAP_COMMA ,
+#define PYBIND11_MAP_GET_END() 0, PYBIND11_MAP_END
+#define PYBIND11_MAP_NEXT0(test, next, ...) next PYBIND11_MAP_OUT
+#define PYBIND11_MAP_NEXT1(test, next) PYBIND11_MAP_NEXT0 (test, next, 0)
+#define PYBIND11_MAP_NEXT(test, next)  PYBIND11_MAP_NEXT1 (PYBIND11_MAP_GET_END test, next)
+#ifdef _MSC_VER // MSVC is not as eager to expand macros
+#define PYBIND11_MAP_LIST_NEXT1(test, next) \
+    PYBIND11_EVAL0 (PYBIND11_MAP_NEXT0 (test, PYBIND11_MAP_COMMA next, 0))
 #else
-#define PB11_IMPL_MAP_LIST_NEXT1(test, next) \
-    PB11_IMPL_MAP_NEXT0 (test, PB11_IMPL_MAP_COMMA next, 0)
+#define PYBIND11_MAP_LIST_NEXT1(test, next) \
+    PYBIND11_MAP_NEXT0 (test, PYBIND11_MAP_COMMA next, 0)
 #endif
-#define PB11_IMPL_MAP_LIST_NEXT(test, next) \
-    PB11_IMPL_MAP_LIST_NEXT1 (PB11_IMPL_MAP_GET_END test, next)
-#define PB11_IMPL_MAP_LIST0(f, t, x, peek, ...) \
-    f(t, x) PB11_IMPL_MAP_LIST_NEXT (peek, PB11_IMPL_MAP_LIST1) (f, t, peek, __VA_ARGS__)
-#define PB11_IMPL_MAP_LIST1(f, t, x, peek, ...) \
-    f(t, x) PB11_IMPL_MAP_LIST_NEXT (peek, PB11_IMPL_MAP_LIST0) (f, t, peek, __VA_ARGS__)
-#define PB11_IMPL_MAP_LIST(f, t, ...) PB11_IMPL_EVAL (PB11_IMPL_MAP_LIST1 (f, t, __VA_ARGS__, (), 0))
+#define PYBIND11_MAP_LIST_NEXT(test, next) \
+    PYBIND11_MAP_LIST_NEXT1 (PYBIND11_MAP_GET_END test, next)
+#define PYBIND11_MAP_LIST0(f, t, x, peek, ...) \
+    f(t, x) PYBIND11_MAP_LIST_NEXT (peek, PYBIND11_MAP_LIST1) (f, t, peek, __VA_ARGS__)
+#define PYBIND11_MAP_LIST1(f, t, x, peek, ...) \
+    f(t, x) PYBIND11_MAP_LIST_NEXT (peek, PYBIND11_MAP_LIST0) (f, t, peek, __VA_ARGS__)
+#define PYBIND11_MAP_LIST(f, t, ...) \
+    PYBIND11_EVAL (PYBIND11_MAP_LIST1 (f, t, __VA_ARGS__, (), 0))
 
 #define PYBIND11_DTYPE(Type, ...) \
     ::pybind11::detail::npy_format_descriptor<Type>::register_dtype \
-        ({PB11_IMPL_MAP_LIST(PB11_IMPL_FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
+        ({PYBIND11_MAP_LIST (PYBIND11_FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
 
 template  <class T>
 using array_iterator = typename std::add_pointer<T>::type;
