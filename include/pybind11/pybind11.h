@@ -1004,7 +1004,7 @@ template <typename... Args> struct init {
               typename std::enable_if<!std::is_same<Base, Alias>::value &&
                                       !std::is_constructible<Base, Args...>::value, int>::type = 0>
     void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
-        class_.def("__init__", [](Alias *self, Args... args) { new (self) Alias(args...); }, extra...);
+        class_.def("__init__", [](Alias *self_, Args... args) { new (self_) Alias(args...); }, extra...);
     }
 };
 
