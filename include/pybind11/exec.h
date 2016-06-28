@@ -39,7 +39,7 @@ NAMESPACE_BEGIN(pybind11)
 
 
 
-inline object eval (const std:string & st, object global = object(), object local = object()) {
+inline object eval (const std::string& st, object global = object(), object local = object()) {
     if (!global) {
         if (PyObject *g = PyEval_GetGlobals())
             global = object(g, true);
@@ -57,7 +57,7 @@ inline object eval (const std:string & st, object global = object(), object loca
     return {res, false};
 }
 
-inline object exec (const std:string & st, object global = object(), object local = object()) {
+inline object exec (const std::string& st, object global = object(), object local = object()) {
     if (!global) {
         if (PyObject *g = PyEval_GetGlobals())
             global = object(g, true);
@@ -75,7 +75,7 @@ inline object exec (const std:string & st, object global = object(), object loca
     return {res, false};
 }
 
-inline object exec_statement (const std:string & st, object global = object(), object local = object()) {
+inline object exec_statement (const std::string& st, object global = object(), object local = object()) {
     if (!global) {
         if (PyObject *g = PyEval_GetGlobals())
             global = object(g, true);
@@ -92,7 +92,7 @@ inline object exec_statement (const std:string & st, object global = object(), o
     return {res, false};
 }
 
-inline object exec_file(const std:string & f, object global = object(), object local = object()) {
+inline object exec_file(const std::string& f, object global = object(), object local = object()) {
     // Set suitable default values for global and local dicts.
     if (!global) {
         if (PyObject *g = PyEval_GetGlobals())
@@ -135,18 +135,18 @@ inline object exec_file(const std:string & f, object global = object(), object l
 
 }
 
-inline object exec (( &string, object global = object(), object local = object()) {
+inline object exec (str string, object global = object(), object local = object()) {
     return exec(static_cast<std::string>(string), global, local);
 }
 
-inline object eval (( string, object global = object(), object local = object()) {
+inline object eval (str string, object global = object(), object local = object()) {
     return eval(static_cast<std::string>(string), global, local);
 }
 
-inline object exec_file(( filename, object global = object(), object local = object()) {
+inline object exec_file(str filename, object global = object(), object local = object()) {
     return exec_file(static_cast<std::string>(filename), global, local);
 }
-inline object exec_statement (( string, object global = object(), object local = object()) {
+inline object exec_statement (str string, object global = object(), object local = object()) {
     return exec_statement(static_cast<std::string>(string), global, local);
 }
 
