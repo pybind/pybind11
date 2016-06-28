@@ -92,7 +92,7 @@ inline object exec_statement (const std::string& st, object global = object(), o
     return {res, false};
 }
 
-inline object exec_file(const std::string& f, object global = object(), object local = object()) {
+inline object exec_file(const std::string& filename, object global = object(), object local = object()) {
     // Set suitable default values for global and local dicts.
     if (!global) {
         if (PyObject *g = PyEval_GetGlobals())
@@ -101,6 +101,9 @@ inline object exec_file(const std::string& f, object global = object(), object l
         global = dict();
     }
     if (!local) local = global;
+
+    std::string f = filename; //need to copy for the signature of PyFile_FromString
+
 
     // Let python open the file to avoid potential binary incompatibilities.
 #if PY_VERSION_HEX >= 0x03040000
