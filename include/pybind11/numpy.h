@@ -123,20 +123,29 @@ public:
         PyObject *arr = nullptr, *descr = nullptr;
         int ndim = 0;
         Py_ssize_t dims[32];
+        API& api = lookup_api();
 
-        // allocate zeroed memory if it hasn't been provided
+        // Allocate zeroed memory if it hasn't been provided by the caller.
+        // Normally, we could leave this null for NumPy to allocate memory for us, but
+        // since we need a memoryview, the data pointer has to be non-null. NumPy uses
+        // malloc if NPY_NEEDS_INIT is not set (in which case it uses calloc); however,
+        // we don't have a descriptor yet (only a buffer format string), so we can't
+        // access the flags. The safest thing to do is thus to use calloc.
         auto buf_info = info;
         if (!buf_info.ptr)
             // always allocate at least 1 element, same way as NumPy does it
             buf_info.ptr = std::calloc(std::max(info.size, 1ul), info.itemsize);
         if (!buf_info.ptr)
             pybind11_fail("NumPy: failed to allocate memory for buffer");
-        auto view = memoryview(buf_info);
 
-        API& api = lookup_api();
+        // PyArray_GetArrayParamsFromObject seems to be the only low-level API function
+        // that will accept arbitrary buffers (including structured types)
+        auto view = memoryview(buf_info);
         auto res = api.PyArray_GetArrayParamsFromObject_(view.ptr(), nullptr, 1, &descr,
                                                          &ndim, dims, &arr, nullptr);
         if (res < 0 || !arr || descr)
+            // We expect arr to have a pointer to a newly created array, in which case all
+            // other parameters like descr would be set to null, according to the API.
             pybind11_fail("NumPy: unable to convert buffer to an array");
         m_ptr = arr;
     }
@@ -161,7 +170,8 @@ public:
             return nullptr;
         API &api = lookup_api();
         PyObject *descr = detail::npy_format_descriptor<T>::dtype().release().ptr();
-        PyObject *result = api.PyArray_FromAny_(ptr, descr, 0, 0, API::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
+        PyObject *result = api.PyArray_FromAny_(ptr, descr, 0, 0,
+                                                API::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
         if (!result)
             PyErr_Clear();
         Py_DECREF(ptr);
@@ -254,8 +264,11 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
         args["names"] = names;
         args["offsets"] = offsets;
         args["formats"] = formats;
+        // This is essentially the same as calling np.dtype() constructor in Python and passing
+        // it a dict of the form {'names': ..., 'formats': ..., 'offsets': ...}.
         if (!api.PyArray_DescrConverter_(args.release().ptr(), &dtype_()) || !dtype_())
             pybind11_fail("NumPy: failed to create structured dtype");
+        // Let NumPy figure the buffer format string for us: memoryview(np.empty(0, dtype)).format
         auto np = module::import("numpy");
         auto empty = (object) np.attr("empty");
         if (auto arr = (object) empty(int_(0), dtype())) {
@@ -274,6 +287,7 @@ private:
     static inline char* format_() { static char s[4096]; return s; }
 };
 
+// Extract name, offset and format descriptor for a struct field
 #define PYBIND11_FIELD_DESCRIPTOR(Type, Field) \
     ::pybind11::detail::field_descriptor { \
         #Field, offsetof(Type, Field), \
@@ -295,7 +309,7 @@ private:
 #define PYBIND11_MAP_NEXT0(test, next, ...) next PYBIND11_MAP_OUT
 #define PYBIND11_MAP_NEXT1(test, next) PYBIND11_MAP_NEXT0 (test, next, 0)
 #define PYBIND11_MAP_NEXT(test, next)  PYBIND11_MAP_NEXT1 (PYBIND11_MAP_GET_END test, next)
-#ifdef _MSC_VER // MSVC is not as eager to expand macros
+#ifdef _MSC_VER // MSVC is not as eager to expand macros, hence this workaround
 #define PYBIND11_MAP_LIST_NEXT1(test, next) \
     PYBIND11_EVAL0 (PYBIND11_MAP_NEXT0 (test, PYBIND11_MAP_COMMA next, 0))
 #else
@@ -308,6 +322,7 @@ private:
     f(t, x) PYBIND11_MAP_LIST_NEXT (peek, PYBIND11_MAP_LIST1) (f, t, peek, __VA_ARGS__)
 #define PYBIND11_MAP_LIST1(f, t, x, peek, ...) \
     f(t, x) PYBIND11_MAP_LIST_NEXT (peek, PYBIND11_MAP_LIST0) (f, t, peek, __VA_ARGS__)
+// PYBIND11_MAP_LIST(f, t, a1, a2, ...) expands to f(t, a1), f(t, a2), ...
 #define PYBIND11_MAP_LIST(f, t, ...) \
     PYBIND11_EVAL (PYBIND11_MAP_LIST1 (f, t, __VA_ARGS__, (), 0))
 
