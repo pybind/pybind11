@@ -127,7 +127,8 @@ public:
         // allocate zeroed memory if it hasn't been provided
         auto buf_info = info;
         if (!buf_info.ptr)
-            buf_info.ptr = std::calloc(info.size, info.itemsize);
+            // always allocate at least 1 element, same way as NumPy does it
+            buf_info.ptr = std::calloc(std::max(info.size, 1ul), info.itemsize);
         if (!buf_info.ptr)
             pybind11_fail("NumPy: failed to allocate memory for buffer");
         auto view = memoryview(buf_info);
