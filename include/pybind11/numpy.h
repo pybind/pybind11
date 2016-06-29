@@ -31,6 +31,7 @@ struct is_pod_struct {
     enum { value = std::is_pod<T>::value && // offsetof only works correctly for POD types
            !std::is_integral<T>::value &&
            !std::is_same<T, float>::value &&
+           !std::is_same<T, double>::value &&
            !std::is_same<T, bool>::value &&
            !std::is_same<T, std::complex<float>>::value &&
            !std::is_same<T, std::complex<double>>::value };
