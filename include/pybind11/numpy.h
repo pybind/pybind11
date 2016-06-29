@@ -257,12 +257,14 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
             pybind11_fail("NumPy: failed to create structured dtype");
         auto np = module::import("numpy");
         auto empty = (object) np.attr("empty");
-        if (auto arr = (object) empty(int_(0), dtype()))
-            if (auto view = PyMemoryView_FromObject(arr.ptr()))
+        if (auto arr = (object) empty(int_(0), dtype())) {
+            if (auto view = PyMemoryView_FromObject(arr.ptr())) {
                 if (auto info = PyMemoryView_GET_BUFFER(view)) {
                     std::strncpy(format_(), info->format, 4096);
                     return;
                 }
+            }
+        }
         pybind11_fail("NumPy: failed to extract buffer format");
     }
 
