@@ -12,7 +12,11 @@ certain limitations:
 - Multiple inheritance relationships on the C++ side cannot be mapped to
   Python.
 
-Both of these features could be implemented but would lead to a significant
+- The NumPy interface ``pybind11::array`` greatly simplifies accessing
+  numerical data from C++ (and vice versa), but it's not a full-blown array
+  class like ``Eigen::Array`` or ``boost.multi_array``.
+
+All of these features could be implemented but would lead to a significant
 increase in complexity. I've decided to draw the line here to keep this project
 simple and compact. Users who absolutely require these features are encouraged
 to fork pybind11.
