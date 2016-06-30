@@ -468,7 +468,7 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 | :enum:`return_value_policy::take_ownership`      | Reference an existing object (i.e. do not create a new copy) and take      |
 |                                                  | ownership. Python will call the destructor and delete operator when the    |
 |                                                  | object's reference count reaches zero. Undefined behavior ensues when the  |
-|                                                  | C++ side does the same..                                                   |
+|                                                  | C++ side does the same.                                                   |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::copy`                | Create a new copy of the returned object, which will be owned by Python.   |
 |                                                  | This policy is comparably safe because the lifetimes of the two instances  |
@@ -525,6 +525,15 @@ The following example snippet shows a use case of the
     data structures multiple times, which can lead to hard-to-debug
     non-determinism and segmentation faults, hence it is worth spending the
     time to understand all the different options in the table above.
+
+.. warning::
+
+    pybind11 tries to eliminate duplicate addresses by returning the same reference object.
+    If two addresses are the same, though they do not point to the same object semantically,
+    this may cause unexpected behaviour. An explicit policy should be used instead of
+    relying on `automatic`.
+    A common example is a reference to the first member of a class which has the same memory
+    location as its owning class.
 
 .. note::
 
