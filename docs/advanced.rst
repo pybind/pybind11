@@ -617,6 +617,11 @@ Python side:
 
     py::implicitly_convertible<A, B>();
 
+.. note::
+
+    Implicit conversions from ``A`` to ``B`` only work when ``B`` is a custom
+    data type that is exposed to Python via pybind11.
+
 .. _static_properties:
 
 Static properties
