@@ -126,11 +126,11 @@ void init_issues(py::module &m) {
 
     auto call_f = [](A *a) { a->f(); };
 
-	pybind11::class_<A, std::unique_ptr<A>, PyA>(m2, "A")
-	    .def(py::init<>())
-	    .def("f", &A::f);
+    pybind11::class_<A, std::unique_ptr<A>, PyA>(m2, "A")
+        .def(py::init<>())
+        .def("f", &A::f);
 
-	 m2.def("call_f", call_f);
+    m2.def("call_f", call_f);
 
     try {
         py::class_<Placeholder>(m2, "Placeholder");
