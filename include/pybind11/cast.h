@@ -807,8 +807,14 @@ NAMESPACE_END(detail)
 template <typename T> T cast(handle handle) {
     typedef detail::type_caster<typename detail::intrinsic_type<T>::type> type_caster;
     type_caster conv;
-    if (!conv.load(handle, true))
-        throw cast_error("Unable to cast Python object to C++ type");
+    if (!conv.load(handle, true)) {
+#if defined(NDEBUG)
+        throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
+#else
+        throw cast_error("Unable to cast Python instance of type " +
+            (std::string) handle.get_type().str() + " to C++ type '" + type_id<T>() + "''");
+#endif
+    }
     return conv.operator typename type_caster::template cast_op_type<T>();
 }
 
