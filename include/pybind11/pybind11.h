@@ -887,7 +887,7 @@ private:
     template <typename T>
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
         try {
-            new (&inst->holder) holder_type(std::static_pointer_cast<type>(inst->value->shared_from_this()));
+            new (&inst->holder) holder_type(std::static_pointer_cast<typename holder_type::element_type>(inst->value->shared_from_this()));
         } catch (const std::bad_weak_ptr &) {
             new (&inst->holder) holder_type(inst->value);
         }
