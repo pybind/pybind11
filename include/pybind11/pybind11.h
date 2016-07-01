@@ -387,7 +387,7 @@ protected:
                     if ((kwargs_consumed == nkwargs || it->has_kwargs) &&
                         (nargs_ == it->nargs || it->has_args))
                         result = it->impl(it, args_, kwargs, parent);
-                } catch (cast_error &) {
+                } catch (reference_cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
 

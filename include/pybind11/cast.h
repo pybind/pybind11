@@ -254,7 +254,7 @@ public:
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
     operator type*() { return (type *) value; }
-    operator type&() { if (!value) throw cast_error(); return *((type *) value); }
+    operator type&() { if (!value) throw reference_cast_error(); return *((type *) value); }
 
 protected:
     typedef void *(*Constructor)(const void *stream);
