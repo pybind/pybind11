@@ -838,9 +838,16 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
         { object(detail::type_caster<typename detail::intrinsic_type<Args>::type>::cast(
             std::forward<Args>(args_), policy, nullptr), false)... }
     };
-    for (auto &arg_value : args)
-        if (!arg_value)
-            throw cast_error("make_tuple(): unable to convert arguments to Python objects");
+    for (auto &arg_value : args) {
+        if (!arg_value) {
+#if defined(NDEBUG)
+            throw cast_error("make_tuple(): unable to convert arguments to Python object (compile in debug mode for details)");
+#else
+            throw cast_error("make_tuple(): unable to convert arguments of types '" +
+                (std::string) type_id<std::tuple<Args...>>() + "' to Python object");
+#endif
+        }
+    }
     tuple result(size);
     int counter = 0;
     for (auto &arg_value : args)
