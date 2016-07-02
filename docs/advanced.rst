@@ -1362,7 +1362,7 @@ NumPy structured types
 ======================
 
 In order for ``py::array_t`` to work with structured (record) types, we first need
-to register the memory layout of the type. This could be done via ``PYBIND11_DTYPE``
+to register the memory layout of the type. This can be done via ``PYBIND11_DTYPE``
 macro which expects the type followed by field names:
 
 .. code-block:: cpp
