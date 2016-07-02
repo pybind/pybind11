@@ -327,7 +327,7 @@ private:
 #define PYBIND11_MAP_LIST(f, t, ...) \
     PYBIND11_EVAL (PYBIND11_MAP_LIST1 (f, t, __VA_ARGS__, (), 0))
 
-#define PYBIND11_DTYPE(Type, ...) \
+#define PYBIND11_NUMPY_DTYPE(Type, ...) \
     ::pybind11::detail::npy_format_descriptor<Type>::register_dtype \
         ({PYBIND11_MAP_LIST (PYBIND11_FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
 

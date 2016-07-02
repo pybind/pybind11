@@ -101,9 +101,9 @@ void print_dtypes() {
 }
 
 void init_ex20(py::module &m) {
-    PYBIND11_DTYPE(SimpleStruct, x, y, z);
-    PYBIND11_DTYPE(PackedStruct, x, y, z);
-    PYBIND11_DTYPE(NestedStruct, a, b);
+    PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z);
+    PYBIND11_NUMPY_DTYPE(PackedStruct, x, y, z);
+    PYBIND11_NUMPY_DTYPE(NestedStruct, a, b);
 
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
