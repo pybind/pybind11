@@ -1358,6 +1358,30 @@ template paramenter, and it ensures that non-conforming arguments are converted
 into an array satisfying the specified requirements instead of trying the next
 function overload.
 
+NumPy structured types
+======================
+
+In order for ``py::array_t`` to work with structured (record) types, we first need
+to register the memory layout of the type. This could be done via ``PYBIND11_DTYPE``
+macro which expects the type followed by field names:
+
+.. code-block:: cpp
+
+    struct A {
+        int x;
+        double y;
+    };
+
+    struct B {
+        int z;
+        A a;
+    };
+
+    PYBIND11_DTYPE(A, x, y);
+    PYBIND11_DTYPE(B, z, a);
+
+    /* now both A and B can be used as template arguments to py::array_t */
+
 Vectorizing functions
 =====================
 
