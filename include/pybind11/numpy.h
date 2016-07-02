@@ -135,7 +135,7 @@ public:
         auto buf_info = info;
         if (!buf_info.ptr)
             // always allocate at least 1 element, same way as NumPy does it
-            buf_info.ptr = std::calloc(std::max(info.size, 1ul), info.itemsize);
+            buf_info.ptr = std::calloc(std::max(info.size, (size_t) 1), info.itemsize);
         if (!buf_info.ptr)
             pybind11_fail("NumPy: failed to allocate memory for buffer");
 
