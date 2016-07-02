@@ -126,16 +126,17 @@ public:
         Py_ssize_t dims[32];
         API& api = lookup_api();
 
-        // Allocate zeroed memory if it hasn't been provided by the caller.
+        // Allocate non-zeroed memory if it hasn't been provided by the caller.
         // Normally, we could leave this null for NumPy to allocate memory for us, but
         // since we need a memoryview, the data pointer has to be non-null. NumPy uses
         // malloc if NPY_NEEDS_INIT is not set (in which case it uses calloc); however,
-        // we don't have a descriptor yet (only a buffer format string), so we can't
-        // access the flags. The safest thing to do is thus to use calloc.
+        // we don't have a desriptor yet (only a buffer format string), so we can't
+        // access the flags. As long as we're not dealing with object dtypes/fields
+        // though, the memory doesn't have to be zeroed so we use malloc.
         auto buf_info = info;
         if (!buf_info.ptr)
             // always allocate at least 1 element, same way as NumPy does it
-            buf_info.ptr = std::calloc(std::max(info.size, (size_t) 1), info.itemsize);
+            buf_info.ptr = std::malloc(std::max(info.size, (size_t) 1) * info.itemsize);
         if (!buf_info.ptr)
             pybind11_fail("NumPy: failed to allocate memory for buffer");
 
