@@ -232,7 +232,7 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
 
 struct field_descriptor {
     const char *name;
-    int offset;
+    size_t offset;
     object descr;
 };
 
