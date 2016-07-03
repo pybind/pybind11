@@ -266,6 +266,7 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
         args["names"] = names;
         args["offsets"] = offsets;
         args["formats"] = formats;
+        args["itemsize"] = int_(sizeof(T));
         // This is essentially the same as calling np.dtype() constructor in Python and passing
         // it a dict of the form {'names': ..., 'formats': ..., 'offsets': ...}.
         if (!api.PyArray_DescrConverter_(args.release().ptr(), &dtype_()) || !dtype_())
