@@ -143,8 +143,6 @@ void init_ex_smart_ptr(py::module &m) {
     m.def("print_myobject3_3", &print_myobject3_3);
     m.def("print_myobject3_4", &print_myobject3_4);
 
-    py::implicitly_convertible<py::int_, MyObject1>();
-
     // Expose constructor stats for the ref type
     m.def("cstats_ref", &ConstructorStats::get<ref_tag>);
 }

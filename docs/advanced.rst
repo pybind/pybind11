@@ -714,7 +714,8 @@ Implicit type conversions
 
 Suppose that instances of two types ``A`` and ``B`` are used in a project, and
 that an ``A`` can easily be converted into an instance of type ``B`` (examples of this
-could be a fixed and an arbitrary precision number type).
+could be a fixed and an arbitrary precision number type) through a ``B`` constructor
+that accepts an ``A`` instance:
 
 .. code-block:: cpp
 
@@ -742,10 +743,51 @@ Python side:
 
     py::implicitly_convertible<A, B>();
 
-.. note::
+With this statement, our Python code can now call ``func(a)`` and have it
+treated as if we had written ``func(B(a))``.
 
-    Implicit conversions from ``A`` to ``B`` only work when ``B`` is a custom
-    data type that is exposed to Python via pybind11.
+pybind11 also supports converting from pybind11-registered types to
+non-registered types using implicit conversion at the C++ level.  If ``A`` is a
+pybind11-registered type but ``B`` is not, the registration above tells
+pybind11 that it is able to perform implicit conversion from an ``a`` variable
+containing an ``A`` instance to the ``B`` C++ type using C++ implicit
+conversion.  This allows you to make use of C++ implicit conversions, as in
+this example:
+
+.. code-block:: cpp
+
+    class A1 {
+        // ...
+        operator double () const { return 42.0; }
+    };
+    class A2 { /* ... */ }
+    class PrivateType {
+        PrivateType(const A2 &a2) { /* ... */ }
+        // ...
+    };
+
+    py::class_<A1>(m, "A1")
+        /// ... members ...
+    py::class_<A2>(m, "A2")
+        /// ... members ...
+    // Note: no py::class_<PrivateType>
+
+    py::implicitly_convertible<A1, double>();
+    py::implicitly_convertible<A2, PrivateType>();
+
+    m.def("square", [](double v) { return v*v; });
+    m.def("special", [](const PrivateType &p) { /* ... */ });
+
+With this registration in place, our python code can now call ``square(a)`` and
+``special(b)``; pybind11 will use C++ implicit conversion on ``a`` and ``b`` to
+call the functions with a ``double`` and a ``PrivateType`` (where PrivateType
+is not exposed via pybind11).
+
+.. seealso::
+
+    The file :file:`test/test_implicit_conversion.cpp` contains a complete
+    example that demonstrates how to use both types of implicit conversions in
+    more detail.
 
 .. _static_properties:
 

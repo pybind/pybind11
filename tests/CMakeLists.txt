@@ -10,6 +10,7 @@ set(PYBIND11_TEST_FILES
   test_enum.cpp
   test_eval.cpp
   test_exceptions.cpp
+  test_implicit_conversion.cpp
   test_inheritance.cpp
   test_issues.cpp
   test_keep_alive.cpp

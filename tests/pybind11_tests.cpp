@@ -29,6 +29,7 @@ void init_ex_inheritance(py::module &);
 void init_ex_stl_binder_vector(py::module &);
 void init_ex_eval(py::module &);
 void init_ex_custom_exceptions(py::module &);
+void init_ex_implicit_conversion(py::module &);
 void init_ex_numpy_dtypes(py::module &);
 void init_ex_enum(py::module &);
 void init_issues(py::module &);
@@ -74,6 +75,7 @@ PYBIND11_PLUGIN(pybind11_tests) {
     init_ex_stl_binder_vector(m);
     init_ex_eval(m);
     init_ex_custom_exceptions(m);
+    init_ex_implicit_conversion(m);
     init_ex_numpy_dtypes(m);
     init_ex_enum(m);
     init_issues(m);

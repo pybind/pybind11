@@ -271,6 +271,12 @@ struct overload_hash {
     }
 };
 
+struct implicit_conversion_cpp_functions {
+    std::vector<std::pair<PyTypeObject *, void *(*)(void *)>> constructors;
+    void (*destructor)(void *){nullptr};
+};
+
+
 /// Internal data struture used to track registered instances and types
 struct internals {
     std::unordered_map<std::type_index, void*> registered_types_cpp;   // std::type_index -> type_info
@@ -278,6 +284,7 @@ struct internals {
     std::unordered_multimap<const void *, void*> registered_instances; // void * -> PyObject*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
     std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
+    std::unordered_map<std::type_index, implicit_conversion_cpp_functions> implicit_conversions_cpp;
 #if defined(WITH_THREAD)
     decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
     PyInterpreterState *istate = nullptr;
