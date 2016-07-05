@@ -16,6 +16,13 @@ Eigen::VectorXf double_col(const Eigen::VectorXf& x)
 Eigen::RowVectorXf double_row(const Eigen::RowVectorXf& x)
 { return 2.0f * x; }
 
+Eigen::MatrixXf double_mat_cm(const Eigen::MatrixXf& x)
+{ return 2.0f * x; }
+
+typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixXfRowMajor;
+MatrixXfRowMajor double_mat_rm(const MatrixXfRowMajor& x)
+{ return 2.0f * x; }
+
 void init_eigen(py::module &m) {
     typedef Eigen::Matrix<float, 5, 6, Eigen::RowMajor> FixedMatrixR;
     typedef Eigen::Matrix<float, 5, 6> FixedMatrixC;
@@ -31,6 +38,8 @@ void init_eigen(py::module &m) {
 
     m.def("double_col", &double_col);
     m.def("double_row", &double_row);
+    m.def("double_mat_cm", &double_mat_cm);
+    m.def("double_mat_rm", &double_mat_rm);
 
     m.def("fixed_r", [mat]() -> FixedMatrixR { 
         return FixedMatrixR(mat);
