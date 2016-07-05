@@ -9,6 +9,7 @@ from example import dense_r, dense_c
 from example import dense_passthrough_r, dense_passthrough_c
 from example import sparse_r, sparse_c
 from example import sparse_passthrough_r, sparse_passthrough_c
+from example import double_row, double_col
 import numpy as np
 
 ref = np.array(
@@ -42,3 +43,15 @@ print("pt_r(sparse_r) = %s" % check(sparse_passthrough_r(sparse_r())))
 print("pt_c(sparse_c) = %s" % check(sparse_passthrough_c(sparse_c())))
 print("pt_r(sparse_c) = %s" % check(sparse_passthrough_r(sparse_c())))
 print("pt_c(sparse_r) = %s" % check(sparse_passthrough_c(sparse_r())))
+
+def check_got_vs_ref(got_x, ref_x):
+    return 'OK' if np.array_equal(got_x, ref_x) else 'NOT OK'
+
+counting_mat = np.arange(9.0, dtype=np.float32).reshape((3, 3))
+first_row = counting_mat[0, :]
+first_col = counting_mat[:, 0]
+
+print("double_row(first_row) = %s" % check_got_vs_ref(double_row(first_row), 2.0 * first_row))
+print("double_col(first_row) = %s" % check_got_vs_ref(double_col(first_row), 2.0 * first_row))
+print("double_row(first_col) = %s" % check_got_vs_ref(double_row(first_col), 2.0 * first_col))
+print("double_col(first_col) = %s" % check_got_vs_ref(double_col(first_col), 2.0 * first_col))

@@ -16,3 +16,7 @@ pt_r(sparse_r) = OK
 pt_c(sparse_c) = OK
 pt_r(sparse_c) = OK
 pt_c(sparse_r) = OK
+double_row(first_row) = OK
+double_col(first_row) = OK
+double_row(first_col) = OK
+double_col(first_col) = OK
