@@ -10,6 +10,12 @@
 #include "example.h"
 #include <pybind11/eigen.h>
 
+Eigen::VectorXf double_col(const Eigen::VectorXf& x)
+{ return 2.0f * x; }
+
+Eigen::RowVectorXf double_row(const Eigen::RowVectorXf& x)
+{ return 2.0f * x; }
+
 void init_eigen(py::module &m) {
     typedef Eigen::Matrix<float, 5, 6, Eigen::RowMajor> FixedMatrixR;
     typedef Eigen::Matrix<float, 5, 6> FixedMatrixC;
@@ -22,6 +28,9 @@ void init_eigen(py::module &m) {
     Eigen::MatrixXf mat(5, 6);
     mat << 0, 3, 0, 0, 0, 11, 22, 0, 0, 0, 17, 11, 7, 5, 0, 1, 0, 11, 0,
         0, 0, 0, 0, 11, 0, 0, 14, 0, 8, 11;
+
+    m.def("double_col", &double_col);
+    m.def("double_row", &double_row);
 
     m.def("fixed_r", [mat]() -> FixedMatrixR { 
         return FixedMatrixR(mat);
