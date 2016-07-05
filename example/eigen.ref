@@ -1,3 +1,4 @@
+should_give_NOT_OK = NOT OK
 fixed_r = OK
 fixed_c = OK
 pt_r(fixed_r) = OK
