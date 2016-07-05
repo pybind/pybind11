@@ -61,7 +61,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
 
         buffer_info info = buffer.request();
         if (info.ndim == 1) {
-            typedef Eigen::Stride<Eigen::Dynamic, 0> Strides;
+            typedef Eigen::InnerStride<> Strides;
             if (!isVector &&
                 !(Type::RowsAtCompileTime == Eigen::Dynamic &&
                   Type::ColsAtCompileTime == Eigen::Dynamic))
@@ -71,10 +71,13 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
                 info.shape[0] != (size_t) Type::SizeAtCompileTime)
                 return false;
 
-            auto strides = Strides(info.strides[0] / sizeof(Scalar), 0);
+            auto strides = Strides(info.strides[0] / sizeof(Scalar));
+
+            Strides::Index n_elts = info.shape[0];
+            Strides::Index unity = 1;
 
             value = Eigen::Map<Type, 0, Strides>(
-                (Scalar *) info.ptr, typename Strides::Index(info.shape[0]), 1, strides);
+                (Scalar *) info.ptr, rowMajor ? unity : n_elts, rowMajor ? n_elts : unity, strides);
         } else if (info.ndim == 2) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 
