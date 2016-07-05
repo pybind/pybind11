@@ -10,6 +10,7 @@ from example import dense_passthrough_r, dense_passthrough_c
 from example import sparse_r, sparse_c
 from example import sparse_passthrough_r, sparse_passthrough_c
 from example import double_row, double_col
+from example import double_mat_cm, double_mat_rm
 import numpy as np
 
 ref = np.array(
@@ -55,3 +56,10 @@ print("double_row(first_row) = %s" % check_got_vs_ref(double_row(first_row), 2.0
 print("double_col(first_row) = %s" % check_got_vs_ref(double_col(first_row), 2.0 * first_row))
 print("double_row(first_col) = %s" % check_got_vs_ref(double_row(first_col), 2.0 * first_col))
 print("double_col(first_col) = %s" % check_got_vs_ref(double_col(first_col), 2.0 * first_col))
+
+counting_3d = np.arange(27.0, dtype=np.float32).reshape((3, 3, 3))
+slices = [counting_3d[0, :, :], counting_3d[:, 0, :], counting_3d[:, :, 0]]
+
+for slice_idx, ref_mat in enumerate(slices):
+    print("double_mat_cm(%d) = %s" % (slice_idx, check_got_vs_ref(double_mat_cm(ref_mat), 2.0 * ref_mat)))
+    print("double_mat_rm(%d) = %s" % (slice_idx, check_got_vs_ref(double_mat_rm(ref_mat), 2.0 * ref_mat)))
