@@ -1,15 +1,21 @@
-T{?:x:xxxI:y:f:z:}
-T{?:x:=I:y:f:z:}
-T{T{?:x:xxxI:y:f:z:}:a:T{?:x:=I:y:f:z:}:b:}
+T{=?:x:3x=I:y:=f:z:}
+T{=?:x:=I:y:=f:z:}
+T{=T{=?:x:3x=I:y:=f:z:}:a:=T{=?:x:=I:y:=f:z:}:b:}
+T{=?:x:3x=I:y:=f:z:12x}
+T{8x=T{=?:x:3x=I:y:=f:z:12x}:a:8x}
 {'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}
 [('x', '?'), ('y', '<u4'), ('z', '<f4')]
 [('a', {'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}), ('b', [('x', '?'), ('y', '<u4'), ('z', '<f4')])]
+{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}
+{'names':['a'], 'formats':[{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}], 'offsets':[8], 'itemsize':40}
 s:0,0,0
 s:1,1,1.5
 s:0,2,3
 p:0,0,0
 p:1,1,1.5
 p:0,2,3
+{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}
+{'names':['a'], 'formats':[{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}], 'offsets':[8], 'itemsize':40}
 n:a=s:0,0,0;b=p:1,1,1.5
 n:a=s:1,1,1.5;b=p:0,2,3
 n:a=s:0,2,3;b=p:1,3,4.5
