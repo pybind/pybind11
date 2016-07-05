@@ -22,7 +22,7 @@ ref = np.array(
 
 
 def check(mat):
-    return 'OK' if np.sum(mat - ref) == 0 else 'NOT OK'
+    return 'OK' if np.sum(abs(mat - ref)) == 0 else 'NOT OK'
 
 print("should_give_NOT_OK = %s" % check(ref[:, ::-1]))
 
