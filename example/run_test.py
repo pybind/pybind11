@@ -68,6 +68,6 @@ else:
     print('Test "%s" FAILED!' % name)
     print('--- output')
     print('+++ reference')
-    print(''.join(difflib.ndiff(output.splitlines(keepends=True),
-                                reference.splitlines(keepends=True))))
+    print(''.join(difflib.ndiff(output.splitlines(True),
+                                reference.splitlines(True))))
     exit(-1)
