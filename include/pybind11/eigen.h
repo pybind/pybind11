@@ -96,10 +96,6 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
         return true;
     }
 
-    static handle cast(const Type *src, return_value_policy policy, handle parent) {
-        return cast(*src, policy, parent);
-    }
-
     static handle cast(const Type &src, return_value_policy /* policy */, handle /* parent */) {
         if (isVector) {
             return array(buffer_info(
@@ -136,15 +132,8 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
         }
     }
 
-    template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
-
-    static PYBIND11_DESCR name() {
-        return _("numpy.ndarray[dtype=") + npy_format_descriptor<Scalar>::name() +
-               _(", shape=(") + rows() + _(", ") + cols() + _(")]");
-    }
-
-    operator Type*() { return &value; }
-    operator Type&() { return value; }
+    PYBIND11_TYPE_CASTER(Type, _("numpy.ndarray[dtype=") + npy_format_descriptor<Scalar>::name() +
+            _(", shape=(") + rows() + _(", ") + cols() + _(")]"));
 
 protected:
     template <typename T = Type, typename std::enable_if<T::RowsAtCompileTime == Eigen::Dynamic, int>::type = 0>
@@ -155,9 +144,6 @@ protected:
     static PYBIND11_DESCR cols() { return _("n"); }
     template <typename T = Type, typename std::enable_if<T::ColsAtCompileTime != Eigen::Dynamic, int>::type = 0>
     static PYBIND11_DESCR cols() { return _<T::ColsAtCompileTime>(); }
-
-protected:
-    Type value;
 };
 
 template<typename Type>
@@ -209,10 +195,6 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
         );
 
         return true;
-    }
-
-    static handle cast(const Type *src, return_value_policy policy, handle parent) {
-        return cast(*src, policy, parent);
     }
 
     static handle cast(const Type &src, return_value_policy /* policy */, handle /* parent */) {
@@ -272,18 +254,8 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
         ).release();
     }
 
-    template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
-
-    template <typename T = Type, typename std::enable_if<(T::Flags & Eigen::RowMajorBit) != 0, int>::type = 0>
-    static PYBIND11_DESCR name() { return _("scipy.sparse.csr_matrix[dtype=") + npy_format_descriptor<Scalar>::name() + _("]"); }
-    template <typename T = Type, typename std::enable_if<(T::Flags & Eigen::RowMajorBit) == 0, int>::type = 0>
-    static PYBIND11_DESCR name() { return _("scipy.sparse.csc_matrix[dtype=") + npy_format_descriptor<Scalar>::name() + _("]"); }
-
-    operator Type*() { return &value; }
-    operator Type&() { return value; }
-
-protected:
-    Type value;
+    PYBIND11_TYPE_CASTER(Type, _<(Type::Flags & Eigen::RowMajorBit) != 0>("scipy.sparse.csr_matrix[dtype=", "scipy.sparse.csc_matrix[dtype=")
+            + npy_format_descriptor<Scalar>::name() + _("]"));
 };
 
 NAMESPACE_END(detail)

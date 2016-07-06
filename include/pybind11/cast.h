@@ -369,22 +369,7 @@ public:
         }
     }
 
-    static handle cast(const T *src, return_value_policy policy, handle parent) {
-        return cast(*src, policy, parent);
-    }
-
-    template <typename T2 = T, typename std::enable_if<std::is_integral<T2>::value, int>::type = 0>
-    static PYBIND11_DESCR name() { return type_descr(_("int")); }
-
-    template <typename T2 = T, typename std::enable_if<!std::is_integral<T2>::value, int>::type = 0>
-    static PYBIND11_DESCR name() { return type_descr(_("float")); }
-
-    operator T*() { return &value; }
-    operator T&() { return value; }
-
-    template <typename T2> using cast_op_type = pybind11::detail::cast_op_type<T2>;
-protected:
-    T value;
+    PYBIND11_TYPE_CASTER(T, _<std::is_integral<T>::value>("int", "float"));
 };
 
 template <> class type_caster<void_type> {
