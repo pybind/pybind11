@@ -83,6 +83,16 @@ template <size_t...Digits> struct int_to_str<0, Digits...> {
     static constexpr auto digits = descr<sizeof...(Digits), 0>({ ('0' + Digits)..., '\0' }, { nullptr });
 };
 
+// Ternary description (like std::conditional)
+template <bool B, size_t Size1, size_t Size2>
+constexpr typename std::enable_if<B, descr<Size1 - 1, 0>>::type _(char const(&text1)[Size1], char const(&)[Size2]) {
+    return _(text1);
+}
+template <bool B, size_t Size1, size_t Size2>
+constexpr typename std::enable_if<!B, descr<Size2 - 1, 0>>::type _(char const(&)[Size1], char const(&text2)[Size2]) {
+    return _(text2);
+}
+
 template <size_t Size> auto constexpr _() {
     return int_to_str<Size / 10, Size % 10>::digits;
 }
@@ -152,6 +162,9 @@ PYBIND11_NOINLINE inline descr _(const char *text) {
     const std::type_info *types[1] = { nullptr };
     return descr(text, types);
 }
+
+template <bool B> PYBIND11_NOINLINE typename std::enable_if<B, descr>::type _(const char *text1, const char *) { return _(text1); }
+template <bool B> PYBIND11_NOINLINE typename std::enable_if<!B, descr>::type _(char const *, const char *text2) { return _(text2); }
 
 template <typename Type> PYBIND11_NOINLINE descr _() {
     const std::type_info *types[2] = { &typeid(Type), nullptr };
