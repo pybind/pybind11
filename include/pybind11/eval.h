@@ -29,7 +29,7 @@ enum eval_mode {
 };
 
 template <eval_mode mode = eval_expr>
-object eval(const std::string& str, object global = object(), object local = object()) {
+object eval(str expr, object global = object(), object local = object()) {
     if (!global) {
         global = object(PyEval_GetGlobals(), true);
         if (!global)
@@ -37,6 +37,10 @@ object eval(const std::string& str, object global = object(), object local = obj
     }
     if (!local)
         local = global;
+
+    /* PyRun_String does not accept a PyObject / encoding specifier,
+       this seems to be the only alternative */
+    std::string buffer = "# -*- coding: utf-8 -*-\n" + (std::string) expr;
 
     int start;
     switch (mode) {
@@ -46,7 +50,7 @@ object eval(const std::string& str, object global = object(), object local = obj
         default: pybind11_fail("invalid evaluation mode");
     }
 
-    object result(PyRun_String(str.c_str(), start, global.ptr(), local.ptr()), false);
+    object result(PyRun_String(buffer.c_str(), start, global.ptr(), local.ptr()), false);
 
     if (!result)
         throw error_already_set();
@@ -54,7 +58,7 @@ object eval(const std::string& str, object global = object(), object local = obj
 }
 
 template <eval_mode mode = eval_statements>
-object eval_file(const std::string& fname, object global = object(), object local = object()) {
+object eval_file(str fname, object global = object(), object local = object()) {
     if (!global) {
         global = object(PyEval_GetGlobals(), true);
         if (!global)
@@ -71,12 +75,27 @@ object eval_file(const std::string& fname, object global = object(), object loca
         default: pybind11_fail("invalid evaluation mode");
     }
 
-    FILE *f = fopen(fname.c_str(), "r");
-    if (!f)
-        pybind11_fail("File \"" + fname + "\" could not be opened!");
+    int closeFile = 1;
+    std::string fname_str = (std::string) fname;
+#if PY_VERSION_HEX >= 0x03040000
+    FILE *f = _Py_fopen_obj(fname.ptr(), "r");
+#elif PY_VERSION_HEX >= 0x03000000
+    FILE *f = _Py_fopen(fname.ptr(), "r");
+#else
+    /* No unicode support in open() :( */
+    object fobj(PyFile_FromString(fname_str.c_str(), const_cast<char*>("r")), false);
+    FILE *f = nullptr;
+    if (fobj)
+        f = PyFile_AsFile(fobj.ptr());
+    closeFile = 0;
+#endif
+    if (!f) {
+        PyErr_Clear();
+        pybind11_fail("File \"" + fname_str + "\" could not be opened!");
+    }
 
-    object result(PyRun_FileEx(f, fname.c_str(), Py_file_input, global.ptr(),
-                               local.ptr(), 1),
+    object result(PyRun_FileEx(f, fname_str.c_str(), start, global.ptr(),
+                               local.ptr(), closeFile),
                   false);
 
     if (!result)

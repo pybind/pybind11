@@ -343,6 +343,11 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
 
+    str(const char *c)
+        : object(PyUnicode_FromString(c), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate string object!");
+    }
+
     operator std::string() const {
         object temp = *this;
         if (PyUnicode_Check(m_ptr)) {

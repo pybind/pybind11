@@ -23,7 +23,4 @@ build_script:
   - cd c:\projects\pybind11
   - cmake -G "%CMAKE_PLATFORM%" -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe
   - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - cmake --build . --config %Configuration% -- /v:m /logger:%MSBuildLogger%
-  - set PATH=%PYTHON_DIR%;%PATH%
-  - python example/example18.py
   - cmake --build . --config %Configuration% --target check -- /v:m /logger:%MSBuildLogger%
