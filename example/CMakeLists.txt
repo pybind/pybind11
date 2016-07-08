@@ -24,6 +24,7 @@ set(PYBIND11_EXAMPLES
   example15.cpp
   example16.cpp
   example17.cpp
+  example18.cpp
   issues.cpp
 )
 
@@ -66,3 +67,4 @@ foreach(VALUE ${PYBIND11_EXAMPLES})
   string(REGEX REPLACE "^(.+).cpp$" "\\1" EXAMPLE_NAME "${VALUE}")
   add_test(NAME ${EXAMPLE_NAME} COMMAND ${RUN_TEST} ${EXAMPLE_NAME})
 endforeach()
+
