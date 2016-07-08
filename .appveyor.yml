@@ -12,8 +12,10 @@ environment:
   matrix:
     - CMAKE_PLATFORM: "Visual Studio 14 2015"
       PYTHON_DIR: "C:\\Python34"
+      CTEST_OUTPUT_ON_FAILURE: 1
     - CMAKE_PLATFORM: "Visual Studio 14 2015 Win64"
       PYTHON_DIR: "C:\\Python34-x64"
+      CTEST_OUTPUT_ON_FAILURE: 1
 install:
   - cinstall: python
 build_script:
@@ -21,4 +23,7 @@ build_script:
   - cd c:\projects\pybind11
   - cmake -G "%CMAKE_PLATFORM%" -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe
   - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - cmake --build . --config %Configuration% -- /v:m /logger:%MSBuildLogger%
+  - set PATH=%PYTHON_DIR%;%PATH%
+  - python example/example18.py
   - cmake --build . --config %Configuration% --target check -- /v:m /logger:%MSBuildLogger%
