@@ -52,16 +52,20 @@ if len(sys.argv) == 3 and sys.argv[1] == '--relaxed':
     relaxed = True
 
 name = sys.argv[1]
-output_bytes = subprocess.check_output([sys.executable, name + ".py"],
-                                       stderr=subprocess.STDOUT)
+try:
+    output_bytes = subprocess.check_output([sys.executable, name + ".py"],
+                                           stderr=subprocess.STDOUT)
+except subprocess.CalledProcessError as e:
+    if e.returncode == 99:
+        print('Test "%s" could not be run.' % name)
+        exit(0)
+    else:
+        raise
 
 output    = sanitize(output_bytes.decode('utf-8'))
 reference = sanitize(open(name + '.ref', 'r').read())
 
-if 'NumPy missing' in output:
-    print('Test "%s" could not be run.' % name)
-    exit(0)
-elif output == reference:
+if output == reference:
     print('Test "%s" succeeded.' % name)
     exit(0)
 else:

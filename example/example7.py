@@ -8,8 +8,8 @@ from example import Matrix
 try:
     import numpy as np
 except ImportError:
-    print('NumPy missing')
-    exit(0)
+    # NumPy missing: skip test
+    exit(99)
 
 m = Matrix(5, 5)
 

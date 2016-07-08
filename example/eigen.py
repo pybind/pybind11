@@ -11,7 +11,11 @@ from example import sparse_r, sparse_c
 from example import sparse_passthrough_r, sparse_passthrough_c
 from example import double_row, double_col
 from example import double_mat_cm, double_mat_rm
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    # NumPy missing: skip test
+    exit(99)
 
 ref = np.array(
     [[0, 3, 0, 0, 0, 11],
