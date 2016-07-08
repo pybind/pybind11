@@ -83,7 +83,9 @@ object eval_file(str fname, object global = object(), object local = object()) {
     FILE *f = _Py_fopen(fname.ptr(), "r");
 #else
     /* No unicode support in open() :( */
-    object fobj(PyFile_FromString(fname_str.c_str(), const_cast<char*>("r")), false);
+    object fobj(PyFile_FromString(
+        const_cast<char *>(fname_str.c_str()),
+        const_cast<char*>("r")), false);
     FILE *f = nullptr;
     if (fobj)
         f = PyFile_AsFile(fobj.ptr());
