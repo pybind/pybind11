@@ -282,7 +282,7 @@ helper class that is defined as follows:
 
 The macro :func:`PYBIND11_OVERLOAD_PURE` should be used for pure virtual
 functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
-a default implementation. 
+a default implementation.
 
 There are also two alternate macros :func:`PYBIND11_OVERLOAD_PURE_NAME` and
 :func:`PYBIND11_OVERLOAD_NAME` which take a string-valued name argument
@@ -1612,32 +1612,38 @@ work, it is important that all lines are indented consistently, i.e.:
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
 
-Calling Python from C++
-=======================
+Evaluating Python expressions from strings and files
+====================================================
 
-Pybind11 also allows to call python code from C++. Note that this code assumes, that the intepreter is already initialized.
+pybind11 provides the :func:`eval` and :func:`eval_file` functions to evaluate
+Python expressions and statements. The following example illustrates how they
+can be used.
+
+Both functions accept a template parameter that describes how the argument
+should be interpreted. Possible choices include ``eval_expr`` (isolated
+expression), ``eval_single_statement`` (a single statement, return value is
+always ``none``), and ``eval_statements`` (sequence of statements, return value
+is always ``none``).
 
 .. code-block:: cpp
 
-	// get the main module, so we can access and declare stuff
-	py::module main_module = py::module::import("__main__");
-	
-	//get the main namespace, so I can declare variables
-	py::object main_namespace = main_module.attr("__dict__");
+    // At beginning of file
+    #include <pybind11/eval.h>
 
-    //now execute code
-	py::exec(
-		"print('Hello World1!')\n"
-		"print('Other Data');",
-        main_namespace);	    
+    ...
 
-    //execute a single statement
-    py::exec_statement("x=42", main_namespace);
+    // Evaluate in scope of main module
+    py::object scope = py::module::import("__main__").attr("__dict__");
 
-    //ok, now I want to get the result of a statement, we'll use x in this example
-    py::object res = py::eval("x");
-    std:cout <<  "Yielded: " << res.cast<int>() << std::endl;
-    
-    //or we can execute a file within the same content
-    py::exec_file("my_script.py", main_namespace);
-    
+    // Evaluate an isolated expression
+    int result = py::eval("my_variable + 10", scope).cast<int>();
+
+    // Evaluate a sequence of statements
+    py::eval<py::eval_statements>(
+        "print('Hello')\n"
+        "print('world!');",
+        scope);
+
+    // Evaluate the statements in an separate Python file on disk
+    py::eval_file("script.py", scope);
+

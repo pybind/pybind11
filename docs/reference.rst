@@ -244,26 +244,4 @@ Passing extra arguments to the def function
 .. function:: name::name(const char *value)
 
     Used to specify the function name
-    
-Calling Python from C++
-=======================
-
-.. function:: eval(str string, object global = object(), object local = object())
-     
-     Evaluate a statement, i.e. one that does not yield None. 
-     The return value the result of the expression. It throws pybind11::error_already_set if the commands are invalid.
-     
-.. function:: exec(str string, object global = object(), object local = object())
-
-     Execute a set of statements. The return value the result of the code. It throws pybind11::error_already_set if the commands are invalid.
-     
-.. function:: exec_statement(str string, object global = object(), object local = object())
-    
-     Execute a single statement. The return value the result of the code. It throws pybind11::error_already_set if the commands are invalid.
-     
-.. function:: exec_file(str filename, object global = object(), object local = object())     
-     
-     Execute a file. The function exec_file will throw std::invalid_argument if the file cannot be opened.
-     The return value the result of the code. It throws pybind11::error_already_set if the commands are invalid and
-     std::invalid_argument if the file cannot be opened.
 
