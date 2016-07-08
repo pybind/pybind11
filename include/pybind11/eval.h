@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "pytypes.h"
+#include "pybind11.h"
 
 NAMESPACE_BEGIN(pybind11)
 
