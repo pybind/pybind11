@@ -73,7 +73,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::t
 
             auto strides = Strides(info.strides[0] / sizeof(Scalar));
 
-            Strides::Index n_elts = info.shape[0];
+            Strides::Index n_elts = (Strides::Index) info.shape[0];
             Strides::Index unity = 1;
 
             value = Eigen::Map<Type, 0, Strides>(
