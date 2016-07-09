@@ -7,8 +7,8 @@ import example
 try:
     import numpy as np
 except ImportError:
-    print('NumPy missing')
-    exit(0)
+    # NumPy missing: skip test
+    exit(99)
 
 from example import vectorized_func
 from example import vectorized_func2
