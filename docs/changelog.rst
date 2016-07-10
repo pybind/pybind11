@@ -15,7 +15,17 @@ Breaking changes queued for v2.0.0 (Not yet released)
 
 1.9.0 (Not yet released)
 ------------------------
-* Queued changes: ``py::eval*``, map indexing suite, documentation for indexing suites.
+* Queued changes: map indexing suite, documentation for indexing suites.
+* Mapping a stateless C++ function to Python and back is now "for free" (i.e. no call overheads)
+* Added ``eval`` and ``eval_file`` functions for evaluating expressions and
+  statements from a string or file
+* eigen.h type converter fixed for non-contiguous arrays (e.g. slices)
+* print more informative error messages when ``make_tuple()`` or ``cast()`` fail
+* ``std::enable_shared_from_this<>`` now also works for ``const`` values
+* a return value policy can now be passed to ``handle::operator()``
+* ``make_iterator()`` improvements for better compatibility with various types (now uses prefix increment operator)
+* ``arg()`` now accepts a wider range of argument types for default values
+* various minor improvements of library internals (no user-visible changes)
 
 1.8.0 (June 14, 2016)
 ----------------------
