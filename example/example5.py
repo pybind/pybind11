@@ -77,7 +77,8 @@ try:
     test_dummy_function(lambda x, y: x + y)
     print("Problem!")
 except Exception as e:
-    if 'missing 1 required positional argument' in str(e):
+    if 'missing 1 required positional argument' in str(e) or \
+       'takes exactly 2 arguments' in str(e):
         print("All OK!")
     else:
         print("Problem!")
