@@ -113,6 +113,9 @@ struct function_record {
     /// True if name == '__init__'
     bool is_constructor : 1;
 
+    /// True if this is a stateless function pointer
+    bool is_stateless : 1;
+
     /// True if the function has a '*args' argument
     bool has_args : 1;
 

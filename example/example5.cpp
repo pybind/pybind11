@@ -65,6 +65,29 @@ py::cpp_function test_callback5() {
        py::arg("number"));
 }
 
+int dummy_function(int i) { return i + 1; }
+int dummy_function2(int i, int j) { return i + j; }
+std::function<int(int)> roundtrip(std::function<int(int)> f) { 
+    std::cout << "roundtrip.." << std::endl;
+    return f;
+}
+
+void test_dummy_function(const std::function<int(int)> &f) {
+    using fn_type = int (*)(int);
+    auto result = f.target<fn_type>();
+    if (!result) {
+        std::cout << "could not convert to a function pointer." << std::endl;
+        auto r = f(1);
+        std::cout << "eval(1) = " << r << std::endl;
+    } else if (*result == dummy_function) {
+        std::cout << "argument matches dummy_function" << std::endl;
+        auto r = (*result)(1);
+        std::cout << "eval(1) = " << r << std::endl;
+    } else {
+        std::cout << "argument does NOT match dummy_function. This should never happen!" << std::endl;
+    }
+}
+
 void init_ex5(py::module &m) {
     py::class_<Pet> pet_class(m, "Pet");
     pet_class
@@ -113,4 +136,10 @@ void init_ex5(py::module &m) {
             /* p should be cleaned up when the returned function is garbage collected */
         };
     });
+
+    /* Test if passing a function pointer from C++ -> Python -> C++ yields the original pointer */
+    m.def("dummy_function", &dummy_function);
+    m.def("dummy_function2", &dummy_function2);
+    m.def("roundtrip", &roundtrip);
+    m.def("test_dummy_function", &test_dummy_function);
 }

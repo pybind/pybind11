@@ -54,3 +54,30 @@ f = test_callback5()
 print("func(number=43) = %i" % f(number=43))
 
 test_cleanup()
+
+from example import dummy_function
+from example import dummy_function2
+from example import test_dummy_function
+from example import roundtrip
+
+test_dummy_function(dummy_function)
+test_dummy_function(roundtrip(dummy_function))
+test_dummy_function(lambda x: x + 2)
+
+try:
+    test_dummy_function(dummy_function2)
+    print("Problem!")
+except Exception as e:
+    if 'Incompatible function arguments' in str(e):
+        print("All OK!")
+    else:
+        print("Problem!")
+
+try:
+    test_dummy_function(lambda x, y: x + y)
+    print("Problem!")
+except Exception as e:
+    if 'missing 1 required positional argument' in str(e):
+        print("All OK!")
+    else:
+        print("Problem!")

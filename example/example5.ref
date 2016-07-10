@@ -1,20 +1,13 @@
 Rabbit is a parrot
-Polly is a parrot
-Molly is a dog
-Woof!
-func(43) = 44
-Payload constructor
-Payload copy constructor
-Payload move constructor
-Payload destructor
-Payload destructor
-Payload destructor
 Rabbit is a parrot
 Polly is a parrot
+Polly is a parrot
 Molly is a dog
+Molly is a dog
+Woof!
 The following error is expected: Incompatible function arguments. The following argument types are supported:
     1. (example.Dog) -> NoneType
-    Invoked with: <Pet object at 0>
+    Invoked with: <example.Pet object at 0>
 Callback function 1 called!
 False
 Callback function 2 called : Hello, x, True, 5
@@ -24,4 +17,22 @@ False
 Callback function 3 called : Partial object with one argument
 False
 func(43) = 44
+func(43) = 44
 func(number=43) = 44
+Payload constructor
+Payload copy constructor
+Payload move constructor
+Payload destructor
+Payload destructor
+Payload destructor
+argument matches dummy_function
+eval(1) = 2
+roundtrip..
+argument matches dummy_function
+eval(1) = 2
+could not convert to a function pointer.
+eval(1) = 3
+could not convert to a function pointer.
+All OK!
+could not convert to a function pointer.
+All OK!

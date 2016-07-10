@@ -82,6 +82,9 @@ protected:
 
         /* Store the capture object directly in the function record if there is enough space */
         if (sizeof(capture) <= sizeof(rec->data)) {
+            /* Without these pragmas, GCC warns that there might not be
+               enough space to use the placement new operator. However, the
+               'if' statement above ensures that this is the case. */
 #if defined(__GNUG__) && !defined(__clang__) && __GNUC__ >= 6
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wplacement-new"
@@ -118,7 +121,7 @@ protected:
             capture *cap = (capture *) (sizeof(capture) <= sizeof(rec->data)
                                         ? &rec->data : rec->data[0]);
 
-            /* Perform the functioncall */
+            /* Perform the function call */
             handle result = cast_out::cast(args_converter.template call<Return>(cap->f),
                                            rec->policy, parent);
 
@@ -140,6 +143,16 @@ protected:
 
         if (cast_in::has_args) rec->has_args = true;
         if (cast_in::has_kwargs) rec->has_kwargs = true;
+
+        /* Stash some additional information used by an important optimization in 'functional.h' */
+        using FunctionType = Return (*)(Args...);
+        constexpr bool is_function_ptr =
+            std::is_convertible<Func, FunctionType>::value &&
+            sizeof(capture) == sizeof(void *);
+        if (is_function_ptr) {
+            rec->is_stateless = true;
+            rec->data[1] = (void *) &typeid(FunctionType);
+        }
     }
 
     /// Register a function call with Python (generic non-templated code goes here)
@@ -157,6 +170,7 @@ protected:
             else if (a.value)
                 a.descr = strdup(((std::string) ((object) handle(a.value).attr("__repr__"))().str()).c_str());
         }
+
         auto const &registered_types = detail::get_internals().registered_types_cpp;
 
         /* Generate a proper function signature */
@@ -215,10 +229,10 @@ protected:
             rec->name = strdup("__nonzero__");
         }
 #endif
-
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
+        rec->is_stateless = false;
         rec->has_args = false;
         rec->has_kwargs = false;
         rec->nargs = (uint16_t) args;
