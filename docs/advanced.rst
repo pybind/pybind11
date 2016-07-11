@@ -828,6 +828,8 @@ In other words, :func:`init` creates an anonymous function that invokes an
 in-place constructor. Memory allocation etc. is already take care of beforehand
 within pybind11.
 
+.. _catching_and_throwing_exceptions:
+
 Catching and throwing exceptions
 ================================
 
@@ -879,6 +881,65 @@ contains a textual summary.
 There is also a special exception :class:`cast_error` that is thrown by
 :func:`handle::call` when the input arguments cannot be converted to Python
 objects.
+
+Registering custom exception translators
+========================================
+
+If the default exception conversion policy described
+:ref:`above <catching_and_throwing_exceptions>`
+is insufficient, pybind11 also provides support for registering custom
+exception translators.
+
+The function ``register_exception_translator(translator)`` takes a stateless
+callable (e.g. a function pointer or a lambda function without captured
+variables) with the following call signature: ``void(std::exception_ptr)``.
+
+When a C++ exception is thrown, registered exception translators are tried
+in reverse order of registration (i.e. the last registered translator gets
+a first shot at handling the exception).
+
+Inside the translator, ``std::rethrow_exception`` should be used within
+a try block to re-throw the exception. A catch clause can then use
+``PyErr_SetString`` to set a Python exception as demonstrated
+in :file:`example19.cpp``.
+
+This example also demonstrates how to create custom exception types
+with ``py::exception``.
+
+The following example demonstrates this for a hypothetical exception class
+``MyCustomException``:
+
+.. code-block:: cpp
+
+    py::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) std::rethrow_exception(p);
+        } catch (const MyCustomException &e) {
+            PyErr_SetString(PyExc_RuntimeError, e.what());
+        }
+    });
+
+Multiple exceptions can be handled by a single translator. If the exception is
+not caught by the current translator, the previously registered one gets a
+chance.
+
+If none of the registered exception translators is able to handle the
+exception, it is handled by the default converter as described in the previous
+section.
+
+.. note::
+
+    You must either call ``PyErr_SetString`` for every exception caught in a
+    custom exception translator. Failure to do so will cause Python to crash
+    with ``SystemError: error return without exception set``.
+
+    Exceptions that you do not plan to handle should simply not be caught.
+
+    You may also choose to explicity (re-)throw the exception to delegate it to
+    the other existing exception translators.
+
+    The ``py::exception`` wrapper for creating custom exceptions cannot (yet)
+    be used as a ``py::base``.
 
 .. _opaque:
 

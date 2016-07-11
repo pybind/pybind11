@@ -415,19 +415,32 @@ protected:
                 if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
                     break;
             }
-        } catch (const error_already_set &)      {                                                 return nullptr;
-        } catch (const index_error &e)           { PyErr_SetString(PyExc_IndexError,    e.what()); return nullptr;
-        } catch (const value_error &e)           { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
-        } catch (const stop_iteration &e)        { PyErr_SetString(PyExc_StopIteration, e.what()); return nullptr;
-        } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return nullptr;
-        } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
-        } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
-        } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
-        } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return nullptr;
-        } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return nullptr;
-        } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return nullptr;
+        } catch (const error_already_set &) {
+            return nullptr;
         } catch (...) {
-            PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
+            /* When an exception is caught, give each registered exception
+               translator a chance to translate it to a Python exception
+               in reverse order of registration.
+              
+               A translator may choose to do one of the following:
+              
+                - catch the exception and call PyErr_SetString or PyErr_SetObject
+                  to set a standard (or custom) Python exception, or
+                - do nothing and let the exception fall through to the next translator, or
+                - delegate translation to the next translator by throwing a new type of exception. */
+
+            auto last_exception = std::current_exception(); 
+            auto &registered_exception_translators = pybind11::detail::get_internals().registered_exception_translators;
+            for (auto& translator : registered_exception_translators) {
+                try {
+                    translator(last_exception);
+                } catch (...) {
+                    last_exception = std::current_exception();
+                    continue;
+                }
+                return nullptr;
+            }
+            PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
             return nullptr;
         }
 
@@ -1102,6 +1115,31 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
     ((detail::type_info *) it->second)->implicit_conversions.push_back(implicit_caster);
 }
+
+template <typename ExceptionTranslator>
+void register_exception_translator(ExceptionTranslator&& translator) {
+    detail::get_internals().registered_exception_translators.push_front(
+        std::forward<ExceptionTranslator>(translator));
+}
+
+/* Wrapper to generate a new Python exception type.
+ *
+ * This should only be used with PyErr_SetString for now.
+ * It is not (yet) possible to use as a py::base.
+ * Template type argument is reserved for future use.
+ */
+template <typename type>
+class exception : public object {
+public:
+    exception(module &m, const std::string name, PyObject* base=PyExc_Exception) {
+        std::string full_name = std::string(PyModule_GetName(m.ptr()))
+                + std::string(".") + name;
+        char* exception_name = const_cast<char*>(full_name.c_str());
+        m_ptr = PyErr_NewException(exception_name, base, NULL);
+        inc_ref(); // PyModule_AddObject() steals a reference
+        PyModule_AddObject(m.ptr(), name.c_str(), m_ptr);
+    }
+};
 
 #if defined(WITH_THREAD)
 

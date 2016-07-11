@@ -49,6 +49,27 @@ PYBIND11_NOINLINE inline internals &get_internals() {
             internals_ptr->istate = tstate->interp;
         #endif
         builtins[id] = capsule(internals_ptr);
+        internals_ptr->registered_exception_translators.push_front(
+            [](std::exception_ptr p) -> void {
+                try {
+                    if (p) std::rethrow_exception(p);
+                } catch (const error_already_set &)      {                                                 return;
+                } catch (const index_error &e)           { PyErr_SetString(PyExc_IndexError,    e.what()); return;
+                } catch (const value_error &e)           { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+                } catch (const stop_iteration &e)        { PyErr_SetString(PyExc_StopIteration, e.what()); return;
+                } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
+                } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+                } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+                } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+                } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return;
+                } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+                } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return;
+                } catch (...) {
+                    PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
+                    return;
+                }
+            }
+        );
     }
     return *internals_ptr;
 }
