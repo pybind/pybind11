@@ -547,8 +547,16 @@ protected:
                           "\" is already registered!");
 
         object type_holder(PyType_Type.tp_alloc(&PyType_Type, 0), false);
-        object name(PYBIND11_FROM_STRING(rec->name), false);
         auto type = (PyHeapTypeObject*) type_holder.ptr();
+
+        /* Flags */
+        type->ht_type.tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
+#if PY_MAJOR_VERSION < 3
+        type->ht_type.tp_flags |= Py_TPFLAGS_CHECKTYPES;
+#endif
+        type->ht_type.tp_flags &= ~Py_TPFLAGS_HAVE_GC;
+
+        object name(PYBIND11_FROM_STRING(rec->name), false);
 
         if (!type_holder || !name)
             pybind11_fail("generic_type: unable to create type object!");
@@ -603,13 +611,6 @@ protected:
 
         /* Support weak references (needed for the keep_alive feature) */
         type->ht_type.tp_weaklistoffset = offsetof(instance_essentials<void>, weakrefs);
-
-        /* Flags */
-        type->ht_type.tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
-#if PY_MAJOR_VERSION < 3
-        type->ht_type.tp_flags |= Py_TPFLAGS_CHECKTYPES;
-#endif
-        type->ht_type.tp_flags &= ~Py_TPFLAGS_HAVE_GC;
 
         if (rec->doc) {
             /* Allocate memory for docstring (using PyObject_MALLOC, since
