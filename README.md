@@ -42,7 +42,7 @@ pybind11 can map the following core C++ features to Python
 - Instance methods and static methods
 - Overloaded functions
 - Instance attributes and static attributes
-- Exceptions
+- Arbitrary exception types
 - Enumerations
 - Callbacks
 - Custom operators
@@ -105,7 +105,8 @@ Johan Mabille,
 Tomasz Miąsko,
 Dean Moldovan,
 Ben Pritchard, and
-Boris Schäling.
+Boris Schäling
+Pim Schellart.
 
 ### License
 

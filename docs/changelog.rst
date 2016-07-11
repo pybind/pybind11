@@ -17,6 +17,7 @@ Breaking changes queued for v2.0.0 (Not yet released)
 ------------------------
 * Queued changes: map indexing suite, documentation for indexing suites.
 * Mapping a stateless C++ function to Python and back is now "for free" (i.e. no call overheads)
+* Support for translation of arbitrary C++ exceptions to Python counterparts
 * Added ``eval`` and ``eval_file`` functions for evaluating expressions and
   statements from a string or file
 * eigen.h type converter fixed for non-contiguous arrays (e.g. slices)
