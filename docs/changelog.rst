@@ -13,9 +13,10 @@ Breaking changes queued for v2.0.0 (Not yet released)
 
 * Remove ``handle.call()`` method
 
-1.9.0 (Not yet released)
+1.8.1 (July 12, 2016)
 ----------------------
-* Queued changes: ``py::eval*``, map indexing suite, documentation for indexing suites.
+* Fixed a rare but potentially very severe issue when the garbage collector ran
+  during pybind11 type creation.
 
 1.8.0 (June 14, 2016)
 ----------------------
