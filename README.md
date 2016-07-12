@@ -104,8 +104,8 @@ Sergey Lyskov
 Johan Mabille,
 Tomasz Miąsko,
 Dean Moldovan,
-Ben Pritchard, and
-Boris Schäling
+Ben Pritchard,
+Boris Schäling, and
 Pim Schellart.
 
 ### License
