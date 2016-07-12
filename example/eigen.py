@@ -13,6 +13,7 @@ from example import double_row, double_col
 from example import double_mat_cm, double_mat_rm
 try:
     import numpy as np
+    import scipy
 except ImportError:
     # NumPy missing: skip test
     exit(99)
