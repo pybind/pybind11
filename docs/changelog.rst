@@ -27,9 +27,12 @@ Breaking changes queued for v2.0.0 (Not yet released)
 * ``make_iterator()`` improvements for better compatibility with various types
   (now uses prefix increment operator)
 * ``arg()`` now accepts a wider range of argument types for default values
+* Various minor improvements of library internals (no user-visible changes)
+
+1.8.1 (July 12, 2016)
+----------------------
 * Fixed a rare but potentially very severe issue when the garbage collector ran
   during pybind11 type creation.
-* Various minor improvements of library internals (no user-visible changes)
 
 1.8.0 (June 14, 2016)
 ----------------------
