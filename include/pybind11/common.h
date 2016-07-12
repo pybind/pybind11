@@ -32,6 +32,7 @@
 
 #define PYBIND11_VERSION_MAJOR 1
 #define PYBIND11_VERSION_MINOR 8
+#define PYBIND11_VERSION_PATCH 1
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
