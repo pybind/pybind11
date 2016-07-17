@@ -342,11 +342,9 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
 
         // Sanity check: verify that NumPy properly parses our buffer format string
         auto arr =  array(buffer_info(nullptr, sizeof(T), format(), 1, { 0 }, { sizeof(T) }));
-        auto dtype = (object) arr.attr("dtype");
-        auto fixed_dtype = dtype;
-        // auto fixed_dtype = array::strip_padding_fields(object(dtype_(), true));
-        // if (!api.PyArray_EquivTypes_(dtype_(), fixed_dtype.ptr()))
-        //     pybind11_fail("NumPy: invalid buffer descriptor!");
+        auto fixed_dtype = array::strip_padding_fields(object(dtype_(), true));
+        if (!api.PyArray_EquivTypes_(dtype_(), fixed_dtype.ptr()))
+            pybind11_fail("NumPy: invalid buffer descriptor!");
     }
 
 private:
