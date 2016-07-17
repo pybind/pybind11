@@ -138,21 +138,19 @@ public:
         // constructor seems to then consume them, so we don't need to strip them ourselves
         auto numpy_internal = module::import("numpy.core._internal");
         auto dtype_from_fmt = (object) numpy_internal.attr("_dtype_from_pep3118");
-        auto dtype = dtype_from_fmt(pybind11::str(info.format));
-        auto dtype2 = strip_padding_fields(dtype);
+        auto dtype = strip_padding_fields(dtype_from_fmt(pybind11::str(info.format)));
 
         object tmp(api.PyArray_NewFromDescr_(
-            api.PyArray_Type_, dtype2.release().ptr(), (int) info.ndim, (Py_intptr_t *) &info.shape[0],
+            api.PyArray_Type_, dtype.release().ptr(), (int) info.ndim, (Py_intptr_t *) &info.shape[0],
             (Py_intptr_t *) &info.strides[0], info.ptr, 0, nullptr), false);
         if (!tmp)
             pybind11_fail("NumPy: unable to create array!");
         if (info.ptr)
             tmp = object(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */), false);
         m_ptr = tmp.release().ptr();
-        auto d = (object) this->attr("dtype");
     }
 
-// protected:
+protected:
     static API &lookup_api() {
         static API api = API::lookup();
         return api;
