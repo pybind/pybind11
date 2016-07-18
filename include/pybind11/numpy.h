@@ -27,7 +27,6 @@ NAMESPACE_BEGIN(pybind11)
 namespace detail {
 template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
 
-object fix_dtype(object);
 
 template <typename T>
 struct is_pod_struct {
