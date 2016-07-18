@@ -13,6 +13,12 @@
 #include <cstdint>
 #include <iostream>
 
+#ifdef __GNUC__
+#define PYBIND11_PACKED(cls) cls __attribute__((__packed__))
+#else
+#define PYBIND11_PACKED(cls) __pragma(pack(push, 1)) cls __pragma(pack(pop))
+#endif
+
 namespace py = pybind11;
 
 struct SimpleStruct {
@@ -25,20 +31,20 @@ std::ostream& operator<<(std::ostream& os, const SimpleStruct& v) {
     return os << "s:" << v.x << "," << v.y << "," << v.z;
 }
 
-struct PackedStruct {
+PYBIND11_PACKED(struct PackedStruct {
     bool x;
     uint32_t y;
     float z;
-} __attribute__((packed));
+});
 
 std::ostream& operator<<(std::ostream& os, const PackedStruct& v) {
     return os << "p:" << v.x << "," << v.y << "," << v.z;
 }
 
-struct NestedStruct {
+PYBIND11_PACKED(struct NestedStruct {
     SimpleStruct a;
     PackedStruct b;
-} __attribute__((packed));
+});
 
 std::ostream& operator<<(std::ostream& os, const NestedStruct& v) {
     return os << "n:a=" << v.a << ";b=" << v.b;
@@ -148,3 +154,5 @@ void init_ex20(py::module &m) {
     m.def("print_dtypes", &print_dtypes);
     m.def("get_format_unbound", &get_format_unbound);
 }
+
+#undef PYBIND11_PACKED
