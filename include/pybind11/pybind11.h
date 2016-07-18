@@ -421,15 +421,15 @@ protected:
             /* When an exception is caught, give each registered exception
                translator a chance to translate it to a Python exception
                in reverse order of registration.
-              
+
                A translator may choose to do one of the following:
-              
+
                 - catch the exception and call PyErr_SetString or PyErr_SetObject
                   to set a standard (or custom) Python exception, or
                 - do nothing and let the exception fall through to the next translator, or
                 - delegate translation to the next translator by throwing a new type of exception. */
 
-            auto last_exception = std::current_exception(); 
+            auto last_exception = std::current_exception();
             auto &registered_exception_translators = pybind11::detail::get_internals().registered_exception_translators;
             for (auto& translator : registered_exception_translators) {
                 try {
@@ -476,8 +476,7 @@ protected:
             }
             msg += "    Invoked with: ";
             tuple args_(args, true);
-            for( std::size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti)
-            {
+            for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
                 msg += static_cast<std::string>(static_cast<object>(args_[ti]).str());
                 if ((ti + 1) != args_.size() )
                     msg += ", ";
