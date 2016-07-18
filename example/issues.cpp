@@ -138,4 +138,23 @@ void init_issues(py::module &m) {
     } catch (std::runtime_error &) {
         /* All good */
     }
+
+    // Issue #283: __str__ called on uninitialized instance when constructor arguments invalid
+    class StrIssue {
+    public:
+        StrIssue(int i) : val{i} {}
+        StrIssue() : StrIssue(-1) {}
+        int value() const { return val; }
+    private:
+        int val;
+    };
+    py::class_<StrIssue> si(m2, "StrIssue");
+    si  .def(py::init<int>())
+        .def(py::init<>())
+        .def("__str__", [](const StrIssue &si) {
+                std::cout << "StrIssue.__str__ called" << std::endl;
+                return "StrIssue[" + std::to_string(si.value()) + "]";
+                })
+        ;
+
 }

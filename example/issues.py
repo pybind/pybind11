@@ -10,6 +10,7 @@ from example.issues import iterator_passthrough
 from example.issues import ElementList, ElementA, print_element
 from example.issues import expect_float, expect_int
 from example.issues import A, call_f
+from example.issues import StrIssue
 import gc
 
 print_cchar("const char *")
@@ -72,3 +73,8 @@ print("Python version")
 b = B()
 call_f(b)
 
+print(StrIssue(3))
+try:
+    print(StrIssue("no", "such", "constructor"))
+except TypeError as e:
+    print("Failed as expected: " + str(e))

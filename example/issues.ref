@@ -18,3 +18,9 @@ Python version
 PyA.PyA()
 PyA.f()
 In python f()
+StrIssue.__str__ called
+StrIssue[3]
+Failed as expected: Incompatible constructor arguments. The following argument types are supported:
+    1. example.issues.StrIssue(int)
+    2. example.issues.StrIssue()
+    Invoked with: no, such, constructor
