@@ -104,18 +104,18 @@ PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp) {
 }
 
 PYBIND11_NOINLINE inline std::string error_string() {
-    std::string errorString;
-    PyThreadState *tstate = PyThreadState_GET();
-    if (tstate == nullptr)
-        return "";
+   PyObject *type, *value, *traceback;
+   PyErr_Fetch(&type, &value, &traceback);
 
-    if (tstate->curexc_type) {
-        errorString += (std::string) handle(tstate->curexc_type).str();
+   std::string errorString;
+    if (type) {
+        errorString += (std::string) handle(type).str();
         errorString += ": ";
     }
-    if (tstate->curexc_value)
-        errorString += (std::string) handle(tstate->curexc_value).str();
+    if (value)
+        errorString += (std::string) handle(value).str();
 
+    PyErr_Restore(type, value, traceback);
     return errorString;
 }
 
