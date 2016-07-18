@@ -291,7 +291,7 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
     static const char* format() {
         if (!dtype_())
             pybind11_fail("NumPy: unsupported buffer format!");
-        return format_();
+        return format_().c_str();
     }
 
     static void register_dtype(std::initializer_list<field_descriptor> fields) {
@@ -337,7 +337,7 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
         if (sizeof(T) > offset)
             oss << (sizeof(T) - offset) << 'x';
         oss << '}';
-        std::strncpy(format_(), oss.str().c_str(), 4096);
+        format_() = oss.str();
 
         // Sanity check: verify that NumPy properly parses our buffer format string
         auto arr =  array(buffer_info(nullptr, sizeof(T), format(), 1, { 0 }, { sizeof(T) }));
@@ -348,7 +348,7 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
 
 private:
     static inline PyObject*& dtype_() { static PyObject *ptr = nullptr; return ptr; }
-    static inline char* format_() { static char s[4096]; return s; }
+    static inline std::string& format_() { static std::string s; return s; }
 };
 
 // Extract name, offset and format descriptor for a struct field
