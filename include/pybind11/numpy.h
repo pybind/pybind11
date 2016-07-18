@@ -134,8 +134,7 @@ public:
     array(const buffer_info &info) {
         auto& api = lookup_api();
 
-        // _dtype_from_pep3118 returns dtypes with padding fields in, however the array
-        // constructor seems to then consume them, so we don't need to strip them ourselves
+        // _dtype_from_pep3118 returns dtypes with padding fields in, so we need to strip them
         auto numpy_internal = module::import("numpy.core._internal");
         auto dtype_from_fmt = (object) numpy_internal.attr("_dtype_from_pep3118");
         auto dtype = strip_padding_fields(dtype_from_fmt(pybind11::str(info.format)));
@@ -175,7 +174,7 @@ protected:
             auto format = spec[1].cast<tuple>()[0].cast<object>();
             auto offset = spec[1].cast<tuple>()[1].cast<int_>();
             if (!len(name) && (std::string) dtype.attr("kind").cast<pybind11::str>() == "V")
-                    continue;
+                continue;
             field_descriptors.push_back({name, strip_padding_fields(format), offset});
         }
 
