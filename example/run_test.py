@@ -24,7 +24,7 @@ def sanitize(lines):
         line = line.replace('__builtin__', 'builtins')
         line = line.replace('example.', '')
         line = line.replace('unicode', 'str')
-        line = line.replace('Example4.EMode', 'EMode')
+        line = line.replace('ExampleWithEnum.EMode', 'EMode')
         line = line.replace('example.EMode', 'EMode')
         line = line.replace('method of builtins.PyCapsule instance', '')
         line = line.strip()

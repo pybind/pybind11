@@ -1,5 +1,5 @@
 /*
-    example/example10.cpp -- auto-vectorize functions over NumPy array
+    example/example-numpy-vectorize.cpp -- auto-vectorize functions over NumPy array
     arguments
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -20,7 +20,7 @@ std::complex<double> my_func3(std::complex<double> c) {
     return c * std::complex<double>(2.f);
 }
 
-void init_ex10(py::module &m) {
+void init_ex_numpy_vectorize(py::module &m) {
     // Vectorize all arguments of a function (though non-vector arguments are also allowed)
     m.def("vectorized_func", py::vectorize(my_func));
 

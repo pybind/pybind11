@@ -1,5 +1,5 @@
 /*
-    example/example7.cpp -- supporting Pythons' buffer protocol
+    example/example-buffers.cpp -- supporting Pythons' buffer protocol
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -73,7 +73,7 @@ private:
     float *m_data;
 };
 
-void init_ex7(py::module &m) {
+void init_ex_buffers(py::module &m) {
     py::class_<Matrix> mtx(m, "Matrix");
 
     mtx.def(py::init<size_t, size_t>())

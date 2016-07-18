@@ -1,5 +1,5 @@
 /*
-    example/example19.cpp -- exception translation
+    example/example-custom-exceptions.cpp -- exception translation
 
     Copyright (c) 2016 Pim Schellart <P.Schellart@princeton.edu>
 
@@ -66,7 +66,7 @@ void throws_logic_error() {
     throw std::logic_error("this error should fall through to the standard handler");
 }
 
-void init_ex19(py::module &m) {
+void init_ex_custom_exceptions(py::module &m) {
     // make a new custom exception and use it as a translation target
     static py::exception<MyException> ex(m, "MyException");
     py::register_exception_translator([](std::exception_ptr p) {

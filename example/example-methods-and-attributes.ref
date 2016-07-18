@@ -1,0 +1,26 @@
+Called ExampleMandA default constructor..
+Called ExampleMandA constructor with value 32..
+Called ExampleMandA copy constructor with value 32..
+Called ExampleMandA copy constructor with value 32..
+Called ExampleMandA destructor (32)
+Called ExampleMandA destructor (32)
+Instance 1: ExampleMandA[value=320]
+Instance 2: ExampleMandA[value=32]
+Called ExampleMandA copy constructor with value 320..
+Called ExampleMandA move constructor with value 320..
+Called ExampleMandA destructor (0)
+ExampleMandA[value=320]
+Called ExampleMandA destructor (320)
+ExampleMandA[value=320]
+ExampleMandA[value=320]
+ExampleMandA[value=320]
+ExampleMandA[value=320]
+320
+320
+320
+320
+320
+Instance 1, direct access = 320
+Instance 1: ExampleMandA[value=100]
+Called ExampleMandA destructor (32)
+Called ExampleMandA destructor (100)

@@ -1,5 +1,5 @@
 /*
-    example/example15.cpp -- pickle support
+    example/example-pickling.cpp -- pickle support
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -24,7 +24,7 @@ private:
     int m_extra2 = 0;
 };
 
-void init_ex15(py::module &m) {
+void init_ex_pickling(py::module &m) {
     py::class_<Pickleable>(m, "Pickleable")
         .def(py::init<std::string>())
         .def("value", &Pickleable::value)

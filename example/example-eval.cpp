@@ -1,5 +1,5 @@
 /*
-    example/example18.cpp -- Usage of eval() and eval_file()
+    example/example-eval.cpp -- Usage of eval() and eval_file()
 
     Copyright (c) 2016 Klemens D. Morgenstern
 
@@ -11,7 +11,7 @@
 #include <pybind11/eval.h>
 #include "example.h"
 
-void example18() {
+void example_eval() {
     py::module main_module = py::module::import("__main__");
     py::object main_namespace = main_module.attr("__dict__");
 
@@ -59,9 +59,9 @@ void example18() {
     main_module.def("call_test2", [&](int value) {val_out = value;});
 
     try {
-        result = py::eval_file("example18_call.py", main_namespace);
+        result = py::eval_file("example-eval_call.py", main_namespace);
     } catch (...) {
-        result = py::eval_file("example/example18_call.py", main_namespace);
+        result = py::eval_file("example/example-eval_call.py", main_namespace);
     }
 
     if (val_out == 42 && result == py::none())
@@ -97,6 +97,6 @@ void example18() {
         cout << "eval_file failure test failed" << endl;
 }
 
-void init_ex18(py::module & m) {
-    m.def("example18", &example18);
+void init_ex_eval(py::module & m) {
+    m.def("example_eval", &example_eval);
 }

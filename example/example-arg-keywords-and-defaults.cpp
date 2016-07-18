@@ -1,5 +1,5 @@
 /*
-    example/example11.cpp -- keyword arguments and default values
+    example/example-arg-keywords-and-defaults.cpp -- keyword arguments and default values
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -40,7 +40,7 @@ void args_kwargs_function(py::args args, py::kwargs kwargs) {
     }
 }
 
-void init_ex11(py::module &m) {
+void init_ex_arg_keywords_and_defaults(py::module &m) {
     m.def("kw_func", &kw_func, py::arg("x"), py::arg("y"));
     m.def("kw_func2", &kw_func, py::arg("x") = 100, py::arg("y") = 200);
     m.def("kw_func3", [](const char *) { }, py::arg("data") = std::string("Hello world!"));

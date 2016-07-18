@@ -1,6 +1,6 @@
 15
 5
-example.Example2: No constructor defined!
+example.ExamplePythonTypes: No constructor defined!
 can't set attribute
 key: key2, value=value2
 key: key, value=value
@@ -23,9 +23,9 @@ array item 1: array entry 2
 This exception was intentionally thrown.
 (u'test', True)
 (5L, u'test', True)
-Help on class Example2 in module example
+Help on class ExamplePythonTypes in module example
 
-class EExxaammppllee22(__builtin__.object)
+class EExxaammpplleePPyytthhoonnTTyyppeess(__builtin__.object)
  |  Example 2 documentation
  |  
  |  Methods defined here:
@@ -34,104 +34,104 @@ class EExxaammppllee22(__builtin__.object)
  |      x.__init__(...) initializes x; see help(type(x)) for signature
  |  
  |  ggeett__aarrrraayy(...)
- |      Signature : (example.Example2) -> list<unicode>[2]
+ |      Signature : (example.ExamplePythonTypes) -> list<unicode>[2]
  |      
  |      Return a C++ array
  |  
  |  ggeett__ddiicctt(...)
- |      Signature : (example.Example2) -> dict
+ |      Signature : (example.ExamplePythonTypes) -> dict
  |      
  |      Return a Python dictionary
  |  
  |  ggeett__ddiicctt__22(...)
- |      Signature : (example.Example2) -> dict<unicode, unicode>
+ |      Signature : (example.ExamplePythonTypes) -> dict<unicode, unicode>
  |      
  |      Return a C++ dictionary
  |  
  |  ggeett__lliisstt(...)
- |      Signature : (example.Example2) -> list
+ |      Signature : (example.ExamplePythonTypes) -> list
  |      
  |      Return a Python list
  |  
  |  ggeett__lliisstt__22(...)
- |      Signature : (example.Example2) -> list<unicode>
+ |      Signature : (example.ExamplePythonTypes) -> list<unicode>
  |      
  |      Return a C++ list
  |  
  |  ggeett__sseett(...)
- |      Signature : (example.Example2) -> set
+ |      Signature : (example.ExamplePythonTypes) -> set
  |      
  |      Return a Python set
  |  
  |  ggeett__sseett22(...)
- |      Signature : (example.Example2) -> set
+ |      Signature : (example.ExamplePythonTypes) -> set
  |      
  |      Return a C++ set
  |  
  |  ppaaiirr__ppaasssstthhrroouugghh(...)
- |      Signature : (example.Example2, (bool, unicode)) -> (unicode, bool)
+ |      Signature : (example.ExamplePythonTypes, (bool, unicode)) -> (unicode, bool)
  |      
  |      Return a pair in reversed order
  |  
  |  pprriinntt__aarrrraayy(...)
- |      Signature : (example.Example2, list<unicode>[2]) -> NoneType
+ |      Signature : (example.ExamplePythonTypes, list<unicode>[2]) -> NoneType
  |      
  |      Print entries of a C++ array
  |  
  |  pprriinntt__ddiicctt(...)
- |      Signature : (example.Example2, dict) -> NoneType
+ |      Signature : (example.ExamplePythonTypes, dict) -> NoneType
  |      
  |      Print entries of a Python dictionary
  |  
  |  pprriinntt__ddiicctt__22(...)
- |      Signature : (example.Example2, dict<unicode, unicode>) -> NoneType
+ |      Signature : (example.ExamplePythonTypes, dict<unicode, unicode>) -> NoneType
  |      
  |      Print entries of a C++ dictionary
  |  
  |  pprriinntt__lliisstt(...)
- |      Signature : (example.Example2, list) -> NoneType
+ |      Signature : (example.ExamplePythonTypes, list) -> NoneType
  |      
  |      Print entries of a Python list
  |  
  |  pprriinntt__lliisstt__22(...)
- |      Signature : (example.Example2, list<unicode>) -> NoneType
+ |      Signature : (example.ExamplePythonTypes, list<unicode>) -> NoneType
  |      
  |      Print entries of a C++ list
  |  
  |  pprriinntt__sseett(...)
- |      Signature : (example.Example2, set) -> NoneType
+ |      Signature : (example.ExamplePythonTypes, set) -> NoneType
  |      
  |      Print entries of a Python set
  |  
  |  pprriinntt__sseett__22(...)
- |      Signature : (example.Example2, set<unicode>) -> NoneType
+ |      Signature : (example.ExamplePythonTypes, set<unicode>) -> NoneType
  |      
  |      Print entries of a C++ set
  |  
  |  tthhrrooww__eexxcceeppttiioonn(...)
- |      Signature : (example.Example2) -> NoneType
+ |      Signature : (example.ExamplePythonTypes) -> NoneType
  |      
  |      Throw an exception
  |  
  |  ttuuppllee__ppaasssstthhrroouugghh(...)
- |      Signature : (example.Example2, (bool, unicode, int)) -> (int, unicode, bool)
+ |      Signature : (example.ExamplePythonTypes, (bool, unicode, int)) -> (int, unicode, bool)
  |      
  |      Return a triple in reversed order
  |  
  |  ----------------------------------------------------------------------
  |  Data and other attributes defined here:
  |  
- |  ____nneeww____ = <built-in method __new__ of example.Example2__Meta object>
+ |  ____nneeww____ = <built-in method __new__ of example.ExamplePythonTypes__Meta object>
  |      T.__new__(S, ...) -> a new object with type S, a subtype of T
  |  
  |  nneeww__iinnssttaannccee = <built-in method new_instance of PyCapsule object>
- |      Signature : () -> example.Example2
+ |      Signature : () -> example.ExamplePythonTypes
  |      
  |      Return an instance
 
 __name__(example) = example
-__name__(example.Example2) = Example2
-__module__(example.Example2) = example
-__name__(example.Example2.get_set) = get_set
-__module__(example.Example2.get_set) = example
-Destructing Example2
+__name__(example.ExamplePythonTypes) = ExamplePythonTypes
+__module__(example.ExamplePythonTypes) = example
+__name__(example.ExamplePythonTypes.get_set) = get_set
+__module__(example.ExamplePythonTypes.get_set) = example
+Destructing ExamplePythonTypes

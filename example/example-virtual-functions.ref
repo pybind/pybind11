@@ -1,0 +1,13 @@
+Constructing ExampleVirt..
+Original implementation of ExampleVirt::run(state=10, value=20)
+30
+Caught expected exception: Tried to call pure virtual function "ExampleVirt::pure_virtual"
+Constructing ExampleVirt..
+ExtendedExampleVirt::run(20), calling parent..
+Original implementation of ExampleVirt::run(state=11, value=21)
+32
+ExtendedExampleVirt::run_bool()
+False
+ExtendedExampleVirt::pure_virtual(): Hello world
+Destructing ExampleVirt..
+Destructing ExampleVirt..

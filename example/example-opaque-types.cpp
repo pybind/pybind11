@@ -1,5 +1,5 @@
 /*
-    example/example14.cpp -- opaque types, passing void pointers
+    example/example-opaque-types.cpp -- opaque types, passing void pointers
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -21,7 +21,7 @@ public:
 /* IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures */
 PYBIND11_MAKE_OPAQUE(StringList);
 
-void init_ex14(py::module &m) {
+void init_ex_opaque_types(py::module &m) {
     py::class_<StringList>(m, "StringList")
         .def(py::init<>())
         .def("pop_back", &StringList::pop_back)

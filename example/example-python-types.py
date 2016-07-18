@@ -4,23 +4,23 @@ import sys, pydoc
 sys.path.append('.')
 
 import example
-from example import Example2
+from example import ExamplePythonTypes
 
-Example2.value = 15
-print(Example2.value)
-print(Example2.value2)
+ExamplePythonTypes.value = 15
+print(ExamplePythonTypes.value)
+print(ExamplePythonTypes.value2)
 
 try:
-    Example2()
+    ExamplePythonTypes()
 except Exception as e:
     print(e)
 
 try:
-    Example2.value2 = 15
+    ExamplePythonTypes.value2 = 15
 except Exception as e:
     print(e)
 
-instance = Example2.new_instance()
+instance = ExamplePythonTypes.new_instance()
 
 dict_result = instance.get_dict()
 dict_result['key2'] = 'value2'
@@ -58,10 +58,10 @@ except Exception as e:
 print(instance.pair_passthrough((True, "test")))
 print(instance.tuple_passthrough((True, "test", 5)))
 
-print(pydoc.render_doc(Example2, "Help on %s"))
+print(pydoc.render_doc(ExamplePythonTypes, "Help on %s"))
 
 print("__name__(example) = %s" % example.__name__)
-print("__name__(example.Example2) = %s" % Example2.__name__)
-print("__module__(example.Example2) = %s" % Example2.__module__)
-print("__name__(example.Example2.get_set) = %s" % Example2.get_set.__name__)
-print("__module__(example.Example2.get_set) = %s" % Example2.get_set.__module__)
+print("__name__(example.ExamplePythonTypes) = %s" % ExamplePythonTypes.__name__)
+print("__module__(example.ExamplePythonTypes) = %s" % ExamplePythonTypes.__module__)
+print("__name__(example.ExamplePythonTypes.get_set) = %s" % ExamplePythonTypes.get_set.__name__)
+print("__module__(example.ExamplePythonTypes.get_set) = %s" % ExamplePythonTypes.get_set.__module__)

@@ -1,5 +1,5 @@
 /*
-    example/example6.cpp -- supporting Pythons' sequence protocol, iterators,
+    example/example-sequences-and-iterators.cpp -- supporting Pythons' sequence protocol, iterators,
     etc.
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -109,7 +109,7 @@ private:
     float *m_data;
 };
 
-void init_ex6(py::module &m) {
+void init_ex_sequences_and_iterators(py::module &m) {
     py::class_<Sequence> seq(m, "Sequence");
 
     seq.def(py::init<size_t>())

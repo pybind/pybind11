@@ -1,5 +1,5 @@
 /*
-    example/example8.cpp -- binding classes with custom reference counting,
+    example/example-smart-ptr.cpp -- binding classes with custom reference counting,
     implicit conversions between types
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -105,7 +105,7 @@ void print_myobject3_2(std::shared_ptr<MyObject3> obj) { std::cout << obj->toStr
 void print_myobject3_3(const std::shared_ptr<MyObject3> &obj) { std::cout << obj->toString() << std::endl; }
 void print_myobject3_4(const std::shared_ptr<MyObject3> *obj) { std::cout << (*obj)->toString() << std::endl; }
 
-void init_ex8(py::module &m) {
+void init_ex_smart_ptr(py::module &m) {
     py::class_<Object, ref<Object>> obj(m, "Object");
     obj.def("getRefCount", &Object::getRefCount);
 
