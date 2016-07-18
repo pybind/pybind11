@@ -69,7 +69,8 @@ py::array mkarray_via_buffer(size_t n) {
 template <typename S>
 py::array_t<S, 0> create_recarray(size_t n) {
     auto arr = mkarray_via_buffer<S>(n);
-    auto ptr = static_cast<S*>(arr.request().ptr);
+    auto req = arr.request();
+    auto ptr = static_cast<S*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
         ptr[i].x = i % 2; ptr[i].y = (uint32_t) i; ptr[i].z = (float) i * 1.5f;
     }
@@ -82,7 +83,8 @@ std::string get_format_unbound() {
 
 py::array_t<NestedStruct, 0> create_nested(size_t n) {
     auto arr = mkarray_via_buffer<NestedStruct>(n);
-    auto ptr = static_cast<NestedStruct*>(arr.request().ptr);
+    auto req = arr.request();
+    auto ptr = static_cast<NestedStruct*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
         ptr[i].a.x = i % 2; ptr[i].a.y = (uint32_t) i; ptr[i].a.z = (float) i * 1.5f;
         ptr[i].b.x = (i + 1) % 2; ptr[i].b.y = (uint32_t) (i + 1); ptr[i].b.z = (float) (i + 1) * 1.5f;
@@ -92,7 +94,8 @@ py::array_t<NestedStruct, 0> create_nested(size_t n) {
 
 py::array_t<PartialNestedStruct, 0> create_partial_nested(size_t n) {
     auto arr = mkarray_via_buffer<PartialNestedStruct>(n);
-    auto ptr = static_cast<PartialNestedStruct*>(arr.request().ptr);
+    auto req = arr.request();
+    auto ptr = static_cast<PartialNestedStruct*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
         ptr[i].a.x = i % 2; ptr[i].a.y = (uint32_t) i; ptr[i].a.z = (float) i * 1.5f;
     }
@@ -101,9 +104,9 @@ py::array_t<PartialNestedStruct, 0> create_partial_nested(size_t n) {
 
 template <typename S>
 void print_recarray(py::array_t<S, 0> arr) {
-    auto buf = arr.request();
-    auto ptr = static_cast<S*>(buf.ptr);
-    for (size_t i = 0; i < buf.size; i++)
+    auto req = arr.request();
+    auto ptr = static_cast<S*>(req.ptr);
+    for (size_t i = 0; i < req.size; i++)
         std::cout << ptr[i] << std::endl;
 }
 
