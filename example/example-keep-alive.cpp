@@ -1,5 +1,5 @@
 /*
-    example/example13.cpp -- keep_alive modifier (pybind11's version
+    example/example-keep-alive.cpp -- keep_alive modifier (pybind11's version
     of Boost.Python's with_custodian_and_ward / with_custodian_and_ward_postcall)
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -24,7 +24,7 @@ public:
     Child *returnChild() { return new Child(); }
 };
 
-void init_ex13(py::module &m) {
+void init_ex_keep_alive(py::module &m) {
     py::class_<Parent>(m, "Parent")
         .def(py::init<>())
         .def("addChild", &Parent::addChild)

@@ -102,8 +102,9 @@ C++ side, or to perform other types of customization.
 
 .. seealso::
 
-    The file :file:`example/example3.cpp` contains a complete example that
-    demonstrates how to work with overloaded operators in more detail.
+    The file :file:`example/example-operator-overloading.cpp` contains a
+    complete example that demonstrates how to work with overloaded operators in
+    more detail.
 
 Callbacks and passing anonymous functions
 =========================================
@@ -209,8 +210,9 @@ The following interactive session shows how to call them from Python.
     This functionality is very useful when generating bindings for callbacks in
     C++ libraries (e.g. GUI libraries, asynchronous networking libraries, etc.).
 
-    The file :file:`example/example5.cpp` contains a complete example that
-    demonstrates how to work with callbacks and anonymous functions in more detail.
+    The file :file:`example/example-callbacks.cpp` contains a complete example
+    that demonstrates how to work with callbacks and anonymous functions in
+    more detail.
 
 Overriding virtual functions in Python
 ======================================
@@ -347,9 +349,9 @@ Please take a look at the :ref:`macro_notes` before using this feature.
 
 .. seealso::
 
-    The file :file:`example/example12.cpp` contains a complete example that
-    demonstrates how to override virtual functions using pybind11 in more
-    detail.
+    The file :file:`example/example-virtual-functions.cpp` contains a complete
+    example that demonstrates how to override virtual functions using pybind11
+    in more detail.
 
 
 .. _macro_notes:
@@ -433,8 +435,8 @@ out of the box with just the core :file:`pybind11/pybind11.h` header.
 
 .. seealso::
 
-    The file :file:`example/example2.cpp` contains a complete example that
-    demonstrates how to pass STL data types in more detail.
+    The file :file:`example/example-python-types.cpp` contains a complete
+    example that demonstrates how to pass STL data types in more detail.
 
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
@@ -443,10 +445,10 @@ Please refer to the supplemental example for details.
 
 .. seealso::
 
-    The file :file:`example/example6.cpp` contains a complete example that
-    shows how to bind a sequence data type, including length queries
-    (``__len__``), iterators (``__iter__``), the slicing protocol and other
-    kinds of useful operations.
+    The file :file:`example/example-sequences-and-iterators.cpp` contains a
+    complete example that shows how to bind a sequence data type, including
+    length queries (``__len__``), iterators (``__iter__``), the slicing
+    protocol and other kinds of useful operations.
 
 Return value policies
 =====================
@@ -630,8 +632,8 @@ might be declared as follows:
 
 .. seealso::
 
-    The file :file:`example/example13.cpp` contains a complete example that
-    demonstrates using :class:`keep_alive` in more detail.
+    The file :file:`example/example-keep-alive.cpp` contains a complete example
+    that demonstrates using :class:`keep_alive` in more detail.
 
 Implicit type conversions
 =========================
@@ -832,9 +834,9 @@ Please take a look at the :ref:`macro_notes` before using this feature.
 
 .. seealso::
 
-    The file :file:`example/example8.cpp` contains a complete example that
-    demonstrates how to work with custom reference-counting holder types in
-    more detail.
+    The file :file:`example/example-smart-ptr.cpp` contains a complete example
+    that demonstrates how to work with custom reference-counting holder types
+    in more detail.
 
 .. _custom_constructors:
 
@@ -939,7 +941,7 @@ a first shot at handling the exception).
 Inside the translator, ``std::rethrow_exception`` should be used within
 a try block to re-throw the exception. A catch clause can then use
 ``PyErr_SetString`` to set a Python exception as demonstrated
-in :file:`example19.cpp``.
+in :file:`example-custom-exceptions.cpp``.
 
 This example also demonstrates how to create custom exception types
 with ``py::exception``.
@@ -1077,9 +1079,9 @@ Please take a look at the :ref:`macro_notes` before using this feature.
 
 .. seealso::
 
-    The file :file:`example/example14.cpp` contains a complete example that
-    demonstrates how to create and expose opaque types using pybind11 in more
-    detail.
+    The file :file:`example/example-opaque-types.cpp` contains a complete
+    example that demonstrates how to create and expose opaque types using
+    pybind11 in more detail.
 
 .. _eigen:
 
@@ -1249,8 +1251,8 @@ limitations), refer to the section on :ref:`eigen`.
 
 .. seealso::
 
-    The file :file:`example/example7.cpp` contains a complete example that
-    demonstrates using the buffer protocol with pybind11 in more detail.
+    The file :file:`example/example-buffers.cpp` contains a complete example
+    that demonstrates using the buffer protocol with pybind11 in more detail.
 
 .. [#f2] http://docs.python.org/3/c-api/buffer.html
 
@@ -1398,8 +1400,8 @@ simply using ``vectorize``).
 
 .. seealso::
 
-    The file :file:`example/example10.cpp` contains a complete example that
-    demonstrates using :func:`vectorize` in more detail.
+    The file :file:`example/example-numpy-vectorize.cpp` contains a complete
+    example that demonstrates using :func:`vectorize` in more detail.
 
 Functions taking Python objects as arguments
 ============================================
@@ -1462,9 +1464,10 @@ with other parameters.
 
 .. seealso::
 
-    The file :file:`example/example2.cpp` contains a complete example that
-    demonstrates passing native Python types in more detail. The file
-    :file:`example/example11.cpp` discusses usage of ``args`` and ``kwargs``.
+    The file :file:`example/example-python-types.cpp` contains a complete
+    example that demonstrates passing native Python types in more detail. The
+    file :file:`example/example-arg-keywords-and-defaults.cpp` discusses usage
+    of ``args`` and ``kwargs``.
 
 Default arguments revisited
 ===========================
@@ -1537,11 +1540,11 @@ Such functions can also be created using pybind11:
    /// Binding code
    m.def("generic", &generic);
 
-(See ``example/example11.cpp``). The class ``py::args`` derives from
-``py::list`` and ``py::kwargs`` derives from ``py::dict`` Note that the
-``kwargs`` argument is invalid if no keyword arguments were actually provided.
-Please refer to the other examples for details on how to iterate over these,
-and on how to cast their entries into C++ objects.
+(See ``example/example-arg-keywords-and-defaults.cpp``). The class ``py::args``
+derives from ``py::list`` and ``py::kwargs`` derives from ``py::dict`` Note
+that the ``kwargs`` argument is invalid if no keyword arguments were actually
+provided.  Please refer to the other examples for details on how to iterate
+over these, and on how to cast their entries into C++ objects.
 
 Partitioning code over multiple extension modules
 =================================================
@@ -1682,8 +1685,9 @@ memory corruption and/or segmentation faults.
 
 .. seealso::
 
-    The file :file:`example/example15.cpp` contains a complete example that
-    demonstrates how to pickle and unpickle types using pybind11 in more detail.
+    The file :file:`example/example-pickling.cpp` contains a complete example
+    that demonstrates how to pickle and unpickle types using pybind11 in more
+    detail.
 
 .. [#f3] http://docs.python.org/3/library/pickle.html#pickling-class-instances
 

@@ -1,5 +1,5 @@
 /*
-    example/example9.cpp -- nested modules, importing modules, and
+    example/example-modules.cpp -- nested modules, importing modules, and
                             internal references
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -36,7 +36,7 @@ public:
     A a2{2};
 };
 
-void init_ex9(py::module &m) {
+void init_ex_modules(py::module &m) {
     py::module m_sub = m.def_submodule("submodule");
     m_sub.def("submodule_func", &submodule_func);
 

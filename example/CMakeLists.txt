@@ -7,25 +7,25 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 set(PYBIND11_EXAMPLES
-  example1.cpp
-  example2.cpp
-  example3.cpp
-  example4.cpp
-  example5.cpp
-  example6.cpp
-  example7.cpp
-  example8.cpp
-  example9.cpp
-  example10.cpp
-  example11.cpp
-  example12.cpp
-  example13.cpp
-  example14.cpp
-  example15.cpp
-  example16.cpp
-  example17.cpp
-  example18.cpp
-  example19.cpp
+  example-methods-and-attributes.cpp
+  example-python-types.cpp
+  example-operator-overloading.cpp
+  example-constants-and-functions.cpp
+  example-callbacks.cpp
+  example-sequences-and-iterators.cpp
+  example-buffers.cpp
+  example-smart-ptr.cpp
+  example-modules.cpp
+  example-numpy-vectorize.cpp
+  example-arg-keywords-and-defaults.cpp
+  example-virtual-functions.cpp
+  example-keep-alive.cpp
+  example-opaque-types.cpp
+  example-pickling.cpp
+  example-inheritance.cpp
+  example-stl-binder-vector.cpp
+  example-eval.cpp
+  example-custom-exceptions.cpp
   issues.cpp
 )
 

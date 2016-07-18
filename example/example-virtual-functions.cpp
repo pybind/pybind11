@@ -1,5 +1,5 @@
 /*
-    example/example12.cpp -- overriding virtual functions from Python
+    example/example-virtual-functions.cpp -- overriding virtual functions from Python
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -11,18 +11,18 @@
 #include <pybind11/functional.h>
 
 /* This is an example class that we'll want to be able to extend from Python */
-class Example12  {
+class ExampleVirt  {
 public:
-    Example12(int state) : state(state) {
-        cout << "Constructing Example12.." << endl;
+    ExampleVirt(int state) : state(state) {
+        cout << "Constructing ExampleVirt.." << endl;
     }
 
-    ~Example12() {
-        cout << "Destructing Example12.." << endl;
+    ~ExampleVirt() {
+        cout << "Destructing ExampleVirt.." << endl;
     }
 
     virtual int run(int value) {
-        std::cout << "Original implementation of Example12::run(state=" << state
+        std::cout << "Original implementation of ExampleVirt::run(state=" << state
                   << ", value=" << value << ")" << std::endl;
         return state + value;
     }
@@ -34,24 +34,24 @@ private:
 };
 
 /* This is a wrapper class that must be generated */
-class PyExample12 : public Example12 {
+class PyExampleVirt : public ExampleVirt {
 public:
-    using Example12::Example12; /* Inherit constructors */
+    using ExampleVirt::ExampleVirt; /* Inherit constructors */
 
     virtual int run(int value) {
         /* Generate wrapping code that enables native function overloading */
         PYBIND11_OVERLOAD(
-            int,        /* Return type */
-            Example12,  /* Parent class */
-            run,        /* Name of function */
-            value       /* Argument(s) */
+            int,         /* Return type */
+            ExampleVirt, /* Parent class */
+            run,         /* Name of function */
+            value        /* Argument(s) */
         );
     }
 
     virtual bool run_bool() {
         PYBIND11_OVERLOAD_PURE(
             bool,         /* Return type */
-            Example12,    /* Parent class */
+            ExampleVirt,  /* Parent class */
             run_bool,     /* Name of function */
                           /* This function has no arguments. The trailing comma
                              in the previous line is needed for some compilers */
@@ -61,7 +61,7 @@ public:
     virtual void pure_virtual() {
         PYBIND11_OVERLOAD_PURE(
             void,         /* Return type */
-            Example12,    /* Parent class */
+            ExampleVirt,  /* Parent class */
             pure_virtual, /* Name of function */
                           /* This function has no arguments. The trailing comma
                              in the previous line is needed for some compilers */
@@ -69,30 +69,30 @@ public:
     }
 };
 
-int runExample12(Example12 *ex, int value) {
+int runExampleVirt(ExampleVirt *ex, int value) {
     return ex->run(value);
 }
 
-bool runExample12Bool(Example12* ex) {
+bool runExampleVirtBool(ExampleVirt* ex) {
     return ex->run_bool();
 }
 
-void runExample12Virtual(Example12 *ex) {
+void runExampleVirtVirtual(ExampleVirt *ex) {
     ex->pure_virtual();
 }
 
-void init_ex12(py::module &m) {
-    /* Important: indicate the trampoline class PyExample12 using the third
+void init_ex_virtual_functions(py::module &m) {
+    /* Important: indicate the trampoline class PyExampleVirt using the third
        argument to py::class_. The second argument with the unique pointer
        is simply the default holder type used by pybind11. */
-    py::class_<Example12, std::unique_ptr<Example12>, PyExample12>(m, "Example12")
+    py::class_<ExampleVirt, std::unique_ptr<ExampleVirt>, PyExampleVirt>(m, "ExampleVirt")
         .def(py::init<int>())
         /* Reference original class in function definitions */
-        .def("run", &Example12::run)
-        .def("run_bool", &Example12::run_bool)
-        .def("pure_virtual", &Example12::pure_virtual);
+        .def("run", &ExampleVirt::run)
+        .def("run_bool", &ExampleVirt::run_bool)
+        .def("pure_virtual", &ExampleVirt::pure_virtual);
 
-    m.def("runExample12", &runExample12);
-    m.def("runExample12Bool", &runExample12Bool);
-    m.def("runExample12Virtual", &runExample12Virtual);
+    m.def("runExampleVirt", &runExampleVirt);
+    m.def("runExampleVirtBool", &runExampleVirtBool);
+    m.def("runExampleVirtVirtual", &runExampleVirtVirtual);
 }

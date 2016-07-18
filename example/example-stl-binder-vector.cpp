@@ -1,5 +1,5 @@
 /*
-    example/example17.cpp -- Usage of stl_binders functions
+    example/example-stl-binder-vector.cpp -- Usage of stl_binders functions
 
     Copyright (c) 2016 Sergey Lyskov
 
@@ -24,7 +24,7 @@ std::ostream & operator<<(std::ostream &s, El const&v) {
 	return s;
 }
 
-void init_ex17(py::module &m) {
+void init_ex_stl_binder_vector(py::module &m) {
 	pybind11::class_<El>(m, "El")
 		.def(pybind11::init<int>());
 

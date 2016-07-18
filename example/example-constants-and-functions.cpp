@@ -1,5 +1,5 @@
 /*
-    example/example4.cpp -- global constants and functions, enumerations, raw byte strings
+    example/example-constants-and-functions.cpp -- global constants and functions, enumerations, raw byte strings
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -14,7 +14,7 @@ enum EMyEnumeration {
     ESecondEntry
 };
 
-class Example4 {
+class ExampleWithEnum {
 public:
     enum EMode {
         EFirstMode = 1,
@@ -22,7 +22,7 @@ public:
     };
 
     static EMode test_function(EMode mode) {
-        std::cout << "Example4::test_function(enum=" << mode << ")" << std::endl;
+        std::cout << "ExampleWithEnum::test_function(enum=" << mode << ")" << std::endl;
         return mode;
     }
 };
@@ -52,7 +52,7 @@ void print_bytes(py::bytes bytes) {
         std::cout << "bytes[" << i << "]=" << (int) value[i] << std::endl;
 }
 
-void init_ex4(py::module &m) {
+void init_ex_constants_and_functions(py::module &m) {
     m.def("test_function", &test_function1);
     m.def("test_function", &test_function2);
     m.def("test_function", &test_function3);
@@ -63,11 +63,11 @@ void init_ex4(py::module &m) {
         .value("ESecondEntry", ESecondEntry)
         .export_values();
 
-    py::class_<Example4> ex4_class(m, "Example4");
-    ex4_class.def_static("test_function", &Example4::test_function);
-    py::enum_<Example4::EMode>(ex4_class, "EMode")
-        .value("EFirstMode", Example4::EFirstMode)
-        .value("ESecondMode", Example4::ESecondMode)
+    py::class_<ExampleWithEnum> exenum_class(m, "ExampleWithEnum");
+    exenum_class.def_static("test_function", &ExampleWithEnum::test_function);
+    py::enum_<ExampleWithEnum::EMode>(exenum_class, "EMode")
+        .value("EFirstMode", ExampleWithEnum::EFirstMode)
+        .value("ESecondMode", ExampleWithEnum::ESecondMode)
         .export_values();
 
     m.def("return_bytes", &return_bytes);

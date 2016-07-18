@@ -6,9 +6,9 @@ Opaque list: [Element 1]
 Opaque list: []
 Opaque list: [Element 1, Element 3]
 Got void ptr : 0x1234
-Called Example1 default constructor..
+Called ExampleMandA default constructor..
 Got void ptr : 0x7f9ba0f3c430
-Called Example1 destructor (0)
+Called ExampleMandA destructor (0)
 Caught expected exception: Incompatible function arguments. The following argument types are supported:
     1. (capsule) -> NoneType
     Invoked with: [1, 2, 3]

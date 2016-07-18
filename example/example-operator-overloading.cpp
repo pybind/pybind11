@@ -1,5 +1,5 @@
 /*
-    example/example3.cpp -- operator overloading
+    example/example-operator-overloading.cpp -- operator overloading
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -52,7 +52,7 @@ private:
 };
 
 
-void init_ex3(py::module &m) {
+void init_ex_operator_overloading(py::module &m) {
     py::class_<Vector2>(m, "Vector2")
         .def(py::init<float, float>())
         .def(py::self + py::self)

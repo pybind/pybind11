@@ -1,6 +1,5 @@
 /*
-    example/example5.cpp -- inheritance, callbacks, acquiring and releasing the
-    global interpreter lock
+    example/example-callbacks.cpp -- callbacks
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -11,36 +10,6 @@
 #include "example.h"
 #include <pybind11/functional.h>
 
-
-class Pet {
-public:
-    Pet(const std::string &name, const std::string &species)
-        : m_name(name), m_species(species) {}
-    std::string name() const { return m_name; }
-    std::string species() const { return m_species; }
-private:
-    std::string m_name;
-    std::string m_species;
-};
-
-class Dog : public Pet {
-public:
-    Dog(const std::string &name) : Pet(name, "dog") {}
-    void bark() const { std::cout << "Woof!" << std::endl; }
-};
-
-class Rabbit : public Pet {
-public:
-    Rabbit(const std::string &name) : Pet(name, "parrot") {}
-};
-
-void pet_print(const Pet &pet) {
-    std::cout << pet.name() + " is a " + pet.species() << std::endl;
-}
-
-void dog_bark(const Dog &dog) {
-    dog.bark();
-}
 
 bool test_callback1(py::object func) {
     func();
@@ -88,24 +57,7 @@ void test_dummy_function(const std::function<int(int)> &f) {
     }
 }
 
-void init_ex5(py::module &m) {
-    py::class_<Pet> pet_class(m, "Pet");
-    pet_class
-        .def(py::init<std::string, std::string>())
-        .def("name", &Pet::name)
-        .def("species", &Pet::species);
-
-    /* One way of declaring a subclass relationship: reference parent's class_ object */
-    py::class_<Dog>(m, "Dog", pet_class)
-        .def(py::init<std::string>());
-
-    /* Another way of declaring a subclass relationship: reference parent's C++ type */
-    py::class_<Rabbit>(m, "Rabbit", py::base<Pet>())
-        .def(py::init<std::string>());
-
-    m.def("pet_print", pet_print);
-    m.def("dog_bark", dog_bark);
-
+void init_ex_callbacks(py::module &m) {
     m.def("test_callback1", &test_callback1);
     m.def("test_callback2", &test_callback2);
     m.def("test_callback3", &test_callback3);

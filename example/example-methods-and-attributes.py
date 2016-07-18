@@ -3,10 +3,10 @@ from __future__ import print_function
 import sys
 sys.path.append('.')
 
-from example import Example1
+from example import ExampleMandA
 
-instance1 = Example1()
-instance2 = Example1(32)
+instance1 = ExampleMandA()
+instance2 = ExampleMandA(32)
 instance1.add1(instance2)
 instance1.add2(instance2)
 instance1.add3(instance2)

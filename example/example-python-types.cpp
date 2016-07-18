@@ -1,5 +1,5 @@
 /*
-    example/example2.cpp2 -- singleton design pattern, static functions and
+    example/example-python-types.cpp2 -- singleton design pattern, static functions and
     variables, passing and interacting with Python types
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -16,13 +16,13 @@
 #  include <fcntl.h>
 #endif
 
-class Example2 {
+class ExamplePythonTypes {
 public:
-    static Example2 *new_instance() {
-        return new Example2();
+    static ExamplePythonTypes *new_instance() {
+        return new ExamplePythonTypes();
     }
-    ~Example2() {
-        std::cout << "Destructing Example2" << std::endl;
+    ~ExamplePythonTypes() {
+        std::cout << "Destructing ExamplePythonTypes" << std::endl;
     }
 
     /* Create and return a Python dictionary */
@@ -142,31 +142,31 @@ public:
     static const int value2;
 };
 
-int Example2::value = 0;
-const int Example2::value2 = 5;
+int ExamplePythonTypes::value = 0;
+const int ExamplePythonTypes::value2 = 5;
 
-void init_ex2(py::module &m) {
+void init_ex_python_types(py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
-    py::class_<Example2>(m, "Example2", "Example 2 documentation")
-        .def("get_dict", &Example2::get_dict, "Return a Python dictionary")
-        .def("get_dict_2", &Example2::get_dict_2, "Return a C++ dictionary")
-        .def("get_list", &Example2::get_list, "Return a Python list")
-        .def("get_list_2", &Example2::get_list_2, "Return a C++ list")
-        .def("get_set", &Example2::get_set, "Return a Python set")
-        .def("get_set2", &Example2::get_set_2, "Return a C++ set")
-        .def("get_array", &Example2::get_array, "Return a C++ array")
-        .def("print_dict", &Example2::print_dict, "Print entries of a Python dictionary")
-        .def("print_dict_2", &Example2::print_dict_2, "Print entries of a C++ dictionary")
-        .def("print_set", &Example2::print_set, "Print entries of a Python set")
-        .def("print_set_2", &Example2::print_set_2, "Print entries of a C++ set")
-        .def("print_list", &Example2::print_list, "Print entries of a Python list")
-        .def("print_list_2", &Example2::print_list_2, "Print entries of a C++ list")
-        .def("print_array", &Example2::print_array, "Print entries of a C++ array")
-        .def("pair_passthrough", &Example2::pair_passthrough, "Return a pair in reversed order")
-        .def("tuple_passthrough", &Example2::tuple_passthrough, "Return a triple in reversed order")
-        .def("throw_exception", &Example2::throw_exception, "Throw an exception")
-        .def_static("new_instance", &Example2::new_instance, "Return an instance")
-        .def_readwrite_static("value", &Example2::value, "Static value member")
-        .def_readonly_static("value2", &Example2::value2, "Static value member (readonly)");
+    py::class_<ExamplePythonTypes>(m, "ExamplePythonTypes", "Example 2 documentation")
+        .def("get_dict", &ExamplePythonTypes::get_dict, "Return a Python dictionary")
+        .def("get_dict_2", &ExamplePythonTypes::get_dict_2, "Return a C++ dictionary")
+        .def("get_list", &ExamplePythonTypes::get_list, "Return a Python list")
+        .def("get_list_2", &ExamplePythonTypes::get_list_2, "Return a C++ list")
+        .def("get_set", &ExamplePythonTypes::get_set, "Return a Python set")
+        .def("get_set2", &ExamplePythonTypes::get_set_2, "Return a C++ set")
+        .def("get_array", &ExamplePythonTypes::get_array, "Return a C++ array")
+        .def("print_dict", &ExamplePythonTypes::print_dict, "Print entries of a Python dictionary")
+        .def("print_dict_2", &ExamplePythonTypes::print_dict_2, "Print entries of a C++ dictionary")
+        .def("print_set", &ExamplePythonTypes::print_set, "Print entries of a Python set")
+        .def("print_set_2", &ExamplePythonTypes::print_set_2, "Print entries of a C++ set")
+        .def("print_list", &ExamplePythonTypes::print_list, "Print entries of a Python list")
+        .def("print_list_2", &ExamplePythonTypes::print_list_2, "Print entries of a C++ list")
+        .def("print_array", &ExamplePythonTypes::print_array, "Print entries of a C++ array")
+        .def("pair_passthrough", &ExamplePythonTypes::pair_passthrough, "Return a pair in reversed order")
+        .def("tuple_passthrough", &ExamplePythonTypes::tuple_passthrough, "Return a triple in reversed order")
+        .def("throw_exception", &ExamplePythonTypes::throw_exception, "Throw an exception")
+        .def_static("new_instance", &ExamplePythonTypes::new_instance, "Return an instance")
+        .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
+        .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)");
 }

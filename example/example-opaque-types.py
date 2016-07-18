@@ -8,7 +8,7 @@ from example import ClassWithSTLVecProperty
 from example import return_void_ptr, print_void_ptr
 from example import return_null_str, print_null_str
 from example import return_unique_ptr
-from example import Example1
+from example import ExampleMandA
 
 #####
 
@@ -33,7 +33,7 @@ print_opaque_list(cvp.stringList)
 #####
 
 print_void_ptr(return_void_ptr())
-print_void_ptr(Example1())  # Should also work for other C++ types
+print_void_ptr(ExampleMandA())  # Should also work for other C++ types
 
 try:
     print_void_ptr([1, 2, 3])  # This should not work
