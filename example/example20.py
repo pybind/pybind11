@@ -70,3 +70,5 @@ check_eq(arr, [((False, 0, 0.0), (True, 1, 1.5)),
                ((True, 1, 1.5), (False, 2, 3.0)),
                ((False, 2, 3.0), (True, 3, 4.5))], nested_dtype)
 print_rec_nested(arr)
+
+assert create_rec_nested.__doc__.strip().endswith('numpy.ndarray[dtype=NestedStruct]')
