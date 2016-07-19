@@ -27,22 +27,7 @@
 NAMESPACE_BEGIN(pybind11)
 namespace detail {
 template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
-
-template <typename T> struct is_std_array : std::false_type { };
-template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
-
-template <typename T>
-struct is_pod_struct {
-    enum { value = std::is_pod<T>::value && // offsetof only works correctly for POD types
-           !std::is_array<T>::value &&
-           !is_std_array<T>::value &&
-           !std::is_integral<T>::value &&
-           !std::is_same<T, float>::value &&
-           !std::is_same<T, double>::value &&
-           !std::is_same<T, bool>::value &&
-           !std::is_same<T, std::complex<float>>::value &&
-           !std::is_same<T, std::complex<double>>::value };
-};
+template <typename type> struct is_pod_struct;
 }
 
 class array : public buffer {
@@ -242,6 +227,21 @@ object dtype_of() {
 }
 
 NAMESPACE_BEGIN(detail)
+template <typename T> struct is_std_array : std::false_type { };
+template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
+
+template <typename T>
+struct is_pod_struct {
+    enum { value = std::is_pod<T>::value && // offsetof only works correctly for POD types
+           !std::is_array<T>::value &&
+           !is_std_array<T>::value &&
+           !std::is_integral<T>::value &&
+           !std::is_same<T, float>::value &&
+           !std::is_same<T, double>::value &&
+           !std::is_same<T, bool>::value &&
+           !std::is_same<T, std::complex<float>>::value &&
+           !std::is_same<T, std::complex<double>>::value };
+};
 
 template <typename T> struct npy_format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {
 private:
@@ -301,7 +301,6 @@ struct field_descriptor {
     const char *format;
     object descr;
 };
-
 
 template <typename T>
 struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type> {

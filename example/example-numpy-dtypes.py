@@ -42,7 +42,6 @@ for func, dtype in [(create_rec_simple, simple_dtype), (create_rec_packed, packe
     else:
         print_rec_packed(arr)
 
-
 arr = create_rec_partial(3)
 print(arr.dtype)
 partial_dtype = arr.dtype
