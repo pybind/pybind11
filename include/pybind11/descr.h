@@ -93,7 +93,7 @@ constexpr typename std::enable_if<!B, descr<Size2 - 1, 0>>::type _(char const(&)
     return _(text2);
 }
 
-template <size_t Size> auto constexpr _() {
+template <size_t Size> auto constexpr _() -> decltype(int_to_str<Size / 10, Size % 10>::digits) {
     return int_to_str<Size / 10, Size % 10>::digits;
 }
 
