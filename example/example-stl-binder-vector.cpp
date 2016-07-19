@@ -25,13 +25,13 @@ std::ostream & operator<<(std::ostream &s, El const&v) {
 }
 
 void init_ex_stl_binder_vector(py::module &m) {
-	pybind11::class_<El>(m, "El")
-		.def(pybind11::init<int>());
+	py::class_<El>(m, "El")
+		.def(py::init<int>());
 
-	pybind11::bind_vector<unsigned int>(m, "VectorInt");
-	pybind11::bind_vector<bool>(m, "VectorBool");
+	py::bind_vector<unsigned int>(m, "VectorInt");
+	py::bind_vector<bool>(m, "VectorBool");
 
-	pybind11::bind_vector<El>(m, "VectorEl");
+	py::bind_vector<El>(m, "VectorEl");
 
-    pybind11::bind_vector<std::vector<El>>(m, "VectorVectorEl");
+    py::bind_vector<std::vector<El>>(m, "VectorVectorEl");
 }
