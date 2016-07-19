@@ -1,5 +1,5 @@
 /*
-  example/example20.cpp -- Usage of structured numpy dtypes
+  example/example-numpy-dtypes.cpp -- Structured and compound NumPy dtypes
 
   Copyright (c) 2016 Ivan Smirnov
 
@@ -169,7 +169,7 @@ void print_dtypes() {
     std::cout << to_str(py::dtype_of<StringStruct>()) << std::endl;
 }
 
-void init_ex20(py::module &m) {
+void init_ex_numpy_dtypes(py::module &m) {
     PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(PackedStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(NestedStruct, a, b);

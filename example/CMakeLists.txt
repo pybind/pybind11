@@ -26,7 +26,7 @@ set(PYBIND11_EXAMPLES
   example-stl-binder-vector.cpp
   example-eval.cpp
   example-custom-exceptions.cpp
-  example20.cpp
+  example-numpy-dtypes.cpp
   issues.cpp
 )
 
