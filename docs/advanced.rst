@@ -1374,7 +1374,7 @@ simply using ``vectorize``).
         auto result = py::array(py::buffer_info(
             nullptr,            /* Pointer to data (nullptr -> ask NumPy to allocate!) */
             sizeof(double),     /* Size of one item */
-            py::format_descriptor<double>::value(), /* Buffer format */
+            py::format_descriptor<double>::value, /* Buffer format */
             buf1.ndim,          /* How many dimensions? */
             { buf1.shape[0] },  /* Number of elements for each dimension */
             { sizeof(double) }  /* Strides for each dimension */
