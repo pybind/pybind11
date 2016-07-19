@@ -65,6 +65,19 @@ struct PartialNestedStruct {
 
 struct UnboundStruct { };
 
+struct StringStruct {
+    char a[3];
+    std::array<char, 3> b;
+};
+
+std::ostream& operator<<(std::ostream& os, const StringStruct& v) {
+    os << "a='";
+    for (size_t i = 0; i < 3 && v.a[i]; i++) os << v.a[i];
+    os << "',b='";
+    for (size_t i = 0; i < 3 && v.b[i]; i++) os << v.b[i];
+    return os << "'";
+}
+
 template <typename T>
 py::array mkarray_via_buffer(size_t n) {
     return py::array(py::buffer_info(nullptr, sizeof(T),
@@ -108,6 +121,25 @@ py::array_t<PartialNestedStruct, 0> create_partial_nested(size_t n) {
     return arr;
 }
 
+py::array_t<StringStruct, 0> create_string_array(bool non_empty) {
+    auto arr = mkarray_via_buffer<StringStruct>(non_empty ? 4 : 0);
+    if (non_empty) {
+        auto req = arr.request();
+        auto ptr = static_cast<StringStruct*>(req.ptr);
+        for (size_t i = 0; i < req.size * req.itemsize; i++)
+            static_cast<char*>(req.ptr)[i] = 0;
+        ptr[1].a[0] = 'a'; ptr[1].b[0] = 'a';
+        ptr[2].a[0] = 'a'; ptr[2].b[0] = 'a';
+        ptr[3].a[0] = 'a'; ptr[3].b[0] = 'a';
+
+        ptr[2].a[1] = 'b'; ptr[2].b[1] = 'b';
+        ptr[3].a[1] = 'b'; ptr[3].b[1] = 'b';
+
+        ptr[3].a[2] = 'c'; ptr[3].b[2] = 'c';
+    }
+    return arr;
+}
+
 template <typename S>
 void print_recarray(py::array_t<S, 0> arr) {
     auto req = arr.request();
@@ -122,6 +154,7 @@ void print_format_descriptors() {
     std::cout << py::format_descriptor<NestedStruct>::format() << std::endl;
     std::cout << py::format_descriptor<PartialStruct>::format() << std::endl;
     std::cout << py::format_descriptor<PartialNestedStruct>::format() << std::endl;
+    std::cout << py::format_descriptor<StringStruct>::format() << std::endl;
 }
 
 void print_dtypes() {
@@ -133,6 +166,7 @@ void print_dtypes() {
     std::cout << to_str(py::dtype_of<NestedStruct>()) << std::endl;
     std::cout << to_str(py::dtype_of<PartialStruct>()) << std::endl;
     std::cout << to_str(py::dtype_of<PartialNestedStruct>()) << std::endl;
+    std::cout << to_str(py::dtype_of<StringStruct>()) << std::endl;
 }
 
 void init_ex20(py::module &m) {
@@ -141,6 +175,7 @@ void init_ex20(py::module &m) {
     PYBIND11_NUMPY_DTYPE(NestedStruct, a, b);
     PYBIND11_NUMPY_DTYPE(PartialStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(PartialNestedStruct, a);
+    PYBIND11_NUMPY_DTYPE(StringStruct, a, b);
 
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
@@ -153,6 +188,8 @@ void init_ex20(py::module &m) {
     m.def("print_rec_nested", &print_recarray<NestedStruct>);
     m.def("print_dtypes", &print_dtypes);
     m.def("get_format_unbound", &get_format_unbound);
+    m.def("create_string_array", &create_string_array);
+    m.def("print_string_array", &print_recarray<StringStruct>);
 }
 
 #undef PYBIND11_PACKED

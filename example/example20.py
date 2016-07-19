@@ -6,7 +6,7 @@ import numpy as np
 from example import (
     create_rec_simple, create_rec_packed, create_rec_nested, print_format_descriptors,
     print_rec_simple, print_rec_packed, print_rec_nested, print_dtypes, get_format_unbound,
-    create_rec_partial, create_rec_partial_nested
+    create_rec_partial, create_rec_partial_nested, create_string_array, print_string_array
 )
 
 
@@ -72,3 +72,12 @@ check_eq(arr, [((False, 0, 0.0), (True, 1, 1.5)),
 print_rec_nested(arr)
 
 assert create_rec_nested.__doc__.strip().endswith('numpy.ndarray[dtype=NestedStruct]')
+
+arr = create_string_array(True)
+print(arr.dtype)
+print_string_array(arr)
+dtype = arr.dtype
+assert arr['a'].tolist() == [b'', b'a', b'ab', b'abc']
+assert arr['b'].tolist() == [b'', b'a', b'ab', b'abc']
+arr = create_string_array(False)
+assert dtype == arr.dtype

@@ -13,6 +13,7 @@
 #include "complex.h"
 #include <numeric>
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
@@ -27,10 +28,14 @@ NAMESPACE_BEGIN(pybind11)
 namespace detail {
 template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
 
+template <typename T> struct is_std_array : std::false_type { };
+template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
 
 template <typename T>
 struct is_pod_struct {
     enum { value = std::is_pod<T>::value && // offsetof only works correctly for POD types
+           !std::is_array<T>::value &&
+           !is_std_array<T>::value &&
            !std::is_integral<T>::value &&
            !std::is_same<T, float>::value &&
            !std::is_same<T, double>::value &&
@@ -221,9 +226,14 @@ public:
 
 template <typename T>
 struct format_descriptor<T, typename std::enable_if<detail::is_pod_struct<T>::value>::type> {
-    static const char *format() {
-        return detail::npy_format_descriptor<T>::format();
-    }
+    static const char *format() { return detail::npy_format_descriptor<T>::format(); }
+};
+
+template <size_t N> struct format_descriptor<char[N]> {
+    static const char *format() { PYBIND11_DESCR s = detail::_<N>() + detail::_("s"); return s.text(); }
+};
+template <size_t N> struct format_descriptor<std::array<char, N>> {
+    static const char *format() { PYBIND11_DESCR s = detail::_<N>() + detail::_("s"); return s.text(); }
 };
 
 template <typename T>
@@ -267,6 +277,22 @@ DECL_FMT(bool, NPY_BOOL_, "bool");
 DECL_FMT(std::complex<float>, NPY_CFLOAT_, "complex64");
 DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
 #undef DECL_FMT
+
+#define DECL_CHAR_FMT \
+    static PYBIND11_DESCR name() { return _("S") + _<N>(); } \
+    static object dtype() { \
+        auto& api = array::lookup_api(); \
+        PyObject *descr = nullptr; \
+        PYBIND11_DESCR fmt = _("S") + _<N>(); \
+        pybind11::str py_fmt(fmt.text()); \
+        if (!api.PyArray_DescrConverter_(py_fmt.release().ptr(), &descr) || !descr) \
+            pybind11_fail("NumPy: failed to create string dtype"); \
+        return object(descr, false); \
+    } \
+    static const char *format() { PYBIND11_DESCR s = _<N>() + _("s"); return s.text(); }
+template <size_t N> struct npy_format_descriptor<char[N]> { DECL_CHAR_FMT };
+template <size_t N> struct npy_format_descriptor<std::array<char, N>> { DECL_CHAR_FMT };
+#undef DECL_CHAR_FMT
 
 struct field_descriptor {
     const char *name;
