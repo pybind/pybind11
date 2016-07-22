@@ -77,5 +77,21 @@ VI_DT:
 VI_DT says: quack quack quack
 Unlucky = 1234
 Lucky = -4.25
+2^2 * 3^2 =
+NonCopyable destructor @ 0x1a6c3f0; value = (null)
+36
+NonCopyable destructor @ 0x7ffc6d1fbaa8; value = 36
+4 + 5 =
+Movable @ 0x7ffc6d1fbacc copy constructor
+9
+Movable destructor @ 0x7ffc6d1fbacc; value = 9
+7 + 7 =
+Movable @ 0x7ffc6d1fbacc move constructor
+Movable destructor @ 0x1a6c4d0; value = 14
+14
+Movable destructor @ 0x7ffc6d1fbacc; value = 14
+Caught expected exception
+NonCopyable destructor @ 0x29a64b0; value = 81
+Movable destructor @ 0x1a6c410; value = 9
 Destructing ExampleVirt..
 Destructing ExampleVirt..

@@ -89,6 +89,11 @@ public:
         }
         return *this;
     }
+
+    // Calling cast() on an object lvalue just copies (via handle::cast)
+    template <typename T> T cast() const &;
+    // Calling on an object rvalue does a move, if needed and/or possible
+    template <typename T> T cast() &&;
 };
 
 NAMESPACE_BEGIN(detail)

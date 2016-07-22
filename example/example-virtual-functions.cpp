@@ -69,6 +69,53 @@ public:
     }
 };
 
+class NonCopyable {
+public:
+    NonCopyable(int a, int b) : value{new int(a*b)} {}
+    NonCopyable(NonCopyable &&) = default;
+    NonCopyable(const NonCopyable &) = delete;
+    NonCopyable() = delete;
+    void operator=(const NonCopyable &) = delete;
+    void operator=(NonCopyable &&) = delete;
+    std::string get_value() const {
+        if (value) return std::to_string(*value); else return "(null)";
+    }
+    ~NonCopyable() { std::cout << "NonCopyable destructor @ " << this << "; value = " << get_value() << std::endl; }
+
+private:
+    std::unique_ptr<int> value;
+};
+
+// This is like the above, but is both copy and movable.  In effect this means it should get moved
+// when it is not referenced elsewhere, but copied if it is still referenced.
+class Movable {
+public:
+    Movable(int a, int b) : value{a+b} {}
+    Movable(const Movable &m) { value = m.value; std::cout << "Movable @ " << this << " copy constructor" << std::endl; }
+    Movable(Movable &&m) { value = std::move(m.value); std::cout << "Movable @ " << this << " move constructor" << std::endl; }
+    int get_value() const { return value; }
+    ~Movable() { std::cout << "Movable destructor @ " << this << "; value = " << get_value() << std::endl; }
+private:
+    int value;
+};
+
+class NCVirt {
+public:
+    virtual NonCopyable get_noncopyable(int a, int b) { return NonCopyable(a, b); }
+    virtual Movable get_movable(int a, int b) = 0;
+
+    void print_nc(int a, int b) { std::cout << get_noncopyable(a, b).get_value() << std::endl; }
+    void print_movable(int a, int b) { std::cout << get_movable(a, b).get_value() << std::endl; }
+};
+class NCVirtTrampoline : public NCVirt {
+    virtual NonCopyable get_noncopyable(int a, int b) {
+        PYBIND11_OVERLOAD(NonCopyable, NCVirt, get_noncopyable, a, b);
+    }
+    virtual Movable get_movable(int a, int b) {
+        PYBIND11_OVERLOAD_PURE(Movable, NCVirt, get_movable, a, b);
+    }
+};
+
 int runExampleVirt(ExampleVirt *ex, int value) {
     return ex->run(value);
 }
@@ -239,6 +286,20 @@ void init_ex_virtual_functions(py::module &m) {
         .def("run", &ExampleVirt::run)
         .def("run_bool", &ExampleVirt::run_bool)
         .def("pure_virtual", &ExampleVirt::pure_virtual);
+
+    py::class_<NonCopyable>(m, "NonCopyable")
+        .def(py::init<int, int>())
+        ;
+    py::class_<Movable>(m, "Movable")
+        .def(py::init<int, int>())
+        ;
+    py::class_<NCVirt, std::unique_ptr<NCVirt>, NCVirtTrampoline>(m, "NCVirt")
+        .def(py::init<>())
+        .def("get_noncopyable", &NCVirt::get_noncopyable)
+        .def("get_movable", &NCVirt::get_movable)
+        .def("print_nc", &NCVirt::print_nc)
+        .def("print_movable", &NCVirt::print_movable)
+        ;
 
     m.def("runExampleVirt", &runExampleVirt);
     m.def("runExampleVirtBool", &runExampleVirtBool);
