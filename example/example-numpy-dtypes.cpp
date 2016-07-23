@@ -158,15 +158,12 @@ void print_format_descriptors() {
 }
 
 void print_dtypes() {
-    auto to_str = [](py::object obj) {
-        return (std::string) (py::str) ((py::object) obj.attr("__str__"))();
-    };
-    std::cout << to_str(py::dtype_of<SimpleStruct>()) << std::endl;
-    std::cout << to_str(py::dtype_of<PackedStruct>()) << std::endl;
-    std::cout << to_str(py::dtype_of<NestedStruct>()) << std::endl;
-    std::cout << to_str(py::dtype_of<PartialStruct>()) << std::endl;
-    std::cout << to_str(py::dtype_of<PartialNestedStruct>()) << std::endl;
-    std::cout << to_str(py::dtype_of<StringStruct>()) << std::endl;
+    std::cout << (std::string) py::dtype::of<SimpleStruct>().str() << std::endl;
+    std::cout << (std::string) py::dtype::of<PackedStruct>().str() << std::endl;
+    std::cout << (std::string) py::dtype::of<NestedStruct>().str() << std::endl;
+    std::cout << (std::string) py::dtype::of<PartialStruct>().str() << std::endl;
+    std::cout << (std::string) py::dtype::of<PartialNestedStruct>().str() << std::endl;
+    std::cout << (std::string) py::dtype::of<StringStruct>().str() << std::endl;
 }
 
 void init_ex_numpy_dtypes(py::module &m) {
