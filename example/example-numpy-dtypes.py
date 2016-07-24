@@ -6,7 +6,8 @@ import numpy as np
 from example import (
     create_rec_simple, create_rec_packed, create_rec_nested, print_format_descriptors,
     print_rec_simple, print_rec_packed, print_rec_nested, print_dtypes, get_format_unbound,
-    create_rec_partial, create_rec_partial_nested, create_string_array, print_string_array
+    create_rec_partial, create_rec_partial_nested, create_string_array, print_string_array,
+    test_array_ctors
 )
 
 
@@ -80,3 +81,8 @@ assert arr['a'].tolist() == [b'', b'a', b'ab', b'abc']
 assert arr['b'].tolist() == [b'', b'a', b'ab', b'abc']
 arr = create_string_array(False)
 assert dtype == arr.dtype
+
+data = np.arange(1, 7, dtype='int32')
+for i in range(13):
+    expected = data if i >= 8 else data.reshape((3, 2))
+    np.testing.assert_array_equal(test_array_ctors(i), expected)

@@ -166,6 +166,40 @@ void print_dtypes() {
     std::cout << (std::string) py::dtype::of<StringStruct>().str() << std::endl;
 }
 
+py::array_t<int32_t, 0> test_array_ctors(int i) {
+    using arr_t = py::array_t<int32_t, 0>;
+
+    std::vector<int32_t> data { 1, 2, 3, 4, 5, 6 };
+    std::vector<size_t> shape { 3, 2 };
+    std::vector<size_t> strides { 8, 4 };
+
+    auto ptr = data.data();
+    auto vptr = (void *) ptr;
+    auto dtype = py::dtype("int32");
+
+    py::buffer_info buf_ndim1(vptr, 4, "i", 6);
+    py::buffer_info buf_ndim2(vptr, 4, "i", 2, shape, strides);
+
+    switch (i) {
+    // shape: (3, 2)
+    case 0: return arr_t(shape, ptr, strides);
+    case 1: return py::array(shape, ptr, strides);
+    case 2: return py::array(dtype, shape, vptr, strides);
+    case 3: return arr_t(shape, ptr);
+    case 4: return py::array(shape, ptr);
+    case 5: return py::array(dtype, shape, vptr);
+    case 6: return arr_t(buf_ndim2);
+    case 7: return py::array(buf_ndim2);
+    // shape: (6, )
+    case 8: return arr_t(6, ptr);
+    case 9: return py::array(6, ptr);
+    case 10: return py::array(dtype, 6, vptr);
+    case 11: return arr_t(buf_ndim1);
+    case 12: return py::array(buf_ndim1);
+    }
+    return arr_t();
+}
+
 void init_ex_numpy_dtypes(py::module &m) {
     PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(PackedStruct, x, y, z);
@@ -187,6 +221,7 @@ void init_ex_numpy_dtypes(py::module &m) {
     m.def("get_format_unbound", &get_format_unbound);
     m.def("create_string_array", &create_string_array);
     m.def("print_string_array", &print_recarray<StringStruct>);
+    m.def("test_array_ctors", &test_array_ctors);
 }
 
 #undef PYBIND11_PACKED
