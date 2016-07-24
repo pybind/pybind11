@@ -150,9 +150,10 @@ public:
     }
 
 private:
-    static object& _dtype_from_pep3118() {
-        static object obj = module::import("numpy.core._internal").attr("_dtype_from_pep3118");
-        return obj;
+    static object _dtype_from_pep3118() {
+        static PyObject *obj = module::import("numpy.core._internal")
+            .attr("_dtype_from_pep3118").cast<object>().release().ptr();
+        return object(obj, true);
     }
 
     dtype strip_padding() {
