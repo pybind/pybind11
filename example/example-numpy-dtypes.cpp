@@ -218,8 +218,14 @@ py::list test_dtype_ctors() {
     return list;
 }
 
-void test_dtype_methods() {
-
+py::list test_dtype_methods() {
+    py::list list;
+    auto dt1 = py::dtype::of<int32_t>();
+    auto dt2 = py::dtype::of<SimpleStruct>();
+    list.append(dt1); list.append(dt2);
+    list.append(py::bool_(dt1.has_fields())); list.append(py::bool_(dt2.has_fields()));
+    list.append(py::int_(dt1.itemsize())); list.append(py::int_(dt2.itemsize()));
+    return list;
 }
 
 void init_ex_numpy_dtypes(py::module &m) {
