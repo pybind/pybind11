@@ -200,6 +200,28 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
     return arr_t();
 }
 
+py::list test_dtype_ctors() {
+    py::list list;
+    list.append(py::dtype("int32"));
+    list.append(py::dtype(std::string("float64")));
+    list.append(py::dtype::from_args(py::str("bool")));
+    py::list names, offsets, formats;
+    py::dict dict;
+    names.append(py::str("a")); names.append(py::str("b")); dict["names"] = names;
+    offsets.append(py::int_(1)); offsets.append(py::int_(10)); dict["offsets"] = offsets;
+    formats.append(py::dtype("int32")); formats.append(py::dtype("float64")); dict["formats"] = formats;
+    dict["itemsize"] = py::int_(20);
+    list.append(py::dtype::from_args(dict));
+    list.append(py::dtype(names, formats, offsets, 20));
+    list.append(py::dtype(py::buffer_info((void *) 0, 1, "I", 1)));
+    list.append(py::dtype(py::buffer_info((void *) 0, 1, "T{i:a:f:b:}", 1)));
+    return list;
+}
+
+void test_dtype_methods() {
+
+}
+
 void init_ex_numpy_dtypes(py::module &m) {
     PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(PackedStruct, x, y, z);
@@ -222,6 +244,8 @@ void init_ex_numpy_dtypes(py::module &m) {
     m.def("create_string_array", &create_string_array);
     m.def("print_string_array", &print_recarray<StringStruct>);
     m.def("test_array_ctors", &test_array_ctors);
+    m.def("test_dtype_ctors", &test_dtype_ctors);
+    m.def("test_dtype_methods", &test_dtype_methods);
 }
 
 #undef PYBIND11_PACKED

@@ -7,7 +7,7 @@ from example import (
     create_rec_simple, create_rec_packed, create_rec_nested, print_format_descriptors,
     print_rec_simple, print_rec_packed, print_rec_nested, print_dtypes, get_format_unbound,
     create_rec_partial, create_rec_partial_nested, create_string_array, print_string_array,
-    test_array_ctors
+    test_array_ctors, test_dtype_ctors
 )
 
 
@@ -86,3 +86,9 @@ data = np.arange(1, 7, dtype='int32')
 for i in range(13):
     expected = data if i >= 8 else data.reshape((3, 2))
     np.testing.assert_array_equal(test_array_ctors(i), expected)
+
+d1 = np.dtype({'names': ['a', 'b'], 'formats': ['int32', 'float64'],
+               'offsets': [1, 10], 'itemsize': 20})
+d2 = np.dtype([('a', 'i4'), ('b', 'f4')])
+assert test_dtype_ctors() == [np.dtype('int32'), np.dtype('float64'),
+                              np.dtype('bool'), d1, d1, np.dtype('uint32'), d2]
