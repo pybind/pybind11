@@ -276,8 +276,21 @@ protected:
 template <typename T, int ExtraFlags = array::forcecast> class array_t : public array {
 public:
     PYBIND11_OBJECT_CVT(array_t, array, is_non_null, m_ptr = ensure(m_ptr));
+
     array_t() : array() { }
-    array_t(const buffer_info& info) : array(info) {}
+
+    array_t(const buffer_info& info) : array(info) { }
+
+    array_t(const std::vector<size_t>& shape,
+            T* ptr, const std::vector<size_t>& strides)
+    : array(shape, ptr, strides) { }
+
+    array_t(const std::vector<size_t>& shape, T* ptr)
+    : array(shape, ptr) { }
+
+    array_t(size_t size, T* ptr)
+    : array(size, ptr) { }
+
     static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
     static PyObject *ensure(PyObject *ptr) {
         if (ptr == nullptr)
