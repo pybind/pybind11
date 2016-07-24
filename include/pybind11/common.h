@@ -210,6 +210,7 @@ struct buffer_info {
     std::vector<size_t> strides; // Number of entries between adjacent entries (for each per dimension)
 
     buffer_info() : ptr(nullptr), view(nullptr) {}
+
     buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t ndim,
                 const std::vector<size_t> &shape, const std::vector<size_t> &strides)
         : ptr(ptr), itemsize(itemsize), size(1), format(format),
@@ -217,6 +218,10 @@ struct buffer_info {
         for (size_t i = 0; i < ndim; ++i)
             size *= shape[i];
     }
+
+    buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t size)
+    : buffer_info(ptr, itemsize, format, 1, std::vector<size_t> { size },
+                  std::vector<size_t> { itemsize }) { }
 
     buffer_info(Py_buffer *view)
         : ptr(view->buf), itemsize((size_t) view->itemsize), size(1), format(view->format),
