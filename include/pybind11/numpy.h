@@ -212,7 +212,7 @@ public:
     };
 
     array(const pybind11::dtype& dt, const std::vector<size_t>& shape,
-          void *ptr, const std::vector<size_t>& strides) {
+          const std::vector<size_t>& strides, void *ptr = nullptr) {
         auto& api = detail::npy_api::get();
         auto ndim = shape.size();
         if (shape.size() != strides.size())
@@ -228,30 +228,24 @@ public:
         m_ptr = tmp.release().ptr();
     }
 
-    array(const pybind11::dtype& dt, const std::vector<size_t>& shape, void *ptr)
-    : array(dt, shape, ptr, default_strides(shape, dt.itemsize()))
-    { }
+    array(const pybind11::dtype& dt, const std::vector<size_t>& shape, void *ptr = nullptr)
+    : array(dt, shape, default_strides(shape, dt.itemsize()), ptr) { }
 
-    array(const pybind11::dtype& dt, size_t size, void *ptr)
-    : array(dt, std::vector<size_t> { size }, ptr)
-    { }
+    array(const pybind11::dtype& dt, size_t size, void *ptr = nullptr)
+    : array(dt, std::vector<size_t> { size }, ptr) { }
 
     template<typename T> array(const std::vector<size_t>& shape,
-                               T* ptr, const std::vector<size_t>& strides)
-    : array(pybind11::dtype::of<T>(), shape, (void *) ptr, strides)
-    { }
+                               const std::vector<size_t>& strides, T* ptr)
+    : array(pybind11::dtype::of<T>(), shape, strides, (void *) ptr) { }
 
     template<typename T> array(const std::vector<size_t>& shape, T* ptr)
-    : array(shape, ptr, default_strides(shape, sizeof(T)))
-    { }
+    : array(shape, default_strides(shape, sizeof(T)), ptr) { }
 
     template<typename T> array(size_t size, T* ptr)
-    : array(std::vector<size_t> { size }, ptr)
-    { }
+    : array(std::vector<size_t> { size }, ptr) { }
 
     array(const buffer_info &info)
-    : array(pybind11::dtype(info), info.shape, info.ptr, info.strides)
-    { }
+    : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
 
     pybind11::dtype dtype() {
         return attr("dtype").cast<pybind11::dtype>();
@@ -281,17 +275,17 @@ public:
 
     array_t(const buffer_info& info) : array(info) { }
 
-    array_t(const std::vector<size_t>& shape,
-            T* ptr, const std::vector<size_t>& strides)
-    : array(shape, ptr, strides) { }
+    array_t(const std::vector<size_t>& shape, const std::vector<size_t>& strides, T* ptr = nullptr)
+    : array(shape, strides, ptr) { }
 
-    array_t(const std::vector<size_t>& shape, T* ptr)
+    array_t(const std::vector<size_t>& shape, T* ptr = nullptr)
     : array(shape, ptr) { }
 
-    array_t(size_t size, T* ptr)
+    array_t(size_t size, T* ptr = nullptr)
     : array(size, ptr) { }
 
     static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
+
     static PyObject *ensure(PyObject *ptr) {
         if (ptr == nullptr)
             return nullptr;

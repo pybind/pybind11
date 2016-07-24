@@ -83,9 +83,12 @@ arr = create_string_array(False)
 assert dtype == arr.dtype
 
 data = np.arange(1, 7, dtype='int32')
-for i in range(13):
-    expected = data if i >= 8 else data.reshape((3, 2))
-    np.testing.assert_array_equal(test_array_ctors(i), expected)
+for i in range(8):
+    np.testing.assert_array_equal(test_array_ctors(10 + i), data.reshape((3, 2)))
+    np.testing.assert_array_equal(test_array_ctors(20 + i), data.reshape((3, 2)))
+for i in range(5):
+    np.testing.assert_array_equal(test_array_ctors(30 + i), data)
+    np.testing.assert_array_equal(test_array_ctors(40 + i), data)
 
 d1 = np.dtype({'names': ['a', 'b'], 'formats': ['int32', 'float64'],
                'offsets': [1, 10], 'itemsize': 20})

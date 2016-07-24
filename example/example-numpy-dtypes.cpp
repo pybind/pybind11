@@ -178,24 +178,47 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
     auto dtype = py::dtype("int32");
 
     py::buffer_info buf_ndim1(vptr, 4, "i", 6);
+    py::buffer_info buf_ndim1_null(nullptr, 4, "i", 6);
     py::buffer_info buf_ndim2(vptr, 4, "i", 2, shape, strides);
+    py::buffer_info buf_ndim2_null(nullptr, 4, "i", 2, shape, strides);
+
+    auto fill = [](py::array arr) {
+        auto req = arr.request();
+        for (int i = 0; i < 6; i++) ((int32_t *) req.ptr)[i] = i + 1;
+        return arr;
+    };
 
     switch (i) {
     // shape: (3, 2)
-    case 0: return arr_t(shape, ptr, strides);
-    case 1: return py::array(shape, ptr, strides);
-    case 2: return py::array(dtype, shape, vptr, strides);
-    case 3: return arr_t(shape, ptr);
-    case 4: return py::array(shape, ptr);
-    case 5: return py::array(dtype, shape, vptr);
-    case 6: return arr_t(buf_ndim2);
-    case 7: return py::array(buf_ndim2);
+    case 10: return arr_t(shape, strides, ptr);
+    case 11: return py::array(shape, strides, ptr);
+    case 12: return py::array(dtype, shape, strides, vptr);
+    case 13: return arr_t(shape, ptr);
+    case 14: return py::array(shape, ptr);
+    case 15: return py::array(dtype, shape, vptr);
+    case 16: return arr_t(buf_ndim2);
+    case 17: return py::array(buf_ndim2);
+    // shape: (3, 2) - post-fill
+    case 20: return fill(arr_t(shape, strides));
+    case 21: return py::array(shape, strides, ptr); // can't have nullptr due to templated ctor
+    case 22: return fill(py::array(dtype, shape, strides));
+    case 23: return fill(arr_t(shape));
+    case 24: return py::array(shape, ptr); // can't have nullptr due to templated ctor
+    case 25: return fill(py::array(dtype, shape));
+    case 26: return fill(arr_t(buf_ndim2_null));
+    case 27: return fill(py::array(buf_ndim2_null));
     // shape: (6, )
-    case 8: return arr_t(6, ptr);
-    case 9: return py::array(6, ptr);
-    case 10: return py::array(dtype, 6, vptr);
-    case 11: return arr_t(buf_ndim1);
-    case 12: return py::array(buf_ndim1);
+    case 30: return arr_t(6, ptr);
+    case 31: return py::array(6, ptr);
+    case 32: return py::array(dtype, 6, vptr);
+    case 33: return arr_t(buf_ndim1);
+    case 34: return py::array(buf_ndim1);
+    // shape: (6, )
+    case 40: return fill(arr_t(6));
+    case 41: return py::array(6, ptr);  // can't have nullptr due to templated ctor
+    case 42: return fill(py::array(dtype, 6));
+    case 43: return fill(arr_t(buf_ndim1_null));
+    case 44: return fill(py::array(buf_ndim1_null));
     }
     return arr_t();
 }
