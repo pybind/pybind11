@@ -125,6 +125,15 @@ public:
         m_ptr = from_args(pybind11::str(format)).release().ptr();
     }
 
+    dtype(list names, list formats, list offsets, size_t itemsize) {
+        dict args;
+        args["names"] = names;
+        args["formats"] = formats;
+        args["offsets"] = offsets;
+        args["itemsize"] = int_(itemsize);
+        m_ptr = from_args(args).release().ptr();
+    }
+
     static dtype from_args(object args) {
         // This is essentially the same as calling np.dtype() constructor in Python
         PyObject *ptr = nullptr;
@@ -184,12 +193,11 @@ private:
 
         list names, formats, offsets;
         for (auto& descr : field_descriptors) {
-            names.append(descr.name); formats.append(descr.format); offsets.append(descr.offset);
+            names.append(descr.name);
+            formats.append(descr.format);
+            offsets.append(descr.offset);
         }
-        auto args = dict();
-        args["names"] = names; args["formats"] = formats; args["offsets"] = offsets;
-        args["itemsize"] = (int_) itemsize();
-        return dtype::from_args(args);
+        return dtype(names, formats, offsets, itemsize());
     }
 };
 
@@ -324,7 +332,7 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
     static PYBIND11_DESCR name() { return _("S") + _<N>(); } \
     static pybind11::dtype dtype() { \
         PYBIND11_DESCR fmt = _("S") + _<N>(); \
-        return pybind11::dtype::from_args(pybind11::str(fmt.text())); \
+        return pybind11::dtype(fmt.text());  \
     } \
     static const char *format() { PYBIND11_DESCR s = _<N>() + _("s"); return s.text(); }
 template <size_t N> struct npy_format_descriptor<char[N]> { DECL_CHAR_FMT };
@@ -356,18 +364,15 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
     }
 
     static void register_dtype(std::initializer_list<field_descriptor> fields) {
-        auto args = dict();
-        list names { }, offsets { }, formats { };
+        list names, formats, offsets;
         for (auto field : fields) {
             if (!field.descr)
                 pybind11_fail("NumPy: unsupported field dtype");
             names.append(str(field.name));
-            offsets.append(int_(field.offset));
             formats.append(field.descr);
+            offsets.append(int_(field.offset));
         }
-        args["names"] = names; args["offsets"] = offsets; args["formats"] = formats;
-        args["itemsize"] = int_(sizeof(T));
-        dtype_() = pybind11::dtype::from_args(args).release().ptr();
+        dtype_() = pybind11::dtype(names, formats, offsets, sizeof(T)).release().ptr();
 
         // There is an existing bug in NumPy (as of v1.11): trailing bytes are
         // not encoded explicitly into the format string. This will supposedly
