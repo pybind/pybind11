@@ -34,7 +34,7 @@ find_package(Eigen3 QUIET)
 
 if(EIGEN3_FOUND)
   list(APPEND PYBIND11_EXAMPLES eigen.cpp)
-  message(STATUS "Building Eigen testcase")
+  message(STATUS "Building Eigen v${EIGEN3_VERSION} testcase")
 else()
   message(STATUS "NOT Building Eigen testcase")
 endif()
