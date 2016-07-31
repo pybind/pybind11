@@ -5,19 +5,26 @@ import pydoc
 
 sys.path.append('.')
 
-from example import kw_func, kw_func2, kw_func3, kw_func4, call_kw_func
+from example import kw_func0, kw_func1, kw_func2, kw_func3, kw_func4, call_kw_func
 from example import args_function, args_kwargs_function, kw_func_udl, kw_func_udl_z
+from example import KWClass
 
-print(pydoc.render_doc(kw_func, "Help on %s"))
+print(pydoc.render_doc(kw_func0, "Help on %s"))
+print(pydoc.render_doc(kw_func1, "Help on %s"))
 print(pydoc.render_doc(kw_func2, "Help on %s"))
 print(pydoc.render_doc(kw_func3, "Help on %s"))
 print(pydoc.render_doc(kw_func4, "Help on %s"))
 print(pydoc.render_doc(kw_func_udl, "Help on %s"))
 print(pydoc.render_doc(kw_func_udl_z, "Help on %s"))
+print(pydoc.render_doc(args_function, "Help on %s"))
+print(pydoc.render_doc(args_kwargs_function, "Help on %s"))
 
-kw_func(5, 10)
-kw_func(5, y=10)
-kw_func(y=10, x=5)
+print(KWClass.foo0.__doc__)
+print(KWClass.foo1.__doc__)
+
+kw_func1(5, 10)
+kw_func1(5, y=10)
+kw_func1(y=10, x=5)
 
 kw_func2()
 
