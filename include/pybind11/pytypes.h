@@ -117,10 +117,10 @@ public:
     void operator=(const handle &value) {
         if (attr) {
             if (PyObject_SetAttr(obj.ptr(), key.ptr(), value.ptr()) == -1)
-                pybind11_fail("Unable to set object attribute");
+                throw error_already_set();
         } else {
             if (PyObject_SetItem(obj.ptr(), key.ptr(), value.ptr()) == -1)
-                pybind11_fail("Unable to set object item");
+                throw error_already_set();
         }
     }
 
