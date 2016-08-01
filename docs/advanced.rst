@@ -1546,6 +1546,11 @@ that the ``kwargs`` argument is invalid if no keyword arguments were actually
 provided.  Please refer to the other examples for details on how to iterate
 over these, and on how to cast their entries into C++ objects.
 
+.. warning::
+
+   Unlike Python, pybind11 does not allow combining normal parameters with the
+   ``args`` / ``kwargs`` special parameters.
+
 Partitioning code over multiple extension modules
 =================================================
 
