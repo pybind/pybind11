@@ -36,8 +36,12 @@ install:
     pip install --user --upgrade pip virtualenv
     virtualenv -p python$PYTHON venv
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
-    if [ "${PYTHON:0:1}" = "3" ]; then PMAJOR=3; fi
-    brew update; brew install python$PMAJOR;
+    if [ "${PYTHON:0:1}" = "3" ]; then
+      PMAJOR=3; brew update; brew install python$PMAJOR;
+    else
+      curl -fsSL -O https://bootstrap.pypa.io/get-pip.py
+      sudo -H python get-pip.py
+    fi
     pip$PMAJOR install --user --upgrade pip virtualenv
     python$PMAJOR -m virtualenv venv
   fi
