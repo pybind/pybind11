@@ -55,7 +55,9 @@ set(PYTHON_MODULE_EXTENSION ${PYTHON_MODULE_EXTENSION} CACHE INTERNAL "")
 #
 function(pybind11_add_module target_name)
   add_library(${target_name} MODULE ${ARGN})
-  target_include_directories(${target_name} PUBLIC ${PYBIND11_INCLUDE_DIR} ${PYTHON_INCLUDE_DIRS})
+  target_include_directories(${target_name}
+    PRIVATE ${PYBIND11_INCLUDE_DIR}
+    PUBLIC ${PYTHON_INCLUDE_DIRS})
 
   # The prefix and extension are provided by FindPythonLibsNew.cmake
   set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
