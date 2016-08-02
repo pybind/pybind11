@@ -1004,22 +1004,25 @@ private:
 /// Binds C++ enumerations and enumeration classes to Python
 template <typename Type> class enum_ : public class_<Type> {
 public:
+    using UnderlyingType = typename std::underlying_type<Type>::type;
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : class_<Type>(scope, name, extra...), m_parent(scope) {
-        auto entries = new std::unordered_map<int, const char *>();
+        auto entries = new std::unordered_map<UnderlyingType, const char *>();
         this->def("__repr__", [name, entries](Type value) -> std::string {
-            auto it = entries->find((int) value);
+            auto it = entries->find((UnderlyingType) value);
             return std::string(name) + "." +
                 ((it == entries->end()) ? std::string("???")
                                         : std::string(it->second));
         });
-        this->def("__init__", [](Type& value, int i) { value = (Type)i; });
-        this->def("__init__", [](Type& value, int i) { new (&value) Type((Type) i); });
-        this->def("__int__", [](Type value) { return (int) value; });
+        this->def("__init__", [](Type& value, UnderlyingType i) { value = (Type)i; });
+        this->def("__init__", [](Type& value, UnderlyingType i) { new (&value) Type((Type) i); });
+        this->def("__int__", [](Type value) { return (UnderlyingType) value; });
         this->def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
+        this->def("__eq__", [](const Type &value, UnderlyingType value2) { return value2 && value == value2; });
         this->def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
-        this->def("__hash__", [](const Type &value) { return (int) value; });
+        this->def("__ne__", [](const Type &value, UnderlyingType value2) { return value != value2; });
+        this->def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
         m_entries = entries;
     }
 
@@ -1036,11 +1039,11 @@ public:
     /// Add an enumeration entry
     enum_& value(char const* name, Type value) {
         this->attr(name) = pybind11::cast(value, return_value_policy::copy);
-        (*m_entries)[(int) value] = name;
+        (*m_entries)[(UnderlyingType) value] = name;
         return *this;
     }
 private:
-    std::unordered_map<int, const char *> *m_entries;
+    std::unordered_map<UnderlyingType, const char *> *m_entries;
     handle m_parent;
 };
 
