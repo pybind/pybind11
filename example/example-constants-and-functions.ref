@@ -30,6 +30,18 @@ ExampleWithEnum::test_function(enum=1)
 ExampleWithEnum::test_function(enum=2)
 Inequality test 2: True
 ExampleWithEnum::test_function(enum=1)
+ExampleWithEnum::test_function(enum=1)
+Equality test 3: True
+ExampleWithEnum::test_function(enum=1)
+ExampleWithEnum::test_function(enum=1)
+Inequality test 3: False
+ExampleWithEnum::test_function(enum=1)
+ExampleWithEnum::test_function(enum=2)
+Equality test 4: False
+ExampleWithEnum::test_function(enum=1)
+ExampleWithEnum::test_function(enum=2)
+Inequality test 4: True
+ExampleWithEnum::test_function(enum=1)
 ExampleWithEnum::test_function(enum=2)
 ExampleWithEnum::test_function(enum=1)
 ExampleWithEnum::test_function(enum=2)

@@ -46,6 +46,22 @@ print("Inequality test 2: " + str(
     ExampleWithEnum.test_function(ExampleWithEnum.EFirstMode) !=
     ExampleWithEnum.test_function(ExampleWithEnum.ESecondMode)))
 
+print("Equality test 3: " + str(
+    ExampleWithEnum.test_function(ExampleWithEnum.EFirstMode) ==
+    int(ExampleWithEnum.test_function(ExampleWithEnum.EFirstMode))))
+
+print("Inequality test 3: " + str(
+    ExampleWithEnum.test_function(ExampleWithEnum.EFirstMode) !=
+    int(ExampleWithEnum.test_function(ExampleWithEnum.EFirstMode))))
+
+print("Equality test 4: " + str(
+    ExampleWithEnum.test_function(ExampleWithEnum.EFirstMode) ==
+    int(ExampleWithEnum.test_function(ExampleWithEnum.ESecondMode))))
+
+print("Inequality test 4: " + str(
+    ExampleWithEnum.test_function(ExampleWithEnum.EFirstMode) !=
+    int(ExampleWithEnum.test_function(ExampleWithEnum.ESecondMode))))
+
 x = {
         ExampleWithEnum.test_function(ExampleWithEnum.EFirstMode): 1,
         ExampleWithEnum.test_function(ExampleWithEnum.ESecondMode): 2
