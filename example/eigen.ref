@@ -27,3 +27,9 @@ double_mat_cm(1) = OK
 double_mat_rm(1) = OK
 double_mat_cm(2) = OK
 double_mat_rm(2) = OK
+cholesky1 OK
+cholesky2 OK
+cholesky3 OK
+cholesky4 OK
+cholesky5 OK
+cholesky6 OK

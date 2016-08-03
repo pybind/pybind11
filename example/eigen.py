@@ -11,6 +11,7 @@ from example import sparse_r, sparse_c
 from example import sparse_passthrough_r, sparse_passthrough_c
 from example import double_row, double_col
 from example import double_mat_cm, double_mat_rm
+from example import cholesky1, cholesky2, cholesky3, cholesky4, cholesky5, cholesky6
 try:
     import numpy as np
     import scipy
@@ -70,3 +71,10 @@ slices = [counting_3d[0, :, :], counting_3d[:, 0, :], counting_3d[:, :, 0]]
 for slice_idx, ref_mat in enumerate(slices):
     print("double_mat_cm(%d) = %s" % (slice_idx, check_got_vs_ref(double_mat_cm(ref_mat), 2.0 * ref_mat)))
     print("double_mat_rm(%d) = %s" % (slice_idx, check_got_vs_ref(double_mat_rm(ref_mat), 2.0 * ref_mat)))
+
+i = 1
+for chol in [cholesky1, cholesky2, cholesky3, cholesky4, cholesky5, cholesky6]:
+    mymat = chol(np.array([[1,2,4], [2,13,23], [4,23,77]]))
+    print("cholesky" + str(i) + " " + ("OK" if (mymat == np.array([[1,0,0], [2,3,0], [4,5,6]])).all() else "NOT OKAY"))
+    i += 1
+
