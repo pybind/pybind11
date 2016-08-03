@@ -40,6 +40,19 @@ public:
     static constexpr bool value = decltype(test(std::declval<T>()))::value;
 };
 
+// Eigen::Ref<Derived> satisfies is_eigen_dense, but isn't constructible, which means we can't load
+// it (since there is no reference!), but we can cast from it.
+template <typename T> class is_eigen_ref {
+private:
+    template<typename Derived> static typename std::enable_if<
+        std::is_same<typename std::remove_const<T>::type, Eigen::Ref<Derived>>::value,
+        Derived>::type test(const Eigen::Ref<Derived> &);
+    static void test(...);
+public:
+    typedef decltype(test(std::declval<T>())) Derived;
+    static constexpr bool value = !std::is_void<Derived>::value;
+};
+
 template <typename T> class is_eigen_sparse {
 private:
     template<typename Derived> static std::true_type test(const Eigen::SparseMatrixBase<Derived> &);
@@ -49,7 +62,7 @@ public:
 };
 
 template<typename Type>
-struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value>::type> {
+struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && !is_eigen_ref<Type>::value>::type> {
     typedef typename Type::Scalar Scalar;
     static constexpr bool rowMajor = Type::Flags & Eigen::RowMajorBit;
     static constexpr bool isVector = Type::IsVectorAtCompileTime;
@@ -147,6 +160,26 @@ protected:
     static PYBIND11_DESCR cols() { return _("n"); }
     template <typename T = Type, typename std::enable_if<T::ColsAtCompileTime != Eigen::Dynamic, int>::type = 0>
     static PYBIND11_DESCR cols() { return _<T::ColsAtCompileTime>(); }
+};
+
+template<typename Type>
+struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && is_eigen_ref<Type>::value>::type> {
+private:
+    using Derived = typename std::remove_const<typename is_eigen_ref<Type>::Derived>::type;
+    using DerivedCaster = type_caster<Derived>;
+    DerivedCaster derived_caster;
+protected:
+    std::unique_ptr<Type> value;
+public:
+    bool load(handle src, bool convert) { if (derived_caster.load(src, convert)) { value.reset(new Type(derived_caster.operator Derived&())); return true; } return false; }
+    static handle cast(const Type &src, return_value_policy policy, handle parent) { return DerivedCaster::cast(src, policy, parent); }
+    static handle cast(const Type *src, return_value_policy policy, handle parent) { return DerivedCaster::cast(*src, policy, parent); }
+
+    static PYBIND11_DESCR name() { return DerivedCaster::name(); }
+
+    operator Type*() { return value.get(); }
+    operator Type&() { if (!value) pybind11_fail("Eigen::Ref<...> value not loaded"); return *value; }
+    template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
 
 template<typename Type>

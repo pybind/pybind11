@@ -9,6 +9,7 @@
 
 #include "example.h"
 #include <pybind11/eigen.h>
+#include <Eigen/Cholesky>
 
 Eigen::VectorXf double_col(const Eigen::VectorXf& x)
 { return 2.0f * x; }
@@ -18,6 +19,14 @@ Eigen::RowVectorXf double_row(const Eigen::RowVectorXf& x)
 
 Eigen::MatrixXf double_mat_cm(const Eigen::MatrixXf& x)
 { return 2.0f * x; }
+
+// Different ways of passing via Eigen::Ref; the first and second are the Eigen-recommended
+Eigen::MatrixXd cholesky1(Eigen::Ref<Eigen::MatrixXd> &x) { return x.llt().matrixL(); }
+Eigen::MatrixXd cholesky2(const Eigen::Ref<const Eigen::MatrixXd> &x) { return x.llt().matrixL(); }
+Eigen::MatrixXd cholesky3(const Eigen::Ref<Eigen::MatrixXd> &x) { return x.llt().matrixL(); }
+Eigen::MatrixXd cholesky4(Eigen::Ref<const Eigen::MatrixXd> &x) { return x.llt().matrixL(); }
+Eigen::MatrixXd cholesky5(Eigen::Ref<Eigen::MatrixXd> x) { return x.llt().matrixL(); }
+Eigen::MatrixXd cholesky6(Eigen::Ref<const Eigen::MatrixXd> x) { return x.llt().matrixL(); }
 
 typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixXfRowMajor;
 MatrixXfRowMajor double_mat_rm(const MatrixXfRowMajor& x)
@@ -40,6 +49,12 @@ void init_eigen(py::module &m) {
     m.def("double_row", &double_row);
     m.def("double_mat_cm", &double_mat_cm);
     m.def("double_mat_rm", &double_mat_rm);
+    m.def("cholesky1", &cholesky1);
+    m.def("cholesky2", &cholesky2);
+    m.def("cholesky3", &cholesky3);
+    m.def("cholesky4", &cholesky4);
+    m.def("cholesky5", &cholesky5);
+    m.def("cholesky6", &cholesky6);
 
     m.def("fixed_r", [mat]() -> FixedMatrixR { 
         return FixedMatrixR(mat);
