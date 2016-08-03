@@ -82,3 +82,6 @@ except Exception as e:
         print("All OK!")
     else:
         print("Problem!")
+
+print(test_callback3.__doc__)
+print(test_callback4.__doc__)

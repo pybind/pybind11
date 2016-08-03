@@ -135,8 +135,8 @@ protected:
         detail::process_attributes<Extra...>::init(extra..., rec);
 
         /* Generate a readable signature describing the function's arguments and return value types */
-        using detail::descr;
-        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
+        using detail::descr; using detail::_;
+        PYBIND11_DESCR signature = _("(") + cast_in::element_names() + _(") -> ") + cast_out::name();
 
         /* Register the function with Python from generic (non-templated) code */
         initialize_generic(rec, signature.text(), signature.types(), sizeof...(Args));
@@ -183,7 +183,7 @@ protected:
 
             if (c == '{') {
                 // Write arg name for everything except *args, **kwargs and return type.
-                if (type_depth == 1 && text[char_index] != '*' && arg_index < args) {
+                if (type_depth == 0 && text[char_index] != '*' && arg_index < args) {
                     if (!rec->args.empty()) {
                         signature += rec->args[arg_index].name;
                     } else if (arg_index == 0 && rec->class_) {
@@ -196,7 +196,7 @@ protected:
                 ++type_depth;
             } else if (c == '}') {
                 --type_depth;
-                if (type_depth == 1) {
+                if (type_depth == 0) {
                     if (arg_index < rec->args.size() && rec->args[arg_index].descr) {
                         signature += "=";
                         signature += rec->args[arg_index].descr;

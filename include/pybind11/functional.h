@@ -65,10 +65,10 @@ public:
             return cpp_function(std::forward<Func>(f_), policy).release();
     }
 
-    PYBIND11_TYPE_CASTER(type, _("function<") +
-            type_caster<std::tuple<Args...>>::name() + _(" -> ") +
+    PYBIND11_TYPE_CASTER(type, _("Callable[[") +
+            type_caster<std::tuple<Args...>>::element_names() + _("], ") +
             type_caster<retval_type>::name() +
-            _(">"));
+            _("]"));
 };
 
 NAMESPACE_END(detail)

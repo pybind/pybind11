@@ -34,8 +34,8 @@ class EExxaammpplleePPyytthhoonnTTyyppeess(__builtin__.object)
  |      x.__init__(...) initializes x; see help(type(x)) for signature
  |  
  |  ggeett__aarrrraayy(...)
- |      Signature : (example.ExamplePythonTypes) -> list<unicode>[2]
  |      
+ |      Signature : (example.ExamplePythonTypes) -> List[unicode[2]]
  |      Return a C++ array
  |  
  |  ggeett__ddiicctt(...)
@@ -44,8 +44,8 @@ class EExxaammpplleePPyytthhoonnTTyyppeess(__builtin__.object)
  |      Return a Python dictionary
  |  
  |  ggeett__ddiicctt__22(...)
- |      Signature : (example.ExamplePythonTypes) -> dict<unicode, unicode>
  |      
+ |      Signature : (example.ExamplePythonTypes) -> Dict[unicode, unicode]
  |      Return a C++ dictionary
  |  
  |  ggeett__lliisstt(...)
@@ -54,8 +54,8 @@ class EExxaammpplleePPyytthhoonnTTyyppeess(__builtin__.object)
  |      Return a Python list
  |  
  |  ggeett__lliisstt__22(...)
- |      Signature : (example.ExamplePythonTypes) -> list<unicode>
  |      
+ |      Signature : (example.ExamplePythonTypes) -> List[unicode]
  |      Return a C++ list
  |  
  |  ggeett__sseett(...)
@@ -69,53 +69,53 @@ class EExxaammpplleePPyytthhoonnTTyyppeess(__builtin__.object)
  |      Return a C++ set
  |  
  |  ppaaiirr__ppaasssstthhrroouugghh(...)
- |      Signature : (example.ExamplePythonTypes, (bool, unicode)) -> (unicode, bool)
  |      
+ |      Signature : (example.ExamplePythonTypes, Tuple[bool, unicode]) -> Tuple[unicode, bool]
  |      Return a pair in reversed order
  |  
  |  pprriinntt__aarrrraayy(...)
- |      Signature : (example.ExamplePythonTypes, list<unicode>[2]) -> NoneType
  |      
+ |      Signature : (example.ExamplePythonTypes, List[unicode[2]]) -> None
  |      Print entries of a C++ array
  |  
  |  pprriinntt__ddiicctt(...)
- |      Signature : (example.ExamplePythonTypes, dict) -> NoneType
  |      
+ |      Signature : (example.ExamplePythonTypes, dict) -> None
  |      Print entries of a Python dictionary
  |  
  |  pprriinntt__ddiicctt__22(...)
- |      Signature : (example.ExamplePythonTypes, dict<unicode, unicode>) -> NoneType
  |      
+ |      Signature : (example.ExamplePythonTypes, Dict[unicode, unicode]) -> None
  |      Print entries of a C++ dictionary
  |  
  |  pprriinntt__lliisstt(...)
- |      Signature : (example.ExamplePythonTypes, list) -> NoneType
  |      
+ |      Signature : (example.ExamplePythonTypes, list) -> None
  |      Print entries of a Python list
  |  
  |  pprriinntt__lliisstt__22(...)
- |      Signature : (example.ExamplePythonTypes, list<unicode>) -> NoneType
  |      
+ |      Signature : (example.ExamplePythonTypes, List[unicode]) -> None
  |      Print entries of a C++ list
  |  
  |  pprriinntt__sseett(...)
- |      Signature : (example.ExamplePythonTypes, set) -> NoneType
  |      
+ |      Signature : (example.ExamplePythonTypes, set) -> None
  |      Print entries of a Python set
  |  
  |  pprriinntt__sseett__22(...)
- |      Signature : (example.ExamplePythonTypes, set<unicode>) -> NoneType
  |      
+ |      Signature : (example.ExamplePythonTypes, Set[unicode]) -> None
  |      Print entries of a C++ set
  |  
  |  tthhrrooww__eexxcceeppttiioonn(...)
- |      Signature : (example.ExamplePythonTypes) -> NoneType
  |      
+ |      Signature : (example.ExamplePythonTypes) -> None
  |      Throw an exception
  |  
  |  ttuuppllee__ppaasssstthhrroouugghh(...)
- |      Signature : (example.ExamplePythonTypes, (bool, unicode, int)) -> (int, unicode, bool)
  |      
+ |      Signature : (example.ExamplePythonTypes, Tuple[bool, unicode, int]) -> Tuple[int, unicode, bool]
  |      Return a triple in reversed order
  |  
  |  ----------------------------------------------------------------------

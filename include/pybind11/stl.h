@@ -53,7 +53,7 @@ template <typename Type, typename Key> struct set_caster {
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, _("set<") + key_conv::name() + _(">"));
+    PYBIND11_TYPE_CASTER(type, _("Set[") + key_conv::name() + _("]"));
 };
 
 template <typename Type, typename Key, typename Value> struct map_caster {
@@ -89,7 +89,7 @@ template <typename Type, typename Key, typename Value> struct map_caster {
         return d.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, _("dict<") + key_conv::name() + _(", ") + value_conv::name() + _(">"));
+    PYBIND11_TYPE_CASTER(type, _("Dict[") + key_conv::name() + _(", ") + value_conv::name() + _("]"));
 };
 
 template <typename Type, typename Value> struct list_caster {
@@ -128,7 +128,7 @@ template <typename Type, typename Value> struct list_caster {
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, _("list<") + value_conv::name() + _(">"));
+    PYBIND11_TYPE_CASTER(Type, _("List[") + value_conv::name() + _("]"));
 };
 
 template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>>
@@ -168,7 +168,7 @@ template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
         }
         return l.release();
     }
-    PYBIND11_TYPE_CASTER(array_type, _("list<") + value_conv::name() + _(">") + _("[") + _<Size>() + _("]"));
+    PYBIND11_TYPE_CASTER(array_type, _("List[") + value_conv::name() + _("[") + _<Size>() + _("]]"));
 };
 
 template <typename Key, typename Compare, typename Alloc> struct type_caster<std::set<Key, Compare, Alloc>>

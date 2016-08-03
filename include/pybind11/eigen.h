@@ -161,8 +161,8 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
         }
     }
 
-    PYBIND11_TYPE_CASTER(Type, _("numpy.ndarray[dtype=") + npy_format_descriptor<Scalar>::name() +
-            _(", shape=(") + rows() + _(", ") + cols() + _(")]"));
+    PYBIND11_TYPE_CASTER(Type, _("numpy.ndarray[") + npy_format_descriptor<Scalar>::name() +
+            _("[") + rows() + _(", ") + cols() + _("]]"));
 
 protected:
     template <typename T = Type, typename std::enable_if<T::RowsAtCompileTime == Eigen::Dynamic, int>::type = 0>
@@ -321,7 +321,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
         ).release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, _<(Type::Flags & Eigen::RowMajorBit) != 0>("scipy.sparse.csr_matrix[dtype=", "scipy.sparse.csc_matrix[dtype=")
+    PYBIND11_TYPE_CASTER(Type, _<(Type::Flags & Eigen::RowMajorBit) != 0>("scipy.sparse.csr_matrix[", "scipy.sparse.csc_matrix[")
             + npy_format_descriptor<Scalar>::name() + _("]"));
 };
 
