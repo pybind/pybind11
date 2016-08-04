@@ -61,6 +61,19 @@ public:
     static constexpr bool value = decltype(test(std::declval<T>()))::value;
 };
 
+// Test for objects inheriting from EigenBase<Derived> that aren't captured by the above.  This
+// basically covers anything that can be assigned to a dense matrix but that don't have a typical
+// matrix data layout that can be copied from their .data().  For example, DiagonalMatrix and
+// SelfAdjointView fall into this category.
+template <typename T> class is_eigen_base {
+private:
+    template<typename Derived> static std::true_type test(const Eigen::EigenBase<Derived> &);
+    static std::false_type test(...);
+public:
+    static constexpr bool value = !is_eigen_dense<T>::value && !is_eigen_sparse<T>::value &&
+        decltype(test(std::declval<T>()))::value;
+};
+
 template<typename Type>
 struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && !is_eigen_ref<Type>::value>::type> {
     typedef typename Type::Scalar Scalar;
@@ -164,11 +177,10 @@ protected:
 
 template<typename Type>
 struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && is_eigen_ref<Type>::value>::type> {
-private:
+protected:
     using Derived = typename std::remove_const<typename is_eigen_ref<Type>::Derived>::type;
     using DerivedCaster = type_caster<Derived>;
     DerivedCaster derived_caster;
-protected:
     std::unique_ptr<Type> value;
 public:
     bool load(handle src, bool convert) { if (derived_caster.load(src, convert)) { value.reset(new Type(derived_caster.operator Derived&())); return true; } return false; }
@@ -179,6 +191,25 @@ public:
 
     operator Type*() { return value.get(); }
     operator Type&() { if (!value) pybind11_fail("Eigen::Ref<...> value not loaded"); return *value; }
+    template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
+};
+
+// type_caster for special matrix types (e.g. DiagonalMatrix): load() is not supported, but we can
+// cast them into the python domain by first copying to a regular Eigen::Matrix, then casting that.
+template <typename Type>
+struct type_caster<Type, typename std::enable_if<is_eigen_base<Type>::value && !is_eigen_ref<Type>::value>::type> {
+protected:
+    using Matrix = Eigen::Matrix<typename Type::Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+    using MatrixCaster = type_caster<Matrix>;
+public:
+    [[noreturn]] bool load(handle, bool) { pybind11_fail("Unable to load() into specialized EigenBase object"); }
+    static handle cast(const Type &src, return_value_policy policy, handle parent) { return MatrixCaster::cast(Matrix(src), policy, parent); }
+    static handle cast(const Type *src, return_value_policy policy, handle parent) { return MatrixCaster::cast(Matrix(*src), policy, parent); }
+
+    static PYBIND11_DESCR name() { return MatrixCaster::name(); }
+
+    [[noreturn]] operator Type*() { pybind11_fail("Loading not supported for specialized EigenBase object"); }
+    [[noreturn]] operator Type&() { pybind11_fail("Loading not supported for specialized EigenBase object"); }
     template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
 

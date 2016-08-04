@@ -66,6 +66,22 @@ void init_eigen(py::module &m) {
         return x.block(start_row, start_col, block_rows, block_cols);
     });
 
+    // Returns a DiagonalMatrix with diagonal (1,2,3,...)
+    m.def("incr_diag", [](int k) {
+        Eigen::DiagonalMatrix<int, Eigen::Dynamic> m(k);
+        for (int i = 0; i < k; i++) m.diagonal()[i] = i+1;
+        return m;
+    });
+
+    // Returns a SelfAdjointView referencing the lower triangle of m
+    m.def("symmetric_lower", [](const Eigen::MatrixXi &m) {
+            return m.selfadjointView<Eigen::Lower>();
+    });
+    // Returns a SelfAdjointView referencing the lower triangle of m
+    m.def("symmetric_upper", [](const Eigen::MatrixXi &m) {
+            return m.selfadjointView<Eigen::Upper>();
+    });
+
     m.def("fixed_r", [mat]() -> FixedMatrixR { 
         return FixedMatrixR(mat);
     });

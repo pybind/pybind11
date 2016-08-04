@@ -50,3 +50,6 @@ diagonal_n(6) OK
 block(2,1,3,3) OK
 block(1,4,4,2) OK
 block(1,4,3,2) OK
+incr_diag OK
+symmetric_lower OK
+symmetric_upper OK

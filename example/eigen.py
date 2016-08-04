@@ -14,6 +14,7 @@ from example import double_mat_cm, double_mat_rm
 from example import cholesky1, cholesky2, cholesky3, cholesky4, cholesky5, cholesky6
 from example import diagonal, diagonal_1, diagonal_n
 from example import block
+from example import incr_diag, symmetric_upper, symmetric_lower
 try:
     import numpy as np
     import scipy
@@ -88,3 +89,20 @@ for i in range(-5, 7):
 print("block(2,1,3,3) %s" % ("OK" if (block(ref, 2, 1, 3, 3) == ref[2:5, 1:4]).all() else "FAILED"))
 print("block(1,4,4,2) %s" % ("OK" if (block(ref, 1, 4, 4, 2) == ref[1:, 4:]).all() else "FAILED"))
 print("block(1,4,3,2) %s" % ("OK" if (block(ref, 1, 4, 3, 2) == ref[1:4, 4:]).all() else "FAILED"))
+
+print("incr_diag %s" % ("OK" if (incr_diag(7) == np.diag([1,2,3,4,5,6,7])).all() else "FAILED"))
+
+asymm = np.array([
+    [1,  2, 3, 4],
+    [5,  6, 7, 8],
+    [9, 10,11,12],
+    [13,14,15,16]])
+symm_lower = np.array(asymm)
+symm_upper = np.array(asymm)
+for i in range(4):
+    for j in range(i+1, 4):
+        symm_lower[i,j] = symm_lower[j,i]
+        symm_upper[j,i] = symm_upper[i,j]
+
+print("symmetric_lower %s" % ("OK" if (symmetric_lower(asymm) == symm_lower).all() else "FAILED"))
+print("symmetric_upper %s" % ("OK" if (symmetric_upper(asymm) == symm_upper).all() else "FAILED"))
