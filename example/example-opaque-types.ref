@@ -10,7 +10,7 @@ Called ExampleMandA default constructor..
 Got void ptr : 0x7f9ba0f3c430
 Called ExampleMandA destructor (0)
 Caught expected exception: Incompatible function arguments. The following argument types are supported:
-    1. (capsule) -> NoneType
+    1. (arg0: capsule) -> None
     Invoked with: [1, 2, 3]
 None
 Got null str : 0x0

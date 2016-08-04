@@ -6,7 +6,7 @@ Molly is a dog
 Molly is a dog
 Woof!
 The following error is expected: Incompatible function arguments. The following argument types are supported:
-    1. (example.Dog) -> NoneType
+    1. (arg0: example.Dog) -> None
     Invoked with: <example.Pet object at 0>
 Callback function 1 called!
 False
@@ -36,3 +36,6 @@ could not convert to a function pointer.
 All OK!
 could not convert to a function pointer.
 All OK!
+
+test_callback3(arg0: Callable[[int], int]) -> None
+test_callback4() -> Callable[[int], int]

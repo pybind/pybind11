@@ -106,3 +106,9 @@ for i in range(4):
 
 print("symmetric_lower %s" % ("OK" if (symmetric_lower(asymm) == symm_lower).all() else "FAILED"))
 print("symmetric_upper %s" % ("OK" if (symmetric_upper(asymm) == symm_upper).all() else "FAILED"))
+
+print(double_col.__doc__)
+print(double_row.__doc__)
+print(double_mat_rm.__doc__)
+print(sparse_passthrough_r.__doc__)
+print(sparse_passthrough_c.__doc__)

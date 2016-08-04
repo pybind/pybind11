@@ -76,3 +76,4 @@ my_func(x:int=6, y:float=3, z:float=2)
 Int branch taken. 
 Float branch taken. 
 Complex float branch taken. 
+vectorized_func(arg0: numpy.ndarray[int], arg1: numpy.ndarray[float], arg2: numpy.ndarray[float]) -> object

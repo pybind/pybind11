@@ -135,8 +135,8 @@ protected:
         detail::process_attributes<Extra...>::init(extra..., rec);
 
         /* Generate a readable signature describing the function's arguments and return value types */
-        using detail::descr;
-        PYBIND11_DESCR signature = cast_in::name() + detail::_(" -> ") + cast_out::name();
+        using detail::descr; using detail::_;
+        PYBIND11_DESCR signature = _("(") + cast_in::element_names() + _(") -> ") + cast_out::name();
 
         /* Register the function with Python from generic (non-templated) code */
         initialize_generic(rec, signature.text(), signature.types(), sizeof...(Args));
@@ -157,7 +157,7 @@ protected:
 
     /// Register a function call with Python (generic non-templated code goes here)
     void initialize_generic(detail::function_record *rec, const char *text,
-                            const std::type_info *const *types, int args) {
+                            const std::type_info *const *types, size_t args) {
 
         /* Create copies of all referenced C-style strings */
         rec->name = strdup(rec->name ? rec->name : "");
@@ -182,16 +182,23 @@ protected:
                 break;
 
             if (c == '{') {
-                if (type_depth == 1 && arg_index < rec->args.size()) {
-                    signature += rec->args[arg_index].name;
-                    signature += " : ";
+                // Write arg name for everything except *args, **kwargs and return type.
+                if (type_depth == 0 && text[char_index] != '*' && arg_index < args) {
+                    if (!rec->args.empty()) {
+                        signature += rec->args[arg_index].name;
+                    } else if (arg_index == 0 && rec->class_) {
+                        signature += "self";
+                    } else {
+                        signature += "arg" + std::to_string(arg_index - (rec->class_ ? 1 : 0));
+                    }
+                    signature += ": ";
                 }
                 ++type_depth;
             } else if (c == '}') {
                 --type_depth;
-                if (type_depth == 1 && arg_index < rec->args.size()) {
-                    if (rec->args[arg_index].descr) {
-                        signature += " = ";
+                if (type_depth == 0) {
+                    if (arg_index < rec->args.size() && rec->args[arg_index].descr) {
+                        signature += "=";
                         signature += rec->args[arg_index].descr;
                     }
                     arg_index++;
@@ -453,9 +460,9 @@ protected:
 
                 bool wrote_sig = false;
                 if (overloads->is_constructor) {
-                    // For a constructor, rewrite `(Object, arg0, ...) -> NoneType` as `Object(arg0, ...)`
+                    // For a constructor, rewrite `(self: Object, arg0, ...) -> NoneType` as `Object(arg0, ...)`
                     std::string sig = it2->signature;
-                    size_t start = sig.find('(') + 1;
+                    size_t start = sig.find('(') + 7; // skip "(self: "
                     if (start < sig.size()) {
                         // End at the , for the next argument
                         size_t end = sig.find(", "), next = end + 2;

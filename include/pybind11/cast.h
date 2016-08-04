@@ -399,7 +399,7 @@ public:
     static handle cast(void_type, return_value_policy /* policy */, handle /* parent */) {
         return handle(Py_None).inc_ref();
     }
-    PYBIND11_TYPE_CASTER(void_type, _("NoneType"));
+    PYBIND11_TYPE_CASTER(void_type, _("None"));
 };
 
 template <> class type_caster<void> : public type_caster<void_type> {
@@ -440,7 +440,7 @@ public:
 
     template <typename T> using cast_op_type = void*&;
     operator void *&() { return value; }
-    static PYBIND11_DESCR name() { return _("capsule"); }
+    static PYBIND11_DESCR name() { return type_descr(_("capsule")); }
 private:
     void *value = nullptr;
 };
@@ -615,8 +615,8 @@ public:
 
     static PYBIND11_DESCR name() {
         return type_descr(
-            _("(") + type_caster<typename intrinsic_type<T1>::type>::name() +
-            _(", ") + type_caster<typename intrinsic_type<T2>::type>::name() + _(")"));
+            _("Tuple[") + type_caster<typename intrinsic_type<T1>::type>::name() +
+            _(", ") + type_caster<typename intrinsic_type<T2>::type>::name() + _("]"));
     }
 
     template <typename T> using cast_op_type = type;
@@ -671,11 +671,12 @@ public:
         return cast(src, policy, parent, typename make_index_sequence<size>::type());
     }
 
+    static PYBIND11_DESCR element_names() {
+        return detail::concat(type_caster<typename intrinsic_type<Tuple>::type>::name()...);
+    }
+    
     static PYBIND11_DESCR name() {
-        return type_descr(
-               _("(") +
-               detail::concat(type_caster<typename intrinsic_type<Tuple>::type>::name()...) +
-               _(")"));
+        return type_descr(_("Tuple[") + element_names() + _("]"));
     }
 
     template <typename ReturnValue, typename Func> typename std::enable_if<!std::is_void<ReturnValue>::value, ReturnValue>::type call(Func &&f) {
