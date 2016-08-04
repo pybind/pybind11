@@ -1102,11 +1102,11 @@ pybind11 will automatically and transparently convert
    diagonals will be converted to ``numpy.ndarray`` of the expression
    values.
 
-1. Returned matrix-like objects such as Eigen::DiagonalMatrix or
+2. Returned matrix-like objects such as Eigen::DiagonalMatrix or
    Eigen::SelfAdjointView will be converted to ``numpy.ndarray`` containing the
    expressed value.
 
-1. Eigen sparse vectors and matrices to instances of
+3. Eigen sparse vectors and matrices to instances of
    ``scipy.sparse.csr_matrix``/``scipy.sparse.csc_matrix`` (and vice versa).
 
 This makes it possible to bind most kinds of functions that rely on these types.
