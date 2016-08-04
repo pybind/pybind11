@@ -1019,9 +1019,14 @@ public:
         this->def("__init__", [](Type& value, UnderlyingType i) { new (&value) Type((Type) i); });
         this->def("__int__", [](Type value) { return (UnderlyingType) value; });
         this->def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
-        this->def("__eq__", [](const Type &value, UnderlyingType value2) { return value == value2; });
         this->def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
-        this->def("__ne__", [](const Type &value, UnderlyingType value2) { return value != value2; });
+        if (std::is_convertible<Type, UnderlyingType>::value) {
+            // Don't provide comparison with the underlying type if the enum isn't convertible,
+            // i.e. if Type is a scoped enum, mirroring the C++ behaviour.  (NB: we explicitly
+            // convert Type to UnderlyingType below anyway because this needs to compile).
+            this->def("__eq__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value == value2; });
+            this->def("__ne__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value != value2; });
+        }
         this->def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
         m_entries = entries;
     }
