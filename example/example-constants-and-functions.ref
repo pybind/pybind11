@@ -10,6 +10,8 @@ test_function(enum=1)
 None
 test_function(enum=2)
 None
+test_ecenum(ECMyEnum::Three)
+test_ecenum(ECMyEnum::Two)
 enum->integer = 2
 integer->enum = EMyEnumeration.ESecondEntry
 A constant = 14

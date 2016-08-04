@@ -6,6 +6,7 @@ sys.path.append('.')
 from example import test_function
 from example import some_constant
 from example import EMyEnumeration
+from example import ECMyEnum, test_ecenum
 from example import EFirstEntry
 from example import ExampleWithEnum
 from example import return_bytes
@@ -20,6 +21,8 @@ print(test_function())
 print(test_function(7))
 print(test_function(EMyEnumeration.EFirstEntry))
 print(test_function(EMyEnumeration.ESecondEntry))
+test_ecenum(ECMyEnum.Three)
+test_ecenum(ECMyEnum.Two)
 print("enum->integer = %i" % int(EMyEnumeration.ESecondEntry))
 print("integer->enum = %s" % str(EMyEnumeration(2)))
 

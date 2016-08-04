@@ -14,6 +14,11 @@ enum EMyEnumeration {
     ESecondEntry
 };
 
+enum class ECMyEnum {
+    Two = 2,
+    Three
+};
+
 class ExampleWithEnum {
 public:
     enum EMode {
@@ -41,6 +46,10 @@ float test_function3(int i) {
     return (float) i / 2.f;
 }
 
+void test_ecenum(ECMyEnum z) {
+    std::cout << "test_ecenum(ECMyEnum::" << (z == ECMyEnum::Two ? "Two" : "Three") << ")" << std::endl;
+}
+
 py::bytes return_bytes() {
     const char *data = "\x01\x00\x02\x00";
     return std::string(data, 4);
@@ -56,12 +65,18 @@ void init_ex_constants_and_functions(py::module &m) {
     m.def("test_function", &test_function1);
     m.def("test_function", &test_function2);
     m.def("test_function", &test_function3);
+    m.def("test_ecenum", &test_ecenum);
     m.attr("some_constant") = py::int_(14);
 
     py::enum_<EMyEnumeration>(m, "EMyEnumeration")
         .value("EFirstEntry", EFirstEntry)
         .value("ESecondEntry", ESecondEntry)
         .export_values();
+
+    py::enum_<ECMyEnum>(m, "ECMyEnum")
+        .value("Two", ECMyEnum::Two)
+        .value("Three", ECMyEnum::Three)
+        ;
 
     py::class_<ExampleWithEnum> exenum_class(m, "ExampleWithEnum");
     exenum_class.def_static("test_function", &ExampleWithEnum::test_function);
