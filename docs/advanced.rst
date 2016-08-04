@@ -1098,15 +1098,15 @@ pybind11 will automatically and transparently convert
 1. Static and dynamic Eigen dense vectors and matrices to instances of
    ``numpy.ndarray`` (and vice versa).
 
-1. Returned matrix expressions such as blocks (including columns or rows) and
+2. Returned matrix expressions such as blocks (including columns or rows) and
    diagonals will be converted to ``numpy.ndarray`` of the expression
    values.
 
-2. Returned matrix-like objects such as Eigen::DiagonalMatrix or
+3. Returned matrix-like objects such as Eigen::DiagonalMatrix or
    Eigen::SelfAdjointView will be converted to ``numpy.ndarray`` containing the
    expressed value.
 
-3. Eigen sparse vectors and matrices to instances of
+4. Eigen sparse vectors and matrices to instances of
    ``scipy.sparse.csr_matrix``/``scipy.sparse.csc_matrix`` (and vice versa).
 
 This makes it possible to bind most kinds of functions that rely on these types.
