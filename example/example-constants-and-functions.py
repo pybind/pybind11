@@ -22,7 +22,26 @@ print(test_function(7))
 print(test_function(EMyEnumeration.EFirstEntry))
 print(test_function(EMyEnumeration.ESecondEntry))
 test_ecenum(ECMyEnum.Three)
-test_ecenum(ECMyEnum.Two)
+z = ECMyEnum.Two
+test_ecenum(z)
+try:
+    z == 2
+    print("Bad: expected a TypeError exception")
+except TypeError:
+    try:
+        z != 3
+        print("Bad: expected a TypeError exception")
+    except TypeError:
+        print("Good: caught expected TypeError exceptions for scoped enum ==/!= int comparisons")
+
+y = EMyEnumeration.ESecondEntry
+try:
+    y == 2
+    y != 2
+    print("Good: no TypeError exception for unscoped enum ==/!= int comparisions")
+except TypeError:
+    print("Bad: caught TypeError exception for unscoped enum ==/!= int comparisons")
+
 print("enum->integer = %i" % int(EMyEnumeration.ESecondEntry))
 print("integer->enum = %s" % str(EMyEnumeration(2)))
 

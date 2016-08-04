@@ -12,6 +12,8 @@ test_function(enum=2)
 None
 test_ecenum(ECMyEnum::Three)
 test_ecenum(ECMyEnum::Two)
+Good: caught expected TypeError exceptions for scoped enum ==/!= int comparisons
+Good: no TypeError exception for unscoped enum ==/!= int comparisions
 enum->integer = 2
 integer->enum = EMyEnumeration.ESecondEntry
 A constant = 14
