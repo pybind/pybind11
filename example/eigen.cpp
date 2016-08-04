@@ -56,6 +56,16 @@ void init_eigen(py::module &m) {
     m.def("cholesky5", &cholesky5);
     m.def("cholesky6", &cholesky6);
 
+    // Returns diagonals: a vector-like object with an inner stride != 1
+    m.def("diagonal", [](const Eigen::Ref<const Eigen::MatrixXd> &x) { return x.diagonal(); });
+    m.def("diagonal_1", [](const Eigen::Ref<const Eigen::MatrixXd> &x) { return x.diagonal<1>(); });
+    m.def("diagonal_n", [](const Eigen::Ref<const Eigen::MatrixXd> &x, int index) { return x.diagonal(index); });
+
+    // Return a block of a matrix (gives non-standard strides)
+    m.def("block", [](const Eigen::Ref<const Eigen::MatrixXd> &x, int start_row, int start_col, int block_rows, int block_cols) {
+        return x.block(start_row, start_col, block_rows, block_cols);
+    });
+
     m.def("fixed_r", [mat]() -> FixedMatrixR { 
         return FixedMatrixR(mat);
     });

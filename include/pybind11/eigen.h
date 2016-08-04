@@ -40,8 +40,8 @@ public:
     static constexpr bool value = decltype(test(std::declval<T>()))::value;
 };
 
-// Eigen::Ref<Derived> satisfies is_eigen_dense, but isn't constructible, which means we can't load
-// it (since there is no reference!), but we can cast from it.
+// Eigen::Ref<Derived> satisfies is_eigen_dense, but isn't constructible, so it needs a special
+// type_caster to handle argument copying/forwarding.
 template <typename T> class is_eigen_ref {
 private:
     template<typename Derived> static typename std::enable_if<
@@ -126,7 +126,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
                 /* Buffer dimensions */
                 { (size_t) src.size() },
                 /* Strides (in bytes) for each index */
-                { sizeof(Scalar) }
+                { sizeof(Scalar) * src.innerStride() }
             )).release();
         } else {
             return array(buffer_info(
@@ -142,8 +142,8 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
                 { (size_t) src.rows(),
                   (size_t) src.cols() },
                 /* Strides (in bytes) for each index */
-                { sizeof(Scalar) * (rowMajor ? (size_t) src.cols() : 1),
-                  sizeof(Scalar) * (rowMajor ? 1 : (size_t) src.rows()) }
+                { sizeof(Scalar) * src.rowStride(),
+                  sizeof(Scalar) * src.colStride() }
             )).release();
         }
     }
