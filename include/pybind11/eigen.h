@@ -139,7 +139,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
                 /* Buffer dimensions */
                 { (size_t) src.size() },
                 /* Strides (in bytes) for each index */
-                { sizeof(Scalar) * src.innerStride() }
+                { sizeof(Scalar) * static_cast<size_t>(src.innerStride()) }
             )).release();
         } else {
             return array(buffer_info(
@@ -155,8 +155,8 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
                 { (size_t) src.rows(),
                   (size_t) src.cols() },
                 /* Strides (in bytes) for each index */
-                { sizeof(Scalar) * src.rowStride(),
-                  sizeof(Scalar) * src.colStride() }
+                { sizeof(Scalar) * static_cast<size_t>(src.rowStride()),
+                  sizeof(Scalar) * static_cast<size_t>(src.colStride()) }
             )).release();
         }
     }
