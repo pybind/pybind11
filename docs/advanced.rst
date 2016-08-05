@@ -470,10 +470,6 @@ can now create a python class that inherits from ``Dog``:
     See the file :file:`example-virtual-functions.cpp` for complete examples
     using both the duplication and templated trampoline approaches.
 
-    The file also contains a more intrusive approach using multiple
-    inheritance, which may be useful in special situations with deep class
-    hierarchies to avoid code generation.
-
 .. _macro_notes:
 
 General notes regarding convenience macros

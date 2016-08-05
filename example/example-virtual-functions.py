@@ -4,7 +4,7 @@ import sys
 sys.path.append('.')
 
 from example import ExampleVirt, runExampleVirt, runExampleVirtVirtual, runExampleVirtBool
-from example import A_Repeat, B_Repeat, C_Repeat, D_Repeat, A_MI, B_MI, C_MI, D_MI, A_Tpl, B_Tpl, C_Tpl, D_Tpl
+from example import A_Repeat, B_Repeat, C_Repeat, D_Repeat, A_Tpl, B_Tpl, C_Tpl, D_Tpl
 
 class ExtendedExampleVirt(ExampleVirt):
     def __init__(self, state):
@@ -40,11 +40,6 @@ sys.stdout.flush()
 class VI_AR(A_Repeat):
     def unlucky_number(self):
         return 99
-class VI_AMI(A_MI):
-    def unlucky_number(self):
-        return 990
-    def say_something(self, times):
-        return A_MI.say_something(self, 2*times)
 class VI_AT(A_Tpl):
     def unlucky_number(self):
         return 999
@@ -52,17 +47,11 @@ class VI_AT(A_Tpl):
 class VI_CR(C_Repeat):
     def lucky_number(self):
         return C_Repeat.lucky_number(self) + 1.25
-class VI_CMI(C_MI):
-    def lucky_number(self):
-        return 1.75
 class VI_CT(C_Tpl):
     pass
 class VI_CCR(VI_CR):
     def lucky_number(self):
         return VI_CR.lucky_number(self) * 10
-class VI_CCMI(VI_CMI):
-    def lucky_number(self):
-        return VI_CMI.lucky_number(self) * 100
 class VI_CCT(VI_CT):
     def lucky_number(self):
         return VI_CT.lucky_number(self) * 1000
@@ -73,11 +62,6 @@ class VI_DR(D_Repeat):
         return 123
     def lucky_number(self):
         return 42.0
-class VI_DMI(D_MI):
-    def unlucky_number(self):
-        return 1230
-    def lucky_number(self):
-        return -9.5
 class VI_DT(D_Tpl):
     def say_something(self, times):
         print("VI_DT says:" + (' quack' * times))
@@ -87,12 +71,12 @@ class VI_DT(D_Tpl):
         return -4.25
 
 classes = [
-    # A_Repeat, A_MI, A_Tpl, # abstract (they have a pure virtual unlucky_number)
-    VI_AR, VI_AMI, VI_AT,
-    B_Repeat, B_MI, B_Tpl,
-    C_Repeat, C_MI, C_Tpl,
-    VI_CR, VI_CMI, VI_CT, VI_CCR, VI_CCMI, VI_CCT,
-    D_Repeat, D_MI, D_Tpl, VI_DR, VI_DMI, VI_DT
+    # A_Repeat, A_Tpl, # abstract (they have a pure virtual unlucky_number)
+    VI_AR, VI_AT,
+    B_Repeat, B_Tpl,
+    C_Repeat, C_Tpl,
+    VI_CR, VI_CT, VI_CCR, VI_CCT,
+    D_Repeat, D_Tpl, VI_DR, VI_DT
 ]
 
 for cl in classes:

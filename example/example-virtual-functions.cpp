@@ -82,20 +82,12 @@ void runExampleVirtVirtual(ExampleVirt *ex) {
 }
 
 
-// Inheriting virtual methods.  We do three versions here: the repeat-everything version and the
-// templated trampoline versions mentioned in docs/advanced.rst, and also another version using
-// multiple inheritance.
+// Inheriting virtual methods.  We do two versions here: the repeat-everything version and the
+// templated trampoline versions mentioned in docs/advanced.rst.
 //
-// This latter approach has the advantage of generating substantially less code for deep
-// hierarchies, but it requires intrusive changes of changing the wrapped classes to using virtual
-// inheritance, which itself requires constructor rewriting for any non-default virtual base class
-// constructors (most problematic is that constructors cannot be effectively inherited from a
-// virtual base class).  The example is kept here because it does work, and may be useful in limited
-// cases, but the non-instrusive templated version is generally preferred.
-//
-// These base classes are all exactly the same (aside from the virtual inheritance for the MI
-// version), but we technically need distinct classes for this example code because we need to be
-// able to bind them properly (pybind11, sensibly, doesn't allow us to bind the same C++ class to
+// These base classes are exactly the same, but we technically need distinct
+// classes for this example code because we need to be able to bind them
+// properly (pybind11, sensibly, doesn't allow us to bind the same C++ class to
 // multiple python classes).
 class A_Repeat {
 #define A_METHODS \
@@ -128,13 +120,6 @@ class D_Repeat : public C_Repeat {
 #define D_METHODS // Nothing overridden.
 D_METHODS
 };
-
-// Base classes for multiple inheritance trampolines; note the added "virtual" inheritance.  The
-// classes are otherwise identical.
-class A_MI { A_METHODS };
-class B_MI : virtual public A_MI { B_METHODS };
-class C_MI : virtual public B_MI { C_METHODS };
-class D_MI : virtual public C_MI { D_METHODS };
 
 // Base classes for templated inheritance trampolines.  Identical to the repeat-everything version:
 class A_Tpl { A_METHODS };
@@ -213,31 +198,6 @@ public:
 };
 */
 
-// Inheritance approach 3: multiple inheritance with virtual base class inheritance.  This requires
-// declaration and compilation of exactly 7 methods (one per virtual method declaration or
-// override), versus the 11 required above.  On the other hand, if we need anything other than
-// default constructors, this quickly becomes painful, and so this is of limited use.
-class PyA_MI : virtual public A_MI {
-public:
-    // Can't inherit constructors: we would have to duplicate constructors with an explicit
-    // initializer for each virtual base, which is a pain for anything but the default constructor.
-    int unlucky_number() override { PYBIND11_OVERLOAD_PURE(int, A_MI, unlucky_number, ); }
-    void say_something(unsigned times) override { PYBIND11_OVERLOAD(void, A_MI, say_something, times); }
-};
-class PyB_MI : public PyA_MI, virtual public B_MI {
-public:
-    void say_something(unsigned times) override { PYBIND11_OVERLOAD(void, B_MI, say_something, times); }
-    double lucky_number() { PYBIND11_OVERLOAD(double, B_MI, lucky_number, ); }
-    int unlucky_number() { PYBIND11_OVERLOAD(int, B_MI, unlucky_number, ); }
-};
-class PyC_MI : public PyB_MI, virtual public C_MI {
-public:
-    int unlucky_number() override { PYBIND11_OVERLOAD(int, C_MI, unlucky_number, ); }
-    double lucky_number() override { PYBIND11_OVERLOAD(double, C_MI, lucky_number, ); }
-};
-class PyD_MI : public PyC_MI, virtual public D_MI {
-};
-
 
 void initialize_inherited_virtuals(py::module &m) {
     // Method 1: repeat
@@ -264,19 +224,6 @@ void initialize_inherited_virtuals(py::module &m) {
     py::class_<C_Tpl, std::unique_ptr<C_Tpl>, PyB_Tpl<C_Tpl>>(m, "C_Tpl", py::base<B_Tpl>())
         .def(py::init<>());
     py::class_<D_Tpl, std::unique_ptr<D_Tpl>, PyB_Tpl<D_Tpl>>(m, "D_Tpl", py::base<C_Tpl>())
-        .def(py::init<>());
-
-    // Method 3: MI
-    py::class_<A_MI, std::unique_ptr<A_MI>, PyA_MI>(m, "A_MI")
-        .def(py::init<>())
-        .def("unlucky_number", &A_MI::unlucky_number)
-        .def("say_something", &A_MI::say_something);
-    py::class_<B_MI, std::unique_ptr<B_MI>, PyB_MI>(m, "B_MI", py::base<A_MI>())
-        .def(py::init<>())
-        .def("lucky_number", &B_MI::lucky_number);
-    py::class_<C_MI, std::unique_ptr<C_MI>, PyC_MI>(m, "C_MI", py::base<B_MI>())
-        .def(py::init<>());
-    py::class_<D_MI, std::unique_ptr<D_MI>, PyD_MI>(m, "D_MI", py::base<C_MI>())
         .def(py::init<>());
 
 };
