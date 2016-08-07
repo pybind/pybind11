@@ -35,3 +35,16 @@ print(instance1.internal5())
 print("Instance 1, direct access = %i" % instance1.value)
 instance1.value = 100
 print("Instance 1: " + str(instance1))
+
+from example import ConstructorStats
+
+cstats = ConstructorStats.get(ExampleMandA)
+print("Instances not destroyed:", cstats.alive())
+instance1 = instance2 = None
+print("Instances not destroyed:", cstats.alive())
+print("Constructor values:", cstats.values())
+print("Default constructions:", cstats.default_constructions)
+print("Copy constructions:", cstats.copy_constructions)
+print("Move constructions:", cstats.move_constructions >= 1)
+print("Copy assignments:", cstats.copy_assignments)
+print("Move assignments:", cstats.move_assignments)

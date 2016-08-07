@@ -8,6 +8,7 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 #include <pybind11/functional.h>
 
 
@@ -57,6 +58,21 @@ void test_dummy_function(const std::function<int(int)> &f) {
     }
 }
 
+struct Payload {
+    Payload() {
+        print_default_created(this);
+    }
+    ~Payload() {
+        print_destroyed(this);
+    }
+    Payload(const Payload &) {
+        print_copy_created(this);
+    }
+    Payload(Payload &&) {
+        print_move_created(this);
+    }
+};
+
 void init_ex_callbacks(py::module &m) {
     m.def("test_callback1", &test_callback1);
     m.def("test_callback2", &test_callback2);
@@ -65,21 +81,6 @@ void init_ex_callbacks(py::module &m) {
     m.def("test_callback5", &test_callback5);
 
     /* Test cleanup of lambda closure */
-
-    struct Payload {
-        Payload() {
-            std::cout << "Payload constructor" << std::endl;
-        }
-        ~Payload() {
-            std::cout << "Payload destructor" << std::endl;
-        }
-        Payload(const Payload &) {
-            std::cout << "Payload copy constructor" << std::endl;
-        }
-        Payload(Payload &&) {
-            std::cout << "Payload move constructor" << std::endl;
-        }
-    };
 
     m.def("test_cleanup", []() -> std::function<void(void)> { 
         Payload p;
@@ -94,4 +95,6 @@ void init_ex_callbacks(py::module &m) {
     m.def("dummy_function2", &dummy_function2);
     m.def("roundtrip", &roundtrip);
     m.def("test_dummy_function", &test_dummy_function);
+    // Export the payload constructor statistics for testing purposes:
+    m.def("payload_cstats", &ConstructorStats::get<Payload>);
 }

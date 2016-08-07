@@ -28,3 +28,19 @@ rev[0::2] = Sequence([2.0, 2.0, 2.0])
 for i in rev:
     print(i, end=' ')
 print('')
+
+from example import ConstructorStats
+cstats = ConstructorStats.get(Sequence)
+print("Instances not destroyed:", cstats.alive())
+s = None
+print("Instances not destroyed:", cstats.alive())
+rev = None
+print("Instances not destroyed:", cstats.alive())
+rev2 = None
+print("Instances not destroyed:", cstats.alive())
+print("Constructor values:", cstats.values())
+print("Default constructions:", cstats.default_constructions)
+print("Copy constructions:", cstats.copy_constructions)
+print("Move constructions:", cstats.move_constructions >= 1)
+print("Copy assignments:", cstats.copy_assignments)
+print("Move assignments:", cstats.move_assignments)

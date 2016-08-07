@@ -9,6 +9,7 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 #include <pybind11/stl.h>
 
 #ifdef _WIN32
@@ -19,11 +20,11 @@
 class ExamplePythonTypes {
 public:
     static ExamplePythonTypes *new_instance() {
-        return new ExamplePythonTypes();
+        auto *ptr = new ExamplePythonTypes();
+        print_created(ptr, "via new_instance");
+        return ptr;
     }
-    ~ExamplePythonTypes() {
-        std::cout << "Destructing ExamplePythonTypes" << std::endl;
-    }
+    ~ExamplePythonTypes() { print_destroyed(this); }
 
     /* Create and return a Python dictionary */
     py::dict get_dict() {
@@ -168,5 +169,6 @@ void init_ex_python_types(py::module &m) {
         .def("throw_exception", &ExamplePythonTypes::throw_exception, "Throw an exception")
         .def_static("new_instance", &ExamplePythonTypes::new_instance, "Return an instance")
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
-        .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)");
+        .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")
+        ;
 }

@@ -8,35 +8,36 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 
 class Matrix {
 public:
     Matrix(size_t rows, size_t cols) : m_rows(rows), m_cols(cols) {
-        std::cout << "Value constructor: Creating a " << rows << "x" << cols << " matrix " << std::endl;
+        print_created(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
         m_data = new float[rows*cols];
         memset(m_data, 0, sizeof(float) * rows * cols);
     }
 
     Matrix(const Matrix &s) : m_rows(s.m_rows), m_cols(s.m_cols) {
-        std::cout << "Copy constructor: Creating a " << m_rows << "x" << m_cols << " matrix " << std::endl;
+        print_copy_created(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
         m_data = new float[m_rows * m_cols];
         memcpy(m_data, s.m_data, sizeof(float) * m_rows * m_cols);
     }
 
     Matrix(Matrix &&s) : m_rows(s.m_rows), m_cols(s.m_cols), m_data(s.m_data) {
-        std::cout << "Move constructor: Creating a " << m_rows << "x" << m_cols << " matrix " << std::endl;
+        print_move_created(this);
         s.m_rows = 0;
         s.m_cols = 0;
         s.m_data = nullptr;
     }
 
     ~Matrix() {
-        std::cout << "Freeing a " << m_rows << "x" << m_cols << " matrix " << std::endl;
+        print_destroyed(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
         delete[] m_data;
     }
 
     Matrix &operator=(const Matrix &s) {
-        std::cout << "Assignment operator : Creating a " << s.m_rows << "x" << s.m_cols << " matrix " << std::endl;
+        print_copy_assigned(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
         delete[] m_data;
         m_rows = s.m_rows;
         m_cols = s.m_cols;
@@ -46,7 +47,7 @@ public:
     }
 
     Matrix &operator=(Matrix &&s) {
-        std::cout << "Move assignment operator : Creating a " << s.m_rows << "x" << s.m_cols << " matrix " << std::endl;
+        print_move_assigned(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
         if (&s != this) {
             delete[] m_data;
             m_rows = s.m_rows; m_cols = s.m_cols; m_data = s.m_data;
@@ -111,5 +112,6 @@ void init_ex_buffers(py::module &m) {
                 { sizeof(float) * m.rows(),          /* Strides (in bytes) for each index */
                   sizeof(float) }
             );
-        });
+        })
+        ;
 }

@@ -8,18 +8,16 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 #include <pybind11/functional.h>
 
 /* This is an example class that we'll want to be able to extend from Python */
 class ExampleVirt  {
 public:
-    ExampleVirt(int state) : state(state) {
-        cout << "Constructing ExampleVirt.." << endl;
-    }
-
-    ~ExampleVirt() {
-        cout << "Destructing ExampleVirt.." << endl;
-    }
+    ExampleVirt(int state) : state(state) { print_created(this, state); }
+    ExampleVirt(const ExampleVirt &e) : state(e.state) { print_copy_created(this); }
+    ExampleVirt(ExampleVirt &&e) : state(e.state) { print_move_created(this); e.state = 0; }
+    ~ExampleVirt() { print_destroyed(this); }
 
     virtual int run(int value) {
         std::cout << "Original implementation of ExampleVirt::run(state=" << state
@@ -71,8 +69,8 @@ public:
 
 class NonCopyable {
 public:
-    NonCopyable(int a, int b) : value{new int(a*b)} {}
-    NonCopyable(NonCopyable &&) = default;
+    NonCopyable(int a, int b) : value{new int(a*b)} { print_created(this, a, b); }
+    NonCopyable(NonCopyable &&o) { value = std::move(o.value); print_move_created(this); }
     NonCopyable(const NonCopyable &) = delete;
     NonCopyable() = delete;
     void operator=(const NonCopyable &) = delete;
@@ -80,7 +78,7 @@ public:
     std::string get_value() const {
         if (value) return std::to_string(*value); else return "(null)";
     }
-    ~NonCopyable() { std::cout << "NonCopyable destructor @ " << this << "; value = " << get_value() << std::endl; }
+    ~NonCopyable() { print_destroyed(this); }
 
 private:
     std::unique_ptr<int> value;
@@ -90,11 +88,11 @@ private:
 // when it is not referenced elsewhere, but copied if it is still referenced.
 class Movable {
 public:
-    Movable(int a, int b) : value{a+b} {}
-    Movable(const Movable &m) { value = m.value; std::cout << "Movable @ " << this << " copy constructor" << std::endl; }
-    Movable(Movable &&m) { value = std::move(m.value); std::cout << "Movable @ " << this << " move constructor" << std::endl; }
+    Movable(int a, int b) : value{a+b} { print_created(this, a, b); }
+    Movable(const Movable &m) { value = m.value; print_copy_created(this); }
+    Movable(Movable &&m) { value = std::move(m.value); print_move_created(this); }
     int get_value() const { return value; }
-    ~Movable() { std::cout << "Movable destructor @ " << this << "; value = " << get_value() << std::endl; }
+    ~Movable() { print_destroyed(this); }
 private:
     int value;
 };
@@ -305,5 +303,6 @@ void init_ex_virtual_functions(py::module &m) {
     m.def("runExampleVirtBool", &runExampleVirtBool);
     m.def("runExampleVirtVirtual", &runExampleVirtVirtual);
 
+    m.def("cstats_debug", &ConstructorStats::get<ExampleVirt>);
     initialize_inherited_virtuals(m);
 }

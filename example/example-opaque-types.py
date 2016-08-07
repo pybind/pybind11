@@ -34,6 +34,8 @@ print_opaque_list(cvp.stringList)
 
 print_void_ptr(return_void_ptr())
 print_void_ptr(ExampleMandA())  # Should also work for other C++ types
+from example import ConstructorStats
+print("ExampleMandA still alive:", ConstructorStats.get(ExampleMandA).alive())
 
 try:
     print_void_ptr([1, 2, 3])  # This should not work

@@ -9,13 +9,15 @@ remove_long_marker    = re.compile(r'([0-9])L')
 remove_hex            = re.compile(r'0x[0-9a-fA-F]+')
 shorten_floats        = re.compile(r'([1-9][0-9]*\.[0-9]{4})[0-9]*')
 
-relaxed = False
-
 def sanitize(lines):
     lines = lines.split('\n')
     for i in range(len(lines)):
         line = lines[i]
         if line.startswith(" |"):
+            line = ""
+        if line.startswith("### "):
+            # Constructor/destructor output.  Useful for example, but unreliable across compilers;
+            # testing of proper construction/destruction occurs with ConstructorStats mechanism instead
             line = ""
         line = remove_unicode_marker.sub(r'\1', line)
         line = remove_long_marker.sub(r'\1', line)
@@ -28,13 +30,6 @@ def sanitize(lines):
         line = line.replace('example.EMode', 'EMode')
         line = line.replace('method of builtins.PyCapsule instance', '')
         line = line.strip()
-        if relaxed:
-            lower = line.lower()
-            # The precise pattern of allocations and deallocations is dependent on the compiler
-            # and optimization level, so we unfortunately can't reliably check it in this kind of test case
-            if 'constructor' in lower or 'destructor' in lower \
-               or 'ref' in lower or 'freeing' in lower:
-                line = ""
         lines[i] = line
 
     return '\n'.join(sorted([l for l in lines if l != ""]))
@@ -44,16 +39,12 @@ if path != '':
     os.chdir(path)
 
 if len(sys.argv) < 2:
-    print("Syntax: %s [--relaxed] <test name>" % sys.argv[0])
+    print("Syntax: %s <test name>" % sys.argv[0])
     exit(0)
-
-if len(sys.argv) == 3 and sys.argv[1] == '--relaxed':
-    del sys.argv[1]
-    relaxed = True
 
 name = sys.argv[1]
 try:
-    output_bytes = subprocess.check_output([sys.executable, name + ".py"],
+    output_bytes = subprocess.check_output([sys.executable, "-u", name + ".py"],
                                            stderr=subprocess.STDOUT)
 except subprocess.CalledProcessError as e:
     if e.returncode == 99:

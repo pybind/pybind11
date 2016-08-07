@@ -65,3 +65,10 @@ print("__name__(example.ExamplePythonTypes) = %s" % ExamplePythonTypes.__name__)
 print("__module__(example.ExamplePythonTypes) = %s" % ExamplePythonTypes.__module__)
 print("__name__(example.ExamplePythonTypes.get_set) = %s" % ExamplePythonTypes.get_set.__name__)
 print("__module__(example.ExamplePythonTypes.get_set) = %s" % ExamplePythonTypes.get_set.__module__)
+
+from example import ConstructorStats
+
+cstats = ConstructorStats.get(ExamplePythonTypes)
+print("Instances not destroyed:", cstats.alive())
+instance = None
+print("Instances not destroyed:", cstats.alive())

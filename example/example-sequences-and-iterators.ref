@@ -1,21 +1,31 @@
-Value constructor: Creating a sequence with 5 entries
-s = <example.Sequence object at 0x10c786c70>
+### Sequence @ 0x1535b00 created of size 5
+s = <example.Sequence object at 0x7efc73cfa4e0>
 len(s) = 5
 s[0], s[3] = 0.000000 0.000000
 12.34 in s: False
 12.34 in s: True
 s[0], s[3] = 12.340000 56.779999
-Value constructor: Creating a sequence with 5 entries
-Move constructor: Creating a sequence with 5 entries
-Freeing a sequence with 0 entries
-Value constructor: Creating a sequence with 5 entries
+### Sequence @ 0x7fff22a45068 created of size 5
+### Sequence @ 0x1538b90 created via move constructor
+### Sequence @ 0x7fff22a45068 destroyed
+### Sequence @ 0x1538bf0 created of size 5
 rev[0], rev[1], rev[2], rev[3], rev[4] = 0.000000 56.779999 0.000000 0.000000 12.340000
-0.0 56.7799987793 0.0 0.0 12.3400001526 
-0.0 56.7799987793 0.0 0.0 12.3400001526 
+0.0 56.779998779296875 0.0 0.0 12.34000015258789 
+0.0 56.779998779296875 0.0 0.0 12.34000015258789 
 True
-Value constructor: Creating a sequence with 3 entries
-Freeing a sequence with 3 entries
-2.0 56.7799987793 2.0 0.0 2.0 
-Freeing a sequence with 5 entries
-Freeing a sequence with 5 entries
-Freeing a sequence with 5 entries
+### Sequence @ 0x153c4b0 created of size 3  from std::vector
+### Sequence @ 0x153c4b0 destroyed
+2.0 56.779998779296875 2.0 0.0 2.0 
+Instances not destroyed: 3
+### Sequence @ 0x1535b00 destroyed
+Instances not destroyed: 2
+### Sequence @ 0x1538b90 destroyed
+Instances not destroyed: 1
+### Sequence @ 0x1538bf0 destroyed
+Instances not destroyed: 0
+Constructor values: ['of size', '5', 'of size', '5', 'of size', '5', 'of size', '3', 'from std::vector']
+Default constructions: 0
+Copy constructions: 0
+Move constructions: True
+Copy assignments: 0
+Move assignments: 0

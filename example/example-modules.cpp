@@ -9,6 +9,7 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 
 void submodule_func() {
     std::cout << "submodule_func()" << std::endl;
@@ -16,9 +17,10 @@ void submodule_func() {
 
 class A {
 public:
-    A(int v) : v(v) { std::cout << "A constructor" << std::endl; }
-    ~A() { std::cout << "A destructor" << std::endl; }
-    A(const A&) { std::cout << "A copy constructor" << std::endl; }
+    A(int v) : v(v) { print_created(this, v); }
+    ~A() { print_destroyed(this); }
+    A(const A&) { print_copy_created(this); }
+    A& operator=(const A &copy) { print_copy_assigned(this); v = copy.v; return *this; }
     std::string toString() { return "A[" + std::to_string(v) + "]"; }
 private:
     int v;
@@ -26,9 +28,10 @@ private:
 
 class B {
 public:
-    B() { std::cout << "B constructor" << std::endl; }
-    ~B() { std::cout << "B destructor" << std::endl; }
-    B(const B&) { std::cout << "B copy constructor" << std::endl; }
+    B() { print_default_created(this); }
+    ~B() { print_destroyed(this); }
+    B(const B&) { print_copy_created(this); }
+    B& operator=(const B &copy) { print_copy_assigned(this); a1 = copy.a1; a2 = copy.a2; return *this; }
     A &get_a1() { return a1; }
     A &get_a2() { return a2; }
 

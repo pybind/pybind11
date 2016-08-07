@@ -9,51 +9,55 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
 class Sequence {
 public:
     Sequence(size_t size) : m_size(size) {
-        std::cout << "Value constructor: Creating a sequence with " << m_size << " entries" << std::endl;
+        print_created(this, "of size", m_size);
         m_data = new float[size];
         memset(m_data, 0, sizeof(float) * size);
     }
 
     Sequence(const std::vector<float> &value) : m_size(value.size()) {
-        std::cout << "Value constructor: Creating a sequence with " << m_size << " entries" << std::endl;
+        print_created(this, "of size", m_size, "from std::vector");
         m_data = new float[m_size];
         memcpy(m_data, &value[0], sizeof(float) * m_size);
     }
 
     Sequence(const Sequence &s) : m_size(s.m_size) {
-        std::cout << "Copy constructor: Creating a sequence with " << m_size << " entries" << std::endl;
+        print_copy_created(this);
         m_data = new float[m_size];
         memcpy(m_data, s.m_data, sizeof(float)*m_size);
     }
 
     Sequence(Sequence &&s) : m_size(s.m_size), m_data(s.m_data) {
-        std::cout << "Move constructor: Creating a sequence with " << m_size << " entries" << std::endl;
+        print_move_created(this);
         s.m_size = 0;
         s.m_data = nullptr;
     }
 
     ~Sequence() {
-        std::cout << "Freeing a sequence with " << m_size << " entries" << std::endl;
+        print_destroyed(this);
         delete[] m_data;
     }
 
     Sequence &operator=(const Sequence &s) {
-        std::cout << "Assignment operator: Creating a sequence with " << s.m_size << " entries" << std::endl;
-        delete[] m_data;
-        m_size = s.m_size;
-        m_data = new float[m_size];
-        memcpy(m_data, s.m_data, sizeof(float)*m_size);
+        if (&s != this) {
+            delete[] m_data;
+            m_size = s.m_size;
+            m_data = new float[m_size];
+            memcpy(m_data, s.m_data, sizeof(float)*m_size);
+        }
+
+        print_copy_assigned(this);
+
         return *this;
     }
 
     Sequence &operator=(Sequence &&s) {
-        std::cout << "Move assignment operator: Creating a sequence with " << s.m_size << " entries" << std::endl;
         if (&s != this) {
             delete[] m_data;
             m_size = s.m_size;
@@ -61,6 +65,9 @@ public:
             s.m_size = 0;
             s.m_data = nullptr;
         }
+
+        print_move_assigned(this);
+
         return *this;
     }
 

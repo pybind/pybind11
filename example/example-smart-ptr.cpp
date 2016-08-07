@@ -15,7 +15,7 @@
 class MyObject1 : public Object {
 public:
     MyObject1(int value) : value(value) {
-        std::cout << toString() << " constructor" << std::endl;
+        print_created(this, toString());
     }
 
     std::string toString() const {
@@ -24,7 +24,7 @@ public:
 
 protected:
     virtual ~MyObject1() {
-        std::cout << toString() << " destructor" << std::endl;
+        print_destroyed(this);
     }
 
 private:
@@ -35,7 +35,7 @@ private:
 class MyObject2 {
 public:
     MyObject2(int value) : value(value) {
-        std::cout << toString() << " constructor" << std::endl;
+        print_created(this, toString());
     }
 
     std::string toString() const {
@@ -43,7 +43,7 @@ public:
     }
 
     virtual ~MyObject2() {
-        std::cout << toString() << " destructor" << std::endl;
+        print_destroyed(this);
     }
 
 private:
@@ -54,7 +54,7 @@ private:
 class MyObject3 : public std::enable_shared_from_this<MyObject3> {
 public:
     MyObject3(int value) : value(value) {
-        std::cout << toString() << " constructor" << std::endl;
+        print_created(this, toString());
     }
 
     std::string toString() const {
@@ -62,7 +62,7 @@ public:
     }
 
     virtual ~MyObject3() {
-        std::cout << toString() << " destructor" << std::endl;
+        print_destroyed(this);
     }
 
 private:
@@ -144,4 +144,7 @@ void init_ex_smart_ptr(py::module &m) {
     m.def("print_myobject3_4", &print_myobject3_4);
 
     py::implicitly_convertible<py::int_, MyObject1>();
+
+    // Expose constructor stats for the ref type
+    m.def("cstats_ref", &ConstructorStats::get<ref_tag>);
 }

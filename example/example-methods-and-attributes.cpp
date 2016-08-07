@@ -8,32 +8,25 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <unordered_map>
+#include <list>
 #include "example.h"
+#include "constructor-stats.h"
 
 class ExampleMandA {
 public:
-    ExampleMandA() {
-        cout << "Called ExampleMandA default constructor.." << endl;
-    }
-    ExampleMandA(int value) : value(value) {
-        cout << "Called ExampleMandA constructor with value " << value << ".." << endl;
-    }
-    ExampleMandA(const ExampleMandA &e) : value(e.value) {
-        cout << "Called ExampleMandA copy constructor with value " << value << ".." << endl;
-    }
-    ExampleMandA(ExampleMandA &&e) : value(e.value) {
-        cout << "Called ExampleMandA move constructor with value " << value << ".." << endl;
-        e.value = 0;
-    }
-    ~ExampleMandA() {
-        cout << "Called ExampleMandA destructor (" << value << ")" << endl;
-    }
+    ExampleMandA() { print_default_created(this); }
+    ExampleMandA(int value) : value(value) { print_created(this, value); }
+    ExampleMandA(const ExampleMandA &e) : value(e.value) { print_copy_created(this); }
+    ExampleMandA(ExampleMandA &&e) : value(e.value) { print_move_created(this); }
+    ~ExampleMandA() { print_destroyed(this); }
+
     std::string toString() {
         return "ExampleMandA[value=" + std::to_string(value) + "]";
     }
 
-    void operator=(const ExampleMandA &e) { cout << "Assignment operator" << endl; value = e.value; }
-    void operator=(ExampleMandA &&e) { cout << "Move assignment operator" << endl; value = e.value; e.value = 0;}
+    void operator=(const ExampleMandA &e) { print_copy_assigned(this); value = e.value; }
+    void operator=(ExampleMandA &&e) { print_move_assigned(this); value = e.value; }
 
     void add1(ExampleMandA other) { value += other.value; }           // passing by value
     void add2(ExampleMandA &other) { value += other.value; }          // passing by reference
@@ -88,5 +81,6 @@ void init_ex_methods_and_attributes(py::module &m) {
         .def("internal4", &ExampleMandA::internal4)
         .def("internal5", &ExampleMandA::internal5)
         .def("__str__", &ExampleMandA::toString)
-        .def_readwrite("value", &ExampleMandA::value);
+        .def_readwrite("value", &ExampleMandA::value)
+        ;
 }

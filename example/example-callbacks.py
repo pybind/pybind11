@@ -55,6 +55,12 @@ print("func(number=43) = %i" % f(number=43))
 
 test_cleanup()
 
+from example import payload_cstats
+cstats = payload_cstats()
+print("Payload instances not destroyed:", cstats.alive())
+print("Copy constructions:", cstats.copy_constructions)
+print("Move constructions:", cstats.move_constructions >= 1)
+
 from example import dummy_function
 from example import dummy_function2
 from example import test_dummy_function
