@@ -232,7 +232,7 @@ code).
 
     class Dog : public Animal {
     public:
-        std::string go(int n_times) {
+        std::string go(int n_times) override {
             std::string result;
             for (int i=0; i<n_times; ++i)
                 result += "woof! ";
@@ -283,7 +283,7 @@ helper class that is defined as follows:
         using Animal::Animal;
 
         /* Trampoline (need one for each virtual function) */
-        std::string go(int n_times) {
+        std::string go(int n_times) override {
             PYBIND11_OVERLOAD_PURE(
                 std::string, /* Return type */
                 Animal,      /* Parent class */
@@ -328,6 +328,11 @@ by specifying it as the *third* template argument to :class:`class_`. The
 second argument with the unique pointer is simply the default holder type used
 by pybind11. Following this, we are able to define a constructor as usual.
 
+Note, however, that the above is sufficient for allowing python classes to
+extend ``Animal``, but not ``Dog``: see ref:`virtual_and_inheritance` for the
+necessary steps required to providing proper overload support for inherited
+classes.
+
 The Python session below shows how to override ``Animal::go`` and invoke it via
 a virtual method call.
 
@@ -353,6 +358,117 @@ Please take a look at the :ref:`macro_notes` before using this feature.
     example that demonstrates how to override virtual functions using pybind11
     in more detail.
 
+.. _virtual_and_inheritance:
+
+Combining virtual functions and inheritance
+===========================================
+
+When combining virtual methods with inheritance, you need to be sure to provide
+an override for each method for which you want to allow overrides from derived
+python classes.  For example, suppose we extend the above ``Animal``/``Dog``
+example as follows:
+
+.. code-block:: cpp
+    class Animal {
+    public:
+        virtual std::string go(int n_times) = 0;
+        virtual std::string name() { return "unknown"; }
+    };
+    class Dog : public class Animal {
+    public:
+        std::string go(int n_times) override {
+            std::string result;
+            for (int i=0; i<n_times; ++i)
+                result += bark() + " ";
+            return result;
+        }
+        virtual std::string bark() { return "woof!"; }
+    };
+
+then the trampoline class for ``Animal`` must, as described in the previous
+section, override ``go()`` and ``name()``, but in order to allow python code to
+inherit properly from ``Dog``, we also need a trampoline class for ``Dog`` that
+overrides both the added ``bark()`` method *and* the ``go()`` and ``name()``
+methods inherited from ``Animal`` (even though ``Dog`` doesn't directly
+override the ``name()`` method):
+
+.. code-block:: cpp
+    class PyAnimal : public Animal {
+    public:
+        using Animal::Animal; // Inherit constructors
+        std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, Animal, go, n_times); }
+        std::string name() override { PYBIND11_OVERLOAD(std::string, Animal, name, ); }
+    };
+    class PyDog : public Dog {
+    public:
+        using Dog::Dog; // Inherit constructors
+        std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, Dog, go, n_times); }
+        std::string name() override { PYBIND11_OVERLOAD(std::string, Dog, name, ); }
+        std::string bark() override { PYBIND11_OVERLOAD(std::string, Dog, bark, ); }
+    };
+
+A registered class derived from a pybind11-registered class with virtual
+methods requires a similar trampoline class, *even if* it doesn't explicitly
+declare or override any virtual methods itself:
+
+.. code-block:: cpp
+    class Husky : public Dog {};
+    class PyHusky : public Husky {
+        using Dog::Dog; // Inherit constructors
+        std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, Husky, go, n_times); }
+        std::string name() override { PYBIND11_OVERLOAD(std::string, Husky, name, ); }
+        std::string bark() override { PYBIND11_OVERLOAD(std::string, Husky, bark, ); }
+    };
+
+There is, however, a technique that can be used to avoid this duplication
+(which can be especially helpful for a base class with several virtual
+methods).  The technique involves using template trampoline classes, as
+follows:
+
+.. code-block:: cpp
+    template <class AnimalBase = Animal> class PyAnimal : public AnimalBase {
+        using AnimalBase::AnimalBase; // Inherit constructors
+        std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, AnimalBase, go, n_times); }
+        std::string name() override { PYBIND11_OVERLOAD(std::string, AnimalBase, name, ); }
+    };
+    template <class DogBase = Dog> class PyDog : public PyAnimal<DogBase> {
+        using PyAnimal<DogBase>::PyAnimal; // Inherit constructors
+        // Override PyAnimal's pure virtual go() with a non-pure one:
+        std::string go(int n_times) override { PYBIND11_OVERLOAD(std::string, DogBase, go, n_times); }
+        std::string bark() override { PYBIND11_OVERLOAD(std::string, DogBase, bark, ); }
+    };
+
+This technique has the advantage of requiring just one trampoline method to be
+declared per virtual method and pure virtual method override.  It does,
+however, require the compiler to generate at least as many methods (and
+possibly more, if both pure virtual and overridden pure virtual methods are
+exposed, as above).
+
+The classes are then registered with pybind11 using:
+
+.. code-block:: cpp
+    py::class_<Animal, std::unique_ptr<Animal>, PyAnimal<>> animal(m, "Animal");
+    py::class_<Dog, std::unique_ptr<Dog>, PyDog<>> dog(m, "Dog");
+    py::class_<Husky, std::unique_ptr<Husky>, PyDog<Husky>> husky(m, "Husky");
+    // ... add animal, dog, husky definitions
+
+Note that ``Husky`` did not require a dedicated trampoline template class at
+all, since it neither declares any new virtual methods nor provides any pure
+virtual method implementations.
+
+With either the repeated-virtuals or templated trampoline methods in place, you
+can now create a python class that inherits from ``Dog``:
+
+.. code-block:: python
+
+    class ShihTzu(Dog):
+        def bark(self):
+            return "yip!"
+
+.. seealso::
+
+    See the file :file:`example-virtual-functions.cpp` for complete examples
+    using both the duplication and templated trampoline approaches.
 
 .. _macro_notes:
 

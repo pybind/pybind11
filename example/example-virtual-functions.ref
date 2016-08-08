@@ -9,5 +9,73 @@ Original implementation of ExampleVirt::run(state=11, value=21)
 ExtendedExampleVirt::run_bool()
 False
 ExtendedExampleVirt::pure_virtual(): Hello world
+
+VI_AR:
+hihihi
+Unlucky = 99
+
+VI_AT:
+hihihi
+Unlucky = 999
+
+B_Repeat:
+B says hi 3 times
+Unlucky = 13
+Lucky = 7.00
+
+B_Tpl:
+B says hi 3 times
+Unlucky = 13
+Lucky = 7.00
+
+C_Repeat:
+B says hi 3 times
+Unlucky = 4444
+Lucky = 888.00
+
+C_Tpl:
+B says hi 3 times
+Unlucky = 4444
+Lucky = 888.00
+
+VI_CR:
+B says hi 3 times
+Unlucky = 4444
+Lucky = 889.25
+
+VI_CT:
+B says hi 3 times
+Unlucky = 4444
+Lucky = 888.00
+
+VI_CCR:
+B says hi 3 times
+Unlucky = 4444
+Lucky = 8892.50
+
+VI_CCT:
+B says hi 3 times
+Unlucky = 4444
+Lucky = 888000.00
+
+D_Repeat:
+B says hi 3 times
+Unlucky = 4444
+Lucky = 888.00
+
+D_Tpl:
+B says hi 3 times
+Unlucky = 4444
+Lucky = 888.00
+
+VI_DR:
+B says hi 3 times
+Unlucky = 123
+Lucky = 42.00
+
+VI_DT:
+VI_DT says: quack quack quack
+Unlucky = 1234
+Lucky = -4.25
 Destructing ExampleVirt..
 Destructing ExampleVirt..
