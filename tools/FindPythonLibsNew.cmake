@@ -142,6 +142,20 @@ endif()
 if(CMAKE_HOST_WIN32)
     set(PYTHON_LIBRARY
         "${PYTHON_PREFIX}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
+        
+    # when run in a venv, PYTHON_PREFIX points to it. But the libraries remain in the 
+    # original python installation. They may be found relative to PYTHON_INCLUDE_DIR.
+    if(NOT EXISTS "${PYTHON_LIBRARY}")
+        get_filename_component(_PYTHON_ROOT ${PYTHON_INCLUDE_DIR} DIRECTORY)
+        set(PYTHON_LIBRARY
+            "${_PYTHON_ROOT}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
+    endif()
+        
+    # raise an error if the python libs are still not found.
+    if(NOT EXISTS "${PYTHON_LIBRARY}")
+        message(FATAL_ERROR "Python libraries not found")
+    endif()
+    
 elseif(APPLE)
     set(PYTHON_LIBRARY
         "${PYTHON_PREFIX}/lib/libpython${PYTHON_LIBRARY_SUFFIX}.dylib")
