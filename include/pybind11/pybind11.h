@@ -559,6 +559,24 @@ public:
 };
 
 NAMESPACE_BEGIN(detail)
+static PyObject* generic_get_dict(PyObject* op, void*)
+{
+    instance<void> *self = (instance<void> *) op;
+
+    if (self->dict == 0){
+        self->dict = PyDict_New();
+    }
+
+    Py_INCREF(self->dict);
+
+    return self->dict;
+}
+
+static PyGetSetDef generic_getsets[] = {
+    {(char*)"__dict__",  (getter)generic_get_dict,  NULL, NULL, NULL},
+    {NULL, NULL, NULL, NULL, NULL}
+};
+
 /// Generic support for creating new Python heap types
 class generic_type : public object {
     template <typename type, typename holder_type, typename type_alias> friend class class_;
@@ -658,6 +676,12 @@ protected:
         /* Support weak references (needed for the keep_alive feature) */
         type->ht_type.tp_weaklistoffset = offsetof(instance_essentials<void>, weakrefs);
 
+        /* Support dynamic attributes */
+        type->ht_type.tp_dictoffset = offsetof(struct instance_essentials<void>, dict);
+        type->ht_type.tp_getset = generic_getsets;
+        type->ht_type.tp_getattro = PyObject_GenericGetAttr;
+        type->ht_type.tp_setattro = PyObject_GenericSetAttr;
+
         /* Flags */
         type->ht_type.tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
 #if PY_MAJOR_VERSION < 3
@@ -746,6 +770,7 @@ protected:
                 registered_instances.erase(it);
             }
             Py_XDECREF(self->parent);
+            Py_XDECREF(self->dict);
             if (self->weakrefs)
                 PyObject_ClearWeakRefs((PyObject *) self);
         }
