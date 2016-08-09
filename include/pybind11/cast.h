@@ -809,9 +809,36 @@ public:
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name());
 };
 
+// Our conditions for enabling moving are quite restrictive:
+// At compile time:
+// - T needs to be a non-const, non-pointer, non-reference type
+// - type_caster<T>::operator T&() must exist
+// - the type must be move constructible (obviously)
+// At run-time:
+// - if the type is non-copy-constructible, the object must be the sole owner of the type (i.e. it
+//   must have ref_count() == 1)h
+// If any of the above are not satisfied, we fall back to copying.
+template <typename T, typename SFINAE = void> struct move_is_plain_type : std::false_type {};
+template <typename T> struct move_is_plain_type<T, typename std::enable_if<
+        !std::is_void<T>::value && !std::is_pointer<T>::value && !std::is_reference<T>::value && !std::is_const<T>::value
+    >::type> : std::true_type {};
+template <typename T, typename SFINAE = void> struct move_always : std::false_type {};
+template <typename T> struct move_always<T, typename std::enable_if<
+        move_is_plain_type<T>::value &&
+        !std::is_copy_constructible<T>::value && std::is_move_constructible<T>::value &&
+        std::is_same<decltype(std::declval<type_caster<T>>().operator T&()), T&>::value
+    >::type> : std::true_type {};
+template <typename T, typename SFINAE = void> struct move_if_unreferenced : std::false_type {};
+template <typename T> struct move_if_unreferenced<T, typename std::enable_if<
+        move_is_plain_type<T>::value &&
+        !move_always<T>::value && std::is_move_constructible<T>::value &&
+        std::is_same<decltype(std::declval<type_caster<T>>().operator T&()), T&>::value
+    >::type> : std::true_type {};
+template <typename T> using move_never = std::integral_constant<bool, !move_always<T>::value && !move_if_unreferenced<T>::value>;
+
 NAMESPACE_END(detail)
 
-template <typename T> T cast(handle handle) {
+template <typename T> T cast(const handle &handle) {
     typedef detail::type_caster<typename detail::intrinsic_type<T>::type> type_caster;
     type_caster conv;
     if (!conv.load(handle, true)) {
@@ -837,6 +864,57 @@ template <typename T> object cast(const T &value,
 
 template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
 template <> inline void handle::cast() const { return; }
+
+template <typename T>
+typename std::enable_if<detail::move_always<T>::value || detail::move_if_unreferenced<T>::value, T>::type move(object &&obj) {
+    if (obj.ref_count() > 1)
+#if defined(NDEBUG)
+        throw cast_error("Unable to cast Python instance to C++ rvalue: instance has multiple references"
+            " (compile in debug mode for details)");
+#else
+        throw cast_error("Unable to move from Python " + (std::string) obj.get_type().str() +
+                " instance to C++ " + type_id<T>() + " instance: instance has multiple references");
+#endif
+
+    typedef detail::type_caster<T> type_caster;
+    type_caster conv;
+    if (!conv.load(obj, true))
+#if defined(NDEBUG)
+        throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
+#else
+        throw cast_error("Unable to cast Python instance of type " +
+            (std::string) obj.get_type().str() + " to C++ type '" + type_id<T>() + "''");
+#endif
+
+    // Move into a temporary and return that, because the reference may be a local value of `conv`
+    T ret = std::move(conv.operator T&());
+    return ret;
+}
+
+// Calling cast() on an rvalue calls pybind::cast with the object rvalue, which does:
+// - If we have to move (because T has no copy constructor), do it.  This will fail if the moved
+//   object has multiple references, but trying to copy will fail to compile.
+// - If both movable and copyable, check ref count: if 1, move; otherwise copy
+// - Otherwise (not movable), copy.
+template <typename T> typename std::enable_if<detail::move_always<T>::value, T>::type cast(object &&object) {
+    return move<T>(std::move(object));
+}
+template <typename T> typename std::enable_if<detail::move_if_unreferenced<T>::value, T>::type cast(object &&object) {
+    if (object.ref_count() > 1)
+        return cast<T>(object);
+    else
+        return move<T>(std::move(object));
+}
+template <typename T> typename std::enable_if<detail::move_never<T>::value, T>::type cast(object &&object) {
+    return cast<T>(object);
+}
+
+template <typename T> T object::cast() const & { return pybind11::cast<T>(*this); }
+template <typename T> T object::cast() && { return pybind11::cast<T>(std::move(*this)); }
+template <> inline void object::cast() const & { return; }
+template <> inline void object::cast() && { return; }
+
+
 
 template <return_value_policy policy = return_value_policy::automatic_reference,
           typename... Args> tuple make_tuple(Args&&... args_) {

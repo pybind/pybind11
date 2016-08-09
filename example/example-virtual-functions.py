@@ -5,6 +5,8 @@ sys.path.append('.')
 
 from example import ExampleVirt, runExampleVirt, runExampleVirtVirtual, runExampleVirtBool
 from example import A_Repeat, B_Repeat, C_Repeat, D_Repeat, A_Tpl, B_Tpl, C_Tpl, D_Tpl
+from example import NCVirt, NonCopyable, Movable
+
 
 class ExtendedExampleVirt(ExampleVirt):
     def __init__(self, state):
@@ -87,3 +89,36 @@ for cl in classes:
     if hasattr(obj, "lucky_number"):
         print("Lucky = %.2f" % obj.lucky_number())
 
+class NCVirtExt(NCVirt):
+    def get_noncopyable(self, a, b):
+        # Constructs and returns a new instance:
+        nc = NonCopyable(a*a, b*b)
+        return nc
+    def get_movable(self, a, b):
+        # Return a referenced copy
+        self.movable = Movable(a, b)
+        return self.movable
+
+class NCVirtExt2(NCVirt):
+    def get_noncopyable(self, a, b):
+        # Keep a reference: this is going to throw an exception
+        self.nc = NonCopyable(a, b)
+        return self.nc
+    def get_movable(self, a, b):
+        # Return a new instance without storing it
+        return Movable(a, b)
+
+ncv1 = NCVirtExt()
+print("2^2 * 3^2 =")
+ncv1.print_nc(2, 3)
+print("4 + 5 =")
+ncv1.print_movable(4, 5)
+ncv2 = NCVirtExt2()
+print("7 + 7 =")
+ncv2.print_movable(7, 7)
+try:
+    ncv2.print_nc(9, 9)
+    print("Something's wrong: exception not raised!")
+except RuntimeError as e:
+    # Don't print the exception message here because it differs under debug/non-debug mode
+    print("Caught expected exception")
