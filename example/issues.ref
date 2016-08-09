@@ -24,3 +24,21 @@ Failed as expected: Incompatible constructor arguments. The following argument t
     1. example.issues.StrIssue(arg0: int)
     2. example.issues.StrIssue()
     Invoked with: no, such, constructor
+NestA@0x1152940 constructor
+NestA@0x11f9350 constructor
+NestB@0x11f9350 constructor
+NestA@0x112d0d0 constructor
+NestB@0x112d0d0 constructor
+NestC@0x112d0d0 constructor
+13
+103
+1003
+3
+1
+35
+NestC@0x112d0d0 destructor
+NestB@0x112d0d0 destructor
+NestA@0x112d0d0 destructor
+NestB@0x11f9350 destructor
+NestA@0x11f9350 destructor
+NestA@0x1152940 destructor

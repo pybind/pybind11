@@ -266,9 +266,9 @@ struct overload_hash {
 
 /// Internal data struture used to track registered instances and types
 struct internals {
-    std::unordered_map<std::type_index, void*> registered_types_cpp; // std::type_index -> type_info
-    std::unordered_map<const void *, void*> registered_types_py;     // PyTypeObject* -> type_info
-    std::unordered_map<const void *, void*> registered_instances;    // void * -> PyObject*
+    std::unordered_map<std::type_index, void*> registered_types_cpp;   // std::type_index -> type_info
+    std::unordered_map<const void *, void*> registered_types_py;       // PyTypeObject* -> type_info
+    std::unordered_multimap<const void *, void*> registered_instances; // void * -> PyObject*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
     std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
 #if defined(WITH_THREAD)

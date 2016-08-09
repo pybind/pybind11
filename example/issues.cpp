@@ -9,6 +9,7 @@
 
 #include "example.h"
 #include <pybind11/stl.h>
+#include <pybind11/operators.h>
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 
@@ -157,4 +158,16 @@ void init_issues(py::module &m) {
                 })
         ;
 
+    // Issue #328: first member in a class can't be used in operators
+#define TRACKERS(CLASS) CLASS() { std::cout << #CLASS "@" << this << " constructor\n"; } \
+                        ~CLASS() { std::cout << #CLASS "@" << this << " destructor\n"; }
+    struct NestA { int value = 3; NestA& operator+=(int i) { value += i; return *this; } TRACKERS(NestA) };
+    struct NestB { NestA a; int value = 4; NestB& operator-=(int i) { value -= i; return *this; } TRACKERS(NestB) };
+    struct NestC { NestB b; int value = 5; NestC& operator*=(int i) { value *= i; return *this; } TRACKERS(NestC) };
+    py::class_<NestA>(m2, "NestA").def(py::init<>()).def(py::self += int());
+    py::class_<NestB>(m2, "NestB").def(py::init<>()).def(py::self -= int()).def_readwrite("a", &NestB::a);
+    py::class_<NestC>(m2, "NestC").def(py::init<>()).def(py::self *= int()).def_readwrite("b", &NestC::b);
+    m2.def("print_NestA", [](const NestA &a) { std::cout << a.value << std::endl; });
+    m2.def("print_NestB", [](const NestB &b) { std::cout << b.value << std::endl; });
+    m2.def("print_NestC", [](const NestC &c) { std::cout << c.value << std::endl; });
 }
