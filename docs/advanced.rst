@@ -612,17 +612,11 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 |                                                  | it is no longer used. Warning: undefined behavior will ensue when the C++  |
 |                                                  | side deletes an object that is still referenced and used by Python.        |
 +--------------------------------------------------+----------------------------------------------------------------------------+
-| :enum:`return_value_policy::reference_internal`  | This policy only applies to methods and properties. It references the      |
-|                                                  | object without taking ownership similar to the above                       |
-|                                                  | :enum:`return_value_policy::reference` policy. In contrast to that policy, |
-|                                                  | the function or property's implicit ``this`` argument (called the *parent*)|
-|                                                  | is considered to be the the owner of the return value (the *child*).       |
-|                                                  | pybind11 then couples the lifetime of the parent to the child via a        |
-|                                                  | reference relationship that ensures that the parent cannot be garbage      |
-|                                                  | collected while Python is still using the child. More advanced variations  |
-|                                                  | of this scheme are also possible using combinations of                     |
-|                                                  | :enum:`return_value_policy::reference` and the :class:`keep_alive` call    |
-|                                                  | policy described next.                                                     |
+| :enum:`return_value_policy::reference_internal`  | Like :enum:`return_value_policy::reference` but additionally applies a     |
+|                                                  | :class:`keep_alive<0,1>()` call policy (described next) that keeps the     |
+|                                                  | ``this`` argument of the function or property from being garbage collected |
+|                                                  | as long as the return value remains referenced.  See the                   |
+|                                                  | :class:`keep_alive` call policy (described next) for details.              |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
 .. warning::

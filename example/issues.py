@@ -95,3 +95,17 @@ print_NestA(c.b.a)
 print_NestB(b)
 print_NestB(c.b)
 print_NestC(c)
+abase = a.as_base()
+print(abase.value)
+a.as_base().value += 44
+print(abase.value)
+print(c.b.a.as_base().value)
+c.b.a.as_base().value += 44
+print(c.b.a.as_base().value)
+del c
+gc.collect()
+del a # Should't delete while abase is still alive
+gc.collect()
+print(abase.value)
+del abase
+gc.collect()

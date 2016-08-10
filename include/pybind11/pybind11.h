@@ -729,7 +729,6 @@ protected:
         auto tinfo = detail::get_type_info(type);
         self->value = ::operator new(tinfo->type_size);
         self->owned = true;
-        self->parent = nullptr;
         self->constructed = false;
         detail::get_internals().registered_instances.emplace(self->value, (PyObject *) self);
         return (PyObject *) self;
@@ -751,7 +750,6 @@ protected:
             if (!found)
                 pybind11_fail("generic_type::dealloc(): Tried to deallocate unregistered instance!");
 
-            Py_XDECREF(self->parent);
             if (self->weakrefs)
                 PyObject_ClearWeakRefs((PyObject *) self);
         }
@@ -1095,11 +1093,8 @@ template <typename... Args> struct init {
     }
 };
 
-PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle args, handle ret) {
+inline void keep_alive_impl(handle nurse, handle patient) {
     /* Clever approach based on weak references taken from Boost.Python */
-    handle nurse  (Nurse   > 0 ? PyTuple_GetItem(args.ptr(), Nurse   - 1) : ret.ptr());
-    handle patient(Patient > 0 ? PyTuple_GetItem(args.ptr(), Patient - 1) : ret.ptr());
-
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
 
@@ -1113,6 +1108,13 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
 
     patient.inc_ref(); /* reference patient and leak the weak reference */
     (void) wr.release();
+}
+
+PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle args, handle ret) {
+    handle nurse  (Nurse   > 0 ? PyTuple_GetItem(args.ptr(), Nurse   - 1) : ret.ptr());
+    handle patient(Patient > 0 ? PyTuple_GetItem(args.ptr(), Patient - 1) : ret.ptr());
+
+    keep_alive_impl(nurse, patient);
 }
 
 template <typename Iterator> struct iterator_state {

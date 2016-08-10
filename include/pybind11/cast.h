@@ -142,6 +142,9 @@ inline PyThreadState *get_thread_state_unchecked() {
 #endif
 }
 
+// Forward declaration
+inline void keep_alive_impl(handle nurse, handle patient);
+
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
@@ -208,7 +211,6 @@ public:
 
         wrapper->value = src;
         wrapper->owned = true;
-        wrapper->parent = nullptr;
 
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::take_ownership;
@@ -229,7 +231,7 @@ public:
             wrapper->owned = false;
         } else if (policy == return_value_policy::reference_internal) {
             wrapper->owned = false;
-            wrapper->parent = parent.inc_ref().ptr();
+            detail::keep_alive_impl(inst, parent);
         }
 
         tinfo->init_holder(inst.ptr(), existing_holder);
