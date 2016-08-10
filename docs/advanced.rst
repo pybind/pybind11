@@ -612,94 +612,26 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 |                                                  | it is no longer used. Warning: undefined behavior will ensue when the C++  |
 |                                                  | side deletes an object that is still referenced and used by Python.        |
 +--------------------------------------------------+----------------------------------------------------------------------------+
-| :enum:`return_value_policy::reference_internal`  | This policy only applies to methods and properties. It references the      |
-|                                                  | object without taking ownership similar to the above                       |
-|                                                  | :enum:`return_value_policy::reference` policy. In contrast to that policy, |
-|                                                  | the function or property's implicit ``this`` argument (called the *parent*)|
-|                                                  | is considered to be the the owner of the return value (the *child*).       |
-|                                                  | pybind11 then couples the lifetime of the parent to the child via a        |
-|                                                  | reference relationship that ensures that the parent cannot be garbage      |
-|                                                  | collected while Python is still using the child. More advanced variations  |
-|                                                  | of this scheme are also possible using combinations of                     |
-|                                                  | :enum:`return_value_policy::reference` and the :class:`keep_alive` call    |
-|                                                  | policy described next.                                                     |
+| :enum:`return_value_policy::reference_internal`  | Like :enum:`return_value_policy::reference` but additionally applies a     |
+|                                                  | :class:`keep_alive<0,1>()` call policy (described next) that keeps the     |
+|                                                  | ``this`` argument of the function or property from being garbage collected |
+|                                                  | as long as the return value remains referenced.  See the                   |
+|                                                  | :class:`keep_alive` call policy (described next) for details.              |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
 .. warning::
 
-    Code with invalid call policies might access unitialized memory or free
-    data structures multiple times, which can lead to hard-to-debug
+    Code with invalid return value policies might access unitialized memory or
+    free data structures multiple times, which can lead to hard-to-debug
     non-determinism and segmentation faults, hence it is worth spending the
     time to understand all the different options in the table above.
 
-One important aspect regarding the above policies is that they only apply to
-instances which pybind11 has *not* seen before, in which case the policy
-clarifies essential questions about the return value's lifetime and ownership.
-
-When pybind11 knows the instance already (as identified via its address in
+One important aspect of the above policies is that they only apply to instances
+which pybind11 has *not* seen before, in which case the policy clarifies
+essential questions about the return value's lifetime and ownership.  When
+pybind11 knows the instance already (as identified by its type and address in
 memory), it will return the existing Python object wrapper rather than creating
-a copy. This means that functions which merely cast a reference (or pointer)
-into a different type don't do what one would expect:
-
-.. code-block:: cpp
-
-    A &func(B &value) { return (A&) value; }
-
-The wrapped version of this function will return the original ``B`` instance.
-To force a cast, the argument should be returned by value.
-
-More common (and equally problematic) are cases where methods (e.g. getters)
-return a pointer or reference to the first attribute of a class.
-
-.. code-block:: cpp
-    :emphasize-lines: 3, 13
-
-    class Example {
-    public:
-        Internal &get_internal() { return internal; }
-    private:
-        Internal internal;
-    };
-
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
-
-        py::class_<Example>(m, "Example")
-            .def(py::init<>())
-            .def("get_internal", &Example::get_internal); /* Note: don't do this! */
-
-        return m.ptr();
-    }
-
-As in the above casting example, the instance and its attribute will be located
-at the same address in memory, which pybind11 will recongnize and return the
-parent instance instead of creating a new Python object that represents the
-attribute. The special :enum:`return_value_policy::reference_internal` policy
-should be used in this case: it disables the same-address optimization and
-ensures that pybind11 returns a reference.
-The following example snippet shows the correct usage:
-
-.. code-block:: cpp
-
-    class Example {
-    public:
-        Internal &get_internal() { return internal; }
-    private:
-        Internal internal;
-    };
-
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
-
-        py::class_<Example>(m, "Example")
-            .def(py::init<>())
-            .def("get_internal", &Example::get_internal, "Return the internal data",
-                                 py::return_value_policy::reference_internal);
-
-        return m.ptr();
-    }
-
-
+a copy.
 
 .. note::
 

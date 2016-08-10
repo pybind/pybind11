@@ -11,6 +11,7 @@ from example.issues import ElementList, ElementA, print_element
 from example.issues import expect_float, expect_int
 from example.issues import A, call_f
 from example.issues import StrIssue
+from example.issues import NestA, NestB, NestC, print_NestA, print_NestB, print_NestC
 import gc
 
 print_cchar("const char *")
@@ -78,3 +79,33 @@ try:
     print(StrIssue("no", "such", "constructor"))
 except TypeError as e:
     print("Failed as expected: " + str(e))
+
+a = NestA()
+b = NestB()
+c = NestC()
+a += 10
+b.a += 100
+c.b.a += 1000
+b -= 1
+c.b -= 3
+c *= 7
+print_NestA(a)
+print_NestA(b.a)
+print_NestA(c.b.a)
+print_NestB(b)
+print_NestB(c.b)
+print_NestC(c)
+abase = a.as_base()
+print(abase.value)
+a.as_base().value += 44
+print(abase.value)
+print(c.b.a.as_base().value)
+c.b.a.as_base().value += 44
+print(c.b.a.as_base().value)
+del c
+gc.collect()
+del a # Should't delete while abase is still alive
+gc.collect()
+print(abase.value)
+del abase
+gc.collect()

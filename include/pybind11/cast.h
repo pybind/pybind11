@@ -119,12 +119,15 @@ PYBIND11_NOINLINE inline std::string error_string() {
     return errorString;
 }
 
-PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr) {
-    auto instances = get_internals().registered_instances;
-    auto it = instances.find(ptr);
-    if (it == instances.end())
-        return handle();
-    return handle((PyObject *) it->second);
+PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail::type_info *type ) {
+    auto &instances = get_internals().registered_instances;
+    auto range = instances.equal_range(ptr);
+    for (auto it = range.first; it != range.second; ++it) {
+        auto instance_type = detail::get_type_info(Py_TYPE(it->second), false);
+        if (instance_type && instance_type == type)
+            return handle((PyObject *) it->second);
+    }
+    return handle();
 }
 
 inline PyThreadState *get_thread_state_unchecked() {
@@ -138,6 +141,9 @@ inline PyThreadState *get_thread_state_unchecked() {
     return _PyThreadState_UncheckedGet();
 #endif
 }
+
+// Forward declaration
+inline void keep_alive_impl(handle nurse, handle patient);
 
 class type_caster_generic {
 public:
@@ -174,14 +180,7 @@ public:
         if (src == nullptr)
             return handle(Py_None).inc_ref();
 
-        // avoid an issue with internal references matching their parent's address
-        bool dont_cache = policy == return_value_policy::reference_internal &&
-                          parent && ((instance<void> *) parent.ptr())->value == (void *) src;
-
-        auto& internals = get_internals();
-        auto it_instance = internals.registered_instances.find(src);
-        if (it_instance != internals.registered_instances.end() && !dont_cache)
-            return handle((PyObject *) it_instance->second).inc_ref();
+        auto &internals = get_internals();
 
         auto it = internals.registered_types_cpp.find(std::type_index(*type_info));
         if (it == internals.registered_types_cpp.end()) {
@@ -198,13 +197,20 @@ public:
         }
 
         auto tinfo = (const detail::type_info *) it->second;
+
+        auto it_instances = internals.registered_instances.equal_range(src);
+        for (auto it = it_instances.first; it != it_instances.second; ++it) {
+            auto instance_type = detail::get_type_info(Py_TYPE(it->second), false);
+            if (instance_type && instance_type == tinfo)
+                return handle((PyObject *) it->second).inc_ref();
+        }
+
         object inst(PyType_GenericAlloc(tinfo->type, 0), false);
 
         auto wrapper = (instance<void> *) inst.ptr();
 
         wrapper->value = src;
         wrapper->owned = true;
-        wrapper->parent = nullptr;
 
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::take_ownership;
@@ -225,12 +231,12 @@ public:
             wrapper->owned = false;
         } else if (policy == return_value_policy::reference_internal) {
             wrapper->owned = false;
-            wrapper->parent = parent.inc_ref().ptr();
+            detail::keep_alive_impl(inst, parent);
         }
 
         tinfo->init_holder(inst.ptr(), existing_holder);
-        if (!dont_cache)
-            internals.registered_instances[wrapper->value] = inst.ptr();
+
+        internals.registered_instances.emplace(wrapper->value, inst.ptr());
 
         return inst.release();
     }

@@ -729,23 +729,27 @@ protected:
         auto tinfo = detail::get_type_info(type);
         self->value = ::operator new(tinfo->type_size);
         self->owned = true;
-        self->parent = nullptr;
         self->constructed = false;
-        detail::get_internals().registered_instances[self->value] = (PyObject *) self;
+        detail::get_internals().registered_instances.emplace(self->value, (PyObject *) self);
         return (PyObject *) self;
     }
 
     static void dealloc(instance<void> *self) {
         if (self->value) {
-            bool dont_cache = self->parent && ((instance<void> *) self->parent)->value == self->value;
-            if (!dont_cache) { // avoid an issue with internal references matching their parent's address
-                auto &registered_instances = detail::get_internals().registered_instances;
-                auto it = registered_instances.find(self->value);
-                if (it == registered_instances.end())
-                    pybind11_fail("generic_type::dealloc(): Tried to deallocate unregistered instance!");
-                registered_instances.erase(it);
+            auto instance_type = Py_TYPE(self);
+            auto &registered_instances = detail::get_internals().registered_instances;
+            auto range = registered_instances.equal_range(self->value);
+            bool found = false;
+            for (auto it = range.first; it != range.second; ++it) {
+                if (instance_type == Py_TYPE(it->second)) {
+                    registered_instances.erase(it);
+                    found = true;
+                    break;
+                }
             }
-            Py_XDECREF(self->parent);
+            if (!found)
+                pybind11_fail("generic_type::dealloc(): Tried to deallocate unregistered instance!");
+
             if (self->weakrefs)
                 PyObject_ClearWeakRefs((PyObject *) self);
         }
@@ -1089,11 +1093,8 @@ template <typename... Args> struct init {
     }
 };
 
-PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle args, handle ret) {
+inline void keep_alive_impl(handle nurse, handle patient) {
     /* Clever approach based on weak references taken from Boost.Python */
-    handle nurse  (Nurse   > 0 ? PyTuple_GetItem(args.ptr(), Nurse   - 1) : ret.ptr());
-    handle patient(Patient > 0 ? PyTuple_GetItem(args.ptr(), Patient - 1) : ret.ptr());
-
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
 
@@ -1107,6 +1108,13 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
 
     patient.inc_ref(); /* reference patient and leak the weak reference */
     (void) wr.release();
+}
+
+PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle args, handle ret) {
+    handle nurse  (Nurse   > 0 ? PyTuple_GetItem(args.ptr(), Nurse   - 1) : ret.ptr());
+    handle patient(Patient > 0 ? PyTuple_GetItem(args.ptr(), Patient - 1) : ret.ptr());
+
+    keep_alive_impl(nurse, patient);
 }
 
 template <typename Iterator> struct iterator_state {
@@ -1316,8 +1324,8 @@ class gil_scoped_acquire { };
 class gil_scoped_release { };
 #endif
 
-inline function get_overload(const void *this_ptr, const char *name)  {
-    handle py_object = detail::get_object_handle(this_ptr);
+inline function get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name)  {
+    handle py_object = detail::get_object_handle(this_ptr, this_type);
     if (!py_object)
         return function();
     handle type = py_object.get_type();
@@ -1346,6 +1354,14 @@ inline function get_overload(const void *this_ptr, const char *name)  {
             return function();
     }
     return overload;
+}
+
+template <class T> function get_overload(const T *this_ptr, const char *name) {
+    auto &cpp_types = detail::get_internals().registered_types_cpp;
+    auto it = cpp_types.find(typeid(T));
+    if (it == cpp_types.end())
+        return function();
+    return get_type_overload(this_ptr, (const detail::type_info *) it->second, name);
 }
 
 #define PYBIND11_OVERLOAD_INT(ret_type, name, ...) { \
