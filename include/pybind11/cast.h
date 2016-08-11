@@ -199,10 +199,10 @@ public:
         auto tinfo = (const detail::type_info *) it->second;
 
         auto it_instances = internals.registered_instances.equal_range(src);
-        for (auto it = it_instances.first; it != it_instances.second; ++it) {
-            auto instance_type = detail::get_type_info(Py_TYPE(it->second), false);
+        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+            auto instance_type = detail::get_type_info(Py_TYPE(it_i->second), false);
             if (instance_type && instance_type == tinfo)
-                return handle((PyObject *) it->second).inc_ref();
+                return handle((PyObject *) it_i->second).inc_ref();
         }
 
         object inst(PyType_GenericAlloc(tinfo->type, 0), false);
