@@ -1,16 +1,16 @@
-Called ExampleMandA default constructor..
-Called ExampleMandA constructor with value 32..
-Called ExampleMandA copy constructor with value 32..
-Called ExampleMandA copy constructor with value 32..
-Called ExampleMandA destructor (32)
-Called ExampleMandA destructor (32)
+### ExampleMandA @ 0x2801910 created via default constructor
+### ExampleMandA @ 0x27fa780 created 32
+### ExampleMandA @ 0x7fff80a98a74 created via copy constructor
+### ExampleMandA @ 0x7fff80a98a78 created via copy constructor
+### ExampleMandA @ 0x7fff80a98a78 destroyed
+### ExampleMandA @ 0x7fff80a98a74 destroyed
 Instance 1: ExampleMandA[value=320]
 Instance 2: ExampleMandA[value=32]
-Called ExampleMandA copy constructor with value 320..
-Called ExampleMandA move constructor with value 320..
-Called ExampleMandA destructor (0)
+### ExampleMandA @ 0x7fff80a98a84 created via copy constructor
+### ExampleMandA @ 0x2801fd0 created via move constructor
+### ExampleMandA @ 0x7fff80a98a84 destroyed
 ExampleMandA[value=320]
-Called ExampleMandA destructor (320)
+### ExampleMandA @ 0x2801fd0 destroyed
 ExampleMandA[value=320]
 ExampleMandA[value=320]
 ExampleMandA[value=320]
@@ -22,5 +22,13 @@ ExampleMandA[value=320]
 320
 Instance 1, direct access = 320
 Instance 1: ExampleMandA[value=100]
-Called ExampleMandA destructor (32)
-Called ExampleMandA destructor (100)
+Instances not destroyed: 2
+### ExampleMandA @ 0x2801910 destroyed
+### ExampleMandA @ 0x27fa780 destroyed
+Instances not destroyed: 0
+Constructor values: ['32']
+Default constructions: 1
+Copy constructions: 3
+Move constructions: True
+Copy assignments: 0
+Move assignments: 0

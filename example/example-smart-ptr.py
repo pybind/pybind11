@@ -68,3 +68,18 @@ for o in [MyObject3(9), make_myobject3_1(), make_myobject3_2()]:
     print_myobject3_2(o)
     print_myobject3_3(o)
     print_myobject3_4(o)
+
+from example import ConstructorStats, cstats_ref, Object
+
+cstats = [ConstructorStats.get(Object), ConstructorStats.get(MyObject1),
+        ConstructorStats.get(MyObject2), ConstructorStats.get(MyObject3),
+        cstats_ref()]
+print("Instances not destroyed:", [x.alive() for x in cstats])
+o = None
+print("Instances not destroyed:", [x.alive() for x in cstats])
+print("Object value constructions:", [x.values() for x in cstats])
+print("Default constructions:", [x.default_constructions for x in cstats])
+print("Copy constructions:", [x.copy_constructions for x in cstats])
+#print("Move constructions:", [x.move_constructions >= 0 for x in cstats]) # Doesn't invoke any
+print("Copy assignments:", [x.copy_assignments for x in cstats])
+print("Move assignments:", [x.move_assignments for x in cstats])

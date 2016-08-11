@@ -8,10 +8,17 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 #include <pybind11/stl.h>
 #include <pybind11/operators.h>
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+
+#define TRACKERS(CLASS) CLASS() { print_default_created(this); } ~CLASS() { print_destroyed(this); }
+struct NestABase { int value = -2; TRACKERS(NestABase) };
+struct NestA : NestABase { int value = 3; NestA& operator+=(int i) { value += i; return *this; } TRACKERS(NestA) };
+struct NestB { NestA a; int value = 4; NestB& operator-=(int i) { value -= i; return *this; } TRACKERS(NestB) };
+struct NestC { NestB b; int value = 5; NestC& operator*=(int i) { value *= i; return *this; } TRACKERS(NestC) };
 
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
@@ -159,12 +166,6 @@ void init_issues(py::module &m) {
         ;
 
     // Issue #328: first member in a class can't be used in operators
-#define TRACKERS(CLASS) CLASS() { std::cout << #CLASS "@" << this << " constructor\n"; } \
-                        ~CLASS() { std::cout << #CLASS "@" << this << " destructor\n"; }
-    struct NestABase { int value = -2; TRACKERS(NestABase) };
-    struct NestA : NestABase { int value = 3; NestA& operator+=(int i) { value += i; return *this; } TRACKERS(NestA) };
-    struct NestB { NestA a; int value = 4; NestB& operator-=(int i) { value -= i; return *this; } TRACKERS(NestB) };
-    struct NestC { NestB b; int value = 5; NestC& operator*=(int i) { value *= i; return *this; } TRACKERS(NestC) };
     py::class_<NestABase>(m2, "NestABase").def(py::init<>()).def_readwrite("value", &NestABase::value);
     py::class_<NestA>(m2, "NestA").def(py::init<>()).def(py::self += int())
         .def("as_base", [](NestA &a) -> NestABase& { return (NestABase&) a; }, py::return_value_policy::reference_internal);

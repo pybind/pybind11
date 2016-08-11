@@ -1,4 +1,4 @@
-Value constructor: Creating a 5x5 matrix 
+### Matrix @ 0x1df1920 created 5x5 matrix
 0.0
 4.0
 [[ 0.  0.  0.  0.  0.]
@@ -10,8 +10,15 @@ Value constructor: Creating a 5x5 matrix
 5.0
 [[ 1.  2.  3.]
  [ 4.  5.  6.]]
-Value constructor: Creating a 2x3 matrix 
+### Matrix @ 0x1fa8cf0 created 2x3 matrix
 1.0 2.0 3.0 
 4.0 5.0 6.0 
-Freeing a 2x3 matrix 
-Freeing a 5x5 matrix 
+Instances not destroyed: 2
+### Matrix @ 0x1fa8cf0 destroyed 2x3 matrix
+Instances not destroyed: 1
+### Matrix @ 0x1df1920 destroyed 5x5 matrix
+Instances not destroyed: 0
+Constructor values: ['5x5 matrix', '2x3 matrix']
+Copy constructions: 0
+Copy assignments: 0
+Move assignments: 0

@@ -60,9 +60,6 @@ foreach(CompilerFlag ${CompilerFlags})
 endforeach()
 
 set(RUN_TEST ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/run_test.py)
-if(MSVC OR CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-  set(RUN_TEST ${RUN_TEST} --relaxed)
-endif()
 
 foreach(VALUE ${PYBIND11_EXAMPLES})
   string(REGEX REPLACE "^(.+).cpp$" "\\1" EXAMPLE_NAME "${VALUE}")

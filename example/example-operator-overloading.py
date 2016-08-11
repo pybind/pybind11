@@ -25,3 +25,17 @@ v1 += v2
 v1 *= 2
 
 print("(v1+v2)*2 = " + str(v1))
+
+from example import ConstructorStats
+cstats = ConstructorStats.get(Vector2)
+print("Instances not destroyed:", cstats.alive())
+v1 = None
+print("Instances not destroyed:", cstats.alive())
+v2 = None
+print("Instances not destroyed:", cstats.alive())
+print("Constructor values:", cstats.values())
+print("Default constructions:", cstats.default_constructions)
+print("Copy constructions:", cstats.copy_constructions)
+print("Move constructions:", cstats.move_constructions >= 10)
+print("Copy assignments:", cstats.copy_assignments)
+print("Move assignments:", cstats.move_assignments)

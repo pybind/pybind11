@@ -8,27 +8,28 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 #include <pybind11/operators.h>
 
 class Vector2 {
 public:
-    Vector2(float x, float y) : x(x), y(y) { std::cout << "Value constructor" << std::endl; }
-    Vector2(const Vector2 &v) : x(v.x), y(v.y) { std::cout << "Copy constructor" << std::endl; }
-    Vector2(Vector2 &&v) : x(v.x), y(v.y) { std::cout << "Move constructor" << std::endl; v.x = v.y = 0; }
-    ~Vector2() { std::cout << "Destructor." << std::endl; }
+    Vector2(float x, float y) : x(x), y(y) { print_created(this, toString()); }
+    Vector2(const Vector2 &v) : x(v.x), y(v.y) { print_copy_created(this); }
+    Vector2(Vector2 &&v) : x(v.x), y(v.y) { print_move_created(this); v.x = v.y = 0; }
+    ~Vector2() { print_destroyed(this); }
 
     std::string toString() const {
         return "[" + std::to_string(x) + ", " + std::to_string(y) + "]";
     }
 
     void operator=(const Vector2 &v) {
-        cout << "Assignment operator" << endl;
+        print_copy_assigned(this);
         x = v.x;
         y = v.y;
     }
 
     void operator=(Vector2 &&v) {
-        cout << "Move assignment operator" << endl;
+        print_move_assigned(this);
         x = v.x; y = v.y; v.x = v.y = 0;
     }
 
@@ -51,7 +52,6 @@ private:
     float x, y;
 };
 
-
 void init_ex_operator_overloading(py::module &m) {
     py::class_<Vector2>(m, "Vector2")
         .def(py::init<float, float>())
@@ -69,7 +69,8 @@ void init_ex_operator_overloading(py::module &m) {
         .def(float() - py::self)
         .def(float() * py::self)
         .def(float() / py::self)
-        .def("__str__", &Vector2::toString);
+        .def("__str__", &Vector2::toString)
+        ;
 
     m.attr("Vector") = m.attr("Vector2");
 }

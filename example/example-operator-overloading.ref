@@ -1,57 +1,66 @@
-Value constructor
-Value constructor
+### Vector2 @ 0x11f7830 created [1.000000, 2.000000]
+### Vector2 @ 0x11427c0 created [3.000000, -1.000000]
 v1    = [1.000000, 2.000000]
 v2    = [3.000000, -1.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144b8 created [4.000000, 1.000000]
+### Vector2 @ 0x11f7e90 created via move constructor
+### Vector2 @ 0x7ffef6b144b8 destroyed
+### Vector2 @ 0x11f7e90 destroyed
 v1+v2 = [4.000000, 1.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144b8 created [-2.000000, 3.000000]
+### Vector2 @ 0x11f7e90 created via move constructor
+### Vector2 @ 0x7ffef6b144b8 destroyed
+### Vector2 @ 0x11f7e90 destroyed
 v1-v2 = [-2.000000, 3.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144c8 created [-7.000000, -6.000000]
+### Vector2 @ 0x1115760 created via move constructor
+### Vector2 @ 0x7ffef6b144c8 destroyed
+### Vector2 @ 0x1115760 destroyed
 v1-8  = [-7.000000, -6.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144c8 created [9.000000, 10.000000]
+### Vector2 @ 0x1115760 created via move constructor
+### Vector2 @ 0x7ffef6b144c8 destroyed
+### Vector2 @ 0x1115760 destroyed
 v1+8  = [9.000000, 10.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144b8 created [8.000000, 16.000000]
+### Vector2 @ 0x1115760 created via move constructor
+### Vector2 @ 0x7ffef6b144b8 destroyed
+### Vector2 @ 0x1115760 destroyed
 v1*8  = [8.000000, 16.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144a8 created [0.125000, 0.250000]
+### Vector2 @ 0x112f150 created via move constructor
+### Vector2 @ 0x7ffef6b144a8 destroyed
+### Vector2 @ 0x112f150 destroyed
 v1/8  = [0.125000, 0.250000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144f8 created [7.000000, 6.000000]
+### Vector2 @ 0x112f1b0 created via move constructor
+### Vector2 @ 0x7ffef6b144f8 destroyed
+### Vector2 @ 0x112f1b0 destroyed
 8-v1  = [7.000000, 6.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144f8 created [9.000000, 10.000000]
+### Vector2 @ 0x112f1b0 created via move constructor
+### Vector2 @ 0x7ffef6b144f8 destroyed
+### Vector2 @ 0x112f1b0 destroyed
 8+v1  = [9.000000, 10.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144e8 created [8.000000, 16.000000]
+### Vector2 @ 0x112f230 created via move constructor
+### Vector2 @ 0x7ffef6b144e8 destroyed
+### Vector2 @ 0x112f230 destroyed
 8*v1  = [8.000000, 16.000000]
-Value constructor
-Move constructor
-Destructor.
-Destructor.
+### Vector2 @ 0x7ffef6b144d8 created [8.000000, 4.000000]
+### Vector2 @ 0x11fb360 created via move constructor
+### Vector2 @ 0x7ffef6b144d8 destroyed
+### Vector2 @ 0x11fb360 destroyed
 8/v1  = [8.000000, 4.000000]
 (v1+v2)*2 = [8.000000, 2.000000]
-Destructor.
-Destructor.
+Instances not destroyed: 2
+### Vector2 @ 0x11f7830 destroyed
+Instances not destroyed: 1
+### Vector2 @ 0x11427c0 destroyed
+Instances not destroyed: 0
+Constructor values: ['[1.000000, 2.000000]', '[3.000000, -1.000000]', '[4.000000, 1.000000]', '[-2.000000, 3.000000]', '[-7.000000, -6.000000]', '[9.000000, 10.000000]', '[8.000000, 16.000000]', '[0.125000, 0.250000]', '[7.000000, 6.000000]', '[9.000000, 10.000000]', '[8.000000, 16.000000]', '[8.000000, 4.000000]']
+Default constructions: 0
+Copy constructions: 0
+Move constructions: True
+Copy assignments: 0
+Move assignments: 0

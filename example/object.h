@@ -2,15 +2,16 @@
 #define __OBJECT_H
 
 #include <atomic>
+#include "constructor-stats.h"
 
 /// Reference counted object base class
 class Object {
 public:
     /// Default constructor
-    Object() { }
+    Object() { print_default_created(this); }
 
     /// Copy constructor
-    Object(const Object &) : m_refCount(0) {}
+    Object(const Object &) : m_refCount(0) { print_copy_created(this); }
 
 	/// Return the current reference count
 	int getRefCount() const { return m_refCount; };
@@ -37,10 +38,16 @@ protected:
 	/** \brief Virtual protected deconstructor.
 	 * (Will only be called by \ref ref)
 	 */
-	virtual ~Object() { }
+	virtual ~Object() { print_destroyed(this); }
 private:
     mutable std::atomic<int> m_refCount { 0 };
 };
+
+// Tag class used to track constructions of ref objects.  When we track constructors, below, we
+// track and print out the actual class (e.g. ref<MyObject>), and *also* add a fake tracker for
+// ref_tag.  This lets us check that the total number of ref<Anything> constructors/destructors is
+// correct without having to check each individual ref<Whatever> type individually.
+class ref_tag {};
 
 /**
  * \brief Reference counting helper
@@ -55,37 +62,43 @@ private:
 template <typename T> class ref {
 public:
 	/// Create a nullptr reference
-    ref() : m_ptr(nullptr) { std::cout << "Created empty ref" << std::endl; }
+    ref() : m_ptr(nullptr) { print_default_created(this); track_default_created((ref_tag*) this); }
 
     /// Construct a reference from a pointer
 	ref(T *ptr) : m_ptr(ptr) {
-        std::cout << "Initialized ref from pointer " << ptr<< std::endl;
 	    if (m_ptr) ((Object *) m_ptr)->incRef();
+
+        print_created(this, "from pointer", m_ptr); track_created((ref_tag*) this, "from pointer");
+
 	}
 
 	/// Copy constructor
     ref(const ref &r) : m_ptr(r.m_ptr) {
-        std::cout << "Initialized ref from ref " << r.m_ptr << std::endl;
         if (m_ptr)
             ((Object *) m_ptr)->incRef();
+
+        print_copy_created(this, "with pointer", m_ptr); track_copy_created((ref_tag*) this);
     }
 
     /// Move constructor
     ref(ref &&r) : m_ptr(r.m_ptr) {
-        std::cout << "Initialized ref with move from ref " << r.m_ptr << std::endl;
         r.m_ptr = nullptr; 
+
+        print_move_created(this, "with pointer", m_ptr); track_move_created((ref_tag*) this);
     }
 
     /// Destroy this reference
     ~ref() {
-        std::cout << "Destructing ref " << m_ptr << std::endl;
         if (m_ptr)
             ((Object *) m_ptr)->decRef();
+
+        print_destroyed(this); track_destroyed((ref_tag*) this);
     }
 
     /// Move another reference into the current one
 	ref& operator=(ref&& r) {
-        std::cout << "Move-assigning ref " << r.m_ptr << std::endl;
+        print_move_assigned(this, "pointer", r.m_ptr); track_move_assigned((ref_tag*) this);
+
 		if (*this == r)
 			return *this;
 		if (m_ptr)
@@ -97,7 +110,8 @@ public:
 
 	/// Overwrite this reference with another reference
 	ref& operator=(const ref& r) {
-        std::cout << "Assigning ref " << r.m_ptr << std::endl;
+        print_copy_assigned(this, "pointer", r.m_ptr); track_copy_assigned((ref_tag*) this);
+
 		if (m_ptr == r.m_ptr)
 			return *this;
 		if (m_ptr)
@@ -110,7 +124,8 @@ public:
 
 	/// Overwrite this reference with a pointer to another object
 	ref& operator=(T *ptr) {
-        std::cout << "Assigning ptr " << ptr << " to ref" << std::endl;
+        print_values(this, "assigned pointer"); track_values((ref_tag*) this, "assigned pointer");
+
 		if (m_ptr == ptr)
 			return *this;
 		if (m_ptr)

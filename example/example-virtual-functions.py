@@ -37,8 +37,6 @@ print(runExampleVirt(ex12p, 20))
 print(runExampleVirtBool(ex12p))
 runExampleVirtVirtual(ex12p)
 
-sys.stdout.flush()
-
 class VI_AR(A_Repeat):
     def unlucky_number(self):
         return 99
@@ -122,3 +120,16 @@ try:
 except RuntimeError as e:
     # Don't print the exception message here because it differs under debug/non-debug mode
     print("Caught expected exception")
+
+from example import ConstructorStats
+del ex12
+del ex12p
+del obj
+del ncv1
+del ncv2
+cstats = [ConstructorStats.get(ExampleVirt), ConstructorStats.get(NonCopyable), ConstructorStats.get(Movable)]
+print("Instances not destroyed:", [x.alive() for x in cstats])
+print("Constructor values:", [x.values() for x in cstats])
+print("Copy constructions:", [x.copy_constructions for x in cstats])
+print("Move constructions:", [cstats[i].move_constructions >= 1 for i in range(1, len(cstats))])
+

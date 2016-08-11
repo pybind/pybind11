@@ -8,6 +8,7 @@
 */
 
 #include "example.h"
+#include "constructor-stats.h"
 
 void init_ex_methods_and_attributes(py::module &);
 void init_ex_python_types(py::module &);
@@ -34,8 +35,23 @@ void init_issues(py::module &);
     void init_eigen(py::module &);
 #endif
 
+void bind_ConstructorStats(py::module &m) {
+    py::class_<ConstructorStats>(m, "ConstructorStats")
+        .def("alive", &ConstructorStats::alive)
+        .def("values", &ConstructorStats::values)
+        .def_readwrite("default_constructions", &ConstructorStats::default_constructions)
+        .def_readwrite("copy_assignments", &ConstructorStats::copy_assignments)
+        .def_readwrite("move_assignments", &ConstructorStats::move_assignments)
+        .def_readwrite("copy_constructions", &ConstructorStats::copy_constructions)
+        .def_readwrite("move_constructions", &ConstructorStats::move_constructions)
+        .def_static("get", (ConstructorStats &(*)(py::object)) &ConstructorStats::get, py::return_value_policy::reference_internal)
+        ;
+}
+
 PYBIND11_PLUGIN(example) {
     py::module m("example", "pybind example plugin");
+
+    bind_ConstructorStats(m);
 
     init_ex_methods_and_attributes(m);
     init_ex_python_types(m);

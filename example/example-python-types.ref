@@ -2,6 +2,7 @@
 5
 example.ExamplePythonTypes: No constructor defined!
 can't set attribute
+### ExamplePythonTypes @ 0x1045b80 created via new_instance
 key: key2, value=value2
 key: key, value=value
 key: key, value=value
@@ -134,4 +135,6 @@ __name__(example.ExamplePythonTypes) = ExamplePythonTypes
 __module__(example.ExamplePythonTypes) = example
 __name__(example.ExamplePythonTypes.get_set) = get_set
 __module__(example.ExamplePythonTypes.get_set) = example
-Destructing ExamplePythonTypes
+Instances not destroyed: 1
+### ExamplePythonTypes @ 0x1045b80 destroyed
+Instances not destroyed: 0

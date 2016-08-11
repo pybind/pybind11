@@ -30,3 +30,16 @@ for i in range(m4.rows()):
     for j in range(m4.cols()):
         print(m4[i, j], end = ' ')
     print()
+
+from example import ConstructorStats
+cstats = ConstructorStats.get(Matrix)
+print("Instances not destroyed:", cstats.alive())
+m = m4 = None
+print("Instances not destroyed:", cstats.alive())
+m2 = None # m2 holds an m reference
+print("Instances not destroyed:", cstats.alive())
+print("Constructor values:", cstats.values())
+print("Copy constructions:", cstats.copy_constructions)
+#print("Move constructions:", cstats.move_constructions >= 0) # Don't invoke any
+print("Copy assignments:", cstats.copy_assignments)
+print("Move assignments:", cstats.move_assignments)

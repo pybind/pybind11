@@ -7,7 +7,7 @@ Molly is a dog
 Woof!
 The following error is expected: Incompatible function arguments. The following argument types are supported:
     1. (arg0: example.Dog) -> None
-    Invoked with: <example.Pet object at 0>
+    Invoked with: <example.Pet object at 0x7ffaf4b00db0>
 Callback function 1 called!
 False
 Callback function 2 called : Hello, x, True, 5
@@ -19,12 +19,15 @@ False
 func(43) = 44
 func(43) = 44
 func(number=43) = 44
-Payload constructor
-Payload copy constructor
-Payload move constructor
-Payload destructor
-Payload destructor
-Payload destructor
+### Payload @ 0x7ffdcee09c80 created via default constructor
+### Payload @ 0x7ffdcee09c88 created via copy constructor
+### Payload @ 0xb54500 created via move constructor
+### Payload @ 0x7ffdcee09c88 destroyed
+### Payload @ 0x7ffdcee09c80 destroyed
+### Payload @ 0xb54500 destroyed
+Payload instances not destroyed: 0
+Copy constructions: 1
+Move constructions: True
 argument matches dummy_function
 eval(1) = 2
 roundtrip..
@@ -36,6 +39,7 @@ could not convert to a function pointer.
 All OK!
 could not convert to a function pointer.
 All OK!
-
 test_callback3(arg0: Callable[[int], int]) -> None
+
 test_callback4() -> Callable[[int], int]
+
