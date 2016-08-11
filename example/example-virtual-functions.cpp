@@ -228,7 +228,7 @@ class PyB_Tpl : public PyA_Tpl<Base> {
 public:
     using PyA_Tpl<Base>::PyA_Tpl; // Inherit constructors (via PyA_Tpl's inherited constructors)
     int unlucky_number() override { PYBIND11_OVERLOAD(int, Base, unlucky_number, ); }
-    double lucky_number() { PYBIND11_OVERLOAD(double, Base, lucky_number, ); }
+    double lucky_number() override { PYBIND11_OVERLOAD(double, Base, lucky_number, ); }
 };
 // Since C_Tpl and D_Tpl don't declare any new virtual methods, we don't actually need these (we can
 // use PyB_Tpl<C_Tpl> and PyB_Tpl<D_Tpl> for the trampoline classes instead):
