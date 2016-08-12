@@ -1,0 +1,93 @@
+import pytest
+from pybind11_tests import (kw_func0, kw_func1, kw_func2, kw_func3, kw_func4, call_kw_func,
+                            args_function, args_kwargs_function, kw_func_udl, kw_func_udl_z,
+                            KWClass)
+
+
+def test_function_signatures(doc):
+    assert doc(kw_func0) == "kw_func0(arg0: int, arg1: int) -> None"
+    assert doc(kw_func1) == "kw_func1(x: int, y: int) -> None"
+    assert doc(kw_func2) == "kw_func2(x: int=100, y: int=200) -> None"
+    assert doc(kw_func3) == "kw_func3(data: str='Hello world!') -> None"
+    assert doc(kw_func4) == "kw_func4(myList: List[int]=[13, 17]) -> None"
+    assert doc(kw_func_udl) == "kw_func_udl(x: int, y: int=300) -> None"
+    assert doc(kw_func_udl_z) == "kw_func_udl_z(x: int, y: int=0) -> None"
+    assert doc(args_function) == "args_function(*args) -> None"
+    assert doc(args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> None"
+    assert doc(KWClass.foo0) == "foo0(self: m.KWClass, arg0: int, arg1: float) -> None"
+    assert doc(KWClass.foo1) == "foo1(self: m.KWClass, x: int, y: float) -> None"
+
+
+def test_named_arguments(capture, msg):
+    with capture:
+        kw_func1(5, 10)
+    assert capture == "kw_func(x=5, y=10)"
+    with capture:
+        kw_func1(5, y=10)
+    assert capture == "kw_func(x=5, y=10)"
+    with capture:
+        kw_func1(y=10, x=5)
+    assert capture == "kw_func(x=5, y=10)"
+
+    with capture:
+        kw_func2()
+    assert capture == "kw_func(x=100, y=200)"
+    with capture:
+        kw_func2(5)
+    assert capture == "kw_func(x=5, y=200)"
+    with capture:
+        kw_func2(x=5)
+    assert capture == "kw_func(x=5, y=200)"
+    with capture:
+        kw_func2(y=10)
+    assert capture == "kw_func(x=100, y=10)"
+    with capture:
+        kw_func2(5, 10)
+    assert capture == "kw_func(x=5, y=10)"
+    with capture:
+        kw_func2(x=5, y=10)
+    assert capture == "kw_func(x=5, y=10)"
+
+    with pytest.raises(TypeError) as excinfo:
+        # noinspection PyArgumentList
+        kw_func2(x=5, y=10, z=12)
+    assert msg(excinfo.value) == """
+        Incompatible function arguments. The following argument types are supported:
+            1. (x: int=100, y: int=200) -> None
+            Invoked with:
+    """
+
+    with capture:
+        kw_func4()
+    assert capture == "kw_func4: 13 17"
+    with capture:
+        kw_func4(myList=[1, 2, 3])
+    assert capture == "kw_func4: 1 2 3"
+
+    with capture:
+        kw_func_udl(x=5, y=10)
+    assert capture == "kw_func(x=5, y=10)"
+    with capture:
+        kw_func_udl_z(x=5)
+    assert capture == "kw_func(x=5, y=0)"
+
+
+def test_arg_and_kwargs(capture):
+    with capture:
+        call_kw_func(kw_func2)
+    assert capture == "kw_func(x=1234, y=5678)"
+    with capture:
+        args_function('arg1_value', 'arg2_value', 3)
+    assert capture.unordered == """
+        got argument: arg1_value
+        got argument: arg2_value
+        got argument: 3
+    """
+    with capture:
+        args_kwargs_function('arg1_value', 'arg2_value', arg3='arg3_value', arg4=4)
+    assert capture.unordered == """
+        got argument: arg1_value
+        got argument: arg2_value
+        got keyword argument: arg3 -> arg3_value
+        got keyword argument: arg4 -> 4
+    """

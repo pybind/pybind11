@@ -1,1 +1,0 @@
-call_test2(y)
