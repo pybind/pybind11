@@ -116,6 +116,34 @@ private:
     float *m_data;
 };
 
+// Interface of a map-like object that isn't (directly) an unordered_map, but provides some basic
+// map-like functionality.
+class StringMap {
+public:
+    StringMap(std::unordered_map<std::string, std::string> init = {})
+        : map(std::move(init)) {}
+
+    void set(std::string key, std::string val) {
+        map[key] = val;
+    }
+
+    std::string get(std::string key) const {
+        return map.at(key);
+    }
+
+    size_t size() const {
+        return map.size();
+    }
+
+private:
+    std::unordered_map<std::string, std::string> map;
+
+public:
+    decltype(map.cbegin()) begin() const { return map.cbegin(); }
+    decltype(map.cend()) end() const { return map.cend(); }
+};
+
+
 void init_ex_sequences_and_iterators(py::module &m) {
     py::class_<Sequence> seq(m, "Sequence");
 
@@ -163,6 +191,25 @@ void init_ex_sequences_and_iterators(py::module &m) {
        .def(py::self == py::self)
        .def(py::self != py::self);
        // Could also define py::self + py::self for concatenation, etc.
+
+    py::class_<StringMap> map(m, "StringMap");
+
+    map .def(py::init<>())
+        .def(py::init<std::unordered_map<std::string, std::string>>())
+        .def("__getitem__", [](const StringMap &map, std::string key) {
+                try { return map.get(key); }
+                catch (const std::out_of_range&) {
+                    throw py::key_error("key '" + key + "' does not exist");
+                }
+                })
+        .def("__setitem__", &StringMap::set)
+        .def("__len__", &StringMap::size)
+        .def("__iter__", [](const StringMap &map) { return py::make_key_iterator(map.begin(), map.end()); },
+                py::keep_alive<0, 1>())
+        .def("items", [](const StringMap &map) { return py::make_iterator(map.begin(), map.end()); },
+                py::keep_alive<0, 1>())
+        ;
+
 
 #if 0
     // Obsolete: special data structure for exposing custom iterator types to python

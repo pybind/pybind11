@@ -1117,7 +1117,7 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
     keep_alive_impl(nurse, patient);
 }
 
-template <typename Iterator> struct iterator_state {
+template <typename Iterator, bool KeyIterator = false> struct iterator_state {
     Iterator it, end;
     bool first;
 };
@@ -1148,9 +1148,35 @@ iterator make_iterator(Iterator first, Iterator last, Extra &&... extra) {
 
     return (iterator) cast(state { first, last, true });
 }
+template <typename Iterator,
+          typename KeyType = decltype(std::declval<Iterator>()->first),
+          typename... Extra>
+iterator make_key_iterator(Iterator first, Iterator last, Extra &&... extra) {
+    typedef detail::iterator_state<Iterator, true> state;
+
+    if (!detail::get_type_info(typeid(state))) {
+        class_<state>(handle(), "")
+            .def("__iter__", [](state &s) -> state& { return s; })
+            .def("__next__", [](state &s) -> KeyType {
+                if (!s.first)
+                    ++s.it;
+                else
+                    s.first = false;
+                if (s.it == s.end)
+                    throw stop_iteration();
+                return s.it->first;
+            }, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
+    }
+
+    return (iterator) cast(state { first, last, true });
+}
 
 template <typename Type, typename... Extra> iterator make_iterator(Type &value, Extra&&... extra) {
     return make_iterator(std::begin(value), std::end(value), extra...);
+}
+
+template <typename Type, typename... Extra> iterator make_key_iterator(Type &value, Extra&&... extra) {
+    return make_key_iterator(std::begin(value), std::end(value), extra...);
 }
 
 template <typename InputType, typename OutputType> void implicitly_convertible() {
