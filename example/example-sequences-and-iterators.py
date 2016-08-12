@@ -3,7 +3,7 @@ from __future__ import print_function
 import sys
 sys.path.append('.')
 
-from example import Sequence
+from example import Sequence, StringMap
 
 s = Sequence(5)
 print("s = " + str(s))
@@ -28,6 +28,24 @@ rev[0::2] = Sequence([2.0, 2.0, 2.0])
 for i in rev:
     print(i, end=' ')
 print('')
+
+m = StringMap({ 'hi': 'bye', 'black': 'white' })
+print(m['hi'])
+print(len(m))
+print(m['black'])
+try:
+    print(m['orange'])
+    print('Error: should have thrown exception')
+except KeyError:
+    pass
+m['orange'] = 'banana'
+print(m['orange'])
+
+for k in m:
+    print("key = %s, value = %s" % (k, m[k]))
+
+for k,v in m.items():
+    print("item: (%s, %s)" % (k,v))
 
 from example import ConstructorStats
 cstats = ConstructorStats.get(Sequence)

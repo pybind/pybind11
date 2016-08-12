@@ -957,6 +957,12 @@ exceptions:
 |                                      | indicate wrong value passed  |
 |                                      | in ``container.remove(...)`` |
 +--------------------------------------+------------------------------+
+| :class:`pybind11::key_error`         | ``KeyError`` (used to        |
+|                                      | indicate out of bounds       |
+|                                      | accesses in ``__getitem__``, |
+|                                      | ``__setitem__`` in dict-like |
+|                                      | objects, etc.)               |
++--------------------------------------+------------------------------+
 | :class:`pybind11::error_already_set` | Indicates that the Python    |
 |                                      | exception flag has already   |
 |                                      | been initialized             |

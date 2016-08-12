@@ -13,9 +13,19 @@ rev[0], rev[1], rev[2], rev[3], rev[4] = 0.000000 56.779999 0.000000 0.000000 12
 0.0 56.779998779296875 0.0 0.0 12.34000015258789 
 0.0 56.779998779296875 0.0 0.0 12.34000015258789 
 True
-### Sequence @ 0x153c4b0 created of size 3  from std::vector
-### Sequence @ 0x153c4b0 destroyed
+### Sequence @ 0x1b4d1f0 created of size 3 from std::vector
+### Sequence @ 0x1b4d1f0 destroyed
 2.0 56.779998779296875 2.0 0.0 2.0 
+bye
+2
+white
+banana
+key = orange, value = banana
+key = hi, value = bye
+key = black, value = white
+item: (orange, banana)
+item: (hi, bye)
+item: (black, white)
 Instances not destroyed: 3
 ### Sequence @ 0x1535b00 destroyed
 Instances not destroyed: 2
