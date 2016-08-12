@@ -9,42 +9,18 @@
 
 #include "pybind11_tests.h"
 
-enum EMyEnumeration {
-    EFirstEntry = 1,
-    ESecondEntry
-};
-
-enum class ECMyEnum {
-    Two = 2,
-    Three
-};
-
-class ExampleWithEnum {
-public:
-    enum EMode {
-        EFirstMode = 1,
-        ESecondMode
-    };
-
-    static EMode test_function(EMode mode) {
-        return mode;
-    }
-};
+enum MyEnum { EFirstEntry = 1, ESecondEntry };
 
 std::string test_function1() {
     return "test_function()";
 }
 
-std::string test_function2(EMyEnumeration k) {
+std::string test_function2(MyEnum k) {
     return "test_function(enum=" + std::to_string(k) + ")";
 }
 
 std::string test_function3(int i) {
     return "test_function(" + std::to_string(i) + ")";
-}
-
-std::string test_ecenum(ECMyEnum z) {
-    return "test_ecenum(ECMyEnum::" + std::string(z == ECMyEnum::Two ? "Two" : "Three") + ")";
 }
 
 py::bytes return_bytes() {
@@ -63,27 +39,15 @@ std::string print_bytes(py::bytes bytes) {
 }
 
 void init_ex_constants_and_functions(py::module &m) {
+    m.attr("some_constant") = py::int_(14);
+
     m.def("test_function", &test_function1);
     m.def("test_function", &test_function2);
     m.def("test_function", &test_function3);
-    m.def("test_ecenum", &test_ecenum);
-    m.attr("some_constant") = py::int_(14);
 
-    py::enum_<EMyEnumeration>(m, "EMyEnumeration")
+    py::enum_<MyEnum>(m, "MyEnum")
         .value("EFirstEntry", EFirstEntry)
         .value("ESecondEntry", ESecondEntry)
-        .export_values();
-
-    py::enum_<ECMyEnum>(m, "ECMyEnum")
-        .value("Two", ECMyEnum::Two)
-        .value("Three", ECMyEnum::Three)
-        ;
-
-    py::class_<ExampleWithEnum> exenum_class(m, "ExampleWithEnum");
-    exenum_class.def_static("test_function", &ExampleWithEnum::test_function);
-    py::enum_<ExampleWithEnum::EMode>(exenum_class, "EMode")
-        .value("EFirstMode", ExampleWithEnum::EFirstMode)
-        .value("ESecondMode", ExampleWithEnum::ESecondMode)
         .export_values();
 
     m.def("return_bytes", &return_bytes);

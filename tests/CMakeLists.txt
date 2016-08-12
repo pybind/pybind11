@@ -7,6 +7,7 @@ set(PYBIND11_TEST_FILES
   test_buffers.cpp
   test_callbacks.cpp
   test_constants_and_functions.cpp
+  test_enum.cpp
   test_eval.cpp
   test_exceptions.cpp
   test_inheritance.cpp
