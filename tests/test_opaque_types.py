@@ -1,64 +1,48 @@
 import pytest
 
 
-def test_string_list(capture):
+def test_string_list():
     from pybind11_tests import StringList, ClassWithSTLVecProperty, print_opaque_list
 
     l = StringList()
     l.push_back("Element 1")
     l.push_back("Element 2")
-    with capture:
-        print_opaque_list(l)
-    assert capture == "Opaque list: [Element 1, Element 2]"
+    assert print_opaque_list(l) == "Opaque list: [Element 1, Element 2]"
     assert l.back() == "Element 2"
 
     for i, k in enumerate(l, start=1):
         assert k == "Element {}".format(i)
     l.pop_back()
-    with capture:
-        print_opaque_list(l)
-    assert capture == "Opaque list: [Element 1]"
+    assert print_opaque_list(l) == "Opaque list: [Element 1]"
 
     cvp = ClassWithSTLVecProperty()
-    with capture:
-        print_opaque_list(cvp.stringList)
-    assert capture == "Opaque list: []"
+    assert print_opaque_list(cvp.stringList) == "Opaque list: []"
 
     cvp.stringList = l
     cvp.stringList.push_back("Element 3")
-    with capture:
-        print_opaque_list(cvp.stringList)
-    assert capture == "Opaque list: [Element 1, Element 3]"
+    assert print_opaque_list(cvp.stringList) == "Opaque list: [Element 1, Element 3]"
 
 
-def test_pointers(capture, msg):
-    from pybind11_tests import (return_void_ptr, print_void_ptr, ExampleMandA,
-                                print_opaque_list, return_null_str, print_null_str,
+def test_pointers(msg):
+    from pybind11_tests import (return_void_ptr, get_void_ptr_value, ExampleMandA,
+                                print_opaque_list, return_null_str, get_null_str_value,
                                 return_unique_ptr, ConstructorStats)
 
-    with capture:
-        print_void_ptr(return_void_ptr())
-    assert capture == "Got void ptr : 0x1234"
-    with capture:
-        print_void_ptr(ExampleMandA())  # Should also work for other C++ types
-    assert "Got void ptr" in capture
+    assert get_void_ptr_value(return_void_ptr()) == 0x1234
+    assert get_void_ptr_value(ExampleMandA())  # Should also work for other C++ types
     assert ConstructorStats.get(ExampleMandA).alive() == 0
 
     with pytest.raises(TypeError) as excinfo:
-        print_void_ptr([1, 2, 3])  # This should not work
+        get_void_ptr_value([1, 2, 3])  # This should not work
     assert msg(excinfo.value) == """
         Incompatible function arguments. The following argument types are supported:
-            1. (arg0: capsule) -> None
+            1. (arg0: capsule) -> int
             Invoked with: [1, 2, 3]
     """
 
     assert return_null_str() is None
-    with capture:
-        print_null_str(return_null_str())
-    assert capture == "Got null str : 0x0"
+    assert get_null_str_value(return_null_str()) is not None
 
     ptr = return_unique_ptr()
     assert "StringList" in repr(ptr)
-    with capture:
-        print_opaque_list(ptr)
-    assert capture == "Opaque list: [some value]"
+    assert print_opaque_list(ptr) == "Opaque list: [some value]"

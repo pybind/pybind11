@@ -38,21 +38,21 @@ void init_ex_opaque_types(py::module &m) {
         .def_readwrite("stringList", &ClassWithSTLVecProperty::stringList);
 
     m.def("print_opaque_list", [](const StringList &l) {
-        std::cout << "Opaque list: [";
+        std::string ret = "Opaque list: [";
         bool first = true;
         for (auto entry : l) {
             if (!first)
-                std::cout << ", ";
-            std::cout << entry;
+                ret += ", ";
+            ret += entry;
             first = false;
         }
-        std::cout << "]" << std::endl;
+        return ret + "]";
     });
 
     m.def("return_void_ptr", []() { return (void *) 0x1234; });
-    m.def("print_void_ptr", [](void *ptr) { std::cout << "Got void ptr : 0x" << std::hex << (uint64_t) ptr << std::dec << std::endl; });
+    m.def("get_void_ptr_value", [](void *ptr) { return reinterpret_cast<std::intptr_t>(ptr); });
     m.def("return_null_str", []() { return (char *) nullptr; });
-    m.def("print_null_str", [](char *ptr) { std::cout << "Got null str : 0x" << std::hex << (uint64_t) ptr << std::dec << std::endl; });
+    m.def("get_null_str_value", [](char *ptr) { return reinterpret_cast<std::intptr_t>(ptr); });
 
     m.def("return_unique_ptr", []() -> std::unique_ptr<StringList> {
         StringList *result = new StringList();

@@ -173,7 +173,7 @@ def test_inheriting_repeat(capture):
     assert obj.lucky_number() == -4.25
 
 
-def test_move_support(capture, msg):
+def test_move_support(capture):
     from pybind11_tests import NCVirt, NonCopyable, Movable
 
     class NCVirtExt(NCVirt):

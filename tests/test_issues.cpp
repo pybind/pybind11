@@ -34,19 +34,20 @@ void init_issues(py::module &m) {
 #endif
 
     // #137: const char* isn't handled properly
-    m2.def("print_cchar", [](const char *string) { std::cout << string << std::endl; });
+    m2.def("print_cchar", [](const char *s) { return std::string(s); });
 
     // #150: char bindings broken
-    m2.def("print_char", [](char c) { std::cout << c << std::endl; });
+    m2.def("print_char", [](char c) { return std::string(1, c); });
 
     // #159: virtual function dispatch has problems with similar-named functions
-    struct Base { virtual void dispatch(void) const {
+    struct Base { virtual std::string dispatch() const {
         /* for some reason MSVC2015 can't compile this if the function is pure virtual */
+        return {};
     }; };
 
     struct DispatchIssue : Base {
-        virtual void dispatch(void) const {
-            PYBIND11_OVERLOAD_PURE(void, Base, dispatch, /* no arguments */);
+        virtual std::string dispatch() const {
+            PYBIND11_OVERLOAD_PURE(std::string, Base, dispatch, /* no arguments */);
         }
     };
 
@@ -54,7 +55,7 @@ void init_issues(py::module &m) {
         .def(py::init<>())
         .def("dispatch", &Base::dispatch);
 
-    m2.def("dispatch_issue_go", [](const Base * b) { b->dispatch(); });
+    m2.def("dispatch_issue_go", [](const Base * b) { return b->dispatch(); });
 
     struct Placeholder { int i; Placeholder(int i) : i(i) { } };
 
@@ -171,7 +172,7 @@ void init_issues(py::module &m) {
         .def("as_base", [](NestA &a) -> NestABase& { return (NestABase&) a; }, py::return_value_policy::reference_internal);
     py::class_<NestB>(m2, "NestB").def(py::init<>()).def(py::self -= int()).def_readwrite("a", &NestB::a);
     py::class_<NestC>(m2, "NestC").def(py::init<>()).def(py::self *= int()).def_readwrite("b", &NestC::b);
-    m2.def("print_NestA", [](const NestA &a) { std::cout << a.value << std::endl; });
-    m2.def("print_NestB", [](const NestB &b) { std::cout << b.value << std::endl; });
-    m2.def("print_NestC", [](const NestC &c) { std::cout << c.value << std::endl; });
+    m2.def("get_NestA", [](const NestA &a) { return a.value; });
+    m2.def("get_NestB", [](const NestB &b) { return b.value; });
+    m2.def("get_NestC", [](const NestC &c) { return c.value; });
 }

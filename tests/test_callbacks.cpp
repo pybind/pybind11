@@ -12,18 +12,16 @@
 #include <pybind11/functional.h>
 
 
-bool test_callback1(py::object func) {
-    func();
-    return false;
+py::object test_callback1(py::object func) {
+    return func();
 }
 
-int test_callback2(py::object func) {
-    py::object result = func("Hello", 'x', true, 5);
-    return result.cast<int>();
+py::tuple test_callback2(py::object func) {
+    return func("Hello", 'x', true, 5);
 }
 
-void test_callback3(const std::function<int(int)> &func) {
-    cout << "func(43) = " << func(43)<< std::endl;
+std::string test_callback3(const std::function<int(int)> &func) {
+    return "func(43) = " + std::to_string(func(43));
 }
 
 std::function<int(int)> test_callback4() {
@@ -37,27 +35,24 @@ py::cpp_function test_callback5() {
 
 int dummy_function(int i) { return i + 1; }
 int dummy_function2(int i, int j) { return i + j; }
-std::function<int(int)> roundtrip(std::function<int(int)> f) { 
-    if (!f)
-        std::cout << "roundtrip (got None).." << std::endl;
-    else
-        std::cout << "roundtrip.." << std::endl;
+std::function<int(int)> roundtrip(std::function<int(int)> f, bool expect_none = false) {
+    if (expect_none && f) {
+        throw std::runtime_error("Expected None to be converted to empty std::function");
+    }
     return f;
 }
 
-void test_dummy_function(const std::function<int(int)> &f) {
+std::string test_dummy_function(const std::function<int(int)> &f) {
     using fn_type = int (*)(int);
     auto result = f.target<fn_type>();
     if (!result) {
-        std::cout << "could not convert to a function pointer." << std::endl;
         auto r = f(1);
-        std::cout << "eval(1) = " << r << std::endl;
+        return "can't convert to function pointer: eval(1) = " + std::to_string(r);
     } else if (*result == dummy_function) {
-        std::cout << "argument matches dummy_function" << std::endl;
         auto r = (*result)(1);
-        std::cout << "eval(1) = " << r << std::endl;
+        return "matches dummy_function: eval(1) = " + std::to_string(r);
     } else {
-        std::cout << "argument does NOT match dummy_function. This should never happen!" << std::endl;
+        return "argument does NOT match dummy_function. This should never happen!";
     }
 }
 
@@ -96,7 +91,7 @@ void init_ex_callbacks(py::module &m) {
     /* Test if passing a function pointer from C++ -> Python -> C++ yields the original pointer */
     m.def("dummy_function", &dummy_function);
     m.def("dummy_function2", &dummy_function2);
-    m.def("roundtrip", &roundtrip);
+    m.def("roundtrip", &roundtrip, py::arg("f"), py::arg("expect_none")=false);
     m.def("test_dummy_function", &test_dummy_function);
     // Export the payload constructor statistics for testing purposes:
     m.def("payload_cstats", &ConstructorStats::get<Payload>);

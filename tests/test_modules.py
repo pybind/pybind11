@@ -1,14 +1,12 @@
 
-def test_nested_modules(capture):
+def test_nested_modules():
     import pybind11_tests
     from pybind11_tests.submodule import submodule_func
 
     assert pybind11_tests.__name__ == "pybind11_tests"
     assert pybind11_tests.submodule.__name__ == "pybind11_tests.submodule"
 
-    with capture:
-        submodule_func()
-    assert capture == "submodule_func()"
+    assert submodule_func() == "submodule_func()"
 
 
 def test_reference_internal():

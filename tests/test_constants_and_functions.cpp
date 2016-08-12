@@ -27,27 +27,24 @@ public:
     };
 
     static EMode test_function(EMode mode) {
-        std::cout << "ExampleWithEnum::test_function(enum=" << mode << ")" << std::endl;
         return mode;
     }
 };
 
-bool test_function1() {
-    std::cout << "test_function()" << std::endl;
-    return false;
+std::string test_function1() {
+    return "test_function()";
 }
 
-void test_function2(EMyEnumeration k) {
-    std::cout << "test_function(enum=" << k << ")" << std::endl;
+std::string test_function2(EMyEnumeration k) {
+    return "test_function(enum=" + std::to_string(k) + ")";
 }
 
-float test_function3(int i) {
-    std::cout << "test_function(" << i << ")" << std::endl;
-    return (float) i / 2.f;
+std::string test_function3(int i) {
+    return "test_function(" + std::to_string(i) + ")";
 }
 
-void test_ecenum(ECMyEnum z) {
-    std::cout << "test_ecenum(ECMyEnum::" << (z == ECMyEnum::Two ? "Two" : "Three") << ")" << std::endl;
+std::string test_ecenum(ECMyEnum z) {
+    return "test_ecenum(ECMyEnum::" + std::string(z == ECMyEnum::Two ? "Two" : "Three") + ")";
 }
 
 py::bytes return_bytes() {
@@ -55,10 +52,14 @@ py::bytes return_bytes() {
     return std::string(data, 4);
 }
 
-void print_bytes(py::bytes bytes) {
-    std::string value = (std::string) bytes;
-    for (size_t i = 0; i < value.length(); ++i)
-        std::cout << "bytes[" << i << "]=" << (int) value[i] << std::endl;
+std::string print_bytes(py::bytes bytes) {
+    std::string ret = "bytes[";
+    const auto value = static_cast<std::string>(bytes);
+    for (size_t i = 0; i < value.length(); ++i) {
+        ret += std::to_string(static_cast<int>(value[i])) + " ";
+    }
+    ret.back() = ']';
+    return ret;
 }
 
 void init_ex_constants_and_functions(py::module &m) {

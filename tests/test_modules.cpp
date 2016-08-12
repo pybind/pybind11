@@ -11,8 +11,8 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
-void submodule_func() {
-    std::cout << "submodule_func()" << std::endl;
+std::string submodule_func() {
+    return "submodule_func()";
 }
 
 class A {

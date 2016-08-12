@@ -8,7 +8,6 @@
 */
 
 #include "pybind11_tests.h"
-
 #include <pybind11/numpy.h>
 
 #ifdef __GNUC__
@@ -139,29 +138,48 @@ py::array_t<StringStruct, 0> create_string_array(bool non_empty) {
 }
 
 template <typename S>
-void print_recarray(py::array_t<S, 0> arr) {
-    auto req = arr.request();
-    auto ptr = static_cast<S*>(req.ptr);
-    for (size_t i = 0; i < req.size; i++)
-        std::cout << ptr[i] << std::endl;
+py::list print_recarray(py::array_t<S, 0> arr) {
+    const auto req = arr.request();
+    const auto ptr = static_cast<S*>(req.ptr);
+    auto l = py::list();
+    for (size_t i = 0; i < req.size; i++) {
+        std::stringstream ss;
+        ss << ptr[i];
+        l.append(py::str(ss.str()));
+    }
+    return l;
 }
 
-void print_format_descriptors() {
-    std::cout << py::format_descriptor<SimpleStruct>::format() << std::endl;
-    std::cout << py::format_descriptor<PackedStruct>::format() << std::endl;
-    std::cout << py::format_descriptor<NestedStruct>::format() << std::endl;
-    std::cout << py::format_descriptor<PartialStruct>::format() << std::endl;
-    std::cout << py::format_descriptor<PartialNestedStruct>::format() << std::endl;
-    std::cout << py::format_descriptor<StringStruct>::format() << std::endl;
+py::list print_format_descriptors() {
+    const auto fmts = {
+        py::format_descriptor<SimpleStruct>::format(),
+        py::format_descriptor<PackedStruct>::format(),
+        py::format_descriptor<NestedStruct>::format(),
+        py::format_descriptor<PartialStruct>::format(),
+        py::format_descriptor<PartialNestedStruct>::format(),
+        py::format_descriptor<StringStruct>::format()
+    };
+    auto l = py::list();
+    for (const auto &fmt : fmts) {
+        l.append(py::cast(fmt));
+    }
+    return l;
 }
 
-void print_dtypes() {
-    std::cout << (std::string) py::dtype::of<SimpleStruct>().str() << std::endl;
-    std::cout << (std::string) py::dtype::of<PackedStruct>().str() << std::endl;
-    std::cout << (std::string) py::dtype::of<NestedStruct>().str() << std::endl;
-    std::cout << (std::string) py::dtype::of<PartialStruct>().str() << std::endl;
-    std::cout << (std::string) py::dtype::of<PartialNestedStruct>().str() << std::endl;
-    std::cout << (std::string) py::dtype::of<StringStruct>().str() << std::endl;
+py::list print_dtypes() {
+    const auto dtypes = {
+        py::dtype::of<SimpleStruct>().str(),
+        py::dtype::of<PackedStruct>().str(),
+        py::dtype::of<NestedStruct>().str(),
+        py::dtype::of<PartialStruct>().str(),
+        py::dtype::of<PartialNestedStruct>().str(),
+        py::dtype::of<StringStruct>().str()
+    };
+    auto l = py::list();
+    for (const auto &s : dtypes) {
+        l.append(s);
+    }
+    return l;
 }
 
 py::array_t<int32_t, 0> test_array_ctors(int i) {

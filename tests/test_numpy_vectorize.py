@@ -59,18 +59,12 @@ def test_vectorize(capture):
 
 
 @pytest.requires_numpy
-def test_type_selection(capture):
+def test_type_selection():
     from pybind11_tests import selective_func
 
-    with capture:
-        selective_func(np.array([1], dtype=np.int32))
-        selective_func(np.array([1.0], dtype=np.float32))
-        selective_func(np.array([1.0j], dtype=np.complex64))
-    assert capture == """
-        Int branch taken.
-        Float branch taken.
-        Complex float branch taken.
-    """
+    assert selective_func(np.array([1], dtype=np.int32)) == "Int branch taken."
+    assert selective_func(np.array([1.0], dtype=np.float32)) == "Float branch taken."
+    assert selective_func(np.array([1.0j], dtype=np.complex64)) == "Complex float branch taken."
 
 
 @pytest.requires_numpy

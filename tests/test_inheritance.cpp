@@ -23,7 +23,7 @@ private:
 class Dog : public Pet {
 public:
     Dog(const std::string &name) : Pet(name, "dog") {}
-    void bark() const { std::cout << "Woof!" << std::endl; }
+    std::string bark() const { return "Woof!"; }
 };
 
 class Rabbit : public Pet {
@@ -31,12 +31,12 @@ public:
     Rabbit(const std::string &name) : Pet(name, "parrot") {}
 };
 
-void pet_print(const Pet &pet) {
-    std::cout << pet.name() + " is a " + pet.species() << std::endl;
+std::string pet_name_species(const Pet &pet) {
+    return pet.name() + " is a " + pet.species();
 }
 
-void dog_bark(const Dog &dog) {
-    dog.bark();
+std::string dog_bark(const Dog &dog) {
+    return dog.bark();
 }
 
 
@@ -59,7 +59,7 @@ void init_ex_inheritance(py::module &m) {
     py::class_<Rabbit>(m, "Rabbit", py::base<Pet>())
         .def(py::init<std::string>());
 
-    m.def("pet_print", pet_print);
+    m.def("pet_name_species", pet_name_species);
     m.def("dog_bark", dog_bark);
 
     py::class_<BaseClass>(m, "BaseClass").def(py::init<>());

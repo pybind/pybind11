@@ -10,13 +10,14 @@
 #include "pybind11_tests.h"
 #include <pybind11/stl.h>
 
-void kw_func(int x, int y) { std::cout << "kw_func(x=" << x << ", y=" << y << ")" << std::endl; }
+std::string kw_func(int x, int y) { return "x=" + std::to_string(x) + ", y=" + std::to_string(y); }
 
-void kw_func4(const std::vector<int> &entries) {
-    std::cout << "kw_func4: ";
+std::string kw_func4(const std::vector<int> &entries) {
+    std::string ret = "{";
     for (int i : entries)
-        std::cout << i << " ";
-    std::cout << endl;
+        ret += std::to_string(i) + " ";
+    ret.back() = '}';
+    return ret;
 }
 
 py::object call_kw_func(py::function f) {

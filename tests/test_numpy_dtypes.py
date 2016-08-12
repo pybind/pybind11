@@ -13,39 +13,35 @@ packed_dtype = np.dtype([('x', '?'), ('y', 'u4'), ('z', 'f4')])
 
 
 @pytest.requires_numpy
-def test_format_descriptors(capture):
+def test_format_descriptors():
     from pybind11_tests import get_format_unbound, print_format_descriptors
 
     with pytest.raises(RuntimeError) as excinfo:
         get_format_unbound()
     assert 'unsupported buffer format' in str(excinfo.value)
 
-    with capture:
-        print_format_descriptors()
-    assert capture == """
-        T{=?:x:3x=I:y:=f:z:}
-        T{=?:x:=I:y:=f:z:}
-        T{=T{=?:x:3x=I:y:=f:z:}:a:=T{=?:x:=I:y:=f:z:}:b:}
-        T{=?:x:3x=I:y:=f:z:12x}
-        T{8x=T{=?:x:3x=I:y:=f:z:12x}:a:8x}
-        T{=3s:a:=3s:b:}
-    """
+    assert print_format_descriptors() == [
+        "T{=?:x:3x=I:y:=f:z:}",
+        "T{=?:x:=I:y:=f:z:}",
+        "T{=T{=?:x:3x=I:y:=f:z:}:a:=T{=?:x:=I:y:=f:z:}:b:}",
+        "T{=?:x:3x=I:y:=f:z:12x}",
+        "T{8x=T{=?:x:3x=I:y:=f:z:12x}:a:8x}",
+        "T{=3s:a:=3s:b:}"
+    ]
 
 
 @pytest.requires_numpy
-def test_dtype(capture):
+def test_dtype():
     from pybind11_tests import print_dtypes, test_dtype_ctors, test_dtype_methods
 
-    with capture:
-        print_dtypes()
-    assert capture == """
-        {'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}
-        [('x', '?'), ('y', '<u4'), ('z', '<f4')]
-        [('a', {'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}), ('b', [('x', '?'), ('y', '<u4'), ('z', '<f4')])]
-        {'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}
-        {'names':['a'], 'formats':[{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}], 'offsets':[8], 'itemsize':40}
-        [('a', 'S3'), ('b', 'S3')]
-    """
+    assert print_dtypes() == [
+        "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}",
+        "[('x', '?'), ('y', '<u4'), ('z', '<f4')]",
+        "[('a', {'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}), ('b', [('x', '?'), ('y', '<u4'), ('z', '<f4')])]",
+        "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}",
+        "{'names':['a'], 'formats':[{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}], 'offsets':[8], 'itemsize':40}",
+        "[('a', 'S3'), ('b', 'S3')]"
+    ]
 
     d1 = np.dtype({'names': ['a', 'b'], 'formats': ['int32', 'float64'],
                    'offsets': [1, 10], 'itemsize': 20})
@@ -58,7 +54,7 @@ def test_dtype(capture):
 
 
 @pytest.requires_numpy
-def test_recarray(capture):
+def test_recarray():
     from pybind11_tests import (create_rec_simple, create_rec_packed, create_rec_nested,
                                 print_rec_simple, print_rec_packed, print_rec_nested,
                                 create_rec_partial, create_rec_partial_nested)
@@ -77,21 +73,17 @@ def test_recarray(capture):
         assert_equal(arr, elements, packed_dtype)
 
         if dtype == simple_dtype:
-            with capture:
-                print_rec_simple(arr)
-            assert capture == """
-                s:0,0,0
-                s:1,1,1.5
-                s:0,2,3
-            """
+            assert print_rec_simple(arr) == [
+                "s:0,0,0",
+                "s:1,1,1.5",
+                "s:0,2,3"
+            ]
         else:
-            with capture:
-                print_rec_packed(arr)
-            assert capture == """
-                p:0,0,0
-                p:1,1,1.5
-                p:0,2,3
-            """
+            assert print_rec_packed(arr) == [
+                "p:0,0,0",
+                "p:1,1,1.5",
+                "p:0,2,3"
+            ]
 
     nested_dtype = np.dtype([('a', simple_dtype), ('b', packed_dtype)])
 
@@ -104,13 +96,11 @@ def test_recarray(capture):
     assert_equal(arr, [((False, 0, 0.0), (True, 1, 1.5)),
                        ((True, 1, 1.5), (False, 2, 3.0)),
                        ((False, 2, 3.0), (True, 3, 4.5))], nested_dtype)
-    with capture:
-        print_rec_nested(arr)
-    assert capture == """
-        n:a=s:0,0,0;b=p:1,1,1.5
-        n:a=s:1,1,1.5;b=p:0,2,3
-        n:a=s:0,2,3;b=p:1,3,4.5
-    """
+    assert print_rec_nested(arr) == [
+        "n:a=s:0,0,0;b=p:1,1,1.5",
+        "n:a=s:1,1,1.5;b=p:0,2,3",
+        "n:a=s:0,2,3;b=p:1,3,4.5"
+    ]
 
     arr = create_rec_partial(3)
     assert str(arr.dtype) == "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}"
@@ -142,19 +132,17 @@ def test_array_constructors():
 
 
 @pytest.requires_numpy
-def test_string_array(capture):
+def test_string_array():
     from pybind11_tests import create_string_array, print_string_array
 
     arr = create_string_array(True)
     assert str(arr.dtype) == "[('a', 'S3'), ('b', 'S3')]"
-    with capture:
-        print_string_array(arr)
-    assert capture == """
-        a='',b=''
-        a='a',b='a'
-        a='ab',b='ab'
-        a='abc',b='abc'
-    """
+    assert print_string_array(arr) == [
+        "a='',b=''",
+        "a='a',b='a'",
+        "a='ab',b='ab'",
+        "a='abc',b='abc'"
+    ]
     dtype = arr.dtype
     assert arr['a'].tolist() == [b'', b'a', b'ab', b'abc']
     assert arr['b'].tolist() == [b'', b'a', b'ab', b'abc']

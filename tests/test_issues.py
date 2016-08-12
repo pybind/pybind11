@@ -2,24 +2,22 @@ import pytest
 import gc
 
 
-def test_regressions(capture):
+def test_regressions():
     from pybind11_tests.issues import print_cchar, print_char
 
-    with capture:
-        print_cchar("const char *")  # #137: const char* isn't handled properly
-    assert capture == "const char *"
-    with capture:
-        print_char("c")  # #150: char bindings broken
-    assert capture == "c"
+    # #137: const char* isn't handled properly
+    assert print_cchar("const char *") == "const char *"
+    # #150: char bindings broken
+    assert print_char("c") == "c"
 
 
-def test_dispatch_issue(capture, msg):
+def test_dispatch_issue(msg):
     """#159: virtual function dispatch has problems with similar-named functions"""
     from pybind11_tests.issues import DispatchIssue, dispatch_issue_go
 
     class PyClass1(DispatchIssue):
         def dispatch(self):
-            print("Yay..")
+            return "Yay.."
 
     class PyClass2(DispatchIssue):
         def dispatch(self):
@@ -28,12 +26,10 @@ def test_dispatch_issue(capture, msg):
             assert msg(excinfo.value) == 'Tried to call pure virtual function "Base::dispatch"'
 
             p = PyClass1()
-            dispatch_issue_go(p)
+            return dispatch_issue_go(p)
 
     b = PyClass2()
-    with capture:
-        dispatch_issue_go(b)
-    assert capture == "Yay.."
+    assert dispatch_issue_go(b) == "Yay.."
 
 
 def test_reference_wrapper():
@@ -127,36 +123,26 @@ def test_str_issue(capture, msg):
     """
 
 
-def test_nested(capture):
+def test_nested():
     """ #328: first member in a class can't be used in operators"""
-    from pybind11_tests.issues import NestA, NestB, NestC, print_NestA, print_NestB, print_NestC
+    from pybind11_tests.issues import NestA, NestB, NestC, get_NestA, get_NestB, get_NestC
 
     a = NestA()
     b = NestB()
     c = NestC()
 
     a += 10
+    assert get_NestA(a) == 13
     b.a += 100
+    assert get_NestA(b.a) == 103
     c.b.a += 1000
+    assert get_NestA(c.b.a) == 1003
     b -= 1
+    assert get_NestB(b) == 3
     c.b -= 3
+    assert get_NestB(c.b) == 1
     c *= 7
-
-    with capture:
-        print_NestA(a)
-        print_NestA(b.a)
-        print_NestA(c.b.a)
-        print_NestB(b)
-        print_NestB(c.b)
-        print_NestC(c)
-    assert capture == """
-        13
-        103
-        1003
-        3
-        1
-        35
-    """
+    assert get_NestC(c) == 35
 
     abase = a.as_base()
     assert abase.value == -2
