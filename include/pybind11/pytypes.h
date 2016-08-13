@@ -387,6 +387,11 @@ class bytes : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(bytes, object, PYBIND11_BYTES_CHECK)
 
+    bytes(const char *c)
+    : object(PYBIND11_BYTES_FROM_STRING(c), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
+    }
+
     bytes(const char *c, size_t n)
     : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, (ssize_t) n), false) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
