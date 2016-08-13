@@ -139,6 +139,8 @@ foo
 bar
 baz
 boo
+this is a str
+this is a repr
 Instances not destroyed: 1
 ### ExamplePythonTypes @ 0x1045b80 destroyed
 Instances not destroyed: 0

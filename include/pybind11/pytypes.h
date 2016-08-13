@@ -38,6 +38,7 @@ public:
     inline detail::accessor attr(handle key) const;
     inline detail::accessor attr(const char *key) const;
     inline pybind11::str str() const;
+    inline pybind11::str repr() const;
     template <typename T> T cast() const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
     #if __cplusplus > 201103L
@@ -376,6 +377,15 @@ public:
 
 inline pybind11::str handle::str() const {
     PyObject *strValue = PyObject_Str(m_ptr);
+#if PY_MAJOR_VERSION < 3
+    PyObject *unicode = PyUnicode_FromEncodedObject(strValue, "utf-8", nullptr);
+    Py_XDECREF(strValue); strValue = unicode;
+#endif
+    return pybind11::str(strValue, false);
+}
+
+inline pybind11::str handle::repr() const {
+    PyObject *strValue = PyObject_Repr(m_ptr);
 #if PY_MAJOR_VERSION < 3
     PyObject *unicode = PyUnicode_FromEncodedObject(strValue, "utf-8", nullptr);
     Py_XDECREF(strValue); strValue = unicode;

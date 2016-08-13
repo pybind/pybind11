@@ -71,6 +71,12 @@ print(instance.get_bytes_from_str().decode())
 print(instance.get_str_from_string().encode().decode())
 print(instance.get_str_from_bytes().encode().decode())
 
+class A(object):
+    __str__ = lambda _: 'this is a str'
+    __repr__ = lambda _: 'this is a repr'
+
+instance.test_print(A())
+
 from example import ConstructorStats
 
 cstats = ConstructorStats.get(ExamplePythonTypes)
