@@ -135,11 +135,10 @@ __name__(example.ExamplePythonTypes) = ExamplePythonTypes
 __module__(example.ExamplePythonTypes) = example
 __name__(example.ExamplePythonTypes.get_set) = get_set
 __module__(example.ExamplePythonTypes.get_set) = example
-Instances not destroyed: 1
-### ExamplePythonTypes @ 0x1045b80 destroyed
-Instances not destroyed: 0
-Destructing ExamplePythonTypes
 foo
 bar
 baz
 boo
+Instances not destroyed: 1
+### ExamplePythonTypes @ 0x1045b80 destroyed
+Instances not destroyed: 0
