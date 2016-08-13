@@ -357,6 +357,8 @@ public:
 
     str(const std::string &s) : str(s.data(), s.size()) { }
 
+    str(const bytes &b);
+
     operator std::string() const {
         object temp = *this;
         if (PyUnicode_Check(m_ptr)) {
@@ -370,8 +372,6 @@ public:
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
     }
-
-    operator bytes() const;
 };
 
 inline pybind11::str handle::str() const {
@@ -394,6 +394,8 @@ public:
 
     bytes(const std::string &s) : bytes(s.data(), s.size()) { }
 
+    bytes(const pybind11::str &s);
+
     operator std::string() const {
         char *buffer;
         ssize_t length;
@@ -401,14 +403,12 @@ public:
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, (size_t) length);
     }
-
-    operator pybind11::str() const;
 };
 
-inline str::operator bytes() const {
-    object temp = *this;
-    if (PyUnicode_Check(m_ptr)) {
-        temp = object(PyUnicode_AsUTF8String(m_ptr), false);
+inline bytes::bytes(const pybind11::str &s) {
+    object temp = s;
+    if (PyUnicode_Check(s.ptr())) {
+        temp = object(PyUnicode_AsUTF8String(s.ptr()), false);
         if (!temp)
             pybind11_fail("Unable to extract string contents! (encoding issue)");
     }
@@ -419,18 +419,18 @@ inline str::operator bytes() const {
     auto obj = object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length), false);
     if (!obj)
         pybind11_fail("Could not allocate bytes object!");
-    return obj;
+    m_ptr = obj.release().ptr();
 }
 
-inline bytes::operator pybind11::str() const {
+inline str::str(const bytes& b) {
     char *buffer;
     ssize_t length;
-    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
+    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length))
         pybind11_fail("Unable to extract bytes contents!");
     auto obj = object(PyUnicode_FromStringAndSize(buffer, (ssize_t) length), false);
     if (!obj)
         pybind11_fail("Could not allocate string object!");
-    return obj;
+    m_ptr = obj.release().ptr();
 }
 
 class none : public object {
