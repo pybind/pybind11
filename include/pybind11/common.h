@@ -95,6 +95,7 @@
 #define PYBIND11_STRING_NAME "str"
 #define PYBIND11_SLICE_OBJECT PyObject
 #define PYBIND11_FROM_STRING PyUnicode_FromString
+#define PYBIND11_STR_TYPE ::pybind11::str
 #define PYBIND11_OB_TYPE(ht_type) (ht_type).ob_base.ob_base.ob_type
 #define PYBIND11_PLUGIN_IMPL(name) \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
@@ -113,6 +114,7 @@
 #define PYBIND11_STRING_NAME "unicode"
 #define PYBIND11_SLICE_OBJECT PySliceObject
 #define PYBIND11_FROM_STRING PyString_FromString
+#define PYBIND11_STR_TYPE ::pybind11::bytes
 #define PYBIND11_OB_TYPE(ht_type) (ht_type).ob_type
 #define PYBIND11_PLUGIN_IMPL(name) \
     extern "C" PYBIND11_EXPORT PyObject *init##name()
