@@ -39,7 +39,7 @@ matrix:
     install:
     - >
       docker exec --tty "$containerid" apt-get -y --no-install-recommends install
-      python2.7-dev python-scipy libeigen3-dev
+      python2.7-dev python-pip python-setuptools python-scipy libeigen3-dev
       cmake make g++
   - compiler: gcc-6
     services: docker
@@ -48,7 +48,7 @@ matrix:
     install:
     - >
       docker exec --tty "$containerid" apt-get -y --no-install-recommends install
-      python3.5-dev python3-scipy libeigen3-dev
+      python3.5-dev python3-pip python3-setuptools python3-scipy libeigen3-dev
       cmake make g++
   # Documentation build:
   - os: linux
