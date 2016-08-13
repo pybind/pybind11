@@ -140,19 +140,19 @@ public:
     }
 
     py::bytes get_bytes_from_string() {
-        return std::string("foo");
+        return (py::bytes) std::string("foo");
     }
 
     py::bytes get_bytes_from_str() {
-        return py::str(std::string("bar"));
+        return (py::bytes) py::str(std::string("bar"));
     }
 
     py::str get_str_from_string() {
-        return std::string("baz");
+        return (py::str) std::string("baz");
     }
 
     py::str get_str_from_bytes() {
-        return py::bytes(std::string("boo"));
+        return (py::str) py::bytes(std::string("boo"));
     }
 
     static int value;
