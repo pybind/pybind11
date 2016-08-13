@@ -106,8 +106,9 @@ Tomasz Miąsko,
 Dean Moldovan,
 Ben Pritchard,
 Jason Rhinelander,
-Boris Schäling, and
-Pim Schellart.
+Boris Schäling,
+Pim Schellart,
+Ivan Smirnov.
 
 ### License
 

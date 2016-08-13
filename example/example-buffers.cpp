@@ -81,7 +81,7 @@ void init_ex_buffers(py::module &m) {
         /// Construct from a buffer
         .def("__init__", [](Matrix &v, py::buffer b) {
             py::buffer_info info = b.request();
-            if (info.format != py::format_descriptor<float>::value || info.ndim != 2)
+            if (info.format != py::format_descriptor<float>::format() || info.ndim != 2)
                 throw std::runtime_error("Incompatible buffer format!");
             new (&v) Matrix(info.shape[0], info.shape[1]);
             memcpy(v.data(), info.ptr, sizeof(float) * v.rows() * v.cols());
@@ -104,12 +104,12 @@ void init_ex_buffers(py::module &m) {
        /// Provide buffer access
        .def_buffer([](Matrix &m) -> py::buffer_info {
             return py::buffer_info(
-                m.data(),                            /* Pointer to buffer */
-                sizeof(float),                       /* Size of one scalar */
-                py::format_descriptor<float>::value, /* Python struct-style format descriptor */
-                2,                                   /* Number of dimensions */
-                { m.rows(), m.cols() },              /* Buffer dimensions */
-                { sizeof(float) * m.rows(),          /* Strides (in bytes) for each index */
+                m.data(),                               /* Pointer to buffer */
+                sizeof(float),                          /* Size of one scalar */
+                py::format_descriptor<float>::format(), /* Python struct-style format descriptor */
+                2,                                      /* Number of dimensions */
+                { m.rows(), m.cols() },                 /* Buffer dimensions */
+                { sizeof(float) * m.rows(),             /* Strides (in bytes) for each index */
                   sizeof(float) }
             );
         })

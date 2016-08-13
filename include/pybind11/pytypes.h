@@ -339,12 +339,14 @@ inline iterator handle::begin() const { return iterator(PyObject_GetIter(ptr()),
 inline iterator handle::end() const { return iterator(nullptr, false); }
 inline detail::args_proxy handle::operator*() const { return detail::args_proxy(*this); }
 
+class bytes;
+
 class str : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(str, object, detail::PyUnicode_Check_Permissive)
 
-    str(const std::string &s)
-        : object(PyUnicode_FromStringAndSize(s.c_str(), (ssize_t) s.length()), false) {
+    str(const char *c, size_t n)
+    : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), false) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
 
@@ -352,6 +354,10 @@ public:
         : object(PyUnicode_FromString(c), false) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
+
+    str(const std::string &s) : str(s.data(), s.size()) { }
+
+    str(const bytes &b);
 
     operator std::string() const {
         object temp = *this;
@@ -362,8 +368,7 @@ public:
         }
         char *buffer;
         ssize_t length;
-        int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length);
-        if (err == -1)
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
     }
@@ -382,20 +387,56 @@ class bytes : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(bytes, object, PYBIND11_BYTES_CHECK)
 
-    bytes(const std::string &s)
-        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(s.data(), (ssize_t) s.size()), false) {
+    bytes(const char *c)
+    : object(PYBIND11_BYTES_FROM_STRING(c), false) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
+
+    bytes(const char *c, size_t n)
+    : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, (ssize_t) n), false) {
+        if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
+    }
+
+    bytes(const std::string &s) : bytes(s.data(), s.size()) { }
+
+    bytes(const pybind11::str &s);
 
     operator std::string() const {
         char *buffer;
         ssize_t length;
-        int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length);
-        if (err == -1)
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, (size_t) length);
     }
 };
+
+inline bytes::bytes(const pybind11::str &s) {
+    object temp = s;
+    if (PyUnicode_Check(s.ptr())) {
+        temp = object(PyUnicode_AsUTF8String(s.ptr()), false);
+        if (!temp)
+            pybind11_fail("Unable to extract string contents! (encoding issue)");
+    }
+    char *buffer;
+    ssize_t length;
+    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
+        pybind11_fail("Unable to extract string contents! (invalid type)");
+    auto obj = object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length), false);
+    if (!obj)
+        pybind11_fail("Could not allocate bytes object!");
+    m_ptr = obj.release().ptr();
+}
+
+inline str::str(const bytes& b) {
+    char *buffer;
+    ssize_t length;
+    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length))
+        pybind11_fail("Unable to extract bytes contents!");
+    auto obj = object(PyUnicode_FromStringAndSize(buffer, (ssize_t) length), false);
+    if (!obj)
+        pybind11_fail("Could not allocate string object!");
+    m_ptr = obj.release().ptr();
+}
 
 class none : public object {
 public:
@@ -568,6 +609,38 @@ public:
             throw error_already_set();
         return buffer_info(view);
     }
+};
+
+class memoryview : public object {
+public:
+    memoryview(const buffer_info& info) {
+        static Py_buffer buf { };
+        // Py_buffer uses signed sizes, strides and shape!..
+        static std::vector<Py_ssize_t> py_strides { };
+        static std::vector<Py_ssize_t> py_shape { };
+        buf.buf = info.ptr;
+        buf.itemsize = (Py_ssize_t) info.itemsize;
+        buf.format = const_cast<char *>(info.format.c_str());
+        buf.ndim = (int) info.ndim;
+        buf.len = (Py_ssize_t) info.size;
+        py_strides.clear();
+        py_shape.clear();
+        for (size_t i = 0; i < info.ndim; ++i) {
+            py_strides.push_back((Py_ssize_t) info.strides[i]);
+            py_shape.push_back((Py_ssize_t) info.shape[i]);
+        }
+        buf.strides = py_strides.data();
+        buf.shape = py_shape.data();
+        buf.suboffsets = nullptr;
+        buf.readonly = false;
+        buf.internal = nullptr;
+
+        m_ptr = PyMemoryView_FromBuffer(&buf);
+        if (!m_ptr)
+            pybind11_fail("Unable to create memoryview from buffer descriptor");
+    }
+
+    PYBIND11_OBJECT_DEFAULT(memoryview, object, PyMemoryView_Check)
 };
 
 inline size_t len(handle h) {

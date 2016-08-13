@@ -66,6 +66,11 @@ print("__module__(example.ExamplePythonTypes) = %s" % ExamplePythonTypes.__modul
 print("__name__(example.ExamplePythonTypes.get_set) = %s" % ExamplePythonTypes.get_set.__name__)
 print("__module__(example.ExamplePythonTypes.get_set) = %s" % ExamplePythonTypes.get_set.__module__)
 
+print(instance.get_bytes_from_string().decode())
+print(instance.get_bytes_from_str().decode())
+print(instance.get_str_from_string().encode().decode())
+print(instance.get_str_from_bytes().encode().decode())
+
 from example import ConstructorStats
 
 cstats = ConstructorStats.get(ExamplePythonTypes)

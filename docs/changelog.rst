@@ -27,6 +27,23 @@ Breaking changes queued for v2.0.0 (Not yet released)
 * ``make_iterator()`` improvements for better compatibility with various types
   (now uses prefix increment operator)
 * ``arg()`` now accepts a wider range of argument types for default values
+* Added support for registering structured dtypes via ``PYBIND11_NUMPY_DTYPE()`` macro.
+* Added ``PYBIND11_STR_TYPE`` macro which maps to the ``builtins.str`` type.
+* Added a simplified ``buffer_info`` constructor for 1-dimensional buffers.
+* Format descriptor strings should now be accessed via ``format_descriptor::format()``
+  (for compatibility purposes, the old syntax ``format_descriptor::value`` will still
+  work for non-structured data types).
+* Added a class wrapping NumPy array descriptors: ``dtype``.
+* Added buffer/NumPy support for ``char[N]`` and ``std::array<char, N>`` types.
+* ``array`` gained new constructors accepting dtype objects.
+* Added constructors for ``array`` and ``array_t`` explicitly accepting shape and
+  strides; if strides are not provided, they are deduced assuming C-contiguity.
+  Also added simplified constructors for 1-dimensional case.
+* Added constructors for ``str`` from ``bytes`` and for ``bytes`` from ``str``.
+  This will do the UTF-8 decoding/encoding as required.
+* Added constructors for ``str`` and ``bytes`` from zero-terminated char pointers,
+  and from char pointers and length.
+* Added ``memoryview`` wrapper type which is constructible from ``buffer_info``.
 * Various minor improvements of library internals (no user-visible changes)
 
 1.8.1 (July 12, 2016)
