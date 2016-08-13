@@ -1457,17 +1457,11 @@ simply using ``vectorize``).
         if (buf1.ndim != 1 || buf2.ndim != 1)
             throw std::runtime_error("Number of dimensions must be one");
 
-        if (buf1.shape[0] != buf2.shape[0])
+        if (buf1.size != buf2.size)
             throw std::runtime_error("Input shapes must match");
 
-        auto result = py::array(py::buffer_info(
-            nullptr,            /* Pointer to data (nullptr -> ask NumPy to allocate!) */
-            sizeof(double),     /* Size of one item */
-            py::format_descriptor<double>::format(), /* Buffer format */
-            buf1.ndim,          /* How many dimensions? */
-            { buf1.shape[0] },  /* Number of elements for each dimension */
-            { sizeof(double) }  /* Strides for each dimension */
-        ));
+        /* No pointer is passed, so NumPy will allocate the buffer */
+        auto result = py::array_t<double>(buf1.size);
 
         auto buf3 = result.request();
 
