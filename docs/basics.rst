@@ -5,7 +5,7 @@ First steps
 
 This sections demonstrates the basic features of pybind11. Before getting
 started, make sure that development environment is set up to compile the
-included set of examples, which also double as test cases.
+included set of test cases.
 
 
 Compiling the test cases
@@ -22,44 +22,42 @@ After installing the prerequisites, run
 
 .. code-block:: bash
 
-   cmake .
-   make -j 4
+   mkdir build
+   cd build
+   cmake ..
+   make pytest -j 4
 
-followed by
-
-.. code-block:: bash
-
-   make test
+The last line will both compile and run the tests.
 
 Windows
 -------
 
-On Windows, use the `CMake GUI`_ to create a Visual Studio project. Note that
-only the 2015 release and newer versions are supported since pybind11 relies on
-various C++11 language features that break older versions of Visual Studio.
-After running CMake, open the created :file:`pybind11.sln` file and perform a
-release build, which will will produce a file named
-:file:`Release\\example.pyd`. Copy this file to the :file:`example` directory
-and run :file:`example\\run_test.py` using the targeted Python version.
+On Windows, only **Visual Studio 2015** and newer are supported since pybind11 relies
+on various C++11 language features that break older versions of Visual Studio.
 
-.. _`CMake GUI`: https://cmake.org/runningcmake
+To compile and run the tests:
+
+.. code-block:: batch
+
+   mkdir build
+   cd build
+   cmake ..
+   cmake --build . --config Release --target pytest
+
+This will create a Visual Studio project, compile and run the target, all from the
+command line.
 
 .. Note::
 
-    When all tests fail, make sure that
-
-    1. The Python binary and the testcases are compiled for the same processor
-       type and bitness (i.e. either **i386** or **x86_64**)
-
-    2. The Python binary used to run :file:`example\\run_test.py` matches the
-       Python version specified in the CMake GUI. This is controlled via
-       the ``PYTHON_EXECUTABLE`` ``PYTHON_INCLUDE_DIR``, and
-       ``PYTHON_LIBRARY`` variables.
+    If all tests fail, make sure that the Python binary and the testcases are compiled
+    for the same processor type and bitness (i.e. either **i386** or **x86_64**). You
+    can specify **x86_64** as the target architecture for the generated Visual Studio
+    project using ``cmake -A x64 ..``.
 
 .. seealso::
 
     Advanced users who are already familiar with Boost.Python may want to skip
-    the tutorial and look at the test cases in the :file:`example` directory,
+    the tutorial and look at the test cases in the :file:`tests` directory,
     which exercise all features of pybind11.
 
 Creating bindings for a simple function
