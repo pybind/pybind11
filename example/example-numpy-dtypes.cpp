@@ -91,7 +91,7 @@ py::array_t<S, 0> create_recarray(size_t n) {
     auto req = arr.request();
     auto ptr = static_cast<S*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
-        ptr[i].x = i % 2; ptr[i].y = (uint32_t) i; ptr[i].z = (float) i * 1.5f;
+        ptr[i].x = i % 2 != 0; ptr[i].y = (uint32_t) i; ptr[i].z = (float) i * 1.5f;
     }
     return arr;
 }
@@ -105,8 +105,8 @@ py::array_t<NestedStruct, 0> create_nested(size_t n) {
     auto req = arr.request();
     auto ptr = static_cast<NestedStruct*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
-        ptr[i].a.x = i % 2; ptr[i].a.y = (uint32_t) i; ptr[i].a.z = (float) i * 1.5f;
-        ptr[i].b.x = (i + 1) % 2; ptr[i].b.y = (uint32_t) (i + 1); ptr[i].b.z = (float) (i + 1) * 1.5f;
+        ptr[i].a.x = i % 2 != 0; ptr[i].a.y = (uint32_t) i; ptr[i].a.z = (float) i * 1.5f;
+        ptr[i].b.x = (i + 1) % 2 != 0; ptr[i].b.y = (uint32_t) (i + 1); ptr[i].b.z = (float) (i + 1) * 1.5f;
     }
     return arr;
 }
@@ -116,7 +116,7 @@ py::array_t<PartialNestedStruct, 0> create_partial_nested(size_t n) {
     auto req = arr.request();
     auto ptr = static_cast<PartialNestedStruct*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
-        ptr[i].a.x = i % 2; ptr[i].a.y = (uint32_t) i; ptr[i].a.z = (float) i * 1.5f;
+        ptr[i].a.x = i % 2 != 0; ptr[i].a.y = (uint32_t) i; ptr[i].a.z = (float) i * 1.5f;
     }
     return arr;
 }
