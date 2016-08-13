@@ -54,13 +54,13 @@ struct PartialStruct {
     bool x;
     uint32_t y;
     float z;
-    long dummy2;
+    uint64_t dummy2;
 };
 
 struct PartialNestedStruct {
-    long dummy1;
+    uint64_t dummy1;
     PartialStruct a;
-    long dummy2;
+    uint64_t dummy2;
 };
 
 struct UnboundStruct { };
