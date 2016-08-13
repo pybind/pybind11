@@ -68,8 +68,8 @@ print("__module__(example.ExamplePythonTypes.get_set) = %s" % ExamplePythonTypes
 
 print(instance.get_bytes_from_string().decode())
 print(instance.get_bytes_from_str().decode())
-print(instance.get_str_from_string())
-print(instance.get_str_from_bytes())
+print(instance.get_str_from_string().encode().decode())
+print(instance.get_str_from_bytes().encode().decode())
 
 from example import ConstructorStats
 
