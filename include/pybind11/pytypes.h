@@ -364,8 +364,7 @@ public:
         }
         char *buffer;
         ssize_t length;
-        int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length);
-        if (err == -1)
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
     }
@@ -394,8 +393,7 @@ public:
     operator std::string() const {
         char *buffer;
         ssize_t length;
-        int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length);
-        if (err == -1)
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, (size_t) length);
     }
@@ -404,11 +402,31 @@ public:
 };
 
 inline str::operator bytes() const {
-    return bytes((std::string) *this);
+    object temp = *this;
+    if (PyUnicode_Check(m_ptr)) {
+        temp = object(PyUnicode_AsUTF8String(m_ptr), false);
+        if (!temp)
+            pybind11_fail("Unable to extract string contents! (encoding issue)");
+    }
+    char *buffer;
+    ssize_t length;
+    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
+        pybind11_fail("Unable to extract string contents! (invalid type)");
+    auto obj = object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length), false);
+    if (!obj)
+        pybind11_fail("Could not allocate bytes object!");
+    return obj;
 }
 
 inline bytes::operator pybind11::str() const {
-    return pybind11::str((std::string) *this);
+    char *buffer;
+    ssize_t length;
+    if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
+        pybind11_fail("Unable to extract bytes contents!");
+    auto obj = object(PyUnicode_FromStringAndSize(buffer, (ssize_t) length), false);
+    if (!obj)
+        pybind11_fail("Could not allocate string object!");
+    return obj;
 }
 
 class none : public object {
