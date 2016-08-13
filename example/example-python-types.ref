@@ -28,106 +28,106 @@ Help on class ExamplePythonTypes in module example
 
 class EExxaammpplleePPyytthhoonnTTyyppeess(__builtin__.object)
  |  Example 2 documentation
- |  
+ |
  |  Methods defined here:
- |  
+ |
  |  ____iinniitt____(...)
  |      x.__init__(...) initializes x; see help(type(x)) for signature
- |  
+ |
  |  ggeett__aarrrraayy(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes) -> List[unicode[2]]
  |      Return a C++ array
- |  
+ |
  |  ggeett__ddiicctt(...)
  |      Signature : (example.ExamplePythonTypes) -> dict
- |      
+ |
  |      Return a Python dictionary
- |  
+ |
  |  ggeett__ddiicctt__22(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes) -> Dict[unicode, unicode]
  |      Return a C++ dictionary
- |  
+ |
  |  ggeett__lliisstt(...)
  |      Signature : (example.ExamplePythonTypes) -> list
- |      
+ |
  |      Return a Python list
- |  
+ |
  |  ggeett__lliisstt__22(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes) -> List[unicode]
  |      Return a C++ list
- |  
+ |
  |  ggeett__sseett(...)
  |      Signature : (example.ExamplePythonTypes) -> set
- |      
+ |
  |      Return a Python set
- |  
+ |
  |  ggeett__sseett22(...)
  |      Signature : (example.ExamplePythonTypes) -> set
- |      
+ |
  |      Return a C++ set
- |  
+ |
  |  ppaaiirr__ppaasssstthhrroouugghh(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, Tuple[bool, unicode]) -> Tuple[unicode, bool]
  |      Return a pair in reversed order
- |  
+ |
  |  pprriinntt__aarrrraayy(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, List[unicode[2]]) -> None
  |      Print entries of a C++ array
- |  
+ |
  |  pprriinntt__ddiicctt(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, dict) -> None
  |      Print entries of a Python dictionary
- |  
+ |
  |  pprriinntt__ddiicctt__22(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, Dict[unicode, unicode]) -> None
  |      Print entries of a C++ dictionary
- |  
+ |
  |  pprriinntt__lliisstt(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, list) -> None
  |      Print entries of a Python list
- |  
+ |
  |  pprriinntt__lliisstt__22(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, List[unicode]) -> None
  |      Print entries of a C++ list
- |  
+ |
  |  pprriinntt__sseett(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, set) -> None
  |      Print entries of a Python set
- |  
+ |
  |  pprriinntt__sseett__22(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, Set[unicode]) -> None
  |      Print entries of a C++ set
- |  
+ |
  |  tthhrrooww__eexxcceeppttiioonn(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes) -> None
  |      Throw an exception
- |  
+ |
  |  ttuuppllee__ppaasssstthhrroouugghh(...)
- |      
+ |
  |      Signature : (example.ExamplePythonTypes, Tuple[bool, unicode, int]) -> Tuple[int, unicode, bool]
  |      Return a triple in reversed order
- |  
+ |
  |  ----------------------------------------------------------------------
  |  Data and other attributes defined here:
- |  
+ |
  |  ____nneeww____ = <built-in method __new__ of example.ExamplePythonTypes__Meta object>
  |      T.__new__(S, ...) -> a new object with type S, a subtype of T
- |  
+ |
  |  nneeww__iinnssttaannccee = <built-in method new_instance of PyCapsule object>
  |      Signature : () -> example.ExamplePythonTypes
- |      
+ |
  |      Return an instance
 
 __name__(example) = example
@@ -138,3 +138,8 @@ __module__(example.ExamplePythonTypes.get_set) = example
 Instances not destroyed: 1
 ### ExamplePythonTypes @ 0x1045b80 destroyed
 Instances not destroyed: 0
+Destructing ExamplePythonTypes
+foo
+bar
+baz
+boo

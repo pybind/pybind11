@@ -139,6 +139,22 @@ public:
         throw std::runtime_error("This exception was intentionally thrown.");
     }
 
+    py::bytes get_bytes_from_string() {
+        return std::string("foo");
+    }
+
+    py::bytes get_bytes_from_str() {
+        return py::str(std::string("bar"));
+    }
+
+    py::str get_str_from_string() {
+        return std::string("baz");
+    }
+
+    py::str get_str_from_bytes() {
+        return py::bytes(std::string("boo"));
+    }
+
     static int value;
     static const int value2;
 };
@@ -167,6 +183,10 @@ void init_ex_python_types(py::module &m) {
         .def("pair_passthrough", &ExamplePythonTypes::pair_passthrough, "Return a pair in reversed order")
         .def("tuple_passthrough", &ExamplePythonTypes::tuple_passthrough, "Return a triple in reversed order")
         .def("throw_exception", &ExamplePythonTypes::throw_exception, "Throw an exception")
+        .def("get_bytes_from_string", &ExamplePythonTypes::get_bytes_from_string, "py::bytes from std::string")
+        .def("get_bytes_from_str", &ExamplePythonTypes::get_bytes_from_str, "py::bytes from py::str")
+        .def("get_str_from_string", &ExamplePythonTypes::get_str_from_string, "py::str from std::string")
+        .def("get_str_from_bytes", &ExamplePythonTypes::get_str_from_bytes, "py::str from py::bytes")
         .def_static("new_instance", &ExamplePythonTypes::new_instance, "Return an instance")
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
         .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")

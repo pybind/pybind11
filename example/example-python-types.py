@@ -72,3 +72,8 @@ cstats = ConstructorStats.get(ExamplePythonTypes)
 print("Instances not destroyed:", cstats.alive())
 instance = None
 print("Instances not destroyed:", cstats.alive())
+
+print(instance.get_bytes_from_string().decode())
+print(instance.get_bytes_from_str().decode())
+print(instance.get_str_from_string())
+print(instance.get_str_from_bytes())

@@ -339,6 +339,8 @@ inline iterator handle::begin() const { return iterator(PyObject_GetIter(ptr()),
 inline iterator handle::end() const { return iterator(nullptr, false); }
 inline detail::args_proxy handle::operator*() const { return detail::args_proxy(*this); }
 
+class bytes;
+
 class str : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(str, object, detail::PyUnicode_Check_Permissive)
@@ -367,6 +369,8 @@ public:
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
     }
+
+    operator bytes() const;
 };
 
 inline pybind11::str handle::str() const {
@@ -395,7 +399,17 @@ public:
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, (size_t) length);
     }
+
+    operator pybind11::str() const;
 };
+
+inline str::operator bytes() const {
+    return bytes((std::string) *this);
+}
+
+inline bytes::operator pybind11::str() const {
+    return pybind11::str((std::string) *this);
+}
 
 class none : public object {
 public:
