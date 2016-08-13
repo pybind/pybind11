@@ -144,7 +144,7 @@ public:
     }
 
     py::bytes get_bytes_from_str() {
-        return (py::bytes) py::str(std::string("bar"));
+        return (py::bytes) py::str("bar", 3);
     }
 
     py::str get_str_from_string() {
@@ -152,7 +152,7 @@ public:
     }
 
     py::str get_str_from_bytes() {
-        return (py::str) py::bytes(std::string("boo"));
+        return (py::str) py::bytes("boo", 3);
     }
 
     static int value;

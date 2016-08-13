@@ -345,8 +345,8 @@ class str : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(str, object, detail::PyUnicode_Check_Permissive)
 
-    str(const std::string &s)
-        : object(PyUnicode_FromStringAndSize(s.c_str(), (ssize_t) s.length()), false) {
+    str(const char *c, size_t n)
+    : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), false) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
 
@@ -354,6 +354,8 @@ public:
         : object(PyUnicode_FromString(c), false) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
+
+    str(const std::string &s) : str(s.data(), s.size()) { }
 
     operator std::string() const {
         object temp = *this;
@@ -385,10 +387,12 @@ class bytes : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(bytes, object, PYBIND11_BYTES_CHECK)
 
-    bytes(const std::string &s)
-        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(s.data(), (ssize_t) s.size()), false) {
+    bytes(const char *c, size_t n)
+    : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, (ssize_t) n), false) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
+
+    bytes(const std::string &s) : bytes(s.data(), s.size()) { }
 
     operator std::string() const {
         char *buffer;
