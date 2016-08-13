@@ -117,7 +117,7 @@ public:
     PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
 
     dtype(const buffer_info &info) {
-        dtype descr(_dtype_from_pep3118()(pybind11::str(info.format)));
+        dtype descr(_dtype_from_pep3118()(PYBIND11_STR_TYPE(info.format)));
         m_ptr = descr.strip_padding().release().ptr();
     }
 
@@ -174,7 +174,7 @@ private:
         if (fields.ptr() == Py_None)
             return *this;
 
-        struct field_descr { pybind11::str name; object format; int_ offset; };
+        struct field_descr { PYBIND11_STR_TYPE name; object format; int_ offset; };
         std::vector<field_descr> field_descriptors;
 
         auto items = fields.attr("items").cast<object>();
@@ -185,7 +185,7 @@ private:
             auto offset = spec[1].cast<tuple>()[1].cast<int_>();
             if (!len(name) && format.kind() == "V")
                 continue;
-            field_descriptors.push_back({name, format.strip_padding(), offset});
+            field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(), offset});
         }
 
         std::sort(field_descriptors.begin(), field_descriptors.end(),
@@ -405,7 +405,7 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
         for (auto field : fields) {
             if (!field.descr)
                 pybind11_fail("NumPy: unsupported field dtype");
-            names.append(str(field.name));
+            names.append(PYBIND11_STR_TYPE(field.name));
             formats.append(field.descr);
             offsets.append(int_(field.offset));
         }
