@@ -155,6 +155,11 @@ public:
         return (py::str) py::bytes("boo", 3);
     }
 
+    void test_print(const py::object& obj) {
+        std::cout << obj.str() << std::endl;
+        std::cout << obj.repr() << std::endl;
+    }
+
     static int value;
     static const int value2;
 };
@@ -187,6 +192,7 @@ void init_ex_python_types(py::module &m) {
         .def("get_bytes_from_str", &ExamplePythonTypes::get_bytes_from_str, "py::bytes from py::str")
         .def("get_str_from_string", &ExamplePythonTypes::get_str_from_string, "py::str from std::string")
         .def("get_str_from_bytes", &ExamplePythonTypes::get_str_from_bytes, "py::str from py::bytes")
+        .def("test_print", &ExamplePythonTypes::test_print, "test the print function")
         .def_static("new_instance", &ExamplePythonTypes::new_instance, "Return an instance")
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
         .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")

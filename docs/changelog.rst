@@ -27,6 +27,7 @@ Breaking changes queued for v2.0.0 (Not yet released)
 * ``make_iterator()`` improvements for better compatibility with various types
   (now uses prefix increment operator)
 * ``arg()`` now accepts a wider range of argument types for default values
+* Added ``repr()`` method to the ``handle`` class.
 * Added support for registering structured dtypes via ``PYBIND11_NUMPY_DTYPE()`` macro.
 * Added ``PYBIND11_STR_TYPE`` macro which maps to the ``builtins.str`` type.
 * Added a simplified ``buffer_info`` constructor for 1-dimensional buffers.
