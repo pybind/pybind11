@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <string>
 #include <initializer_list>
 
 #if defined(_MSC_VER)
@@ -303,14 +304,14 @@ public:
 
 template <typename T>
 struct format_descriptor<T, typename std::enable_if<detail::is_pod_struct<T>::value>::type> {
-    static const char *format() { return detail::npy_format_descriptor<T>::format(); }
+    static std::string format() { return detail::npy_format_descriptor<T>::format(); }
 };
 
 template <size_t N> struct format_descriptor<char[N]> {
-    static const char *format() { PYBIND11_DESCR s = detail::_<N>() + detail::_("s"); return s.text(); }
+    static std::string format() { return std::to_string(N) + "s"; }
 };
 template <size_t N> struct format_descriptor<std::array<char, N>> {
-    static const char *format() { PYBIND11_DESCR s = detail::_<N>() + detail::_("s"); return s.text(); }
+    static std::string format() { return std::to_string(N) + "s"; }
 };
 
 NAMESPACE_BEGIN(detail)
@@ -367,11 +368,7 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
 
 #define DECL_CHAR_FMT \
     static PYBIND11_DESCR name() { return _("S") + _<N>(); } \
-    static pybind11::dtype dtype() { \
-        PYBIND11_DESCR fmt = _("S") + _<N>(); \
-        return pybind11::dtype(fmt.text());  \
-    } \
-    static const char *format() { PYBIND11_DESCR s = _<N>() + _("s"); return s.text(); }
+    static pybind11::dtype dtype() { return std::string("S") + std::to_string(N); }
 template <size_t N> struct npy_format_descriptor<char[N]> { DECL_CHAR_FMT };
 template <size_t N> struct npy_format_descriptor<std::array<char, N>> { DECL_CHAR_FMT };
 #undef DECL_CHAR_FMT
@@ -380,7 +377,7 @@ struct field_descriptor {
     const char *name;
     size_t offset;
     size_t size;
-    const char *format;
+    std::string format;
     dtype descr;
 };
 
@@ -389,15 +386,15 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
     static PYBIND11_DESCR name() { return _("struct"); }
 
     static pybind11::dtype dtype() {
-        if (!dtype_())
+        if (!dtype_ptr)
             pybind11_fail("NumPy: unsupported buffer format!");
-        return object(dtype_(), true);
+        return object(dtype_ptr, true);
     }
 
-    static const char* format() {
-        if (!dtype_())
+    static std::string format() {
+        if (!dtype_ptr)
             pybind11_fail("NumPy: unsupported buffer format!");
-        return format_().c_str();
+        return format_str;
     }
 
     static void register_dtype(std::initializer_list<field_descriptor> fields) {
@@ -409,7 +406,7 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
             formats.append(field.descr);
             offsets.append(int_(field.offset));
         }
-        dtype_() = pybind11::dtype(names, formats, offsets, sizeof(T)).release().ptr();
+        dtype_ptr = pybind11::dtype(names, formats, offsets, sizeof(T)).release().ptr();
 
         // There is an existing bug in NumPy (as of v1.11): trailing bytes are
         // not encoded explicitly into the format string. This will supposedly
@@ -436,19 +433,24 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
         if (sizeof(T) > offset)
             oss << (sizeof(T) - offset) << 'x';
         oss << '}';
-        format_() = oss.str();
+        format_str = oss.str();
 
         // Sanity check: verify that NumPy properly parses our buffer format string
         auto& api = npy_api::get();
-        auto arr =  array(buffer_info(nullptr, sizeof(T), format(), 1, { 0 }, { sizeof(T) }));
-        if (!api.PyArray_EquivTypes_(dtype_(), arr.dtype().ptr()))
+        auto arr =  array(buffer_info(nullptr, sizeof(T), format(), 1));
+        if (!api.PyArray_EquivTypes_(dtype_ptr, arr.dtype().ptr()))
             pybind11_fail("NumPy: invalid buffer descriptor!");
     }
 
 private:
-    static inline PyObject*& dtype_() { static PyObject *ptr = nullptr; return ptr; }
-    static inline std::string& format_() { static std::string s; return s; }
+    static std::string format_str;
+    static PyObject* dtype_ptr;
 };
+
+template <typename T>
+std::string npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type>::format_str;
+template <typename T>
+PyObject* npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type>::dtype_ptr = nullptr;
 
 // Extract name, offset and format descriptor for a struct field
 #define PYBIND11_FIELD_DESCRIPTOR(Type, Field) \
