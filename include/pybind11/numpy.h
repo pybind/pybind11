@@ -29,8 +29,6 @@ NAMESPACE_BEGIN(pybind11)
 namespace detail {
 template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
 template <typename type> struct is_pod_struct;
-template <typename T> using decay_cv_ref =
-    typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 
 struct npy_api {
     enum constants {
@@ -148,7 +146,7 @@ public:
     }
 
     template <typename T> static dtype of() {
-        return detail::npy_format_descriptor<T>::dtype();
+        return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::dtype();
     }
 
     size_t itemsize() const {
@@ -306,7 +304,9 @@ public:
 
 template <typename T>
 struct format_descriptor<T, typename std::enable_if<detail::is_pod_struct<T>::value>::type> {
-    static std::string format() { return detail::npy_format_descriptor<T>::format(); }
+    static std::string format() {
+        return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::format();
+    }
 };
 
 template <size_t N> struct format_descriptor<char[N]> {
