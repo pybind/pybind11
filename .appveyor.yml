@@ -28,6 +28,6 @@ install:
     7z x 3.2.9.zip -y > $null
     $env:CMAKE_INCLUDE_PATH = "eigen-eigen-dc6cfdf9bcec"
 build_script:
-- cmake -A "%CMAKE_ARCH%"
+- cmake -A "%CMAKE_ARCH%" -DPYBIND11_WERROR=ON
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 - cmake --build . --config Release --target check -- /v:m /logger:%MSBuildLogger%

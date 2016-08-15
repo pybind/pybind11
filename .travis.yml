@@ -86,7 +86,10 @@ install:
     export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=eigen-eigen-dc6cfdf9bcec"
   fi
 script:
-- $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS} -DPYBIND11_PYTHON_VERSION=$PYTHON -DPYBIND11_CPP_STANDARD=-std=c++$CPP
+- $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS}
+    -DPYBIND11_PYTHON_VERSION=$PYTHON
+    -DPYBIND11_CPP_STANDARD=-std=c++$CPP
+    -DPYBIND11_WERROR=ON
 - $SCRIPT_RUN_PREFIX make CTEST_OUTPUT_ON_FAILURE=TRUE check -j 2
 after_script:
 - if [ -n "$DOCKER" ]; then docker stop "$containerid"; docker rm "$containerid"; fi
