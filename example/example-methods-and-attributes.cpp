@@ -8,8 +8,6 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <unordered_map>
-#include <list>
 #include "example.h"
 #include "constructor-stats.h"
 
