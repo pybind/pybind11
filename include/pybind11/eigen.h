@@ -85,7 +85,7 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
        if (!buffer.check())
            return false;
 
-        buffer_info info = buffer.request();
+        auto info = buffer.request();
         if (info.ndim == 1) {
             typedef Eigen::InnerStride<> Strides;
             if (!isVector &&
@@ -127,37 +127,19 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
 
     static handle cast(const Type &src, return_value_policy /* policy */, handle /* parent */) {
         if (isVector) {
-            return array(buffer_info(
-                /* Pointer to buffer */
-                const_cast<Scalar *>(src.data()),
-                /* Size of one scalar */
-                sizeof(Scalar),
-                /* Python struct-style format descriptor */
-                format_descriptor<Scalar>::format(),
-                /* Number of dimensions */
-                1,
-                /* Buffer dimensions */
-                { (size_t) src.size() },
-                /* Strides (in bytes) for each index */
-                { sizeof(Scalar) * static_cast<size_t>(src.innerStride()) }
-            )).release();
+            return array(
+                { (size_t) src.size() },                                      // shape
+                { sizeof(Scalar) * static_cast<size_t>(src.innerStride()) },  // strides
+                src.data()                                                    // data
+            ).release();
         } else {
-            return array(buffer_info(
-                /* Pointer to buffer */
-                const_cast<Scalar *>(src.data()),
-                /* Size of one scalar */
-                sizeof(Scalar),
-                /* Python struct-style format descriptor */
-                format_descriptor<Scalar>::format(),
-                /* Number of dimensions */
-                isVector ? 1 : 2,
-                /* Buffer dimensions */
-                { (size_t) src.rows(),
+            return array(
+                { (size_t) src.rows(),                                        // shape
                   (size_t) src.cols() },
-                /* Strides (in bytes) for each index */
-                { sizeof(Scalar) * static_cast<size_t>(src.rowStride()),
-                  sizeof(Scalar) * static_cast<size_t>(src.colStride()) }
-            )).release();
+                { sizeof(Scalar) * static_cast<size_t>(src.rowStride()),      // strides
+                  sizeof(Scalar) * static_cast<size_t>(src.colStride()) },
+                src.data()                                                    // data
+            ).release();
         }
     }
 
@@ -248,9 +230,9 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
             !outerIndicesArray.check())
             return false;
 
-        buffer_info outerIndices = outerIndicesArray.request();
-        buffer_info innerIndices = innerIndicesArray.request();
-        buffer_info values = valuesArray.request();
+        auto outerIndices = outerIndicesArray.request();
+        auto innerIndices = innerIndicesArray.request();
+        auto values = valuesArray.request();
 
         value = Eigen::MappedSparseMatrix<Scalar, Type::Flags, StorageIndex>(
             shape[0].cast<Index>(),
@@ -270,50 +252,9 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
         object matrix_type = module::import("scipy.sparse").attr(
             rowMajor ? "csr_matrix" : "csc_matrix");
 
-        array data(buffer_info(
-            // Pointer to buffer
-            const_cast<Scalar *>(src.valuePtr()),
-            // Size of one scalar
-            sizeof(Scalar),
-            // Python struct-style format descriptor
-            format_descriptor<Scalar>::format(),
-            // Number of dimensions
-            1,
-            // Buffer dimensions
-            { (size_t) src.nonZeros() },
-            // Strides
-            { sizeof(Scalar) }
-        ));
-
-        array outerIndices(buffer_info(
-            // Pointer to buffer
-            const_cast<StorageIndex *>(src.outerIndexPtr()),
-            // Size of one scalar
-            sizeof(StorageIndex),
-            // Python struct-style format descriptor
-            format_descriptor<StorageIndex>::format(),
-            // Number of dimensions
-            1,
-            // Buffer dimensions
-            { (size_t) (rowMajor ? src.rows() : src.cols()) + 1 },
-            // Strides
-            { sizeof(StorageIndex) }
-        ));
-
-        array innerIndices(buffer_info(
-            // Pointer to buffer
-            const_cast<StorageIndex *>(src.innerIndexPtr()),
-            // Size of one scalar
-            sizeof(StorageIndex),
-            // Python struct-style format descriptor
-            format_descriptor<StorageIndex>::format(),
-            // Number of dimensions
-            1,
-            // Buffer dimensions
-            { (size_t) src.nonZeros() },
-            // Strides
-            { sizeof(StorageIndex) }
-        ));
+        array data((size_t) src.nonZeros(), src.valuePtr());
+        array outerIndices((size_t) (rowMajor ? src.rows() : src.cols()) + 1, src.outerIndexPtr());
+        array innerIndices((size_t) src.nonZeros(), src.innerIndexPtr());
 
         return matrix_type(
             std::make_tuple(data, innerIndices, outerIndices),

@@ -146,7 +146,7 @@ public:
     }
 
     template <typename T> static dtype of() {
-        return detail::npy_format_descriptor<T>::dtype();
+        return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::dtype();
     }
 
     size_t itemsize() const {
@@ -304,7 +304,9 @@ public:
 
 template <typename T>
 struct format_descriptor<T, typename std::enable_if<detail::is_pod_struct<T>::value>::type> {
-    static std::string format() { return detail::npy_format_descriptor<T>::format(); }
+    static std::string format() {
+        return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::format();
+    }
 };
 
 template <size_t N> struct format_descriptor<char[N]> {
@@ -321,14 +323,15 @@ template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::tru
 template <typename T>
 struct is_pod_struct {
     enum { value = std::is_pod<T>::value && // offsetof only works correctly for POD types
+           !std::is_reference<T>::value &&
            !std::is_array<T>::value &&
            !is_std_array<T>::value &&
            !std::is_integral<T>::value &&
-           !std::is_same<T, float>::value &&
-           !std::is_same<T, double>::value &&
-           !std::is_same<T, bool>::value &&
-           !std::is_same<T, std::complex<float>>::value &&
-           !std::is_same<T, std::complex<double>>::value };
+           !std::is_same<typename std::remove_cv<T>::type, float>::value &&
+           !std::is_same<typename std::remove_cv<T>::type, double>::value &&
+           !std::is_same<typename std::remove_cv<T>::type, bool>::value &&
+           !std::is_same<typename std::remove_cv<T>::type, std::complex<float>>::value &&
+           !std::is_same<typename std::remove_cv<T>::type, std::complex<double>>::value };
 };
 
 template <typename T> struct npy_format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {
