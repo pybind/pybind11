@@ -333,14 +333,14 @@ PYBIND11_RUNTIME_EXCEPTION(reference_cast_error) /// Used internally
 /// Format strings for basic number types
 #define PYBIND11_DECL_FMT(t, v) template<> struct format_descriptor<t> \
     { static constexpr const char* value = v; /* for backwards compatibility */ \
-      static constexpr const char* format() { return value; } }
+      static std::string format() { return value; } }
 
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 
 template <typename T> struct format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {
     static constexpr const char value[2] =
         { "bBhHiIqQ"[detail::log2(sizeof(T))*2 + (std::is_unsigned<T>::value ? 1 : 0)], '\0' };
-    static constexpr const char* format() { return value; }
+    static std::string format() { return value; }
 };
 
 template <typename T> constexpr const char format_descriptor<
