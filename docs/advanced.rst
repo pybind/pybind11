@@ -369,6 +369,7 @@ python classes.  For example, suppose we extend the above ``Animal``/``Dog``
 example as follows:
 
 .. code-block:: cpp
+
     class Animal {
     public:
         virtual std::string go(int n_times) = 0;
@@ -393,6 +394,7 @@ methods inherited from ``Animal`` (even though ``Dog`` doesn't directly
 override the ``name()`` method):
 
 .. code-block:: cpp
+
     class PyAnimal : public Animal {
     public:
         using Animal::Animal; // Inherit constructors
@@ -412,6 +414,7 @@ methods requires a similar trampoline class, *even if* it doesn't explicitly
 declare or override any virtual methods itself:
 
 .. code-block:: cpp
+
     class Husky : public Dog {};
     class PyHusky : public Husky {
         using Dog::Dog; // Inherit constructors
@@ -426,6 +429,7 @@ methods).  The technique involves using template trampoline classes, as
 follows:
 
 .. code-block:: cpp
+
     template <class AnimalBase = Animal> class PyAnimal : public AnimalBase {
         using AnimalBase::AnimalBase; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, AnimalBase, go, n_times); }
@@ -447,6 +451,7 @@ exposed, as above).
 The classes are then registered with pybind11 using:
 
 .. code-block:: cpp
+
     py::class_<Animal, std::unique_ptr<Animal>, PyAnimal<>> animal(m, "Animal");
     py::class_<Dog, std::unique_ptr<Dog>, PyDog<>> dog(m, "Dog");
     py::class_<Husky, std::unique_ptr<Husky>, PyDog<Husky>> husky(m, "Husky");
@@ -613,7 +618,7 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 |                                                  | side deletes an object that is still referenced and used by Python.        |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::reference_internal`  | Like :enum:`return_value_policy::reference` but additionally applies a     |
-|                                                  | :class:`keep_alive<0,1>()` call policy (described next) that keeps the     |
+|                                                  | ``keep_alive<0, 1>`` call policy (described next) that keeps the           |
 |                                                  | ``this`` argument of the function or property from being garbage collected |
 |                                                  | as long as the return value remains referenced.  See the                   |
 |                                                  | :class:`keep_alive` call policy (described next) for details.              |
