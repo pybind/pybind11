@@ -17,6 +17,7 @@ endif()
 
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST    "Build pybind11 test suite?"     ${PYBIND11_MASTER_PROJECT})
+option(PYBIND11_WERROR  "Report all warnings as errors"  OFF)
 
 # Add a CMake parameter for choosing a desired Python version
 set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
@@ -141,6 +142,14 @@ function(pybind11_enable_warnings target_name)
     target_compile_options(${target_name} PRIVATE /W4)
   else()
     target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wconversion)
+  endif()
+
+  if(PYBIND11_WERROR)
+    if(MSVC)
+        target_compile_options(${target_name} PRIVATE /WX)
+    else()
+        target_compile_options(${target_name} PRIVATE -Werror)
+    endif()
   endif()
 endfunction()
 
