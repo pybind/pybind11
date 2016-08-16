@@ -22,6 +22,7 @@ public:
     ~Parent() { std::cout << "Releasing parent." << std::endl; }
     void addChild(Child *) { }
     Child *returnChild() { return new Child(); }
+    Child *returnNullChild() { return nullptr; }
 };
 
 void init_ex_keep_alive(py::module &m) {
@@ -30,7 +31,9 @@ void init_ex_keep_alive(py::module &m) {
         .def("addChild", &Parent::addChild)
         .def("addChildKeepAlive", &Parent::addChild, py::keep_alive<1, 2>())
         .def("returnChild", &Parent::returnChild)
-        .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>());
+        .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>())
+        .def("returnNullChildKeepAliveChild", &Parent::returnNullChild, py::keep_alive<1, 0>())
+        .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>());
 
     py::class_<Child>(m, "Child")
         .def(py::init<>());

@@ -1098,8 +1098,8 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
 
-    if (patient.ptr() == Py_None)
-        return; /* Nothing to keep alive */
+    if (patient.ptr() == Py_None || nurse.ptr() == Py_None)
+        return; /* Nothing to keep alive or nothing to be kept alive by */
 
     cpp_function disable_lifesupport(
         [patient](handle weakref) { patient.dec_ref(); weakref.dec_ref(); });
