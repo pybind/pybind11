@@ -37,13 +37,19 @@ matrix:
     sudo: true
     env: PYTHON=2.7 CPP=14 DOCKER=debian:testing NATIVE_DEPS=1
     install:
-    - docker exec --tty "$containerid" apt-get -y --no-install-recommends install python2.7-dev python-scipy libeigen3-dev cmake make g++
+    - >
+      docker exec --tty "$containerid" apt-get -y --no-install-recommends install
+      python2.7-dev python-scipy libeigen3-dev python-sphinx python-sphinx-rtd-theme
+      cmake make g++
   - compiler: gcc-6
     services: docker
     sudo: true
     env: PYTHON=3.5 CPP=14 DOCKER=debian:testing NATIVE_DEPS=1
     install:
-    - docker exec --tty "$containerid" apt-get -y --no-install-recommends install python3.5-dev python3-scipy libeigen3-dev cmake make g++
+    - >
+      docker exec --tty "$containerid" apt-get -y --no-install-recommends install
+      python3.5-dev python3-scipy libeigen3-dev python3-sphinx python3-sphinx-rtd-theme
+      cmake make g++
 cache:
   directories:
   - $HOME/.cache/pip
@@ -79,7 +85,7 @@ install:
       python$PMAJOR -m virtualenv venv
     fi
     source venv/bin/activate
-    pip install numpy scipy
+    pip install numpy scipy sphinx sphinx_rtd_theme
 
     wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.2.9.tar.gz
     tar xzf eigen.tar.gz
@@ -91,5 +97,6 @@ script:
     -DPYBIND11_CPP_STANDARD=-std=c++$CPP
     -DPYBIND11_WERROR=ON
 - $SCRIPT_RUN_PREFIX make CTEST_OUTPUT_ON_FAILURE=TRUE check -j 2
+- $SCRIPT_RUN_PREFIX make -C docs html SPHINX_OPTIONS=-W
 after_script:
 - if [ -n "$DOCKER" ]; then docker stop "$containerid"; docker rm "$containerid"; fi
