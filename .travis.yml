@@ -55,7 +55,8 @@ matrix:
     language: docs
     compiler: sphinx
     env: PYTHON=2.7 DOCS=1
-    script: $SCRIPT_RUN_PREFIX make -C docs html SPHINX_OPTIONS=-W
+    install: pip install sphinx sphinx_rtd_theme
+    script: make -C docs html SPHINX_OPTIONS=-W
 cache:
   directories:
   - $HOME/.cache/pip
@@ -73,7 +74,6 @@ before_install:
     docker exec --tty "$containerid" apt-get -y upgrade
     export SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
   fi
-install:
 - |
   if [ -z "$NATIVE_DEPS" ]; then
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
@@ -92,16 +92,13 @@ install:
     fi
     source venv/bin/activate
   fi
+install:
 - |
-  if [ -n "$DOCS" ] && [ -z "$NATIVE_DEPS" ]; then pip install sphinx sphinx_rtd_theme; fi
-- |
-  if [ -z "$NATIVE_DEPS" ] && [ -z "$DOCS" ]; then
-    pip install numpy scipy 
+  pip install numpy scipy
 
-    wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.2.9.tar.gz
-    tar xzf eigen.tar.gz
-    export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=eigen-eigen-dc6cfdf9bcec"
-  fi
+  wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.2.9.tar.gz
+  tar xzf eigen.tar.gz
+  export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=eigen-eigen-dc6cfdf9bcec"
 script:
 - $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS}
     -DPYBIND11_PYTHON_VERSION=$PYTHON
