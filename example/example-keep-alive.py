@@ -31,12 +31,33 @@ if True:
     gc.collect()
     print(p)
     p = None
+
 gc.collect()
 print("")
 
 if True:
     p = Parent()
     p.returnChildKeepAlive()
+    gc.collect()
+    print(p)
+    p = None
+
+gc.collect()
+print("")
+
+if True:
+    p = Parent()
+    p.returnNullChildKeepAliveChild()
+    gc.collect()
+    print(p)
+    p = None
+
+gc.collect()
+print("")
+
+if True:
+    p = Parent()
+    p.returnNullChildKeepAliveParent()
     gc.collect()
     print(p)
     p = None
