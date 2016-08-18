@@ -38,7 +38,10 @@ py::cpp_function test_callback5() {
 int dummy_function(int i) { return i + 1; }
 int dummy_function2(int i, int j) { return i + j; }
 std::function<int(int)> roundtrip(std::function<int(int)> f) { 
-    std::cout << "roundtrip.." << std::endl;
+    if (!f)
+        std::cout << "roundtrip (got None).." << std::endl;
+    else
+        std::cout << "roundtrip.." << std::endl;
     return f;
 }
 

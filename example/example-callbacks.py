@@ -68,6 +68,8 @@ from example import roundtrip
 
 test_dummy_function(dummy_function)
 test_dummy_function(roundtrip(dummy_function))
+if roundtrip(None) is not None:
+    print("Problem!")
 test_dummy_function(lambda x: x + 2)
 
 try:
