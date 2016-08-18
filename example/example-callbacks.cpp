@@ -35,6 +35,13 @@ py::cpp_function test_callback5() {
        py::arg("number"));
 }
 
+void test_callback6(const std::function<int(int)> *func = nullptr) {
+    if (func != nullptr && *func)
+        cout << "func(21) = " << (*func)(21) << std::endl;
+    else
+        cout << "func not provided" << std::endl;
+}
+
 int dummy_function(int i) { return i + 1; }
 int dummy_function2(int i, int j) { return i + j; }
 std::function<int(int)> roundtrip(std::function<int(int)> f) { 
@@ -79,6 +86,7 @@ void init_ex_callbacks(py::module &m) {
     m.def("test_callback3", &test_callback3);
     m.def("test_callback4", &test_callback4);
     m.def("test_callback5", &test_callback5);
+    m.def("test_callback6", &test_callback6, py::arg("func") = (std::function<int(int)> *)nullptr);
 
     /* Test cleanup of lambda closure */
 

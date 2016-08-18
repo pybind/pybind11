@@ -20,6 +20,7 @@ template <typename Return, typename... Args> struct type_caster<std::function<Re
     typedef typename std::conditional<std::is_same<Return, void>::value, void_type, Return>::type retval_type;
 public:
     bool load(handle src_, bool) {
+        if (src_.ptr() == Py_None) return true;
         src_ = detail::get_function(src_);
         if (!src_ || !PyCallable_Check(src_.ptr()))
             return false;
@@ -54,6 +55,12 @@ public:
             return (retval.template cast<Return>());
         };
         return true;
+    }
+
+    template <typename Func>
+    static handle cast(Func *f_, return_value_policy policy, handle parent) {
+        if(f_ == nullptr) return handle(Py_None).inc_ref();
+        return cast(*f_, policy, parent);
     }
 
     template <typename Func>

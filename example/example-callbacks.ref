@@ -16,6 +16,9 @@ Callback function 2 called : Hello, from, partial, object
 False
 Callback function 3 called : Partial object with one argument
 False
+func not provided
+func not provided
+func(21) = 23
 func(43) = 44
 func(43) = 44
 func(number=43) = 44
