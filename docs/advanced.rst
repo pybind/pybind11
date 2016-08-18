@@ -663,17 +663,19 @@ In addition to the above return value policies, further `call policies` can be
 specified to indicate dependencies between parameters. There is currently just
 one policy named ``keep_alive<Nurse, Patient>``, which indicates that the
 argument with index ``Patient`` should be kept alive at least until the
-argument with index ``Nurse`` is freed by the garbage collector, as long as the
-nurse object supports weak references (pybind11 extension classes all support
-weak references). If the nurse object does not support weak references and is
-not None an appropriate exception will be thrown. Argument indices start at
-one, while zero refers to the return value. For methods, index one refers to
-the implicit ``this`` pointer, while regular arguments begin at index two.
-Arbitrarily many call policies can be specified.
+argument with index ``Nurse`` is freed by the garbage collector. Argument
+indices start at one, while zero refers to the return value. For methods, index
+``1`` refers to the implicit ``this`` pointer, while regular arguments begin at
+index ``2``. Arbitrarily many call policies can be specified. When a ``Nurse``
+with value ``None`` is detected at runtime, the call policy does nothing.
 
-Consider the following example: the binding code for a list append operation
-that ties the lifetime of the newly added element to the underlying container
-might be declared as follows:
+This feature internally relies on the ability to create a *weak reference* to
+the nurse object, which is permitted by all classes exposed via pybind11. When
+the nurse object does not support weak references, an exception will be thrown.
+
+Consider the following example: here, the binding code for a list append
+operation ties the lifetime of the newly added element to the underlying
+container:
 
 .. code-block:: cpp
 
