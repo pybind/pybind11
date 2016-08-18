@@ -1,22 +1,19 @@
+import os
 
 
-def test_eval(capture):
-    from pybind11_tests import example_eval
+def test_evals(capture):
+    from pybind11_tests import (test_eval_statements, test_eval, test_eval_single_statement,
+                                test_eval_file, test_eval_failure, test_eval_file_failure)
 
     with capture:
-        example_eval()
-    assert capture == """
-        eval_statements test
-        Hello World!
-        eval_statements passed
-        eval test
-        eval passed
-        eval_single_statement test
-        eval_single_statement passed
-        eval_file test
-        eval_file passed
-        eval failure test
-        eval failure test passed
-        eval_file failure test
-        eval_file failure test passed
-    """
+        assert test_eval_statements()
+    assert capture == "Hello World!"
+
+    assert test_eval()
+    assert test_eval_single_statement()
+
+    filename = os.path.join(os.path.dirname(__file__), "test_eval_call.py")
+    assert test_eval_file(filename)
+
+    assert test_eval_failure()
+    assert test_eval_file_failure()

@@ -11,92 +11,70 @@
 #include <pybind11/eval.h>
 #include "pybind11_tests.h"
 
-void example_eval() {
-    py::module main_module = py::module::import("__main__");
-    py::object main_namespace = main_module.attr("__dict__");
+void init_ex_eval(py::module & m) {
+    auto global = py::dict(py::module::import("__main__").attr("__dict__"));
 
-    bool ok = false;
+    m.def("test_eval_statements", [global]() {
+        auto local = py::dict();
+        local["call_test"] = py::cpp_function([&]() -> int {
+            return 42;
+        });
 
-    main_module.def("call_test", [&]() -> int {
-        ok = true;
-        return 42;
+        auto result = py::eval<py::eval_statements>(
+            "print('Hello World!');\n"
+            "x = call_test();",
+            global, local
+        );
+        auto x = local["x"].cast<int>();
+
+        return result == py::none() && x == 42;
     });
 
-    cout << "eval_statements test" << endl;
+    m.def("test_eval", [global]() {
+        auto local = py::dict();
+        local["x"] = py::int_(42);
+        auto x = py::eval("x", global, local);
+        return x.cast<int>() == 42;
+    });
 
-    auto result = py::eval<py::eval_statements>(
-            "print('Hello World!');\n"
-            "x = call_test();", main_namespace);
+    m.def("test_eval_single_statement", []() {
+        auto local = py::dict();
+        local["call_test"] = py::cpp_function([&]() -> int {
+            return 42;
+        });
 
-    if (ok && result == py::none())
-        cout << "eval_statements passed" << endl;
-    else
-        cout << "eval_statements failed" << endl;
+        auto result = py::eval<py::eval_single_statement>("x = call_test()", py::dict(), local);
+        auto x = local["x"].cast<int>();
+        return result == py::none() && x == 42;
+    });
 
-    cout << "eval test" << endl;
+    m.def("test_eval_file", [global](py::str filename) {
+        auto local = py::dict();
+        local["y"] = py::int_(43);
 
-    py::object val = py::eval("x", main_namespace);
+        int val_out;
+        local["call_test2"] = py::cpp_function([&](int value) { val_out = value; });
 
-    if (val.cast<int>() == 42)
-        cout << "eval passed" << endl;
-    else
-        cout << "eval failed" << endl;
+        auto result = py::eval_file(filename, global, local);
+        return val_out == 43 && result == py::none();
+    });
 
-    ok = false;
-    cout << "eval_single_statement test" << endl;
+    m.def("test_eval_failure", []() {
+        try {
+            py::eval("nonsense code ...");
+        } catch (py::error_already_set &) {
+            PyErr_Clear();
+            return true;
+        }
+        return false;
+    });
 
-    py::eval<py::eval_single_statement>(
-        "y = call_test();", main_namespace);
-
-    if (ok)
-        cout << "eval_single_statement passed" << endl;
-    else
-        cout << "eval_single_statement failed" << endl;
-
-    cout << "eval_file test" << endl;
-
-    int val_out;
-    main_module.def("call_test2", [&](int value) {val_out = value;});
-
-    try {
-        result = py::eval_file("test_eval_call.py", main_namespace);
-    } catch (...) {
-        result = py::eval_file("tests/test_eval_call.py", main_namespace);
-    }
-
-    if (val_out == 42 && result == py::none())
-        cout << "eval_file passed" << endl;
-    else
-        cout << "eval_file failed" << endl;
-
-    ok = false;
-    cout << "eval failure test" << endl;
-    try {
-        py::eval("nonsense code ...");
-    } catch (py::error_already_set &) {
-        PyErr_Clear();
-        ok = true;
-    }
-
-    if (ok)
-        cout << "eval failure test passed" << endl;
-    else
-        cout << "eval failure test failed" << endl;
-
-    ok = false;
-    cout << "eval_file failure test" << endl;
-    try {
-        py::eval_file("nonexisting file");
-    } catch (std::exception &) {
-        ok = true;
-    }
-
-    if (ok)
-        cout << "eval_file failure test passed" << endl;
-    else
-        cout << "eval_file failure test failed" << endl;
-}
-
-void init_ex_eval(py::module & m) {
-    m.def("example_eval", &example_eval);
+    m.def("test_eval_file_failure", []() {
+        try {
+            py::eval_file("non-existing file");
+        } catch (std::exception &) {
+            return true;
+        }
+        return false;
+    });
 }
