@@ -2,7 +2,10 @@ Benchmark
 =========
 
 The following is the result of a synthetic benchmark comparing both compilation
-time and module size of pybind11 against Boost.Python.
+time and module size of pybind11 against Boost.Python. A detailed report about a
+Boost.Python to pybind11 conversion of a real project is available here: [#f1]_.
+
+.. [#f1] http://graylab.jhu.edu/RosettaCon2016/PyRosetta-4.pdf
 
 Setup
 -----
