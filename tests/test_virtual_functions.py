@@ -54,7 +54,7 @@ def test_override(capture, msg):
     assert cstats.move_constructions >= 0
 
 
-def test_inheriting_repeat(capture):
+def test_inheriting_repeat():
     from pybind11_tests import A_Repeat, B_Repeat, C_Repeat, D_Repeat, A_Tpl, B_Tpl, C_Tpl, D_Tpl
 
     class VI_AR(A_Repeat):
@@ -66,28 +66,20 @@ def test_inheriting_repeat(capture):
             return 999
 
     obj = VI_AR()
-    with capture:
-        obj.say_something(3)
-    assert capture == "hihihi"
+    assert obj.say_something(3) == "hihihi"
     assert obj.unlucky_number() == 99
 
     obj = VI_AT()
-    with capture:
-        obj.say_something(3)
-    assert capture == "hihihi"
+    assert obj.say_something(3) == "hihihi"
     assert obj.unlucky_number() == 999
 
     for obj in [B_Repeat(), B_Tpl()]:
-        with capture:
-            obj.say_something(3)
-        assert capture == "B says hi 3 times"
+        assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 13
         assert obj.lucky_number() == 7.0
 
     for obj in [C_Repeat(), C_Tpl()]:
-        with capture:
-            obj.say_something(3)
-        assert capture == "B says hi 3 times"
+        assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 4444
         assert obj.lucky_number() == 888.0
 
@@ -96,9 +88,7 @@ def test_inheriting_repeat(capture):
             return C_Repeat.lucky_number(self) + 1.25
 
     obj = VI_CR()
-    with capture:
-        obj.say_something(3)
-    assert capture == "B says hi 3 times"
+    assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 889.25
 
@@ -106,9 +96,7 @@ def test_inheriting_repeat(capture):
         pass
 
     obj = VI_CT()
-    with capture:
-        obj.say_something(3)
-    assert capture == "B says hi 3 times"
+    assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 888.0
 
@@ -117,9 +105,7 @@ def test_inheriting_repeat(capture):
             return VI_CR.lucky_number(self) * 10
 
     obj = VI_CCR()
-    with capture:
-        obj.say_something(3)
-    assert capture == "B says hi 3 times"
+    assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 8892.5
 
@@ -128,9 +114,7 @@ def test_inheriting_repeat(capture):
             return VI_CT.lucky_number(self) * 1000
 
     obj = VI_CCT()
-    with capture:
-        obj.say_something(3)
-    assert capture == "B says hi 3 times"
+    assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 888000.0
 
@@ -142,22 +126,18 @@ def test_inheriting_repeat(capture):
             return 42.0
 
     for obj in [D_Repeat(), D_Tpl()]:
-        with capture:
-            obj.say_something(3)
-        assert capture == "B says hi 3 times"
+        assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 4444
         assert obj.lucky_number() == 888.0
 
     obj = VI_DR()
-    with capture:
-        obj.say_something(3)
-    assert capture == "B says hi 3 times"
+    assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 123
     assert obj.lucky_number() == 42.0
 
     class VI_DT(D_Tpl):
         def say_something(self, times):
-            print("VI_DT says:" + (' quack' * times))
+            return "VI_DT says:" + (' quack' * times)
 
         def unlucky_number(self):
             return 1234
@@ -166,14 +146,12 @@ def test_inheriting_repeat(capture):
             return -4.25
 
     obj = VI_DT()
-    with capture:
-        obj.say_something(3)
-    assert capture == "VI_DT says: quack quack quack"
+    assert obj.say_something(3) == "VI_DT says: quack quack quack"
     assert obj.unlucky_number() == 1234
     assert obj.lucky_number() == -4.25
 
 
-def test_move_support(capture):
+def test_move_support():
     from pybind11_tests import NCVirt, NonCopyable, Movable
 
     class NCVirtExt(NCVirt):
@@ -198,16 +176,10 @@ def test_move_support(capture):
             return Movable(a, b)
 
     ncv1 = NCVirtExt()
-    with capture:
-        ncv1.print_nc(2, 3)
-    assert capture == "36"
-    with capture:
-        ncv1.print_movable(4, 5)
-    assert capture == "9"
+    assert ncv1.print_nc(2, 3) == "36"
+    assert ncv1.print_movable(4, 5) == "9"
     ncv2 = NCVirtExt2()
-    with capture:
-        ncv2.print_movable(7, 7)
-    assert capture == "14"
+    assert ncv2.print_movable(7, 7) == "14"
     # Don't check the exception message here because it differs under debug/non-debug mode
     with pytest.raises(RuntimeError):
         ncv2.print_nc(9, 9)

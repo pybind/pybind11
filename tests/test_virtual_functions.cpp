@@ -91,7 +91,7 @@ public:
     Movable(int a, int b) : value{a+b} { print_created(this, a, b); }
     Movable(const Movable &m) { value = m.value; print_copy_created(this); }
     Movable(Movable &&m) { value = std::move(m.value); print_move_created(this); }
-    int get_value() const { return value; }
+    std::string get_value() const { return std::to_string(value); }
     ~Movable() { print_destroyed(this); }
 private:
     int value;
@@ -102,8 +102,8 @@ public:
     virtual NonCopyable get_noncopyable(int a, int b) { return NonCopyable(a, b); }
     virtual Movable get_movable(int a, int b) = 0;
 
-    void print_nc(int a, int b) { std::cout << get_noncopyable(a, b).get_value() << std::endl; }
-    void print_movable(int a, int b) { std::cout << get_movable(a, b).get_value() << std::endl; }
+    std::string print_nc(int a, int b) { return get_noncopyable(a, b).get_value(); }
+    std::string print_movable(int a, int b) { return get_movable(a, b).get_value(); }
 };
 class NCVirtTrampoline : public NCVirt {
     virtual NonCopyable get_noncopyable(int a, int b) {
@@ -138,9 +138,11 @@ class A_Repeat {
 #define A_METHODS \
 public: \
     virtual int unlucky_number() = 0; \
-    virtual void say_something(unsigned times) { \
-        for (unsigned i = 0; i < times; i++) std::cout << "hi"; \
-        std::cout << std::endl; \
+    virtual std::string say_something(unsigned times) { \
+        std::string s = ""; \
+        for (unsigned i = 0; i < times; ++i) \
+            s += "hi"; \
+        return s; \
     }
 A_METHODS
 };
@@ -148,8 +150,8 @@ class B_Repeat : public A_Repeat {
 #define B_METHODS \
 public: \
     int unlucky_number() override { return 13; } \
-    void say_something(unsigned times) override { \
-        std::cout << "B says hi " << times << " times" << std::endl; \
+    std::string say_something(unsigned times) override { \
+        return "B says hi " + std::to_string(times) + " times"; \
     } \
     virtual double lucky_number() { return 7.0; }
 B_METHODS
@@ -178,27 +180,27 @@ class PyA_Repeat : public A_Repeat {
 public:
     using A_Repeat::A_Repeat;
     int unlucky_number() override { PYBIND11_OVERLOAD_PURE(int, A_Repeat, unlucky_number, ); }
-    void say_something(unsigned times) override { PYBIND11_OVERLOAD(void, A_Repeat, say_something, times); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, A_Repeat, say_something, times); }
 };
 class PyB_Repeat : public B_Repeat {
 public:
     using B_Repeat::B_Repeat;
     int unlucky_number() override { PYBIND11_OVERLOAD(int, B_Repeat, unlucky_number, ); }
-    void say_something(unsigned times) override { PYBIND11_OVERLOAD(void, B_Repeat, say_something, times); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, B_Repeat, say_something, times); }
     double lucky_number() override { PYBIND11_OVERLOAD(double, B_Repeat, lucky_number, ); }
 };
 class PyC_Repeat : public C_Repeat {
 public:
     using C_Repeat::C_Repeat;
     int unlucky_number() override { PYBIND11_OVERLOAD(int, C_Repeat, unlucky_number, ); }
-    void say_something(unsigned times) override { PYBIND11_OVERLOAD(void, C_Repeat, say_something, times); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, C_Repeat, say_something, times); }
     double lucky_number() override { PYBIND11_OVERLOAD(double, C_Repeat, lucky_number, ); }
 };
 class PyD_Repeat : public D_Repeat {
 public:
     using D_Repeat::D_Repeat;
     int unlucky_number() override { PYBIND11_OVERLOAD(int, D_Repeat, unlucky_number, ); }
-    void say_something(unsigned times) override { PYBIND11_OVERLOAD(void, D_Repeat, say_something, times); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, D_Repeat, say_something, times); }
     double lucky_number() override { PYBIND11_OVERLOAD(double, D_Repeat, lucky_number, ); }
 };
 
@@ -221,7 +223,7 @@ class PyA_Tpl : public Base {
 public:
     using Base::Base; // Inherit constructors
     int unlucky_number() override { PYBIND11_OVERLOAD_PURE(int, Base, unlucky_number, ); }
-    void say_something(unsigned times) override { PYBIND11_OVERLOAD(void, Base, say_something, times); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, Base, say_something, times); }
 };
 template <class Base = B_Tpl>
 class PyB_Tpl : public PyA_Tpl<Base> {

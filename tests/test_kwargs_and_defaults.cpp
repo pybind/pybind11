@@ -27,18 +27,12 @@ py::object call_kw_func(py::function f) {
     return f(*args, **kwargs);
 }
 
-void args_function(py::args args) {
-    for (size_t it=0; it<args.size(); ++it)
-        std::cout << "got argument: " << py::object(args[it]) << std::endl;
+py::tuple args_function(py::args args) {
+    return args;
 }
 
-void args_kwargs_function(py::args args, py::kwargs kwargs) {
-    for (auto item : args)
-        std::cout << "got argument: " << item << std::endl;
-    if (kwargs) {
-        for (auto item : kwargs)
-            std::cout << "got keyword argument: " << item.first << " -> " << item.second << std::endl;
-    }
+py::tuple args_kwargs_function(py::args args, py::kwargs kwargs) {
+    return py::make_tuple(args, kwargs);
 }
 
 struct KWClass {

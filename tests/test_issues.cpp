@@ -111,7 +111,7 @@ void init_issues(py::module &m) {
         });
 
     // (no id): should not be able to pass 'None' to a reference argument
-    m2.def("print_element", [](ElementA &el) { std::cout << el.value() << std::endl; });
+    m2.def("get_element", [](ElementA &el) { return el.value(); });
 
     // (no id): don't cast doubles to ints
     m2.def("expect_float", [](float f) { return f; });
@@ -160,10 +160,7 @@ void init_issues(py::module &m) {
     py::class_<StrIssue> si(m2, "StrIssue");
     si  .def(py::init<int>())
         .def(py::init<>())
-        .def("__str__", [](const StrIssue &si) {
-                std::cout << "StrIssue.__str__ called" << std::endl;
-                return "StrIssue[" + std::to_string(si.value()) + "]";
-                })
+        .def("__str__", [](const StrIssue &si) { return "StrIssue[" + std::to_string(si.value()) + "]"; })
         ;
 
     // Issue #328: first member in a class can't be used in operators

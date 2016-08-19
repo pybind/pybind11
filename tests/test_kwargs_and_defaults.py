@@ -12,8 +12,8 @@ def test_function_signatures(doc):
     assert doc(kw_func4) == "kw_func4(myList: List[int]=[13, 17]) -> str"
     assert doc(kw_func_udl) == "kw_func_udl(x: int, y: int=300) -> str"
     assert doc(kw_func_udl_z) == "kw_func_udl_z(x: int, y: int=0) -> str"
-    assert doc(args_function) == "args_function(*args) -> None"
-    assert doc(args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> None"
+    assert doc(args_function) == "args_function(*args) -> tuple"
+    assert doc(args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> tuple"
     assert doc(KWClass.foo0) == "foo0(self: m.KWClass, arg0: int, arg1: float) -> None"
     assert doc(KWClass.foo1) == "foo1(self: m.KWClass, x: int, y: float) -> None"
 
@@ -48,20 +48,12 @@ def test_named_arguments(msg):
     assert kw_func_udl_z(x=5) == "x=5, y=0"
 
 
-def test_arg_and_kwargs(capture):
+def test_arg_and_kwargs():
     assert call_kw_func(kw_func2) == "x=1234, y=5678"
-    with capture:
-        args_function('arg1_value', 'arg2_value', 3)
-    assert capture.unordered == """
-        got argument: arg1_value
-        got argument: arg2_value
-        got argument: 3
-    """
-    with capture:
-        args_kwargs_function('arg1_value', 'arg2_value', arg3='arg3_value', arg4=4)
-    assert capture.unordered == """
-        got argument: arg1_value
-        got argument: arg2_value
-        got keyword argument: arg3 -> arg3_value
-        got keyword argument: arg4 -> 4
-    """
+
+    args = 'arg1_value', 'arg2_value', 3
+    assert args_function(*args) == args
+
+    args = 'a1', 'a2'
+    kwargs = dict(arg3='a3', arg4=4)
+    assert args_kwargs_function(*args, **kwargs) == (args, kwargs)

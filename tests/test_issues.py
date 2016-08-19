@@ -60,13 +60,13 @@ def test_shared_ptr_gc():
 
 
 def test_no_id(capture, msg):
-    from pybind11_tests.issues import print_element, expect_float, expect_int
+    from pybind11_tests.issues import get_element, expect_float, expect_int
 
     with pytest.raises(TypeError) as excinfo:
-        print_element(None)
+        get_element(None)
     assert msg(excinfo.value) == """
         Incompatible function arguments. The following argument types are supported:
-            1. (arg0: m.issues.ElementA) -> None
+            1. (arg0: m.issues.ElementA) -> int
             Invoked with: None
     """
 
@@ -105,13 +105,11 @@ def test_no_id(capture, msg):
     """
 
 
-def test_str_issue(capture, msg):
+def test_str_issue(msg):
     """Issue #283: __str__ called on uninitialized instance when constructor arguments invalid"""
     from pybind11_tests.issues import StrIssue
 
-    with capture:
-        assert str(StrIssue(3)) == "StrIssue[3]"
-    assert capture == "StrIssue.__str__ called"
+    assert str(StrIssue(3)) == "StrIssue[3]"
 
     with pytest.raises(TypeError) as excinfo:
         str(StrIssue("no", "such", "constructor"))
