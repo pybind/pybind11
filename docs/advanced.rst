@@ -666,8 +666,12 @@ argument with index ``Patient`` should be kept alive at least until the
 argument with index ``Nurse`` is freed by the garbage collector. Argument
 indices start at one, while zero refers to the return value. For methods, index
 ``1`` refers to the implicit ``this`` pointer, while regular arguments begin at
-index ``2``. Arbitrarily many call policies can be specified. When a ``Nurse``
-with value ``None`` is detected at runtime, the call policy does nothing.
+index ``2``. A ``keep_alive`` policy may be supplied when creating properties
+using def_property_readonly, for properties created using any other
+``def_property_*`` methods it is necessary to manually construct cpp_function
+instances using the desired ``keep_alive`` policy. Arbitrarily many call policies
+can be specified. When a ``Nurse`` with value ``None`` is detected at runtime,
+the call policy does nothing.
 
 This feature internally relies on the ability to create a *weak reference* to
 the nurse object, which is permitted by all classes exposed via pybind11. When
