@@ -920,6 +920,14 @@ public:
         return *this;
     }
 
+    template <typename Func, typename... Extra,
+              typename std::enable_if<std::is_convertible<Func, cpp_function>::value, int>::type = 0>
+    class_ &def_property_readonly(const char *name, Func&& fget, const Extra& ...extra) {
+        cpp_function cfget(std::forward<Func>(fget), extra...);
+        def_property(name, cfget, cpp_function(), extra...);
+        return *this;
+    }
+
     template <typename... Extra>
     class_ &def_property_readonly_static(const char *name, const cpp_function &fget, const Extra& ...extra) {
         def_property_static(name, fget, cpp_function(), extra...);
