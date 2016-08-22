@@ -29,4 +29,5 @@ install:
 build_script:
 - cmake -A "%CMAKE_ARCH%" -DPYBIND11_WERROR=ON
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+- set PYTEST_ADDOPTS="-s"  # workaround for pytest capture issue, see #351
 - cmake --build . --config Release --target pytest -- /v:m /logger:%MSBuildLogger%
