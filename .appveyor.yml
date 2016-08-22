@@ -5,7 +5,6 @@ platform:
 - x86
 - x64
 environment:
-  CTEST_OUTPUT_ON_FAILURE: 1
   matrix:
   - CONDA: 27
   - CONDA: 35
@@ -16,12 +15,12 @@ install:
       if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
       $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
       pip install --disable-pip-version-check --user --upgrade pip wheel
-      pip install numpy scipy
+      pip install pytest numpy scipy
     } elseif ($env:CONDA) {
       if ($env:CONDA -eq "27") { $env:CONDA = "" }
       if ($env:PLATFORM -eq "x64") { $env:CONDA = "$env:CONDA-x64" }
       $env:PATH = "C:\Miniconda$env:CONDA\;C:\Miniconda$env:CONDA\Scripts\;$env:PATH"
-      conda install -y -q numpy scipy
+      conda install -y -q pytest numpy scipy
     }
 - ps: |
     Start-FileDownload 'http://bitbucket.org/eigen/eigen/get/3.2.9.zip'
@@ -30,4 +29,4 @@ install:
 build_script:
 - cmake -A "%CMAKE_ARCH%" -DPYBIND11_WERROR=ON
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-- cmake --build . --config Release --target check -- /v:m /logger:%MSBuildLogger%
+- cmake --build . --config Release --target pytest -- /v:m /logger:%MSBuildLogger%

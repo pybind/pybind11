@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Setup script for PyPI; use CMakeFile.txt to build the example application
+# Setup script for PyPI; use CMakeFile.txt to build extension modules
 
 from setuptools import setup
 from pybind11 import __version__

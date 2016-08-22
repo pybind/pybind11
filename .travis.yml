@@ -39,7 +39,7 @@ matrix:
     install:
     - >
       docker exec --tty "$containerid" apt-get -y --no-install-recommends install
-      python2.7-dev python-scipy libeigen3-dev
+      python2.7-dev python-pip python-setuptools python-scipy libeigen3-dev
       cmake make g++
   - compiler: gcc-6
     services: docker
@@ -48,7 +48,7 @@ matrix:
     install:
     - >
       docker exec --tty "$containerid" apt-get -y --no-install-recommends install
-      python3.5-dev python3-scipy libeigen3-dev
+      python3.5-dev python3-pip python3-setuptools python3-scipy libeigen3-dev
       cmake make g++
   # Documentation build:
   - os: linux
@@ -98,12 +98,12 @@ install:
 
   wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.2.9.tar.gz
   tar xzf eigen.tar.gz
-  export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=eigen-eigen-dc6cfdf9bcec"
+  export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=$PWD/eigen-eigen-dc6cfdf9bcec"
 script:
 - $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS}
     -DPYBIND11_PYTHON_VERSION=$PYTHON
     -DPYBIND11_CPP_STANDARD=-std=c++$CPP
     -DPYBIND11_WERROR=ON
-- $SCRIPT_RUN_PREFIX make CTEST_OUTPUT_ON_FAILURE=TRUE check -j 2
+- $SCRIPT_RUN_PREFIX make pytest -j 2
 after_script:
 - if [ -n "$DOCKER" ]; then docker stop "$containerid"; docker rm "$containerid"; fi

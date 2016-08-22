@@ -1,4 +1,4 @@
-# CMakeLists.txt -- Build system for the pybind11 examples
+# CMakeLists.txt -- Build system for the pybind11 modules
 #
 # Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
 #
@@ -20,7 +20,7 @@ option(PYBIND11_TEST    "Build pybind11 test suite?"     ${PYBIND11_MASTER_PROJE
 option(PYBIND11_WERROR  "Report all warnings as errors"  OFF)
 
 # Add a CMake parameter for choosing a desired Python version
-set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the example application")
+set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools")
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
@@ -146,17 +146,15 @@ function(pybind11_enable_warnings target_name)
 
   if(PYBIND11_WERROR)
     if(MSVC)
-        target_compile_options(${target_name} PRIVATE /WX)
+      target_compile_options(${target_name} PRIVATE /WX)
     else()
-        target_compile_options(${target_name} PRIVATE -Werror)
+      target_compile_options(${target_name} PRIVATE -Werror)
     endif()
   endif()
 endfunction()
 
 if (PYBIND11_TEST)
-  enable_testing()
-  add_subdirectory(example)
-  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> DEPENDS example)
+  add_subdirectory(tests)
 endif()
 
 if (PYBIND11_INSTALL)
