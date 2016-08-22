@@ -583,6 +583,19 @@ For this reason, pybind11 provides a several `return value policy` annotations
 that can be passed to the :func:`module::def` and :func:`class_::def`
 functions. The default policy is :enum:`return_value_policy::automatic`.
 
+Return value policies can also be applied to properties, in which case the
+arguments must be passed through the :class:`cpp_function` constructor:
+
+.. code-block:: cpp
+
+    class_<MyClass>(m, "MyClass")
+        def_property("data"
+            py::cpp_function(&MyClass::getData, py::return_value_policy::copy),
+            py::cpp_function(&MyClass::setData)
+        );
+
+The following table provides an overview of the available return value policies:
+
 .. tabularcolumns:: |p{0.5\textwidth}|p{0.45\textwidth}|
 
 +--------------------------------------------------+----------------------------------------------------------------------------+
@@ -617,11 +630,14 @@ functions. The default policy is :enum:`return_value_policy::automatic`.
 |                                                  | it is no longer used. Warning: undefined behavior will ensue when the C++  |
 |                                                  | side deletes an object that is still referenced and used by Python.        |
 +--------------------------------------------------+----------------------------------------------------------------------------+
-| :enum:`return_value_policy::reference_internal`  | Like :enum:`return_value_policy::reference` but additionally applies a     |
-|                                                  | ``keep_alive<0, 1>`` call policy (described next) that keeps the           |
-|                                                  | ``this`` argument of the function or property from being garbage collected |
-|                                                  | as long as the return value remains referenced.  See the                   |
-|                                                  | :class:`keep_alive` call policy (described next) for details.              |
+| :enum:`return_value_policy::reference_internal`  | Indicates that the lifetime of the return value is tied to the lifetime    |
+|                                                  | of a parent object, namely the implicit ``this``, or ``self`` argument of  |
+|                                                  | the called method or property. Internally, this policy works just like     |
+|                                                  | :enum:`return_value_policy::reference` but additionally applies a          |
+|                                                  | ``keep_alive<0, 1>`` *call policy* (described in the next section) that    |
+|                                                  | prevents the parent object from being garbage collected as long as the     |
+|                                                  | return value is referenced by Python. This is the default policy for       |
+|                                                  | property getters created via ``def_property``, ``def_readwrite``, etc.)    |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
 .. warning::
@@ -636,7 +652,7 @@ which pybind11 has *not* seen before, in which case the policy clarifies
 essential questions about the return value's lifetime and ownership.  When
 pybind11 knows the instance already (as identified by its type and address in
 memory), it will return the existing Python object wrapper rather than creating
-a copy.
+a new copy.
 
 .. note::
 
