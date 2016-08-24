@@ -10,6 +10,18 @@ def allclose(a_list, b_list, rel_tol=1e-05, abs_tol=0.0):
     return all(isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol) for a, b in zip(a_list, b_list))
 
 
+def test_generalized_iterators():
+    from pybind11_tests import IntPairs
+
+    assert list(IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero()) == [(1, 2), (3, 4)]
+    assert list(IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero()) == [(1, 2)]
+    assert list(IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero()) == []
+
+    assert list(IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero_keys()) == [1, 3]
+    assert list(IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero_keys()) == [1]
+    assert list(IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero_keys()) == []
+
+
 def test_sequence():
     from pybind11_tests import Sequence, ConstructorStats
 

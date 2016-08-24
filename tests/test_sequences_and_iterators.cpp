@@ -116,6 +116,15 @@ private:
     float *m_data;
 };
 
+class IntPairs {
+public:
+    IntPairs(std::vector<std::pair<int, int>> data) : data_(std::move(data)) {}
+    const std::pair<int, int>* begin() const { return data_.data(); }
+
+private:
+    std::vector<std::pair<int, int>> data_;
+};
+
 // Interface of a map-like object that isn't (directly) an unordered_map, but provides some basic
 // map-like functionality.
 class StringMap {
@@ -143,8 +152,24 @@ public:
     decltype(map.cend()) end() const { return map.cend(); }
 };
 
+template<typename T>
+class NonZeroIterator {
+    const T* ptr_;
+public:
+    NonZeroIterator(const T* ptr) : ptr_(ptr) {}
+    const T& operator*() const { return *ptr_; }
+    NonZeroIterator& operator++() { ++ptr_; return *this; }
+};
+
+class NonZeroSentinel {};
+
+template<typename A, typename B>
+bool operator==(const NonZeroIterator<std::pair<A, B>>& it, const NonZeroSentinel&) {
+    return !(*it).first || !(*it).second;
+}
 
 void init_ex_sequences_and_iterators(py::module &m) {
+
     py::class_<Sequence> seq(m, "Sequence");
 
     seq.def(py::init<size_t>())
@@ -209,6 +234,15 @@ void init_ex_sequences_and_iterators(py::module &m) {
         .def("items", [](const StringMap &map) { return py::make_iterator(map.begin(), map.end()); },
                 py::keep_alive<0, 1>())
         ;
+
+    py::class_<IntPairs>(m, "IntPairs")
+        .def(py::init<std::vector<std::pair<int, int>>>())
+        .def("nonzero", [](const IntPairs& s) {
+                return py::make_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+            }, py::keep_alive<0, 1>())
+        .def("nonzero_keys", [](const IntPairs& s) {
+            return py::make_key_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+        }, py::keep_alive<0, 1>());
 
 
 #if 0
