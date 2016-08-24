@@ -407,7 +407,7 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
                 pybind11_fail("NumPy: unsupported field dtype");
             names.append(PYBIND11_STR_TYPE(field.name));
             formats.append(field.descr);
-            offsets.append(int_(field.offset));
+            offsets.append(pybind11::int_(field.offset));
         }
         dtype_ptr = pybind11::dtype(names, formats, offsets, sizeof(T)).release().ptr();
 
