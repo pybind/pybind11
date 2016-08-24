@@ -1117,8 +1117,10 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
     keep_alive_impl(nurse, patient);
 }
 
-template <typename Iterator, bool KeyIterator = false> struct iterator_state {
-    Iterator it, end;
+template <typename Iterator, typename Sentinel, bool KeyIterator = false>
+struct iterator_state {
+    Iterator it;
+    Sentinel end;
     bool first;
 };
 
@@ -1127,10 +1129,11 @@ NAMESPACE_END(detail)
 template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
 
 template <typename Iterator,
+          typename Sentinel,
           typename ValueType = decltype(*std::declval<Iterator>()),
           typename... Extra>
-iterator make_iterator(Iterator first, Iterator last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator> state;
+iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    typedef detail::iterator_state<Iterator, Sentinel> state;
 
     if (!detail::get_type_info(typeid(state))) {
         class_<state>(handle(), "")
@@ -1149,10 +1152,11 @@ iterator make_iterator(Iterator first, Iterator last, Extra &&... extra) {
     return (iterator) cast(state { first, last, true });
 }
 template <typename Iterator,
+          typename Sentinel,
           typename KeyType = decltype((*std::declval<Iterator>()).first),
           typename... Extra>
-iterator make_key_iterator(Iterator first, Iterator last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator, true> state;
+iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    typedef detail::iterator_state<Iterator, Sentinel, true> state;
 
     if (!detail::get_type_info(typeid(state))) {
         class_<state>(handle(), "")
