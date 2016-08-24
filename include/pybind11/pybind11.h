@@ -1149,7 +1149,7 @@ iterator make_iterator(Iterator first, Iterator last, Extra &&... extra) {
     return (iterator) cast(state { first, last, true });
 }
 template <typename Iterator,
-          typename KeyType = decltype(std::declval<Iterator>()->first),
+          typename KeyType = decltype((*std::declval<Iterator>()).first),
           typename... Extra>
 iterator make_key_iterator(Iterator first, Iterator last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator, true> state;
@@ -1164,7 +1164,7 @@ iterator make_key_iterator(Iterator first, Iterator last, Extra &&... extra) {
                     s.first = false;
                 if (s.it == s.end)
                     throw stop_iteration();
-                return s.it->first;
+                return (*s.it).first;
             }, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
     }
 
