@@ -106,9 +106,11 @@ public:
     std::string print_movable(int a, int b) { return get_movable(a, b).get_value(); }
 };
 class NCVirtTrampoline : public NCVirt {
+#if !defined(__INTEL_COMPILER)
     virtual NonCopyable get_noncopyable(int a, int b) {
         PYBIND11_OVERLOAD(NonCopyable, NCVirt, get_noncopyable, a, b);
     }
+#endif
     virtual Movable get_movable(int a, int b) {
         PYBIND11_OVERLOAD_PURE(Movable, NCVirt, get_movable, a, b);
     }
@@ -288,18 +290,19 @@ void init_ex_virtual_functions(py::module &m) {
         .def("pure_virtual", &ExampleVirt::pure_virtual);
 
     py::class_<NonCopyable>(m, "NonCopyable")
-        .def(py::init<int, int>())
-        ;
+        .def(py::init<int, int>());
+
     py::class_<Movable>(m, "Movable")
-        .def(py::init<int, int>())
-        ;
+        .def(py::init<int, int>());
+
+#if !defined(__INTEL_COMPILER)
     py::class_<NCVirt, std::unique_ptr<NCVirt>, NCVirtTrampoline>(m, "NCVirt")
         .def(py::init<>())
         .def("get_noncopyable", &NCVirt::get_noncopyable)
         .def("get_movable", &NCVirt::get_movable)
         .def("print_nc", &NCVirt::print_nc)
-        .def("print_movable", &NCVirt::print_movable)
-        ;
+        .def("print_movable", &NCVirt::print_movable);
+#endif
 
     m.def("runExampleVirt", &runExampleVirt);
     m.def("runExampleVirtBool", &runExampleVirtBool);

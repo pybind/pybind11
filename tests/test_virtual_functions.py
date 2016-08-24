@@ -1,4 +1,5 @@
 import pytest
+import pybind11_tests
 from pybind11_tests import ConstructorStats
 
 
@@ -150,7 +151,7 @@ def test_inheriting_repeat():
     assert obj.unlucky_number() == 1234
     assert obj.lucky_number() == -4.25
 
-
+@pytest.mark.skipif(not hasattr(pybind11_tests, 'NCVirt'))
 def test_move_support():
     from pybind11_tests import NCVirt, NonCopyable, Movable
 

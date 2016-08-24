@@ -46,8 +46,7 @@ void bind_ConstructorStats(py::module &m) {
         .def_readwrite("move_assignments", &ConstructorStats::move_assignments)
         .def_readwrite("copy_constructions", &ConstructorStats::copy_constructions)
         .def_readwrite("move_constructions", &ConstructorStats::move_constructions)
-        .def_static("get", (ConstructorStats &(*)(py::object)) &ConstructorStats::get, py::return_value_policy::reference_internal)
-        ;
+        .def_static("get", (ConstructorStats &(*)(py::object)) &ConstructorStats::get, py::return_value_policy::reference_internal);
 }
 
 PYBIND11_PLUGIN(pybind11_tests) {
