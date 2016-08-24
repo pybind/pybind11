@@ -245,7 +245,7 @@ pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::m
 
     cl.def("__iter__",
         [](Vector &v) {
-            return pybind11::make_iterator<ItType, T>(v.begin(), v.end());
+            return pybind11::make_iterator<ItType, ItType, T>(v.begin(), v.end());
         },
         pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
     );

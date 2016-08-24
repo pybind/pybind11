@@ -25,7 +25,8 @@ Breaking changes queued for v2.0.0 (Not yet released)
 * ``std::enable_shared_from_this<>`` now also works for ``const`` values
 * A return value policy can now be passed to ``handle::operator()``
 * ``make_iterator()`` improvements for better compatibility with various types
-  (now uses prefix increment operator)
+  (now uses prefix increment operator); it now also accepts iterators with
+  different begin/end types as long as they are equality comparable.
 * ``arg()`` now accepts a wider range of argument types for default values
 * Added ``repr()`` method to the ``handle`` class.
 * Added support for registering structured dtypes via ``PYBIND11_NUMPY_DTYPE()`` macro.
