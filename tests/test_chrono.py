@@ -18,8 +18,8 @@ def test_chrono_system_clock():
     assert diff.days == 0
     assert diff.seconds == 0
 
-    # 500 microseconds is a very long time to execute this
-    assert diff.microseconds < 500
+    # 50 milliseconds is a very long time to execute this
+    assert diff.microseconds < 50000
 
 
 def test_chrono_system_clock_roundtrip():
