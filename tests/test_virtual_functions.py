@@ -151,14 +151,15 @@ def test_inheriting_repeat():
     assert obj.unlucky_number() == 1234
     assert obj.lucky_number() == -4.25
 
-@pytest.mark.skipif(not hasattr(pybind11_tests, 'NCVirt'))
+@pytest.mark.skipif(not hasattr(pybind11_tests, 'NCVirt'),
+                    reason="NCVirt test broken on ICPC")
 def test_move_support():
     from pybind11_tests import NCVirt, NonCopyable, Movable
 
     class NCVirtExt(NCVirt):
         def get_noncopyable(self, a, b):
             # Constructs and returns a new instance:
-            nc = NonCopyable(a*a, b*b)
+            nc = NonCopyable(a * a, b * b)
             return nc
 
         def get_movable(self, a, b):
