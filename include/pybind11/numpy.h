@@ -133,7 +133,7 @@ public:
         args["names"] = names;
         args["formats"] = formats;
         args["offsets"] = offsets;
-        args["itemsize"] = int_(itemsize);
+        args["itemsize"] = pybind11::int_(itemsize);
         m_ptr = from_args(args).release().ptr();
     }
 
@@ -150,7 +150,7 @@ public:
     }
 
     size_t itemsize() const {
-        return (size_t) attr("itemsize").cast<int_>();
+        return attr("itemsize").cast<size_t>();
     }
 
     bool has_fields() const {
@@ -175,7 +175,7 @@ private:
         if (fields.ptr() == Py_None)
             return *this;
 
-        struct field_descr { PYBIND11_STR_TYPE name; object format; int_ offset; };
+        struct field_descr { PYBIND11_STR_TYPE name; object format; pybind11::int_ offset; };
         std::vector<field_descr> field_descriptors;
 
         auto items = fields.attr("items").cast<object>();
@@ -183,7 +183,7 @@ private:
             auto spec = object(field, true).cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
             auto format = spec[1].cast<tuple>()[0].cast<dtype>();
-            auto offset = spec[1].cast<tuple>()[1].cast<int_>();
+            auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
             if (!len(name) && format.kind() == "V")
                 continue;
             field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(), offset});
