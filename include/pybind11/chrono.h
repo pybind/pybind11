@@ -23,7 +23,7 @@ public:
 
     bool load(handle src, bool) {
         using namespace std::chrono;
-        PyDateTime_IMPORT;
+        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
         if (PyDelta_Check(src.ptr())) {
@@ -41,7 +41,7 @@ public:
 
     static handle cast(const std::chrono::duration<Rep, Period> &src, return_value_policy /* policy */, handle /* parent */) {
         using namespace std::chrono;
-        PyDateTime_IMPORT;
+        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         // Declare these special duration types so the conversions happen with the correct primitive types (int)
         typedef duration<int, std::ratio<86400>> dd_t;
@@ -61,7 +61,7 @@ public:
     typedef std::chrono::time_point<std::chrono::system_clock, Duration> type;
     bool load(handle src, bool) {
         using namespace std::chrono;
-        PyDateTime_IMPORT;
+        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
         if (PyDateTime_Check(src.ptr())) {
@@ -82,7 +82,7 @@ public:
 
     static handle cast(const std::chrono::time_point<std::chrono::system_clock, Duration> &src, return_value_policy /* policy */, handle /* parent */) {
         using namespace std::chrono;
-        PyDateTime_IMPORT;
+        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         time_t tt = system_clock::to_time_t(src);
         // this function uses static memory so it's best to copy it out asap just in case
@@ -108,7 +108,7 @@ public:
     typedef std::chrono::time_point<Clock, Duration> type;
     bool load(handle src, bool) {
         using namespace std::chrono;
-        PyDateTime_IMPORT;
+        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
         if (PyTime_Check(src.ptr())) {
@@ -125,7 +125,7 @@ public:
 
     static handle cast(const std::chrono::time_point<Clock, Duration> &src, return_value_policy /* policy */, handle /* parent */) {
         using namespace std::chrono;
-        PyDateTime_IMPORT;
+        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         // Declare these special duration types so the conversions happen with the correct primitive types (int)
         typedef duration<int, std::ratio<3600>> hh_t;
