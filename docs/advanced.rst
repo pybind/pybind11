@@ -758,6 +758,29 @@ Please refer to the supplemental example for details.
     length queries (``__len__``), iterators (``__iter__``), the slicing
     protocol and other kinds of useful operations.
 
+C++11 chrono datatypes
+======================
+When including the additional header file :file:`pybind11/chrono.h` conversions from c++11 chrono datatypes
+to corresponding python datetime objects are automatically enabled.
+The following rules describe how the conversions are applied.
+
+Objects of type ``std::chrono::system_clock::time_point`` are converted into datetime.datetime objects.
+These objects are those that specifically come from the system_clock as this is the only clock that measures wall time.
+
+Objects of type ``std::chrono::[other_clock]::time_point`` are converted into datetime.time objects.
+These objects are those that come from all clocks that are not the system_clock (e.g. steady_clock).
+Clocks other than the system_clock are not measured from wall date/time and instead have any start time
+(often when the computer was turned on).
+Therefore as these clocks can only measure time from an arbitrary start point they are represented as time without date.
+
+Objects of type ``std::chrono::duration`` are converted into datetime.timedelta objects.
+
+.. note::
+
+    Pythons datetime implementation is limited to microsecond precision.
+    The extra precision that c++11 clocks can have have (nanoseconds) will be lost upon conversion.
+    The rounding policy from c++ to python is via ``std::chrono::duration_cast<>`` (rounding towards 0 in microseconds).
+
 Return value policies
 =====================
 
