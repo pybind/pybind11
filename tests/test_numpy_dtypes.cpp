@@ -268,6 +268,12 @@ py::list test_dtype_methods() {
 }
 
 void init_ex_numpy_dtypes(py::module &m) {
+    try {
+        py::module::import("numpy");
+    } catch (...) {
+        return;
+    }
+
     PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(PackedStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(NestedStruct, a, b);
