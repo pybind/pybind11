@@ -3,66 +3,62 @@ sudo: false
 matrix:
   include:
   - os: linux
-    compiler: gcc-4.8
     env: PYTHON=2.7 CPP=11 GCC=4.8
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        - kubuntu-backports # cmake 2.8.12
-        packages:
-        - g++-4.8
-        - cmake
+        sources: [ubuntu-toolchain-r-test, kubuntu-backports]
+        packages: [g++-4.8, cmake]
   - os: linux
-    compiler: gcc-4.8
     env: PYTHON=3.5 CPP=11 GCC=4.8
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        - deadsnakes
-        - kubuntu-backports # cmake 2.8.12
-        packages:
-        - g++-4.8
-        - python3.5-dev
-        - cmake
+        sources: [ubuntu-toolchain-r-test, kubuntu-backports, deadsnakes]
+        packages: [g++-4.8, cmake, python3.5-dev]
+  - sudo: true
+    services: docker
+    env: PYTHON=2.7 CPP=14 GCC=6
+  - sudo: true
+    services: docker
+    env: PYTHON=3.5 CPP=14 GCC=6
   - os: osx
     osx_image: xcode7.3
-    env: PYTHON=2.7 CPP=14
+    env: PYTHON=2.7 CPP=14 CLANG
   - os: osx
     osx_image: xcode7.3
-    env: PYTHON=3.5 CPP=14
-  - compiler: gcc-6
-    services: docker
-    sudo: true
-    env: PYTHON=2.7 CPP=14 DOCKER=debian:testing NATIVE_DEPS=1
-    install:
-    - >
-      docker exec --tty "$containerid" apt-get -y --no-install-recommends install
-      python2.7-dev python-pip python-setuptools python-scipy libeigen3-dev
-      cmake make g++
-  - compiler: gcc-6
-    services: docker
-    sudo: true
-    env: PYTHON=3.5 CPP=14 DOCKER=debian:testing NATIVE_DEPS=1
-    install:
-    - >
-      docker exec --tty "$containerid" apt-get -y --no-install-recommends install
-      python3.5-dev python3-pip python3-setuptools python3-scipy libeigen3-dev
-      cmake make g++
+    env: PYTHON=3.5 CPP=14 CLANG
+  # A barebones build makes sure everything still works without optional deps (numpy/scipy/eigen)
+  # and also tests the automatic discovery functions in CMake (Python version, C++ standard).
+  - os: linux
+    env: BAREBONES
+    addons:
+      apt:
+        sources: [ubuntu-toolchain-r-test, kubuntu-backports]
+        packages: [g++-4.8, cmake]
+    install: false
   # Documentation build:
   - os: linux
     language: docs
-    compiler: sphinx
-    env: PYTHON=2.7 DOCS=1
+    env: DOCS
     install: pip install sphinx sphinx_rtd_theme
     script: make -C docs html SPHINX_OPTIONS=-W
 cache:
   directories:
   - $HOME/.cache/pip
-  - ccache
+  - $HOME/Library/Caches/pip
 before_install:
 - |
+  # Configure build variables
+  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    if [ -z "$GCC" ]; then export GCC=4.8; fi
+    export CXX=g++-$GCC CC=gcc-$GCC;
+    if [ "$GCC" = "6" ]; then export DOCKER=debian:testing CXX=g++ CC=gcc; fi
+  elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    export CXX=clang++ CC=clang;
+  fi
+  if [ -n "$CPP" ]; then export CPP=-std=c++$CPP; fi
+  if [ "${PYTHON:0:1}" = "3" ]; then export PY=3; fi
+- |
+  # Initialize enviornment
   if [ -n "$DOCKER" ]; then
     docker pull $DOCKER
     export containerid=$(docker run --detach --tty \
@@ -73,36 +69,40 @@ before_install:
     docker exec --tty "$containerid" apt-get update
     docker exec --tty "$containerid" apt-get -y upgrade
     export SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
-  fi
-- |
-  if [ -z "$NATIVE_DEPS" ]; then
+  else
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-      if [ -n "$GCC" ]; then export CXX=g++-$GCC CC=gcc-$GCC; fi
       pip install --user --upgrade pip virtualenv
       virtualenv -p python$PYTHON venv
     elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      if [ "${PYTHON:0:1}" = "3" ]; then
-        PMAJOR=3; brew update; brew install python$PMAJOR;
+      if [ "$PY" = "3" ]; then
+        brew update; brew install python$PY;
       else
         curl -fsSL -O https://bootstrap.pypa.io/get-pip.py
         sudo -H python get-pip.py
       fi
-      pip$PMAJOR install --user --upgrade pip virtualenv
-      python$PMAJOR -m virtualenv venv
+      pip$PY install --user --upgrade pip virtualenv
+      python$PY -m virtualenv venv
     fi
     source venv/bin/activate
   fi
 install:
 - |
-  pip install numpy scipy
+  # Install dependencies
+  if [ -n "$DOCKER" ]; then
+    docker exec --tty "$containerid" apt-get -y --no-install-recommends install \
+      python$PYTHON-dev python$PY-pip python$PY-setuptools python$PY-scipy \
+      libeigen3-dev cmake make g++
+  else
+    pip install numpy scipy
 
-  wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.2.9.tar.gz
-  tar xzf eigen.tar.gz
-  export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=$PWD/eigen-eigen-dc6cfdf9bcec"
+    wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.2.9.tar.gz
+    tar xzf eigen.tar.gz
+    export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=$PWD/eigen-eigen-dc6cfdf9bcec"
+  fi
 script:
 - $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS}
     -DPYBIND11_PYTHON_VERSION=$PYTHON
-    -DPYBIND11_CPP_STANDARD=-std=c++$CPP
+    -DPYBIND11_CPP_STANDARD=$CPP
     -DPYBIND11_WERROR=ON
 - $SCRIPT_RUN_PREFIX make pytest -j 2
 after_script:
