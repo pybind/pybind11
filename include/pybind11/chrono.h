@@ -12,6 +12,7 @@
 
 #include "pybind11.h"
 #include <chrono>
+#include <datetime.h>
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
