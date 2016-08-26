@@ -362,6 +362,14 @@ template <typename T> constexpr const int npy_format_descriptor<
         pybind11_fail("Unsupported buffer format!"); \
     } \
     static PYBIND11_DESCR name() { return _(Name); } }
+DECL_FMT(int8_t, NPY_BYTE_, "int8");
+DECL_FMT(uint8_t, NPY_UBYTE_, "uint8");
+DECL_FMT(int16_t, NPY_SHORT_, "int16");
+DECL_FMT(uint16_t, NPY_USHORT_, "uint16");
+DECL_FMT(int32_t, NPY_INT_, "int32");
+DECL_FMT(uint32_t, NPY_UINT_, "uint32");
+DECL_FMT(int64_t, NPY_LONGLONG_, "int64");
+DECL_FMT(uint64_t, NPY_ULONGLONG_, "uint64");
 DECL_FMT(float, NPY_FLOAT_, "float32");
 DECL_FMT(double, NPY_DOUBLE_, "float64");
 DECL_FMT(bool, NPY_BOOL_, "bool");
