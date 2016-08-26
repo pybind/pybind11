@@ -12,7 +12,7 @@
 #include "pybind11.h"
 #include <type_traits>
 
-#if defined(__clang__)
+#if defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma clang diagnostic ignored "-Wunsequenced" // multiple unsequenced modifications to 'self' (when using def(py::self OP Type()))
 #endif
 
