@@ -2,14 +2,14 @@ import pytest
 with pytest.suppress(ImportError):
     import numpy as np
 
+    simple_dtype = np.dtype({'names': ['x', 'y', 'z'],
+                             'formats': ['?', 'u4', 'f4'],
+                             'offsets': [0, 4, 8]})
+    packed_dtype = np.dtype([('x', '?'), ('y', 'u4'), ('z', 'f4')])
+
 
 def assert_equal(actual, expected_data, expected_dtype):
     np.testing.assert_equal(actual, np.array(expected_data, dtype=expected_dtype))
-
-simple_dtype = np.dtype({'names': ['x', 'y', 'z'],
-                         'formats': ['?', 'u4', 'f4'],
-                         'offsets': [0, 4, 8]})
-packed_dtype = np.dtype([('x', '?'), ('y', 'u4'), ('z', 'f4')])
 
 
 @pytest.requires_numpy
