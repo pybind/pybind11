@@ -58,7 +58,7 @@ if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
   endforeach()
 endif()
 
-# Make sure pytest is found or try to install it if it's not found
+# Make sure pytest is found or produce a fatal error
 macro(pybind11_execute_python)
   execute_process(COMMAND ${PYTHON_EXECUTABLE} -m ${ARGN} OUTPUT_QUIET ERROR_QUIET
                   RESULT_VARIABLE pybind11_execute_python_error)
@@ -67,17 +67,7 @@ endmacro()
 if(NOT PYBIND11_PYTEST_FOUND)
   pybind11_execute_python(pytest --version --noconftest)
   if(pybind11_execute_python_error)
-    message(STATUS "Installing pytest using pip")
-    pybind11_execute_python(pip install pytest)
-    if(pybind11_execute_python_error)
-      message(STATUS "Installing pytest using pip --user (fallback)")
-      pybind11_execute_python(pip install --user pytest)
-    endif()
-
-    pybind11_execute_python(pytest --version --noconftest)
-    if(pybind11_execute_python_error)
-      message(FATAL_ERROR "Running the tests requires pytest. Please install it manually.")
-    endif()
+    message(FATAL_ERROR "Running the tests requires pytest.  Please install it manually (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
   endif()
 
   set(PYBIND11_PYTEST_FOUND TRUE CACHE INTERAL "")
