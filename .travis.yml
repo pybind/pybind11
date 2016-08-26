@@ -44,7 +44,7 @@ matrix:
 cache:
   directories:
   - $HOME/.cache/pip
-  - ccache
+  - $HOME/Library/Caches/pip
 before_install:
 - |
   # Configure build variables
