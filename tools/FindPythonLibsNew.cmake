@@ -134,11 +134,6 @@ string(REGEX REPLACE "\\\\" "/" PYTHON_PREFIX ${PYTHON_PREFIX})
 string(REGEX REPLACE "\\\\" "/" PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIR})
 string(REGEX REPLACE "\\\\" "/" PYTHON_SITE_PACKAGES ${PYTHON_SITE_PACKAGES})
 
-# TODO: All the nuances of CPython debug builds have not been dealt with/tested.
-if(PYTHON_IS_DEBUG)
-    set(PYTHON_MODULE_EXTENSION "_d${PYTHON_MODULE_EXTENSION}")
-endif()
-
 if(CMAKE_HOST_WIN32)
     set(PYTHON_LIBRARY
         "${PYTHON_PREFIX}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
