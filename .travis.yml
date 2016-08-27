@@ -34,7 +34,7 @@ matrix:
       apt:
         sources: [ubuntu-toolchain-r-test, kubuntu-backports]
         packages: [g++-4.8, cmake]
-    install: false
+    install: pip install pytest
   # Documentation build:
   - os: linux
     language: docs
@@ -90,10 +90,10 @@ install:
   # Install dependencies
   if [ -n "$DOCKER" ]; then
     docker exec --tty "$containerid" apt-get -y --no-install-recommends install \
-      python$PYTHON-dev python$PY-pip python$PY-setuptools python$PY-scipy \
+      python$PYTHON-dev python$PY-pytest python$PY-scipy \
       libeigen3-dev cmake make g++
   else
-    pip install numpy scipy
+    pip install numpy scipy pytest
 
     wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.2.9.tar.gz
     tar xzf eigen.tar.gz
