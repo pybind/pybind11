@@ -942,6 +942,37 @@ In other words, :func:`init` creates an anonymous function that invokes an
 in-place constructor. Memory allocation etc. is already take care of beforehand
 within pybind11.
 
+.. _classes_with_non_public_destructors:
+
+Classes with non-public destructors
+===================================
+
+If a class has a private or protected destructor, as might be the case in a singleton
+pattern for example, a compile error will occur when trying to expose the class because
+the std::unique_ptr holding the instance of the class will attempt to call its destructor
+when de-allocating the instance. In order to expose classes with private or protected
+destructors you can override the ``holder_type`` and provide a custom destructor. Pybind11
+provides a blank destructor for you to use as follows
+
+.. code-block:: cpp
+
+    /* ... definition ... */
+
+    class MyClass {
+        ~MyClass() {}
+    };
+
+    /* ... binding code ... */
+
+    py::class_<MyClass, std::unique_ptr<MyClass, py::blank_deleter<MyClass>>(m, "MyClass")
+        .def(py::init<>)
+
+The blank destructor provided by Pybind11 is a no-op, so you will still need to make sure
+you are cleaning up the memory in C++. Additionally, the blank destructor, or any custom
+destructor you provide to the unique_ptr will only be called if the object is initialized
+within Python. If the object is initialized in C++ via a getter function, the deleter will
+not be called at all.
+
 .. _catching_and_throwing_exceptions:
 
 Catching and throwing exceptions
