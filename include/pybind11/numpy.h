@@ -234,8 +234,8 @@ public:
     array(const pybind11::dtype& dt, const std::vector<size_t>& shape, void *ptr = nullptr)
     : array(dt, shape, default_strides(shape, dt.itemsize()), ptr) { }
 
-    array(const pybind11::dtype& dt, size_t size, void *ptr = nullptr)
-    : array(dt, std::vector<size_t> { size }, ptr) { }
+    array(const pybind11::dtype& dt, size_t count, void *ptr = nullptr)
+    : array(dt, std::vector<size_t> { count }, ptr) { }
 
     template<typename T> array(const std::vector<size_t>& shape,
                                const std::vector<size_t>& strides, T* ptr)
