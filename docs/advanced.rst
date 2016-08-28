@@ -947,31 +947,29 @@ within pybind11.
 Classes with non-public destructors
 ===================================
 
-If a class has a private or protected destructor, as might be the case in a singleton
-pattern for example, a compile error will occur when trying to expose the class because
-the std::unique_ptr holding the instance of the class will attempt to call its destructor
-when de-allocating the instance. In order to expose classes with private or protected
-destructors you can override the ``holder_type`` and provide a custom destructor. Pybind11
-provides a blank destructor for you to use as follows
+If a class has a private or protected destructor (as might e.g. be the case in
+a singleton pattern), a compile error will occur when creating bindings via
+pybind11. The underlying issue is that the ``std::unique_ptr`` holder type that
+is responsible for managing the lifetime of instances will reference the
+destructor even if no deallocations ever take place. In order to expose classes
+with private or protected destructors, it is possible to override the holder
+type via the second argument to ``class_``. Pybind11 provides a helper class
+``py::nodelete`` that disables any destructor invocations. In this case, it is
+crucial that instances are deallocated on the C++ side to avoid memory leaks.
 
 .. code-block:: cpp
 
     /* ... definition ... */
 
     class MyClass {
-        ~MyClass() {}
+    private:
+        ~MyClass() { }
     };
 
     /* ... binding code ... */
 
-    py::class_<MyClass, std::unique_ptr<MyClass, py::blank_deleter<MyClass>>(m, "MyClass")
+    py::class_<MyClass, std::unique_ptr<MyClass, py::nodelete>>(m, "MyClass")
         .def(py::init<>)
-
-The blank destructor provided by Pybind11 is a no-op, so you will still need to make sure
-you are cleaning up the memory in C++. Additionally, the blank destructor, or any custom
-destructor you provide to the unique_ptr will only be called if the object is initialized
-within Python. If the object is initialized in C++ via a getter function, the deleter will
-not be called at all.
 
 .. _catching_and_throwing_exceptions:
 

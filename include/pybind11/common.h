@@ -350,11 +350,7 @@ PYBIND11_DECL_FMT(float, "f");
 PYBIND11_DECL_FMT(double, "d");
 PYBIND11_DECL_FMT(bool, "?");
 
-// Helper class for exposing classes with a private destructor by overriding the deleter object of std::unique_ptr
-template <typename T>
-struct blank_deleter
-{
-    void operator()(T*) {}
-};
+/// Dummy destructor wrapper that can be used to expose classes with a private destructor
+struct nodelete { template <typename T> void operator()(T*) { } };
 
 NAMESPACE_END(pybind11)
