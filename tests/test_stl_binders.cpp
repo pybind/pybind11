@@ -13,25 +13,25 @@
 
 class El {
 public:
-	El() = delete;
-	El(int v) : a(v) { }
+    El() = delete;
+    El(int v) : a(v) { }
 
-	int a;
+    int a;
 };
 
 std::ostream & operator<<(std::ostream &s, El const&v) {
-	s << "El{" << v.a << '}';
-	return s;
+    s << "El{" << v.a << '}';
+    return s;
 }
 
 void init_ex_stl_binder_vector(py::module &m) {
-	py::class_<El>(m, "El")
-		.def(py::init<int>());
+    py::class_<El>(m, "El")
+        .def(py::init<int>());
 
-	py::bind_vector<unsigned int>(m, "VectorInt");
-	py::bind_vector<bool>(m, "VectorBool");
+    py::bind_vector<unsigned int>(m, "VectorInt");
+    py::bind_vector<bool>(m, "VectorBool");
 
-	py::bind_vector<El>(m, "VectorEl");
+    py::bind_vector<El>(m, "VectorEl");
 
     py::bind_vector<std::vector<El>>(m, "VectorVectorEl");
 }
