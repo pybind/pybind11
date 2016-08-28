@@ -111,7 +111,7 @@ PYBIND11_NOINLINE inline std::string error_string() {
 
    std::string errorString;
     if (type) {
-        errorString += (std::string) handle(type).str();
+        errorString += handle(type).attr("__name__").cast<std::string>();
         errorString += ": ";
     }
     if (value)
