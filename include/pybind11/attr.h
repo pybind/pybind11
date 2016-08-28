@@ -14,18 +14,12 @@
 
 NAMESPACE_BEGIN(pybind11)
 
-template <typename T> struct arg_t;
-
 /// Annotation for keyword arguments
 struct arg {
     constexpr explicit arg(const char *name) : name(name) { }
 
     template <typename T>
     constexpr arg_t<T> operator=(const T &value) const { return {name, value}; }
-    template <typename T, size_t N>
-    constexpr arg_t<const T *> operator=(T const (&value)[N]) const {
-        return operator=((const T *) value);
-    }
 
     const char *name;
 };
@@ -33,8 +27,9 @@ struct arg {
 /// Annotation for keyword arguments with default values
 template <typename T> struct arg_t : public arg {
     constexpr arg_t(const char *name, const T &value, const char *descr = nullptr)
-        : arg(name), value(value), descr(descr) { }
-    T value;
+        : arg(name), value(&value), descr(descr) { }
+
+    const T *value;
     const char *descr;
 };
 
@@ -246,7 +241,7 @@ struct process_attribute<arg_t<T>> : process_attribute_default<arg_t<T>> {
 
         /* Convert keyword value into a Python object */
         object o = object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(
-                a.value, return_value_policy::automatic, handle()), false);
+                *a.value, return_value_policy::automatic, handle()), false);
 
         if (!o) {
 #if !defined(NDEBUG)
