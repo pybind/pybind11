@@ -38,9 +38,11 @@ matrix:
   # Documentation build:
   - os: linux
     language: docs
-    env: DOCS
+    env: DOCS STYLE
     install: pip install sphinx sphinx_rtd_theme
-    script: make -C docs html SPHINX_OPTIONS=-W
+    script:
+    - make -C docs html SPHINX_OPTIONS=-W
+    - tools/check-style.sh
 cache:
   directories:
   - $HOME/.cache/pip
