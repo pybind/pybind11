@@ -298,9 +298,10 @@ functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
 a default implementation.
 
 There are also two alternate macros :func:`PYBIND11_OVERLOAD_PURE_NAME` and
-:func:`PYBIND11_OVERLOAD_NAME` which take a string-valued name argument
-after the *Name of the function* slot. This is useful when the C++ and Python
-versions of the function have different names, e.g. ``operator()`` vs ``__call__``.
+:func:`PYBIND11_OVERLOAD_NAME` which take a string-valued name argument between
+the *Parent class* and *Name of the function* slots. This is useful when the
+C++ and Python versions of the function have different names, e.g.
+``operator()`` vs ``__call__``.
 
 The binding code also needs a few minor adaptations (highlighted):
 
