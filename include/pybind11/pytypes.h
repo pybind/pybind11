@@ -385,7 +385,17 @@ public:
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
     }
+
+    template <typename... Args>
+    str format(Args &&...args) const {
+        return attr("format").cast<object>()(std::forward<Args>(args)...);
+    }
 };
+
+inline namespace literals {
+/// String literal version of str
+inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
+}
 
 inline pybind11::str handle::str() const {
     PyObject *strValue = PyObject_Str(m_ptr);

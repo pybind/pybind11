@@ -231,5 +231,14 @@ def test_print(capture):
         *args-and-a-custom-separator
         no new line here -- next print
         flush
+        py::print + str.format = this
     """
     assert capture.stderr == "this goes to stderr"
+
+
+def test_str_api():
+    from pybind11_tests import test_str_format
+
+    s1, s2 = test_str_format()
+    assert s1 == "1 + 2 = 3"
+    assert s1 == s2
