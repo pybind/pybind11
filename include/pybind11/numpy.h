@@ -19,6 +19,7 @@
 #include <sstream>
 #include <string>
 #include <initializer_list>
+#include <functional>
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -30,12 +31,41 @@ namespace detail {
 template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
 template <typename type> struct is_pod_struct;
 
+struct PyArrayDescr_Proxy {
+    PyObject_HEAD
+    PyObject *typeobj;
+    char kind;
+    char type;
+    char byteorder;
+    char flags;
+    int type_num;
+    int elsize;
+    int alignment;
+    char *subarray;
+    PyObject *fields;
+    PyObject *names;
+};
+
+struct PyArray_Proxy {
+    PyObject_HEAD
+    char *data;
+    int nd;
+    ssize_t *dimensions;
+    ssize_t *strides;
+    PyObject *base;
+    PyObject *descr;
+    int flags;
+};
+
 struct npy_api {
     enum constants {
         NPY_C_CONTIGUOUS_ = 0x0001,
         NPY_F_CONTIGUOUS_ = 0x0002,
+        NPY_ARRAY_OWNDATA_ = 0x0004,
         NPY_ARRAY_FORCECAST_ = 0x0010,
         NPY_ENSURE_ARRAY_ = 0x0040,
+        NPY_ARRAY_ALIGNED_ = 0x0100,
+        NPY_ARRAY_WRITEABLE_ = 0x0400,
         NPY_BOOL_ = 0,
         NPY_BYTE_, NPY_UBYTE_,
         NPY_SHORT_, NPY_USHORT_,
@@ -113,6 +143,11 @@ private:
 };
 }
 
+#define PyArray_GET_(ptr, attr) (reinterpret_cast<::pybind11::detail::PyArray_Proxy*>(ptr)->attr)
+#define PyArrayDescr_GET_(ptr, attr) (reinterpret_cast<::pybind11::detail::PyArrayDescr_Proxy*>(ptr)->attr)
+#define PyArray_CHKFLAGS_(ptr, flag) \
+    (flag == (reinterpret_cast<::pybind11::detail::PyArray_Proxy*>(ptr)->flags & flag))
+
 class dtype : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
@@ -150,15 +185,15 @@ public:
     }
 
     size_t itemsize() const {
-        return attr("itemsize").cast<size_t>();
+        return (size_t) PyArrayDescr_GET_(m_ptr, elsize);
     }
 
     bool has_fields() const {
-        return attr("fields").cast<object>().ptr() != Py_None;
+        return PyArrayDescr_GET_(m_ptr, names) != nullptr;
     }
 
-    std::string kind() const {
-        return (std::string) attr("kind").cast<pybind11::str>();
+    char kind() const {
+        return PyArrayDescr_GET_(m_ptr, kind);
     }
 
 private:
@@ -171,20 +206,20 @@ private:
     dtype strip_padding() {
         // Recursively strip all void fields with empty names that are generated for
         // padding fields (as of NumPy v1.11).
-        auto fields = attr("fields").cast<object>();
-        if (fields.ptr() == Py_None)
+        if (!has_fields())
             return *this;
 
         struct field_descr { PYBIND11_STR_TYPE name; object format; pybind11::int_ offset; };
         std::vector<field_descr> field_descriptors;
 
+        auto fields = attr("fields").cast<object>();
         auto items = fields.attr("items").cast<object>();
         for (auto field : items()) {
             auto spec = object(field, true).cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
             auto format = spec[1].cast<tuple>()[0].cast<dtype>();
             auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
-            if (!len(name) && format.kind() == "V")
+            if (!len(name) && format.kind() == 'V')
                 continue;
             field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(), offset});
         }
@@ -244,14 +279,83 @@ public:
     template<typename T> array(const std::vector<size_t>& shape, T* ptr)
     : array(shape, default_strides(shape, sizeof(T)), ptr) { }
 
-    template<typename T> array(size_t size, T* ptr)
-    : array(std::vector<size_t> { size }, ptr) { }
+    template<typename T> array(size_t count, T* ptr)
+    : array(std::vector<size_t> { count }, ptr) { }
 
     array(const buffer_info &info)
     : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
 
-    pybind11::dtype dtype() {
-        return attr("dtype").cast<pybind11::dtype>();
+    /// Array descriptor (dtype)
+    pybind11::dtype dtype() const {
+        return object(PyArray_GET_(m_ptr, descr), true);
+    }
+
+    /// Total number of elements
+    size_t size() const {
+        return std::accumulate(shape(), shape() + ndim(), (size_t) 1, std::multiplies<size_t>());
+    }
+
+    /// Byte size of a single element
+    size_t itemsize() const {
+        return (size_t) PyArrayDescr_GET_(PyArray_GET_(m_ptr, descr), elsize);
+    }
+
+    /// Total number of bytes
+    size_t nbytes() const {
+        return size() * itemsize();
+    }
+
+    /// Number of dimensions
+    size_t ndim() const {
+        return (size_t) PyArray_GET_(m_ptr, nd);
+    }
+
+    /// Dimensions of the array
+    const size_t* shape() const {
+        static_assert(sizeof(size_t) == sizeof(Py_intptr_t), "size_t != Py_intptr_t");
+        return reinterpret_cast<const size_t *>(PyArray_GET_(m_ptr, dimensions));
+    }
+
+    /// Dimension along a given axis
+    size_t shape(size_t dim) const {
+        if (dim >= ndim())
+            pybind11_fail("NumPy: attempted to index shape beyond ndim");
+        return shape()[dim];
+    }
+
+    /// Strides of the array
+    const size_t* strides() const {
+        static_assert(sizeof(size_t) == sizeof(Py_intptr_t), "size_t != Py_intptr_t");
+        return reinterpret_cast<const size_t *>(PyArray_GET_(m_ptr, strides));
+    }
+
+    /// Stride along a given axis
+    size_t strides(size_t dim) const {
+        if (dim >= ndim())
+            pybind11_fail("NumPy: attempted to index strides beyond ndim");
+        return strides()[dim];
+    }
+
+    /// If set, the array is writeable (otherwise the buffer is read-only)
+    bool writeable() const {
+        return PyArray_CHKFLAGS_(m_ptr, detail::npy_api::NPY_ARRAY_WRITEABLE_);
+    }
+
+    /// If set, the array owns the data (will be freed when the array is deleted)
+    bool owndata() const {
+        return PyArray_CHKFLAGS_(m_ptr, detail::npy_api::NPY_ARRAY_OWNDATA_);
+    }
+
+    /// Direct pointer to contained buffer
+    const void* data() const {
+        return reinterpret_cast<const void *>(PyArray_GET_(m_ptr, data));
+    }
+
+    /// Direct mutable pointer to contained buffer (checks writeable flag)
+    void* mutable_data() {
+        if (!writeable())
+            pybind11_fail("NumPy: cannot get mutable data of a read-only array");
+        return reinterpret_cast<void *>(PyArray_GET_(m_ptr, data));
     }
 
 protected:
@@ -284,8 +388,18 @@ public:
     array_t(const std::vector<size_t>& shape, T* ptr = nullptr)
     : array(shape, ptr) { }
 
-    array_t(size_t size, T* ptr = nullptr)
-    : array(size, ptr) { }
+    array_t(size_t count, T* ptr = nullptr)
+    : array(count, ptr) { }
+
+    const T* data() const {
+        return reinterpret_cast<const T *>(PyArray_GET_(m_ptr, data));
+    }
+
+    T* mutable_data() {
+        if (!writeable())
+            pybind11_fail("NumPy: cannot get mutable data of a read-only array");
+        return reinterpret_cast<T *>(PyArray_GET_(m_ptr, data));
+    }
 
     static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
 
@@ -678,16 +792,13 @@ struct vectorize_helper {
         if (size == 1)
             return cast(f(*((Args *) buffers[Index].ptr)...));
 
-        array result(buffer_info(nullptr, sizeof(Return),
-            format_descriptor<Return>::format(),
-            ndim, shape, strides));
-
-        buffer_info buf = result.request();
-        Return *output = (Return *) buf.ptr;
+        array_t<Return> result(shape, strides);
+        auto buf = result.request();
+        auto output = (Return *) buf.ptr;
 
         if (trivial_broadcast) {
             /* Call the function */
-            for (size_t i=0; i<size; ++i) {
+            for (size_t i = 0; i < size; ++i) {
                 output[i] = f((buffers[Index].size == 1
                                ? *((Args *) buffers[Index].ptr)
                                : ((Args *) buffers[Index].ptr)[i])...);

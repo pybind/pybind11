@@ -19,6 +19,7 @@ set(PYBIND11_TEST_FILES
   test_kwargs_and_defaults.cpp
   test_methods_and_attributes.cpp
   test_modules.cpp
+  test_numpy_array.cpp
   test_numpy_dtypes.cpp
   test_numpy_vectorize.cpp
   test_opaque_types.cpp
