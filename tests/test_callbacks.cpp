@@ -71,6 +71,9 @@ struct Payload {
     }
 };
 
+/// Something to trigger a conversion error
+struct Unregistered {};
+
 test_initializer callbacks([](py::module &m) {
     m.def("test_callback1", &test_callback1);
     m.def("test_callback2", &test_callback2);
@@ -78,8 +81,65 @@ test_initializer callbacks([](py::module &m) {
     m.def("test_callback4", &test_callback4);
     m.def("test_callback5", &test_callback5);
 
-    /* Test cleanup of lambda closure */
+    // Test keyword args and generalized unpacking
+    m.def("test_tuple_unpacking", [](py::function f) {
+        auto t1 = py::make_tuple(2, 3);
+        auto t2 = py::make_tuple(5, 6);
+        return f("positional", 1, *t1, 4, *t2);
+    });
 
+    m.def("test_dict_unpacking", [](py::function f) {
+        auto d1 = py::dict();
+        d1["key"] = py::cast("value");
+        d1["a"] = py::cast(1);
+        auto d2 = py::dict();
+        auto d3 = py::dict();
+        d3["b"] = py::cast(2);
+        return f("positional", 1, **d1, **d2, **d3);
+    });
+
+    m.def("test_keyword_args", [](py::function f) {
+        return f("x"_a=10, "y"_a=20);
+    });
+
+    m.def("test_unpacking_and_keywords1", [](py::function f) {
+        auto args = py::make_tuple(2);
+        auto kwargs = py::dict();
+        kwargs["d"] = py::cast(4);
+        return f(1, *args, "c"_a=3, **kwargs);
+    });
+
+    m.def("test_unpacking_and_keywords2", [](py::function f) {
+        auto kwargs1 = py::dict();
+        kwargs1["a"] = py::cast(1);
+        auto kwargs2 = py::dict();
+        kwargs2["c"] = py::cast(3);
+        kwargs2["d"] = py::cast(4);
+        return f("positional", *py::make_tuple(1), 2, *py::make_tuple(3, 4), 5,
+                 "key"_a="value", **kwargs1, "b"_a=2, **kwargs2, "e"_a=5);
+    });
+
+    m.def("test_unpacking_error1", [](py::function f) {
+        auto kwargs = py::dict();
+        kwargs["x"] = py::cast(3);
+        return f("x"_a=1, "y"_a=2, **kwargs); // duplicate ** after keyword
+    });
+
+    m.def("test_unpacking_error2", [](py::function f) {
+        auto kwargs = py::dict();
+        kwargs["x"] = py::cast(3);
+        return f(**kwargs, "x"_a=1); // duplicate keyword after **
+    });
+
+    m.def("test_arg_conversion_error1", [](py::function f) {
+        f(234, Unregistered(), "kw"_a=567);
+    });
+
+    m.def("test_arg_conversion_error2", [](py::function f) {
+        f(234, "expected_name"_a=Unregistered(), "kw"_a=567);
+    });
+
+    /* Test cleanup of lambda closure */
     m.def("test_cleanup", []() -> std::function<void(void)> {
         Payload p;
 

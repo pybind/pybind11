@@ -16,7 +16,7 @@
 NAMESPACE_BEGIN(pybind11)
 
 /* A few forward declarations */
-class object; class str; class object; class dict; class iterator;
+class object; class str; class iterator;
 struct arg; template <typename T> struct arg_t;
 namespace detail { class accessor; class args_proxy; class kwargs_proxy; }
 
@@ -249,6 +249,17 @@ public:
     args_proxy(handle h) : handle(h) { }
     kwargs_proxy operator*() const { return kwargs_proxy(*this); }
 };
+
+/// Python argument categories (using PEP 448 terms)
+template <typename T> using is_keyword = std::is_base_of<arg, T>;
+template <typename T> using is_s_unpacking = std::is_same<args_proxy, T>; // * unpacking
+template <typename T> using is_ds_unpacking = std::is_same<kwargs_proxy, T>; // ** unpacking
+template <typename T> using is_positional = bool_constant<
+    !is_keyword<T>::value && !is_s_unpacking<T>::value && !is_ds_unpacking<T>::value
+>;
+template <typename T> using is_keyword_or_ds = bool_constant<
+    is_keyword<T>::value || is_ds_unpacking<T>::value
+>;
 
 NAMESPACE_END(detail)
 

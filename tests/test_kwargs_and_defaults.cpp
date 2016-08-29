@@ -56,7 +56,6 @@ test_initializer arg_keywords_and_defaults([](py::module &m) {
     m.def("args_function", &args_function);
     m.def("args_kwargs_function", &args_kwargs_function);
 
-    using namespace py::literals;
     m.def("kw_func_udl", &kw_func, "x"_a, "y"_a=300);
     m.def("kw_func_udl_z", &kw_func, "x"_a, "y"_a=0);
 

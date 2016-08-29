@@ -296,9 +296,6 @@ template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Pat
     static void postcall(handle args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
 };
 
-/// Ignore that a variable is unused in compiler warnings
-inline void ignore_unused(const int *) { }
-
 /// Recursively iterate over variadic template arguments
 template <typename... Args> struct process_attributes {
     static void init(const Args&... args, function_record *r) {
@@ -318,11 +315,6 @@ template <typename... Args> struct process_attributes {
         ignore_unused(unused);
     }
 };
-
-/// Compile-time integer sum
-constexpr size_t constexpr_sum() { return 0; }
-template <typename T, typename... Ts>
-constexpr size_t constexpr_sum(T n, Ts... ns) { return n + constexpr_sum(ns...); }
 
 /// Check the number of named arguments at compile time
 template <typename... Extra,

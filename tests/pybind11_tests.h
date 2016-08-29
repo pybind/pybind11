@@ -8,6 +8,7 @@ using std::cout;
 using std::endl;
 
 namespace py = pybind11;
+using namespace pybind11::literals;
 
 class test_initializer {
 public:

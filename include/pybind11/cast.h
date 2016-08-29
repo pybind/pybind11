@@ -57,6 +57,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
                 } catch (const index_error &e)           { PyErr_SetString(PyExc_IndexError,    e.what()); return;
                 } catch (const key_error &e)             { PyErr_SetString(PyExc_KeyError,      e.what()); return;
                 } catch (const value_error &e)           { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+                } catch (const type_error &e)            { PyErr_SetString(PyExc_TypeError,     e.what()); return;
                 } catch (const stop_iteration &e)        { PyErr_SetString(PyExc_StopIteration, e.what()); return;
                 } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
                 } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
@@ -308,6 +309,7 @@ protected:
 };
 
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
+template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
 
 template <typename type> class type_caster<std::reference_wrapper<type>> : public type_caster_base<type> {
 public:
@@ -947,13 +949,184 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
-template <return_value_policy policy,
-          typename... Args> object handle::operator()(Args&&... args) const {
-    tuple args_tuple = pybind11::make_tuple<policy>(std::forward<Args>(args)...);
-    object result(PyObject_CallObject(m_ptr, args_tuple.ptr()), false);
-    if (!result)
-        throw error_already_set();
-    return result;
+NAMESPACE_BEGIN(detail)
+NAMESPACE_BEGIN(constexpr_impl)
+/// Implementation details for constexpr functions
+constexpr int first(int i) { return i; }
+template <typename T, typename... Ts>
+constexpr int first(int i, T v, Ts... vs) { return v ? i : first(i + 1, vs...); }
+
+constexpr int last(int /*i*/, int result) { return result; }
+template <typename T, typename... Ts>
+constexpr int last(int i, int result, T v, Ts... vs) { return last(i + 1, v ? i : result, vs...); }
+NAMESPACE_END(constexpr_impl)
+
+/// Return the index of the first type in Ts which satisfies Predicate<T>
+template <template<typename> class Predicate, typename... Ts>
+constexpr int constexpr_first() { return constexpr_impl::first(0, Predicate<Ts>::value...); }
+
+/// Return the index of the last type in Ts which satisfies Predicate<T>
+template <template<typename> class Predicate, typename... Ts>
+constexpr int constexpr_last() { return constexpr_impl::last(0, -1, Predicate<Ts>::value...); }
+
+/// Helper class which collects only positional arguments for a Python function call.
+/// A fancier version below can collect any argument, but this one is optimal for simple calls.
+template <return_value_policy policy>
+class simple_collector {
+public:
+    template <typename... Ts>
+    simple_collector(Ts &&...values)
+        : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) { }
+
+    const tuple &args() const & { return m_args; }
+    dict kwargs() const { return {}; }
+
+    tuple args() && { return std::move(m_args); }
+
+    /// Call a Python function and pass the collected arguments
+    object call(PyObject *ptr) const {
+        auto result = object(PyObject_CallObject(ptr, m_args.ptr()), false);
+        if (!result)
+            throw error_already_set();
+        return result;
+    }
+
+private:
+    tuple m_args;
+};
+
+/// Helper class which collects positional, keyword, * and ** arguments for a Python function call
+template <return_value_policy policy>
+class unpacking_collector {
+public:
+    template <typename... Ts>
+    unpacking_collector(Ts &&...values) {
+        // Tuples aren't (easily) resizable so a list is needed for collection,
+        // but the actual function call strictly requires a tuple.
+        auto args_list = list();
+        int _[] = { 0, (process(args_list, std::forward<Ts>(values)), 0)... };
+        ignore_unused(_);
+
+        m_args = object(PyList_AsTuple(args_list.ptr()), false);
+    }
+
+    const tuple &args() const & { return m_args; }
+    const dict &kwargs() const & { return m_kwargs; }
+
+    tuple args() && { return std::move(m_args); }
+    dict kwargs() && { return std::move(m_kwargs); }
+
+    /// Call a Python function and pass the collected arguments
+    object call(PyObject *ptr) const {
+        auto result = object(PyObject_Call(ptr, m_args.ptr(), m_kwargs.ptr()), false);
+        if (!result)
+            throw error_already_set();
+        return result;
+    }
+
+private:
+    template <typename T>
+    void process(list &args_list, T &&x) {
+        auto o = object(detail::make_caster<T>::cast(std::forward<T>(x), policy, nullptr), false);
+        if (!o) {
+#if defined(NDEBUG)
+            argument_cast_error();
+#else
+            argument_cast_error(std::to_string(args_list.size()), type_id<T>());
+#endif
+        }
+        args_list.append(o);
+    }
+
+    void process(list &args_list, detail::args_proxy ap) {
+        for (const auto &a : ap) {
+            args_list.append(a.cast<object>());
+        }
+    }
+
+    template <typename T>
+    void process(list &/*args_list*/, arg_t<T> &&a) {
+        if (m_kwargs[a.name]) {
+#if defined(NDEBUG)
+            multiple_values_error();
+#else
+            multiple_values_error(a.name);
+#endif
+        }
+        auto o = object(detail::make_caster<T>::cast(*a.value, policy, nullptr), false);
+        if (!o) {
+#if defined(NDEBUG)
+            argument_cast_error();
+#else
+            argument_cast_error(a.name, type_id<T>());
+#endif
+        }
+        m_kwargs[a.name] = o;
+    }
+
+    void process(list &/*args_list*/, detail::kwargs_proxy kp) {
+        for (const auto &k : dict(kp, true)) {
+            if (m_kwargs[k.first]) {
+#if defined(NDEBUG)
+                multiple_values_error();
+#else
+                multiple_values_error(k.first.str());
+#endif
+            }
+            m_kwargs[k.first] = k.second;
+        }
+    }
+
+    [[noreturn]] static void multiple_values_error() {
+        throw type_error("Got multiple values for keyword argument "
+                         "(compile in debug mode for details)");
+    }
+
+    [[noreturn]] static void multiple_values_error(std::string name) {
+        throw type_error("Got multiple values for keyword argument '" + name + "'");
+    }
+
+    [[noreturn]] static void argument_cast_error() {
+        throw cast_error("Unable to convert call argument to Python object "
+                         "(compile in debug mode for details)");
+    }
+
+    [[noreturn]] static void argument_cast_error(std::string name, std::string type) {
+        throw cast_error("Unable to convert call argument '" + name
+                         + "' of type '" + type + "' to Python object");
+    }
+
+private:
+    tuple m_args;
+    dict m_kwargs;
+};
+
+/// Collect only positional arguments for a Python function call
+template <return_value_policy policy, typename... Args,
+          typename = enable_if_t<all_of_t<is_positional, Args...>::value>>
+simple_collector<policy> collect_arguments(Args &&...args) {
+    return {std::forward<Args>(args)...};
+}
+
+/// Collect all arguments, including keywords and unpacking (only instantiated when needed)
+template <return_value_policy policy, typename... Args,
+          typename = enable_if_t<!all_of_t<is_positional, Args...>::value>>
+unpacking_collector<policy> collect_arguments(Args &&...args) {
+    // Following argument order rules for generalized unpacking according to PEP 448
+    static_assert(
+        constexpr_last<is_positional, Args...>() < constexpr_first<is_keyword_or_ds, Args...>()
+        && constexpr_last<is_s_unpacking, Args...>() < constexpr_first<is_ds_unpacking, Args...>(),
+        "Invalid function call: positional args must precede keywords and ** unpacking; "
+        "* unpacking must precede ** unpacking"
+    );
+    return {std::forward<Args>(args)...};
+}
+
+NAMESPACE_END(detail)
+
+template <return_value_policy policy, typename... Args>
+object handle::operator()(Args &&...args) const {
+    return detail::collect_arguments<policy>(std::forward<Args>(args)...).call(m_ptr);
 }
 
 template <return_value_policy policy,
