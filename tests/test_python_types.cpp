@@ -197,4 +197,18 @@ test_initializer python_types([](py::module &m) {
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
         .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")
         ;
+
+    m.def("test_print_function", []() {
+        py::print("Hello, World!");
+        py::print(1, 2.0, "three", true, std::string("-- multiple args"));
+        auto args = py::make_tuple("and", "a", "custom", "separator");
+        py::print("*args", *args, "sep"_a="-");
+        py::print("no new line here", "end"_a=" -- ");
+        py::print("next print");
+
+        auto py_stderr = py::module::import("sys").attr("stderr").cast<py::object>();
+        py::print("this goes to stderr", "file"_a=py_stderr);
+
+        py::print("flush", "flush"_a=true);
+    });
 });

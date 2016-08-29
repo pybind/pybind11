@@ -68,18 +68,22 @@ class Capture(object):
     def __init__(self, capfd):
         self.capfd = capfd
         self.out = ""
+        self.err = ""
 
-    def _flush_stdout(self):
+    def _flush(self):
+        """Workaround for issues on Windows: to be removed after tests get py::print"""
         sys.stdout.flush()
-        os.fsync(sys.stdout.fileno())  # make sure C++ output is also read
-        return self.capfd.readouterr()[0]
+        os.fsync(sys.stdout.fileno())
+        sys.stderr.flush()
+        os.fsync(sys.stderr.fileno())
+        return self.capfd.readouterr()
 
     def __enter__(self):
-        self._flush_stdout()
+        self._flush()
         return self
 
     def __exit__(self, *_):
-        self.out = self._flush_stdout()
+        self.out, self.err = self._flush()
 
     def __eq__(self, other):
         a = Output(self.out)
@@ -99,6 +103,10 @@ class Capture(object):
     @property
     def unordered(self):
         return Unordered(self.out)
+
+    @property
+    def stderr(self):
+        return Output(self.err)
 
 
 @pytest.fixture

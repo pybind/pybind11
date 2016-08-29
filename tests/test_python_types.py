@@ -218,3 +218,18 @@ def test_module():
     assert ExamplePythonTypes.__module__ == "pybind11_tests"
     assert ExamplePythonTypes.get_set.__name__ == "get_set"
     assert ExamplePythonTypes.get_set.__module__ == "pybind11_tests"
+
+
+def test_print(capture):
+    from pybind11_tests import test_print_function
+
+    with capture:
+        test_print_function()
+    assert capture == """
+        Hello, World!
+        1 2.0 three True -- multiple args
+        *args-and-a-custom-separator
+        no new line here -- next print
+        flush
+    """
+    assert capture.stderr == "this goes to stderr"
