@@ -28,10 +28,18 @@ test_initializer stl_binder_vector([](py::module &m) {
     py::class_<El>(m, "El")
         .def(py::init<int>());
 
-    py::bind_vector<unsigned int>(m, "VectorInt");
-    py::bind_vector<bool>(m, "VectorBool");
+    py::bind_vector< std::vector<unsigned int> >(m, "VectorInt");
+    py::bind_vector< std::vector<bool> >(m, "VectorBool");
 
-    py::bind_vector<El>(m, "VectorEl");
+    py::bind_vector< std::vector<El> >(m, "VectorEl");
 
-    py::bind_vector<std::vector<El>>(m, "VectorVectorEl");
+    py::bind_vector< std::vector< std::vector<El> > >(m, "VectorVectorEl");
+});
+
+test_initializer stl_binder_map([](py::module &m) {
+    py::bind_map< std::map<std::string, double> >(m, "MapStringDouble");
+    py::bind_map< std::unordered_map<std::string, double> >(m, "UnorderedMapStringDouble");
+
+    py::bind_map< std::map<std::string, double const> >(m, "MapStringDoubleConst");
+    py::bind_map< std::unordered_map<std::string, double const> >(m, "UnorderedMapStringDoubleConst");
 });
