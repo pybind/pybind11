@@ -1148,6 +1148,10 @@ inline object handle::operator()(detail::args_proxy args, detail::kwargs_proxy k
     return result;
 }
 
+template <typename... Args, typename /*SFINAE*/>
+dict::dict(Args &&...args)
+    : dict(detail::unpacking_collector<>(std::forward<Args>(args)...).kwargs()) { }
+
 #define PYBIND11_MAKE_OPAQUE(Type) \
     namespace pybind11 { namespace detail { \
         template<> class type_caster<Type> : public type_caster_base<Type> { }; \

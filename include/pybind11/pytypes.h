@@ -589,6 +589,9 @@ public:
     dict() : object(PyDict_New(), false) {
         if (!m_ptr) pybind11_fail("Could not allocate dict object!");
     }
+    template <typename... Args,
+              typename = detail::enable_if_t<detail::all_of_t<detail::is_keyword_or_ds, Args...>::value>>
+    dict(Args &&...args);
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     detail::dict_iterator begin() const { return (++detail::dict_iterator(*this, 0)); }
     detail::dict_iterator end() const { return detail::dict_iterator(); }

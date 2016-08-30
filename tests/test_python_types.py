@@ -242,3 +242,9 @@ def test_str_api():
     s1, s2 = test_str_format()
     assert s1 == "1 + 2 = 3"
     assert s1 == s2
+
+
+def test_dict_api():
+    from pybind11_tests import test_dict_keyword_constructor
+
+    assert test_dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
