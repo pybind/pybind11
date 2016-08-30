@@ -145,6 +145,9 @@ public: \
         for (unsigned i = 0; i < times; ++i) \
             s += "hi"; \
         return s; \
+    } \
+    std::string say_everything() { \
+        return say_something(1) + " " + std::to_string(unlucky_number()); \
     }
 A_METHODS
 };
@@ -253,7 +256,8 @@ void initialize_inherited_virtuals(py::module &m) {
     py::class_<A_Repeat, std::unique_ptr<A_Repeat>, PyA_Repeat>(m, "A_Repeat")
         .def(py::init<>())
         .def("unlucky_number", &A_Repeat::unlucky_number)
-        .def("say_something", &A_Repeat::say_something);
+        .def("say_something", &A_Repeat::say_something)
+        .def("say_everything", &A_Repeat::say_everything);
     py::class_<B_Repeat, std::unique_ptr<B_Repeat>, PyB_Repeat>(m, "B_Repeat", py::base<A_Repeat>())
         .def(py::init<>())
         .def("lucky_number", &B_Repeat::lucky_number);
@@ -266,7 +270,8 @@ void initialize_inherited_virtuals(py::module &m) {
     py::class_<A_Tpl, std::unique_ptr<A_Tpl>, PyA_Tpl<>>(m, "A_Tpl")
         .def(py::init<>())
         .def("unlucky_number", &A_Tpl::unlucky_number)
-        .def("say_something", &A_Tpl::say_something);
+        .def("say_something", &A_Tpl::say_something)
+        .def("say_everything", &A_Tpl::say_everything);
     py::class_<B_Tpl, std::unique_ptr<B_Tpl>, PyB_Tpl<>>(m, "B_Tpl", py::base<A_Tpl>())
         .def(py::init<>())
         .def("lucky_number", &B_Tpl::lucky_number);
