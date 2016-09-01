@@ -106,6 +106,9 @@ struct function_record {
     /// Number of arguments
     uint16_t nargs;
 
+    /// Cached detail::type_info pointer for return value
+    const detail::type_info *ret_type_cache = nullptr;
+
     /// Python method object
     PyMethodDef *def = nullptr;
 

@@ -172,8 +172,7 @@ public:
     }
 
     PYBIND11_NOINLINE static handle cast(const void *_src, return_value_policy policy, handle parent,
-                                         const std::type_info *type_info,
-                                         const std::type_info *type_info_backup,
+                                         const detail::type_info *tinfo,
                                          void *(*copy_constructor)(const void *),
                                          void *(*move_constructor)(const void *),
                                          const void *existing_holder = nullptr) {
@@ -182,23 +181,6 @@ public:
             return none().inc_ref();
 
         auto &internals = get_internals();
-
-        auto it = internals.registered_types_cpp.find(std::type_index(*type_info));
-        if (it == internals.registered_types_cpp.end()) {
-            type_info = type_info_backup;
-            it = internals.registered_types_cpp.find(std::type_index(*type_info));
-        }
-
-        if (it == internals.registered_types_cpp.end()) {
-            std::string tname = type_info->name();
-            detail::clean_type_id(tname);
-            std::string msg = "Unregistered type : " + tname;
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
-            return handle();
-        }
-
-        auto tinfo = (const detail::type_info *) it->second;
-
         auto it_instances = internals.registered_instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             auto instance_type = detail::get_type_info(Py_TYPE(it_i->second), false);
@@ -248,6 +230,54 @@ protected:
     const type_info *typeinfo = nullptr;
     void *value = nullptr;
     object temp;
+
+    template <typename T> static const detail::type_info *get_cached_ret_type(const std::type_info *typeinfo) {
+        // Create some static locals, then forward everything to the non-templated version
+        static const std::type_info *cache_runtime_type;
+        static const detail::type_info *cache;
+        return get_cached_ret_type(typeinfo, &typeid(T), cache, cache_runtime_type);
+    }
+
+    PYBIND11_NOINLINE static const detail::type_info *get_cached_ret_type(
+            const std::type_info *runtime_type,
+            const std::type_info *type,
+            const detail::type_info *&cache,
+            const std::type_info *&cache_runtime_type) {
+
+        // Cache validation is dependent on both the C++ return type (T) *and* the actual run-time
+        // type (which will differ if returning a subclass of an instance of T; it could also be
+        // nullptr, and as long as both are nullptr, that's okay too).
+        if (cache && cache_runtime_type == runtime_type) {
+            return cache;
+        }
+
+        auto &internals = get_internals();
+        const detail::type_info *tinfo = nullptr;
+
+        // We need to look up the runtime type (if given), then fallback to the base type
+        for (const std::type_info *t : {runtime_type, type}) {
+            if (t) {
+                auto it = internals.registered_types_cpp.find(*t);
+                if (it != internals.registered_types_cpp.end()) {
+                    tinfo = static_cast<const detail::type_info *>(it->second);
+                    break;
+                }
+            }
+        }
+
+        if (tinfo) {
+            cache_runtime_type = runtime_type;
+            return (cache = tinfo);
+        }
+
+        std::string tname = runtime_type ? runtime_type->name() : type->name();
+        detail::clean_type_id(tname);
+        std::string msg = "Unregistered type : " + tname;
+        PyErr_SetString(PyExc_TypeError, msg.c_str());
+        return nullptr;
+    }
+
+
 };
 
 /* Determine suitable casting operator */
@@ -277,9 +307,12 @@ public:
     }
 
     static handle cast(const itype *src, return_value_policy policy, handle parent) {
-        return type_caster_generic::cast(
-            src, policy, parent, src ? &typeid(*src) : nullptr, &typeid(type),
-            make_copy_constructor(src), make_move_constructor(src));
+
+        const detail::type_info *ret_type = get_cached_ret_type<itype>(src ? &typeid(*src) : nullptr);
+        if (!ret_type) return handle(); // PyErr is already set
+
+        return type_caster_generic::cast(src, policy, parent,
+            ret_type, make_copy_constructor(src), make_move_constructor(src));
     }
 
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
@@ -790,10 +823,12 @@ public:
     #endif
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
-        return type_caster_generic::cast(
-            src.get(), return_value_policy::take_ownership, handle(),
-            src.get() ? &typeid(*src.get()) : nullptr, &typeid(type),
-            nullptr, nullptr, &src);
+        auto *got = src.get();
+        const detail::type_info *ret_type = type_caster_generic::get_cached_ret_type<intrinsic_t<type>>(got ? &typeid(*got) : nullptr);
+        if (!ret_type) return handle(); // PyErr is already set
+
+        return type_caster_generic::cast(src.get(), return_value_policy::take_ownership, handle(),
+            ret_type, nullptr, nullptr, &src);
     }
 
 protected:
