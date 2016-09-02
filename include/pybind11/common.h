@@ -235,6 +235,23 @@ struct buffer_info {
         }
     }
 
+    buffer_info(buffer_info &&other){
+        (*this) = std::move(other);
+    }
+
+    buffer_info& operator=(buffer_info &&rhs){
+        ptr = rhs.ptr;
+        itemsize = rhs.itemsize;
+        size = rhs.size;
+        format = std::move(rhs.format);
+        ndim = rhs.ndim;
+        shape = std::move(rhs.shape);
+        strides = std::move(rhs.strides);
+        std::swap(view, rhs.view);
+        std::swap(ownview, rhs.ownview);
+        return *this;
+    }
+
     ~buffer_info() {
         if (view && ownview) { PyBuffer_Release(view); delete view; }
     }
