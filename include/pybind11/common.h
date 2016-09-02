@@ -235,12 +235,10 @@ struct buffer_info {
         }
     }
 
-    ~buffer_info() {
-        if (view) { PyBuffer_Release(view); delete view; }
-    }
+    struct ViewDeleter { void operator()(Py_buffer *view) const { PyBuffer_Release(view); delete view; } };
 
 private:
-    Py_buffer *view = nullptr;
+    std::unique_ptr<Py_buffer, ViewDeleter> view;
 };
 
 NAMESPACE_BEGIN(detail)
