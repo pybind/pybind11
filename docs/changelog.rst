@@ -46,6 +46,13 @@ Breaking changes queued for v2.0.0 (Not yet released)
 * Added constructors for ``str`` and ``bytes`` from zero-terminated char pointers,
   and from char pointers and length.
 * Added ``memoryview`` wrapper type which is constructible from ``buffer_info``.
+* New syntax to call a Python function from C++ using keyword arguments and unpacking,
+  e.g. ``foo(1, 2, "z"_a=3)`` or ``bar(1, *args, "z"_a=3, **kwargs)``.
+* Added ``py::print()`` function which replicates Python's API and writes to Python's
+  ``sys.stdout`` by default (as opposed to C's ``stdout`` like ``std::cout``).
+* Added ``py::dict`` keyword constructor:``auto d = dict("number"_a=42, "name"_a="World");``
+* Added ``py::str::format()`` method and ``_s`` literal:
+  ``py::str s = "1 + 2 = {}"_s.format(3);``
 * Various minor improvements of library internals (no user-visible changes)
 
 1.8.1 (July 12, 2016)
