@@ -225,9 +225,9 @@ struct buffer_info {
     : buffer_info(ptr, itemsize, format, 1, std::vector<size_t> { size },
                   std::vector<size_t> { itemsize }) { }
 
-    buffer_info(Py_buffer *view)
+    buffer_info(Py_buffer *view, bool ownview = true)
         : ptr(view->buf), itemsize((size_t) view->itemsize), size(1), format(view->format),
-          ndim((size_t) view->ndim), shape((size_t) view->ndim), strides((size_t) view->ndim), view(view) {
+          ndim((size_t) view->ndim), shape((size_t) view->ndim), strides((size_t) view->ndim), view(view), ownview(ownview) {
         for (size_t i = 0; i < (size_t) view->ndim; ++i) {
             shape[i] = (size_t) view->shape[i];
             strides[i] = (size_t) view->strides[i];
@@ -236,11 +236,12 @@ struct buffer_info {
     }
 
     ~buffer_info() {
-        if (view) { PyBuffer_Release(view); delete view; }
+        if (view && ownview) { PyBuffer_Release(view); delete view; }
     }
 
 private:
     Py_buffer *view = nullptr;
+    bool ownview = false;
 };
 
 NAMESPACE_BEGIN(detail)
