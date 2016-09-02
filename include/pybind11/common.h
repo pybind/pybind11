@@ -235,6 +235,9 @@ struct buffer_info {
         }
     }
 
+    buffer_info(const buffer_info &) = delete;
+    buffer_info& operator=(const buffer_info &) = delete;
+
     buffer_info(buffer_info &&other){
         (*this) = std::move(other);
     }
