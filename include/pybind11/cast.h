@@ -1134,20 +1134,6 @@ template <return_value_policy policy,
     return operator()<policy>(std::forward<Args>(args)...);
 }
 
-inline object handle::operator()(detail::args_proxy args) const {
-    object result(PyObject_CallObject(m_ptr, args.ptr()), false);
-    if (!result)
-        throw error_already_set();
-    return result;
-}
-
-inline object handle::operator()(detail::args_proxy args, detail::kwargs_proxy kwargs) const {
-    object result(PyObject_Call(m_ptr, args.ptr(), kwargs.ptr()), false);
-    if (!result)
-        throw error_already_set();
-    return result;
-}
-
 template <typename... Args, typename /*SFINAE*/>
 dict::dict(Args &&...args)
     : dict(detail::unpacking_collector<>(std::forward<Args>(args)...).kwargs()) { }

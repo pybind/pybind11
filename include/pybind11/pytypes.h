@@ -48,8 +48,6 @@ public:
     object call(Args&&... args) const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
     object operator()(Args&&... args) const;
-    inline object operator()(detail::args_proxy args) const;
-    inline object operator()(detail::args_proxy f_args, detail::kwargs_proxy kwargs) const;
     operator bool() const { return m_ptr != nullptr; }
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
     bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
