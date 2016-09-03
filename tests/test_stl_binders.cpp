@@ -24,7 +24,7 @@ std::ostream & operator<<(std::ostream &s, El const&v) {
     return s;
 }
 
-void init_ex_stl_binder_vector(py::module &m) {
+test_initializer stl_binder_vector([](py::module &m) {
     py::class_<El>(m, "El")
         .def(py::init<int>());
 
@@ -34,4 +34,4 @@ void init_ex_stl_binder_vector(py::module &m) {
     py::bind_vector<El>(m, "VectorEl");
 
     py::bind_vector<std::vector<El>>(m, "VectorVectorEl");
-}
+});

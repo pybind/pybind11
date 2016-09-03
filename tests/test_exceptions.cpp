@@ -66,7 +66,7 @@ void throws_logic_error() {
     throw std::logic_error("this error should fall through to the standard handler");
 }
 
-void init_ex_custom_exceptions(py::module &m) {
+test_initializer custom_exceptions([](py::module &m) {
     // make a new custom exception and use it as a translation target
     static py::exception<MyException> ex(m, "MyException");
     py::register_exception_translator([](std::exception_ptr p) {
@@ -104,5 +104,5 @@ void init_ex_custom_exceptions(py::module &m) {
     m.def("throws3", &throws3);
     m.def("throws4", &throws4);
     m.def("throws_logic_error", &throws_logic_error);
-}
+});
 

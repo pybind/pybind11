@@ -35,7 +35,7 @@ std::string test_scoped_enum(ScopedEnum z) {
     return "ScopedEnum::" + std::string(z == ScopedEnum::Two ? "Two" : "Three");
 }
 
-void init_ex_enum(py::module &m) {
+test_initializer enums([](py::module &m) {
     m.def("test_scoped_enum", &test_scoped_enum);
 
     py::enum_<UnscopedEnum>(m, "UnscopedEnum")
@@ -54,4 +54,4 @@ void init_ex_enum(py::module &m) {
         .value("EFirstMode", ClassWithUnscopedEnum::EFirstMode)
         .value("ESecondMode", ClassWithUnscopedEnum::ESecondMode)
         .export_values();
-}
+});

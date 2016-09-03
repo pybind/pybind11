@@ -11,7 +11,7 @@
 #include <pybind11/eval.h>
 #include "pybind11_tests.h"
 
-void init_ex_eval(py::module & m) {
+test_initializer eval([](py::module &m) {
     auto global = py::dict(py::module::import("__main__").attr("__dict__"));
 
     m.def("test_eval_statements", [global]() {
@@ -77,4 +77,4 @@ void init_ex_eval(py::module & m) {
         }
         return false;
     });
-}
+});

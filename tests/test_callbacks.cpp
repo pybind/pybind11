@@ -71,7 +71,7 @@ struct Payload {
     }
 };
 
-void init_ex_callbacks(py::module &m) {
+test_initializer callbacks([](py::module &m) {
     m.def("test_callback1", &test_callback1);
     m.def("test_callback2", &test_callback2);
     m.def("test_callback3", &test_callback3);
@@ -95,4 +95,4 @@ void init_ex_callbacks(py::module &m) {
     m.def("test_dummy_function", &test_dummy_function);
     // Export the payload constructor statistics for testing purposes:
     m.def("payload_cstats", &ConstructorStats::get<Payload>);
-}
+});

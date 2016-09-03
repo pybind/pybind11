@@ -167,7 +167,7 @@ public:
 int ExamplePythonTypes::value = 0;
 const int ExamplePythonTypes::value2 = 5;
 
-void init_ex_python_types(py::module &m) {
+test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
     py::class_<ExamplePythonTypes>(m, "ExamplePythonTypes", "Example 2 documentation")
@@ -197,4 +197,4 @@ void init_ex_python_types(py::module &m) {
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
         .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")
         ;
-}
+});

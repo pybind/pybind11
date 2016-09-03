@@ -44,7 +44,7 @@ struct BaseClass { virtual ~BaseClass() {} };
 struct DerivedClass1 : BaseClass { };
 struct DerivedClass2 : BaseClass { };
 
-void init_ex_inheritance(py::module &m) {
+test_initializer inheritance([](py::module &m) {
     py::class_<Pet> pet_class(m, "Pet");
     pet_class
         .def(py::init<std::string, std::string>())
@@ -69,4 +69,4 @@ void init_ex_inheritance(py::module &m) {
     m.def("return_class_1", []() -> BaseClass* { return new DerivedClass1(); });
     m.def("return_class_2", []() -> BaseClass* { return new DerivedClass2(); });
     m.def("return_none", []() -> BaseClass* { return nullptr; });
-}
+});
