@@ -113,3 +113,13 @@ def test_smart_ptr(capture):
     # assert cstats.move_constructions >= 0 # Doesn't invoke any
     assert cstats.copy_assignments == 30
     assert cstats.move_assignments == 0
+
+def test_unique_nodelete(capture):
+    from pybind11_tests import MyObject4
+    o = MyObject4(23)
+    assert o.value == 23
+    cstats = ConstructorStats.get(MyObject4)
+    assert cstats.alive() == 1
+    del o
+    cstats = ConstructorStats.get(MyObject4)
+    assert cstats.alive() == 1 # Leak, but that's intentional
