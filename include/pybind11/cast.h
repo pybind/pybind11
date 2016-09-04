@@ -498,9 +498,9 @@ protected:
     bool success = false;
 };
 
-template <typename type> class type_caster<std::unique_ptr<type>> {
+template <typename type, typename deleter> class type_caster<std::unique_ptr<type, deleter>> {
 public:
-    static handle cast(std::unique_ptr<type> &&src, return_value_policy policy, handle parent) {
+    static handle cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
         handle result = type_caster_base<type>::cast(src.get(), policy, parent);
         if (result)
             src.release();

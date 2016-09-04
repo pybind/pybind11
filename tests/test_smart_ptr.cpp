@@ -69,6 +69,18 @@ private:
     int value;
 };
 
+class MyObject4 {
+public:
+    MyObject4(int value) : value{value} {
+        print_created(this);
+    }
+    int value;
+private:
+    ~MyObject4() {
+        print_destroyed(this);
+    }
+};
+
 /// Make pybind aware of the ref-counted wrapper type (s)
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>);
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
@@ -142,6 +154,10 @@ test_initializer smart_ptr([](py::module &m) {
     m.def("print_myobject3_2", &print_myobject3_2);
     m.def("print_myobject3_3", &print_myobject3_3);
     m.def("print_myobject3_4", &print_myobject3_4);
+
+    py::class_<MyObject4, std::unique_ptr<MyObject4, py::nodelete>>(m, "MyObject4")
+        .def(py::init<int>())
+        .def_readwrite("value", &MyObject4::value);
 
     py::implicitly_convertible<py::int_, MyObject1>();
 
