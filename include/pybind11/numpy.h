@@ -311,7 +311,7 @@ public:
     };
 
     array(const pybind11::dtype& dt, const std::vector<size_t>& shape,
-          const std::vector<size_t>& strides, void *ptr = nullptr) {
+          const std::vector<size_t>& strides, void *ptr = nullptr, bool copy = true, int flags = 0) {
         auto& api = detail::npy_api::get();
         auto ndim = shape.size();
         if (shape.size() != strides.size())
@@ -319,29 +319,29 @@ public:
         auto descr = dt;
         object tmp(api.PyArray_NewFromDescr_(
             api.PyArray_Type_, descr.release().ptr(), (int) ndim, (Py_intptr_t *) shape.data(),
-            (Py_intptr_t *) strides.data(), ptr, 0, nullptr), false);
+            (Py_intptr_t *) strides.data(), ptr, flags, nullptr), false);
         if (!tmp)
             pybind11_fail("NumPy: unable to create array!");
-        if (ptr)
+        if (ptr && copy)
             tmp = object(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */), false);
         m_ptr = tmp.release().ptr();
     }
 
-    array(const pybind11::dtype& dt, const std::vector<size_t>& shape, void *ptr = nullptr)
-    : array(dt, shape, default_strides(shape, dt.itemsize()), ptr) { }
+    array(const pybind11::dtype& dt, const std::vector<size_t>& shape, void *ptr = nullptr, bool copy = true, int flags = 0)
+    : array(dt, shape, default_strides(shape, dt.itemsize(), flags), ptr, copy, flags) { }
 
-    array(const pybind11::dtype& dt, size_t count, void *ptr = nullptr)
-    : array(dt, std::vector<size_t> { count }, ptr) { }
+    array(const pybind11::dtype& dt, size_t count, void *ptr = nullptr, bool copy = true, int flags = 0)
+    : array(dt, std::vector<size_t> { count }, ptr, copy, flags) { }
 
     template<typename T> array(const std::vector<size_t>& shape,
-                               const std::vector<size_t>& strides, T* ptr)
-    : array(pybind11::dtype::of<T>(), shape, strides, (void *) ptr) { }
+                               const std::vector<size_t>& strides, T* ptr, bool copy = true, int flags = 0)
+    : array(pybind11::dtype::of<T>(), shape, strides, (void *) ptr, copy, flags) { }
 
-    template<typename T> array(const std::vector<size_t>& shape, T* ptr)
-    : array(shape, default_strides(shape, sizeof(T)), ptr) { }
+    template<typename T> array(const std::vector<size_t>& shape, T* ptr, bool copy = true, int flags = 0)
+    : array(shape, default_strides(shape, sizeof(T), flags), ptr, copy, flags) { }
 
-    template<typename T> array(size_t size, T* ptr)
-    : array(std::vector<size_t> { size }, ptr) { }
+    template<typename T> array(size_t size, T* ptr, bool copy = true, int flags = 0)
+    : array(std::vector<size_t> { size }, ptr, copy, flags) { }
 
     array(const buffer_info &info)
     : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
@@ -433,14 +433,22 @@ public:
 protected:
     template <typename T, typename SFINAE> friend struct detail::npy_format_descriptor;
 
-    static std::vector<size_t> default_strides(const std::vector<size_t>& shape, size_t itemsize) {
-        auto ndim = shape.size();
+    static std::vector<size_t> default_strides(const std::vector<size_t>& shape, size_t itemsize, int flags) {
+        const int ndim = (int) shape.size();
         std::vector<size_t> strides(ndim);
         if (ndim) {
-            std::fill(strides.begin(), strides.end(), itemsize);
-            for (size_t i = 0; i < ndim - 1; i++)
-                for (size_t j = 0; j < ndim - 1 - i; j++)
-                    strides[j] *= shape[ndim - 1 - i];
+            size_t cumprod = itemsize;
+            if(flags & c_style){
+                for(int i = ndim - 1; i >= 0; --i){
+                    strides[i] = cumprod;
+                    cumprod *= shape[i];
+                }
+            }else{
+                for(int i = 0; i < ndim; ++i){
+                    strides[i] = cumprod;
+                    cumprod *= shape[i];
+                }
+            }
         }
         return strides;
     }
@@ -454,14 +462,14 @@ public:
 
     array_t(const buffer_info& info) : array(info) { }
 
-    array_t(const std::vector<size_t>& shape, const std::vector<size_t>& strides, T* ptr = nullptr)
-    : array(shape, strides, ptr) { }
+    array_t(const std::vector<size_t>& shape, const std::vector<size_t>& strides, T* ptr = nullptr, bool copy = true, int flags = 0)
+    : array(shape, strides, ptr, copy, flags) { }
 
-    array_t(const std::vector<size_t>& shape, T* ptr = nullptr)
-    : array(shape, ptr) { }
+    array_t(const std::vector<size_t>& shape, T* ptr = nullptr, bool copy = true, int flags = 0)
+    : array(shape, ptr, copy, flags) { }
 
-    array_t(size_t size, T* ptr = nullptr)
-    : array(size, ptr) { }
+    array_t(size_t size, T* ptr = nullptr, bool copy = true, int flags = 0)
+    : array(size, ptr, copy, flags) { }
 
     T *data() {
         return reinterpret_cast<T *>(PyArray_DATA((PyArrayObject *) m_ptr));
