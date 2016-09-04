@@ -20,6 +20,14 @@
 #include <string>
 #include <initializer_list>
 
+#ifndef PYBIND_DONT_INCLUDE_NUMPY
+#include <Python.h>
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
+#include <numpy/ndarraytypes.h>
+#undef NPY_NO_DEPRECATED_API
+#endif
+
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
@@ -153,12 +161,80 @@ public:
         return attr("itemsize").cast<size_t>();
     }
 
-    bool has_fields() const {
-        return attr("fields").cast<object>().ptr() != Py_None;
-    }
-
     std::string kind() const {
         return (std::string) attr("kind").cast<pybind11::str>();
+    }
+
+    bool check_scalar() const{
+        return PyArray_CheckScalar(m_ptr);
+    }
+
+    bool is_any_scalar() const{
+        return PyArray_CheckScalar(m_ptr);
+    }
+
+    bool is_unsigned() const{
+        return PyDataType_ISUNSIGNED(m_ptr);
+    }
+
+    bool is_signed() const{
+        return PyDataType_ISSIGNED(m_ptr);
+    }
+
+    bool is_integer() const{
+        return PyDataType_ISINTEGER(m_ptr);
+    }
+
+    bool is_float() const{
+        return PyDataType_ISFLOAT(m_ptr);
+    }
+
+    bool is_complex() const{
+        return PyDataType_ISCOMPLEX(m_ptr);
+    }
+
+    bool is_number() const{
+        return PyDataType_ISNUMBER(m_ptr);
+    }
+
+    bool is_string() const{
+        return PyDataType_ISSTRING(m_ptr);
+    }
+
+    bool is_python() const{
+        return PyDataType_ISPYTHON(m_ptr);
+    }
+
+    bool is_flexible() const{
+        return PyDataType_ISFLEXIBLE(m_ptr);
+    }
+
+    bool is_userdef() const{
+        return PyDataType_ISUSERDEF(m_ptr);
+    }
+
+    bool is_extended() const{
+        return PyDataType_ISEXTENDED(m_ptr);
+    }
+
+    bool is_object() const{
+        return PyDataType_ISOBJECT(m_ptr);
+    }
+
+    bool is_bool() const{
+        return PyTypeNum_ISBOOL(((PyArray_Descr*)(m_ptr))->type_num);//bool has bitrotted, see https://mail.scipy.org/pipermail/numpy-discussion/2013-August/067549.html
+    }
+
+    bool has_fields() const{
+        return PyDataType_HASFIELDS(m_ptr);
+    }
+
+    bool is_swapped() const{
+        return PyDataType_ISBYTESWAPPED(m_ptr);
+    }
+
+    bool operator==(const dtype &rhs) const{
+        return PyArray_EquivTypes((PyArray_Descr *) m_ptr, (PyArray_Descr *) rhs.m_ptr);
     }
 
 private:
@@ -251,7 +327,87 @@ public:
     : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
 
     pybind11::dtype dtype() {
-        return attr("dtype").cast<pybind11::dtype>();
+        return object((PyObject *) PyArray_DTYPE((PyArrayObject *) m_ptr), true).cast<pybind11::dtype>();
+    }
+    int ndims() const{
+        return PyArray_NDIM((PyArrayObject *) m_ptr);
+    }
+    npy_intp dim(int d) const{
+        return PyArray_DIM((PyArrayObject *) m_ptr, d);
+    }
+    const npy_intp* shape() const{
+        return PyArray_SHAPE((PyArrayObject *) m_ptr);
+    }
+    const npy_intp* strides() const{
+        return PyArray_STRIDES((PyArrayObject *) m_ptr);
+    }
+    npy_intp stride(int d) const{
+        return PyArray_STRIDE((PyArrayObject *) m_ptr, d);
+    }
+    uint8_t *data() {
+        return reinterpret_cast<uint8_t *>(PyArray_DATA((PyArrayObject *) m_ptr));
+    }
+    uint8_t *data() const{
+        return reinterpret_cast<uint8_t *>(PyArray_DATA((PyArrayObject *) m_ptr));
+    }
+    object base() const{
+        return object(PyArray_BASE((PyArrayObject *) m_ptr), true);
+    }
+    int type() const{
+        return PyArray_TYPE((PyArrayObject *) m_ptr);
+    }
+    int flags() const{
+        return PyArray_FLAGS((PyArrayObject *) m_ptr);
+    }
+    size_t itemsize() const{
+        return PyArray_ITEMSIZE((PyArrayObject *) m_ptr);
+    }
+    size_t size() const{
+        return PyArray_SIZE((PyArrayObject *) m_ptr);
+    }
+    size_t nbytes() const{
+        return PyArray_NBYTES((PyArrayObject *) m_ptr);
+    }
+
+    template<typename... Args>
+    uint8_t* data_at(Args&&... indices){
+        const int nterms = sizeof...(indices);
+        const uint32_t _indices[] = { uint32_t(indices)... };
+        auto *strides = this->strides();
+        assert(nterms < this->ndims());
+        uint8_t *p = this->data();
+        for(int i = 0; i < nterms; ++i){
+            p += _indices[i] * strides[i];
+        }
+        return p;
+    }
+    template<typename... Args>
+    const uint8_t* data_at(Args&&... indices) const{
+        return const_cast<array *>(this)->data_at(indices...);
+    }
+
+    template<int N>
+    static array empty(const std::array<int, N> &shape, const pybind11::dtype &type, int order = 'C'){
+        npy_intp _shape[N];
+        for(int i = 0; i < N; ++i){
+            _shape[i] = shape[i];
+        }
+        object result(PyArray_Empty(N, _shape, type, order == 'f' || order == 'F' ), false);
+        if (!result)
+            pybind11_fail("NumPy: unable to create array!");
+        return result;
+    }
+
+    template<int N>
+    static array zeros(const std::array<int, N> &shape, const pybind11::dtype &type, int order = 'C'){
+        npy_intp _shape[N];
+        for(int i = 0; i < N; ++i){
+            _shape[i] = shape[i];
+        }
+        object result(PyArray_Zeros(N, _shape, type, order == 'f' || order == 'F' ), false);
+        if (!result)
+            pybind11_fail("NumPy: unable to create array!");
+        return result;
     }
 
 protected:
@@ -286,6 +442,51 @@ public:
 
     array_t(size_t size, T* ptr = nullptr)
     : array(size, ptr) { }
+
+    T *data() {
+        return reinterpret_cast<T *>(PyArray_DATA((PyArrayObject *) m_ptr));
+    }
+    const T *data() const{
+        return reinterpret_cast<T *>(PyArray_DATA((PyArrayObject *) m_ptr));
+    }
+
+    template<typename... Args>
+    T* data_at(Args&&... indices){
+        const int nterms = sizeof...(indices);
+        const uint32_t _indices[] = { uint32_t(indices)... };
+        auto *strides = this->strides();
+        assert(nterms < this->ndims());
+        uint8_t *p = this->data();
+        for(int i = 0; i < nterms; ++i){
+            p += _indices[i] * strides[i];
+        }
+        return p;
+    }
+    template<typename... Args>
+    T* data_at(Args&&... indices) const{
+        return const_cast<array *>(this)->data_at(indices...);
+    }
+
+    template<typename... Args>
+    T* at(Args&&... indices){
+        assert(sizeof...(indices) == this->ndims());
+        return *this->data_at(indices...);
+    }
+    template<typename... Args>
+    const T* at(Args&&... indices) const{
+        assert(sizeof...(indices) == this->ndims());
+        return const_cast<array_t<T, ExtraFlags> *>(this)->at(indices...);
+    }
+
+    template<int N>
+    static array_t<T> empty(const std::array<int, N> &shape, int order = 'C'){
+        return empty(shape, dtype::of<T>(), order);
+    }
+
+    template<int N>
+    static array_t<T> zeros(const std::array<int, N> &shape, int order = 'C'){
+        return zeros(shape, dtype::of<T>(), order);
+    }
 
     static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
 
