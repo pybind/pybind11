@@ -358,6 +358,10 @@ template <template<typename> class P, typename T, typename... Ts>
 struct any_of_t<P, T, Ts...> : conditional_t<P<T>::value, std::true_type, any_of_t<P, Ts...>> { };
 #endif
 
+/// Defer the evaluation of type T until types Us are instantiated
+template <typename T, typename... /*Us*/> struct deferred_type { using type = T; };
+template <typename T, typename... Us> using deferred_t = typename deferred_type<T, Us...>::type;
+
 /// Ignore that a variable is unused in compiler warnings
 inline void ignore_unused(const int *) { }
 

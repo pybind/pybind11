@@ -259,6 +259,12 @@ template <typename T> using is_keyword_or_ds = bool_constant<
     is_keyword<T>::value || is_ds_unpacking<T>::value
 >;
 
+// Call argument collector forward declarations
+template <return_value_policy policy = return_value_policy::automatic_reference>
+class simple_collector;
+template <return_value_policy policy = return_value_policy::automatic_reference>
+class unpacking_collector;
+
 NAMESPACE_END(detail)
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
@@ -588,8 +594,11 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate dict object!");
     }
     template <typename... Args,
-              typename = detail::enable_if_t<detail::all_of_t<detail::is_keyword_or_ds, Args...>::value>>
-    dict(Args &&...args);
+              typename = detail::enable_if_t<detail::all_of_t<detail::is_keyword_or_ds, Args...>::value>,
+              // MSVC workaround: it can't compile an out-of-line definition, so defer the collector
+              typename collector = detail::deferred_t<detail::unpacking_collector<>, Args...>>
+    dict(Args &&...args) : dict(collector(std::forward<Args>(args)...).kwargs()) { }
+
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     detail::dict_iterator begin() const { return (++detail::dict_iterator(*this, 0)); }
     detail::dict_iterator end() const { return detail::dict_iterator(); }
