@@ -10,6 +10,10 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
+#include <Python.h>
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
+
 void init_ex_methods_and_attributes(py::module &);
 void init_ex_python_types(py::module &);
 void init_ex_operator_overloading(py::module &);
@@ -50,6 +54,7 @@ void bind_ConstructorStats(py::module &m) {
 }
 
 PYBIND11_PLUGIN(pybind11_tests) {
+    import_array(); //import numpy
     py::module m("pybind11_tests", "pybind example plugin");
 
     bind_ConstructorStats(m);
