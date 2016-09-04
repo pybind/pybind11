@@ -242,7 +242,7 @@ struct buffer_info {
         (*this) = std::move(other);
     }
 
-    buffer_info& operator=(buffer_info &&rhs){
+    buffer_info& operator=(buffer_info &&rhs) {
         ptr = rhs.ptr;
         itemsize = rhs.itemsize;
         size = rhs.size;
