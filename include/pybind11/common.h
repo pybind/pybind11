@@ -211,7 +211,7 @@ struct buffer_info {
     std::vector<size_t> shape;   // Shape of the tensor (1 entry per dimension)
     std::vector<size_t> strides; // Number of entries between adjacent entries (for each per dimension)
 
-    buffer_info(){}
+    buffer_info() { }
 
     buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t ndim,
                 const std::vector<size_t> &shape, const std::vector<size_t> &strides)
@@ -238,7 +238,7 @@ struct buffer_info {
     buffer_info(const buffer_info &) = delete;
     buffer_info& operator=(const buffer_info &) = delete;
 
-    buffer_info(buffer_info &&other){
+    buffer_info(buffer_info &&other) {
         (*this) = std::move(other);
     }
 
