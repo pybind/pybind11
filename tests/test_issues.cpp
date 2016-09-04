@@ -64,7 +64,7 @@ void init_issues(py::module &m) {
         .def("__repr__", [](const Placeholder &p) { return "Placeholder[" + std::to_string(p.i) + "]"; });
 
     // #171: Can't return reference wrappers (or STL datastructures containing them)
-    m2.def("return_vec_of_reference_wrapper", [](std::reference_wrapper<Placeholder> p4){
+    m2.def("return_vec_of_reference_wrapper", [](std::reference_wrapper<Placeholder> p4) {
         Placeholder *p1 = new Placeholder{1};
         Placeholder *p2 = new Placeholder{2};
         Placeholder *p3 = new Placeholder{3};
@@ -103,7 +103,7 @@ void init_issues(py::module &m) {
     py::class_<ElementList, std::shared_ptr<ElementList>>(m2, "ElementList")
         .def(py::init<>())
         .def("add", &ElementList::add)
-        .def("get", [](ElementList &el){
+        .def("get", [](ElementList &el) {
             py::list list;
             for (auto &e : el.l)
                 list.append(py::cast(e));
