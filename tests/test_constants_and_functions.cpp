@@ -38,7 +38,7 @@ std::string print_bytes(py::bytes bytes) {
     return ret;
 }
 
-void init_ex_constants_and_functions(py::module &m) {
+test_initializer constants_and_functions([](py::module &m) {
     m.attr("some_constant") = py::int_(14);
 
     m.def("test_function", &test_function1);
@@ -52,4 +52,4 @@ void init_ex_constants_and_functions(py::module &m) {
 
     m.def("return_bytes", &return_bytes);
     m.def("print_bytes", &print_bytes);
-}
+});

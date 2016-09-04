@@ -105,7 +105,7 @@ void print_myobject3_2(std::shared_ptr<MyObject3> obj) { std::cout << obj->toStr
 void print_myobject3_3(const std::shared_ptr<MyObject3> &obj) { std::cout << obj->toString() << std::endl; }
 void print_myobject3_4(const std::shared_ptr<MyObject3> *obj) { std::cout << (*obj)->toString() << std::endl; }
 
-void init_ex_smart_ptr(py::module &m) {
+test_initializer smart_ptr([](py::module &m) {
     py::class_<Object, ref<Object>> obj(m, "Object");
     obj.def("getRefCount", &Object::getRefCount);
 
@@ -147,4 +147,4 @@ void init_ex_smart_ptr(py::module &m) {
 
     // Expose constructor stats for the ref type
     m.def("cstats_ref", &ConstructorStats::get<ref_tag>);
-}
+});

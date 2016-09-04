@@ -25,7 +25,7 @@ public:
     Child *returnNullChild() { return nullptr; }
 };
 
-void init_ex_keep_alive(py::module &m) {
+test_initializer keep_alive([](py::module &m) {
     py::class_<Parent>(m, "Parent")
         .def(py::init<>())
         .def("addChild", &Parent::addChild)
@@ -37,4 +37,4 @@ void init_ex_keep_alive(py::module &m) {
 
     py::class_<Child>(m, "Child")
         .def(py::init<>());
-}
+});

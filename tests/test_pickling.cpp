@@ -24,7 +24,7 @@ private:
     int m_extra2 = 0;
 };
 
-void init_ex_pickling(py::module &m) {
+test_initializer pickling([](py::module &m) {
     py::class_<Pickleable>(m, "Pickleable")
         .def(py::init<std::string>())
         .def("value", &Pickleable::value)
@@ -48,4 +48,4 @@ void init_ex_pickling(py::module &m) {
             p.setExtra1(t[1].cast<int>());
             p.setExtra2(t[2].cast<int>());
         });
-}
+});

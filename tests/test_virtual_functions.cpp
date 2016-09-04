@@ -283,7 +283,7 @@ void initialize_inherited_virtuals(py::module &m) {
 };
 
 
-void init_ex_virtual_functions(py::module &m) {
+test_initializer virtual_functions([](py::module &m) {
     /* Important: indicate the trampoline class PyExampleVirt using the third
        argument to py::class_. The second argument with the unique pointer
        is simply the default holder type used by pybind11. */
@@ -315,4 +315,4 @@ void init_ex_virtual_functions(py::module &m) {
 
     m.def("cstats_debug", &ConstructorStats::get<ExampleVirt>);
     initialize_inherited_virtuals(m);
-}
+});

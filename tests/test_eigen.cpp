@@ -32,13 +32,15 @@ typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Ma
 MatrixXfRowMajor double_mat_rm(const MatrixXfRowMajor& x)
 { return 2.0f * x; }
 
-void init_eigen(py::module &m) {
+test_initializer eigen([](py::module &m) {
     typedef Eigen::Matrix<float, 5, 6, Eigen::RowMajor> FixedMatrixR;
     typedef Eigen::Matrix<float, 5, 6> FixedMatrixC;
     typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> DenseMatrixR;
     typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> DenseMatrixC;
     typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SparseMatrixR;
     typedef Eigen::SparseMatrix<float> SparseMatrixC;
+
+    m.attr("have_eigen") = py::cast(true);
 
     // Non-symmetric matrix with zero elements
     Eigen::MatrixXf mat(5, 6);
@@ -129,4 +131,4 @@ void init_eigen(py::module &m) {
     m.def("sparse_passthrough_c", [](const SparseMatrixC &m) -> SparseMatrixC { 
         return m;
     });
-}
+});

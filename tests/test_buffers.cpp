@@ -74,7 +74,7 @@ private:
     float *m_data;
 };
 
-void init_ex_buffers(py::module &m) {
+test_initializer buffers([](py::module &m) {
     py::class_<Matrix> mtx(m, "Matrix");
 
     mtx.def(py::init<size_t, size_t>())
@@ -114,4 +114,4 @@ void init_ex_buffers(py::module &m) {
             );
         })
         ;
-}
+});

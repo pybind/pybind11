@@ -21,7 +21,7 @@ public:
 /* IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures */
 PYBIND11_MAKE_OPAQUE(StringList);
 
-void init_ex_opaque_types(py::module &m) {
+test_initializer opaque_types([](py::module &m) {
     py::class_<StringList>(m, "StringList")
         .def(py::init<>())
         .def("pop_back", &StringList::pop_back)
@@ -59,4 +59,4 @@ void init_ex_opaque_types(py::module &m) {
         result->push_back("some value");
         return std::unique_ptr<StringList>(result);
     });
-}
+});

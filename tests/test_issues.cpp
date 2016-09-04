@@ -173,3 +173,6 @@ void init_issues(py::module &m) {
     m2.def("get_NestB", [](const NestB &b) { return b.value; });
     m2.def("get_NestC", [](const NestC &c) { return c.value; });
 }
+
+// MSVC workaround: trying to use a lambda here crashes MSCV
+test_initializer issues(&init_issues);
