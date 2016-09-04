@@ -280,6 +280,26 @@ private:
     }
 };
 
+class dtype_record_builder {
+    list names;
+    list offsets;
+    list types;
+    size_t itemsize;
+
+    dtype_record_builder(size_t itemsize):itemsize(itemsize){}
+
+    dtype_record_builder& add(const std::string &name, size_t offset, dtype &type){
+        names.append(str(name));
+        offsets.append(int_(offset));
+        types.append(type);
+        return *this;
+    }
+
+    dtype build(){
+        return dtype(names, types, offsets, itemsize);
+    }
+};
+
 class array : public buffer {
 public:
     PYBIND11_OBJECT_DEFAULT(array, buffer, detail::npy_api::get().PyArray_Check_)
