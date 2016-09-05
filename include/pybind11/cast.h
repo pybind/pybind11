@@ -252,8 +252,8 @@ protected:
 /* Determine suitable casting operator */
 template <typename T>
 using cast_op_type = typename std::conditional<std::is_pointer<typename std::remove_reference<T>::type>::value,
-    typename std::add_pointer<typename intrinsic_type<T>::type>::type,
-    typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type>::type;
+    typename std::add_pointer<intrinsic_t<T>>::type,
+    typename std::add_lvalue_reference<intrinsic_t<T>>::type>::type;
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
@@ -612,8 +612,8 @@ public:
     }
 
     static handle cast(const type &src, return_value_policy policy, handle parent) {
-        object o1 = object(type_caster<typename intrinsic_type<T1>::type>::cast(src.first, policy, parent), false);
-        object o2 = object(type_caster<typename intrinsic_type<T2>::type>::cast(src.second, policy, parent), false);
+        object o1 = object(make_caster<T1>::cast(src.first, policy, parent), false);
+        object o2 = object(make_caster<T2>::cast(src.second, policy, parent), false);
         if (!o1 || !o2)
             return handle();
         tuple result(2);
@@ -624,24 +624,24 @@ public:
 
     static PYBIND11_DESCR name() {
         return type_descr(
-            _("Tuple[") + type_caster<typename intrinsic_type<T1>::type>::name() +
-            _(", ") + type_caster<typename intrinsic_type<T2>::type>::name() + _("]"));
+            _("Tuple[") + make_caster<T1>::name() + _(", ") + make_caster<T2>::name() + _("]")
+        );
     }
 
     template <typename T> using cast_op_type = type;
 
     operator type() {
-        return type(first .operator typename type_caster<typename intrinsic_type<T1>::type>::template cast_op_type<T1>(),
-                    second.operator typename type_caster<typename intrinsic_type<T2>::type>::template cast_op_type<T2>());
+        return type(first.operator typename make_caster<T1>::template cast_op_type<T1>(),
+                    second.operator typename make_caster<T2>::template cast_op_type<T2>());
     }
 protected:
-    type_caster<typename intrinsic_type<T1>::type> first;
-    type_caster<typename intrinsic_type<T2>::type> second;
+    make_caster<T1> first;
+    make_caster<T2> second;
 };
 
 template <typename... Tuple> class type_caster<std::tuple<Tuple...>> {
     typedef std::tuple<Tuple...> type;
-    typedef std::tuple<typename intrinsic_type<Tuple>::type...> itype;
+    typedef std::tuple<intrinsic_t<Tuple>...> itype;
     typedef std::tuple<args> args_type;
     typedef std::tuple<args, kwargs> args_kwargs_type;
 public:
@@ -681,7 +681,7 @@ public:
     }
 
     static PYBIND11_DESCR element_names() {
-        return detail::concat(type_caster<typename intrinsic_type<Tuple>::type>::name()...);
+        return detail::concat(make_caster<Tuple>::name()...);
     }
 
     static PYBIND11_DESCR name() {
@@ -706,12 +706,12 @@ public:
 protected:
     template <typename ReturnValue, typename Func, size_t ... Index> ReturnValue call(Func &&f, index_sequence<Index...>) {
         return f(std::get<Index>(value)
-            .operator typename type_caster<typename intrinsic_type<Tuple>::type>::template cast_op_type<Tuple>()...);
+            .operator typename make_caster<Tuple>::template cast_op_type<Tuple>()...);
     }
 
     template <size_t ... Index> type cast(index_sequence<Index...>) {
         return type(std::get<Index>(value)
-            .operator typename type_caster<typename intrinsic_type<Tuple>::type>::template cast_op_type<Tuple>()...);
+            .operator typename make_caster<Tuple>::template cast_op_type<Tuple>()...);
     }
 
     template <size_t ... Indices> bool load(handle src, bool convert, index_sequence<Indices...>) {
@@ -728,7 +728,7 @@ protected:
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <size_t ... Indices> static handle cast(const type &src, return_value_policy policy, handle parent, index_sequence<Indices...>) {
         std::array<object, size> entries {{
-            object(type_caster<typename intrinsic_type<Tuple>::type>::cast(std::get<Indices>(src), policy, parent), false)...
+            object(make_caster<Tuple>::cast(std::get<Indices>(src), policy, parent), false)...
         }};
         for (const auto &entry: entries)
             if (!entry)
@@ -741,7 +741,7 @@ protected:
     }
 
 protected:
-    std::tuple<type_caster<typename intrinsic_type<Tuple>::type>...> value;
+    std::tuple<make_caster<Tuple>...> value;
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
@@ -848,7 +848,7 @@ template <typename T> using move_never = std::integral_constant<bool, !move_alwa
 NAMESPACE_END(detail)
 
 template <typename T> T cast(const handle &handle) {
-    typedef detail::type_caster<typename detail::intrinsic_type<T>::type> type_caster;
+    using type_caster = detail::make_caster<T>;
     type_caster conv;
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)
@@ -868,7 +868,7 @@ template <typename T> object cast(const T &value,
         policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
     else if (policy == return_value_policy::automatic_reference)
         policy = std::is_pointer<T>::value ? return_value_policy::reference : return_value_policy::copy;
-    return object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(value, policy, parent), false);
+    return object(detail::make_caster<T>::cast(value, policy, parent), false);
 }
 
 template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
@@ -929,7 +929,7 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
           typename... Args> tuple make_tuple(Args&&... args_) {
     const size_t size = sizeof...(Args);
     std::array<object, size> args {
-        { object(detail::type_caster<typename detail::intrinsic_type<Args>::type>::cast(
+        { object(detail::make_caster<Args>::cast(
             std::forward<Args>(args_), policy, nullptr), false)... }
     };
     for (auto &arg_value : args) {

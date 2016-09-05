@@ -240,7 +240,7 @@ struct process_attribute<arg_t<T>> : process_attribute_default<arg_t<T>> {
             r->args.emplace_back("self", nullptr, handle());
 
         /* Convert keyword value into a Python object */
-        object o = object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(
+        auto o = object(detail::make_caster<T>::cast(
                 *a.value, return_value_policy::automatic, handle()), false);
 
         if (!o) {
