@@ -1017,30 +1017,34 @@ private:
 /// Binds C++ enumerations and enumeration classes to Python
 template <typename Type> class enum_ : public class_<Type> {
 public:
+    using class_<Type>::def;
     using UnderlyingType = typename std::underlying_type<Type>::type;
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : class_<Type>(scope, name, extra...), m_parent(scope) {
         auto entries = new std::unordered_map<UnderlyingType, const char *>();
-        this->def("__repr__", [name, entries](Type value) -> std::string {
+        def("__repr__", [name, entries](Type value) -> std::string {
             auto it = entries->find((UnderlyingType) value);
             return std::string(name) + "." +
                 ((it == entries->end()) ? std::string("???")
                                         : std::string(it->second));
         });
-        this->def("__init__", [](Type& value, UnderlyingType i) { value = (Type)i; });
-        this->def("__init__", [](Type& value, UnderlyingType i) { new (&value) Type((Type) i); });
-        this->def("__int__", [](Type value) { return (UnderlyingType) value; });
-        this->def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
-        this->def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
+        def("__init__", [](Type& value, UnderlyingType i) { value = (Type)i; });
+        def("__init__", [](Type& value, UnderlyingType i) { new (&value) Type((Type) i); });
+        def("__int__", [](Type value) { return (UnderlyingType) value; });
+        def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
+        def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
         if (std::is_convertible<Type, UnderlyingType>::value) {
             // Don't provide comparison with the underlying type if the enum isn't convertible,
             // i.e. if Type is a scoped enum, mirroring the C++ behaviour.  (NB: we explicitly
             // convert Type to UnderlyingType below anyway because this needs to compile).
-            this->def("__eq__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value == value2; });
-            this->def("__ne__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value != value2; });
+            def("__eq__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value == value2; });
+            def("__ne__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value != value2; });
         }
-        this->def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
+        def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
+        // Pickling and unpickling -- needed for use with the 'multiprocessing' module 
+        def("__getstate__", [](const Type &value) { return pybind11::make_tuple((UnderlyingType) value); });
+        def("__setstate__", [](Type &p, tuple t) { new (&p) Type((Type) t[0].cast<UnderlyingType>()); });
         m_entries = entries;
     }
 
