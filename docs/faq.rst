@@ -19,6 +19,11 @@ Frequently asked questions
 
 See item 2 of the first answer.
 
+"SystemError: dynamic module not initialized properly"
+======================================================
+
+See item 2 of the first answer.
+
 The Python interpreter immediately crashes when importing my module
 ===================================================================
 
