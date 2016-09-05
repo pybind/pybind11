@@ -14,30 +14,6 @@
 
 NAMESPACE_BEGIN(pybind11)
 
-/// Annotation for keyword arguments
-struct arg {
-    constexpr explicit arg(const char *name) : name(name) { }
-
-    template <typename T>
-    constexpr arg_t<T> operator=(const T &value) const { return {name, value}; }
-
-    const char *name;
-};
-
-/// Annotation for keyword arguments with default values
-template <typename T> struct arg_t : public arg {
-    constexpr arg_t(const char *name, const T &value, const char *descr = nullptr)
-        : arg(name), value(&value), descr(descr) { }
-
-    const T *value;
-    const char *descr;
-};
-
-inline namespace literals {
-/// String literal version of arg
-constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
-}
-
 /// Annotation for methods
 struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
 
@@ -233,21 +209,14 @@ template <> struct process_attribute<arg> : process_attribute_default<arg> {
 };
 
 /// Process a keyword argument attribute (*with* a default value)
-template <typename T>
-struct process_attribute<arg_t<T>> : process_attribute_default<arg_t<T>> {
-    static void init(const arg_t<T> &a, function_record *r) {
+template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
+    static void init(const arg_v &a, function_record *r) {
         if (r->class_ && r->args.empty())
             r->args.emplace_back("self", nullptr, handle());
 
-        /* Convert keyword value into a Python object */
-        auto o = object(detail::make_caster<T>::cast(
-                *a.value, return_value_policy::automatic, handle()), false);
-
-        if (!o) {
+        if (!a.value) {
 #if !defined(NDEBUG)
-            std::string descr(typeid(T).name());
-            detail::clean_type_id(descr);
-            descr = "'" + std::string(a.name) + ": " + descr + "'";
+            auto descr = "'" + std::string(a.name) + ": " + a.type + "'";
             if (r->class_) {
                 if (r->name)
                     descr += " in method '" + (std::string) r->class_.str() + "." + (std::string) r->name + "'";
@@ -264,7 +233,7 @@ struct process_attribute<arg_t<T>> : process_attribute_default<arg_t<T>> {
                           "Compile in debug mode for more information.");
 #endif
         }
-        r->args.emplace_back(a.name, a.descr, o.release());
+        r->args.emplace_back(a.name, a.descr, a.value.inc_ref());
     }
 };
 

@@ -949,6 +949,44 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
+/// Annotation for keyword arguments
+struct arg {
+    constexpr explicit arg(const char *name) : name(name) { }
+    template <typename T> arg_v operator=(T &&value) const;
+
+    const char *name;
+};
+
+/// Annotation for keyword arguments with values
+struct arg_v : arg {
+    template <typename T>
+    arg_v(const char *name, T &&x, const char *descr = nullptr)
+        : arg(name),
+          value(detail::make_caster<T>::cast(x, return_value_policy::automatic, handle()), false),
+          descr(descr)
+#if !defined(NDEBUG)
+        , type(type_id<T>())
+#endif
+    { }
+
+    object value;
+    const char *descr;
+#if !defined(NDEBUG)
+    std::string type;
+#endif
+};
+
+template <typename T>
+arg_v arg::operator=(T &&value) const { return {name, std::forward<T>(value)}; }
+
+/// Alias for backward compatibility -- to be remove in version 2.0
+template <typename /*unused*/> using arg_t = arg_v;
+
+inline namespace literals {
+/// String literal version of arg
+constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
+}
+
 NAMESPACE_BEGIN(detail)
 NAMESPACE_BEGIN(constexpr_impl)
 /// Implementation details for constexpr functions
@@ -1044,8 +1082,7 @@ private:
         }
     }
 
-    template <typename T>
-    void process(list &/*args_list*/, arg_t<T> &&a) {
+    void process(list &/*args_list*/, arg_v a) {
         if (m_kwargs[a.name]) {
 #if defined(NDEBUG)
             multiple_values_error();
@@ -1053,15 +1090,14 @@ private:
             multiple_values_error(a.name);
 #endif
         }
-        auto o = object(detail::make_caster<T>::cast(*a.value, policy, nullptr), false);
-        if (!o) {
+        if (!a.value) {
 #if defined(NDEBUG)
             argument_cast_error();
 #else
-            argument_cast_error(a.name, type_id<T>());
+            argument_cast_error(a.name, a.type);
 #endif
         }
-        m_kwargs[a.name] = o;
+        m_kwargs[a.name] = a.value;
     }
 
     void process(list &/*args_list*/, detail::kwargs_proxy kp) {

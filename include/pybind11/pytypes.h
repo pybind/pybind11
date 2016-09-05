@@ -17,7 +17,7 @@ NAMESPACE_BEGIN(pybind11)
 
 /* A few forward declarations */
 class object; class str; class iterator;
-struct arg; template <typename T> struct arg_t;
+struct arg; struct arg_v;
 namespace detail { class accessor; class args_proxy; class kwargs_proxy; }
 
 /// Holds a reference to a Python object (no reference counting)
