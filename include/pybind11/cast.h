@@ -220,14 +220,16 @@ public:
             policy = return_value_policy::reference;
 
         if (policy == return_value_policy::copy) {
-            wrapper->value = copy_constructor(wrapper->value);
-            if (wrapper->value == nullptr)
+            if (copy_constructor)
+                wrapper->value = copy_constructor(wrapper->value);
+            else
                 throw cast_error("return_value_policy = copy, but the object is non-copyable!");
         } else if (policy == return_value_policy::move) {
-            wrapper->value = move_constructor(wrapper->value);
-            if (wrapper->value == nullptr)
+            if (move_constructor)
+                wrapper->value = move_constructor(wrapper->value);
+            else if (copy_constructor)
                 wrapper->value = copy_constructor(wrapper->value);
-            if (wrapper->value == nullptr)
+            else
                 throw cast_error("return_value_policy = move, but the object is neither movable nor copyable!");
         } else if (policy == return_value_policy::reference) {
             wrapper->owned = false;

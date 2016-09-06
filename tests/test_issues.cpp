@@ -172,6 +172,25 @@ void init_issues(py::module &m) {
     m2.def("get_NestA", [](const NestA &a) { return a.value; });
     m2.def("get_NestB", [](const NestB &b) { return b.value; });
     m2.def("get_NestC", [](const NestC &c) { return c.value; });
+
+    // Issue 389: r_v_p::move should fall-through to copy on non-movable objects
+    class MoveIssue1 {
+    public:
+        MoveIssue1(int v) : v{v} {}
+        MoveIssue1(const MoveIssue1 &c) { std::cerr << "copy ctor\n"; v=c.v; }
+        MoveIssue1(MoveIssue1 &&) = delete;
+        int v;
+    };
+    class MoveIssue2 {
+    public:
+        MoveIssue2(int v) : v{v} {}
+        MoveIssue2(MoveIssue2 &&) = default;
+        int v;
+    };
+    py::class_<MoveIssue1>(m2, "MoveIssue1").def(py::init<int>()).def_readwrite("value", &MoveIssue1::v);
+    py::class_<MoveIssue2>(m2, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
+    m2.def("get_moveissue1", [](int i) -> MoveIssue1 * { return new MoveIssue1(i); }, py::return_value_policy::move);
+    m2.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSCV
