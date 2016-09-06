@@ -12,6 +12,7 @@
 #include "common.h"
 #include "operators.h"
 
+#include <map>
 #include <type_traits>
 #include <utility>
 #include <algorithm>
@@ -130,10 +131,12 @@ template <typename Vector, typename Class_> auto vector_if_insertion_operator(Cl
 
 NAMESPACE_END(detail)
 
-
-template <typename T, typename Allocator = std::allocator<T>, typename holder_type = std::unique_ptr<std::vector<T, Allocator>>, typename... Args>
-pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::module &m, std::string const &name, Args&&... args) {
-    using Vector = std::vector<T, Allocator>;
+//
+// std::vector
+//
+template <typename Vector, typename holder_type = std::unique_ptr<Vector>, typename... Args>
+pybind11::class_<Vector, holder_type> bind_vector(pybind11::module &m, std::string const &name, Args&&... args) {
+	using T = typename Vector::value_type;
     using SizeType = typename Vector::size_type;
     using DiffType = typename Vector::difference_type;
     using ItType   = typename Vector::iterator;
@@ -346,6 +349,120 @@ pybind11::class_<std::vector<T, Allocator>, holder_type> bind_vector(pybind11::m
     }, "access the last element ");
 
 #endif
+
+    return cl;
+}
+
+
+
+//
+// std::map
+//
+
+NAMESPACE_BEGIN(detail)
+
+/* Fallback functions */
+template <typename, typename, typename... Args> void map_if_insertion_operator(const Args&...) { }
+
+template <typename Map, typename Class_, typename... Args> void map_if_copy_assignable(Class_ &cl, const Args&...) {
+    using KeyType = typename Map::key_type;
+    using MappedType = typename Map::mapped_type;
+
+    cl.def("__setitem__",
+           [](Map &m, const KeyType &k, const MappedType &v) {
+               auto it = m.find(k);
+               if (it != m.end()) it->second = v;
+               else m.emplace(k, v);
+           });
+
+}
+
+template<typename Map, typename Class_, typename std::enable_if<!std::is_copy_assignable<typename Map::mapped_type>::value, int>::type = 0>
+void map_if_copy_assignable(Class_ &cl) {
+    using KeyType = typename Map::key_type;
+    using MappedType = typename Map::mapped_type;
+
+    cl.def("__setitem__",
+           [](Map &m, const KeyType &k, const MappedType &v) {
+               auto r = m.insert( std::make_pair(k, v) ); // We can't use m[k] = v; because value type might not be default constructable
+               if (!r.second) { // value type might be const so the only way to insert it is to errase it first...
+                   m.erase(r.first);
+                   m.insert( std::make_pair(k, v) );
+               }
+           });
+}
+
+
+template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &cl, std::string const &name)
+-> decltype(std::declval<std::ostream&>() << std::declval<typename Map::key_type>() << std::declval<typename Map::mapped_type>(), void()) {
+
+    cl.def("__repr__",
+           [name](Map &m) {
+            std::ostringstream s;
+            s << name << '{';
+            bool f = false;
+            for (auto const & kv : m) {
+                if (f) s << ", ";
+                s << kv.first << ": " << kv.second;
+                f = true;
+            }
+            s << '}';
+            return s.str();
+        },
+        "Return the canonical string representation of this map."
+    );
+}
+NAMESPACE_END(detail)
+
+template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
+pybind11::class_<Map, holder_type> bind_map(module &m, const std::string &name, Args&&... args) {
+    using KeyType = typename Map::key_type;
+    using MappedType = typename Map::mapped_type;
+    using Class_ = pybind11::class_<Map, holder_type>;
+
+    Class_ cl(m, name.c_str(), std::forward<Args>(args)...);
+
+    cl.def(pybind11::init<>());
+
+    // Register stream insertion operator (if possible)
+    detail::map_if_insertion_operator<Map, Class_>(cl, name);
+
+    cl.def("__bool__",
+        [](const Map &m) -> bool {
+            return !m.empty();
+        },
+        "Check whether the map is nonempty"
+    );
+
+    cl.def("__iter__",
+        [](Map &m) {
+            return pybind11::make_key_iterator(m.begin(), m.end());
+        },
+        pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
+    );
+
+    cl.def("items",
+           [](Map &m) { return pybind11::make_iterator(m.begin(), m.end()); },
+           pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
+    );
+
+    cl.def("__getitem__",
+           [](Map &m, const KeyType &k) -> MappedType {
+               auto it = m.find(k);
+               if (it != m.end()) return it->second;
+               else throw pybind11::key_error();  // it is not always possible to convert key to string // pybind11::key_error(k)
+   });
+
+    detail::map_if_copy_assignable<Map, Class_>(cl);
+
+    cl.def("__delitem__",
+        [](Map &m, const KeyType &k) {
+               auto it = m.find(k);
+               if (it != m.end()) return m.erase(it);
+               else throw pybind11::key_error(); // it is not always possible to convert key to string // pybind11::key_error(k)
+    });
+
+    cl.def("__len__", &Map::size);
 
     return cl;
 }

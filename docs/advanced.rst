@@ -551,6 +551,18 @@ and the Python ``list``, ``set`` and ``dict`` data structures are automatically
 enabled. The types ``std::pair<>`` and ``std::tuple<>`` are already supported
 out of the box with just the core :file:`pybind11/pybind11.h` header.
 
+Alternatively it might be desirable to bind STL containers as native C++ classes,
+eliminating the need of converting back and forth between C++ representation
+and Python one. The downside of this approach in this case users will have to
+deal with C++ containers directly instead of using already familiar Python lists
+or dicts.
+
+Pybind11 provide set of binder functions to bind various STL containers like vectors,
+maps etc. All binder functions are designed to return instances of pybind11::class_
+objects so developers can bind extra functions if needed. For complete set of
+available functions please see :file:`pybind11/stl_bind.h`. For an example on using
+this feature, please see :file:`tests/test_stl_binders.cpp`.
+
 .. note::
 
     Arbitrary nesting of any of these types is supported.
