@@ -59,7 +59,7 @@ def test_instance(capture):
         list_result.append('value2')
         instance.print_list(list_result)
     assert capture.unordered == """
-        Entry at positon 0: value
+        Entry at position 0: value
         list item 0: overwritten
         list item 1: value2
     """

@@ -20,8 +20,8 @@ public:
     ~ExampleVirt() { print_destroyed(this); }
 
     virtual int run(int value) {
-        std::cout << "Original implementation of ExampleVirt::run(state=" << state
-                  << ", value=" << value << ")" << std::endl;
+        py::print("Original implementation of "
+                  "ExampleVirt::run(state={}, value={})"_s.format(state, value));
         return state + value;
     }
 
