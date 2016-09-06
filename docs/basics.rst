@@ -178,16 +178,16 @@ The keyword names also appear in the function signatures within the documentatio
 A shorter notation for named arguments is also available:
 
 .. code-block:: cpp
-    
+
     // regular notation
     m.def("add1", &add, py::arg("i"), py::arg("j"));
     // shorthand
     using namespace pybind11::literals;
     m.def("add2", &add, "i"_a, "j"_a);
 
-The :var:`_a` suffix forms a C++11 literal which is equivalent to :class:`arg`. 
-Note that the literal operator must first be made visible with the directive 
-``using namespace pybind11::literals``. This does not bring in anything else 
+The :var:`_a` suffix forms a C++11 literal which is equivalent to :class:`arg`.
+Note that the literal operator must first be made visible with the directive
+``using namespace pybind11::literals``. This does not bring in anything else
 from the ``pybind11`` namespace except for literals.
 
 .. _default_args:
@@ -229,7 +229,7 @@ The default values also appear within the documentation.
 The shorthand notation is also available for default arguments:
 
 .. code-block:: cpp
-    
+
     // regular notation
     m.def("add1", &add, py::arg("i") = 1, py::arg("j") = 2);
     // shorthand

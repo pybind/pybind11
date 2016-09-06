@@ -84,51 +84,51 @@ test_initializer eigen([](py::module &m) {
             return m.selfadjointView<Eigen::Upper>();
     });
 
-    m.def("fixed_r", [mat]() -> FixedMatrixR { 
+    m.def("fixed_r", [mat]() -> FixedMatrixR {
         return FixedMatrixR(mat);
     });
 
-    m.def("fixed_c", [mat]() -> FixedMatrixC { 
+    m.def("fixed_c", [mat]() -> FixedMatrixC {
         return FixedMatrixC(mat);
     });
 
-    m.def("fixed_passthrough_r", [](const FixedMatrixR &m) -> FixedMatrixR { 
+    m.def("fixed_passthrough_r", [](const FixedMatrixR &m) -> FixedMatrixR {
         return m;
     });
 
-    m.def("fixed_passthrough_c", [](const FixedMatrixC &m) -> FixedMatrixC { 
+    m.def("fixed_passthrough_c", [](const FixedMatrixC &m) -> FixedMatrixC {
         return m;
     });
 
-    m.def("dense_r", [mat]() -> DenseMatrixR { 
+    m.def("dense_r", [mat]() -> DenseMatrixR {
         return DenseMatrixR(mat);
     });
 
-    m.def("dense_c", [mat]() -> DenseMatrixC { 
+    m.def("dense_c", [mat]() -> DenseMatrixC {
         return DenseMatrixC(mat);
     });
 
-    m.def("dense_passthrough_r", [](const DenseMatrixR &m) -> DenseMatrixR { 
+    m.def("dense_passthrough_r", [](const DenseMatrixR &m) -> DenseMatrixR {
         return m;
     });
 
-    m.def("dense_passthrough_c", [](const DenseMatrixC &m) -> DenseMatrixC { 
+    m.def("dense_passthrough_c", [](const DenseMatrixC &m) -> DenseMatrixC {
         return m;
     });
 
-    m.def("sparse_r", [mat]() -> SparseMatrixR { 
+    m.def("sparse_r", [mat]() -> SparseMatrixR {
         return Eigen::SparseView<Eigen::MatrixXf>(mat);
     });
 
-    m.def("sparse_c", [mat]() -> SparseMatrixC { 
+    m.def("sparse_c", [mat]() -> SparseMatrixC {
         return Eigen::SparseView<Eigen::MatrixXf>(mat);
     });
 
-    m.def("sparse_passthrough_r", [](const SparseMatrixR &m) -> SparseMatrixR { 
+    m.def("sparse_passthrough_r", [](const SparseMatrixR &m) -> SparseMatrixR {
         return m;
     });
 
-    m.def("sparse_passthrough_c", [](const SparseMatrixC &m) -> SparseMatrixC { 
+    m.def("sparse_passthrough_c", [](const SparseMatrixC &m) -> SparseMatrixC {
         return m;
     });
 });

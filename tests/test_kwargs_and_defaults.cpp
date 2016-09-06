@@ -59,7 +59,7 @@ test_initializer arg_keywords_and_defaults([](py::module &m) {
     using namespace py::literals;
     m.def("kw_func_udl", &kw_func, "x"_a, "y"_a=300);
     m.def("kw_func_udl_z", &kw_func, "x"_a, "y"_a=0);
-    
+
     py::class_<KWClass>(m, "KWClass")
         .def("foo0", &KWClass::foo)
         .def("foo1", &KWClass::foo, "x"_a, "y"_a);

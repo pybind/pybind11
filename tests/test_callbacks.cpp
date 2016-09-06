@@ -80,7 +80,7 @@ test_initializer callbacks([](py::module &m) {
 
     /* Test cleanup of lambda closure */
 
-    m.def("test_cleanup", []() -> std::function<void(void)> { 
+    m.def("test_cleanup", []() -> std::function<void(void)> {
         Payload p;
 
         return [p]() {

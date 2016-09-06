@@ -681,7 +681,7 @@ public:
     static PYBIND11_DESCR element_names() {
         return detail::concat(type_caster<typename intrinsic_type<Tuple>::type>::name()...);
     }
-    
+
     static PYBIND11_DESCR name() {
         return type_descr(_("Tuple[") + element_names() + _("]"));
     }

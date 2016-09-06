@@ -1,7 +1,12 @@
 #!/bin/bash
 # 
 # Script to check include/test code for common pybind11 code style errors.
-# Currently just checks for tabs used instead of spaces.
+# 
+# This script currently checks for
+#
+# 1. use of tabs instead of spaces
+# 2. trailing spaces
+# 3. missing space between keyword and parenthesis, e.g.: for(, if(, while(
 # 
 # Invoke as: tools/check-style.sh
 #
@@ -14,6 +19,19 @@ exec 3< <(GREP_COLORS='mt=41' grep $'\t' include/ tests/*.{cpp,py,h} docs/*.rst 
 while read -u 3 f; do
     if [ -z "$found" ]; then
         echo -e '\e[31m\e[01mError: found tabs instead of spaces in the following files:\e[0m'
+        found=1
+        errors=1
+    fi
+
+    echo "    $f"
+done
+
+found=
+# The mt=41 sets a red background for matched trailing spaces
+exec 3< <(GREP_COLORS='mt=41' grep '\s\+$' include/ tests/*.{cpp,py,h} docs/*.rst -rn --color=always)
+while read -u 3 f; do
+    if [ -z "$found" ]; then
+        echo -e '\e[31m\e[01mError: found trailing spaces in the following files:\e[0m'
         found=1
         errors=1
     fi

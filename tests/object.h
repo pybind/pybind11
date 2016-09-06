@@ -82,7 +82,7 @@ public:
 
     /// Move constructor
     ref(ref &&r) : m_ptr(r.m_ptr) {
-        r.m_ptr = nullptr; 
+        r.m_ptr = nullptr;
 
         print_move_created(this, "with pointer", m_ptr); track_move_created((ref_tag*) this);
     }

@@ -1042,7 +1042,7 @@ public:
             def("__ne__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value != value2; });
         }
         def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
-        // Pickling and unpickling -- needed for use with the 'multiprocessing' module 
+        // Pickling and unpickling -- needed for use with the 'multiprocessing' module
         def("__getstate__", [](const Type &value) { return pybind11::make_tuple((UnderlyingType) value); });
         def("__setstate__", [](Type &p, tuple t) { new (&p) Type((Type) t[0].cast<UnderlyingType>()); });
         m_entries = entries;

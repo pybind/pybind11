@@ -25,7 +25,7 @@ public:
         EFirstMode = 1,
         ESecondMode
     };
-    
+
     static EMode test_function(EMode mode) {
         return mode;
     }

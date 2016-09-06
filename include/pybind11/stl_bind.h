@@ -12,7 +12,6 @@
 #include "common.h"
 #include "operators.h"
 
-#include <map>
 #include <type_traits>
 #include <utility>
 #include <algorithm>
@@ -136,7 +135,7 @@ NAMESPACE_END(detail)
 //
 template <typename Vector, typename holder_type = std::unique_ptr<Vector>, typename... Args>
 pybind11::class_<Vector, holder_type> bind_vector(pybind11::module &m, std::string const &name, Args&&... args) {
-	using T = typename Vector::value_type;
+    using T = typename Vector::value_type;
     using SizeType = typename Vector::size_type;
     using DiffType = typename Vector::difference_type;
     using ItType   = typename Vector::iterator;
@@ -356,7 +355,7 @@ pybind11::class_<Vector, holder_type> bind_vector(pybind11::module &m, std::stri
 
 
 //
-// std::map
+// std::map, std::unordered_map
 //
 
 NAMESPACE_BEGIN(detail)
@@ -373,8 +372,8 @@ template <typename Map, typename Class_, typename... Args> void map_if_copy_assi
                auto it = m.find(k);
                if (it != m.end()) it->second = v;
                else m.emplace(k, v);
-           });
-
+           }
+    );
 }
 
 template<typename Map, typename Class_, typename std::enable_if<!std::is_copy_assignable<typename Map::mapped_type>::value, int>::type = 0>
@@ -384,12 +383,15 @@ void map_if_copy_assignable(Class_ &cl) {
 
     cl.def("__setitem__",
            [](Map &m, const KeyType &k, const MappedType &v) {
-               auto r = m.insert( std::make_pair(k, v) ); // We can't use m[k] = v; because value type might not be default constructable
-               if (!r.second) { // value type might be const so the only way to insert it is to errase it first...
+               // We can't use m[k] = v; because value type might not be default constructable
+               auto r = m.insert(std::make_pair(k, v));
+               if (!r.second) {
+                   // value type might be const so the only way to insert it is to erase it first...
                    m.erase(r.first);
-                   m.insert( std::make_pair(k, v) );
+                   m.insert(std::make_pair(k, v));
                }
-           });
+           }
+    );
 }
 
 
@@ -401,8 +403,9 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
             std::ostringstream s;
             s << name << '{';
             bool f = false;
-            for (auto const & kv : m) {
-                if (f) s << ", ";
+            for (auto const &kv : m) {
+                if (f)
+                    s << ", ";
                 s << kv.first << ": " << kv.second;
                 f = true;
             }
@@ -428,17 +431,13 @@ pybind11::class_<Map, holder_type> bind_map(module &m, const std::string &name, 
     detail::map_if_insertion_operator<Map, Class_>(cl, name);
 
     cl.def("__bool__",
-        [](const Map &m) -> bool {
-            return !m.empty();
-        },
+        [](const Map &m) -> bool { return !m.empty(); },
         "Check whether the map is nonempty"
     );
 
     cl.def("__iter__",
-        [](Map &m) {
-            return pybind11::make_key_iterator(m.begin(), m.end());
-        },
-        pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
+           [](Map &m) { return pybind11::make_key_iterator(m.begin(), m.end()); },
+           pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
     );
 
     cl.def("items",
@@ -449,18 +448,22 @@ pybind11::class_<Map, holder_type> bind_map(module &m, const std::string &name, 
     cl.def("__getitem__",
            [](Map &m, const KeyType &k) -> MappedType {
                auto it = m.find(k);
-               if (it != m.end()) return it->second;
-               else throw pybind11::key_error();  // it is not always possible to convert key to string // pybind11::key_error(k)
-   });
+               if (it == m.end())
+                  throw pybind11::key_error();
+               return it->second;
+           }
+    );
 
     detail::map_if_copy_assignable<Map, Class_>(cl);
 
     cl.def("__delitem__",
-        [](Map &m, const KeyType &k) {
+           [](Map &m, const KeyType &k) {
                auto it = m.find(k);
-               if (it != m.end()) return m.erase(it);
-               else throw pybind11::key_error(); // it is not always possible to convert key to string // pybind11::key_error(k)
-    });
+               if (it == m.end())
+                   throw pybind11::key_error();
+               return m.erase(it);
+           }
+    );
 
     cl.def("__len__", &Map::size);
 
