@@ -798,6 +798,13 @@ protected:
     holder_type holder;
 };
 
+template <typename base, typename holder> struct is_holder_type :
+    // PYBIND11_DECLARE_HOLDER_TYPE holder types:
+    std::conditional<std::is_base_of<detail::type_caster_holder<base, holder>, detail::type_caster<holder>>::value,
+    std::true_type,
+    std::false_type>::type {};
+template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> : std::true_type {};
+
 template <typename T> struct handle_type_name { static PYBIND11_DESCR name() { return _<T>(); } };
 template <> struct handle_type_name<bytes> { static PYBIND11_DESCR name() { return _(PYBIND11_BYTES_NAME); } };
 template <> struct handle_type_name<args> { static PYBIND11_DESCR name() { return _("*args"); } };

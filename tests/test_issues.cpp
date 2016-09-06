@@ -51,7 +51,7 @@ void init_issues(py::module &m) {
         }
     };
 
-    py::class_<Base, std::unique_ptr<Base>, DispatchIssue>(m2, "DispatchIssue")
+    py::class_<Base, DispatchIssue>(m2, "DispatchIssue")
         .def(py::init<>())
         .def("dispatch", &Base::dispatch);
 

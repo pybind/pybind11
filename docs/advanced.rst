@@ -311,7 +311,7 @@ The binding code also needs a few minor adaptations (highlighted):
     PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
-        py::class_<Animal, std::unique_ptr<Animal>, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
+        py::class_<Animal, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
         animal
             .def(py::init<>())
             .def("go", &Animal::go);
@@ -325,9 +325,10 @@ The binding code also needs a few minor adaptations (highlighted):
     }
 
 Importantly, pybind11 is made aware of the trampoline trampoline helper class
-by specifying it as the *third* template argument to :class:`class_`. The
-second argument with the unique pointer is simply the default holder type used
-by pybind11. Following this, we are able to define a constructor as usual.
+by specifying it as an extra template argument to :class:`class_`.  (This can
+also be combined with other template arguments such as a custom holder type;
+the order of template types does not matter).  Following this, we are able to
+define a constructor as usual.
 
 Note, however, that the above is sufficient for allowing python classes to
 extend ``Animal``, but not ``Dog``: see ref:`virtual_and_inheritance` for the
@@ -453,9 +454,9 @@ The classes are then registered with pybind11 using:
 
 .. code-block:: cpp
 
-    py::class_<Animal, std::unique_ptr<Animal>, PyAnimal<>> animal(m, "Animal");
-    py::class_<Dog, std::unique_ptr<Dog>, PyDog<>> dog(m, "Dog");
-    py::class_<Husky, std::unique_ptr<Husky>, PyDog<Husky>> husky(m, "Husky");
+    py::class_<Animal, PyAnimal<>> animal(m, "Animal");
+    py::class_<Dog, PyDog<>> dog(m, "Dog");
+    py::class_<Husky, PyDog<Husky>> husky(m, "Husky");
     // ... add animal, dog, husky definitions
 
 Note that ``Husky`` did not require a dedicated trampoline template class at
@@ -525,7 +526,7 @@ be realized as follows (important changes highlighted):
     PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
-        py::class_<Animal, std::unique_ptr<Animal>, PyAnimal> animal(m, "Animal");
+        py::class_<Animal, PyAnimal> animal(m, "Animal");
         animal
             .def(py::init<>())
             .def("go", &Animal::go);
@@ -939,11 +940,11 @@ This section explains how to pass values that are wrapped in "smart" pointer
 types with internal reference counting. For the simpler C++11 unique pointers,
 refer to the previous section.
 
-The binding generator for classes, :class:`class_`, takes an optional second
-template type, which denotes a special *holder* type that is used to manage
-references to the object. When wrapping a type named ``Type``, the default
-value of this template parameter is ``std::unique_ptr<Type>``, which means that
-the object is deallocated when Python's reference count goes to zero.
+The binding generator for classes, :class:`class_`, can be passed a template
+type that denotes a special *holder* type that is used to manage references to
+the object.  If no such holder type template argument is given, the default for
+a type named ``Type`` is ``std::unique_ptr<Type>``, which means that the object
+is deallocated when Python's reference count goes to zero.
 
 It is possible to switch to other types of reference counting wrappers or smart
 pointers, which is useful in codebases that rely on them. For instance, the
@@ -976,6 +977,8 @@ applied consistently. Can you guess what's broken about the following binding
 code?
 
 .. code-block:: cpp
+
+    PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 
     class Child { };
 
@@ -1089,7 +1092,7 @@ pybind11. The underlying issue is that the ``std::unique_ptr`` holder type that
 is responsible for managing the lifetime of instances will reference the
 destructor even if no deallocations ever take place. In order to expose classes
 with private or protected destructors, it is possible to override the holder
-type via the second argument to ``class_``. Pybind11 provides a helper class
+type via a holder type argument to ``class_``. Pybind11 provides a helper class
 ``py::nodelete`` that disables any destructor invocations. In this case, it is
 crucial that instances are deallocated on the C++ side to avoid memory leaks.
 

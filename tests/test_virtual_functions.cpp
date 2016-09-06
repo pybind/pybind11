@@ -253,31 +253,31 @@ public:
 
 void initialize_inherited_virtuals(py::module &m) {
     // Method 1: repeat
-    py::class_<A_Repeat, std::unique_ptr<A_Repeat>, PyA_Repeat>(m, "A_Repeat")
+    py::class_<A_Repeat, PyA_Repeat>(m, "A_Repeat")
         .def(py::init<>())
         .def("unlucky_number", &A_Repeat::unlucky_number)
         .def("say_something", &A_Repeat::say_something)
         .def("say_everything", &A_Repeat::say_everything);
-    py::class_<B_Repeat, std::unique_ptr<B_Repeat>, PyB_Repeat>(m, "B_Repeat", py::base<A_Repeat>())
+    py::class_<B_Repeat, PyB_Repeat>(m, "B_Repeat", py::base<A_Repeat>())
         .def(py::init<>())
         .def("lucky_number", &B_Repeat::lucky_number);
-    py::class_<C_Repeat, std::unique_ptr<C_Repeat>, PyC_Repeat>(m, "C_Repeat", py::base<B_Repeat>())
+    py::class_<C_Repeat, PyC_Repeat>(m, "C_Repeat", py::base<B_Repeat>())
         .def(py::init<>());
-    py::class_<D_Repeat, std::unique_ptr<D_Repeat>, PyD_Repeat>(m, "D_Repeat", py::base<C_Repeat>())
+    py::class_<D_Repeat, PyD_Repeat>(m, "D_Repeat", py::base<C_Repeat>())
         .def(py::init<>());
 
     // Method 2: Templated trampolines
-    py::class_<A_Tpl, std::unique_ptr<A_Tpl>, PyA_Tpl<>>(m, "A_Tpl")
+    py::class_<A_Tpl, PyA_Tpl<>>(m, "A_Tpl")
         .def(py::init<>())
         .def("unlucky_number", &A_Tpl::unlucky_number)
         .def("say_something", &A_Tpl::say_something)
         .def("say_everything", &A_Tpl::say_everything);
-    py::class_<B_Tpl, std::unique_ptr<B_Tpl>, PyB_Tpl<>>(m, "B_Tpl", py::base<A_Tpl>())
+    py::class_<B_Tpl, PyB_Tpl<>>(m, "B_Tpl", py::base<A_Tpl>())
         .def(py::init<>())
         .def("lucky_number", &B_Tpl::lucky_number);
-    py::class_<C_Tpl, std::unique_ptr<C_Tpl>, PyB_Tpl<C_Tpl>>(m, "C_Tpl", py::base<B_Tpl>())
+    py::class_<C_Tpl, PyB_Tpl<C_Tpl>>(m, "C_Tpl", py::base<B_Tpl>())
         .def(py::init<>());
-    py::class_<D_Tpl, std::unique_ptr<D_Tpl>, PyB_Tpl<D_Tpl>>(m, "D_Tpl", py::base<C_Tpl>())
+    py::class_<D_Tpl, PyB_Tpl<D_Tpl>>(m, "D_Tpl", py::base<C_Tpl>())
         .def(py::init<>());
 
 };
@@ -287,7 +287,7 @@ test_initializer virtual_functions([](py::module &m) {
     /* Important: indicate the trampoline class PyExampleVirt using the third
        argument to py::class_. The second argument with the unique pointer
        is simply the default holder type used by pybind11. */
-    py::class_<ExampleVirt, std::unique_ptr<ExampleVirt>, PyExampleVirt>(m, "ExampleVirt")
+    py::class_<ExampleVirt, PyExampleVirt>(m, "ExampleVirt")
         .def(py::init<int>())
         /* Reference original class in function definitions */
         .def("run", &ExampleVirt::run)
@@ -301,7 +301,7 @@ test_initializer virtual_functions([](py::module &m) {
         .def(py::init<int, int>());
 
 #if !defined(__INTEL_COMPILER)
-    py::class_<NCVirt, std::unique_ptr<NCVirt>, NCVirtTrampoline>(m, "NCVirt")
+    py::class_<NCVirt, NCVirtTrampoline>(m, "NCVirt")
         .def(py::init<>())
         .def("get_noncopyable", &NCVirt::get_noncopyable)
         .def("get_movable", &NCVirt::get_movable)

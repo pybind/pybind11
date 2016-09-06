@@ -563,7 +563,7 @@ public:
 NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
-    template <typename type, typename holder_type, typename type_alias> friend class class_;
+    template <typename...> friend class class_;
 public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
@@ -804,10 +804,31 @@ protected:
 };
 NAMESPACE_END(detail)
 
-template <typename type, typename holder_type = std::unique_ptr<type>, typename type_alias = type>
+template <typename type_, typename... options>
 class class_ : public detail::generic_type {
+    template <typename T> using is_holder = detail::is_holder_type<type_, T>;
+    template <typename T> using is_subtype = detail::bool_constant<std::is_base_of<type_, T>::value && !std::is_same<T, type_>::value>;
+    template <typename T> using is_valid_class_option =
+        detail::bool_constant<
+            is_holder<T>::value ||
+            is_subtype<T>::value
+        >;
+
+    using extracted_holder_t = typename detail::first_of_t<is_holder, options...>;
+
 public:
-    typedef detail::instance<type, holder_type> instance_type;
+    using type = type_;
+    using type_alias = detail::first_of_t<is_subtype, options...>;
+    constexpr static bool has_alias = !std::is_void<type_alias>::value;
+    using holder_type = typename std::conditional<
+        std::is_void<extracted_holder_t>::value,
+        std::unique_ptr<type>,
+        extracted_holder_t
+    >::type;
+    using instance_type = detail::instance<type, holder_type>;
+
+    static_assert(detail::all_of_t<is_valid_class_option, options...>::value,
+            "Unknown/invalid class_ template parameters provided");
 
     PYBIND11_OBJECT(class_, detail::generic_type, PyType_Check)
 
@@ -827,7 +848,7 @@ public:
 
         detail::generic_type::initialize(&record);
 
-        if (!std::is_same<type, type_alias>::value) {
+        if (has_alias) {
             auto &instances = pybind11::detail::get_internals().registered_types_cpp;
             instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
         }
@@ -852,25 +873,25 @@ public:
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ &def(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.template execute<type>(*this, extra...);
+        op.execute(*this, extra...);
         return *this;
     }
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ & def_cast(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.template execute_cast<type>(*this, extra...);
+        op.execute_cast(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
     class_ &def(const detail::init<Args...> &init, const Extra&... extra) {
-        init.template execute<type>(*this, extra...);
+        init.execute(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
     class_ &def(const detail::init_alias<Args...> &init, const Extra&... extra) {
-        init.template execute<type>(*this, extra...);
+        init.execute(*this, extra...);
         return *this;
     }
 
@@ -1071,19 +1092,21 @@ private:
 
 NAMESPACE_BEGIN(detail)
 template <typename... Args> struct init {
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<std::is_same<Base, Alias>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
+    template <typename Class, typename... Extra, typename std::enable_if<!Class::has_alias, int>::type = 0>
+    void execute(Class &cl, const Extra&... extra) const {
+        using Base = typename Class::type;
         /// Function which calls a specific C++ in-place constructor
-        class_.def("__init__", [](Base *self_, Args... args) { new (self_) Base(args...); }, extra...);
+        cl.def("__init__", [](Base *self_, Args... args) { new (self_) Base(args...); }, extra...);
     }
 
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<!std::is_same<Base, Alias>::value &&
-                                       std::is_constructible<Base, Args...>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
-        handle cl_type = class_;
-        class_.def("__init__", [cl_type](handle self_, Args... args) {
+    template <typename Class, typename... Extra,
+              typename std::enable_if<Class::has_alias &&
+                                       std::is_constructible<typename Class::type, Args...>::value, int>::type = 0>
+    void execute(Class &cl, const Extra&... extra) const {
+        using Base = typename Class::type;
+        using Alias = typename Class::type_alias;
+        handle cl_type = cl;
+        cl.def("__init__", [cl_type](handle self_, Args... args) {
                 if (self_.get_type() == cl_type)
                     new (self_.cast<Base *>()) Base(args...);
                 else
@@ -1091,11 +1114,12 @@ template <typename... Args> struct init {
             }, extra...);
     }
 
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<!std::is_same<Base, Alias>::value &&
-                                      !std::is_constructible<Base, Args...>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
-        class_.def("__init__", [](Alias *self_, Args... args) { new (self_) Alias(args...); }, extra...);
+    template <typename Class, typename... Extra,
+              typename std::enable_if<Class::has_alias &&
+                                      !std::is_constructible<typename Class::type, Args...>::value, int>::type = 0>
+    void execute(Class &cl, const Extra&... extra) const {
+        using Alias = typename Class::type_alias;
+        cl.def("__init__", [](Alias *self_, Args... args) { new (self_) Alias(args...); }, extra...);
     }
 };
 
