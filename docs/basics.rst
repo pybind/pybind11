@@ -297,9 +297,11 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +---------------------------------+--------------------------+-------------------------------+
 | ``std::function<...>``          | STL polymorphic function | :file:`pybind11/functional.h` |
 +---------------------------------+--------------------------+-------------------------------+
-| ``Eigen::Matrix<...>``          | Dense Eigen matrices     | :file:`pybind11/eigen.h`      |
+| ``Eigen::Matrix<...>``          | Eigen: dense matrix      | :file:`pybind11/eigen.h`      |
 +---------------------------------+--------------------------+-------------------------------+
-| ``Eigen::SparseMatrix<...>``    | Sparse Eigen matrices    | :file:`pybind11/eigen.h`      |
+| ``Eigen::Map<...>``             | Eigen: mapped memory     | :file:`pybind11/eigen.h`      |
++---------------------------------+--------------------------+-------------------------------+
+| ``Eigen::SparseMatrix<...>``    | Eigen: sparse matrix     | :file:`pybind11/eigen.h`      |
 +---------------------------------+--------------------------+-------------------------------+
 
 
