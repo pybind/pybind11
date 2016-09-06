@@ -1227,7 +1227,7 @@ section.
     the other existing exception translators.
 
     The ``py::exception`` wrapper for creating custom exceptions cannot (yet)
-    be used as a ``py::base``.
+    be used as a base type.
 
 .. _eigen:
 
@@ -1811,16 +1811,17 @@ However, it can be acquired as follows:
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
-Alternatively, we can rely on the ``base`` tag, which performs an automated
-lookup of the corresponding Python type. However, this also requires invoking
-the ``import`` function once to ensure that the pybind11 binding code of the
-module ``basic`` has been executed.
+Alternatively, you can specify the base class as a template parameter option to
+``class_``, which performs an automated lookup of the corresponding Python
+type. Like the above code, however, this also requires invoking the ``import``
+function once to ensure that the pybind11 binding code of the module ``basic``
+has been executed:
 
 .. code-block:: cpp
 
     py::module::import("basic");
 
-    py::class_<Dog>(m, "Dog", py::base<Pet>())
+    py::class_<Dog, Pet>(m, "Dog")
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 

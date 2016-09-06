@@ -358,20 +358,20 @@ template <template<typename> class P, typename T, typename... Ts>
 struct any_of_t<P, T, Ts...> : conditional_t<P<T>::value, std::true_type, any_of_t<P, Ts...>> { };
 #endif
 
-// Extracts the first type from the template parameter pack matching the predicate, or void if none match.
-template <template<class> class Predicate, class... Ts> struct first_of;
-template <template<class> class Predicate> struct first_of<Predicate> {
-    using type = void;
+// Extracts the first type from the template parameter pack matching the predicate, or Default if none match.
+template <template<class> class Predicate, class Default, class... Ts> struct first_of;
+template <template<class> class Predicate, class Default> struct first_of<Predicate, Default> {
+    using type = Default;
 };
-template <template<class> class Predicate, class T, class... Ts>
-struct first_of<Predicate, T, Ts...> {
+template <template<class> class Predicate, class Default, class T, class... Ts>
+struct first_of<Predicate, Default, T, Ts...> {
     using type = typename std::conditional<
         Predicate<T>::value,
         T,
-        typename first_of<Predicate, Ts...>::type
+        typename first_of<Predicate, Default, Ts...>::type
     >::type;
 };
-template <template<class> class Predicate, class... T> using first_of_t = typename first_of<Predicate, T...>::type;
+template <template<class> class Predicate, class Default, class... T> using first_of_t = typename first_of<Predicate, Default, T...>::type;
 
 // Counts the number of types in the template parameter pack matching the predicate
 template <template<typename> class Predicate, typename... Ts> struct count_t;

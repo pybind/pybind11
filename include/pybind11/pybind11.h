@@ -802,33 +802,46 @@ protected:
 
     static void releasebuffer(PyObject *, Py_buffer *view) { delete (buffer_info *) view->internal; }
 };
+
+template <template<typename> class Predicate, typename... BaseTypes> struct class_selector;
+template <template<typename> class Predicate, typename Base, typename... Bases>
+struct class_selector<Predicate, Base, Bases...> {
+    static inline void set_bases(detail::type_record &record) {
+        if (Predicate<Base>::value) record.base_type = &typeid(Base);
+        else class_selector<Predicate, Bases...>::set_bases(record);
+    }
+};
+template <template<typename> class Predicate>
+struct class_selector<Predicate> {
+    static inline void set_bases(detail::type_record &) {}
+};
+
 NAMESPACE_END(detail)
 
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T> using is_holder = detail::is_holder_type<type_, T>;
     template <typename T> using is_subtype = detail::bool_constant<std::is_base_of<type_, T>::value && !std::is_same<T, type_>::value>;
+    template <typename T> using is_base_class = detail::bool_constant<std::is_base_of<T, type_>::value && !std::is_same<T, type_>::value>;
     template <typename T> using is_valid_class_option =
         detail::bool_constant<
             is_holder<T>::value ||
-            is_subtype<T>::value
+            is_subtype<T>::value ||
+            is_base_class<T>::value
         >;
-
-    using extracted_holder_t = typename detail::first_of_t<is_holder, options...>;
 
 public:
     using type = type_;
-    using type_alias = detail::first_of_t<is_subtype, options...>;
+    using type_alias = detail::first_of_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type = typename std::conditional<
-        std::is_void<extracted_holder_t>::value,
-        std::unique_ptr<type>,
-        extracted_holder_t
-    >::type;
+    using holder_type = detail::first_of_t<is_holder, std::unique_ptr<type>, options...>;
     using instance_type = detail::instance<type, holder_type>;
 
     static_assert(detail::all_of_t<is_valid_class_option, options...>::value,
             "Unknown/invalid class_ template parameters provided");
+
+    static_assert(detail::count_t<is_base_class, options...>::value <= 1,
+            "Invalid class_ base types: multiple inheritance is not supported");
 
     PYBIND11_OBJECT(class_, detail::generic_type, PyType_Check)
 
@@ -842,6 +855,8 @@ public:
         record.instance_size = sizeof(instance_type);
         record.init_holder = init_holder;
         record.dealloc = dealloc;
+
+        detail::class_selector<is_base_class, options...>::set_bases(record);
 
         /* Process optional arguments, if any */
         detail::process_attributes<Extra...>::init(extra..., &record);

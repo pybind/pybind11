@@ -258,12 +258,12 @@ void initialize_inherited_virtuals(py::module &m) {
         .def("unlucky_number", &A_Repeat::unlucky_number)
         .def("say_something", &A_Repeat::say_something)
         .def("say_everything", &A_Repeat::say_everything);
-    py::class_<B_Repeat, PyB_Repeat>(m, "B_Repeat", py::base<A_Repeat>())
+    py::class_<B_Repeat, A_Repeat, PyB_Repeat>(m, "B_Repeat")
         .def(py::init<>())
         .def("lucky_number", &B_Repeat::lucky_number);
-    py::class_<C_Repeat, PyC_Repeat>(m, "C_Repeat", py::base<B_Repeat>())
+    py::class_<C_Repeat, B_Repeat, PyC_Repeat>(m, "C_Repeat")
         .def(py::init<>());
-    py::class_<D_Repeat, PyD_Repeat>(m, "D_Repeat", py::base<C_Repeat>())
+    py::class_<D_Repeat, C_Repeat, PyD_Repeat>(m, "D_Repeat")
         .def(py::init<>());
 
     // Method 2: Templated trampolines
@@ -272,12 +272,12 @@ void initialize_inherited_virtuals(py::module &m) {
         .def("unlucky_number", &A_Tpl::unlucky_number)
         .def("say_something", &A_Tpl::say_something)
         .def("say_everything", &A_Tpl::say_everything);
-    py::class_<B_Tpl, PyB_Tpl<>>(m, "B_Tpl", py::base<A_Tpl>())
+    py::class_<B_Tpl, A_Tpl, PyB_Tpl<>>(m, "B_Tpl")
         .def(py::init<>())
         .def("lucky_number", &B_Tpl::lucky_number);
-    py::class_<C_Tpl, PyB_Tpl<C_Tpl>>(m, "C_Tpl", py::base<B_Tpl>())
+    py::class_<C_Tpl, B_Tpl, PyB_Tpl<C_Tpl>>(m, "C_Tpl")
         .def(py::init<>());
-    py::class_<D_Tpl, PyB_Tpl<D_Tpl>>(m, "D_Tpl", py::base<C_Tpl>())
+    py::class_<D_Tpl, C_Tpl, PyB_Tpl<D_Tpl>>(m, "D_Tpl")
         .def(py::init<>());
 
 };
