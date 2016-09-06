@@ -326,9 +326,44 @@ template <typename T> struct intrinsic_type<T&>                   { typedef type
 template <typename T> struct intrinsic_type<T&&>                  { typedef typename intrinsic_type<T>::type type; };
 template <typename T, size_t N> struct intrinsic_type<const T[N]> { typedef typename intrinsic_type<T>::type type; };
 template <typename T, size_t N> struct intrinsic_type<T[N]>       { typedef typename intrinsic_type<T>::type type; };
+template <typename T> using intrinsic_t = typename intrinsic_type<T>::type;
 
 /// Helper type to replace 'void' in some expressions
 struct void_type { };
+
+/// from __cpp_future__ import (convenient aliases from C++14/17)
+template <bool B> using bool_constant = std::integral_constant<bool, B>;
+template <class T> using negation = bool_constant<!T::value>;
+template <bool B, typename T = void> using enable_if_t = typename std::enable_if<B, T>::type;
+template <bool B, typename T, typename F> using conditional_t = typename std::conditional<B, T, F>::type;
+
+/// Compile-time integer sum
+constexpr size_t constexpr_sum() { return 0; }
+template <typename T, typename... Ts>
+constexpr size_t constexpr_sum(T n, Ts... ns) { return size_t{n} + constexpr_sum(ns...); }
+
+/// Return true if all/any Ts satify Predicate<T>
+#if !defined(_MSC_VER)
+template <template<typename> class Predicate, typename... Ts>
+using all_of_t = bool_constant<(constexpr_sum(Predicate<Ts>::value...) == sizeof...(Ts))>;
+template <template<typename> class Predicate, typename... Ts>
+using any_of_t = bool_constant<(constexpr_sum(Predicate<Ts>::value...) > 0)>;
+#else
+// MSVC workaround (2015 Update 3 has issues with some member type aliases and constexpr)
+template <template<typename> class P, typename...> struct all_of_t : std::true_type { };
+template <template<typename> class P, typename T, typename... Ts>
+struct all_of_t<P, T, Ts...> : conditional_t<P<T>::value, all_of_t<P, Ts...>, std::false_type> { };
+template <template<typename> class P, typename...> struct any_of_t : std::false_type { };
+template <template<typename> class P, typename T, typename... Ts>
+struct any_of_t<P, T, Ts...> : conditional_t<P<T>::value, std::true_type, any_of_t<P, Ts...>> { };
+#endif
+
+/// Defer the evaluation of type T until types Us are instantiated
+template <typename T, typename... /*Us*/> struct deferred_type { using type = T; };
+template <typename T, typename... Us> using deferred_t = typename deferred_type<T, Us...>::type;
+
+/// Ignore that a variable is unused in compiler warnings
+inline void ignore_unused(const int *) { }
 
 NAMESPACE_END(detail)
 
@@ -345,6 +380,7 @@ PYBIND11_RUNTIME_EXCEPTION(stop_iteration)
 PYBIND11_RUNTIME_EXCEPTION(index_error)
 PYBIND11_RUNTIME_EXCEPTION(key_error)
 PYBIND11_RUNTIME_EXCEPTION(value_error)
+PYBIND11_RUNTIME_EXCEPTION(type_error)
 PYBIND11_RUNTIME_EXCEPTION(cast_error) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error) /// Used internally
 

@@ -57,6 +57,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
                 } catch (const index_error &e)           { PyErr_SetString(PyExc_IndexError,    e.what()); return;
                 } catch (const key_error &e)             { PyErr_SetString(PyExc_KeyError,      e.what()); return;
                 } catch (const value_error &e)           { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+                } catch (const type_error &e)            { PyErr_SetString(PyExc_TypeError,     e.what()); return;
                 } catch (const stop_iteration &e)        { PyErr_SetString(PyExc_StopIteration, e.what()); return;
                 } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
                 } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
@@ -251,8 +252,8 @@ protected:
 /* Determine suitable casting operator */
 template <typename T>
 using cast_op_type = typename std::conditional<std::is_pointer<typename std::remove_reference<T>::type>::value,
-    typename std::add_pointer<typename intrinsic_type<T>::type>::type,
-    typename std::add_lvalue_reference<typename intrinsic_type<T>::type>::type>::type;
+    typename std::add_pointer<intrinsic_t<T>>::type,
+    typename std::add_lvalue_reference<intrinsic_t<T>>::type>::type;
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
@@ -308,6 +309,7 @@ protected:
 };
 
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
+template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
 
 template <typename type> class type_caster<std::reference_wrapper<type>> : public type_caster_base<type> {
 public:
@@ -610,8 +612,8 @@ public:
     }
 
     static handle cast(const type &src, return_value_policy policy, handle parent) {
-        object o1 = object(type_caster<typename intrinsic_type<T1>::type>::cast(src.first, policy, parent), false);
-        object o2 = object(type_caster<typename intrinsic_type<T2>::type>::cast(src.second, policy, parent), false);
+        object o1 = object(make_caster<T1>::cast(src.first, policy, parent), false);
+        object o2 = object(make_caster<T2>::cast(src.second, policy, parent), false);
         if (!o1 || !o2)
             return handle();
         tuple result(2);
@@ -622,24 +624,24 @@ public:
 
     static PYBIND11_DESCR name() {
         return type_descr(
-            _("Tuple[") + type_caster<typename intrinsic_type<T1>::type>::name() +
-            _(", ") + type_caster<typename intrinsic_type<T2>::type>::name() + _("]"));
+            _("Tuple[") + make_caster<T1>::name() + _(", ") + make_caster<T2>::name() + _("]")
+        );
     }
 
     template <typename T> using cast_op_type = type;
 
     operator type() {
-        return type(first .operator typename type_caster<typename intrinsic_type<T1>::type>::template cast_op_type<T1>(),
-                    second.operator typename type_caster<typename intrinsic_type<T2>::type>::template cast_op_type<T2>());
+        return type(first.operator typename make_caster<T1>::template cast_op_type<T1>(),
+                    second.operator typename make_caster<T2>::template cast_op_type<T2>());
     }
 protected:
-    type_caster<typename intrinsic_type<T1>::type> first;
-    type_caster<typename intrinsic_type<T2>::type> second;
+    make_caster<T1> first;
+    make_caster<T2> second;
 };
 
 template <typename... Tuple> class type_caster<std::tuple<Tuple...>> {
     typedef std::tuple<Tuple...> type;
-    typedef std::tuple<typename intrinsic_type<Tuple>::type...> itype;
+    typedef std::tuple<intrinsic_t<Tuple>...> itype;
     typedef std::tuple<args> args_type;
     typedef std::tuple<args, kwargs> args_kwargs_type;
 public:
@@ -679,7 +681,7 @@ public:
     }
 
     static PYBIND11_DESCR element_names() {
-        return detail::concat(type_caster<typename intrinsic_type<Tuple>::type>::name()...);
+        return detail::concat(make_caster<Tuple>::name()...);
     }
 
     static PYBIND11_DESCR name() {
@@ -704,12 +706,12 @@ public:
 protected:
     template <typename ReturnValue, typename Func, size_t ... Index> ReturnValue call(Func &&f, index_sequence<Index...>) {
         return f(std::get<Index>(value)
-            .operator typename type_caster<typename intrinsic_type<Tuple>::type>::template cast_op_type<Tuple>()...);
+            .operator typename make_caster<Tuple>::template cast_op_type<Tuple>()...);
     }
 
     template <size_t ... Index> type cast(index_sequence<Index...>) {
         return type(std::get<Index>(value)
-            .operator typename type_caster<typename intrinsic_type<Tuple>::type>::template cast_op_type<Tuple>()...);
+            .operator typename make_caster<Tuple>::template cast_op_type<Tuple>()...);
     }
 
     template <size_t ... Indices> bool load(handle src, bool convert, index_sequence<Indices...>) {
@@ -726,7 +728,7 @@ protected:
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <size_t ... Indices> static handle cast(const type &src, return_value_policy policy, handle parent, index_sequence<Indices...>) {
         std::array<object, size> entries {{
-            object(type_caster<typename intrinsic_type<Tuple>::type>::cast(std::get<Indices>(src), policy, parent), false)...
+            object(make_caster<Tuple>::cast(std::get<Indices>(src), policy, parent), false)...
         }};
         for (const auto &entry: entries)
             if (!entry)
@@ -739,7 +741,7 @@ protected:
     }
 
 protected:
-    std::tuple<type_caster<typename intrinsic_type<Tuple>::type>...> value;
+    std::tuple<make_caster<Tuple>...> value;
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
@@ -846,7 +848,7 @@ template <typename T> using move_never = std::integral_constant<bool, !move_alwa
 NAMESPACE_END(detail)
 
 template <typename T> T cast(const handle &handle) {
-    typedef detail::type_caster<typename detail::intrinsic_type<T>::type> type_caster;
+    using type_caster = detail::make_caster<T>;
     type_caster conv;
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)
@@ -866,7 +868,7 @@ template <typename T> object cast(const T &value,
         policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
     else if (policy == return_value_policy::automatic_reference)
         policy = std::is_pointer<T>::value ? return_value_policy::reference : return_value_policy::copy;
-    return object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(value, policy, parent), false);
+    return object(detail::make_caster<T>::cast(value, policy, parent), false);
 }
 
 template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
@@ -927,7 +929,7 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
           typename... Args> tuple make_tuple(Args&&... args_) {
     const size_t size = sizeof...(Args);
     std::array<object, size> args {
-        { object(detail::type_caster<typename detail::intrinsic_type<Args>::type>::cast(
+        { object(detail::make_caster<Args>::cast(
             std::forward<Args>(args_), policy, nullptr), false)... }
     };
     for (auto &arg_value : args) {
@@ -947,32 +949,225 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
-template <return_value_policy policy,
-          typename... Args> object handle::operator()(Args&&... args) const {
-    tuple args_tuple = pybind11::make_tuple<policy>(std::forward<Args>(args)...);
-    object result(PyObject_CallObject(m_ptr, args_tuple.ptr()), false);
-    if (!result)
-        throw error_already_set();
-    return result;
+/// Annotation for keyword arguments
+struct arg {
+    constexpr explicit arg(const char *name) : name(name) { }
+    template <typename T> arg_v operator=(T &&value) const;
+
+    const char *name;
+};
+
+/// Annotation for keyword arguments with values
+struct arg_v : arg {
+    template <typename T>
+    arg_v(const char *name, T &&x, const char *descr = nullptr)
+        : arg(name),
+          value(detail::make_caster<T>::cast(x, return_value_policy::automatic, handle()), false),
+          descr(descr)
+#if !defined(NDEBUG)
+        , type(type_id<T>())
+#endif
+    { }
+
+    object value;
+    const char *descr;
+#if !defined(NDEBUG)
+    std::string type;
+#endif
+};
+
+template <typename T>
+arg_v arg::operator=(T &&value) const { return {name, std::forward<T>(value)}; }
+
+/// Alias for backward compatibility -- to be remove in version 2.0
+template <typename /*unused*/> using arg_t = arg_v;
+
+inline namespace literals {
+/// String literal version of arg
+constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
+}
+
+NAMESPACE_BEGIN(detail)
+NAMESPACE_BEGIN(constexpr_impl)
+/// Implementation details for constexpr functions
+constexpr int first(int i) { return i; }
+template <typename T, typename... Ts>
+constexpr int first(int i, T v, Ts... vs) { return v ? i : first(i + 1, vs...); }
+
+constexpr int last(int /*i*/, int result) { return result; }
+template <typename T, typename... Ts>
+constexpr int last(int i, int result, T v, Ts... vs) { return last(i + 1, v ? i : result, vs...); }
+NAMESPACE_END(constexpr_impl)
+
+/// Return the index of the first type in Ts which satisfies Predicate<T>
+template <template<typename> class Predicate, typename... Ts>
+constexpr int constexpr_first() { return constexpr_impl::first(0, Predicate<Ts>::value...); }
+
+/// Return the index of the last type in Ts which satisfies Predicate<T>
+template <template<typename> class Predicate, typename... Ts>
+constexpr int constexpr_last() { return constexpr_impl::last(0, -1, Predicate<Ts>::value...); }
+
+/// Helper class which collects only positional arguments for a Python function call.
+/// A fancier version below can collect any argument, but this one is optimal for simple calls.
+template <return_value_policy policy>
+class simple_collector {
+public:
+    template <typename... Ts>
+    simple_collector(Ts &&...values)
+        : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) { }
+
+    const tuple &args() const & { return m_args; }
+    dict kwargs() const { return {}; }
+
+    tuple args() && { return std::move(m_args); }
+
+    /// Call a Python function and pass the collected arguments
+    object call(PyObject *ptr) const {
+        auto result = object(PyObject_CallObject(ptr, m_args.ptr()), false);
+        if (!result)
+            throw error_already_set();
+        return result;
+    }
+
+private:
+    tuple m_args;
+};
+
+/// Helper class which collects positional, keyword, * and ** arguments for a Python function call
+template <return_value_policy policy>
+class unpacking_collector {
+public:
+    template <typename... Ts>
+    unpacking_collector(Ts &&...values) {
+        // Tuples aren't (easily) resizable so a list is needed for collection,
+        // but the actual function call strictly requires a tuple.
+        auto args_list = list();
+        int _[] = { 0, (process(args_list, std::forward<Ts>(values)), 0)... };
+        ignore_unused(_);
+
+        m_args = object(PyList_AsTuple(args_list.ptr()), false);
+    }
+
+    const tuple &args() const & { return m_args; }
+    const dict &kwargs() const & { return m_kwargs; }
+
+    tuple args() && { return std::move(m_args); }
+    dict kwargs() && { return std::move(m_kwargs); }
+
+    /// Call a Python function and pass the collected arguments
+    object call(PyObject *ptr) const {
+        auto result = object(PyObject_Call(ptr, m_args.ptr(), m_kwargs.ptr()), false);
+        if (!result)
+            throw error_already_set();
+        return result;
+    }
+
+private:
+    template <typename T>
+    void process(list &args_list, T &&x) {
+        auto o = object(detail::make_caster<T>::cast(std::forward<T>(x), policy, nullptr), false);
+        if (!o) {
+#if defined(NDEBUG)
+            argument_cast_error();
+#else
+            argument_cast_error(std::to_string(args_list.size()), type_id<T>());
+#endif
+        }
+        args_list.append(o);
+    }
+
+    void process(list &args_list, detail::args_proxy ap) {
+        for (const auto &a : ap) {
+            args_list.append(a.cast<object>());
+        }
+    }
+
+    void process(list &/*args_list*/, arg_v a) {
+        if (m_kwargs[a.name]) {
+#if defined(NDEBUG)
+            multiple_values_error();
+#else
+            multiple_values_error(a.name);
+#endif
+        }
+        if (!a.value) {
+#if defined(NDEBUG)
+            argument_cast_error();
+#else
+            argument_cast_error(a.name, a.type);
+#endif
+        }
+        m_kwargs[a.name] = a.value;
+    }
+
+    void process(list &/*args_list*/, detail::kwargs_proxy kp) {
+        for (const auto &k : dict(kp, true)) {
+            if (m_kwargs[k.first]) {
+#if defined(NDEBUG)
+                multiple_values_error();
+#else
+                multiple_values_error(k.first.str());
+#endif
+            }
+            m_kwargs[k.first] = k.second;
+        }
+    }
+
+    [[noreturn]] static void multiple_values_error() {
+        throw type_error("Got multiple values for keyword argument "
+                         "(compile in debug mode for details)");
+    }
+
+    [[noreturn]] static void multiple_values_error(std::string name) {
+        throw type_error("Got multiple values for keyword argument '" + name + "'");
+    }
+
+    [[noreturn]] static void argument_cast_error() {
+        throw cast_error("Unable to convert call argument to Python object "
+                         "(compile in debug mode for details)");
+    }
+
+    [[noreturn]] static void argument_cast_error(std::string name, std::string type) {
+        throw cast_error("Unable to convert call argument '" + name
+                         + "' of type '" + type + "' to Python object");
+    }
+
+private:
+    tuple m_args;
+    dict m_kwargs;
+};
+
+/// Collect only positional arguments for a Python function call
+template <return_value_policy policy, typename... Args,
+          typename = enable_if_t<all_of_t<is_positional, Args...>::value>>
+simple_collector<policy> collect_arguments(Args &&...args) {
+    return {std::forward<Args>(args)...};
+}
+
+/// Collect all arguments, including keywords and unpacking (only instantiated when needed)
+template <return_value_policy policy, typename... Args,
+          typename = enable_if_t<!all_of_t<is_positional, Args...>::value>>
+unpacking_collector<policy> collect_arguments(Args &&...args) {
+    // Following argument order rules for generalized unpacking according to PEP 448
+    static_assert(
+        constexpr_last<is_positional, Args...>() < constexpr_first<is_keyword_or_ds, Args...>()
+        && constexpr_last<is_s_unpacking, Args...>() < constexpr_first<is_ds_unpacking, Args...>(),
+        "Invalid function call: positional args must precede keywords and ** unpacking; "
+        "* unpacking must precede ** unpacking"
+    );
+    return {std::forward<Args>(args)...};
+}
+
+NAMESPACE_END(detail)
+
+template <return_value_policy policy, typename... Args>
+object handle::operator()(Args &&...args) const {
+    return detail::collect_arguments<policy>(std::forward<Args>(args)...).call(m_ptr);
 }
 
 template <return_value_policy policy,
           typename... Args> object handle::call(Args &&... args) const {
     return operator()<policy>(std::forward<Args>(args)...);
-}
-
-inline object handle::operator()(detail::args_proxy args) const {
-    object result(PyObject_CallObject(m_ptr, args.ptr()), false);
-    if (!result)
-        throw error_already_set();
-    return result;
-}
-
-inline object handle::operator()(detail::args_proxy args, detail::kwargs_proxy kwargs) const {
-    object result(PyObject_Call(m_ptr, args.ptr(), kwargs.ptr()), false);
-    if (!result)
-        throw error_already_set();
-    return result;
 }
 
 #define PYBIND11_MAKE_OPAQUE(Type) \

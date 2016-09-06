@@ -1233,6 +1233,33 @@ public:
     }
 };
 
+NAMESPACE_BEGIN(detail)
+PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
+    auto strings = tuple(args.size());
+    for (size_t i = 0; i < args.size(); ++i) {
+        strings[i] = args[i].cast<object>().str();
+    }
+    auto sep = kwargs["sep"] ? kwargs["sep"] : cast(" ");
+    auto line = sep.attr("join").cast<object>()(strings);
+
+    auto file = kwargs["file"] ? kwargs["file"].cast<object>()
+                               : module::import("sys").attr("stdout");
+    auto write = file.attr("write").cast<object>();
+    write(line);
+    write(kwargs["end"] ? kwargs["end"] : cast("\n"));
+
+    if (kwargs["flush"] && kwargs["flush"].cast<bool>()) {
+        file.attr("flush").cast<object>()();
+    }
+}
+NAMESPACE_END(detail)
+
+template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
+void print(Args &&...args) {
+    auto c = detail::collect_arguments<policy>(std::forward<Args>(args)...);
+    detail::print(c.args(), c.kwargs());
+}
+
 #if defined(WITH_THREAD)
 
 /* The functions below essentially reproduce the PyGILState_* API using a RAII

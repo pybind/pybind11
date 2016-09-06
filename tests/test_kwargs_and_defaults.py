@@ -1,7 +1,6 @@
 import pytest
-from pybind11_tests import (kw_func0, kw_func1, kw_func2, kw_func3, kw_func4, call_kw_func,
-                            args_function, args_kwargs_function, kw_func_udl, kw_func_udl_z,
-                            KWClass)
+from pybind11_tests import (kw_func0, kw_func1, kw_func2, kw_func3, kw_func4, args_function,
+                            args_kwargs_function, kw_func_udl, kw_func_udl_z, KWClass)
 
 
 def test_function_signatures(doc):
@@ -49,8 +48,6 @@ def test_named_arguments(msg):
 
 
 def test_arg_and_kwargs():
-    assert call_kw_func(kw_func2) == "x=1234, y=5678"
-
     args = 'arg1_value', 'arg2_value', 3
     assert args_function(*args) == args
 

@@ -1622,24 +1622,76 @@ It is also possible to call python functions via ``operator()``.
     py::object result_py = f(1234, "hello", some_instance);
     MyClass &result = result_py.cast<MyClass>();
 
-The special ``f(*args)`` and ``f(*args, **kwargs)`` syntax is also supported to
-supply arbitrary argument and keyword lists, although these cannot be mixed
-with other parameters.
+Keyword arguments are also supported. In Python, there is the usual call syntax:
+
+.. code-block:: python
+
+    def f(number, say, to):
+        ...  # function code
+
+    f(1234, say="hello", to=some_instance)  # keyword call in Python
+
+In C++, the same call can be made using:
 
 .. code-block:: cpp
 
-    py::function f = <...>;
+    using pybind11::literals; // to bring in the `_a` literal
+    f(1234, "say"_a="hello", "to"_a=some_instance); // keyword call in C++
+
+Unpacking of ``*args`` and ``**kwargs`` is also possible and can be mixed with
+other arguments:
+
+.. code-block:: cpp
+
+    // * unpacking
+    py::tuple args = py::make_tuple(1234, "hello", some_instance);
+    f(*args);
+
+    // ** unpacking
+    py::dict kwargs = py::dict("number"_a=1234, "say"_a="hello", "to"_a=some_instance);
+    f(**kwargs);
+
+    // mixed keywords, * and ** unpacking
     py::tuple args = py::make_tuple(1234);
-    py::dict kwargs;
-    kwargs["y"] = py::cast(5678);
-    py::object result = f(*args, **kwargs);
+    py::dict kwargs = py::dict("to"_a=some_instance);
+    f(*args, "say"_a="hello", **kwargs);
+
+Generalized unpacking according to PEP448_ is also supported:
+
+.. code-block:: cpp
+
+    py::dict kwargs1 = py::dict("number"_a=1234);
+    py::dict kwargs2 = py::dict("to"_a=some_instance);
+    f(**kwargs1, "say"_a="hello", **kwargs2);
 
 .. seealso::
 
     The file :file:`tests/test_python_types.cpp` contains a complete
     example that demonstrates passing native Python types in more detail. The
-    file :file:`tests/test_kwargs_and_defaults.cpp` discusses usage
-    of ``args`` and ``kwargs``.
+    file :file:`tests/test_callbacks.cpp` presents a few examples of calling
+    Python functions from C++, including keywords arguments and unpacking.
+
+.. _PEP448: https://www.python.org/dev/peps/pep-0448/
+
+Using Python's print function in C++
+====================================
+
+The usual way to write output in C++ is using ``std::cout`` while in Python one
+would use ``print``. Since these methods use different buffers, mixing them can
+lead to output order issues. To resolve this, pybind11 modules can use the
+:func:`py::print` function which writes to Python's ``sys.stdout`` for consistency.
+
+Python's ``print`` function is replicated in the C++ API including optional
+keyword arguments ``sep``, ``end``, ``file``, ``flush``. Everything works as
+expected in Python:
+
+.. code-block:: cpp
+
+    py::print(1, 2.0, "three"); // 1 2.0 three
+    py::print(1, 2.0, "three", "sep"_a="-"); // 1-2.0-three
+
+    auto args = py::make_tuple("unpacked", true);
+    py::print("->", *args, "end"_a="<-"); // -> unpacked True <-
 
 Default arguments revisited
 ===========================

@@ -197,4 +197,32 @@ test_initializer python_types([](py::module &m) {
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
         .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")
         ;
+
+    m.def("test_print_function", []() {
+        py::print("Hello, World!");
+        py::print(1, 2.0, "three", true, std::string("-- multiple args"));
+        auto args = py::make_tuple("and", "a", "custom", "separator");
+        py::print("*args", *args, "sep"_a="-");
+        py::print("no new line here", "end"_a=" -- ");
+        py::print("next print");
+
+        auto py_stderr = py::module::import("sys").attr("stderr").cast<py::object>();
+        py::print("this goes to stderr", "file"_a=py_stderr);
+
+        py::print("flush", "flush"_a=true);
+
+        py::print("{a} + {b} = {c}"_s.format("a"_a="py::print", "b"_a="str.format", "c"_a="this"));
+    });
+
+    m.def("test_str_format", []() {
+        auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
+        auto s2 = "{a} + {b} = {c}"_s.format("a"_a=1, "b"_a=2, "c"_a=3);
+        return py::make_tuple(s1, s2);
+    });
+
+    m.def("test_dict_keyword_constructor", []() {
+        auto d1 = py::dict("x"_a=1, "y"_a=2);
+        auto d2 = py::dict("z"_a=3, **d1);
+        return d2;
+    });
 });

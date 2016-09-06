@@ -14,35 +14,6 @@
 
 NAMESPACE_BEGIN(pybind11)
 
-template <typename T> struct arg_t;
-
-/// Annotation for keyword arguments
-struct arg {
-    constexpr explicit arg(const char *name) : name(name) { }
-
-    template <typename T>
-    constexpr arg_t<T> operator=(const T &value) const { return {name, value}; }
-    template <typename T, size_t N>
-    constexpr arg_t<const T *> operator=(T const (&value)[N]) const {
-        return operator=((const T *) value);
-    }
-
-    const char *name;
-};
-
-/// Annotation for keyword arguments with default values
-template <typename T> struct arg_t : public arg {
-    constexpr arg_t(const char *name, const T &value, const char *descr = nullptr)
-        : arg(name), value(value), descr(descr) { }
-    T value;
-    const char *descr;
-};
-
-inline namespace literals {
-/// String literal version of arg
-constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
-}
-
 /// Annotation for methods
 struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
 
@@ -238,21 +209,14 @@ template <> struct process_attribute<arg> : process_attribute_default<arg> {
 };
 
 /// Process a keyword argument attribute (*with* a default value)
-template <typename T>
-struct process_attribute<arg_t<T>> : process_attribute_default<arg_t<T>> {
-    static void init(const arg_t<T> &a, function_record *r) {
+template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
+    static void init(const arg_v &a, function_record *r) {
         if (r->class_ && r->args.empty())
             r->args.emplace_back("self", nullptr, handle());
 
-        /* Convert keyword value into a Python object */
-        object o = object(detail::type_caster<typename detail::intrinsic_type<T>::type>::cast(
-                a.value, return_value_policy::automatic, handle()), false);
-
-        if (!o) {
+        if (!a.value) {
 #if !defined(NDEBUG)
-            std::string descr(typeid(T).name());
-            detail::clean_type_id(descr);
-            descr = "'" + std::string(a.name) + ": " + descr + "'";
+            auto descr = "'" + std::string(a.name) + ": " + a.type + "'";
             if (r->class_) {
                 if (r->name)
                     descr += " in method '" + (std::string) r->class_.str() + "." + (std::string) r->name + "'";
@@ -269,7 +233,7 @@ struct process_attribute<arg_t<T>> : process_attribute_default<arg_t<T>> {
                           "Compile in debug mode for more information.");
 #endif
         }
-        r->args.emplace_back(a.name, a.descr, o.release());
+        r->args.emplace_back(a.name, a.descr, a.value.inc_ref());
     }
 };
 
@@ -301,9 +265,6 @@ template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Pat
     static void postcall(handle args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
 };
 
-/// Ignore that a variable is unused in compiler warnings
-inline void ignore_unused(const int *) { }
-
 /// Recursively iterate over variadic template arguments
 template <typename... Args> struct process_attributes {
     static void init(const Args&... args, function_record *r) {
@@ -323,11 +284,6 @@ template <typename... Args> struct process_attributes {
         ignore_unused(unused);
     }
 };
-
-/// Compile-time integer sum
-constexpr size_t constexpr_sum() { return 0; }
-template <typename T, typename... Ts>
-constexpr size_t constexpr_sum(T n, Ts... ns) { return n + constexpr_sum(ns...); }
 
 /// Check the number of named arguments at compile time
 template <typename... Extra,
