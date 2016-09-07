@@ -259,24 +259,25 @@ using cast_op_type = typename std::conditional<std::is_pointer<typename std::rem
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
+    using itype = intrinsic_t<type>;
 public:
     static PYBIND11_DESCR name() { return type_descr(_<type>()); }
 
     type_caster_base() : type_caster_generic(typeid(type)) { }
 
-    static handle cast(const type &src, return_value_policy policy, handle parent) {
+    static handle cast(const itype &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
             policy = return_value_policy::copy;
         return cast(&src, policy, parent);
     }
 
-    static handle cast(type &&src, return_value_policy policy, handle parent) {
+    static handle cast(itype &&src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
             policy = return_value_policy::move;
         return cast(&src, policy, parent);
     }
 
-    static handle cast(const type *src, return_value_policy policy, handle parent) {
+    static handle cast(const itype *src, return_value_policy policy, handle parent) {
         return type_caster_generic::cast(
             src, policy, parent, src ? &typeid(*src) : nullptr, &typeid(type),
             make_copy_constructor(src), make_move_constructor(src));
@@ -284,8 +285,8 @@ public:
 
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
-    operator type*() { return (type *) value; }
-    operator type&() { if (!value) throw reference_cast_error(); return *((type *) value); }
+    operator itype*() { return (type *) value; }
+    operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
 
 protected:
     typedef void *(*Constructor)(const void *stream);

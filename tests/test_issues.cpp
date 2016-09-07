@@ -191,6 +191,35 @@ void init_issues(py::module &m) {
     py::class_<MoveIssue2>(m2, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
     m2.def("get_moveissue1", [](int i) -> MoveIssue1 * { return new MoveIssue1(i); }, py::return_value_policy::move);
     m2.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
+
+    // Issue 392: overridding reference-returning functions
+    class OverrideTest {
+    public:
+        struct A { int value = 99; };
+        int v;
+        A a;
+        explicit OverrideTest(int v) : v{v} {}
+        virtual int int_value() { return v; }
+        virtual int &int_ref() { return v; }
+        virtual A A_value() { return a; }
+        virtual A &A_ref() { return a; }
+    };
+    class PyOverrideTest : public OverrideTest {
+    public:
+        using OverrideTest::OverrideTest;
+        int int_value() override { PYBIND11_OVERLOAD(int, OverrideTest, int_value); }
+        int &int_ref() override { PYBIND11_OVERLOAD(int &, OverrideTest, int_ref); }
+        A A_value() override { PYBIND11_OVERLOAD(A, OverrideTest, A_value); }
+        A &A_ref() override { PYBIND11_OVERLOAD(A &, OverrideTest, A_ref); }
+    };
+    py::class_<OverrideTest::A>(m2, "OverrideTest_A")
+        .def_readwrite("value", &OverrideTest::A::value);
+    py::class_<OverrideTest, PyOverrideTest>(m2, "OverrideTest")
+        .def(py::init<int>())
+        .def("int_value", &OverrideTest::int_value)
+        .def("int_ref", &OverrideTest::int_ref)
+        .def("A_value", &OverrideTest::A_value)
+        .def("A_ref", &OverrideTest::A_ref);
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSCV
