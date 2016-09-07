@@ -208,7 +208,9 @@ void init_issues(py::module &m) {
     public:
         using OverrideTest::OverrideTest;
         int int_value() override { PYBIND11_OVERLOAD(int, OverrideTest, int_value); }
-        int &int_ref() override { PYBIND11_OVERLOAD(int &, OverrideTest, int_ref); }
+        // Not allowed (uncommenting should hit a static_assert failure): we can't get a reference
+        // to a python numeric value, since we only copy values in the numeric type caster:
+//      int &int_ref() override { PYBIND11_OVERLOAD(int &, OverrideTest, int_ref); }
         A A_value() override { PYBIND11_OVERLOAD(A, OverrideTest, A_value); }
         A &A_ref() override { PYBIND11_OVERLOAD(A &, OverrideTest, A_ref); }
     };
@@ -217,9 +219,10 @@ void init_issues(py::module &m) {
     py::class_<OverrideTest, PyOverrideTest>(m2, "OverrideTest")
         .def(py::init<int>())
         .def("int_value", &OverrideTest::int_value)
-        .def("int_ref", &OverrideTest::int_ref)
+//      .def("int_ref", &OverrideTest::int_ref)
         .def("A_value", &OverrideTest::A_value)
         .def("A_ref", &OverrideTest::A_ref);
+
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSCV

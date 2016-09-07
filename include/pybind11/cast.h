@@ -855,10 +855,22 @@ template <typename T> struct move_if_unreferenced<T, typename std::enable_if<
     >::type> : std::true_type {};
 template <typename T> using move_never = std::integral_constant<bool, !move_always<T>::value && !move_if_unreferenced<T>::value>;
 
+// Detect whether returning a `type` from a cast on type's type_caster is going to result in a
+// reference or pointer to a local variable of the type_caster.  Basically, only
+// non-reference/pointer `type`s and reference/pointers from a type_caster_generic are safe;
+// everything else returns a reference/pointer to a local variable.
+template <typename type> using cast_is_temporary_value_reference = bool_constant<
+    (std::is_reference<type>::value || std::is_pointer<type>::value) &&
+    !std::is_base_of<type_caster_generic, make_caster<type>>::value
+>;
+
+
 NAMESPACE_END(detail)
 
 template <typename T> T cast(const handle &handle) {
     using type_caster = detail::make_caster<T>;
+    static_assert(!detail::cast_is_temporary_value_reference<T>::value,
+            "Unable to cast type to reference: value is local to type caster");
     type_caster conv;
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)

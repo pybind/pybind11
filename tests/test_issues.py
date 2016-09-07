@@ -171,9 +171,10 @@ def test_override_ref():
     from pybind11_tests.issues import OverrideTest
     o = OverrideTest(42)
 
-    i = o.int_ref()
+    # Not allowed (see associated .cpp comment)
+    #i = o.int_ref()
+    #assert o.int_ref() == 42
     assert o.int_value() == 42
-    assert o.int_ref() == 42
 
     assert o.A_value().value == 99
     a = o.A_ref()
