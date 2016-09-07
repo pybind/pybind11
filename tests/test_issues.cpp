@@ -51,7 +51,7 @@ void init_issues(py::module &m) {
         }
     };
 
-    py::class_<Base, std::unique_ptr<Base>, DispatchIssue>(m2, "DispatchIssue")
+    py::class_<Base, DispatchIssue>(m2, "DispatchIssue")
         .def(py::init<>())
         .def("dispatch", &Base::dispatch);
 
@@ -96,7 +96,7 @@ void init_issues(py::module &m) {
 
     py::class_<ElementBase, std::shared_ptr<ElementBase>> (m2, "ElementBase");
 
-    py::class_<ElementA, std::shared_ptr<ElementA>>(m2, "ElementA", py::base<ElementBase>())
+    py::class_<ElementA, ElementBase, std::shared_ptr<ElementA>>(m2, "ElementA")
         .def(py::init<int>())
         .def("value", &ElementA::value);
 

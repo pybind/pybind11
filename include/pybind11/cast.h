@@ -800,6 +800,13 @@ protected:
     holder_type holder;
 };
 
+// PYBIND11_DECLARE_HOLDER_TYPE holder types:
+template <typename base, typename holder> struct is_holder_type :
+    std::is_base_of<detail::type_caster_holder<base, holder>, detail::type_caster<holder>> {};
+// Specialization for always-supported unique_ptr holders:
+template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
+    std::true_type {};
+
 template <typename T> struct handle_type_name { static PYBIND11_DESCR name() { return _<T>(); } };
 template <> struct handle_type_name<bytes> { static PYBIND11_DESCR name() { return _(PYBIND11_BYTES_NAME); } };
 template <> struct handle_type_name<args> { static PYBIND11_DESCR name() { return _("*args"); } };

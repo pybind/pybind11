@@ -31,6 +31,11 @@ public:
     Rabbit(const std::string &name) : Pet(name, "parrot") {}
 };
 
+class Hamster : public Pet {
+public:
+    Hamster(const std::string &name) : Pet(name, "rodent") {}
+};
+
 std::string pet_name_species(const Pet &pet) {
     return pet.name() + " is a " + pet.species();
 }
@@ -57,6 +62,10 @@ test_initializer inheritance([](py::module &m) {
 
     /* Another way of declaring a subclass relationship: reference parent's C++ type */
     py::class_<Rabbit>(m, "Rabbit", py::base<Pet>())
+        .def(py::init<std::string>());
+
+    /* And another: list parent in class template arguments */
+    py::class_<Hamster, Pet>(m, "Hamster")
         .def(py::init<std::string>());
 
     m.def("pet_name_species", pet_name_species);

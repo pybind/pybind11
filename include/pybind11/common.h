@@ -358,6 +358,28 @@ template <template<typename> class P, typename T, typename... Ts>
 struct any_of_t<P, T, Ts...> : conditional_t<P<T>::value, std::true_type, any_of_t<P, Ts...>> { };
 #endif
 
+// Extracts the first type from the template parameter pack matching the predicate, or Default if none match.
+template <template<class> class Predicate, class Default, class... Ts> struct first_of;
+template <template<class> class Predicate, class Default> struct first_of<Predicate, Default> {
+    using type = Default;
+};
+template <template<class> class Predicate, class Default, class T, class... Ts>
+struct first_of<Predicate, Default, T, Ts...> {
+    using type = typename std::conditional<
+        Predicate<T>::value,
+        T,
+        typename first_of<Predicate, Default, Ts...>::type
+    >::type;
+};
+template <template<class> class Predicate, class Default, class... T> using first_of_t = typename first_of<Predicate, Default, T...>::type;
+
+// Counts the number of types in the template parameter pack matching the predicate
+template <template<typename> class Predicate, typename... Ts> struct count_t;
+template <template<typename> class Predicate> struct count_t<Predicate> : std::integral_constant<size_t, 0> {};
+template <template<typename> class Predicate, class T, class... Ts>
+struct count_t<Predicate, T, Ts...> : std::integral_constant<size_t,
+    Predicate<T>::value + count_t<Predicate, Ts...>::value> {};
+
 /// Defer the evaluation of type T until types Us are instantiated
 template <typename T, typename... /*Us*/> struct deferred_type { using type = T; };
 template <typename T, typename... Us> using deferred_t = typename deferred_type<T, Us...>::type;

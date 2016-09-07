@@ -6,6 +6,7 @@ endif()
 set(PYBIND11_TEST_FILES
   test_buffers.cpp
   test_callbacks.cpp
+  test_class_args.cpp
   test_constants_and_functions.cpp
   test_eigen.cpp
   test_enum.cpp
