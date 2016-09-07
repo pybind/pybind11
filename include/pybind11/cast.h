@@ -106,10 +106,15 @@ PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp) {
 }
 
 PYBIND11_NOINLINE inline std::string error_string() {
-   PyObject *type, *value, *traceback;
-   PyErr_Fetch(&type, &value, &traceback);
+    if (!PyErr_Occurred()) {
+        PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
+        return "Unknown internal error occurred";
+    }
 
-   std::string errorString;
+    PyObject *type, *value, *traceback;
+    PyErr_Fetch(&type, &value, &traceback);
+
+    std::string errorString;
     if (type) {
         errorString += handle(type).attr("__name__").cast<std::string>();
         errorString += ": ";
