@@ -121,14 +121,14 @@ void init_issues(py::module &m) {
     // classes that were not extended on the Python side
     struct A {
         virtual ~A() {}
-        virtual void f() { std::cout << "A.f()" << std::endl; }
+        virtual void f() { py::print("A.f()"); }
     };
 
     struct PyA : A {
-        PyA() { std::cout << "PyA.PyA()" << std::endl; }
+        PyA() { py::print("PyA.PyA()"); }
 
         void f() override {
-            std::cout << "PyA.f()" << std::endl;
+            py::print("PyA.f()");
             PYBIND11_OVERLOAD(void, A, f);
         }
     };
@@ -177,7 +177,7 @@ void init_issues(py::module &m) {
     class MoveIssue1 {
     public:
         MoveIssue1(int v) : v{v} {}
-        MoveIssue1(const MoveIssue1 &c) { std::cerr << "copy ctor\n"; v=c.v; }
+        MoveIssue1(const MoveIssue1 &c) { v = c.v; }
         MoveIssue1(MoveIssue1 &&) = delete;
         int v;
     };

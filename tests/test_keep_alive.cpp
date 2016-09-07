@@ -12,14 +12,14 @@
 
 class Child {
 public:
-    Child() { std::cout << "Allocating child." << std::endl; }
-    ~Child() { std::cout << "Releasing child." << std::endl; }
+    Child() { py::print("Allocating child."); }
+    ~Child() { py::print("Releasing child."); }
 };
 
 class Parent {
 public:
-    Parent() { std::cout << "Allocating parent." << std::endl; }
-    ~Parent() { std::cout << "Releasing parent." << std::endl; }
+    Parent() { py::print("Allocating parent."); }
+    ~Parent() { py::print("Releasing parent."); }
     void addChild(Child *) { }
     Child *returnChild() { return new Child(); }
     Child *returnNullChild() { return nullptr; }

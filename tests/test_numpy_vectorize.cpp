@@ -12,7 +12,7 @@
 #include <pybind11/numpy.h>
 
 double my_func(int x, float y, double z) {
-    std::cout << "my_func(x:int=" << x << ", y:float=" << y << ", z:float=" << z << ")" << std::endl;
+    py::print("my_func(x:int={}, y:float={:.0f}, z:float={:.0f})"_s.format(x, y, z));
     return (float) x*y*z;
 }
 

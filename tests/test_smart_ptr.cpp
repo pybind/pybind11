@@ -97,25 +97,25 @@ std::shared_ptr<MyObject2> make_myobject2_2() { return std::make_shared<MyObject
 MyObject3 *make_myobject3_1() { return new MyObject3(8); }
 std::shared_ptr<MyObject3> make_myobject3_2() { return std::make_shared<MyObject3>(9); }
 
-void print_object_1(const Object *obj) { std::cout << obj->toString() << std::endl; }
-void print_object_2(ref<Object> obj) { std::cout << obj->toString() << std::endl; }
-void print_object_3(const ref<Object> &obj) { std::cout << obj->toString() << std::endl; }
-void print_object_4(const ref<Object> *obj) { std::cout << (*obj)->toString() << std::endl; }
+void print_object_1(const Object *obj) { py::print(obj->toString()); }
+void print_object_2(ref<Object> obj) { py::print(obj->toString()); }
+void print_object_3(const ref<Object> &obj) { py::print(obj->toString()); }
+void print_object_4(const ref<Object> *obj) { py::print((*obj)->toString()); }
 
-void print_myobject1_1(const MyObject1 *obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject1_2(ref<MyObject1> obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject1_3(const ref<MyObject1> &obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject1_4(const ref<MyObject1> *obj) { std::cout << (*obj)->toString() << std::endl; }
+void print_myobject1_1(const MyObject1 *obj) { py::print(obj->toString()); }
+void print_myobject1_2(ref<MyObject1> obj) { py::print(obj->toString()); }
+void print_myobject1_3(const ref<MyObject1> &obj) { py::print(obj->toString()); }
+void print_myobject1_4(const ref<MyObject1> *obj) { py::print((*obj)->toString()); }
 
-void print_myobject2_1(const MyObject2 *obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject2_2(std::shared_ptr<MyObject2> obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject2_3(const std::shared_ptr<MyObject2> &obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject2_4(const std::shared_ptr<MyObject2> *obj) { std::cout << (*obj)->toString() << std::endl; }
+void print_myobject2_1(const MyObject2 *obj) { py::print(obj->toString()); }
+void print_myobject2_2(std::shared_ptr<MyObject2> obj) { py::print(obj->toString()); }
+void print_myobject2_3(const std::shared_ptr<MyObject2> &obj) { py::print(obj->toString()); }
+void print_myobject2_4(const std::shared_ptr<MyObject2> *obj) { py::print((*obj)->toString()); }
 
-void print_myobject3_1(const MyObject3 *obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject3_2(std::shared_ptr<MyObject3> obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject3_3(const std::shared_ptr<MyObject3> &obj) { std::cout << obj->toString() << std::endl; }
-void print_myobject3_4(const std::shared_ptr<MyObject3> *obj) { std::cout << (*obj)->toString() << std::endl; }
+void print_myobject3_1(const MyObject3 *obj) { py::print(obj->toString()); }
+void print_myobject3_2(std::shared_ptr<MyObject3> obj) { py::print(obj->toString()); }
+void print_myobject3_3(const std::shared_ptr<MyObject3> &obj) { py::print(obj->toString()); }
+void print_myobject3_4(const std::shared_ptr<MyObject3> *obj) { py::print((*obj)->toString()); }
 
 test_initializer smart_ptr([](py::module &m) {
     py::class_<Object, ref<Object>> obj(m, "Object");

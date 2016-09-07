@@ -70,20 +70,12 @@ class Capture(object):
         self.out = ""
         self.err = ""
 
-    def _flush(self):
-        """Workaround for issues on Windows: to be removed after tests get py::print"""
-        sys.stdout.flush()
-        os.fsync(sys.stdout.fileno())
-        sys.stderr.flush()
-        os.fsync(sys.stderr.fileno())
-        return self.capfd.readouterr()
-
     def __enter__(self):
-        self._flush()
+        self.capfd.readouterr()
         return self
 
     def __exit__(self, *_):
-        self.out, self.err = self._flush()
+        self.out, self.err = self.capfd.readouterr()
 
     def __eq__(self, other):
         a = Output(self.out)
