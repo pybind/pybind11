@@ -40,6 +40,7 @@ public:
     inline detail::accessor attr(const char *key) const;
     inline pybind11::str str() const;
     inline pybind11::str repr() const;
+    bool is_none() const { return m_ptr == Py_None; }
     template <typename T> T cast() const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
     #if __cplusplus > 201103L

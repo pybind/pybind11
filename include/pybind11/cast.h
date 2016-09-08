@@ -155,7 +155,7 @@ public:
     PYBIND11_NOINLINE bool load(handle src, bool convert) {
         if (!src || !typeinfo)
             return false;
-        if (src.ptr() == Py_None) {
+        if (src.is_none()) {
             value = nullptr;
             return true;
         } else if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
@@ -180,7 +180,7 @@ public:
                                          const void *existing_holder = nullptr) {
         void *src = const_cast<void *>(_src);
         if (src == nullptr)
-            return handle(Py_None).inc_ref();
+            return none();
 
         auto &internals = get_internals();
 
@@ -408,7 +408,7 @@ template <> class type_caster<void_type> {
 public:
     bool load(handle, bool) { return false; }
     static handle cast(void_type, return_value_policy /* policy */, handle /* parent */) {
-        return handle(Py_None).inc_ref();
+        return none();
     }
     PYBIND11_TYPE_CASTER(void_type, _("None"));
 };
@@ -420,7 +420,7 @@ public:
     bool load(handle h, bool) {
         if (!h) {
             return false;
-        } else if (h.ptr() == Py_None) {
+        } else if (h.is_none()) {
             value = nullptr;
             return true;
         }
@@ -446,7 +446,7 @@ public:
         if (ptr)
             return capsule(ptr).release();
         else
-            return handle(Py_None).inc_ref();
+            return none();
     }
 
     template <typename T> using cast_op_type = void*&;
@@ -558,12 +558,12 @@ protected:
 template <> class type_caster<char> : public type_caster<std::string> {
 public:
     bool load(handle src, bool convert) {
-        if (src.ptr() == Py_None) return true;
+        if (src.is_none()) return true;
         return type_caster<std::string>::load(src, convert);
     }
 
     static handle cast(const char *src, return_value_policy /* policy */, handle /* parent */) {
-        if (src == nullptr) return handle(Py_None).inc_ref();
+        if (src == nullptr) return none();
         return PyUnicode_FromString(src);
     }
 
@@ -581,12 +581,12 @@ public:
 template <> class type_caster<wchar_t> : public type_caster<std::wstring> {
 public:
     bool load(handle src, bool convert) {
-        if (src.ptr() == Py_None) return true;
+        if (src.is_none()) return true;
         return type_caster<std::wstring>::load(src, convert);
     }
 
     static handle cast(const wchar_t *src, return_value_policy /* policy */, handle /* parent */) {
-        if (src == nullptr) return handle(Py_None).inc_ref();
+        if (src == nullptr) return none();
         return PyUnicode_FromWideChar(src, (ssize_t) wcslen(src));
     }
 
@@ -757,7 +757,7 @@ public:
     bool load(handle src, bool convert) {
         if (!src || !typeinfo) {
             return false;
-        } else if (src.ptr() == Py_None) {
+        } else if (src.is_none()) {
             value = nullptr;
             return true;
         } else if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
