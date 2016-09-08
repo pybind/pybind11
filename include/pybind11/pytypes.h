@@ -21,7 +21,18 @@ class str; class iterator;
 struct arg; struct arg_v;
 
 NAMESPACE_BEGIN(detail)
-class accessor; class args_proxy;
+class args_proxy;
+
+// Accessor forward declarations
+template <typename Policy> class accessor;
+namespace accessor_policies {
+    struct obj_attr;
+    struct str_attr;
+    struct generic_item;
+}
+using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
+using str_attr_accessor = accessor<accessor_policies::str_attr>;
+using item_accessor = accessor<accessor_policies::generic_item>;
 
 /// Tag and check to identify a class which implements the Python object API
 class pyobject_tag { };
@@ -36,10 +47,10 @@ class object_api : public pyobject_tag {
 public:
     iterator begin() const;
     iterator end() const;
-    accessor operator[](handle key) const;
-    accessor operator[](const char *key) const;
-    accessor attr(handle key) const;
-    accessor attr(const char *key) const;
+    item_accessor operator[](handle key) const;
+    item_accessor operator[](const char *key) const;
+    obj_attr_accessor attr(handle key) const;
+    str_attr_accessor attr(const char *key) const;
     args_proxy operator*() const;
     template <typename T> bool contains(T &&key) const;
 
@@ -177,40 +188,60 @@ inline handle get_function(handle value) {
     return value;
 }
 
-class accessor {
+template <typename Policy>
+class accessor : public object_api<accessor<Policy>> {
+    using key_type = typename Policy::key_type;
+
 public:
-    accessor(handle obj, handle key, bool attr)
-        : obj(obj), key(key, true), attr(attr) { }
-    accessor(handle obj, const char *key, bool attr)
-        : obj(obj), key(PyUnicode_FromString(key), false), attr(attr) { }
-    accessor(const accessor &a) : obj(a.obj), key(a.key), attr(a.attr) { }
+    accessor(handle obj, key_type key) : obj(obj), key(std::move(key)) { }
 
-    void operator=(accessor o) { operator=(object(o)); }
+    void operator=(const accessor &a) { operator=(handle(a)); }
+    void operator=(const object &o) { operator=(handle(o)); }
+    void operator=(handle value) { Policy::set(obj, key, value); }
 
-    void operator=(const handle &value) {
-        if (attr) {
-            if (PyObject_SetAttr(obj.ptr(), key.ptr(), value.ptr()) == -1)
-                throw error_already_set();
-        } else {
-            if (PyObject_SetItem(obj.ptr(), key.ptr(), value.ptr()) == -1)
-                throw error_already_set();
-        }
+    operator object() const { return get_cache(); }
+    PyObject *ptr() const { return get_cache().ptr(); }
+    template <typename T> T cast() const { return get_cache().template cast<T>(); }
+
+private:
+    const object &get_cache() const {
+        if (!cache) { cache = Policy::get(obj, key); }
+        return cache;
     }
 
-    operator object() const {
-        PyObject *result = attr ? PyObject_GetAttr(obj.ptr(), key.ptr())
-                                : PyObject_GetItem(obj.ptr(), key.ptr());
+private:
+    handle obj;
+    key_type key;
+    mutable object cache;
+};
+
+NAMESPACE_BEGIN(accessor_policies)
+struct obj_attr {
+    using key_type = object;
+    static object get(handle obj, handle key) { return getattr(obj, key); }
+    static void set(handle obj, handle key, handle val) { setattr(obj, key, val); }
+};
+
+struct str_attr {
+    using key_type = const char *;
+    static object get(handle obj, const char *key) { return getattr(obj, key); }
+    static void set(handle obj, const char *key, handle val) { setattr(obj, key, val); }
+};
+
+struct generic_item {
+    using key_type = object;
+
+    static object get(handle obj, handle key) {
+        PyObject *result = PyObject_GetItem(obj.ptr(), key.ptr());
         if (!result) { throw error_already_set(); }
         return {result, false};
     }
 
-    template <typename T> T cast() const { return operator object().cast<T>(); }
-
-private:
-    handle obj;
-    object key;
-    bool attr;
+    static void set(handle obj, handle key, handle val) {
+        if (PyObject_SetItem(obj.ptr(), key.ptr(), val.ptr()) != 0) { throw error_already_set(); }
+    }
 };
+NAMESPACE_END(accessor_policies)
 
 struct list_accessor {
 public:
@@ -442,7 +473,7 @@ public:
 
     template <typename... Args>
     str format(Args &&...args) const {
-        return attr("format").cast<object>()(std::forward<Args>(args)...);
+        return attr("format")(std::forward<Args>(args)...);
     }
 };
 
@@ -729,13 +760,13 @@ inline size_t len(handle h) {
 NAMESPACE_BEGIN(detail)
 template <typename D> iterator object_api<D>::begin() const { return {PyObject_GetIter(derived().ptr()), false}; }
 template <typename D> iterator object_api<D>::end() const { return {nullptr, false}; }
-template <typename D> accessor object_api<D>::operator[](handle key) const { return {derived(), key, false}; }
-template <typename D> accessor object_api<D>::operator[](const char *key) const { return {derived(), key, false}; }
-template <typename D> accessor object_api<D>::attr(handle key) const { return {derived(), key, true}; }
-template <typename D> accessor object_api<D>::attr(const char *key) const { return {derived(), key, true}; }
+template <typename D> item_accessor object_api<D>::operator[](handle key) const { return {derived(), object(key, true)}; }
+template <typename D> item_accessor object_api<D>::operator[](const char *key) const { return {derived(), pybind11::str(key)}; }
+template <typename D> obj_attr_accessor object_api<D>::attr(handle key) const { return {derived(), object(key, true)}; }
+template <typename D> str_attr_accessor object_api<D>::attr(const char *key) const { return {derived(), key}; }
 template <typename D> args_proxy object_api<D>::operator*() const { return {derived().ptr()}; }
 template <typename D> template <typename T> bool object_api<D>::contains(T &&key) const {
-    return attr("__contains__").template cast<object>()(std::forward<T>(key)).template cast<bool>();
+    return attr("__contains__")(std::forward<T>(key)).template cast<bool>();
 }
 
 template <typename D>

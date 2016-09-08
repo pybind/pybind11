@@ -1219,7 +1219,7 @@ private:
 
     void process(list &args_list, detail::args_proxy ap) {
         for (const auto &a : ap) {
-            args_list.append(a.cast<object>());
+            args_list.append(a);
         }
     }
 

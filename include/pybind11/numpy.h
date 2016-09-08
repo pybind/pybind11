@@ -125,7 +125,7 @@ private:
 
     static npy_api lookup() {
         module m = module::import("numpy.core.multiarray");
-        auto c = m.attr("_ARRAY_API").cast<object>();
+        auto c = m.attr("_ARRAY_API");
 #if PY_MAJOR_VERSION >= 3
         void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
 #else
@@ -220,9 +220,7 @@ private:
         struct field_descr { PYBIND11_STR_TYPE name; object format; pybind11::int_ offset; };
         std::vector<field_descr> field_descriptors;
 
-        auto fields = attr("fields").cast<object>();
-        auto items = fields.attr("items").cast<object>();
-        for (auto field : items()) {
+        for (auto field : attr("fields").attr("items")()) {
             auto spec = object(field, true).cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
             auto format = spec[1].cast<tuple>()[0].cast<dtype>();

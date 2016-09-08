@@ -176,7 +176,7 @@ protected:
             if (a.descr)
                 a.descr = strdup(a.descr);
             else if (a.value)
-                a.descr = strdup(((std::string) ((object) handle(a.value).attr("__repr__"))().str()).c_str());
+                a.descr = strdup(a.value.attr("__repr__")().cast<std::string>().c_str());
         }
 
         auto const &registered_types = detail::get_internals().registered_types_cpp;
@@ -723,8 +723,7 @@ protected:
         if (ob_type == &PyType_Type) {
             std::string name_ = std::string(ht_type.tp_name) + "__Meta";
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-            object ht_qualname(PyUnicode_FromFormat(
-                "%U__Meta", ((object) attr("__qualname__")).ptr()), false);
+            object ht_qualname(PyUnicode_FromFormat("%U__Meta", attr("__qualname__").ptr()), false);
 #endif
             object name(PYBIND11_FROM_STRING(name_.c_str()), false);
             object type_holder(PyType_Type.tp_alloc(&PyType_Type, 0), false);
@@ -1342,16 +1341,16 @@ PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
         strings[i] = args[i].cast<object>().str();
     }
     auto sep = kwargs.contains("sep") ? kwargs["sep"] : cast(" ");
-    auto line = sep.attr("join").cast<object>()(strings);
+    auto line = sep.attr("join")(strings);
 
     auto file = kwargs.contains("file") ? kwargs["file"].cast<object>()
                                         : module::import("sys").attr("stdout");
-    auto write = file.attr("write").cast<object>();
+    auto write = file.attr("write");
     write(line);
     write(kwargs.contains("end") ? kwargs["end"] : cast("\n"));
 
     if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
-        file.attr("flush").cast<object>()();
+        file.attr("flush")();
     }
 }
 NAMESPACE_END(detail)

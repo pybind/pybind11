@@ -248,3 +248,33 @@ def test_dict_api():
     from pybind11_tests import test_dict_keyword_constructor
 
     assert test_dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
+
+
+def test_accessors():
+    from pybind11_tests import test_accessor_api
+
+    class SubTestObject:
+        attr_obj = 1
+        attr_char = 2
+
+    class TestObject:
+        basic_attr = 1
+        begin_end = [1, 2, 3]
+        d = {"operator[object]": 1, "operator[char *]": 2}
+        sub = SubTestObject()
+
+        def func(self, x, *args):
+            return self.basic_attr + x + sum(args)
+
+    d = test_accessor_api(TestObject())
+    assert d["basic_attr"] == 1
+    assert d["begin_end"] == [1, 2, 3]
+    assert d["operator[object]"] == 1
+    assert d["operator[char *]"] == 2
+    assert d["attr(object)"] == 1
+    assert d["attr(char *)"] == 2
+    assert d["missing_attr_ptr"] == "raised"
+    assert d["missing_attr_chain"] == "raised"
+    assert d["is_none"] is False
+    assert d["operator()"] == 2
+    assert d["operator*"] == 7

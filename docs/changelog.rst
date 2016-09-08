@@ -53,6 +53,8 @@ Breaking changes queued for v2.0.0 (Not yet released)
 * Added ``py::dict`` keyword constructor:``auto d = dict("number"_a=42, "name"_a="World");``
 * Added ``py::str::format()`` method and ``_s`` literal:
   ``py::str s = "1 + 2 = {}"_s.format(3);``
+* Attribute and item accessors now have a more complete interface which makes it possible
+  to chain attributes ``obj.attr("a")[key].attr("b").attr("method")(1, 2, 3)```.
 * Various minor improvements of library internals (no user-visible changes)
 
 1.8.1 (July 12, 2016)
