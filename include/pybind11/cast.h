@@ -185,7 +185,7 @@ public:
                                          const void *existing_holder = nullptr) {
         void *src = const_cast<void *>(_src);
         if (src == nullptr)
-            return none();
+            return none().inc_ref();
 
         auto &internals = get_internals();
 
@@ -414,7 +414,7 @@ template <> class type_caster<void_type> {
 public:
     bool load(handle, bool) { return false; }
     static handle cast(void_type, return_value_policy /* policy */, handle /* parent */) {
-        return none();
+        return none().inc_ref();
     }
     PYBIND11_TYPE_CASTER(void_type, _("None"));
 };
@@ -452,7 +452,7 @@ public:
         if (ptr)
             return capsule(ptr).release();
         else
-            return none();
+            return none().inc_ref();
     }
 
     template <typename T> using cast_op_type = void*&;
@@ -569,7 +569,7 @@ public:
     }
 
     static handle cast(const char *src, return_value_policy /* policy */, handle /* parent */) {
-        if (src == nullptr) return none();
+        if (src == nullptr) return none().inc_ref();
         return PyUnicode_FromString(src);
     }
 
@@ -592,7 +592,7 @@ public:
     }
 
     static handle cast(const wchar_t *src, return_value_policy /* policy */, handle /* parent */) {
-        if (src == nullptr) return none();
+        if (src == nullptr) return none().inc_ref();
         return PyUnicode_FromWideChar(src, (ssize_t) wcslen(src));
     }
 

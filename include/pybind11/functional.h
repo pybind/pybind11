@@ -62,7 +62,7 @@ public:
     template <typename Func>
     static handle cast(Func &&f_, return_value_policy policy, handle /* parent */) {
         if (!f_)
-            return none();
+            return none().inc_ref();
 
         auto result = f_.template target<Return (*)(Args...)>();
         if (result)
