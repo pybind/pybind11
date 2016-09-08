@@ -192,34 +192,41 @@ void init_issues(py::module &m) {
     m2.def("get_moveissue1", [](int i) -> MoveIssue1 * { return new MoveIssue1(i); }, py::return_value_policy::move);
     m2.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
 
-    // Issue 392: overridding reference-returning functions
+    // Issues 392/397: overridding reference-returning functions
     class OverrideTest {
     public:
-        struct A { int value = 99; };
-        int v;
+        struct A { std::string value = "hi"; };
+        std::string v;
         A a;
-        explicit OverrideTest(int v) : v{v} {}
-        virtual int int_value() { return v; }
-        virtual int &int_ref() { return v; }
+        explicit OverrideTest(const std::string &v) : v{v} {}
+        virtual std::string str_value() { return v; }
+        virtual std::string &str_ref() { return v; }
         virtual A A_value() { return a; }
         virtual A &A_ref() { return a; }
     };
     class PyOverrideTest : public OverrideTest {
     public:
         using OverrideTest::OverrideTest;
-        int int_value() override { PYBIND11_OVERLOAD(int, OverrideTest, int_value); }
+        std::string str_value() override { PYBIND11_OVERLOAD(std::string, OverrideTest, str_value); }
         // Not allowed (uncommenting should hit a static_assert failure): we can't get a reference
         // to a python numeric value, since we only copy values in the numeric type caster:
-//      int &int_ref() override { PYBIND11_OVERLOAD(int &, OverrideTest, int_ref); }
+//      std::string &str_ref() override { PYBIND11_OVERLOAD(std::string &, OverrideTest, str_ref); }
+        // But we can work around it like this:
+    private:
+        std::string _tmp;
+        std::string str_ref_helper() { PYBIND11_OVERLOAD(std::string, OverrideTest, str_ref); }
+    public:
+        std::string &str_ref() override { return _tmp = str_ref_helper(); }
+
         A A_value() override { PYBIND11_OVERLOAD(A, OverrideTest, A_value); }
         A &A_ref() override { PYBIND11_OVERLOAD(A &, OverrideTest, A_ref); }
     };
     py::class_<OverrideTest::A>(m2, "OverrideTest_A")
         .def_readwrite("value", &OverrideTest::A::value);
     py::class_<OverrideTest, PyOverrideTest>(m2, "OverrideTest")
-        .def(py::init<int>())
-        .def("int_value", &OverrideTest::int_value)
-//      .def("int_ref", &OverrideTest::int_ref)
+        .def(py::init<const std::string &>())
+        .def("str_value", &OverrideTest::str_value)
+//      .def("str_ref", &OverrideTest::str_ref)
         .def("A_value", &OverrideTest::A_value)
         .def("A_ref", &OverrideTest::A_ref);
 
