@@ -20,13 +20,23 @@ def test_override(capture, msg):
             print('ExtendedExampleVirt::run_bool()')
             return False
 
+        def get_string1(self):
+            return "override1"
+
         def pure_virtual(self):
             print('ExtendedExampleVirt::pure_virtual(): %s' % self.data)
+
+    class ExtendedExampleVirt2(ExtendedExampleVirt):
+        def __init__(self, state):
+            super(ExtendedExampleVirt2, self).__init__(state + 1)
+
+        def get_string2(self):
+            return "override2"
 
     ex12 = ExampleVirt(10)
     with capture:
         assert runExampleVirt(ex12, 20) == 30
-    assert capture == "Original implementation of ExampleVirt::run(state=10, value=20)"
+    assert capture == "Original implementation of ExampleVirt::run(state=10, value=20, str1=default1, str2=default2)"
 
     with pytest.raises(RuntimeError) as excinfo:
         runExampleVirtVirtual(ex12)
@@ -37,7 +47,7 @@ def test_override(capture, msg):
         assert runExampleVirt(ex12p, 20) == 32
     assert capture == """
         ExtendedExampleVirt::run(20), calling parent..
-        Original implementation of ExampleVirt::run(state=11, value=21)
+        Original implementation of ExampleVirt::run(state=11, value=21, str1=override1, str2=default2)
     """
     with capture:
         assert runExampleVirtBool(ex12p) is False
@@ -46,11 +56,19 @@ def test_override(capture, msg):
         runExampleVirtVirtual(ex12p)
     assert capture == "ExtendedExampleVirt::pure_virtual(): Hello world"
 
+    ex12p2 = ExtendedExampleVirt2(15)
+    with capture:
+        assert runExampleVirt(ex12p2, 50) == 68
+    assert capture == """
+        ExtendedExampleVirt::run(50), calling parent..
+        Original implementation of ExampleVirt::run(state=17, value=51, str1=override1, str2=override2)
+    """
+
     cstats = ConstructorStats.get(ExampleVirt)
-    assert cstats.alive() == 2
-    del ex12, ex12p
+    assert cstats.alive() == 3
+    del ex12, ex12p, ex12p2
     assert cstats.alive() == 0
-    assert cstats.values() == ['10', '11']
+    assert cstats.values() == ['10', '11', '17']
     assert cstats.copy_constructions == 0
     assert cstats.move_constructions >= 0
 

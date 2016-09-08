@@ -1485,8 +1485,15 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
 #define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) { \
         pybind11::gil_scoped_acquire gil; \
         pybind11::function overload = pybind11::get_overload(static_cast<const cname *>(this), name); \
-        if (overload) \
-            return overload(__VA_ARGS__).template cast<ret_type>();  }
+        if (overload) { \
+            pybind11::object o = overload(__VA_ARGS__); \
+            if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value) { \
+                static pybind11::detail::overload_local_t<ret_type> local_value; \
+                return pybind11::detail::cast_ref<ret_type>(std::move(o), local_value); \
+            } \
+            else return pybind11::detail::cast_safe<ret_type>(std::move(o)); \
+        } \
+    }
 
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(ret_type, cname, name, __VA_ARGS__) \

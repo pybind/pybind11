@@ -21,14 +21,22 @@ public:
 
     virtual int run(int value) {
         py::print("Original implementation of "
-                  "ExampleVirt::run(state={}, value={})"_s.format(state, value));
+                  "ExampleVirt::run(state={}, value={}, str1={}, str2={})"_s.format(state, value, get_string1(), *get_string2()));
         return state + value;
     }
 
     virtual bool run_bool() = 0;
     virtual void pure_virtual() = 0;
+
+    // Returning a reference/pointer to a type converted from python (numbers, strings, etc.) is a
+    // bit trickier, because the actual int& or std::string& or whatever only exists temporarily, so
+    // we have to handle it specially in the trampoline class (see below).
+    virtual const std::string &get_string1() { return str1; }
+    virtual const std::string *get_string2() { return &str2; }
+
 private:
     int state;
+    const std::string str1{"default1"}, str2{"default2"};
 };
 
 /* This is a wrapper class that must be generated */
@@ -65,6 +73,27 @@ public:
                              in the previous line is needed for some compilers */
         );
     }
+
+    // We can return reference types for compatibility with C++ virtual interfaces that do so, but
+    // note they have some significant limitations (see the documentation).
+    const std::string &get_string1() override {
+        PYBIND11_OVERLOAD(
+            const std::string &, /* Return type */
+            ExampleVirt,         /* Parent class */
+            get_string1,         /* Name of function */
+                                 /* (no arguments) */
+        );
+    }
+
+    const std::string *get_string2() override {
+        PYBIND11_OVERLOAD(
+            const std::string *, /* Return type */
+            ExampleVirt,         /* Parent class */
+            get_string2,         /* Name of function */
+                                 /* (no arguments) */
+        );
+    }
+
 };
 
 class NonCopyable {

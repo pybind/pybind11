@@ -298,13 +298,11 @@ helper class that is defined as follows:
 
 The macro :func:`PYBIND11_OVERLOAD_PURE` should be used for pure virtual
 functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
-a default implementation.
-
-There are also two alternate macros :func:`PYBIND11_OVERLOAD_PURE_NAME` and
-:func:`PYBIND11_OVERLOAD_NAME` which take a string-valued name argument between
-the *Parent class* and *Name of the function* slots. This is useful when the
-C++ and Python versions of the function have different names, e.g.
-``operator()`` vs ``__call__``.
+a default implementation.  There are also two alternate macros
+:func:`PYBIND11_OVERLOAD_PURE_NAME` and :func:`PYBIND11_OVERLOAD_NAME` which
+take a string-valued name argument between the *Parent class* and *Name of the
+function* slots. This is useful when the C++ and Python versions of the
+function have different names, e.g.  ``operator()`` vs ``__call__``.
 
 The binding code also needs a few minor adaptations (highlighted):
 
@@ -356,6 +354,25 @@ a virtual method call.
     u'meow! meow! meow! '
 
 Please take a look at the :ref:`macro_notes` before using this feature.
+
+.. note::
+
+    When the overridden type returns a reference or pointer to a type that
+    pybind11 converts from Python (for example, numeric values, std::string,
+    and other built-in value-converting types), there are some limitations to
+    be aware of:
+
+    - because in these cases there is no C++ variable to reference (the value
+      is stored in the referenced Python variable), pybind11 provides one in
+      the PYBIND11_OVERLOAD macros (when needed) with static storage duration.
+      Note that this means that invoking the overloaded method on *any*
+      instance will change the referenced value stored in *all* instances of
+      that type.
+
+    - Attempts to modify a non-const reference will not have the desired
+      effect: it will change only the static cache variable, but this change
+      will not propagate to underlying Python instance, and the change will be
+      replaced the next time the overload is invoked.
 
 .. seealso::
 
