@@ -104,5 +104,23 @@ test_initializer custom_exceptions([](py::module &m) {
     m.def("throws3", &throws3);
     m.def("throws4", &throws4);
     m.def("throws_logic_error", &throws_logic_error);
-});
 
+    m.def("throw_already_set", [](bool err) {
+        if (err)
+            PyErr_SetString(PyExc_ValueError, "foo");
+        try {
+            throw py::error_already_set();
+        } catch (const std::runtime_error& e) {
+            if ((err && e.what() != std::string("ValueError: foo")) ||
+                (!err && e.what() != std::string("Unknown internal error occurred")))
+            {
+                PyErr_Clear();
+                throw std::runtime_error("error message mismatch");
+            }
+        }
+        PyErr_Clear();
+        if (err)
+            PyErr_SetString(PyExc_ValueError, "foo");
+        throw py::error_already_set();
+    });
+});
