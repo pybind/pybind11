@@ -342,21 +342,23 @@ constexpr size_t constexpr_sum() { return 0; }
 template <typename T, typename... Ts>
 constexpr size_t constexpr_sum(T n, Ts... ns) { return size_t{n} + constexpr_sum(ns...); }
 
-/// Return true if all/any Ts satify Predicate<T>
+// Counts the number of types in the template parameter pack matching the predicate
 #if !defined(_MSC_VER)
 template <template<typename> class Predicate, typename... Ts>
-using all_of_t = bool_constant<(constexpr_sum(Predicate<Ts>::value...) == sizeof...(Ts))>;
-template <template<typename> class Predicate, typename... Ts>
-using any_of_t = bool_constant<(constexpr_sum(Predicate<Ts>::value...) > 0)>;
+using count_t = std::integral_constant<size_t, constexpr_sum(Predicate<Ts>::value...)>;
 #else
 // MSVC workaround (2015 Update 3 has issues with some member type aliases and constexpr)
-template <template<typename> class P, typename...> struct all_of_t : std::true_type { };
-template <template<typename> class P, typename T, typename... Ts>
-struct all_of_t<P, T, Ts...> : conditional_t<P<T>::value, all_of_t<P, Ts...>, std::false_type> { };
-template <template<typename> class P, typename...> struct any_of_t : std::false_type { };
-template <template<typename> class P, typename T, typename... Ts>
-struct any_of_t<P, T, Ts...> : conditional_t<P<T>::value, std::true_type, any_of_t<P, Ts...>> { };
+template <template<typename> class Predicate, typename... Ts> struct count_t;
+template <template<typename> class Predicate> struct count_t<Predicate> : std::integral_constant<size_t, 0> {};
+template <template<typename> class Predicate, class T, class... Ts>
+struct count_t<Predicate, T, Ts...> : std::integral_constant<size_t, Predicate<T>::value + count_t<Predicate, Ts...>::value> {};
 #endif
+
+/// Return true if all/any Ts satify Predicate<T>
+template <template<typename> class Predicate, typename... Ts>
+using all_of_t = bool_constant<(count_t<Predicate, Ts...>::value == sizeof...(Ts))>;
+template <template<typename> class Predicate, typename... Ts>
+using any_of_t = bool_constant<(count_t<Predicate, Ts...>::value > 0)>;
 
 // Extracts the first type from the template parameter pack matching the predicate, or Default if none match.
 template <template<class> class Predicate, class Default, class... Ts> struct first_of;
@@ -372,13 +374,6 @@ struct first_of<Predicate, Default, T, Ts...> {
     >::type;
 };
 template <template<class> class Predicate, class Default, class... T> using first_of_t = typename first_of<Predicate, Default, T...>::type;
-
-// Counts the number of types in the template parameter pack matching the predicate
-template <template<typename> class Predicate, typename... Ts> struct count_t;
-template <template<typename> class Predicate> struct count_t<Predicate> : std::integral_constant<size_t, 0> {};
-template <template<typename> class Predicate, class T, class... Ts>
-struct count_t<Predicate, T, Ts...> : std::integral_constant<size_t,
-    Predicate<T>::value + count_t<Predicate, Ts...>::value> {};
 
 /// Defer the evaluation of type T until types Us are instantiated
 template <typename T, typename... /*Us*/> struct deferred_type { using type = T; };
