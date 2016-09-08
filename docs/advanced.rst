@@ -327,10 +327,10 @@ The binding code also needs a few minor adaptations (highlighted):
         return m.ptr();
     }
 
-Importantly, pybind11 is made aware of the trampoline trampoline helper class
-by specifying it as an extra template argument to :class:`class_`.  (This can
-also be combined with other template arguments such as a custom holder type;
-the order of template types does not matter).  Following this, we are able to
+Importantly, pybind11 is made aware of the trampoline helper class by
+specifying it as an extra template argument to :class:`class_`.  (This can also
+be combined with other template arguments such as a custom holder type; the
+order of template types does not matter).  Following this, we are able to
 define a constructor as usual.
 
 Note, however, that the above is sufficient for allowing python classes to
