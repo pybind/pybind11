@@ -475,11 +475,12 @@ inline str::str(const bytes& b) {
     m_ptr = obj.release().ptr();
 }
 
-class none : public object {
-public:
-    PYBIND11_OBJECT(none, object, detail::PyNone_Check)
-    none() : object(Py_None, true) { }
-};
+inline const handle& none()
+{
+    const static handle NONE_OBJECT(Py_None);
+
+    return NONE_OBJECT.inc_ref();
+}
 
 class bool_ : public object {
 public:
