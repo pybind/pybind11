@@ -169,15 +169,15 @@ def test_move_fallback():
 
 def test_override_ref():
     from pybind11_tests.issues import OverrideTest
-    o = OverrideTest(42)
+    o = OverrideTest("asdf")
 
     # Not allowed (see associated .cpp comment)
-    #i = o.int_ref()
-    #assert o.int_ref() == 42
-    assert o.int_value() == 42
+    #i = o.str_ref()
+    #assert o.str_ref() == "asdf"
+    assert o.str_value() == "asdf"
 
-    assert o.A_value().value == 99
+    assert o.A_value().value == "hi"
     a = o.A_ref()
-    assert a.value == 99
-    a.value = 7
-    assert a.value == 7
+    assert a.value == "hi"
+    a.value = "bye"
+    assert a.value == "bye"

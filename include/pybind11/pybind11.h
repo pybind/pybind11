@@ -851,7 +851,7 @@ public:
         record.scope = scope;
         record.name = name;
         record.type = &typeid(type);
-        record.type_size = sizeof(type);
+        record.type_size = sizeof(detail::conditional_t<has_alias, type_alias, type>);
         record.instance_size = sizeof(instance_type);
         record.init_holder = init_holder;
         record.dealloc = dealloc;
