@@ -36,7 +36,7 @@ class PyExampleVirt : public ExampleVirt {
 public:
     using ExampleVirt::ExampleVirt; /* Inherit constructors */
 
-    virtual int run(int value) {
+    int run(int value) override {
         /* Generate wrapping code that enables native function overloading */
         PYBIND11_OVERLOAD(
             int,         /* Return type */
@@ -46,7 +46,7 @@ public:
         );
     }
 
-    virtual bool run_bool() {
+    bool run_bool() override {
         PYBIND11_OVERLOAD_PURE(
             bool,         /* Return type */
             ExampleVirt,  /* Parent class */
@@ -56,7 +56,7 @@ public:
         );
     }
 
-    virtual void pure_virtual() {
+    void pure_virtual() override {
         PYBIND11_OVERLOAD_PURE(
             void,         /* Return type */
             ExampleVirt,  /* Parent class */
@@ -107,11 +107,11 @@ public:
 };
 class NCVirtTrampoline : public NCVirt {
 #if !defined(__INTEL_COMPILER)
-    virtual NonCopyable get_noncopyable(int a, int b) {
+    NonCopyable get_noncopyable(int a, int b) override {
         PYBIND11_OVERLOAD(NonCopyable, NCVirt, get_noncopyable, a, b);
     }
 #endif
-    virtual Movable get_movable(int a, int b) {
+    Movable get_movable(int a, int b) override {
         PYBIND11_OVERLOAD_PURE(Movable, NCVirt, get_movable, a, b);
     }
 };
