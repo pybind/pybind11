@@ -166,3 +166,18 @@ def test_move_fallback():
     assert m2.value == 2
     m1 = get_moveissue1(1)
     assert m1.value == 1
+
+def test_override_ref():
+    from pybind11_tests.issues import OverrideTest
+    o = OverrideTest(42)
+
+    # Not allowed (see associated .cpp comment)
+    #i = o.int_ref()
+    #assert o.int_ref() == 42
+    assert o.int_value() == 42
+
+    assert o.A_value().value == 99
+    a = o.A_ref()
+    assert a.value == 99
+    a.value = 7
+    assert a.value == 7

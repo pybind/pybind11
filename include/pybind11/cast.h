@@ -264,24 +264,25 @@ using cast_op_type = typename std::conditional<std::is_pointer<typename std::rem
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
+    using itype = intrinsic_t<type>;
 public:
     static PYBIND11_DESCR name() { return type_descr(_<type>()); }
 
     type_caster_base() : type_caster_generic(typeid(type)) { }
 
-    static handle cast(const type &src, return_value_policy policy, handle parent) {
+    static handle cast(const itype &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
             policy = return_value_policy::copy;
         return cast(&src, policy, parent);
     }
 
-    static handle cast(type &&src, return_value_policy policy, handle parent) {
+    static handle cast(itype &&src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
             policy = return_value_policy::move;
         return cast(&src, policy, parent);
     }
 
-    static handle cast(const type *src, return_value_policy policy, handle parent) {
+    static handle cast(const itype *src, return_value_policy policy, handle parent) {
         return type_caster_generic::cast(
             src, policy, parent, src ? &typeid(*src) : nullptr, &typeid(type),
             make_copy_constructor(src), make_move_constructor(src));
@@ -289,8 +290,8 @@ public:
 
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
-    operator type*() { return (type *) value; }
-    operator type&() { if (!value) throw reference_cast_error(); return *((type *) value); }
+    operator itype*() { return (type *) value; }
+    operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
 
 protected:
     typedef void *(*Constructor)(const void *stream);
@@ -859,10 +860,22 @@ template <typename T> struct move_if_unreferenced<T, typename std::enable_if<
     >::type> : std::true_type {};
 template <typename T> using move_never = std::integral_constant<bool, !move_always<T>::value && !move_if_unreferenced<T>::value>;
 
+// Detect whether returning a `type` from a cast on type's type_caster is going to result in a
+// reference or pointer to a local variable of the type_caster.  Basically, only
+// non-reference/pointer `type`s and reference/pointers from a type_caster_generic are safe;
+// everything else returns a reference/pointer to a local variable.
+template <typename type> using cast_is_temporary_value_reference = bool_constant<
+    (std::is_reference<type>::value || std::is_pointer<type>::value) &&
+    !std::is_base_of<type_caster_generic, make_caster<type>>::value
+>;
+
+
 NAMESPACE_END(detail)
 
 template <typename T> T cast(const handle &handle) {
     using type_caster = detail::make_caster<T>;
+    static_assert(!detail::cast_is_temporary_value_reference<T>::value,
+            "Unable to cast type to reference: value is local to type caster");
     type_caster conv;
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)
