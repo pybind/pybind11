@@ -4,6 +4,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 set(PYBIND11_TEST_FILES
+  test_alias_initialization.cpp
   test_buffers.cpp
   test_callbacks.cpp
   test_class_args.cpp
