@@ -11,7 +11,9 @@
 
 #include "numpy.h"
 
-#if defined(__GNUG__) || defined(__clang__)
+#if defined(__INTEL_COMPILER)
+#  pragma warning(disable: 1682) // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
+#elif defined(__GNUG__) || defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion"
 #  pragma GCC diagnostic ignored "-Wdeprecated-declarations"

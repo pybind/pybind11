@@ -12,7 +12,7 @@
 #include "pybind11.h"
 #include <type_traits>
 
-#if defined(__clang__)
+#if defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma clang diagnostic ignored "-Wunsequenced" // multiple unsequenced modifications to 'self' (when using def(py::self OP Type()))
 #endif
 
@@ -49,17 +49,19 @@ template <op_id, op_type, typename B, typename L, typename R> struct op_impl { }
 
 /// Operator implementation generator
 template <op_id id, op_type ot, typename L, typename R> struct op_ {
-    template <typename Base, typename Holder, typename... Extra> void execute(pybind11::class_<Base, Holder> &class_, const Extra&... extra) const {
+    template <typename Class, typename... Extra> void execute(Class &cl, const Extra&... extra) const {
+        typedef typename Class::type Base;
         typedef typename std::conditional<std::is_same<L, self_t>::value, Base, L>::type L_type;
         typedef typename std::conditional<std::is_same<R, self_t>::value, Base, R>::type R_type;
         typedef op_impl<id, ot, Base, L_type, R_type> op;
-        class_.def(op::name(), &op::execute, extra...);
+        cl.def(op::name(), &op::execute, extra...);
     }
-    template <typename Base, typename Holder, typename... Extra> void execute_cast(pybind11::class_<Base, Holder> &class_, const Extra&... extra) const {
+    template <typename Class, typename... Extra> void execute_cast(Class &cl, const Extra&... extra) const {
+        typedef typename Class::type Base;
         typedef typename std::conditional<std::is_same<L, self_t>::value, Base, L>::type L_type;
         typedef typename std::conditional<std::is_same<R, self_t>::value, Base, R>::type R_type;
         typedef op_impl<id, ot, Base, L_type, R_type> op;
-        class_.def(op::name(), &op::execute_cast, extra...);
+        cl.def(op::name(), &op::execute_cast, extra...);
     }
 };
 

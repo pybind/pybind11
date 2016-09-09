@@ -68,18 +68,14 @@ class Capture(object):
     def __init__(self, capfd):
         self.capfd = capfd
         self.out = ""
-
-    def _flush_stdout(self):
-        sys.stdout.flush()
-        os.fsync(sys.stdout.fileno())  # make sure C++ output is also read
-        return self.capfd.readouterr()[0]
+        self.err = ""
 
     def __enter__(self):
-        self._flush_stdout()
+        self.capfd.readouterr()
         return self
 
     def __exit__(self, *_):
-        self.out = self._flush_stdout()
+        self.out, self.err = self.capfd.readouterr()
 
     def __eq__(self, other):
         a = Output(self.out)
@@ -99,6 +95,10 @@ class Capture(object):
     @property
     def unordered(self):
         return Unordered(self.out)
+
+    @property
+    def stderr(self):
+        return Output(self.err)
 
 
 @pytest.fixture
@@ -202,3 +202,27 @@ def pytest_namespace():
         'requires_eigen_and_scipy': skipif(not have_eigen or not scipy,
                                            reason="eigen and/or scipy are not installed"),
     }
+
+
+def _test_import_pybind11():
+    """Early diagnostic for test module initialization errors
+
+    When there is an error during initialization, the first import will report the
+    real error while all subsequent imports will report nonsense. This import test
+    is done early (in the pytest configuration file, before any tests) in order to
+    avoid the noise of having all tests fail with identical error messages.
+
+    Any possible exception is caught here and reported manually *without* the stack
+    trace. This further reduces noise since the trace would only show pytest internals
+    which are not useful for debugging pybind11 module issues.
+    """
+    # noinspection PyBroadException
+    try:
+        import pybind11_tests
+    except Exception as e:
+        print("Failed to import pybind11_tests from pytest:")
+        print("  {}: {}".format(type(e).__name__, e))
+        sys.exit(1)
+
+
+_test_import_pybind11()

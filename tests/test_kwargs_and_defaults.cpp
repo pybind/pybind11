@@ -20,13 +20,6 @@ std::string kw_func4(const std::vector<int> &entries) {
     return ret;
 }
 
-py::object call_kw_func(py::function f) {
-    py::tuple args = py::make_tuple(1234);
-    py::dict kwargs;
-    kwargs["y"] = py::cast(5678);
-    return f(*args, **kwargs);
-}
-
 py::tuple args_function(py::args args) {
     return args;
 }
@@ -39,7 +32,7 @@ struct KWClass {
     void foo(int, float) {}
 };
 
-void init_ex_arg_keywords_and_defaults(py::module &m) {
+test_initializer arg_keywords_and_defaults([](py::module &m) {
     m.def("kw_func0", &kw_func);
     m.def("kw_func1", &kw_func, py::arg("x"), py::arg("y"));
     m.def("kw_func2", &kw_func, py::arg("x") = 100, py::arg("y") = 200);
@@ -49,18 +42,15 @@ void init_ex_arg_keywords_and_defaults(py::module &m) {
     std::vector<int> list;
     list.push_back(13);
     list.push_back(17);
-
     m.def("kw_func4", &kw_func4, py::arg("myList") = list);
-    m.def("call_kw_func", &call_kw_func);
 
     m.def("args_function", &args_function);
     m.def("args_kwargs_function", &args_kwargs_function);
 
-    using namespace py::literals;
     m.def("kw_func_udl", &kw_func, "x"_a, "y"_a=300);
     m.def("kw_func_udl_z", &kw_func, "x"_a, "y"_a=0);
-    
+
     py::class_<KWClass>(m, "KWClass")
         .def("foo0", &KWClass::foo)
         .def("foo1", &KWClass::foo, "x"_a, "y"_a);
-}
+});

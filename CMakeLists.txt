@@ -41,7 +41,7 @@ if(NOT MSVC AND NOT PYBIND11_CPP_STANDARD)
   endif()
 
   set(PYBIND11_CPP_STANDARD ${PYBIND11_CPP_STANDARD} CACHE STRING
-      "C++ standard flag, e.g. -std=c++11 or -std=c++14. Defaults to latest available.")
+      "C++ standard flag, e.g. -std=c++11 or -std=c++14. Defaults to latest available." FORCE)
 endif()
 
 # Cache variables so pybind11_add_module can be used in parent projects

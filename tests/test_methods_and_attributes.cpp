@@ -53,7 +53,7 @@ public:
     int value = 0;
 };
 
-void init_ex_methods_and_attributes(py::module &m) {
+test_initializer methods_and_attributes([](py::module &m) {
     py::class_<ExampleMandA>(m, "ExampleMandA")
         .def(py::init<>())
         .def(py::init<int>())
@@ -81,4 +81,4 @@ void init_ex_methods_and_attributes(py::module &m) {
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value)
         ;
-}
+});

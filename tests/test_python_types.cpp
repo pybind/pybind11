@@ -60,7 +60,7 @@ public:
     py::list get_list() {
         py::list list;
         list.append(py::str("value"));
-        cout << "Entry at positon 0: " << py::object(list[0]) << endl;
+        py::print("Entry at position 0:", py::object(list[0]));
         list[0] = py::str("overwritten");
         return list;
     }
@@ -80,42 +80,39 @@ public:
     /* Easily iterate over a dictionary using a C++11 range-based for loop */
     void print_dict(py::dict dict) {
         for (auto item : dict)
-            std::cout << "key: " << item.first << ", value=" << item.second << std::endl;
+            py::print("key: {}, value={}"_s.format(item.first, item.second));
     }
 
     /* Easily iterate over a set using a C++11 range-based for loop */
     void print_set(py::set set) {
         for (auto item : set)
-            std::cout << "key: " << item << std::endl;
+            py::print("key:", item);
     }
 
     /* Easily iterate over a list using a C++11 range-based for loop */
     void print_list(py::list list) {
         int index = 0;
         for (auto item : list)
-            std::cout << "list item " << index++ << ": " << item << std::endl;
+            py::print("list item {}: {}"_s.format(index++, item));
     }
 
     /* STL data types (such as maps) are automatically casted from Python */
     void print_dict_2(const std::map<std::string, std::string> &dict) {
         for (auto item : dict)
-            std::cout << "key: " << item.first << ", value=" << item.second << std::endl;
+            py::print("key: {}, value={}"_s.format(item.first, item.second));
     }
 
     /* STL data types (such as sets) are automatically casted from Python */
     void print_set_2(const std::set<std::string> &set) {
         for (auto item : set)
-            std::cout << "key: " << item << std::endl;
+            py::print("key:", item);
     }
 
     /* STL data types (such as vectors) are automatically casted from Python */
     void print_list_2(std::vector<std::wstring> &list) {
-#ifdef _WIN32 /* Can't easily mix cout and wcout on Windows */
-        _setmode(_fileno(stdout), _O_TEXT);
-#endif
         int index = 0;
         for (auto item : list)
-            std::wcout << L"list item " << index++ << L": " << item << std::endl;
+            py::print("list item {}: {}"_s.format(index++, item));
     }
 
     /* pybind automatically translates between C++11 and Python tuples */
@@ -132,7 +129,7 @@ public:
     void print_array(std::array<std::string, 2> &array) {
         int index = 0;
         for (auto item : array)
-            std::cout << "array item " << index++ << ": " << item << std::endl;
+            py::print("array item {}: {}"_s.format(index++, item));
     }
 
     void throw_exception() {
@@ -156,8 +153,8 @@ public:
     }
 
     void test_print(const py::object& obj) {
-        std::cout << obj.str() << std::endl;
-        std::cout << obj.repr() << std::endl;
+        py::print(obj.str());
+        py::print(obj.repr());
     }
 
     static int value;
@@ -167,7 +164,7 @@ public:
 int ExamplePythonTypes::value = 0;
 const int ExamplePythonTypes::value2 = 5;
 
-void init_ex_python_types(py::module &m) {
+test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
     py::class_<ExamplePythonTypes>(m, "ExamplePythonTypes", "Example 2 documentation")
@@ -197,4 +194,32 @@ void init_ex_python_types(py::module &m) {
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
         .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")
         ;
-}
+
+    m.def("test_print_function", []() {
+        py::print("Hello, World!");
+        py::print(1, 2.0, "three", true, std::string("-- multiple args"));
+        auto args = py::make_tuple("and", "a", "custom", "separator");
+        py::print("*args", *args, "sep"_a="-");
+        py::print("no new line here", "end"_a=" -- ");
+        py::print("next print");
+
+        auto py_stderr = py::module::import("sys").attr("stderr").cast<py::object>();
+        py::print("this goes to stderr", "file"_a=py_stderr);
+
+        py::print("flush", "flush"_a=true);
+
+        py::print("{a} + {b} = {c}"_s.format("a"_a="py::print", "b"_a="str.format", "c"_a="this"));
+    });
+
+    m.def("test_str_format", []() {
+        auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
+        auto s2 = "{a} + {b} = {c}"_s.format("a"_a=1, "b"_a=2, "c"_a=3);
+        return py::make_tuple(s1, s2);
+    });
+
+    m.def("test_dict_keyword_constructor", []() {
+        auto d1 = py::dict("x"_a=1, "y"_a=2);
+        auto d2 = py::dict("z"_a=3, **d1);
+        return d2;
+    });
+});

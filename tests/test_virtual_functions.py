@@ -1,4 +1,5 @@
 import pytest
+import pybind11_tests
 from pybind11_tests import ConstructorStats
 
 
@@ -68,20 +69,24 @@ def test_inheriting_repeat():
     obj = VI_AR()
     assert obj.say_something(3) == "hihihi"
     assert obj.unlucky_number() == 99
+    assert obj.say_everything() == "hi 99"
 
     obj = VI_AT()
     assert obj.say_something(3) == "hihihi"
     assert obj.unlucky_number() == 999
+    assert obj.say_everything() == "hi 999"
 
     for obj in [B_Repeat(), B_Tpl()]:
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 13
         assert obj.lucky_number() == 7.0
+        assert obj.say_everything() == "B says hi 1 times 13"
 
     for obj in [C_Repeat(), C_Tpl()]:
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 4444
         assert obj.lucky_number() == 888.0
+        assert obj.say_everything() == "B says hi 1 times 4444"
 
     class VI_CR(C_Repeat):
         def lucky_number(self):
@@ -91,6 +96,7 @@ def test_inheriting_repeat():
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 889.25
+    assert obj.say_everything() == "B says hi 1 times 4444"
 
     class VI_CT(C_Tpl):
         pass
@@ -99,6 +105,7 @@ def test_inheriting_repeat():
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 888.0
+    assert obj.say_everything() == "B says hi 1 times 4444"
 
     class VI_CCR(VI_CR):
         def lucky_number(self):
@@ -108,6 +115,7 @@ def test_inheriting_repeat():
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 8892.5
+    assert obj.say_everything() == "B says hi 1 times 4444"
 
     class VI_CCT(VI_CT):
         def lucky_number(self):
@@ -117,6 +125,7 @@ def test_inheriting_repeat():
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 888000.0
+    assert obj.say_everything() == "B says hi 1 times 4444"
 
     class VI_DR(D_Repeat):
         def unlucky_number(self):
@@ -129,11 +138,13 @@ def test_inheriting_repeat():
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 4444
         assert obj.lucky_number() == 888.0
+        assert obj.say_everything() == "B says hi 1 times 4444"
 
     obj = VI_DR()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 123
     assert obj.lucky_number() == 42.0
+    assert obj.say_everything() == "B says hi 1 times 123"
 
     class VI_DT(D_Tpl):
         def say_something(self, times):
@@ -149,15 +160,38 @@ def test_inheriting_repeat():
     assert obj.say_something(3) == "VI_DT says: quack quack quack"
     assert obj.unlucky_number() == 1234
     assert obj.lucky_number() == -4.25
+    assert obj.say_everything() == "VI_DT says: quack 1234"
 
+    class VI_DT2(VI_DT):
+        def say_something(self, times):
+            return "VI_DT2: " + ('QUACK' * times)
 
+        def unlucky_number(self):
+            return -3
+
+    class VI_BT(B_Tpl):
+        def say_something(self, times):
+            return "VI_BT" * times
+        def unlucky_number(self):
+            return -7
+        def lucky_number(self):
+            return -1.375
+
+    obj = VI_BT()
+    assert obj.say_something(3) == "VI_BTVI_BTVI_BT"
+    assert obj.unlucky_number() == -7
+    assert obj.lucky_number() == -1.375
+    assert obj.say_everything() == "VI_BT -7"
+
+@pytest.mark.skipif(not hasattr(pybind11_tests, 'NCVirt'),
+                    reason="NCVirt test broken on ICPC")
 def test_move_support():
     from pybind11_tests import NCVirt, NonCopyable, Movable
 
     class NCVirtExt(NCVirt):
         def get_noncopyable(self, a, b):
             # Constructs and returns a new instance:
-            nc = NonCopyable(a*a, b*b)
+            nc = NonCopyable(a * a, b * b)
             return nc
 
         def get_movable(self, a, b):

@@ -200,14 +200,17 @@ template <class T, typename... Values> void track_values(T *, Values &&...values
     ConstructorStats::get<T>().value(std::forward<Values>(values)...);
 }
 
-inline void print_constr_details_more() { std::cout << std::endl; }
-template <typename Head, typename... Tail> void print_constr_details_more(const Head &head, Tail &&...tail) {
-    std::cout << " " << head;
-    print_constr_details_more(std::forward<Tail>(tail)...);
-}
-template <class T, typename... Output> void print_constr_details(T *inst, const std::string &action, Output &&...output) {
-    std::cout << "### " << py::type_id<T>() << " @ " << inst << " " << action;
-    print_constr_details_more(std::forward<Output>(output)...);
+/// Don't cast pointers to Python, print them as strings
+inline const char *format_ptrs(const char *p) { return p; }
+template <typename T>
+py::str format_ptrs(T *p) { return "{:#x}"_s.format(reinterpret_cast<std::uintptr_t>(p)); }
+template <typename T>
+auto format_ptrs(T &&x) -> decltype(std::forward<T>(x)) { return std::forward<T>(x); }
+
+template <class T, typename... Output>
+void print_constr_details(T *inst, const std::string &action, Output &&...output) {
+    py::print("###", py::type_id<T>(), "@", format_ptrs(inst), action,
+              format_ptrs(std::forward<Output>(output))...);
 }
 
 // Verbose versions of the above:

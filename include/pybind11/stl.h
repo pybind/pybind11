@@ -26,8 +26,8 @@ NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
 template <typename Type, typename Key> struct set_caster {
-    typedef Type type;
-    typedef type_caster<typename intrinsic_type<Key>::type> key_conv;
+    using type = Type;
+    using key_conv = make_caster<Key>;
 
     bool load(handle src, bool convert) {
         pybind11::set s(src, true);
@@ -57,9 +57,9 @@ template <typename Type, typename Key> struct set_caster {
 };
 
 template <typename Type, typename Key, typename Value> struct map_caster {
-    typedef Type type;
-    typedef type_caster<typename intrinsic_type<Key>::type>   key_conv;
-    typedef type_caster<typename intrinsic_type<Value>::type> value_conv;
+    using type = Type;
+    using key_conv   = make_caster<Key>;
+    using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
         dict d(src, true);
@@ -93,8 +93,8 @@ template <typename Type, typename Key, typename Value> struct map_caster {
 };
 
 template <typename Type, typename Value> struct list_caster {
-    typedef Type type;
-    typedef type_caster<typename intrinsic_type<Value>::type> value_conv;
+    using type = Type;
+    using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
         list l(src, true);
@@ -138,8 +138,8 @@ template <typename Type, typename Alloc> struct type_caster<std::list<Type, Allo
  : list_caster<std::list<Type, Alloc>, Type> { };
 
 template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>> {
-    typedef std::array<Type, Size> array_type;
-    typedef type_caster<typename intrinsic_type<Type>::type> value_conv;
+    using array_type = std::array<Type, Size>;
+    using value_conv = make_caster<Type>;
 
     bool load(handle src, bool convert) {
         list l(src, true);

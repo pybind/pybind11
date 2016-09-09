@@ -59,7 +59,7 @@ def test_instance(capture):
         list_result.append('value2')
         instance.print_list(list_result)
     assert capture.unordered == """
-        Entry at positon 0: value
+        Entry at position 0: value
         list item 0: overwritten
         list item 1: value2
     """
@@ -218,3 +218,33 @@ def test_module():
     assert ExamplePythonTypes.__module__ == "pybind11_tests"
     assert ExamplePythonTypes.get_set.__name__ == "get_set"
     assert ExamplePythonTypes.get_set.__module__ == "pybind11_tests"
+
+
+def test_print(capture):
+    from pybind11_tests import test_print_function
+
+    with capture:
+        test_print_function()
+    assert capture == """
+        Hello, World!
+        1 2.0 three True -- multiple args
+        *args-and-a-custom-separator
+        no new line here -- next print
+        flush
+        py::print + str.format = this
+    """
+    assert capture.stderr == "this goes to stderr"
+
+
+def test_str_api():
+    from pybind11_tests import test_str_format
+
+    s1, s2 = test_str_format()
+    assert s1 == "1 + 2 = 3"
+    assert s1 == s2
+
+
+def test_dict_api():
+    from pybind11_tests import test_dict_keyword_constructor
+
+    assert test_dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}

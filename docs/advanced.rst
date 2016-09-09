@@ -298,9 +298,10 @@ functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
 a default implementation.
 
 There are also two alternate macros :func:`PYBIND11_OVERLOAD_PURE_NAME` and
-:func:`PYBIND11_OVERLOAD_NAME` which take a string-valued name argument
-after the *Name of the function* slot. This is useful when the C++ and Python
-versions of the function have different names, e.g. ``operator()`` vs ``__call__``.
+:func:`PYBIND11_OVERLOAD_NAME` which take a string-valued name argument between
+the *Parent class* and *Name of the function* slots. This is useful when the
+C++ and Python versions of the function have different names, e.g.
+``operator()`` vs ``__call__``.
 
 The binding code also needs a few minor adaptations (highlighted):
 
@@ -310,7 +311,7 @@ The binding code also needs a few minor adaptations (highlighted):
     PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
-        py::class_<Animal, std::unique_ptr<Animal>, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
+        py::class_<Animal, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
         animal
             .def(py::init<>())
             .def("go", &Animal::go);
@@ -324,9 +325,10 @@ The binding code also needs a few minor adaptations (highlighted):
     }
 
 Importantly, pybind11 is made aware of the trampoline trampoline helper class
-by specifying it as the *third* template argument to :class:`class_`. The
-second argument with the unique pointer is simply the default holder type used
-by pybind11. Following this, we are able to define a constructor as usual.
+by specifying it as an extra template argument to :class:`class_`.  (This can
+also be combined with other template arguments such as a custom holder type;
+the order of template types does not matter).  Following this, we are able to
+define a constructor as usual.
 
 Note, however, that the above is sufficient for allowing python classes to
 extend ``Animal``, but not ``Dog``: see ref:`virtual_and_inheritance` for the
@@ -452,9 +454,9 @@ The classes are then registered with pybind11 using:
 
 .. code-block:: cpp
 
-    py::class_<Animal, std::unique_ptr<Animal>, PyAnimal<>> animal(m, "Animal");
-    py::class_<Dog, std::unique_ptr<Dog>, PyDog<>> dog(m, "Dog");
-    py::class_<Husky, std::unique_ptr<Husky>, PyDog<Husky>> husky(m, "Husky");
+    py::class_<Animal, PyAnimal<>> animal(m, "Animal");
+    py::class_<Dog, PyDog<>> dog(m, "Dog");
+    py::class_<Husky, PyDog<Husky>> husky(m, "Husky");
     // ... add animal, dog, husky definitions
 
 Note that ``Husky`` did not require a dedicated trampoline template class at
@@ -524,7 +526,7 @@ be realized as follows (important changes highlighted):
     PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
 
-        py::class_<Animal, std::unique_ptr<Animal>, PyAnimal> animal(m, "Animal");
+        py::class_<Animal, PyAnimal> animal(m, "Animal");
         animal
             .def(py::init<>())
             .def("go", &Animal::go);
@@ -550,14 +552,149 @@ and the Python ``list``, ``set`` and ``dict`` data structures are automatically
 enabled. The types ``std::pair<>`` and ``std::tuple<>`` are already supported
 out of the box with just the core :file:`pybind11/pybind11.h` header.
 
+The major downside of these implicit conversions is that containers must be
+converted (i.e. copied) on every Python->C++ and C++->Python transition, which
+can have implications on the program semantics and performance. Please read the
+next sections for more details and alternative approaches that avoid this.
+
 .. note::
 
-    Arbitrary nesting of any of these types is supported.
+    Arbitrary nesting of any of these types is possible.
 
 .. seealso::
 
     The file :file:`tests/test_python_types.cpp` contains a complete
     example that demonstrates how to pass STL data types in more detail.
+
+.. _opaque:
+
+Treating STL data structures as opaque objects
+==============================================
+
+pybind11 heavily relies on a template matching mechanism to convert parameters
+and return values that are constructed from STL data types such as vectors,
+linked lists, hash tables, etc. This even works in a recursive manner, for
+instance to deal with lists of hash maps of pairs of elementary and custom
+types, etc.
+
+However, a fundamental limitation of this approach is that internal conversions
+between Python and C++ types involve a copy operation that prevents
+pass-by-reference semantics. What does this mean?
+
+Suppose we bind the following function
+
+.. code-block:: cpp
+
+    void append_1(std::vector<int> &v) {
+       v.push_back(1);
+    }
+
+and call it from Python, the following happens:
+
+.. code-block:: pycon
+
+   >>> v = [5, 6]
+   >>> append_1(v)
+   >>> print(v)
+   [5, 6]
+
+As you can see, when passing STL data structures by reference, modifications
+are not propagated back the Python side. A similar situation arises when
+exposing STL data structures using the ``def_readwrite`` or ``def_readonly``
+functions:
+
+.. code-block:: cpp
+
+    /* ... definition ... */
+
+    class MyClass {
+        std::vector<int> contents;
+    };
+
+    /* ... binding code ... */
+
+    py::class_<MyClass>(m, "MyClass")
+        .def(py::init<>)
+        .def_readwrite("contents", &MyClass::contents);
+
+In this case, properties can be read and written in their entirety. However, an
+``append`` operaton involving such a list type has no effect:
+
+.. code-block:: pycon
+
+   >>> m = MyClass()
+   >>> m.contents = [5, 6]
+   >>> print(m.contents)
+   [5, 6]
+   >>> m.contents.append(7)
+   >>> print(m.contents)
+   [5, 6]
+
+Finally, the involved copy operations can be costly when dealing with very
+large lists. To deal with all of the above situations, pybind11 provides a
+macro named ``PYBIND11_MAKE_OPAQUE(T)`` that disables the template-based
+conversion machinery of types, thus rendering them *opaque*. The contents of
+opaque objects are never inspected or extracted, hence they *can* be passed by
+reference. For instance, to turn ``std::vector<int>`` into an opaque type, add
+the declaration
+
+.. code-block:: cpp
+
+    PYBIND11_MAKE_OPAQUE(std::vector<int>);
+
+before any binding code (e.g. invocations to ``class_::def()``, etc.). This
+macro must be specified at the top level (and outside of any namespaces), since
+it instantiates a partial template overload. If your binding code consists of
+multiple compilation units, it must be present in every file preceding any
+usage of ``std::vector<int>``. Opaque types must also have a corresponding
+``class_`` declaration to associate them with a name in Python, and to define a
+set of available operations, e.g.:
+
+.. code-block:: cpp
+
+    py::class_<std::vector<int>>(m, "IntVector")
+        .def(py::init<>())
+        .def("clear", &std::vector<int>::clear)
+        .def("pop_back", &std::vector<int>::pop_back)
+        .def("__len__", [](const std::vector<int> &v) { return v.size(); })
+        .def("__iter__", [](std::vector<int> &v) {
+           return py::make_iterator(v.begin(), v.end());
+        }, py::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */
+        // ....
+
+The ability to expose STL containers as native Python objects is a fairly
+common request, hence pybind11 also provides an optional header file named
+:file:`pybind11/stl_bind.h` that does exactly this. The mapped containers try
+to match the behavior of their native Python counterparts as much as possible.
+
+The following example showcases usage of :file:`pybind11/stl_bind.h`:
+
+.. code-block:: cpp
+
+    // Don't forget this
+    #include <pybind11/stl_bind.h>
+
+    PYBIND11_MAKE_OPAQUE(std::vector<int>);
+    PYBIND11_MAKE_OPAQUE(std::map<std::string, double>);
+
+    // ...
+
+    // later in binding code:
+    py::bind_vector<std::vector<int>>(m, "VectorInt");
+    py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
+
+Please take a look at the :ref:`macro_notes` before using the
+``PYBIND11_MAKE_OPAQUE`` macro.
+
+.. seealso::
+
+    The file :file:`tests/test_opaque_types.cpp` contains a complete
+    example that demonstrates how to create and expose opaque types using
+    pybind11 in more detail.
+
+    The file :file:`tests/test_stl_binders.cpp` shows how to use the
+    convenience STL container wrappers.
+
 
 Binding sequence data types, iterators, the slicing protocol, etc.
 ==================================================================
@@ -845,11 +982,11 @@ This section explains how to pass values that are wrapped in "smart" pointer
 types with internal reference counting. For the simpler C++11 unique pointers,
 refer to the previous section.
 
-The binding generator for classes, :class:`class_`, takes an optional second
-template type, which denotes a special *holder* type that is used to manage
-references to the object. When wrapping a type named ``Type``, the default
-value of this template parameter is ``std::unique_ptr<Type>``, which means that
-the object is deallocated when Python's reference count goes to zero.
+The binding generator for classes, :class:`class_`, can be passed a template
+type that denotes a special *holder* type that is used to manage references to
+the object.  If no such holder type template argument is given, the default for
+a type named ``Type`` is ``std::unique_ptr<Type>``, which means that the object
+is deallocated when Python's reference count goes to zero.
 
 It is possible to switch to other types of reference counting wrappers or smart
 pointers, which is useful in codebases that rely on them. For instance, the
@@ -882,6 +1019,8 @@ applied consistently. Can you guess what's broken about the following binding
 code?
 
 .. code-block:: cpp
+
+    PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 
     class Child { };
 
@@ -983,6 +1122,35 @@ is short hand notation for
 In other words, :func:`init` creates an anonymous function that invokes an
 in-place constructor. Memory allocation etc. is already take care of beforehand
 within pybind11.
+
+.. _classes_with_non_public_destructors:
+
+Classes with non-public destructors
+===================================
+
+If a class has a private or protected destructor (as might e.g. be the case in
+a singleton pattern), a compile error will occur when creating bindings via
+pybind11. The underlying issue is that the ``std::unique_ptr`` holder type that
+is responsible for managing the lifetime of instances will reference the
+destructor even if no deallocations ever take place. In order to expose classes
+with private or protected destructors, it is possible to override the holder
+type via a holder type argument to ``class_``. Pybind11 provides a helper class
+``py::nodelete`` that disables any destructor invocations. In this case, it is
+crucial that instances are deallocated on the C++ side to avoid memory leaks.
+
+.. code-block:: cpp
+
+    /* ... definition ... */
+
+    class MyClass {
+    private:
+        ~MyClass() { }
+    };
+
+    /* ... binding code ... */
+
+    py::class_<MyClass, std::unique_ptr<MyClass, py::nodelete>>(m, "MyClass")
+        .def(py::init<>)
 
 .. _catching_and_throwing_exceptions:
 
@@ -1101,109 +1269,7 @@ section.
     the other existing exception translators.
 
     The ``py::exception`` wrapper for creating custom exceptions cannot (yet)
-    be used as a ``py::base``.
-
-.. _opaque:
-
-Treating STL data structures as opaque objects
-==============================================
-
-pybind11 heavily relies on a template matching mechanism to convert parameters
-and return values that are constructed from STL data types such as vectors,
-linked lists, hash tables, etc. This even works in a recursive manner, for
-instance to deal with lists of hash maps of pairs of elementary and custom
-types, etc.
-
-However, a fundamental limitation of this approach is that internal conversions
-between Python and C++ types involve a copy operation that prevents
-pass-by-reference semantics. What does this mean?
-
-Suppose we bind the following function
-
-.. code-block:: cpp
-
-    void append_1(std::vector<int> &v) {
-       v.push_back(1);
-    }
-
-and call it from Python, the following happens:
-
-.. code-block:: pycon
-
-   >>> v = [5, 6]
-   >>> append_1(v)
-   >>> print(v)
-   [5, 6]
-
-As you can see, when passing STL data structures by reference, modifications
-are not propagated back the Python side. A similar situation arises when
-exposing STL data structures using the ``def_readwrite`` or ``def_readonly``
-functions:
-
-.. code-block:: cpp
-
-    /* ... definition ... */
-
-    class MyClass {
-        std::vector<int> contents;
-    };
-
-    /* ... binding code ... */
-
-    py::class_<MyClass>(m, "MyClass")
-        .def(py::init<>)
-        .def_readwrite("contents", &MyClass::contents);
-
-In this case, properties can be read and written in their entirety. However, an
-``append`` operaton involving such a list type has no effect:
-
-.. code-block:: pycon
-
-   >>> m = MyClass()
-   >>> m.contents = [5, 6]
-   >>> print(m.contents)
-   [5, 6]
-   >>> m.contents.append(7)
-   >>> print(m.contents)
-   [5, 6]
-
-To deal with both of the above situations, pybind11 provides a macro named
-``PYBIND11_MAKE_OPAQUE(T)`` that disables the template-based conversion
-machinery of types, thus rendering them *opaque*. The contents of opaque
-objects are never inspected or extracted, hence they can be passed by
-reference. For instance, to turn ``std::vector<int>`` into an opaque type, add
-the declaration
-
-.. code-block:: cpp
-
-    PYBIND11_MAKE_OPAQUE(std::vector<int>);
-
-before any binding code (e.g. invocations to ``class_::def()``, etc.). This
-macro must be specified at the top level, since instantiates a partial template
-overload. If your binding code consists of multiple compilation units, it must
-be present in every file preceding any usage of ``std::vector<int>``. Opaque
-types must also have a corresponding ``class_`` declaration to associate them
-with a name in Python, and to define a set of available operations:
-
-.. code-block:: cpp
-
-    py::class_<std::vector<int>>(m, "IntVector")
-        .def(py::init<>())
-        .def("clear", &std::vector<int>::clear)
-        .def("pop_back", &std::vector<int>::pop_back)
-        .def("__len__", [](const std::vector<int> &v) { return v.size(); })
-        .def("__iter__", [](std::vector<int> &v) {
-           return py::make_iterator(v.begin(), v.end());
-        }, py::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */
-        // ....
-
-Please take a look at the :ref:`macro_notes` before using this feature.
-
-.. seealso::
-
-    The file :file:`tests/test_opaque_types.cpp` contains a complete
-    example that demonstrates how to create and expose opaque types using
-    pybind11 in more detail.
+    be used as a base type.
 
 .. _eigen:
 
@@ -1601,24 +1667,76 @@ It is also possible to call python functions via ``operator()``.
     py::object result_py = f(1234, "hello", some_instance);
     MyClass &result = result_py.cast<MyClass>();
 
-The special ``f(*args)`` and ``f(*args, **kwargs)`` syntax is also supported to
-supply arbitrary argument and keyword lists, although these cannot be mixed
-with other parameters.
+Keyword arguments are also supported. In Python, there is the usual call syntax:
+
+.. code-block:: python
+
+    def f(number, say, to):
+        ...  # function code
+
+    f(1234, say="hello", to=some_instance)  # keyword call in Python
+
+In C++, the same call can be made using:
 
 .. code-block:: cpp
 
-    py::function f = <...>;
+    using pybind11::literals; // to bring in the `_a` literal
+    f(1234, "say"_a="hello", "to"_a=some_instance); // keyword call in C++
+
+Unpacking of ``*args`` and ``**kwargs`` is also possible and can be mixed with
+other arguments:
+
+.. code-block:: cpp
+
+    // * unpacking
+    py::tuple args = py::make_tuple(1234, "hello", some_instance);
+    f(*args);
+
+    // ** unpacking
+    py::dict kwargs = py::dict("number"_a=1234, "say"_a="hello", "to"_a=some_instance);
+    f(**kwargs);
+
+    // mixed keywords, * and ** unpacking
     py::tuple args = py::make_tuple(1234);
-    py::dict kwargs;
-    kwargs["y"] = py::cast(5678);
-    py::object result = f(*args, **kwargs);
+    py::dict kwargs = py::dict("to"_a=some_instance);
+    f(*args, "say"_a="hello", **kwargs);
+
+Generalized unpacking according to PEP448_ is also supported:
+
+.. code-block:: cpp
+
+    py::dict kwargs1 = py::dict("number"_a=1234);
+    py::dict kwargs2 = py::dict("to"_a=some_instance);
+    f(**kwargs1, "say"_a="hello", **kwargs2);
 
 .. seealso::
 
     The file :file:`tests/test_python_types.cpp` contains a complete
     example that demonstrates passing native Python types in more detail. The
-    file :file:`tests/test_kwargs_and_defaults.cpp` discusses usage
-    of ``args`` and ``kwargs``.
+    file :file:`tests/test_callbacks.cpp` presents a few examples of calling
+    Python functions from C++, including keywords arguments and unpacking.
+
+.. _PEP448: https://www.python.org/dev/peps/pep-0448/
+
+Using Python's print function in C++
+====================================
+
+The usual way to write output in C++ is using ``std::cout`` while in Python one
+would use ``print``. Since these methods use different buffers, mixing them can
+lead to output order issues. To resolve this, pybind11 modules can use the
+:func:`py::print` function which writes to Python's ``sys.stdout`` for consistency.
+
+Python's ``print`` function is replicated in the C++ API including optional
+keyword arguments ``sep``, ``end``, ``file``, ``flush``. Everything works as
+expected in Python:
+
+.. code-block:: cpp
+
+    py::print(1, 2.0, "three"); // 1 2.0 three
+    py::print(1, 2.0, "three", "sep"_a="-"); // 1-2.0-three
+
+    auto args = py::make_tuple("unpacked", true);
+    py::print("->", *args, "end"_a="<-"); // -> unpacked True <-
 
 Default arguments revisited
 ===========================
@@ -1735,16 +1853,17 @@ However, it can be acquired as follows:
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
-Alternatively, we can rely on the ``base`` tag, which performs an automated
-lookup of the corresponding Python type. However, this also requires invoking
-the ``import`` function once to ensure that the pybind11 binding code of the
-module ``basic`` has been executed.
+Alternatively, you can specify the base class as a template parameter option to
+``class_``, which performs an automated lookup of the corresponding Python
+type. Like the above code, however, this also requires invoking the ``import``
+function once to ensure that the pybind11 binding code of the module ``basic``
+has been executed:
 
 .. code-block:: cpp
 
     py::module::import("basic");
 
-    py::class_<Dog>(m, "Dog", py::base<Pet>())
+    py::class_<Dog, Pet>(m, "Dog")
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
@@ -1916,3 +2035,85 @@ is always ``none``).
 
     // Evaluate the statements in an separate Python file on disk
     py::eval_file("script.py", scope);
+
+Development of custom type casters
+==================================
+
+In very rare cases, applications may require custom type casters that cannot be
+expressed using the abstractions provided by pybind11, thus requiring raw
+Python C API calls. This is fairly advanced usage and should only be pursued by
+experts who are familiar with the intricacies of Python reference counting.
+
+The following snippets demonstrate how this works for a very simple ``inty``
+type that that should be convertible from Python types that provide a
+``__int__(self)`` method.
+
+.. code-block:: cpp
+
+    struct inty { long long_value; };
+
+    void print(inty s) {
+        std::cout << s.long_value << std::endl;
+    }
+
+The following Python snippet demonstrates the intended usage from the Python side:
+
+.. code-block:: python
+
+    class A:
+        def __int__(self):
+            return 123
+
+    from example import print
+    print(A())
+
+To register the necessary conversion routines, it is necessary to add
+a partial overload to the ``pybind11::detail::type_caster<T>`` template.
+Although this is an implementation detail, adding partial overloads to this
+type is explicitly allowed.
+
+.. code-block:: cpp
+
+    namespace pybind11 {
+        namespace detail {
+            template <> struct type_caster<inty> {
+            public:
+                /**
+                 * This macro establishes the name 'inty' in
+                 * function signatures and declares a local variable
+                 * 'value' of type inty
+                 */
+                PYBIND11_TYPE_CASTER(inty, _("inty"));
+
+                /**
+                 * Conversion part 1 (Python->C++): convert a PyObject into a inty
+                 * instance or return false upon failure. The second argument
+                 * indicates whether implicit conversions should be applied.
+                 */
+                bool load(handle src, bool) {
+                    /* Extract PyObject from handle */
+                    PyObject *source = src.ptr();
+                    /* Try converting into a Python integer value */
+                    PyObject *tmp = PyNumber_Long(source);
+                    if (!tmp)
+                        return false;
+                    /* Now try to convert into a C++ int */
+                    value.long_value = PyLong_AsLong(tmp);
+                    Py_DECREF(tmp);
+                    /* Ensure return code was OK (to avoid out-of-range errors etc) */
+                    return !(value.long_value == -1 && !PyErr_Occurred());
+                }
+
+                /**
+                 * Conversion part 2 (C++ -> Python): convert an inty instance into
+                 * a Python object. The second and third arguments are used to
+                 * indicate the return value policy and parent object (for
+                 * ``return_value_policy::reference_internal``) and are generally
+                 * ignored by implicit casters.
+                 */
+                static handle cast(inty src, return_value_policy /* policy */, handle /* parent */) {
+                    return PyLong_FromLong(src.long_value);
+                }
+            };
+        }
+    };

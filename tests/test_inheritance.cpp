@@ -31,6 +31,11 @@ public:
     Rabbit(const std::string &name) : Pet(name, "parrot") {}
 };
 
+class Hamster : public Pet {
+public:
+    Hamster(const std::string &name) : Pet(name, "rodent") {}
+};
+
 std::string pet_name_species(const Pet &pet) {
     return pet.name() + " is a " + pet.species();
 }
@@ -44,7 +49,7 @@ struct BaseClass { virtual ~BaseClass() {} };
 struct DerivedClass1 : BaseClass { };
 struct DerivedClass2 : BaseClass { };
 
-void init_ex_inheritance(py::module &m) {
+test_initializer inheritance([](py::module &m) {
     py::class_<Pet> pet_class(m, "Pet");
     pet_class
         .def(py::init<std::string, std::string>())
@@ -59,6 +64,10 @@ void init_ex_inheritance(py::module &m) {
     py::class_<Rabbit>(m, "Rabbit", py::base<Pet>())
         .def(py::init<std::string>());
 
+    /* And another: list parent in class template arguments */
+    py::class_<Hamster, Pet>(m, "Hamster")
+        .def(py::init<std::string>());
+
     m.def("pet_name_species", pet_name_species);
     m.def("dog_bark", dog_bark);
 
@@ -69,4 +78,4 @@ void init_ex_inheritance(py::module &m) {
     m.def("return_class_1", []() -> BaseClass* { return new DerivedClass1(); });
     m.def("return_class_2", []() -> BaseClass* { return new DerivedClass2(); });
     m.def("return_none", []() -> BaseClass* { return nullptr; });
-}
+});

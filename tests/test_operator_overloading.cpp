@@ -52,7 +52,7 @@ private:
     float x, y;
 };
 
-void init_ex_operator_overloading(py::module &m) {
+test_initializer operator_overloading([](py::module &m) {
     py::class_<Vector2>(m, "Vector2")
         .def(py::init<float, float>())
         .def(py::self + py::self)
@@ -73,4 +73,4 @@ void init_ex_operator_overloading(py::module &m) {
         ;
 
     m.attr("Vector") = m.attr("Vector2");
-}
+});

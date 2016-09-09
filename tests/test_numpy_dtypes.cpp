@@ -267,7 +267,13 @@ py::list test_dtype_methods() {
     return list;
 }
 
-void init_ex_numpy_dtypes(py::module &m) {
+test_initializer numpy_dtypes([](py::module &m) {
+    try {
+        py::module::import("numpy");
+    } catch (...) {
+        return;
+    }
+
     PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(PackedStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(NestedStruct, a, b);
@@ -291,6 +297,6 @@ void init_ex_numpy_dtypes(py::module &m) {
     m.def("test_array_ctors", &test_array_ctors);
     m.def("test_dtype_ctors", &test_dtype_ctors);
     m.def("test_dtype_methods", &test_dtype_methods);
-}
+});
 
 #undef PYBIND11_PACKED

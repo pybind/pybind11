@@ -12,14 +12,16 @@
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
+#  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+#  pragma warning(disable: 4512) // warning C4512: Assignment operator was implicitly defined as deleted
 #  pragma warning(disable: 4800) // warning C4800: 'int': forcing value to bool 'true' or 'false' (performance warning)
 #  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
-#  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
-#  pragma warning(disable: 4512) // warning C4512: Assignment operator was implicitly defined as deleted
-#elif defined(__ICC) || defined(__INTEL_COMPILER)
+#elif defined(__INTEL_COMPILER)
 #  pragma warning(push)
-#  pragma warning(disable:2196)  // warning #2196: routine is both "inline" and "noinline"
+#  pragma warning(disable: 186)   // pointless comparison of unsigned integer with zero
+#  pragma warning(disable: 1334)  // the "template" keyword used for syntactic disambiguation may only be used within a template
+#  pragma warning(disable: 2196)  // warning #2196: routine is both "inline" and "noinline"
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
@@ -592,7 +594,7 @@ public:
 NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
-    template <typename type, typename holder_type, typename type_alias> friend class class_;
+    template <typename...> friend class class_;
 public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
@@ -831,12 +833,46 @@ protected:
 
     static void releasebuffer(PyObject *, Py_buffer *view) { delete (buffer_info *) view->internal; }
 };
+
+template <template<typename> class Predicate, typename... BaseTypes> struct class_selector;
+template <template<typename> class Predicate, typename Base, typename... Bases>
+struct class_selector<Predicate, Base, Bases...> {
+    static inline void set_bases(detail::type_record &record) {
+        if (Predicate<Base>::value) record.base_type = &typeid(Base);
+        else class_selector<Predicate, Bases...>::set_bases(record);
+    }
+};
+template <template<typename> class Predicate>
+struct class_selector<Predicate> {
+    static inline void set_bases(detail::type_record &) {}
+};
+
 NAMESPACE_END(detail)
 
-template <typename type, typename holder_type = std::unique_ptr<type>, typename type_alias = type>
+template <typename type_, typename... options>
 class class_ : public detail::generic_type {
+    template <typename T> using is_holder = detail::is_holder_type<type_, T>;
+    template <typename T> using is_subtype = detail::bool_constant<std::is_base_of<type_, T>::value && !std::is_same<T, type_>::value>;
+    template <typename T> using is_base_class = detail::bool_constant<std::is_base_of<T, type_>::value && !std::is_same<T, type_>::value>;
+    template <typename T> using is_valid_class_option =
+        detail::bool_constant<
+            is_holder<T>::value ||
+            is_subtype<T>::value ||
+            is_base_class<T>::value
+        >;
+
 public:
-    typedef detail::instance<type, holder_type> instance_type;
+    using type = type_;
+    using type_alias = detail::first_of_t<is_subtype, void, options...>;
+    constexpr static bool has_alias = !std::is_void<type_alias>::value;
+    using holder_type = detail::first_of_t<is_holder, std::unique_ptr<type>, options...>;
+    using instance_type = detail::instance<type, holder_type>;
+
+    static_assert(detail::all_of_t<is_valid_class_option, options...>::value,
+            "Unknown/invalid class_ template parameters provided");
+
+    static_assert(detail::count_t<is_base_class, options...>::value <= 1,
+            "Invalid class_ base types: multiple inheritance is not supported");
 
     PYBIND11_OBJECT(class_, detail::generic_type, PyType_Check)
 
@@ -846,17 +882,19 @@ public:
         record.scope = scope;
         record.name = name;
         record.type = &typeid(type);
-        record.type_size = sizeof(type);
+        record.type_size = sizeof(detail::conditional_t<has_alias, type_alias, type>);
         record.instance_size = sizeof(instance_type);
         record.init_holder = init_holder;
         record.dealloc = dealloc;
+
+        detail::class_selector<is_base_class, options...>::set_bases(record);
 
         /* Process optional arguments, if any */
         detail::process_attributes<Extra...>::init(extra..., &record);
 
         detail::generic_type::initialize(&record);
 
-        if (!std::is_same<type, type_alias>::value) {
+        if (has_alias) {
             auto &instances = pybind11::detail::get_internals().registered_types_cpp;
             instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
         }
@@ -881,25 +919,25 @@ public:
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ &def(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.template execute<type>(*this, extra...);
+        op.execute(*this, extra...);
         return *this;
     }
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
     class_ & def_cast(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.template execute_cast<type>(*this, extra...);
+        op.execute_cast(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
     class_ &def(const detail::init<Args...> &init, const Extra&... extra) {
-        init.template execute<type>(*this, extra...);
+        init.execute(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
     class_ &def(const detail::init_alias<Args...> &init, const Extra&... extra) {
-        init.template execute<type>(*this, extra...);
+        init.execute(*this, extra...);
         return *this;
     }
 
@@ -1046,30 +1084,34 @@ private:
 /// Binds C++ enumerations and enumeration classes to Python
 template <typename Type> class enum_ : public class_<Type> {
 public:
+    using class_<Type>::def;
     using UnderlyingType = typename std::underlying_type<Type>::type;
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : class_<Type>(scope, name, extra...), m_parent(scope) {
         auto entries = new std::unordered_map<UnderlyingType, const char *>();
-        this->def("__repr__", [name, entries](Type value) -> std::string {
+        def("__repr__", [name, entries](Type value) -> std::string {
             auto it = entries->find((UnderlyingType) value);
             return std::string(name) + "." +
                 ((it == entries->end()) ? std::string("???")
                                         : std::string(it->second));
         });
-        this->def("__init__", [](Type& value, UnderlyingType i) { value = (Type)i; });
-        this->def("__init__", [](Type& value, UnderlyingType i) { new (&value) Type((Type) i); });
-        this->def("__int__", [](Type value) { return (UnderlyingType) value; });
-        this->def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
-        this->def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
+        def("__init__", [](Type& value, UnderlyingType i) { value = (Type)i; });
+        def("__init__", [](Type& value, UnderlyingType i) { new (&value) Type((Type) i); });
+        def("__int__", [](Type value) { return (UnderlyingType) value; });
+        def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
+        def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
         if (std::is_convertible<Type, UnderlyingType>::value) {
             // Don't provide comparison with the underlying type if the enum isn't convertible,
             // i.e. if Type is a scoped enum, mirroring the C++ behaviour.  (NB: we explicitly
             // convert Type to UnderlyingType below anyway because this needs to compile).
-            this->def("__eq__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value == value2; });
-            this->def("__ne__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value != value2; });
+            def("__eq__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value == value2; });
+            def("__ne__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value != value2; });
         }
-        this->def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
+        def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
+        // Pickling and unpickling -- needed for use with the 'multiprocessing' module
+        def("__getstate__", [](const Type &value) { return pybind11::make_tuple((UnderlyingType) value); });
+        def("__setstate__", [](Type &p, tuple t) { new (&p) Type((Type) t[0].cast<UnderlyingType>()); });
         m_entries = entries;
     }
 
@@ -1096,19 +1138,21 @@ private:
 
 NAMESPACE_BEGIN(detail)
 template <typename... Args> struct init {
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<std::is_same<Base, Alias>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
+    template <typename Class, typename... Extra, typename std::enable_if<!Class::has_alias, int>::type = 0>
+    void execute(Class &cl, const Extra&... extra) const {
+        using Base = typename Class::type;
         /// Function which calls a specific C++ in-place constructor
-        class_.def("__init__", [](Base *self_, Args... args) { new (self_) Base(args...); }, extra...);
+        cl.def("__init__", [](Base *self_, Args... args) { new (self_) Base(args...); }, extra...);
     }
 
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<!std::is_same<Base, Alias>::value &&
-                                       std::is_constructible<Base, Args...>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
-        handle cl_type = class_;
-        class_.def("__init__", [cl_type](handle self_, Args... args) {
+    template <typename Class, typename... Extra,
+              typename std::enable_if<Class::has_alias &&
+                                       std::is_constructible<typename Class::type, Args...>::value, int>::type = 0>
+    void execute(Class &cl, const Extra&... extra) const {
+        using Base = typename Class::type;
+        using Alias = typename Class::type_alias;
+        handle cl_type = cl;
+        cl.def("__init__", [cl_type](handle self_, Args... args) {
                 if (self_.get_type() == cl_type)
                     new (self_.cast<Base *>()) Base(args...);
                 else
@@ -1116,11 +1160,12 @@ template <typename... Args> struct init {
             }, extra...);
     }
 
-    template <typename Base, typename Holder, typename Alias, typename... Extra,
-              typename std::enable_if<!std::is_same<Base, Alias>::value &&
-                                      !std::is_constructible<Base, Args...>::value, int>::type = 0>
-    void execute(pybind11::class_<Base, Holder, Alias> &class_, const Extra&... extra) const {
-        class_.def("__init__", [](Alias *self_, Args... args) { new (self_) Alias(args...); }, extra...);
+    template <typename Class, typename... Extra,
+              typename std::enable_if<Class::has_alias &&
+                                      !std::is_constructible<typename Class::type, Args...>::value, int>::type = 0>
+    void execute(Class &cl, const Extra&... extra) const {
+        using Alias = typename Class::type_alias;
+        cl.def("__init__", [](Alias *self_, Args... args) { new (self_) Alias(args...); }, extra...);
     }
 };
 
@@ -1129,7 +1174,7 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
 
-    if (patient.ptr() == Py_None || nurse.ptr() == Py_None)
+    if (patient.is_none() || nurse.is_none())
         return; /* Nothing to keep alive or nothing to be kept alive by */
 
     cpp_function disable_lifesupport(
@@ -1148,8 +1193,10 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
     keep_alive_impl(nurse, patient);
 }
 
-template <typename Iterator, bool KeyIterator = false> struct iterator_state {
-    Iterator it, end;
+template <typename Iterator, typename Sentinel, bool KeyIterator, typename... Extra>
+struct iterator_state {
+    Iterator it;
+    Sentinel end;
     bool first;
 };
 
@@ -1158,13 +1205,14 @@ NAMESPACE_END(detail)
 template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
 
 template <typename Iterator,
+          typename Sentinel,
           typename ValueType = decltype(*std::declval<Iterator>()),
           typename... Extra>
-iterator make_iterator(Iterator first, Iterator last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator> state;
+iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    typedef detail::iterator_state<Iterator, Sentinel, false, Extra...> state;
 
     if (!detail::get_type_info(typeid(state))) {
-        class_<state>(handle(), "")
+        class_<state>(handle(), "iterator")
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> ValueType {
                 if (!s.first)
@@ -1179,14 +1227,16 @@ iterator make_iterator(Iterator first, Iterator last, Extra &&... extra) {
 
     return (iterator) cast(state { first, last, true });
 }
+
 template <typename Iterator,
-          typename KeyType = decltype(std::declval<Iterator>()->first),
+          typename Sentinel,
+          typename KeyType = decltype((*std::declval<Iterator>()).first),
           typename... Extra>
-iterator make_key_iterator(Iterator first, Iterator last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator, true> state;
+iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    typedef detail::iterator_state<Iterator, Sentinel, true, Extra...> state;
 
     if (!detail::get_type_info(typeid(state))) {
-        class_<state>(handle(), "")
+        class_<state>(handle(), "iterator")
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> KeyType {
                 if (!s.first)
@@ -1195,7 +1245,7 @@ iterator make_key_iterator(Iterator first, Iterator last, Extra &&... extra) {
                     s.first = false;
                 if (s.it == s.end)
                     throw stop_iteration();
-                return s.it->first;
+                return (*s.it).first;
             }, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
     }
 
@@ -1316,6 +1366,33 @@ public:
         PyModule_AddObject(m.ptr(), name.c_str(), m_ptr);
     }
 };
+
+NAMESPACE_BEGIN(detail)
+PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
+    auto strings = tuple(args.size());
+    for (size_t i = 0; i < args.size(); ++i) {
+        strings[i] = args[i].cast<object>().str();
+    }
+    auto sep = kwargs["sep"] ? kwargs["sep"] : cast(" ");
+    auto line = sep.attr("join").cast<object>()(strings);
+
+    auto file = kwargs["file"] ? kwargs["file"].cast<object>()
+                               : module::import("sys").attr("stdout");
+    auto write = file.attr("write").cast<object>();
+    write(line);
+    write(kwargs["end"] ? kwargs["end"] : cast("\n"));
+
+    if (kwargs["flush"] && kwargs["flush"].cast<bool>()) {
+        file.attr("flush").cast<object>()();
+    }
+}
+NAMESPACE_END(detail)
+
+template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
+void print(Args &&...args) {
+    auto c = detail::collect_arguments<policy>(std::forward<Args>(args)...);
+    detail::print(c.args(), c.kwargs());
+}
 
 #if defined(WITH_THREAD)
 
@@ -1485,18 +1562,18 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
     return get_type_overload(this_ptr, (const detail::type_info *) it->second, name);
 }
 
-#define PYBIND11_OVERLOAD_INT(ret_type, name, ...) { \
+#define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) { \
         pybind11::gil_scoped_acquire gil; \
-        pybind11::function overload = pybind11::get_overload(this, name); \
+        pybind11::function overload = pybind11::get_overload(static_cast<const cname *>(this), name); \
         if (overload) \
             return overload(__VA_ARGS__).template cast<ret_type>();  }
 
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
-    PYBIND11_OVERLOAD_INT(ret_type, name, __VA_ARGS__) \
+    PYBIND11_OVERLOAD_INT(ret_type, cname, name, __VA_ARGS__) \
     return cname::fn(__VA_ARGS__)
 
 #define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
-    PYBIND11_OVERLOAD_INT(ret_type, name, __VA_ARGS__) \
+    PYBIND11_OVERLOAD_INT(ret_type, cname, name, __VA_ARGS__) \
     pybind11::pybind11_fail("Tried to call pure virtual function \"" #cname "::" name "\"");
 
 #define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
@@ -1509,8 +1586,8 @@ NAMESPACE_END(pybind11)
 
 #if defined(_MSC_VER)
 #  pragma warning(pop)
-#elif defined(__ICC) || defined(__INTEL_COMPILER)
-#  pragma warning(pop)
+#elif defined(__INTEL_COMPILER)
+/* Leave ignored warnings on */
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic pop
 #endif

@@ -12,7 +12,7 @@
 #include <pybind11/numpy.h>
 
 double my_func(int x, float y, double z) {
-    std::cout << "my_func(x:int=" << x << ", y:float=" << y << ", z:float=" << z << ")" << std::endl;
+    py::print("my_func(x:int={}, y:float={:.0f}, z:float={:.0f})"_s.format(x, y, z));
     return (float) x*y*z;
 }
 
@@ -20,7 +20,7 @@ std::complex<double> my_func3(std::complex<double> c) {
     return c * std::complex<double>(2.f);
 }
 
-void init_ex_numpy_vectorize(py::module &m) {
+test_initializer numpy_vectorize([](py::module &m) {
     // Vectorize all arguments of a function (though non-vector arguments are also allowed)
     m.def("vectorized_func", py::vectorize(my_func));
 
@@ -38,4 +38,4 @@ void init_ex_numpy_vectorize(py::module &m) {
     m.def("selective_func", [](py::array_t<int, py::array::c_style>) { return "Int branch taken."; });
     m.def("selective_func", [](py::array_t<float, py::array::c_style>) { return "Float branch taken."; });
     m.def("selective_func", [](py::array_t<std::complex<float>, py::array::c_style>) { return "Complex float branch taken."; });
-}
+});

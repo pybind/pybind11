@@ -3,12 +3,11 @@ import pytest
 with pytest.suppress(ImportError):
     import numpy as np
 
-
-ref = np.array([[ 0,  3,  0,  0,  0, 11],
-                [22,  0,  0,  0, 17, 11],
-                [ 7,  5,  0,  1,  0, 11],
-                [ 0,  0,  0,  0,  0, 11],
-                [ 0,  0, 14,  0,  8, 11]])
+    ref = np.array([[ 0,  3,  0,  0,  0, 11],
+                    [22,  0,  0,  0, 17, 11],
+                    [ 7,  5,  0,  1,  0, 11],
+                    [ 0,  0,  0,  0,  0, 11],
+                    [ 0,  0, 14,  0,  8, 11]])
 
 
 def assert_equal_ref(mat):

@@ -133,7 +133,7 @@ public:
         args["names"] = names;
         args["formats"] = formats;
         args["offsets"] = offsets;
-        args["itemsize"] = int_(itemsize);
+        args["itemsize"] = pybind11::int_(itemsize);
         m_ptr = from_args(args).release().ptr();
     }
 
@@ -150,7 +150,7 @@ public:
     }
 
     size_t itemsize() const {
-        return (size_t) attr("itemsize").cast<int_>();
+        return attr("itemsize").cast<size_t>();
     }
 
     bool has_fields() const {
@@ -175,7 +175,7 @@ private:
         if (fields.ptr() == Py_None)
             return *this;
 
-        struct field_descr { PYBIND11_STR_TYPE name; object format; int_ offset; };
+        struct field_descr { PYBIND11_STR_TYPE name; object format; pybind11::int_ offset; };
         std::vector<field_descr> field_descriptors;
 
         auto items = fields.attr("items").cast<object>();
@@ -183,7 +183,7 @@ private:
             auto spec = object(field, true).cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
             auto format = spec[1].cast<tuple>()[0].cast<dtype>();
-            auto offset = spec[1].cast<tuple>()[1].cast<int_>();
+            auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
             if (!len(name) && format.kind() == "V")
                 continue;
             field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(), offset});
@@ -191,7 +191,7 @@ private:
 
         std::sort(field_descriptors.begin(), field_descriptors.end(),
                   [](const field_descr& a, const field_descr& b) {
-                      return (int) a.offset < (int) b.offset;
+                      return a.offset.cast<int>() < b.offset.cast<int>();
                   });
 
         list names, formats, offsets;
@@ -234,8 +234,8 @@ public:
     array(const pybind11::dtype& dt, const std::vector<size_t>& shape, void *ptr = nullptr)
     : array(dt, shape, default_strides(shape, dt.itemsize()), ptr) { }
 
-    array(const pybind11::dtype& dt, size_t size, void *ptr = nullptr)
-    : array(dt, std::vector<size_t> { size }, ptr) { }
+    array(const pybind11::dtype& dt, size_t count, void *ptr = nullptr)
+    : array(dt, std::vector<size_t> { count }, ptr) { }
 
     template<typename T> array(const std::vector<size_t>& shape,
                                const std::vector<size_t>& strides, T* ptr)
@@ -407,7 +407,7 @@ struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>
                 pybind11_fail("NumPy: unsupported field dtype");
             names.append(PYBIND11_STR_TYPE(field.name));
             formats.append(field.descr);
-            offsets.append(int_(field.offset));
+            offsets.append(pybind11::int_(field.offset));
         }
         dtype_ptr = pybind11::dtype(names, formats, offsets, sizeof(T)).release().ptr();
 

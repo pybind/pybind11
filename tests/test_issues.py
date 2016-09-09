@@ -158,3 +158,26 @@ def test_nested():
     assert abase.value == 42
     del abase, b
     gc.collect()
+
+
+def test_move_fallback():
+    from pybind11_tests.issues import get_moveissue1, get_moveissue2
+    m2 = get_moveissue2(2)
+    assert m2.value == 2
+    m1 = get_moveissue1(1)
+    assert m1.value == 1
+
+def test_override_ref():
+    from pybind11_tests.issues import OverrideTest
+    o = OverrideTest("asdf")
+
+    # Not allowed (see associated .cpp comment)
+    #i = o.str_ref()
+    #assert o.str_ref() == "asdf"
+    assert o.str_value() == "asdf"
+
+    assert o.A_value().value == "hi"
+    a = o.A_ref()
+    assert a.value == "hi"
+    a.value = "bye"
+    assert a.value == "bye"

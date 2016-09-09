@@ -51,7 +51,7 @@ void init_issues(py::module &m) {
         }
     };
 
-    py::class_<Base, std::unique_ptr<Base>, DispatchIssue>(m2, "DispatchIssue")
+    py::class_<Base, DispatchIssue>(m2, "DispatchIssue")
         .def(py::init<>())
         .def("dispatch", &Base::dispatch);
 
@@ -64,7 +64,7 @@ void init_issues(py::module &m) {
         .def("__repr__", [](const Placeholder &p) { return "Placeholder[" + std::to_string(p.i) + "]"; });
 
     // #171: Can't return reference wrappers (or STL datastructures containing them)
-    m2.def("return_vec_of_reference_wrapper", [](std::reference_wrapper<Placeholder> p4){
+    m2.def("return_vec_of_reference_wrapper", [](std::reference_wrapper<Placeholder> p4) {
         Placeholder *p1 = new Placeholder{1};
         Placeholder *p2 = new Placeholder{2};
         Placeholder *p3 = new Placeholder{3};
@@ -96,14 +96,14 @@ void init_issues(py::module &m) {
 
     py::class_<ElementBase, std::shared_ptr<ElementBase>> (m2, "ElementBase");
 
-    py::class_<ElementA, std::shared_ptr<ElementA>>(m2, "ElementA", py::base<ElementBase>())
+    py::class_<ElementA, ElementBase, std::shared_ptr<ElementA>>(m2, "ElementA")
         .def(py::init<int>())
         .def("value", &ElementA::value);
 
     py::class_<ElementList, std::shared_ptr<ElementList>>(m2, "ElementList")
         .def(py::init<>())
         .def("add", &ElementList::add)
-        .def("get", [](ElementList &el){
+        .def("get", [](ElementList &el) {
             py::list list;
             for (auto &e : el.l)
                 list.append(py::cast(e));
@@ -121,14 +121,14 @@ void init_issues(py::module &m) {
     // classes that were not extended on the Python side
     struct A {
         virtual ~A() {}
-        virtual void f() { std::cout << "A.f()" << std::endl; }
+        virtual void f() { py::print("A.f()"); }
     };
 
     struct PyA : A {
-        PyA() { std::cout << "PyA.PyA()" << std::endl; }
+        PyA() { py::print("PyA.PyA()"); }
 
         void f() override {
-            std::cout << "PyA.f()" << std::endl;
+            py::print("PyA.f()");
             PYBIND11_OVERLOAD(void, A, f);
         }
     };
@@ -172,4 +172,65 @@ void init_issues(py::module &m) {
     m2.def("get_NestA", [](const NestA &a) { return a.value; });
     m2.def("get_NestB", [](const NestB &b) { return b.value; });
     m2.def("get_NestC", [](const NestC &c) { return c.value; });
+
+    // Issue 389: r_v_p::move should fall-through to copy on non-movable objects
+    class MoveIssue1 {
+    public:
+        MoveIssue1(int v) : v{v} {}
+        MoveIssue1(const MoveIssue1 &c) { v = c.v; }
+        MoveIssue1(MoveIssue1 &&) = delete;
+        int v;
+    };
+    class MoveIssue2 {
+    public:
+        MoveIssue2(int v) : v{v} {}
+        MoveIssue2(MoveIssue2 &&) = default;
+        int v;
+    };
+    py::class_<MoveIssue1>(m2, "MoveIssue1").def(py::init<int>()).def_readwrite("value", &MoveIssue1::v);
+    py::class_<MoveIssue2>(m2, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
+    m2.def("get_moveissue1", [](int i) -> MoveIssue1 * { return new MoveIssue1(i); }, py::return_value_policy::move);
+    m2.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
+
+    // Issues 392/397: overridding reference-returning functions
+    class OverrideTest {
+    public:
+        struct A { std::string value = "hi"; };
+        std::string v;
+        A a;
+        explicit OverrideTest(const std::string &v) : v{v} {}
+        virtual std::string str_value() { return v; }
+        virtual std::string &str_ref() { return v; }
+        virtual A A_value() { return a; }
+        virtual A &A_ref() { return a; }
+    };
+    class PyOverrideTest : public OverrideTest {
+    public:
+        using OverrideTest::OverrideTest;
+        std::string str_value() override { PYBIND11_OVERLOAD(std::string, OverrideTest, str_value); }
+        // Not allowed (uncommenting should hit a static_assert failure): we can't get a reference
+        // to a python numeric value, since we only copy values in the numeric type caster:
+//      std::string &str_ref() override { PYBIND11_OVERLOAD(std::string &, OverrideTest, str_ref); }
+        // But we can work around it like this:
+    private:
+        std::string _tmp;
+        std::string str_ref_helper() { PYBIND11_OVERLOAD(std::string, OverrideTest, str_ref); }
+    public:
+        std::string &str_ref() override { return _tmp = str_ref_helper(); }
+
+        A A_value() override { PYBIND11_OVERLOAD(A, OverrideTest, A_value); }
+        A &A_ref() override { PYBIND11_OVERLOAD(A &, OverrideTest, A_ref); }
+    };
+    py::class_<OverrideTest::A>(m2, "OverrideTest_A")
+        .def_readwrite("value", &OverrideTest::A::value);
+    py::class_<OverrideTest, PyOverrideTest>(m2, "OverrideTest")
+        .def(py::init<const std::string &>())
+        .def("str_value", &OverrideTest::str_value)
+//      .def("str_ref", &OverrideTest::str_ref)
+        .def("A_value", &OverrideTest::A_value)
+        .def("A_ref", &OverrideTest::A_ref);
+
 }
+
+// MSVC workaround: trying to use a lambda here crashes MSCV
+test_initializer issues(&init_issues);

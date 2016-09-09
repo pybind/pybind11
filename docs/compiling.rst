@@ -26,7 +26,7 @@ Building with cppimport
 Building with CMake
 ===================
 
-For C++ codebases that have an existing CMake-based build system, a Python 
+For C++ codebases that have an existing CMake-based build system, a Python
 extension module can be created with just a few lines of code:
 
 .. code-block:: cmake
@@ -37,14 +37,14 @@ extension module can be created with just a few lines of code:
     add_subdirectory(pybind11)
     pybind11_add_module(example example.cpp)
 
-This assumes that the pybind11 repository is located in a subdirectory named 
+This assumes that the pybind11 repository is located in a subdirectory named
 :file:`pybind11` and that the code is located in a file named :file:`example.cpp`.
 The CMake command ``add_subdirectory`` will import a function with the signature
 ``pybind11_add_module(<name> source1 [source2 ...])``. It will take care of all
 the details needed to build a Python extension module on any platform.
 
-The target Python version can be selected by setting the ``PYBIND11_PYTHON_VERSION`` 
-variable before adding the pybind11 subdirectory. Alternatively, an exact Python 
+The target Python version can be selected by setting the ``PYBIND11_PYTHON_VERSION``
+variable before adding the pybind11 subdirectory. Alternatively, an exact Python
 installation can be specified by setting ``PYTHON_EXECUTABLE``.
 
 A working sample project, including a way to invoke CMake from :file:`setup.py` for

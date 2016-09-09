@@ -112,7 +112,7 @@ std::string as_string(const std::string &s) { return s; }
 double double_exICe(const ExIC_E &e) { return (double) e; }
 double double_exICf(const ExIC_F &f) { return (double) f; }
 
-void init_ex_implicit_conversion(py::module &m) {
+test_initializer implicit_conversions([](py::module &m) {
 
     py::class_<ExIC_A> a(m, "ExIC_A");
     a.def(py::init<>());
@@ -186,4 +186,4 @@ void init_ex_implicit_conversion(py::module &m) {
     py::implicitly_convertible<ExIC_G4, long>();
 
     m.def("cstats_ExIC_E", &ConstructorStats::get<ExIC_E>);
-}
+});

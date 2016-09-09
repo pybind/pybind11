@@ -16,7 +16,8 @@
 NAMESPACE_BEGIN(pybind11)
 
 /* A few forward declarations */
-class object; class str; class object; class dict; class iterator;
+class object; class str; class iterator;
+struct arg; struct arg_v;
 namespace detail { class accessor; class args_proxy; class kwargs_proxy; }
 
 /// Holds a reference to a Python object (no reference counting)
@@ -39,6 +40,7 @@ public:
     inline detail::accessor attr(const char *key) const;
     inline pybind11::str str() const;
     inline pybind11::str repr() const;
+    bool is_none() const { return m_ptr == Py_None; }
     template <typename T> T cast() const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
     #if __cplusplus > 201103L
@@ -47,8 +49,6 @@ public:
     object call(Args&&... args) const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
     object operator()(Args&&... args) const;
-    inline object operator()(detail::args_proxy args) const;
-    inline object operator()(detail::args_proxy f_args, detail::kwargs_proxy kwargs) const;
     operator bool() const { return m_ptr != nullptr; }
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
     bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
@@ -249,6 +249,23 @@ public:
     kwargs_proxy operator*() const { return kwargs_proxy(*this); }
 };
 
+/// Python argument categories (using PEP 448 terms)
+template <typename T> using is_keyword = std::is_base_of<arg, T>;
+template <typename T> using is_s_unpacking = std::is_same<args_proxy, T>; // * unpacking
+template <typename T> using is_ds_unpacking = std::is_same<kwargs_proxy, T>; // ** unpacking
+template <typename T> using is_positional = bool_constant<
+    !is_keyword<T>::value && !is_s_unpacking<T>::value && !is_ds_unpacking<T>::value
+>;
+template <typename T> using is_keyword_or_ds = bool_constant<
+    is_keyword<T>::value || is_ds_unpacking<T>::value
+>;
+
+// Call argument collector forward declarations
+template <return_value_policy policy = return_value_policy::automatic_reference>
+class simple_collector;
+template <return_value_policy policy = return_value_policy::automatic_reference>
+class unpacking_collector;
+
 NAMESPACE_END(detail)
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
@@ -373,7 +390,17 @@ public:
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
     }
+
+    template <typename... Args>
+    str format(Args &&...args) const {
+        return attr("format").cast<object>()(std::forward<Args>(args)...);
+    }
 };
+
+inline namespace literals {
+/// String literal version of str
+inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
+}
 
 inline pybind11::str handle::str() const {
     PyObject *strValue = PyObject_Str(m_ptr);
@@ -567,6 +594,12 @@ public:
     dict() : object(PyDict_New(), false) {
         if (!m_ptr) pybind11_fail("Could not allocate dict object!");
     }
+    template <typename... Args,
+              typename = detail::enable_if_t<detail::all_of_t<detail::is_keyword_or_ds, Args...>::value>,
+              // MSVC workaround: it can't compile an out-of-line definition, so defer the collector
+              typename collector = detail::deferred_t<detail::unpacking_collector<>, Args...>>
+    dict(Args &&...args) : dict(collector(std::forward<Args>(args)...).kwargs()) { }
+
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     detail::dict_iterator begin() const { return (++detail::dict_iterator(*this, 0)); }
     detail::dict_iterator end() const { return detail::dict_iterator(); }

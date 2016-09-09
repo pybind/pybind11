@@ -1,6 +1,18 @@
 import pytest
 
 
+def test_error_already_set(msg):
+    from pybind11_tests import throw_already_set
+
+    with pytest.raises(RuntimeError) as excinfo:
+        throw_already_set(False)
+    assert msg(excinfo.value) == "Unknown internal error occurred"
+
+    with pytest.raises(ValueError) as excinfo:
+        throw_already_set(True)
+    assert msg(excinfo.value) == "foo"
+
+
 def test_custom(msg):
     from pybind11_tests import (MyException, throws1, throws2, throws3, throws4,
                                 throws_logic_error)

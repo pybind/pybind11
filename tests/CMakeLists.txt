@@ -6,7 +6,9 @@ endif()
 set(PYBIND11_TEST_FILES
   test_buffers.cpp
   test_callbacks.cpp
+  test_class_args.cpp
   test_constants_and_functions.cpp
+  test_eigen.cpp
   test_enum.cpp
   test_eval.cpp
   test_exceptions.cpp
@@ -29,14 +31,21 @@ set(PYBIND11_TEST_FILES
   test_virtual_functions.cpp
 )
 
-# Check if Eigen is available
-find_package(Eigen3 QUIET)
+string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 
-if(EIGEN3_FOUND)
-  list(APPEND PYBIND11_TEST_FILES test_eigen.cpp)
-  message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
-else()
-  message(STATUS "Building tests WITHOUT Eigen")
+# Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
+# keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
+# skip message).
+list(FIND PYBIND11_TEST_FILES test_eigen.cpp PYBIND11_TEST_FILES_EIGEN_I)
+if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
+  find_package(Eigen3 QUIET)
+
+  if(EIGEN3_FOUND)
+    message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
+  else()
+    list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
+    message(STATUS "Building tests WITHOUT Eigen")
+  endif()
 endif()
 
 # Create the binding library
@@ -59,7 +68,7 @@ if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
   endforeach()
 endif()
 
-# Make sure pytest is found or try to install it if it's not found
+# Make sure pytest is found or produce a fatal error
 macro(pybind11_execute_python)
   execute_process(COMMAND ${PYTHON_EXECUTABLE} -m ${ARGN} OUTPUT_QUIET ERROR_QUIET
                   RESULT_VARIABLE pybind11_execute_python_error)
@@ -68,22 +77,12 @@ endmacro()
 if(NOT PYBIND11_PYTEST_FOUND)
   pybind11_execute_python(pytest --version --noconftest)
   if(pybind11_execute_python_error)
-    message(STATUS "Installing pytest using pip")
-    pybind11_execute_python(pip install pytest)
-    if(pybind11_execute_python_error)
-      message(STATUS "Installing pytest using pip --user (fallback)")
-      pybind11_execute_python(pip install --user pytest)
-    endif()
-
-    pybind11_execute_python(pytest --version --noconftest)
-    if(pybind11_execute_python_error)
-      message(FATAL_ERROR "Running the tests requires pytest. Please install it manually.")
-    endif()
+    message(FATAL_ERROR "Running the tests requires pytest.  Please install it manually (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
   endif()
 
   set(PYBIND11_PYTEST_FOUND TRUE CACHE INTERAL "")
 endif()
 
 # A single command to compile and run the tests
-add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest -rws
+add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest -rws ${PYBIND11_PYTEST_FILES}
                   DEPENDS pybind11_tests WORKING_DIRECTORY ${testdir})
