@@ -294,7 +294,7 @@ struct overload_hash {
 
 struct implicit_conversion_cpp_functions {
     std::vector<std::pair<PyTypeObject *, void *(*)(void *)>> constructors;
-    void (*destructor)(void *){nullptr};
+    void (*destructor)(void *) {nullptr};
 };
 
 
