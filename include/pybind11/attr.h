@@ -17,6 +17,9 @@ NAMESPACE_BEGIN(pybind11)
 /// Annotation for methods
 struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
 
+/// Annotation for operators
+struct is_operator { };
+
 /// Annotation for parent scope
 struct scope { handle value; scope(const handle &s) : value(s) { } };
 
@@ -57,6 +60,10 @@ struct argument_record {
 
 /// Internal data structure which holds metadata about a bound function (signature, overloads, etc.)
 struct function_record {
+    function_record()
+        : is_constructor(false), is_stateless(false), is_operator(false),
+          has_args(false), has_kwargs(false) { }
+
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
 
@@ -86,6 +93,9 @@ struct function_record {
 
     /// True if this is a stateless function pointer
     bool is_stateless : 1;
+
+    /// True if this is an operator (__add__), etc.
+    bool is_operator : 1;
 
     /// True if the function has a '*args' argument
     bool has_args : 1;
@@ -198,6 +208,10 @@ template <> struct process_attribute<scope> : process_attribute_default<scope> {
     static void init(const scope &s, function_record *r) { r->scope = s.value; }
 };
 
+/// Process an attribute which indicates that this function is an operator
+template <> struct process_attribute<is_operator> : process_attribute_default<is_operator> {
+    static void init(const is_operator &, function_record *r) { r->is_operator = true; }
+};
 
 /// Process a keyword argument attribute (*without* a default value)
 template <> struct process_attribute<arg> : process_attribute_default<arg> {
