@@ -83,12 +83,11 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
     static constexpr bool isVector = Type::IsVectorAtCompileTime;
 
     bool load(handle src, bool) {
-       array_t<Scalar> buffer(src, true);
-       if (!buffer.check())
-           return false;
+        array_t<Scalar> buf(src, true);
+        if (!buf.check())
+            return false;
 
-        auto info = buffer.request();
-        if (info.ndim == 1) {
+        if (buf.ndim() == 1) {
             typedef Eigen::InnerStride<> Strides;
             if (!isVector &&
                 !(Type::RowsAtCompileTime == Eigen::Dynamic &&
@@ -96,31 +95,32 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
                 return false;
 
             if (Type::SizeAtCompileTime != Eigen::Dynamic &&
-                info.shape[0] != (size_t) Type::SizeAtCompileTime)
+                buf.shape(0) != (size_t) Type::SizeAtCompileTime)
                 return false;
 
-            auto strides = Strides(info.strides[0] / sizeof(Scalar));
-
-            Strides::Index n_elts = (Strides::Index) info.shape[0];
+            Strides::Index n_elts = (Strides::Index) buf.shape(0);
             Strides::Index unity = 1;
 
             value = Eigen::Map<Type, 0, Strides>(
-                (Scalar *) info.ptr, rowMajor ? unity : n_elts, rowMajor ? n_elts : unity, strides);
-        } else if (info.ndim == 2) {
+                buf.mutable_data(),
+                rowMajor ? unity : n_elts,
+                rowMajor ? n_elts : unity,
+                Strides(buf.strides(0) / sizeof(Scalar))
+            );
+        } else if (buf.ndim() == 2) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 
-            if ((Type::RowsAtCompileTime != Eigen::Dynamic && info.shape[0] != (size_t) Type::RowsAtCompileTime) ||
-                (Type::ColsAtCompileTime != Eigen::Dynamic && info.shape[1] != (size_t) Type::ColsAtCompileTime))
+            if ((Type::RowsAtCompileTime != Eigen::Dynamic && buf.shape(0) != (size_t) Type::RowsAtCompileTime) ||
+                (Type::ColsAtCompileTime != Eigen::Dynamic && buf.shape(1) != (size_t) Type::ColsAtCompileTime))
                 return false;
 
-            auto strides = Strides(
-                info.strides[rowMajor ? 0 : 1] / sizeof(Scalar),
-                info.strides[rowMajor ? 1 : 0] / sizeof(Scalar));
-
             value = Eigen::Map<Type, 0, Strides>(
-                (Scalar *) info.ptr,
-                typename Strides::Index(info.shape[0]),
-                typename Strides::Index(info.shape[1]), strides);
+                buf.mutable_data(),
+                typename Strides::Index(buf.shape(0)),
+                typename Strides::Index(buf.shape(1)),
+                Strides(buf.strides(rowMajor ? 0 : 1) / sizeof(Scalar),
+                        buf.strides(rowMajor ? 1 : 0) / sizeof(Scalar))
+            );
         } else {
             return false;
         }
@@ -222,28 +222,18 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
             }
         }
 
-        auto valuesArray = array_t<Scalar>((object) obj.attr("data"));
-        auto innerIndicesArray = array_t<StorageIndex>((object) obj.attr("indices"));
-        auto outerIndicesArray = array_t<StorageIndex>((object) obj.attr("indptr"));
+        auto values = array_t<Scalar>((object) obj.attr("data"));
+        auto innerIndices = array_t<StorageIndex>((object) obj.attr("indices"));
+        auto outerIndices = array_t<StorageIndex>((object) obj.attr("indptr"));
         auto shape = pybind11::tuple((pybind11::object) obj.attr("shape"));
         auto nnz = obj.attr("nnz").cast<Index>();
 
-        if (!valuesArray.check() || !innerIndicesArray.check() ||
-            !outerIndicesArray.check())
+        if (!values.check() || !innerIndices.check() || !outerIndices.check())
             return false;
 
-        auto outerIndices = outerIndicesArray.request();
-        auto innerIndices = innerIndicesArray.request();
-        auto values = valuesArray.request();
-
         value = Eigen::MappedSparseMatrix<Scalar, Type::Flags, StorageIndex>(
-            shape[0].cast<Index>(),
-            shape[1].cast<Index>(),
-            nnz,
-            static_cast<StorageIndex *>(outerIndices.ptr),
-            static_cast<StorageIndex *>(innerIndices.ptr),
-            static_cast<Scalar *>(values.ptr)
-        );
+            shape[0].cast<Index>(), shape[1].cast<Index>(), nnz,
+            outerIndices.mutable_data(), innerIndices.mutable_data(), values.mutable_data());
 
         return true;
     }
