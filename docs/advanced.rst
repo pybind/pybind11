@@ -90,10 +90,13 @@ is really just short hand notation for
 
     .def("__mul__", [](const Vector2 &a, float b) {
         return a * b;
-    })
+    }, py::is_operator())
 
 This can be useful for exposing additional operators that don't exist on the
-C++ side, or to perform other types of customization.
+C++ side, or to perform other types of customization. The ``py::is_operator``
+flag marker is needed to inform pybind11 that this is an operator, which
+returns ``NotImplemented`` when invoked with incompatible arguments rather than
+throwing a type error.
 
 .. note::
 

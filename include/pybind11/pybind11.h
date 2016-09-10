@@ -71,6 +71,11 @@ public:
     object name() const { return attr("__name__"); }
 
 protected:
+    /// Space optimization: don't inline this frequently instantiated fragment
+    PYBIND11_NOINLINE detail::function_record *make_function_record() {
+        return new detail::function_record();
+    }
+
     /// Special internal constructor for functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Args, typename... Extra>
     void initialize(Func &&f, Return (*)(Args...), const Extra&... extra) {
@@ -80,7 +85,7 @@ protected:
         struct capture { typename std::remove_reference<Func>::type f; };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
-        auto rec = new detail::function_record();
+        auto rec = make_function_record();
 
         /* Store the capture object directly in the function record if there is enough space */
         if (sizeof(capture) <= sizeof(rec->data)) {
@@ -241,9 +246,6 @@ protected:
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
-        rec->is_stateless = false;
-        rec->has_args = false;
-        rec->has_kwargs = false;
         rec->nargs = (uint16_t) args;
 
 #if PY_MAJOR_VERSION < 3
@@ -454,6 +456,9 @@ protected:
         }
 
         if (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
+            if (overloads->is_operator)
+                return handle(Py_NotImplemented).inc_ref().ptr();
+
             std::string msg = "Incompatible " + std::string(overloads->is_constructor ? "constructor" : "function") +
                               " arguments. The following argument types are supported:\n";
             int ctr = 0;

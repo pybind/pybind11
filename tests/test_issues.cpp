@@ -20,6 +20,23 @@ struct NestA : NestABase { int value = 3; NestA& operator+=(int i) { value += i;
 struct NestB { NestA a; int value = 4; NestB& operator-=(int i) { value -= i; return *this; } TRACKERS(NestB) };
 struct NestC { NestB b; int value = 5; NestC& operator*=(int i) { value *= i; return *this; } TRACKERS(NestC) };
 
+/// #393
+class OpTest1 {};
+class OpTest2 {};
+
+OpTest1 operator+(const OpTest1 &, const OpTest1 &) {
+    py::print("Add OpTest1 with OpTest1");
+    return OpTest1();
+}
+OpTest2 operator+(const OpTest2 &, const OpTest2 &) {
+    py::print("Add OpTest2 with OpTest2");
+    return OpTest2();
+}
+OpTest2 operator+(const OpTest2 &, const OpTest1 &) {
+    py::print("Add OpTest2 with OpTest1");
+    return OpTest2();
+}
+
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
@@ -230,6 +247,16 @@ void init_issues(py::module &m) {
         .def("A_value", &OverrideTest::A_value)
         .def("A_ref", &OverrideTest::A_ref);
 
+    /// Issue 393: need to return NotSupported to ensure correct arithmetic operator behavior
+    py::class_<OpTest1>(m2, "OpTest1")
+        .def(py::init<>())
+        .def(py::self + py::self);
+
+    py::class_<OpTest2>(m2, "OpTest2")
+        .def(py::init<>())
+        .def(py::self + py::self)
+        .def("__add__", [](const OpTest2& c2, const OpTest1& c1) { return c2 + c1; })
+        .def("__radd__", [](const OpTest2& c2, const OpTest1& c1) { return c2 + c1; });
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSCV

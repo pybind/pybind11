@@ -181,3 +181,16 @@ def test_override_ref():
     assert a.value == "hi"
     a.value = "bye"
     assert a.value == "bye"
+
+def test_operators_notimplemented(capture):
+    from pybind11_tests.issues import OpTest1, OpTest2
+    with capture:
+        C1, C2 = OpTest1(), OpTest2()
+        C1 + C1
+        C2 + C2
+        C2 + C1
+        C1 + C2
+    assert capture == """Add OpTest1 with OpTest1
+Add OpTest2 with OpTest2
+Add OpTest2 with OpTest1
+Add OpTest2 with OpTest1"""
