@@ -54,11 +54,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
                 try {
                     if (p) std::rethrow_exception(p);
                 } catch (error_already_set &e)           { e.restore();                                    return;
-                } catch (const index_error &e)           { PyErr_SetString(PyExc_IndexError,    e.what()); return;
-                } catch (const key_error &e)             { PyErr_SetString(PyExc_KeyError,      e.what()); return;
-                } catch (const value_error &e)           { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const type_error &e)            { PyErr_SetString(PyExc_TypeError,     e.what()); return;
-                } catch (const stop_iteration &e)        { PyErr_SetString(PyExc_StopIteration, e.what()); return;
+                } catch (const builtin_exception &e)     { e.set_error();                                  return;
                 } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
                 } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
                 } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return;

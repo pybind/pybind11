@@ -399,21 +399,27 @@ private:
     PyObject *type, *value, *trace;
 };
 
-#define PYBIND11_RUNTIME_EXCEPTION(name) \
-    class name : public std::runtime_error { public: \
-        name(const std::string &w) : std::runtime_error(w) { }; \
-        name(const char *s) : std::runtime_error(s) { }; \
-        name() : std::runtime_error("") { } \
+/// C++ bindings of builtin Python exceptions
+class builtin_exception : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+    virtual void set_error() const = 0; /// Set the error using the Python C API
+};
+
+#define PYBIND11_RUNTIME_EXCEPTION(name, type) \
+    class name : public builtin_exception { public: \
+        using builtin_exception::builtin_exception; \
+        name() : name("") { } \
+        void set_error() const override { PyErr_SetString(type, what()); } \
     };
 
-// C++ bindings of core Python exceptions
-PYBIND11_RUNTIME_EXCEPTION(stop_iteration)
-PYBIND11_RUNTIME_EXCEPTION(index_error)
-PYBIND11_RUNTIME_EXCEPTION(key_error)
-PYBIND11_RUNTIME_EXCEPTION(value_error)
-PYBIND11_RUNTIME_EXCEPTION(type_error)
-PYBIND11_RUNTIME_EXCEPTION(cast_error) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
-PYBIND11_RUNTIME_EXCEPTION(reference_cast_error) /// Used internally
+PYBIND11_RUNTIME_EXCEPTION(stop_iteration, PyExc_StopIteration)
+PYBIND11_RUNTIME_EXCEPTION(index_error, PyExc_IndexError)
+PYBIND11_RUNTIME_EXCEPTION(key_error, PyExc_KeyError)
+PYBIND11_RUNTIME_EXCEPTION(value_error, PyExc_ValueError)
+PYBIND11_RUNTIME_EXCEPTION(type_error, PyExc_TypeError)
+PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
+PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
 [[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
 [[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
