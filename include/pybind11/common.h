@@ -420,6 +420,13 @@ template <typename T> struct format_descriptor<T, typename std::enable_if<std::i
 template <typename T> constexpr const char format_descriptor<
     T, typename std::enable_if<std::is_integral<T>::value>::type>::value[2];
 
+/// RAII wrapper that temporarily clears any Python error state
+struct error_scope {
+    PyObject *type, *value, *trace;
+    error_scope() { PyErr_Fetch(&type, &value, &trace); }
+    ~error_scope() { PyErr_Restore(type, value, trace); }
+};
+
 PYBIND11_DECL_FMT(float, "f");
 PYBIND11_DECL_FMT(double, "d");
 PYBIND11_DECL_FMT(bool, "?");

@@ -111,18 +111,16 @@ PYBIND11_NOINLINE inline std::string error_string() {
         return "Unknown internal error occurred";
     }
 
-    PyObject *type, *value, *traceback;
-    PyErr_Fetch(&type, &value, &traceback);
+    error_scope scope; // Preserve error state
 
     std::string errorString;
-    if (type) {
-        errorString += handle(type).attr("__name__").cast<std::string>();
+    if (scope.type) {
+        errorString += handle(scope.type).attr("__name__").cast<std::string>();
         errorString += ": ";
     }
-    if (value)
-        errorString += (std::string) handle(value).str();
+    if (scope.value)
+        errorString += (std::string) handle(scope.value).str();
 
-    PyErr_Restore(type, value, traceback);
     return errorString;
 }
 
