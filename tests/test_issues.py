@@ -79,30 +79,6 @@ def test_no_id(capture, msg):
     """
     assert expect_float(12) == 12
 
-    from pybind11_tests.issues import A, call_f
-
-    class B(A):
-        def __init__(self):
-            super(B, self).__init__()
-
-        def f(self):
-            print("In python f()")
-
-    # C++ version
-    with capture:
-        a = A()
-        call_f(a)
-    assert capture == "A.f()"
-
-    # Python version
-    with capture:
-        b = B()
-        call_f(b)
-    assert capture == """
-        PyA.PyA()
-        PyA.f()
-        In python f()
-    """
 
 
 def test_str_issue(msg):

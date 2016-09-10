@@ -1112,17 +1112,17 @@ private:
 
 NAMESPACE_BEGIN(detail)
 template <typename... Args> struct init {
-    template <typename Class, typename... Extra, typename std::enable_if<!Class::has_alias, int>::type = 0>
-    void execute(Class &cl, const Extra&... extra) const {
+    template <typename Class, typename... Extra, enable_if_t<!Class::has_alias, int> = 0>
+    static void execute(Class &cl, const Extra&... extra) {
         using Base = typename Class::type;
         /// Function which calls a specific C++ in-place constructor
         cl.def("__init__", [](Base *self_, Args... args) { new (self_) Base(args...); }, extra...);
     }
 
     template <typename Class, typename... Extra,
-              typename std::enable_if<Class::has_alias &&
-                                       std::is_constructible<typename Class::type, Args...>::value, int>::type = 0>
-    void execute(Class &cl, const Extra&... extra) const {
+              enable_if_t<Class::has_alias &&
+                          std::is_constructible<typename Class::type, Args...>::value, int> = 0>
+    static void execute(Class &cl, const Extra&... extra) {
         using Base = typename Class::type;
         using Alias = typename Class::type_alias;
         handle cl_type = cl;
@@ -1135,13 +1135,21 @@ template <typename... Args> struct init {
     }
 
     template <typename Class, typename... Extra,
-              typename std::enable_if<Class::has_alias &&
-                                      !std::is_constructible<typename Class::type, Args...>::value, int>::type = 0>
-    void execute(Class &cl, const Extra&... extra) const {
+              enable_if_t<Class::has_alias &&
+                          !std::is_constructible<typename Class::type, Args...>::value, int> = 0>
+    static void execute(Class &cl, const Extra&... extra) {
+        init_alias<Args...>::execute(cl, extra...);
+    }
+};
+template <typename... Args> struct init_alias {
+    template <typename Class, typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<typename Class::type_alias, Args...>::value, int> = 0>
+    static void execute(Class &cl, const Extra&... extra) {
         using Alias = typename Class::type_alias;
         cl.def("__init__", [](Alias *self_, Args... args) { new (self_) Alias(args...); }, extra...);
     }
 };
+
 
 inline void keep_alive_impl(handle nurse, handle patient) {
     /* Clever approach based on weak references taken from Boost.Python */
@@ -1177,6 +1185,7 @@ struct iterator_state {
 NAMESPACE_END(detail)
 
 template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
+template <typename... Args> detail::init_alias<Args...> init_alias() { return detail::init_alias<Args...>(); }
 
 template <typename Iterator,
           typename Sentinel,

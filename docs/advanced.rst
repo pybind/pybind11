@@ -480,6 +480,36 @@ can now create a python class that inherits from ``Dog``:
     See the file :file:`tests/test_virtual_functions.cpp` for complete examples
     using both the duplication and templated trampoline approaches.
 
+Extended trampoline class functionality
+=======================================
+
+The trampoline classes described in the previous sections are, by default, only
+initialized when needed.  More specifically, they are initialized when a python
+class actually inherits from a registered type (instead of merely creating an
+instance of the registered type), or when a registered constructor is only
+valid for the trampoline class but not the registered class.  This is primarily
+for performance reasons: when the trampoline class is not needed for anything
+except virtual method dispatching, not initializing the trampoline class
+improves performance by avoiding needing to do a run-time check to see if the
+inheriting python instance has an overloaded method.
+
+Sometimes, however, it is useful to always initialize a trampoline class as an
+intermediate class that does more than just handle virtual method dispatching.
+For example, such a class might perform extra class initialization, extra
+destruction operations, and might define new members and methods to enable a
+more python-like interface to a class.
+
+In order to tell pybind11 that it should *always* initialize the trampoline
+class when creating new instances of a type, the class constructors should be
+declared using ``py::init_alias<Args, ...>()`` instead of the usual
+``py::init<Args, ...>()``.  This forces construction via the trampoline class,
+ensuring member initialization and (eventual) destruction.
+
+.. seealso::
+
+    See the file :file:`tests/test_alias_initialization.cpp` for complete examples
+    showing both normal and forced trampoline instantiation.
+
 .. _macro_notes:
 
 General notes regarding convenience macros
