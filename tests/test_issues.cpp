@@ -233,6 +233,11 @@ void init_issues(py::module &m) {
         .def(py::self + py::self)
         .def("__add__", [](const OpTest2& c2, const OpTest1& c1) { return c2 + c1; })
         .def("__radd__", [](const OpTest2& c2, const OpTest1& c1) { return c2 + c1; });
+
+    // Issue 388: Can't make iterators via make_iterator() with different r/v policies
+    static std::vector<int> list = { 1, 2, 3 };
+    m2.def("make_iterator_1", []() { return py::make_iterator<py::return_value_policy::copy>(list); });
+    m2.def("make_iterator_2", []() { return py::make_iterator<py::return_value_policy::automatic>(list); });
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSCV

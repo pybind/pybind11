@@ -246,10 +246,12 @@ pybind11::class_<Vector, holder_type> bind_vector(pybind11::module &m, std::stri
     cl.def("__len__", &Vector::size);
 
     cl.def("__iter__",
-        [](Vector &v) {
-            return pybind11::make_iterator<ItType, ItType, T>(v.begin(), v.end());
-        },
-        pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
+           [](Vector &v) {
+               return pybind11::make_iterator<
+                   return_value_policy::reference_internal, ItType, ItType, T>(
+                   v.begin(), v.end());
+           },
+           pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
     );
 
     /// Slicing protocol
