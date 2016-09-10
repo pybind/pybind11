@@ -68,8 +68,7 @@ before_install:
       --env="CC=$CC" --env="CXX=$CXX" --env="DEBIAN_FRONTEND=$DEBIAN_FRONTEND" \
       --env=GCC_COLORS=\  \
       $DOCKER)
-    docker exec --tty "$containerid" apt-get update
-    docker exec --tty "$containerid" apt-get -y upgrade
+    docker exec --tty "$containerid" sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
     export SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
   else
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
@@ -91,9 +90,9 @@ install:
 - |
   # Install dependencies
   if [ -n "$DOCKER" ]; then
-    docker exec --tty "$containerid" apt-get -y --no-install-recommends install \
+    docker exec --tty "$containerid" sh -c "for s in 0 15; do sleep \$s; apt-get -qy --no-install-recommends install \
       python$PYTHON-dev python$PY-pytest python$PY-scipy \
-      libeigen3-dev cmake make g++
+      libeigen3-dev cmake make g++ && break; done"
   else
     pip install numpy scipy pytest
 
