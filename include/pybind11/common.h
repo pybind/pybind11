@@ -384,6 +384,21 @@ inline void ignore_unused(const int *) { }
 
 NAMESPACE_END(detail)
 
+/// Fetch and hold an error which was already set in Python
+class error_already_set : public std::runtime_error {
+public:
+    error_already_set() : std::runtime_error(detail::error_string()) {
+        PyErr_Fetch(&type, &value, &trace);
+    }
+    ~error_already_set() { Py_XDECREF(type); Py_XDECREF(value); Py_XDECREF(trace); }
+
+    /// Give the error back to Python
+    void restore() { PyErr_Restore(type, value, trace); type = value = trace = nullptr; }
+
+private:
+    PyObject *type, *value, *trace;
+};
+
 #define PYBIND11_RUNTIME_EXCEPTION(name) \
     class name : public std::runtime_error { public: \
         name(const std::string &w) : std::runtime_error(w) { }; \
@@ -392,7 +407,6 @@ NAMESPACE_END(detail)
     };
 
 // C++ bindings of core Python exceptions
-class error_already_set : public std::runtime_error { public: error_already_set() : std::runtime_error(detail::error_string())  {} };
 PYBIND11_RUNTIME_EXCEPTION(stop_iteration)
 PYBIND11_RUNTIME_EXCEPTION(index_error)
 PYBIND11_RUNTIME_EXCEPTION(key_error)

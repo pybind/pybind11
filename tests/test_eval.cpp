@@ -63,7 +63,6 @@ test_initializer eval([](py::module &m) {
         try {
             py::eval("nonsense code ...");
         } catch (py::error_already_set &) {
-            PyErr_Clear();
             return true;
         }
         return false;

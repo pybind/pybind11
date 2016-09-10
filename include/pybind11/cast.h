@@ -53,7 +53,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
             [](std::exception_ptr p) -> void {
                 try {
                     if (p) std::rethrow_exception(p);
-                } catch (const error_already_set &)      {                                                 return;
+                } catch (error_already_set &e)           { e.restore();                                    return;
                 } catch (const index_error &e)           { PyErr_SetString(PyExc_IndexError,    e.what()); return;
                 } catch (const key_error &e)             { PyErr_SetString(PyExc_KeyError,      e.what()); return;
                 } catch (const value_error &e)           { PyErr_SetString(PyExc_ValueError,    e.what()); return;

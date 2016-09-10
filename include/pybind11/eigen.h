@@ -217,7 +217,6 @@ struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::
             try {
                 obj = matrix_type(obj);
             } catch (const error_already_set &) {
-                PyErr_Clear();
                 return false;
             }
         }
