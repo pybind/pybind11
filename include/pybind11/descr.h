@@ -27,6 +27,18 @@ NAMESPACE_BEGIN(detail)
 #  endif
 #endif
 
+// Character used to separate in/out arguments; will be replaced with " -> ".  (We don't just look
+// for " -> " because that can also be in a function argument name).
+#define PYBIND11_DESCR_IN_OUT_SEP '`'
+// Character that goes in front of arguments (used in the tuple caster)
+#define PYBIND11_DESCR_ARG_PREFIX '$'
+// Character used to signal that the current type has an associated type_info pointer
+#define PYBIND11_DESCR_TYPE_INFO '~'
+// Character that signals that the type name should be looked up from its type_info
+#define PYBIND11_DESCR_AUTO_TYPE_NAME '%'
+// The above will be ordered in the order listed above, i.e. ${~%} indicates varaible with a type_info
+// record that should have its human-readable name derived from that type info.
+
 #if defined(PYBIND11_CPP14) /* Concatenate type signatures at compile time using C++14 */
 
 template <size_t Size1, size_t Size2> class descr {
@@ -78,6 +90,14 @@ protected:
 template <size_t Size> constexpr descr<Size - 1, 0> _(char const(&text)[Size]) {
     return descr<Size - 1, 0>(text, { nullptr });
 }
+// Same as above, but holds the type and prefixes with & (so '&%' is a generic type with name
+// determined from its typeid, '&blah' is some type with display name 'blah').
+template <typename Type, size_t Size> constexpr descr<Size, 1> _(char const(&text)[Size]) {
+    return descr<1, 1>({ PYBIND11_DESCR_TYPE_INFO, '\0' }, { &typeid(Type), nullptr }) + _(text);
+}
+// Single-char versions of the above two:
+inline constexpr descr<1, 0> _(const char c) { return descr<1, 0>({ c, '\0' }, { nullptr }); }
+template <typename Type> constexpr descr<1, 1> _(const char c) { return _<Type>({ c, '\0' }); }
 
 template <size_t Rem, size_t... Digits> struct int_to_str : int_to_str<Rem/10, Rem%10, Digits...> { };
 template <size_t...Digits> struct int_to_str<0, Digits...> {
@@ -98,8 +118,8 @@ template <size_t Size> auto constexpr _() -> decltype(int_to_str<Size / 10, Size
     return int_to_str<Size / 10, Size % 10>::digits;
 }
 
-template <typename Type> constexpr descr<1, 1> _() {
-    return descr<1, 1>({ '%', '\0' }, { &typeid(Type), nullptr });
+template <typename Type> constexpr descr<2, 1> _() {
+    return descr<2, 1>({ PYBIND11_DESCR_TYPE_INFO, PYBIND11_DESCR_AUTO_TYPE_NAME, '\0' }, { &typeid(Type), nullptr });
 }
 
 inline constexpr descr<0, 0> concat() { return _(""); }
@@ -164,13 +184,30 @@ PYBIND11_NOINLINE inline descr _(const char *text) {
     return descr(text, types);
 }
 
+PYBIND11_NOINLINE inline descr _(char c) {
+    // Can't pass this directly into the argument before C++14 (C++11 treats it as an initializer_list)
+    const char c0[2] = {c, '\0'};
+    const std::type_info *types[1] = { nullptr };
+    return descr(c0, types);
+}
+
+template <typename Type> PYBIND11_NOINLINE descr _(char c) {
+    const char c0[3] = {PYBIND11_DESCR_TYPE_INFO, c, '\0'};
+    const std::type_info *types[2] = { &typeid(Type), nullptr };
+    return descr(c0, types);
+}
+
+template <typename Type> PYBIND11_NOINLINE descr _(const char *text) {
+    const char c0[2] = {PYBIND11_DESCR_TYPE_INFO, '\0'};
+    const std::type_info *types[2] = { &typeid(Type), nullptr };
+    const std::type_info *notypes[1] = { nullptr };
+    return descr(c0, types) + descr(text, notypes);
+}
+
 template <bool B> PYBIND11_NOINLINE typename std::enable_if<B, descr>::type _(const char *text1, const char *) { return _(text1); }
 template <bool B> PYBIND11_NOINLINE typename std::enable_if<!B, descr>::type _(char const *, const char *text2) { return _(text2); }
 
-template <typename Type> PYBIND11_NOINLINE descr _() {
-    const std::type_info *types[2] = { &typeid(Type), nullptr };
-    return descr("%", types);
-}
+template <typename Type> descr _() { return _<Type>(PYBIND11_DESCR_AUTO_TYPE_NAME); }
 
 template <size_t Size> PYBIND11_NOINLINE descr _() {
     const std::type_info *types[1] = { nullptr };

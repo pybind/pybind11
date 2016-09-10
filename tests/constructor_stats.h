@@ -239,8 +239,16 @@ template <class T, typename... Values> void print_created(T *inst, Values &&...v
     track_created(inst, values...);
 }
 template <class T, typename... Values> void print_destroyed(T *inst, Values &&...values) { // Prints but doesn't store given values
+    // Save the error state, in case this destructor is called as a result of a thrown exception
+    // that already set the error string--if the error string is already set, str.format() won't
+    // work.
+    PyObject *type, *value, *traceback;
+    PyErr_Fetch(&type, &value, &traceback);
+
     print_constr_details(inst, "destroyed", values...);
     track_destroyed(inst);
+
+    PyErr_Restore(type, value, traceback);
 }
 template <class T, typename... Values> void print_values(T *inst, Values &&...values) {
     print_constr_details(inst, ":", values...);

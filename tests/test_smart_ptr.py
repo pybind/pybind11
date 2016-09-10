@@ -19,23 +19,24 @@ def test_smart_ptr(capture):
                                 print_myobject1_1, print_myobject1_2,
                                 print_myobject1_3, print_myobject1_4)
 
-    for i, o in enumerate([make_myobject1_1(), make_myobject1_2(), MyObject1(6), 7], start=4):
+    for i, o in enumerate([make_myobject1_1(), make_myobject1_2(), MyObject1(6)], start=4):
         print(o)
         with capture:
-            if not isinstance(o, int):
-                print_object_1(o)
-                print_object_2(o)
-                print_object_3(o)
-                print_object_4(o)
+            print_object_1(o)
+            print_object_2(o)
+            print_object_3(o)
+            print_object_4(o)
             print_myobject1_1(o)
             print_myobject1_2(o)
             print_myobject1_3(o)
             print_myobject1_4(o)
-        assert capture == "MyObject1[{i}]\n".format(i=i) * (4 if isinstance(o, int) else 8)
+        assert capture == "MyObject1[{i}]\n".format(i=i) * 8
 
     cstats = ConstructorStats.get(MyObject1)
+    assert cstats.alive() == 1
+    o = None
     assert cstats.alive() == 0
-    expected_values = ['MyObject1[{}]'.format(i) for i in range(1, 7)] + ['MyObject1[7]'] * 4
+    expected_values = ['MyObject1[{}]'.format(i) for i in range(1, 7)]
     assert cstats.values() == expected_values
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
@@ -99,7 +100,7 @@ def test_smart_ptr(capture):
     cstats = ConstructorStats.get(Object)
     assert cstats.alive() == 0
     assert cstats.values() == []
-    assert cstats.default_constructions == 10
+    assert cstats.default_constructions == 6
     assert cstats.copy_constructions == 0
     # assert cstats.move_constructions >= 0 # Doesn't invoke any
     assert cstats.copy_assignments == 0
@@ -107,11 +108,11 @@ def test_smart_ptr(capture):
 
     cstats = cstats_ref()
     assert cstats.alive() == 0
-    assert cstats.values() == ['from pointer'] * 10
-    assert cstats.default_constructions == 30
-    assert cstats.copy_constructions == 12
+    assert cstats.values() == ['from pointer'] * 6
+    assert cstats.default_constructions == 27
+    assert cstats.copy_constructions == 11
     # assert cstats.move_constructions >= 0 # Doesn't invoke any
-    assert cstats.copy_assignments == 30
+    assert cstats.copy_assignments == 27
     assert cstats.move_assignments == 0
 
 def test_unique_nodelete(capture):
