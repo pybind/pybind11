@@ -867,8 +867,8 @@ template <typename type> using cast_is_temporary_value_reference = bool_constant
     !std::is_base_of<type_caster_generic, make_caster<type>>::value
 >;
 
-template <typename T> make_caster<T> load_type(const handle &handle) {
-    make_caster<T> conv;
+// Basic python -> C++ casting; throws if casting fails
+template <typename TypeCaster> TypeCaster &load_type(TypeCaster &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)
         throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
@@ -877,6 +877,12 @@ template <typename T> make_caster<T> load_type(const handle &handle) {
             (std::string) handle.get_type().str() + " to C++ type '" + type_id<T>() + "''");
 #endif
     }
+    return conv;
+}
+// Wrapper around the above that also constructs and returns a type_caster
+template <typename T> make_caster<T> load_type(const handle &handle) {
+    make_caster<T> conv;
+    load_type(conv, handle);
     return conv;
 }
 
@@ -943,22 +949,16 @@ template <> inline void object::cast() && { return; }
 
 NAMESPACE_BEGIN(detail)
 
-struct overload_nothing {}; // Placeholder type for the unneeded (and dead code) static variable in the OVERLOAD_INT macro
-template <typename ret_type> using overload_local_t = conditional_t<
-    cast_is_temporary_value_reference<ret_type>::value, intrinsic_t<ret_type>, overload_nothing>;
-
-template <typename T> enable_if_t<std::is_lvalue_reference<T>::value, T> storage_cast(intrinsic_t<T> &v) { return v; }
-template <typename T> enable_if_t<std::is_pointer<T>::value, T> storage_cast(intrinsic_t<T> &v) { return &v; }
+struct overload_unused {}; // Placeholder type for the unneeded (and dead code) static variable in the OVERLOAD_INT macro
+template <typename ret_type> using overload_caster_t = conditional_t<
+    cast_is_temporary_value_reference<ret_type>::value, make_caster<ret_type>, overload_unused>;
 
 // Trampoline use: for reference/pointer types to value-converted values, we do a value cast, then
 // store the result in the given variable.  For other types, this is a no-op.
-template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o, intrinsic_t<T> &storage) {
-    using type_caster = make_caster<T>;
-    using itype = intrinsic_t<T>;
-    storage = std::move(load_type<T>(o).operator typename type_caster::template cast_op_type<itype>());
-    return storage_cast<T>(storage);
+template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o, make_caster<T> &caster) {
+    return load_type(caster, o).operator typename make_caster<T>::template cast_op_type<T>();
 }
-template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&, overload_nothing &) {
+template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&, overload_unused &) {
     pybind11_fail("Internal error: cast_ref fallback invoked"); }
 
 // Trampoline use: Having a pybind11::cast with an invalid reference type is going to static_assert, even
