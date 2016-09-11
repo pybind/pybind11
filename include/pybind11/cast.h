@@ -935,9 +935,6 @@ template <typename T> detail::enable_if_t<detail::move_if_unreferenced<T>::value
 template <typename T> detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
     return cast<T>(object);
 }
-// Provide a ref_cast() with move support for objects (only participates for moveable types)
-template <typename T> detail::enable_if_t<detail::move_is_plain_type<T>::value, T>
-ref_cast(object &&object) { return cast<T>(std::move(object)); }
 
 template <typename T> T object::cast() const & { return pybind11::cast<T>(*this); }
 template <typename T> T object::cast() && { return pybind11::cast<T>(std::move(*this)); }
