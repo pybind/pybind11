@@ -35,12 +35,14 @@ The following core C++ features can be mapped to Python
 - Instance methods and static methods
 - Overloaded functions
 - Instance attributes and static attributes
-- Exceptions
+- Arbitrary exception types
 - Enumerations
-- Iterators and ranges
 - Callbacks
+- Iterators and ranges
 - Custom operators
+- Single and multiple inheritance
 - STL data structures
+- Iterators and ranges
 - Smart pointers with reference counting like ``std::shared_ptr``
 - Internal references with correct reference counting
 - C++ classes with virtual (and pure virtual) methods can be extended in Python

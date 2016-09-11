@@ -15,7 +15,6 @@
 #include "descr.h"
 #include <array>
 #include <limits>
-#include <iostream>
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
@@ -25,9 +24,13 @@ struct type_info {
     PyTypeObject *type;
     size_t type_size;
     void (*init_holder)(PyObject *, const void *);
-    std::vector<PyObject *(*)(PyObject *, PyTypeObject *) > implicit_conversions;
+    std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
+    std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;
+    /** A simple type never occurs as a (direct or indirect) parent
+     * of a class that makes use of multiple inheritance */
+    bool simple_type = true;
 };
 
 PYBIND11_NOINLINE inline internals &get_internals() {
@@ -72,32 +75,34 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     return *internals_ptr;
 }
 
-PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type, bool throw_if_missing = true) {
+PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
     auto const &type_dict = get_internals().registered_types_py;
     do {
         auto it = type_dict.find(type);
         if (it != type_dict.end())
             return (detail::type_info *) it->second;
         type = type->tp_base;
-        if (!type) {
-            if (throw_if_missing)
-                pybind11_fail("pybind11::detail::get_type_info: unable to find type object!");
+        if (!type)
             return nullptr;
-        }
     } while (true);
 }
 
-PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp) {
+PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp, bool throw_if_missing) {
     auto &types = get_internals().registered_types_cpp;
 
     auto it = types.find(std::type_index(tp));
     if (it != types.end())
         return (detail::type_info *) it->second;
+    if (throw_if_missing) {
+        std::string tname = tp.name();
+        detail::clean_type_id(tname);
+        pybind11_fail("pybind11::detail::get_type_info: unable to find type info for \"" + tname + "\"");
+    }
     return nullptr;
 }
 
-PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp) {
-    detail::type_info *type_info = get_type_info(tp);
+PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
+    detail::type_info *type_info = get_type_info(tp, throw_if_missing);
     return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
 }
 
@@ -124,7 +129,7 @@ PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail:
     auto &instances = get_internals().registered_instances;
     auto range = instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
-        auto instance_type = detail::get_type_info(Py_TYPE(it->second), false);
+        auto instance_type = detail::get_type_info(Py_TYPE(it->second));
         if (instance_type && instance_type == type)
             return handle((PyObject *) it->second);
     }
@@ -149,18 +154,56 @@ inline void keep_alive_impl(handle nurse, handle patient);
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
-     : typeinfo(get_type_info(type_info)) { }
+     : typeinfo(get_type_info(type_info, false)) { }
 
     PYBIND11_NOINLINE bool load(handle src, bool convert) {
+        return load(src, convert, Py_TYPE(src.ptr()));
+    }
+
+    bool load(handle src, bool convert, PyTypeObject *tobj) {
         if (!src || !typeinfo)
             return false;
         if (src.is_none()) {
             value = nullptr;
             return true;
-        } else if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
-            value = ((instance<void> *) src.ptr())->value;
-            return true;
         }
+
+        if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
+            /* Check if we can safely perform a reinterpret-style cast */
+            if (PyType_IsSubtype(tobj, typeinfo->type)) {
+                value = reinterpret_cast<instance<void> *>(src.ptr())->value;
+                return true;
+            }
+        } else { /* Case 2: multiple inheritance */
+            /* Check if we can safely perform a reinterpret-style cast */
+            if (tobj == typeinfo->type) {
+                value = reinterpret_cast<instance<void> *>(src.ptr())->value;
+                return true;
+            }
+
+            /* If this is a python class, also check the parents recursively */
+            auto const &type_dict = get_internals().registered_types_py;
+            bool new_style_class = PyType_Check(tobj);
+            if (type_dict.find(tobj) == type_dict.end() && new_style_class && tobj->tp_bases) {
+                tuple parents(tobj->tp_bases, true);
+                for (handle parent : parents) {
+                    bool result = load(src, convert, (PyTypeObject *) parent.ptr());
+                    if (result)
+                        return true;
+                }
+            }
+
+            /* Try implicit casts */
+            for (auto &cast : typeinfo->implicit_casts) {
+                type_caster_generic sub_caster(*cast.first);
+                if (sub_caster.load(src, convert)) {
+                    value = cast.second(sub_caster.value);
+                    return true;
+                }
+            }
+        }
+
+        /* Perform an implicit conversion */
         if (convert) {
             for (auto &converter : typeinfo->implicit_conversions) {
                 temp = object(converter(src.ptr(), typeinfo->type), false);
@@ -201,7 +244,7 @@ public:
 
         auto it_instances = internals.registered_instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            auto instance_type = detail::get_type_info(Py_TYPE(it_i->second), false);
+            auto instance_type = detail::get_type_info(Py_TYPE(it_i->second));
             if (instance_type && instance_type == tinfo)
                 return handle((PyObject *) it_i->second).inc_ref();
         }
@@ -262,7 +305,8 @@ template <typename type> class type_caster_base : public type_caster_generic {
 public:
     static PYBIND11_DESCR name() { return type_descr(_<type>()); }
 
-    type_caster_base() : type_caster_generic(typeid(type)) { }
+    type_caster_base() : type_caster_base(typeid(type)) { }
+    type_caster_base(const std::type_info &info) : type_caster_generic(info) { }
 
     static handle cast(const itype &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
@@ -433,7 +477,7 @@ public:
         }
 
         /* Check if this is a C++ type */
-        if (get_type_info((PyTypeObject *) h.get_type().ptr(), false)) {
+        if (get_type_info((PyTypeObject *) h.get_type().ptr())) {
             value = ((instance<void> *) h.ptr())->value;
             return true;
         }
@@ -749,22 +793,56 @@ protected:
 /// Type caster for holder types like std::shared_ptr, etc.
 template <typename type, typename holder_type> class type_caster_holder : public type_caster_base<type> {
 public:
-    using type_caster_base<type>::cast;
-    using type_caster_base<type>::typeinfo;
-    using type_caster_base<type>::value;
-    using type_caster_base<type>::temp;
+    using base = type_caster_base<type>;
+    using base::base;
+    using base::cast;
+    using base::typeinfo;
+    using base::value;
+    using base::temp;
 
-    bool load(handle src, bool convert) {
-        if (!src || !typeinfo) {
+    PYBIND11_NOINLINE bool load(handle src, bool convert) {
+        return load(src, convert, Py_TYPE(src.ptr()));
+    }
+
+    bool load(handle src, bool convert, PyTypeObject *tobj) {
+        if (!src || !typeinfo)
             return false;
-        } else if (src.is_none()) {
+        if (src.is_none()) {
             value = nullptr;
             return true;
-        } else if (PyType_IsSubtype(Py_TYPE(src.ptr()), typeinfo->type)) {
-            auto inst = (instance<type, holder_type> *) src.ptr();
-            value = (void *) inst->value;
-            holder = inst->holder;
-            return true;
+        }
+
+        if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
+            /* Check if we can safely perform a reinterpret-style cast */
+            if (PyType_IsSubtype(tobj, typeinfo->type)) {
+                auto inst = (instance<type, holder_type> *) src.ptr();
+                value = (void *) inst->value;
+                holder = inst->holder;
+                return true;
+            }
+        } else { /* Case 2: multiple inheritance */
+            /* Check if we can safely perform a reinterpret-style cast */
+            if (tobj == typeinfo->type) {
+                auto inst = (instance<type, holder_type> *) src.ptr();
+                value = (void *) inst->value;
+                holder = inst->holder;
+                return true;
+            }
+
+            /* If this is a python class, also check the parents recursively */
+            auto const &type_dict = get_internals().registered_types_py;
+            bool new_style_class = PyType_Check(tobj);
+            if (type_dict.find(tobj) == type_dict.end() && new_style_class && tobj->tp_bases) {
+                tuple parents(tobj->tp_bases, true);
+                for (handle parent : parents) {
+                    bool result = load(src, convert, (PyTypeObject *) parent.ptr());
+                    if (result)
+                        return true;
+                }
+            }
+
+            if (try_implicit_casts(src, convert))
+                return true;
         }
 
         if (convert) {
@@ -772,6 +850,23 @@ public:
                 temp = object(converter(src.ptr(), typeinfo->type), false);
                 if (load(temp, false))
                     return true;
+            }
+        }
+
+        return false;
+    }
+
+    template <typename T = holder_type, detail::enable_if_t<!std::is_constructible<T, const T &, type*>::value, int> = 0>
+    bool try_implicit_casts(handle, bool) { return false; }
+
+    template <typename T = holder_type, detail::enable_if_t<std::is_constructible<T, const T &, type*>::value, int> = 0>
+    bool try_implicit_casts(handle src, bool convert) {
+        for (auto &cast : typeinfo->implicit_casts) {
+            type_caster_holder sub_caster(*cast.first);
+            if (sub_caster.load(src, convert)) {
+                value = cast.second(sub_caster.value);
+                holder = holder_type(sub_caster.holder, (type *) value);
+                return true;
             }
         }
         return false;
@@ -968,7 +1063,6 @@ template <> inline void cast_safe<void>(object &&) {}
 
 NAMESPACE_END(detail)
 
-
 template <return_value_policy policy = return_value_policy::automatic_reference,
           typename... Args> tuple make_tuple(Args&&... args_) {
     const size_t size = sizeof...(Args);
@@ -1023,7 +1117,7 @@ struct arg_v : arg {
 template <typename T>
 arg_v arg::operator=(T &&value) const { return {name, std::forward<T>(value)}; }
 
-/// Alias for backward compatibility -- to be remove in version 2.0
+/// Alias for backward compatibility -- to be removed in version 2.0
 template <typename /*unused*/> using arg_t = arg_v;
 
 inline namespace literals {
@@ -1199,7 +1293,7 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
         "Invalid function call: positional args must precede keywords and ** unpacking; "
         "* unpacking must precede ** unpacking"
     );
-    return {std::forward<Args>(args)...};
+    return { std::forward<Args>(args)... };
 }
 
 NAMESPACE_END(detail)

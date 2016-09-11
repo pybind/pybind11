@@ -612,7 +612,7 @@ public:
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_accessor operator[](size_t index) const { return detail::list_accessor(*this, index); }
-    void append(const object &object) const { PyList_Append(m_ptr, object.ptr()); }
+    void append(handle h) const { PyList_Append(m_ptr, h.ptr()); }
 };
 
 class args : public tuple { PYBIND11_OBJECT_DEFAULT(args, tuple, PyTuple_Check) };

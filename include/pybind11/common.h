@@ -89,6 +89,7 @@
 #include <unordered_map>
 #include <memory>
 #include <typeindex>
+#include <type_traits>
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
