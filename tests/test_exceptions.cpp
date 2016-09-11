@@ -66,6 +66,13 @@ void throws_logic_error() {
     throw std::logic_error("this error should fall through to the standard handler");
 }
 
+struct PythonCallInDestructor {
+    PythonCallInDestructor(const py::dict &d) : d(d) {}
+    ~PythonCallInDestructor() { d["good"] = py::cast(true); }
+
+    py::dict d;
+};
+
 test_initializer custom_exceptions([](py::module &m) {
     // make a new custom exception and use it as a translation target
     static py::exception<MyException> ex(m, "MyException");
@@ -122,5 +129,16 @@ test_initializer custom_exceptions([](py::module &m) {
         if (err)
             PyErr_SetString(PyExc_ValueError, "foo");
         throw py::error_already_set();
+    });
+
+    m.def("python_call_in_destructor", [](py::dict d) {
+        try {
+            PythonCallInDestructor set_dict_in_destructor(d);
+            PyErr_SetString(PyExc_ValueError, "foo");
+            throw py::error_already_set();
+        } catch (const py::error_already_set&) {
+            return true;
+        }
+        return false;
     });
 });

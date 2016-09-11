@@ -13,6 +13,14 @@ def test_error_already_set(msg):
     assert msg(excinfo.value) == "foo"
 
 
+def test_python_call_in_catch():
+    from pybind11_tests import python_call_in_destructor
+
+    d = {}
+    assert python_call_in_destructor(d) is True
+    assert d["good"] is True
+
+
 def test_custom(msg):
     from pybind11_tests import (MyException, throws1, throws2, throws3, throws4,
                                 throws_logic_error)
