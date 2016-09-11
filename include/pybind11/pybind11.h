@@ -1175,7 +1175,7 @@ PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle arg
     keep_alive_impl(nurse, patient);
 }
 
-template <typename Iterator, typename Sentinel, bool KeyIterator, typename... Extra>
+template <typename Iterator, typename Sentinel, bool KeyIterator, return_value_policy Policy>
 struct iterator_state {
     Iterator it;
     Sentinel end;
@@ -1187,12 +1187,13 @@ NAMESPACE_END(detail)
 template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
 template <typename... Args> detail::init_alias<Args...> init_alias() { return detail::init_alias<Args...>(); }
 
-template <typename Iterator,
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Iterator,
           typename Sentinel,
           typename ValueType = decltype(*std::declval<Iterator>()),
           typename... Extra>
 iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator, Sentinel, false, Extra...> state;
+    typedef detail::iterator_state<Iterator, Sentinel, false, Policy> state;
 
     if (!detail::get_type_info(typeid(state))) {
         class_<state>(handle(), "iterator")
@@ -1205,18 +1206,19 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                 if (s.it == s.end)
                     throw stop_iteration();
                 return *s.it;
-            }, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
+            }, std::forward<Extra>(extra)..., Policy);
     }
 
     return (iterator) cast(state { first, last, true });
 }
 
-template <typename Iterator,
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Iterator,
           typename Sentinel,
           typename KeyType = decltype((*std::declval<Iterator>()).first),
           typename... Extra>
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator, Sentinel, true, Extra...> state;
+    typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
 
     if (!detail::get_type_info(typeid(state))) {
         class_<state>(handle(), "iterator")
@@ -1229,18 +1231,20 @@ iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                 if (s.it == s.end)
                     throw stop_iteration();
                 return (*s.it).first;
-            }, return_value_policy::reference_internal, std::forward<Extra>(extra)...);
+            }, std::forward<Extra>(extra)..., Policy);
     }
 
     return (iterator) cast(state { first, last, true });
 }
 
-template <typename Type, typename... Extra> iterator make_iterator(Type &value, Extra&&... extra) {
-    return make_iterator(std::begin(value), std::end(value), extra...);
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Type, typename... Extra> iterator make_iterator(Type &value, Extra&&... extra) {
+    return make_iterator<Policy>(std::begin(value), std::end(value), extra...);
 }
 
-template <typename Type, typename... Extra> iterator make_key_iterator(Type &value, Extra&&... extra) {
-    return make_key_iterator(std::begin(value), std::end(value), extra...);
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Type, typename... Extra> iterator make_key_iterator(Type &value, Extra&&... extra) {
+    return make_key_iterator<Policy>(std::begin(value), std::end(value), extra...);
 }
 
 template <typename InputType, typename OutputType> void implicitly_convertible() {

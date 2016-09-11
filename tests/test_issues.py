@@ -170,3 +170,12 @@ def test_operators_notimplemented(capture):
 Add OpTest2 with OpTest2
 Add OpTest2 with OpTest1
 Add OpTest2 with OpTest1"""
+
+def test_iterator_rvpolicy():
+    """ Issue 388: Can't make iterators via make_iterator() with different r/v policies """
+    from pybind11_tests.issues import make_iterator_1
+    from pybind11_tests.issues import make_iterator_2
+
+    assert list(make_iterator_1()) == [1, 2, 3]
+    assert list(make_iterator_2()) == [1, 2, 3]
+    assert(type(make_iterator_1()) != type(make_iterator_2()))
