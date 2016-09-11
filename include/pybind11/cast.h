@@ -863,14 +863,8 @@ template <typename type> using cast_is_temporary_value_reference = bool_constant
     !std::is_base_of<type_caster_generic, make_caster<type>>::value
 >;
 
-
-NAMESPACE_END(detail)
-
-template <typename T> T cast(const handle &handle) {
-    using type_caster = detail::make_caster<T>;
-    static_assert(!detail::cast_is_temporary_value_reference<T>::value,
-            "Unable to cast type to reference: value is local to type caster");
-    type_caster conv;
+// Basic python -> C++ casting; throws if casting fails
+template <typename TypeCaster> TypeCaster &load_type(TypeCaster &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)
         throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
@@ -879,7 +873,22 @@ template <typename T> T cast(const handle &handle) {
             (std::string) handle.get_type().str() + " to C++ type '" + type_id<T>() + "''");
 #endif
     }
-    return conv.operator typename type_caster::template cast_op_type<T>();
+    return conv;
+}
+// Wrapper around the above that also constructs and returns a type_caster
+template <typename T> make_caster<T> load_type(const handle &handle) {
+    make_caster<T> conv;
+    load_type(conv, handle);
+    return conv;
+}
+
+NAMESPACE_END(detail)
+
+template <typename T> T cast(const handle &handle) {
+    static_assert(!detail::cast_is_temporary_value_reference<T>::value,
+            "Unable to cast type to reference: value is local to type caster");
+    using type_caster = detail::make_caster<T>;
+    return detail::load_type<T>(handle).operator typename type_caster::template cast_op_type<T>();
 }
 
 template <typename T> object cast(const T &value,
@@ -896,7 +905,7 @@ template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); 
 template <> inline void handle::cast() const { return; }
 
 template <typename T>
-typename std::enable_if<detail::move_always<T>::value || detail::move_if_unreferenced<T>::value, T>::type move(object &&obj) {
+detail::enable_if_t<detail::move_always<T>::value || detail::move_if_unreferenced<T>::value, T> move(object &&obj) {
     if (obj.ref_count() > 1)
 #if defined(NDEBUG)
         throw cast_error("Unable to cast Python instance to C++ rvalue: instance has multiple references"
@@ -906,18 +915,8 @@ typename std::enable_if<detail::move_always<T>::value || detail::move_if_unrefer
                 " instance to C++ " + type_id<T>() + " instance: instance has multiple references");
 #endif
 
-    typedef detail::type_caster<T> type_caster;
-    type_caster conv;
-    if (!conv.load(obj, true))
-#if defined(NDEBUG)
-        throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
-#else
-        throw cast_error("Unable to cast Python instance of type " +
-            (std::string) obj.get_type().str() + " to C++ type '" + type_id<T>() + "''");
-#endif
-
     // Move into a temporary and return that, because the reference may be a local value of `conv`
-    T ret = std::move(conv.operator T&());
+    T ret = std::move(detail::load_type<T>(obj).operator T&());
     return ret;
 }
 
@@ -926,16 +925,16 @@ typename std::enable_if<detail::move_always<T>::value || detail::move_if_unrefer
 //   object has multiple references, but trying to copy will fail to compile.
 // - If both movable and copyable, check ref count: if 1, move; otherwise copy
 // - Otherwise (not movable), copy.
-template <typename T> typename std::enable_if<detail::move_always<T>::value, T>::type cast(object &&object) {
+template <typename T> detail::enable_if_t<detail::move_always<T>::value, T> cast(object &&object) {
     return move<T>(std::move(object));
 }
-template <typename T> typename std::enable_if<detail::move_if_unreferenced<T>::value, T>::type cast(object &&object) {
+template <typename T> detail::enable_if_t<detail::move_if_unreferenced<T>::value, T> cast(object &&object) {
     if (object.ref_count() > 1)
         return cast<T>(object);
     else
         return move<T>(std::move(object));
 }
-template <typename T> typename std::enable_if<detail::move_never<T>::value, T>::type cast(object &&object) {
+template <typename T> detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
     return cast<T>(object);
 }
 
@@ -944,6 +943,30 @@ template <typename T> T object::cast() && { return pybind11::cast<T>(std::move(*
 template <> inline void object::cast() const & { return; }
 template <> inline void object::cast() && { return; }
 
+NAMESPACE_BEGIN(detail)
+
+struct overload_unused {}; // Placeholder type for the unneeded (and dead code) static variable in the OVERLOAD_INT macro
+template <typename ret_type> using overload_caster_t = conditional_t<
+    cast_is_temporary_value_reference<ret_type>::value, make_caster<ret_type>, overload_unused>;
+
+// Trampoline use: for reference/pointer types to value-converted values, we do a value cast, then
+// store the result in the given variable.  For other types, this is a no-op.
+template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&o, make_caster<T> &caster) {
+    return load_type(caster, o).operator typename make_caster<T>::template cast_op_type<T>();
+}
+template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_ref(object &&, overload_unused &) {
+    pybind11_fail("Internal error: cast_ref fallback invoked"); }
+
+// Trampoline use: Having a pybind11::cast with an invalid reference type is going to static_assert, even
+// though if it's in dead code, so we provide a "trampoline" to pybind11::cast that only does anything in
+// cases where pybind11::cast is valid.
+template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&o) {
+    return pybind11::cast<T>(std::move(o)); }
+template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&) {
+    pybind11_fail("Internal error: cast_safe fallback invoked"); }
+template <> inline void cast_safe<void>(object &&) {}
+
+NAMESPACE_END(detail)
 
 
 template <return_value_policy policy = return_value_policy::automatic_reference,

@@ -21,14 +21,22 @@ public:
 
     virtual int run(int value) {
         py::print("Original implementation of "
-                  "ExampleVirt::run(state={}, value={})"_s.format(state, value));
+                  "ExampleVirt::run(state={}, value={}, str1={}, str2={})"_s.format(state, value, get_string1(), *get_string2()));
         return state + value;
     }
 
     virtual bool run_bool() = 0;
     virtual void pure_virtual() = 0;
+
+    // Returning a reference/pointer to a type converted from python (numbers, strings, etc.) is a
+    // bit trickier, because the actual int& or std::string& or whatever only exists temporarily, so
+    // we have to handle it specially in the trampoline class (see below).
+    virtual const std::string &get_string1() { return str1; }
+    virtual const std::string *get_string2() { return &str2; }
+
 private:
     int state;
+    const std::string str1{"default1"}, str2{"default2"};
 };
 
 /* This is a wrapper class that must be generated */
@@ -36,7 +44,7 @@ class PyExampleVirt : public ExampleVirt {
 public:
     using ExampleVirt::ExampleVirt; /* Inherit constructors */
 
-    virtual int run(int value) {
+    int run(int value) override {
         /* Generate wrapping code that enables native function overloading */
         PYBIND11_OVERLOAD(
             int,         /* Return type */
@@ -46,7 +54,7 @@ public:
         );
     }
 
-    virtual bool run_bool() {
+    bool run_bool() override {
         PYBIND11_OVERLOAD_PURE(
             bool,         /* Return type */
             ExampleVirt,  /* Parent class */
@@ -56,7 +64,7 @@ public:
         );
     }
 
-    virtual void pure_virtual() {
+    void pure_virtual() override {
         PYBIND11_OVERLOAD_PURE(
             void,         /* Return type */
             ExampleVirt,  /* Parent class */
@@ -65,6 +73,27 @@ public:
                              in the previous line is needed for some compilers */
         );
     }
+
+    // We can return reference types for compatibility with C++ virtual interfaces that do so, but
+    // note they have some significant limitations (see the documentation).
+    const std::string &get_string1() override {
+        PYBIND11_OVERLOAD(
+            const std::string &, /* Return type */
+            ExampleVirt,         /* Parent class */
+            get_string1,         /* Name of function */
+                                 /* (no arguments) */
+        );
+    }
+
+    const std::string *get_string2() override {
+        PYBIND11_OVERLOAD(
+            const std::string *, /* Return type */
+            ExampleVirt,         /* Parent class */
+            get_string2,         /* Name of function */
+                                 /* (no arguments) */
+        );
+    }
+
 };
 
 class NonCopyable {
@@ -107,11 +136,11 @@ public:
 };
 class NCVirtTrampoline : public NCVirt {
 #if !defined(__INTEL_COMPILER)
-    virtual NonCopyable get_noncopyable(int a, int b) {
+    NonCopyable get_noncopyable(int a, int b) override {
         PYBIND11_OVERLOAD(NonCopyable, NCVirt, get_noncopyable, a, b);
     }
 #endif
-    virtual Movable get_movable(int a, int b) {
+    Movable get_movable(int a, int b) override {
         PYBIND11_OVERLOAD_PURE(Movable, NCVirt, get_movable, a, b);
     }
 };
