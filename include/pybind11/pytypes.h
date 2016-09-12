@@ -490,7 +490,7 @@ class int_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(int_, object, PYBIND11_LONG_CHECK)
     template <typename T,
-              typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+              detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     int_(T value) {
         if (sizeof(T) <= sizeof(long)) {
             if (std::is_signed<T>::value)
@@ -507,7 +507,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+              detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     operator T() const {
         if (sizeof(T) <= sizeof(long)) {
             if (std::is_signed<T>::value)

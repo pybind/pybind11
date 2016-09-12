@@ -867,7 +867,7 @@ public:
         record.dealloc = dealloc;
 
         /* Register base classes specified via template arguments to class_, if any */
-        bool unused[] = { (add_base<options>(record), false)... };
+        bool unused[] = { (add_base<options>(record), false)..., false };
         (void) unused;
 
         /* Process optional arguments, if any */
@@ -881,14 +881,14 @@ public:
         }
     }
 
-    template <typename Base, std::enable_if_t<is_base<Base>::value, int> = 0>
+    template <typename Base, detail::enable_if_t<is_base<Base>::value, int> = 0>
     static void add_base(detail::type_record &rec) {
         rec.add_base(&typeid(Base), [](void *src) -> void * {
             return static_cast<Base *>(reinterpret_cast<type *>(src));
         });
     }
 
-    template <typename Base, std::enable_if_t<!is_base<Base>::value, int> = 0>
+    template <typename Base, detail::enable_if_t<!is_base<Base>::value, int> = 0>
     static void add_base(detail::type_record &) { }
 
     template <typename Func, typename... Extra>
@@ -1032,7 +1032,7 @@ private:
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
     template <typename T = holder_type,
-              typename std::enable_if<std::is_copy_constructible<T>::value, int>::type = 0>
+              detail::enable_if_t<std::is_copy_constructible<T>::value, int> = 0>
     static void init_holder_helper(instance_type *inst, const holder_type *holder_ptr, const void * /* dummy */) {
         if (holder_ptr)
             new (&inst->holder) holder_type(*holder_ptr);
@@ -1042,7 +1042,7 @@ private:
 
     /// Initialize holder object, variant 3: holder is not copy constructible (e.g. unique_ptr), always initialize from raw pointer
     template <typename T = holder_type,
-              typename std::enable_if<!std::is_copy_constructible<T>::value, int>::type = 0>
+              detail::enable_if_t<!std::is_copy_constructible<T>::value, int> = 0>
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const void * /* dummy */) {
         new (&inst->holder) holder_type(inst->value);
     }

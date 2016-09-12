@@ -46,9 +46,9 @@ public:
 // type_caster to handle argument copying/forwarding.
 template <typename T> class is_eigen_ref {
 private:
-    template<typename Derived> static typename std::enable_if<
+    template<typename Derived> static enable_if_t<
         std::is_same<typename std::remove_const<T>::type, Eigen::Ref<Derived>>::value,
-        Derived>::type test(const Eigen::Ref<Derived> &);
+        Derived> test(const Eigen::Ref<Derived> &);
     static void test(...);
 public:
     typedef decltype(test(std::declval<T>())) Derived;
@@ -77,7 +77,7 @@ public:
 };
 
 template<typename Type>
-struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && !is_eigen_ref<Type>::value>::type> {
+struct type_caster<Type, enable_if_t<is_eigen_dense<Type>::value && !is_eigen_ref<Type>::value>> {
     typedef typename Type::Scalar Scalar;
     static constexpr bool rowMajor = Type::Flags & Eigen::RowMajorBit;
     static constexpr bool isVector = Type::IsVectorAtCompileTime;
@@ -149,18 +149,18 @@ struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && 
             _("[") + rows() + _(", ") + cols() + _("]]"));
 
 protected:
-    template <typename T = Type, typename std::enable_if<T::RowsAtCompileTime == Eigen::Dynamic, int>::type = 0>
+    template <typename T = Type, enable_if_t<T::RowsAtCompileTime == Eigen::Dynamic, int> = 0>
     static PYBIND11_DESCR rows() { return _("m"); }
-    template <typename T = Type, typename std::enable_if<T::RowsAtCompileTime != Eigen::Dynamic, int>::type = 0>
+    template <typename T = Type, enable_if_t<T::RowsAtCompileTime != Eigen::Dynamic, int> = 0>
     static PYBIND11_DESCR rows() { return _<T::RowsAtCompileTime>(); }
-    template <typename T = Type, typename std::enable_if<T::ColsAtCompileTime == Eigen::Dynamic, int>::type = 0>
+    template <typename T = Type, enable_if_t<T::ColsAtCompileTime == Eigen::Dynamic, int> = 0>
     static PYBIND11_DESCR cols() { return _("n"); }
-    template <typename T = Type, typename std::enable_if<T::ColsAtCompileTime != Eigen::Dynamic, int>::type = 0>
+    template <typename T = Type, enable_if_t<T::ColsAtCompileTime != Eigen::Dynamic, int> = 0>
     static PYBIND11_DESCR cols() { return _<T::ColsAtCompileTime>(); }
 };
 
 template<typename Type>
-struct type_caster<Type, typename std::enable_if<is_eigen_dense<Type>::value && is_eigen_ref<Type>::value>::type> {
+struct type_caster<Type, enable_if_t<is_eigen_dense<Type>::value && is_eigen_ref<Type>::value>> {
 protected:
     using Derived = typename std::remove_const<typename is_eigen_ref<Type>::Derived>::type;
     using DerivedCaster = type_caster<Derived>;
@@ -181,7 +181,7 @@ public:
 // type_caster for special matrix types (e.g. DiagonalMatrix): load() is not supported, but we can
 // cast them into the python domain by first copying to a regular Eigen::Matrix, then casting that.
 template <typename Type>
-struct type_caster<Type, typename std::enable_if<is_eigen_base<Type>::value && !is_eigen_ref<Type>::value>::type> {
+struct type_caster<Type, enable_if_t<is_eigen_base<Type>::value && !is_eigen_ref<Type>::value>> {
 protected:
     using Matrix = Eigen::Matrix<typename Type::Scalar, Eigen::Dynamic, Eigen::Dynamic>;
     using MatrixCaster = type_caster<Matrix>;
@@ -198,7 +198,7 @@ public:
 };
 
 template<typename Type>
-struct type_caster<Type, typename std::enable_if<is_eigen_sparse<Type>::value>::type> {
+struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     typedef typename Type::Scalar Scalar;
     typedef typename std::remove_reference<decltype(*std::declval<Type>().outerIndexPtr())>::type StorageIndex;
     typedef typename Type::Index Index;

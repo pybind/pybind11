@@ -276,7 +276,7 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 
 /// Process a parent class attribute
 template <typename T>
-struct process_attribute<T, typename std::enable_if<std::is_base_of<handle, T>::value>::type> : process_attribute_default<handle> {
+struct process_attribute<T, enable_if_t<std::is_base_of<handle, T>::value>> : process_attribute_default<handle> {
     static void init(const handle &h, type_record *r) { r->bases.append(h); }
 };
 
@@ -298,13 +298,13 @@ struct process_attribute<multiple_inheritance> : process_attribute_default<multi
  * otherwise
  */
 template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
-    template <int N = Nurse, int P = Patient, typename std::enable_if<N != 0 && P != 0, int>::type = 0>
+    template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
     static void precall(handle args) { keep_alive_impl(Nurse, Patient, args, handle()); }
-    template <int N = Nurse, int P = Patient, typename std::enable_if<N != 0 && P != 0, int>::type = 0>
+    template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
     static void postcall(handle, handle) { }
-    template <int N = Nurse, int P = Patient, typename std::enable_if<N == 0 || P == 0, int>::type = 0>
+    template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void precall(handle) { }
-    template <int N = Nurse, int P = Patient, typename std::enable_if<N == 0 || P == 0, int>::type = 0>
+    template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void postcall(handle args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
 };
 

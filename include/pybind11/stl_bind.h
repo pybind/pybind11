@@ -40,20 +40,20 @@ struct is_comparable : std::false_type { };
 /* For non-map data structures, check whether operator== can be instantiated */
 template <typename T>
 struct is_comparable<
-    T, typename std::enable_if<container_traits<T>::is_element &&
-                               container_traits<T>::is_comparable>::type>
+    T, enable_if_t<container_traits<T>::is_element &&
+                   container_traits<T>::is_comparable>>
     : std::true_type { };
 
 /* For a vector/map data structure, recursively check the value type (which is std::pair for maps) */
 template <typename T>
-struct is_comparable<T, typename std::enable_if<container_traits<T>::is_vector>::type> {
+struct is_comparable<T, enable_if_t<container_traits<T>::is_vector>> {
     static constexpr const bool value =
         is_comparable<typename T::value_type>::value;
 };
 
 /* For pairs, recursively check the two data types */
 template <typename T>
-struct is_comparable<T, typename std::enable_if<container_traits<T>::is_pair>::type> {
+struct is_comparable<T, enable_if_t<container_traits<T>::is_pair>> {
     static constexpr const bool value =
         is_comparable<typename T::first_type>::value &&
         is_comparable<typename T::second_type>::value;
@@ -64,13 +64,13 @@ template <typename, typename, typename... Args> void vector_if_copy_constructibl
 template <typename, typename, typename... Args> void vector_if_equal_operator(const Args&...) { }
 template <typename, typename, typename... Args> void vector_if_insertion_operator(const Args&...) { }
 
-template<typename Vector, typename Class_, typename std::enable_if<std::is_copy_constructible<typename Vector::value_type>::value, int>::type = 0>
+template<typename Vector, typename Class_, enable_if_t<std::is_copy_constructible<typename Vector::value_type>::value, int> = 0>
 void vector_if_copy_constructible(Class_ &cl) {
     cl.def(pybind11::init<const Vector &>(),
            "Copy constructor");
 }
 
-template<typename Vector, typename Class_, typename std::enable_if<is_comparable<Vector>::value, int>::type = 0>
+template<typename Vector, typename Class_, enable_if_t<is_comparable<Vector>::value, int> = 0>
 void vector_if_equal_operator(Class_ &cl) {
     using T = typename Vector::value_type;
 
@@ -376,7 +376,7 @@ template <typename Map, typename Class_, typename... Args> void map_if_copy_assi
     );
 }
 
-template<typename Map, typename Class_, typename std::enable_if<!std::is_copy_assignable<typename Map::mapped_type>::value, int>::type = 0>
+template<typename Map, typename Class_, enable_if_t<!std::is_copy_assignable<typename Map::mapped_type>::value, int> = 0>
 void map_if_copy_assignable(Class_ &cl) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;

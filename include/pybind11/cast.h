@@ -343,10 +343,10 @@ protected:
 #else
     /* Visual Studio 2015's SFINAE implementation doesn't yet handle the above robustly in all situations.
        Use a workaround that only tests for constructibility for now. */
-    template <typename T = type, typename = typename std::enable_if<std::is_copy_constructible<T>::value>::type>
+    template <typename T = type, typename = enable_if_t<std::is_copy_constructible<T>::value>>
     static Constructor make_copy_constructor(const T *value) {
         return [](const void *arg) -> void * { return new T(*((const T *)arg)); }; }
-    template <typename T = type, typename = typename std::enable_if<std::is_move_constructible<T>::value>::type>
+    template <typename T = type, typename = enable_if_t<std::is_move_constructible<T>::value>>
     static Constructor make_move_constructor(const T *value) {
         return [](const void *arg) -> void * { return (void *) new T(std::move(*((T *)arg))); }; }
 #endif
@@ -387,8 +387,8 @@ public:
 
 template <typename T>
 struct type_caster<
-    T, typename std::enable_if<std::is_integral<T>::value ||
-                               std::is_floating_point<T>::value>::type> {
+    T, enable_if_t<std::is_integral<T>::value ||
+                   std::is_floating_point<T>::value>> {
     typedef typename std::conditional<sizeof(T) <= sizeof(long), long, long long>::type _py_type_0;
     typedef typename std::conditional<std::is_signed<T>::value, _py_type_0, typename std::make_unsigned<_py_type_0>::type>::type _py_type_1;
     typedef typename std::conditional<std::is_floating_point<T>::value, double, _py_type_1>::type py_type;
@@ -702,20 +702,20 @@ public:
         return load(src, convert, typename make_index_sequence<sizeof...(Tuple)>::type());
     }
 
-    template <typename T = itype, typename std::enable_if<
+    template <typename T = itype, enable_if_t<
         !std::is_same<T, args_type>::value &&
-        !std::is_same<T, args_kwargs_type>::value, int>::type = 0>
+        !std::is_same<T, args_kwargs_type>::value, int> = 0>
     bool load_args(handle args, handle, bool convert) {
         return load(args, convert, typename make_index_sequence<sizeof...(Tuple)>::type());
     }
 
-    template <typename T = itype, typename std::enable_if<std::is_same<T, args_type>::value, int>::type = 0>
+    template <typename T = itype, enable_if_t<std::is_same<T, args_type>::value, int> = 0>
     bool load_args(handle args, handle, bool convert) {
         std::get<0>(value).load(args, convert);
         return true;
     }
 
-    template <typename T = itype, typename std::enable_if<std::is_same<T, args_kwargs_type>::value, int>::type = 0>
+    template <typename T = itype, enable_if_t<std::is_same<T, args_kwargs_type>::value, int> = 0>
     bool load_args(handle args, handle kwargs, bool convert) {
         std::get<0>(value).load(args, convert);
         std::get<1>(value).load(kwargs, convert);
@@ -734,11 +734,11 @@ public:
         return type_descr(_("Tuple[") + element_names() + _("]"));
     }
 
-    template <typename ReturnValue, typename Func> typename std::enable_if<!std::is_void<ReturnValue>::value, ReturnValue>::type call(Func &&f) {
+    template <typename ReturnValue, typename Func> enable_if_t<!std::is_void<ReturnValue>::value, ReturnValue> call(Func &&f) {
         return call<ReturnValue>(std::forward<Func>(f), typename make_index_sequence<sizeof...(Tuple)>::type());
     }
 
-    template <typename ReturnValue, typename Func> typename std::enable_if<std::is_void<ReturnValue>::value, void_type>::type call(Func &&f) {
+    template <typename ReturnValue, typename Func> enable_if_t<std::is_void<ReturnValue>::value, void_type> call(Func &&f) {
         call<ReturnValue>(std::forward<Func>(f), typename make_index_sequence<sizeof...(Tuple)>::type());
         return void_type();
     }
@@ -908,12 +908,12 @@ template <> struct handle_type_name<args> { static PYBIND11_DESCR name() { retur
 template <> struct handle_type_name<kwargs> { static PYBIND11_DESCR name() { return _("**kwargs"); } };
 
 template <typename type>
-struct type_caster<type, typename std::enable_if<std::is_base_of<handle, type>::value>::type> {
+struct type_caster<type, enable_if_t<std::is_base_of<handle, type>::value>> {
 public:
-    template <typename T = type, typename std::enable_if<!std::is_base_of<object, T>::value, int>::type = 0>
+    template <typename T = type, enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
     bool load(handle src, bool /* convert */) { value = type(src); return value.check(); }
 
-    template <typename T = type, typename std::enable_if<std::is_base_of<object, T>::value, int>::type = 0>
+    template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
     bool load(handle src, bool /* convert */) { value = type(src, true); return value.check(); }
 
     static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
@@ -932,21 +932,21 @@ public:
 //   must have ref_count() == 1)h
 // If any of the above are not satisfied, we fall back to copying.
 template <typename T, typename SFINAE = void> struct move_is_plain_type : std::false_type {};
-template <typename T> struct move_is_plain_type<T, typename std::enable_if<
+template <typename T> struct move_is_plain_type<T, enable_if_t<
         !std::is_void<T>::value && !std::is_pointer<T>::value && !std::is_reference<T>::value && !std::is_const<T>::value
-    >::type> : std::true_type {};
+    >> : std::true_type { };
 template <typename T, typename SFINAE = void> struct move_always : std::false_type {};
-template <typename T> struct move_always<T, typename std::enable_if<
+template <typename T> struct move_always<T, enable_if_t<
         move_is_plain_type<T>::value &&
         !std::is_copy_constructible<T>::value && std::is_move_constructible<T>::value &&
         std::is_same<decltype(std::declval<type_caster<T>>().operator T&()), T&>::value
-    >::type> : std::true_type {};
+    >> : std::true_type { };
 template <typename T, typename SFINAE = void> struct move_if_unreferenced : std::false_type {};
-template <typename T> struct move_if_unreferenced<T, typename std::enable_if<
+template <typename T> struct move_if_unreferenced<T, enable_if_t<
         move_is_plain_type<T>::value &&
         !move_always<T>::value && std::is_move_constructible<T>::value &&
         std::is_same<decltype(std::declval<type_caster<T>>().operator T&()), T&>::value
-    >::type> : std::true_type {};
+    >> : std::true_type { };
 template <typename T> using move_never = std::integral_constant<bool, !move_always<T>::value && !move_if_unreferenced<T>::value>;
 
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
