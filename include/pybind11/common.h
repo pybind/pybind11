@@ -30,6 +30,16 @@
 #  define PYBIND11_NOINLINE __attribute__ ((noinline))
 #endif
 
+#if __cplusplus > 201103L
+#  define PYBIND11_DEPRECATED(reason) [[deprecated(reason)]]
+#elif defined(__clang__)
+#  define PYBIND11_DEPRECATED(reason) __attribute__((deprecated(reason)))
+#elif defined(__GNUG__)
+#  define PYBIND11_DEPRECATED(reason) __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#  define PYBIND11_DEPRECATED(reason) __declspec(deprecated)
+#endif
+
 #define PYBIND11_VERSION_MAJOR 1
 #define PYBIND11_VERSION_MINOR 9
 #define PYBIND11_VERSION_PATCH dev0

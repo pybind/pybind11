@@ -43,10 +43,8 @@ public:
     bool is_none() const { return m_ptr == Py_None; }
     template <typename T> T cast() const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
-    #if __cplusplus > 201103L
-    [[deprecated("call(...) was deprecated in favor of operator()(...)")]]
-    #endif
-    object call(Args&&... args) const;
+    PYBIND11_DEPRECATED("call(...) was deprecated in favor of operator()(...)")
+        object call(Args&&... args) const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
     object operator()(Args&&... args) const;
     operator bool() const { return m_ptr != nullptr; }

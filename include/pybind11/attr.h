@@ -33,7 +33,10 @@ struct name { const char *value; name(const char *value) : value(value) { } };
 struct sibling { handle value; sibling(const handle &value) : value(value.ptr()) { } };
 
 /// Annotation indicating that a class derives from another given type
-template <typename T> struct base { };
+template <typename T> struct base {
+    PYBIND11_DEPRECATED("base<T>() was deprecated in favor of specifying 'T' as a template argument to class_")
+    base() { }
+};
 
 /// Keep patient alive while nurse lives
 template <int Nurse, int Patient> struct keep_alive { };
