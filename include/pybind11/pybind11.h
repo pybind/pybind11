@@ -460,8 +460,10 @@ protected:
             if (overloads->is_operator)
                 return handle(Py_NotImplemented).inc_ref().ptr();
 
-            std::string msg = "Incompatible " + std::string(overloads->is_constructor ? "constructor" : "function") +
-                              " arguments. The following argument types are supported:\n";
+            std::string msg = std::string(overloads->name) + "(): incompatible " +
+                std::string(overloads->is_constructor ? "constructor" : "function") +
+                " arguments. The following argument types are supported:\n";
+
             int ctr = 0;
             for (detail::function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
@@ -489,7 +491,7 @@ protected:
 
                 msg += "\n";
             }
-            msg += "    Invoked with: ";
+            msg += "\nInvoked with: ";
             tuple args_(args, true);
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
                 msg += static_cast<std::string>(static_cast<object>(args_[ti]).str());

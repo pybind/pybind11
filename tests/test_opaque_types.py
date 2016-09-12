@@ -35,9 +35,10 @@ def test_pointers(msg):
     with pytest.raises(TypeError) as excinfo:
         get_void_ptr_value([1, 2, 3])  # This should not work
     assert msg(excinfo.value) == """
-        Incompatible function arguments. The following argument types are supported:
+        get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
             1. (arg0: capsule) -> int
-            Invoked with: [1, 2, 3]
+
+        Invoked with: [1, 2, 3]
     """
 
     assert return_null_str() is None

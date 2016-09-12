@@ -83,7 +83,7 @@ def test_cpp_function_roundtrip():
 
     with pytest.raises(TypeError) as excinfo:
         test_dummy_function(dummy_function2)
-    assert "Incompatible function arguments" in str(excinfo.value)
+    assert "incompatible function arguments" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
         test_dummy_function(lambda x, y: x + y)
