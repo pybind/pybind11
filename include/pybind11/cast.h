@@ -864,7 +864,7 @@ template <typename type> using cast_is_temporary_value_reference = bool_constant
 >;
 
 // Basic python -> C++ casting; throws if casting fails
-template <typename TypeCaster> TypeCaster &load_type(TypeCaster &conv, const handle &handle) {
+template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)
         throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
