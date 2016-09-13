@@ -43,6 +43,11 @@ std::chrono::steady_clock::time_point test_chrono6(std::chrono::steady_clock::ti
     return t;
 }
 
+// Roundtrip a duration in microseconds from a float argument
+std::chrono::microseconds test_chrono7(std::chrono::microseconds t) {
+    return t;
+}
+
 test_initializer chrono([] (py::module &m) {
     m.def("test_chrono1", &test_chrono1);
     m.def("test_chrono2", &test_chrono2);
@@ -50,4 +55,5 @@ test_initializer chrono([] (py::module &m) {
     m.def("test_chrono4", &test_chrono4);
     m.def("test_chrono5", &test_chrono5);
     m.def("test_chrono6", &test_chrono6);
+    m.def("test_chrono7", &test_chrono7);
 });

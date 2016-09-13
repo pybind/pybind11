@@ -82,21 +82,33 @@ def test_chrono_steady_clock():
     time1 = test_chrono5()
     time2 = test_chrono5()
 
-    assert isinstance(time1, datetime.time)
-    assert isinstance(time2, datetime.time)
+    assert isinstance(time1, datetime.timedelta)
+    assert isinstance(time2, datetime.timedelta)
 
 
 def test_chrono_steady_clock_roundtrip():
     from pybind11_tests import test_chrono6
     import datetime
 
-    time1 = datetime.time(second=10, microsecond=100)
+    time1 = datetime.timedelta(days=10, seconds=10, microseconds=100)
     time2 = test_chrono6(time1)
 
-    assert isinstance(time2, datetime.time)
+    assert isinstance(time2, datetime.timedelta)
 
     # They should be identical (no information lost on roundtrip)
-    assert time1.hour == time2.hour
-    assert time1.minute == time2.minute
-    assert time1.second == time2.second
-    assert time1.microsecond == time2.microsecond
+    assert time1.days == time2.days
+    assert time1.seconds == time2.seconds
+    assert time1.microseconds == time2.microseconds
+
+
+def test_floating_point_duration():
+    from pybind11_tests import test_chrono7
+    import datetime
+
+    # Test using 35.525123 seconds as an example floating point number in seconds
+    time = test_chrono7(35.525123)
+
+    assert isinstance(time, datetime.timedelta)
+
+    assert time.seconds == 35
+    assert time.microseconds == 525123

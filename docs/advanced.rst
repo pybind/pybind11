@@ -764,18 +764,24 @@ When including the additional header file :file:`pybind11/chrono.h` conversions 
 to corresponding python datetime objects are automatically enabled.
 The following rules describe how the conversions are applied.
 
-Objects of type ``std::chrono::system_clock::time_point`` are converted into datetime.datetime objects.
+When passed to python objects of type ``std::chrono::system_clock::time_point`` are converted into datetime.datetime objects.
 These objects are those that specifically come from the system_clock as this is the only clock that measures wall time.
 
-Objects of type ``std::chrono::[other_clock]::time_point`` are converted into datetime.time objects.
+When passed to python of type ``std::chrono::[other_clock]::time_point`` are converted into datetime.timedelta objects.
 These objects are those that come from all clocks that are not the system_clock (e.g. steady_clock).
 Clocks other than the system_clock are not measured from wall date/time and instead have any start time
 (often when the computer was turned on).
-Therefore as these clocks can only measure time from an arbitrary start point they are represented as time without date.
+Therefore as these clocks can only measure time from an arbitrary start point they are represented as timedelta from this start point.
 
-Objects of type ``std::chrono::duration`` are converted into datetime.timedelta objects.
+When passed to python of type ``std::chrono::duration`` are converted into datetime.timedelta objects.
+
+When python objects are passed to c++ for the case of non system clocks and durations instances of both datetime.timedelta
+and float are accepted. The float arguments are interpreted as a number of seconds since the epoch.
 
 .. note::
+
+    Other clocks may be the same as system_clock. For example on many platforms std::high_resolution_clock is the same as system_clock.
+    Because of this if you are converting a timepoint from one of these clocks they may appear to python as a datetime.datetime object.
 
     Pythons datetime implementation is limited to microsecond precision.
     The extra precision that c++11 clocks can have have (nanoseconds) will be lost upon conversion.

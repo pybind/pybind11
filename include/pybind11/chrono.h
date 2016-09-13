@@ -24,9 +24,12 @@ public:
 
     bool load(handle src, bool) {
         using namespace std::chrono;
+
+        // Lazy initialise the PyDateTime import
         if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
+        // If they have passed us a datetime.delta object
         if (PyDelta_Check(src.ptr())) {
             // The accessor macros for timedelta exist in some versions of python but not others (e.g. Mac OSX default python)
             // Therefore we are just doing what the macros do explicitly
@@ -37,6 +40,13 @@ public:
                 + microseconds(delta->microseconds));
             return true;
         }
+        // If they have passed us a float we can assume it is seconds and convert
+        else if (PyFloat_Check(src.ptr())) {
+            double val = PyFloat_AsDouble(src.ptr());
+            // Multiply by the reciprocal of the ratio and round
+            value = type(std::lround(val * type::period::den / type::period::num));
+            return true;
+        }
         else return false;
     }
 
@@ -45,9 +55,9 @@ public:
         if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         // Declare these special duration types so the conversions happen with the correct primitive types (int)
-        typedef duration<int, std::ratio<86400>> dd_t;
-        typedef duration<int, std::ratio<1>> ss_t;
-        typedef duration<int, std::micro> us_t;
+        using dd_t = duration<int, std::ratio<86400>>;
+        using ss_t = duration<int, std::ratio<1>>;
+        using us_t = duration<int, std::micro>;
 
         return PyDelta_FromDSU(
               duration_cast<dd_t>(src).count()
@@ -57,11 +67,14 @@ public:
     PYBIND11_TYPE_CASTER(type, _("datetime.timedelta"));
 };
 
+// This is for casting times on the system clock into datetime.datetime instances
 template <typename Duration> class type_caster<std::chrono::time_point<std::chrono::system_clock, Duration>> {
 public:
     typedef std::chrono::time_point<std::chrono::system_clock, Duration> type;
     bool load(handle src, bool) {
         using namespace std::chrono;
+
+        // Lazy initialise the PyDateTime import
         if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
@@ -83,6 +96,8 @@ public:
 
     static handle cast(const std::chrono::time_point<std::chrono::system_clock, Duration> &src, return_value_policy /* policy */, handle /* parent */) {
         using namespace std::chrono;
+
+        // Lazy initialise the PyDateTime import
         if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         time_t tt = system_clock::to_time_t(src);
@@ -104,21 +119,33 @@ public:
     PYBIND11_TYPE_CASTER(type, _("datetime.datetime"));
 };
 
+// Other clocks that are not the system clock are not measured as datetime.datetime objects
+// since they are not measured on calendar time. So instead we just make them timedeltas
+// Or if they have passed us a time as a float we convert that
 template <typename Clock, typename Duration> class type_caster<std::chrono::time_point<Clock, Duration>> {
 public:
     typedef std::chrono::time_point<Clock, Duration> type;
+    typedef std::chrono::duration<std::chrono::hours::rep, std::ratio<86400>> days;
+
     bool load(handle src, bool) {
         using namespace std::chrono;
         if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
-        if (!src) return false;
-        if (PyTime_Check(src.ptr())) {
-            value = type(duration_cast<Duration>(
-                   hours(PyDateTime_TIME_GET_HOUR(src.ptr()))
-                 + minutes(PyDateTime_TIME_GET_MINUTE(src.ptr()))
-                 + seconds(PyDateTime_TIME_GET_SECOND(src.ptr()))
-                 + microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()))
-            ));
+        // If they have passed us a datetime.delta object
+        if (PyDelta_Check(src.ptr())) {
+            // The accessor macros for timedelta exist in some versions of python but not others (e.g. Mac OSX default python)
+            // Therefore we are just doing what the macros do explicitly
+            const PyDateTime_Delta* delta = reinterpret_cast<PyDateTime_Delta*>(src.ptr());
+            value = time_point<Clock, Duration>(
+                  days(delta->days)
+                + seconds(delta->seconds)
+                + microseconds(delta->microseconds));
+            return true;
+        }
+        // If they have passed us a float we can assume it is seconds and convert
+        else if (PyFloat_Check(src.ptr())) {
+            double val = PyFloat_AsDouble(src.ptr());
+            value = time_point<Clock, Duration>(Duration(std::lround((val / Clock::period::num) * Clock::period::den)));
             return true;
         }
         else return false;
@@ -126,21 +153,23 @@ public:
 
     static handle cast(const std::chrono::time_point<Clock, Duration> &src, return_value_policy /* policy */, handle /* parent */) {
         using namespace std::chrono;
+
+        // Lazy initialise the PyDateTime import
         if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         // Declare these special duration types so the conversions happen with the correct primitive types (int)
-        typedef duration<int, std::ratio<3600>> hh_t;
-        typedef duration<int, std::ratio<60>> mm_t;
-        typedef duration<int, std::ratio<1>> ss_t;
-        typedef duration<int, std::micro> us_t;
+        using dd_t = duration<int, std::ratio<86400>>;
+        using ss_t = duration<int, std::ratio<1>>;
+        using us_t = duration<int, std::micro>;
 
         Duration d = src.time_since_epoch();
-        return PyTime_FromTime(duration_cast<hh_t>(d).count()
-                               , duration_cast<mm_t>(d % hours(1)).count()
-                               , duration_cast<ss_t>(d % minutes(1)).count()
-                               , duration_cast<us_t>(d % seconds(1)).count());
+
+        return PyDelta_FromDSU(
+              duration_cast<dd_t>(d).count()
+            , duration_cast<ss_t>(d % days(1)).count()
+            , duration_cast<us_t>(d % seconds(1)).count());
     }
-    PYBIND11_TYPE_CASTER(type, _("datetime.time"));
+    PYBIND11_TYPE_CASTER(type, _("datetime.timedelta"));
 };
 
 NAMESPACE_END(detail)
