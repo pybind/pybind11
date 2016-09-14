@@ -11,6 +11,7 @@
 #pragma once
 
 #include "pybind11.h"
+#include <cmath>
 #include <chrono>
 #include <datetime.h>
 
@@ -26,7 +27,7 @@ public:
         using namespace std::chrono;
 
         // Lazy initialise the PyDateTime import
-        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
+        if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
         // If they have passed us a datetime.delta object
@@ -52,7 +53,7 @@ public:
 
     static handle cast(const std::chrono::duration<Rep, Period> &src, return_value_policy /* policy */, handle /* parent */) {
         using namespace std::chrono;
-        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
+        if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         // Declare these special duration types so the conversions happen with the correct primitive types (int)
         using dd_t = duration<int, std::ratio<86400>>;
@@ -75,7 +76,7 @@ public:
         using namespace std::chrono;
 
         // Lazy initialise the PyDateTime import
-        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
+        if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
         if (PyDateTime_Check(src.ptr())) {
@@ -98,7 +99,7 @@ public:
         using namespace std::chrono;
 
         // Lazy initialise the PyDateTime import
-        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
+        if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         time_t tt = system_clock::to_time_t(src);
         // this function uses static memory so it's best to copy it out asap just in case
@@ -129,7 +130,7 @@ public:
 
     bool load(handle src, bool) {
         using namespace std::chrono;
-        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
+        if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         // If they have passed us a datetime.delta object
         if (PyDelta_Check(src.ptr())) {
@@ -155,7 +156,7 @@ public:
         using namespace std::chrono;
 
         // Lazy initialise the PyDateTime import
-        if(!PyDateTimeAPI) { PyDateTime_IMPORT; }
+        if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         // Declare these special duration types so the conversions happen with the correct primitive types (int)
         using dd_t = duration<int, std::ratio<86400>>;
