@@ -633,7 +633,7 @@ protected:
         auto type = (PyHeapTypeObject*) type_holder.ptr();
 
         if (!type_holder || !name)
-            pybind11_fail("generic_type: unable to create type object!");
+            pybind11_fail(std::string(rec->name) + ": Unable to create type object!");
 
         /* Register supplemental type information in C++ dict */
         detail::type_info *tinfo = new detail::type_info();
@@ -682,7 +682,8 @@ protected:
         type->ht_type.tp_doc = tp_doc;
 
         if (PyType_Ready(&type->ht_type) < 0)
-            pybind11_fail("generic_type: PyType_Ready failed!");
+            pybind11_fail(std::string(rec->name) + ": PyType_Ready failed (" +
+                          detail::error_string() + ")!");
 
         m_ptr = type_holder.ptr();
 
