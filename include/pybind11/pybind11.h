@@ -1281,7 +1281,7 @@ void register_exception_translator(ExceptionTranslator&& translator) {
 template <typename type>
 class exception : public object {
 public:
-    exception(module &m, const std::string name, PyObject* base=PyExc_Exception) {
+    exception(module &m, const std::string &name, PyObject* base=PyExc_Exception) {
         std::string full_name = std::string(PyModule_GetName(m.ptr()))
                 + std::string(".") + name;
         char* exception_name = const_cast<char*>(full_name.c_str());
@@ -1289,7 +1289,31 @@ public:
         inc_ref(); // PyModule_AddObject() steals a reference
         PyModule_AddObject(m.ptr(), name.c_str(), m_ptr);
     }
+
+    // Sets the current python exception to this exception object with the given message
+    void operator()(const char *message) {
+        PyErr_SetString(m_ptr, message);
+    }
 };
+
+/** Registers a Python exception in `m` of the given `name` and installs an exception translator to
+ * translate the C++ exception to the created Python exception using the exceptions what() method.
+ * This is intended for simple exception translations; for more complex translation, register the
+ * exception object and translator directly.
+ */
+template <typename CppException> exception<CppException>& register_exception(module &m, const std::string &name, PyObject* base = PyExc_Exception) {
+    static exception<CppException> ex(m, name, base);
+    register_exception_translator([](std::exception_ptr p) {
+        if (!p) return;
+        try {
+            std::rethrow_exception(p);
+        }
+        catch (const CppException &e) {
+            ex(e.what());
+        }
+    });
+    return ex;
+}
 
 NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
