@@ -112,7 +112,7 @@ template <typename Type, typename Value> struct list_caster {
     }
 
     template <typename T = Type,
-              typename std::enable_if<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int>::type = 0>
+              enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
     void reserve_maybe(list l, Type *) { value.reserve(l.size()); }
     void reserve_maybe(list, void *) { }
 

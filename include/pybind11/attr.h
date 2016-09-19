@@ -33,10 +33,16 @@ struct name { const char *value; name(const char *value) : value(value) { } };
 struct sibling { handle value; sibling(const handle &value) : value(value.ptr()) { } };
 
 /// Annotation indicating that a class derives from another given type
-template <typename T> struct base { };
+template <typename T> struct base {
+    PYBIND11_DEPRECATED("base<T>() was deprecated in favor of specifying 'T' as a template argument to class_")
+    base() { }
+};
 
 /// Keep patient alive while nurse lives
 template <int Nurse, int Patient> struct keep_alive { };
+
+/// Annotation indicating that a class is involved in a multiple inheritance relationship
+struct multiple_inheritance { };
 
 NAMESPACE_BEGIN(detail)
 /* Forward declarations */
@@ -124,6 +130,8 @@ struct function_record {
 
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
+    PYBIND11_NOINLINE type_record() { }
+
     /// Handle to the parent scope
     handle scope;
 
@@ -145,21 +153,36 @@ struct type_record {
     /// Function pointer to class_<..>::dealloc
     void (*dealloc)(PyObject *) = nullptr;
 
-    // Pointer to RTTI type_info data structure of base class
-    const std::type_info *base_type = nullptr;
-
-    /// OR: Python handle to base class
-    handle base_handle;
+    /// List of base classes of the newly created type
+    list bases;
 
     /// Optional docstring
     const char *doc = nullptr;
+
+    /// Multiple inheritance marker
+    bool multiple_inheritance = false;
+
+    PYBIND11_NOINLINE void add_base(const std::type_info *base, void *(*caster)(void *)) {
+        auto base_info = detail::get_type_info(*base, false);
+        if (!base_info) {
+            std::string tname(base->name());
+            detail::clean_type_id(tname);
+            pybind11_fail("generic_type: type \"" + std::string(name) +
+                          "\" referenced unknown base type \"" + tname + "\"");
+        }
+
+        bases.append((PyObject *) base_info->type);
+
+        if (caster)
+            base_info->implicit_casts.push_back(std::make_pair(type, caster));
+    }
 };
 
 /**
  * Partial template specializations to process custom attributes provided to
  * cpp_function_ and class_. These are either used to initialize the respective
- * fields in the type_record and function_record data structures or executed
- * at runtime to deal with custom call policies (e.g. keep_alive).
+ * fields in the type_record and function_record data structures or executed at
+ * runtime to deal with custom call policies (e.g. keep_alive).
  */
 template <typename T, typename SFINAE = void> struct process_attribute;
 
@@ -253,14 +276,20 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 
 /// Process a parent class attribute
 template <typename T>
-struct process_attribute<T, typename std::enable_if<std::is_base_of<handle, T>::value>::type> : process_attribute_default<handle> {
-    static void init(const handle &h, type_record *r) { r->base_handle = h; }
+struct process_attribute<T, enable_if_t<std::is_base_of<handle, T>::value>> : process_attribute_default<handle> {
+    static void init(const handle &h, type_record *r) { r->bases.append(h); }
 };
 
-/// Process a parent class attribute
+/// Process a parent class attribute (deprecated, does not support multiple inheritance)
 template <typename T>
 struct process_attribute<base<T>> : process_attribute_default<base<T>> {
-    static void init(const base<T> &, type_record *r) { r->base_type = &typeid(T); }
+    static void init(const base<T> &, type_record *r) { r->add_base(&typeid(T), nullptr); }
+};
+
+/// Process a multiple inheritance attribute
+template <>
+struct process_attribute<multiple_inheritance> : process_attribute_default<multiple_inheritance> {
+    static void init(const multiple_inheritance &, type_record *r) { r->multiple_inheritance = true; }
 };
 
 /***
@@ -269,13 +298,13 @@ struct process_attribute<base<T>> : process_attribute_default<base<T>> {
  * otherwise
  */
 template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
-    template <int N = Nurse, int P = Patient, typename std::enable_if<N != 0 && P != 0, int>::type = 0>
+    template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
     static void precall(handle args) { keep_alive_impl(Nurse, Patient, args, handle()); }
-    template <int N = Nurse, int P = Patient, typename std::enable_if<N != 0 && P != 0, int>::type = 0>
+    template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
     static void postcall(handle, handle) { }
-    template <int N = Nurse, int P = Patient, typename std::enable_if<N == 0 || P == 0, int>::type = 0>
+    template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void precall(handle) { }
-    template <int N = Nurse, int P = Patient, typename std::enable_if<N == 0 || P == 0, int>::type = 0>
+    template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void postcall(handle args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
 };
 

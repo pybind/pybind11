@@ -43,10 +43,8 @@ public:
     bool is_none() const { return m_ptr == Py_None; }
     template <typename T> T cast() const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
-    #if __cplusplus > 201103L
-    [[deprecated("call(...) was deprecated in favor of operator()(...)")]]
-    #endif
-    object call(Args&&... args) const;
+    PYBIND11_DEPRECATED("call(...) was deprecated in favor of operator()(...)")
+        object call(Args&&... args) const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename ... Args>
     object operator()(Args&&... args) const;
     operator bool() const { return m_ptr != nullptr; }
@@ -492,7 +490,7 @@ class int_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(int_, object, PYBIND11_LONG_CHECK)
     template <typename T,
-              typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+              detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     int_(T value) {
         if (sizeof(T) <= sizeof(long)) {
             if (std::is_signed<T>::value)
@@ -509,7 +507,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+              detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     operator T() const {
         if (sizeof(T) <= sizeof(long)) {
             if (std::is_signed<T>::value)
@@ -614,7 +612,7 @@ public:
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_accessor operator[](size_t index) const { return detail::list_accessor(*this, index); }
-    void append(const object &object) const { PyList_Append(m_ptr, object.ptr()); }
+    void append(handle h) const { PyList_Append(m_ptr, h.ptr()); }
 };
 
 class args : public tuple { PYBIND11_OBJECT_DEFAULT(args, tuple, PyTuple_Check) };

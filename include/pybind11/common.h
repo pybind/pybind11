@@ -30,6 +30,16 @@
 #  define PYBIND11_NOINLINE __attribute__ ((noinline))
 #endif
 
+#if __cplusplus > 201103L
+#  define PYBIND11_DEPRECATED(reason) [[deprecated(reason)]]
+#elif defined(__clang__)
+#  define PYBIND11_DEPRECATED(reason) __attribute__((deprecated(reason)))
+#elif defined(__GNUG__)
+#  define PYBIND11_DEPRECATED(reason) __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#  define PYBIND11_DEPRECATED(reason) __declspec(deprecated)
+#endif
+
 #define PYBIND11_VERSION_MAJOR 1
 #define PYBIND11_VERSION_MINOR 9
 #define PYBIND11_VERSION_PATCH dev0
@@ -79,6 +89,7 @@
 #include <unordered_map>
 #include <memory>
 #include <typeindex>
+#include <type_traits>
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
@@ -431,14 +442,14 @@ PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used in
 
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 
-template <typename T> struct format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {
+template <typename T> struct format_descriptor<T, detail::enable_if_t<std::is_integral<T>::value>> {
     static constexpr const char value[2] =
         { "bBhHiIqQ"[detail::log2(sizeof(T))*2 + (std::is_unsigned<T>::value ? 1 : 0)], '\0' };
     static std::string format() { return value; }
 };
 
 template <typename T> constexpr const char format_descriptor<
-    T, typename std::enable_if<std::is_integral<T>::value>::type>::value[2];
+    T, detail::enable_if_t<std::is_integral<T>::value>>::value[2];
 
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {

@@ -65,17 +65,19 @@ def test_no_id(capture, msg):
     with pytest.raises(TypeError) as excinfo:
         get_element(None)
     assert msg(excinfo.value) == """
-        Incompatible function arguments. The following argument types are supported:
+        get_element(): incompatible function arguments. The following argument types are supported:
             1. (arg0: m.issues.ElementA) -> int
-            Invoked with: None
+
+        Invoked with: None
     """
 
     with pytest.raises(TypeError) as excinfo:
         expect_int(5.2)
     assert msg(excinfo.value) == """
-        Incompatible function arguments. The following argument types are supported:
+        expect_int(): incompatible function arguments. The following argument types are supported:
             1. (arg0: int) -> int
-            Invoked with: 5.2
+
+        Invoked with: 5.2
     """
     assert expect_float(12) == 12
 
@@ -90,10 +92,11 @@ def test_str_issue(msg):
     with pytest.raises(TypeError) as excinfo:
         str(StrIssue("no", "such", "constructor"))
     assert msg(excinfo.value) == """
-        Incompatible constructor arguments. The following argument types are supported:
+        __init__(): incompatible constructor arguments. The following argument types are supported:
             1. m.issues.StrIssue(arg0: int)
             2. m.issues.StrIssue()
-            Invoked with: no, such, constructor
+
+        Invoked with: no, such, constructor
     """
 
 

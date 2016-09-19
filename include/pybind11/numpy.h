@@ -486,7 +486,7 @@ public:
 };
 
 template <typename T>
-struct format_descriptor<T, typename std::enable_if<detail::is_pod_struct<T>::value>::type> {
+struct format_descriptor<T, detail::enable_if_t<detail::is_pod_struct<T>::value>> {
     static std::string format() {
         return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::format();
     }
@@ -517,7 +517,7 @@ struct is_pod_struct {
            !std::is_same<typename std::remove_cv<T>::type, std::complex<double>>::value };
 };
 
-template <typename T> struct npy_format_descriptor<T, typename std::enable_if<std::is_integral<T>::value>::type> {
+template <typename T> struct npy_format_descriptor<T, enable_if_t<std::is_integral<T>::value>> {
 private:
     constexpr static const int values[8] = {
         npy_api::NPY_BYTE_, npy_api::NPY_UBYTE_, npy_api::NPY_SHORT_,    npy_api::NPY_USHORT_,
@@ -529,13 +529,13 @@ public:
             return object(ptr, true);
         pybind11_fail("Unsupported buffer format!");
     }
-    template <typename T2 = T, typename std::enable_if<std::is_signed<T2>::value, int>::type = 0>
+    template <typename T2 = T, enable_if_t<std::is_signed<T2>::value, int> = 0>
     static PYBIND11_DESCR name() { return _("int") + _<sizeof(T)*8>(); }
-    template <typename T2 = T, typename std::enable_if<!std::is_signed<T2>::value, int>::type = 0>
+    template <typename T2 = T, enable_if_t<!std::is_signed<T2>::value, int> = 0>
     static PYBIND11_DESCR name() { return _("uint") + _<sizeof(T)*8>(); }
 };
 template <typename T> constexpr const int npy_format_descriptor<
-    T, typename std::enable_if<std::is_integral<T>::value>::type>::values[8];
+    T, enable_if_t<std::is_integral<T>::value>>::values[8];
 
 #define DECL_FMT(Type, NumPyName, Name) template<> struct npy_format_descriptor<Type> { \
     enum { value = npy_api::NumPyName }; \
@@ -568,7 +568,7 @@ struct field_descriptor {
 };
 
 template <typename T>
-struct npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type> {
+struct npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>> {
     static PYBIND11_DESCR name() { return _("struct"); }
 
     static pybind11::dtype dtype() {
@@ -634,9 +634,9 @@ private:
 };
 
 template <typename T>
-std::string npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type>::format_str;
+std::string npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>>::format_str;
 template <typename T>
-PyObject* npy_format_descriptor<T, typename std::enable_if<is_pod_struct<T>::value>::type>::dtype_ptr = nullptr;
+PyObject* npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>>::dtype_ptr = nullptr;
 
 // Extract name, offset and format descriptor for a struct field
 #define PYBIND11_FIELD_DESCRIPTOR(Type, Field) \

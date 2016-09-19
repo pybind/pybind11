@@ -61,7 +61,7 @@ test_initializer inheritance([](py::module &m) {
         .def(py::init<std::string>());
 
     /* Another way of declaring a subclass relationship: reference parent's C++ type */
-    py::class_<Rabbit>(m, "Rabbit", py::base<Pet>())
+    py::class_<Rabbit, Pet>(m, "Rabbit")
         .def(py::init<std::string>());
 
     /* And another: list parent in class template arguments */

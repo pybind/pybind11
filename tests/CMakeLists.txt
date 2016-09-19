@@ -29,9 +29,9 @@ set(PYBIND11_TEST_FILES
   test_pickling.cpp
   test_python_types.cpp
   test_sequences_and_iterators.cpp
-  test_smart_ptr.cpp
   test_stl_binders.cpp
   test_virtual_functions.cpp
+  test_multiple_inheritance.cpp
 )
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")

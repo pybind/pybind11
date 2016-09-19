@@ -86,11 +86,11 @@ template <size_t...Digits> struct int_to_str<0, Digits...> {
 
 // Ternary description (like std::conditional)
 template <bool B, size_t Size1, size_t Size2>
-constexpr typename std::enable_if<B, descr<Size1 - 1, 0>>::type _(char const(&text1)[Size1], char const(&)[Size2]) {
+constexpr enable_if_t<B, descr<Size1 - 1, 0>> _(char const(&text1)[Size1], char const(&)[Size2]) {
     return _(text1);
 }
 template <bool B, size_t Size1, size_t Size2>
-constexpr typename std::enable_if<!B, descr<Size2 - 1, 0>>::type _(char const(&)[Size1], char const(&text2)[Size2]) {
+constexpr enable_if_t<!B, descr<Size2 - 1, 0>> _(char const(&)[Size1], char const(&text2)[Size2]) {
     return _(text2);
 }
 
@@ -164,8 +164,8 @@ PYBIND11_NOINLINE inline descr _(const char *text) {
     return descr(text, types);
 }
 
-template <bool B> PYBIND11_NOINLINE typename std::enable_if<B, descr>::type _(const char *text1, const char *) { return _(text1); }
-template <bool B> PYBIND11_NOINLINE typename std::enable_if<!B, descr>::type _(char const *, const char *text2) { return _(text2); }
+template <bool B> PYBIND11_NOINLINE enable_if_t<B, descr> _(const char *text1, const char *) { return _(text1); }
+template <bool B> PYBIND11_NOINLINE enable_if_t<!B, descr> _(char const *, const char *text2) { return _(text2); }
 
 template <typename Type> PYBIND11_NOINLINE descr _() {
     const std::type_info *types[2] = { &typeid(Type), nullptr };

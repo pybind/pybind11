@@ -17,6 +17,7 @@
 #  pragma warning(disable: 4512) // warning C4512: Assignment operator was implicitly defined as deleted
 #  pragma warning(disable: 4800) // warning C4800: 'int': forcing value to bool 'true' or 'false' (performance warning)
 #  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
+#  pragma warning(disable: 4702) // warning C4702: unreachable code
 #elif defined(__INTEL_COMPILER)
 #  pragma warning(push)
 #  pragma warning(disable: 186)   // pointless comparison of unsigned integer with zero
@@ -460,8 +461,10 @@ protected:
             if (overloads->is_operator)
                 return handle(Py_NotImplemented).inc_ref().ptr();
 
-            std::string msg = "Incompatible " + std::string(overloads->is_constructor ? "constructor" : "function") +
-                              " arguments. The following argument types are supported:\n";
+            std::string msg = std::string(overloads->name) + "(): incompatible " +
+                std::string(overloads->is_constructor ? "constructor" : "function") +
+                " arguments. The following argument types are supported:\n";
+
             int ctr = 0;
             for (detail::function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
@@ -489,7 +492,7 @@ protected:
 
                 msg += "\n";
             }
-            msg += "    Invoked with: ";
+            msg += "\nInvoked with: ";
             tuple args_(args, true);
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
                 msg += static_cast<std::string>(static_cast<object>(args_[ti]).str());
@@ -574,18 +577,6 @@ public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
     void initialize(type_record *rec) {
-        if (rec->base_type) {
-            if (rec->base_handle)
-                pybind11_fail("generic_type: specified base type multiple times!");
-            rec->base_handle = detail::get_type_handle(*(rec->base_type));
-            if (!rec->base_handle) {
-                std::string tname(rec->base_type->name());
-                detail::clean_type_id(tname);
-                pybind11_fail("generic_type: type \"" + std::string(rec->name) +
-                              "\" referenced unknown base type \"" + tname + "\"");
-            }
-        }
-
         auto &internals = get_internals();
         auto tindex = std::type_index(*(rec->type));
 
@@ -615,6 +606,12 @@ protected:
             ht_qualname = name;
         }
 #endif
+
+        size_t num_bases = rec->bases.size();
+        tuple bases(num_bases);
+        for (size_t i = 0; i < num_bases; ++i)
+            bases[i] = rec->bases[i];
+
         std::string full_name = (scope_module ? ((std::string) scope_module.str() + "." + rec->name)
                                               : std::string(rec->name));
 
@@ -627,11 +624,16 @@ protected:
             memcpy((void *) tp_doc, rec->doc, size);
         }
 
+        /* Danger zone: from now (and until PyType_Ready), make sure to
+           issue no Python C API calls which could potentially invoke the
+           garbage collector (the GC will call type_traverse(), which will in
+           turn find the newly constructed type in an invalid state) */
+
         object type_holder(PyType_Type.tp_alloc(&PyType_Type, 0), false);
         auto type = (PyHeapTypeObject*) type_holder.ptr();
 
         if (!type_holder || !name)
-            pybind11_fail("generic_type: unable to create type object!");
+            pybind11_fail(std::string(rec->name) + ": Unable to create type object!");
 
         /* Register supplemental type information in C++ dict */
         detail::type_info *tinfo = new detail::type_info();
@@ -644,8 +646,12 @@ protected:
         /* Basic type attributes */
         type->ht_type.tp_name = strdup(full_name.c_str());
         type->ht_type.tp_basicsize = (ssize_t) rec->instance_size;
-        type->ht_type.tp_base = (PyTypeObject *) rec->base_handle.ptr();
-        rec->base_handle.inc_ref();
+
+        if (num_bases > 0) {
+            type->ht_type.tp_base = (PyTypeObject *) ((object) bases[0]).inc_ref().ptr();
+            type->ht_type.tp_bases = bases.release().ptr();
+            rec->multiple_inheritance |= num_bases > 1;
+        }
 
         type->ht_name = name.release().ptr();
 
@@ -676,7 +682,8 @@ protected:
         type->ht_type.tp_doc = tp_doc;
 
         if (PyType_Ready(&type->ht_type) < 0)
-            pybind11_fail("generic_type: PyType_Ready failed!");
+            pybind11_fail(std::string(rec->name) + ": PyType_Ready failed (" +
+                          detail::error_string() + ")!");
 
         m_ptr = type_holder.ptr();
 
@@ -687,7 +694,21 @@ protected:
         if (rec->scope)
             rec->scope.attr(handle(type->ht_name)) = *this;
 
+        if (rec->multiple_inheritance)
+            mark_parents_nonsimple(&type->ht_type);
+
         type_holder.release();
+    }
+
+    /// Helper function which tags all parents of a type using mult. inheritance
+    void mark_parents_nonsimple(PyTypeObject *value) {
+        tuple t(value->tp_bases, true);
+        for (handle h : t) {
+            auto tinfo2 = get_type_info((PyTypeObject *) h.ptr());
+            if (tinfo2)
+                tinfo2->simple_type = false;
+            mark_parents_nonsimple((PyTypeObject *) h.ptr());
+        }
     }
 
     /// Allocate a metaclass on demand (for static properties)
@@ -809,31 +830,18 @@ protected:
     static void releasebuffer(PyObject *, Py_buffer *view) { delete (buffer_info *) view->internal; }
 };
 
-template <template<typename> class Predicate, typename... BaseTypes> struct class_selector;
-template <template<typename> class Predicate, typename Base, typename... Bases>
-struct class_selector<Predicate, Base, Bases...> {
-    static inline void set_bases(detail::type_record &record) {
-        if (Predicate<Base>::value) record.base_type = &typeid(Base);
-        else class_selector<Predicate, Bases...>::set_bases(record);
-    }
-};
-template <template<typename> class Predicate>
-struct class_selector<Predicate> {
-    static inline void set_bases(detail::type_record &) {}
-};
-
 NAMESPACE_END(detail)
 
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T> using is_holder = detail::is_holder_type<type_, T>;
     template <typename T> using is_subtype = detail::bool_constant<std::is_base_of<type_, T>::value && !std::is_same<T, type_>::value>;
-    template <typename T> using is_base_class = detail::bool_constant<std::is_base_of<T, type_>::value && !std::is_same<T, type_>::value>;
+    template <typename T> using is_base = detail::bool_constant<std::is_base_of<T, type_>::value && !std::is_same<T, type_>::value>;
     template <typename T> using is_valid_class_option =
         detail::bool_constant<
             is_holder<T>::value ||
             is_subtype<T>::value ||
-            is_base_class<T>::value
+            is_base<T>::value
         >;
 
 public:
@@ -845,9 +853,6 @@ public:
 
     static_assert(detail::all_of_t<is_valid_class_option, options...>::value,
             "Unknown/invalid class_ template parameters provided");
-
-    static_assert(detail::count_t<is_base_class, options...>::value <= 1,
-            "Invalid class_ base types: multiple inheritance is not supported");
 
     PYBIND11_OBJECT(class_, detail::generic_type, PyType_Check)
 
@@ -862,7 +867,9 @@ public:
         record.init_holder = init_holder;
         record.dealloc = dealloc;
 
-        detail::class_selector<is_base_class, options...>::set_bases(record);
+        /* Register base classes specified via template arguments to class_, if any */
+        bool unused[] = { (add_base<options>(record), false)..., false };
+        (void) unused;
 
         /* Process optional arguments, if any */
         detail::process_attributes<Extra...>::init(extra..., &record);
@@ -874,6 +881,16 @@ public:
             instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
         }
     }
+
+    template <typename Base, detail::enable_if_t<is_base<Base>::value, int> = 0>
+    static void add_base(detail::type_record &rec) {
+        rec.add_base(&typeid(Base), [](void *src) -> void * {
+            return static_cast<Base *>(reinterpret_cast<type *>(src));
+        });
+    }
+
+    template <typename Base, detail::enable_if_t<!is_base<Base>::value, int> = 0>
+    static void add_base(detail::type_record &) { }
 
     template <typename Func, typename... Extra>
     class_ &def(const char *name_, Func&& f, const Extra&... extra) {
@@ -1016,7 +1033,7 @@ private:
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
     template <typename T = holder_type,
-              typename std::enable_if<std::is_copy_constructible<T>::value, int>::type = 0>
+              detail::enable_if_t<std::is_copy_constructible<T>::value, int> = 0>
     static void init_holder_helper(instance_type *inst, const holder_type *holder_ptr, const void * /* dummy */) {
         if (holder_ptr)
             new (&inst->holder) holder_type(*holder_ptr);
@@ -1026,7 +1043,7 @@ private:
 
     /// Initialize holder object, variant 3: holder is not copy constructible (e.g. unique_ptr), always initialize from raw pointer
     template <typename T = holder_type,
-              typename std::enable_if<!std::is_copy_constructible<T>::value, int>::type = 0>
+              detail::enable_if_t<!std::is_copy_constructible<T>::value, int> = 0>
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const void * /* dummy */) {
         new (&inst->holder) holder_type(inst->value);
     }
@@ -1196,7 +1213,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
 iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator, Sentinel, false, Policy> state;
 
-    if (!detail::get_type_info(typeid(state))) {
+    if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator")
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> ValueType {
@@ -1221,7 +1238,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
 
-    if (!detail::get_type_info(typeid(state))) {
+    if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator")
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> KeyType {

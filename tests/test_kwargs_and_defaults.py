@@ -35,9 +35,10 @@ def test_named_arguments(msg):
         # noinspection PyArgumentList
         kw_func2(x=5, y=10, z=12)
     assert msg(excinfo.value) == """
-        Incompatible function arguments. The following argument types are supported:
+        kw_func2(): incompatible function arguments. The following argument types are supported:
             1. (x: int=100, y: int=200) -> str
-            Invoked with:
+
+        Invoked with:
     """
 
     assert kw_func4() == "{13 17}"

@@ -185,10 +185,9 @@ inheritance relationship:
         std::string bark() const { return "woof!"; }
     };
 
-There are three different ways of indicating a hierarchical relationship to
+There are two different ways of indicating a hierarchical relationship to
 pybind11: the first specifies the C++ base class as an extra template
-parameter of the :class:`class_`; the second uses a special ``base`` attribute
-passed into the constructor:
+parameter of the :class:`class_`:
 
 .. code-block:: cpp
 
@@ -201,11 +200,6 @@ passed into the constructor:
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
-    // Method 2: py::base attribute:
-    py::class_<Dog>(m, "Dog", py::base<Pet>() /* <- specify C++ parent type */)
-        .def(py::init<const std::string &>())
-        .def("bark", &Dog::bark);
-
 Alternatively, we can also assign a name to the previously bound ``Pet``
 :class:`class_` object and reference it when binding the ``Dog`` class:
 
@@ -215,13 +209,13 @@ Alternatively, we can also assign a name to the previously bound ``Pet``
     pet.def(py::init<const std::string &>())
        .def_readwrite("name", &Pet::name);
 
-    // Method 3: pass parent class_ object:
+    // Method 2: pass parent class_ object:
     py::class_<Dog>(m, "Dog", pet /* <- specify Python parent type */)
         .def(py::init<const std::string &>())
         .def("bark", &Dog::bark);
 
-Functionality-wise, all three approaches are completely equivalent. Afterwards,
-instances will expose fields and methods of both types:
+Functionality-wise, both approaches are equivalent. Afterwards, instances will
+expose fields and methods of both types:
 
 .. code-block:: pycon
 
