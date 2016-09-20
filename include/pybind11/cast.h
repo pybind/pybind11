@@ -39,7 +39,10 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         return *internals_ptr;
     handle builtins(PyEval_GetBuiltins());
     const char *id = PYBIND11_INTERNALS_ID;
-    capsule caps(builtins[id]);
+    capsule caps;
+    if (builtins.contains(id)) {
+        caps = builtins[id];
+    }
     if (caps.check()) {
         internals_ptr = caps;
     } else {
@@ -1221,7 +1224,7 @@ private:
     }
 
     void process(list &/*args_list*/, arg_v a) {
-        if (m_kwargs[a.name]) {
+        if (m_kwargs.contains(a.name)) {
 #if defined(NDEBUG)
             multiple_values_error();
 #else
@@ -1240,7 +1243,7 @@ private:
 
     void process(list &/*args_list*/, detail::kwargs_proxy kp) {
         for (const auto &k : dict(kp, true)) {
-            if (m_kwargs[k.first]) {
+            if (m_kwargs.contains(k.first)) {
 #if defined(NDEBUG)
                 multiple_values_error();
 #else

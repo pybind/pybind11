@@ -278,9 +278,11 @@ protected:
 
             object scope_module;
             if (rec->scope) {
-                scope_module = (object) rec->scope.attr("__module__");
-                if (!scope_module)
-                    scope_module = (object) rec->scope.attr("__name__");
+                if (hasattr(rec->scope, "__module__")) {
+                    scope_module = rec->scope.attr("__module__");
+                } else if (hasattr(rec->scope, "__name__")) {
+                    scope_module = rec->scope.attr("__name__");
+                }
             }
 
             m_ptr = PyCFunction_NewEx(rec->def, rec_capsule.ptr(), scope_module.ptr());
@@ -544,8 +546,8 @@ public:
 
     template <typename Func, typename... Extra>
     module &def(const char *name_, Func &&f, const Extra& ... extra) {
-        cpp_function func(std::forward<Func>(f), name(name_),
-                          sibling((handle) attr(name_)), scope(*this), extra...);
+        cpp_function func(std::forward<Func>(f), name(name_), scope(*this),
+                          sibling(getattr(*this, name_, none())), extra...);
         /* PyModule_AddObject steals a reference to 'func' */
         PyModule_AddObject(ptr(), name_, func.inc_ref().ptr());
         return *this;
@@ -588,16 +590,18 @@ protected:
         object name(PYBIND11_FROM_STRING(rec->name), false);
         object scope_module;
         if (rec->scope) {
-            scope_module = (object) rec->scope.attr("__module__");
-            if (!scope_module)
-                scope_module = (object) rec->scope.attr("__name__");
+            if (hasattr(rec->scope, "__module__")) {
+                scope_module = rec->scope.attr("__module__");
+            } else if (hasattr(rec->scope, "__name__")) {
+                scope_module = rec->scope.attr("__name__");
+            }
         }
 
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
         /* Qualified names for Python >= 3.3 */
         object scope_qualname;
-        if (rec->scope)
-            scope_qualname = (object) rec->scope.attr("__qualname__");
+        if (rec->scope && hasattr(rec->scope, "__qualname__"))
+            scope_qualname = rec->scope.attr("__qualname__");
         object ht_qualname;
         if (scope_qualname) {
             ht_qualname = object(PyUnicode_FromFormat(
@@ -894,17 +898,16 @@ public:
 
     template <typename Func, typename... Extra>
     class_ &def(const char *name_, Func&& f, const Extra&... extra) {
-        cpp_function cf(std::forward<Func>(f), name(name_),
-                        sibling(attr(name_)), is_method(*this),
-                        extra...);
+        cpp_function cf(std::forward<Func>(f), name(name_), is_method(*this),
+                        sibling(getattr(*this, name_, none())), extra...);
         attr(cf.name()) = cf;
         return *this;
     }
 
     template <typename Func, typename... Extra> class_ &
     def_static(const char *name_, Func f, const Extra&... extra) {
-        cpp_function cf(std::forward<Func>(f), name(name_),
-                        sibling(attr(name_)), scope(*this), extra...);
+        cpp_function cf(std::forward<Func>(f), name(name_), scope(*this),
+                        sibling(getattr(*this, name_, none())), extra...);
         attr(cf.name()) = cf;
         return *this;
     }
@@ -1338,16 +1341,16 @@ PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = args[i].cast<object>().str();
     }
-    auto sep = kwargs["sep"] ? kwargs["sep"] : cast(" ");
+    auto sep = kwargs.contains("sep") ? kwargs["sep"] : cast(" ");
     auto line = sep.attr("join").cast<object>()(strings);
 
-    auto file = kwargs["file"] ? kwargs["file"].cast<object>()
-                               : module::import("sys").attr("stdout");
+    auto file = kwargs.contains("file") ? kwargs["file"].cast<object>()
+                                        : module::import("sys").attr("stdout");
     auto write = file.attr("write").cast<object>();
     write(line);
-    write(kwargs["end"] ? kwargs["end"] : cast("\n"));
+    write(kwargs.contains("end") ? kwargs["end"] : cast("\n"));
 
-    if (kwargs["flush"] && kwargs["flush"].cast<bool>()) {
+    if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
         file.attr("flush").cast<object>()();
     }
 }
@@ -1500,7 +1503,7 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     if (cache.find(key) != cache.end())
         return function();
 
-    function overload = (function) py_object.attr(name);
+    function overload = getattr(py_object, name, function());
     if (overload.is_cpp_function()) {
         cache.insert(key);
         return function();

@@ -41,6 +41,7 @@ public:
     accessor attr(handle key) const;
     accessor attr(const char *key) const;
     args_proxy operator*() const;
+    template <typename T> bool contains(T &&key) const;
 
     template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
     object operator()(Args &&...args) const;
@@ -117,6 +118,52 @@ public:
     template <typename T> T cast() &&;
 };
 
+inline bool hasattr(handle obj, handle name) {
+    return PyObject_HasAttr(obj.ptr(), name.ptr()) == 1;
+}
+
+inline bool hasattr(handle obj, const char *name) {
+    return PyObject_HasAttrString(obj.ptr(), name) == 1;
+}
+
+inline object getattr(handle obj, handle name) {
+    PyObject *result = PyObject_GetAttr(obj.ptr(), name.ptr());
+    if (!result) { throw error_already_set(); }
+    return {result, false};
+}
+
+inline object getattr(handle obj, const char *name) {
+    PyObject *result = PyObject_GetAttrString(obj.ptr(), name);
+    if (!result) { throw error_already_set(); }
+    return {result, false};
+}
+
+inline object getattr(handle obj, handle name, handle default_) {
+    if (PyObject *result = PyObject_GetAttr(obj.ptr(), name.ptr())) {
+        return {result, false};
+    } else {
+        PyErr_Clear();
+        return {default_, true};
+    }
+}
+
+inline object getattr(handle obj, const char *name, handle default_) {
+    if (PyObject *result = PyObject_GetAttrString(obj.ptr(), name)) {
+        return {result, false};
+    } else {
+        PyErr_Clear();
+        return {default_, true};
+    }
+}
+
+inline void setattr(handle obj, handle name, handle value) {
+    if (PyObject_SetAttr(obj.ptr(), name.ptr(), value.ptr()) != 0) { throw error_already_set(); }
+}
+
+inline void setattr(handle obj, const char *name, handle value) {
+    if (PyObject_SetAttrString(obj.ptr(), name, value.ptr()) != 0) { throw error_already_set(); }
+}
+
 NAMESPACE_BEGIN(detail)
 inline handle get_function(handle value) {
     if (value) {
@@ -151,23 +198,13 @@ public:
     }
 
     operator object() const {
-        object result(attr ? PyObject_GetAttr(obj.ptr(), key.ptr())
-                           : PyObject_GetItem(obj.ptr(), key.ptr()), false);
-        if (!result) {PyErr_Clear(); }
-        return result;
+        PyObject *result = attr ? PyObject_GetAttr(obj.ptr(), key.ptr())
+                                : PyObject_GetItem(obj.ptr(), key.ptr());
+        if (!result) { throw error_already_set(); }
+        return {result, false};
     }
 
     template <typename T> T cast() const { return operator object().cast<T>(); }
-
-    operator bool() const {
-        if (attr) {
-            return (bool) PyObject_HasAttr(obj.ptr(), key.ptr());
-        } else {
-            object result(PyObject_GetItem(obj.ptr(), key.ptr()), false);
-            if (!result) PyErr_Clear();
-            return (bool) result;
-        }
-    };
 
 private:
     handle obj;
@@ -598,6 +635,8 @@ public:
     detail::dict_iterator begin() const { return (++detail::dict_iterator(*this, 0)); }
     detail::dict_iterator end() const { return detail::dict_iterator(); }
     void clear() const { PyDict_Clear(ptr()); }
+    bool contains(handle key) const { return PyDict_Contains(ptr(), key.ptr()) == 1; }
+    bool contains(const char *key) const { return PyDict_Contains(ptr(), pybind11::str(key).ptr()) == 1; }
 };
 
 class list : public object {
@@ -695,6 +734,9 @@ template <typename D> accessor object_api<D>::operator[](const char *key) const 
 template <typename D> accessor object_api<D>::attr(handle key) const { return {derived(), key, true}; }
 template <typename D> accessor object_api<D>::attr(const char *key) const { return {derived(), key, true}; }
 template <typename D> args_proxy object_api<D>::operator*() const { return {derived().ptr()}; }
+template <typename D> template <typename T> bool object_api<D>::contains(T &&key) const {
+    return attr("__contains__").template cast<object>()(std::forward<T>(key)).template cast<bool>();
+}
 
 template <typename D>
 pybind11::str object_api<D>::str() const {

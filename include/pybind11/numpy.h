@@ -125,11 +125,11 @@ private:
 
     static npy_api lookup() {
         module m = module::import("numpy.core.multiarray");
-        object c = (object) m.attr("_ARRAY_API");
+        auto c = m.attr("_ARRAY_API").cast<object>();
 #if PY_MAJOR_VERSION >= 3
-        void **api_ptr = (void **) (c ? PyCapsule_GetPointer(c.ptr(), NULL) : nullptr);
+        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
 #else
-        void **api_ptr = (void **) (c ? PyCObject_AsVoidPtr(c.ptr()) : nullptr);
+        void **api_ptr = (void **) PyCObject_AsVoidPtr(c.ptr());
 #endif
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
