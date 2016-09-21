@@ -121,7 +121,7 @@ can be compiled independently from another. Following this approach will
 2. enable parallel builds (if desired).
 
 3. allow for faster incremental builds. For instance, when a single class
-   definiton is changed, only a subset of the binding code will generally need
+   definition is changed, only a subset of the binding code will generally need
    to be recompiled.
 
 How can I create smaller binaries?
@@ -131,7 +131,7 @@ To do its job, pybind11 extensively relies on a programming technique known as
 *template metaprogramming*, which is a way of performing computation at compile
 time using type information. Template metaprogamming usually instantiates code
 involving significant numbers of deeply nested types that are either completely
-removed or reduced to just a few instrutions during the compiler's optimization
+removed or reduced to just a few instructions during the compiler's optimization
 phase. However, due to the nested nature of these types, the resulting symbol
 names in the compiled extension library can be extremely long. For instance,
 the included test suite contains the following symbol:
