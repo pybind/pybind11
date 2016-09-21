@@ -540,7 +540,7 @@ pybind11 provides a few convenience macros such as
 in the preprocessor (which has no concept of types), they *will* get confused
 by commas in a template argument such as ``PYBIND11_OVERLOAD(MyReturnValue<T1,
 T2>, myFunc)``. In this case, the preprocessor assumes that the comma indicates
-the beginnning of the next parameter. Use a ``typedef`` to bind the template to
+the beginning of the next parameter. Use a ``typedef`` to bind the template to
 another name and use it in the macro to avoid this problem.
 
 
@@ -670,7 +670,7 @@ functions:
         .def_readwrite("contents", &MyClass::contents);
 
 In this case, properties can be read and written in their entirety. However, an
-``append`` operaton involving such a list type has no effect:
+``append`` operation involving such a list type has no effect:
 
 .. code-block:: pycon
 
@@ -1524,7 +1524,7 @@ or ``py::array::f_style``.
     void f(py::array_t<double, py::array::c_style | py::array::forcecast> array);
 
 The ``py::array::forcecast`` argument is the default value of the second
-template paramenter, and it ensures that non-conforming arguments are converted
+template parameter, and it ensures that non-conforming arguments are converted
 into an array satisfying the specified requirements instead of trying the next
 function overload.
 
