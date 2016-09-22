@@ -911,10 +911,11 @@ detail::vectorize_helper<Return (*) (Args ...), Return, Args...> vectorize(Retur
     return vectorize<Return (*) (Args ...), Return, Args...>(f, f);
 }
 
-template <typename func> auto vectorize(func &&f) -> decltype(
-        vectorize(std::forward<func>(f), (typename detail::remove_class<decltype(&std::remove_reference<func>::type::operator())>::type *) nullptr)) {
-    return vectorize(std::forward<func>(f), (typename detail::remove_class<decltype(
-                   &std::remove_reference<func>::type::operator())>::type *) nullptr);
+template <typename Func>
+auto vectorize(Func &&f) -> decltype(
+        vectorize(std::forward<Func>(f), (typename detail::remove_class<decltype(&std::remove_reference<Func>::type::operator())>::type *) nullptr)) {
+    return vectorize(std::forward<Func>(f), (typename detail::remove_class<decltype(
+                   &std::remove_reference<Func>::type::operator())>::type *) nullptr);
 }
 
 NAMESPACE_END(pybind11)
