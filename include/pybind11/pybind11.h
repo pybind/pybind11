@@ -1338,7 +1338,7 @@ NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
-        strings[i] = args[i].cast<object>().str();
+        strings[i] = args[i].str();
     }
     auto sep = kwargs.contains("sep") ? kwargs["sep"] : cast(" ");
     auto line = sep.attr("join")(strings);

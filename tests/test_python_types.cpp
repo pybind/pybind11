@@ -60,7 +60,7 @@ public:
     py::list get_list() {
         py::list list;
         list.append(py::str("value"));
-        py::print("Entry at position 0:", py::object(list[0]));
+        py::print("Entry at position 0:", list[0]);
         list[0] = py::str("overwritten");
         return list;
     }
@@ -256,5 +256,20 @@ test_initializer python_types([](py::module &m) {
         d["operator*"] = o.attr("func")(*o.attr("begin_end"));
 
         return d;
+    });
+
+    m.def("test_tuple_accessor", [](py::tuple existing_t) {
+        try {
+            existing_t[0] = py::cast(1);
+        } catch (const py::error_already_set &) {
+            // --> Python system error
+            // Only new tuples (refcount == 1) are mutable
+            auto new_t = py::tuple(3);
+            for (size_t i = 0; i < new_t.size(); ++i) {
+                new_t[i] = py::cast(i);
+            }
+            return new_t;
+        }
+        return py::tuple();
     });
 });

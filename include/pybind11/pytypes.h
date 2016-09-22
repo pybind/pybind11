@@ -29,10 +29,14 @@ namespace accessor_policies {
     struct obj_attr;
     struct str_attr;
     struct generic_item;
+    struct list_item;
+    struct tuple_item;
 }
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
 using str_attr_accessor = accessor<accessor_policies::str_attr>;
 using item_accessor = accessor<accessor_policies::generic_item>;
+using list_accessor = accessor<accessor_policies::list_item>;
+using tuple_accessor = accessor<accessor_policies::tuple_item>;
 
 /// Tag and check to identify a class which implements the Python object API
 class pyobject_tag { };
@@ -241,57 +245,41 @@ struct generic_item {
         if (PyObject_SetItem(obj.ptr(), key.ptr(), val.ptr()) != 0) { throw error_already_set(); }
     }
 };
+
+struct list_item {
+    using key_type = size_t;
+
+    static object get(handle obj, size_t index) {
+        PyObject *result = PyList_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+        if (!result) { throw error_already_set(); }
+        return {result, true};
+    }
+
+    static void set(handle obj, size_t index, handle val) {
+        // PyList_SetItem steals a reference to 'val'
+        if (PyList_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.inc_ref().ptr()) != 0) {
+            throw error_already_set();
+        }
+    }
+};
+
+struct tuple_item {
+    using key_type = size_t;
+
+    static object get(handle obj, size_t index) {
+        PyObject *result = PyTuple_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+        if (!result) { throw error_already_set(); }
+        return {result, true};
+    }
+
+    static void set(handle obj, size_t index, handle val) {
+        // PyTuple_SetItem steals a reference to 'val'
+        if (PyTuple_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.inc_ref().ptr()) != 0) {
+            throw error_already_set();
+        }
+    }
+};
 NAMESPACE_END(accessor_policies)
-
-struct list_accessor {
-public:
-    list_accessor(handle list, size_t index) : list(list), index(index) { }
-
-    void operator=(list_accessor o) { return operator=(object(o)); }
-
-    void operator=(const handle &o) {
-        // PyList_SetItem steals a reference to 'o'
-        if (PyList_SetItem(list.ptr(), (ssize_t) index, o.inc_ref().ptr()) < 0)
-            pybind11_fail("Unable to assign value in Python list!");
-    }
-
-    operator object() const {
-        PyObject *result = PyList_GetItem(list.ptr(), (ssize_t) index);
-        if (!result)
-            pybind11_fail("Unable to retrieve value from Python list!");
-        return object(result, true);
-    }
-
-    template <typename T> T cast() const { return operator object().cast<T>(); }
-private:
-    handle list;
-    size_t index;
-};
-
-struct tuple_accessor {
-public:
-    tuple_accessor(handle tuple, size_t index) : tuple(tuple), index(index) { }
-
-    void operator=(tuple_accessor o) { return operator=(object(o)); }
-
-    void operator=(const handle &o) {
-        // PyTuple_SetItem steals a referenceto 'o'
-        if (PyTuple_SetItem(tuple.ptr(), (ssize_t) index, o.inc_ref().ptr()) < 0)
-            pybind11_fail("Unable to assign value in Python tuple!");
-    }
-
-    operator object() const {
-        PyObject *result = PyTuple_GetItem(tuple.ptr(), (ssize_t) index);
-        if (!result)
-            pybind11_fail("Unable to retrieve value from Python tuple!");
-        return object(result, true);
-    }
-
-    template <typename T> T cast() const { return operator object().cast<T>(); }
-private:
-    handle tuple;
-    size_t index;
-};
 
 struct dict_iterator {
 public:
@@ -647,7 +635,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
-    detail::tuple_accessor operator[](size_t index) const { return detail::tuple_accessor(*this, index); }
+    detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
 };
 
 class dict : public object {
@@ -677,7 +665,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
-    detail::list_accessor operator[](size_t index) const { return detail::list_accessor(*this, index); }
+    detail::list_accessor operator[](size_t index) const { return {*this, index}; }
     void append(handle h) const { PyList_Append(m_ptr, h.ptr()); }
 };
 

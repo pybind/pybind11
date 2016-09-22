@@ -251,7 +251,7 @@ def test_dict_api():
 
 
 def test_accessors():
-    from pybind11_tests import test_accessor_api
+    from pybind11_tests import test_accessor_api, test_tuple_accessor
 
     class SubTestObject:
         attr_obj = 1
@@ -278,3 +278,5 @@ def test_accessors():
     assert d["is_none"] is False
     assert d["operator()"] == 2
     assert d["operator*"] == 7
+
+    assert test_tuple_accessor(tuple()) == (0, 1, 2)
