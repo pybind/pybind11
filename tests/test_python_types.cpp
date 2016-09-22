@@ -272,4 +272,21 @@ test_initializer python_types([](py::module &m) {
         }
         return py::tuple();
     });
+
+    m.def("test_accessor_assignment", []() {
+        auto l = py::list(1);
+        l[0] = py::cast(0);
+
+        auto d = py::dict();
+        d["get"] = l[0];
+        auto var = l[0];
+        d["deferred_get"] = var;
+        l[0] = py::cast(1);
+        d["set"] = l[0];
+        var = py::cast(99); // this assignment should not overwrite l[0]
+        d["deferred_set"] = l[0];
+        d["var"] = var;
+
+        return d;
+    });
 });

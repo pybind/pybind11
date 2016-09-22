@@ -18,6 +18,7 @@
 #  pragma warning(disable: 4800) // warning C4800: 'int': forcing value to bool 'true' or 'false' (performance warning)
 #  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
 #  pragma warning(disable: 4702) // warning C4702: unreachable code
+#  pragma warning(disable: 4522) // warning C4522: multiple assignment operators specified
 #elif defined(__INTEL_COMPILER)
 #  pragma warning(push)
 #  pragma warning(disable: 186)   // pointless comparison of unsigned integer with zero

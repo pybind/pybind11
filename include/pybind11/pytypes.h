@@ -199,16 +199,19 @@ class accessor : public object_api<accessor<Policy>> {
 public:
     accessor(handle obj, key_type key) : obj(obj), key(std::move(key)) { }
 
-    void operator=(const accessor &a) { operator=(handle(a)); }
-    void operator=(const object &o) { operator=(handle(o)); }
-    void operator=(handle value) { Policy::set(obj, key, value); }
+    void operator=(const accessor &a) && { std::move(*this).operator=(handle(a)); }
+    void operator=(const accessor &a) & { operator=(handle(a)); }
+    void operator=(const object &o) && { std::move(*this).operator=(handle(o)); }
+    void operator=(const object &o) & { operator=(handle(o)); }
+    void operator=(handle value) && { Policy::set(obj, key, value); }
+    void operator=(handle value) & { get_cache() = object(value, true); }
 
     operator object() const { return get_cache(); }
     PyObject *ptr() const { return get_cache().ptr(); }
     template <typename T> T cast() const { return get_cache().template cast<T>(); }
 
 private:
-    const object &get_cache() const {
+    object &get_cache() const {
         if (!cache) { cache = Policy::get(obj, key); }
         return cache;
     }

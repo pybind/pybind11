@@ -251,7 +251,7 @@ def test_dict_api():
 
 
 def test_accessors():
-    from pybind11_tests import test_accessor_api, test_tuple_accessor
+    from pybind11_tests import test_accessor_api, test_tuple_accessor, test_accessor_assignment
 
     class SubTestObject:
         attr_obj = 1
@@ -280,3 +280,10 @@ def test_accessors():
     assert d["operator*"] == 7
 
     assert test_tuple_accessor(tuple()) == (0, 1, 2)
+
+    d = test_accessor_assignment()
+    assert d["get"] == 0
+    assert d["deferred_get"] == 0
+    assert d["set"] == 1
+    assert d["deferred_set"] == 1
+    assert d["var"] == 99
