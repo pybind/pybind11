@@ -160,6 +160,7 @@ set(PYBIND11_HEADERS
   include/pybind11/complex.h
   include/pybind11/descr.h
   include/pybind11/eigen.h
+  include/pybind11/eval.h
   include/pybind11/functional.h
   include/pybind11/numpy.h
   include/pybind11/operators.h
