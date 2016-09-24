@@ -390,6 +390,21 @@ template <template<class> class Predicate, class Default, class... T> using firs
 template <typename T, typename... /*Us*/> struct deferred_type { using type = T; };
 template <typename T, typename... Us> using deferred_t = typename deferred_type<T, Us...>::type;
 
+template <template<typename...> class Base>
+struct is_template_base_of_impl {
+    template <typename... Us> static std::true_type check(Base<Us...> *);
+    static std::false_type check(...);
+};
+
+/// Check if a template is the base of a type. For example:
+/// `is_template_base_of<Base, T>` is true if `struct T : Base<U> {}` where U can be anything
+template <template<typename...> class Base, typename T>
+#if !defined(_MSC_VER)
+using is_template_base_of = decltype(is_template_base_of_impl<Base>::check((T*)nullptr));
+#else // MSVC2015 has trouble with decltype in template aliases
+struct is_template_base_of : decltype(is_template_base_of_impl<Base>::check((T*)nullptr)) { };
+#endif
+
 /// Ignore that a variable is unused in compiler warnings
 inline void ignore_unused(const int *) { }
 
