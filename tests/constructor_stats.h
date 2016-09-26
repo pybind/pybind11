@@ -103,7 +103,7 @@ public:
 
     int alive() {
         // Force garbage collection to ensure any pending destructors are invoked:
-        py::module::import("gc").attr("collect").operator py::object()();
+        py::module::import("gc").attr("collect")();
         int total = 0;
         for (const auto &p : _instances) if (p.second > 0) total += p.second;
         return total;

@@ -39,7 +39,10 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         return *internals_ptr;
     handle builtins(PyEval_GetBuiltins());
     const char *id = PYBIND11_INTERNALS_ID;
-    capsule caps(builtins[id]);
+    capsule caps;
+    if (builtins.contains(id)) {
+        caps = builtins[id];
+    }
     if (caps.check()) {
         internals_ptr = caps;
     } else {
@@ -908,7 +911,7 @@ template <> struct handle_type_name<args> { static PYBIND11_DESCR name() { retur
 template <> struct handle_type_name<kwargs> { static PYBIND11_DESCR name() { return _("**kwargs"); } };
 
 template <typename type>
-struct type_caster<type, enable_if_t<std::is_base_of<handle, type>::value>> {
+struct type_caster<type, enable_if_t<is_pyobject<type>::value>> {
 public:
     template <typename T = type, enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
     bool load(handle src, bool /* convert */) { value = type(src); return value.check(); }
@@ -1216,12 +1219,12 @@ private:
 
     void process(list &args_list, detail::args_proxy ap) {
         for (const auto &a : ap) {
-            args_list.append(a.cast<object>());
+            args_list.append(a);
         }
     }
 
     void process(list &/*args_list*/, arg_v a) {
-        if (m_kwargs[a.name]) {
+        if (m_kwargs.contains(a.name)) {
 #if defined(NDEBUG)
             multiple_values_error();
 #else
@@ -1240,7 +1243,7 @@ private:
 
     void process(list &/*args_list*/, detail::kwargs_proxy kp) {
         for (const auto &k : dict(kp, true)) {
-            if (m_kwargs[k.first]) {
+            if (m_kwargs.contains(k.first)) {
 #if defined(NDEBUG)
                 multiple_values_error();
 #else
@@ -1296,17 +1299,19 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
     return { std::forward<Args>(args)... };
 }
 
-NAMESPACE_END(detail)
-
+template <typename Derived>
 template <return_value_policy policy, typename... Args>
-object handle::operator()(Args &&...args) const {
-    return detail::collect_arguments<policy>(std::forward<Args>(args)...).call(m_ptr);
+object object_api<Derived>::operator()(Args &&...args) const {
+    return detail::collect_arguments<policy>(std::forward<Args>(args)...).call(derived().ptr());
 }
 
-template <return_value_policy policy,
-          typename... Args> object handle::call(Args &&... args) const {
+template <typename Derived>
+template <return_value_policy policy, typename... Args>
+object object_api<Derived>::call(Args &&...args) const {
     return operator()<policy>(std::forward<Args>(args)...);
 }
+
+NAMESPACE_END(detail)
 
 #define PYBIND11_MAKE_OPAQUE(Type) \
     namespace pybind11 { namespace detail { \

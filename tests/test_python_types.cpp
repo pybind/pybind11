@@ -60,7 +60,7 @@ public:
     py::list get_list() {
         py::list list;
         list.append(py::str("value"));
-        py::print("Entry at position 0:", py::object(list[0]));
+        py::print("Entry at position 0:", list[0]);
         list[0] = py::str("overwritten");
         return list;
     }
@@ -203,7 +203,7 @@ test_initializer python_types([](py::module &m) {
         py::print("no new line here", "end"_a=" -- ");
         py::print("next print");
 
-        auto py_stderr = py::module::import("sys").attr("stderr").cast<py::object>();
+        auto py_stderr = py::module::import("sys").attr("stderr");
         py::print("this goes to stderr", "file"_a=py_stderr);
 
         py::print("flush", "flush"_a=true);
@@ -221,5 +221,72 @@ test_initializer python_types([](py::module &m) {
         auto d1 = py::dict("x"_a=1, "y"_a=2);
         auto d2 = py::dict("z"_a=3, **d1);
         return d2;
+    });
+
+    m.def("test_accessor_api", [](py::object o) {
+        auto d = py::dict();
+
+        d["basic_attr"] = o.attr("basic_attr");
+
+        auto l = py::list();
+        for (const auto &item : o.attr("begin_end")) {
+            l.append(item);
+        }
+        d["begin_end"] = l;
+
+        d["operator[object]"] = o.attr("d")["operator[object]"_s];
+        d["operator[char *]"] = o.attr("d")["operator[char *]"];
+
+        d["attr(object)"] = o.attr("sub").attr("attr_obj");
+        d["attr(char *)"] = o.attr("sub").attr("attr_char");
+        try {
+            o.attr("sub").attr("missing").ptr();
+        } catch (const py::error_already_set &) {
+            d["missing_attr_ptr"] = "raised"_s;
+        }
+        try {
+            o.attr("missing").attr("doesn't matter");
+        } catch (const py::error_already_set &) {
+            d["missing_attr_chain"] = "raised"_s;
+        }
+
+        d["is_none"] = py::cast(o.attr("basic_attr").is_none());
+
+        d["operator()"] = o.attr("func")(1);
+        d["operator*"] = o.attr("func")(*o.attr("begin_end"));
+
+        return d;
+    });
+
+    m.def("test_tuple_accessor", [](py::tuple existing_t) {
+        try {
+            existing_t[0] = py::cast(1);
+        } catch (const py::error_already_set &) {
+            // --> Python system error
+            // Only new tuples (refcount == 1) are mutable
+            auto new_t = py::tuple(3);
+            for (size_t i = 0; i < new_t.size(); ++i) {
+                new_t[i] = py::cast(i);
+            }
+            return new_t;
+        }
+        return py::tuple();
+    });
+
+    m.def("test_accessor_assignment", []() {
+        auto l = py::list(1);
+        l[0] = py::cast(0);
+
+        auto d = py::dict();
+        d["get"] = l[0];
+        auto var = l[0];
+        d["deferred_get"] = var;
+        l[0] = py::cast(1);
+        d["set"] = l[0];
+        var = py::cast(99); // this assignment should not overwrite l[0]
+        d["deferred_set"] = l[0];
+        d["var"] = var;
+
+        return d;
     });
 });
