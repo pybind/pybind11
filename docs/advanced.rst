@@ -760,32 +760,82 @@ Please refer to the supplemental example for details.
 
 C++11 chrono datatypes
 ======================
-When including the additional header file :file:`pybind11/chrono.h` conversions from c++11 chrono datatypes
-to corresponding python datetime objects are automatically enabled.
-The following rules describe how the conversions are applied.
 
-When passed to python objects of type ``std::chrono::system_clock::time_point`` are converted into datetime.datetime objects.
-These objects are those that specifically come from the system_clock as this is the only clock that measures wall time.
+When including the additional header file :file:`pybind11/chrono.h` conversions
+from C++11 chrono datatypes to python datetime objects are automatically enabled.
+This header also enables conversions of python floats (often from sources such
+as `time.monotonic()`, `time.perf_counter()` and `time.process_time()`) into
+durations.
 
-When passed to python of type ``std::chrono::[other_clock]::time_point`` are converted into datetime.timedelta objects.
-These objects are those that come from all clocks that are not the system_clock (e.g. steady_clock).
-Clocks other than the system_clock are not measured from wall date/time and instead have any start time
-(often when the computer was turned on).
-Therefore as these clocks can only measure time from an arbitrary start point they are represented as timedelta from this start point.
+An overview of clocks in C++11
+------------------------------
 
-When passed to python of type ``std::chrono::duration`` are converted into datetime.timedelta objects.
+A point of confusion when using these conversions is the differences between
+clocks provided in C++11. There are three clock types defined by the C++11
+standard and users can define their own if needed. Each of these clocks have
+different properties and when converting to and from python will give different
+results.
 
-When python objects are passed to c++ for the case of non system clocks and durations instances of both datetime.timedelta
-and float are accepted. The float arguments are interpreted as a number of seconds since the epoch.
+The first clock defined by the standard is ``std::chrono::system_clock``. This
+clock measures the current date and time. However, this clock changes with to
+updates to the operating system time. For example, if your time is synchronised
+with a time server this clock will change. This makes this clock a poor choice
+for timing purposes but good for measuring the wall time.
 
-.. note::
+The second clock defined in the standard is ``std::chrono::steady_clock``.
+This clock ticks at a steady rate and is never adjusted. This makes it excellent
+for timing purposes, however the value in this clock does not correspond to the
+current date and time. Often this clock will be the amount of time your system
+has been on, although it does not have to be. This clock will never be the same
+clock as the system clock as the system clock can change but steady clocks
+cannot.
 
-    Other clocks may be the same as system_clock. For example on many platforms std::high_resolution_clock is the same as system_clock.
-    Because of this if you are converting a timepoint from one of these clocks they may appear to python as a datetime.datetime object.
+The third clock defined in the standard is ``std::chrono::high_resolution_clock``.
+This clock is the clock that has the highest resolution out of the clocks in the
+system. It is normally a typedef to either the system clock or the steady clock
+but can be its own independent clock. This is important as when using these
+conversions as the types you get in python for this clock might be different
+depending on the system.
+If it is a typedef of the system clock, python will get datetime objects, but if
+it is a different clock they will be timedelta objects.
 
-    Pythons datetime implementation is limited to microsecond precision.
-    The extra precision that c++11 clocks can have have (nanoseconds) will be lost upon conversion.
-    The rounding policy from c++ to python is via ``std::chrono::duration_cast<>`` (rounding towards 0 in microseconds).
+Conversions Provided
+--------------------
+
+C++ to Python
+    - ``std::chrono::system_clock::time_point`` → ``datetime.datetime``
+        System clock times are converted to python datetime instances. They are
+        in the local timezone, but do not have any timezone information attached
+        to them (they are naive datetime objects).
+
+    - ``std::chrono::duration`` → ``datetime.timedelta``
+        Durations are converted to timedeltas, any precision in the duration
+        greater than microseconds is lost by rounding towards zero.
+
+    - ``std::chrono::[other_clocks]::time_point`` → ``datetime.timedelta``
+        Any clock time that is not the system clock is converted to a time delta. This timedelta measures the time from the clocks epoch to now.
+
+Python to C++
+    - ``datetime.datetime`` → ``std::chrono::system_clock::time_point``
+        Date/time objects are converted into system clock timepoints. Any
+        timezone information is ignored and the type is treated as a naive
+        object.
+
+    - ``datetime.timedelta`` → ``std::chrono::duration``
+        Time delta are converted into durations with microsecond precision.
+
+    - ``datetime.timedelta`` → ``std::chrono::[other_clocks]::time_point``
+        Time deltas that are converted into clock timepoints are treated as
+        the amount of time from the start of the clocks epoch.
+
+    - ``float`` → ``std::chrono::duration``
+        Floats that are passed to C++ as durations be interpreted as a number of
+        seconds. These will be converted to the duration using ``duration_cast``
+        from the float.
+
+    - ``float`` → ``std::chrono::[other_clocks]::time_point``
+        Floats that are passed to C++ as time points will be interpreted as the
+        number of seconds from the start of the clocks epoch.
 
 Return value policies
 =====================
@@ -853,7 +903,7 @@ The following table provides an overview of the available return value policies:
 |                                                  | ``keep_alive<0, 1>`` *call policy* (described in the next section) that    |
 |                                                  | prevents the parent object from being garbage collected as long as the     |
 |                                                  | return value is referenced by Python. This is the default policy for       |
-|                                                  | property getters created via ``def_property``, ``def_readwrite``, etc.)    |
+|                                                  | property getters created via ``def_property``, ``def_readwrite``, etc.     |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
 .. warning::
