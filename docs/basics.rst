@@ -297,6 +297,10 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +---------------------------------+--------------------------+-------------------------------+
 | ``std::function<...>``          | STL polymorphic function | :file:`pybind11/functional.h` |
 +---------------------------------+--------------------------+-------------------------------+
+| ``std::chrono::duration<...>``  | STL time duration        | :file:`pybind11/chrono.h`     |
++---------------------------------+--------------------------+-------------------------------+
+| ``std::chrono::time_point<...>``| STL date/time            | :file:`pybind11/chrono.h`     |
++---------------------------------+--------------------------+-------------------------------+
 | ``Eigen::Matrix<...>``          | Eigen: dense matrix      | :file:`pybind11/eigen.h`      |
 +---------------------------------+--------------------------+-------------------------------+
 | ``Eigen::Map<...>``             | Eigen: mapped memory     | :file:`pybind11/eigen.h`      |

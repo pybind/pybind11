@@ -161,6 +161,7 @@ if (PYBIND11_INSTALL)
   set(PYBIND11_HEADERS
     include/pybind11/attr.h
     include/pybind11/cast.h
+    include/pybind11/chrono.h
     include/pybind11/common.h
     include/pybind11/complex.h
     include/pybind11/descr.h
