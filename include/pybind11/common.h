@@ -443,9 +443,9 @@ PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used in
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 
 template <typename T> struct format_descriptor<T, detail::enable_if_t<std::is_integral<T>::value>> {
-    static constexpr const char value[2] =
-        { "bBhHiIqQ"[detail::log2(sizeof(T))*2 + (std::is_unsigned<T>::value ? 1 : 0)], '\0' };
-    static std::string format() { return value; }
+    static constexpr const char c = "bBhHiIqQ"[detail::log2(sizeof(T))*2 + std::is_unsigned<T>::value];
+    static constexpr const char value[2] = { c, '\0' };
+    static std::string format() { return std::string(1, c); }
 };
 
 template <typename T> constexpr const char format_descriptor<
