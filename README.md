@@ -103,6 +103,7 @@ This project was created by [Wenzel Jakob](https://www.mitsuba-renderer.org/~wen
 Significant features and/or improvements to the code were contributed by
 Jonas Adler,
 Sylvain Corlay,
+Trent Houliston,
 Axel Huebl,
 @hulucc,
 Sergey Lyskov
