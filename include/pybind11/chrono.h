@@ -12,16 +12,30 @@
 
 #include "pybind11.h"
 #include <cmath>
+#include <ctime>
 #include <chrono>
 #include <datetime.h>
+
+// Backport the PyDateTime_DELTA functions from Python3.3 if required
+#ifndef PyDateTime_DELTA_GET_DAYS
+#define PyDateTime_DELTA_GET_DAYS(o)         (((PyDateTime_Delta*)o)->days)
+#endif
+#ifndef PyDateTime_DELTA_GET_SECONDS
+#define PyDateTime_DELTA_GET_SECONDS(o)      (((PyDateTime_Delta*)o)->seconds)
+#endif
+#ifndef PyDateTime_DELTA_GET_MICROSECONDS
+#define PyDateTime_DELTA_GET_MICROSECONDS(o) (((PyDateTime_Delta*)o)->microseconds)
+#endif
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
-template <typename Rep, typename Period> class type_caster<std::chrono::duration<Rep, Period>> {
+template <typename type> class duration_caster {
 public:
-    typedef std::chrono::duration<Rep, Period> type;
-    typedef std::chrono::duration<std::chrono::hours::rep, std::ratio<86400>> days;
+    typedef typename type::rep rep;
+    typedef typename type::period period;
+
+    typedef std::chrono::duration<uint_fast32_t, std::ratio<86400>> days;
 
     bool load(handle src, bool) {
         using namespace std::chrono;
@@ -30,29 +44,40 @@ public:
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
-        // If they have passed us a datetime.delta object
+        // If invoked with datetime.delta object
         if (PyDelta_Check(src.ptr())) {
-            // The accessor macros for timedelta exist in some versions of python but not others (e.g. Mac OSX default python)
-            // Therefore we are just doing what the macros do explicitly
-            const PyDateTime_Delta* delta = reinterpret_cast<PyDateTime_Delta*>(src.ptr());
-            value = duration_cast<duration<Rep, Period>>(
-                  days(delta->days)
-                + seconds(delta->seconds)
-                + microseconds(delta->microseconds));
+            value = type(duration_cast<duration<rep, period>>(
+                  days(PyDateTime_DELTA_GET_DAYS(src.ptr()))
+                + seconds(PyDateTime_DELTA_GET_SECONDS(src.ptr()))
+                + microseconds(PyDateTime_DELTA_GET_MICROSECONDS(src.ptr()))));
             return true;
         }
-        // If they have passed us a float we can assume it is seconds and convert
+        // If invoked with a float we assume it is seconds and convert
         else if (PyFloat_Check(src.ptr())) {
-            double val = PyFloat_AsDouble(src.ptr());
-            // Multiply by the reciprocal of the ratio and round
-            value = type(std::lround(val * type::period::den / type::period::num));
+            value = type(duration_cast<duration<rep, period>>(duration<double>(PyFloat_AsDouble(src.ptr()))));
             return true;
         }
         else return false;
     }
 
-    static handle cast(const std::chrono::duration<Rep, Period> &src, return_value_policy /* policy */, handle /* parent */) {
+    // If this is a duration just return it back
+    static const std::chrono::duration<rep, period>& get_duration(const std::chrono::duration<rep, period> &src) {
+        return src;
+    }
+
+    // If this is a time_point get the time_since_epoch
+    template <typename Clock> static std::chrono::duration<rep, period> get_duration(const std::chrono::time_point<Clock, std::chrono::duration<rep, period>> &src) {
+        return src.time_since_epoch();
+    }
+
+    static handle cast(const type &src, return_value_policy /* policy */, handle /* parent */) {
         using namespace std::chrono;
+
+        // Use overloaded function to get our duration from our source
+        // Works out if it is a duration or time_point and get the duration
+        auto d = get_duration(src);
+
+        // Lazy initialise the PyDateTime import
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         // Declare these special duration types so the conversions happen with the correct primitive types (int)
@@ -60,11 +85,11 @@ public:
         using ss_t = duration<int, std::ratio<1>>;
         using us_t = duration<int, std::micro>;
 
-        return PyDelta_FromDSU(
-              duration_cast<dd_t>(src).count()
-            , duration_cast<ss_t>(src % days(1)).count()
-            , duration_cast<us_t>(src % seconds(1)).count());
+        return PyDelta_FromDSU(duration_cast<dd_t>(d).count(),
+                               duration_cast<ss_t>(d % days(1)).count(),
+                               duration_cast<us_t>(d % seconds(1)).count());
     }
+
     PYBIND11_TYPE_CASTER(type, _("datetime.timedelta"));
 };
 
@@ -89,7 +114,7 @@ public:
             cal.tm_year  = PyDateTime_GET_YEAR(src.ptr()) - 1900;
             cal.tm_isdst = -1;
 
-            value = system_clock::from_time_t(mktime(&cal)) + microseconds(PyDateTime_DATE_GET_MICROSECOND(src.ptr()));
+            value = system_clock::from_time_t(std::mktime(&cal)) + microseconds(PyDateTime_DATE_GET_MICROSECOND(src.ptr()));
             return true;
         }
         else return false;
@@ -101,21 +126,21 @@ public:
         // Lazy initialise the PyDateTime import
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
-        time_t tt = system_clock::to_time_t(src);
+        std::time_t tt = system_clock::to_time_t(src);
         // this function uses static memory so it's best to copy it out asap just in case
-        tm *ltime = localtime(&tt);
-        tm localtime = *ltime;
+        // otherwise other code that is using localtime may break this (not just python code)
+        std::tm localtime = *std::localtime(&tt);
 
         // Declare these special duration types so the conversions happen with the correct primitive types (int)
         using us_t = duration<int, std::micro>;
 
-        return PyDateTime_FromDateAndTime(localtime.tm_year + 1900
-                                          , localtime.tm_mon + 1
-                                          , localtime.tm_mday
-                                          , localtime.tm_hour
-                                          , localtime.tm_min
-                                          , localtime.tm_sec
-                                          , (duration_cast<us_t>(src.time_since_epoch() % seconds(1))).count());
+        return PyDateTime_FromDateAndTime(localtime.tm_year + 1900,
+                                          localtime.tm_mon + 1,
+                                          localtime.tm_mday,
+                                          localtime.tm_hour,
+                                          localtime.tm_min,
+                                          localtime.tm_sec,
+                                          (duration_cast<us_t>(src.time_since_epoch() % seconds(1))).count());
     }
     PYBIND11_TYPE_CASTER(type, _("datetime.datetime"));
 };
@@ -123,54 +148,12 @@ public:
 // Other clocks that are not the system clock are not measured as datetime.datetime objects
 // since they are not measured on calendar time. So instead we just make them timedeltas
 // Or if they have passed us a time as a float we convert that
-template <typename Clock, typename Duration> class type_caster<std::chrono::time_point<Clock, Duration>> {
-public:
-    typedef std::chrono::time_point<Clock, Duration> type;
-    typedef std::chrono::duration<std::chrono::hours::rep, std::ratio<86400>> days;
+template <typename Clock, typename Duration> class type_caster<std::chrono::time_point<Clock, Duration>>
+: public duration_caster<std::chrono::time_point<Clock, Duration>> {
+};
 
-    bool load(handle src, bool) {
-        using namespace std::chrono;
-        if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
-
-        // If they have passed us a datetime.delta object
-        if (PyDelta_Check(src.ptr())) {
-            // The accessor macros for timedelta exist in some versions of python but not others (e.g. Mac OSX default python)
-            // Therefore we are just doing what the macros do explicitly
-            const PyDateTime_Delta* delta = reinterpret_cast<PyDateTime_Delta*>(src.ptr());
-            value = time_point<Clock, Duration>(
-                  days(delta->days)
-                + seconds(delta->seconds)
-                + microseconds(delta->microseconds));
-            return true;
-        }
-        // If they have passed us a float we can assume it is seconds and convert
-        else if (PyFloat_Check(src.ptr())) {
-            double val = PyFloat_AsDouble(src.ptr());
-            value = time_point<Clock, Duration>(Duration(std::lround((val / Clock::period::num) * Clock::period::den)));
-            return true;
-        }
-        else return false;
-    }
-
-    static handle cast(const std::chrono::time_point<Clock, Duration> &src, return_value_policy /* policy */, handle /* parent */) {
-        using namespace std::chrono;
-
-        // Lazy initialise the PyDateTime import
-        if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
-
-        // Declare these special duration types so the conversions happen with the correct primitive types (int)
-        using dd_t = duration<int, std::ratio<86400>>;
-        using ss_t = duration<int, std::ratio<1>>;
-        using us_t = duration<int, std::micro>;
-
-        Duration d = src.time_since_epoch();
-
-        return PyDelta_FromDSU(
-              duration_cast<dd_t>(d).count()
-            , duration_cast<ss_t>(d % days(1)).count()
-            , duration_cast<us_t>(d % seconds(1)).count());
-    }
-    PYBIND11_TYPE_CASTER(type, _("datetime.timedelta"));
+template <typename Rep, typename Period> class type_caster<std::chrono::duration<Rep, Period>>
+: public duration_caster<std::chrono::duration<Rep, Period>> {
 };
 
 NAMESPACE_END(detail)
