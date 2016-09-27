@@ -18,8 +18,10 @@ def test_chrono_system_clock():
     assert diff.days == 0
     assert diff.seconds == 0
 
-    # 50 milliseconds is a very long time to execute this
-    assert diff.microseconds < 50000
+    # We test that no more than about 0.5 seconds passes here
+    # This makes sure that the dates created are very close to the same
+    # but if the testing system is incredibly overloaded this should still pass
+    assert diff.microseconds < 500000
 
 
 def test_chrono_system_clock_roundtrip():
@@ -111,4 +113,4 @@ def test_floating_point_duration():
     assert isinstance(time, datetime.timedelta)
 
     assert time.seconds == 35
-    assert time.microseconds == 525123
+    assert 525122 <= time.microseconds <= 525123
