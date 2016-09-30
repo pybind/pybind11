@@ -160,6 +160,8 @@ public:
      : typeinfo(get_type_info(type_info, false)) { }
 
     PYBIND11_NOINLINE bool load(handle src, bool convert) {
+        if (!src)
+            return false;
         return load(src, convert, Py_TYPE(src.ptr()));
     }
 
