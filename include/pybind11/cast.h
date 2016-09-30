@@ -389,9 +389,7 @@ public:
 
 
 template <typename T>
-struct type_caster<
-    T, enable_if_t<std::is_integral<T>::value ||
-                   std::is_floating_point<T>::value>> {
+struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value>> {
     typedef typename std::conditional<sizeof(T) <= sizeof(long), long, long long>::type _py_type_0;
     typedef typename std::conditional<std::is_signed<T>::value, _py_type_0, typename std::make_unsigned<_py_type_0>::type>::type _py_type_1;
     typedef typename std::conditional<std::is_floating_point<T>::value, double, _py_type_1>::type py_type;
