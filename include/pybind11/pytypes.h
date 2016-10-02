@@ -206,6 +206,18 @@ public:
     void operator=(handle value) && { Policy::set(obj, key, value); }
     void operator=(handle value) & { get_cache() = object(value, true); }
 
+    template <typename T = Policy>
+    PYBIND11_DEPRECATED("Use of obj.attr(...) as bool is deprecated in favor of pybind11::hasattr(obj, ...)")
+    operator enable_if_t<std::is_same<T, accessor_policies::str_attr>::value ||
+            std::is_same<T, accessor_policies::obj_attr>::value, bool>() const {
+        return hasattr(obj, key);
+    }
+    template <typename T = Policy>
+    PYBIND11_DEPRECATED("Use of obj[key] as bool is deprecated in favor of obj.contains(key)")
+    operator enable_if_t<std::is_same<T, accessor_policies::generic_item>::value, bool>() const {
+        return obj.contains(key);
+    }
+
     operator object() const { return get_cache(); }
     PyObject *ptr() const { return get_cache().ptr(); }
     template <typename T> T cast() const { return get_cache().template cast<T>(); }
