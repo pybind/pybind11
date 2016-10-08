@@ -1218,9 +1218,8 @@ private:
     }
 
     void process(list &args_list, detail::args_proxy ap) {
-        for (const auto &a : ap) {
+        for (const auto &a : ap)
             args_list.append(a);
-        }
     }
 
     void process(list &/*args_list*/, arg_v a) {
@@ -1242,6 +1241,8 @@ private:
     }
 
     void process(list &/*args_list*/, detail::kwargs_proxy kp) {
+        if (!kp)
+            return;
         for (const auto &k : dict(kp, true)) {
             if (m_kwargs.contains(k.first)) {
 #if defined(NDEBUG)
