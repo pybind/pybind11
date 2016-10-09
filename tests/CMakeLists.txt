@@ -87,7 +87,7 @@ if(NOT PYBIND11_PYTEST_FOUND)
     message(FATAL_ERROR "Running the tests requires pytest.  Please install it manually (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
   endif()
 
-  set(PYBIND11_PYTEST_FOUND TRUE CACHE INTERAL "")
+  set(PYBIND11_PYTEST_FOUND TRUE CACHE INTERNAL "")
 endif()
 
 # A single command to compile and run the tests
