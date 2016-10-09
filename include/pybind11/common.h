@@ -144,16 +144,28 @@ extern "C" {
 #define PYBIND11_INTERNALS_ID "__pybind11_" \
     PYBIND11_TOSTRING(PYBIND11_VERSION_MAJOR) "_" PYBIND11_TOSTRING(PYBIND11_VERSION_MINOR) "__"
 
-#define PYBIND11_PLUGIN(name) \
-    static PyObject *pybind11_init(); \
-    PYBIND11_PLUGIN_IMPL(name) { \
-        try { \
-            return pybind11_init(); \
-        } catch (const std::exception &e) { \
-            PyErr_SetString(PyExc_ImportError, e.what()); \
-            return nullptr; \
-        } \
-    } \
+#define PYBIND11_PLUGIN(name)                                                  \
+    static PyObject *pybind11_init();                                          \
+    PYBIND11_PLUGIN_IMPL(name) {                                               \
+        int major, minor;                                                      \
+        if (sscanf(Py_GetVersion(), "%i.%i", &major, &minor) != 2) {           \
+            PyErr_SetString(PyExc_ImportError, "Can't parse Python version."); \
+            return nullptr;                                                    \
+        } else if (major != PY_MAJOR_VERSION || minor != PY_MINOR_VERSION) {   \
+            PyErr_Format(PyExc_ImportError,                                    \
+                         "Python version mismatch: module was compiled for "   \
+                         "version %i.%i, while the interpreter is running "    \
+                         "version %i.%i.", PY_MAJOR_VERSION, PY_MINOR_VERSION, \
+                         major, minor);                                        \
+            return nullptr;                                                    \
+        }                                                                      \
+        try {                                                                  \
+            return pybind11_init();                                            \
+        } catch (const std::exception &e) {                                    \
+            PyErr_SetString(PyExc_ImportError, e.what());                      \
+            return nullptr;                                                    \
+        }                                                                      \
+    }                                                                          \
     PyObject *pybind11_init()
 
 NAMESPACE_BEGIN(pybind11)
