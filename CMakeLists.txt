@@ -25,6 +25,7 @@ set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools")
 set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7)
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
+message(${PYTHONLIBS_FOUND})
 
 include(CheckCXXCompilerFlag)
 
