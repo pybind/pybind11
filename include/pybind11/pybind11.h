@@ -573,6 +573,33 @@ public:
 };
 
 NAMESPACE_BEGIN(detail)
+extern "C" inline PyObject *get_dict(PyObject *op, void *) {
+    auto *self = (instance<void> *) op;
+    if (!self->dict) {
+        self->dict = PyDict_New();
+    }
+    Py_XINCREF(self->dict);
+    return self->dict;
+}
+
+extern "C" inline int set_dict(PyObject *op, PyObject *dict, void *) {
+    if (!PyDict_Check(dict)) {
+        PyErr_Format(PyExc_TypeError, "__dict__ must be set to a dictionary, not a '%.200s'",
+                     Py_TYPE(dict)->tp_name);
+        return -1;
+    }
+    auto *self = (instance<void> *) op;
+    Py_INCREF(dict);
+    Py_CLEAR(self->dict);
+    self->dict = dict;
+    return 0;
+}
+
+static PyGetSetDef generic_getset[] = {
+    {const_cast<char*>("__dict__"), get_dict, set_dict, nullptr, nullptr},
+    {nullptr, nullptr, nullptr, nullptr, nullptr}
+};
+
 /// Generic support for creating new Python heap types
 class generic_type : public object {
     template <typename...> friend class class_;
@@ -684,6 +711,15 @@ protected:
 #endif
         type->ht_type.tp_flags &= ~Py_TPFLAGS_HAVE_GC;
 
+        /* Support dynamic attributes */
+        if (rec->dynamic_attr) {
+            type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_GC;
+            type->ht_type.tp_dictoffset = offsetof(instance_essentials<void>, dict);
+            type->ht_type.tp_getset = generic_getset;
+            type->ht_type.tp_traverse = traverse;
+            type->ht_type.tp_clear = clear;
+        }
+
         type->ht_type.tp_doc = tp_doc;
 
         if (PyType_Ready(&type->ht_type) < 0)
@@ -785,8 +821,22 @@ protected:
 
             if (self->weakrefs)
                 PyObject_ClearWeakRefs((PyObject *) self);
+
+            Py_CLEAR(self->dict);
         }
         Py_TYPE(self)->tp_free((PyObject*) self);
+    }
+
+    static int traverse(PyObject *op, visitproc visit, void *arg) {
+        auto *self = (instance<void> *) op;
+        Py_VISIT(self->dict);
+        return 0;
+    }
+
+    static int clear(PyObject *op) {
+        auto *self = (instance<void> *) op;
+        Py_CLEAR(self->dict);
+        return 0;
     }
 
     void install_buffer_funcs(

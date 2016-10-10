@@ -297,6 +297,7 @@ inline std::string error_string();
 template <typename type> struct instance_essentials {
     PyObject_HEAD
     type *value;
+    PyObject *dict;
     PyObject *weakrefs;
     bool owned : 1;
     bool constructed : 1;

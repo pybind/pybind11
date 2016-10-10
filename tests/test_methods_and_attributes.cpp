@@ -53,6 +53,12 @@ public:
     int value = 0;
 };
 
+class DynamicClass {
+public:
+    DynamicClass() { print_default_created(this); }
+    ~DynamicClass() { print_destroyed(this); }
+};
+
 test_initializer methods_and_attributes([](py::module &m) {
     py::class_<ExampleMandA>(m, "ExampleMandA")
         .def(py::init<>())
@@ -81,4 +87,7 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value)
         ;
+
+    py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())
+        .def(py::init());
 });
