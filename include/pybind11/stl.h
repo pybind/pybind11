@@ -97,13 +97,13 @@ template <typename Type, typename Value> struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        list l(src, true);
-        if (!l.check())
+        sequence s(src, true);
+        if (!s.check())
             return false;
         value_conv conv;
         value.clear();
-        reserve_maybe(l, &value);
-        for (auto it : l) {
+        reserve_maybe(s, &value);
+        for (auto it : s) {
             if (!conv.load(it, convert))
                 return false;
             value.push_back((Value) conv);
@@ -113,8 +113,8 @@ template <typename Type, typename Value> struct list_caster {
 
     template <typename T = Type,
               enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
-    void reserve_maybe(list l, Type *) { value.reserve(l.size()); }
-    void reserve_maybe(list, void *) { }
+    void reserve_maybe(sequence s, Type *) { value.reserve(s.size()); }
+    void reserve_maybe(sequence, void *) { }
 
     static handle cast(const Type &src, return_value_policy policy, handle parent) {
         list l(src.size());
