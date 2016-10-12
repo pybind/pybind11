@@ -99,4 +99,14 @@ test_initializer numpy_array([](py::module &m) {
     sm.def("make_c_array", [] {
         return py::array_t<float>({ 2, 2 }, { 8, 4 });
     });
+
+    sm.def("wrap", [](py::array a) {
+        return py::array(
+            a.dtype(),
+            std::vector<size_t>(a.shape(), a.shape() + a.ndim()),
+            std::vector<size_t>(a.strides(), a.strides() + a.ndim()),
+            a.data(),
+            a
+        );
+    });
 });

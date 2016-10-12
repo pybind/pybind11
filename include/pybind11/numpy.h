@@ -22,8 +22,8 @@
 #include <functional>
 
 #if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+#  pragma warning(push)
+#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
 /* This will be true on all flat address space platforms and allows us to reduce the
@@ -156,8 +156,10 @@ NAMESPACE_END(detail)
     (reinterpret_cast<::pybind11::detail::PyArray_Proxy*>(ptr)->attr)
 #define PyArrayDescr_GET_(ptr, attr) \
     (reinterpret_cast<::pybind11::detail::PyArrayDescr_Proxy*>(ptr)->attr)
+#define PyArray_FLAGS_(ptr) \
+    (reinterpret_cast<::pybind11::detail::PyArray_Proxy*>(ptr)->flags)
 #define PyArray_CHKFLAGS_(ptr, flag) \
-    (flag == (reinterpret_cast<::pybind11::detail::PyArray_Proxy*>(ptr)->flags & flag))
+    (flag == (PyArray_FLAGS_(ptr) & flag))
 
 class dtype : public object {
 public:
@@ -258,38 +260,62 @@ public:
         forcecast = detail::npy_api::NPY_ARRAY_FORCECAST_
     };
 
-    array(const pybind11::dtype& dt, const std::vector<size_t>& shape,
-          const std::vector<size_t>& strides, const void *ptr = nullptr) {
+    array(const pybind11::dtype &dt, const std::vector<size_t> &shape,
+          const std::vector<size_t> &strides, const void *ptr = nullptr,
+          handle base = handle()) {
         auto& api = detail::npy_api::get();
         auto ndim = shape.size();
         if (shape.size() != strides.size())
             pybind11_fail("NumPy: shape ndim doesn't match strides ndim");
         auto descr = dt;
+
+        int flags = 0;
+        if (base && ptr) {
+            array base_array(base, true);
+            if (base_array.check())
+                /* Copy flags from base (except baseship bit) */
+                flags = base_array.flags() & ~detail::npy_api::NPY_ARRAY_OWNDATA_;
+            else
+                /* Writable by default, easy to downgrade later on if needed */
+                flags = detail::npy_api::NPY_ARRAY_WRITEABLE_;
+        }
+
         object tmp(api.PyArray_NewFromDescr_(
             api.PyArray_Type_, descr.release().ptr(), (int) ndim, (Py_intptr_t *) shape.data(),
-            (Py_intptr_t *) strides.data(), const_cast<void *>(ptr), 0, nullptr), false);
+            (Py_intptr_t *) strides.data(), const_cast<void *>(ptr), flags, nullptr), false);
         if (!tmp)
             pybind11_fail("NumPy: unable to create array!");
-        if (ptr)
-            tmp = object(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */), false);
+        if (ptr) {
+            if (base) {
+                PyArray_GET_(tmp.ptr(), base) = base.inc_ref().ptr();
+            } else {
+                tmp = object(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */), false);
+            }
+        }
         m_ptr = tmp.release().ptr();
     }
 
-    array(const pybind11::dtype& dt, const std::vector<size_t>& shape, const void *ptr = nullptr)
-    : array(dt, shape, default_strides(shape, dt.itemsize()), ptr) { }
+    array(const pybind11::dtype &dt, const std::vector<size_t> &shape,
+          const void *ptr = nullptr, handle base = handle())
+        : array(dt, shape, default_strides(shape, dt.itemsize()), ptr, base) { }
 
-    array(const pybind11::dtype& dt, size_t count, const void *ptr = nullptr)
-    : array(dt, std::vector<size_t> { count }, ptr) { }
+    array(const pybind11::dtype &dt, size_t count, const void *ptr = nullptr,
+          handle base = handle())
+        : array(dt, std::vector<size_t>{ count }, ptr, base) { }
 
     template<typename T> array(const std::vector<size_t>& shape,
-                               const std::vector<size_t>& strides, const T* ptr)
-    : array(pybind11::dtype::of<T>(), shape, strides, (void *) ptr) { }
+                               const std::vector<size_t>& strides,
+                               const T* ptr, handle base = handle())
+    : array(pybind11::dtype::of<T>(), shape, strides, (void *) ptr, base) { }
 
-    template<typename T> array(const std::vector<size_t>& shape, const T* ptr)
-    : array(shape, default_strides(shape, sizeof(T)), ptr) { }
+    template <typename T>
+    array(const std::vector<size_t> &shape, const T *ptr,
+          handle base = handle())
+        : array(shape, default_strides(shape, sizeof(T)), ptr, base) { }
 
-    template<typename T> array(size_t count, const T* ptr)
-    : array(std::vector<size_t> { count }, ptr) { }
+    template <typename T>
+    array(size_t count, const T *ptr, handle base = handle())
+        : array(std::vector<size_t>{ count }, ptr, base) { }
 
     array(const buffer_info &info)
     : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
@@ -319,6 +345,11 @@ public:
         return (size_t) PyArray_GET_(m_ptr, nd);
     }
 
+    /// Base object
+    object base() const {
+        return object(PyArray_GET_(m_ptr, base), true);
+    }
+
     /// Dimensions of the array
     const size_t* shape() const {
         return reinterpret_cast<const size_t *>(PyArray_GET_(m_ptr, dimensions));
@@ -341,6 +372,11 @@ public:
         if (dim >= ndim())
             fail_dim_check(dim, "invalid axis");
         return strides()[dim];
+    }
+
+    /// Return the NumPy array flags
+    int flags() const {
+        return PyArray_FLAGS_(m_ptr);
     }
 
     /// If set, the array is writeable (otherwise the buffer is read-only)
@@ -436,14 +472,17 @@ public:
 
     array_t(const buffer_info& info) : array(info) { }
 
-    array_t(const std::vector<size_t>& shape, const std::vector<size_t>& strides, const T* ptr = nullptr)
-    : array(shape, strides, ptr) { }
+    array_t(const std::vector<size_t> &shape,
+            const std::vector<size_t> &strides, const T *ptr = nullptr,
+            handle base = handle())
+        : array(shape, strides, ptr, base) { }
 
-    array_t(const std::vector<size_t>& shape, const T* ptr = nullptr)
-    : array(shape, ptr) { }
+    array_t(const std::vector<size_t> &shape, const T *ptr = nullptr,
+            handle base = handle())
+        : array(shape, ptr, base) { }
 
-    array_t(size_t count, const T* ptr = nullptr)
-    : array(count, ptr) { }
+    array_t(size_t count, const T *ptr = nullptr, handle base = handle())
+        : array(count, ptr, base) { }
 
     constexpr size_t itemsize() const {
         return sizeof(T);
