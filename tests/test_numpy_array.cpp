@@ -91,4 +91,12 @@ test_initializer numpy_array([](py::module &m) {
     def_index_fn(mutate_data_t, arr_t&);
     def_index_fn(at_t, const arr_t&);
     def_index_fn(mutate_at_t, arr_t&);
+
+    sm.def("make_f_array", [] {
+        return py::array_t<float>({ 2, 2 }, { 4, 8 });
+    });
+
+    sm.def("make_c_array", [] {
+        return py::array_t<float>({ 2, 2 }, { 8, 4 });
+    });
 });

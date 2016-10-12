@@ -148,3 +148,13 @@ def test_bounds_check(arr):
         with pytest.raises(IndexError) as excinfo:
             index_at(arr, 0, 4)
         assert str(excinfo.value) == 'index 4 is out of bounds for axis 1 with size 3'
+
+@pytest.requires_numpy
+def test_make_c_f_array():
+    from pybind11_tests.array import (
+        make_c_array, make_f_array
+    )
+    assert make_c_array().flags.c_contiguous
+    assert not make_c_array().flags.f_contiguous
+    assert make_f_array().flags.f_contiguous
+    assert not make_f_array().flags.c_contiguous
