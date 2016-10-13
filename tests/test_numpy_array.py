@@ -1,4 +1,5 @@
 import pytest
+import gc
 
 with pytest.suppress(ImportError):
     import numpy as np
@@ -209,3 +210,31 @@ def test_wrap():
     A1 = A1.diagonal()
     A2 = wrap(A1)
     assert_references(A1, A2)
+
+
+@pytest.requires_numpy
+def test_numpy_view(capture):
+    from pybind11_tests.array import ArrayClass
+    with capture:
+        ac = ArrayClass()
+        ac_view_1 = ac.numpy_view()
+        ac_view_2 = ac.numpy_view()
+        assert np.all(ac_view_1 == np.array([1, 2], dtype=np.int32))
+        del ac
+        gc.collect()
+    assert capture == """
+        ArrayClass()
+        ArrayClass::numpy_view()
+        ArrayClass::numpy_view()
+    """
+    ac_view_1[0] = 4
+    ac_view_1[1] = 3
+    assert ac_view_2[0] == 4
+    assert ac_view_2[1] == 3
+    with capture:
+        del ac_view_1
+        del ac_view_2
+        gc.collect()
+    assert capture == """
+        ~ArrayClass()
+    """

@@ -157,7 +157,7 @@ NAMESPACE_END(detail)
 #define PyArrayDescr_GET_(ptr, attr) \
     (reinterpret_cast<::pybind11::detail::PyArrayDescr_Proxy*>(ptr)->attr)
 #define PyArray_FLAGS_(ptr) \
-    (reinterpret_cast<::pybind11::detail::PyArray_Proxy*>(ptr)->flags)
+    PyArray_GET_(ptr, flags)
 #define PyArray_CHKFLAGS_(ptr, flag) \
     (flag == (PyArray_FLAGS_(ptr) & flag))
 

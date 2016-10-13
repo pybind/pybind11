@@ -109,4 +109,19 @@ test_initializer numpy_array([](py::module &m) {
             a
         );
     });
+
+    struct ArrayClass {
+        int data[2] = { 1, 2 };
+        ArrayClass() { py::print("ArrayClass()"); }
+        ~ArrayClass() { py::print("~ArrayClass()"); }
+    };
+
+    py::class_<ArrayClass>(sm, "ArrayClass")
+        .def(py::init<>())
+        .def("numpy_view", [](py::object &obj) {
+            py::print("ArrayClass::numpy_view()");
+            ArrayClass &a = obj.cast<ArrayClass&>();
+            return py::array_t<int>({2}, {4}, a.data, obj);
+        }
+    );
 });
