@@ -567,7 +567,7 @@ public:
     static module import(const char *name) {
         PyObject *obj = PyImport_ImportModule(name);
         if (!obj)
-            pybind11_fail("Module \"" + std::string(name) + "\" not found!");
+            throw import_error("Module \"" + std::string(name) + "\" not found!");
         return module(obj, false);
     }
 };
@@ -1344,15 +1344,27 @@ PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
     auto sep = kwargs.contains("sep") ? kwargs["sep"] : cast(" ");
     auto line = sep.attr("join")(strings);
 
-    auto file = kwargs.contains("file") ? kwargs["file"].cast<object>()
-                                        : module::import("sys").attr("stdout");
+    object file;
+    if (kwargs.contains("file")) {
+        file = kwargs["file"].cast<object>();
+    } else {
+        try {
+            file = module::import("sys").attr("stdout");
+        } catch (const import_error &) {
+            /* If print() is called from code that is executed as
+               part of garbage collection during interpreter shutdown,
+               importing 'sys' can fail. Give up rather than crashing the
+               interpreter in this case. */
+            return;
+        }
+    }
+
     auto write = file.attr("write");
     write(line);
     write(kwargs.contains("end") ? kwargs["end"] : cast("\n"));
 
-    if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
+    if (kwargs.contains("flush") && kwargs["flush"].cast<bool>())
         file.attr("flush")();
-    }
 }
 NAMESPACE_END(detail)
 
