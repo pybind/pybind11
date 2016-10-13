@@ -99,4 +99,29 @@ test_initializer numpy_array([](py::module &m) {
     sm.def("make_c_array", [] {
         return py::array_t<float>({ 2, 2 }, { 8, 4 });
     });
+
+    sm.def("wrap", [](py::array a) {
+        return py::array(
+            a.dtype(),
+            std::vector<size_t>(a.shape(), a.shape() + a.ndim()),
+            std::vector<size_t>(a.strides(), a.strides() + a.ndim()),
+            a.data(),
+            a
+        );
+    });
+
+    struct ArrayClass {
+        int data[2] = { 1, 2 };
+        ArrayClass() { py::print("ArrayClass()"); }
+        ~ArrayClass() { py::print("~ArrayClass()"); }
+    };
+
+    py::class_<ArrayClass>(sm, "ArrayClass")
+        .def(py::init<>())
+        .def("numpy_view", [](py::object &obj) {
+            py::print("ArrayClass::numpy_view()");
+            ArrayClass &a = obj.cast<ArrayClass&>();
+            return py::array_t<int>({2}, {4}, a.data, obj);
+        }
+    );
 });

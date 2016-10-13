@@ -1,4 +1,5 @@
 import pytest
+import gc
 
 with pytest.suppress(ImportError):
     import numpy as np
@@ -149,6 +150,7 @@ def test_bounds_check(arr):
             index_at(arr, 0, 4)
         assert str(excinfo.value) == 'index 4 is out of bounds for axis 1 with size 3'
 
+
 @pytest.requires_numpy
 def test_make_c_f_array():
     from pybind11_tests.array import (
@@ -158,3 +160,81 @@ def test_make_c_f_array():
     assert not make_c_array().flags.f_contiguous
     assert make_f_array().flags.f_contiguous
     assert not make_f_array().flags.c_contiguous
+
+
+@pytest.requires_numpy
+def test_wrap():
+    from pybind11_tests.array import wrap
+
+    def assert_references(A, B):
+        assert A is not B
+        assert A.__array_interface__['data'][0] == \
+               B.__array_interface__['data'][0]
+        assert A.shape == B.shape
+        assert A.strides == B.strides
+        assert A.flags.c_contiguous == B.flags.c_contiguous
+        assert A.flags.f_contiguous == B.flags.f_contiguous
+        assert A.flags.writeable == B.flags.writeable
+        assert A.flags.aligned == B.flags.aligned
+        assert A.flags.updateifcopy == B.flags.updateifcopy
+        assert np.all(A == B)
+        assert not B.flags.owndata
+        assert B.base is A
+        if A.flags.writeable and A.ndim == 2:
+            A[0, 0] = 1234
+            assert B[0, 0] == 1234
+
+    A1 = np.array([1, 2], dtype=np.int16)
+    assert A1.flags.owndata and A1.base is None
+    A2 = wrap(A1)
+    assert_references(A1, A2)
+
+    A1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order='F')
+    assert A1.flags.owndata and A1.base is None
+    A2 = wrap(A1)
+    assert_references(A1, A2)
+
+    A1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order='C')
+    A1.flags.writeable = False
+    A2 = wrap(A1)
+    assert_references(A1, A2)
+
+    A1 = np.random.random((4, 4, 4))
+    A2 = wrap(A1)
+    assert_references(A1, A2)
+
+    A1 = A1.transpose()
+    A2 = wrap(A1)
+    assert_references(A1, A2)
+
+    A1 = A1.diagonal()
+    A2 = wrap(A1)
+    assert_references(A1, A2)
+
+
+@pytest.requires_numpy
+def test_numpy_view(capture):
+    from pybind11_tests.array import ArrayClass
+    with capture:
+        ac = ArrayClass()
+        ac_view_1 = ac.numpy_view()
+        ac_view_2 = ac.numpy_view()
+        assert np.all(ac_view_1 == np.array([1, 2], dtype=np.int32))
+        del ac
+        gc.collect()
+    assert capture == """
+        ArrayClass()
+        ArrayClass::numpy_view()
+        ArrayClass::numpy_view()
+    """
+    ac_view_1[0] = 4
+    ac_view_1[1] = 3
+    assert ac_view_2[0] == 4
+    assert ac_view_2[1] == 3
+    with capture:
+        del ac_view_1
+        del ac_view_2
+        gc.collect()
+    assert capture == """
+        ~ArrayClass()
+    """
