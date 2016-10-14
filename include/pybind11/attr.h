@@ -179,6 +179,9 @@ struct type_record {
 
         bases.append((PyObject *) base_info->type);
 
+        if (base_info->type->tp_dictoffset != 0)
+            dynamic_attr = true;
+
         if (caster)
             base_info->implicit_casts.push_back(std::make_pair(type, caster));
     }
