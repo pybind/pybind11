@@ -24,6 +24,14 @@ private:
     int m_extra2 = 0;
 };
 
+class PickleableWithDict {
+public:
+    PickleableWithDict(const std::string &value) : value(value) { }
+
+    std::string value;
+    int extra;
+};
+
 test_initializer pickling([](py::module &m) {
     py::class_<Pickleable>(m, "Pickleable")
         .def(py::init<std::string>())
@@ -47,5 +55,27 @@ test_initializer pickling([](py::module &m) {
             /* Assign any additional state */
             p.setExtra1(t[1].cast<int>());
             p.setExtra2(t[2].cast<int>());
+        });
+
+    py::class_<PickleableWithDict>(m, "PickleableWithDict", py::dynamic_attr())
+        .def(py::init<std::string>())
+        .def_readwrite("value", &PickleableWithDict::value)
+        .def_readwrite("extra", &PickleableWithDict::extra)
+        .def("__getstate__", [](py::object self) {
+            /* Also include __dict__ in state */
+            return py::make_tuple(self.attr("value"), self.attr("extra"), self.attr("__dict__"));
+        })
+        .def("__setstate__", [](py::object self, py::tuple t) {
+            if (t.size() != 3)
+                throw std::runtime_error("Invalid state!");
+            /* Cast and construct */
+            auto& p = self.cast<PickleableWithDict&>();
+            new (&p) Pickleable(t[0].cast<std::string>());
+
+            /* Assign C++ state */
+            p.extra = t[1].cast<int>();
+
+            /* Assign Python state */
+            self.attr("__dict__") = t[2];
         });
 });

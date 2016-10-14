@@ -44,6 +44,9 @@ template <int Nurse, int Patient> struct keep_alive { };
 /// Annotation indicating that a class is involved in a multiple inheritance relationship
 struct multiple_inheritance { };
 
+/// Annotation which enables dynamic attributes, i.e. adds `__dict__` to a class
+struct dynamic_attr { };
+
 NAMESPACE_BEGIN(detail)
 /* Forward declarations */
 enum op_id : int;
@@ -161,6 +164,9 @@ struct type_record {
 
     /// Multiple inheritance marker
     bool multiple_inheritance = false;
+
+    /// Does the class manage a __dict__?
+    bool dynamic_attr = false;
 
     PYBIND11_NOINLINE void add_base(const std::type_info *base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(*base, false);
@@ -290,6 +296,11 @@ struct process_attribute<base<T>> : process_attribute_default<base<T>> {
 template <>
 struct process_attribute<multiple_inheritance> : process_attribute_default<multiple_inheritance> {
     static void init(const multiple_inheritance &, type_record *r) { r->multiple_inheritance = true; }
+};
+
+template <>
+struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr> {
+    static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
 };
 
 /***

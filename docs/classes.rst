@@ -165,6 +165,66 @@ the setter and getter functions:
     static variables and properties. Please also see the section on
     :ref:`static_properties` in the advanced part of the documentation.
 
+Dynamic attributes
+==================
+
+Native Python classes can pick up new attributes dynamically:
+
+.. code-block:: pycon
+
+    >>> class Pet:
+    ...     name = 'Molly'
+    ...
+    >>> p = Pet()
+    >>> p.name = 'Charly'  # overwrite existing
+    >>> p.age = 2  # dynamically add a new attribute
+
+By default, classes exported from C++ do not support this and the only writable
+attributes are the ones explicitly defined using :func:`class_::def_readwrite`
+or :func:`class_::def_property`.
+
+.. code-block:: cpp
+
+    py::class_<Pet>(m, "Pet")
+        .def(py::init<>())
+        .def_readwrite("name", &Pet::name);
+
+Trying to set any other attribute results in an error:
+
+.. code-block:: pycon
+
+    >>> p = example.Pet()
+    >>> p.name = 'Charly'  # OK, attribute defined in C++
+    >>> p.age = 2  # fail
+    AttributeError: 'Pet' object has no attribute 'age'
+
+To enable dynamic attributes for C++ classes, the :class:`py::dynamic_attr` tag
+must be added to the :class:`py::class_` constructor:
+
+.. code-block:: cpp
+
+    py::class_<Pet>(m, "Pet", py::dynamic_attr())
+        .def(py::init<>())
+        .def_readwrite("name", &Pet::name);
+
+Now everything works as expected:
+
+.. code-block:: pycon
+
+    >>> p = example.Pet()
+    >>> p.name = 'Charly'  # OK, overwrite value in C++
+    >>> p.age = 2  # OK, dynamically add a new attribute
+    >>> p.__dict__  # just like a native Python class
+    {'age': 2}
+
+Note that there is a small runtime cost for a class with dynamic attributes.
+Not only because of the addition of a ``__dict__``, but also because of more
+expensive garbage collection tracking which must be activated to resolve
+possible circular references. Native Python classes incur this same cost by
+default, so this is not anything to worry about. By default, pybind11 classes
+are more efficient than native Python classes. Enabling dynamic attributes
+just brings them on par.
+
 .. _inheritance:
 
 Inheritance

@@ -1,3 +1,4 @@
+import pytest
 from pybind11_tests import ExampleMandA, ConstructorStats
 
 
@@ -44,3 +45,67 @@ def test_methods_and_attributes():
     assert cstats.move_constructions >= 1
     assert cstats.copy_assignments == 0
     assert cstats.move_assignments == 0
+
+
+def test_dynamic_attributes():
+    from pybind11_tests import DynamicClass
+
+    instance = DynamicClass()
+    assert not hasattr(instance, "foo")
+    assert "foo" not in dir(instance)
+
+    # Dynamically add attribute
+    instance.foo = 42
+    assert hasattr(instance, "foo")
+    assert instance.foo == 42
+    assert "foo" in dir(instance)
+
+    # __dict__ should be accessible and replaceable
+    assert "foo" in instance.__dict__
+    instance.__dict__ = {"bar": True}
+    assert not hasattr(instance, "foo")
+    assert hasattr(instance, "bar")
+
+    with pytest.raises(TypeError) as excinfo:
+        instance.__dict__ = []
+    assert str(excinfo.value) == "__dict__ must be set to a dictionary, not a 'list'"
+
+    cstats = ConstructorStats.get(DynamicClass)
+    assert cstats.alive() == 1
+    del instance
+    assert cstats.alive() == 0
+
+    # Derived classes should work as well
+    class Derived(DynamicClass):
+        pass
+
+    derived = Derived()
+    derived.foobar = 100
+    assert derived.foobar == 100
+
+    assert cstats.alive() == 1
+    del derived
+    assert cstats.alive() == 0
+
+
+def test_cyclic_gc():
+    from pybind11_tests import DynamicClass
+
+    # One object references itself
+    instance = DynamicClass()
+    instance.circular_reference = instance
+
+    cstats = ConstructorStats.get(DynamicClass)
+    assert cstats.alive() == 1
+    del instance
+    assert cstats.alive() == 0
+
+    # Two object reference each other
+    i1 = DynamicClass()
+    i2 = DynamicClass()
+    i1.cycle = i2
+    i2.cycle = i1
+
+    assert cstats.alive() == 2
+    del i1, i2
+    assert cstats.alive() == 0

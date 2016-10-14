@@ -573,6 +573,33 @@ public:
 };
 
 NAMESPACE_BEGIN(detail)
+extern "C" inline PyObject *get_dict(PyObject *op, void *) {
+    PyObject *&dict = *_PyObject_GetDictPtr(op);
+    if (!dict) {
+        dict = PyDict_New();
+    }
+    Py_XINCREF(dict);
+    return dict;
+}
+
+extern "C" inline int set_dict(PyObject *op, PyObject *new_dict, void *) {
+    if (!PyDict_Check(new_dict)) {
+        PyErr_Format(PyExc_TypeError, "__dict__ must be set to a dictionary, not a '%.200s'",
+                     Py_TYPE(new_dict)->tp_name);
+        return -1;
+    }
+    PyObject *&dict = *_PyObject_GetDictPtr(op);
+    Py_INCREF(new_dict);
+    Py_CLEAR(dict);
+    dict = new_dict;
+    return 0;
+}
+
+static PyGetSetDef generic_getset[] = {
+    {const_cast<char*>("__dict__"), get_dict, set_dict, nullptr, nullptr},
+    {nullptr, nullptr, nullptr, nullptr, nullptr}
+};
+
 /// Generic support for creating new Python heap types
 class generic_type : public object {
     template <typename...> friend class class_;
@@ -684,6 +711,16 @@ protected:
 #endif
         type->ht_type.tp_flags &= ~Py_TPFLAGS_HAVE_GC;
 
+        /* Support dynamic attributes */
+        if (rec->dynamic_attr) {
+            type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_GC;
+            type->ht_type.tp_dictoffset = type->ht_type.tp_basicsize; // place the dict at the end
+            type->ht_type.tp_basicsize += sizeof(PyObject *); // and allocate enough space for it
+            type->ht_type.tp_getset = generic_getset;
+            type->ht_type.tp_traverse = traverse;
+            type->ht_type.tp_clear = clear;
+        }
+
         type->ht_type.tp_doc = tp_doc;
 
         if (PyType_Ready(&type->ht_type) < 0)
@@ -785,8 +822,25 @@ protected:
 
             if (self->weakrefs)
                 PyObject_ClearWeakRefs((PyObject *) self);
+
+            PyObject **dict_ptr = _PyObject_GetDictPtr((PyObject *) self);
+            if (dict_ptr) {
+                Py_CLEAR(*dict_ptr);
+            }
         }
         Py_TYPE(self)->tp_free((PyObject*) self);
+    }
+
+    static int traverse(PyObject *op, visitproc visit, void *arg) {
+        PyObject *&dict = *_PyObject_GetDictPtr(op);
+        Py_VISIT(dict);
+        return 0;
+    }
+
+    static int clear(PyObject *op) {
+        PyObject *&dict = *_PyObject_GetDictPtr(op);
+        Py_CLEAR(dict);
+        return 0;
     }
 
     void install_buffer_funcs(
