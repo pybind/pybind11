@@ -59,6 +59,8 @@ public:
     ~DynamicClass() { print_destroyed(this); }
 };
 
+class CppDerivedDynamicClass : public DynamicClass { };
+
 test_initializer methods_and_attributes([](py::module &m) {
     py::class_<ExampleMandA>(m, "ExampleMandA")
         .def(py::init<>())
@@ -89,5 +91,8 @@ test_initializer methods_and_attributes([](py::module &m) {
         ;
 
     py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())
+        .def(py::init());
+
+    py::class_<CppDerivedDynamicClass, DynamicClass>(m, "CppDerivedDynamicClass")
         .def(py::init());
 });

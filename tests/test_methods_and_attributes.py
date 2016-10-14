@@ -48,7 +48,7 @@ def test_methods_and_attributes():
 
 
 def test_dynamic_attributes():
-    from pybind11_tests import DynamicClass
+    from pybind11_tests import DynamicClass, CppDerivedDynamicClass
 
     instance = DynamicClass()
     assert not hasattr(instance, "foo")
@@ -76,16 +76,17 @@ def test_dynamic_attributes():
     assert cstats.alive() == 0
 
     # Derived classes should work as well
-    class Derived(DynamicClass):
+    class PythonDerivedDynamicClass(DynamicClass):
         pass
 
-    derived = Derived()
-    derived.foobar = 100
-    assert derived.foobar == 100
+    for cls in CppDerivedDynamicClass, PythonDerivedDynamicClass:
+        derived = cls()
+        derived.foobar = 100
+        assert derived.foobar == 100
 
-    assert cstats.alive() == 1
-    del derived
-    assert cstats.alive() == 0
+        assert cstats.alive() == 1
+        del derived
+        assert cstats.alive() == 0
 
 
 def test_cyclic_gc():
