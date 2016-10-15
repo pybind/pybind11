@@ -71,6 +71,14 @@ def test_instance(capture):
         list item 0: value
         list item 1: value2
     """
+    with capture:
+        list_result = instance.get_list_2()
+        list_result.append('value2')
+        instance.print_list_2(tuple(list_result))
+    assert capture.unordered == """
+        list item 0: value
+        list item 1: value2
+    """
     array_result = instance.get_array()
     assert array_result == ['array entry 1', 'array entry 2']
     with capture:
