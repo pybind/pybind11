@@ -29,12 +29,14 @@ namespace accessor_policies {
     struct obj_attr;
     struct str_attr;
     struct generic_item;
+    struct sequence_item;
     struct list_item;
     struct tuple_item;
 }
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
 using str_attr_accessor = accessor<accessor_policies::str_attr>;
 using item_accessor = accessor<accessor_policies::generic_item>;
+using sequence_accessor = accessor<accessor_policies::sequence_item>;
 using list_accessor = accessor<accessor_policies::list_item>;
 using tuple_accessor = accessor<accessor_policies::tuple_item>;
 
@@ -258,6 +260,23 @@ struct generic_item {
 
     static void set(handle obj, handle key, handle val) {
         if (PyObject_SetItem(obj.ptr(), key.ptr(), val.ptr()) != 0) { throw error_already_set(); }
+    }
+};
+
+struct sequence_item {
+    using key_type = size_t;
+
+    static object get(handle obj, size_t index) {
+        PyObject *result = PySequence_GetItem(obj.ptr(), static_cast<ssize_t>(index));
+        if (!result) { throw error_already_set(); }
+        return {result, true};
+    }
+
+    static void set(handle obj, size_t index, handle val) {
+        // PySequence_SetItem does not steal a reference to 'val'
+        if (PySequence_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.ptr()) != 0) {
+            throw error_already_set();
+        }
     }
 };
 
@@ -671,6 +690,13 @@ public:
     void clear() const { PyDict_Clear(ptr()); }
     bool contains(handle key) const { return PyDict_Contains(ptr(), key.ptr()) == 1; }
     bool contains(const char *key) const { return PyDict_Contains(ptr(), pybind11::str(key).ptr()) == 1; }
+};
+
+class sequence : public object {
+public:
+    PYBIND11_OBJECT(sequence, object, PySequence_Check)
+    size_t size() const { return (size_t) PySequence_Size(m_ptr); }
+    detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
 };
 
 class list : public object {
