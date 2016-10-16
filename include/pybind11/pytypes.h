@@ -317,7 +317,7 @@ NAMESPACE_END(accessor_policies)
 
 struct dict_iterator {
 public:
-    dict_iterator(handle dict = handle(), ssize_t pos = -1) : dict(dict), pos(pos) { }
+    explicit dict_iterator(handle dict = handle(), ssize_t pos = -1) : dict(dict), pos(pos) { }
     dict_iterator& operator++() {
         if (!PyDict_Next(dict.ptr(), &pos, &key.ptr(), &value.ptr()))
             pos = -1;
@@ -350,12 +350,12 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) 
 
 class kwargs_proxy : public handle {
 public:
-    kwargs_proxy(handle h) : handle(h) { }
+    explicit kwargs_proxy(handle h) : handle(h) { }
 };
 
 class args_proxy : public handle {
 public:
-    args_proxy(handle h) : handle(h) { }
+    explicit args_proxy(handle h) : handle(h) { }
     kwargs_proxy operator*() const { return kwargs_proxy(*this); }
 };
 
@@ -381,6 +381,7 @@ NAMESPACE_END(detail)
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
     public: \
         Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
+        /* These are deliberately not 'explicit' to allow implicit conversion from object: */ \
         Name(const object& o): Parent(o) { CvtStmt; } \
         Name(object&& o) noexcept : Parent(std::move(o)) { CvtStmt; } \
         Name& operator=(object&& o) noexcept { (void) object::operator=(std::move(o)); CvtStmt; return *this; } \
@@ -470,6 +471,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
 
+    // 'explicit' is explicitly omitted from the following constructors to allow implicit conversion to py::str from C++ string-like objects
     str(const char *c)
         : object(PyUnicode_FromString(c), false) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
@@ -477,7 +479,7 @@ public:
 
     str(const std::string &s) : str(s.data(), s.size()) { }
 
-    str(const bytes &b);
+    explicit str(const bytes &b);
 
     operator std::string() const {
         object temp = *this;
@@ -508,6 +510,7 @@ class bytes : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(bytes, object, PYBIND11_BYTES_CHECK)
 
+    // Allow implicit conversion:
     bytes(const char *c)
     : object(PYBIND11_BYTES_FROM_STRING(c), false) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
@@ -518,9 +521,10 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
 
+    // Allow implicit conversion:
     bytes(const std::string &s) : bytes(s.data(), s.size()) { }
 
-    bytes(const pybind11::str &s);
+    explicit bytes(const pybind11::str &s);
 
     operator std::string() const {
         char *buffer;
@@ -568,6 +572,7 @@ public:
 class bool_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(bool_, object, PyBool_Check)
+    // Allow implicit conversion from `bool`:
     bool_(bool value) : object(value ? Py_True : Py_False, true) { }
     operator bool() const { return m_ptr && PyLong_AsLong(m_ptr) != 0; }
 };
@@ -575,6 +580,7 @@ public:
 class int_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(int_, object, PYBIND11_LONG_CHECK)
+    // Allow implicit conversion from C++ integral types:
     template <typename T,
               detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     int_(T value) {
@@ -612,6 +618,7 @@ public:
 class float_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(float_, object, PyFloat_Check)
+    // Allow implicit conversion from float/double:
     float_(float value) : object(PyFloat_FromDouble((double) value), false) {
         if (!m_ptr) pybind11_fail("Could not allocate float object!");
     }
@@ -625,7 +632,7 @@ public:
 class weakref : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(weakref, object, PyWeakref_Check)
-    weakref(handle obj, handle callback = handle()) : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), false) {
+    explicit weakref(handle obj, handle callback = handle()) : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), false) {
         if (!m_ptr) pybind11_fail("Could not allocate weak reference!");
     }
 };
@@ -651,7 +658,7 @@ class capsule : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
     capsule(PyObject *obj, bool borrowed) : object(obj, borrowed) { }
-    capsule(const void *value, void (*destruct)(PyObject *) = nullptr)
+    explicit capsule(const void *value, void (*destruct)(PyObject *) = nullptr)
         : object(PyCapsule_New(const_cast<void*>(value), nullptr, destruct), false) {
         if (!m_ptr) pybind11_fail("Could not allocate capsule object!");
     }
@@ -665,7 +672,7 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT(tuple, object, PyTuple_Check)
-    tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), false) {
+    explicit tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), false) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
@@ -682,7 +689,7 @@ public:
               typename = detail::enable_if_t<detail::all_of_t<detail::is_keyword_or_ds, Args...>::value>,
               // MSVC workaround: it can't compile an out-of-line definition, so defer the collector
               typename collector = detail::deferred_t<detail::unpacking_collector<>, Args...>>
-    dict(Args &&...args) : dict(collector(std::forward<Args>(args)...).kwargs()) { }
+    explicit dict(Args &&...args) : dict(collector(std::forward<Args>(args)...).kwargs()) { }
 
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     detail::dict_iterator begin() const { return (++detail::dict_iterator(*this, 0)); }
@@ -702,7 +709,7 @@ public:
 class list : public object {
 public:
     PYBIND11_OBJECT(list, object, PyList_Check)
-    list(size_t size = 0) : object(PyList_New((ssize_t) size), false) {
+    explicit list(size_t size = 0) : object(PyList_New((ssize_t) size), false) {
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
@@ -749,7 +756,7 @@ public:
 
 class memoryview : public object {
 public:
-    memoryview(const buffer_info& info) {
+    explicit memoryview(const buffer_info& info) {
         static Py_buffer buf { };
         // Py_buffer uses signed sizes, strides and shape!..
         static std::vector<Py_ssize_t> py_strides { };
@@ -793,7 +800,7 @@ template <typename D> item_accessor object_api<D>::operator[](handle key) const 
 template <typename D> item_accessor object_api<D>::operator[](const char *key) const { return {derived(), pybind11::str(key)}; }
 template <typename D> obj_attr_accessor object_api<D>::attr(handle key) const { return {derived(), object(key, true)}; }
 template <typename D> str_attr_accessor object_api<D>::attr(const char *key) const { return {derived(), key}; }
-template <typename D> args_proxy object_api<D>::operator*() const { return {derived().ptr()}; }
+template <typename D> args_proxy object_api<D>::operator*() const { return args_proxy(derived().ptr()); }
 template <typename D> template <typename T> bool object_api<D>::contains(T &&key) const {
     return attr("__contains__")(std::forward<T>(key)).template cast<bool>();
 }

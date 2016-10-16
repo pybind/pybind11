@@ -248,7 +248,7 @@ struct buffer_info {
     : buffer_info(ptr, itemsize, format, 1, std::vector<size_t> { size },
                   std::vector<size_t> { itemsize }) { }
 
-    buffer_info(Py_buffer *view, bool ownview = true)
+    explicit buffer_info(Py_buffer *view, bool ownview = true)
         : ptr(view->buf), itemsize((size_t) view->itemsize), size(1), format(view->format),
           ndim((size_t) view->ndim), shape((size_t) view->ndim), strides((size_t) view->ndim), view(view), ownview(ownview) {
         for (size_t i = 0; i < (size_t) view->ndim; ++i) {

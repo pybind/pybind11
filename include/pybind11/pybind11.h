@@ -44,12 +44,12 @@ public:
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
-    cpp_function(Return (*f)(Args...), const Extra&... extra) {
+    explicit cpp_function(Return (*f)(Args...), const Extra&... extra) {
         initialize(f, f, extra...);
     }
 
     /// Construct a cpp_function from a lambda function (possibly with internal state)
-    template <typename Func, typename... Extra> cpp_function(Func &&f, const Extra&... extra) {
+    template <typename Func, typename... Extra> explicit cpp_function(Func &&f, const Extra&... extra) {
         initialize(std::forward<Func>(f),
                    (typename detail::remove_class<decltype(
                        &std::remove_reference<Func>::type::operator())>::type *) nullptr, extra...);
@@ -57,14 +57,14 @@ public:
 
     /// Construct a cpp_function from a class method (non-const)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
-            cpp_function(Return (Class::*f)(Arg...), const Extra&... extra) {
+            explicit cpp_function(Return (Class::*f)(Arg...), const Extra&... extra) {
         initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(args...); },
                    (Return (*) (Class *, Arg...)) nullptr, extra...);
     }
 
     /// Construct a cpp_function from a class method (const)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
-            cpp_function(Return (Class::*f)(Arg...) const, const Extra&... extra) {
+            explicit cpp_function(Return (Class::*f)(Arg...) const, const Extra&... extra) {
         initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(args...); },
                    (Return (*)(const Class *, Arg ...)) nullptr, extra...);
     }
@@ -528,7 +528,7 @@ class module : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module, object, PyModule_Check)
 
-    module(const char *name, const char *doc = nullptr) {
+    explicit module(const char *name, const char *doc = nullptr) {
 #if PY_MAJOR_VERSION >= 3
         PyModuleDef *def = new PyModuleDef();
         memset(def, 0, sizeof(PyModuleDef));
@@ -1524,7 +1524,7 @@ private:
 
 class gil_scoped_release {
 public:
-    gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
+    explicit gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
         tstate = PyEval_SaveThread();
         if (disassoc) {
             auto key = detail::get_internals().tstate;
