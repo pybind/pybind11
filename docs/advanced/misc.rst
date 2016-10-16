@@ -1,0 +1,187 @@
+Miscellaneous
+#############
+
+.. _macro_notes:
+
+General notes regarding convenience macros
+==========================================
+
+pybind11 provides a few convenience macros such as
+:func:`PYBIND11_MAKE_OPAQUE` and :func:`PYBIND11_DECLARE_HOLDER_TYPE`, and
+``PYBIND11_OVERLOAD_*``. Since these are "just" macros that are evaluated
+in the preprocessor (which has no concept of types), they *will* get confused
+by commas in a template argument such as ``PYBIND11_OVERLOAD(MyReturnValue<T1,
+T2>, myFunc)``. In this case, the preprocessor assumes that the comma indicates
+the beginning of the next parameter. Use a ``typedef`` to bind the template to
+another name and use it in the macro to avoid this problem.
+
+
+Global Interpreter Lock (GIL)
+=============================
+
+The classes :class:`gil_scoped_release` and :class:`gil_scoped_acquire` can be
+used to acquire and release the global interpreter lock in the body of a C++
+function call. In this way, long-running C++ code can be parallelized using
+multiple Python threads. Taking :ref:`overriding_virtuals` as an example, this
+could be realized as follows (important changes highlighted):
+
+.. code-block:: cpp
+    :emphasize-lines: 8,9,33,34
+
+    class PyAnimal : public Animal {
+    public:
+        /* Inherit the constructors */
+        using Animal::Animal;
+
+        /* Trampoline (need one for each virtual function) */
+        std::string go(int n_times) {
+            /* Acquire GIL before calling Python code */
+            py::gil_scoped_acquire acquire;
+
+            PYBIND11_OVERLOAD_PURE(
+                std::string, /* Return type */
+                Animal,      /* Parent class */
+                go,          /* Name of function */
+                n_times      /* Argument(s) */
+            );
+        }
+    };
+
+    PYBIND11_PLUGIN(example) {
+        py::module m("example", "pybind11 example plugin");
+
+        py::class_<Animal, PyAnimal> animal(m, "Animal");
+        animal
+            .def(py::init<>())
+            .def("go", &Animal::go);
+
+        py::class_<Dog>(m, "Dog", animal)
+            .def(py::init<>());
+
+        m.def("call_go", [](Animal *animal) -> std::string {
+            /* Release GIL before calling into (potentially long-running) C++ code */
+            py::gil_scoped_release release;
+            return call_go(animal);
+        });
+
+        return m.ptr();
+    }
+
+
+Binding sequence data types, iterators, the slicing protocol, etc.
+==================================================================
+
+Please refer to the supplemental example for details.
+
+.. seealso::
+
+    The file :file:`tests/test_sequences_and_iterators.cpp` contains a
+    complete example that shows how to bind a sequence data type, including
+    length queries (``__len__``), iterators (``__iter__``), the slicing
+    protocol and other kinds of useful operations.
+
+
+Partitioning code over multiple extension modules
+=================================================
+
+It's straightforward to split binding code over multiple extension modules,
+while referencing types that are declared elsewhere. Everything "just" works
+without any special precautions. One exception to this rule occurs when
+extending a type declared in another extension module. Recall the basic example
+from Section :ref:`inheritance`.
+
+.. code-block:: cpp
+
+    py::class_<Pet> pet(m, "Pet");
+    pet.def(py::init<const std::string &>())
+       .def_readwrite("name", &Pet::name);
+
+    py::class_<Dog>(m, "Dog", pet /* <- specify parent */)
+        .def(py::init<const std::string &>())
+        .def("bark", &Dog::bark);
+
+Suppose now that ``Pet`` bindings are defined in a module named ``basic``,
+whereas the ``Dog`` bindings are defined somewhere else. The challenge is of
+course that the variable ``pet`` is not available anymore though it is needed
+to indicate the inheritance relationship to the constructor of ``class_<Dog>``.
+However, it can be acquired as follows:
+
+.. code-block:: cpp
+
+    py::object pet = (py::object) py::module::import("basic").attr("Pet");
+
+    py::class_<Dog>(m, "Dog", pet)
+        .def(py::init<const std::string &>())
+        .def("bark", &Dog::bark);
+
+Alternatively, you can specify the base class as a template parameter option to
+``class_``, which performs an automated lookup of the corresponding Python
+type. Like the above code, however, this also requires invoking the ``import``
+function once to ensure that the pybind11 binding code of the module ``basic``
+has been executed:
+
+.. code-block:: cpp
+
+    py::module::import("basic");
+
+    py::class_<Dog, Pet>(m, "Dog")
+        .def(py::init<const std::string &>())
+        .def("bark", &Dog::bark);
+
+Naturally, both methods will fail when there are cyclic dependencies.
+
+Note that compiling code which has its default symbol visibility set to
+*hidden* (e.g. via the command line flag ``-fvisibility=hidden`` on GCC/Clang) can interfere with the
+ability to access types defined in another extension module. Workarounds
+include changing the global symbol visibility (not recommended, because it will
+lead unnecessarily large binaries) or manually exporting types that are
+accessed by multiple extension modules:
+
+.. code-block:: cpp
+
+    #ifdef _WIN32
+    #  define EXPORT_TYPE __declspec(dllexport)
+    #else
+    #  define EXPORT_TYPE __attribute__ ((visibility("default")))
+    #endif
+
+    class EXPORT_TYPE Dog : public Animal {
+        ...
+    };
+
+
+
+Generating documentation using Sphinx
+=====================================
+
+Sphinx [#f4]_ has the ability to inspect the signatures and documentation
+strings in pybind11-based extension modules to automatically generate beautiful
+documentation in a variety formats. The python_example repository [#f5]_ contains a
+simple example repository which uses this approach.
+
+There are two potential gotchas when using this approach: first, make sure that
+the resulting strings do not contain any :kbd:`TAB` characters, which break the
+docstring parsing routines. You may want to use C++11 raw string literals,
+which are convenient for multi-line comments. Conveniently, any excess
+indentation will be automatically be removed by Sphinx. However, for this to
+work, it is important that all lines are indented consistently, i.e.:
+
+.. code-block:: cpp
+
+    // ok
+    m.def("foo", &foo, R"mydelimiter(
+        The foo function
+
+        Parameters
+        ----------
+    )mydelimiter");
+
+    // *not ok*
+    m.def("foo", &foo, R"mydelimiter(The foo function
+
+        Parameters
+        ----------
+    )mydelimiter");
+
+.. [#f4] http://www.sphinx-doc.org
+.. [#f5] http://github.com/pybind/python_example

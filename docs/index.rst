@@ -10,15 +10,36 @@ pybind11 --- Seamless operability between C++11 and Python
     Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    intro
+   changelog
+
+.. toctree::
+   :caption: The Basics
+   :maxdepth: 2
+
    basics
    classes
-   advanced
    compiling
+
+.. toctree::
+   :caption: Advanced Topics
+   :maxdepth: 2
+
+   advanced/functions
+   advanced/classes
+   advanced/exceptions
+   advanced/smart_ptrs
+   advanced/cast/index
+   advanced/pycpp/index
+   advanced/misc
+
+.. toctree::
+   :caption: Extra Information
+   :maxdepth: 1
+
+   faq
    benchmark
    limitations
-   faq
    reference
-   changelog
