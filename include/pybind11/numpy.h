@@ -165,16 +165,16 @@ class dtype : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
 
-    dtype(const buffer_info &info) {
+    explicit dtype(const buffer_info &info) {
         dtype descr(_dtype_from_pep3118()(PYBIND11_STR_TYPE(info.format)));
         m_ptr = descr.strip_padding().release().ptr();
     }
 
-    dtype(std::string format) {
+    explicit dtype(std::string format) {
         m_ptr = from_args(pybind11::str(format)).release().ptr();
     }
 
-    dtype(const char *format) : dtype(std::string(format)) { }
+    explicit dtype(const char *format) : dtype(std::string(format)) { }
 
     dtype(list names, list formats, list offsets, size_t itemsize) {
         dict args;
@@ -317,7 +317,7 @@ public:
     array(size_t count, const T *ptr, handle base = handle())
         : array(std::vector<size_t>{ count }, ptr, base) { }
 
-    array(const buffer_info &info)
+    explicit array(const buffer_info &info)
     : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
 
     /// Array descriptor (dtype)
@@ -477,18 +477,18 @@ public:
 
     array_t() : array() { }
 
-    array_t(const buffer_info& info) : array(info) { }
+    explicit array_t(const buffer_info& info) : array(info) { }
 
     array_t(const std::vector<size_t> &shape,
             const std::vector<size_t> &strides, const T *ptr = nullptr,
             handle base = handle())
         : array(shape, strides, ptr, base) { }
 
-    array_t(const std::vector<size_t> &shape, const T *ptr = nullptr,
+    explicit array_t(const std::vector<size_t> &shape, const T *ptr = nullptr,
             handle base = handle())
         : array(shape, ptr, base) { }
 
-    array_t(size_t count, const T *ptr = nullptr, handle base = handle())
+    explicit array_t(size_t count, const T *ptr = nullptr, handle base = handle())
         : array(count, ptr, base) { }
 
     constexpr size_t itemsize() const {
@@ -607,7 +607,7 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
 
 #define DECL_CHAR_FMT \
     static PYBIND11_DESCR name() { return _("S") + _<N>(); } \
-    static pybind11::dtype dtype() { return std::string("S") + std::to_string(N); }
+    static pybind11::dtype dtype() { return pybind11::dtype(std::string("S") + std::to_string(N)); }
 template <size_t N> struct npy_format_descriptor<char[N]> { DECL_CHAR_FMT };
 template <size_t N> struct npy_format_descriptor<std::array<char, N>> { DECL_CHAR_FMT };
 #undef DECL_CHAR_FMT
@@ -883,7 +883,7 @@ struct vectorize_helper {
     typename std::remove_reference<Func>::type f;
 
     template <typename T>
-    vectorize_helper(T&&f) : f(std::forward<T>(f)) { }
+    explicit vectorize_helper(T&&f) : f(std::forward<T>(f)) { }
 
     object operator()(array_t<Args, array::c_style | array::forcecast>... args) {
         return run(args..., typename make_index_sequence<sizeof...(Args)>::type());

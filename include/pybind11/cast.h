@@ -311,7 +311,7 @@ public:
     static PYBIND11_DESCR name() { return type_descr(_<type>()); }
 
     type_caster_base() : type_caster_base(typeid(type)) { }
-    type_caster_base(const std::type_info &info) : type_caster_generic(info) { }
+    explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) { }
 
     static handle cast(const itype &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
@@ -1154,7 +1154,7 @@ template <return_value_policy policy>
 class simple_collector {
 public:
     template <typename... Ts>
-    simple_collector(Ts &&...values)
+    explicit simple_collector(Ts &&...values)
         : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) { }
 
     const tuple &args() const & { return m_args; }
@@ -1179,7 +1179,7 @@ template <return_value_policy policy>
 class unpacking_collector {
 public:
     template <typename... Ts>
-    unpacking_collector(Ts &&...values) {
+    explicit unpacking_collector(Ts &&...values) {
         // Tuples aren't (easily) resizable so a list is needed for collection,
         // but the actual function call strictly requires a tuple.
         auto args_list = list();
@@ -1283,7 +1283,7 @@ private:
 template <return_value_policy policy, typename... Args,
           typename = enable_if_t<all_of_t<is_positional, Args...>::value>>
 simple_collector<policy> collect_arguments(Args &&...args) {
-    return {std::forward<Args>(args)...};
+    return simple_collector<policy>(std::forward<Args>(args)...);
 }
 
 /// Collect all arguments, including keywords and unpacking (only instantiated when needed)
@@ -1297,7 +1297,7 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
         "Invalid function call: positional args must precede keywords and ** unpacking; "
         "* unpacking must precede ** unpacking"
     );
-    return { std::forward<Args>(args)... };
+    return unpacking_collector<policy>(std::forward<Args>(args)...);
 }
 
 template <typename Derived>
