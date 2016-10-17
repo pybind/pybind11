@@ -88,7 +88,7 @@ public:
     const handle& dec_ref() const { Py_XDECREF(m_ptr); return *this; }
 
     template <typename T> T cast() const;
-    operator bool() const { return m_ptr != nullptr; }
+    explicit operator bool() const { return m_ptr != nullptr; }
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
     bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
     bool check() const { return m_ptr != nullptr; }
@@ -572,7 +572,7 @@ public:
 class bool_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(bool_, object, PyBool_Check)
-    // Allow implicit conversion from `bool`:
+    // Allow implicit conversion from and to `bool`:
     bool_(bool value) : object(value ? Py_True : Py_False, true) { }
     operator bool() const { return m_ptr && PyLong_AsLong(m_ptr) != 0; }
 };
