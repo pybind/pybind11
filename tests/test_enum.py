@@ -16,6 +16,19 @@ def test_unscoped_enum():
     assert int(UnscopedEnum.ETwo) == 2
     assert str(UnscopedEnum(2)) == "UnscopedEnum.ETwo"
 
+    # order
+    assert UnscopedEnum.EOne < UnscopedEnum.ETwo
+    assert UnscopedEnum.EOne < 2
+    assert UnscopedEnum.ETwo > UnscopedEnum.EOne
+    assert UnscopedEnum.ETwo > 1
+    assert UnscopedEnum.ETwo <= 2
+    assert UnscopedEnum.ETwo >= 2
+    assert UnscopedEnum.EOne <= UnscopedEnum.ETwo
+    assert UnscopedEnum.EOne <= 2
+    assert UnscopedEnum.ETwo >= UnscopedEnum.EOne
+    assert UnscopedEnum.ETwo >= 1
+    assert not (UnscopedEnum.ETwo < UnscopedEnum.EOne)
+    assert not (2 < UnscopedEnum.EOne)
 
 def test_scoped_enum():
     from pybind11_tests import ScopedEnum, test_scoped_enum
@@ -30,6 +43,13 @@ def test_scoped_enum():
     with pytest.raises(TypeError):
         assert z != 3
 
+    # order
+    assert ScopedEnum.Two < ScopedEnum.Three
+    assert ScopedEnum.Three > ScopedEnum.Two
+    assert ScopedEnum.Two <= ScopedEnum.Three
+    assert ScopedEnum.Two <= ScopedEnum.Two
+    assert ScopedEnum.Two >= ScopedEnum.Two
+    assert ScopedEnum.Three >= ScopedEnum.Two
 
 def test_implicit_conversion():
     from pybind11_tests import ClassWithUnscopedEnum

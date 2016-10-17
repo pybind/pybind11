@@ -1205,12 +1205,20 @@ public:
         def("__int__", [](Type value) { return (UnderlyingType) value; });
         def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
         def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
+        def("__lt__", [](const Type &value, Type *value2) { return value2 && value < *value2; });
+        def("__gt__", [](const Type &value, Type *value2) { return value2 && value > *value2; });
+        def("__le__", [](const Type &value, Type *value2) { return value2 && value <= *value2; });
+        def("__ge__", [](const Type &value, Type *value2) { return value2 && value >= *value2; });
         if (std::is_convertible<Type, UnderlyingType>::value) {
             // Don't provide comparison with the underlying type if the enum isn't convertible,
             // i.e. if Type is a scoped enum, mirroring the C++ behaviour.  (NB: we explicitly
             // convert Type to UnderlyingType below anyway because this needs to compile).
             def("__eq__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value == value2; });
             def("__ne__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value != value2; });
+            def("__lt__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value < value2; });
+            def("__gt__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value > value2; });
+            def("__le__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value <= value2; });
+            def("__ge__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value >= value2; });
         }
         def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
         // Pickling and unpickling -- needed for use with the 'multiprocessing' module
