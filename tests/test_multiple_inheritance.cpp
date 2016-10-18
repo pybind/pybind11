@@ -10,7 +10,6 @@
 
 #include "pybind11_tests.h"
 
-PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 
 struct Base1 {
     Base1(int i) : i(i) { }

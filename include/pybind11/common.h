@@ -417,6 +417,10 @@ using is_template_base_of = decltype(is_template_base_of_impl<Base>::check((T*)n
 struct is_template_base_of : decltype(is_template_base_of_impl<Base>::check((T*)nullptr)) { };
 #endif
 
+/// Check if T is std::shared_ptr<U> where U can be anything
+template <typename T> struct is_shared_ptr : std::false_type { };
+template <typename U> struct is_shared_ptr<std::shared_ptr<U>> : std::true_type { };
+
 /// Ignore that a variable is unused in compiler warnings
 inline void ignore_unused(const int *) { }
 

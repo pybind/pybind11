@@ -55,6 +55,8 @@ Breaking changes queued for v2.0.0 (Not yet released)
   ``py::str s = "1 + 2 = {}"_s.format(3);``
 * Attribute and item accessors now have a more complete interface which makes it possible
   to chain attributes ``obj.attr("a")[key].attr("b").attr("method")(1, 2, 3)```.
+* Added built-in support for ``std::shared_ptr`` holder type. There is no more need
+  to do it manually via ``PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)``.
 * Various minor improvements of library internals (no user-visible changes)
 
 1.8.1 (July 12, 2016)

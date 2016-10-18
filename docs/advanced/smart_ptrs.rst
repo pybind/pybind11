@@ -1,7 +1,7 @@
 Smart pointers
 ##############
 
-Unique pointers
+std::unique_ptr
 ===============
 
 Given a class ``Example`` with Python bindings, it's possible to return
@@ -28,14 +28,8 @@ The above signature would imply that Python needs to give up ownership of an
 object that is passed to this function, which is generally not possible (for
 instance, the object might be referenced elsewhere).
 
-.. _smart_pointers:
-
-Reference-counting pointers
-===========================
-
-This section explains how to pass values that are wrapped in "smart" pointer
-types with internal reference counting. For the simpler C++11 unique pointers,
-refer to the previous section.
+std::shared_ptr
+===============
 
 The binding generator for classes, :class:`class_`, can be passed a template
 type that denotes a special *holder* type that is used to manage references to
@@ -52,22 +46,6 @@ following snippet causes ``std::shared_ptr`` to be used instead.
     py::class_<Example, std::shared_ptr<Example> /* <- holder type */> obj(m, "Example");
 
 Note that any particular class can only be associated with a single holder type.
-
-To enable transparent conversions for functions that take shared pointers as an
-argument or that return them, a macro invocation similar to the following must
-be declared at the top level before any binding code:
-
-.. code-block:: cpp
-
-    PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
-
-.. note::
-
-    The first argument of :func:`PYBIND11_DECLARE_HOLDER_TYPE` should be a
-    placeholder name that is used as a template parameter of the second
-    argument. Thus, feel free to use any identifier, but use it consistently on
-    both sides; also, don't use the name of a type that already exists in your
-    codebase.
 
 One potential stumbling block when using holder types is that they need to be
 applied consistently. Can you guess what's broken about the following binding
@@ -139,6 +117,24 @@ There are two ways to resolve this issue:
 
     class Child : public std::enable_shared_from_this<Child> { };
 
+.. _smart_pointers:
+
+Custom smart pointers
+=====================
+
+pybind11 supports ``std::unique_ptr`` and ``std::shared_ptr`` right out of the
+box. For any other custom smart pointer, transparent conversions can be enabled
+using a macro invocation similar to the following. It must be declared at the
+level before any binding code:
+
+.. code-block:: cpp
+
+    PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>);
+
+The first argument of :func:`PYBIND11_DECLARE_HOLDER_TYPE` should be a
+placeholder name that is used as a template parameter of the second argument.
+Thus, feel free to use any identifier, but use it consistently on both sides;
+also, don't use the name of a type that already exists in your codebase.
 
 Please take a look at the :ref:`macro_notes` before using this feature.
 
