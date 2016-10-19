@@ -1,5 +1,74 @@
-Casting data types
-##################
+Type conversions
+################
+
+There are 3 mechanisms that pybind11 uses to move data between C++ and Python.
+We'll take a quick look at each one to get an overview of what's happening.
+
+.. rubric:: 1. Native type in C++, wrapper in Python
+
+Exposing a custom C++ type using :class:`py::class_` was covered in detail in
+the :doc:`/classes` section. There, the underlying data structure is always the
+original C++ class while the :class:`py::class_` wrapper provides a Python
+interface. Internally, when an object like this is sent from C++ to Python,
+pybind11 will just add the outer wrapper layer over the native C++ object.
+Getting it back from Python is just a matter of peeling off the wrapper.
+
+.. rubric:: 2. Wrapper in C++, native type in Python
+
+This is the exact opposite situation. Now, we have a type which is native to
+Python, like a ``tuple`` or a ``list``. One way to get this data into C++ is
+with the :class:`py::object` family of wrappers. These are explained in more
+detail in the :doc:`/advanced/pycpp/object` section. We'll just give a quick
+example here:
+
+.. code-block:: cpp
+
+    void print_list(py::list my_list) {
+        for (auto item : my_list)
+            std::cout << item << " ";
+    }
+
+.. code-block:: pycon
+
+    >>> print_list([1, 2, 3])
+    1 2 3
+
+The Python ``list`` is not converted in any way -- it's just wrapped in a C++
+:class:`py::list` class. At its core it's still a Python object. Copying a
+:class:`py::list` will do the usual reference-counting like in Python.
+Returning the object to Python will just remove the thin wrapper.
+
+.. rubric:: 3. Converting between native C++ and Python types
+
+In the previous two cases we had a native type in one language and a wrapper in
+the other. Now, we have native types on both sides and we convert between them.
+
+.. code-block:: cpp
+
+    void print_vector(const std::vector<int> &v) {
+        for (auto item : v)
+            std::cout << item << "\n";
+    }
+
+.. code-block:: pycon
+
+    >>> print_vector([1, 2, 3])
+    1 2 3
+
+In this case, pybind11 will construct a new ``std::vector<int>`` and copy each
+element from the Python ``list``. The newly constructed object will be passed
+to ``print_vector``. The same thing happens in the other direction: a new
+``list`` is made to match the value returned from C++.
+
+Lots of these conversions are supported out of the box, as shown in the table
+below. They are very convenient, but keep in mind that these conversions are
+fundamentally based on copying data. This is perfectly fine for small immutable
+types but it may become quite expensive for large data structures. This can be
+avoided by overriding the automatic conversion with a custom wrapper (i.e. the
+above-mentioned approach 1). This requires some manual effort and more details
+are available in the :ref:`opaque` section.
+
+.. rubric:: Supported automatic conversions
 
 .. toctree::
    :maxdepth: 1
