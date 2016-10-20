@@ -26,7 +26,8 @@ def test_format_descriptors():
         "T{=T{=?:x:3x=I:y:=f:z:}:a:=T{=?:x:=I:y:=f:z:}:b:}",
         "T{=?:x:3x=I:y:=f:z:12x}",
         "T{8x=T{=?:x:3x=I:y:=f:z:12x}:a:8x}",
-        "T{=3s:a:=3s:b:}"
+        "T{=3s:a:=3s:b:}",
+        'T{=q:e1:=B:e2:}'
     ]
 
 
@@ -40,7 +41,8 @@ def test_dtype():
         "[('a', {'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}), ('b', [('x', '?'), ('y', '<u4'), ('z', '<f4')])]",
         "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}",
         "{'names':['a'], 'formats':[{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}], 'offsets':[8], 'itemsize':40}",
-        "[('a', 'S3'), ('b', 'S3')]"
+        "[('a', 'S3'), ('b', 'S3')]",
+        "[('e1', '<i8'), ('e2', 'u1')]"
     ]
 
     d1 = np.dtype({'names': ['a', 'b'], 'formats': ['int32', 'float64'],
@@ -148,6 +150,23 @@ def test_string_array():
     assert arr['b'].tolist() == [b'', b'a', b'ab', b'abc']
     arr = create_string_array(False)
     assert dtype == arr.dtype
+
+
+@pytest.requires_numpy
+def test_enum_array():
+    from pybind11_tests import create_enum_array, print_enum_array
+
+    arr = create_enum_array(3)
+    dtype = arr.dtype
+    assert dtype == np.dtype([('e1', '<i8'), ('e2', 'u1')])
+    assert print_enum_array(arr) == [
+        "e1=A,e2=X",
+        "e1=B,e2=Y",
+        "e1=A,e2=X"
+    ]
+    assert arr['e1'].tolist() == [-1, 1, -1]
+    assert arr['e2'].tolist() == [1, 2, 1]
+    assert create_enum_array(0).dtype == dtype
 
 
 @pytest.requires_numpy
