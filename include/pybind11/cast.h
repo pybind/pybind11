@@ -258,31 +258,48 @@ public:
 
         auto wrapper = (instance<void> *) inst.ptr();
 
-        wrapper->value = src;
-        wrapper->owned = true;
+        wrapper->value = nullptr;
+        wrapper->owned = false;
 
-        if (policy == return_value_policy::automatic)
-            policy = return_value_policy::take_ownership;
-        else if (policy == return_value_policy::automatic_reference)
-            policy = return_value_policy::reference;
+        switch (policy) {
+        case return_value_policy::automatic:
+        case return_value_policy::take_ownership:
+            wrapper->value = src;
+            wrapper->owned = true;
+            break;
 
-        if (policy == return_value_policy::copy) {
+        case return_value_policy::automatic_reference:
+        case return_value_policy::reference:
+            wrapper->value = src;
+            wrapper->owned = false;
+            break;
+
+        case return_value_policy::copy:
             if (copy_constructor)
-                wrapper->value = copy_constructor(wrapper->value);
+                wrapper->value = copy_constructor(src);
             else
                 throw cast_error("return_value_policy = copy, but the object is non-copyable!");
-        } else if (policy == return_value_policy::move) {
+            wrapper->owned = true;
+            break;
+
+        case return_value_policy::move:
             if (move_constructor)
-                wrapper->value = move_constructor(wrapper->value);
+                wrapper->value = move_constructor(src);
             else if (copy_constructor)
-                wrapper->value = copy_constructor(wrapper->value);
+                wrapper->value = copy_constructor(src);
             else
                 throw cast_error("return_value_policy = move, but the object is neither movable nor copyable!");
-        } else if (policy == return_value_policy::reference) {
-            wrapper->owned = false;
-        } else if (policy == return_value_policy::reference_internal) {
+            wrapper->owned = true;
+            break;
+
+        case return_value_policy::reference_internal:
+            wrapper->value = src;
             wrapper->owned = false;
             detail::keep_alive_impl(inst, parent);
+            break;
+
+        default:
+            throw cast_error("unhandled return_value_policy: should not happen!");
         }
 
         tinfo->init_holder(inst.ptr(), existing_holder);
