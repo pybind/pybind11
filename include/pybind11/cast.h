@@ -166,12 +166,14 @@ public:
     }
 
     bool load(handle src, bool convert, PyTypeObject *tobj) {
-        if (!src || !typeinfo)
+        if (!src)
             return false;
         if (src.is_none()) {
             value = nullptr;
             return true;
         }
+        if (!typeinfo)
+            return load_direct(src, convert);
 
         if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
             /* Check if we can safely perform a reinterpret-style cast */
@@ -208,23 +210,16 @@ public:
             }
         }
 
-        /* Perform an implicit or a direct conversion */
+        /* Perform an implicit conversion */
         if (convert) {
             for (auto &converter : typeinfo->implicit_conversions) {
                 temp = object(converter(src.ptr(), typeinfo->type), false);
                 if (load(temp, false))
                     return true;
             }
-            auto& direct = get_internals().direct_conversions;
-            auto it = direct.find(tindex);
-            if (it != direct.end()) {
-                for (auto& converter : it->second) {
-                    if (converter(src.ptr(), value))
-                        return true;
-                }
-            }
         }
-        return false;
+
+        return load_direct(src, convert);
     }
 
     PYBIND11_NOINLINE static handle cast(const void *_src, return_value_policy policy, handle parent,
@@ -305,6 +300,20 @@ protected:
     std::type_index tindex;
     void *value = nullptr;
     object temp;
+
+    bool load_direct(handle src, bool convert) {
+        if (convert) {
+            auto& direct = get_internals().direct_conversions;
+            auto it = direct.find(tindex);
+            if (it != direct.end()) {
+                for (auto& converter : it->second) {
+                    if (converter(src.ptr(), value))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
 };
 
 /* Determine suitable casting operator */
