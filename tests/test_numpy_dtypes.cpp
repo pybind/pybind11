@@ -298,6 +298,9 @@ test_initializer numpy_dtypes([](py::module &m) {
         return;
     }
 
+    // typeinfo may be registered before the dtype descriptor for scalar casts to work...
+    py::class_<SimpleStruct>(m, "SimpleStruct");
+
     PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(PackedStruct, x, y, z);
     PYBIND11_NUMPY_DTYPE(NestedStruct, a, b);
@@ -305,6 +308,11 @@ test_initializer numpy_dtypes([](py::module &m) {
     PYBIND11_NUMPY_DTYPE(PartialNestedStruct, a);
     PYBIND11_NUMPY_DTYPE(StringStruct, a, b);
     PYBIND11_NUMPY_DTYPE(EnumStruct, e1, e2);
+
+    // ... or after...
+    py::class_<PackedStruct>(m, "PackedStruct");
+
+    // ... or not at all
 
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
@@ -324,6 +332,9 @@ test_initializer numpy_dtypes([](py::module &m) {
     m.def("test_array_ctors", &test_array_ctors);
     m.def("test_dtype_ctors", &test_dtype_ctors);
     m.def("test_dtype_methods", &test_dtype_methods);
+    m.def("f_simple", [](SimpleStruct s) { return s.y * 10; });
+    m.def("f_packed", [](PackedStruct s) { return s.y * 10; });
+    m.def("f_nested", [](NestedStruct s) { return s.a.y * 10; });
 });
 
 #undef PYBIND11_PACKED
