@@ -668,6 +668,9 @@ struct npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>> {
     }
 
     static void register_dtype(std::initializer_list<field_descriptor> fields) {
+        if (dtype_ptr)
+            pybind11_fail("NumPy: dtype is already registered");
+
         list names, formats, offsets;
         for (auto field : fields) {
             if (!field.descr)

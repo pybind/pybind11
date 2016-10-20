@@ -196,3 +196,12 @@ def test_scalar_conversion():
                 with pytest.raises(TypeError) as excinfo:
                     func(arr[0])
                 assert 'incompatible function arguments' in str(excinfo.value)
+
+
+@pytest.requires_numpy
+def test_register_dtype():
+    from pybind11_tests import register_dtype
+
+    with pytest.raises(RuntimeError) as excinfo:
+        register_dtype()
+    assert 'dtype is already registered' in str(excinfo.value)

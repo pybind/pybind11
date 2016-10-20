@@ -335,6 +335,7 @@ test_initializer numpy_dtypes([](py::module &m) {
     m.def("f_simple", [](SimpleStruct s) { return s.y * 10; });
     m.def("f_packed", [](PackedStruct s) { return s.y * 10; });
     m.def("f_nested", [](NestedStruct s) { return s.a.y * 10; });
+    m.def("register_dtype", []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z); });
 });
 
 #undef PYBIND11_PACKED
