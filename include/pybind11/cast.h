@@ -157,7 +157,8 @@ inline void keep_alive_impl(handle nurse, handle patient);
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
-     : typeinfo(get_type_info(type_info, false)), tindex(type_info) { }
+     : typeinfo(get_type_info(type_info, false)),
+       direct_conversions(get_internals().direct_conversions[std::type_index(type_info)]) { }
 
     PYBIND11_NOINLINE bool load(handle src, bool convert) {
         if (!src)
@@ -297,19 +298,15 @@ public:
 
 protected:
     const type_info *typeinfo = nullptr;
-    std::type_index tindex;
+    const std::vector<bool (*)(PyObject *, void *&)>& direct_conversions;
     void *value = nullptr;
     object temp;
 
     bool load_direct(handle src, bool convert) {
         if (convert) {
-            auto& direct = get_internals().direct_conversions;
-            auto it = direct.find(tindex);
-            if (it != direct.end()) {
-                for (auto& converter : it->second) {
-                    if (converter(src.ptr(), value))
-                        return true;
-                }
+            for (auto& converter : direct_conversions) {
+                if (converter(src.ptr(), value))
+                    return true;
             }
         }
         return false;
