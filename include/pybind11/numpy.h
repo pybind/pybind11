@@ -552,6 +552,14 @@ template <size_t N> struct format_descriptor<std::array<char, N>> {
     static std::string format() { return std::to_string(N) + "s"; }
 };
 
+template <typename T>
+struct format_descriptor<T, detail::enable_if_t<std::is_enum<T>::value>> {
+    static std::string format() {
+        return format_descriptor<
+            typename std::remove_cv<typename std::underlying_type<T>::type>::type>::format();
+    }
+};
+
 NAMESPACE_BEGIN(detail)
 template <typename T> struct is_std_array : std::false_type { };
 template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
@@ -563,6 +571,7 @@ struct is_pod_struct {
            !std::is_array<T>::value &&
            !is_std_array<T>::value &&
            !std::is_integral<T>::value &&
+           !std::is_enum<T>::value &&
            !std::is_same<typename std::remove_cv<T>::type, float>::value &&
            !std::is_same<typename std::remove_cv<T>::type, double>::value &&
            !std::is_same<typename std::remove_cv<T>::type, bool>::value &&
@@ -611,6 +620,14 @@ DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
 template <size_t N> struct npy_format_descriptor<char[N]> { DECL_CHAR_FMT };
 template <size_t N> struct npy_format_descriptor<std::array<char, N>> { DECL_CHAR_FMT };
 #undef DECL_CHAR_FMT
+
+template<typename T> struct npy_format_descriptor<T, enable_if_t<std::is_enum<T>::value>> {
+private:
+    using base_descr = npy_format_descriptor<typename std::underlying_type<T>::type>;
+public:
+    static PYBIND11_DESCR name() { return base_descr::name(); }
+    static pybind11::dtype dtype() { return base_descr::dtype(); }
+};
 
 struct field_descriptor {
     const char *name;
