@@ -9,7 +9,6 @@
 
 #include "pybind11_tests.h"
 
-PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 
 template <int N> class BreaksBase {};
 template <int N> class BreaksTramp : public BreaksBase<N> {};

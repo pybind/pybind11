@@ -12,7 +12,6 @@
 #include <pybind11/stl.h>
 #include <pybind11/operators.h>
 
-PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 
 #define TRACKERS(CLASS) CLASS() { print_default_created(this); } ~CLASS() { print_destroyed(this); }
 struct NestABase { int value = -2; TRACKERS(NestABase) };

@@ -383,12 +383,6 @@ public:
         operator type&() { return value; } \
         template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>
 
-#define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type) \
-    namespace pybind11 { namespace detail { \
-    template <typename type> class type_caster<holder_type> \
-        : public type_caster_holder<type, holder_type> { }; \
-    }}
-
 
 template <typename T>
 struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value>> {
@@ -897,6 +891,18 @@ public:
 protected:
     holder_type holder;
 };
+
+/// Specialize for the common std::shared_ptr, so users don't need to
+template <typename T>
+class type_caster<std::shared_ptr<T>> : public type_caster_holder<T, std::shared_ptr<T>> { };
+
+/// Create a specialization for custom holder types (silently ignores std::shared_ptr)
+#define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type) \
+    namespace pybind11 { namespace detail { \
+    template <typename type> \
+    class type_caster<holder_type, enable_if_t<!is_shared_ptr<holder_type>::value>> \
+        : public type_caster_holder<type, holder_type> { }; \
+    }}
 
 // PYBIND11_DECLARE_HOLDER_TYPE holder types:
 template <typename base, typename holder> struct is_holder_type :
