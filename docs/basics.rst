@@ -60,6 +60,19 @@ command line.
     the tutorial and look at the test cases in the :file:`tests` directory,
     which exercise all features of pybind11.
 
+Header and namespace conventions
+================================
+
+For brevity, all code examples assume that the following two lines are present:
+
+.. code-block:: cpp
+
+    #include <pybind11/pybind11.h>
+
+    namespace py = pybind11;
+
+Some features may require additional headers, but those will be specified as needed.
+
 Creating bindings for a simple function
 =======================================
 
@@ -92,6 +105,9 @@ a file named :file:`example.cpp` with the following contents:
 
         return m.ptr();
     }
+
+.. [#f1] In practice, implementation and binding code will generally be located
+         in separate files.
 
 The :func:`PYBIND11_PLUGIN` macro creates a function that will be called when an
 ``import`` statement is issued from within Python. The next line creates a
@@ -235,79 +251,37 @@ The shorthand notation is also available for default arguments:
     // shorthand
     m.def("add2", &add, "i"_a=1, "j"_a=2);
 
+Exporting variables
+===================
+
+To expose a value from C++, use the ``attr`` function to register it in a module
+as shown below. Built-in types and general objects (more on that later) can be
+converted using the function ``py::cast``.
+
+.. code-block:: cpp
+
+    PYBIND11_PLUGIN(example) {
+        py::module m("example", "pybind11 example plugin");
+        m.attr("the_answer") = py::cast(42);
+        m.attr("what") = py::cast("World");
+        return m.ptr();
+    }
+
+These are then accessible from Python:
+
+.. code-block:: pycon
+
+    >>> import example
+    >>> example.the_answer
+    42
+    >>> example.what
+    'World'
+
 .. _supported_types:
 
 Supported data types
 ====================
 
-The following basic data types are supported out of the box (some may require
-an additional extension header to be included). To pass other data structures
-as arguments and return values, refer to the section on binding :ref:`classes`.
-
-+---------------------------------+--------------------------+-------------------------------+
-|  Data type                      |  Description             | Header file                   |
-+=================================+==========================+===============================+
-| ``int8_t``, ``uint8_t``         | 8-bit integers           | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``int16_t``, ``uint16_t``       | 16-bit integers          | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``int32_t``, ``uint32_t``       | 32-bit integers          | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``int64_t``, ``uint64_t``       | 64-bit integers          | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``ssize_t``, ``size_t``         | Platform-dependent size  | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``float``, ``double``           | Floating point types     | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``bool``                        | Two-state Boolean type   | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``char``                        | Character literal        | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``wchar_t``                     | Wide character literal   | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``const char *``                | UTF-8 string literal     | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``const wchar_t *``             | Wide string literal      | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::string``                 | STL dynamic UTF-8 string | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::wstring``                | STL dynamic wide string  | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::pair<T1, T2>``           | Pair of two custom types | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::tuple<...>``             | Arbitrary tuple of types | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::reference_wrapper<...>`` | Reference type wrapper   | :file:`pybind11/pybind11.h`   |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::complex<T>``             | Complex numbers          | :file:`pybind11/complex.h`    |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::array<T, Size>``         | STL static array         | :file:`pybind11/stl.h`        |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::vector<T>``              | STL dynamic array        | :file:`pybind11/stl.h`        |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::list<T>``                | STL linked list          | :file:`pybind11/stl.h`        |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::map<T1, T2>``            | STL ordered map          | :file:`pybind11/stl.h`        |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::unordered_map<T1, T2>``  | STL unordered map        | :file:`pybind11/stl.h`        |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::set<T>``                 | STL ordered set          | :file:`pybind11/stl.h`        |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::unordered_set<T>``       | STL unordered set        | :file:`pybind11/stl.h`        |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::function<...>``          | STL polymorphic function | :file:`pybind11/functional.h` |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::chrono::duration<...>``  | STL time duration        | :file:`pybind11/chrono.h`     |
-+---------------------------------+--------------------------+-------------------------------+
-| ``std::chrono::time_point<...>``| STL date/time            | :file:`pybind11/chrono.h`     |
-+---------------------------------+--------------------------+-------------------------------+
-| ``Eigen::Matrix<...>``          | Eigen: dense matrix      | :file:`pybind11/eigen.h`      |
-+---------------------------------+--------------------------+-------------------------------+
-| ``Eigen::Map<...>``             | Eigen: mapped memory     | :file:`pybind11/eigen.h`      |
-+---------------------------------+--------------------------+-------------------------------+
-| ``Eigen::SparseMatrix<...>``    | Eigen: sparse matrix     | :file:`pybind11/eigen.h`      |
-+---------------------------------+--------------------------+-------------------------------+
-
-
-.. [#f1] In practice, implementation and binding code will generally be located
-         in separate files.
+A large number of data types are supported out of the box and can be used
+seamlessly as functions arguments, return values or with ``py::cast`` in general.
+For a full overview, see the :doc:`advanced/cast/index` section.
