@@ -103,7 +103,9 @@ struct npy_api {
     PyObject *(*PyArray_DescrNewFromType_)(int);
     PyObject *(*PyArray_NewCopy_)(PyObject *, int);
     PyTypeObject *PyArray_Type_;
+    PyTypeObject *PyVoidArrType_Type_;
     PyTypeObject *PyArrayDescr_Type_;
+    PyObject *(*PyArray_DescrFromScalar_)(PyObject *);
     PyObject *(*PyArray_FromAny_) (PyObject *, PyObject *, int, int, int, PyObject *);
     int (*PyArray_DescrConverter_) (PyObject *, PyObject **);
     bool (*PyArray_EquivTypes_) (PyObject *, PyObject *);
@@ -114,7 +116,9 @@ private:
     enum functions {
         API_PyArray_Type = 2,
         API_PyArrayDescr_Type = 3,
+        API_PyVoidArrType_Type = 39,
         API_PyArray_DescrFromType = 45,
+        API_PyArray_DescrFromScalar = 57,
         API_PyArray_FromAny = 69,
         API_PyArray_NewCopy = 85,
         API_PyArray_NewFromDescr = 94,
@@ -136,8 +140,10 @@ private:
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
         DECL_NPY_API(PyArray_Type);
+        DECL_NPY_API(PyVoidArrType_Type);
         DECL_NPY_API(PyArrayDescr_Type);
         DECL_NPY_API(PyArray_DescrFromType);
+        DECL_NPY_API(PyArray_DescrFromScalar);
         DECL_NPY_API(PyArray_FromAny);
         DECL_NPY_API(PyArray_NewCopy);
         DECL_NPY_API(PyArray_NewFromDescr);
