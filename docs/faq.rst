@@ -94,7 +94,9 @@ How can I reduce the build time?
 ================================
 
 It's good practice to split binding code over multiple files, as in the
-following example code:
+following example:
+
+:file:`example.cpp`:
 
 .. code-block:: cpp
 
@@ -107,15 +109,41 @@ following example code:
 
         init_ex1(m);
         init_ex2(m);
-
         /* ... */
 
         return m.ptr();
     }
 
-The various ``init_ex`` functions should be contained in separate files that
-can be compiled independently from another, and then linked together into the
-same final shared object.  Following this approach will:
+:file:`ex1.cpp`:
+
+.. code-block:: cpp
+
+    void init_ex1(py::module &m) {
+        m.def("add", [](int a, int b) { return a + b; });
+    }
+
+:file:`ex2.cpp`:
+
+.. code-block:: cpp
+
+    void init_ex1(py::module &m) {
+        m.def("sub", [](int a, int b) { return a - b; });
+    }
+
+:command:`python`:
+
+.. code-block:: pycon
+
+    >>> import example
+    >>> example.add(1, 2)
+    3
+    >>> example.sub(1, 1)
+    0
+
+As shown above, the various ``init_ex`` functions should be contained in
+separate files that can be compiled independently from one another, and then
+linked together into the same final shared object.  Following this approach
+will:
 
 1. reduce memory requirements per compilation unit.
 
