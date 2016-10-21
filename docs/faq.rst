@@ -93,8 +93,8 @@ and the binding code
 How can I reduce the build time?
 ================================
 
-It's good practice to split binding code over multiple files, as is done in
-the included file :file:`example/example.cpp`.
+It's good practice to split binding code over multiple files, as in the
+following example code:
 
 .. code-block:: cpp
 
@@ -114,7 +114,8 @@ the included file :file:`example/example.cpp`.
     }
 
 The various ``init_ex`` functions should be contained in separate files that
-can be compiled independently from another. Following this approach will
+can be compiled independently from another, and then linked together into the
+same final shared object.  Following this approach will:
 
 1. reduce memory requirements per compilation unit.
 
