@@ -53,6 +53,19 @@ public:
     int value = 0;
 };
 
+struct TestProperties {
+    int value = 1;
+    static int static_value;
+
+    int get() const { return value; }
+    void set(int v) { value = v; }
+
+    static int static_get() { return static_value; }
+    static void static_set(int v) { static_value = v; }
+};
+
+int TestProperties::static_value = 1;
+
 class DynamicClass {
 public:
     DynamicClass() { print_default_created(this); }
@@ -89,6 +102,20 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value)
         ;
+
+    py::class_<TestProperties>(m, "TestProperties")
+        .def(py::init<>())
+        .def_readonly("def_readonly", &TestProperties::value)
+        .def_readwrite("def_readwrite", &TestProperties::value)
+        .def_property_readonly("def_property_readonly", &TestProperties::get)
+        .def_property("def_property", &TestProperties::get, &TestProperties::set)
+        .def_readonly_static("def_readonly_static", &TestProperties::static_value)
+        .def_readwrite_static("def_readwrite_static", &TestProperties::static_value)
+        .def_property_readonly_static("def_property_readonly_static",
+                                      [](py::object) { return TestProperties::static_get(); })
+        .def_property_static("def_property_static",
+                             [](py::object) { return TestProperties::static_get(); },
+                             [](py::object, int v) { return TestProperties::static_set(v); });
 
     py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())
         .def(py::init());
