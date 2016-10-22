@@ -170,7 +170,7 @@ public:
         m_ptr = descr.strip_padding().release().ptr();
     }
 
-    explicit dtype(std::string format) {
+    explicit dtype(const std::string &format) {
         m_ptr = from_args(pybind11::str(format)).release().ptr();
     }
 
