@@ -262,44 +262,46 @@ public:
         wrapper->owned = false;
 
         switch (policy) {
-        case return_value_policy::automatic:
-        case return_value_policy::take_ownership:
-            wrapper->value = src;
-            wrapper->owned = true;
-            break;
+            case return_value_policy::automatic:
+            case return_value_policy::take_ownership:
+                wrapper->value = src;
+                wrapper->owned = true;
+                break;
 
-        case return_value_policy::automatic_reference:
-        case return_value_policy::reference:
-            wrapper->value = src;
-            wrapper->owned = false;
-            break;
+            case return_value_policy::automatic_reference:
+            case return_value_policy::reference:
+                wrapper->value = src;
+                wrapper->owned = false;
+                break;
 
-        case return_value_policy::copy:
-            if (copy_constructor)
-                wrapper->value = copy_constructor(src);
-            else
-                throw cast_error("return_value_policy = copy, but the object is non-copyable!");
-            wrapper->owned = true;
-            break;
+            case return_value_policy::copy:
+                if (copy_constructor)
+                    wrapper->value = copy_constructor(src);
+                else
+                    throw cast_error("return_value_policy = copy, but the "
+                                     "object is non-copyable!");
+                wrapper->owned = true;
+                break;
 
-        case return_value_policy::move:
-            if (move_constructor)
-                wrapper->value = move_constructor(src);
-            else if (copy_constructor)
-                wrapper->value = copy_constructor(src);
-            else
-                throw cast_error("return_value_policy = move, but the object is neither movable nor copyable!");
-            wrapper->owned = true;
-            break;
+            case return_value_policy::move:
+                if (move_constructor)
+                    wrapper->value = move_constructor(src);
+                else if (copy_constructor)
+                    wrapper->value = copy_constructor(src);
+                else
+                    throw cast_error("return_value_policy = move, but the "
+                                     "object is neither movable nor copyable!");
+                wrapper->owned = true;
+                break;
 
-        case return_value_policy::reference_internal:
-            wrapper->value = src;
-            wrapper->owned = false;
-            detail::keep_alive_impl(inst, parent);
-            break;
+            case return_value_policy::reference_internal:
+                wrapper->value = src;
+                wrapper->owned = false;
+                detail::keep_alive_impl(inst, parent);
+                break;
 
-        default:
-            throw cast_error("unhandled return_value_policy: should not happen!");
+            default:
+                throw cast_error("unhandled return_value_policy: should not happen!");
         }
 
         tinfo->init_holder(inst.ptr(), existing_holder);
