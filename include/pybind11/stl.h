@@ -142,7 +142,7 @@ template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
     using value_conv = make_caster<Type>;
 
     bool load(handle src, bool convert) {
-        list l(src, true);
+        sequence l(src, true);
         if (!l.check())
             return false;
         if (l.size() != Size)
