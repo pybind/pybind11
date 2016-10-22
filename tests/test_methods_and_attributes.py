@@ -47,6 +47,44 @@ def test_methods_and_attributes():
     assert cstats.move_assignments == 0
 
 
+def test_properties():
+    from pybind11_tests import TestProperties
+
+    instance = TestProperties()
+
+    assert instance.def_readonly == 1
+    with pytest.raises(AttributeError):
+        instance.def_readonly = 2
+
+    instance.def_readwrite = 2
+    assert instance.def_readwrite == 2
+
+    assert instance.def_property_readonly == 2
+    with pytest.raises(AttributeError):
+        instance.def_property_readonly = 3
+
+    instance.def_property = 3
+    assert instance.def_property == 3
+
+
+def test_static_properties():
+    from pybind11_tests import TestProperties as Type
+
+    assert Type.def_readonly_static == 1
+    with pytest.raises(AttributeError):
+        Type.def_readonly_static = 2
+
+    Type.def_readwrite_static = 2
+    assert Type.def_readwrite_static == 2
+
+    assert Type.def_property_readonly_static == 2
+    with pytest.raises(AttributeError):
+        Type.def_property_readonly_static = 3
+
+    Type.def_property_static = 3
+    assert Type.def_property_static == 3
+
+
 def test_dynamic_attributes():
     from pybind11_tests import DynamicClass, CppDerivedDynamicClass
 
