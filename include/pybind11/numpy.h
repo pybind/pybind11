@@ -185,26 +185,30 @@ public:
         m_ptr = from_args(args).release().ptr();
     }
 
+    /// This is essentially the same as calling numpy.dtype(args) in Python.
     static dtype from_args(object args) {
-        // This is essentially the same as calling np.dtype() constructor in Python
         PyObject *ptr = nullptr;
         if (!detail::npy_api::get().PyArray_DescrConverter_(args.release().ptr(), &ptr) || !ptr)
             pybind11_fail("NumPy: failed to create structured dtype");
         return object(ptr, false);
     }
 
+    /// Return dtype associated with a C++ type.
     template <typename T> static dtype of() {
         return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::dtype();
     }
 
+    /// Size of the data type in bytes.
     size_t itemsize() const {
         return (size_t) PyArrayDescr_GET_(m_ptr, elsize);
     }
 
+    /// Returns true for structured data types.
     bool has_fields() const {
         return PyArrayDescr_GET_(m_ptr, names) != nullptr;
     }
 
+    /// Single-character type code.
     char kind() const {
         return PyArrayDescr_GET_(m_ptr, kind);
     }
