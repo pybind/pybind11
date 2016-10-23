@@ -749,6 +749,14 @@ public:
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
 };
 
+template<typename T> class sequence_t : public sequence {
+public:
+    using sequence::sequence;
+
+    iterator_t<T> begin() { return {PyObject_GetIter(ptr()), false}; }
+    iterator_t<T> end() { return {nullptr, false}; }
+};
+
 class list : public object {
 public:
     PYBIND11_OBJECT(list, object, PyList_Check)
