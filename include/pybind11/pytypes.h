@@ -403,6 +403,9 @@ private:
     friend Derived;
 
 public:
+    using difference_type = std::ptrdiff_t;
+    using iterator_category = std::input_iterator_tag;
+
     base_iterator() : value(), ready(false) { }
     base_iterator(const base_iterator<Derived>&) = default;
     base_iterator(base_iterator<Derived>&&) = default;
@@ -454,6 +457,7 @@ NAMESPACE_END(detail)
 class iterator : public object, public detail::base_iterator<iterator> {
     PYBIND11_OBJECT_CVT(iterator, object, PyIter_Check, this->reset())
     using base_t = detail::base_iterator<iterator>;
+    using reference = handle; using value_type = handle; using pointer = handle*;
 
     iterator() : object(), base_t() { }
     iterator(const iterator& it) : object(it), base_t(it) { }
@@ -471,6 +475,7 @@ class iterator : public object, public detail::base_iterator<iterator> {
 template<typename T> class iterator_t : public object, public detail::base_iterator<iterator_t<T>> {
     PYBIND11_OBJECT_CVT(iterator_t<T>, object, PyIter_Check, this->reset())
     using base_t = detail::base_iterator<iterator_t<T>>;
+    using reference = T; using value_type = T; using pointer = T*;
 
     iterator_t() : object(), base_t() { }
     iterator_t(const iterator_t<T>& it) : object(it), base_t(it) { }
