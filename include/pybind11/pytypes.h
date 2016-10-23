@@ -495,6 +495,14 @@ public:
     PYBIND11_OBJECT_DEFAULT(iterable, object, detail::PyIterable_Check)
 };
 
+template<typename T> class iterable_t : public iterable {
+public:
+    using iterable::iterable;
+
+    iterator_t<T> begin() { return {PyObject_GetIter(ptr()), false}; }
+    iterator_t<T> end() { return {nullptr, false}; }
+};
+
 class bytes;
 
 class str : public object {
