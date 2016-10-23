@@ -8,10 +8,13 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+
+#include <algorithm>
 
 class Sequence {
 public:
@@ -216,6 +219,14 @@ test_initializer sequences_and_iterators([](py::module &m) {
        .def(py::self == py::self)
        .def(py::self != py::self);
        // Could also define py::self + py::self for concatenation, etc.
+
+    m.def("sort_iterable_t", [](py::iterable_t<std::string> it) {
+        auto v = std::vector<std::string>(it.begin(), it.end());
+        std::sort(v.begin(), v.end()); return v;
+    }).def("sort_sequence_t", [](py::sequence_t<std::string> it) {
+        auto v = std::vector<std::string>(it.begin(), it.end());
+        std::sort(v.begin(), v.end()); return v;
+    });
 
     py::class_<StringMap> map(m, "StringMap");
 
