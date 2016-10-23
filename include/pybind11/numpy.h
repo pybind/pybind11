@@ -721,20 +721,21 @@ private:
     static std::string format_str;
     static PyObject* dtype_ptr;
 
-    static void register_direct_converter() {
-        auto converter = [=](PyObject *obj, void*& value) {
-            auto& api = npy_api::get();
-            if (!PyObject_TypeCheck(obj, api.PyVoidArrType_Type_))
-                return false;
-            if (auto descr = object(api.PyArray_DescrFromScalar_(obj), false)) {
-                if (api.PyArray_EquivTypes_(dtype_ptr, descr.ptr())) {
-                    value = ((PyVoidScalarObject_Proxy *) obj)->obval;
-                    return true;
-                }
-            }
+    static bool direct_converter(PyObject *obj, void*& value) {
+        auto& api = npy_api::get();
+        if (!PyObject_TypeCheck(obj, api.PyVoidArrType_Type_))
             return false;
-        };
-        get_internals().direct_conversions[std::type_index(typeid(T))].push_back(converter);
+        if (auto descr = object(api.PyArray_DescrFromScalar_(obj), false)) {
+            if (api.PyArray_EquivTypes_(dtype_ptr, descr.ptr())) {
+                value = ((PyVoidScalarObject_Proxy *) obj)->obval;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static void register_direct_converter() {
+        get_internals().direct_conversions[std::type_index(typeid(T))].push_back(direct_converter);
     }
 };
 

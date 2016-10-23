@@ -309,10 +309,8 @@ test_initializer numpy_dtypes([](py::module &m) {
     PYBIND11_NUMPY_DTYPE(StringStruct, a, b);
     PYBIND11_NUMPY_DTYPE(EnumStruct, e1, e2);
 
-    // ... or after...
+    // ... or after
     py::class_<PackedStruct>(m, "PackedStruct");
-
-    // ... or not at all
 
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);

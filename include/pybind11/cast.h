@@ -26,6 +26,7 @@ struct type_info {
     void (*init_holder)(PyObject *, const void *);
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
+    std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;
     /** A simple type never occurs as a (direct or indirect) parent
@@ -157,8 +158,7 @@ inline void keep_alive_impl(handle nurse, handle patient);
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
-     : typeinfo(get_type_info(type_info, false)),
-       direct_conversions(get_internals().direct_conversions[std::type_index(type_info)]) { }
+     : typeinfo(get_type_info(type_info, false)) { }
 
     PYBIND11_NOINLINE bool load(handle src, bool convert) {
         if (!src)
@@ -167,14 +167,12 @@ public:
     }
 
     bool load(handle src, bool convert, PyTypeObject *tobj) {
-        if (!src)
+        if (!src || !typeinfo)
             return false;
         if (src.is_none()) {
             value = nullptr;
             return true;
         }
-        if (!typeinfo)
-            return load_direct(src, convert);
 
         if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
             /* Check if we can safely perform a reinterpret-style cast */
@@ -218,9 +216,12 @@ public:
                 if (load(temp, false))
                     return true;
             }
+            for (auto &converter : *typeinfo->direct_conversions) {
+                if (converter(src.ptr(), value))
+                    return true;
+            }
         }
-
-        return load_direct(src, convert);
+        return false;
     }
 
     PYBIND11_NOINLINE static handle cast(const void *_src, return_value_policy policy, handle parent,
@@ -298,19 +299,8 @@ public:
 
 protected:
     const type_info *typeinfo = nullptr;
-    const std::vector<bool (*)(PyObject *, void *&)>& direct_conversions;
     void *value = nullptr;
     object temp;
-
-    bool load_direct(handle src, bool convert) {
-        if (convert) {
-            for (auto& converter : direct_conversions) {
-                if (converter(src.ptr(), value))
-                    return true;
-            }
-        }
-        return false;
-    }
 };
 
 /* Determine suitable casting operator */

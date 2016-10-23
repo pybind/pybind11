@@ -190,7 +190,7 @@ def test_scalar_conversion():
 
     for i, func in enumerate(funcs):
         for j, arr in enumerate(arrays):
-            if i == j:
+            if i == j and i < 2:
                 assert [func(arr[k]) for k in range(n)] == [k * 10 for k in range(n)]
             else:
                 with pytest.raises(TypeError) as excinfo:

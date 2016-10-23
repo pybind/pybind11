@@ -672,6 +672,7 @@ protected:
         tinfo->type = (PyTypeObject *) type;
         tinfo->type_size = rec->type_size;
         tinfo->init_holder = rec->init_holder;
+        tinfo->direct_conversions = &internals.direct_conversions[tindex];
         internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[type] = tinfo;
 
