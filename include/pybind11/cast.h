@@ -91,7 +91,8 @@ PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
     } while (true);
 }
 
-PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp, bool throw_if_missing) {
+PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp,
+                                                          bool throw_if_missing = false) {
     auto &types = get_internals().registered_types_cpp;
 
     auto it = types.find(std::type_index(tp));
@@ -158,7 +159,7 @@ inline void keep_alive_impl(handle nurse, handle patient);
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
-     : typeinfo(get_type_info(type_info, false)) { }
+     : typeinfo(get_type_info(type_info)) { }
 
     PYBIND11_NOINLINE bool load(handle src, bool convert) {
         if (!src)
