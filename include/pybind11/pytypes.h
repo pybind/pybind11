@@ -22,6 +22,7 @@ struct arg; struct arg_v;
 
 NAMESPACE_BEGIN(detail)
 class args_proxy;
+inline bool isinstance_generic(handle obj, const std::type_info &tp);
 
 // Accessor forward declarations
 template <typename Policy> class accessor;
@@ -91,6 +92,7 @@ public:
     explicit operator bool() const { return m_ptr != nullptr; }
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
     bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
+    PYBIND11_DEPRECATED("Use handle::operator bool() instead")
     bool check() const { return m_ptr != nullptr; }
 protected:
     PyObject *m_ptr = nullptr;
@@ -134,6 +136,16 @@ public:
     // Calling on an object rvalue does a move, if needed and/or possible
     template <typename T> T cast() &&;
 };
+
+/// Check if `obj` is an instance of type `T`
+template <typename T, detail::enable_if_t<std::is_base_of<object, T>::value, int> = 0>
+bool isinstance(handle obj) { return T::_check(obj); }
+
+template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
+bool isinstance(handle obj) { return detail::isinstance_generic(obj, typeid(T)); }
+
+template <> inline bool isinstance<handle>(handle obj) = delete;
+template <> inline bool isinstance<object>(handle obj) { return obj.ptr() != nullptr; }
 
 inline bool hasattr(handle obj, handle name) {
     return PyObject_HasAttr(obj.ptr(), name.ptr()) == 1;
@@ -386,7 +398,9 @@ NAMESPACE_END(detail)
         Name(object&& o) noexcept : Parent(std::move(o)) { CvtStmt; } \
         Name& operator=(object&& o) noexcept { (void) object::operator=(std::move(o)); CvtStmt; return *this; } \
         Name& operator=(const object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
-        bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
+        PYBIND11_DEPRECATED("Use py::isinstance<py::python_type>(obj) instead") \
+        bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); } \
+        static bool _check(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); }
 
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, )

@@ -45,3 +45,11 @@ def test_automatic_upcasting():
     assert type(return_class_n(2)).__name__ == "DerivedClass2"
     assert type(return_class_n(0)).__name__ == "BaseClass"
     assert type(return_class_n(1)).__name__ == "DerivedClass1"
+
+
+def test_isinstance():
+    from pybind11_tests import test_isinstance, Pet, Dog
+
+    objects = [tuple(), dict(), Pet("Polly", "parrot")] + [Dog("Molly")] * 4
+    expected = (True, True, True, True, True, False, False)
+    assert test_isinstance(objects) == expected
