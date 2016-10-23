@@ -736,7 +736,7 @@ public:
 
 class sequence : public object {
 public:
-    PYBIND11_OBJECT(sequence, object, PySequence_Check)
+    PYBIND11_OBJECT_DEFAULT(sequence, object, PySequence_Check)
     size_t size() const { return (size_t) PySequence_Size(m_ptr); }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
 };
