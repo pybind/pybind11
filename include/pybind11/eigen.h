@@ -55,7 +55,7 @@ struct type_caster<Type, enable_if_t<is_eigen_dense<Type>::value && !is_eigen_re
 
     bool load(handle src, bool) {
         array_t<Scalar> buf(src, true);
-        if (!buf.check())
+        if (!buf)
             return false;
 
         if (buf.ndim() == 1) {
@@ -201,7 +201,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         auto shape = pybind11::tuple((pybind11::object) obj.attr("shape"));
         auto nnz = obj.attr("nnz").cast<Index>();
 
-        if (!values.check() || !innerIndices.check() || !outerIndices.check())
+        if (!values || !innerIndices || !outerIndices)
             return false;
 
         value = Eigen::MappedSparseMatrix<Scalar, Type::Flags, StorageIndex>(

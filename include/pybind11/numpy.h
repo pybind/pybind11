@@ -324,10 +324,9 @@ public:
 
         int flags = 0;
         if (base && ptr) {
-            array base_array(base, true);
-            if (base_array.check())
+            if (isinstance<array>(base))
                 /* Copy flags from base (except baseship bit) */
-                flags = base_array.flags() & ~detail::npy_api::NPY_ARRAY_OWNDATA_;
+                flags = array(base, true).flags() & ~detail::npy_api::NPY_ARRAY_OWNDATA_;
             else
                 /* Writable by default, easy to downgrade later on if needed */
                 flags = detail::npy_api::NPY_ARRAY_WRITEABLE_;
@@ -627,6 +626,21 @@ struct format_descriptor<T, detail::enable_if_t<std::is_enum<T>::value>> {
 };
 
 NAMESPACE_BEGIN(detail)
+template <typename T, int ExtraFlags>
+struct pyobject_caster<array_t<T, ExtraFlags>> {
+    using type = array_t<T, ExtraFlags>;
+
+    bool load(handle src, bool /* convert */) {
+        value = type(src, true);
+        return static_cast<bool>(value);
+    }
+
+    static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
+        return src.inc_ref();
+    }
+    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name());
+};
+
 template <typename T> struct is_std_array : std::false_type { };
 template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
 

@@ -45,9 +45,9 @@ template <typename Type, typename Key> struct set_caster {
     using key_conv = make_caster<Key>;
 
     bool load(handle src, bool convert) {
-        pybind11::set s(src, true);
-        if (!s.check())
+        if (!isinstance<pybind11::set>(src))
             return false;
+        pybind11::set s(src, true);
         value.clear();
         key_conv conv;
         for (auto entry : s) {
@@ -77,9 +77,9 @@ template <typename Type, typename Key, typename Value> struct map_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        dict d(src, true);
-        if (!d.check())
+        if (!isinstance<dict>(src))
             return false;
+        dict d(src, true);
         key_conv kconv;
         value_conv vconv;
         value.clear();
@@ -112,9 +112,9 @@ template <typename Type, typename Value> struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        sequence s(src, true);
-        if (!s.check())
+        if (!isinstance<sequence>(src))
             return false;
+        sequence s(src, true);
         value_conv conv;
         value.clear();
         reserve_maybe(s, &value);
@@ -157,9 +157,9 @@ template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
     using value_conv = make_caster<Type>;
 
     bool load(handle src, bool convert) {
-        list l(src, true);
-        if (!l.check())
+        if (!isinstance<list>(src))
             return false;
+        list l(src, true);
         if (l.size() != Size)
             return false;
         value_conv conv;

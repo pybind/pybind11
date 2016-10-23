@@ -40,12 +40,8 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         return *internals_ptr;
     handle builtins(PyEval_GetBuiltins());
     const char *id = PYBIND11_INTERNALS_ID;
-    capsule caps;
-    if (builtins.contains(id)) {
-        caps = builtins[id];
-    }
-    if (caps.check()) {
-        internals_ptr = caps;
+    if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
+        internals_ptr = capsule(builtins[id]);
     } else {
         internals_ptr = new internals();
         #if defined(WITH_THREAD)
@@ -109,6 +105,17 @@ PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &
 PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
     detail::type_info *type_info = get_type_info(tp, throw_if_missing);
     return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
+}
+
+PYBIND11_NOINLINE inline bool isinstance_generic(handle obj, const std::type_info &tp) {
+    const auto type = detail::get_type_handle(tp, false);
+    if (!type)
+        return false;
+
+    const auto result = PyObject_IsInstance(obj.ptr(), type.ptr());
+    if (result == -1)
+        throw error_already_set();
+    return result != 0;
 }
 
 PYBIND11_NOINLINE inline std::string error_string() {
@@ -536,9 +543,8 @@ public:
         }
 
         /* Check if this is a capsule */
-        capsule c(h, true);
-        if (c.check()) {
-            value = (void *) c;
+        if (isinstance<capsule>(h)) {
+            value = capsule(h, true);
             return true;
         }
 
@@ -986,19 +992,26 @@ template <> struct handle_type_name<args> { static PYBIND11_DESCR name() { retur
 template <> struct handle_type_name<kwargs> { static PYBIND11_DESCR name() { return _("**kwargs"); } };
 
 template <typename type>
-struct type_caster<type, enable_if_t<is_pyobject<type>::value>> {
-public:
-    template <typename T = type, enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
-    bool load(handle src, bool /* convert */) { value = type(src); return value.check(); }
+struct pyobject_caster {
+    template <typename T = type, enable_if_t<std::is_same<T, handle>::value, int> = 0>
+    bool load(handle src, bool /* convert */) { value = src; return static_cast<bool>(value); }
 
     template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
-    bool load(handle src, bool /* convert */) { value = type(src, true); return value.check(); }
+    bool load(handle src, bool /* convert */) {
+        if (!isinstance<type>(src))
+            return false;
+        value = type(src, true);
+        return true;
+    }
 
     static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
         return src.inc_ref();
     }
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name());
 };
+
+template <typename T>
+class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caster<T> { };
 
 // Our conditions for enabling moving are quite restrictive:
 // At compile time:
