@@ -386,7 +386,7 @@ NAMESPACE_END(detail)
         Name(object&& o) noexcept : Parent(std::move(o)) { CvtStmt; } \
         Name& operator=(object&& o) noexcept { (void) object::operator=(std::move(o)); CvtStmt; return *this; } \
         Name& operator=(const object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
-        bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); }
+        bool check() const { return this->m_ptr != nullptr && (bool) CheckFun(this->m_ptr); }
 
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, )
@@ -395,64 +395,94 @@ NAMESPACE_END(detail)
     PYBIND11_OBJECT(Name, Parent, CheckFun) \
     Name() : Parent() { }
 
-class iterator : public object {
+NAMESPACE_BEGIN(detail)
+template<typename Derived> class base_iterator {
+private:
+    Derived &derived() { return static_cast<Derived &>(*this); }
+    const Derived &derived() const { return static_cast<const Derived &>(*this); }
+    friend Derived;
+
 public:
-    PYBIND11_OBJECT_CVT(iterator, object, PyIter_Check, value = object(); ready = false)
-    iterator() : object(), value(object()), ready(false) { }
-    iterator(const iterator& it) : object(it), value(it.value), ready(it.ready) { }
-    iterator(iterator&& it) : object(std::move(it)), value(std::move(it.value)), ready(it.ready) { }
+    base_iterator() : value(), ready(false) { }
+    base_iterator(const base_iterator<Derived>&) = default;
+    base_iterator(base_iterator<Derived>&&) = default;
 
     /** Caveat: this copy constructor does not (and cannot) clone the internal
         state of the Python iterable */
-    iterator &operator=(const iterator &it) {
-        (void) object::operator=(it);
-        value = it.value;
-        ready = it.ready;
-        return *this;
-    }
+    base_iterator<Derived>& operator=(const base_iterator<Derived>&) = default;
+    base_iterator<Derived>& operator=(base_iterator<Derived>&&) = default;
 
-    iterator &operator=(iterator &&it) noexcept {
-        (void) object::operator=(std::move(it));
-        value = std::move(it.value);
-        ready = it.ready;
-        return *this;
-    }
-
-    iterator& operator++() {
-        if (m_ptr)
+    Derived& operator++() {
+        if (derived().ptr())
             advance();
-        return *this;
+        return derived();
     }
 
     /** Caveat: this postincrement operator does not (and cannot) clone the
         internal state of the Python iterable. It should only be used to
         retrieve the current iterate using <tt>operator*()</tt> */
-    iterator operator++(int) {
-        iterator rv(*this);
+    Derived operator++(int) {
+        Derived rv(*this);
         rv.value = value;
-        if (m_ptr)
+        if (derived().ptr())
             advance();
         return rv;
     }
 
-    bool operator==(const iterator &it) const { return *it == **this; }
-    bool operator!=(const iterator &it) const { return *it != **this; }
+    friend bool operator==(const Derived &it1, const Derived& it2) { return it1.deref() == it2.deref(); }
+    friend bool operator!=(const Derived &it1, const Derived& it2) { return it1.deref() != it2.deref(); }
 
-    handle operator*() const {
-        if (!ready && m_ptr) {
-            auto& self = const_cast<iterator &>(*this);
-            self.advance();
-            self.ready = true;
+protected:
+    handle deref() const {
+        if (!ready && derived().ptr()) {
+            auto& it = const_cast<Derived &>(derived());
+            it.advance();
+            it.ready = true;
         }
         return value;
     }
 
-private:
-    void advance() { value = object(PyIter_Next(m_ptr), false); }
+    void reset() { value = object(); ready = false; }
 
-private:
+    void advance() { value = object(PyIter_Next(derived().ptr()), false); }
+
     object value;
     bool ready;
+};
+NAMESPACE_END(detail)
+
+class iterator : public object, public detail::base_iterator<iterator> {
+    PYBIND11_OBJECT_CVT(iterator, object, PyIter_Check, this->reset())
+    using base_t = detail::base_iterator<iterator>;
+
+    iterator() : object(), base_t() { }
+    iterator(const iterator& it) : object(it), base_t(it) { }
+    iterator(iterator&& it) : object(std::move(it)), base_t(std::move(it)) { }
+    iterator& operator=(const iterator& it) {
+        (void) base_t::operator=(it); (void) object::operator=(it); return *this;
+    }
+    iterator& operator=(iterator&& it) noexcept {
+        (void) base_t::operator=(std::move(it)); (void) object::operator=(std::move(it)); return *this;
+    }
+
+    handle operator*() const { return this->deref(); }
+};
+
+template<typename T> class iterator_t : public object, public detail::base_iterator<iterator_t<T>> {
+    PYBIND11_OBJECT_CVT(iterator_t<T>, object, PyIter_Check, this->reset())
+    using base_t = detail::base_iterator<iterator_t<T>>;
+
+    iterator_t() : object(), base_t() { }
+    iterator_t(const iterator_t<T>& it) : object(it), base_t(it) { }
+    iterator_t(iterator_t<T>&& it) : object(std::move(it)), base_t(std::move(it)) { }
+    iterator_t<T>& operator=(const iterator_t<T>& it) {
+        (void) base_t::operator=(it); (void) object::operator=(it); return *this;
+    }
+    iterator_t& operator=(iterator_t<T>&& it) noexcept {
+        (void) base_t::operator=(std::move(it)); (void) object::operator=(std::move(it)); return *this;
+    }
+
+    T operator*() const { return this->deref().template cast<T>(); }
 };
 
 class iterable : public object {
