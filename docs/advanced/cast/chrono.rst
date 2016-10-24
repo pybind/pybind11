@@ -39,7 +39,7 @@ depending on the system.
 If it is a typedef of the system clock, python will get datetime objects, but if
 it is a different clock they will be timedelta objects.
 
-Conversions Provided
+Provided conversions
 --------------------
 
 .. rubric:: C++ to Python

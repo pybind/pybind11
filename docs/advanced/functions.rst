@@ -9,48 +9,62 @@ functions, i.e. *methods* in Python.
 Return value policies
 =====================
 
-Python and C++ use wildly different ways of managing the memory and lifetime of
-objects managed by them. This can lead to issues when creating bindings for
-functions that return a non-trivial type. Just by looking at the type
-information, it is not clear whether Python should take charge of the returned
-value and eventually free its resources, or if this is handled on the C++ side.
-For this reason, pybind11 provides a several `return value policy` annotations
-that can be passed to the :func:`module::def` and :func:`class_::def`
-functions. The default policy is :enum:`return_value_policy::automatic`.
+Python and C++ use fundamentally different ways of managing the memory and
+lifetime of objects managed by them. This can lead to issues when creating
+bindings for functions that return a non-trivial type. Just by looking at the
+type information, it is not clear whether Python should take charge of the
+returned value and eventually free its resources, or if this is handled on the
+C++ side. For this reason, pybind11 provides a several `return value policy`
+annotations that can be passed to the :func:`module::def` and
+:func:`class_::def` functions. The default policy is
+:enum:`return_value_policy::automatic`.
 
-Return value policies can also be applied to properties, in which case the
-arguments must be passed through the :class:`cpp_function` constructor:
+Return value policies are tricky, and it's very important to get them right.
+Just to illustrate what can go wrong, consider the following simple example:
 
 .. code-block:: cpp
 
-    class_<MyClass>(m, "MyClass")
-        def_property("data"
-            py::cpp_function(&MyClass::getData, py::return_value_policy::copy),
-            py::cpp_function(&MyClass::setData)
-        );
+    /* Function declaration */ 
+    Data *get_data() { return _data; /* (pointer to a static data structure) */ }
+    ...
 
-The following table provides an overview of the available return value policies:
+    /* Binding code */ 
+    m.def("get_data", &get_data); // <-- KABOOM, will cause crash when called from Python
+
+What's going on here? When ``get_data()`` is called from Python, the return
+value (a native C++ type) must be wrapped to turn it into a usable Python type.
+In this case, the default return value policy (:enum:`return_value_policy::automatic`)
+causes pybind11 to assume ownership of the static ``_data`` instance.
+
+When Python's garbage collector eventually deletes the Python
+wrapper, pybind11 will also attempt to delete the C++ instance (via ``operator
+delete()``) due to the implied ownership. At this point, the entire application
+will come crashing down, though errors could also be more subtle and involve
+silent data corruption.
+
+In the above example, the policy :enum:`return_value_policy::reference` should have
+been specified so that the global data instance is only *referenced* without any
+implied transfer of ownership, i.e.: 
+
+.. code-block:: cpp
+
+    m.def("get_data", &get_data, return_value_policy::reference);
+
+On the other hand, this is not the right policy for many other situations,
+where ignoring ownership could lead to resource leaks.
+As a developer using pybind11, it's important to be familiar with the different
+return value policies, including which situation calls for which one of them.
+The following table provides an overview of available policies:
 
 .. tabularcolumns:: |p{0.5\textwidth}|p{0.45\textwidth}|
 
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | Return value policy                              | Description                                                                |
 +==================================================+============================================================================+
-| :enum:`return_value_policy::automatic`           | This is the default return value policy, which falls back to the policy    |
-|                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
-|                                                  | pointer. Otherwise, it uses :enum:`return_value::move` or                  |
-|                                                  | :enum:`return_value::copy` for rvalue and lvalue references, respectively. |
-|                                                  | See below for a description of what all of these different policies do.    |
-+--------------------------------------------------+----------------------------------------------------------------------------+
-| :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
-|                                                  | return value is a pointer. This is the default conversion policy for       |
-|                                                  | function arguments when calling Python functions manually from C++ code    |
-|                                                  | (i.e. via handle::operator()). You probably won't need to use this.        |
-+--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::take_ownership`      | Reference an existing object (i.e. do not create a new copy) and take      |
 |                                                  | ownership. Python will call the destructor and delete operator when the    |
 |                                                  | object's reference count reaches zero. Undefined behavior ensues when the  |
-|                                                  | C++ side does the same.                                                    |
+|                                                  | C++ side does the same, or when the data was not dynamically allocated.    |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::copy`                | Create a new copy of the returned object, which will be owned by Python.   |
 |                                                  | This policy is comparably safe because the lifetimes of the two instances  |
@@ -74,6 +88,28 @@ The following table provides an overview of the available return value policies:
 |                                                  | return value is referenced by Python. This is the default policy for       |
 |                                                  | property getters created via ``def_property``, ``def_readwrite``, etc.     |
 +--------------------------------------------------+----------------------------------------------------------------------------+
+| :enum:`return_value_policy::automatic`           | This is the default return value policy, which falls back to the policy    |
+|                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
+|                                                  | pointer. Otherwise, it uses :enum:`return_value::move` or                  |
+|                                                  | :enum:`return_value::copy` for rvalue and lvalue references, respectively. |
+|                                                  | See above for a description of what all of these different policies do.    |
++--------------------------------------------------+----------------------------------------------------------------------------+
+| :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
+|                                                  | return value is a pointer. This is the default conversion policy for       |
+|                                                  | function arguments when calling Python functions manually from C++ code    |
+|                                                  | (i.e. via handle::operator()). You probably won't need to use this.        |
++--------------------------------------------------+----------------------------------------------------------------------------+
+
+Return value policies can also be applied to properties, in which case the
+arguments must be passed through the :class:`cpp_function` constructor:
+
+.. code-block:: cpp
+
+    class_<MyClass>(m, "MyClass")
+        def_property("data"
+            py::cpp_function(&MyClass::getData, py::return_value_policy::copy),
+            py::cpp_function(&MyClass::setData)
+        );
 
 .. warning::
 
@@ -82,12 +118,14 @@ The following table provides an overview of the available return value policies:
     non-determinism and segmentation faults, hence it is worth spending the
     time to understand all the different options in the table above.
 
-One important aspect of the above policies is that they only apply to instances
-which pybind11 has *not* seen before, in which case the policy clarifies
-essential questions about the return value's lifetime and ownership.  When
-pybind11 knows the instance already (as identified by its type and address in
-memory), it will return the existing Python object wrapper rather than creating
-a new copy.
+.. note::
+
+    One important aspect of the above policies is that they only apply to
+    instances which pybind11 has *not* seen before, in which case the policy
+    clarifies essential questions about the return value's lifetime and
+    ownership.  When pybind11 knows the instance already (as identified by its
+    type and address in memory), it will return the existing Python object
+    wrapper rather than creating a new copy.
 
 .. note::
 
