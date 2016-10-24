@@ -26,6 +26,7 @@ struct type_info {
     void (*init_holder)(PyObject *, const void *);
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
+    std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;
     /** A simple type never occurs as a (direct or indirect) parent
@@ -90,7 +91,8 @@ PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
     } while (true);
 }
 
-PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp, bool throw_if_missing) {
+PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp,
+                                                          bool throw_if_missing = false) {
     auto &types = get_internals().registered_types_cpp;
 
     auto it = types.find(std::type_index(tp));
@@ -157,7 +159,7 @@ inline void keep_alive_impl(handle nurse, handle patient);
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
-     : typeinfo(get_type_info(type_info, false)) { }
+     : typeinfo(get_type_info(type_info)) { }
 
     PYBIND11_NOINLINE bool load(handle src, bool convert) {
         if (!src)
@@ -213,6 +215,10 @@ public:
             for (auto &converter : typeinfo->implicit_conversions) {
                 temp = object(converter(src.ptr(), typeinfo->type), false);
                 if (load(temp, false))
+                    return true;
+            }
+            for (auto &converter : *typeinfo->direct_conversions) {
+                if (converter(src.ptr(), value))
                     return true;
             }
         }

@@ -180,8 +180,6 @@ protected:
                 a.descr = strdup(a.value.attr("__repr__")().cast<std::string>().c_str());
         }
 
-        auto const &registered_types = detail::get_internals().registered_types_cpp;
-
         /* Generate a proper function signature */
         std::string signature;
         size_t type_depth = 0, char_index = 0, type_index = 0, arg_index = 0;
@@ -216,9 +214,8 @@ protected:
                 const std::type_info *t = types[type_index++];
                 if (!t)
                     pybind11_fail("Internal error while parsing type signature (1)");
-                auto it = registered_types.find(std::type_index(*t));
-                if (it != registered_types.end()) {
-                    signature += ((const detail::type_info *) it->second)->type->tp_name;
+                if (auto tinfo = detail::get_type_info(*t)) {
+                    signature += tinfo->type->tp_name;
                 } else {
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
@@ -610,8 +607,7 @@ protected:
         auto &internals = get_internals();
         auto tindex = std::type_index(*(rec->type));
 
-        if (internals.registered_types_cpp.find(tindex) !=
-            internals.registered_types_cpp.end())
+        if (get_type_info(*(rec->type)))
             pybind11_fail("generic_type: type \"" + std::string(rec->name) +
                           "\" is already registered!");
 
@@ -672,6 +668,7 @@ protected:
         tinfo->type = (PyTypeObject *) type;
         tinfo->type_size = rec->type_size;
         tinfo->init_holder = rec->init_holder;
+        tinfo->direct_conversions = &internals.direct_conversions[tindex];
         internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[type] = tinfo;
 
@@ -1333,11 +1330,11 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
             PyErr_Clear();
         return result;
     };
-    auto &registered_types = detail::get_internals().registered_types_cpp;
-    auto it = registered_types.find(std::type_index(typeid(OutputType)));
-    if (it == registered_types.end())
+
+    if (auto tinfo = detail::get_type_info(typeid(OutputType)))
+        tinfo->implicit_conversions.push_back(implicit_caster);
+    else
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
-    ((detail::type_info *) it->second)->implicit_conversions.push_back(implicit_caster);
 }
 
 template <typename ExceptionTranslator>
@@ -1589,11 +1586,8 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
 }
 
 template <class T> function get_overload(const T *this_ptr, const char *name) {
-    auto &cpp_types = detail::get_internals().registered_types_cpp;
-    auto it = cpp_types.find(typeid(T));
-    if (it == cpp_types.end())
-        return function();
-    return get_type_overload(this_ptr, (const detail::type_info *) it->second, name);
+    auto tinfo = detail::get_type_info(typeid(T));
+    return tinfo ? get_type_overload(this_ptr, tinfo, name) : function();
 }
 
 #define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) { \
