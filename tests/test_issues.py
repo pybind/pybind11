@@ -182,3 +182,8 @@ def test_iterator_rvpolicy():
     assert list(make_iterator_1()) == [1, 2, 3]
     assert list(make_iterator_2()) == [1, 2, 3]
     assert(type(make_iterator_1()) != type(make_iterator_2()))
+
+def test_dupe_assignment():
+    """ Issue 461: overwriting a class with a function """
+    from pybind11_tests.issues import dupe_exception_failures
+    assert dupe_exception_failures() == []

@@ -36,6 +36,18 @@ OpTest2 operator+(const OpTest2 &, const OpTest1 &) {
     return OpTest2();
 }
 
+// #461
+class Dupe1 {
+public:
+    Dupe1(int v) : v_{v} {}
+    int get_value() const { return v_; }
+private:
+    int v_;
+};
+class Dupe2 {};
+class Dupe3 {};
+class DupeException : public std::runtime_error {};
+
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
@@ -237,7 +249,49 @@ void init_issues(py::module &m) {
     static std::vector<int> list = { 1, 2, 3 };
     m2.def("make_iterator_1", []() { return py::make_iterator<py::return_value_policy::copy>(list); });
     m2.def("make_iterator_2", []() { return py::make_iterator<py::return_value_policy::automatic>(list); });
+
+    static std::vector<std::string> nothrows;
+    // Issue 461: registering two things with the same name:
+    py::class_<Dupe1>(m2, "Dupe1")
+        .def("get_value", &Dupe1::get_value)
+        ;
+    m2.def("dupe1_factory", [](int v) { return new Dupe1(v); });
+
+    py::class_<Dupe2>(m2, "Dupe2");
+    py::exception<DupeException>(m2, "DupeException");
+
+    try {
+        m2.def("Dupe1", [](int v) { return new Dupe1(v); });
+        nothrows.emplace_back("Dupe1");
+    }
+    catch (std::runtime_error &) {}
+    try {
+        py::class_<Dupe3>(m2, "dupe1_factory");
+        nothrows.emplace_back("dupe1_factory");
+    }
+    catch (std::runtime_error &) {}
+    try {
+        py::exception<Dupe3>(m2, "Dupe2");
+        nothrows.emplace_back("Dupe2");
+    }
+    catch (std::runtime_error &) {}
+    try {
+        m2.def("DupeException", []() { return 30; });
+        nothrows.emplace_back("DupeException1");
+    }
+    catch (std::runtime_error &) {}
+    try {
+        py::class_<DupeException>(m2, "DupeException");
+        nothrows.emplace_back("DupeException2");
+    }
+    catch (std::runtime_error &) {}
+    m2.def("dupe_exception_failures", []() {
+        py::list l;
+        for (auto &e : nothrows) l.append(py::cast(e));
+        return l;
+    });
 }
+
 
 // MSVC workaround: trying to use a lambda here crashes MSCV
 test_initializer issues(&init_issues);
