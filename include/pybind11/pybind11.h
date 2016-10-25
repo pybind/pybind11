@@ -253,13 +253,19 @@ protected:
 #endif
 
         detail::function_record *chain = nullptr, *chain_start = rec;
-        if (rec->sibling && PyCFunction_Check(rec->sibling.ptr())) {
-            capsule rec_capsule(PyCFunction_GetSelf(rec->sibling.ptr()), true);
-            chain = (detail::function_record *) rec_capsule;
-            /* Never append a method to an overload chain of a parent class;
-               instead, hide the parent's overloads in this case */
-            if (chain->class_ != rec->class_)
-                chain = nullptr;
+        if (rec->sibling) {
+            if (PyCFunction_Check(rec->sibling.ptr())) {
+                capsule rec_capsule(PyCFunction_GetSelf(rec->sibling.ptr()), true);
+                chain = (detail::function_record *) rec_capsule;
+                /* Never append a method to an overload chain of a parent class;
+                   instead, hide the parent's overloads in this case */
+                if (chain->class_ != rec->class_)
+                    chain = nullptr;
+            }
+            // Don't trigger for things like the default __init__, which are wrapper_descriptors that we are intentionally replacing
+            else if (!rec->sibling.is_none() && rec->name[0] != '_')
+                pybind11_fail("Cannot overload existing non-function object \"" + std::string(rec->name) +
+                        "\" with a function of the same name");
         }
 
         if (!chain) {
@@ -546,8 +552,9 @@ public:
     module &def(const char *name_, Func &&f, const Extra& ... extra) {
         cpp_function func(std::forward<Func>(f), name(name_), scope(*this),
                           sibling(getattr(*this, name_, none())), extra...);
-        /* PyModule_AddObject steals a reference to 'func' */
-        PyModule_AddObject(ptr(), name_, func.inc_ref().ptr());
+        // NB: allow overwriting here because cpp_function sets up a chain with the intention of
+        // overwriting (and has already checked internally that it isn't overwriting non-functions).
+        add_object(name_, func, true /* overwrite */);
         return *this;
     }
 
@@ -566,6 +573,20 @@ public:
         if (!obj)
             throw import_error("Module \"" + std::string(name) + "\" not found!");
         return module(obj, false);
+    }
+
+    // Adds an object to the module using the given name.  Throws if an object with the given name
+    // already exists.
+    //
+    // overwrite should almost always be false: attempting to overwrite objects that pybind11 has
+    // established will, in most cases, break things.
+    PYBIND11_NOINLINE void add_object(const char *name, object &obj, bool overwrite = false) {
+        if (!overwrite && hasattr(*this, name))
+            pybind11_fail("Error during initialization: multiple incompatible definitions with name \"" +
+                    std::string(name) + "\"");
+
+        obj.inc_ref(); // PyModule_AddObject() steals a reference
+        PyModule_AddObject(ptr(), name, obj.ptr());
     }
 };
 
@@ -614,6 +635,10 @@ protected:
         object name(PYBIND11_FROM_STRING(rec->name), false);
         object scope_module;
         if (rec->scope) {
+            if (hasattr(rec->scope, rec->name))
+                pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec->name) +
+                        "\": an object with that name is already defined");
+
             if (hasattr(rec->scope, "__module__")) {
                 scope_module = rec->scope.attr("__module__");
             } else if (hasattr(rec->scope, "__name__")) {
@@ -1357,8 +1382,7 @@ public:
                 + std::string(".") + name;
         char* exception_name = const_cast<char*>(full_name.c_str());
         m_ptr = PyErr_NewException(exception_name, base, NULL);
-        inc_ref(); // PyModule_AddObject() steals a reference
-        PyModule_AddObject(m.ptr(), name.c_str(), m_ptr);
+        m.add_object(name.c_str(), *this);
     }
 
     // Sets the current python exception to this exception object with the given message
