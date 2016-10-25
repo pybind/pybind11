@@ -132,7 +132,7 @@ PYBIND11_NOINLINE inline std::string error_string() {
         errorString += ": ";
     }
     if (scope.value)
-        errorString += (std::string) handle(scope.value).str();
+        errorString += (std::string) str(scope.value);
 
     PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
 
@@ -1056,7 +1056,7 @@ template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_ca
         throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
 #else
         throw cast_error("Unable to cast Python instance of type " +
-            (std::string) handle.get_type().str() + " to C++ type '" + type_id<T>() + "''");
+            (std::string) str(handle.get_type()) + " to C++ type '" + type_id<T>() + "''");
 #endif
     }
     return conv;
@@ -1070,16 +1070,20 @@ template <typename T> make_caster<T> load_type(const handle &handle) {
 
 NAMESPACE_END(detail)
 
-template <typename T> T cast(const handle &handle) {
+template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
+T cast(const handle &handle) {
     static_assert(!detail::cast_is_temporary_value_reference<T>::value,
             "Unable to cast type to reference: value is local to type caster");
     using type_caster = detail::make_caster<T>;
     return detail::load_type<T>(handle).operator typename type_caster::template cast_op_type<T>();
 }
 
-template <typename T> object cast(const T &value,
-        return_value_policy policy = return_value_policy::automatic_reference,
-        handle parent = handle()) {
+template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
+T cast(const handle &handle) { return {handle, true}; }
+
+template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
+object cast(const T &value, return_value_policy policy = return_value_policy::automatic_reference,
+            handle parent = handle()) {
     if (policy == return_value_policy::automatic)
         policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
     else if (policy == return_value_policy::automatic_reference)
@@ -1097,7 +1101,7 @@ detail::enable_if_t<detail::move_always<T>::value || detail::move_if_unreference
         throw cast_error("Unable to cast Python instance to C++ rvalue: instance has multiple references"
             " (compile in debug mode for details)");
 #else
-        throw cast_error("Unable to move from Python " + (std::string) obj.get_type().str() +
+        throw cast_error("Unable to move from Python " + (std::string) str(obj.get_type()) +
                 " instance to C++ " + type_id<T>() + " instance: instance has multiple references");
 #endif
 
@@ -1274,7 +1278,7 @@ public:
         int _[] = { 0, (process(args_list, std::forward<Ts>(values)), 0)... };
         ignore_unused(_);
 
-        m_args = object(PyList_AsTuple(args_list.ptr()), false);
+        m_args = std::move(args_list);
     }
 
     const tuple &args() const & { return m_args; }
@@ -1336,7 +1340,7 @@ private:
 #if defined(NDEBUG)
                 multiple_values_error();
 #else
-                multiple_values_error(k.first.str());
+                multiple_values_error(str(k.first));
 #endif
             }
             m_kwargs[k.first] = k.second;

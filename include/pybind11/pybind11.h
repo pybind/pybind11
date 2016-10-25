@@ -504,7 +504,7 @@ protected:
             msg += "\nInvoked with: ";
             tuple args_(args, true);
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
-                msg += static_cast<std::string>(static_cast<object>(args_[ti]).str());
+                msg += static_cast<std::string>(pybind11::str(args_[ti]));
                 if ((ti + 1) != args_.size() )
                     msg += ", ";
             }
@@ -665,11 +665,9 @@ protected:
 #endif
 
         size_t num_bases = rec->bases.size();
-        tuple bases(num_bases);
-        for (size_t i = 0; i < num_bases; ++i)
-            bases[i] = rec->bases[i];
+        auto bases = tuple(rec->bases);
 
-        std::string full_name = (scope_module ? ((std::string) scope_module.str() + "." + rec->name)
+        std::string full_name = (scope_module ? ((std::string) pybind11::str(scope_module) + "." + rec->name)
                                               : std::string(rec->name));
 
         char *tp_doc = nullptr;
@@ -1470,7 +1468,7 @@ NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
-        strings[i] = args[i].str();
+        strings[i] = str(args[i]);
     }
     auto sep = kwargs.contains("sep") ? kwargs["sep"] : cast(" ");
     auto line = sep.attr("join")(strings);
@@ -1654,7 +1652,7 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
 
     /* Don't call dispatch code if invoked from overridden function */
     PyFrameObject *frame = PyThreadState_Get()->frame;
-    if (frame && (std::string) pybind11::handle(frame->f_code->co_name).str() == name &&
+    if (frame && (std::string) str(frame->f_code->co_name) == name &&
         frame->f_code->co_argcount > 0) {
         PyFrame_FastToLocals(frame);
         PyObject *self_caller = PyDict_GetItem(

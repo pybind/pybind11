@@ -68,8 +68,8 @@ public:
         object call(Args&&... args) const;
 
     bool is_none() const { return derived().ptr() == Py_None; }
+    PYBIND11_DEPRECATED("Instead of obj.str(), use py::str(obj)")
     pybind11::str str() const;
-    pybind11::str repr() const;
 
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
     handle get_type() const;
@@ -222,13 +222,13 @@ public:
 
     template <typename T = Policy>
     PYBIND11_DEPRECATED("Use of obj.attr(...) as bool is deprecated in favor of pybind11::hasattr(obj, ...)")
-    operator enable_if_t<std::is_same<T, accessor_policies::str_attr>::value ||
+    explicit operator enable_if_t<std::is_same<T, accessor_policies::str_attr>::value ||
             std::is_same<T, accessor_policies::obj_attr>::value, bool>() const {
         return hasattr(obj, key);
     }
     template <typename T = Policy>
     PYBIND11_DEPRECATED("Use of obj[key] as bool is deprecated in favor of obj.contains(key)")
-    operator enable_if_t<std::is_same<T, accessor_policies::generic_item>::value, bool>() const {
+    explicit operator enable_if_t<std::is_same<T, accessor_policies::generic_item>::value, bool>() const {
         return obj.contains(key);
     }
 
@@ -390,20 +390,23 @@ class unpacking_collector;
 
 NAMESPACE_END(detail)
 
-#define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, CvtStmt) \
+#define PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
     public: \
-        Name(const handle &h, bool borrowed) : Parent(h, borrowed) { CvtStmt; } \
-        /* These are deliberately not 'explicit' to allow implicit conversion from object: */ \
-        Name(const object& o): Parent(o) { CvtStmt; } \
-        Name(object&& o) noexcept : Parent(std::move(o)) { CvtStmt; } \
-        Name& operator=(object&& o) noexcept { (void) object::operator=(std::move(o)); CvtStmt; return *this; } \
-        Name& operator=(const object& o) { return static_cast<Name&>(object::operator=(o)); CvtStmt; } \
         PYBIND11_DEPRECATED("Use py::isinstance<py::python_type>(obj) instead") \
         bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); } \
         static bool _check(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); }
 
+#define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun) \
+    PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
+    Name(handle h, bool borrowed) : Name(object(h, borrowed)) { } \
+    /* This is deliberately not 'explicit' to allow implicit conversion from object: */ \
+    Name(const object &o) : Parent(ConvertFun(o.ptr()), false) { if (!m_ptr) throw error_already_set(); }
+
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
-    PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, )
+    PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
+    Name(handle h, bool borrowed) : Parent(h, borrowed) { } \
+    /* This is deliberately not 'explicit' to allow implicit conversion from object: */ \
+    Name(const object &o) : Parent(o) { }
 
 #define PYBIND11_OBJECT_DEFAULT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT(Name, Parent, CheckFun) \
@@ -411,26 +414,9 @@ NAMESPACE_END(detail)
 
 class iterator : public object {
 public:
-    PYBIND11_OBJECT_CVT(iterator, object, PyIter_Check, value = object(); ready = false)
-    iterator() : object(), value(object()), ready(false) { }
-    iterator(const iterator& it) : object(it), value(it.value), ready(it.ready) { }
-    iterator(iterator&& it) : object(std::move(it)), value(std::move(it.value)), ready(it.ready) { }
-
-    /** Caveat: this copy constructor does not (and cannot) clone the internal
+    /** Caveat: copying an iterator does not (and cannot) clone the internal
         state of the Python iterable */
-    iterator &operator=(const iterator &it) {
-        (void) object::operator=(it);
-        value = it.value;
-        ready = it.ready;
-        return *this;
-    }
-
-    iterator &operator=(iterator &&it) noexcept {
-        (void) object::operator=(std::move(it));
-        value = std::move(it.value);
-        ready = it.ready;
-        return *this;
-    }
+    PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
 
     iterator& operator++() {
         if (m_ptr)
@@ -465,8 +451,8 @@ private:
     void advance() { value = object(PyIter_Next(m_ptr), false); }
 
 private:
-    object value;
-    bool ready;
+    object value = {};
+    bool ready = false;
 };
 
 class iterable : public object {
@@ -478,7 +464,7 @@ class bytes;
 
 class str : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(str, object, detail::PyUnicode_Check_Permissive)
+    PYBIND11_OBJECT_CVT(str, object, detail::PyUnicode_Check_Permissive, raw_str)
 
     str(const char *c, size_t n)
     : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), false) {
@@ -486,7 +472,7 @@ public:
     }
 
     // 'explicit' is explicitly omitted from the following constructors to allow implicit conversion to py::str from C++ string-like objects
-    str(const char *c)
+    str(const char *c = "")
         : object(PyUnicode_FromString(c), false) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
@@ -494,6 +480,8 @@ public:
     str(const std::string &s) : str(s.data(), s.size()) { }
 
     explicit str(const bytes &b);
+
+    explicit str(handle h) : object(raw_str(h.ptr()), false) { }
 
     operator std::string() const {
         object temp = *this;
@@ -513,6 +501,18 @@ public:
     str format(Args &&...args) const {
         return attr("format")(std::forward<Args>(args)...);
     }
+
+private:
+    /// Return string representation -- always returns a new reference, even if already a str
+    static PyObject *raw_str(PyObject *op) {
+        PyObject *str_value = PyObject_Str(op);
+#if PY_MAJOR_VERSION < 3
+        if (!str_value) throw error_already_set();
+        PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
+        Py_XDECREF(str_value); str_value = unicode;
+#endif
+        return str_value;
+    }
 };
 
 inline namespace literals {
@@ -522,10 +522,10 @@ inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
 
 class bytes : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(bytes, object, PYBIND11_BYTES_CHECK)
+    PYBIND11_OBJECT(bytes, object, PYBIND11_BYTES_CHECK)
 
     // Allow implicit conversion:
-    bytes(const char *c)
+    bytes(const char *c = "")
     : object(PYBIND11_BYTES_FROM_STRING(c), false) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
@@ -585,15 +585,25 @@ public:
 
 class bool_ : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(bool_, object, PyBool_Check)
+    PYBIND11_OBJECT_CVT(bool_, object, PyBool_Check, raw_bool)
+    bool_() : object(Py_False, true) { }
     // Allow implicit conversion from and to `bool`:
     bool_(bool value) : object(value ? Py_True : Py_False, true) { }
     operator bool() const { return m_ptr && PyLong_AsLong(m_ptr) != 0; }
+
+private:
+    /// Return the truth value of an object -- always returns a new reference
+    static PyObject *raw_bool(PyObject *op) {
+        const auto value = PyObject_IsTrue(op);
+        if (value == -1) return nullptr;
+        return handle(value ? Py_True : Py_False).inc_ref().ptr();
+    }
 };
 
 class int_ : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(int_, object, PYBIND11_LONG_CHECK)
+    PYBIND11_OBJECT_CVT(int_, object, PYBIND11_LONG_CHECK, PyNumber_Long)
+    int_() : object(PyLong_FromLong(0), false) { }
     // Allow implicit conversion from C++ integral types:
     template <typename T,
               detail::enable_if_t<std::is_integral<T>::value, int> = 0>
@@ -631,12 +641,12 @@ public:
 
 class float_ : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(float_, object, PyFloat_Check)
+    PYBIND11_OBJECT_CVT(float_, object, PyFloat_Check, PyNumber_Float)
     // Allow implicit conversion from float/double:
     float_(float value) : object(PyFloat_FromDouble((double) value), false) {
         if (!m_ptr) pybind11_fail("Could not allocate float object!");
     }
-    float_(double value) : object(PyFloat_FromDouble((double) value), false) {
+    float_(double value = .0) : object(PyFloat_FromDouble((double) value), false) {
         if (!m_ptr) pybind11_fail("Could not allocate float object!");
     }
     operator float() const { return (float) PyFloat_AsDouble(m_ptr); }
@@ -685,7 +695,7 @@ public:
 
 class tuple : public object {
 public:
-    PYBIND11_OBJECT(tuple, object, PyTuple_Check)
+    PYBIND11_OBJECT_CVT(tuple, object, PyTuple_Check, PySequence_Tuple)
     explicit tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), false) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
@@ -695,7 +705,7 @@ public:
 
 class dict : public object {
 public:
-    PYBIND11_OBJECT(dict, object, PyDict_Check)
+    PYBIND11_OBJECT_CVT(dict, object, PyDict_Check, raw_dict)
     dict() : object(PyDict_New(), false) {
         if (!m_ptr) pybind11_fail("Could not allocate dict object!");
     }
@@ -711,6 +721,14 @@ public:
     void clear() const { PyDict_Clear(ptr()); }
     bool contains(handle key) const { return PyDict_Contains(ptr(), key.ptr()) == 1; }
     bool contains(const char *key) const { return PyDict_Contains(ptr(), pybind11::str(key).ptr()) == 1; }
+
+private:
+    /// Call the `dict` Python type -- always returns a new reference
+    static PyObject *raw_dict(PyObject *op) {
+        if (PyDict_Check(op))
+            return handle(op).inc_ref().ptr();
+        return PyObject_CallFunctionObjArgs((PyObject *) &PyDict_Type, op, nullptr);
+    }
 };
 
 class sequence : public object {
@@ -722,7 +740,7 @@ public:
 
 class list : public object {
 public:
-    PYBIND11_OBJECT(list, object, PyList_Check)
+    PYBIND11_OBJECT_CVT(list, object, PyList_Check, PySequence_List)
     explicit list(size_t size = 0) : object(PyList_New((ssize_t) size), false) {
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
@@ -736,7 +754,7 @@ class kwargs : public dict { PYBIND11_OBJECT_DEFAULT(kwargs, dict, PyDict_Check)
 
 class set : public object {
 public:
-    PYBIND11_OBJECT(set, object, PySet_Check)
+    PYBIND11_OBJECT_CVT(set, object, PySet_Check, PySet_New)
     set() : object(PySet_New(nullptr), false) {
         if (!m_ptr) pybind11_fail("Could not allocate set object!");
     }
@@ -797,7 +815,7 @@ public:
             pybind11_fail("Unable to create memoryview from buffer descriptor");
     }
 
-    PYBIND11_OBJECT_DEFAULT(memoryview, object, PyMemoryView_Check)
+    PYBIND11_OBJECT_CVT(memoryview, object, PyMemoryView_Check, PyMemoryView_FromObject)
 };
 
 inline size_t len(handle h) {
@@ -805,6 +823,17 @@ inline size_t len(handle h) {
     if (result < 0)
         pybind11_fail("Unable to compute length of object");
     return (size_t) result;
+}
+
+inline str repr(handle h) {
+    PyObject *str_value = PyObject_Repr(h.ptr());
+    if (!str_value) throw error_already_set();
+#if PY_MAJOR_VERSION < 3
+    PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
+    Py_XDECREF(str_value); str_value = unicode;
+    if (!str_value) throw error_already_set();
+#endif
+    return {str_value, false};
 }
 
 NAMESPACE_BEGIN(detail)
@@ -820,24 +849,7 @@ template <typename D> template <typename T> bool object_api<D>::contains(T &&key
 }
 
 template <typename D>
-pybind11::str object_api<D>::str() const {
-    PyObject *str_value = PyObject_Str(derived().ptr());
-#if PY_MAJOR_VERSION < 3
-    PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
-    Py_XDECREF(str_value); str_value = unicode;
-#endif
-    return {str_value, false};
-}
-
-template <typename D>
-pybind11::str object_api<D>::repr() const {
-    PyObject *str_value = PyObject_Repr(derived().ptr());
-#if PY_MAJOR_VERSION < 3
-    PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
-    Py_XDECREF(str_value); str_value = unicode;
-#endif
-    return {str_value, false};
-}
+pybind11::str object_api<D>::str() const { return pybind11::str(derived()); }
 
 template <typename D>
 handle object_api<D>::get_type() const { return (PyObject *) Py_TYPE(derived().ptr()); }
