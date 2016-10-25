@@ -265,9 +265,9 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
             auto descr = "'" + std::string(a.name) + ": " + a.type + "'";
             if (r->class_) {
                 if (r->name)
-                    descr += " in method '" + (std::string) r->class_.str() + "." + (std::string) r->name + "'";
+                    descr += " in method '" + (std::string) str(r->class_) + "." + (std::string) r->name + "'";
                 else
-                    descr += " in method of '" + (std::string) r->class_.str() + "'";
+                    descr += " in method of '" + (std::string) str(r->class_) + "'";
             } else if (r->name) {
                 descr += " in function named '" + (std::string) r->name + "'";
             }

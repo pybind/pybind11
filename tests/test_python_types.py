@@ -330,3 +330,29 @@ def test_exp_optional():
     assert test_nullopt_exp(None) == 42
     assert test_nullopt_exp(42) == 42
     assert test_nullopt_exp(43) == 43
+
+
+def test_constructors():
+    """C++ default and converting constructors are equivalent to type calls in Python"""
+    from pybind11_tests import (test_default_constructors, test_converting_constructors,
+                                test_cast_functions)
+
+    types = [str, bool, int, float, tuple, list, dict, set]
+    expected = {t.__name__: t() for t in types}
+    assert test_default_constructors() == expected
+
+    data = {
+        str: 42,
+        bool: "Not empty",
+        int: "42",
+        float: "+1e3",
+        tuple: range(3),
+        list: range(3),
+        dict: [("two", 2), ("one", 1), ("three", 3)],
+        set: [4, 4, 5, 6, 6, 6],
+        memoryview: b'abc'
+    }
+    inputs = {k.__name__: v for k, v in data.items()}
+    expected = {k.__name__: k(v) for k, v in data.items()}
+    assert test_converting_constructors(inputs) == expected
+    assert test_cast_functions(inputs) == expected

@@ -540,9 +540,11 @@ protected:
 
 template <typename T, int ExtraFlags = array::forcecast> class array_t : public array {
 public:
-    PYBIND11_OBJECT_CVT(array_t, array, is_non_null, m_ptr = ensure_(m_ptr));
-
     array_t() : array() { }
+
+    array_t(handle h, bool borrowed) : array(h, borrowed) { m_ptr = ensure_(m_ptr); }
+
+    array_t(const object &o) : array(o) { m_ptr = ensure_(m_ptr); }
 
     explicit array_t(const buffer_info& info) : array(info) { }
 
@@ -587,8 +589,6 @@ public:
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(size_t(index)...) / itemsize());
     }
-
-    static bool is_non_null(PyObject *ptr) { return ptr != nullptr; }
 
     static PyObject *ensure_(PyObject *ptr) {
         if (ptr == nullptr)

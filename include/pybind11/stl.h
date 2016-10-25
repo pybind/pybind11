@@ -248,7 +248,7 @@ template<> struct type_caster<std::experimental::nullopt_t>
 NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
-    os << (std::string) obj.str();
+    os << (std::string) str(obj);
     return os;
 }
 

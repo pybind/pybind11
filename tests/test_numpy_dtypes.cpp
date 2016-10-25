@@ -196,14 +196,14 @@ py::list print_format_descriptors() {
 
 py::list print_dtypes() {
     const auto dtypes = {
-        py::dtype::of<SimpleStruct>().str(),
-        py::dtype::of<PackedStruct>().str(),
-        py::dtype::of<NestedStruct>().str(),
-        py::dtype::of<PartialStruct>().str(),
-        py::dtype::of<PartialNestedStruct>().str(),
-        py::dtype::of<StringStruct>().str(),
-        py::dtype::of<EnumStruct>().str(),
-        py::dtype::of<StructWithUglyNames>().str()
+        py::str(py::dtype::of<SimpleStruct>()),
+        py::str(py::dtype::of<PackedStruct>()),
+        py::str(py::dtype::of<NestedStruct>()),
+        py::str(py::dtype::of<PartialStruct>()),
+        py::str(py::dtype::of<PartialNestedStruct>()),
+        py::str(py::dtype::of<StringStruct>()),
+        py::str(py::dtype::of<EnumStruct>()),
+        py::str(py::dtype::of<StructWithUglyNames>())
     };
     auto l = py::list();
     for (const auto &s : dtypes) {

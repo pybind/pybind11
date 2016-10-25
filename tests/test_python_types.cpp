@@ -153,8 +153,8 @@ public:
     }
 
     void test_print(const py::object& obj) {
-        py::print(obj.str());
-        py::print(obj.repr());
+        py::print(py::str(obj));
+        py::print(py::repr(obj));
     }
 
     static int value;
@@ -321,4 +321,46 @@ test_initializer python_types([](py::module &m) {
 
     m.attr("has_optional") = py::cast(has_optional);
     m.attr("has_exp_optional") = py::cast(has_exp_optional);
+
+    m.def("test_default_constructors", []() {
+        return py::dict(
+            "str"_a=py::str(),
+            "bool"_a=py::bool_(),
+            "int"_a=py::int_(),
+            "float"_a=py::float_(),
+            "tuple"_a=py::tuple(),
+            "list"_a=py::list(),
+            "dict"_a=py::dict(),
+            "set"_a=py::set()
+        );
+    });
+
+    m.def("test_converting_constructors", [](py::dict d) {
+        return py::dict(
+            "str"_a=py::str(d["str"]),
+            "bool"_a=py::bool_(d["bool"]),
+            "int"_a=py::int_(d["int"]),
+            "float"_a=py::float_(d["float"]),
+            "tuple"_a=py::tuple(d["tuple"]),
+            "list"_a=py::list(d["list"]),
+            "dict"_a=py::dict(d["dict"]),
+            "set"_a=py::set(d["set"]),
+            "memoryview"_a=py::memoryview(d["memoryview"])
+        );
+    });
+
+    m.def("test_cast_functions", [](py::dict d) {
+        // When converting between Python types, obj.cast<T>() should be the same as T(obj)
+        return py::dict(
+            "str"_a=d["str"].cast<py::str>(),
+            "bool"_a=d["bool"].cast<py::bool_>(),
+            "int"_a=d["int"].cast<py::int_>(),
+            "float"_a=d["float"].cast<py::float_>(),
+            "tuple"_a=d["tuple"].cast<py::tuple>(),
+            "list"_a=d["list"].cast<py::list>(),
+            "dict"_a=d["dict"].cast<py::dict>(),
+            "set"_a=d["set"].cast<py::set>(),
+            "memoryview"_a=d["memoryview"].cast<py::memoryview>()
+        );
+    });
 });
