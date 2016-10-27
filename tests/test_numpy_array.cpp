@@ -125,5 +125,5 @@ test_initializer numpy_array([](py::module &m) {
         }
     );
 
-    sm.def("function_taking_uint64", [](uint64_t){ });
+    sm.def("function_taking_uint64", [](uint64_t) { });
 });
