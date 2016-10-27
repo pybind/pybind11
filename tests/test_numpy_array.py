@@ -238,3 +238,10 @@ def test_numpy_view(capture):
     assert capture == """
         ~ArrayClass()
     """
+
+
+@pytest.requires_numpy
+def test_cast_numpy_int64_to_uint64():
+    from pybind11_tests.array import function_taking_uint64
+    function_taking_uint64(123)
+    function_taking_uint64(np.uint64(123))

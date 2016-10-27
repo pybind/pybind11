@@ -443,7 +443,14 @@ public:
             (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) &&
                (py_value < (py_type) std::numeric_limits<T>::min() ||
                 py_value > (py_type) std::numeric_limits<T>::max()))) {
+#if PY_VERSION_HEX < 0x03000000
+            bool type_error = PyErr_ExceptionMatches(PyExc_SystemError);
+#else
+            bool type_error = PyErr_ExceptionMatches(PyExc_TypeError);
+#endif
             PyErr_Clear();
+            if (type_error && PyNumber_Check(src.ptr()))
+                return load(object(PyNumber_Long(src.ptr()), true), false);
             return false;
         }
 

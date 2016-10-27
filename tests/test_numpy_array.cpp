@@ -124,4 +124,6 @@ test_initializer numpy_array([](py::module &m) {
             return py::array_t<int>({2}, {4}, a.data, obj);
         }
     );
+
+    sm.def("function_taking_uint64", [](uint64_t){ });
 });
