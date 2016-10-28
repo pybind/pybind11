@@ -239,7 +239,7 @@ public:
         PyObject *ptr = nullptr;
         if (!detail::npy_api::get().PyArray_DescrConverter_(args.release().ptr(), &ptr) || !ptr)
             throw error_already_set();
-        return object(ptr, false);
+        return reinterpret_steal<dtype>(ptr);
     }
 
     /// Return dtype associated with a C++ type.
@@ -266,7 +266,7 @@ private:
     static object _dtype_from_pep3118() {
         static PyObject *obj = module::import("numpy.core._internal")
             .attr("_dtype_from_pep3118").cast<object>().release().ptr();
-        return object(obj, true);
+        return reinterpret_borrow<object>(obj);
     }
 
     dtype strip_padding() {
@@ -279,7 +279,7 @@ private:
         std::vector<field_descr> field_descriptors;
 
         for (auto field : attr("fields").attr("items")()) {
-            auto spec = object(field, true).cast<tuple>();
+            auto spec = field.cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
             auto format = spec[1].cast<tuple>()[0].cast<dtype>();
             auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
@@ -326,22 +326,22 @@ public:
         if (base && ptr) {
             if (isinstance<array>(base))
                 /* Copy flags from base (except baseship bit) */
-                flags = array(base, true).flags() & ~detail::npy_api::NPY_ARRAY_OWNDATA_;
+                flags = reinterpret_borrow<array>(base).flags() & ~detail::npy_api::NPY_ARRAY_OWNDATA_;
             else
                 /* Writable by default, easy to downgrade later on if needed */
                 flags = detail::npy_api::NPY_ARRAY_WRITEABLE_;
         }
 
-        object tmp(api.PyArray_NewFromDescr_(
+        auto tmp = reinterpret_steal<object>(api.PyArray_NewFromDescr_(
             api.PyArray_Type_, descr.release().ptr(), (int) ndim, (Py_intptr_t *) shape.data(),
-            (Py_intptr_t *) strides.data(), const_cast<void *>(ptr), flags, nullptr), false);
+            (Py_intptr_t *) strides.data(), const_cast<void *>(ptr), flags, nullptr));
         if (!tmp)
             pybind11_fail("NumPy: unable to create array!");
         if (ptr) {
             if (base) {
                 PyArray_GET_(tmp.ptr(), base) = base.inc_ref().ptr();
             } else {
-                tmp = object(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */), false);
+                tmp = reinterpret_steal<object>(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */));
             }
         }
         m_ptr = tmp.release().ptr();
@@ -374,7 +374,7 @@ public:
 
     /// Array descriptor (dtype)
     pybind11::dtype dtype() const {
-        return object(PyArray_GET_(m_ptr, descr), true);
+        return reinterpret_borrow<pybind11::dtype>(PyArray_GET_(m_ptr, descr));
     }
 
     /// Total number of elements
@@ -399,7 +399,7 @@ public:
 
     /// Base object
     object base() const {
-        return object(PyArray_GET_(m_ptr, base), true);
+        return reinterpret_borrow<object>(PyArray_GET_(m_ptr, base));
     }
 
     /// Dimensions of the array
@@ -474,14 +474,14 @@ public:
     /// Return a new view with all of the dimensions of length 1 removed
     array squeeze() {
         auto& api = detail::npy_api::get();
-        return array(api.PyArray_Squeeze_(m_ptr), false);
+        return reinterpret_steal<array>(api.PyArray_Squeeze_(m_ptr));
     }
 
     /// Ensure that the argument is a NumPy array
     static array ensure(object input, int ExtraFlags = 0) {
         auto& api = detail::npy_api::get();
-        return array(api.PyArray_FromAny_(
-            input.release().ptr(), nullptr, 0, 0, detail::npy_api::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr), false);
+        return reinterpret_steal<array>(api.PyArray_FromAny_(
+            input.release().ptr(), nullptr, 0, 0, detail::npy_api::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr));
     }
 
 protected:
@@ -542,7 +542,7 @@ template <typename T, int ExtraFlags = array::forcecast> class array_t : public 
 public:
     array_t() : array() { }
 
-    array_t(handle h, bool borrowed) : array(h, borrowed) { m_ptr = ensure_(m_ptr); }
+    array_t(handle h, bool is_borrowed) : array(h, is_borrowed) { m_ptr = ensure_(m_ptr); }
 
     array_t(const object &o) : array(o) { m_ptr = ensure_(m_ptr); }
 
@@ -668,7 +668,7 @@ public:
     enum { value = values[detail::log2(sizeof(T)) * 2 + (std::is_unsigned<T>::value ? 1 : 0)] };
     static pybind11::dtype dtype() {
         if (auto ptr = npy_api::get().PyArray_DescrFromType_(value))
-            return object(ptr, true);
+            return reinterpret_borrow<pybind11::dtype>(ptr);
         pybind11_fail("Unsupported buffer format!");
     }
     template <typename T2 = T, enable_if_t<std::is_signed<T2>::value, int> = 0>
@@ -683,7 +683,7 @@ template <typename T> constexpr const int npy_format_descriptor<
     enum { value = npy_api::NumPyName }; \
     static pybind11::dtype dtype() { \
         if (auto ptr = npy_api::get().PyArray_DescrFromType_(value)) \
-            return object(ptr, true); \
+            return reinterpret_borrow<pybind11::dtype>(ptr); \
         pybind11_fail("Unsupported buffer format!"); \
     } \
     static PYBIND11_DESCR name() { return _(Name); } }
@@ -778,7 +778,7 @@ struct npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>> {
     static PYBIND11_DESCR name() { return _("struct"); }
 
     static pybind11::dtype dtype() {
-        return object(dtype_ptr(), true);
+        return reinterpret_borrow<pybind11::dtype>(dtype_ptr());
     }
 
     static std::string format() {
@@ -801,7 +801,7 @@ private:
         auto& api = npy_api::get();
         if (!PyObject_TypeCheck(obj, api.PyVoidArrType_Type_))
             return false;
-        if (auto descr = object(api.PyArray_DescrFromScalar_(obj), false)) {
+        if (auto descr = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(obj))) {
             if (api.PyArray_EquivTypes_(dtype_ptr(), descr.ptr())) {
                 value = ((PyVoidScalarObject_Proxy *) obj)->obval;
                 return true;
