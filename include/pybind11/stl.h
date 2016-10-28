@@ -47,7 +47,7 @@ template <typename Type, typename Key> struct set_caster {
     bool load(handle src, bool convert) {
         if (!isinstance<pybind11::set>(src))
             return false;
-        pybind11::set s(src, true);
+        auto s = reinterpret_borrow<pybind11::set>(src);
         value.clear();
         key_conv conv;
         for (auto entry : s) {
@@ -61,7 +61,7 @@ template <typename Type, typename Key> struct set_caster {
     static handle cast(const type &src, return_value_policy policy, handle parent) {
         pybind11::set s;
         for (auto const &value: src) {
-            object value_ = object(key_conv::cast(value, policy, parent), false);
+            auto value_ = reinterpret_steal<object>(key_conv::cast(value, policy, parent));
             if (!value_ || !s.add(value_))
                 return handle();
         }
@@ -79,7 +79,7 @@ template <typename Type, typename Key, typename Value> struct map_caster {
     bool load(handle src, bool convert) {
         if (!isinstance<dict>(src))
             return false;
-        dict d(src, true);
+        auto d = reinterpret_borrow<dict>(src);
         key_conv kconv;
         value_conv vconv;
         value.clear();
@@ -95,8 +95,8 @@ template <typename Type, typename Key, typename Value> struct map_caster {
     static handle cast(const type &src, return_value_policy policy, handle parent) {
         dict d;
         for (auto const &kv: src) {
-            object key = object(key_conv::cast(kv.first, policy, parent), false);
-            object value = object(value_conv::cast(kv.second, policy, parent), false);
+            auto key = reinterpret_steal<object>(key_conv::cast(kv.first, policy, parent));
+            auto value = reinterpret_steal<object>(value_conv::cast(kv.second, policy, parent));
             if (!key || !value)
                 return handle();
             d[key] = value;
@@ -114,7 +114,7 @@ template <typename Type, typename Value> struct list_caster {
     bool load(handle src, bool convert) {
         if (!isinstance<sequence>(src))
             return false;
-        sequence s(src, true);
+        auto s = reinterpret_borrow<sequence>(src);
         value_conv conv;
         value.clear();
         reserve_maybe(s, &value);
@@ -135,7 +135,7 @@ template <typename Type, typename Value> struct list_caster {
         list l(src.size());
         size_t index = 0;
         for (auto const &value: src) {
-            object value_ = object(value_conv::cast(value, policy, parent), false);
+            auto value_ = reinterpret_steal<object>(value_conv::cast(value, policy, parent));
             if (!value_)
                 return handle();
             PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
@@ -159,7 +159,7 @@ template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
     bool load(handle src, bool convert) {
         if (!isinstance<list>(src))
             return false;
-        list l(src, true);
+        auto l = reinterpret_borrow<list>(src);
         if (l.size() != Size)
             return false;
         value_conv conv;
@@ -176,7 +176,7 @@ template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
         list l(Size);
         size_t index = 0;
         for (auto const &value: src) {
-            object value_ = object(value_conv::cast(value, policy, parent), false);
+            auto value_ = reinterpret_steal<object>(value_conv::cast(value, policy, parent));
             if (!value_)
                 return handle();
             PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference

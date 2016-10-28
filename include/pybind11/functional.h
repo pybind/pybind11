@@ -36,7 +36,7 @@ public:
            captured variables), in which case the roundtrip can be avoided.
          */
         if (PyCFunction_Check(src_.ptr())) {
-            capsule c(PyCFunction_GetSelf(src_.ptr()), true);
+            auto c = reinterpret_borrow<capsule>(PyCFunction_GetSelf(src_.ptr()));
             auto rec = (function_record *) c;
             using FunctionType = Return (*) (Args...);
 
@@ -47,7 +47,7 @@ public:
             }
         }
 
-        object src(src_, true);
+        auto src = reinterpret_borrow<object>(src_);
         value = [src](Args... args) -> Return {
             gil_scoped_acquire acq;
             object retval(src(std::move(args)...));

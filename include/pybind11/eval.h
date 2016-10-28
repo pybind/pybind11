@@ -31,7 +31,7 @@ enum eval_mode {
 template <eval_mode mode = eval_expr>
 object eval(str expr, object global = object(), object local = object()) {
     if (!global) {
-        global = object(PyEval_GetGlobals(), true);
+        global = reinterpret_borrow<object>(PyEval_GetGlobals());
         if (!global)
             global = dict();
     }
@@ -50,17 +50,16 @@ object eval(str expr, object global = object(), object local = object()) {
         default: pybind11_fail("invalid evaluation mode");
     }
 
-    object result(PyRun_String(buffer.c_str(), start, global.ptr(), local.ptr()), false);
-
+    PyObject *result = PyRun_String(buffer.c_str(), start, global.ptr(), local.ptr());
     if (!result)
         throw error_already_set();
-    return result;
+    return reinterpret_steal<object>(result);
 }
 
 template <eval_mode mode = eval_statements>
 object eval_file(str fname, object global = object(), object local = object()) {
     if (!global) {
-        global = object(PyEval_GetGlobals(), true);
+        global = reinterpret_borrow<object>(PyEval_GetGlobals());
         if (!global)
             global = dict();
     }
@@ -83,9 +82,9 @@ object eval_file(str fname, object global = object(), object local = object()) {
     FILE *f = _Py_fopen(fname.ptr(), "r");
 #else
     /* No unicode support in open() :( */
-    object fobj(PyFile_FromString(
+    auto fobj = reinterpret_steal<object>(PyFile_FromString(
         const_cast<char *>(fname_str.c_str()),
-        const_cast<char*>("r")), false);
+        const_cast<char*>("r")));
     FILE *f = nullptr;
     if (fobj)
         f = PyFile_AsFile(fobj.ptr());
@@ -96,14 +95,11 @@ object eval_file(str fname, object global = object(), object local = object()) {
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
     }
 
-    object result(PyRun_FileEx(f, fname_str.c_str(), start, global.ptr(),
-                               local.ptr(), closeFile),
-                  false);
-
+    PyObject *result = PyRun_FileEx(f, fname_str.c_str(), start, global.ptr(),
+                                    local.ptr(), closeFile);
     if (!result)
         throw error_already_set();
-
-    return result;
+    return reinterpret_steal<object>(result);
 }
 
 NAMESPACE_END(pybind11)

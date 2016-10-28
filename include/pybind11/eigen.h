@@ -182,7 +182,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         if (!src)
             return false;
 
-        object obj(src, true);
+        auto obj = reinterpret_borrow<object>(src);
         object sparse_module = module::import("scipy.sparse");
         object matrix_type = sparse_module.attr(
             rowMajor ? "csr_matrix" : "csc_matrix");

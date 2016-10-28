@@ -256,7 +256,7 @@ protected:
         detail::function_record *chain = nullptr, *chain_start = rec;
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
-                capsule rec_capsule(PyCFunction_GetSelf(rec->sibling.ptr()), true);
+                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GetSelf(rec->sibling.ptr()));
                 chain = (detail::function_record *) rec_capsule;
                 /* Never append a method to an overload chain of a parent class;
                    instead, hide the parent's overloads in this case */
@@ -382,7 +382,7 @@ protected:
                result = PYBIND11_TRY_NEXT_OVERLOAD;
         try {
             for (; it != nullptr; it = it->next) {
-                tuple args_(args, true);
+                auto args_ = reinterpret_borrow<tuple>(args);
                 size_t kwargs_consumed = 0;
 
                 /* For each overload:
@@ -502,7 +502,7 @@ protected:
                 msg += "\n";
             }
             msg += "\nInvoked with: ";
-            tuple args_(args, true);
+            auto args_ = reinterpret_borrow<tuple>(args);
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
                 msg += static_cast<std::string>(pybind11::str(args_[ti]));
                 if ((ti + 1) != args_.size() )
@@ -565,7 +565,7 @@ public:
     module def_submodule(const char *name, const char *doc = nullptr) {
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
-        module result(PyImport_AddModule(full_name.c_str()), true);
+        auto result = reinterpret_borrow<module>(PyImport_AddModule(full_name.c_str()));
         if (doc && options::show_user_defined_docstrings())
             result.attr("__doc__") = pybind11::str(doc);
         attr(name) = result;
@@ -576,7 +576,7 @@ public:
         PyObject *obj = PyImport_ImportModule(name);
         if (!obj)
             throw import_error("Module \"" + std::string(name) + "\" not found!");
-        return module(obj, false);
+        return reinterpret_steal<module>(obj);
     }
 
     // Adds an object to the module using the given name.  Throws if an object with the given name
@@ -636,7 +636,7 @@ protected:
             pybind11_fail("generic_type: type \"" + std::string(rec->name) +
                           "\" is already registered!");
 
-        object name(PYBIND11_FROM_STRING(rec->name), false);
+        auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec->name));
         object scope_module;
         if (rec->scope) {
             if (hasattr(rec->scope, rec->name))
@@ -657,8 +657,8 @@ protected:
             scope_qualname = rec->scope.attr("__qualname__");
         object ht_qualname;
         if (scope_qualname) {
-            ht_qualname = object(PyUnicode_FromFormat(
-                "%U.%U", scope_qualname.ptr(), name.ptr()), false);
+            ht_qualname = reinterpret_steal<object>(PyUnicode_FromFormat(
+                "%U.%U", scope_qualname.ptr(), name.ptr()));
         } else {
             ht_qualname = name;
         }
@@ -684,7 +684,7 @@ protected:
            garbage collector (the GC will call type_traverse(), which will in
            turn find the newly constructed type in an invalid state) */
 
-        object type_holder(PyType_Type.tp_alloc(&PyType_Type, 0), false);
+        auto type_holder = reinterpret_steal<object>(PyType_Type.tp_alloc(&PyType_Type, 0));
         auto type = (PyHeapTypeObject*) type_holder.ptr();
 
         if (!type_holder || !name)
@@ -768,7 +768,7 @@ protected:
 
     /// Helper function which tags all parents of a type using mult. inheritance
     void mark_parents_nonsimple(PyTypeObject *value) {
-        tuple t(value->tp_bases, true);
+        auto t = reinterpret_borrow<tuple>(value->tp_bases);
         for (handle h : t) {
             auto tinfo2 = get_type_info((PyTypeObject *) h.ptr());
             if (tinfo2)
@@ -785,10 +785,10 @@ protected:
         if (ob_type == &PyType_Type) {
             std::string name_ = std::string(ht_type.tp_name) + "__Meta";
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-            object ht_qualname(PyUnicode_FromFormat("%U__Meta", attr("__qualname__").ptr()), false);
+            auto ht_qualname = reinterpret_steal<object>(PyUnicode_FromFormat("%U__Meta", attr("__qualname__").ptr()));
 #endif
-            object name(PYBIND11_FROM_STRING(name_.c_str()), false);
-            object type_holder(PyType_Type.tp_alloc(&PyType_Type, 0), false);
+            auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(name_.c_str()));
+            auto type_holder = reinterpret_steal<object>(PyType_Type.tp_alloc(&PyType_Type, 0));
             if (!type_holder || !name)
                 pybind11_fail("generic_type::metaclass(): unable to create type object!");
 
@@ -936,7 +936,7 @@ public:
     static_assert(detail::all_of_t<is_valid_class_option, options...>::value,
             "Unknown/invalid class_ template parameters provided");
 
-    PYBIND11_OBJECT(class_, detail::generic_type, PyType_Check)
+    PYBIND11_OBJECT(class_, generic_type, PyType_Check)
 
     template <typename... Extra>
     class_(handle scope, const char *name, const Extra &... extra) {
@@ -1117,9 +1117,9 @@ public:
             }
         }
         pybind11::str doc_obj = pybind11::str((rec_fget->doc && pybind11::options::show_user_defined_docstrings()) ? rec_fget->doc : "");
-        object property(
+        const auto property = reinterpret_steal<object>(
             PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type, fget.ptr() ? fget.ptr() : Py_None,
-                                         fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr), false);
+                                         fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr));
         if (rec_fget->class_)
             attr(name) = property;
         else
@@ -1178,8 +1178,8 @@ private:
 
     static detail::function_record *get_function_record(handle h) {
         h = detail::get_function(h);
-        return h ? (detail::function_record *) capsule(
-               PyCFunction_GetSelf(h.ptr()), true) : nullptr;
+        return h ? (detail::function_record *) reinterpret_borrow<capsule>(PyCFunction_GetSelf(h.ptr()))
+                 : nullptr;
     }
 };
 
