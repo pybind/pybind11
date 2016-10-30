@@ -100,13 +100,23 @@ The following table provides an overview of available policies:
 |                                                  | (i.e. via handle::operator()). You probably won't need to use this.        |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
-Return value policies can also be applied to properties, in which case the
-arguments must be passed through the :class:`cpp_function` constructor:
+Return value policies can also be applied to properties:
 
 .. code-block:: cpp
 
     class_<MyClass>(m, "MyClass")
-        def_property("data"
+        .def_property("data", &MyClass::getData, &MyClass::setData,
+                      py::return_value_policy::copy);
+
+Technically, the code above applies the policy to both the getter and the
+setter function, however, the setter doesn't really care about *return*
+value policies which makes this a convenient terse syntax. Alternatively,
+targeted arguments can be passed through the :class:`cpp_function` constructor:
+
+.. code-block:: cpp
+
+    class_<MyClass>(m, "MyClass")
+        .def_property("data"
             py::cpp_function(&MyClass::getData, py::return_value_policy::copy),
             py::cpp_function(&MyClass::setData)
         );

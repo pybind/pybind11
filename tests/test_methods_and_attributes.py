@@ -85,6 +85,32 @@ def test_static_properties():
     assert Type.def_property_static == 3
 
 
+@pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])
+def test_property_return_value_policies(access):
+    from pybind11_tests import TestPropRVP
+
+    if not access.startswith("static"):
+        obj = TestPropRVP()
+    else:
+        obj = TestPropRVP
+
+    ref = getattr(obj, access + "_ref")
+    assert ref.value == 1
+    ref.value = 2
+    assert getattr(obj, access + "_ref").value == 2
+    ref.value = 1  # restore original value for static properties
+
+    copy = getattr(obj, access + "_copy")
+    assert copy.value == 1
+    copy.value = 2
+    assert getattr(obj, access + "_copy").value == 1
+
+    copy = getattr(obj, access + "_func")
+    assert copy.value == 1
+    copy.value = 2
+    assert getattr(obj, access + "_func").value == 1
+
+
 def test_dynamic_attributes():
     from pybind11_tests import DynamicClass, CppDerivedDynamicClass
 
