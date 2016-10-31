@@ -91,18 +91,14 @@ struct numpy_internals {
     }
 };
 
-inline PYBIND11_NOINLINE numpy_internals* load_numpy_internals() {
-    auto& shared_data = detail::get_internals().shared_data;
-    auto it = shared_data.find("numpy_internals");
-    if (it != shared_data.end())
-        return (numpy_internals *)it->second;
-    auto ptr = new numpy_internals();
-    shared_data["numpy_internals"] = ptr;
-    return ptr;
+inline PYBIND11_NOINLINE void load_numpy_internals(numpy_internals* &ptr) {
+    ptr = &get_or_create_shared_data<numpy_internals>("_numpy_internals");
 }
 
 inline numpy_internals& get_numpy_internals() {
-    static numpy_internals* ptr = load_numpy_internals();
+    static numpy_internals* ptr = nullptr;
+    if (!ptr)
+        load_numpy_internals(ptr);
     return *ptr;
 }
 

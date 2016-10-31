@@ -323,7 +323,7 @@ struct internals {
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
     std::unordered_map<std::type_index, std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
-    std::unordered_map<std::string, void *> shared_data;
+    std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
 #if defined(WITH_THREAD)
     decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
     PyInterpreterState *istate = nullptr;
@@ -427,6 +427,35 @@ template <typename U> struct is_shared_ptr<std::shared_ptr<U>> : std::true_type 
 inline void ignore_unused(const int *) { }
 
 NAMESPACE_END(detail)
+
+/// Returns a named pointer that is shared among all extension modules (using the same
+/// pybind11 version) running in the current interpreter. Names starting with underscores
+/// are reserved for internal usage. Returns `nullptr` if no matching entry was found.
+inline PYBIND11_NOINLINE void* get_shared_data(const std::string& name) {
+    auto& internals = detail::get_internals();
+    auto it = internals.shared_data.find(name);
+    return it != internals.shared_data.end() ? it->second : nullptr;
+}
+
+/// Set the shared data that can be later recovered by `get_shared_data()`.
+inline PYBIND11_NOINLINE void *set_shared_data(const std::string& name, void *data) {
+    detail::get_internals().shared_data[name] = data;
+    return data;
+}
+
+/// Returns a typed reference to a shared data entry (by using `get_shared_data()`) if
+/// such entry exists. Otherwise, a new object of default-constructible type `T` is
+/// added to the shared data under the given name and a reference to it is returned.
+template<typename T> T& get_or_create_shared_data(const std::string& name) {
+    auto& internals = detail::get_internals();
+    auto it = internals.shared_data.find(name);
+    T* ptr = (T*) (it != internals.shared_data.end() ? it->second : nullptr);
+    if (!ptr) {
+        ptr = new T();
+        internals.shared_data[name] = ptr;
+    }
+    return *ptr;
+}
 
 /// Fetch and hold an error which was already set in Python
 class error_already_set : public std::runtime_error {
