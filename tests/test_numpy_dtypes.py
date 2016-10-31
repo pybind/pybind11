@@ -1,11 +1,20 @@
+import re
 import pytest
+
 with pytest.suppress(ImportError):
     import numpy as np
 
-    simple_dtype = np.dtype({'names': ['x', 'y', 'z'],
-                             'formats': ['?', 'u4', 'f4'],
-                             'offsets': [0, 4, 8]})
-    packed_dtype = np.dtype([('x', '?'), ('y', 'u4'), ('z', 'f4')])
+
+@pytest.fixture(scope='module')
+def simple_dtype():
+    return np.dtype({'names': ['x', 'y', 'z'],
+                     'formats': ['?', 'u4', 'f4'],
+                     'offsets': [0, 4, 8]})
+
+
+@pytest.fixture(scope='module')
+def packed_dtype():
+    return np.dtype([('x', '?'), ('y', 'u4'), ('z', 'f4')])
 
 
 def assert_equal(actual, expected_data, expected_dtype):
@@ -32,7 +41,7 @@ def test_format_descriptors():
 
 
 @pytest.requires_numpy
-def test_dtype():
+def test_dtype(simple_dtype):
     from pybind11_tests import print_dtypes, test_dtype_ctors, test_dtype_methods
 
     assert print_dtypes() == [
@@ -57,7 +66,7 @@ def test_dtype():
 
 
 @pytest.requires_numpy
-def test_recarray():
+def test_recarray(simple_dtype, packed_dtype):
     from pybind11_tests import (create_rec_simple, create_rec_packed, create_rec_nested,
                                 print_rec_simple, print_rec_packed, print_rec_nested,
                                 create_rec_partial, create_rec_partial_nested)
