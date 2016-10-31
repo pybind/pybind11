@@ -76,6 +76,7 @@ struct TestPropRVP {
 
     const SimpleValue &get1() const { return v1; }
     const SimpleValue &get2() const { return v2; }
+    SimpleValue get_rvalue() const { return v2; }
     void set1(int v) { v1.value = v; }
     void set2(int v) { v2.value = v; }
 };
@@ -156,7 +157,9 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def_property_readonly_static("static_ro_func", py::cpp_function(static_get2, rvp_copy))
         .def_property_static("static_rw_ref", static_get1, static_set1)
         .def_property_static("static_rw_copy", static_get2, static_set2, rvp_copy)
-        .def_property_static("static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2);
+        .def_property_static("static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
+        .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
+        .def_property_readonly_static("static_rvalue", [](py::object) { return SimpleValue(); });
 
     py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())
         .def(py::init());

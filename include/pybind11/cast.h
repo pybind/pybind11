@@ -345,7 +345,7 @@ public:
     }
 
     static handle cast(itype &&src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+        if (policy != return_value_policy::copy)
             policy = return_value_policy::move;
         return cast(&src, policy, parent);
     }

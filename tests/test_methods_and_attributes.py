@@ -111,6 +111,18 @@ def test_property_return_value_policies(access):
     assert getattr(obj, access + "_func").value == 1
 
 
+def test_property_rvalue_policy():
+    """When returning an rvalue, the return value policy is automatically changed from
+       `reference(_internal)` to `move`. The following would not work otherwise."""
+    from pybind11_tests import TestPropRVP
+
+    instance = TestPropRVP()
+    o = instance.rvalue
+    assert o.value == 1
+    o = TestPropRVP.static_rvalue
+    assert o.value == 1
+
+
 def test_dynamic_attributes():
     from pybind11_tests import DynamicClass, CppDerivedDynamicClass
 
