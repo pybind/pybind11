@@ -18,7 +18,7 @@ def test_format_descriptors():
 
     with pytest.raises(RuntimeError) as excinfo:
         get_format_unbound()
-    assert 'unsupported buffer format' in str(excinfo.value)
+    assert re.match('^NumPy type info missing for .*UnboundStruct.*$', str(excinfo.value))
 
     assert print_format_descriptors() == [
         "T{=?:x:3x=I:y:=f:z:}",
