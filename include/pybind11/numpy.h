@@ -20,6 +20,7 @@
 #include <string>
 #include <initializer_list>
 #include <functional>
+#include <utility>
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
@@ -748,13 +749,15 @@ std::string npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>>::form
 template <typename T>
 PyObject* npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>>::dtype_ptr = nullptr;
 
-// Extract name, offset and format descriptor for a struct field
-#define PYBIND11_FIELD_DESCRIPTOR(Type, Field) \
-    ::pybind11::detail::field_descriptor { \
-        #Field, offsetof(Type, Field), sizeof(decltype(static_cast<Type*>(0)->Field)), \
-        ::pybind11::format_descriptor<decltype(static_cast<Type*>(0)->Field)>::format(), \
-        ::pybind11::detail::npy_format_descriptor<decltype(static_cast<Type*>(0)->Field)>::dtype() \
+#define PYBIND11_FIELD_DESCRIPTOR_EX(T, Field, Name)                                          \
+    ::pybind11::detail::field_descriptor {                                                    \
+        Name, offsetof(T, Field), sizeof(decltype(std::declval<T>().Field)),                  \
+        ::pybind11::format_descriptor<decltype(std::declval<T>().Field)>::format(),           \
+        ::pybind11::detail::npy_format_descriptor<decltype(std::declval<T>().Field)>::dtype() \
     }
+
+// Extract name, offset and format descriptor for a struct field
+#define PYBIND11_FIELD_DESCRIPTOR(T, Field) PYBIND11_FIELD_DESCRIPTOR_EX(T, Field, #Field)
 
 // The main idea of this macro is borrowed from https://github.com/swansontec/map-macro
 // (C) William Swanson, Paul Fultz
@@ -791,6 +794,27 @@ PyObject* npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>>::dtype_
 #define PYBIND11_NUMPY_DTYPE(Type, ...) \
     ::pybind11::detail::npy_format_descriptor<Type>::register_dtype \
         ({PYBIND11_MAP_LIST (PYBIND11_FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
+
+#ifdef _MSC_VER
+#define PYBIND11_MAP2_LIST_NEXT1(test, next) \
+    PYBIND11_EVAL0 (PYBIND11_MAP_NEXT0 (test, PYBIND11_MAP_COMMA next, 0))
+#else
+#define PYBIND11_MAP2_LIST_NEXT1(test, next) \
+    PYBIND11_MAP_NEXT0 (test, PYBIND11_MAP_COMMA next, 0)
+#endif
+#define PYBIND11_MAP2_LIST_NEXT(test, next) \
+    PYBIND11_MAP2_LIST_NEXT1 (PYBIND11_MAP_GET_END test, next)
+#define PYBIND11_MAP2_LIST0(f, t, x1, x2, peek, ...) \
+    f(t, x1, x2) PYBIND11_MAP2_LIST_NEXT (peek, PYBIND11_MAP2_LIST1) (f, t, peek, __VA_ARGS__)
+#define PYBIND11_MAP2_LIST1(f, t, x1, x2, peek, ...) \
+    f(t, x1, x2) PYBIND11_MAP2_LIST_NEXT (peek, PYBIND11_MAP2_LIST0) (f, t, peek, __VA_ARGS__)
+// PYBIND11_MAP2_LIST(f, t, a1, a2, ...) expands to f(t, a1, a2), f(t, a3, a4), ...
+#define PYBIND11_MAP2_LIST(f, t, ...) \
+    PYBIND11_EVAL (PYBIND11_MAP2_LIST1 (f, t, __VA_ARGS__, (), 0))
+
+#define PYBIND11_NUMPY_DTYPE_EX(Type, ...) \
+    ::pybind11::detail::npy_format_descriptor<Type>::register_dtype \
+        ({PYBIND11_MAP2_LIST (PYBIND11_FIELD_DESCRIPTOR_EX, Type, __VA_ARGS__)})
 
 template  <class T>
 using array_iterator = typename std::add_pointer<T>::type;
