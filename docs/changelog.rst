@@ -57,6 +57,8 @@ Breaking changes queued for v2.0.0 (Not yet released)
   to chain attributes ``obj.attr("a")[key].attr("b").attr("method")(1, 2, 3)```.
 * Added built-in support for ``std::shared_ptr`` holder type. There is no more need
   to do it manually via ``PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)``.
+* Default return values policy changes: non-static properties now use ``reference_internal``
+  and static properties use ``reference`` (previous default was ``automatic``, i.e. ``copy``).
 * Various minor improvements of library internals (no user-visible changes)
 
 1.8.1 (July 12, 2016)
