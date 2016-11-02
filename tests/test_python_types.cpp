@@ -17,6 +17,12 @@
 #  include <fcntl.h>
 #endif
 
+#ifdef __has_include
+#if __has_include(<experimental/optional>)
+#include <experimental/optional>
+#endif
+#endif
+
 class ExamplePythonTypes {
 public:
     static ExamplePythonTypes *new_instance() {
@@ -289,4 +295,17 @@ test_initializer python_types([](py::module &m) {
 
         return d;
     });
+
+    bool has_optional = false;
+#if __cpp_lib_experimental_optional
+    has_optional = true;
+    using opt_int = std::experimental::optional<int>;
+    m.def("double_or_zero", [](const opt_int& x) -> int {
+        return x.value_or(0) * 2;
+    });
+    m.def("half_or_none", [](int x) -> opt_int {
+        return x ? opt_int(x / 2) : opt_int();
+    });
+#endif
+    m.attr("has_optional") = py::cast(has_optional);
 });
