@@ -192,6 +192,50 @@ inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
 
 NAMESPACE_END(pybind11)
 
+#ifdef __has_include
+#if __has_include(<experimental/optional>)
+#include <experimental/optional>
+#if __cpp_lib_experimental_optional
+NAMESPACE_BEGIN(pybind11)
+NAMESPACE_BEGIN(detail)
+
+template<typename T> struct type_caster<std::experimental::optional<T>> {
+    using caster_t = type_caster<typename intrinsic_type<T>::type>;
+
+    static handle cast(const std::experimental::optional<T>& src,
+                       return_value_policy policy, handle parent) {
+        if (!src)
+            return none();
+        return caster_t::cast(*src, policy, parent);
+    }
+
+    bool load(handle src, bool convert) {
+        if (!src) {
+            return false;
+        } else if (src.is_none()) {
+            value = std::experimental::nullopt;
+            return true;
+        } else if (!inner.load(src, convert)) {
+            return false;
+        } else {
+            value.emplace(static_cast<const T&>(inner));
+            return true;
+        }
+    }
+
+    PYBIND11_TYPE_CASTER(std::experimental::optional<T>,
+                         _("Optional[") + caster_t::name() + _("]"));
+
+private:
+    caster_t inner;
+};
+
+NAMESPACE_END(detail)
+NAMESPACE_END(pybind11)
+#endif
+#endif
+#endif
+
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
