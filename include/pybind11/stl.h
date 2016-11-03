@@ -22,7 +22,7 @@
 #pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
-#ifdef __has_include
+#if defined(PYBIND11_CPP14) && defined(__has_include)
 // std::optional
 #  if __has_include(<optional>)
 #    include <optional>
