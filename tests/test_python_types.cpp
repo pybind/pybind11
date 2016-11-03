@@ -17,12 +17,6 @@
 #  include <fcntl.h>
 #endif
 
-#ifdef __has_include
-#if __has_include(<experimental/optional>)
-#include <experimental/optional>
-#endif
-#endif
-
 class ExamplePythonTypes {
 public:
     static ExamplePythonTypes *new_instance() {
@@ -296,8 +290,9 @@ test_initializer python_types([](py::module &m) {
         return d;
     });
 
+    // this only tests std::experimental::optional for now
     bool has_optional = false;
-#if __cpp_lib_experimental_optional
+#ifdef PYBIND11_HAS_EXP_OPTIONAL
     has_optional = true;
     using opt_int = std::experimental::optional<int>;
     m.def("double_or_zero", [](const opt_int& x) -> int {

@@ -22,6 +22,21 @@
 #pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
+#ifdef __has_include
+// std::optional
+#  if __has_include(<optional>)
+#    include <optional>
+#    define PYBIND11_HAS_OPTIONAL 1
+#  endif
+// std::experimental::optional
+#  if __has_include(<experimental/optional>)
+#    include <experimental/optional>
+#    if __cpp_lib_experimental_optional  // just in case
+#      define PYBIND11_HAS_EXP_OPTIONAL 1
+#    endif
+#  endif
+#endif
+
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
@@ -183,6 +198,47 @@ template <typename Key, typename Value, typename Compare, typename Alloc> struct
 template <typename Key, typename Value, typename Hash, typename Equal, typename Alloc> struct type_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>>
   : map_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>, Key, Value> { };
 
+// This type caster is intended to be used for std::optional and std::experimental::optional
+template<typename T> struct optional_caster {
+    using value_type = typename intrinsic_type<typename T::value_type>::type;
+    using caster_type = type_caster<value_type>;
+
+    static handle cast(const T& src, return_value_policy policy, handle parent) {
+        if (!src)
+            return none();
+        return caster_type::cast(*src, policy, parent);
+    }
+
+    bool load(handle src, bool convert) {
+        if (!src) {
+            return false;
+        } else if (src.is_none()) {
+            value = {};  // nullopt
+            return true;
+        } else if (!inner.load(src, convert)) {
+            return false;
+        } else {
+            value.emplace(static_cast<const value_type&>(inner));
+            return true;
+        }
+    }
+
+    PYBIND11_TYPE_CASTER(T, _("Optional[") + caster_type::name() + _("]"));
+
+private:
+    caster_type inner;
+};
+
+#if PYBIND11_HAS_OPTIONAL
+template<typename T> struct type_caster<std::optional<T>>
+    : public optional_caster<std::optional<T>> {};
+#endif
+
+#if PYBIND11_HAS_EXP_OPTIONAL
+template<typename T> struct type_caster<std::experimental::optional<T>>
+    : public optional_caster<std::experimental::optional<T>> {};
+#endif
+
 NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
@@ -191,50 +247,6 @@ inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
 }
 
 NAMESPACE_END(pybind11)
-
-#ifdef __has_include
-#if __has_include(<experimental/optional>)
-#include <experimental/optional>
-#if __cpp_lib_experimental_optional
-NAMESPACE_BEGIN(pybind11)
-NAMESPACE_BEGIN(detail)
-
-template<typename T> struct type_caster<std::experimental::optional<T>> {
-    using caster_t = type_caster<typename intrinsic_type<T>::type>;
-
-    static handle cast(const std::experimental::optional<T>& src,
-                       return_value_policy policy, handle parent) {
-        if (!src)
-            return none();
-        return caster_t::cast(*src, policy, parent);
-    }
-
-    bool load(handle src, bool convert) {
-        if (!src) {
-            return false;
-        } else if (src.is_none()) {
-            value = std::experimental::nullopt;
-            return true;
-        } else if (!inner.load(src, convert)) {
-            return false;
-        } else {
-            value.emplace(static_cast<const T&>(inner));
-            return true;
-        }
-    }
-
-    PYBIND11_TYPE_CASTER(std::experimental::optional<T>,
-                         _("Optional[") + caster_t::name() + _("]"));
-
-private:
-    caster_t inner;
-};
-
-NAMESPACE_END(detail)
-NAMESPACE_END(pybind11)
-#endif
-#endif
-#endif
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
