@@ -89,3 +89,8 @@ endif()
 # A single command to compile and run the tests
 add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest -rws ${PYBIND11_PYTEST_FILES}
                   DEPENDS pybind11_tests WORKING_DIRECTORY ${testdir})
+
+# And another to show the .so size and, if a previous size, compare it:
+add_custom_command(TARGET pybind11_tests POST_BUILD
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/libsize.py
+        $<TARGET_FILE:pybind11_tests> ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)

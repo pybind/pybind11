@@ -32,3 +32,4 @@ MANIFEST
 /build
 /cmake/
 .cache/
+sosize-*.txt
