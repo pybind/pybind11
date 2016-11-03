@@ -1,6 +1,6 @@
 import pytest
 
-from pybind11_tests import ExamplePythonTypes, ConstructorStats
+from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional
 
 
 def test_static():
@@ -295,3 +295,16 @@ def test_accessors():
     assert d["set"] == 1
     assert d["deferred_set"] == 1
     assert d["var"] == 99
+
+
+@pytest.mark.skipif(not has_optional, reason='no <experimental/optional>')
+def test_optional():
+    from pybind11_tests import double_or_zero, half_or_none
+
+    assert double_or_zero(None) == 0
+    assert double_or_zero(42) == 84
+    pytest.raises(TypeError, double_or_zero, 'foo')
+
+    assert half_or_none(0) is None
+    assert half_or_none(42) == 21
+    pytest.raises(TypeError, half_or_none, 'foo')

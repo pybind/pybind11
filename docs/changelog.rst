@@ -59,6 +59,7 @@ Breaking changes queued for v2.0.0 (Not yet released)
   to do it manually via ``PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)``.
 * Default return values policy changes: non-static properties now use ``reference_internal``
   and static properties use ``reference`` (previous default was ``automatic``, i.e. ``copy``).
+* Support for ``std::experimental::optional<T>`` and ``std::optional<T>`` (C++17).
 * Various minor improvements of library internals (no user-visible changes)
 
 1.8.1 (July 12, 2016)

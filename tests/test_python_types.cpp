@@ -289,4 +289,18 @@ test_initializer python_types([](py::module &m) {
 
         return d;
     });
+
+    // this only tests std::experimental::optional for now
+    bool has_optional = false;
+#ifdef PYBIND11_HAS_EXP_OPTIONAL
+    has_optional = true;
+    using opt_int = std::experimental::optional<int>;
+    m.def("double_or_zero", [](const opt_int& x) -> int {
+        return x.value_or(0) * 2;
+    });
+    m.def("half_or_none", [](int x) -> opt_int {
+        return x ? opt_int(x / 2) : opt_int();
+    });
+#endif
+    m.attr("has_optional") = py::cast(has_optional);
 });
