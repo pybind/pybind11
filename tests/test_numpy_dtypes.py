@@ -42,7 +42,8 @@ def test_dtype():
         "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}",
         "{'names':['a'], 'formats':[{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}], 'offsets':[8], 'itemsize':40}",
         "[('a', 'S3'), ('b', 'S3')]",
-        "[('e1', '<i8'), ('e2', 'u1')]"
+        "[('e1', '<i8'), ('e2', 'u1')]",
+        "[('x', 'i1'), ('y', '<u8')]"
     ]
 
     d1 = np.dtype({'names': ['a', 'b'], 'formats': ['int32', 'float64'],

@@ -67,6 +67,11 @@ struct StringStruct {
     std::array<char, 3> b;
 };
 
+PYBIND11_PACKED(struct StructWithUglyNames {
+    int8_t __x__;
+    uint64_t __y__;
+});
+
 enum class E1 : int64_t { A = -1, B = 1 };
 enum E2 : uint8_t { X = 1, Y = 2 };
 
@@ -197,7 +202,8 @@ py::list print_dtypes() {
         py::dtype::of<PartialStruct>().str(),
         py::dtype::of<PartialNestedStruct>().str(),
         py::dtype::of<StringStruct>().str(),
-        py::dtype::of<EnumStruct>().str()
+        py::dtype::of<EnumStruct>().str(),
+        py::dtype::of<StructWithUglyNames>().str()
     };
     auto l = py::list();
     for (const auto &s : dtypes) {
@@ -311,6 +317,8 @@ test_initializer numpy_dtypes([](py::module &m) {
 
     // ... or after
     py::class_<PackedStruct>(m, "PackedStruct");
+
+    PYBIND11_NUMPY_DTYPE_EX(StructWithUglyNames, __x__, "x", __y__, "y");
 
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
