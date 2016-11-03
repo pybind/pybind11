@@ -149,6 +149,25 @@ accessed by multiple extension modules:
         ...
     };
 
+Note also that it is possible (although would rarely be required) to share arbitrary
+C++ objects between extension modules at runtime. Internal library data is shared
+between modules using capsule machinery [#f6]_ which can be also utilized for
+storing, modifying and accessing user-defined data. Note that an extension module
+will "see" other extensions' data if and only if they were built with the same
+pybind11 version. Consider the following example:
+
+.. code-block:: cpp
+
+    auto data = (MyData *) py::get_shared_data("mydata");
+    if (!data)
+        data = (MyData *) py::set_shared_data("mydata", new MyData(42));
+
+If the above snippet was used in several separately compiled extension modules,
+the first one to be imported would create a ``MyData`` instance and associate
+a ``"mydata"`` key with a pointer to it. Extensions that are imported later
+would be then able to access the data behind the same pointer.
+
+.. [#f6] https://docs.python.org/3/extending/extending.html#using-capsules
 
 
 Generating documentation using Sphinx
