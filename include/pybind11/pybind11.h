@@ -1134,6 +1134,7 @@ private:
         } catch (const std::bad_weak_ptr &) {
             new (&inst->holder) holder_type(inst->value);
         }
+        inst->owned = true;
     }
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
@@ -1144,6 +1145,7 @@ private:
             new (&inst->holder) holder_type(*holder_ptr);
         else
             new (&inst->holder) holder_type(inst->value);
+        inst->owned = true;
     }
 
     /// Initialize holder object, variant 3: holder is not copy constructible (e.g. unique_ptr), always initialize from raw pointer

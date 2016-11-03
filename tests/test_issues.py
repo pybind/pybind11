@@ -1,5 +1,6 @@
 import pytest
 import gc
+from pybind11_tests import ConstructorStats
 
 
 def test_regressions():
@@ -187,3 +188,16 @@ def test_dupe_assignment():
     """ Issue 461: overwriting a class with a function """
     from pybind11_tests.issues import dupe_exception_failures
     assert dupe_exception_failures() == []
+
+
+def test_enable_shared_from_this_with_reference_rvp():
+    """ Issue #471: shared pointer instance not dellocated """
+    from pybind11_tests import SharedParent, SharedChild
+
+    parent = SharedParent()
+    child = parent.get_child()
+
+    cstats = ConstructorStats.get(SharedChild)
+    assert cstats.alive() == 1
+    del child, parent
+    assert cstats.alive() == 0

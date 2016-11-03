@@ -290,7 +290,28 @@ void init_issues(py::module &m) {
         for (auto &e : nothrows) l.append(py::cast(e));
         return l;
     });
-}
+
+    /// Issue #471: shared pointer instance not dellocated
+    class SharedChild : public std::enable_shared_from_this<SharedChild> {
+    public:
+        SharedChild() { print_created(this); }
+        ~SharedChild() { print_destroyed(this); }
+    };
+
+    class SharedParent {
+    public:
+        SharedParent() : child(std::make_shared<SharedChild>()) { }
+        const SharedChild &get_child() const { return *child; }
+
+    private:
+        std::shared_ptr<SharedChild> child;
+    };
+
+    py::class_<SharedChild, std::shared_ptr<SharedChild>>(m, "SharedChild");
+    py::class_<SharedParent, std::shared_ptr<SharedParent>>(m, "SharedParent")
+        .def(py::init<>())
+        .def("get_child", &SharedParent::get_child, py::return_value_policy::reference);
+};
 
 
 // MSVC workaround: trying to use a lambda here crashes MSCV
