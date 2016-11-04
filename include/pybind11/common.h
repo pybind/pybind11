@@ -16,6 +16,18 @@
 #  define NAMESPACE_END(name) }
 #endif
 
+// Neither MSVC nor Intel support enough of C++14 yet (in particular, as of MSVC 2015 and ICC 17
+// beta, neither support extended constexpr, which we rely on in descr.h), so don't enable pybind
+// CPP14 features for them.
+#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#  if __cplusplus >= 201402L
+#    define PYBIND11_CPP14
+#    if __cplusplus > 201402L /* Temporary: should be updated to >= the final C++17 value once known */
+#      define PYBIND11_CPP17
+#    endif
+#  endif
+#endif
+
 #if !defined(PYBIND11_EXPORT)
 #  if defined(WIN32) || defined(_WIN32)
 #    define PYBIND11_EXPORT __declspec(dllexport)
@@ -30,7 +42,7 @@
 #  define PYBIND11_NOINLINE __attribute__ ((noinline))
 #endif
 
-#if PYBIND11_CPP14
+#if defined(PYBIND11_CPP14)
 #  define PYBIND11_DEPRECATED(reason) [[deprecated(reason)]]
 #elif defined(__clang__)
 #  define PYBIND11_DEPRECATED(reason) __attribute__((deprecated(reason)))
@@ -143,18 +155,6 @@ extern "C" {
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_INTERNALS_ID "__pybind11_" \
     PYBIND11_TOSTRING(PYBIND11_VERSION_MAJOR) "_" PYBIND11_TOSTRING(PYBIND11_VERSION_MINOR) "__"
-
-// Neither MSVC nor Intel support enough of C++14 yet (in particular, as of MSVC 2015 and ICC 17
-// beta, neither support extended constexpr, which we rely on in descr.h), so don't enable pybind
-// CPP14 features for them.
-#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-#  if __cplusplus >= 201402L
-#    define PYBIND11_CPP14
-#    if __cplusplus > 201402L /* Temporary: should be updated to >= the final C++17 value once known */
-#      define PYBIND11_CPP17
-#    endif
-#  endif
-#endif
 
 #define PYBIND11_PLUGIN(name)                                                  \
     static PyObject *pybind11_init();                                          \
