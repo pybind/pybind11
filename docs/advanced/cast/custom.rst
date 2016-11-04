@@ -77,3 +77,9 @@ type is explicitly allowed.
             }
         };
     }} // namespace pybind11::detail
+
+.. warning::
+
+    When using custom type casters, it's important to declare them consistently
+    in every compilation unit of the Python extension module. Otherwise,
+    undefined behavior can ensue.
