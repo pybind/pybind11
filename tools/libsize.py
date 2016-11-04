@@ -13,8 +13,6 @@ if len(sys.argv) != 3:
 lib = sys.argv[1]
 save = sys.argv[2]
 
-libsize = -1
-
 if not os.path.exists(lib):
     sys.exit("Error: requested file ({}) does not exist".format(lib))
 
@@ -23,23 +21,18 @@ libsize = os.path.getsize(lib)
 print("------", os.path.basename(lib), "file size:", libsize, end='')
 
 if os.path.exists(save):
-    sf = open(save, 'r')
-    oldsize = int(sf.readline())
-    sf.close()
+    with open(save) as sf:
+        oldsize = int(sf.readline())
 
     if oldsize > 0:
         change = libsize - oldsize
-        pct = change / oldsize * 100
         if change == 0:
-            print(" (no change)", end='')
-        elif change > 0:
-            print(" (increase of {} bytes = {:.2f}%)".format(change, pct), end='')
+            print(" (no change)")
         else:
-            print(" (decrease of {} bytes = {:.2f}%)".format(-change, -pct), end='')
+            print(" (change of {:+} bytes = {:+.2%})".format(change, change / oldsize))
+else:
+    print()
 
-print()
-
-sf = open(save, 'w')
-sf.write(str(libsize))
-sf.close()
+with open(save, 'w') as sf:
+    sf.write(str(libsize))
 
