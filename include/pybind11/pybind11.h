@@ -1219,6 +1219,16 @@ public:
             def("__gt__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value > value2; });
             def("__le__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value <= value2; });
             def("__ge__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value >= value2; });
+            def("__invert__", [](const Type &value) { return ~((UnderlyingType) value); });
+            def("__and__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value & value2; });
+            def("__or__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value | value2; });
+            def("__xor__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value ^ value2; });
+            def("__rand__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value & value2; });
+            def("__ror__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value | value2; });
+            def("__rxor__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value ^ value2; });
+            def("__and__", [](const Type &value, const Type &value2) { return (UnderlyingType) value & (UnderlyingType) value2; });
+            def("__or__", [](const Type &value, const Type &value2) { return (UnderlyingType) value | (UnderlyingType) value2; });
+            def("__xor__", [](const Type &value, const Type &value2) { return (UnderlyingType) value ^ (UnderlyingType) value2; });
         }
         def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
         // Pickling and unpickling -- needed for use with the 'multiprocessing' module
