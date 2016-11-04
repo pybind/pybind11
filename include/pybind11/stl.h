@@ -22,14 +22,14 @@
 #pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
-#if defined(PYBIND11_CPP14) && defined(__has_include)
-// std::optional
-#  if __has_include(<optional>)
+#ifdef __has_include
+// std::optional (but including it in c++14 mode isn't allowed)
+#  if defined(PYBIND11_CPP17) && __has_include(<optional>)
 #    include <optional>
 #    define PYBIND11_HAS_OPTIONAL 1
 #  endif
-// std::experimental::optional
-#  if __has_include(<experimental/optional>)
+// std::experimental::optional (but not allowed in c++11 mode)
+#  if defined(PYBIND11_CPP14) && __has_include(<experimental/optional>)
 #    include <experimental/optional>
 #    if __cpp_lib_experimental_optional  // just in case
 #      define PYBIND11_HAS_EXP_OPTIONAL 1
