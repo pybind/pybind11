@@ -1215,13 +1215,14 @@ public:
     }
 
     /// Export enumeration entries into the parent scope
-    void export_values() {
+    enum_ &export_values() {
         PyObject *dict = ((PyTypeObject *) this->m_ptr)->tp_dict;
         PyObject *key, *value;
         ssize_t pos = 0;
         while (PyDict_Next(dict, &pos, &key, &value))
             if (PyObject_IsInstance(value, this->m_ptr))
                 m_parent.attr(key) = value;
+        return *this;
     }
 
     /// Add an enumeration entry
