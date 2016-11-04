@@ -15,18 +15,6 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
-#if defined(__INTEL_COMPILER)
-/* C++14 features not supported for now */
-#elif defined(__clang__)
-#  if __has_feature(cxx_return_type_deduction) && __has_feature(cxx_relaxed_constexpr)
-#    define PYBIND11_CPP14
-#  endif
-#elif defined(__GNUG__)
-#  if __cpp_constexpr >= 201304 && __cpp_decltype_auto >= 201304
-#    define PYBIND11_CPP14
-#  endif
-#endif
-
 #if defined(PYBIND11_CPP14) /* Concatenate type signatures at compile time using C++14 */
 
 template <size_t Size1, size_t Size2> class descr {
