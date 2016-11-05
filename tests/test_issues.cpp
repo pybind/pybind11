@@ -345,7 +345,8 @@ void init_issues(py::module &m) {
         .def(py::init<int>())
         .def("child", &SpecialHolderObj::child, pybind11::return_value_policy::reference_internal)
         .def_readwrite("val", &SpecialHolderObj::val)
-        .def_static("holder_cstats", &ConstructorStats::get<custom_unique_ptr<SpecialHolderObj>>)
+        .def_static("holder_cstats", &ConstructorStats::get<custom_unique_ptr<SpecialHolderObj>>,
+                py::return_value_policy::reference)
         ;
 };
 

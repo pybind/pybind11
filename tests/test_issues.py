@@ -212,8 +212,9 @@ def test_non_destructed_holders():
     assert a.val == 123
     assert b.val == 124
 
-    assert SpecialHolderObj.holder_cstats().alive() == 1
+    cstats = SpecialHolderObj.holder_cstats()
+    assert cstats.alive() == 1
     del b
-    assert SpecialHolderObj.holder_cstats().alive() == 1
+    assert cstats.alive() == 1
     del a
-    assert SpecialHolderObj.holder_cstats().alive() == 0
+    assert cstats.alive() == 0
