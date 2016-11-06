@@ -821,7 +821,7 @@ protected:
         auto tinfo = detail::get_type_info(type);
         self->value = ::operator new(tinfo->type_size);
         self->owned = true;
-        self->constructed = false;
+        self->holder_constructed = false;
         detail::get_internals().registered_instances.emplace(self->value, (PyObject *) self);
         return (PyObject *) self;
     }
@@ -1134,7 +1134,7 @@ private:
         } catch (const std::bad_weak_ptr &) {
             new (&inst->holder) holder_type(inst->value);
         }
-        inst->owned = true;
+        inst->holder_constructed = true;
     }
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
@@ -1145,31 +1145,32 @@ private:
             new (&inst->holder) holder_type(*holder_ptr);
         else
             new (&inst->holder) holder_type(inst->value);
-        inst->owned = true;
+        inst->holder_constructed = true;
     }
 
     /// Initialize holder object, variant 3: holder is not copy constructible (e.g. unique_ptr), always initialize from raw pointer
     template <typename T = holder_type,
               detail::enable_if_t<!std::is_copy_constructible<T>::value, int> = 0>
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const void * /* dummy */) {
-        new (&inst->holder) holder_type(inst->value);
+        if (inst->owned) {
+            new (&inst->holder) holder_type(inst->value);
+            inst->holder_constructed = true;
+        }
     }
 
     /// Initialize holder object of an instance, possibly given a pointer to an existing holder
     static void init_holder(PyObject *inst_, const void *holder_ptr) {
         auto inst = (instance_type *) inst_;
         init_holder_helper(inst, (const holder_type *) holder_ptr, inst->value);
-        inst->constructed = true;
     }
 
     static void dealloc(PyObject *inst_) {
         instance_type *inst = (instance_type *) inst_;
-        if (inst->owned) {
-            if (inst->constructed)
-                inst->holder.~holder_type();
-            else
-                ::operator delete(inst->value);
-        }
+        if (inst->holder_constructed)
+            inst->holder.~holder_type();
+        else if (inst->owned)
+            ::operator delete(inst->value);
+
         generic_type::dealloc((detail::instance<void> *) inst);
     }
 

@@ -201,3 +201,20 @@ def test_enable_shared_from_this_with_reference_rvp():
     assert cstats.alive() == 1
     del child, parent
     assert cstats.alive() == 0
+
+def test_non_destructed_holders():
+    """ Issue #478: unique ptrs constructed and freed without destruction """
+    from pybind11_tests import SpecialHolderObj
+
+    a = SpecialHolderObj(123)
+    b = a.child()
+
+    assert a.val == 123
+    assert b.val == 124
+
+    cstats = SpecialHolderObj.holder_cstats()
+    assert cstats.alive() == 1
+    del b
+    assert cstats.alive() == 1
+    del a
+    assert cstats.alive() == 0

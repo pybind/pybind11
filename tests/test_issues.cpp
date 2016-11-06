@@ -48,6 +48,24 @@ class Dupe2 {};
 class Dupe3 {};
 class DupeException : public std::runtime_error {};
 
+// #478
+template <typename T> class custom_unique_ptr {
+public:
+    custom_unique_ptr() { print_default_created(this); }
+    custom_unique_ptr(T *ptr) : _ptr{ptr} { print_created(this, ptr); }
+    custom_unique_ptr(custom_unique_ptr<T> &&move) : _ptr{move._ptr} { move._ptr = nullptr; print_move_created(this); }
+    custom_unique_ptr &operator=(custom_unique_ptr<T> &&move) { print_move_assigned(this); if (_ptr) destruct_ptr(); _ptr = move._ptr; move._ptr = nullptr; return *this; }
+    custom_unique_ptr(const custom_unique_ptr<T> &) = delete;
+    void operator=(const custom_unique_ptr<T> &copy) = delete;
+    ~custom_unique_ptr() { print_destroyed(this); if (_ptr) destruct_ptr(); }
+private:
+    T *_ptr = nullptr;
+    void destruct_ptr() { delete _ptr; }
+};
+PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
+
+
+
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
@@ -311,6 +329,25 @@ void init_issues(py::module &m) {
     py::class_<SharedParent, std::shared_ptr<SharedParent>>(m, "SharedParent")
         .def(py::init<>())
         .def("get_child", &SharedParent::get_child, py::return_value_policy::reference);
+
+    /// Issue/PR #478: unique ptrs constructed and freed without destruction
+    class SpecialHolderObj {
+    public:
+        int val = 0;
+        SpecialHolderObj *ch = nullptr;
+        SpecialHolderObj(int v, bool make_child = true) : val{v}, ch{make_child ? new SpecialHolderObj(val+1, false) : nullptr}
+        { print_created(this, val); }
+        ~SpecialHolderObj() { delete ch; print_destroyed(this); }
+        SpecialHolderObj *child() { return ch; }
+    };
+
+    py::class_<SpecialHolderObj, custom_unique_ptr<SpecialHolderObj>>(m, "SpecialHolderObj")
+        .def(py::init<int>())
+        .def("child", &SpecialHolderObj::child, pybind11::return_value_policy::reference_internal)
+        .def_readwrite("val", &SpecialHolderObj::val)
+        .def_static("holder_cstats", &ConstructorStats::get<custom_unique_ptr<SpecialHolderObj>>,
+                py::return_value_policy::reference)
+        ;
 };
 
 
