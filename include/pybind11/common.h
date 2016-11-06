@@ -299,7 +299,7 @@ template <typename type> struct instance_essentials {
     type *value;
     PyObject *weakrefs;
     bool owned : 1;
-    bool constructed : 1;
+    bool holder_constructed : 1;
 };
 
 /// PyObject wrapper around generic types, includes a special holder type that is responsible for lifetime management

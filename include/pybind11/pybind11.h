@@ -821,7 +821,7 @@ protected:
         auto tinfo = detail::get_type_info(type);
         self->value = ::operator new(tinfo->type_size);
         self->owned = true;
-        self->constructed = false;
+        self->holder_constructed = false;
         detail::get_internals().registered_instances.emplace(self->value, (PyObject *) self);
         return (PyObject *) self;
     }
@@ -1134,7 +1134,7 @@ private:
         } catch (const std::bad_weak_ptr &) {
             new (&inst->holder) holder_type(inst->value);
         }
-        inst->constructed = true;
+        inst->holder_constructed = true;
     }
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
@@ -1145,7 +1145,7 @@ private:
             new (&inst->holder) holder_type(*holder_ptr);
         else
             new (&inst->holder) holder_type(inst->value);
-        inst->constructed = true;
+        inst->holder_constructed = true;
     }
 
     /// Initialize holder object, variant 3: holder is not copy constructible (e.g. unique_ptr), always initialize from raw pointer
@@ -1154,7 +1154,7 @@ private:
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const void * /* dummy */) {
         if (inst->owned) {
             new (&inst->holder) holder_type(inst->value);
-            inst->constructed = true;
+            inst->holder_constructed = true;
         }
     }
 
@@ -1166,7 +1166,7 @@ private:
 
     static void dealloc(PyObject *inst_) {
         instance_type *inst = (instance_type *) inst_;
-        if (inst->constructed)
+        if (inst->holder_constructed)
             inst->holder.~holder_type();
         else if (inst->owned)
             ::operator delete(inst->value);
