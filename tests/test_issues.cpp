@@ -11,7 +11,7 @@
 #include "constructor_stats.h"
 #include <pybind11/stl.h>
 #include <pybind11/operators.h>
-
+#include <pybind11/complex.h>
 
 #define TRACKERS(CLASS) CLASS() { print_default_created(this); } ~CLASS() { print_destroyed(this); }
 struct NestABase { int value = -2; TRACKERS(NestABase) };
@@ -346,10 +346,12 @@ void init_issues(py::module &m) {
         .def("child", &SpecialHolderObj::child, pybind11::return_value_policy::reference_internal)
         .def_readwrite("val", &SpecialHolderObj::val)
         .def_static("holder_cstats", &ConstructorStats::get<custom_unique_ptr<SpecialHolderObj>>,
-                py::return_value_policy::reference)
-        ;
-};
+                py::return_value_policy::reference);
 
+    /// Issue #484: number conversion generates unhandled exceptions
+    m2.def("test_complex", [](float x) { py::print("{}"_s.format(x)); });
+    m2.def("test_complex", [](std::complex<float> x) { py::print("({}, {})"_s.format(x.real(), x.imag())); });
+}
 
 // MSVC workaround: trying to use a lambda here crashes MSCV
 test_initializer issues(&init_issues);

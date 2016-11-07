@@ -449,8 +449,13 @@ public:
             bool type_error = PyErr_ExceptionMatches(PyExc_TypeError);
 #endif
             PyErr_Clear();
-            if (type_error && PyNumber_Check(src.ptr()))
-                return load(object(PyNumber_Long(src.ptr()), true), false);
+            if (type_error && PyNumber_Check(src.ptr())) {
+                object tmp(std::is_floating_point<T>::value
+                               ? PyNumber_Float(src.ptr())
+                               : PyNumber_Long(src.ptr()), true);
+                PyErr_Clear();
+                return load(tmp, false);
+            }
             return false;
         }
 

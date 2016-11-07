@@ -60,7 +60,7 @@ def test_shared_ptr_gc():
         assert i == v.value()
 
 
-def test_no_id(capture, msg):
+def test_no_id(msg):
     from pybind11_tests.issues import get_element, expect_float, expect_int
 
     with pytest.raises(TypeError) as excinfo:
@@ -147,6 +147,7 @@ def test_move_fallback():
     m1 = get_moveissue1(1)
     assert m1.value == 1
 
+
 def test_override_ref():
     from pybind11_tests.issues import OverrideTest
     o = OverrideTest("asdf")
@@ -162,6 +163,7 @@ def test_override_ref():
     a.value = "bye"
     assert a.value == "bye"
 
+
 def test_operators_notimplemented(capture):
     from pybind11_tests.issues import OpTest1, OpTest2
     with capture:
@@ -175,6 +177,7 @@ Add OpTest2 with OpTest2
 Add OpTest2 with OpTest1
 Add OpTest2 with OpTest1"""
 
+
 def test_iterator_rvpolicy():
     """ Issue 388: Can't make iterators via make_iterator() with different r/v policies """
     from pybind11_tests.issues import make_iterator_1
@@ -183,6 +186,7 @@ def test_iterator_rvpolicy():
     assert list(make_iterator_1()) == [1, 2, 3]
     assert list(make_iterator_2()) == [1, 2, 3]
     assert(type(make_iterator_1()) != type(make_iterator_2()))
+
 
 def test_dupe_assignment():
     """ Issue 461: overwriting a class with a function """
@@ -202,6 +206,7 @@ def test_enable_shared_from_this_with_reference_rvp():
     del child, parent
     assert cstats.alive() == 0
 
+
 def test_non_destructed_holders():
     """ Issue #478: unique ptrs constructed and freed without destruction """
     from pybind11_tests import SpecialHolderObj
@@ -218,3 +223,17 @@ def test_non_destructed_holders():
     assert cstats.alive() == 1
     del a
     assert cstats.alive() == 0
+
+
+def test_complex_cast(capture):
+    """ Issue #484: number conversion generates unhandled exceptions """
+    from pybind11_tests.issues import test_complex
+
+    with capture:
+        test_complex(1)
+        test_complex(2j)
+
+    assert capture == """
+1.0
+(0.0, 2.0)
+"""
