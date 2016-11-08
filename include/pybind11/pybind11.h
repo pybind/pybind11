@@ -566,7 +566,7 @@ public:
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
         module result(PyImport_AddModule(full_name.c_str()), true);
-        if (doc && docstring_options::show_user_defined()) 
+        if (doc && docstring_options::show_user_defined())
             result.attr("__doc__") = pybind11::str(doc);
         attr(name) = result;
         return result;

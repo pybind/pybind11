@@ -65,7 +65,7 @@ private:
         static state instance = { true, true };
         return instance;
     }
- 
+
     state previous_state;
 };
 
