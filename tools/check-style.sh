@@ -7,6 +7,9 @@
 # 1. use of tabs instead of spaces
 # 2. trailing spaces
 # 3. missing space between keyword and parenthesis, e.g.: for(, if(, while(
+# 4. opening brace on its own line. It should always be on the same line as the
+#    if/while/for/do statment.
+# 5. Missing space between right parenthesis and brace, e.g. 'for (...){'
 # 
 # Invoke as: tools/check-style.sh
 #
@@ -40,7 +43,6 @@ while read -u 3 f; do
 done
 
 found=
-# The mt=41 sets a red background for matched tabs:
 exec 3< <(GREP_COLORS='mt=41' grep '^\s*{\s*$' include/ docs/*.rst -rn --color=always)
 while read -u 3 f; do
     if [ -z "$found" ]; then
