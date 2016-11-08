@@ -686,6 +686,7 @@ struct field_descriptor {
     const char *name;
     size_t offset;
     size_t size;
+    size_t alignment;
     std::string format;
     dtype descr;
 };
@@ -726,8 +727,10 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
     for (auto& field : ordered_fields) {
         if (field.offset > offset)
             oss << (field.offset - offset) << 'x';
-        // note that '=' is required to cover the case of unaligned fields
-        oss << '=' << field.format << ':' << field.name << ':';
+        // mark unaligned fields with '='
+        if (field.offset % field.alignment)
+            oss << '=';
+        oss << field.format << ':' << field.name << ':';
         offset = field.offset + field.size;
     }
     if (itemsize > offset)
@@ -787,6 +790,7 @@ private:
 #define PYBIND11_FIELD_DESCRIPTOR_EX(T, Field, Name)                                          \
     ::pybind11::detail::field_descriptor {                                                    \
         Name, offsetof(T, Field), sizeof(decltype(std::declval<T>().Field)),                  \
+        alignof(decltype(std::declval<T>().Field)),                                           \
         ::pybind11::format_descriptor<decltype(std::declval<T>().Field)>::format(),           \
         ::pybind11::detail::npy_format_descriptor<decltype(std::declval<T>().Field)>::dtype() \
     }
