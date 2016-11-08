@@ -13,38 +13,31 @@
 
 NAMESPACE_BEGIN(pybind11)
 
-class docstring_options
-{
-  public:
+class docstring_options {
+public:
 
-    struct state {
-        bool show_user_defined; //< Include user-defined texts in docstrings.
-        bool show_signatures;   //< Inclcude auto-generated function signatures in docstrings.
-    };
-
-    PYBIND11_NOINLINE inline static state &global_state() {
-        static state instance = { true, true };
-        return instance;
-    }
-
-    docstring_options(bool show_all)
-    {
+    // Default constructor, which leaves current settings as they are.
+    docstring_options() {
         previous_state = global_state();
-        global_state().show_user_defined = show_all;
-        global_state().show_signatures = show_all;
     }
 
-    docstring_options(bool show_user_defined, bool show_signatures)
-    {
+    // Initializing constructor, which overrides current global state.
+    docstring_options(bool show_user_defined, bool show_signatures) {
         previous_state = global_state();
         global_state().show_user_defined = show_user_defined;
         global_state().show_signatures = show_signatures;
     }
 
-    ~docstring_options()
-    {
+    // Class is non-copyable.
+    docstring_options(const docstring_options&) = delete;
+    docstring_options& operator=(const docstring_options&) = delete;
+
+    // Destructor, which restores settings that were in effect before.
+    ~docstring_options() {
         global_state() = previous_state;
     }
+
+    // Setter methods (affect the global state):
 
     void disable_user_defined() { global_state().show_user_defined = false; }
 
@@ -54,19 +47,25 @@ class docstring_options
 
     void enable_signatures() { global_state().show_signatures = true; }
 
-    void disable_all() {
-        global_state().show_user_defined = false;
-        global_state().show_signatures = false;
+    // Getter methods (return the global state):
+
+    static bool show_user_defined() { return global_state().show_user_defined; }
+
+    static bool show_signatures() { return global_state().show_signatures; }
+
+private:
+
+    // A collection of flags that control the generation of docstrings by pybind11.
+    struct state {
+        bool show_user_defined; //< Include user-defined texts in docstrings.
+        bool show_signatures;   //< Include auto-generated function signatures in docstrings.
+    };
+
+    PYBIND11_NOINLINE inline static state &global_state() {
+        static state instance = { true, true };
+        return instance;
     }
-
-    void enable_all() {
-        global_state().show_user_defined = true;
-        global_state().show_signatures = true;
-    }
-
-  private:
-
-    // For saving the flags on the stack:
+ 
     state previous_state;
 };
 
