@@ -61,7 +61,7 @@ private:
         bool show_signatures;   //< Include auto-generated function signatures in docstrings.
     };
 
-    PYBIND11_NOINLINE inline static state &global_state() {
+    static state &global_state() {
         static state instance = { true, true };
         return instance;
     }
