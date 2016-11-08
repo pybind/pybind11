@@ -10,6 +10,7 @@
 #include "pybind11_tests.h"
 
 #include <pybind11/stl_bind.h>
+#include <pybind11/numpy.h>
 #include <map>
 #include <deque>
 #include <unordered_map>
@@ -58,17 +59,45 @@ template <class Map> Map *times_ten(int n) {
     return m;
 }
 
+struct VStruct {
+    bool w;
+    uint32_t x;
+    double y;
+    bool z;
+};
+
+struct VUndeclStruct { //dtype not declared for this version
+    bool w;
+    uint32_t x;
+    double y;
+    bool z;
+};
+
 test_initializer stl_binder_vector([](py::module &m) {
     py::class_<El>(m, "El")
         .def(py::init<int>());
 
-    py::bind_vector<std::vector<unsigned int>>(m, "VectorInt");
+    py::bind_vector<std::vector<unsigned char>>(m, "VectorUChar", py::buffer_protocol());
+    py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
     py::bind_vector<std::vector<bool>>(m, "VectorBool");
 
     py::bind_vector<std::vector<El>>(m, "VectorEl");
 
     py::bind_vector<std::vector<std::vector<El>>>(m, "VectorVectorEl");
 
+    m.def("create_undeclstruct", [m] () mutable {
+        py::bind_vector<std::vector<VUndeclStruct>>(m, "VectorUndeclStruct", py::buffer_protocol());
+    });
+
+    try {
+        py::module::import("numpy");
+    } catch (...) {
+        return;
+    }
+    PYBIND11_NUMPY_DTYPE(VStruct, w, x, y, z);
+    py::class_<VStruct>(m, "VStruct").def_readwrite("x", &VStruct::x);
+    py::bind_vector<std::vector<VStruct>>(m, "VectorStruct", py::buffer_protocol());
+    m.def("get_vectorstruct", [] {return std::vector<VStruct> {{0, 5, 3.0, 1}, {1, 30, -1e4, 0}};});
 });
 
 test_initializer stl_binder_map([](py::module &m) {
@@ -97,4 +126,3 @@ test_initializer stl_binder_noncopyable([](py::module &m) {
     py::bind_map<std::unordered_map<int, E_nc>>(m, "UmapENC");
     m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>, py::return_value_policy::reference);
 });
-

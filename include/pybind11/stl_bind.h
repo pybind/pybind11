@@ -326,6 +326,49 @@ template <typename Vector, typename Class_> auto vector_if_insertion_operator(Cl
     );
 }
 
+// Provide the buffer interface for vectors if we have data() and we have a format for it
+// GCC seems to have "void std::vector<bool>::data()" - doing SFINAE on the existence of data() is insufficient, we need to check it returns an appropriate pointer
+template <typename Vector, typename = void>
+struct vector_has_data_and_format : std::false_type {};
+template <typename Vector>
+struct vector_has_data_and_format<Vector, enable_if_t<std::is_same<decltype(py::format_descriptor<typename Vector::value_type>::format(), std::declval<Vector>().data()), typename Vector::value_type*>::value>> : std::true_type {};
+
+// Add the buffer interface to a vector
+template <typename Vector, typename Class_, typename... Args>
+enable_if_t<detail::any_of<std::is_same<Args, py::buffer_protocol>...>::value>
+vector_buffer(Class_& cl) {
+    using T = typename Vector::value_type;
+
+    static_assert(vector_has_data_and_format<Vector>::value, "There is not an appropriate format descriptor for this vector");
+
+    // numpy.h declares this for arbitrary types, but it may raise an exception and crash hard at runtime if PYBIND11_NUMPY_DTYPE hasn't been called, so check here
+    py::format_descriptor<T>::format();
+
+    cl.def_buffer([](Vector& v) -> py::buffer_info {
+        return py::buffer_info(v.data(), sizeof(T), py::format_descriptor<T>::format(), 1, {v.size()}, {sizeof(T)});
+    });
+
+    cl.def("__init__", [](Vector& vec, py::buffer buf) {
+        auto info = buf.request();
+        if (info.ndim != 1 || info.strides[0] <= 0 || info.strides[0] % sizeof(T))
+            throw pybind11::type_error("Only valid 1D buffers can be copied to a vector");
+        if (!detail::compare_buffer_info<T>::compare(info) || sizeof(T) != info.itemsize)
+            throw pybind11::type_error("Format mismatch (Python: " + info.format + " C++: " + py::format_descriptor<T>::format() + ")");
+        new (&vec) Vector();
+        vec.reserve(info.shape[0]);
+        T *p = static_cast<T*>(info.ptr);
+        auto step = info.strides[0] / sizeof(T);
+        T *end = p + info.shape[0] * step;
+        for (; p < end; p += step)
+            vec.push_back(*p);
+    });
+
+    return;
+}
+
+template <typename Vector, typename Class_, typename... Args>
+enable_if_t<!detail::any_of<std::is_same<Args, py::buffer_protocol>...>::value> vector_buffer(Class_&) {}
+
 NAMESPACE_END(detail)
 
 //
@@ -336,6 +379,9 @@ pybind11::class_<Vector, holder_type> bind_vector(pybind11::module &m, std::stri
     using Class_ = pybind11::class_<Vector, holder_type>;
 
     Class_ cl(m, name.c_str(), std::forward<Args>(args)...);
+
+    // Declare the buffer interface if a py::buffer_protocol() is passed in
+    detail::vector_buffer<Vector, Class_, Args...>(cl);
 
     cl.def(pybind11::init<>());
 
