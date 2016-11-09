@@ -202,5 +202,28 @@ work, it is important that all lines are indented consistently, i.e.:
         ----------
     )mydelimiter");
 
+By default, pybind11 automatically generates and prepends a signature to the docstring of a function 
+registered with ``module::def()`` and ``class_::def()``. Sometimes this
+behavior is not desirable, because you want to provide your own signature or remove 
+the docstring completely to exclude the function from the Sphinx documentation.
+The class ``docstring_options`` is available to selectively suppress auto-generated signatures:
+
+.. code-block:: cpp
+
+    PYBIND11_PLUGIN(example) {
+        py::module m("example", "pybind11 example plugin");
+
+        py::docstring_options doc_options;
+        doc_options.disable_signatures();
+        
+        m.def("add", [](int a, int b) { return a + b; }, "A function which adds two numbers");
+        
+        return m.ptr();
+    }
+
+Note that changes to the docstring settings affect only function bindings created during the 
+lifetime of the ``docstring_options`` instance. When it goes out of scope at the end of the module's init function, 
+the default settings are restored to prevent unwanted side effects.
+
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
