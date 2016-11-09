@@ -29,8 +29,7 @@ test_initializer docstring_generation([](py::module &m) {
         m.def("test_function3", [](int, int) {}, py::arg("a"), py::arg("b"));
         m.def("test_function4", [](int, int) {}, py::arg("a"), py::arg("b"), "A custom docstring");
 
-        doc_options.disable_signatures();
-        doc_options.disable_user_defined();
+        doc_options.disable_signatures().disable_user_defined();
 
         m.def("test_function5", [](int, int) {}, py::arg("a"), py::arg("b"), "A custom docstring");
 

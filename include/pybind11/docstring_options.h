@@ -32,19 +32,22 @@ public:
 
     // Setter methods (affect the global state):
 
-    void disable_user_defined() { global_state().show_user_defined = false; }
+    docstring_options& disable_user_defined() & { global_state().show_user_defined = false; return *this; }
 
-    void enable_user_defined() { global_state().show_user_defined = true; }
+    docstring_options& enable_user_defined() & { global_state().show_user_defined = true; return *this; }
 
-    void disable_signatures() { global_state().show_signatures = false; }
+    docstring_options& disable_signatures() & { global_state().show_signatures = false; return *this; }
 
-    void enable_signatures() { global_state().show_signatures = true; }
+    docstring_options& enable_signatures() & { global_state().show_signatures = true; return *this; }
 
     // Getter methods (return the global state):
 
     static bool show_user_defined() { return global_state().show_user_defined; }
 
     static bool show_signatures() { return global_state().show_signatures; }
+
+    // This type is not meant to be allocated on the heap. 
+    void* operator new(size_t) = delete;
 
 private:
 
