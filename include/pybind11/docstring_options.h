@@ -46,7 +46,7 @@ public:
 
     static bool show_signatures() { return global_state().show_signatures; }
 
-    // This type is not meant to be allocated on the heap. 
+    // This type is not meant to be allocated on the heap.
     void* operator new(size_t) = delete;
 
 private:
