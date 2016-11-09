@@ -16,16 +16,9 @@ NAMESPACE_BEGIN(pybind11)
 class docstring_options {
 public:
 
-    // Default constructor, which leaves current settings as they are.
+    // Default RAII constructor, which leaves current settings as they are.
     docstring_options() {
         previous_state = global_state();
-    }
-
-    // Initializing constructor, which overrides current global state.
-    docstring_options(bool show_user_defined, bool show_signatures) {
-        previous_state = global_state();
-        global_state().show_user_defined = show_user_defined;
-        global_state().show_signatures = show_signatures;
     }
 
     // Class is non-copyable.
