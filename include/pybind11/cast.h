@@ -127,6 +127,23 @@ PYBIND11_NOINLINE inline std::string error_string() {
     if (scope.value)
         errorString += (std::string) handle(scope.value).str();
 
+    PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
+
+    if (scope.trace) {
+        PyFrameObject *frame = ((PyTracebackObject *) scope.trace)->tb_frame;
+        if (frame) {
+            errorString += "\n\nAt:\n";
+            while (frame) {
+                int lineno = PyFrame_GetLineNumber(frame);
+                errorString +=
+                    "  " + handle(frame->f_code->co_filename).cast<std::string>() +
+                    "(" + std::to_string(lineno) + "): " +
+                    handle(frame->f_code->co_name).cast<std::string>() + "\n";
+                frame = frame->f_back;
+            }
+        }
+    }
+
     return errorString;
 }
 
