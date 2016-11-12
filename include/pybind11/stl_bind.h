@@ -60,18 +60,19 @@ struct is_comparable<T, enable_if_t<container_traits<T>::is_pair>> {
 };
 
 /* Fallback functions */
-template <typename, typename, typename... Args> void vector_if_copy_constructible(const Args&...) { }
-template <typename, typename, typename... Args> void vector_if_equal_operator(const Args&...) { }
-template <typename, typename, typename... Args> void vector_if_insertion_operator(const Args&...) { }
+template <typename, typename, typename... Args> void vector_if_copy_constructible(const Args &...) { }
+template <typename, typename, typename... Args> void vector_if_equal_operator(const Args &...) { }
+template <typename, typename, typename... Args> void vector_if_insertion_operator(const Args &...) { }
 
-template<typename Vector, typename Class_, enable_if_t<std::is_copy_constructible<typename Vector::value_type>::value, int> = 0>
-void vector_if_copy_constructible(Class_ &cl) {
-    cl.def(pybind11::init<const Vector &>(),
-           "Copy constructor");
+template<typename Vector, typename Class_>
+void vector_if_copy_constructible(enable_if_t<
+    std::is_copy_constructible<typename Vector::value_type>::value, Class_> &cl) {
+
+    cl.def(pybind11::init<const Vector &>(), "Copy constructor");
 }
 
-template<typename Vector, typename Class_, enable_if_t<is_comparable<Vector>::value, int> = 0>
-void vector_if_equal_operator(Class_ &cl) {
+template<typename Vector, typename Class_>
+void vector_if_equal_operator(enable_if_t<is_comparable<Vector>::value, Class_> &cl) {
     using T = typename Vector::value_type;
 
     cl.def(self == self);
@@ -361,9 +362,10 @@ pybind11::class_<Vector, holder_type> bind_vector(pybind11::module &m, std::stri
 NAMESPACE_BEGIN(detail)
 
 /* Fallback functions */
-template <typename, typename, typename... Args> void map_if_insertion_operator(const Args&...) { }
+template <typename, typename, typename... Args> void map_if_insertion_operator(const Args &...) { }
 
-template <typename Map, typename Class_, typename... Args> void map_if_copy_assignable(Class_ &cl, const Args&...) {
+template <typename Map, typename Class_>
+void map_assignment(enable_if_t<std::is_copy_assignable<typename Map::mapped_type>::value, Class_> &cl) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
 
@@ -376,8 +378,10 @@ template <typename Map, typename Class_, typename... Args> void map_if_copy_assi
     );
 }
 
-template<typename Map, typename Class_, enable_if_t<!std::is_copy_assignable<typename Map::mapped_type>::value, int> = 0>
-void map_if_copy_assignable(Class_ &cl) {
+template<typename Map, typename Class_>
+void map_if_copy_assignable(enable_if_t<
+        !std::is_copy_assignable<typename Map::mapped_type>::value,
+        Class_> &cl) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
 
