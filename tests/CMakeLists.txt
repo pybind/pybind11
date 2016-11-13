@@ -5,6 +5,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "MinSizeRel" "RelWithDebInfo")
 endif()
 
+# Full set of test files (you can override these; see below)
 set(PYBIND11_TEST_FILES
   test_alias_initialization.cpp
   test_buffers.cpp
@@ -36,6 +37,14 @@ set(PYBIND11_TEST_FILES
   test_stl_binders.cpp
   test_virtual_functions.cpp
 )
+
+# Invoking cmake with something like:
+#     cmake -DPYBIND11_TEST_OVERRIDE="test_issues.cpp;test_picking.cpp" ..
+# lets you override the tests that get compiled and run.  You can restore to all tests with:
+#     cmake -DPYBIND11_TEST_OVERRIDE= ..
+if (PYBIND11_TEST_OVERRIDE)
+  set(PYBIND11_TEST_FILES ${PYBIND11_TEST_OVERRIDE})
+endif()
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 
@@ -89,6 +98,11 @@ endif()
 # A single command to compile and run the tests
 add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest -rws ${PYBIND11_PYTEST_FILES}
                   DEPENDS pybind11_tests WORKING_DIRECTORY ${testdir})
+
+if(PYBIND11_TEST_OVERRIDE)
+  add_custom_command(TARGET pytest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "Note: not all tests run: -DPYBIND11_TEST_OVERRIDE is in effect")
+endif()
 
 # And another to show the .so size and, if a previous size, compare it:
 add_custom_command(TARGET pybind11_tests POST_BUILD
