@@ -129,7 +129,8 @@ private:
 // map-like functionality.
 class StringMap {
 public:
-    StringMap(std::unordered_map<std::string, std::string> init = {})
+    StringMap() = default;
+    StringMap(std::unordered_map<std::string, std::string> init)
         : map(std::move(init)) {}
 
     void set(std::string key, std::string val) {
