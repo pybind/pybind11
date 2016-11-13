@@ -251,9 +251,10 @@ void vector_modifiers(enable_if_t<std::is_copy_constructible<typename Vector::va
 
 }
 
-// Default __getitem__, when we can copy the value:
+// If the type is a basic arithmetic C++ type, we return by copying (because it's simpler, but also because
+// std::vector<bool> has to be done this way--its operator[] doesn't return a `bool&`):
 template <typename Vector, typename Class_>
-void vector_accessor(enable_if_t<std::is_copy_constructible<typename Vector::value_type>::value, Class_> &cl) {
+void vector_accessor(enable_if_t<std::is_arithmetic<typename Vector::value_type>::value, Class_> &cl) {
     using T = typename Vector::value_type;
     using SizeType = typename Vector::size_type;
     using ItType   = typename Vector::iterator;
@@ -268,16 +269,16 @@ void vector_accessor(enable_if_t<std::is_copy_constructible<typename Vector::val
     cl.def("__iter__",
            [](Vector &v) {
                return pybind11::make_iterator<
-                   return_value_policy::reference_internal, ItType, ItType, T>(
+                   return_value_policy::copy, ItType, ItType, T>(
                    v.begin(), v.end());
            },
            keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
     );
 }
 
-// When we can't copy, we have to return a reference and use a keepalive:
+// For any non-primitive types, we return by reference with a keepalive:
 template <typename Vector, typename Class_>
-void vector_accessor(enable_if_t<!std::is_copy_constructible<typename Vector::value_type>::value, Class_> &cl) {
+void vector_accessor(enable_if_t<!std::is_arithmetic<typename Vector::value_type>::value, Class_> &cl) {
     using T = typename Vector::value_type;
     using SizeType = typename Vector::size_type;
     using ItType   = typename Vector::iterator;
@@ -475,9 +476,9 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
     );
 }
 
-// Default __getitem__, when we can copy the value:
+// If the mapped type is copyable and a basic arithmetic C++ type, we return by copying
 template <typename Map, typename Class_>
-void map_accessor(enable_if_t<std::is_copy_constructible<typename Map::mapped_type>::value, Class_> &cl) {
+void map_accessor(enable_if_t<std::is_arithmetic<typename Map::mapped_type>::value, Class_> &cl) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
 
@@ -492,9 +493,9 @@ void map_accessor(enable_if_t<std::is_copy_constructible<typename Map::mapped_ty
 
 }
 
-// When we can't copy, we have to return a reference and use a keepalive:
+// For complex types, and for non-copyable types, we return by reference with a keep-alive
 template <typename Map, typename Class_>
-void map_accessor(enable_if_t<!std::is_copy_constructible<typename Map::mapped_type>::value, Class_> &cl) {
+void map_accessor(enable_if_t<!std::is_arithmetic<typename Map::mapped_type>::value, Class_> &cl) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
 
