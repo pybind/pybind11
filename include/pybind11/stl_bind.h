@@ -251,10 +251,14 @@ void vector_modifiers(enable_if_t<std::is_copy_constructible<typename Vector::va
 
 }
 
-// If the type is a basic arithmetic C++ type, we return by copying (because it's simpler, but also because
-// std::vector<bool> has to be done this way--its operator[] doesn't return a `bool&`):
+// If the type has an operator[] that doesn't return a reference (most notably std::vector<bool>),
+// we have to access by copying; otherwise we return by reference.
+template <typename Vector> using vector_needs_copy = bool_constant<
+    !std::is_same<decltype(std::declval<Vector>()[typename Vector::size_type()]), typename Vector::value_type &>::value>;
+
+// The case for special objects, like std::vector<bool>, that have to be returned-by-copy:
 template <typename Vector, typename Class_>
-void vector_accessor(enable_if_t<std::is_arithmetic<typename Vector::value_type>::value, Class_> &cl) {
+void vector_accessor(enable_if_t<vector_needs_copy<Vector>::value, Class_> &cl) {
     using T = typename Vector::value_type;
     using SizeType = typename Vector::size_type;
     using ItType   = typename Vector::iterator;
@@ -276,9 +280,9 @@ void vector_accessor(enable_if_t<std::is_arithmetic<typename Vector::value_type>
     );
 }
 
-// For any non-primitive types, we return by reference with a keepalive:
+// The usual case: access and iterate by reference
 template <typename Vector, typename Class_>
-void vector_accessor(enable_if_t<!std::is_arithmetic<typename Vector::value_type>::value, Class_> &cl) {
+void vector_accessor(enable_if_t<!vector_needs_copy<Vector>::value, Class_> &cl) {
     using T = typename Vector::value_type;
     using SizeType = typename Vector::size_type;
     using ItType   = typename Vector::iterator;
@@ -476,47 +480,13 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
     );
 }
 
-// If the mapped type is copyable and a basic arithmetic C++ type, we return by copying
-template <typename Map, typename Class_>
-void map_accessor(enable_if_t<std::is_arithmetic<typename Map::mapped_type>::value, Class_> &cl) {
-    using KeyType = typename Map::key_type;
-    using MappedType = typename Map::mapped_type;
-
-    cl.def("__getitem__",
-           [](Map &m, const KeyType &k) -> MappedType {
-               auto it = m.find(k);
-               if (it == m.end())
-                  throw pybind11::key_error();
-               return it->second;
-           }
-    );
-
-}
-
-// For complex types, and for non-copyable types, we return by reference with a keep-alive
-template <typename Map, typename Class_>
-void map_accessor(enable_if_t<!std::is_arithmetic<typename Map::mapped_type>::value, Class_> &cl) {
-    using KeyType = typename Map::key_type;
-    using MappedType = typename Map::mapped_type;
-
-    cl.def("__getitem__",
-        [](Map &m, const KeyType &k) -> MappedType & {
-            auto it = m.find(k);
-            if (it == m.end())
-              throw pybind11::key_error();
-           return it->second;
-        },
-        return_value_policy::reference_internal // ref + keepalive
-    );
-
-}
-
 
 NAMESPACE_END(detail)
 
 template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
 pybind11::class_<Map, holder_type> bind_map(module &m, const std::string &name, Args&&... args) {
     using KeyType = typename Map::key_type;
+    using MappedType = typename Map::mapped_type;
     using Class_ = pybind11::class_<Map, holder_type>;
 
     Class_ cl(m, name.c_str(), std::forward<Args>(args)...);
@@ -541,8 +511,15 @@ pybind11::class_<Map, holder_type> bind_map(module &m, const std::string &name, 
            pybind11::keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
     );
 
-    // Accessor and iterator; return by value if copyable, otherwise we return by ref + keep-alive
-    detail::map_accessor<Map, Class_>(cl);
+    cl.def("__getitem__",
+        [](Map &m, const KeyType &k) -> MappedType & {
+            auto it = m.find(k);
+            if (it == m.end())
+              throw pybind11::key_error();
+           return it->second;
+        },
+        return_value_policy::reference_internal // ref + keepalive
+    );
 
     // Assignment provided only if the type is copyable
     detail::map_assignment<Map, Class_>(cl);
