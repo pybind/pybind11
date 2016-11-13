@@ -256,30 +256,6 @@ void vector_modifiers(enable_if_t<std::is_copy_constructible<typename Vector::va
 template <typename Vector> using vector_needs_copy = bool_constant<
     !std::is_same<decltype(std::declval<Vector>()[typename Vector::size_type()]), typename Vector::value_type &>::value>;
 
-// The case for special objects, like std::vector<bool>, that have to be returned-by-copy:
-template <typename Vector, typename Class_>
-void vector_accessor(enable_if_t<vector_needs_copy<Vector>::value, Class_> &cl) {
-    using T = typename Vector::value_type;
-    using SizeType = typename Vector::size_type;
-    using ItType   = typename Vector::iterator;
-    cl.def("__getitem__",
-        [](const Vector &v, SizeType i) -> T {
-            if (i >= v.size())
-                throw pybind11::index_error();
-            return v[i];
-        }
-    );
-
-    cl.def("__iter__",
-           [](Vector &v) {
-               return pybind11::make_iterator<
-                   return_value_policy::copy, ItType, ItType, T>(
-                   v.begin(), v.end());
-           },
-           keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
-    );
-}
-
 // The usual case: access and iterate by reference
 template <typename Vector, typename Class_>
 void vector_accessor(enable_if_t<!vector_needs_copy<Vector>::value, Class_> &cl) {
@@ -300,6 +276,30 @@ void vector_accessor(enable_if_t<!vector_needs_copy<Vector>::value, Class_> &cl)
            [](Vector &v) {
                return pybind11::make_iterator<
                    return_value_policy::reference_internal, ItType, ItType, T&>(
+                   v.begin(), v.end());
+           },
+           keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
+    );
+}
+
+// The case for special objects, like std::vector<bool>, that have to be returned-by-copy:
+template <typename Vector, typename Class_>
+void vector_accessor(enable_if_t<vector_needs_copy<Vector>::value, Class_> &cl) {
+    using T = typename Vector::value_type;
+    using SizeType = typename Vector::size_type;
+    using ItType   = typename Vector::iterator;
+    cl.def("__getitem__",
+        [](const Vector &v, SizeType i) -> T {
+            if (i >= v.size())
+                throw pybind11::index_error();
+            return v[i];
+        }
+    );
+
+    cl.def("__iter__",
+           [](Vector &v) {
+               return pybind11::make_iterator<
+                   return_value_policy::copy, ItType, ItType, T>(
                    v.begin(), v.end());
            },
            keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
