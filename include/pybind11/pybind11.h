@@ -34,7 +34,7 @@
 #endif
 
 #include "attr.h"
-#include "docstring_options.h"
+#include "options.h"
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -307,7 +307,7 @@ protected:
         int index = 0;
         /* Create a nice pydoc rec including all signatures and
            docstrings of the functions in the overload chain */
-        if (chain && docstring_options::show_signatures()) {
+        if (chain && options::show_function_signatures()) {
             // First a generic signature
             signatures += rec->name;
             signatures += "(*args, **kwargs)\n";
@@ -315,17 +315,17 @@ protected:
         }
         // Then specific overload signatures
         for (auto it = chain_start; it != nullptr; it = it->next) {
-            if (docstring_options::show_signatures()) {
+            if (options::show_function_signatures()) {
                 if (chain)
                     signatures += std::to_string(++index) + ". ";
                 signatures += rec->name;
                 signatures += it->signature;
                 signatures += "\n";
             }
-            if (it->doc && strlen(it->doc) > 0 && docstring_options::show_user_defined()) {
-                if (docstring_options::show_signatures()) signatures += "\n";
+            if (it->doc && strlen(it->doc) > 0 && options::show_user_defined_docstrings()) {
+                if (options::show_function_signatures()) signatures += "\n";
                 signatures += it->doc;
-                if (docstring_options::show_signatures()) signatures += "\n";
+                if (options::show_function_signatures()) signatures += "\n";
             }
             if (it->next)
                 signatures += "\n";
@@ -535,7 +535,7 @@ public:
     PYBIND11_OBJECT_DEFAULT(module, object, PyModule_Check)
 
     explicit module(const char *name, const char *doc = nullptr) {
-        if (!docstring_options::show_user_defined()) doc = nullptr;
+        if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
         PyModuleDef *def = new PyModuleDef();
         memset(def, 0, sizeof(PyModuleDef));
@@ -566,7 +566,7 @@ public:
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
         module result(PyImport_AddModule(full_name.c_str()), true);
-        if (doc && docstring_options::show_user_defined())
+        if (doc && options::show_user_defined_docstrings())
             result.attr("__doc__") = pybind11::str(doc);
         attr(name) = result;
         return result;
@@ -673,7 +673,7 @@ protected:
                                               : std::string(rec->name));
 
         char *tp_doc = nullptr;
-        if (rec->doc && docstring_options::show_user_defined()) {
+        if (rec->doc && options::show_user_defined_docstrings()) {
             /* Allocate memory for docstring (using PyObject_MALLOC, since
                Python will free this later on) */
             size_t size = strlen(rec->doc) + 1;
@@ -1118,7 +1118,7 @@ public:
                 rec_fset->doc = strdup(rec_fset->doc);
             }
         }
-        pybind11::str doc_obj = pybind11::str((rec_fget->doc && docstring_options::show_user_defined()) ? rec_fget->doc : "");
+        pybind11::str doc_obj = pybind11::str((rec_fget->doc && pybind11::options::show_user_defined_docstrings()) ? rec_fget->doc : "");
         object property(
             PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type, fget.ptr() ? fget.ptr() : Py_None,
                                          fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr), false);
