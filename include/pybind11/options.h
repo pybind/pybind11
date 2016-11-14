@@ -1,5 +1,5 @@
 /*
-    pybind11/options.h: global settings that are configurable at runtime. 
+    pybind11/options.h: global settings that are configurable at runtime.
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
