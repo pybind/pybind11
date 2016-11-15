@@ -499,14 +499,16 @@ public:
     PYBIND11_TYPE_CASTER(T, _<std::is_integral<T>::value>("int", "float"));
 };
 
-template <> class type_caster<void_type> {
+template<typename T> struct void_caster {
 public:
     bool load(handle, bool) { return false; }
-    static handle cast(void_type, return_value_policy /* policy */, handle /* parent */) {
+    static handle cast(T, return_value_policy /* policy */, handle /* parent */) {
         return none().inc_ref();
     }
-    PYBIND11_TYPE_CASTER(void_type, _("None"));
+    PYBIND11_TYPE_CASTER(T, _("None"));
 };
+
+template <> class type_caster<void_type> : public void_caster<void_type> {};
 
 template <> class type_caster<void> : public type_caster<void_type> {
 public:

@@ -232,11 +232,17 @@ private:
 #if PYBIND11_HAS_OPTIONAL
 template<typename T> struct type_caster<std::optional<T>>
     : public optional_caster<std::optional<T>> {};
+
+template<> struct type_caster<std::nullopt_t>
+    : public void_caster<std::nullopt_t> {};
 #endif
 
 #if PYBIND11_HAS_EXP_OPTIONAL
 template<typename T> struct type_caster<std::experimental::optional<T>>
     : public optional_caster<std::experimental::optional<T>> {};
+
+template<> struct type_caster<std::experimental::nullopt_t>
+    : public void_caster<std::experimental::nullopt_t> {};
 #endif
 
 NAMESPACE_END(detail)
