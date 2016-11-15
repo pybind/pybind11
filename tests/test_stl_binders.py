@@ -50,7 +50,6 @@ def test_vector_bool():
         assert vv_c[i] == (i % 2 == 0)
     assert str(vv_c) == "VectorBool[1, 0, 1, 0, 1, 0, 1, 0, 1, 0]"
 
-
 def test_map_string_double():
     from pybind11_tests import MapStringDouble, UnorderedMapStringDouble
 
@@ -97,3 +96,58 @@ def test_map_string_double_const():
     umc['b'] = 21.5
 
     str(umc)
+
+def test_noncopyable_vector():
+    from pybind11_tests import ENC, get_vnc
+
+    vnc = get_vnc(5)
+    for i in range(0, 5):
+        assert(vnc[i].value == i+1)
+
+    i = 1
+    for j in vnc:
+        assert(j.value == i)
+        i += 1
+
+def test_noncopyable_deque():
+    from pybind11_tests import ENC, get_dnc
+
+    dnc = get_dnc(5)
+    for i in range(0, 5):
+        assert(dnc[i].value == i+1)
+
+    i = 1
+    for j in dnc:
+        assert(j.value == i)
+        i += 1
+
+def test_noncopyable_map():
+    from pybind11_tests import ENC, get_mnc
+
+    mnc = get_mnc(5)
+    for i in range(1, 6):
+        assert(mnc[i].value == 10*i)
+
+    i = 1
+    vsum = 0
+    for k, v in mnc.items():
+        assert(v.value == 10*k)
+        vsum += v.value
+
+    assert(vsum == 150)
+
+def test_noncopyable_unordered_map():
+    from pybind11_tests import ENC, get_umnc
+
+    mnc = get_umnc(5)
+    for i in range(1, 6):
+        assert(mnc[i].value == 10*i)
+
+    i = 1
+    vsum = 0
+    for k, v in mnc.items():
+        assert(v.value == 10*k)
+        vsum += v.value
+
+    assert(vsum == 150)
+
