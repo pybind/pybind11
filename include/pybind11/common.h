@@ -93,6 +93,7 @@
 #  pragma warning(pop)
 #endif
 
+#include <cstddef>
 #include <forward_list>
 #include <vector>
 #include <string>
@@ -182,7 +183,8 @@ extern "C" {
 
 NAMESPACE_BEGIN(pybind11)
 
-typedef Py_ssize_t ssize_t;
+using ssize_t = Py_ssize_t;
+using size_t  = std::size_t;
 
 /// Approach used to cast a previously unknown C++ instance into a Python object
 enum class return_value_policy : uint8_t {
@@ -320,7 +322,7 @@ template <typename type, typename holder_type = std::unique_ptr<type>> struct in
 };
 
 struct overload_hash {
-    inline std::size_t operator()(const std::pair<const PyObject *, const char *>& v) const {
+    inline size_t operator()(const std::pair<const PyObject *, const char *>& v) const {
         size_t value = std::hash<const void *>()(v.first);
         value ^= std::hash<const void *>()(v.second)  + 0x9e3779b9 + (value<<6) + (value>>2);
         return value;
