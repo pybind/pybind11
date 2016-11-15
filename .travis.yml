@@ -38,11 +38,12 @@ matrix:
   # Documentation build:
   - os: linux
     language: docs
-    env: DOCS STYLE
-    install: pip install sphinx sphinx_rtd_theme
+    env: DOCS STYLE LINT
+    install: pip install sphinx sphinx_rtd_theme flake8 pep8-naming
     script:
     - make -C docs html SPHINX_OPTIONS=-W
     - tools/check-style.sh
+    - flake8
 cache:
   directories:
   - $HOME/.cache/pip

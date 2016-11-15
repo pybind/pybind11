@@ -50,6 +50,7 @@ def test_vector_bool():
         assert vv_c[i] == (i % 2 == 0)
     assert str(vv_c) == "VectorBool[1, 0, 1, 0, 1, 0, 1, 0, 1, 0]"
 
+
 def test_map_string_double():
     from pybind11_tests import MapStringDouble, UnorderedMapStringDouble
 
@@ -57,30 +58,17 @@ def test_map_string_double():
     m['a'] = 1
     m['b'] = 2.5
 
-    keys = []
-    for k in m: keys.append(k)
-    assert keys == ['a', 'b']
-
-    key_values = []
-    for k, v in m.items(): key_values.append( (k, v) )
-    assert key_values == [('a', 1), ('b', 2.5) ]
-
+    assert list(m) == ['a', 'b']
+    assert list(m.items()) == [('a', 1), ('b', 2.5)]
     assert str(m) == "MapStringDouble{a: 1, b: 2.5}"
-
 
     um = UnorderedMapStringDouble()
     um['ua'] = 1.1
     um['ub'] = 2.6
 
-    keys = []
-    for k in um: keys.append(k)
-    assert sorted(keys) == ['ua', 'ub']
-
-    key_values = []
-    for k, v in um.items(): key_values.append( (k, v) )
-    assert sorted(key_values) == [('ua', 1.1), ('ub', 2.6) ]
-
-    str(um)
+    assert sorted(list(um)) == ['ua', 'ub']
+    assert sorted(list(um.items())) == [('ua', 1.1), ('ub', 2.6)]
+    assert "UnorderedMapStringDouble" in str(um)
 
 
 def test_map_string_double_const():
@@ -97,57 +85,56 @@ def test_map_string_double_const():
 
     str(umc)
 
+
 def test_noncopyable_vector():
-    from pybind11_tests import ENC, get_vnc
+    from pybind11_tests import get_vnc
 
     vnc = get_vnc(5)
     for i in range(0, 5):
-        assert(vnc[i].value == i+1)
+        assert vnc[i].value == i + 1
 
-    i = 1
-    for j in vnc:
-        assert(j.value == i)
-        i += 1
+    for i, j in enumerate(vnc, start=1):
+        assert j.value == i
+
 
 def test_noncopyable_deque():
-    from pybind11_tests import ENC, get_dnc
+    from pybind11_tests import get_dnc
 
     dnc = get_dnc(5)
     for i in range(0, 5):
-        assert(dnc[i].value == i+1)
+        assert dnc[i].value == i + 1
 
     i = 1
     for j in dnc:
         assert(j.value == i)
         i += 1
 
+
 def test_noncopyable_map():
-    from pybind11_tests import ENC, get_mnc
+    from pybind11_tests import get_mnc
 
     mnc = get_mnc(5)
     for i in range(1, 6):
-        assert(mnc[i].value == 10*i)
+        assert mnc[i].value == 10 * i
 
-    i = 1
     vsum = 0
     for k, v in mnc.items():
-        assert(v.value == 10*k)
+        assert v.value == 10 * k
         vsum += v.value
 
-    assert(vsum == 150)
+    assert vsum == 150
+
 
 def test_noncopyable_unordered_map():
-    from pybind11_tests import ENC, get_umnc
+    from pybind11_tests import get_umnc
 
     mnc = get_umnc(5)
     for i in range(1, 6):
-        assert(mnc[i].value == 10*i)
+        assert mnc[i].value == 10 * i
 
-    i = 1
     vsum = 0
     for k, v in mnc.items():
-        assert(v.value == 10*k)
+        assert v.value == 10 * k
         vsum += v.value
 
-    assert(vsum == 150)
-
+    assert vsum == 150

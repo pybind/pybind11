@@ -1,12 +1,11 @@
-import pytest
 import gc
 
-def test_alias_delay_initialization(capture, msg):
 
-    # A only initializes its trampoline class when we inherit from it; if we
-    # just create and use an A instance directly, the trampoline initialization
-    # is bypassed and we only initialize an A() instead (for performance
-    # reasons)
+def test_alias_delay_initialization1(capture):
+    """A only initializes its trampoline class when we inherit from it; if we just
+    create and use an A instance directly, the trampoline initialization is bypassed
+    and we only initialize an A() instead (for performance reasons).
+    """
     from pybind11_tests import A, call_f
 
     class B(A):
@@ -37,14 +36,14 @@ def test_alias_delay_initialization(capture, msg):
         PyA.~PyA()
     """
 
-def test_alias_delay_initialization(capture, msg):
-    from pybind11_tests import A2, call_f
 
-    # A2, unlike the above, is configured to always initialize the alias; while
-    # the extra initialization and extra class layer has small virtual dispatch
-    # performance penalty, it also allows us to do more things with the
-    # trampoline class such as defining local variables and performing
-    # construction/destruction.
+def test_alias_delay_initialization2(capture):
+    """A2, unlike the above, is configured to always initialize the alias; while
+    the extra initialization and extra class layer has small virtual dispatch
+    performance penalty, it also allows us to do more things with the trampoline
+    class such as defining local variables and performing construction/destruction.
+    """
+    from pybind11_tests import A2, call_f
 
     class B2(A2):
         def __init__(self):

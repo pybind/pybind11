@@ -2,7 +2,7 @@ import pytest
 
 
 def isclose(a, b, rel_tol=1e-05, abs_tol=0.0):
-    """Like to math.isclose() from Python 3.5"""
+    """Like math.isclose() from Python 3.5"""
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 

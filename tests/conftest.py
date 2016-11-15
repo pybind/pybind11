@@ -8,13 +8,12 @@ import pytest
 import textwrap
 import difflib
 import re
-import os
 import sys
 import contextlib
 
 _unicode_marker = re.compile(r'u(\'[^\']*\')')
-_long_marker    = re.compile(r'([0-9])L')
-_hexadecimal    = re.compile(r'0x[0-9a-fA-F]+')
+_long_marker = re.compile(r'([0-9])L')
+_hexadecimal = re.compile(r'0x[0-9a-fA-F]+')
 
 
 def _strip_and_dedent(s):
@@ -218,7 +217,7 @@ def _test_import_pybind11():
     """
     # noinspection PyBroadException
     try:
-        import pybind11_tests
+        import pybind11_tests  # noqa: F401 imported but unused
     except Exception as e:
         print("Failed to import pybind11_tests from pytest:")
         print("  {}: {}".format(type(e).__name__, e))

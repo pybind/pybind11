@@ -1,6 +1,6 @@
-from pybind11_tests import ConstructorStats
 
-def test_docstring_options(capture):
+
+def test_docstring_options():
     from pybind11_tests import (test_function1, test_function2, test_function3,
                                 test_function4, test_function5, test_function6,
                                 test_function7, DocstringTestFoo)

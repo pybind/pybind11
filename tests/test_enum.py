@@ -30,10 +30,6 @@ def test_unscoped_enum():
     assert not (UnscopedEnum.ETwo < UnscopedEnum.EOne)
     assert not (2 < UnscopedEnum.EOne)
 
-def test_scoped_enum():
-    from pybind11_tests import ScopedEnum, test_scoped_enum
-
-    assert test_scoped_enum(ScopedEnum.Three) == "ScopedEnum::Three"
 
 def test_scoped_enum():
     from pybind11_tests import ScopedEnum, test_scoped_enum
@@ -55,6 +51,7 @@ def test_scoped_enum():
     assert ScopedEnum.Two <= ScopedEnum.Two
     assert ScopedEnum.Two >= ScopedEnum.Two
     assert ScopedEnum.Three >= ScopedEnum.Two
+
 
 def test_implicit_conversion():
     from pybind11_tests import ClassWithUnscopedEnum
@@ -87,6 +84,7 @@ def test_implicit_conversion():
     # Hashing test
     assert str(x) == "{EMode.EFirstMode: 3, EMode.ESecondMode: 4}"
 
+
 def test_binary_operators():
     from pybind11_tests import Flags
 
@@ -108,4 +106,3 @@ def test_binary_operators():
     state2 = ~state
     assert state2 == -7
     assert int(state ^ state2) == -1
-
