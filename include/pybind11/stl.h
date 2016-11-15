@@ -205,7 +205,7 @@ template<typename T> struct optional_caster {
 
     static handle cast(const T& src, return_value_policy policy, handle parent) {
         if (!src)
-            return none();
+            return none().inc_ref();
         return caster_type::cast(*src, policy, parent);
     }
 
