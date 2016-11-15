@@ -461,7 +461,6 @@ public:
     template<typename... Ix> size_t offset_at(Ix... index) const {
         if (sizeof...(index) > ndim())
             fail_dim_check(sizeof...(index), "too many indices for an array");
-        check_dimensions(index...);
         return byte_offset(size_t(index)...);
     }
 
@@ -494,11 +493,16 @@ protected:
                           " (ndim = " + std::to_string(ndim()) + ")");
     }
 
-    template<size_t dim = 0, typename... Ix> size_t byte_offset(size_t i, Ix... index) const {
-        return i * strides()[dim] + byte_offset<dim + 1>(index...);
+    template<typename... Ix> size_t byte_offset(Ix... index) const {
+        check_dimensions(index...);
+        return byte_offset_unsafe(index...);
     }
 
-    template<size_t dim = 0> size_t byte_offset() const { return 0; }
+    template<size_t dim = 0, typename... Ix> size_t byte_offset_unsafe(size_t i, Ix... index) const {
+        return i * strides()[dim] + byte_offset_unsafe<dim + 1>(index...);
+    }
+
+    template<size_t dim = 0> size_t byte_offset_unsafe() const { return 0; }
 
     void check_writeable() const {
         if (!writeable())
@@ -575,7 +579,6 @@ public:
     template<typename... Ix> const T& at(Ix... index) const {
         if (sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
-        check_dimensions(index...);
         return *(static_cast<const T*>(array::data()) + byte_offset(size_t(index)...) / itemsize());
     }
 
@@ -583,7 +586,6 @@ public:
     template<typename... Ix> T& mutable_at(Ix... index) {
         if (sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
-        check_dimensions(index...);
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(size_t(index)...) / itemsize());
     }
 
