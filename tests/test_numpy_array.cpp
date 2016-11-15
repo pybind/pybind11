@@ -18,11 +18,11 @@
 using arr = py::array;
 using arr_t = py::array_t<uint16_t, 0>;
 
-template<typename... Ix> arr data(const arr& a, Ix&&... index) {
+template<typename... Ix> arr data(const arr& a, Ix... index) {
     return arr(a.nbytes() - a.offset_at(index...), (const uint8_t *) a.data(index...));
 }
 
-template<typename... Ix> arr data_t(const arr_t& a, Ix&&... index) {
+template<typename... Ix> arr data_t(const arr_t& a, Ix... index) {
     return arr(a.size() - a.index_at(index...), a.data(index...));
 }
 
@@ -40,26 +40,26 @@ arr_t& mutate_data_t(arr_t& a) {
     return a;
 }
 
-template<typename... Ix> arr& mutate_data(arr& a, Ix&&... index) {
+template<typename... Ix> arr& mutate_data(arr& a, Ix... index) {
     auto ptr = (uint8_t *) a.mutable_data(index...);
     for (size_t i = 0; i < a.nbytes() - a.offset_at(index...); i++)
         ptr[i] = (uint8_t) (ptr[i] * 2);
     return a;
 }
 
-template<typename... Ix> arr_t& mutate_data_t(arr_t& a, Ix&&... index) {
+template<typename... Ix> arr_t& mutate_data_t(arr_t& a, Ix... index) {
     auto ptr = a.mutable_data(index...);
     for (size_t i = 0; i < a.size() - a.index_at(index...); i++)
         ptr[i]++;
     return a;
 }
 
-template<typename... Ix> size_t index_at(const arr& a, Ix&&... idx) { return a.index_at(idx...); }
-template<typename... Ix> size_t index_at_t(const arr_t& a, Ix&&... idx) { return a.index_at(idx...); }
-template<typename... Ix> size_t offset_at(const arr& a, Ix&&... idx) { return a.offset_at(idx...); }
-template<typename... Ix> size_t offset_at_t(const arr_t& a, Ix&&... idx) { return a.offset_at(idx...); }
-template<typename... Ix> size_t at_t(const arr_t& a, Ix&&... idx) { return a.at(idx...); }
-template<typename... Ix> arr_t& mutate_at_t(arr_t& a, Ix&&... idx) { a.mutable_at(idx...)++; return a; }
+template<typename... Ix> size_t index_at(const arr& a, Ix... idx) { return a.index_at(idx...); }
+template<typename... Ix> size_t index_at_t(const arr_t& a, Ix... idx) { return a.index_at(idx...); }
+template<typename... Ix> size_t offset_at(const arr& a, Ix... idx) { return a.offset_at(idx...); }
+template<typename... Ix> size_t offset_at_t(const arr_t& a, Ix... idx) { return a.offset_at(idx...); }
+template<typename... Ix> size_t at_t(const arr_t& a, Ix... idx) { return a.at(idx...); }
+template<typename... Ix> arr_t& mutate_at_t(arr_t& a, Ix... idx) { a.mutable_at(idx...)++; return a; }
 
 #define def_index_fn(name, type) \
     sm.def(#name, [](type a) { return name(a); }); \
