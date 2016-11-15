@@ -205,7 +205,7 @@ template<typename T> struct optional_caster {
 
     static handle cast(const T& src, return_value_policy policy, handle parent) {
         if (!src)
-            return none();
+            return none().inc_ref();
         return caster_type::cast(*src, policy, parent);
     }
 
@@ -232,11 +232,17 @@ private:
 #if PYBIND11_HAS_OPTIONAL
 template<typename T> struct type_caster<std::optional<T>>
     : public optional_caster<std::optional<T>> {};
+
+template<> struct type_caster<std::nullopt_t>
+    : public void_caster<std::nullopt_t> {};
 #endif
 
 #if PYBIND11_HAS_EXP_OPTIONAL
 template<typename T> struct type_caster<std::experimental::optional<T>>
     : public optional_caster<std::experimental::optional<T>> {};
+
+template<> struct type_caster<std::experimental::nullopt_t>
+    : public void_caster<std::experimental::nullopt_t> {};
 #endif
 
 NAMESPACE_END(detail)

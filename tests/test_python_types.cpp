@@ -301,6 +301,9 @@ test_initializer python_types([](py::module &m) {
     m.def("half_or_none", [](int x) -> opt_int {
         return x ? opt_int(x / 2) : opt_int();
     });
+    m.def("test_nullopt", [](opt_int x) {
+        return x.value_or(42);
+    }, py::arg_v("x", std::experimental::nullopt, "None"));
 #endif
     m.attr("has_optional") = py::cast(has_optional);
 });

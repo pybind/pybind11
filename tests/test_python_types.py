@@ -299,7 +299,7 @@ def test_accessors():
 
 @pytest.mark.skipif(not has_optional, reason='no <experimental/optional>')
 def test_optional():
-    from pybind11_tests import double_or_zero, half_or_none
+    from pybind11_tests import double_or_zero, half_or_none, test_nullopt
 
     assert double_or_zero(None) == 0
     assert double_or_zero(42) == 84
@@ -308,3 +308,8 @@ def test_optional():
     assert half_or_none(0) is None
     assert half_or_none(42) == 21
     pytest.raises(TypeError, half_or_none, 'foo')
+
+    assert test_nullopt() == 42
+    assert test_nullopt(None) == 42
+    assert test_nullopt(42) == 42
+    assert test_nullopt(43) == 43
