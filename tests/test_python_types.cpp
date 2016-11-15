@@ -290,11 +290,10 @@ test_initializer python_types([](py::module &m) {
         return d;
     });
 
-    // this only tests std::experimental::optional for now
-    bool has_optional = false;
-#ifdef PYBIND11_HAS_EXP_OPTIONAL
+    bool has_optional = false, has_exp_optional = false;
+#ifdef PYBIND11_HAS_OPTIONAL
     has_optional = true;
-    using opt_int = std::experimental::optional<int>;
+    using opt_int = std::optional<int>;
     m.def("double_or_zero", [](const opt_int& x) -> int {
         return x.value_or(0) * 2;
     });
@@ -303,7 +302,23 @@ test_initializer python_types([](py::module &m) {
     });
     m.def("test_nullopt", [](opt_int x) {
         return x.value_or(42);
+    }, py::arg_v("x", std::nullopt, "None"));
+#endif
+
+#ifdef PYBIND11_HAS_EXP_OPTIONAL
+    has_exp_optional = true;
+    using opt_int = std::experimental::optional<int>;
+    m.def("double_or_zero_exp", [](const opt_int& x) -> int {
+        return x.value_or(0) * 2;
+    });
+    m.def("half_or_none_exp", [](int x) -> opt_int {
+        return x ? opt_int(x / 2) : opt_int();
+    });
+    m.def("test_nullopt_exp", [](opt_int x) {
+        return x.value_or(42);
     }, py::arg_v("x", std::experimental::nullopt, "None"));
 #endif
+
     m.attr("has_optional") = py::cast(has_optional);
+    m.attr("has_exp_optional") = py::cast(has_exp_optional);
 });

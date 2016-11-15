@@ -1,6 +1,6 @@
 import pytest
 
-from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional
+from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, has_exp_optional
 
 
 def test_static():
@@ -297,7 +297,7 @@ def test_accessors():
     assert d["var"] == 99
 
 
-@pytest.mark.skipif(not has_optional, reason='no <experimental/optional>')
+@pytest.mark.skipif(not has_optional, reason='no <optional>')
 def test_optional():
     from pybind11_tests import double_or_zero, half_or_none, test_nullopt
 
@@ -313,3 +313,20 @@ def test_optional():
     assert test_nullopt(None) == 42
     assert test_nullopt(42) == 42
     assert test_nullopt(43) == 43
+
+@pytest.mark.skipif(not has_exp_optional, reason='no <experimental/optional>')
+def test_exp_optional():
+    from pybind11_tests import double_or_zero_exp, half_or_none_exp, test_nullopt_exp
+
+    assert double_or_zero_exp(None) == 0
+    assert double_or_zero_exp(42) == 84
+    pytest.raises(TypeError, double_or_zero_exp, 'foo')
+
+    assert half_or_none_exp(0) is None
+    assert half_or_none_exp(42) == 21
+    pytest.raises(TypeError, half_or_none_exp, 'foo')
+
+    assert test_nullopt_exp() == 42
+    assert test_nullopt_exp(None) == 42
+    assert test_nullopt_exp(42) == 42
+    assert test_nullopt_exp(43) == 43
