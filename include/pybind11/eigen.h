@@ -54,7 +54,7 @@ struct type_caster<Type, enable_if_t<is_eigen_dense<Type>::value && !is_eigen_re
     static constexpr bool isVector = Type::IsVectorAtCompileTime;
 
     bool load(handle src, bool) {
-        array_t<Scalar> buf(src, true);
+        auto buf = array_t<Scalar>::ensure(src);
         if (!buf)
             return false;
 

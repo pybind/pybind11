@@ -126,4 +126,28 @@ test_initializer numpy_array([](py::module &m) {
     );
 
     sm.def("function_taking_uint64", [](uint64_t) { });
+
+    sm.def("isinstance_untyped", [](py::object yes, py::object no) {
+        return py::isinstance<py::array>(yes) && !py::isinstance<py::array>(no);
+    });
+
+    sm.def("isinstance_typed", [](py::object o) {
+        return py::isinstance<py::array_t<double>>(o) && !py::isinstance<py::array_t<int>>(o);
+    });
+
+    sm.def("default_constructors", []() {
+        return py::dict(
+            "array"_a=py::array(),
+            "array_t<int32>"_a=py::array_t<std::int32_t>(),
+            "array_t<double>"_a=py::array_t<double>()
+        );
+    });
+
+    sm.def("converting_constructors", [](py::object o) {
+        return py::dict(
+            "array"_a=py::array(o),
+            "array_t<int32>"_a=py::array_t<std::int32_t>(o),
+            "array_t<double>"_a=py::array_t<double>(o)
+        );
+    });
 });

@@ -245,3 +245,30 @@ def test_cast_numpy_int64_to_uint64():
     from pybind11_tests.array import function_taking_uint64
     function_taking_uint64(123)
     function_taking_uint64(np.uint64(123))
+
+
+@pytest.requires_numpy
+def test_isinstance():
+    from pybind11_tests.array import isinstance_untyped, isinstance_typed
+
+    assert isinstance_untyped(np.array([1, 2, 3]), "not an array")
+    assert isinstance_typed(np.array([1.0, 2.0, 3.0]))
+
+
+@pytest.requires_numpy
+def test_constructors():
+    from pybind11_tests.array import default_constructors, converting_constructors
+
+    defaults = default_constructors()
+    for a in defaults.values():
+        assert a.size == 0
+    assert defaults["array"].dtype == np.array([]).dtype
+    assert defaults["array_t<int32>"].dtype == np.int32
+    assert defaults["array_t<double>"].dtype == np.float64
+
+    results = converting_constructors([1, 2, 3])
+    for a in results.values():
+        np.testing.assert_array_equal(a, [1, 2, 3])
+    assert results["array"].dtype == np.int_
+    assert results["array_t<int32>"].dtype == np.int32
+    assert results["array_t<double>"].dtype == np.float64

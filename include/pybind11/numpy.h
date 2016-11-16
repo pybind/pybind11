@@ -305,13 +305,15 @@ private:
 
 class array : public buffer {
 public:
-    PYBIND11_OBJECT_DEFAULT(array, buffer, detail::npy_api::get().PyArray_Check_)
+    PYBIND11_OBJECT_CVT(array, buffer, detail::npy_api::get().PyArray_Check_, raw_array)
 
     enum {
         c_style = detail::npy_api::NPY_C_CONTIGUOUS_,
         f_style = detail::npy_api::NPY_F_CONTIGUOUS_,
         forcecast = detail::npy_api::NPY_ARRAY_FORCECAST_
     };
+
+    array() : array(0, static_cast<const double *>(nullptr)) {}
 
     array(const pybind11::dtype &dt, const std::vector<size_t> &shape,
           const std::vector<size_t> &strides, const void *ptr = nullptr,
@@ -478,10 +480,12 @@ public:
     }
 
     /// Ensure that the argument is a NumPy array
-    static array ensure(object input, int ExtraFlags = 0) {
-        auto& api = detail::npy_api::get();
-        return reinterpret_steal<array>(api.PyArray_FromAny_(
-            input.release().ptr(), nullptr, 0, 0, detail::npy_api::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr));
+    /// In case of an error, nullptr is returned and the Python error is cleared.
+    static array ensure(handle h, int ExtraFlags = 0) {
+        auto result = reinterpret_steal<array>(raw_array(h.ptr(), ExtraFlags));
+        if (!result)
+            PyErr_Clear();
+        return result;
     }
 
 protected:
@@ -520,8 +524,6 @@ protected:
         return strides;
     }
 
-protected:
-
     template<typename... Ix> void check_dimensions(Ix... index) const {
         check_dimensions_impl(size_t(0), shape(), size_t(index)...);
     }
@@ -536,15 +538,31 @@ protected:
         }
         check_dimensions_impl(axis + 1, shape + 1, index...);
     }
+
+    /// Create array from any object -- always returns a new reference
+    static PyObject *raw_array(PyObject *ptr, int ExtraFlags = 0) {
+        if (ptr == nullptr)
+            return nullptr;
+        return detail::npy_api::get().PyArray_FromAny_(
+            ptr, nullptr, 0, 0, detail::npy_api::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
+    }
 };
 
 template <typename T, int ExtraFlags = array::forcecast> class array_t : public array {
 public:
-    array_t() : array() { }
+    array_t() : array(0, static_cast<const T *>(nullptr)) {}
+    array_t(handle h, borrowed_t) : array(h, borrowed) { }
+    array_t(handle h, stolen_t) : array(h, stolen) { }
 
-    array_t(handle h, bool is_borrowed) : array(h, is_borrowed) { m_ptr = ensure_(m_ptr); }
+    PYBIND11_DEPRECATED("Use array_t<T>::ensure() instead")
+    array_t(handle h, bool is_borrowed) : array(raw_array_t(h.ptr()), stolen) {
+        if (!m_ptr) PyErr_Clear();
+        if (!is_borrowed) Py_XDECREF(h.ptr());
+    }
 
-    array_t(const object &o) : array(o) { m_ptr = ensure_(m_ptr); }
+    array_t(const object &o) : array(raw_array_t(o.ptr()), stolen) {
+        if (!m_ptr) throw error_already_set();
+    }
 
     explicit array_t(const buffer_info& info) : array(info) { }
 
@@ -590,16 +608,29 @@ public:
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(size_t(index)...) / itemsize());
     }
 
-    static PyObject *ensure_(PyObject *ptr) {
-        if (ptr == nullptr)
-            return nullptr;
-        auto& api = detail::npy_api::get();
-        PyObject *result = api.PyArray_FromAny_(ptr, pybind11::dtype::of<T>().release().ptr(), 0, 0,
-                                                detail::npy_api::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
+    /// Ensure that the argument is a NumPy array of the correct dtype.
+    /// In case of an error, nullptr is returned and the Python error is cleared.
+    static array_t ensure(handle h) {
+        auto result = reinterpret_steal<array_t>(raw_array_t(h.ptr()));
         if (!result)
             PyErr_Clear();
-        Py_DECREF(ptr);
         return result;
+    }
+
+    static bool _check(handle h) {
+        const auto &api = detail::npy_api::get();
+        return api.PyArray_Check_(h.ptr())
+               && api.PyArray_EquivTypes_(PyArray_GET_(h.ptr(), descr), dtype::of<T>().ptr());
+    }
+
+protected:
+    /// Create array from any object -- always returns a new reference
+    static PyObject *raw_array_t(PyObject *ptr) {
+        if (ptr == nullptr)
+            return nullptr;
+        return detail::npy_api::get().PyArray_FromAny_(
+            ptr, dtype::of<T>().release().ptr(), 0, 0,
+            detail::npy_api::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
     }
 };
 
@@ -631,7 +662,7 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
     using type = array_t<T, ExtraFlags>;
 
     bool load(handle src, bool /* convert */) {
-        value = type(src, true);
+        value = type::ensure(src);
         return static_cast<bool>(value);
     }
 
