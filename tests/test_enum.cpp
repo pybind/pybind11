@@ -19,6 +19,12 @@ enum class ScopedEnum {
     Three
 };
 
+enum Flags {
+    Read = 4,
+    Write = 2,
+    Execute = 1
+};
+
 class ClassWithUnscopedEnum {
 public:
     enum EMode {
@@ -46,6 +52,13 @@ test_initializer enums([](py::module &m) {
     py::enum_<ScopedEnum>(m, "ScopedEnum")
         .value("Two", ScopedEnum::Two)
         .value("Three", ScopedEnum::Three)
+        ;
+
+    py::enum_<Flags>(m, "Flags")
+        .value("Read", Flags::Read)
+        .value("Write", Flags::Write)
+        .value("Execute", Flags::Execute)
+        .export_values();
         ;
 
     py::class_<ClassWithUnscopedEnum> exenum_class(m, "ClassWithUnscopedEnum");
