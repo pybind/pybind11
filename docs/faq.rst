@@ -153,6 +153,15 @@ will:
    definition is changed, only a subset of the binding code will generally need
    to be recompiled.
 
+"recursive template instantiation exceeded maximum depth of 256"
+================================================================
+
+If you receive an error about excessive recursive template evaluation, try
+specifying a larger value, e.g. ``-ftemplate-depth=1024`` on GCC/Clang. The
+culprit is generally the generation of function signatures at compile time
+using C++14 template metaprogramming.
+
+
 How can I create smaller binaries?
 ==================================
 
