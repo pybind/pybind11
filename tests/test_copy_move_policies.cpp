@@ -21,7 +21,7 @@ struct lacking_copy_ctor : public empty<lacking_copy_ctor> {
     lacking_copy_ctor(const lacking_copy_ctor& other) = delete;
 };
 
-template <> lacking_copy_ctor empty<lacking_copy_ctor>::instance_ {};
+template <> lacking_copy_ctor empty<lacking_copy_ctor>::instance_ = {};
 
 struct lacking_move_ctor : public empty<lacking_move_ctor> {
     lacking_move_ctor() {}
@@ -29,7 +29,7 @@ struct lacking_move_ctor : public empty<lacking_move_ctor> {
     lacking_move_ctor(lacking_move_ctor&& other) = delete;
 };
 
-template <> lacking_move_ctor empty<lacking_move_ctor>::instance_ {};
+template <> lacking_move_ctor empty<lacking_move_ctor>::instance_ = {};
 
 test_initializer copy_move_policies([](py::module &m) {
     py::class_<lacking_copy_ctor>(m, "lacking_copy_ctor")
