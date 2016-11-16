@@ -1429,12 +1429,14 @@ void register_exception_translator(ExceptionTranslator&& translator) {
 template <typename type>
 class exception : public object {
 public:
-    exception(module &m, const std::string &name, PyObject* base=PyExc_Exception) {
-        std::string full_name = std::string(PyModule_GetName(m.ptr()))
-                + std::string(".") + name;
-        char* exception_name = const_cast<char*>(full_name.c_str());
-        m_ptr = PyErr_NewException(exception_name, base, NULL);
-        m.add_object(name.c_str(), *this);
+    exception(handle scope, const char *name, PyObject *base = PyExc_Exception) {
+        std::string full_name = scope.attr("__name__").cast<std::string>() +
+                                std::string(".") + name;
+        m_ptr = PyErr_NewException((char *) full_name.c_str(), base, NULL);
+        if (hasattr(scope, name))
+            pybind11_fail("Error during initialization: multiple incompatible "
+                          "definitions with name \"" + std::string(name) + "\"");
+        scope.attr(name) = *this;
     }
 
     // Sets the current python exception to this exception object with the given message
@@ -1448,14 +1450,16 @@ public:
  * This is intended for simple exception translations; for more complex translation, register the
  * exception object and translator directly.
  */
-template <typename CppException> exception<CppException>& register_exception(module &m, const std::string &name, PyObject* base = PyExc_Exception) {
-    static exception<CppException> ex(m, name, base);
+template <typename CppException>
+exception<CppException> &register_exception(handle scope,
+                                            const char *name,
+                                            PyObject *base = PyExc_Exception) {
+    static exception<CppException> ex(scope, name, base);
     register_exception_translator([](std::exception_ptr p) {
         if (!p) return;
         try {
             std::rethrow_exception(p);
-        }
-        catch (const CppException &e) {
+        } catch (const CppException &e) {
             ex(e.what());
         }
     });
