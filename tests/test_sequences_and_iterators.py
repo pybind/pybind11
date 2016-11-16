@@ -88,3 +88,26 @@ def test_map_iterator():
         assert m[k] == expected[k]
     for k, v in m.items():
         assert v == expected[k]
+
+
+@pytest.mark.parametrize('funcname', ['sort_iterable_t', 'sort_sequence_t'])
+def test_typed_iterables(funcname):
+    import pybind11_tests
+    func = getattr(pybind11_tests, funcname)
+
+    seq1 = ['b', 'c', 'a']
+    assert func(seq1) == ['a', 'b', 'c']
+
+    assert func([]) == []
+
+    with pytest.raises(RuntimeError) as excinfo:
+        func([1, 2])
+    assert 'Unable to cast' in str(excinfo.value)
+
+    seq2 = (s * 2 for s in seq1)  # generator, ok for iterables but not sequences
+    if funcname == 'sort_iterable_t':
+        assert func(seq2) == ['aa', 'bb', 'cc']
+    else:
+        with pytest.raises(TypeError) as excinfo:
+            func(seq2)
+        assert 'incompatible function arguments' in str(excinfo.value)
