@@ -1187,51 +1187,62 @@ private:
 template <typename Type> class enum_ : public class_<Type> {
 public:
     using class_<Type>::def;
-    using UnderlyingType = typename std::underlying_type<Type>::type;
+    using Scalar = typename std::underlying_type<Type>::type;
+    template <typename T> using arithmetic_tag = std::is_same<T, arithmetic>;
+
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : class_<Type>(scope, name, extra...), m_parent(scope) {
-        auto entries = new std::unordered_map<UnderlyingType, const char *>();
+
+        constexpr bool is_arithmetic =
+            !std::is_same<detail::first_of_t<arithmetic_tag, void, Extra...>,
+                          void>::value;
+
+        auto entries = new std::unordered_map<Scalar, const char *>();
         def("__repr__", [name, entries](Type value) -> std::string {
-            auto it = entries->find((UnderlyingType) value);
+            auto it = entries->find((Scalar) value);
             return std::string(name) + "." +
                 ((it == entries->end()) ? std::string("???")
                                         : std::string(it->second));
         });
-        def("__init__", [](Type& value, UnderlyingType i) { value = (Type)i; });
-        def("__init__", [](Type& value, UnderlyingType i) { new (&value) Type((Type) i); });
-        def("__int__", [](Type value) { return (UnderlyingType) value; });
+        def("__init__", [](Type& value, Scalar i) { value = (Type)i; });
+        def("__init__", [](Type& value, Scalar i) { new (&value) Type((Type) i); });
+        def("__int__", [](Type value) { return (Scalar) value; });
         def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
         def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
-        def("__lt__", [](const Type &value, Type *value2) { return value2 && value < *value2; });
-        def("__gt__", [](const Type &value, Type *value2) { return value2 && value > *value2; });
-        def("__le__", [](const Type &value, Type *value2) { return value2 && value <= *value2; });
-        def("__ge__", [](const Type &value, Type *value2) { return value2 && value >= *value2; });
-        if (std::is_convertible<Type, UnderlyingType>::value) {
+        if (is_arithmetic) {
+            def("__lt__", [](const Type &value, Type *value2) { return value2 && value < *value2; });
+            def("__gt__", [](const Type &value, Type *value2) { return value2 && value > *value2; });
+            def("__le__", [](const Type &value, Type *value2) { return value2 && value <= *value2; });
+            def("__ge__", [](const Type &value, Type *value2) { return value2 && value >= *value2; });
+        }
+        if (std::is_convertible<Type, Scalar>::value) {
             // Don't provide comparison with the underlying type if the enum isn't convertible,
             // i.e. if Type is a scoped enum, mirroring the C++ behaviour.  (NB: we explicitly
-            // convert Type to UnderlyingType below anyway because this needs to compile).
-            def("__eq__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value == value2; });
-            def("__ne__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value != value2; });
-            def("__lt__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value < value2; });
-            def("__gt__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value > value2; });
-            def("__le__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value <= value2; });
-            def("__ge__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value >= value2; });
-            def("__invert__", [](const Type &value) { return ~((UnderlyingType) value); });
-            def("__and__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value & value2; });
-            def("__or__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value | value2; });
-            def("__xor__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value ^ value2; });
-            def("__rand__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value & value2; });
-            def("__ror__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value | value2; });
-            def("__rxor__", [](const Type &value, UnderlyingType value2) { return (UnderlyingType) value ^ value2; });
-            def("__and__", [](const Type &value, const Type &value2) { return (UnderlyingType) value & (UnderlyingType) value2; });
-            def("__or__", [](const Type &value, const Type &value2) { return (UnderlyingType) value | (UnderlyingType) value2; });
-            def("__xor__", [](const Type &value, const Type &value2) { return (UnderlyingType) value ^ (UnderlyingType) value2; });
+            // convert Type to Scalar below anyway because this needs to compile).
+            def("__eq__", [](const Type &value, Scalar value2) { return (Scalar) value == value2; });
+            def("__ne__", [](const Type &value, Scalar value2) { return (Scalar) value != value2; });
+            if (is_arithmetic) {
+                def("__lt__", [](const Type &value, Scalar value2) { return (Scalar) value < value2; });
+                def("__gt__", [](const Type &value, Scalar value2) { return (Scalar) value > value2; });
+                def("__le__", [](const Type &value, Scalar value2) { return (Scalar) value <= value2; });
+                def("__ge__", [](const Type &value, Scalar value2) { return (Scalar) value >= value2; });
+                def("__invert__", [](const Type &value) { return ~((Scalar) value); });
+                def("__and__", [](const Type &value, Scalar value2) { return (Scalar) value & value2; });
+                def("__or__", [](const Type &value, Scalar value2) { return (Scalar) value | value2; });
+                def("__xor__", [](const Type &value, Scalar value2) { return (Scalar) value ^ value2; });
+                def("__rand__", [](const Type &value, Scalar value2) { return (Scalar) value & value2; });
+                def("__ror__", [](const Type &value, Scalar value2) { return (Scalar) value | value2; });
+                def("__rxor__", [](const Type &value, Scalar value2) { return (Scalar) value ^ value2; });
+                def("__and__", [](const Type &value, const Type &value2) { return (Scalar) value & (Scalar) value2; });
+                def("__or__", [](const Type &value, const Type &value2) { return (Scalar) value | (Scalar) value2; });
+                def("__xor__", [](const Type &value, const Type &value2) { return (Scalar) value ^ (Scalar) value2; });
+            }
         }
-        def("__hash__", [](const Type &value) { return (UnderlyingType) value; });
+        def("__hash__", [](const Type &value) { return (Scalar) value; });
         // Pickling and unpickling -- needed for use with the 'multiprocessing' module
-        def("__getstate__", [](const Type &value) { return pybind11::make_tuple((UnderlyingType) value); });
-        def("__setstate__", [](Type &p, tuple t) { new (&p) Type((Type) t[0].cast<UnderlyingType>()); });
+        def("__getstate__", [](const Type &value) { return pybind11::make_tuple((Scalar) value); });
+        def("__setstate__", [](Type &p, tuple t) { new (&p) Type((Type) t[0].cast<Scalar>()); });
         m_entries = entries;
     }
 
@@ -1249,11 +1260,11 @@ public:
     /// Add an enumeration entry
     enum_& value(char const* name, Type value) {
         this->attr(name) = pybind11::cast(value, return_value_policy::copy);
-        (*m_entries)[(UnderlyingType) value] = name;
+        (*m_entries)[(Scalar) value] = name;
         return *this;
     }
 private:
-    std::unordered_map<UnderlyingType, const char *> *m_entries;
+    std::unordered_map<Scalar, const char *> *m_entries;
     handle m_parent;
 };
 

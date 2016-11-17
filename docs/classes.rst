@@ -393,4 +393,18 @@ typed enums.
     1L
 
 
+.. note::
+
+    When the special tag ``py::arithmetic()`` is specified to the ``enum_``
+    constructor, pybind11 creates an enumeration that also supports rudimentary
+    arithmetic and bit-level operations like comparisons, and, or, xor, negation,
+    etc.
+
+    .. code-block:: cpp
+
+        py::enum_<Pet::Kind>(pet, "Kind", py::arithmetic())
+           ...
+
+    By default, these are omitted to conserve space.
+
 .. [#f1] Stateless closures are those with an empty pair of brackets ``[]`` as the capture object.

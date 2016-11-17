@@ -44,22 +44,20 @@ std::string test_scoped_enum(ScopedEnum z) {
 test_initializer enums([](py::module &m) {
     m.def("test_scoped_enum", &test_scoped_enum);
 
-    py::enum_<UnscopedEnum>(m, "UnscopedEnum")
+    py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic())
         .value("EOne", EOne)
         .value("ETwo", ETwo)
         .export_values();
 
-    py::enum_<ScopedEnum>(m, "ScopedEnum")
+    py::enum_<ScopedEnum>(m, "ScopedEnum", py::arithmetic())
         .value("Two", ScopedEnum::Two)
-        .value("Three", ScopedEnum::Three)
-        ;
+        .value("Three", ScopedEnum::Three);
 
-    py::enum_<Flags>(m, "Flags")
+    py::enum_<Flags>(m, "Flags", py::arithmetic())
         .value("Read", Flags::Read)
         .value("Write", Flags::Write)
         .value("Execute", Flags::Execute)
         .export_values();
-        ;
 
     py::class_<ClassWithUnscopedEnum> exenum_class(m, "ClassWithUnscopedEnum");
     exenum_class.def_static("test_function", &ClassWithUnscopedEnum::test_function);
