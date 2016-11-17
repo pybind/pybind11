@@ -47,6 +47,9 @@ struct multiple_inheritance { };
 /// Annotation which enables dynamic attributes, i.e. adds `__dict__` to a class
 struct dynamic_attr { };
 
+/// Annotation to mark enums as an arithmetic type
+struct arithmetic { };
+
 NAMESPACE_BEGIN(detail)
 /* Forward declarations */
 enum op_id : int;
@@ -305,6 +308,11 @@ template <>
 struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr> {
     static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
 };
+
+
+/// Process an 'arithmetic' attribute for enums (does nothing here)
+template <>
+struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
 
 /***
  * Process a keep_alive call policy -- invokes keep_alive_impl during the
