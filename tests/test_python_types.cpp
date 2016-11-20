@@ -164,6 +164,13 @@ public:
 int ExamplePythonTypes::value = 0;
 const int ExamplePythonTypes::value2 = 5;
 
+struct MoveOutContainer {
+    struct Value { int value; };
+
+    std::list<Value> move_list() const { return {{0}, {1}, {2}}; }
+};
+
+
 test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
@@ -363,4 +370,11 @@ test_initializer python_types([](py::module &m) {
             "memoryview"_a=d["memoryview"].cast<py::memoryview>()
         );
     });
+
+    py::class_<MoveOutContainer::Value>(m, "MoveOutContainerValue")
+        .def_readonly("value", &MoveOutContainer::Value::value);
+
+    py::class_<MoveOutContainer>(m, "MoveOutContainer")
+        .def(py::init<>())
+        .def_property_readonly("move_list", &MoveOutContainer::move_list);
 });

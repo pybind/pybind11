@@ -380,10 +380,8 @@ public:
         return cast(&src, policy, parent);
     }
 
-    static handle cast(itype &&src, return_value_policy policy, handle parent) {
-        if (policy != return_value_policy::copy)
-            policy = return_value_policy::move;
-        return cast(&src, policy, parent);
+    static handle cast(itype &&src, return_value_policy, handle parent) {
+        return cast(&src, return_value_policy::move, parent);
     }
 
     static handle cast(const itype *src, return_value_policy policy, handle parent) {
