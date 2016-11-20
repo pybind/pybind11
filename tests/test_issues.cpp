@@ -351,6 +351,26 @@ void init_issues(py::module &m) {
     /// Issue #484: number conversion generates unhandled exceptions
     m2.def("test_complex", [](float x) { py::print("{}"_s.format(x)); });
     m2.def("test_complex", [](std::complex<float> x) { py::print("({}, {})"_s.format(x.real(), x.imag())); });
+
+    /// Issue #511: problem with inheritance + overwritten def_static
+    struct MyBase {
+        static std::unique_ptr<MyBase> make() {
+            return std::unique_ptr<MyBase>(new MyBase());
+        }
+    };
+
+    struct MyDerived : MyBase {
+        static std::unique_ptr<MyDerived> make() {
+            return std::unique_ptr<MyDerived>(new MyDerived());
+        }
+    };
+
+    py::class_<MyBase>(m2, "MyBase")
+        .def_static("make", &MyBase::make);
+
+    py::class_<MyDerived, MyBase>(m2, "MyDerived")
+        .def_static("make", &MyDerived::make)
+        .def_static("make2", &MyDerived::make);
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSCV

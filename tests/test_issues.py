@@ -237,3 +237,15 @@ def test_complex_cast(capture):
 1.0
 (0.0, 2.0)
 """
+
+
+def test_inheritance_override_def_static():
+    from pybind11_tests.issues import MyBase, MyDerived
+
+    b = MyBase.make()
+    d1 = MyDerived.make2()
+    d2 = MyDerived.make()
+
+    assert isinstance(b, MyBase)
+    assert isinstance(d1, MyDerived)
+    assert isinstance(d2, MyDerived)
