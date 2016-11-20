@@ -47,7 +47,7 @@ def test_chrono_duration_roundtrip():
     from pybind11_tests import test_chrono3
     import datetime
 
-    # Get the difference betwen two times (a timedelta)
+    # Get the difference between two times (a timedelta)
     date1 = datetime.datetime.today()
     date2 = datetime.datetime.today()
     diff = date2 - date1

@@ -144,10 +144,10 @@ def test_bounds_check(arr):
              mutate_data, mutate_data_t, at_t, mutate_at_t)
     for func in funcs:
         with pytest.raises(IndexError) as excinfo:
-            index_at(arr, 2, 0)
+            func(arr, 2, 0)
         assert str(excinfo.value) == 'index 2 is out of bounds for axis 0 with size 2'
         with pytest.raises(IndexError) as excinfo:
-            index_at(arr, 0, 4)
+            func(arr, 0, 4)
         assert str(excinfo.value) == 'index 4 is out of bounds for axis 1 with size 3'
 
 
@@ -166,50 +166,49 @@ def test_make_c_f_array():
 def test_wrap():
     from pybind11_tests.array import wrap
 
-    def assert_references(A, B):
-        assert A is not B
-        assert A.__array_interface__['data'][0] == \
-               B.__array_interface__['data'][0]
-        assert A.shape == B.shape
-        assert A.strides == B.strides
-        assert A.flags.c_contiguous == B.flags.c_contiguous
-        assert A.flags.f_contiguous == B.flags.f_contiguous
-        assert A.flags.writeable == B.flags.writeable
-        assert A.flags.aligned == B.flags.aligned
-        assert A.flags.updateifcopy == B.flags.updateifcopy
-        assert np.all(A == B)
-        assert not B.flags.owndata
-        assert B.base is A
-        if A.flags.writeable and A.ndim == 2:
-            A[0, 0] = 1234
-            assert B[0, 0] == 1234
+    def assert_references(a, b):
+        assert a is not b
+        assert a.__array_interface__['data'][0] == b.__array_interface__['data'][0]
+        assert a.shape == b.shape
+        assert a.strides == b.strides
+        assert a.flags.c_contiguous == b.flags.c_contiguous
+        assert a.flags.f_contiguous == b.flags.f_contiguous
+        assert a.flags.writeable == b.flags.writeable
+        assert a.flags.aligned == b.flags.aligned
+        assert a.flags.updateifcopy == b.flags.updateifcopy
+        assert np.all(a == b)
+        assert not b.flags.owndata
+        assert b.base is a
+        if a.flags.writeable and a.ndim == 2:
+            a[0, 0] = 1234
+            assert b[0, 0] == 1234
 
-    A1 = np.array([1, 2], dtype=np.int16)
-    assert A1.flags.owndata and A1.base is None
-    A2 = wrap(A1)
-    assert_references(A1, A2)
+    a1 = np.array([1, 2], dtype=np.int16)
+    assert a1.flags.owndata and a1.base is None
+    a2 = wrap(a1)
+    assert_references(a1, a2)
 
-    A1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order='F')
-    assert A1.flags.owndata and A1.base is None
-    A2 = wrap(A1)
-    assert_references(A1, A2)
+    a1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order='F')
+    assert a1.flags.owndata and a1.base is None
+    a2 = wrap(a1)
+    assert_references(a1, a2)
 
-    A1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order='C')
-    A1.flags.writeable = False
-    A2 = wrap(A1)
-    assert_references(A1, A2)
+    a1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order='C')
+    a1.flags.writeable = False
+    a2 = wrap(a1)
+    assert_references(a1, a2)
 
-    A1 = np.random.random((4, 4, 4))
-    A2 = wrap(A1)
-    assert_references(A1, A2)
+    a1 = np.random.random((4, 4, 4))
+    a2 = wrap(a1)
+    assert_references(a1, a2)
 
-    A1 = A1.transpose()
-    A2 = wrap(A1)
-    assert_references(A1, A2)
+    a1 = a1.transpose()
+    a2 = wrap(a1)
+    assert_references(a1, a2)
 
-    A1 = A1.diagonal()
-    A2 = wrap(A1)
-    assert_references(A1, A2)
+    a1 = a1.diagonal()
+    a2 = wrap(a1)
+    assert_references(a1, a2)
 
 
 @pytest.requires_numpy

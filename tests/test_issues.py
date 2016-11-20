@@ -83,7 +83,6 @@ def test_no_id(msg):
     assert expect_float(12) == 12
 
 
-
 def test_str_issue(msg):
     """Issue #283: __str__ called on uninitialized instance when constructor arguments invalid"""
     from pybind11_tests.issues import StrIssue
@@ -153,8 +152,8 @@ def test_override_ref():
     o = OverrideTest("asdf")
 
     # Not allowed (see associated .cpp comment)
-    #i = o.str_ref()
-    #assert o.str_ref() == "asdf"
+    # i = o.str_ref()
+    # assert o.str_ref() == "asdf"
     assert o.str_value() == "asdf"
 
     assert o.A_value().value == "hi"
@@ -167,15 +166,17 @@ def test_override_ref():
 def test_operators_notimplemented(capture):
     from pybind11_tests.issues import OpTest1, OpTest2
     with capture:
-        C1, C2 = OpTest1(), OpTest2()
-        C1 + C1
-        C2 + C2
-        C2 + C1
-        C1 + C2
-    assert capture == """Add OpTest1 with OpTest1
-Add OpTest2 with OpTest2
-Add OpTest2 with OpTest1
-Add OpTest2 with OpTest1"""
+        c1, c2 = OpTest1(), OpTest2()
+        c1 + c1
+        c2 + c2
+        c2 + c1
+        c1 + c2
+    assert capture == """
+        Add OpTest1 with OpTest1
+        Add OpTest2 with OpTest2
+        Add OpTest2 with OpTest1
+        Add OpTest2 with OpTest1
+    """
 
 
 def test_iterator_rvpolicy():
@@ -185,7 +186,7 @@ def test_iterator_rvpolicy():
 
     assert list(make_iterator_1()) == [1, 2, 3]
     assert list(make_iterator_2()) == [1, 2, 3]
-    assert(type(make_iterator_1()) != type(make_iterator_2()))
+    assert not isinstance(make_iterator_1(), type(make_iterator_2()))
 
 
 def test_dupe_assignment():
@@ -234,9 +235,9 @@ def test_complex_cast(capture):
         test_complex(2j)
 
     assert capture == """
-1.0
-(0.0, 2.0)
-"""
+        1.0
+        (0.0, 2.0)
+    """
 
 
 def test_inheritance_override_def_static():

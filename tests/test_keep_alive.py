@@ -95,4 +95,3 @@ def test_return_none(capture):
         del p
         gc.collect()
     assert capture == "Releasing parent."
-

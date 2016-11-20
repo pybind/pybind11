@@ -1,7 +1,6 @@
-import pytest
 
 
-def test_multiple_inheritance_cpp(msg):
+def test_multiple_inheritance_cpp():
     from pybind11_tests import MIType
 
     mt = MIType(3, 4)
@@ -10,7 +9,7 @@ def test_multiple_inheritance_cpp(msg):
     assert mt.bar() == 4
 
 
-def test_multiple_inheritance_mix1(msg):
+def test_multiple_inheritance_mix1():
     from pybind11_tests import Base2
 
     class Base1:
@@ -31,7 +30,7 @@ def test_multiple_inheritance_mix1(msg):
     assert mt.bar() == 4
 
 
-def test_multiple_inheritance_mix2(msg):
+def test_multiple_inheritance_mix2():
     from pybind11_tests import Base1
 
     class Base2:
@@ -52,7 +51,7 @@ def test_multiple_inheritance_mix2(msg):
     assert mt.bar() == 4
 
 
-def test_multiple_inheritance_virtbase(msg):
+def test_multiple_inheritance_virtbase():
     from pybind11_tests import Base12a, bar_base2a, bar_base2a_sharedptr
 
     class MITypePy(Base12a):

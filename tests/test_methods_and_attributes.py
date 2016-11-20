@@ -113,7 +113,8 @@ def test_property_return_value_policies(access):
 
 def test_property_rvalue_policy():
     """When returning an rvalue, the return value policy is automatically changed from
-       `reference(_internal)` to `move`. The following would not work otherwise."""
+    `reference(_internal)` to `move`. The following would not work otherwise.
+    """
     from pybind11_tests import TestPropRVP
 
     instance = TestPropRVP()

@@ -314,6 +314,7 @@ def test_optional():
     assert test_nullopt(42) == 42
     assert test_nullopt(43) == 43
 
+
 @pytest.mark.skipif(not has_exp_optional, reason='no <experimental/optional>')
 def test_exp_optional():
     from pybind11_tests import double_or_zero_exp, half_or_none_exp, test_nullopt_exp

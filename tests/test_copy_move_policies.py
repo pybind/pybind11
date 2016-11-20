@@ -13,5 +13,3 @@ def test_lacking_move_ctor():
     with pytest.raises(RuntimeError) as excinfo:
         lacking_move_ctor.get_one()
     assert "the object is neither movable nor copyable!" in str(excinfo.value)
-
-

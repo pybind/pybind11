@@ -76,20 +76,20 @@ def test_override(capture, msg):
 def test_inheriting_repeat():
     from pybind11_tests import A_Repeat, B_Repeat, C_Repeat, D_Repeat, A_Tpl, B_Tpl, C_Tpl, D_Tpl
 
-    class VI_AR(A_Repeat):
+    class AR(A_Repeat):
         def unlucky_number(self):
             return 99
 
-    class VI_AT(A_Tpl):
+    class AT(A_Tpl):
         def unlucky_number(self):
             return 999
 
-    obj = VI_AR()
+    obj = AR()
     assert obj.say_something(3) == "hihihi"
     assert obj.unlucky_number() == 99
     assert obj.say_everything() == "hi 99"
 
-    obj = VI_AT()
+    obj = AT()
     assert obj.say_something(3) == "hihihi"
     assert obj.unlucky_number() == 999
     assert obj.say_everything() == "hi 999"
@@ -106,46 +106,46 @@ def test_inheriting_repeat():
         assert obj.lucky_number() == 888.0
         assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_CR(C_Repeat):
+    class CR(C_Repeat):
         def lucky_number(self):
             return C_Repeat.lucky_number(self) + 1.25
 
-    obj = VI_CR()
+    obj = CR()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 889.25
     assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_CT(C_Tpl):
+    class CT(C_Tpl):
         pass
 
-    obj = VI_CT()
+    obj = CT()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 888.0
     assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_CCR(VI_CR):
+    class CCR(CR):
         def lucky_number(self):
-            return VI_CR.lucky_number(self) * 10
+            return CR.lucky_number(self) * 10
 
-    obj = VI_CCR()
+    obj = CCR()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 8892.5
     assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_CCT(VI_CT):
+    class CCT(CT):
         def lucky_number(self):
-            return VI_CT.lucky_number(self) * 1000
+            return CT.lucky_number(self) * 1000
 
-    obj = VI_CCT()
+    obj = CCT()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 888000.0
     assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_DR(D_Repeat):
+    class DR(D_Repeat):
         def unlucky_number(self):
             return 123
 
@@ -158,15 +158,15 @@ def test_inheriting_repeat():
         assert obj.lucky_number() == 888.0
         assert obj.say_everything() == "B says hi 1 times 4444"
 
-    obj = VI_DR()
+    obj = DR()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 123
     assert obj.lucky_number() == 42.0
     assert obj.say_everything() == "B says hi 1 times 123"
 
-    class VI_DT(D_Tpl):
+    class DT(D_Tpl):
         def say_something(self, times):
-            return "VI_DT says:" + (' quack' * times)
+            return "DT says:" + (' quack' * times)
 
         def unlucky_number(self):
             return 1234
@@ -174,32 +174,35 @@ def test_inheriting_repeat():
         def lucky_number(self):
             return -4.25
 
-    obj = VI_DT()
-    assert obj.say_something(3) == "VI_DT says: quack quack quack"
+    obj = DT()
+    assert obj.say_something(3) == "DT says: quack quack quack"
     assert obj.unlucky_number() == 1234
     assert obj.lucky_number() == -4.25
-    assert obj.say_everything() == "VI_DT says: quack 1234"
+    assert obj.say_everything() == "DT says: quack 1234"
 
-    class VI_DT2(VI_DT):
+    class DT2(DT):
         def say_something(self, times):
-            return "VI_DT2: " + ('QUACK' * times)
+            return "DT2: " + ('QUACK' * times)
 
         def unlucky_number(self):
             return -3
 
-    class VI_BT(B_Tpl):
+    class BT(B_Tpl):
         def say_something(self, times):
-            return "VI_BT" * times
+            return "BT" * times
+
         def unlucky_number(self):
             return -7
+
         def lucky_number(self):
             return -1.375
 
-    obj = VI_BT()
-    assert obj.say_something(3) == "VI_BTVI_BTVI_BT"
+    obj = BT()
+    assert obj.say_something(3) == "BTBTBT"
     assert obj.unlucky_number() == -7
     assert obj.lucky_number() == -1.375
-    assert obj.say_everything() == "VI_BT -7"
+    assert obj.say_everything() == "BT -7"
+
 
 @pytest.mark.skipif(not hasattr(pybind11_tests, 'NCVirt'),
                     reason="NCVirt test broken on ICPC")
