@@ -194,10 +194,10 @@ protected:
                 if (type_depth == 0 && text[char_index] != '*' && arg_index < args) {
                     if (!rec->args.empty()) {
                         signature += rec->args[arg_index].name;
-                    } else if (arg_index == 0 && rec->class_) {
+                    } else if (arg_index == 0 && rec->is_method) {
                         signature += "self";
                     } else {
-                        signature += "arg" + std::to_string(arg_index - (rec->class_ ? 1 : 0));
+                        signature += "arg" + std::to_string(arg_index - (rec->is_method ? 1 : 0));
                     }
                     signature += ": ";
                 }
@@ -337,8 +337,8 @@ protected:
             std::free((char *) func->m_ml->ml_doc);
         func->m_ml->ml_doc = strdup(signatures.c_str());
 
-        if (rec->class_) {
-            m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->class_.ptr());
+        if (rec->is_method) {
+            m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
             if (!m_ptr)
                 pybind11_fail("cpp_function::cpp_function(): Could not allocate instance method object");
             Py_DECREF(func);
@@ -1120,7 +1120,7 @@ public:
         const auto property = reinterpret_steal<object>(
             PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type, fget.ptr() ? fget.ptr() : Py_None,
                                          fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr));
-        if (rec_fget->class_)
+        if (rec_fget->is_method && rec_fget->scope)
             attr(name) = property;
         else
             metaclass().attr(name) = property;
