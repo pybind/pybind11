@@ -74,7 +74,7 @@ struct argument_record {
 struct function_record {
     function_record()
         : is_constructor(false), is_stateless(false), is_operator(false),
-          has_args(false), has_kwargs(false) { }
+          has_args(false), has_kwargs(false), is_method(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
