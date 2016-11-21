@@ -319,6 +319,22 @@ py::list test_dtype_methods() {
     return list;
 }
 
+struct CompareStruct {
+    bool x;
+    uint32_t y;
+    float z;
+};
+
+py::list test_compare_buffer_info() {
+    py::list list;
+    list.append(py::bool_(py::detail::compare_buffer_info<float>::compare(py::buffer_info(nullptr, sizeof(float), "f", 1))));
+    list.append(py::bool_(py::detail::compare_buffer_info<unsigned>::compare(py::buffer_info(nullptr, sizeof(int), "I", 1))));
+    list.append(py::bool_(py::detail::compare_buffer_info<long>::compare(py::buffer_info(nullptr, sizeof(long), "l", 1))));
+    list.append(py::bool_(py::detail::compare_buffer_info<long>::compare(py::buffer_info(nullptr, sizeof(long), sizeof(long) == sizeof(int) ? "i" : "q", 1))));
+    list.append(py::bool_(py::detail::compare_buffer_info<CompareStruct>::compare(py::buffer_info(nullptr, sizeof(CompareStruct), "T{?:x:3xI:y:f:z:}", 1))));
+    return list;
+}
+
 test_initializer numpy_dtypes([](py::module &m) {
     try {
         py::module::import("numpy");
@@ -337,6 +353,7 @@ test_initializer numpy_dtypes([](py::module &m) {
     PYBIND11_NUMPY_DTYPE(StringStruct, a, b);
     PYBIND11_NUMPY_DTYPE(EnumStruct, e1, e2);
     PYBIND11_NUMPY_DTYPE(TrailingPaddingStruct, a, b);
+    PYBIND11_NUMPY_DTYPE(CompareStruct, x, y, z);
 
     // ... or after
     py::class_<PackedStruct>(m, "PackedStruct");
@@ -366,6 +383,7 @@ test_initializer numpy_dtypes([](py::module &m) {
     m.def("test_array_ctors", &test_array_ctors);
     m.def("test_dtype_ctors", &test_dtype_ctors);
     m.def("test_dtype_methods", &test_dtype_methods);
+    m.def("compare_buffer_info", &test_compare_buffer_info);
     m.def("trailing_padding_dtype", &trailing_padding_dtype);
     m.def("buffer_to_dtype", &buffer_to_dtype);
     m.def("f_simple", [](SimpleStruct s) { return s.uint_ * 10; });

@@ -703,6 +703,13 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name());
 };
 
+template <typename T>
+struct compare_buffer_info<T, detail::enable_if_t<detail::is_pod_struct<T>::value>> {
+    static bool compare(const buffer_info& b) {
+        return npy_api::get().PyArray_EquivTypes_(dtype::of<T>().ptr(), dtype(b).ptr());
+    }
+};
+
 template <typename T> struct npy_format_descriptor<T, enable_if_t<satisfies_any_of<T, std::is_arithmetic, is_complex>::value>> {
 private:
     // NB: the order here must match the one in common.h
