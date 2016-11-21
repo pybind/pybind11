@@ -509,7 +509,7 @@ protected:
             msg += "\nInvoked with: ";
             auto args_ = reinterpret_borrow<tuple>(args);
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
-                msg += static_cast<std::string>(pybind11::str(args_[ti]));
+                msg += pybind11::repr(args_[ti]);
                 if ((ti + 1) != args_.size() )
                     msg += ", ";
             }
