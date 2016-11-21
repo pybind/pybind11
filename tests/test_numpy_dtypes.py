@@ -264,3 +264,9 @@ def test_register_dtype():
     with pytest.raises(RuntimeError) as excinfo:
         register_dtype()
     assert 'dtype is already registered' in str(excinfo.value)
+
+
+@pytest.requires_numpy
+def test_compare_buffer_info():
+    from pybind11_tests import compare_buffer_info
+    assert all(compare_buffer_info())

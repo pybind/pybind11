@@ -623,6 +623,24 @@ template <typename T> struct format_descriptor<T, detail::enable_if_t<detail::is
 template <typename T> constexpr const char format_descriptor<
     T, detail::enable_if_t<detail::is_fmt_numeric<T>::value>>::value[2];
 
+NAMESPACE_BEGIN(detail)
+
+template <typename T, typename SFINAE = void> struct compare_buffer_info {
+    static bool compare(const buffer_info& b) {
+        return b.format == format_descriptor<T>::format() && b.itemsize == sizeof(T);
+    }
+};
+
+template <typename T> struct compare_buffer_info<T, detail::enable_if_t<std::is_integral<T>::value>> {
+    static bool compare(const buffer_info& b) {
+        return b.itemsize == sizeof(T) && (b.format == format_descriptor<T>::value ||
+            ((sizeof(T) == sizeof(long)) && b.format == (std::is_unsigned<T>::value ? "L" : "l")) ||
+            ((sizeof(T) == sizeof(size_t)) && b.format == (std::is_unsigned<T>::value ? "N" : "n")));
+    }
+};
+
+NAMESPACE_END(detail)
+
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {
     PyObject *type, *value, *trace;

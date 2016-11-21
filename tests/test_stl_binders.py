@@ -55,7 +55,7 @@ def test_vector_buffer():
 
 @pytest.requires_numpy
 def test_vector_buffer_numpy():
-    from pybind11_tests import VectorInt, get_vectorstruct
+    from pybind11_tests import VectorInt, VectorStruct, get_vectorstruct
 
     a = np.array([1, 2, 3, 4], dtype=np.int32)
     with pytest.raises(TypeError):
@@ -78,6 +78,10 @@ def test_vector_buffer_numpy():
     m = np.asarray(v)
     m[1]['x'] = 99
     assert v[1].x == 99
+
+    v = VectorStruct(np.zeros(3, dtype=np.dtype([('w', 'bool'), ('x', 'I'),
+                                                 ('y', 'float64'), ('z', 'bool')], align=True)))
+    assert len(v) == 3
 
 
 def test_vector_custom():
