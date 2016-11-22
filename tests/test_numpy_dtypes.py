@@ -30,13 +30,13 @@ def test_format_descriptors():
     assert re.match('^NumPy type info missing for .*UnboundStruct.*$', str(excinfo.value))
 
     assert print_format_descriptors() == [
-        "T{=?:x:3x=I:y:=f:z:}",
-        "T{=?:x:=I:y:=f:z:}",
-        "T{=T{=?:x:3x=I:y:=f:z:}:a:=T{=?:x:=I:y:=f:z:}:b:}",
-        "T{=?:x:3x=I:y:=f:z:12x}",
-        "T{8x=T{=?:x:3x=I:y:=f:z:12x}:a:8x}",
-        "T{=3s:a:=3s:b:}",
-        'T{=q:e1:=B:e2:}'
+        "T{?:x:3xI:y:f:z:}",
+        "T{?:x:=I:y:=f:z:}",
+        "T{T{?:x:3xI:y:f:z:}:a:T{?:x:=I:y:=f:z:}:b:}",
+        "T{?:x:3xI:y:f:z:12x}",
+        "T{8xT{?:x:3xI:y:f:z:12x}:a:8x}",
+        "T{3s:a:3s:b:}",
+        'T{q:e1:B:e2:}'
     ]
 
 
