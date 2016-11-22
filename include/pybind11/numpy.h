@@ -228,7 +228,8 @@ public:
 
     explicit dtype(const buffer_info &info) {
         dtype descr(_dtype_from_pep3118()(PYBIND11_STR_TYPE(info.format)));
-        m_ptr = descr.strip_padding().release().ptr();
+        //If info.itemsize == 0, use the value calculated from the format string
+        m_ptr = descr.strip_padding(info.itemsize ? info.itemsize : descr.itemsize()).release().ptr();
     }
 
     explicit dtype(const std::string &format) {
@@ -281,7 +282,7 @@ private:
         return reinterpret_borrow<object>(obj);
     }
 
-    dtype strip_padding() {
+    dtype strip_padding(size_t itemsize) {
         // Recursively strip all void fields with empty names that are generated for
         // padding fields (as of NumPy v1.11).
         if (!has_fields())
@@ -297,7 +298,7 @@ private:
             auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
             if (!len(name) && format.kind() == 'V')
                 continue;
-            field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(), offset});
+            field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(format.itemsize()), offset});
         }
 
         std::sort(field_descriptors.begin(), field_descriptors.end(),
@@ -311,7 +312,7 @@ private:
             formats.append(descr.format);
             offsets.append(descr.offset);
         }
-        return dtype(names, formats, offsets, itemsize());
+        return dtype(names, formats, offsets, itemsize);
     }
 };
 
