@@ -42,7 +42,7 @@ def test_format_descriptors():
 
 @pytest.requires_numpy
 def test_dtype(simple_dtype):
-    from pybind11_tests import print_dtypes, test_dtype_ctors, test_dtype_methods
+    from pybind11_tests import print_dtypes, test_dtype_ctors, test_dtype_methods, trailing_padding_dtype, buffer_to_dtype
 
     assert print_dtypes() == [
         "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}",
@@ -63,6 +63,8 @@ def test_dtype(simple_dtype):
 
     assert test_dtype_methods() == [np.dtype('int32'), simple_dtype, False, True,
                                     np.dtype('int32').itemsize, simple_dtype.itemsize]
+
+    assert trailing_padding_dtype() == buffer_to_dtype(np.zeros(1, trailing_padding_dtype()))
 
 
 @pytest.requires_numpy
