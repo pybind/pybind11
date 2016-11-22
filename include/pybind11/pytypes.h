@@ -678,6 +678,10 @@ public:
     operator double() const { return (double) PyFloat_AsDouble(m_ptr); }
 };
 
+#if defined(PYPY_VERSION)
+inline bool PyWeakref_Check(PyObject *obj);
+#endif
+
 class weakref : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(weakref, object, PyWeakref_Check)

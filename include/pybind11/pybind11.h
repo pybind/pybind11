@@ -261,7 +261,7 @@ protected:
         detail::function_record *chain = nullptr, *chain_start = rec;
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
-                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GetSelf(rec->sibling.ptr()));
+                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(rec->sibling.ptr()));
                 chain = (detail::function_record *) rec_capsule;
                 /* Never append a method to an overload chain of a parent class;
                    instead, hide the parent's overloads in this case */
@@ -1183,7 +1183,7 @@ private:
 
     static detail::function_record *get_function_record(handle h) {
         h = detail::get_function(h);
-        return h ? (detail::function_record *) reinterpret_borrow<capsule>(PyCFunction_GetSelf(h.ptr()))
+        return h ? (detail::function_record *) reinterpret_borrow<capsule>(PyCFunction_GET_SELF(h.ptr()))
                  : nullptr;
     }
 };
@@ -1519,7 +1519,7 @@ void print(Args &&...args) {
     detail::print(c.args(), c.kwargs());
 }
 
-#if defined(WITH_THREAD)
+#if defined(WITH_THREAD) && !defined(PYPY_VERSION)
 
 /* The functions below essentially reproduce the PyGILState_* API using a RAII
  * pattern, but there are a few important differences:
@@ -1647,6 +1647,12 @@ class gil_scoped_acquire { };
 class gil_scoped_release { };
 #endif
 
+#if defined(PYPY_VERSION)
+inline bool PyWeakref_Check(PyObject *obj) {
+    return module::import("weakref").attr("ref").ptr() == obj;
+}
+#endif
+
 inline function get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name)  {
     handle py_object = detail::get_object_handle(this_ptr, this_type);
     if (!py_object)
@@ -1666,7 +1672,9 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
         return function();
     }
 
-    /* Don't call dispatch code if invoked from overridden function */
+    /* Don't call dispatch code if invoked from overridden function.
+       Unfortunately this doesn't work on PyPy. */
+#if !defined(PYPY_VERSION)
     PyFrameObject *frame = PyThreadState_Get()->frame;
     if (frame && (std::string) str(frame->f_code->co_name) == name &&
         frame->f_code->co_argcount > 0) {
@@ -1676,6 +1684,8 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
         if (self_caller == py_object.ptr())
             return function();
     }
+#endif
+
     return overload;
 }
 
