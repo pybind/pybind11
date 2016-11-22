@@ -96,7 +96,7 @@ def test_str_issue(msg):
             1. m.issues.StrIssue(arg0: int)
             2. m.issues.StrIssue()
 
-        Invoked with: no, such, constructor
+        Invoked with: 'no', 'such', 'constructor'
     """
 
 
