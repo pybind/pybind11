@@ -282,9 +282,22 @@ py::list test_dtype_ctors() {
     dict["itemsize"] = py::int_(20);
     list.append(py::dtype::from_args(dict));
     list.append(py::dtype(names, formats, offsets, 20));
-    list.append(py::dtype(py::buffer_info((void *) 0, 1, "I", 1)));
-    list.append(py::dtype(py::buffer_info((void *) 0, 1, "T{i:a:f:b:}", 1)));
+    list.append(py::dtype(py::buffer_info((void *) 0, sizeof(unsigned int), "I", 1)));
+    list.append(py::dtype(py::buffer_info((void *) 0, 0, "T{i:a:f:b:}", 1)));
     return list;
+}
+
+struct TrailingPaddingStruct {
+    int32_t a;
+    char b;
+};
+
+py::dtype trailing_padding_dtype() {
+    return py::dtype::of<TrailingPaddingStruct>();
+}
+
+py::dtype buffer_to_dtype(py::buffer& buf) {
+    return py::dtype(buf.request());
 }
 
 py::list test_dtype_methods() {
@@ -314,6 +327,7 @@ test_initializer numpy_dtypes([](py::module &m) {
     PYBIND11_NUMPY_DTYPE(PartialNestedStruct, a);
     PYBIND11_NUMPY_DTYPE(StringStruct, a, b);
     PYBIND11_NUMPY_DTYPE(EnumStruct, e1, e2);
+    PYBIND11_NUMPY_DTYPE(TrailingPaddingStruct, a, b);
 
     // ... or after
     py::class_<PackedStruct>(m, "PackedStruct");
@@ -338,6 +352,8 @@ test_initializer numpy_dtypes([](py::module &m) {
     m.def("test_array_ctors", &test_array_ctors);
     m.def("test_dtype_ctors", &test_dtype_ctors);
     m.def("test_dtype_methods", &test_dtype_methods);
+    m.def("trailing_padding_dtype", &trailing_padding_dtype);
+    m.def("buffer_to_dtype", &buffer_to_dtype);
     m.def("f_simple", [](SimpleStruct s) { return s.y * 10; });
     m.def("f_packed", [](PackedStruct s) { return s.y * 10; });
     m.def("f_nested", [](NestedStruct s) { return s.a.y * 10; });
