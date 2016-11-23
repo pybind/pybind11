@@ -835,6 +835,10 @@ protected:
             std::get<Indices>(value).load(PyTuple_GET_ITEM(src.ptr(), Indices), convert)...
         }};
         (void) convert; /* avoid a warning when the tuple is empty */
+        if (size == 0) {        
+            // UBSAN doesn't allow iteration over a zero-sized std::array.
+            return true;
+        }
         for (bool r : success)
             if (!r)
                 return false;
@@ -850,6 +854,10 @@ protected:
             if (!entry)
                 return handle();
         tuple result(size);
+        if (size == 0) {
+            // UBSAN doesn't allow iteration over a zero-sized std::array.
+            return result.release();
+        }
         int counter = 0;
         for (auto & entry: entries)
             PyTuple_SET_ITEM(result.ptr(), counter++, entry.release().ptr());
