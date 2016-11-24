@@ -1647,6 +1647,14 @@ class gil_scoped_acquire { };
 class gil_scoped_release { };
 #endif
 
+error_already_set::~error_already_set() {
+    if (value) {
+        gil_scoped_acquire gil;
+        PyErr_Restore(type, value, trace);
+        PyErr_Clear();
+    }
+}
+
 inline function get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name)  {
     handle py_object = detail::get_object_handle(this_ptr, this_type);
     if (!py_object)
