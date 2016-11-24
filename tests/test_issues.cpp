@@ -64,6 +64,15 @@ private:
 };
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
 
+/// Issue #528: templated constructor
+struct TplConstrClass {
+    template <typename T> TplConstrClass(const T &arg) : str{arg} {}
+    std::string str;
+    bool operator==(const TplConstrClass &t) const { return t.str == str; }
+};
+namespace std {
+template <> struct hash<TplConstrClass> { size_t operator()(const TplConstrClass &t) const { return std::hash<std::string>()(t.str); } };
+}
 
 
 void init_issues(py::module &m) {
@@ -371,6 +380,16 @@ void init_issues(py::module &m) {
     py::class_<MyDerived, MyBase>(m2, "MyDerived")
         .def_static("make", &MyDerived::make)
         .def_static("make2", &MyDerived::make);
+
+    /// Issue #528: templated constructor
+    m2.def("tpl_constr_vector", [](std::vector<TplConstrClass> &) {});
+    m2.def("tpl_constr_map", [](std::unordered_map<TplConstrClass, TplConstrClass> &) {});
+    m2.def("tpl_constr_set", [](std::unordered_set<TplConstrClass> &) {});
+#if defined(PYBIND11_HAS_OPTIONAL)
+    m2.def("tpl_constr_optional", [](std::optional<TplConstrClass> &) {});
+#elif defined(PYBIND11_HAS_EXP_OPTIONAL)
+    m2.def("tpl_constr_optional", [](std::experimental::optional<TplConstrClass> &) {});
+#endif
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSCV
