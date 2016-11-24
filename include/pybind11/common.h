@@ -482,7 +482,16 @@ public:
         : std::runtime_error(e.what()), type(e.type), value(e.value),
           trace(e.trace) { e.type = e.value = e.trace = nullptr; }
 
-    ~error_already_set() { Py_XDECREF(type); Py_XDECREF(value); Py_XDECREF(trace); }
+    ~error_already_set() {
+        if (value) {
+            PyGILState_STATE state = PyGILState_Ensure();
+            PyErr_Restore(type, value, trace);
+            PyErr_Clear();
+            PyGILState_Release(state);
+        }
+    }
+
+    error_already_set& operator=(const error_already_set &) = delete;
 
     /// Give the error back to Python
     void restore() { PyErr_Restore(type, value, trace); type = value = trace = nullptr; }
