@@ -136,19 +136,29 @@ PYBIND11_NOINLINE inline std::string error_string() {
 
     PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
 
+#if PY_MAJOR_VERSION >= 3
+    if (scope.trace != nullptr)
+        PyException_SetTraceback(scope.value, scope.trace);
+#endif
+
     if (scope.trace) {
-        PyFrameObject *frame = ((PyTracebackObject *) scope.trace)->tb_frame;
-        if (frame) {
-            errorString += "\n\nAt:\n";
-            while (frame) {
-                int lineno = PyFrame_GetLineNumber(frame);
-                errorString +=
-                    "  " + handle(frame->f_code->co_filename).cast<std::string>() +
-                    "(" + std::to_string(lineno) + "): " +
-                    handle(frame->f_code->co_name).cast<std::string>() + "\n";
-                frame = frame->f_back;
-            }
+        PyTracebackObject *trace = (PyTracebackObject *) scope.trace;
+
+        /* Get the deepest trace possible */
+        while (trace->tb_next)
+            trace = trace->tb_next;
+
+        PyFrameObject *frame = trace->tb_frame;
+        errorString += "\n\nAt:\n";
+        while (frame) {
+            int lineno = PyFrame_GetLineNumber(frame);
+            errorString +=
+                "  " + handle(frame->f_code->co_filename).cast<std::string>() +
+                "(" + std::to_string(lineno) + "): " +
+                handle(frame->f_code->co_name).cast<std::string>() + "\n";
+            frame = frame->f_back;
         }
+        trace = trace->tb_next;
     }
 
     return errorString;
