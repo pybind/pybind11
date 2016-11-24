@@ -95,8 +95,15 @@ object eval_file(str fname, object global = object(), object local = object()) {
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
     }
 
+#if PY_VERSION_HEX < 0x03000000 && defined(PYPY_VERSION)
+    PyObject *result = PyRun_File(f, fname_str.c_str(), start, global.ptr(),
+                                  local.ptr());
+    (void) closeFile;
+#else
     PyObject *result = PyRun_FileEx(f, fname_str.c_str(), start, global.ptr(),
                                     local.ptr(), closeFile);
+#endif
+
     if (!result)
         throw error_already_set();
     return reinterpret_steal<object>(result);

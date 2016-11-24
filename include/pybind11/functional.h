@@ -39,7 +39,7 @@ public:
            captured variables), in which case the roundtrip can be avoided.
          */
         if (PyCFunction_Check(src_.ptr())) {
-            auto c = reinterpret_borrow<capsule>(PyCFunction_GetSelf(src_.ptr()));
+            auto c = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(src_.ptr()));
             auto rec = (function_record *) c;
 
             if (rec && rec->is_stateless && rec->data[1] == &typeid(function_type)) {

@@ -10,6 +10,7 @@
 
 #include "pybind11_tests.h"
 
+#if !defined(PYPY_VERSION)
 
 struct Base1 {
     Base1(int i) : i(i) { }
@@ -82,3 +83,5 @@ test_initializer multiple_inheritance_nonexplicit([](py::module &m) {
     m.def("bar_base2a", [](Base2a *b) { return b->bar(); });
     m.def("bar_base2a_sharedptr", [](std::shared_ptr<Base2a> b) { return b->bar(); });
 });
+
+#endif
