@@ -475,6 +475,13 @@ public:
     error_already_set() : std::runtime_error(detail::error_string()) {
         PyErr_Fetch(&type, &value, &trace);
     }
+
+    error_already_set(const error_already_set &) = delete;
+
+    error_already_set(error_already_set &&e)
+        : std::runtime_error(e.what()), type(e.type), value(e.value),
+          trace(e.trace) { e.type = e.value = e.trace = nullptr; }
+
     ~error_already_set() { Py_XDECREF(type); Py_XDECREF(value); Py_XDECREF(trace); }
 
     /// Give the error back to Python
