@@ -433,12 +433,10 @@ template <typename type, typename SFINAE = void> class type_caster : public type
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
-template <typename T>
-auto cast_op(make_caster<T> &caster) -> decltype(caster.operator typename make_caster<T>::template cast_op_type<T>()) {
+template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
     return caster.operator typename make_caster<T>::template cast_op_type<T>();
 }
-template <typename T>
-auto cast_op(make_caster<T> &&caster) -> decltype(caster.operator typename make_caster<T>::template cast_op_type<T>()) {
+template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &&caster) {
     return cast_op<T>(caster);
 }
 
