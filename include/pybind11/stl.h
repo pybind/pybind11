@@ -53,7 +53,7 @@ template <typename Type, typename Key> struct set_caster {
         for (auto entry : s) {
             if (!conv.load(entry, convert))
                 return false;
-            value.insert(conv.operator typename key_conv::template cast_op_type<Key>());
+            value.insert(cast_op<Key>(conv));
         }
         return true;
     }
@@ -87,9 +87,7 @@ template <typename Type, typename Key, typename Value> struct map_caster {
             if (!kconv.load(it.first.ptr(), convert) ||
                 !vconv.load(it.second.ptr(), convert))
                 return false;
-            value.emplace(
-                    kconv.operator typename   key_conv::template cast_op_type<Key>(),
-                    vconv.operator typename value_conv::template cast_op_type<Value>());
+            value.emplace(cast_op<Key>(kconv), cast_op<Value>(vconv));
         }
         return true;
     }
@@ -123,7 +121,7 @@ template <typename Type, typename Value> struct list_caster {
         for (auto it : s) {
             if (!conv.load(it, convert))
                 return false;
-            value.push_back(conv.operator typename value_conv::template cast_op_type<Value>());
+            value.push_back(cast_op<Value>(conv));
         }
         return true;
     }
@@ -169,7 +167,7 @@ template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
         for (auto it : l) {
             if (!conv.load(it, convert))
                 return false;
-            value[ctr++] = conv.operator typename value_conv::template cast_op_type<Type>();
+            value[ctr++] = cast_op<Type>(conv);
         }
         return true;
     }
@@ -221,7 +219,7 @@ template<typename T> struct optional_caster {
         if (!inner_caster.load(src, convert))
             return false;
 
-        value.emplace(inner_caster.operator typename value_conv::template cast_op_type<typename T::value_type>());
+        value.emplace(cast_op<typename T::value_type>(inner_caster));
         return true;
     }
 
