@@ -53,7 +53,7 @@ template <typename Type, typename Key> struct set_caster {
         for (auto entry : s) {
             if (!conv.load(entry, convert))
                 return false;
-            value.insert((Key) conv);
+            value.insert(conv.operator typename key_conv::template cast_op_type<Key>());
         }
         return true;
     }
@@ -87,7 +87,9 @@ template <typename Type, typename Key, typename Value> struct map_caster {
             if (!kconv.load(it.first.ptr(), convert) ||
                 !vconv.load(it.second.ptr(), convert))
                 return false;
-            value.emplace((Key) kconv, (Value) vconv);
+            value.emplace(
+                    kconv.operator typename   key_conv::template cast_op_type<Key>(),
+                    vconv.operator typename value_conv::template cast_op_type<Value>());
         }
         return true;
     }
@@ -121,7 +123,7 @@ template <typename Type, typename Value> struct list_caster {
         for (auto it : s) {
             if (!conv.load(it, convert))
                 return false;
-            value.push_back((Value) conv);
+            value.push_back(conv.operator typename value_conv::template cast_op_type<Value>());
         }
         return true;
     }
@@ -167,7 +169,7 @@ template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
         for (auto it : l) {
             if (!conv.load(it, convert))
                 return false;
-            value[ctr++] = (Type) conv;
+            value[ctr++] = conv.operator typename value_conv::template cast_op_type<Type>();
         }
         return true;
     }
@@ -200,13 +202,12 @@ template <typename Key, typename Value, typename Hash, typename Equal, typename 
 
 // This type caster is intended to be used for std::optional and std::experimental::optional
 template<typename T> struct optional_caster {
-    using value_type = typename intrinsic_type<typename T::value_type>::type;
-    using caster_type = type_caster<value_type>;
+    using value_conv = make_caster<typename T::value_type>;
 
     static handle cast(const T& src, return_value_policy policy, handle parent) {
         if (!src)
             return none().inc_ref();
-        return caster_type::cast(*src, policy, parent);
+        return value_conv::cast(*src, policy, parent);
     }
 
     bool load(handle src, bool convert) {
@@ -215,18 +216,16 @@ template<typename T> struct optional_caster {
         } else if (src.is_none()) {
             value = {};  // nullopt
             return true;
-        } else if (!inner.load(src, convert)) {
-            return false;
-        } else {
-            value.emplace(static_cast<const value_type&>(inner));
-            return true;
         }
+        value_conv inner_caster;
+        if (!inner_caster.load(src, convert))
+            return false;
+
+        value.emplace(inner_caster.operator typename value_conv::template cast_op_type<typename T::value_type>());
+        return true;
     }
 
-    PYBIND11_TYPE_CASTER(T, _("Optional[") + caster_type::name() + _("]"));
-
-private:
-    caster_type inner;
+    PYBIND11_TYPE_CASTER(T, _("Optional[") + value_conv::name() + _("]"));
 };
 
 #if PYBIND11_HAS_OPTIONAL
