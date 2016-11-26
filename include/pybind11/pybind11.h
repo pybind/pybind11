@@ -1138,21 +1138,26 @@ private:
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
         try {
             new (&inst->holder) holder_type(std::static_pointer_cast<typename holder_type::element_type>(inst->value->shared_from_this()));
+            inst->holder_constructed = true;
         } catch (const std::bad_weak_ptr &) {
-            new (&inst->holder) holder_type(inst->value);
+            if (inst->owned) {
+                new (&inst->holder) holder_type(inst->value);
+                inst->holder_constructed = true;
+            }
         }
-        inst->holder_constructed = true;
     }
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
     template <typename T = holder_type,
               detail::enable_if_t<std::is_copy_constructible<T>::value, int> = 0>
     static void init_holder_helper(instance_type *inst, const holder_type *holder_ptr, const void * /* dummy */) {
-        if (holder_ptr)
+        if (holder_ptr) {
             new (&inst->holder) holder_type(*holder_ptr);
-        else
+            inst->holder_constructed = true;
+        } else if (inst->owned) {
             new (&inst->holder) holder_type(inst->value);
-        inst->holder_constructed = true;
+            inst->holder_constructed = true;
+        }
     }
 
     /// Initialize holder object, variant 3: holder is not copy constructible (e.g. unique_ptr), always initialize from raw pointer

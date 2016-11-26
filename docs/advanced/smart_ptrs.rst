@@ -53,8 +53,6 @@ code?
 
 .. code-block:: cpp
 
-    PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
-
     class Child { };
 
     class Parent {

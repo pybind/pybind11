@@ -165,3 +165,60 @@ test_initializer smart_ptr([](py::module &m) {
     // Expose constructor stats for the ref type
     m.def("cstats_ref", &ConstructorStats::get<ref_tag>);
 });
+
+struct SharedPtrRef {
+    struct A {
+        A() { print_created(this); }
+        A(const A &) { print_copy_created(this); }
+        A(A &&) { print_move_created(this); }
+        ~A() { print_destroyed(this); }
+    };
+
+    A value = {};
+    std::shared_ptr<A> shared = std::make_shared<A>();
+};
+
+struct SharedFromThisRef {
+    struct B : std::enable_shared_from_this<B> {
+        B() { print_created(this); }
+        B(const B &) : std::enable_shared_from_this<B>() { print_copy_created(this); }
+        B(B &&) : std::enable_shared_from_this<B>() { print_move_created(this); }
+        ~B() { print_destroyed(this); }
+    };
+
+    B value = {};
+    std::shared_ptr<B> shared = std::make_shared<B>();
+};
+
+test_initializer smart_ptr_and_references([](py::module &pm) {
+    auto m = pm.def_submodule("smart_ptr");
+
+    using A = SharedPtrRef::A;
+    py::class_<A, std::shared_ptr<A>>(m, "A");
+
+    py::class_<SharedPtrRef>(m, "SharedPtrRef")
+        .def(py::init<>())
+        .def_readonly("ref", &SharedPtrRef::value)
+        .def_property_readonly("copy", [](const SharedPtrRef &s) { return s.value; },
+                               py::return_value_policy::copy)
+        .def_readonly("holder_ref", &SharedPtrRef::shared)
+        .def_property_readonly("holder_copy", [](const SharedPtrRef &s) { return s.shared; },
+                               py::return_value_policy::copy)
+        .def("set_ref", [](SharedPtrRef &, const A &) { return true; })
+        .def("set_holder", [](SharedPtrRef &, std::shared_ptr<A>) { return true; });
+
+    using B = SharedFromThisRef::B;
+    py::class_<B, std::shared_ptr<B>>(m, "B");
+
+    py::class_<SharedFromThisRef>(m, "SharedFromThisRef")
+        .def(py::init<>())
+        .def_readonly("bad_wp", &SharedFromThisRef::value)
+        .def_property_readonly("ref", [](const SharedFromThisRef &s) -> const B & { return *s.shared; })
+        .def_property_readonly("copy", [](const SharedFromThisRef &s) { return s.value; },
+                               py::return_value_policy::copy)
+        .def_readonly("holder_ref", &SharedFromThisRef::shared)
+        .def_property_readonly("holder_copy", [](const SharedFromThisRef &s) { return s.shared; },
+                               py::return_value_policy::copy)
+        .def("set_ref", [](SharedFromThisRef &, const B &) { return true; })
+        .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; });
+});

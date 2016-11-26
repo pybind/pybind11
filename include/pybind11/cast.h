@@ -860,20 +860,12 @@ public:
 
         if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
             /* Check if we can safely perform a reinterpret-style cast */
-            if (PyType_IsSubtype(tobj, typeinfo->type)) {
-                auto inst = (instance<type, holder_type> *) src.ptr();
-                value = (void *) inst->value;
-                holder = inst->holder;
-                return true;
-            }
+            if (PyType_IsSubtype(tobj, typeinfo->type))
+                return load_value_and_holder(src);
         } else { /* Case 2: multiple inheritance */
             /* Check if we can safely perform a reinterpret-style cast */
-            if (tobj == typeinfo->type) {
-                auto inst = (instance<type, holder_type> *) src.ptr();
-                value = (void *) inst->value;
-                holder = inst->holder;
-                return true;
-            }
+            if (tobj == typeinfo->type)
+                return load_value_and_holder(src);
 
             /* If this is a python class, also check the parents recursively */
             auto const &type_dict = get_internals().registered_types_py;
@@ -900,6 +892,22 @@ public:
         }
 
         return false;
+    }
+
+    bool load_value_and_holder(handle src) {
+        auto inst = (instance<type, holder_type> *) src.ptr();
+        value = (void *) inst->value;
+        if (inst->holder_constructed) {
+            holder = inst->holder;
+            return true;
+        } else {
+            throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
+#if defined(NDEBUG)
+                             "(compile in debug mode for type information)");
+#else
+                             "of type '" + type_id<holder_type>() + "''");
+#endif
+        }
     }
 
     template <typename T = holder_type, detail::enable_if_t<!std::is_constructible<T, const T &, type*>::value, int> = 0>
