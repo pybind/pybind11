@@ -737,12 +737,12 @@ template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
     typedef std::pair<T1, T2> type;
 public:
     bool load(handle src, bool convert) {
-        if (!src)
+        if (!isinstance<sequence>(src))
             return false;
-        else if (!PyTuple_Check(src.ptr()) || PyTuple_Size(src.ptr()) != 2)
+        const auto seq = reinterpret_borrow<sequence>(src);
+        if (seq.size() != 2)
             return false;
-        return  first.load(PyTuple_GET_ITEM(src.ptr(), 0), convert) &&
-               second.load(PyTuple_GET_ITEM(src.ptr(), 1), convert);
+        return first.load(seq[0], convert) && second.load(seq[1], convert);
     }
 
     static handle cast(const type &src, return_value_policy policy, handle parent) {
@@ -779,9 +779,12 @@ template <typename... Tuple> class type_caster<std::tuple<Tuple...>> {
 
 public:
     bool load(handle src, bool convert) {
-        if (!src || !PyTuple_Check(src.ptr()) || PyTuple_GET_SIZE(src.ptr()) != size)
+        if (!isinstance<sequence>(src))
             return false;
-        return load_impl(src, convert, indices{});
+        const auto seq = reinterpret_borrow<sequence>(src);
+        if (seq.size() != size)
+            return false;
+        return load_impl(seq, convert, indices{});
     }
 
     static handle cast(const type &src, return_value_policy policy, handle parent) {
@@ -800,11 +803,11 @@ protected:
     template <size_t... Is>
     type implicit_cast(index_sequence<Is...>) { return type(cast_op<Tuple>(std::get<Is>(value))...); }
 
-    static constexpr bool load_impl(handle, bool, index_sequence<>) { return true; }
+    static constexpr bool load_impl(const sequence &, bool, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl(handle src, bool convert, index_sequence<Is...>) {
-        for (bool r : {std::get<Is>(value).load(PyTuple_GET_ITEM(src.ptr(), Is), convert)...})
+    bool load_impl(const sequence &seq, bool convert, index_sequence<Is...>) {
+        for (bool r : {std::get<Is>(value).load(seq[Is], convert)...})
             if (!r)
                 return false;
         return true;

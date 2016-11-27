@@ -93,6 +93,9 @@ def test_instance(capture):
 
     assert instance.pair_passthrough((True, "test")) == ("test", True)
     assert instance.tuple_passthrough((True, "test", 5)) == (5, "test", True)
+    # Any sequence can be cast to a std::pair or std::tuple
+    assert instance.pair_passthrough([True, "test"]) == ("test", True)
+    assert instance.tuple_passthrough([True, "test", 5]) == (5, "test", True)
 
     assert instance.get_bytes_from_string().decode() == "foo"
     assert instance.get_bytes_from_str().decode() == "bar"
