@@ -346,9 +346,15 @@ struct internals {
 inline internals &get_internals();
 
 /// Index sequence for convenient template metaprogramming involving tuples
+#ifdef PYBIND11_CPP14
+using std::index_sequence;
+using std::make_index_sequence;
+#else
 template<size_t ...> struct index_sequence  { };
-template<size_t N, size_t ...S> struct make_index_sequence : make_index_sequence <N - 1, N - 1, S...> { };
-template<size_t ...S> struct make_index_sequence <0, S...> { typedef index_sequence<S...> type; };
+template<size_t N, size_t ...S> struct make_index_sequence_impl : make_index_sequence_impl <N - 1, N - 1, S...> { };
+template<size_t ...S> struct make_index_sequence_impl <0, S...> { typedef index_sequence<S...> type; };
+template<size_t N> using make_index_sequence = typename make_index_sequence_impl<N>::type;
+#endif
 
 /// Strip the class from a method type
 template <typename T> struct remove_class { };

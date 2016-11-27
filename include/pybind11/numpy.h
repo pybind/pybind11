@@ -1077,7 +1077,7 @@ struct vectorize_helper {
     explicit vectorize_helper(T&&f) : f(std::forward<T>(f)) { }
 
     object operator()(array_t<Args, array::c_style | array::forcecast>... args) {
-        return run(args..., typename make_index_sequence<sizeof...(Args)>::type());
+        return run(args..., make_index_sequence<sizeof...(Args)>());
     }
 
     template <size_t ... Index> object run(array_t<Args, array::c_style | array::forcecast>&... args, index_sequence<Index...> index) {

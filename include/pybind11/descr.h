@@ -22,8 +22,8 @@ template <size_t Size1, size_t Size2> class descr {
 public:
     constexpr descr(char const (&text) [Size1+1], const std::type_info * const (&types)[Size2+1])
         : descr(text, types,
-                typename make_index_sequence<Size1>::type(),
-                typename make_index_sequence<Size2>::type()) { }
+                make_index_sequence<Size1>(),
+                make_index_sequence<Size2>()) { }
 
     constexpr const char *text() const { return m_text; }
     constexpr const std::type_info * const * types() const { return m_types; }
@@ -31,10 +31,10 @@ public:
     template <size_t OtherSize1, size_t OtherSize2>
     constexpr descr<Size1 + OtherSize1, Size2 + OtherSize2> operator+(const descr<OtherSize1, OtherSize2> &other) const {
         return concat(other,
-                      typename make_index_sequence<Size1>::type(),
-                      typename make_index_sequence<Size2>::type(),
-                      typename make_index_sequence<OtherSize1>::type(),
-                      typename make_index_sequence<OtherSize2>::type());
+                      make_index_sequence<Size1>(),
+                      make_index_sequence<Size2>(),
+                      make_index_sequence<OtherSize1>(),
+                      make_index_sequence<OtherSize2>());
     }
 
 protected:
