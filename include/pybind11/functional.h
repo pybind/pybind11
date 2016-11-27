@@ -70,7 +70,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(type, _("Callable[[") +
-            type_caster<std::tuple<Args...>>::element_names() + _("], ") +
+            argument_loader<Args...>::arg_names() + _("], ") +
             type_caster<retval_type>::name() +
             _("]"));
 };

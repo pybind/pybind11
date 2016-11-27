@@ -368,6 +368,9 @@ template <typename T> using intrinsic_t = typename intrinsic_type<T>::type;
 /// Helper type to replace 'void' in some expressions
 struct void_type { };
 
+/// Helper template which holds a list of types
+template <typename...> struct type_list { };
+
 /// from __cpp_future__ import (convenient aliases from C++14/17)
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <class T> using negation = bool_constant<!T::value>;
