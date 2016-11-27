@@ -111,10 +111,10 @@ protected:
         }
 
         /* Type casters for the function arguments and return value */
-        typedef detail::type_caster<typename std::tuple<Args...>> cast_in;
-        typedef detail::type_caster<typename std::conditional<
-            std::is_void<Return>::value, detail::void_type,
-            typename detail::intrinsic_type<Return>::type>::type> cast_out;
+        using cast_in = detail::argument_loader<Args...>;
+        using cast_out = detail::make_caster<
+            detail::conditional_t<std::is_void<Return>::value, detail::void_type, Return>
+        >;
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](detail::function_record *rec, handle args, handle kwargs, handle parent) -> handle {
@@ -151,7 +151,7 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return value types */
         using detail::descr; using detail::_;
-        PYBIND11_DESCR signature = _("(") + cast_in::element_names() + _(") -> ") + cast_out::name();
+        PYBIND11_DESCR signature = _("(") + cast_in::arg_names() + _(") -> ") + cast_out::name();
 
         /* Register the function with Python from generic (non-templated) code */
         initialize_generic(rec, signature.text(), signature.types(), sizeof...(Args));
