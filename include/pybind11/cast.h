@@ -774,7 +774,7 @@ protected:
 
 template <typename... Tuple> class type_caster<std::tuple<Tuple...>> {
     using type = std::tuple<Tuple...>;
-    using indices = typename make_index_sequence<sizeof...(Tuple)>::type;
+    using indices = make_index_sequence<sizeof...(Tuple)>;
     static constexpr auto size = sizeof...(Tuple);
 
 public:
@@ -1205,7 +1205,7 @@ NAMESPACE_BEGIN(detail)
 template <typename... Args>
 class argument_loader {
     using itypes = type_list<intrinsic_t<Args>...>;
-    using indices = typename make_index_sequence<sizeof...(Args)>::type;
+    using indices = make_index_sequence<sizeof...(Args)>;
 
 public:
     static constexpr auto has_kwargs = std::is_same<itypes, type_list<args, kwargs>>::value;
