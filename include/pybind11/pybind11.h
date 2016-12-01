@@ -580,7 +580,7 @@ public:
     static module import(const char *name) {
         PyObject *obj = PyImport_ImportModule(name);
         if (!obj)
-            throw import_error("Module \"" + std::string(name) + "\" not found!");
+            throw error_already_set();
         return reinterpret_steal<module>(obj);
     }
 
@@ -1495,7 +1495,7 @@ PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
     } else {
         try {
             file = module::import("sys").attr("stdout");
-        } catch (const import_error &) {
+        } catch (const error_already_set &) {
             /* If print() is called from code that is executed as
                part of garbage collection during interpreter shutdown,
                importing 'sys' can fail. Give up rather than crashing the
