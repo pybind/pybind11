@@ -165,6 +165,13 @@ bool isinstance(handle obj) { return detail::isinstance_generic(obj, typeid(T));
 template <> inline bool isinstance<handle>(handle obj) = delete;
 template <> inline bool isinstance<object>(handle obj) { return obj.ptr() != nullptr; }
 
+inline bool isinstance(handle obj, handle type) {
+    const auto result = PyObject_IsInstance(obj.ptr(), type.ptr());
+    if (result == -1)
+        throw error_already_set();
+    return result != 0;
+}
+
 inline bool hasattr(handle obj, handle name) {
     return PyObject_HasAttr(obj.ptr(), name.ptr()) == 1;
 }

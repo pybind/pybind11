@@ -108,14 +108,10 @@ PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool t
 }
 
 PYBIND11_NOINLINE inline bool isinstance_generic(handle obj, const std::type_info &tp) {
-    const auto type = detail::get_type_handle(tp, false);
+    handle type = detail::get_type_handle(tp, false);
     if (!type)
         return false;
-
-    const auto result = PyObject_IsInstance(obj.ptr(), type.ptr());
-    if (result == -1)
-        throw error_already_set();
-    return result != 0;
+    return isinstance(obj, type);
 }
 
 PYBIND11_NOINLINE inline std::string error_string() {
