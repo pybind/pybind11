@@ -1255,6 +1255,7 @@ public:
 
     /// Export enumeration entries into the parent scope
     enum_ &export_values() {
+#if !defined(PYPY_VERSION)
         PyObject *dict = ((PyTypeObject *) this->m_ptr)->tp_dict;
         PyObject *key, *value;
         ssize_t pos = 0;
@@ -1263,6 +1264,19 @@ public:
             if (PyObject_IsInstance(value, this->m_ptr))
                 m_parent.attr(key) = value;
         }
+#else
+        /* PyPy's cpyext still has difficulties with the above
+           CPython API calls; emulate using Python code. */
+        dict d; d["t"] = *this; d["p"] = m_parent;
+        PyObject *result = PyRun_String(
+            "for k, v in t.__dict__.items():\n"
+            "    if isinstance(v, t):\n"
+            "        setattr(p, k, v)\n",
+            Py_file_input, d.ptr(), d.ptr());
+        if (result == nullptr)
+            throw error_already_set();
+        Py_DECREF(result);
+#endif
 
         return *this;
     }
