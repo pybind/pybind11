@@ -686,8 +686,8 @@ protected:
         /* Create a custom metaclass if requested (used for static properties) */
         object metaclass;
         if (rec->metaclass) {
-            std::string name_ = full_name + "__Meta";
-            object name = reinterpret_steal<object>(PYBIND11_FROM_STRING(name_.c_str()));
+            std::string meta_name_ = full_name + "__Meta";
+            object meta_name = reinterpret_steal<object>(PYBIND11_FROM_STRING(meta_name_.c_str()));
             metaclass = reinterpret_steal<object>(PyType_Type.tp_alloc(&PyType_Type, 0));
             if (!metaclass || !name)
                 pybind11_fail("generic_type::generic_type(): unable to create metaclass!");
@@ -698,14 +698,13 @@ protected:
                turn find the newly constructed type in an invalid state) */
 
             auto type = (PyHeapTypeObject*) metaclass.ptr();
-            type->ht_name = name.release().ptr();
-
+            type->ht_name = meta_name.release().ptr();
 
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
             /* Qualified names for Python >= 3.3 */
             type->ht_qualname = ht_qualname.release().ptr();
 #endif
-            type->ht_type.tp_name = strdup(name_.c_str());
+            type->ht_type.tp_name = strdup(meta_name_.c_str());
             type->ht_type.tp_base = &PyType_Type;
             type->ht_type.tp_flags |= (Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE) &
                                       ~Py_TPFLAGS_HAVE_GC;
@@ -878,9 +877,8 @@ protected:
                 PyObject_ClearWeakRefs((PyObject *) self);
 
             PyObject **dict_ptr = _PyObject_GetDictPtr((PyObject *) self);
-            if (dict_ptr) {
+            if (dict_ptr)
                 Py_CLEAR(*dict_ptr);
-            }
         }
         Py_TYPE(self)->tp_free((PyObject*) self);
     }
@@ -902,12 +900,14 @@ protected:
             void *get_buffer_data) {
         PyHeapTypeObject *type = (PyHeapTypeObject*) m_ptr;
         auto tinfo = detail::get_type_info(&type->ht_type);
-        if ((type->ht_type.tp_flags & Py_TPFLAGS_HAVE_NEWBUFFER) == 0)
+
+        if (!type->ht_type.tp_as_buffer)
             pybind11_fail(
                 "To be able to register buffer protocol support for the type '" +
                 std::string(tinfo->type->tp_name) +
                 "' the associated class<>(..) invocation must "
                 "include the pybind11::buffer_protocol() annotation!");
+
         tinfo->get_buffer = get_buffer;
         tinfo->get_buffer_data = get_buffer_data;
     }

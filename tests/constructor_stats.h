@@ -158,7 +158,9 @@ public:
 
     // Gets constructor stats from a C++ type
     template <typename T> static ConstructorStats& get() {
+#if defined(PYPY_VERSION)
         gc();
+#endif
         return get(typeid(T));
     }
 
