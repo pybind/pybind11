@@ -942,6 +942,31 @@ protected:
     }
 
     static void releasebuffer(PyObject *, Py_buffer *view) { delete (buffer_info *) view->internal; }
+
+    void def_property_static_impl(const char *name,
+                                  handle fget, handle fset,
+                                  detail::function_record *rec_fget) {
+        pybind11::str doc_obj = pybind11::str(
+            (rec_fget->doc && pybind11::options::show_user_defined_docstrings())
+                ? rec_fget->doc : "");
+        const auto property = reinterpret_steal<object>(
+            PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type, fget.ptr() ? fget.ptr() : Py_None,
+                                         fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr));
+        if (rec_fget->is_method && rec_fget->scope) {
+            attr(name) = property;
+        } else {
+            auto mclass = handle((PyObject *) PYBIND11_OB_TYPE(*((PyTypeObject *) m_ptr)));
+
+            if ((PyTypeObject *) mclass.ptr() == &PyType_Type)
+                pybind11_fail(
+                    "Adding static properties to the type '" +
+                    std::string(((PyTypeObject *) m_ptr)->tp_name) +
+                    "' requires the type to have a custom metaclass. Please "
+                    "ensure that one is created by supplying the pybind11::metaclass() "
+                    "annotation to the associated class_<>(..) invocation.");
+            mclass.attr(name) = property;
+        }
+    }
 };
 
 NAMESPACE_END(detail)
@@ -1145,26 +1170,7 @@ public:
                 rec_fset->doc = strdup(rec_fset->doc);
             }
         }
-        pybind11::str doc_obj = pybind11::str(
-            (rec_fget->doc && pybind11::options::show_user_defined_docstrings())
-                ? rec_fget->doc : "");
-        const auto property = reinterpret_steal<object>(
-            PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type, fget.ptr() ? fget.ptr() : Py_None,
-                                         fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr));
-        if (rec_fget->is_method && rec_fget->scope) {
-            attr(name) = property;
-        } else {
-            auto mclass = handle((PyObject *) PYBIND11_OB_TYPE(*((PyTypeObject *) m_ptr)));
-
-            if ((PyTypeObject *) mclass.ptr() == &PyType_Type)
-                pybind11_fail(
-                    "Adding static properties to the type '" +
-                    std::string(((PyTypeObject *) m_ptr)->tp_name) +
-                    "' requires the type to have a custom metaclass. Please "
-                    "ensure that one is created by supplying the pybind11::metaclass() "
-                    "annotation to the associated class_<>(..) invocation.");
-            mclass.attr(name) = property;
-        }
+        def_property_static_impl(name, fget, fset, rec_fget);
         return *this;
     }
 
