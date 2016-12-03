@@ -23,6 +23,7 @@ def test_inheritance(msg):
 
     with pytest.raises(TypeError) as excinfo:
         dog_bark(polly)
+    print(excinfo.value)
     assert msg(excinfo.value) == """
         dog_bark(): incompatible function arguments. The following argument types are supported:
             1. (arg0: m.Dog) -> str

@@ -1,4 +1,3 @@
-
 def test_operator_overloading():
     from pybind11_tests import Vector2, Vector, ConstructorStats
 

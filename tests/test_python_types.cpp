@@ -185,7 +185,7 @@ struct MoveOutContainer {
 test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
-    py::class_<ExamplePythonTypes>(m, "ExamplePythonTypes", "Example 2 documentation")
+    py::class_<ExamplePythonTypes>(m, "ExamplePythonTypes", "Example 2 documentation", py::metaclass())
         .def("get_dict", &ExamplePythonTypes::get_dict, "Return a Python dictionary")
         .def("get_dict_2", &ExamplePythonTypes::get_dict_2, "Return a C++ dictionary")
         .def("get_list", &ExamplePythonTypes::get_list, "Return a Python list")
@@ -212,8 +212,7 @@ test_initializer python_types([](py::module &m) {
         .def("test_print", &ExamplePythonTypes::test_print, "test the print function")
         .def_static("new_instance", &ExamplePythonTypes::new_instance, "Return an instance")
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
-        .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")
-        ;
+        .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)");
 
     m.def("test_print_function", []() {
         py::print("Hello, World!");

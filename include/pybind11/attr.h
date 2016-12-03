@@ -47,6 +47,12 @@ struct multiple_inheritance { };
 /// Annotation which enables dynamic attributes, i.e. adds `__dict__` to a class
 struct dynamic_attr { };
 
+/// Annotation which enables the buffer protocol for a type
+struct buffer_protocol { };
+
+/// Annotation which requests that a special metaclass is created for a type
+struct metaclass { };
+
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
 
@@ -136,7 +142,9 @@ struct function_record {
 
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
-    PYBIND11_NOINLINE type_record() { }
+    PYBIND11_NOINLINE type_record()
+        : multiple_inheritance(false), dynamic_attr(false),
+          buffer_protocol(false), metaclass(false) { }
 
     /// Handle to the parent scope
     handle scope;
@@ -166,10 +174,16 @@ struct type_record {
     const char *doc = nullptr;
 
     /// Multiple inheritance marker
-    bool multiple_inheritance = false;
+    bool multiple_inheritance : 1;
 
     /// Does the class manage a __dict__?
-    bool dynamic_attr = false;
+    bool dynamic_attr : 1;
+
+    /// Does the class implement the buffer protocol?
+    bool buffer_protocol : 1;
+
+    /// Does the class require its own metaclass?
+    bool metaclass : 1;
 
     PYBIND11_NOINLINE void add_base(const std::type_info *base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(*base, false);
@@ -307,6 +321,16 @@ struct process_attribute<multiple_inheritance> : process_attribute_default<multi
 template <>
 struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr> {
     static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
+};
+
+template <>
+struct process_attribute<buffer_protocol> : process_attribute_default<buffer_protocol> {
+    static void init(const buffer_protocol &, type_record *r) { r->buffer_protocol = true; }
+};
+
+template <>
+struct process_attribute<metaclass> : process_attribute_default<metaclass> {
+    static void init(const metaclass &, type_record *r) { r->metaclass = true; }
 };
 
 

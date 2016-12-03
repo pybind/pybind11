@@ -10,6 +10,7 @@ import difflib
 import re
 import sys
 import contextlib
+import platform
 
 _unicode_marker = re.compile(r'u(\'[^\']*\')')
 _long_marker = re.compile(r'([0-9])L')
@@ -190,6 +191,7 @@ def pytest_namespace():
         from pybind11_tests import have_eigen
     except ImportError:
         have_eigen = False
+    pypy = platform.python_implementation() == "PyPy"
 
     skipif = pytest.mark.skipif
     return {
@@ -200,6 +202,7 @@ def pytest_namespace():
                                            reason="eigen and/or numpy are not installed"),
         'requires_eigen_and_scipy': skipif(not have_eigen or not scipy,
                                            reason="eigen and/or scipy are not installed"),
+        'unsupported_on_pypy': skipif(pypy, reason="unsupported on PyPy")
     }
 
 

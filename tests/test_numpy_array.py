@@ -234,11 +234,13 @@ def test_numpy_view(capture):
         del ac_view_1
         del ac_view_2
         gc.collect()
+        gc.collect()
     assert capture == """
         ~ArrayClass()
     """
 
 
+@pytest.unsupported_on_pypy
 @pytest.requires_numpy
 def test_cast_numpy_int64_to_uint64():
     from pybind11_tests.array import function_taking_uint64

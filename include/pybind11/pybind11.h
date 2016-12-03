@@ -221,6 +221,11 @@ protected:
                 if (!t)
                     pybind11_fail("Internal error while parsing type signature (1)");
                 if (auto tinfo = detail::get_type_info(*t)) {
+#if defined(PYPY_VERSION)
+                    signature += handle((PyObject *) tinfo->type)
+                                     .attr("__module__")
+                                     .cast<std::string>() + ".";
+#endif
                     signature += tinfo->type->tp_name;
                 } else {
                     std::string tname(t->name());
@@ -568,7 +573,7 @@ public:
     }
 
     module def_submodule(const char *name, const char *doc = nullptr) {
-        std::string full_name = attr("__name__").cast<std::string>()
+        std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
         auto result = reinterpret_borrow<module>(PyImport_AddModule(full_name.c_str()));
         if (doc && options::show_user_defined_docstrings())
@@ -660,20 +665,57 @@ protected:
         object scope_qualname;
         if (rec->scope && hasattr(rec->scope, "__qualname__"))
             scope_qualname = rec->scope.attr("__qualname__");
-        object ht_qualname;
-        if (scope_qualname) {
+        object ht_qualname, ht_qualname_meta;
+        if (scope_qualname)
             ht_qualname = reinterpret_steal<object>(PyUnicode_FromFormat(
                 "%U.%U", scope_qualname.ptr(), name.ptr()));
-        } else {
+        else
             ht_qualname = name;
-        }
+        if (rec->metaclass)
+            ht_qualname_meta = reinterpret_steal<object>(
+                PyUnicode_FromFormat("%U__Meta", ht_qualname.ptr()));
 #endif
+
+#if !defined(PYPY_VERSION)
+        std::string full_name = (scope_module ? ((std::string) pybind11::str(scope_module) + "." + rec->name)
+                                              : std::string(rec->name));
+#else
+        std::string full_name = std::string(rec->name);
+#endif
+
+        /* Create a custom metaclass if requested (used for static properties) */
+        object metaclass;
+        if (rec->metaclass) {
+            std::string name_ = full_name + "__Meta";
+            object name = reinterpret_steal<object>(PYBIND11_FROM_STRING(name_.c_str()));
+            metaclass = reinterpret_steal<object>(PyType_Type.tp_alloc(&PyType_Type, 0));
+            if (!metaclass || !name)
+                pybind11_fail("generic_type::generic_type(): unable to create metaclass!");
+
+            /* Danger zone: from now (and until PyType_Ready), make sure to
+               issue no Python C API calls which could potentially invoke the
+               garbage collector (the GC will call type_traverse(), which will in
+               turn find the newly constructed type in an invalid state) */
+
+            auto type = (PyHeapTypeObject*) metaclass.ptr();
+            type->ht_name = name.release().ptr();
+
+
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+            /* Qualified names for Python >= 3.3 */
+            type->ht_qualname = ht_qualname.release().ptr();
+#endif
+            type->ht_type.tp_name = strdup(name_.c_str());
+            type->ht_type.tp_base = &PyType_Type;
+            type->ht_type.tp_flags |= (Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE) &
+                                      ~Py_TPFLAGS_HAVE_GC;
+
+            if (PyType_Ready(&type->ht_type) < 0)
+                pybind11_fail("generic_type::generic_type(): failure in PyType_Ready() for metaclass!");
+        }
 
         size_t num_bases = rec->bases.size();
         auto bases = tuple(rec->bases);
-
-        std::string full_name = (scope_module ? ((std::string) pybind11::str(scope_module) + "." + rec->name)
-                                              : std::string(rec->name));
 
         char *tp_doc = nullptr;
         if (rec->doc && options::show_user_defined_docstrings()) {
@@ -720,6 +762,9 @@ protected:
         type->ht_qualname = ht_qualname.release().ptr();
 #endif
 
+        /* Metaclass */
+        PYBIND11_OB_TYPE(type->ht_type) = (PyTypeObject *) metaclass.release().ptr();
+
         /* Supported protocols */
         type->ht_type.tp_as_number = &type->as_number;
         type->ht_type.tp_as_sequence = &type->as_sequence;
@@ -750,13 +795,22 @@ protected:
             type->ht_type.tp_clear = clear;
         }
 
+        if (rec->buffer_protocol) {
+            type->ht_type.tp_as_buffer = &type->as_buffer;
+#if PY_MAJOR_VERSION < 3
+            type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_NEWBUFFER;
+#endif
+            type->as_buffer.bf_getbuffer = getbuffer;
+            type->as_buffer.bf_releasebuffer = releasebuffer;
+        }
+
         type->ht_type.tp_doc = tp_doc;
+
+        m_ptr = type_holder.ptr();
 
         if (PyType_Ready(&type->ht_type) < 0)
             pybind11_fail(std::string(rec->name) + ": PyType_Ready failed (" +
                           detail::error_string() + ")!");
-
-        m_ptr = type_holder.ptr();
 
         if (scope_module) // Needed by pydoc
             attr("__module__") = scope_module;
@@ -782,43 +836,14 @@ protected:
         }
     }
 
-    /// Allocate a metaclass on demand (for static properties)
-    handle metaclass() {
-        auto &ht_type = ((PyHeapTypeObject *) m_ptr)->ht_type;
-        auto &ob_type = PYBIND11_OB_TYPE(ht_type);
-
-        if (ob_type == &PyType_Type) {
-            std::string name_ = std::string(ht_type.tp_name) + "__Meta";
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-            auto ht_qualname = reinterpret_steal<object>(PyUnicode_FromFormat("%U__Meta", attr("__qualname__").ptr()));
-#endif
-            auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(name_.c_str()));
-            auto type_holder = reinterpret_steal<object>(PyType_Type.tp_alloc(&PyType_Type, 0));
-            if (!type_holder || !name)
-                pybind11_fail("generic_type::metaclass(): unable to create type object!");
-
-            auto type = (PyHeapTypeObject*) type_holder.ptr();
-            type->ht_name = name.release().ptr();
-
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-            /* Qualified names for Python >= 3.3 */
-            type->ht_qualname = ht_qualname.release().ptr();
-#endif
-            type->ht_type.tp_name = strdup(name_.c_str());
-            type->ht_type.tp_base = ob_type;
-            type->ht_type.tp_flags |= (Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE) &
-                                      ~Py_TPFLAGS_HAVE_GC;
-
-            if (PyType_Ready(&type->ht_type) < 0)
-                pybind11_fail("generic_type::metaclass(): PyType_Ready failed!");
-
-            ob_type = (PyTypeObject *) type_holder.release().ptr();
-        }
-        return handle((PyObject *) ob_type);
-    }
-
     static int init(void *self, PyObject *, PyObject *) {
-        std::string msg = std::string(Py_TYPE(self)->tp_name) + ": No constructor defined!";
+        PyTypeObject *type = Py_TYPE(self);
+        std::string msg;
+#if defined(PYPY_VERSION)
+        msg += handle((PyObject *) type).attr("__module__").cast<std::string>() + ".";
+#endif
+        msg += type->tp_name;
+        msg += ": No constructor defined!";
         PyErr_SetString(PyExc_TypeError, msg.c_str());
         return -1;
     }
@@ -876,13 +901,13 @@ protected:
             buffer_info *(*get_buffer)(PyObject *, void *),
             void *get_buffer_data) {
         PyHeapTypeObject *type = (PyHeapTypeObject*) m_ptr;
-        type->ht_type.tp_as_buffer = &type->as_buffer;
-#if PY_MAJOR_VERSION < 3
-        type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_NEWBUFFER;
-#endif
-        type->as_buffer.bf_getbuffer = getbuffer;
-        type->as_buffer.bf_releasebuffer = releasebuffer;
         auto tinfo = detail::get_type_info(&type->ht_type);
+        if ((type->ht_type.tp_flags & Py_TPFLAGS_HAVE_NEWBUFFER) == 0)
+            pybind11_fail(
+                "To be able to register buffer protocol support for the type '" +
+                std::string(tinfo->type->tp_name) +
+                "' the associated class<>(..) invocation must "
+                "include the pybind11::buffer_protocol() annotation!");
         tinfo->get_buffer = get_buffer;
         tinfo->get_buffer_data = get_buffer_data;
     }
@@ -890,6 +915,8 @@ protected:
     static int getbuffer(PyObject *obj, Py_buffer *view, int flags) {
         auto tinfo = detail::get_type_info(Py_TYPE(obj));
         if (view == nullptr || obj == nullptr || !tinfo || !tinfo->get_buffer) {
+            if (view)
+                view->obj = nullptr;
             PyErr_SetString(PyExc_BufferError, "generic_type::getbuffer(): Internal error");
             return -1;
         }
@@ -1118,14 +1145,26 @@ public:
                 rec_fset->doc = strdup(rec_fset->doc);
             }
         }
-        pybind11::str doc_obj = pybind11::str((rec_fget->doc && pybind11::options::show_user_defined_docstrings()) ? rec_fget->doc : "");
+        pybind11::str doc_obj = pybind11::str(
+            (rec_fget->doc && pybind11::options::show_user_defined_docstrings())
+                ? rec_fget->doc : "");
         const auto property = reinterpret_steal<object>(
             PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type, fget.ptr() ? fget.ptr() : Py_None,
                                          fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr));
-        if (rec_fget->is_method && rec_fget->scope)
+        if (rec_fget->is_method && rec_fget->scope) {
             attr(name) = property;
-        else
-            metaclass().attr(name) = property;
+        } else {
+            auto mclass = handle((PyObject *) PYBIND11_OB_TYPE(*((PyTypeObject *) m_ptr)));
+
+            if ((PyTypeObject *) mclass.ptr() == &PyType_Type)
+                pybind11_fail(
+                    "Adding static properties to the type '" +
+                    std::string(((PyTypeObject *) m_ptr)->tp_name) +
+                    "' requires the type to have a custom metaclass. Please "
+                    "ensure that one is created by supplying the pybind11::metaclass() "
+                    "annotation to the associated class_<>(..) invocation.");
+            mclass.attr(name) = property;
+        }
         return *this;
     }
 
@@ -1689,10 +1728,10 @@ error_already_set::~error_already_set() {
 }
 
 inline function get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name)  {
-    handle py_object = detail::get_object_handle(this_ptr, this_type);
-    if (!py_object)
+    handle self = detail::get_object_handle(this_ptr, this_type);
+    if (!self)
         return function();
-    handle type = py_object.get_type();
+    handle type = self.get_type();
     auto key = std::make_pair(type.ptr(), name);
 
     /* Cache functions that aren't overloaded in Python to avoid
@@ -1701,7 +1740,7 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     if (cache.find(key) != cache.end())
         return function();
 
-    function overload = getattr(py_object, name, function());
+    function overload = getattr(self, name, function());
     if (overload.is_cpp_function()) {
         cache.insert(key);
         return function();
@@ -1716,9 +1755,30 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
         PyFrame_FastToLocals(frame);
         PyObject *self_caller = PyDict_GetItem(
             frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));
-        if (self_caller == py_object.ptr())
+        if (self_caller == self.ptr())
             return function();
     }
+#else
+    /* PyPy currently doesn't provide a detailed cpyext emulation of
+       frame objects, so we have to emulate this using Python. This
+       is going to be slow..*/
+    dict d; d["self"] = self; d["name"] = pybind11::str(name);
+    PyObject *result = PyRun_String(
+        "import inspect\n"
+        "frame = inspect.currentframe()\n"
+        "if frame is not None:\n"
+        "    frame = frame.f_back\n"
+        "    if frame is not None and str(frame.f_code.co_name) == name and "
+        "frame.f_code.co_argcount > 0:\n"
+        "        self_caller = frame.f_locals[frame.f_code.co_varnames[0]]\n"
+        "        if self_caller == self:\n"
+        "            self = None\n",
+        Py_file_input, d.ptr(), d.ptr());
+    if (result == nullptr)
+        throw error_already_set();
+    if ((handle) d["self"] == Py_None)
+        return function();
+    Py_DECREF(result);
 #endif
 
     return overload;

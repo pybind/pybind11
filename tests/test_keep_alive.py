@@ -1,6 +1,11 @@
 import gc
 
 
+def collect():
+    gc.collect()
+    gc.collect()
+
+
 def test_keep_alive_argument(capture):
     from pybind11_tests import Parent, Child
 
@@ -9,14 +14,14 @@ def test_keep_alive_argument(capture):
     assert capture == "Allocating parent."
     with capture:
         p.addChild(Child())
-        gc.collect()
+        collect()
     assert capture == """
         Allocating child.
         Releasing child.
     """
     with capture:
         del p
-        gc.collect()
+        collect()
     assert capture == "Releasing parent."
 
     with capture:
@@ -24,11 +29,11 @@ def test_keep_alive_argument(capture):
     assert capture == "Allocating parent."
     with capture:
         p.addChildKeepAlive(Child())
-        gc.collect()
+        collect()
     assert capture == "Allocating child."
     with capture:
         del p
-        gc.collect()
+        collect()
     assert capture == """
         Releasing parent.
         Releasing child.
@@ -43,14 +48,14 @@ def test_keep_alive_return_value(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnChild()
-        gc.collect()
+        collect()
     assert capture == """
         Allocating child.
         Releasing child.
     """
     with capture:
         del p
-        gc.collect()
+        collect()
     assert capture == "Releasing parent."
 
     with capture:
@@ -58,11 +63,11 @@ def test_keep_alive_return_value(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnChildKeepAlive()
-        gc.collect()
+        collect()
     assert capture == "Allocating child."
     with capture:
         del p
-        gc.collect()
+        collect()
     assert capture == """
         Releasing parent.
         Releasing child.
@@ -77,11 +82,11 @@ def test_return_none(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnNullChildKeepAliveChild()
-        gc.collect()
+        collect()
     assert capture == ""
     with capture:
         del p
-        gc.collect()
+        collect()
     assert capture == "Releasing parent."
 
     with capture:
@@ -89,9 +94,9 @@ def test_return_none(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnNullChildKeepAliveParent()
-        gc.collect()
+        collect()
     assert capture == ""
     with capture:
         del p
-        gc.collect()
+        collect()
     assert capture == "Releasing parent."
