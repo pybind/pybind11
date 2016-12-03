@@ -14,6 +14,9 @@ def test_function_overloading():
     assert test_function(MyEnum.EFirstEntry) == "test_function(enum=1)"
     assert test_function(MyEnum.ESecondEntry) == "test_function(enum=2)"
 
+    assert test_function(1, 1.0) == "test_function(int, float)"
+    assert test_function(2.0, 2) == "test_function(float, int)"
+
 
 def test_bytes():
     from pybind11_tests import return_bytes, print_bytes

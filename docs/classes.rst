@@ -104,6 +104,8 @@ With the above change, the same Python code now produces the following output:
     >>> print(p)
     <example.Pet named 'Molly'>
 
+.. [#f1] Stateless closures are those with an empty pair of brackets ``[]`` as the capture object.
+
 .. _properties:
 
 Instance and static fields
@@ -337,6 +339,35 @@ The overload signatures are also visible in the method's docstring:
      |
      |      Set the pet's name
 
+If you have a C++14 compatible compiler [#cpp14]_, you can use an alternative
+syntax to cast the overloaded function:
+
+.. code-block:: cpp
+
+    py::class_<Pet>(m, "Pet")
+        .def("set", py::overload_cast<int>(&Pet::set), "Set the pet's age")
+        .def("set", py::overload_cast<const std::string &>(&Pet::set), "Set the pet's name");
+
+Here, ``py::overload_cast`` only requires the parameter types to be specified.
+The return type and class are deduced. This avoids the additional noise of
+``void (Pet::*)()`` as seen in the raw cast. If a function is overloaded based
+on constness, the ``py::const_`` tag should be used:
+
+.. code-block:: cpp
+
+    struct Widget {
+        int foo(int x, float y);
+        int foo(int x, float y) const;
+    };
+
+    py::class_<Widget>(m, "Widget")
+       .def("foo_mutable", py::overload_cast<int, float>(&Widget::foo))
+       .def("foo_const",   py::overload_cast<int, float>(&Widget::foo, py::const_));
+
+
+.. [#cpp14] A compiler which supports the ``-std=c++14`` flag
+            or Visual Studio 2015 Update 2 and newer.
+
 .. note::
 
     To define multiple overloaded constructors, simply declare one after the
@@ -406,5 +437,3 @@ typed enums.
            ...
 
     By default, these are omitted to conserve space.
-
-.. [#f1] Stateless closures are those with an empty pair of brackets ``[]`` as the capture object.

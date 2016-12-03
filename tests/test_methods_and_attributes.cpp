@@ -50,6 +50,11 @@ public:
     int *internal4() { return &value; }                           // return by pointer
     const int *internal5() { return &value; }                     // return by const pointer
 
+    py::str overloaded(int, float) { return "(int, float)"; }
+    py::str overloaded(float, int) { return "(float, int)"; }
+    py::str overloaded(int, float) const { return "(int, float) const"; }
+    py::str overloaded(float, int) const { return "(float, int) const"; }
+
     int value = 0;
 };
 
@@ -117,6 +122,17 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def("internal3", &ExampleMandA::internal3)
         .def("internal4", &ExampleMandA::internal4)
         .def("internal5", &ExampleMandA::internal5)
+#if defined(PYBIND11_OVERLOAD_CAST)
+        .def("overloaded", py::overload_cast<int, float>(&ExampleMandA::overloaded))
+        .def("overloaded", py::overload_cast<float, int>(&ExampleMandA::overloaded))
+        .def("overloaded_const", py::overload_cast<int, float>(&ExampleMandA::overloaded, py::const_))
+        .def("overloaded_const", py::overload_cast<float, int>(&ExampleMandA::overloaded, py::const_))
+#else
+        .def("overloaded", static_cast<py::str (ExampleMandA::*)(int, float)>(&ExampleMandA::overloaded))
+        .def("overloaded", static_cast<py::str (ExampleMandA::*)(float, int)>(&ExampleMandA::overloaded))
+        .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(int, float) const>(&ExampleMandA::overloaded))
+        .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(float, int) const>(&ExampleMandA::overloaded))
+#endif
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value)
         ;
