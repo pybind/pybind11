@@ -77,6 +77,10 @@ public:
         return std::array<std::string, 2> {{ "array entry 1" , "array entry 2"}};
     }
 
+    std::valarray<int> get_valarray() {
+        return std::valarray<int>({ 1, 4, 9 });
+    }
+
     /* Easily iterate over a dictionary using a C++11 range-based for loop */
     void print_dict(py::dict dict) {
         for (auto item : dict)
@@ -132,6 +136,12 @@ public:
             py::print("array item {}: {}"_s.format(index++, item));
     }
 
+    void print_valarray(std::valarray<int> &varray) {
+        int index = 0;
+        for (auto item : varray)
+            py::print("valarray item {}: {}"_s.format(index++, item));
+    }
+
     void throw_exception() {
         throw std::runtime_error("This exception was intentionally thrown.");
     }
@@ -182,6 +192,7 @@ test_initializer python_types([](py::module &m) {
         .def("get_set", &ExamplePythonTypes::get_set, "Return a Python set")
         .def("get_set2", &ExamplePythonTypes::get_set_2, "Return a C++ set")
         .def("get_array", &ExamplePythonTypes::get_array, "Return a C++ array")
+        .def("get_valarray", &ExamplePythonTypes::get_valarray, "Return a C++ valarray")
         .def("print_dict", &ExamplePythonTypes::print_dict, "Print entries of a Python dictionary")
         .def("print_dict_2", &ExamplePythonTypes::print_dict_2, "Print entries of a C++ dictionary")
         .def("print_set", &ExamplePythonTypes::print_set, "Print entries of a Python set")
@@ -189,6 +200,7 @@ test_initializer python_types([](py::module &m) {
         .def("print_list", &ExamplePythonTypes::print_list, "Print entries of a Python list")
         .def("print_list_2", &ExamplePythonTypes::print_list_2, "Print entries of a C++ list")
         .def("print_array", &ExamplePythonTypes::print_array, "Print entries of a C++ array")
+        .def("print_valarray", &ExamplePythonTypes::print_valarray, "Print entries of a C++ valarray")
         .def("pair_passthrough", &ExamplePythonTypes::pair_passthrough, "Return a pair in reversed order")
         .def("tuple_passthrough", &ExamplePythonTypes::tuple_passthrough, "Return a triple in reversed order")
         .def("throw_exception", &ExamplePythonTypes::throw_exception, "Throw an exception")
