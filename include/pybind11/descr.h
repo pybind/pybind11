@@ -81,6 +81,10 @@ template <bool B, size_t Size1, size_t Size2>
 constexpr enable_if_t<!B, descr<Size2 - 1, 0>> _(char const(&)[Size1], char const(&text2)[Size2]) {
     return _(text2);
 }
+template <bool B, size_t SizeA1, size_t SizeA2, size_t SizeB1, size_t SizeB2>
+constexpr enable_if_t<B, descr<SizeA1, SizeA2>> _(descr<SizeA1, SizeA2> d, descr<SizeB1, SizeB2>) { return d; }
+template <bool B, size_t SizeA1, size_t SizeA2, size_t SizeB1, size_t SizeB2>
+constexpr enable_if_t<!B, descr<SizeB1, SizeB2>> _(descr<SizeA1, SizeA2>, descr<SizeB1, SizeB2> d) { return d; }
 
 template <size_t Size> auto constexpr _() -> decltype(int_to_str<Size / 10, Size % 10>::digits) {
     return int_to_str<Size / 10, Size % 10>::digits;
@@ -154,6 +158,8 @@ PYBIND11_NOINLINE inline descr _(const char *text) {
 
 template <bool B> PYBIND11_NOINLINE enable_if_t<B, descr> _(const char *text1, const char *) { return _(text1); }
 template <bool B> PYBIND11_NOINLINE enable_if_t<!B, descr> _(char const *, const char *text2) { return _(text2); }
+template <bool B> PYBIND11_NOINLINE enable_if_t<B, descr> _(descr d, descr) { return d; }
+template <bool B> PYBIND11_NOINLINE enable_if_t<!B, descr> _(descr, descr d) { return d; }
 
 template <typename Type> PYBIND11_NOINLINE descr _() {
     const std::type_info *types[2] = { &typeid(Type), nullptr };
