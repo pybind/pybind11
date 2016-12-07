@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <list>
+#include <valarray>
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -72,7 +73,6 @@ template <typename Type, typename Key> struct set_caster {
 };
 
 template <typename Type, typename Key, typename Value> struct map_caster {
-    using type = Type;
     using key_conv   = make_caster<Key>;
     using value_conv = make_caster<Value>;
 
@@ -92,7 +92,7 @@ template <typename Type, typename Key, typename Value> struct map_caster {
         return true;
     }
 
-    static handle cast(const type &src, return_value_policy policy, handle parent) {
+    static handle cast(const Type &src, return_value_policy policy, handle parent) {
         dict d;
         for (auto const &kv: src) {
             auto key = reinterpret_steal<object>(key_conv::cast(kv.first, policy, parent));
@@ -104,11 +104,10 @@ template <typename Type, typename Key, typename Value> struct map_caster {
         return d.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, _("Dict[") + key_conv::name() + _(", ") + value_conv::name() + _("]"));
+    PYBIND11_TYPE_CASTER(Type, _("Dict[") + key_conv::name() + _(", ") + value_conv::name() + _("]"));
 };
 
 template <typename Type, typename Value> struct list_caster {
-    using type = Type;
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
@@ -126,11 +125,13 @@ template <typename Type, typename Value> struct list_caster {
         return true;
     }
 
+private:
     template <typename T = Type,
               enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
     void reserve_maybe(sequence s, Type *) { value.reserve(s.size()); }
     void reserve_maybe(sequence, void *) { }
 
+public:
     static handle cast(const Type &src, return_value_policy policy, handle parent) {
         list l(src.size());
         size_t index = 0;
@@ -152,28 +153,40 @@ template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Al
 template <typename Type, typename Alloc> struct type_caster<std::list<Type, Alloc>>
  : list_caster<std::list<Type, Alloc>, Type> { };
 
-template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>> {
-    using array_type = std::array<Type, Size>;
-    using value_conv = make_caster<Type>;
+template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0> struct array_caster {
+    using value_conv = make_caster<Value>;
 
+private:
+    template <bool R = Resizable>
+    bool require_size(enable_if_t<R, size_t> size) {
+        if (value.size() != size)
+            value.resize(size);
+        return true;
+    }
+    template <bool R = Resizable>
+    bool require_size(enable_if_t<!R, size_t> size) {
+        return size == Size;
+    }
+
+public:
     bool load(handle src, bool convert) {
         if (!isinstance<list>(src))
             return false;
         auto l = reinterpret_borrow<list>(src);
-        if (l.size() != Size)
+        if (!require_size(l.size()))
             return false;
         value_conv conv;
         size_t ctr = 0;
         for (auto it : l) {
             if (!conv.load(it, convert))
                 return false;
-            value[ctr++] = cast_op<Type>(conv);
+            value[ctr++] = cast_op<Value>(conv);
         }
         return true;
     }
 
-    static handle cast(const array_type &src, return_value_policy policy, handle parent) {
-        list l(Size);
+    static handle cast(const ArrayType &src, return_value_policy policy, handle parent) {
+        list l(src.size());
         size_t index = 0;
         for (auto const &value: src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(value, policy, parent));
@@ -183,8 +196,15 @@ template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
         }
         return l.release();
     }
-    PYBIND11_TYPE_CASTER(array_type, _("List[") + value_conv::name() + _("[") + _<Size>() + _("]]"));
+
+    PYBIND11_TYPE_CASTER(ArrayType, _("List[") + value_conv::name() + _<Resizable>(_(""), _("[") + _<Size>() + _("]")) + _("]"));
 };
+
+template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
+ : array_caster<std::array<Type, Size>, Type, false, Size> { };
+
+template <typename Type> struct type_caster<std::valarray<Type>>
+ : array_caster<std::valarray<Type>, Type, true> { };
 
 template <typename Key, typename Compare, typename Alloc> struct type_caster<std::set<Key, Compare, Alloc>>
   : set_caster<std::set<Key, Compare, Alloc>, Key> { };

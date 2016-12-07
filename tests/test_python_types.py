@@ -87,6 +87,15 @@ def test_instance(capture):
         array item 0: array entry 1
         array item 1: array entry 2
     """
+    varray_result = instance.get_valarray()
+    assert varray_result == [1, 4, 9]
+    with capture:
+        instance.print_valarray(varray_result)
+    assert capture.unordered == """
+        valarray item 0: 1
+        valarray item 1: 4
+        valarray item 2: 9
+    """
     with pytest.raises(RuntimeError) as excinfo:
         instance.throw_exception()
     assert str(excinfo.value) == "This exception was intentionally thrown."
@@ -163,6 +172,11 @@ def test_docs(doc):
         get_array(self: m.ExamplePythonTypes) -> List[str[2]]
 
         Return a C++ array
+    """
+    assert doc(ExamplePythonTypes.get_valarray) == """
+        get_valarray(self: m.ExamplePythonTypes) -> List[int]
+
+        Return a C++ valarray
     """
     assert doc(ExamplePythonTypes.print_dict) == """
         print_dict(self: m.ExamplePythonTypes, arg0: dict) -> None
