@@ -73,7 +73,6 @@ template <typename Type, typename Key> struct set_caster {
 };
 
 template <typename Type, typename Key, typename Value> struct map_caster {
-    using type = Type;
     using key_conv   = make_caster<Key>;
     using value_conv = make_caster<Value>;
 
@@ -93,7 +92,7 @@ template <typename Type, typename Key, typename Value> struct map_caster {
         return true;
     }
 
-    static handle cast(const type &src, return_value_policy policy, handle parent) {
+    static handle cast(const Type &src, return_value_policy policy, handle parent) {
         dict d;
         for (auto const &kv: src) {
             auto key = reinterpret_steal<object>(key_conv::cast(kv.first, policy, parent));
@@ -105,11 +104,10 @@ template <typename Type, typename Key, typename Value> struct map_caster {
         return d.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, _("Dict[") + key_conv::name() + _(", ") + value_conv::name() + _("]"));
+    PYBIND11_TYPE_CASTER(Type, _("Dict[") + key_conv::name() + _(", ") + value_conv::name() + _("]"));
 };
 
 template <typename Type, typename Value> struct list_caster {
-    using type = Type;
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
@@ -127,11 +125,13 @@ template <typename Type, typename Value> struct list_caster {
         return true;
     }
 
+private:
     template <typename T = Type,
               enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
     void reserve_maybe(sequence s, Type *) { value.reserve(s.size()); }
     void reserve_maybe(sequence, void *) { }
 
+public:
     static handle cast(const Type &src, return_value_policy policy, handle parent) {
         list l(src.size());
         size_t index = 0;
