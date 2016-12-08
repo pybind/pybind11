@@ -557,4 +557,39 @@ PYBIND11_DECL_FMT(bool, "?");
 /// Dummy destructor wrapper that can be used to expose classes with a private destructor
 struct nodelete { template <typename T> void operator()(T*) { } };
 
+// overload_cast requires variable templates: C++14 or MSVC 2015 Update 2
+#if defined(PYBIND11_CPP14) || _MSC_FULL_VER >= 190023918
+#define PYBIND11_OVERLOAD_CAST 1
+
+NAMESPACE_BEGIN(detail)
+template <typename... Args>
+struct overload_cast_impl {
+    template <typename Return>
+    constexpr auto operator()(Return (*pf)(Args...)) const noexcept
+                              -> decltype(pf) { return pf; }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...), std::false_type = {}) const noexcept
+                              -> decltype(pmf) { return pmf; }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const, std::true_type) const noexcept
+                              -> decltype(pmf) { return pmf; }
+};
+NAMESPACE_END(detail)
+
+/// Syntax sugar for resolving overloaded function pointers:
+///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
+///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
+template <typename... Args>
+static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
+// MSVC 2015 only accepts this particular initialization syntax for this variable template.
+
+/// Const member function selector for overload_cast
+///  - regular: static_cast<Return (Class::*)(Arg) const>(&Class::func)
+///  - sweet:   overload_cast<Arg>(&Class::func, const_)
+static constexpr auto const_ = std::true_type{};
+
+#endif // overload_cast
+
 NAMESPACE_END(pybind11)

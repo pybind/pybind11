@@ -31,6 +31,11 @@ def test_methods_and_attributes():
     assert instance1.internal4() == 320
     assert instance1.internal5() == 320
 
+    assert instance1.overloaded(1, 1.0) == "(int, float)"
+    assert instance1.overloaded(2.0, 2) == "(float, int)"
+    assert instance1.overloaded_const(3, 3.0) == "(int, float) const"
+    assert instance1.overloaded_const(4.0, 4) == "(float, int) const"
+
     assert instance1.value == 320
     instance1.value = 100
     assert str(instance1) == "ExampleMandA[value=100]"
