@@ -133,7 +133,6 @@ def test_instance(capture):
 
 
 # PyPy does not seem to propagate the tp_docs field at the moment
-@pytest.unsupported_on_pypy
 def test_class_docs(doc):
     assert doc(ExamplePythonTypes) == "Example 2 documentation"
 
