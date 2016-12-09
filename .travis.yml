@@ -39,7 +39,7 @@ matrix:
   - os: linux
     language: docs
     env: DOCS STYLE LINT
-    install: pip install sphinx sphinx_rtd_theme flake8 pep8-naming
+    install: pip install --upgrade sphinx sphinx_rtd_theme flake8 pep8-naming docutils
     script:
     - make -C docs html SPHINX_OPTIONS=-W
     - tools/check-style.sh
