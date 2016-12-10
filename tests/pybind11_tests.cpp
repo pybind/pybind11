@@ -39,7 +39,7 @@ PYBIND11_PLUGIN(pybind11_tests) {
     for (const auto &initializer : initializers())
         initializer(m);
 
-    if (!py::hasattr(m, "have_eigen")) m.attr("have_eigen") = py::cast(false);
+    if (!py::hasattr(m, "have_eigen")) m.attr("have_eigen") = false;
 
     return m.ptr();
 }

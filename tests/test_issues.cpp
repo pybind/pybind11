@@ -381,6 +381,11 @@ void init_issues(py::module &m) {
         .def_static("make", &MyDerived::make)
         .def_static("make2", &MyDerived::make);
 
+    py::dict d;
+    std::string bar = "bar";
+    d["str"] = bar;
+    d["num"] = 3.7;
+
     /// Issue #528: templated constructor
     m2.def("tpl_constr_vector", [](std::vector<TplConstrClass> &) {});
     m2.def("tpl_constr_map", [](std::unordered_map<TplConstrClass, TplConstrClass> &) {});
