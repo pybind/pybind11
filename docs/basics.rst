@@ -264,7 +264,7 @@ converted using the function ``py::cast``.
     PYBIND11_PLUGIN(example) {
         py::module m("example", "pybind11 example plugin");
         m.attr("the_answer") = 42;
-        auto world = py::cast("World");
+        py::object world = py::cast("World");
         m.attr("what") = world;
         return m.ptr();
     }
