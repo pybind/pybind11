@@ -248,9 +248,9 @@ public:
     void operator=(const object &o) && { std::move(*this).operator=(handle(o)); }
     void operator=(const object &o) & { operator=(handle(o)); }
     template <typename T, enable_if_t<!std::is_base_of<object, T>::value && !std::is_base_of<accessor, T>::value, int> = 0>
-    void operator=(T value) && { Policy::set(obj, key, object_or_cast(value)); }
+    void operator=(const T &value) && { Policy::set(obj, key, object_or_cast(value)); }
     template <typename T, enable_if_t<!std::is_base_of<object, T>::value && !std::is_base_of<accessor, T>::value, int> = 0>
-    void operator=(T value) & { get_cache() = reinterpret_borrow<object>(object_or_cast(value)); }
+    void operator=(const T value) & { get_cache() = reinterpret_borrow<object>(object_or_cast(value)); }
 
     template <typename T = Policy>
     PYBIND11_DEPRECATED("Use of obj.attr(...) as bool is deprecated in favor of pybind11::hasattr(obj, ...)")
@@ -787,7 +787,7 @@ public:
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
-    template <typename T> void append(T val) const { PyList_Append(m_ptr, detail::object_or_cast(val).ptr()); }
+    template <typename T> void append(const T &val) const { PyList_Append(m_ptr, detail::object_or_cast(val).ptr()); }
 };
 
 class args : public tuple { PYBIND11_OBJECT_DEFAULT(args, tuple, PyTuple_Check) };
