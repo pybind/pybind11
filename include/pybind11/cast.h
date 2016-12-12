@@ -1120,7 +1120,8 @@ template <> inline void object::cast() && { return; }
 
 NAMESPACE_BEGIN(detail)
 
-template <typename T, enable_if_t<!is_pyobject<T>::value && !std::is_same<T, PyObject *>::value, int> = 0>
+// Declared in pytypes.h:
+template <typename T, enable_if_t<!is_pyobject<T>::value && !std::is_same<T, PyObject *>::value, int>>
 object object_or_cast(const T &o) { return pybind11::cast(o); }
 
 struct overload_unused {}; // Placeholder type for the unneeded (and dead code) static variable in the OVERLOAD_INT macro
