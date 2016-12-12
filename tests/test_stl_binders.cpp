@@ -14,6 +14,11 @@
 #include <deque>
 #include <unordered_map>
 
+#ifdef _MSC_VER
+// We get some really long type names here which causes MSVC to emit warnings
+#  pragma warning(disable: 4503) // warning C4503: decorated name length exceeded, name was truncated
+#endif
+
 class El {
 public:
     El() = delete;

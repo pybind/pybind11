@@ -253,8 +253,8 @@ void vector_modifiers(enable_if_t<std::is_copy_constructible<typename Vector::va
 
 // If the type has an operator[] that doesn't return a reference (most notably std::vector<bool>),
 // we have to access by copying; otherwise we return by reference.
-template <typename Vector> using vector_needs_copy = bool_constant<
-    !std::is_same<decltype(std::declval<Vector>()[typename Vector::size_type()]), typename Vector::value_type &>::value>;
+template <typename Vector> using vector_needs_copy = negation<
+    std::is_same<decltype(std::declval<Vector>()[typename Vector::size_type()]), typename Vector::value_type &>>;
 
 // The usual case: access and iterate by reference
 template <typename Vector, typename Class_>
