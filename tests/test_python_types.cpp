@@ -37,7 +37,8 @@ public:
     py::set get_set() {
         py::set set;
         set.add(py::str("key1"));
-        set.add(py::str("key2"));
+        set.add("key2");
+        set.add(std::string("key3"));
         return set;
     }
 

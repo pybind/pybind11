@@ -38,12 +38,13 @@ def test_instance(capture):
     """
     with capture:
         set_result = instance.get_set()
-        set_result.add('key3')
+        set_result.add('key4')
         instance.print_set(set_result)
     assert capture.unordered == """
         key: key1
         key: key2
         key: key3
+        key: key4
     """
     with capture:
         set_result = instance.get_set2()
