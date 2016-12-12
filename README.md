@@ -2,7 +2,8 @@
 
 # pybind11 — Seamless operability between C++11 and Python
 
-[![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=latest)](http://pybind11.readthedocs.org/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=master)](http://pybind11.readthedocs.org/en/master/?badge=master)
+[![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=stable)](http://pybind11.readthedocs.org/en/stable/?badge=stable)
 [![Build Status](https://travis-ci.org/pybind/pybind11.svg?branch=master)](https://travis-ci.org/pybind/pybind11)
 [![Build status](https://ci.appveyor.com/api/projects/status/riaj54pn4h08xy40?svg=true)](https://ci.appveyor.com/project/wjakob/pybind11)
 
@@ -31,9 +32,9 @@ library has grown beyond Boost.Python in many ways, leading to dramatically
 simpler binding code in many common situations.
 
 Tutorial and reference documentation is provided at
-[http://pybind11.readthedocs.org/en/latest](http://pybind11.readthedocs.org/en/latest).
+[http://pybind11.readthedocs.org/en/master](http://pybind11.readthedocs.org/en/master).
 A PDF version of the manual is available
-[here](https://media.readthedocs.org/pdf/pybind11/latest/pybind11.pdf).
+[here](https://media.readthedocs.org/pdf/pybind11/master/pybind11.pdf).
 
 ## Core features
 pybind11 can map the following core C++ features to Python
