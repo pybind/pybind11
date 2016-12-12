@@ -71,4 +71,6 @@ def test_type_selection():
 def test_docs(doc):
     from pybind11_tests import vectorized_func
 
-    assert doc(vectorized_func) == "vectorized_func(arg0: numpy.ndarray[int], arg1: numpy.ndarray[float], arg2: numpy.ndarray[float]) -> object"
+    assert doc(vectorized_func) == """
+        vectorized_func(arg0: numpy.ndarray[int], arg1: numpy.ndarray[float], arg2: numpy.ndarray[float]) -> object
+    """  # noqa: E501 line too long
