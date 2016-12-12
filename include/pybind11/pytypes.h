@@ -43,7 +43,7 @@ using tuple_accessor = accessor<accessor_policies::tuple_item>;
 
 /// Tag and check to identify a class which implements the Python object API
 class pyobject_tag { };
-template <typename T> using is_pyobject = std::is_base_of<pyobject_tag, T>;
+template <typename T> using is_pyobject = std::is_base_of<pyobject_tag, typename std::remove_reference<T>::type>;
 
 /// Mixin which adds common functions to handle, object and various accessors.
 /// The only requirement for `Derived` is to implement `PyObject *Derived::ptr() const`.
@@ -81,7 +81,7 @@ NAMESPACE_END(detail)
 class handle : public detail::object_api<handle> {
 public:
     handle() = default;
-    handle(PyObject *ptr) : m_ptr(ptr) { }
+    handle(PyObject *ptr) : m_ptr(ptr) { } // Allow implicit conversion from PyObject*
 
     PyObject *ptr() const { return m_ptr; }
     PyObject *&ptr() { return m_ptr; }
@@ -224,6 +224,18 @@ inline handle get_function(handle value) {
     return value;
 }
 
+// Helper aliases/functions to support implicit casting of values given to python accessors/methods.
+// When given a pyobject, this simply returns the pyobject as-is; for other C++ type, the value goes
+// through pybind11::cast(obj) to convert it to an `object`.
+template <typename T, enable_if_t<is_pyobject<T>::value, int> = 0>
+auto object_or_cast(T &&o) -> decltype(std::forward<T>(o)) { return std::forward<T>(o); }
+// The following casting version is implemented in cast.h:
+template <typename T, enable_if_t<!is_pyobject<T>::value, int> = 0>
+object object_or_cast(T &&o);
+// Match a PyObject*, which we want to convert directly to handle via its converting constructor
+inline handle object_or_cast(PyObject *ptr) { return ptr; }
+
+
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
     using key_type = typename Policy::key_type;
@@ -231,12 +243,17 @@ class accessor : public object_api<accessor<Policy>> {
 public:
     accessor(handle obj, key_type key) : obj(obj), key(std::move(key)) { }
 
+    // accessor overload required to override default assignment operator (templates are not allowed
+    // to replace default compiler-generated assignments).
     void operator=(const accessor &a) && { std::move(*this).operator=(handle(a)); }
     void operator=(const accessor &a) & { operator=(handle(a)); }
-    void operator=(const object &o) && { std::move(*this).operator=(handle(o)); }
-    void operator=(const object &o) & { operator=(handle(o)); }
-    void operator=(handle value) && { Policy::set(obj, key, value); }
-    void operator=(handle value) & { get_cache() = reinterpret_borrow<object>(value); }
+
+    template <typename T> void operator=(T &&value) && {
+        Policy::set(obj, key, object_or_cast(std::forward<T>(value)));
+    }
+    template <typename T> void operator=(T &&value) & {
+        get_cache() = reinterpret_borrow<object>(object_or_cast(std::forward<T>(value)));
+    }
 
     template <typename T = Policy>
     PYBIND11_DEPRECATED("Use of obj.attr(...) as bool is deprecated in favor of pybind11::hasattr(obj, ...)")
@@ -773,7 +790,9 @@ public:
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
-    void append(handle h) const { PyList_Append(m_ptr, h.ptr()); }
+    template <typename T> void append(T &&val) const {
+        PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
+    }
 };
 
 class args : public tuple { PYBIND11_OBJECT_DEFAULT(args, tuple, PyTuple_Check) };
@@ -786,7 +805,9 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate set object!");
     }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
-    bool add(const object &object) const { return PySet_Add(m_ptr, object.ptr()) == 0; }
+    template <typename T> bool add(T &&val) const {
+        return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
+    }
     void clear() const { PySet_Clear(m_ptr); }
 };
 

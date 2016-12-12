@@ -37,7 +37,8 @@ public:
     py::set get_set() {
         py::set set;
         set.add(py::str("key1"));
-        set.add(py::str("key2"));
+        set.add("key2");
+        set.add(std::string("key3"));
         return set;
     }
 
@@ -59,7 +60,7 @@ public:
     /* Create, manipulate, and return a Python list */
     py::list get_list() {
         py::list list;
-        list.append(py::str("value"));
+        list.append("value");
         py::print("Entry at position 0:", list[0]);
         list[0] = py::str("overwritten");
         return list;
@@ -269,7 +270,7 @@ test_initializer python_types([](py::module &m) {
             d["missing_attr_chain"] = "raised"_s;
         }
 
-        d["is_none"] = py::cast(o.attr("basic_attr").is_none());
+        d["is_none"] = o.attr("basic_attr").is_none();
 
         d["operator()"] = o.attr("func")(1);
         d["operator*"] = o.attr("func")(*o.attr("begin_end"));
@@ -279,13 +280,13 @@ test_initializer python_types([](py::module &m) {
 
     m.def("test_tuple_accessor", [](py::tuple existing_t) {
         try {
-            existing_t[0] = py::cast(1);
+            existing_t[0] = 1;
         } catch (const py::error_already_set &) {
             // --> Python system error
             // Only new tuples (refcount == 1) are mutable
             auto new_t = py::tuple(3);
             for (size_t i = 0; i < new_t.size(); ++i) {
-                new_t[i] = py::cast(i);
+                new_t[i] = i;
             }
             return new_t;
         }
@@ -294,15 +295,15 @@ test_initializer python_types([](py::module &m) {
 
     m.def("test_accessor_assignment", []() {
         auto l = py::list(1);
-        l[0] = py::cast(0);
+        l[0] = 0;
 
         auto d = py::dict();
         d["get"] = l[0];
         auto var = l[0];
         d["deferred_get"] = var;
-        l[0] = py::cast(1);
+        l[0] = 1;
         d["set"] = l[0];
-        var = py::cast(99); // this assignment should not overwrite l[0]
+        var = 99; // this assignment should not overwrite l[0]
         d["deferred_set"] = l[0];
         d["var"] = var;
 
@@ -338,8 +339,8 @@ test_initializer python_types([](py::module &m) {
     }, py::arg_v("x", std::experimental::nullopt, "None"));
 #endif
 
-    m.attr("has_optional") = py::cast(has_optional);
-    m.attr("has_exp_optional") = py::cast(has_exp_optional);
+    m.attr("has_optional") = has_optional;
+    m.attr("has_exp_optional") = has_exp_optional;
 
     m.def("test_default_constructors", []() {
         return py::dict(
@@ -389,4 +390,41 @@ test_initializer python_types([](py::module &m) {
     py::class_<MoveOutContainer>(m, "MoveOutContainer")
         .def(py::init<>())
         .def_property_readonly("move_list", &MoveOutContainer::move_list);
+
+    m.def("get_implicit_casting", []() {
+        py::dict d;
+        d["char*_i1"] = "abc";
+        const char *c2 = "abc";
+        d["char*_i2"] = c2;
+        d["char*_e"] = py::cast(c2);
+        d["char*_p"] = py::str(c2);
+
+        d["int_i1"] = 42;
+        int i = 42;
+        d["int_i2"] = i;
+        i++;
+        d["int_e"] = py::cast(i);
+        i++;
+        d["int_p"] = py::int_(i);
+
+        d["str_i1"] = std::string("str");
+        std::string s2("str1");
+        d["str_i2"] = s2;
+        s2[3] = '2';
+        d["str_e"] = py::cast(s2);
+        s2[3] = '3';
+        d["str_p"] = py::str(s2);
+
+        py::list l(2);
+        l[0] = 3;
+        l[1] = py::cast(6);
+        l.append(9);
+        l.append(py::cast(12));
+        l.append(py::int_(15));
+
+        return py::dict(
+            "d"_a=d,
+            "l"_a=l
+        );
+    });
 });

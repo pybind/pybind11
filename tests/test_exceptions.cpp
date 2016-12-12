@@ -88,7 +88,7 @@ void throws_logic_error() {
 
 struct PythonCallInDestructor {
     PythonCallInDestructor(const py::dict &d) : d(d) {}
-    ~PythonCallInDestructor() { d["good"] = py::cast(true); }
+    ~PythonCallInDestructor() { d["good"] = true; }
 
     py::dict d;
 };

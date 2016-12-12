@@ -38,12 +38,13 @@ def test_instance(capture):
     """
     with capture:
         set_result = instance.get_set()
-        set_result.add('key3')
+        set_result.add('key4')
         instance.print_set(set_result)
     assert capture.unordered == """
         key: key1
         key: key2
         key: key3
+        key: key4
     """
     with capture:
         set_result = instance.get_set2()
@@ -386,3 +387,16 @@ def test_move_out_container():
     c = MoveOutContainer()
     moved_out_list = c.move_list
     assert [x.value for x in moved_out_list] == [0, 1, 2]
+
+
+def test_implicit_casting():
+    """Tests implicit casting when assigning or appending to dicts and lists."""
+    from pybind11_tests import get_implicit_casting
+
+    z = get_implicit_casting()
+    assert z['d'] == {
+        'char*_i1': 'abc', 'char*_i2': 'abc', 'char*_e': 'abc', 'char*_p': 'abc',
+        'str_i1': 'str', 'str_i2': 'str1', 'str_e': 'str2', 'str_p': 'str3',
+        'int_i1': 42, 'int_i2': 42, 'int_e': 43, 'int_p': 44
+    }
+    assert z['l'] == [3, 6, 9, 12, 15]

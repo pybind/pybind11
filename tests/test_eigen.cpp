@@ -40,7 +40,7 @@ test_initializer eigen([](py::module &m) {
     typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SparseMatrixR;
     typedef Eigen::SparseMatrix<float> SparseMatrixC;
 
-    m.attr("have_eigen") = py::cast(true);
+    m.attr("have_eigen") = true;
 
     // Non-symmetric matrix with zero elements
     Eigen::MatrixXf mat(5, 6);
