@@ -81,7 +81,7 @@ NAMESPACE_END(detail)
 class handle : public detail::object_api<handle> {
 public:
     handle() = default;
-    handle(PyObject *ptr) : m_ptr(ptr) { }
+    handle(PyObject *ptr) : m_ptr(ptr) { } // Allow implicit conversion from PyObject*
 
     PyObject *ptr() const { return m_ptr; }
     PyObject *&ptr() { return m_ptr; }
@@ -224,8 +224,17 @@ inline handle get_function(handle value) {
     return value;
 }
 
-template <typename T> using is_implicitly_castable = bool_constant<
-    !is_pyobject<intrinsic_t<T>>::value && !std::is_same<T, PyObject*>::value>;
+// Helper aliases/functions to support implicit casting of values given to python accessors/methods.
+// When given a pyobject, this simply returns the pyobject as-is; for other C++ type, the value goes
+// through pybind11::cast(obj) to convert it to an `object`.
+template <typename T, enable_if_t<is_pyobject<T>::value, int> = 0>
+T object_or_cast(T o) { return o; }
+// The following casting version is implemented in cast.h:
+template <typename T, enable_if_t<!is_pyobject<T>::value && !std::is_same<T, PyObject*>::value, int> = 0>
+object object_or_cast(const T &o);
+// Match a PyObject*, which we want to convert directly to handle via its converting constructor
+template <typename T, enable_if_t<std::is_same<T, PyObject>::value, int> = 0> handle object_or_cast(T *ptr) { return ptr; }
+
 
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
@@ -238,13 +247,10 @@ public:
     void operator=(const accessor &a) & { operator=(handle(a)); }
     void operator=(const object &o) && { std::move(*this).operator=(handle(o)); }
     void operator=(const object &o) & { operator=(handle(o)); }
-    void operator=(handle value) && { Policy::set(obj, key, value); }
-    void operator=(handle value) & { get_cache() = reinterpret_borrow<object>(value); }
-
-    template <typename T, enable_if_t<is_implicitly_castable<T>::value, int> = 0>
-    void operator=(const T &value) &;
-    template <typename T, enable_if_t<is_implicitly_castable<T>::value, int> = 0>
-    void operator=(const T &value) &&;
+    template <typename T, enable_if_t<!std::is_base_of<object, T>::value && !std::is_base_of<accessor, T>::value, int> = 0>
+    void operator=(T value) && { Policy::set(obj, key, object_or_cast(value)); }
+    template <typename T, enable_if_t<!std::is_base_of<object, T>::value && !std::is_base_of<accessor, T>::value, int> = 0>
+    void operator=(T value) & { get_cache() = reinterpret_borrow<object>(object_or_cast(value)); }
 
     template <typename T = Policy>
     PYBIND11_DEPRECATED("Use of obj.attr(...) as bool is deprecated in favor of pybind11::hasattr(obj, ...)")
@@ -781,9 +787,7 @@ public:
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
-    void append(handle h) const { PyList_Append(m_ptr, h.ptr()); }
-    template <typename T, detail::enable_if_t<detail::is_implicitly_castable<T>::value, int> = 0>
-    void append(const T &value) const;
+    template <typename T> void append(T val) const { PyList_Append(m_ptr, detail::object_or_cast(val).ptr()); }
 };
 
 class args : public tuple { PYBIND11_OBJECT_DEFAULT(args, tuple, PyTuple_Check) };

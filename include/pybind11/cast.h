@@ -1118,25 +1118,10 @@ template <typename T> T object::cast() && { return pybind11::cast<T>(std::move(*
 template <> inline void object::cast() const & { return; }
 template <> inline void object::cast() && { return; }
 
-// Implicit casting via accessor assignment:
-template <typename Policy>
-template <typename T, detail::enable_if_t<detail::is_implicitly_castable<T>::value, int>>
-void detail::accessor<Policy>::operator=(const T &value) & {
-    operator=(handle(pybind11::cast(value)));
-}
-template <typename Policy>
-template <typename T, detail::enable_if_t<detail::is_implicitly_castable<T>::value, int>>
-void detail::accessor<Policy>::operator=(const T &value) && {
-    std::move(*this).operator=(handle(pybind11::cast(value)));
-}
-
-// Implicit casting via list append:
-template <typename T, detail::enable_if_t<detail::is_implicitly_castable<T>::value, int>>
-void list::append(const T &value) const {
-    append(pybind11::cast(value));
-}
-
 NAMESPACE_BEGIN(detail)
+
+template <typename T, enable_if_t<!is_pyobject<T>::value && !std::is_same<T, PyObject *>::value, int> = 0>
+object object_or_cast(const T &o) { return pybind11::cast(o); }
 
 struct overload_unused {}; // Placeholder type for the unneeded (and dead code) static variable in the OVERLOAD_INT macro
 template <typename ret_type> using overload_caster_t = conditional_t<
