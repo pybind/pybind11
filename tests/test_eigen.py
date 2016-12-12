@@ -110,9 +110,15 @@ def test_special_matrix_objects():
 def test_dense_signature(doc):
     from pybind11_tests import double_col, double_row, double_mat_rm
 
-    assert doc(double_col) == "double_col(arg0: numpy.ndarray[float32[m, 1]]) -> numpy.ndarray[float32[m, 1]]"
-    assert doc(double_row) == "double_row(arg0: numpy.ndarray[float32[1, n]]) -> numpy.ndarray[float32[1, n]]"
-    assert doc(double_mat_rm) == "double_mat_rm(arg0: numpy.ndarray[float32[m, n]]) -> numpy.ndarray[float32[m, n]]"
+    assert doc(double_col) == """
+        double_col(arg0: numpy.ndarray[float32[m, 1]]) -> numpy.ndarray[float32[m, 1]]
+    """
+    assert doc(double_row) == """
+        double_row(arg0: numpy.ndarray[float32[1, n]]) -> numpy.ndarray[float32[1, n]]
+    """
+    assert doc(double_mat_rm) == """
+        double_mat_rm(arg0: numpy.ndarray[float32[m, n]]) -> numpy.ndarray[float32[m, n]]
+    """
 
 
 @pytest.requires_eigen_and_scipy
@@ -131,5 +137,9 @@ def test_sparse():
 def test_sparse_signature(doc):
     from pybind11_tests import sparse_passthrough_r, sparse_passthrough_c
 
-    assert doc(sparse_passthrough_r) == "sparse_passthrough_r(arg0: scipy.sparse.csr_matrix[float32]) -> scipy.sparse.csr_matrix[float32]"
-    assert doc(sparse_passthrough_c) == "sparse_passthrough_c(arg0: scipy.sparse.csc_matrix[float32]) -> scipy.sparse.csc_matrix[float32]"
+    assert doc(sparse_passthrough_r) == """
+        sparse_passthrough_r(arg0: scipy.sparse.csr_matrix[float32]) -> scipy.sparse.csr_matrix[float32]
+    """  # noqa: E501 line too long
+    assert doc(sparse_passthrough_c) == """
+        sparse_passthrough_c(arg0: scipy.sparse.csc_matrix[float32]) -> scipy.sparse.csc_matrix[float32]
+    """  # noqa: E501 line too long

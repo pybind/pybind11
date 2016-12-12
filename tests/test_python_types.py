@@ -223,7 +223,7 @@ def test_docs(doc):
         tuple_passthrough(self: m.ExamplePythonTypes, arg0: Tuple[bool, str, int]) -> Tuple[int, str, bool]
 
         Return a triple in reversed order
-    """
+    """  # noqa: E501 line too long
     assert doc(ExamplePythonTypes.throw_exception) == """
         throw_exception(self: m.ExamplePythonTypes) -> None
 

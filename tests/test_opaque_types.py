@@ -39,7 +39,7 @@ def test_pointers(msg):
             1. (arg0: capsule) -> int
 
         Invoked with: [1, 2, 3]
-    """
+    """  # noqa: E501 line too long
 
     assert return_null_str() is None
     assert get_null_str_value(return_null_str()) is not None
