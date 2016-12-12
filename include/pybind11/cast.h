@@ -1003,23 +1003,24 @@ class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caste
 // - if the type is non-copy-constructible, the object must be the sole owner of the type (i.e. it
 //   must have ref_count() == 1)h
 // If any of the above are not satisfied, we fall back to copying.
-template <typename T, typename SFINAE = void> struct move_is_plain_type : std::false_type {};
-template <typename T> struct move_is_plain_type<T, enable_if_t<
-        !std::is_void<T>::value && !std::is_pointer<T>::value && !std::is_reference<T>::value && !std::is_const<T>::value
-    >> : std::true_type { };
+template <typename T> using move_is_plain_type = none_of<
+    std::is_void<T>, std::is_pointer<T>, std::is_reference<T>, std::is_const<T>
+>;
 template <typename T, typename SFINAE = void> struct move_always : std::false_type {};
-template <typename T> struct move_always<T, enable_if_t<
-        move_is_plain_type<T>::value &&
-        !std::is_copy_constructible<T>::value && std::is_move_constructible<T>::value &&
-        std::is_same<decltype(std::declval<type_caster<T>>().operator T&()), T&>::value
-    >> : std::true_type { };
+template <typename T> struct move_always<T, enable_if_t<all_of<
+    move_is_plain_type<T>,
+    negation<std::is_copy_constructible<T>>,
+    std::is_move_constructible<T>,
+    std::is_same<decltype(std::declval<type_caster<T>>().operator T&()), T&>
+>::value>> : std::true_type {};
 template <typename T, typename SFINAE = void> struct move_if_unreferenced : std::false_type {};
-template <typename T> struct move_if_unreferenced<T, enable_if_t<
-        move_is_plain_type<T>::value &&
-        !move_always<T>::value && std::is_move_constructible<T>::value &&
-        std::is_same<decltype(std::declval<type_caster<T>>().operator T&()), T&>::value
-    >> : std::true_type { };
-template <typename T> using move_never = std::integral_constant<bool, !move_always<T>::value && !move_if_unreferenced<T>::value>;
+template <typename T> struct move_if_unreferenced<T, enable_if_t<all_of<
+    move_is_plain_type<T>,
+    negation<move_always<T>>,
+    std::is_move_constructible<T>,
+    std::is_same<decltype(std::declval<type_caster<T>>().operator T&()), T&>
+>::value>> : std::true_type {};
+template <typename T> using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
 
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
 // reference or pointer to a local variable of the type_caster.  Basically, only
@@ -1079,7 +1080,7 @@ template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); 
 template <> inline void handle::cast() const { return; }
 
 template <typename T>
-detail::enable_if_t<detail::move_always<T>::value || detail::move_if_unreferenced<T>::value, T> move(object &&obj) {
+detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     if (obj.ref_count() > 1)
 #if defined(NDEBUG)
         throw cast_error("Unable to cast Python instance to C++ rvalue: instance has multiple references"
@@ -1427,14 +1428,14 @@ private:
 
 /// Collect only positional arguments for a Python function call
 template <return_value_policy policy, typename... Args,
-          typename = enable_if_t<all_of_t<is_positional, Args...>::value>>
+          typename = enable_if_t<all_of<is_positional<Args>...>::value>>
 simple_collector<policy> collect_arguments(Args &&...args) {
     return simple_collector<policy>(std::forward<Args>(args)...);
 }
 
 /// Collect all arguments, including keywords and unpacking (only instantiated when needed)
 template <return_value_policy policy, typename... Args,
-          typename = enable_if_t<!all_of_t<is_positional, Args...>::value>>
+          typename = enable_if_t<!all_of<is_positional<Args>...>::value>>
 unpacking_collector<policy> collect_arguments(Args &&...args) {
     // Following argument order rules for generalized unpacking according to PEP 448
     static_assert(

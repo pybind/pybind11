@@ -41,9 +41,10 @@ template <typename T> using is_eigen_ref = is_template_base_of<Eigen::RefBase, T
 // basically covers anything that can be assigned to a dense matrix but that don't have a typical
 // matrix data layout that can be copied from their .data().  For example, DiagonalMatrix and
 // SelfAdjointView fall into this category.
-template <typename T> using is_eigen_base = bool_constant<
-    is_template_base_of<Eigen::EigenBase, T>::value
-    && !is_eigen_dense<T>::value && !is_eigen_sparse<T>::value
+template <typename T> using is_eigen_base = all_of<
+    is_template_base_of<Eigen::EigenBase, T>,
+    negation<is_eigen_dense<T>>,
+    negation<is_eigen_sparse<T>>
 >;
 
 template<typename Type>

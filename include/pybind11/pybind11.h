@@ -924,12 +924,9 @@ class class_ : public detail::generic_type {
     template <typename T> using is_holder = detail::is_holder_type<type_, T>;
     template <typename T> using is_subtype = detail::bool_constant<std::is_base_of<type_, T>::value && !std::is_same<T, type_>::value>;
     template <typename T> using is_base = detail::bool_constant<std::is_base_of<T, type_>::value && !std::is_same<T, type_>::value>;
-    template <typename T> using is_valid_class_option =
-        detail::bool_constant<
-            is_holder<T>::value ||
-            is_subtype<T>::value ||
-            is_base<T>::value
-        >;
+    // struct instead of using here to help MSVC:
+    template <typename T> struct is_valid_class_option :
+        detail::any_of<is_holder<T>, is_subtype<T>, is_base<T>> {};
 
 public:
     using type = type_;
@@ -938,7 +935,7 @@ public:
     using holder_type = detail::first_of_t<is_holder, std::unique_ptr<type>, options...>;
     using instance_type = detail::instance<type, holder_type>;
 
-    static_assert(detail::all_of_t<is_valid_class_option, options...>::value,
+    static_assert(detail::all_of<is_valid_class_option<options>...>::value,
             "Unknown/invalid class_ template parameters provided");
 
     PYBIND11_OBJECT(class_, generic_type, PyType_Check)
