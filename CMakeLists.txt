@@ -179,6 +179,22 @@ if (PYBIND11_TEST)
   add_subdirectory(tests)
 endif()
 
+include(GNUInstallDirs)
+
+# extract project version from source
+file(STRINGS "${PYBIND11_INCLUDE_DIR}/pybind11/common.h" pybind11_version_defines
+     REGEX "#define PYBIND11_VERSION_(MAJOR|MINOR|PATCH) ")
+foreach(ver ${pybind11_version_defines})
+  if (ver MATCHES "#define PYBIND11_VERSION_(MAJOR|MINOR|PATCH) +([^ ]+)$")
+    set(PYBIND11_VERSION_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
+  endif()
+endforeach()
+set(${PROJECT_NAME}_VERSION ${PYBIND11_VERSION_MAJOR}.${PYBIND11_VERSION_MINOR}.${PYBIND11_VERSION_PATCH})
+
 if (PYBIND11_INSTALL)
-  install(FILES ${PYBIND11_HEADERS} DESTINATION include/pybind11)
+  install(FILES ${PYBIND11_HEADERS}
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/pybind11)
+  # GNUInstallDirs "DATADIR" wrong here; CMake search path wants "share".
+  set(PYBIND11_CMAKECONFIG_INSTALL_DIR "share/cmake/${PROJECT_NAME}" CACHE STRING "install path for pybind11Config.cmake")
+
 endif()
