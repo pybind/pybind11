@@ -374,7 +374,10 @@ template <class T> using negation = bool_constant<!T::value>;
 #endif
 
 /// Compile-time all/any/none of that check the ::value of all template types
-#if !defined(_MSC_VER)
+#ifdef PYBIND11_CPP17
+template <class... Ts> using all_of = bool_constant<(Ts::value && ...)>;
+template <class... Ts> using any_of = bool_constant<(Ts::value || ...)>;
+#elif !defined(_MSC_VER)
 template <bool...> struct bools {};
 template <class... Ts> using all_of = std::is_same<
     bools<Ts::value..., true>,
