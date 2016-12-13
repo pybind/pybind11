@@ -105,6 +105,54 @@ if(PYBIND11_TEST_OVERRIDE)
     COMMAND ${CMAKE_COMMAND} -E echo "Note: not all tests run: -DPYBIND11_TEST_OVERRIDE is in effect")
 endif()
 
+# test use of installation
+if(PYBIND11_INSTALL)
+  # 2.8.12 needed for test_installed_module
+  # 3.0 needed for interface library for test_installed_target
+  # 3.1 needed for cmake -E env for testing
+  if(NOT CMAKE_VERSION VERSION_LESS 3.1)
+    add_custom_target(test_installed_target
+      COMMAND ${CMAKE_COMMAND}
+              "-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/test_install"
+              -P "${PROJECT_BINARY_DIR}/cmake_install.cmake"
+      COMMAND ${CMAKE_CTEST_COMMAND}
+              --build-and-test "${CMAKE_CURRENT_SOURCE_DIR}/test_installed_target"
+                               "${CMAKE_CURRENT_BINARY_DIR}/test_installed_target"
+              --build-noclean
+              --build-generator ${CMAKE_GENERATOR}
+              $<$<BOOL:${CMAKE_GENERATOR_PLATFORM}>:--build-generator-platform> ${CMAKE_GENERATOR_PLATFORM}
+              --build-makeprogram ${CMAKE_MAKE_PROGRAM}
+              --build-target check
+              --build-options "-DCMAKE_PREFIX_PATH=${PROJECT_BINARY_DIR}/test_install"
+                              "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+                              "-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}"
+                              "-DPYBIND11_CPP_STANDARD=${PYBIND11_CPP_STANDARD}"
+    )
+    add_custom_target(test_installed_module
+      COMMAND ${CMAKE_COMMAND}
+              "-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/test_install"
+              -P "${PROJECT_BINARY_DIR}/cmake_install.cmake"
+      COMMAND ${CMAKE_CTEST_COMMAND}
+              --build-and-test "${CMAKE_CURRENT_SOURCE_DIR}/test_installed_module"
+                               "${CMAKE_CURRENT_BINARY_DIR}/test_installed_module"
+              --build-noclean
+              --build-generator ${CMAKE_GENERATOR}
+              $<$<BOOL:${CMAKE_GENERATOR_PLATFORM}>:--build-generator-platform> ${CMAKE_GENERATOR_PLATFORM}
+              --build-makeprogram ${CMAKE_MAKE_PROGRAM}
+              --build-target check
+              --build-options "-DCMAKE_PREFIX_PATH=${PROJECT_BINARY_DIR}/test_install"
+                              "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+                              "-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}"
+                              "-DPYBIND11_CPP_STANDARD=${PYBIND11_CPP_STANDARD}"
+    )
+  else()
+    add_custom_target(test_installed_target)
+    add_custom_target(test_installed_module)
+  endif()
+  add_custom_target(test_install)
+  add_dependencies(test_install test_installed_target test_installed_module)
+endif()
+
 # And another to show the .so size and, if a previous size, compare it:
 add_custom_command(TARGET pybind11_tests POST_BUILD
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/libsize.py
