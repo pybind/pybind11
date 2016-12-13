@@ -162,6 +162,8 @@ culprit is generally the generation of function signatures at compile time
 using C++14 template metaprogramming.
 
 
+.. _`faq:symhidden`:
+
 How can I create smaller binaries?
 ==================================
 

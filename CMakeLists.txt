@@ -180,6 +180,7 @@ if (PYBIND11_TEST)
 endif()
 
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 # extract project version from source
 file(STRINGS "${PYBIND11_INCLUDE_DIR}/pybind11/common.h" pybind11_version_defines
@@ -191,10 +192,40 @@ foreach(ver ${pybind11_version_defines})
 endforeach()
 set(${PROJECT_NAME}_VERSION ${PYBIND11_VERSION_MAJOR}.${PYBIND11_VERSION_MINOR}.${PYBIND11_VERSION_PATCH})
 
+if(NOT (CMAKE_VERSION VERSION_LESS 3.0))  # CMake >= 3.0
+  # Build an interface library target:
+  add_library(pybind11 INTERFACE)
+  target_include_directories(pybind11 INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
+                                                $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+  if(APPLE)
+      target_link_libraries(pybind11 INTERFACE "-undefined dynamic_lookup")
+  endif()
+endif()
+
 if (PYBIND11_INSTALL)
   install(FILES ${PYBIND11_HEADERS}
           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/pybind11)
   # GNUInstallDirs "DATADIR" wrong here; CMake search path wants "share".
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR "share/cmake/${PROJECT_NAME}" CACHE STRING "install path for pybind11Config.cmake")
 
+  configure_package_config_file(tools/${PROJECT_NAME}Config.cmake.in
+                                "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+                                INSTALL_DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
+  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                                   VERSION ${${PROJECT_NAME}_VERSION}
+                                   COMPATIBILITY AnyNewerVersion)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+                ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                tools/FindPythonLibsNew.cmake
+                tools/pybind11Tools.cmake
+          DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
+
+  if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
+    install(TARGETS pybind11
+            EXPORT "${PROJECT_NAME}Targets")
+    install(EXPORT "${PROJECT_NAME}Targets"
+            NAMESPACE "${PROJECT_NAME}::"
+            DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
+    message(STATUS "Exporting ${PROJECT_NAME}::pybind11 interface library target version ${${PROJECT_NAME}_VERSION}")
+  endif()
 endif()
