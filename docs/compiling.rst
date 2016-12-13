@@ -58,12 +58,11 @@ through `find_package(pybind11 ... CONFIG ...)`. See the `Config file
 <https://github.com/pybind/pybind11/blob/master/tools/pybind11Config.cmake.in>`_
 docstring for details of relevant CMake variables.
 
-Once detected, and after setting any variables to guide Python and C++
-standard detection, the aforementioned ``pybind11_add_module``
-wrapper to ``add_library`` can
-be employed as described above (after ``include(pybind11Tools)``). This
-procedure is available when using CMake >= 2.8.12. A
-working example can be found at [test_installed_module]_ .
+Once detected, and after setting any variables to guide Python and
+C++ standard detection, the aforementioned ``pybind11_add_module``
+wrapper to ``add_library`` can be employed as described above (after
+``include(pybind11Tools)``). This procedure is available when using CMake
+>= 2.8.12. A working example can be found at [test_installed_module]_ .
 
 .. code-block:: cmake
 
@@ -76,15 +75,15 @@ working example can be found at [test_installed_module]_ .
 .. [test_installed_module] https://github.com/pybind/pybind11/blob/master/tests/test_installed_module/CMakeLists.txt
 
 When using a version of CMake greater than 3.0, pybind11 can
-additionally be used as a special *interface library* following the call
-to ``find_package``. CMake
-variables to guide Python and C++ standard detection should be set
-*before* ``find_package``. When ``find_package`` returns, the target
-``pybind11::pybind11`` is available with pybind11 headers, Python headers
-and libraries as needed, and C++ compile definitions attached. This
-target is suitable for linking to an independently constructed (through
-``add_library``, not ``pybind11_add_module``) target in the consuming
-project. A working example can be found at [test_installed_target]_ .
+additionally be used as a special *interface library* following the
+call to ``find_package``. CMake variables to guide Python and C++
+standard detection should be set *before* ``find_package``. When
+``find_package`` returns, the target ``pybind11::pybind11`` is
+available with pybind11 headers, Python headers and libraries as
+needed, and C++ compile definitions attached. This target is suitable
+for linking to an independently constructed (through ``add_library``,
+not ``pybind11_add_module``) target in the consuming project. A working
+example can be found at [test_installed_target]_ .
 
 .. code-block:: cmake
 
