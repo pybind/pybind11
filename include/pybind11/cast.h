@@ -1220,6 +1220,8 @@ class argument_loader {
     using indices = make_index_sequence<sizeof...(Args)>;
 
 public:
+    argument_loader() : value() {} // Helps gcc-7 properly initialize value
+
     static constexpr auto has_kwargs = std::is_same<itypes, type_list<args, kwargs>>::value;
     static constexpr auto has_args = has_kwargs || std::is_same<itypes, type_list<args>>::value;
 
