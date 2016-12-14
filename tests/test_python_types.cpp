@@ -327,14 +327,14 @@ test_initializer python_types([](py::module &m) {
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
     has_exp_optional = true;
-    using opt_int = std::experimental::optional<int>;
-    m.def("double_or_zero_exp", [](const opt_int& x) -> int {
+    using exp_opt_int = std::experimental::optional<int>;
+    m.def("double_or_zero_exp", [](const exp_opt_int& x) -> int {
         return x.value_or(0) * 2;
     });
-    m.def("half_or_none_exp", [](int x) -> opt_int {
-        return x ? opt_int(x / 2) : opt_int();
+    m.def("half_or_none_exp", [](int x) -> exp_opt_int {
+        return x ? exp_opt_int(x / 2) : exp_opt_int();
     });
-    m.def("test_nullopt_exp", [](opt_int x) {
+    m.def("test_nullopt_exp", [](exp_opt_int x) {
         return x.value_or(42);
     }, py::arg_v("x", std::experimental::nullopt, "None"));
 #endif
