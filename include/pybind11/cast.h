@@ -832,7 +832,6 @@ protected:
         return result.release();
     }
 
-protected:
     std::tuple<make_caster<Tuple>...> value;
 };
 
@@ -1273,7 +1272,6 @@ private:
         return std::forward<Func>(f)(cast_op<Args>(std::get<Is>(value))...);
     }
 
-private:
     std::tuple<make_caster<Args>...> value;
 };
 
