@@ -121,7 +121,7 @@ protected:
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(args, kwargs, true))
+            if (!args_converter.load_args(args, kwargs))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Invoke call policy pre-call hook */
