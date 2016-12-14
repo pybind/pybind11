@@ -85,6 +85,11 @@ function(pybind11_add_module target_name)
     # import time.
 
     target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
+
+    if(${lib_type} STREQUAL "SHARED")
+      # Suppress CMake >= 3.0 warning for shared libraries
+      set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
+    endif()
   endif()
 
   select_cxx_standard()
