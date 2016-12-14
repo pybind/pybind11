@@ -17,18 +17,17 @@
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion"
 #  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#  if __GNUC__ >= 7
+#    pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#  endif
 #endif
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#if defined(__GNUG__) || defined(__clang__)
-#  pragma GCC diagnostic pop
-#endif
-
 #if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+#  pragma warning(push)
+#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
 NAMESPACE_BEGIN(pybind11)
@@ -234,6 +233,8 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind11)
 
-#if defined(_MSC_VER)
-#pragma warning(pop)
+#if defined(__GNUG__) || defined(__clang__)
+#  pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#  pragma warning(pop)
 #endif
