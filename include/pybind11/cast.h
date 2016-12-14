@@ -1227,8 +1227,8 @@ public:
 
     static PYBIND11_DESCR arg_names() { return detail::concat(make_caster<Args>::name()...); }
 
-    bool load_args(handle args, handle kwargs, bool convert) {
-        return load_impl(args, kwargs, convert, itypes{});
+    bool load_args(handle args, handle kwargs) {
+        return load_impl(args, kwargs, itypes{});
     }
 
     template <typename Return, typename Func>
@@ -1243,26 +1243,26 @@ public:
     }
 
 private:
-    bool load_impl(handle args_, handle, bool convert, type_list<args>) {
-        std::get<0>(value).load(args_, convert);
+    bool load_impl(handle args_, handle, type_list<args>) {
+        std::get<0>(value).load(args_, true);
         return true;
     }
 
-    bool load_impl(handle args_, handle kwargs_, bool convert, type_list<args, kwargs>) {
-        std::get<0>(value).load(args_, convert);
-        std::get<1>(value).load(kwargs_, convert);
+    bool load_impl(handle args_, handle kwargs_, type_list<args, kwargs>) {
+        std::get<0>(value).load(args_, true);
+        std::get<1>(value).load(kwargs_, true);
         return true;
     }
 
-    bool load_impl(handle args, handle, bool convert, ... /* anything else */) {
-        return load_impl_sequence(args, convert, indices{});
+    bool load_impl(handle args, handle, ... /* anything else */) {
+        return load_impl_sequence(args, indices{});
     }
 
-    static constexpr bool load_impl_sequence(handle, bool, index_sequence<>) { return true; }
+    static constexpr bool load_impl_sequence(handle, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(handle src, bool convert, index_sequence<Is...>) {
-        for (bool r : {std::get<Is>(value).load(PyTuple_GET_ITEM(src.ptr(), Is), convert)...})
+    bool load_impl_sequence(handle src, index_sequence<Is...>) {
+        for (bool r : {std::get<Is>(value).load(PyTuple_GET_ITEM(src.ptr(), Is), true)...})
             if (!r)
                 return false;
         return true;
