@@ -20,6 +20,9 @@ matrix:
   - sudo: true
     services: docker
     env: PYTHON=3.5 CPP=14 GCC=6 DEBUG=1
+  - sudo: true
+    services: docker
+    env: PYTHON=3.5 CPP=17 GCC=7
   - os: osx
     osx_image: xcode7.3
     env: PYTHON=2.7 CPP=14 CLANG
@@ -46,6 +49,8 @@ matrix:
     - make -C docs html SPHINX_OPTIONS=-W
     - tools/check-style.sh
     - flake8
+  allow_failures:
+    - env: PYTHON=3.5 CPP=17 GCC=7
 cache:
   directories:
   - $HOME/.cache/pip
@@ -56,7 +61,9 @@ before_install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -z "$GCC" ]; then export GCC=4.8; fi
     export CXX=g++-$GCC CC=gcc-$GCC;
-    if [ "$GCC" = "6" ]; then export DOCKER=debian:testing CXX=g++ CC=gcc; fi
+    if [ "$GCC" = "6" ]; then export DOCKER=debian:testing
+    elif [ "$GCC" = "7" ]; then export DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
+    fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export CXX=clang++ CC=clang;
   fi
@@ -94,9 +101,10 @@ install:
 - |
   # Install dependencies
   if [ -n "$DOCKER" ]; then
-    docker exec --tty "$containerid" sh -c "for s in 0 15; do sleep \$s; apt-get -qy --no-install-recommends install \
-      python$PYTHON-dev python$PY-pytest python$PY-scipy \
-      libeigen3-dev cmake make g++ && break; done"
+    docker exec --tty "$containerid" sh -c "for s in 0 15; do sleep \$s; \
+      apt-get -qy --no-install-recommends $APT_GET_EXTRA install \
+        python$PY-dev python$PY-pytest python$PY-scipy \
+        libeigen3-dev cmake make g++-$GCC && break; done"
   else
     pip install numpy scipy pytest
 
