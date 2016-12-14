@@ -15,9 +15,12 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
-template <typename Return, typename... Args> struct type_caster<std::function<Return(Args...)>> {
-    typedef std::function<Return(Args...)> type;
-    typedef typename std::conditional<std::is_same<Return, void>::value, void_type, Return>::type retval_type;
+template <typename Return, typename... Args /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
+struct type_caster<std::function<Return(Args...) PYBIND11_NOEXCEPT_SPECIFIER>> {
+    using type = std::function<Return(Args...) PYBIND11_NOEXCEPT_SPECIFIER>;
+    using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
+    using function_type = Return (*) (Args...) PYBIND11_NOEXCEPT_SPECIFIER;
+
 public:
     bool load(handle src_, bool) {
         if (src_.is_none())
@@ -38,10 +41,9 @@ public:
         if (PyCFunction_Check(src_.ptr())) {
             auto c = reinterpret_borrow<capsule>(PyCFunction_GetSelf(src_.ptr()));
             auto rec = (function_record *) c;
-            using FunctionType = Return (*) (Args...);
 
-            if (rec && rec->is_stateless && rec->data[1] == &typeid(FunctionType)) {
-                struct capture { FunctionType f; };
+            if (rec && rec->is_stateless && rec->data[1] == &typeid(function_type)) {
+                struct capture { function_type f; };
                 value = ((capture *) &rec->data)->f;
                 return true;
             }
@@ -62,7 +64,7 @@ public:
         if (!f_)
             return none().inc_ref();
 
-        auto result = f_.template target<Return (*)(Args...)>();
+        auto result = f_.template target<function_type>();
         if (result)
             return cpp_function(*result, policy).release();
         else
