@@ -116,6 +116,11 @@ def test_smart_ptr(capture):
     assert cstats.move_assignments == 0
 
 
+def test_smart_ptr_refcounting():
+    from pybind11_tests import test_object1_refcounting
+    assert test_object1_refcounting()
+
+
 def test_unique_nodelete():
     from pybind11_tests import MyObject4
     o = MyObject4(23)

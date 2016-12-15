@@ -129,6 +129,18 @@ test_initializer smart_ptr([](py::module &m) {
     py::class_<MyObject1, ref<MyObject1>>(m, "MyObject1", obj)
         .def(py::init<int>());
 
+    m.def("test_object1_refcounting",
+        []() -> bool {
+            ref<MyObject1> o = new MyObject1(0);
+            bool good = o->getRefCount() == 1;
+            py::object o2 = py::cast(o, py::return_value_policy::reference);
+            // always request (partial) ownership for objects with intrusive
+            // reference counting even when using the 'reference' RVP
+            good &= o->getRefCount() == 2;
+            return good;
+        }
+    );
+
     m.def("make_object_1", &make_object_1);
     m.def("make_object_2", &make_object_2);
     m.def("make_myobject1_1", &make_myobject1_1);
