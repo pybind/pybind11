@@ -1262,7 +1262,7 @@ private:
         return load_impl_sequence(args, indices{});
     }
 
-    static constexpr bool load_impl_sequence(handle, index_sequence<>) { return true; }
+    static bool load_impl_sequence(handle, index_sequence<>) { return true; }
 
     template <size_t... Is>
     bool load_impl_sequence(handle src, index_sequence<Is...>) {
