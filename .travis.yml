@@ -51,6 +51,7 @@ matrix:
     - flake8
   allow_failures:
     - env: PYTHON=3.5 CPP=17 GCC=7
+    - env: PYTHON=2.7 CPP=14 GCC=6 # Temporary until python >2.7.13-rc1 migrates to debian testing
 cache:
   directories:
   - $HOME/.cache/pip
