@@ -1,5 +1,4 @@
 import pytest
-import gc
 
 with pytest.suppress(ImportError):
     import numpy as np
@@ -220,7 +219,7 @@ def test_numpy_view(capture):
         ac_view_2 = ac.numpy_view()
         assert np.all(ac_view_1 == np.array([1, 2], dtype=np.int32))
         del ac
-        gc.collect()
+        pytest.gc_collect()
     assert capture == """
         ArrayClass()
         ArrayClass::numpy_view()
@@ -233,8 +232,8 @@ def test_numpy_view(capture):
     with capture:
         del ac_view_1
         del ac_view_2
-        gc.collect()
-        gc.collect()
+        pytest.gc_collect()
+        pytest.gc_collect()
     assert capture == """
         ~ArrayClass()
     """

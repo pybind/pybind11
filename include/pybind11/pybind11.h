@@ -607,9 +607,8 @@ public:
 NAMESPACE_BEGIN(detail)
 extern "C" inline PyObject *get_dict(PyObject *op, void *) {
     PyObject *&dict = *_PyObject_GetDictPtr(op);
-    if (!dict) {
+    if (!dict)
         dict = PyDict_New();
-    }
     Py_XINCREF(dict);
     return dict;
 }

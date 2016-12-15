@@ -29,7 +29,8 @@ def test_from_python():
     assert cstats.move_assignments == 0
 
 
-# PyPy: Memory leak due to the "np.array(m, copy=False)" call
+# PyPy: Memory leak in the "np.array(m, copy=False)" call
+# https://bitbucket.org/pypy/pypy/issues/2444
 @pytest.unsupported_on_pypy
 @pytest.requires_numpy
 def test_to_python():
@@ -49,8 +50,10 @@ def test_to_python():
     cstats = ConstructorStats.get(Matrix)
     assert cstats.alive() == 1
     del m
+    pytest.gc_collect()
     assert cstats.alive() == 1
     del m2  # holds an m reference
+    pytest.gc_collect()
     assert cstats.alive() == 0
     assert cstats.values() == ["5x5 matrix"]
     assert cstats.copy_constructions == 0

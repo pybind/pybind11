@@ -1,9 +1,4 @@
-import gc
-
-
-def collect():
-    gc.collect()
-    gc.collect()
+import pytest
 
 
 def test_keep_alive_argument(capture):
@@ -14,14 +9,14 @@ def test_keep_alive_argument(capture):
     assert capture == "Allocating parent."
     with capture:
         p.addChild(Child())
-        collect()
+        pytest.gc_collect()
     assert capture == """
         Allocating child.
         Releasing child.
     """
     with capture:
         del p
-        collect()
+        pytest.gc_collect()
     assert capture == "Releasing parent."
 
     with capture:
@@ -29,11 +24,11 @@ def test_keep_alive_argument(capture):
     assert capture == "Allocating parent."
     with capture:
         p.addChildKeepAlive(Child())
-        collect()
+        pytest.gc_collect()
     assert capture == "Allocating child."
     with capture:
         del p
-        collect()
+        pytest.gc_collect()
     assert capture == """
         Releasing parent.
         Releasing child.
@@ -48,14 +43,14 @@ def test_keep_alive_return_value(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnChild()
-        collect()
+        pytest.gc_collect()
     assert capture == """
         Allocating child.
         Releasing child.
     """
     with capture:
         del p
-        collect()
+        pytest.gc_collect()
     assert capture == "Releasing parent."
 
     with capture:
@@ -63,11 +58,11 @@ def test_keep_alive_return_value(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnChildKeepAlive()
-        collect()
+        pytest.gc_collect()
     assert capture == "Allocating child."
     with capture:
         del p
-        collect()
+        pytest.gc_collect()
     assert capture == """
         Releasing parent.
         Releasing child.
@@ -82,11 +77,11 @@ def test_return_none(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnNullChildKeepAliveChild()
-        collect()
+        pytest.gc_collect()
     assert capture == ""
     with capture:
         del p
-        collect()
+        pytest.gc_collect()
     assert capture == "Releasing parent."
 
     with capture:
@@ -94,9 +89,9 @@ def test_return_none(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnNullChildKeepAliveParent()
-        collect()
+        pytest.gc_collect()
     assert capture == ""
     with capture:
         del p
-        collect()
+        pytest.gc_collect()
     assert capture == "Releasing parent."

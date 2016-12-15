@@ -11,6 +11,7 @@ import re
 import sys
 import contextlib
 import platform
+import gc
 
 _unicode_marker = re.compile(r'u(\'[^\']*\')')
 _long_marker = re.compile(r'([0-9])L')
@@ -177,6 +178,13 @@ def suppress(exception):
         pass
 
 
+def gc_collect():
+    ''' Run the garbage collector twice (needed when running
+    reference counting tests with PyPy) '''
+    gc.collect()
+    gc.collect()
+
+
 def pytest_namespace():
     """Add import suppression and test requirements to `pytest` namespace"""
     try:
@@ -202,7 +210,8 @@ def pytest_namespace():
                                            reason="eigen and/or numpy are not installed"),
         'requires_eigen_and_scipy': skipif(not have_eigen or not scipy,
                                            reason="eigen and/or scipy are not installed"),
-        'unsupported_on_pypy': skipif(pypy, reason="unsupported on PyPy")
+        'unsupported_on_pypy': skipif(pypy, reason="unsupported on PyPy"),
+        'gc_collect' : gc_collect
     }
 
 

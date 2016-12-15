@@ -90,7 +90,7 @@ def test_static_properties():
     assert Type.def_property_static == 3
 
 
-@pytest.mark.parametrize("access", ["ro", "rw"])
+@pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])
 def test_property_return_value_policies(access):
     from pybind11_tests import TestPropRVP
 
@@ -116,11 +116,6 @@ def test_property_return_value_policies(access):
     assert getattr(obj, access + "_func").value == 1
 
 
-@pytest.mark.parametrize("access", ["static_ro", "static_rw"])
-def test_property_return_value_policies_static(access):
-    test_property_return_value_policies(access)
-
-
 def test_property_rvalue_policy():
     """When returning an rvalue, the return value policy is automatically changed from
     `reference(_internal)` to `move`. The following would not work otherwise.
@@ -141,6 +136,7 @@ def test_property_rvalue_policy_static():
     assert o.value == 1
 
 
+# https://bitbucket.org/pypy/pypy/issues/2447
 @pytest.unsupported_on_pypy
 def test_dynamic_attributes():
     from pybind11_tests import DynamicClass, CppDerivedDynamicClass

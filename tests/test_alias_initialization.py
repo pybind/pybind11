@@ -1,9 +1,4 @@
-import gc
-
-
-def collect():
-    gc.collect()
-    gc.collect()
+import pytest
 
 
 def test_alias_delay_initialization1(capture):
@@ -26,7 +21,7 @@ def test_alias_delay_initialization1(capture):
         a = A()
         call_f(a)
         del a
-        collect()
+        pytest.gc_collect()
     assert capture == "A.f()"
 
     # Python version
@@ -34,7 +29,7 @@ def test_alias_delay_initialization1(capture):
         b = B()
         call_f(b)
         del b
-        collect()
+        pytest.gc_collect()
     assert capture == """
         PyA.PyA()
         PyA.f()
@@ -63,7 +58,7 @@ def test_alias_delay_initialization2(capture):
         a2 = A2()
         call_f(a2)
         del a2
-        collect()
+        pytest.gc_collect()
     assert capture == """
         PyA2.PyA2()
         PyA2.f()
@@ -76,7 +71,7 @@ def test_alias_delay_initialization2(capture):
         b2 = B2()
         call_f(b2)
         del b2
-        collect()
+        pytest.gc_collect()
     assert capture == """
         PyA2.PyA2()
         PyA2.f()

@@ -1,3 +1,5 @@
+import pytest
+
 try:
     import cPickle as pickle  # Use cPickle on Python 2.7
 except ImportError:
@@ -18,8 +20,8 @@ def test_roundtrip():
     assert p2.extra2() == p.extra2()
 
 
+@pytest.unsupported_on_pypy
 def test_roundtrip_with_dict():
-    return False
     from pybind11_tests import PickleableWithDict
 
     p = PickleableWithDict("test_value")
