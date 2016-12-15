@@ -211,7 +211,7 @@ def pytest_namespace():
         'requires_eigen_and_scipy': skipif(not have_eigen or not scipy,
                                            reason="eigen and/or scipy are not installed"),
         'unsupported_on_pypy': skipif(pypy, reason="unsupported on PyPy"),
-        'gc_collect' : gc_collect
+        'gc_collect': gc_collect
     }
 
 
