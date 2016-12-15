@@ -1151,7 +1151,7 @@ private:
         if (holder_ptr) {
             new (&inst->holder) holder_type(*holder_ptr);
             inst->holder_constructed = true;
-        } else if (inst->owned) {
+        } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
             new (&inst->holder) holder_type(inst->value);
             inst->holder_constructed = true;
         }
@@ -1161,7 +1161,7 @@ private:
     template <typename T = holder_type,
               detail::enable_if_t<!std::is_copy_constructible<T>::value, int> = 0>
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const void * /* dummy */) {
-        if (inst->owned) {
+        if (inst->owned || detail::always_construct_holder<holder_type>::value) {
             new (&inst->holder) holder_type(inst->value);
             inst->holder_constructed = true;
         }

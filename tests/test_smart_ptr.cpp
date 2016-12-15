@@ -82,7 +82,11 @@ private:
 };
 
 /// Make pybind aware of the ref-counted wrapper type (s)
-PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>); // Required for custom holder type
+
+// ref<T> is a wrapper for 'Object' which uses intrusive reference counting
+// It is always possible to construct a ref<T> from an Object* pointer without
+// possible incosistencies, hence the 'true' argument at the end.
+PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>); // Not required any more for std::shared_ptr,
                                                      // but it should compile without error
 

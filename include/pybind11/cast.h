@@ -952,9 +952,13 @@ protected:
 template <typename T>
 class type_caster<std::shared_ptr<T>> : public type_caster_holder<T, std::shared_ptr<T>> { };
 
+template <typename T, bool Value = false> struct always_construct_holder { static constexpr bool value = Value; };
+
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
-#define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type) \
+#define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...) \
     namespace pybind11 { namespace detail { \
+    template <typename type> \
+    struct always_construct_holder<holder_type> : always_construct_holder<void, ##__VA_ARGS__>  { }; \
     template <typename type> \
     class type_caster<holder_type, enable_if_t<!is_shared_ptr<holder_type>::value>> \
         : public type_caster_holder<type, holder_type> { }; \

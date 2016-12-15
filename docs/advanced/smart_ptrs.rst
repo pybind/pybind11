@@ -123,7 +123,7 @@ Custom smart pointers
 pybind11 supports ``std::unique_ptr`` and ``std::shared_ptr`` right out of the
 box. For any other custom smart pointer, transparent conversions can be enabled
 using a macro invocation similar to the following. It must be declared at the
-level before any binding code:
+top namespace level before any binding code:
 
 .. code-block:: cpp
 
@@ -133,6 +133,19 @@ The first argument of :func:`PYBIND11_DECLARE_HOLDER_TYPE` should be a
 placeholder name that is used as a template parameter of the second argument.
 Thus, feel free to use any identifier, but use it consistently on both sides;
 also, don't use the name of a type that already exists in your codebase.
+
+The macro also accepts a third optional boolean parameter that is set to false
+by default. Specify
+
+.. code-block:: cpp
+
+    PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>, true);
+
+if ``SmartPtr<T>`` can always be initialized from a ``T*`` pointer without the
+risk of inconsistencies (such as multiple independent ``SmartPtr`` instances
+believing that they are the sole owner of the ``T*`` pointer). A common
+situation where ``true`` should be passed is when the ``T`` instances use
+*intrusive* reference counting.
 
 Please take a look at the :ref:`macro_notes` before using this feature.
 
