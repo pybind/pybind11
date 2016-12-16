@@ -14,6 +14,7 @@ set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5 3.4)
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 include(CheckCXXCompilerFlag)
+include(CMakeParseArguments)
 
 function(select_cxx_standard)
   if(NOT MSVC AND NOT PYBIND11_CPP_STANDARD)
@@ -33,29 +34,48 @@ function(select_cxx_standard)
   endif()
 endfunction()
 
+# Internal: find the appropriate LTO flag for this compiler
+macro(_pybind11_find_lto_flag output_var prefer_thin_lto)
+  if(${prefer_thin_lto})
+    # Check for ThinLTO support (Clang)
+    check_cxx_compiler_flag("-flto=thin" HAS_THIN_LTO_FLAG)
+    set(${output_var} $<${HAS_THIN_LTO_FLAG}:-flto=thin>)
+  endif()
+
+  if(NOT ${prefer_thin_lto} OR NOT HAS_THIN_LTO_FLAG)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+      # Check for Link Time Optimization support (GCC/Clang)
+      check_cxx_compiler_flag("-flto" HAS_LTO_FLAG)
+      set(${output_var} $<${HAS_LTO_FLAG}:-flto>)
+    else()
+      # Intel equivalent to LTO is called IPO
+      check_cxx_compiler_flag("-ipo" HAS_IPO_FLAG)
+      set(${output_var} $<${HAS_IPO_FLAG}:-ipo>)
+    endif()
+  endif()
+endmacro()
+
 # Build a Python extension module:
-# pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL] source1 [source2 ...])
+# pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
+#                     [NO_EXTRAS] [THIN_LTO] source1 [source2 ...])
 #
 function(pybind11_add_module target_name)
-  set(lib_type "MODULE")
-  set(do_lto True)
-  set(exclude_from_all "")
-  set(sources "")
+  set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS THIN_LTO)
+  cmake_parse_arguments(ARG "${options}" "" "" ${ARGN})
 
-  set(_args_to_try "${ARGN}")
-  foreach(_ex_arg IN LISTS _args_to_try)
-    if(${_ex_arg} STREQUAL "MODULE")
-      set(lib_type "MODULE")
-    elseif(${_ex_arg} STREQUAL "SHARED")
-      set(lib_type "SHARED")
-    elseif(${_ex_arg} STREQUAL "EXCLUDE_FROM_ALL")
-      set(exclude_from_all "EXCLUDE_FROM_ALL")
-    else()
-      list(APPEND sources "${_ex_arg}")
-    endif()
-  endforeach()
+  if(ARG_MODULE AND ARG_SHARED)
+    message(FATAL_ERROR "Can't be both MODULE and SHARED")
+  elseif(ARG_SHARED)
+    set(lib_type SHARED)
+  else()
+    set(lib_type MODULE)
+  endif()
 
-  add_library(${target_name} ${lib_type} ${exclude_from_all} ${sources})
+  if(ARG_EXCLUDE_FROM_ALL)
+    set(exclude_from_all EXCLUDE_FROM_ALL)
+  endif()
+
+  add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
   target_include_directories(${target_name}
     PRIVATE ${PYBIND11_INCLUDE_DIR}  # from project CMakeLists.txt
@@ -86,7 +106,7 @@ function(pybind11_add_module target_name)
 
     target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
 
-    if(${lib_type} STREQUAL "SHARED")
+    if(ARG_SHARED)
       # Suppress CMake >= 3.0 warning for shared libraries
       set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
     endif()
@@ -96,23 +116,21 @@ function(pybind11_add_module target_name)
   if(NOT MSVC)
     # Make sure C++11/14 are enabled
     target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
+  endif()
 
+  if(ARG_NO_EXTRAS)
+    return()
+  endif()
+
+  if(NOT MSVC)
     # Enable link time optimization and set the default symbol
     # visibility to hidden (very important to obtain small binaries)
     string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
     if (NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEBUG)
-      # Check for Link Time Optimization support (GCC/Clang)
-      check_cxx_compiler_flag("-flto" HAS_LTO_FLAG)
-      if(HAS_LTO_FLAG AND NOT CYGWIN)
-        target_compile_options(${target_name} PRIVATE -flto)
-      endif()
-
-      # Intel equivalent to LTO is called IPO
-      if(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-        check_cxx_compiler_flag("-ipo" HAS_IPO_FLAG)
-        if(HAS_IPO_FLAG)
-          target_compile_options(${target_name} PRIVATE -ipo)
-        endif()
+      # Link Time Optimization
+      if(NOT CYGWIN)
+        _pybind11_find_lto_flag(lto_flag ARG_THIN_LTO)
+        target_compile_options(${target_name} PRIVATE ${lto_flag})
       endif()
 
       # Default symbol visibility
