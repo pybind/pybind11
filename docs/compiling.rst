@@ -39,30 +39,88 @@ extension module can be created with just a few lines of code:
 
 This assumes that the pybind11 repository is located in a subdirectory named
 :file:`pybind11` and that the code is located in a file named :file:`example.cpp`.
-The CMake command ``add_subdirectory`` will import a function with the signature
-``pybind11_add_module(<name> source1 [source2 ...])``. It will take care of all
-the details needed to build a Python extension module on any platform.
-
-The target Python version can be selected by setting the ``PYBIND11_PYTHON_VERSION``
-variable before adding the pybind11 subdirectory. Alternatively, an exact Python
-installation can be specified by setting ``PYTHON_EXECUTABLE``.
+The CMake command ``add_subdirectory`` will import the pybind11 project which
+provides the ``pybind11_add_module`` function. It will take care of all the
+details needed to build a Python extension module on any platform.
 
 A working sample project, including a way to invoke CMake from :file:`setup.py` for
 PyPI integration, can be found in the [cmake_example]_  repository.
 
 .. [cmake_example] https://github.com/pybind/cmake_example
 
-For CMake-based projects that don't include the pybind11
-repository internally, an external installation can be detected
-through `find_package(pybind11 ... CONFIG ...)`. See the `Config file
-<https://github.com/pybind/pybind11/blob/master/tools/pybind11Config.cmake.in>`_
-docstring for details of relevant CMake variables.
+pybind11_add_module
+-------------------
 
-Once detected, and after setting any variables to guide Python and
-C++ standard detection, the aforementioned ``pybind11_add_module``
-wrapper to ``add_library`` can be employed as described above (after
-``include(pybind11Tools)``). This procedure is available when using CMake
->= 2.8.12. A working example can be found at [test_installed_module]_ .
+To ease the creation of Python extension modules, pybind11 provides a CMake
+function with the following signature:
+
+.. code-block:: cmake
+
+    pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
+                        [NO_EXTRAS] [THIN_LTO] source1 [source2 ...])
+
+This function behaves very much like CMake's builtin ``add_library`` (in fact,
+it's a wrapper function around that command). It will add a library target
+called ``<name>`` to be built from the listed source files. In addition, it
+will take care of all the Python-specific compiler and linker flags as well
+as the OS- and Python-version-specific file extension. The produced target
+``<name>`` can be further manipulated with regular CMake commands.
+
+``MODULE`` or ``SHARED`` may be given to specify the type of library. If no
+type is given, ``MODULE`` is used by default which ensures the creation of a
+Python-exclusive module. Specifying ``SHARED`` will create a more traditional
+dynamic library which can also be linked from elsewhere. ``EXCLUDE_FROM_ALL``
+removes this target from the default build (see CMake docs for details).
+
+Since pybind11 is a template library, ``pybind11_add_module`` adds compiler
+flags to ensure high quality code generation without bloat arising from long
+symbol names and duplication of code in different translation units. The
+additional flags enable LTO (Link Time Optimization), set default visibility
+to *hidden* and strip unneeded symbols. See the :ref:`FAQ entry <faq:symhidden>`
+for a more detailed explanation. These optimizations are never applied in
+``Debug`` mode. If ``NO_EXTRAS`` is given, they will always be disabled, even
+in ``Release`` mode. However, this will result in code bloat and is generally
+not recommended.
+
+As stated above, LTO is enabled by default. Some newer compilers also support
+different flavors of LTO such as `ThinLTO`_. Setting ``THIN_LTO`` will cause
+the function to prefer this flavor if available. The function falls back to
+regular LTO if ``-flto=thin`` is not available.
+
+.. _ThinLTO: http://clang.llvm.org/docs/ThinLTO.html
+
+Configuration variables
+-----------------------
+
+By default, pybind11 will compile modules with the latest C++ standard
+available on the target compiler. To override this, the standard flag can
+be given explicitly in ``PYBIND11_CPP_STANDARD``:
+
+.. code-block:: cmake
+
+    set(PYBIND11_CPP_STANDARD -std=c++11)
+    add_subdirectory(pybind11)  # or find_package(pybind11)
+
+Note that this and all other configuration variables must be set **before** the
+call to ``add_subdiretory`` or ``find_package``. The variables can also be set
+when calling CMake from the command line using the ``-D<variable>=<value>`` flag.
+
+The target Python version can be selected by setting ``PYBIND11_PYTHON_VERSION``
+or an exact Python installation can be specified with ``PYTHON_EXECUTABLE``.
+For example:
+
+.. code-block:: bash
+
+    cmake -DPYBIND11_PYTHON_VERSION=3.6 ..
+    # or
+    cmake -DPYTHON_EXECUTABLE=path/to/python ..
+
+find_package vs. add_subdirectory
+---------------------------------
+
+For CMake-based projects that don't include the pybind11 repository internally,
+an external installation can be detected through ``find_package(pybind11)``.
+See the `Config file`_ docstring for details of relevant CMake variables.
 
 .. code-block:: cmake
 
@@ -72,27 +130,32 @@ wrapper to ``add_library`` can be employed as described above (after
     find_package(pybind11 REQUIRED)
     pybind11_add_module(example example.cpp)
 
-.. [test_installed_module] https://github.com/pybind/pybind11/blob/master/tests/test_installed_module/CMakeLists.txt
+Once detected, the aforementioned ``pybind11_add_module`` can be employed as
+before. The function usage and configuration variables are identical no matter
+if pybind11 is added as a subdirectory or found as an installed package. You
+can refer to the same [cmake_example]_ repository for a full sample project
+-- just swap out ``add_subdirectory`` for ``find_package``.
 
-When using a version of CMake greater than 3.0, pybind11 can
-additionally be used as a special *interface library* following the
-call to ``find_package``. CMake variables to guide Python and C++
-standard detection should be set *before* ``find_package``. When
-``find_package`` returns, the target ``pybind11::pybind11`` is
-available with pybind11 headers, Python headers and libraries as
-needed, and C++ compile definitions attached. This target is suitable
-for linking to an independently constructed (through ``add_library``,
-not ``pybind11_add_module``) target in the consuming project. A working
-example can be found at [test_installed_target]_ .
+.. _Config file: https://github.com/pybind/pybind11/blob/master/tools/pybind11Config.cmake.in
+
+Advanced: interface library target
+----------------------------------
+
+When using a version of CMake greater than 3.0, pybind11 can additionally
+be used as a special *interface library* . The target ``pybind11::pybind11``
+is available with pybind11 headers, Python headers and libraries as needed,
+and C++ compile definitions attached. This target is suitable for linking
+to an independently constructed (through ``add_library``, not
+``pybind11_add_module``) target in the consuming project.
 
 .. code-block:: cmake
 
     cmake_minimum_required(VERSION 3.0)
     project(example)
 
-    add_library(example MODULE main.cpp)
+    find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
 
-    find_package(pybind11 REQUIRED)
+    add_library(example MODULE main.cpp)
     target_link_libraries(example PRIVATE pybind11::pybind11)
     set_target_properties(example PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                              SUFFIX "${PYTHON_MODULE_EXTENSION}")
@@ -111,6 +174,3 @@ example can be found at [test_installed_target]_ .
     (``-fvisibility=hidden``) and .OBJ files with many sections on Visual Studio
     (``/bigobj``). The :ref:`FAQ <faq:symhidden>` contains an
     explanation on why these are needed.
-
-.. [test_installed_target] https://github.com/pybind/pybind11/blob/master/tests/test_installed_target/CMakeLists.txt
-
