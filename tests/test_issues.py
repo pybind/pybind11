@@ -1,5 +1,4 @@
 import pytest
-import gc
 from pybind11_tests import ConstructorStats
 
 
@@ -55,7 +54,7 @@ def test_shared_ptr_gc():
     el = ElementList()
     for i in range(10):
         el.add(ElementA(i))
-    gc.collect()
+    pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
 
@@ -130,13 +129,13 @@ def test_nested():
     assert c.b.a.as_base().value == 42
 
     del c
-    gc.collect()
+    pytest.gc_collect()
     del a  # Should't delete while abase is still alive
-    gc.collect()
+    pytest.gc_collect()
 
     assert abase.value == 42
     del abase, b
-    gc.collect()
+    pytest.gc_collect()
 
 
 def test_move_fallback():

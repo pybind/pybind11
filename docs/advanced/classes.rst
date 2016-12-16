@@ -422,15 +422,24 @@ The section on :ref:`properties` discussed the creation of instance properties
 that are implemented in terms of C++ getters and setters.
 
 Static properties can also be created in a similar way to expose getters and
-setters of static class attributes. It is important to note that the implicit
-``self`` argument also exists in this case and is used to pass the Python
-``type`` subclass instance. This parameter will often not be needed by the C++
-side, and the following example illustrates how to instantiate a lambda getter
-function that ignores it:
+setters of static class attributes. Two things are important to note:
+
+1. Static properties are implemented by instrumenting the *metaclass* of the
+   class in question -- however, this requires the class to have a modifiable
+   metaclass in the first place. pybind11 provides a ``py::metaclass()``
+   annotation that must be specified in the ``class_`` constructor, or any
+   later method calls to ``def_{property_,∅}_{readwrite,readonly}_static`` will
+   fail (see the example below).
+
+2. For static properties defined in terms of setter and getter functions, note
+   that the implicit ``self`` argument also exists in this case and is used to
+   pass the Python ``type`` subclass instance. This parameter will often not be
+   needed by the C++ side, and the following example illustrates how to
+   instantiate a lambda getter function that ignores it:
 
 .. code-block:: cpp
 
-    py::class_<Foo>(m, "Foo")
+    py::class_<Foo>(m, "Foo", py::metaclass())
         .def_property_readonly_static("foo", [](py::object /* self */) { return Foo(); });
 
 Operator overloading

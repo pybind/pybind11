@@ -206,6 +206,9 @@ def test_inheriting_repeat():
     assert obj.say_everything() == "BT -7"
 
 
+# PyPy: Reference count > 1 causes call with noncopyable instance
+# to fail in ncv1.print_nc()
+@pytest.unsupported_on_pypy
 @pytest.mark.skipif(not hasattr(pybind11_tests, 'NCVirt'),
                     reason="NCVirt test broken on ICPC")
 def test_move_support():

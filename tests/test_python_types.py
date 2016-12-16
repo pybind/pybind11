@@ -132,8 +132,12 @@ def test_instance(capture):
     assert cstats.alive() == 0
 
 
-def test_docs(doc):
+# PyPy does not seem to propagate the tp_docs field at the moment
+def test_class_docs(doc):
     assert doc(ExamplePythonTypes) == "Example 2 documentation"
+
+
+def test_method_docs(doc):
     assert doc(ExamplePythonTypes.get_dict) == """
         get_dict(self: m.ExamplePythonTypes) -> dict
 

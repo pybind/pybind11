@@ -10,7 +10,6 @@
 
 #include "pybind11_tests.h"
 
-
 struct Base1 {
     Base1(int i) : i(i) { }
     int foo() { return i; }

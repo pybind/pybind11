@@ -1,10 +1,11 @@
-import gc
+import pytest
 
 
 def test_alias_delay_initialization1(capture):
-    """A only initializes its trampoline class when we inherit from it; if we just
-    create and use an A instance directly, the trampoline initialization is bypassed
-    and we only initialize an A() instead (for performance reasons).
+    """
+    A only initializes its trampoline class when we inherit from it; if we just
+    create and use an A instance directly, the trampoline initialization is
+    bypassed and we only initialize an A() instead (for performance reasons).
     """
     from pybind11_tests import A, call_f
 
@@ -20,7 +21,7 @@ def test_alias_delay_initialization1(capture):
         a = A()
         call_f(a)
         del a
-        gc.collect()
+        pytest.gc_collect()
     assert capture == "A.f()"
 
     # Python version
@@ -28,7 +29,7 @@ def test_alias_delay_initialization1(capture):
         b = B()
         call_f(b)
         del b
-        gc.collect()
+        pytest.gc_collect()
     assert capture == """
         PyA.PyA()
         PyA.f()
@@ -57,7 +58,7 @@ def test_alias_delay_initialization2(capture):
         a2 = A2()
         call_f(a2)
         del a2
-        gc.collect()
+        pytest.gc_collect()
     assert capture == """
         PyA2.PyA2()
         PyA2.f()
@@ -70,7 +71,7 @@ def test_alias_delay_initialization2(capture):
         b2 = B2()
         call_f(b2)
         del b2
-        gc.collect()
+        pytest.gc_collect()
     assert capture == """
         PyA2.PyA2()
         PyA2.f()

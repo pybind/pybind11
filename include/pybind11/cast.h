@@ -108,14 +108,10 @@ PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool t
 }
 
 PYBIND11_NOINLINE inline bool isinstance_generic(handle obj, const std::type_info &tp) {
-    const auto type = detail::get_type_handle(tp, false);
+    handle type = detail::get_type_handle(tp, false);
     if (!type)
         return false;
-
-    const auto result = PyObject_IsInstance(obj.ptr(), type.ptr());
-    if (result == -1)
-        throw error_already_set();
-    return result != 0;
+    return isinstance(obj, type);
 }
 
 PYBIND11_NOINLINE inline std::string error_string() {
@@ -141,6 +137,7 @@ PYBIND11_NOINLINE inline std::string error_string() {
         PyException_SetTraceback(scope.value, scope.trace);
 #endif
 
+#if !defined(PYPY_VERSION)
     if (scope.trace) {
         PyTracebackObject *trace = (PyTracebackObject *) scope.trace;
 
@@ -160,6 +157,7 @@ PYBIND11_NOINLINE inline std::string error_string() {
         }
         trace = trace->tb_next;
     }
+#endif
 
     return errorString;
 }
@@ -176,7 +174,9 @@ PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail:
 }
 
 inline PyThreadState *get_thread_state_unchecked() {
-#if   PY_VERSION_HEX < 0x03000000
+#if defined(PYPY_VERSION)
+    return PyThreadState_GET();
+#elif PY_VERSION_HEX < 0x03000000
     return _PyThreadState_Current;
 #elif PY_VERSION_HEX < 0x03050000
     return (PyThreadState*) _Py_atomic_load_relaxed(&_PyThreadState_Current);
@@ -224,7 +224,7 @@ public:
 
             /* If this is a python class, also check the parents recursively */
             auto const &type_dict = get_internals().registered_types_py;
-            bool new_style_class = PyType_Check(tobj);
+            bool new_style_class = PyType_Check((PyObject *) tobj);
             if (type_dict.find(tobj) == type_dict.end() && new_style_class && tobj->tp_bases) {
                 auto parents = reinterpret_borrow<tuple>(tobj->tp_bases);
                 for (handle parent : parents) {
@@ -662,10 +662,10 @@ public:
 #if PY_MAJOR_VERSION >= 3
         buffer = PyUnicode_AsWideCharString(load_src.ptr(), &length);
 #else
-        temp = reinterpret_steal<object>(
-            sizeof(wchar_t) == sizeof(short)
-                ? PyUnicode_AsUTF16String(load_src.ptr())
-                : PyUnicode_AsUTF32String(load_src.ptr()));
+        temp = reinterpret_steal<object>(PyUnicode_AsEncodedString(
+            load_src.ptr(), sizeof(wchar_t) == sizeof(short)
+            ? "utf16" : "utf32", nullptr));
+
         if (temp) {
             int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), (char **) &buffer, &length);
             if (err == -1) { buffer = nullptr; }  // TypeError
@@ -868,7 +868,7 @@ public:
 
             /* If this is a python class, also check the parents recursively */
             auto const &type_dict = get_internals().registered_types_py;
-            bool new_style_class = PyType_Check(tobj);
+            bool new_style_class = PyType_Check((PyObject *) tobj);
             if (type_dict.find(tobj) == type_dict.end() && new_style_class && tobj->tp_bases) {
                 auto parents = reinterpret_borrow<tuple>(tobj->tp_bases);
                 for (handle parent : parents) {

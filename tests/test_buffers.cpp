@@ -75,7 +75,7 @@ private:
 };
 
 test_initializer buffers([](py::module &m) {
-    py::class_<Matrix> mtx(m, "Matrix");
+    py::class_<Matrix> mtx(m, "Matrix", py::buffer_protocol());
 
     mtx.def(py::init<size_t, size_t>())
         /// Construct from a buffer

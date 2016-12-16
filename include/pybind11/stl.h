@@ -139,7 +139,7 @@ public:
             auto value_ = reinterpret_steal<object>(value_conv::cast(value, policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -192,7 +192,7 @@ public:
             auto value_ = reinterpret_steal<object>(value_conv::cast(value, policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }

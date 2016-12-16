@@ -1,5 +1,3 @@
-
-
 def test_multiple_inheritance_cpp():
     from pybind11_tests import MIType
 

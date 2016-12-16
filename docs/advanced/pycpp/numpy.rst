@@ -33,7 +33,7 @@ completely avoid copy operations with Python expressions like
 
 .. code-block:: cpp
 
-    py::class_<Matrix>(m, "Matrix")
+    py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
        .def_buffer([](Matrix &m) -> py::buffer_info {
             return py::buffer_info(
                 m.data(),                               /* Pointer to buffer */
@@ -46,9 +46,12 @@ completely avoid copy operations with Python expressions like
             );
         });
 
-The snippet above binds a lambda function, which can create ``py::buffer_info``
-description records on demand describing a given matrix. The contents of
-``py::buffer_info`` mirror the Python buffer protocol specification.
+Supporting the buffer protocol in a new type involves specifying the special
+``py::buffer_protocol()`` tag in the ``py::class_`` constructor and calling the
+``def_buffer()`` method with a lambda function that creates a
+``py::buffer_info`` description record on demand describing a given matrix
+instance. The contents of ``py::buffer_info`` mirror the Python buffer protocol
+specification.
 
 .. code-block:: cpp
 
@@ -77,7 +80,7 @@ buffer objects (e.g. a NumPy matrix).
     typedef Matrix::Scalar Scalar;
     constexpr bool rowMajor = Matrix::Flags & Eigen::RowMajorBit;
 
-    py::class_<Matrix>(m, "Matrix")
+    py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
         .def("__init__", [](Matrix &m, py::buffer b) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 

@@ -1,5 +1,4 @@
 import pytest
-import gc
 
 with pytest.suppress(ImportError):
     import numpy as np
@@ -220,7 +219,7 @@ def test_numpy_view(capture):
         ac_view_2 = ac.numpy_view()
         assert np.all(ac_view_1 == np.array([1, 2], dtype=np.int32))
         del ac
-        gc.collect()
+        pytest.gc_collect()
     assert capture == """
         ArrayClass()
         ArrayClass::numpy_view()
@@ -233,12 +232,14 @@ def test_numpy_view(capture):
     with capture:
         del ac_view_1
         del ac_view_2
-        gc.collect()
+        pytest.gc_collect()
+        pytest.gc_collect()
     assert capture == """
         ~ArrayClass()
     """
 
 
+@pytest.unsupported_on_pypy
 @pytest.requires_numpy
 def test_cast_numpy_int64_to_uint64():
     from pybind11_tests.array import function_taking_uint64
