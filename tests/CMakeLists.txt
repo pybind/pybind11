@@ -159,3 +159,6 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.1)
     pybind11_add_build_test(installed_target INSTALL)
   endif()
 endif()
+
+# Run all the tests
+add_custom_target(check DEPENDS pytest test_cmake_build)
