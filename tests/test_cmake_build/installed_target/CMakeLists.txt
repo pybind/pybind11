@@ -8,7 +8,7 @@ message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
 
 add_library(test_cmake_build MODULE ../main.cpp)
 
-target_link_libraries(test_cmake_build PRIVATE pybind11::pybind11)
+target_link_libraries(test_cmake_build PRIVATE pybind11::module)
 
 # make sure result is, for example, test_installed_target.so, not libtest_installed_target.dylib
 set_target_properties(test_cmake_build PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
