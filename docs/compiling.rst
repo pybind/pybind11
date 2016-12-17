@@ -142,7 +142,7 @@ Advanced: interface library target
 ----------------------------------
 
 When using a version of CMake greater than 3.0, pybind11 can additionally
-be used as a special *interface library* . The target ``pybind11::pybind11``
+be used as a special *interface library* . The target ``pybind11::module``
 is available with pybind11 headers, Python headers and libraries as needed,
 and C++ compile definitions attached. This target is suitable for linking
 to an independently constructed (through ``add_library``, not
@@ -156,7 +156,7 @@ to an independently constructed (through ``add_library``, not
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
 
     add_library(example MODULE main.cpp)
-    target_link_libraries(example PRIVATE pybind11::pybind11)
+    target_link_libraries(example PRIVATE pybind11::module)
     set_target_properties(example PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                              SUFFIX "${PYTHON_MODULE_EXTENSION}")
 

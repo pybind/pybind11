@@ -89,18 +89,18 @@ message(STATUS "pybind11 v${${PROJECT_NAME}_VERSION}")
 
 if(NOT (CMAKE_VERSION VERSION_LESS 3.0))  # CMake >= 3.0
   # Build an interface library target:
-  add_library(pybind11 INTERFACE)
-  target_include_directories(pybind11 INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
-                                                $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>
-                                                $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+  add_library(module INTERFACE)
+  target_include_directories(module INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
+                                              $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>
+                                              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
   if(WIN32 OR CYGWIN)
-    target_link_libraries(pybind11 INTERFACE $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+    target_link_libraries(module INTERFACE $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
   elseif(APPLE)
-    target_link_libraries(pybind11 INTERFACE "-undefined dynamic_lookup")
+    target_link_libraries(module INTERFACE "-undefined dynamic_lookup")
   endif()
-  target_compile_options(pybind11 INTERFACE $<BUILD_INTERFACE:${PYBIND11_CPP_STANDARD}>)
+  target_compile_options(module INTERFACE $<BUILD_INTERFACE:${PYBIND11_CPP_STANDARD}>)
 
-  add_library(pybind11::pybind11 ALIAS pybind11)  # to match exported target
+  add_library(pybind11::module ALIAS module)  # to match exported target
 endif()
 
 if (PYBIND11_INSTALL)
@@ -122,7 +122,7 @@ if (PYBIND11_INSTALL)
           DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
 
   if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
-    install(TARGETS pybind11
+    install(TARGETS module
             EXPORT "${PROJECT_NAME}Targets")
     install(EXPORT "${PROJECT_NAME}Targets"
             NAMESPACE "${PROJECT_NAME}::"
