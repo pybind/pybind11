@@ -51,7 +51,7 @@ Goodies
 *******
 In addition to the core functionality, pybind11 provides some extra goodies:
 
-- Python 2.7, 3.x, and PyPy (PyPy2.7 >= 5.5) are supported with an
+- Python 2.7, 3.x, and PyPy (PyPy2.7 >= 5.7) are supported with an
   implementation-agnostic interface.
 
 - It is possible to bind C++11 lambda functions with captured variables. The
