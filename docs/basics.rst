@@ -25,7 +25,7 @@ After installing the prerequisites, run
    mkdir build
    cd build
    cmake ..
-   make pytest -j 4
+   make check -j 4
 
 The last line will both compile and run the tests.
 
@@ -42,7 +42,7 @@ To compile and run the tests:
    mkdir build
    cd build
    cmake ..
-   cmake --build . --config Release --target pytest
+   cmake --build . --config Release --target check
 
 This will create a Visual Studio project, compile and run the target, all from the
 command line.
