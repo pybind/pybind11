@@ -262,8 +262,8 @@ Happy Christmas!
 * Support for ``std::unique_ptr`` with non-default deleters or no deleter at
   all (``py::nodelete``). `#384 <https://github.com/pybind/pybind11/pull/384>`_.
 
-* Removed ``handle.call()`` method to invoke Python functions, the new syntax
-  is simply ``handle()``. It can also be invoked explicitly via
+* Deprecated ``handle::call()`` method. The new syntax to call Python
+  functions is simply ``handle()``. It can also be invoked explicitly via
   ``handle::operator<X>()``, where ``X`` is an optional return value policy.
 
 * Print more informative error messages when ``make_tuple()`` or ``cast()``
