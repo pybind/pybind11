@@ -4,8 +4,8 @@ from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, h
 
 
 def test_repr():
-    assert "<class 'pybind11_tests.ExamplePythonTypes__Meta'>" == repr(type(ExamplePythonTypes))
-    assert "<class 'pybind11_tests.ExamplePythonTypes'>" == repr(ExamplePythonTypes)
+    assert "ExamplePythonTypes__Meta" in repr(type(ExamplePythonTypes))
+    assert "ExamplePythonTypes" in repr(ExamplePythonTypes)
 
 
 def test_static():
