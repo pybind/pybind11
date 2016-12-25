@@ -701,7 +701,7 @@ protected:
 
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
             /* Qualified names for Python >= 3.3 */
-            type->ht_qualname = ht_qualname.release().ptr();
+            type->ht_qualname = ht_qualname.inc_ref().ptr();
 #endif
             type->ht_type.tp_name = strdup(meta_name_.c_str());
             type->ht_type.tp_base = &PyType_Type;

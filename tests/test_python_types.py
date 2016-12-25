@@ -3,6 +3,11 @@ import pytest
 from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, has_exp_optional
 
 
+def test_repr():
+    assert "<class 'pybind11_tests.ExamplePythonTypes__Meta'>" == repr(type(ExamplePythonTypes))
+    assert "<class 'pybind11_tests.ExamplePythonTypes'>" == repr(ExamplePythonTypes)
+
+
 def test_static():
     ExamplePythonTypes.value = 15
     assert ExamplePythonTypes.value == 15
