@@ -3,9 +3,9 @@ import pytest
 from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, has_exp_optional
 
 
-def test_repr():
-    assert "ExamplePythonTypes__Meta" in repr(type(ExamplePythonTypes))
-    assert "ExamplePythonTypes" in repr(ExamplePythonTypes)
+def test_qualname():
+    assert "ExamplePythonTypes__Meta" == type(ExamplePythonTypes).__qualname__
+    assert "ExamplePythonTypes" == ExamplePythonTypes.__qualname__
 
 
 def test_static():
