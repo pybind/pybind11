@@ -28,7 +28,7 @@ matrix:
     env: PYTHON=2.7 CPP=14 CLANG
   - os: osx
     osx_image: xcode7.3
-    env: PYTHON=3.5 CPP=14 CLANG
+    env: PYTHON=3.6 CPP=14 CLANG
   # Test a PyPy 2.7 nightly build
   - os: linux
     env: PYPY=1 PYTHON=2.7 CPP=11 GCC=4.8
@@ -59,6 +59,7 @@ matrix:
   allow_failures:
     - env: PYTHON=3.5 CPP=17 GCC=7
     - env: PYTHON=2.7 CPP=14 GCC=6 # Temporary until python >2.7.13-rc1 migrates to debian testing
+    - env: PYTHON=3.6 CPP=14 CLANG # Temporary until binary wheels of numpy and scipy become available on brew Python 3.6
 cache:
   directories:
   - $HOME/.cache/pip
