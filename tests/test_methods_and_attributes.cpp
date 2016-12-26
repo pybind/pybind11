@@ -176,9 +176,11 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
         .def_property_readonly_static("static_rvalue", [](py::object) { return SimpleValue(); });
 
+#if !defined(PYPY_VERSION)
     py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())
         .def(py::init());
 
     py::class_<CppDerivedDynamicClass, DynamicClass>(m, "CppDerivedDynamicClass")
         .def(py::init());
+#endif
 });

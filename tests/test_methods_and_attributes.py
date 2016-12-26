@@ -180,6 +180,8 @@ def test_dynamic_attributes():
         assert cstats.alive() == 0
 
 
+# https://bitbucket.org/pypy/pypy/issues/2447
+@pytest.unsupported_on_pypy
 def test_cyclic_gc():
     from pybind11_tests import DynamicClass
 

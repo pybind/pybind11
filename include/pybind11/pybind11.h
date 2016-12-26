@@ -785,6 +785,11 @@ protected:
 
         /* Support dynamic attributes */
         if (rec->dynamic_attr) {
+            #if defined(PYPY_VERSION)
+                pybind11_fail(std::string(rec->name) + ": dynamic attributes are "
+                                                       "currently not supported in "
+                                                       "conunction with PyPy!");
+            #endif
             type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_GC;
             type->ht_type.tp_dictoffset = type->ht_type.tp_basicsize; // place the dict at the end
             type->ht_type.tp_basicsize += sizeof(PyObject *); // and allocate enough space for it
