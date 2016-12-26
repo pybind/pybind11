@@ -174,3 +174,12 @@ to an independently constructed (through ``add_library``, not
     (``-fvisibility=hidden``) and .OBJ files with many sections on Visual Studio
     (``/bigobj``). The :ref:`FAQ <faq:symhidden>` contains an
     explanation on why these are needed.
+
+Generating binding code automatically
+=====================================
+
+The ``Binder`` project is a tool for automatic generation of pybind11 binding
+code by introspecting existing C++ codebases using LLVM/Clang. See the
+[binder]_ documentation for details.
+
+.. [binder] http://cppbinder.readthedocs.io/en/latest/about.html
