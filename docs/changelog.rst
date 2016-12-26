@@ -3,8 +3,18 @@
 Changelog
 #########
 
-Starting with version 1.8, pybind11 releases use a `semantic versioning
+Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
+
+v2.0.0 (???)
+-----------------------------------------------------
+
+* Fixed a reference counting regression affecting types with custom metaclasses
+  (introduced in v2.0.0-rc1).
+  `#571 <https://github.com/pybind/pybind11/pull/571>`_.
+
+* Quenched a CMake policy warning.
+  `#570 <https://github.com/pybind/pybind11/pull/570>`_.
 
 v2.0.0-rc1 (Dec 23)
 -----------------------------------------------------
@@ -14,8 +24,8 @@ with a subsequent v2.0.0 release planned in early January next year.
 
 An incredible amount of effort by went into pybind11 over the last ~5 months,
 leading to a release that is jam-packed with exciting new features and numerous
-usuability improvements. The following list is roughly ordered in order of
-importance and links PRs or individual commits whenever applicable.
+usuability improvements. The following list links PRs or individual commits
+whenever applicable.
 
 Happy Christmas!
 
@@ -26,7 +36,9 @@ Happy Christmas!
   interoperate with the future 5.7 release. No code changes are necessary,
   everything "just" works as usual. Note that we only target the Python 2.7
   branch for now; support for 3.x will be added once its ``cpyext`` extension
-  support catches up. `#527 <https://github.com/pybind/pybind11/pull/527>`_.
+  support catches up. A few minor features remain unsupported for the time
+  being (notably dynamic attributes in custom types).
+  `#527 <https://github.com/pybind/pybind11/pull/527>`_.
 
 * Significant work on the documentation -- in particular, the monolitic
   ``advanced.rst`` file was restructured into a easier to read hierarchical
