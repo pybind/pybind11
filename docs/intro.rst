@@ -90,6 +90,6 @@ Supported compilers
 *******************
 
 1. Clang/LLVM (any non-ancient version with C++11 support)
-2. GCC (any non-ancient version with C++11 support)
+2. GCC 4.8 or newer
 3. Microsoft Visual Studio 2015 or newer
 4. Intel C++ compiler v15 or newer
