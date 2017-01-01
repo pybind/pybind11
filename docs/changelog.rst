@@ -6,7 +6,7 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
-v2.0.0 (???)
+v2.0.0 (Jan 1, 2017)
 -----------------------------------------------------
 
 * Fixed a reference counting regression affecting types with custom metaclasses
@@ -16,7 +16,7 @@ v2.0.0 (???)
 * Quenched a CMake policy warning.
   `#570 <https://github.com/pybind/pybind11/pull/570>`_.
 
-v2.0.0-rc1 (Dec 23)
+v2.0.0-rc1 (Dec 23, 2016)
 -----------------------------------------------------
 
 The pybind11 developers are excited to issue a release candidate of pybind11

@@ -52,9 +52,9 @@
 #  define PYBIND11_DEPRECATED(reason) __declspec(deprecated)
 #endif
 
-#define PYBIND11_VERSION_MAJOR 1
-#define PYBIND11_VERSION_MINOR 9
-#define PYBIND11_VERSION_PATCH dev0
+#define PYBIND11_VERSION_MAJOR 2
+#define PYBIND11_VERSION_MINOR 0
+#define PYBIND11_VERSION_PATCH 0
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
