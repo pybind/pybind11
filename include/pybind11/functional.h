@@ -73,7 +73,7 @@ public:
 
     PYBIND11_TYPE_CASTER(type, _("Callable[[") +
             argument_loader<Args...>::arg_names() + _("], ") +
-            type_caster<retval_type>::name() +
+            make_caster<retval_type>::name() +
             _("]"));
 };
 
