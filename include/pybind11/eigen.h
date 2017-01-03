@@ -137,7 +137,7 @@ struct type_caster<Eigen::Ref<CVDerived, Options, StrideType>> {
 protected:
     using Type = Eigen::Ref<CVDerived, Options, StrideType>;
     using Derived = typename std::remove_const<CVDerived>::type;
-    using DerivedCaster = type_caster<Derived>;
+    using DerivedCaster = make_caster<Derived>;
     DerivedCaster derived_caster;
     std::unique_ptr<Type> value;
 public:
@@ -158,7 +158,7 @@ template <typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_base<Type>::value && !is_eigen_ref<Type>::value>> {
 protected:
     using Matrix = Eigen::Matrix<typename Type::Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-    using MatrixCaster = type_caster<Matrix>;
+    using MatrixCaster = make_caster<Matrix>;
 public:
     [[noreturn]] bool load(handle, bool) { pybind11_fail("Unable to load() into specialized EigenBase object"); }
     static handle cast(const Type &src, return_value_policy policy, handle parent) { return MatrixCaster::cast(Matrix(src), policy, parent); }

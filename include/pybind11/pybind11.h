@@ -1076,7 +1076,7 @@ public:
         struct capture { Func func; };
         capture *ptr = new capture { std::forward<Func>(func) };
         install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
-            detail::type_caster<type> caster;
+            detail::make_caster<type> caster;
             if (!caster.load(obj, false))
                 return nullptr;
             return new buffer_info(((capture *) ptr)->func(caster));
@@ -1480,7 +1480,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
 
 template <typename InputType, typename OutputType> void implicitly_convertible() {
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
-        if (!detail::type_caster<InputType>().load(obj, false))
+        if (!detail::make_caster<InputType>().load(obj, false))
             return nullptr;
         tuple args(1);
         args[0] = obj;
