@@ -185,6 +185,9 @@ struct type_record {
     /// Does the class require its own metaclass?
     bool metaclass : 1;
 
+    /// Is the default (unique_ptr) holder type used?
+    bool default_holder : 1;
+
     PYBIND11_NOINLINE void add_base(const std::type_info *base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(*base, false);
         if (!base_info) {
@@ -192,6 +195,15 @@ struct type_record {
             detail::clean_type_id(tname);
             pybind11_fail("generic_type: type \"" + std::string(name) +
                           "\" referenced unknown base type \"" + tname + "\"");
+        }
+
+        if (default_holder != base_info->default_holder) {
+            std::string tname(base->name());
+            detail::clean_type_id(tname);
+            pybind11_fail("generic_type: type \"" + std::string(name) + "\" " +
+                    (default_holder ? "does not have" : "has") +
+                    " a non-default holder type while its base \"" + tname + "\" " +
+                    (base_info->default_holder ? "does not" : "does"));
         }
 
         bases.append((PyObject *) base_info->type);

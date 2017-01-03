@@ -32,6 +32,8 @@ struct type_info {
     /** A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance */
     bool simple_type = true;
+    /* for base vs derived holder_type checks */
+    bool default_holder = true;
 };
 
 PYBIND11_NOINLINE inline internals &get_internals() {
