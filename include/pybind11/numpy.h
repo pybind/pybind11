@@ -1140,7 +1140,7 @@ struct vectorize_helper {
 };
 
 template <typename T, int Flags> struct handle_type_name<array_t<T, Flags>> {
-    static PYBIND11_DESCR name() { return _("numpy.ndarray[") + type_caster<T>::name() + _("]"); }
+    static PYBIND11_DESCR name() { return _("numpy.ndarray[") + make_caster<T>::name() + _("]"); }
 };
 
 NAMESPACE_END(detail)
