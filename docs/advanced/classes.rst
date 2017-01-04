@@ -79,7 +79,7 @@ helper class that is defined as follows:
             PYBIND11_OVERLOAD_PURE(
                 std::string, /* Return type */
                 Animal,      /* Parent class */
-                go,          /* Name of function */
+                go,          /* Name of function in C++ (must match Python name) */
                 n_times      /* Argument(s) */
             );
         }
@@ -90,7 +90,8 @@ functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
 a default implementation.  There are also two alternate macros
 :func:`PYBIND11_OVERLOAD_PURE_NAME` and :func:`PYBIND11_OVERLOAD_NAME` which
 take a string-valued name argument between the *Parent class* and *Name of the
-function* slots. This is useful when the C++ and Python versions of the
+function* slots, which defines the name of function in Python. This is required 
+when the C++ and Python versions of the
 function have different names, e.g.  ``operator()`` vs ``__call__``.
 
 The binding code also needs a few minor adaptations (highlighted):
@@ -115,10 +116,20 @@ The binding code also needs a few minor adaptations (highlighted):
     }
 
 Importantly, pybind11 is made aware of the trampoline helper class by
-specifying it as an extra template argument to :class:`class_`.  (This can also
+specifying it as an extra template argument to :class:`class_`. (This can also
 be combined with other template arguments such as a custom holder type; the
 order of template types does not matter).  Following this, we are able to
 define a constructor as usual.
+
+Bindings should be made against the actual class, not the trampoline helper class.
+
+.. code-block:: cpp
+    :emphasize-lines: 4
+
+    py::class_<Animal, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
+        animal
+            .def(py::init<>())
+            .def("go", &PyAnimal::go); /* <--- THIS IS WRONG, use &Animal::go */
 
 Note, however, that the above is sufficient for allowing python classes to
 extend ``Animal``, but not ``Dog``: see ref:`virtual_and_inheritance` for the
