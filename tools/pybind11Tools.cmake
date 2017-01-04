@@ -8,7 +8,9 @@
 cmake_minimum_required(VERSION 2.8.12)
 
 # Add a CMake parameter for choosing a desired Python version
-set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
+if(NOT PYBIND11_PYTHON_VERSION)
+  set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
+endif()
 
 set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5 3.4)
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
