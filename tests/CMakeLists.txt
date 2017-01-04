@@ -88,7 +88,7 @@ endif()
 
 # Make sure pytest is found or produce a fatal error
 if(NOT PYBIND11_PYTEST_FOUND)
-  execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pytest --version --noconftest OUTPUT_QUIET ERROR_QUIET
+  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import pytest" OUTPUT_QUIET ERROR_QUIET
                   RESULT_VARIABLE PYBIND11_EXEC_PYTHON_ERR)
   if(PYBIND11_EXEC_PYTHON_ERR)
     message(FATAL_ERROR "Running the tests requires pytest.  Please install it manually (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
