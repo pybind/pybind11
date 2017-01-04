@@ -6,6 +6,15 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+v2.0.1 (Jan 4, 2017)
+-----------------------------------------------------
+
+* Fix pointer to reference error in type_caster on MSVC
+  `#583 <https://github.com/pybind/pybind11/pull/583>`_.
+
+* Fixed a segmentation in the test suite due to a typo
+  `cd7eac <https://github.com/pybind/pybind11/commit/cd7eac>`_.
+
 v2.0.0 (Jan 1, 2017)
 -----------------------------------------------------
 
@@ -24,7 +33,7 @@ with a subsequent v2.0.0 release planned in early January next year.
 
 An incredible amount of effort by went into pybind11 over the last ~5 months,
 leading to a release that is jam-packed with exciting new features and numerous
-usuability improvements. The following list links PRs or individual commits
+usability improvements. The following list links PRs or individual commits
 whenever applicable.
 
 Happy Christmas!
