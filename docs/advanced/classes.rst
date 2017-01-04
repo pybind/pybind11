@@ -124,7 +124,6 @@ define a constructor as usual.
 Bindings should be made against the actual class, not the trampoline helper class.
 
 .. code-block:: cpp
-    :emphasize-lines: 4
 
     py::class_<Animal, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
         animal
