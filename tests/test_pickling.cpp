@@ -71,7 +71,7 @@ test_initializer pickling([](py::module &m) {
                 throw std::runtime_error("Invalid state!");
             /* Cast and construct */
             auto& p = self.cast<PickleableWithDict&>();
-            new (&p) Pickleable(t[0].cast<std::string>());
+            new (&p) PickleableWithDict(t[0].cast<std::string>());
 
             /* Assign C++ state */
             p.extra = t[1].cast<int>();
