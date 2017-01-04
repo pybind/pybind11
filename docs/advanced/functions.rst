@@ -88,7 +88,7 @@ The following table provides an overview of available policies:
 |                                                  | return value is referenced by Python. This is the default policy for       |
 |                                                  | property getters created via ``def_property``, ``def_readwrite``, etc.     |
 +--------------------------------------------------+----------------------------------------------------------------------------+
-| :enum:`return_value_policy::automatic`           | This is the default return value policy, which falls back to the policy    |
+| :enum:`return_value_policy::automatic`           | **Default policy.** This policy falls back to the policy                   |
 |                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
 |                                                  | pointer. Otherwise, it uses :enum:`return_value::move` or                  |
 |                                                  | :enum:`return_value::copy` for rvalue and lvalue references, respectively. |
@@ -159,7 +159,11 @@ Additional call policies
 ========================
 
 In addition to the above return value policies, further `call policies` can be
-specified to indicate dependencies between parameters. There is currently just
+specified to indicate dependencies between parameters. In general, call policies 
+are required when the C++ object is any kind of container and another object is being 
+added to the container.
+
+There is currently just
 one policy named ``keep_alive<Nurse, Patient>``, which indicates that the
 argument with index ``Patient`` should be kept alive at least until the
 argument with index ``Nurse`` is freed by the garbage collector. Argument
