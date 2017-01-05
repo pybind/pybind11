@@ -207,8 +207,8 @@ For instance, the following statement iterates over a Python ``dict``:
     void print_dict(py::dict dict) {
         /* Easily interact with Python types */
         for (auto item : dict)
-            std::cout << "key=" << item.first << ", "
-                      << "value=" << item.second << std::endl;
+            std::cout << "key=" << std::string(py::str(item.first)) << ", "
+                      << "value=" << std::string(py::str(item.second)) << std::endl;
     }
 
 It can be exported:
