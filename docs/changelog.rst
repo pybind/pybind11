@@ -6,6 +6,12 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+v2.0.2 (not yet released)
+-----------------------------------------------------
+
+* Use -x flag to strip shared libraries on OSX
+  `#595 <https://github.com/pybind/pybind11/pull/595>`_.
+
 v2.0.1 (Jan 4, 2017)
 -----------------------------------------------------
 

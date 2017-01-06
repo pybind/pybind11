@@ -140,7 +140,7 @@ function(pybind11_add_module target_name)
       if(CMAKE_STRIP)
         if(APPLE)
           add_custom_command(TARGET ${target_name} POST_BUILD
-                             COMMAND ${CMAKE_STRIP} -u -r $<TARGET_FILE:${target_name}>)
+                             COMMAND ${CMAKE_STRIP} -x $<TARGET_FILE:${target_name}>)
         else()
           add_custom_command(TARGET ${target_name} POST_BUILD
                              COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${target_name}>)
