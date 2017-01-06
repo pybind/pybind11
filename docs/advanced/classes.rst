@@ -490,6 +490,7 @@ to Python.
             .def(py::self += py::self)
             .def(py::self *= float())
             .def(float() * py::self)
+            .def(py::self * float())
             .def("__repr__", &Vector2::toString);
 
         return m.ptr();
