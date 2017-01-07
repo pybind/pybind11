@@ -376,7 +376,7 @@ crucial that instances are deallocated on the C++ side to avoid memory leaks.
     /* ... binding code ... */
 
     py::class_<MyClass, std::unique_ptr<MyClass, py::nodelete>>(m, "MyClass")
-        .def(py::init<>)
+        .def(py::init<>())
 
 Implicit conversions
 ====================
