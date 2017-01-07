@@ -159,6 +159,19 @@ extern "C" {
 #define PYBIND11_INTERNALS_ID "__pybind11_" \
     PYBIND11_TOSTRING(PYBIND11_VERSION_MAJOR) "_" PYBIND11_TOSTRING(PYBIND11_VERSION_MINOR) "__"
 
+/** \rst
+    This macro creates the entry point that will be invoked when the Python interpreter
+    imports a plugin library. Please create a `module` in the function body and return
+    the pointer to its underlying Python object at the end.
+
+    .. code-block:: cpp
+
+        PYBIND11_PLUGIN(example) {
+            pybind11::module m("example", "pybind11 example plugin");
+            /// Set up bindings here
+            return m.ptr();
+        }
+\endrst */
 #define PYBIND11_PLUGIN(name)                                                  \
     static PyObject *pybind11_init();                                          \
     PYBIND11_PLUGIN_IMPL(name) {                                               \

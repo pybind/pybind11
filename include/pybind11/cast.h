@@ -1177,7 +1177,9 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
 
 /// Annotation for keyword arguments
 struct arg {
+    /// Set the name of the argument
     constexpr explicit arg(const char *name) : name(name) { }
+    /// Assign a value to this argument
     template <typename T> arg_v operator=(T &&value) const;
 
     const char *name;

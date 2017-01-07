@@ -544,6 +544,7 @@ class module : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module, object, PyModule_Check)
 
+    /// Create a new top-level Python module with the given name and docstring
     explicit module(const char *name, const char *doc = nullptr) {
         if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
@@ -562,6 +563,11 @@ public:
         inc_ref();
     }
 
+    /** \rst
+        Create Python binding for a new function within the module scope. ``Func``
+        can be a plain C++ function, a function pointer, or a lambda function. For
+        details on the ``Extra&& ... extra`` argument, see section :ref:`extras`.
+    \endrst */
     template <typename Func, typename... Extra>
     module &def(const char *name_, Func &&f, const Extra& ... extra) {
         cpp_function func(std::forward<Func>(f), name(name_), scope(*this),
@@ -572,6 +578,16 @@ public:
         return *this;
     }
 
+    /** \rst
+        Create and return a new Python submodule with the given name and docstring.
+        This also works recursively, i.e.
+
+        .. code-block:: cpp
+
+            py::module m("example", "pybind11 example plugin");
+            py::module m2 = m.def_submodule("sub", "A submodule of 'example'");
+            py::module m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
+    \endrst */
     module def_submodule(const char *name, const char *doc = nullptr) {
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);

@@ -45,8 +45,10 @@ using tuple_accessor = accessor<accessor_policies::tuple_item>;
 class pyobject_tag { };
 template <typename T> using is_pyobject = std::is_base_of<pyobject_tag, typename std::remove_reference<T>::type>;
 
-/// Mixin which adds common functions to handle, object and various accessors.
-/// The only requirement for `Derived` is to implement `PyObject *Derived::ptr() const`.
+/** \rst
+    A mixin class which adds common functions to `handle`, `object` and various accessors.
+    The only requirement for `Derived` is to implement ``PyObject *Derived::ptr() const``.
+\endrst */
 template <typename Derived>
 class object_api : public pyobject_tag {
     const Derived &derived() const { return static_cast<const Derived &>(*this); }
@@ -54,13 +56,40 @@ class object_api : public pyobject_tag {
 public:
     iterator begin() const;
     iterator end() const;
+
+    /** \rst
+        Return an internal functor to invoke the object's sequence protocol. Casting
+        the returned ``detail::item_accessor`` instance to a `handle` or `object`
+        subclass causes a corresponding call to ``__getitem__``. Assigning a `handle`
+        or `object` subclass causes a call to ``__setitem__``.
+    \endrst */
     item_accessor operator[](handle key) const;
+    /// See above (the only difference is that they key is provided as a string literal)
     item_accessor operator[](const char *key) const;
+
+    /** \rst
+        Return an internal functor to access the object's attributes. Casting the
+        returned ``detail::obj_attr_accessor`` instance to a `handle` or `object`
+        subclass causes a corresponding call to ``getattr``. Assigning a `handle`
+        or `object` subclass causes a call to ``setattr``.
+    \endrst */
     obj_attr_accessor attr(handle key) const;
+    /// See above (the only difference is that they key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
+
     args_proxy operator*() const;
     template <typename T> bool contains(T &&key) const;
 
+    /** \rst
+        Assuming the Python object is a function or implements the ``__call__``
+        protocol, ``operator()`` invokes the underlying function, passing an
+        arbitrary set of parameters. The result is returned as a `object` and
+        may need to be converted back into a Python object using `handle::cast()`.
+
+        When some of the arguments cannot be converted to Python objects, the
+        function will throw a `cast_error` exception. When the Python function
+        call fails, a `error_already_set` exception is thrown.
+    \endrst */
     template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
     object operator()(Args &&...args) const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
@@ -68,27 +97,59 @@ public:
         object call(Args&&... args) const;
 
     bool is_none() const { return derived().ptr() == Py_None; }
-    PYBIND11_DEPRECATED("Instead of obj.str(), use py::str(obj)")
+    PYBIND11_DEPRECATED("Use py::str(obj) instead")
     pybind11::str str() const;
 
+    /// Return the object's current reference count
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
+    /// Return a handle to the Python type object underlying the instance
     handle get_type() const;
 };
 
 NAMESPACE_END(detail)
 
-/// Holds a reference to a Python object (no reference counting)
+/** \rst
+    Holds a reference to a Python object (no reference counting)
+
+    The `handle` class is a thin wrapper around an arbitrary Python object (i.e. a
+    ``PyObject *`` in Python's C API). It does not perform any automatic reference
+    counting and merely provides a basic C++ interface to various Python API functions.
+
+    .. seealso::
+        The `object` class inherits from `handle` and adds automatic reference
+        counting features.
+\endrst */
 class handle : public detail::object_api<handle> {
 public:
+    /// The default constructor creates a handle with a ``nullptr``-valued pointer
     handle() = default;
+    /// Creates a ``handle`` from the given raw Python object pointer
     handle(PyObject *ptr) : m_ptr(ptr) { } // Allow implicit conversion from PyObject*
 
+    /// Return the underlying ``PyObject *`` pointer
     PyObject *ptr() const { return m_ptr; }
     PyObject *&ptr() { return m_ptr; }
+
+    /** \rst
+        Manually increase the reference count of the Python object. Usually, it is
+        preferable to use the `object` class which derives from `handle` and calls
+        this function automatically. Returns a reference to itself.
+    \endrst */
     const handle& inc_ref() const { Py_XINCREF(m_ptr); return *this; }
+
+    /** \rst
+        Manually decrease the reference count of the Python object. Usually, it is
+        preferable to use the `object` class which derives from `handle` and calls
+        this function automatically. Returns a reference to itself.
+    \endrst */
     const handle& dec_ref() const { Py_XDECREF(m_ptr); return *this; }
 
+    /** \rst
+        Attempt to cast the Python object into the given C++ type. A `cast_error`
+        will be throw upon failure.
+    \endrst */
     template <typename T> T cast() const;
+    /// Return ``true`` when the `handle` wraps a valid Python object
     explicit operator bool() const { return m_ptr != nullptr; }
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
     bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
@@ -98,16 +159,33 @@ protected:
     PyObject *m_ptr = nullptr;
 };
 
-/// Holds a reference to a Python object (with reference counting)
+/** \rst
+    Holds a reference to a Python object (with reference counting)
+
+    Like `handle`, the `object` class is a thin wrapper around an arbitrary Python
+    object (i.e. a ``PyObject *`` in Python's C API). In contrast to `handle`, it
+    optionally increases the object's reference count upon construction, and it
+    *always* decreases the reference count when the `object` instance goes out of
+    scope and is destructed. When using `object` instances consistently, it is much
+    easier to get reference counting right at the first attempt.
+\endrst */
 class object : public handle {
 public:
     object() = default;
     PYBIND11_DEPRECATED("Use reinterpret_borrow<object>() or reinterpret_steal<object>()")
     object(handle h, bool is_borrowed) : handle(h) { if (is_borrowed) inc_ref(); }
+    /// Copy constructor; always increases the reference count
     object(const object &o) : handle(o) { inc_ref(); }
+    /// Move constructor; steals the object from ``other`` and preserves its reference count
     object(object &&other) noexcept { m_ptr = other.m_ptr; other.m_ptr = nullptr; }
+    /// Destructor; automatically calls `handle::dec_ref()`
     ~object() { dec_ref(); }
 
+    /** \rst
+        Resets the internal pointer to ``nullptr`` without without decreasing the
+        object's reference count. The function returns a raw handle to the original
+        Python object.
+    \endrst */
     handle release() {
       PyObject *tmp = m_ptr;
       m_ptr = nullptr;
@@ -150,9 +228,29 @@ public:
     object(handle h, stolen_t) : handle(h) { }
 };
 
-/** The following functions don't do any kind of conversion, they simply declare
-    that a PyObject is a certain type and borrow or steal the reference. */
+/** \rst
+    Declare that a `handle` or ``PyObject *`` is a certain type and borrow the reference.
+    The target type ``T`` must be `object` or one of its derived classes. The function
+    doesn't do any conversions or checks. It's up to the user to make sure that the
+    target type is correct.
+
+    .. code-block:: cpp
+
+        PyObject *result = PySequence_GetItem(obj, index);
+        py::object o = reinterpret_borrow<py::object>(p);
+        // or
+        py::tuple t = reinterpret_borrow<py::tuple>(p); // <-- `p` must be already be a `tuple`
+\endrst */
 template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrowed}; }
+
+/** \rst
+    Like `reinterpret_borrow`, but steals the reference.
+
+     .. code-block:: cpp
+
+        PyObject *p = PyObject_Str(obj);
+        py::str s = reinterpret_steal<py::str>(p); // <-- `p` must be already be a `str`
+\endrst */
 template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen}; }
 
 /// Check if `obj` is an instance of type `T`
@@ -528,6 +626,10 @@ public:
 
     explicit str(const bytes &b);
 
+    /** \rst
+        Return a string representation of the object. This is analogous to
+        the ``str()`` function in Python.
+    \endrst */
     explicit str(handle h) : object(raw_str(h.ptr()), stolen) { }
 
     operator std::string() const {

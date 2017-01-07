@@ -1,0 +1,15 @@
+PROJECT_NAME           = pybind11
+INPUT                  = ../include/pybind11/
+
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = .build/doxygenxml
+XML_PROGRAMLISTING     = YES
+
+ALIASES                = "rst=\verbatim embed:rst"
+ALIASES               += "endrst=\endverbatim"
+
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
