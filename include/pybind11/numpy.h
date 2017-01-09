@@ -510,7 +510,6 @@ protected:
     }
 
     template<typename... Ix> size_t byte_offset(Ix... index) const {
-        check_dimensions(index...);
         return byte_offset_unsafe(index...);
     }
 
@@ -535,21 +534,6 @@ protected:
                     strides[j] *= shape[ndim - 1 - i];
         }
         return strides;
-    }
-
-    template<typename... Ix> void check_dimensions(Ix... index) const {
-        check_dimensions_impl(size_t(0), shape(), size_t(index)...);
-    }
-
-    void check_dimensions_impl(size_t, const size_t*) const { }
-
-    template<typename... Ix> void check_dimensions_impl(size_t axis, const size_t* shape, size_t i, Ix... index) const {
-        if (i >= *shape) {
-            throw index_error(std::string("index ") + std::to_string(i) +
-                              " is out of bounds for axis " + std::to_string(axis) +
-                              " with size " + std::to_string(*shape));
-        }
-        check_dimensions_impl(axis + 1, shape + 1, index...);
     }
 
     /// Create array from any object -- always returns a new reference
