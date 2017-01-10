@@ -57,7 +57,7 @@ In C++, the same call can be made using:
 
 .. code-block:: cpp
 
-    using pybind11::literals; // to bring in the `_a` literal
+    using namespace pybind11::literals; // to bring in the `_a` literal
     f(1234, "say"_a="hello", "to"_a=some_instance); // keyword call in C++
 
 Unpacking of ``*args`` and ``**kwargs`` is also possible and can be mixed with
