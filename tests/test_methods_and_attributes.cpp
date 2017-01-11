@@ -176,6 +176,14 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
         .def_property_readonly_static("static_rvalue", [](py::object) { return SimpleValue(); });
 
+    m.def("is_valid", &py::is_valid);
+    m.def("set_invalid", [](py::object obj) {
+        ExampleMandA *cpp_obj = obj.cast<ExampleMandA *>();
+        py::set_invalid(obj);
+        delete cpp_obj;
+    });
+    m.def("ptr_test_func", [](ExampleMandA *) {});
+
 #if !defined(PYPY_VERSION)
     py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())
         .def(py::init());

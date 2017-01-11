@@ -857,6 +857,8 @@ protected:
         self->value = ::operator new(tinfo->type_size);
         self->owned = true;
         self->holder_constructed = false;
+        // Not really valid at this point, but can interfere with __init__ if set to false
+        self->valid = true;
         detail::get_internals().registered_instances.emplace(self->value, (PyObject *) self);
         return (PyObject *) self;
     }
@@ -1185,10 +1187,12 @@ private:
         try {
             new (&inst->holder) holder_type(std::static_pointer_cast<typename holder_type::element_type>(inst->value->shared_from_this()));
             inst->holder_constructed = true;
+            inst->valid = true;
         } catch (const std::bad_weak_ptr &) {
             if (inst->owned) {
                 new (&inst->holder) holder_type(inst->value);
                 inst->holder_constructed = true;
+                inst->valid = true;
             }
         }
     }
@@ -1200,9 +1204,11 @@ private:
         if (holder_ptr) {
             new (&inst->holder) holder_type(*holder_ptr);
             inst->holder_constructed = true;
+            inst->valid = true;
         } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
             new (&inst->holder) holder_type(inst->value);
             inst->holder_constructed = true;
+            inst->valid = true;
         }
     }
 
@@ -1213,6 +1219,7 @@ private:
         if (inst->owned || detail::always_construct_holder<holder_type>::value) {
             new (&inst->holder) holder_type(inst->value);
             inst->holder_constructed = true;
+            inst->valid = true;
         }
     }
 
@@ -1224,10 +1231,12 @@ private:
 
     static void dealloc(PyObject *inst_) {
         instance_type *inst = (instance_type *) inst_;
-        if (inst->holder_constructed)
-            inst->holder.~holder_type();
-        else if (inst->owned)
-            ::operator delete(inst->value);
+        if (inst->valid) {
+            if (inst->holder_constructed)
+                inst->holder.~holder_type();
+            else if (inst->owned)
+                ::operator delete(inst->value);
+        }
 
         generic_type::dealloc((detail::instance<void> *) inst);
     }
@@ -1579,12 +1588,43 @@ PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
     if (kwargs.contains("flush") && kwargs["flush"].cast<bool>())
         file.attr("flush")();
 }
+
+PYBIND11_NOINLINE inline bool is_pybind_type(object obj) {
+    auto mro = obj.attr("mro")().cast<list>();
+    auto &types = get_internals().registered_types_py;
+
+    for (auto type : mro) {
+        if (types.count(type.ptr())) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+PYBIND11_NOINLINE inline instance<void> *get_instance_info(object obj) {
+    if (!is_pybind_type(reinterpret_borrow<object>(obj.get_type()))) {
+        throw std::runtime_error("Not a valid pybind11 object");
+    }
+    return reinterpret_cast<instance<void> *>(obj.ptr());
+}
+
 NAMESPACE_END(detail)
 
 template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
 void print(Args &&...args) {
     auto c = detail::collect_arguments<policy>(std::forward<Args>(args)...);
     detail::print(c.args(), c.kwargs());
+}
+
+PYBIND11_NOINLINE inline bool is_valid(object obj) {
+    auto *instance_info = detail::get_instance_info(obj);
+    return instance_info->valid;
+}
+
+PYBIND11_NOINLINE inline void set_invalid(object obj) {
+    auto *instance_info = detail::get_instance_info(obj);
+    instance_info->valid = false;
 }
 
 #if defined(WITH_THREAD) && !defined(PYPY_VERSION)

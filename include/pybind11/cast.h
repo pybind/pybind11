@@ -212,13 +212,19 @@ public:
         if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
             /* Check if we can safely perform a reinterpret-style cast */
             if (PyType_IsSubtype(tobj, typeinfo->type)) {
-                value = reinterpret_cast<instance<void> *>(src.ptr())->value;
+                auto info = reinterpret_cast<instance<void> *>(src.ptr());
+                if (!info->valid)
+                    throw std::runtime_error("Pointer for object is no longer valid");
+                value = info->value;
                 return true;
             }
         } else { /* Case 2: multiple inheritance */
             /* Check if we can safely perform a reinterpret-style cast */
             if (tobj == typeinfo->type) {
-                value = reinterpret_cast<instance<void> *>(src.ptr())->value;
+                auto info = reinterpret_cast<instance<void> *>(src.ptr());
+                if (!info->valid)
+                    throw std::runtime_error("Pointer for object is no longer valid");
+                value = info->value;
                 return true;
             }
 
@@ -300,6 +306,7 @@ public:
 
         wrapper->value = nullptr;
         wrapper->owned = false;
+        wrapper->valid = true;
 
         switch (policy) {
             case return_value_policy::automatic:
