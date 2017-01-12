@@ -71,7 +71,7 @@ if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
 # Don't include targets if this file is being picked up by another
 # project which has already built this as a subproject
 #-----------------------------------------------------------------------------
-if(NOT TARGET ${PN}::pybind11)
+if(NOT TARGET ${PN}::module)
     include("${CMAKE_CURRENT_LIST_DIR}/${PN}Targets.cmake")
 
     find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
