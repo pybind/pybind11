@@ -203,3 +203,29 @@ def test_cyclic_gc():
     assert cstats.alive() == 2
     del i1, i2
     assert cstats.alive() == 0
+
+
+def test_invalid_ptr():
+    from pybind11_tests import ExampleMandA, is_valid, set_invalid, ptr_test_func
+
+    instance = ExampleMandA()
+    ptr_error_msg = "Pointer for object is no longer valid"
+
+    assert is_valid(instance)
+    set_invalid(instance)
+    assert not is_valid(instance)
+
+    # Function call
+    with pytest.raises(RuntimeError) as excinfo:
+        instance.internal1()
+    assert str(excinfo.value) == ptr_error_msg
+
+    # Property access
+    with pytest.raises(RuntimeError) as excinfo:
+        instance.value
+    assert str(excinfo.value) == ptr_error_msg
+
+    # As function argument
+    with pytest.raises(RuntimeError) as excinfo:
+        ptr_test_func(instance)
+    assert str(excinfo.value) == ptr_error_msg
