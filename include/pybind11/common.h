@@ -139,7 +139,11 @@
 #define PYBIND11_STR_TYPE ::pybind11::bytes
 #define PYBIND11_OB_TYPE(ht_type) (ht_type).ob_type
 #define PYBIND11_PLUGIN_IMPL(name) \
-    extern "C" PYBIND11_EXPORT PyObject *init##name()
+    static PyObject *pybind11_init_wrapper();               \
+    extern "C" PYBIND11_EXPORT void init##name() {          \
+        (void)pybind11_init_wrapper();                      \
+    }                                                       \
+    PyObject *pybind11_init_wrapper()
 #endif
 
 #if PY_VERSION_HEX >= 0x03050000 && PY_VERSION_HEX < 0x03050200
