@@ -37,6 +37,10 @@ test_initializer eigen([](py::module &m) {
     typedef Eigen::Matrix<float, 5, 6> FixedMatrixC;
     typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> DenseMatrixR;
     typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> DenseMatrixC;
+    typedef Eigen::Matrix<float, 4, Eigen::Dynamic> FourRowMatrixC;
+    typedef Eigen::Matrix<float, Eigen::Dynamic, 4> FourColMatrixC;
+    typedef Eigen::Matrix<float, 4, Eigen::Dynamic> FourRowMatrixR;
+    typedef Eigen::Matrix<float, Eigen::Dynamic, 4> FourColMatrixR;
     typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SparseMatrixR;
     typedef Eigen::SparseMatrix<float> SparseMatrixC;
 
@@ -129,6 +133,19 @@ test_initializer eigen([](py::module &m) {
     });
 
     m.def("sparse_passthrough_c", [](const SparseMatrixC &m) -> SparseMatrixC {
+        return m;
+    });
+
+    m.def("partial_passthrough_four_rm_r", [](const FourRowMatrixR &m) -> FourRowMatrixR {
+        return m;
+    });
+    m.def("partial_passthrough_four_rm_c", [](const FourColMatrixR &m) -> FourColMatrixR {
+        return m;
+    });
+    m.def("partial_passthrough_four_cm_r", [](const FourRowMatrixC &m) -> FourRowMatrixC {
+        return m;
+    });
+    m.def("partial_passthrough_four_cm_c", [](const FourColMatrixC &m) -> FourColMatrixC {
         return m;
     });
 });

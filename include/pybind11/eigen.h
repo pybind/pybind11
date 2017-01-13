@@ -50,45 +50,56 @@ template <typename T> using is_eigen_base = all_of<
 template<typename Type>
 struct type_caster<Type, enable_if_t<is_eigen_dense<Type>::value && !is_eigen_ref<Type>::value>> {
     typedef typename Type::Scalar Scalar;
-    static constexpr bool rowMajor = Type::Flags & Eigen::RowMajorBit;
+    static constexpr bool rowMajor = Type::IsRowMajor;
     static constexpr bool isVector = Type::IsVectorAtCompileTime;
+    static constexpr auto nRows = Type::RowsAtCompileTime, nCols = Type::ColsAtCompileTime;
 
     bool load(handle src, bool) {
         auto buf = array_t<Scalar>::ensure(src);
         if (!buf)
             return false;
 
-        if (buf.ndim() == 1) {
-            typedef Eigen::InnerStride<> Strides;
-            if (!isVector &&
-                !(Type::RowsAtCompileTime == Eigen::Dynamic &&
-                  Type::ColsAtCompileTime == Eigen::Dynamic))
+        using namespace Eigen;
+
+        using Strides = Stride<Dynamic, Dynamic>;
+        using AMap = Map<Type, 0, Strides>;
+
+        if (buf.ndim() == 1) { // A one-dimensional array
+            Index n_elts = buf.shape(0);
+            size_t str = buf.strides(0) / sizeof(Scalar);
+            Strides stride(str, str); // Whether we map to inner or outer is irrelevant
+            if (isVector) {
+                if (Type::SizeAtCompileTime != Dynamic && Type::SizeAtCompileTime != n_elts)
+                    return false; // Vector size mismatch
+                value = AMap(buf.mutable_data(), nRows == 1 ? 1 : n_elts, nCols == 1 ? 1 : n_elts, stride);
+            }
+            else if (Type::SizeAtCompileTime != Dynamic) {
+                // The type has a fixed size, but is not a vector: abort
                 return false;
-
-            if (Type::SizeAtCompileTime != Eigen::Dynamic &&
-                buf.shape(0) != (size_t) Type::SizeAtCompileTime)
-                return false;
-
-            Strides::Index n_elts = (Strides::Index) buf.shape(0);
-            Strides::Index unity = 1;
-
-            value = Eigen::Map<Type, 0, Strides>(
-                buf.mutable_data(),
-                rowMajor ? unity : n_elts,
-                rowMajor ? n_elts : unity,
-                Strides(buf.strides(0) / sizeof(Scalar))
-            );
+            }
+            else if (nRows == Dynamic && nCols == Dynamic) {
+                // Fully dynamic size.  numpy doesn't distinguish between a row vector and column
+                // vector, so we'll (arbitrarily) choose a column vector.
+                value = AMap(buf.mutable_data(), n_elts, 1, stride);
+            }
+            else if (nRows != Dynamic) {
+                // Since this isn't a vector, nRows must be != 1.  We allow this only if it exactly
+                // equals the number of elements (nCols is Dynamic, and so 1 is allowed).
+                if (nRows != n_elts) return false;
+                value = AMap(buf.mutable_data(), n_elts, 1, stride);
+            }
+            else { // nCols != Dynamic; same as above, but for fixed columns
+                if (nCols != n_elts) return false;
+                value = AMap(buf.mutable_data(), 1, n_elts, stride);
+            }
         } else if (buf.ndim() == 2) {
-            typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 
-            if ((Type::RowsAtCompileTime != Eigen::Dynamic && buf.shape(0) != (size_t) Type::RowsAtCompileTime) ||
-                (Type::ColsAtCompileTime != Eigen::Dynamic && buf.shape(1) != (size_t) Type::ColsAtCompileTime))
+            if ((Type::RowsAtCompileTime != Dynamic && buf.shape(0) != (size_t) Type::RowsAtCompileTime) ||
+                (Type::ColsAtCompileTime != Dynamic && buf.shape(1) != (size_t) Type::ColsAtCompileTime))
                 return false;
 
-            value = Eigen::Map<Type, 0, Strides>(
-                buf.mutable_data(),
-                typename Strides::Index(buf.shape(0)),
-                typename Strides::Index(buf.shape(1)),
+            value = AMap(
+                buf.mutable_data(), buf.shape(0), buf.shape(1),
                 Strides(buf.strides(rowMajor ? 0 : 1) / sizeof(Scalar),
                         buf.strides(rowMajor ? 1 : 0) / sizeof(Scalar))
             );
@@ -176,7 +187,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     typedef typename Type::Scalar Scalar;
     typedef typename std::remove_reference<decltype(*std::declval<Type>().outerIndexPtr())>::type StorageIndex;
     typedef typename Type::Index Index;
-    static constexpr bool rowMajor = Type::Flags & Eigen::RowMajorBit;
+    static constexpr bool rowMajor = Type::IsRowMajor;
 
     bool load(handle src, bool) {
         if (!src)
@@ -227,7 +238,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         ).release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, _<(Type::Flags & Eigen::RowMajorBit) != 0>("scipy.sparse.csr_matrix[", "scipy.sparse.csc_matrix[")
+    PYBIND11_TYPE_CASTER(Type, _<(Type::IsRowMajor) != 0>("scipy.sparse.csr_matrix[", "scipy.sparse.csc_matrix[")
             + npy_format_descriptor<Scalar>::name() + _("]"));
 };
 
