@@ -72,7 +72,7 @@ functions:
     /* ... binding code ... */
 
     py::class_<MyClass>(m, "MyClass")
-        .def(py::init<>)
+        .def(py::init<>())
         .def_readwrite("contents", &MyClass::contents);
 
 In this case, properties can be read and written in their entirety. However, an
