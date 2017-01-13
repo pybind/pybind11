@@ -41,6 +41,24 @@ def test_dense():
     assert_equal_ref(dense_passthrough_r(dense_c()))
     assert_equal_ref(dense_passthrough_c(dense_r()))
 
+@pytest.requires_eigen_and_numpy
+def test_partially_fixed():
+    from pybind11_tests import partial_passthrough_four_rm_r, partial_passthrough_four_rm_c, partial_passthrough_four_cm_r, partial_passthrough_four_cm_c
+
+    ref2 = np.array([[0,1,2,3], [4,5,6,7], [8,9,10,11], [12,13,14,15]])
+    np.testing.assert_array_equal(partial_passthrough_four_rm_r(ref2), ref2)
+    np.testing.assert_array_equal(partial_passthrough_four_rm_c(ref2), ref2)
+    np.testing.assert_array_equal(partial_passthrough_four_rm_r(ref2[:, 1]), ref2[:, [1]])
+    np.testing.assert_array_equal(partial_passthrough_four_rm_c(ref2[0, :]), ref2[[0], :])
+    np.testing.assert_array_equal(partial_passthrough_four_rm_r(ref2[:, (0, 2)]), ref2[:, (0,2)])
+    np.testing.assert_array_equal(partial_passthrough_four_rm_c(ref2[(3,1,2), :]), ref2[(3,1,2), :])
+
+    np.testing.assert_array_equal(partial_passthrough_four_cm_r(ref2), ref2)
+    np.testing.assert_array_equal(partial_passthrough_four_cm_c(ref2), ref2)
+    np.testing.assert_array_equal(partial_passthrough_four_cm_r(ref2[:, 1]), ref2[:, [1]])
+    np.testing.assert_array_equal(partial_passthrough_four_cm_c(ref2[0, :]), ref2[[0], :])
+    np.testing.assert_array_equal(partial_passthrough_four_cm_r(ref2[:, (0, 2)]), ref2[:, (0,2)])
+    np.testing.assert_array_equal(partial_passthrough_four_cm_c(ref2[(3,1,2), :]), ref2[(3,1,2), :])
 
 @pytest.requires_eigen_and_numpy
 def test_nonunit_stride_from_python():
@@ -49,16 +67,16 @@ def test_nonunit_stride_from_python():
     counting_mat = np.arange(9.0, dtype=np.float32).reshape((3, 3))
     first_row = counting_mat[0, :]
     first_col = counting_mat[:, 0]
-    assert np.array_equal(double_row(first_row), 2.0 * first_row)
-    assert np.array_equal(double_col(first_row), 2.0 * first_row)
-    assert np.array_equal(double_row(first_col), 2.0 * first_col)
-    assert np.array_equal(double_col(first_col), 2.0 * first_col)
+    np.testing.assert_array_equal(double_row(first_row), 2.0 * first_row)
+    np.testing.assert_array_equal(double_col(first_row), 2.0 * first_row)
+    np.testing.assert_array_equal(double_row(first_col), 2.0 * first_col)
+    np.testing.assert_array_equal(double_col(first_col), 2.0 * first_col)
 
     counting_3d = np.arange(27.0, dtype=np.float32).reshape((3, 3, 3))
     slices = [counting_3d[0, :, :], counting_3d[:, 0, :], counting_3d[:, :, 0]]
     for slice_idx, ref_mat in enumerate(slices):
-        assert np.array_equal(double_mat_cm(ref_mat), 2.0 * ref_mat)
-        assert np.array_equal(double_mat_rm(ref_mat), 2.0 * ref_mat)
+        np.testing.assert_array_equal(double_mat_cm(ref_mat), 2.0 * ref_mat)
+        np.testing.assert_array_equal(double_mat_rm(ref_mat), 2.0 * ref_mat)
 
 
 @pytest.requires_eigen_and_numpy
