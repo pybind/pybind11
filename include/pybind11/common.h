@@ -378,9 +378,11 @@ inline internals &get_internals();
 #ifdef PYBIND11_CPP14
 using std::enable_if_t;
 using std::conditional_t;
+using std::remove_cv_t;
 #else
 template <bool B, typename T = void> using enable_if_t = typename std::enable_if<B, T>::type;
 template <bool B, typename T, typename F> using conditional_t = typename std::conditional<B, T, F>::type;
+template <typename T> using remove_cv_t = typename std::remove_cv<T>::type;
 #endif
 
 /// Index sequences
@@ -499,9 +501,9 @@ struct is_template_base_of_impl {
 /// `is_template_base_of<Base, T>` is true if `struct T : Base<U> {}` where U can be anything
 template <template<typename...> class Base, typename T>
 #if !defined(_MSC_VER)
-using is_template_base_of = decltype(is_template_base_of_impl<Base>::check((T*)nullptr));
+using is_template_base_of = decltype(is_template_base_of_impl<Base>::check((remove_cv_t<T>*)nullptr));
 #else // MSVC2015 has trouble with decltype in template aliases
-struct is_template_base_of : decltype(is_template_base_of_impl<Base>::check((T*)nullptr)) { };
+struct is_template_base_of : decltype(is_template_base_of_impl<Base>::check((remove_cv_t<T>*)nullptr)) { };
 #endif
 
 /// Check if T is std::shared_ptr<U> where U can be anything
