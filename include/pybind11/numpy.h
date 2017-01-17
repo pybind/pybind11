@@ -154,6 +154,7 @@ struct npy_api {
     int (*PyArray_GetArrayParamsFromObject_)(PyObject *, PyObject *, char, PyObject **, int *,
                                              Py_ssize_t *, PyObject **, PyObject *);
     PyObject *(*PyArray_Squeeze_)(PyObject *);
+    int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
 private:
     enum functions {
         API_PyArray_Type = 2,
@@ -168,7 +169,8 @@ private:
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
         API_PyArray_GetArrayParamsFromObject = 278,
-        API_PyArray_Squeeze = 136
+        API_PyArray_Squeeze = 136,
+        API_PyArray_SetBaseObject = 282
     };
 
     static npy_api lookup() {
@@ -194,6 +196,7 @@ private:
         DECL_NPY_API(PyArray_EquivTypes);
         DECL_NPY_API(PyArray_GetArrayParamsFromObject);
         DECL_NPY_API(PyArray_Squeeze);
+        DECL_NPY_API(PyArray_SetBaseObject);
 #undef DECL_NPY_API
         return api;
     }
@@ -365,7 +368,7 @@ public:
             pybind11_fail("NumPy: unable to create array!");
         if (ptr) {
             if (base) {
-                detail::array_proxy(tmp.ptr())->base = base.inc_ref().ptr();
+                api.PyArray_SetBaseObject_(tmp.ptr(), base.inc_ref().ptr());
             } else {
                 tmp = reinterpret_steal<object>(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */));
             }
@@ -632,8 +635,8 @@ public:
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(size_t(index)...) / itemsize());
     }
 
-    /// Ensure that the argument is a NumPy array of the correct dtype.
-    /// In case of an error, nullptr is returned and the Python error is cleared.
+    /// Ensure that the argument is a NumPy array of the correct dtype (and if not, try to convert
+    /// it).  In case of an error, nullptr is returned and the Python error is cleared.
     static array_t ensure(handle h) {
         auto result = reinterpret_steal<array_t>(raw_array_t(h.ptr()));
         if (!result)

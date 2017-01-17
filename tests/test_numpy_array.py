@@ -165,7 +165,9 @@ def test_make_c_f_array():
 def test_wrap():
     from pybind11_tests.array import wrap
 
-    def assert_references(a, b):
+    def assert_references(a, b, base=None):
+        if base is None:
+            base = a
         assert a is not b
         assert a.__array_interface__['data'][0] == b.__array_interface__['data'][0]
         assert a.shape == b.shape
@@ -177,7 +179,7 @@ def test_wrap():
         assert a.flags.updateifcopy == b.flags.updateifcopy
         assert np.all(a == b)
         assert not b.flags.owndata
-        assert b.base is a
+        assert b.base is base
         if a.flags.writeable and a.ndim == 2:
             a[0, 0] = 1234
             assert b[0, 0] == 1234
@@ -201,13 +203,13 @@ def test_wrap():
     a2 = wrap(a1)
     assert_references(a1, a2)
 
-    a1 = a1.transpose()
-    a2 = wrap(a1)
-    assert_references(a1, a2)
+    a1t = a1.transpose()
+    a2 = wrap(a1t)
+    assert_references(a1t, a2, a1)
 
-    a1 = a1.diagonal()
-    a2 = wrap(a1)
-    assert_references(a1, a2)
+    a1d = a1.diagonal()
+    a2 = wrap(a1d)
+    assert_references(a1d, a2, a1)
 
 
 @pytest.requires_numpy
