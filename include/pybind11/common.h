@@ -61,7 +61,7 @@
 #  define HAVE_ROUND
 #  pragma warning(push)
 #  pragma warning(disable: 4510 4610 4512 4005)
-#  if _DEBUG
+#  if defined(_DEBUG)
 #    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
 #  endif
