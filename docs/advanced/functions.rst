@@ -6,6 +6,8 @@ with the basics of binding functions and classes, as explained in :doc:`/basics`
 and :doc:`/classes`. The following guide is applicable to both free and member
 functions, i.e. *methods* in Python.
 
+.. _return_value_policies:
+
 Return value policies
 =====================
 
@@ -318,6 +320,8 @@ like so:
 
     py::class_<MyClass>("MyClass")
         .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
+
+.. _nonconverting_arguments:
 
 Non-converting arguments
 ========================
