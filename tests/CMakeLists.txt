@@ -65,7 +65,7 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
 endif()
 
 # Create the binding library
-pybind11_add_module(pybind11_tests pybind11_tests.cpp
+pybind11_add_module(pybind11_tests THIN_LTO pybind11_tests.cpp
   ${PYBIND11_TEST_FILES} ${PYBIND11_HEADERS})
 
 pybind11_enable_warnings(pybind11_tests)
