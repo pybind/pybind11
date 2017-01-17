@@ -107,11 +107,11 @@ inline numpy_internals& get_numpy_internals() {
 
 struct npy_api {
     enum constants {
-        NPY_C_CONTIGUOUS_ = 0x0001,
-        NPY_F_CONTIGUOUS_ = 0x0002,
+        NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
+        NPY_ARRAY_F_CONTIGUOUS_ = 0x0002,
         NPY_ARRAY_OWNDATA_ = 0x0004,
         NPY_ARRAY_FORCECAST_ = 0x0010,
-        NPY_ENSURE_ARRAY_ = 0x0040,
+        NPY_ARRAY_ENSUREARRAY_ = 0x0040,
         NPY_ARRAY_ALIGNED_ = 0x0100,
         NPY_ARRAY_WRITEABLE_ = 0x0400,
         NPY_BOOL_ = 0,
@@ -330,8 +330,8 @@ public:
     PYBIND11_OBJECT_CVT(array, buffer, detail::npy_api::get().PyArray_Check_, raw_array)
 
     enum {
-        c_style = detail::npy_api::NPY_C_CONTIGUOUS_,
-        f_style = detail::npy_api::NPY_F_CONTIGUOUS_,
+        c_style = detail::npy_api::NPY_ARRAY_C_CONTIGUOUS_,
+        f_style = detail::npy_api::NPY_ARRAY_F_CONTIGUOUS_,
         forcecast = detail::npy_api::NPY_ARRAY_FORCECAST_
     };
 
@@ -568,7 +568,7 @@ protected:
         if (ptr == nullptr)
             return nullptr;
         return detail::npy_api::get().PyArray_FromAny_(
-            ptr, nullptr, 0, 0, detail::npy_api::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
+            ptr, nullptr, 0, 0, detail::npy_api::NPY_ARRAY_ENSUREARRAY_ | ExtraFlags, nullptr);
     }
 };
 
@@ -654,7 +654,7 @@ protected:
             return nullptr;
         return detail::npy_api::get().PyArray_FromAny_(
             ptr, dtype::of<T>().release().ptr(), 0, 0,
-            detail::npy_api::NPY_ENSURE_ARRAY_ | ExtraFlags, nullptr);
+            detail::npy_api::NPY_ARRAY_ENSUREARRAY_ | ExtraFlags, nullptr);
     }
 };
 
