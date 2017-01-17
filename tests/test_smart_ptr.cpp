@@ -90,6 +90,14 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>); // Not required any more for std::shared_ptr,
                                                      // but it should compile without error
 
+// Make pybind11 aware of the non-standard getter member function
+namespace pybind11 { namespace detail {
+    template <typename T>
+    struct holder_helper<ref<T>> {
+        static const T *get(const ref<T> &p) { return p.get_ptr(); }
+    };
+}}
+
 Object *make_object_1() { return new MyObject1(1); }
 ref<Object> make_object_2() { return new MyObject1(2); }
 

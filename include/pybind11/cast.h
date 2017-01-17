@@ -835,6 +835,13 @@ protected:
     std::tuple<make_caster<Tuple>...> value;
 };
 
+/// Helper class which abstracts away certain actions. Users can provide specializations for
+/// custom holders, but it's only necessary if the type has a non-standard interface.
+template <typename T>
+struct holder_helper {
+    static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
+};
+
 /// Type caster for holder types like std::shared_ptr, etc.
 template <typename type, typename holder_type> class type_caster_holder : public type_caster_base<type> {
 public:
@@ -938,9 +945,10 @@ public:
     #endif
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
+        const auto *ptr = holder_helper<holder_type>::get(src);
         return type_caster_generic::cast(
-            src.get(), return_value_policy::take_ownership, handle(),
-            src.get() ? &typeid(*src.get()) : nullptr, &typeid(type),
+            ptr, return_value_policy::take_ownership, {},
+            ptr ? &typeid(*ptr) : nullptr, &typeid(type),
             nullptr, nullptr, &src);
     }
 
