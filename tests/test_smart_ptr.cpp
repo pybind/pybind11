@@ -214,6 +214,18 @@ struct SharedFromThisRef {
     std::shared_ptr<B> shared = std::make_shared<B>();
 };
 
+template <typename T>
+class CustomUniquePtr {
+    std::unique_ptr<T> impl;
+
+public:
+    CustomUniquePtr(T* p) : impl(p) { }
+    T* get() const { return impl.get(); }
+    T* release_ptr() { return impl.release(); }
+};
+
+PYBIND11_DECLARE_HOLDER_TYPE(T, CustomUniquePtr<T>);
+
 test_initializer smart_ptr_and_references([](py::module &pm) {
     auto m = pm.def_submodule("smart_ptr");
 
@@ -245,4 +257,12 @@ test_initializer smart_ptr_and_references([](py::module &pm) {
                                py::return_value_policy::copy)
         .def("set_ref", [](SharedFromThisRef &, const B &) { return true; })
         .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; });
+
+    struct C {
+        C() { print_created(this); }
+        ~C() { print_destroyed(this); }
+    };
+
+    py::class_<C, CustomUniquePtr<C>>(m, "TypeWithMoveOnlyHolder")
+        .def_static("make", []() { return CustomUniquePtr<C>(new C); });
 });
