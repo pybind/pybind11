@@ -124,9 +124,9 @@ install:
   else
     pip install numpy scipy pytest
 
-    wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.3.0.tar.gz
-    tar xzf eigen.tar.gz
-    export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=$PWD/eigen-eigen-26667be4f70b"
+    eigen=($(head -n 2 .eigen-build-version))
+    curl https://bitbucket.org/eigen/eigen/get/${eigen[0]}.tar.bz2 | tar xj
+    export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=$PWD/${eigen[1]}"
   fi
 script:
 - $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS}
