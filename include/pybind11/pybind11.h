@@ -133,10 +133,8 @@ protected:
                          ? &call.func.data : call.func.data[0]);
             capture *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
-            /* Override policy for rvalues -- always move */
-            constexpr auto is_rvalue = !std::is_pointer<Return>::value
-                                       && !std::is_lvalue_reference<Return>::value;
-            const auto policy = is_rvalue ? return_value_policy::move : call.func.policy;
+            /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
+            const auto policy = detail::return_value_policy_override<Return>::policy(call.func.policy);
 
             /* Perform the function call */
             handle result = cast_out::cast(args_converter.template call<Return>(cap->f),
