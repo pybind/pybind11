@@ -536,7 +536,7 @@ protected:
 
     void check_writeable() const {
         if (!writeable())
-            throw std::runtime_error("array is not writeable");
+            throw std::domain_error("array is not writeable");
     }
 
     static std::vector<size_t> default_strides(const std::vector<size_t>& shape, size_t itemsize) {

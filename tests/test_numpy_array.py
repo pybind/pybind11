@@ -92,7 +92,7 @@ def test_mutate_readonly(arr):
     from pybind11_tests.array import mutate_data, mutate_data_t, mutate_at_t
     arr.flags.writeable = False
     for func, args in (mutate_data, ()), (mutate_data_t, ()), (mutate_at_t, (0, 0)):
-        with pytest.raises(RuntimeError) as excinfo:
+        with pytest.raises(ValueError) as excinfo:
             func(arr, *args)
         assert str(excinfo.value) == 'array is not writeable'
 
