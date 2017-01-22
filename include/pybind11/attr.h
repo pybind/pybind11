@@ -39,7 +39,7 @@ template <typename T> struct base {
 };
 
 /// Keep patient alive while nurse lives
-template <int Nurse, int Patient> struct keep_alive { };
+template <size_t Nurse, size_t Patient> struct keep_alive { };
 
 /// Annotation indicating that a class is involved in a multiple inheritance relationship
 struct multiple_inheritance { };
@@ -64,7 +64,7 @@ struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 template <typename... Args> struct init;
 template <typename... Args> struct init_alias;
-inline void keep_alive_impl(int Nurse, int Patient, function_arguments args, handle ret);
+inline void keep_alive_impl(size_t Nurse, size_t Patient, function_arguments args, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -343,14 +343,14 @@ struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
  * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
  * otherwise
  */
-template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
-    template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
     static void precall(function_arguments args) { keep_alive_impl(Nurse, Patient, args, handle()); }
-    template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
     static void postcall(function_arguments, handle) { }
-    template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void precall(function_arguments) { }
-    template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void postcall(function_arguments args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
 };
 
