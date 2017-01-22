@@ -1494,10 +1494,10 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     (void) wr.release();
 }
 
-PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, function_arguments args, handle ret) {
+PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_arguments args, handle ret) {
     keep_alive_impl(
-        Nurse   == 0 ? ret : Nurse   > 0 && (size_t) Nurse   <= args.size() ? args[Nurse   - 1] : handle(),
-        Patient == 0 ? ret : Patient > 0 && (size_t) Patient <= args.size() ? args[Patient - 1] : handle()
+        Nurse   == 0 ? ret : Nurse   <= args.size() ? args[Nurse   - 1] : handle(),
+        Patient == 0 ? ret : Patient <= args.size() ? args[Patient - 1] : handle()
     );
 }
 
