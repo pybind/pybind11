@@ -64,7 +64,7 @@ struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 template <typename... Args> struct init;
 template <typename... Args> struct init_alias;
-inline void keep_alive_impl(int Nurse, int Patient, handle args, handle ret);
+inline void keep_alive_impl(int Nurse, int Patient, function_arguments args, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -95,7 +95,7 @@ struct function_record {
     std::vector<argument_record> args;
 
     /// Pointer to lambda function which converts arguments and performs the actual call
-    handle (*impl) (function_record *, handle, handle, handle) = nullptr;
+    handle (*impl) (function_record *, function_arguments, handle) = nullptr;
 
     /// Storage for the wrapped function pointer and captured data, if any
     void *data[3] = { };
@@ -124,7 +124,7 @@ struct function_record {
     /// True if this is a method
     bool is_method : 1;
 
-    /// Number of arguments
+    /// Number of arguments (including py::args and/or py::kwargs, if present)
     uint16_t nargs;
 
     /// Python method object
@@ -216,8 +216,8 @@ template <typename T> struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) { }
     static void init(const T &, type_record *) { }
-    static void precall(handle) { }
-    static void postcall(handle, handle) { }
+    static void precall(function_arguments) { }
+    static void postcall(function_arguments, handle) { }
 };
 
 /// Process an attribute specifying the function's name
@@ -345,13 +345,13 @@ struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
  */
 template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
     template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void precall(handle args) { keep_alive_impl(Nurse, Patient, args, handle()); }
+    static void precall(function_arguments args) { keep_alive_impl(Nurse, Patient, args, handle()); }
     template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void postcall(handle, handle) { }
+    static void postcall(function_arguments, handle) { }
     template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void precall(handle) { }
+    static void precall(function_arguments) { }
     template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void postcall(handle args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
+    static void postcall(function_arguments args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
 };
 
 /// Recursively iterate over variadic template arguments
@@ -364,11 +364,11 @@ template <typename... Args> struct process_attributes {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
         ignore_unused(unused);
     }
-    static void precall(handle fn_args) {
+    static void precall(function_arguments fn_args) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(fn_args), 0) ... };
         ignore_unused(unused);
     }
-    static void postcall(handle fn_args, handle fn_ret) {
+    static void postcall(function_arguments fn_args, handle fn_ret) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(fn_args, fn_ret), 0) ... };
         ignore_unused(unused);
     }
@@ -378,8 +378,8 @@ template <typename... Args> struct process_attributes {
 template <typename... Extra,
           size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
           size_t self  = constexpr_sum(std::is_same<is_method, Extra>::value...)>
-constexpr bool expected_num_args(size_t nargs) {
-    return named == 0 || (self + named) == nargs;
+constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
+    return named == 0 || (self + named + has_args + has_kwargs) == nargs;
 }
 
 NAMESPACE_END(detail)

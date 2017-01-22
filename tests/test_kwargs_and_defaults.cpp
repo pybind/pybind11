@@ -28,6 +28,27 @@ py::tuple args_kwargs_function(py::args args, py::kwargs kwargs) {
     return py::make_tuple(args, kwargs);
 }
 
+py::tuple mixed_plus_args(int i, double j, py::args args) {
+    return py::make_tuple(i, j, args);
+}
+
+py::tuple mixed_plus_kwargs(int i, double j, py::kwargs kwargs) {
+    return py::make_tuple(i, j, kwargs);
+}
+
+py::tuple mixed_plus_args_kwargs(int i, double j, py::args args, py::kwargs kwargs) {
+    return py::make_tuple(i, j, args, kwargs);
+}
+
+// pybind11 won't allow these to be bound: args and kwargs, if present, must be at the end.
+void bad_args1(py::args, int) {}
+void bad_args2(py::kwargs, int) {}
+void bad_args3(py::kwargs, py::args) {}
+void bad_args4(py::args, int, py::kwargs) {}
+void bad_args5(py::args, py::kwargs, int) {}
+void bad_args6(py::args, py::args) {}
+void bad_args7(py::kwargs, py::kwargs) {}
+
 struct KWClass {
     void foo(int, float) {}
 };
@@ -53,4 +74,20 @@ test_initializer arg_keywords_and_defaults([](py::module &m) {
     py::class_<KWClass>(m, "KWClass")
         .def("foo0", &KWClass::foo)
         .def("foo1", &KWClass::foo, "x"_a, "y"_a);
+
+    m.def("mixed_plus_args", &mixed_plus_args);
+    m.def("mixed_plus_kwargs", &mixed_plus_kwargs);
+    m.def("mixed_plus_args_kwargs", &mixed_plus_args_kwargs);
+
+    m.def("mixed_plus_args_kwargs_defaults", &mixed_plus_args_kwargs,
+            py::arg("i") = 1, py::arg("j") = 3.14159);
+
+    // Uncomment these to test that the static_assert is indeed working:
+//    m.def("bad_args1", &bad_args1);
+//    m.def("bad_args2", &bad_args2);
+//    m.def("bad_args3", &bad_args3);
+//    m.def("bad_args4", &bad_args4);
+//    m.def("bad_args5", &bad_args5);
+//    m.def("bad_args6", &bad_args6);
+//    m.def("bad_args7", &bad_args7);
 });

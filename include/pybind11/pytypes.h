@@ -85,8 +85,8 @@ public:
 
     PyObject *ptr() const { return m_ptr; }
     PyObject *&ptr() { return m_ptr; }
-    const handle& inc_ref() const { Py_XINCREF(m_ptr); return *this; }
-    const handle& dec_ref() const { Py_XDECREF(m_ptr); return *this; }
+    const handle& inc_ref() const & { Py_XINCREF(m_ptr); return *this; }
+    const handle& dec_ref() const & { Py_XDECREF(m_ptr); return *this; }
 
     template <typename T> T cast() const;
     explicit operator bool() const { return m_ptr != nullptr; }
