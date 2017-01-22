@@ -33,6 +33,8 @@ The reverse direction uses the following syntax:
 
 When conversion fails, both directions throw the exception :class:`cast_error`.
 
+.. _calling_python_functions:
+
 Calling Python functions
 ========================
 

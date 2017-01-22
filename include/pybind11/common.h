@@ -401,7 +401,7 @@ template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <class T> using negation = bool_constant<!T::value>;
 #endif
 
-/// Compile-time all/any/none of that check the ::value of all template types
+/// Compile-time all/any/none of that check the boolean value of all template types
 #ifdef PYBIND11_CPP17
 template <class... Ts> using all_of = bool_constant<(Ts::value && ...)>;
 template <class... Ts> using any_of = bool_constant<(Ts::value || ...)>;
@@ -545,7 +545,8 @@ private:
 class builtin_exception : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
-    virtual void set_error() const = 0; /// Set the error using the Python C API
+    /// Set the error using the Python C API
+    virtual void set_error() const = 0;
 };
 
 #define PYBIND11_RUNTIME_EXCEPTION(name, type) \

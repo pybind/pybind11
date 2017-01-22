@@ -14,6 +14,9 @@
 
 NAMESPACE_BEGIN(pybind11)
 
+/// \addtogroup annotations
+/// @{
+
 /// Annotation for methods
 struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
 
@@ -55,6 +58,8 @@ struct metaclass { };
 
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
+
+/// @} annotations
 
 NAMESPACE_BEGIN(detail)
 /* Forward declarations */

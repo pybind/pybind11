@@ -47,13 +47,34 @@ Convenience classes for specific Python types
 .. doxygenclass:: module
     :members:
 
+.. doxygengroup:: pytypes
+    :members:
+
 .. _extras:
 
-Passing extra arguments to the def function
-===========================================
+Passing extra arguments to ``def`` or ``class_``
+================================================
 
-.. doxygenstruct:: arg
+.. doxygengroup:: annotations
     :members:
 
-.. doxygenstruct:: arg_v
+Python build-in functions
+=========================
+
+.. doxygengroup:: python_builtins
     :members:
+
+Exceptions
+==========
+
+.. doxygenclass:: error_already_set
+    :members:
+
+.. doxygenclass:: builtin_exception
+    :members:
+
+
+Literals
+========
+
+.. doxygennamespace:: literals

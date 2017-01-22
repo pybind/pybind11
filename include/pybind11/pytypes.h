@@ -54,7 +54,12 @@ class object_api : public pyobject_tag {
     const Derived &derived() const { return static_cast<const Derived &>(*this); }
 
 public:
+    /** \rst
+        Return an iterator equivalent to calling ``iter()`` in Python. The object
+        must be a collection which supports the iteration protocol.
+    \endrst */
     iterator begin() const;
+    /// Return a sentinel which ends iteration.
     iterator end() const;
 
     /** \rst
@@ -77,8 +82,16 @@ public:
     /// See above (the only difference is that they key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
 
+    /** \rst
+        Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
+        or ``list`` for a function call. Applying another * to the result yields
+        ** unpacking, e.g. to unpack a dict as function keyword arguments.
+        See :ref:`calling_python_functions`.
+    \endrst */
     args_proxy operator*() const;
-    template <typename T> bool contains(T &&key) const;
+
+    /// Check if the given item is contained within this object, i.e. ``item in obj``.
+    template <typename T> bool contains(T &&item) const;
 
     /** \rst
         Assuming the Python object is a function or implements the ``__call__``
@@ -96,6 +109,7 @@ public:
     PYBIND11_DEPRECATED("call(...) was deprecated in favor of operator()(...)")
         object call(Args&&... args) const;
 
+    /// Equivalent to ``obj is None`` in Python.
     bool is_none() const { return derived().ptr() == Py_None; }
     PYBIND11_DEPRECATED("Use py::str(obj) instead")
     pybind11::str str() const;
@@ -151,6 +165,10 @@ public:
     template <typename T> T cast() const;
     /// Return ``true`` when the `handle` wraps a valid Python object
     explicit operator bool() const { return m_ptr != nullptr; }
+    /** \rst
+        Check that the underlying pointers are the same.
+        Equivalent to ``obj1 is obj2`` in Python.
+    \endrst */
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
     bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
     PYBIND11_DEPRECATED("Use handle::operator bool() instead")
@@ -253,7 +271,16 @@ template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrow
 \endrst */
 template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen}; }
 
-/// Check if `obj` is an instance of type `T`
+/** \defgroup python_builtins _
+    Unless stated otherwise, the following C++ functions behave the same
+    as their Python counterparts.
+ */
+
+/** \ingroup python_builtins
+    \rst
+    Return true if ``obj`` is an instance of ``T``. Type ``T`` must be a subclass of
+    `object` or a class which was exposed to Python as ``py::class_<T>``.
+\endrst */
 template <typename T, detail::enable_if_t<std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) { return T::_check(obj); }
 
@@ -263,6 +290,8 @@ bool isinstance(handle obj) { return detail::isinstance_generic(obj, typeid(T));
 template <> inline bool isinstance<handle>(handle obj) = delete;
 template <> inline bool isinstance<object>(handle obj) { return obj.ptr() != nullptr; }
 
+/// \ingroup python_builtins
+/// Return true if ``obj`` is an instance of the ``type``.
 inline bool isinstance(handle obj, handle type) {
     const auto result = PyObject_IsInstance(obj.ptr(), type.ptr());
     if (result == -1)
@@ -270,6 +299,8 @@ inline bool isinstance(handle obj, handle type) {
     return result != 0;
 }
 
+/// \addtogroup python_builtins
+/// @{
 inline bool hasattr(handle obj, handle name) {
     return PyObject_HasAttr(obj.ptr(), name.ptr()) == 1;
 }
@@ -315,6 +346,7 @@ inline void setattr(handle obj, handle name, handle value) {
 inline void setattr(handle obj, const char *name, handle value) {
     if (PyObject_SetAttrString(obj.ptr(), name, value.ptr()) != 0) { throw error_already_set(); }
 }
+/// @} python_builtins
 
 NAMESPACE_BEGIN(detail)
 inline handle get_function(handle value) {
@@ -557,6 +589,8 @@ NAMESPACE_END(detail)
     PYBIND11_OBJECT(Name, Parent, CheckFun) \
     Name() : Parent() { }
 
+/// \addtogroup pytypes
+/// @{
 class iterator : public object {
 public:
     /** Caveat: copying an iterator does not (and cannot) clone the internal
@@ -663,12 +697,17 @@ private:
         return str_value;
     }
 };
+/// @} pytypes
 
 inline namespace literals {
-/// String literal version of str
+/** \rst
+    String literal version of `str`
+ \endrst */
 inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
 }
 
+/// \addtogroup pytypes
+/// @{
 class bytes : public object {
 public:
     PYBIND11_OBJECT(bytes, object, PYBIND11_BYTES_CHECK)
@@ -972,7 +1011,10 @@ public:
 
     PYBIND11_OBJECT_CVT(memoryview, object, PyMemoryView_Check, PyMemoryView_FromObject)
 };
+/// @} pytypes
 
+/// \addtogroup python_builtins
+/// @{
 inline size_t len(handle h) {
     ssize_t result = PyObject_Length(h.ptr());
     if (result < 0)
@@ -990,6 +1032,7 @@ inline str repr(handle h) {
 #endif
     return reinterpret_steal<str>(str_value);
 }
+/// @} python_builtins
 
 NAMESPACE_BEGIN(detail)
 template <typename D> iterator object_api<D>::begin() const {
@@ -1013,8 +1056,8 @@ template <typename D> str_attr_accessor object_api<D>::attr(const char *key) con
 template <typename D> args_proxy object_api<D>::operator*() const {
     return args_proxy(derived().ptr());
 }
-template <typename D> template <typename T> bool object_api<D>::contains(T &&key) const {
-    return attr("__contains__")(std::forward<T>(key)).template cast<bool>();
+template <typename D> template <typename T> bool object_api<D>::contains(T &&item) const {
+    return attr("__contains__")(std::forward<T>(item)).template cast<bool>();
 }
 
 template <typename D>
