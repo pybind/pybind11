@@ -1245,22 +1245,42 @@ constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 
 NAMESPACE_BEGIN(detail)
 
+// forward declaration
+struct function_record;
+
+// Helper struct to only allow py::args and/or py::kwargs at the end of the function arguments
+template <bool args, bool kwargs, bool args_kwargs_are_last> struct assert_args_kwargs_must_be_last {
+    static constexpr bool has_args = args, has_kwargs = kwargs;
+    static_assert(args_kwargs_are_last, "py::args/py::kwargs are only permitted as the last argument(s) of a function");
+};
+template <typename... T> struct args_kwargs_must_be_last;
+template <typename T1, typename... Tmore> struct args_kwargs_must_be_last<T1, Tmore...>
+    : args_kwargs_must_be_last<Tmore...> {};
+template <typename... T> struct args_kwargs_must_be_last<args, T...>
+    : assert_args_kwargs_must_be_last<true, false, sizeof...(T) == 0> {};
+template <typename... T> struct args_kwargs_must_be_last<kwargs, T...>
+    : assert_args_kwargs_must_be_last<false, true, sizeof...(T) == 0> {};
+template <typename... T> struct args_kwargs_must_be_last<args, kwargs, T...>
+    : assert_args_kwargs_must_be_last<true, true, sizeof...(T) == 0> {};
+template <> struct args_kwargs_must_be_last<> : assert_args_kwargs_must_be_last<false, false, true> {};
+
+using function_arguments = const std::vector<handle> &;
+
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
 class argument_loader {
-    using itypes = type_list<intrinsic_t<Args>...>;
     using indices = make_index_sequence<sizeof...(Args)>;
 
-public:
-    argument_loader() : value() {} // Helps gcc-7 properly initialize value
+    using check_args_kwargs = args_kwargs_must_be_last<intrinsic_t<Args>...>;
 
-    static constexpr auto has_kwargs = std::is_same<itypes, type_list<args, kwargs>>::value;
-    static constexpr auto has_args = has_kwargs || std::is_same<itypes, type_list<args>>::value;
+public:
+    static constexpr bool has_kwargs = check_args_kwargs::has_kwargs;
+    static constexpr bool has_args = check_args_kwargs::has_args;
 
     static PYBIND11_DESCR arg_names() { return detail::concat(make_caster<Args>::name()...); }
 
-    bool load_args(handle args, handle kwargs) {
-        return load_impl(args, kwargs, itypes{});
+    bool load_args(function_arguments args) {
+        return load_impl_sequence(args, indices{});
     }
 
     template <typename Return, typename Func>
@@ -1275,26 +1295,12 @@ public:
     }
 
 private:
-    bool load_impl(handle args_, handle, type_list<args>) {
-        std::get<0>(value).load(args_, true);
-        return true;
-    }
 
-    bool load_impl(handle args_, handle kwargs_, type_list<args, kwargs>) {
-        std::get<0>(value).load(args_, true);
-        std::get<1>(value).load(kwargs_, true);
-        return true;
-    }
-
-    bool load_impl(handle args, handle, ... /* anything else */) {
-        return load_impl_sequence(args, indices{});
-    }
-
-    static bool load_impl_sequence(handle, index_sequence<>) { return true; }
+    static bool load_impl_sequence(function_arguments, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(handle src, index_sequence<Is...>) {
-        for (bool r : {std::get<Is>(value).load(PyTuple_GET_ITEM(src.ptr(), Is), true)...})
+    bool load_impl_sequence(function_arguments args, index_sequence<Is...>) {
+        for (bool r : {std::get<Is>(value).load(args[Is], true)...})
             if (!r)
                 return false;
         return true;

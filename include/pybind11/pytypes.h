@@ -149,14 +149,14 @@ public:
         preferable to use the `object` class which derives from `handle` and calls
         this function automatically. Returns a reference to itself.
     \endrst */
-    const handle& inc_ref() const { Py_XINCREF(m_ptr); return *this; }
+    const handle& inc_ref() const & { Py_XINCREF(m_ptr); return *this; }
 
     /** \rst
         Manually decrease the reference count of the Python object. Usually, it is
         preferable to use the `object` class which derives from `handle` and calls
         this function automatically. Returns a reference to itself.
     \endrst */
-    const handle& dec_ref() const { Py_XDECREF(m_ptr); return *this; }
+    const handle& dec_ref() const & { Py_XDECREF(m_ptr); return *this; }
 
     /** \rst
         Attempt to cast the Python object into the given C++ type. A `cast_error`
