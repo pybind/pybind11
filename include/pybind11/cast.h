@@ -1202,22 +1202,26 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
 }
 
 /// \ingroup annotations
-/// Annotation for keyword arguments
+/// Annotation for arguments
 struct arg {
-    /// Set the name of the argument
-    constexpr explicit arg(const char *name) : name(name) { }
+    /// Constructs an argument with the name of the argument; if null or omitted, this is a positional argument.
+    constexpr explicit arg(const char *name = nullptr) : name(name), flag_noconvert(false) { }
     /// Assign a value to this argument
     template <typename T> arg_v operator=(T &&value) const;
+    /// Indicate that the type should not be converted in the type caster
+    arg &noconvert(bool flag = true) { flag_noconvert = flag; return *this; }
 
-    const char *name;
+    const char *name; ///< If non-null, this is a named kwargs argument
+    bool flag_noconvert : 1; ///< If set, do not allow conversion (requires a supporting type caster!)
 };
 
 /// \ingroup annotations
-/// Annotation for keyword arguments with values
+/// Annotation for arguments with values
 struct arg_v : arg {
+private:
     template <typename T>
-    arg_v(const char *name, T &&x, const char *descr = nullptr)
-        : arg(name),
+    arg_v(arg &&base, T &&x, const char *descr = nullptr)
+        : arg(base),
           value(reinterpret_steal<object>(
               detail::make_caster<T>::cast(x, return_value_policy::automatic, {})
           )),
@@ -1227,15 +1231,32 @@ struct arg_v : arg {
 #endif
     { }
 
+public:
+    /// Direct construction with name, default, and description
+    template <typename T>
+    arg_v(const char *name, T &&x, const char *descr = nullptr)
+        : arg_v(arg(name), std::forward<T>(x), descr) { }
+
+    /// Called internally when invoking `py::arg("a") = value`
+    template <typename T>
+    arg_v(const arg &base, T &&x, const char *descr = nullptr)
+        : arg_v(arg(base), std::forward<T>(x), descr) { }
+
+    /// Same as `arg::noconvert()`, but returns *this as arg_v&, not arg&
+    arg_v &noconvert(bool flag = true) { arg::noconvert(flag); return *this; }
+
+    /// The default value
     object value;
+    /// The (optional) description of the default value
     const char *descr;
 #if !defined(NDEBUG)
+    /// The C++ type name of the default value (only available when compiled in debug mode)
     std::string type;
 #endif
 };
 
 template <typename T>
-arg_v arg::operator=(T &&value) const { return {name, std::forward<T>(value)}; }
+arg_v arg::operator=(T &&value) const { return {std::move(*this), std::forward<T>(value)}; }
 
 /// Alias for backward compatibility -- to be removed in version 2.0
 template <typename /*unused*/> using arg_t = arg_v;
@@ -1252,11 +1273,28 @@ NAMESPACE_BEGIN(detail)
 // forward declaration
 struct function_record;
 
+/// Internal data associated with a single function call
+struct function_call {
+    function_call(function_record &f, handle p); // Implementation in attr.h
+
+    /// The function data:
+    const function_record &func;
+
+    /// Arguments passed to the function:
+    std::vector<handle> args;
+
+    /// The `convert` value the arguments should be loaded with
+    std::vector<bool> args_convert;
+
+    /// The parent, if any
+    handle parent;
+};
+
+
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
 class argument_loader {
     using indices = make_index_sequence<sizeof...(Args)>;
-    using function_arguments = const std::vector<handle> &;
 
     template <typename Arg> using argument_is_args   = std::is_same<intrinsic_t<Arg>, args>;
     template <typename Arg> using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
@@ -1274,8 +1312,8 @@ public:
 
     static PYBIND11_DESCR arg_names() { return detail::concat(make_caster<Args>::name()...); }
 
-    bool load_args(function_arguments args) {
-        return load_impl_sequence(args, indices{});
+    bool load_args(function_call &call) {
+        return load_impl_sequence(call, indices{});
     }
 
     template <typename Return, typename Func>
@@ -1291,11 +1329,11 @@ public:
 
 private:
 
-    static bool load_impl_sequence(function_arguments, index_sequence<>) { return true; }
+    static bool load_impl_sequence(function_call &, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(function_arguments args, index_sequence<Is...>) {
-        for (bool r : {std::get<Is>(value).load(args[Is], true)...})
+    bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
+        for (bool r : {std::get<Is>(value).load(call.args[Is], call.args_convert[Is])...})
             if (!r)
                 return false;
         return true;
@@ -1384,6 +1422,13 @@ private:
     }
 
     void process(list &/*args_list*/, arg_v a) {
+        if (!a.name)
+#if defined(NDEBUG)
+            nameless_argument_error();
+#else
+            nameless_argument_error(a.type);
+#endif
+
         if (m_kwargs.contains(a.name)) {
 #if defined(NDEBUG)
             multiple_values_error();
@@ -1416,6 +1461,15 @@ private:
         }
     }
 
+    [[noreturn]] static void nameless_argument_error() {
+        throw type_error("Got kwargs without a name; only named arguments "
+                         "may be passed via py::arg() to a python function call. "
+                         "(compile in debug mode for details)");
+    }
+    [[noreturn]] static void nameless_argument_error(std::string type) {
+        throw type_error("Got kwargs without a name of type '" + type + "'; only named "
+                         "arguments may be passed via py::arg() to a python function call. ");
+    }
     [[noreturn]] static void multiple_values_error() {
         throw type_error("Got multiple values for keyword argument "
                          "(compile in debug mode for details)");

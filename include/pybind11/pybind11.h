@@ -122,7 +122,7 @@ protected:
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(call.args))
+            if (!args_converter.load_args(call))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Invoke call policy pre-call hook */
@@ -198,7 +198,7 @@ protected:
             if (c == '{') {
                 // Write arg name for everything except *args, **kwargs and return type.
                 if (type_depth == 0 && text[char_index] != '*' && arg_index < args) {
-                    if (!rec->args.empty()) {
+                    if (!rec->args.empty() && rec->args[arg_index].name) {
                         signature += rec->args[arg_index].name;
                     } else if (arg_index == 0 && rec->is_method) {
                         signature += "self";
@@ -257,7 +257,7 @@ protected:
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
-        rec->nargs = (uint16_t) args;
+        rec->nargs = (std::uint16_t) args;
 
 #if PY_MAJOR_VERSION < 3
         if (rec->sibling && PyMethod_Check(rec->sibling.ptr()))
@@ -392,8 +392,10 @@ protected:
 
         handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
+
         try {
             for (; it != nullptr; it = it->next) {
+
                 /* For each overload:
                    1. Copy all positional arguments we were given, also checking to make sure that
                       named positional arguments weren't *also* specified via kwarg.
@@ -435,14 +437,15 @@ protected:
                     // raise a TypeError like Python does.  (We could also continue with the next
                     // overload, but this seems highly likely to be a caller mistake rather than a
                     // legitimate overload).
-                    if (kwargs_in && args_copied < it->args.size()) {
-                        handle value = PyDict_GetItemString(kwargs_in, it->args[args_copied].name);
+                    if (kwargs_in && args_copied < func.args.size() && func.args[args_copied].name) {
+                        handle value = PyDict_GetItemString(kwargs_in, func.args[args_copied].name);
                         if (value)
-                            throw type_error(std::string(it->name) + "(): got multiple values for argument '" +
-                                    std::string(it->args[args_copied].name) + "'");
+                            throw type_error(std::string(func.name) + "(): got multiple values for argument '" +
+                                    std::string(func.args[args_copied].name) + "'");
                     }
 
                     call.args.push_back(PyTuple_GET_ITEM(args_in, args_copied));
+                    call.args_convert.push_back(args_copied < func.args.size() ? func.args[args_copied].convert : true);
                 }
 
                 // We'll need to copy this if we steal some kwargs for defaults
@@ -453,10 +456,10 @@ protected:
                     bool copied_kwargs = false;
 
                     for (; args_copied < pos_args; ++args_copied) {
-                        const auto &arg = it->args[args_copied];
+                        const auto &arg = func.args[args_copied];
 
                         handle value;
-                        if (kwargs_in)
+                        if (kwargs_in && arg.name)
                             value = PyDict_GetItemString(kwargs.ptr(), arg.name);
 
                         if (value) {
@@ -470,8 +473,10 @@ protected:
                             value = arg.value;
                         }
 
-                        if (value)
+                        if (value) {
                             call.args.push_back(value);
+                            call.args_convert.push_back(arg.convert);
+                        }
                         else
                             break;
                     }
@@ -481,12 +486,12 @@ protected:
                 }
 
                 // 3. Check everything was consumed (unless we have a kwargs arg)
-                if (kwargs && kwargs.size() > 0 && !it->has_kwargs)
+                if (kwargs && kwargs.size() > 0 && !func.has_kwargs)
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
 
                 // 4a. If we have a py::args argument, create a new tuple with leftovers
                 tuple extra_args;
-                if (it->has_args) {
+                if (func.has_args) {
                     if (args_to_copy == 0) {
                         // We didn't copy out any position arguments from the args_in tuple, so we
                         // can reuse it directly without copying:
@@ -502,31 +507,34 @@ protected:
                         }
                     }
                     call.args.push_back(extra_args);
+                    call.args_convert.push_back(false);
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
-                if (it->has_kwargs) {
+                if (func.has_kwargs) {
                     if (!kwargs.ptr())
                         kwargs = dict(); // If we didn't get one, send an empty one
                     call.args.push_back(kwargs);
+                    call.args_convert.push_back(false);
                 }
 
                 // 5. Put everything in a vector.  Not technically step 5, we've been building it
                 // in `call.args` all along.
                 #if !defined(NDEBUG)
-                if (call.args.size() != call.func.nargs)
+                if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs)
                     pybind11_fail("Internal error: function call dispatcher inserted wrong number of arguments!");
                 #endif
 
                 // 6. Call the function.
                 try {
-                    result = it->impl(call);
+                    result = func.impl(call);
                 } catch (reference_cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
 
                 if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
                     break;
+
             }
         } catch (error_already_set &e) {
             e.restore();

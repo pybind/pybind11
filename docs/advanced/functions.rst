@@ -318,3 +318,57 @@ like so:
 
     py::class_<MyClass>("MyClass")
         .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
+
+Non-converting arguments
+========================
+
+Certain argument types may support conversion from one type to another.  Some
+examples of conversions are:
+
+* :ref:`implicit_conversions` declared using ``py::implicitly_convertible<A,B>()``
+* Calling a method accepting a double with an integer argument
+* Calling a ``std::complex<float>`` argument with a non-complex python type
+  (for example, with a float).  (Requires the optional ``pybind11/complex.h``
+  header).
+* Calling a function taking an Eigen matrix reference with a numpy array of the
+  wrong type or of an incompatible data layout.  (Requires the optional
+  ``pybind11/eigen.h`` header).
+
+This behaviour is sometimes undesirable: the binding code may prefer to raise
+an error rather than convert the argument.  This behaviour can be obtained
+through ``py::arg`` by calling the ``.noconvert()`` method of the ``py::arg``
+object, such as:
+
+.. code-block:: cpp
+
+    m.def("floats_only", [](double f) { return 0.5 * f; }, py::arg("f").noconvert());
+    m.def("floats_preferred", [](double f) { return 0.5 * f; }, py::arg("f"));
+
+Attempting the call the second function (the one without ``.noconvert()``) with
+an integer will succeed, but attempting to call the ``.noconvert()`` version
+will fail with a ``TypeError``:
+
+.. code-block:: pycon
+
+    >>> floats_preferred(4)
+    2.0
+    >>> floats_only(4)
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    TypeError: floats_only(): incompatible function arguments. The following argument types are supported:
+        1. (f: float) -> float
+
+    Invoked with: 4
+
+You may, of course, combine this with the :var:`_a` shorthand notation (see
+:ref:`keyword_args`) and/or :ref:`default_args`.  It is also permitted to omit
+the argument name by using the ``py::arg()`` constructor without an argument
+name, i.e. by specifying ``py::arg().noconvert()``.
+
+.. note::
+
+    When specifying ``py::arg`` options it is necessary to provide the same
+    number of options as the bound function has arguments.  Thus if you want to
+    enable no-convert behaviour for just one of several arguments, you will
+    need to specify a ``py::arg()`` annotation for each argument with the
+    no-convert argument modified to ``py::arg().noconvert()``.

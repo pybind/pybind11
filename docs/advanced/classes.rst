@@ -388,6 +388,8 @@ crucial that instances are deallocated on the C++ side to avoid memory leaks.
     py::class_<MyClass, std::unique_ptr<MyClass, py::nodelete>>(m, "MyClass")
         .def(py::init<>())
 
+.. _implicit_conversions:
+
 Implicit conversions
 ====================
 

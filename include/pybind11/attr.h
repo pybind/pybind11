@@ -69,7 +69,6 @@ struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 template <typename... Args> struct init;
 template <typename... Args> struct init_alias;
-struct function_call;
 inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
@@ -77,9 +76,10 @@ struct argument_record {
     const char *name;  ///< Argument name
     const char *descr; ///< Human-readable version of the argument value
     handle value;      ///< Associated Python object
+    bool convert : 1;  ///< True if the argument is allowed to convert when loading
 
-    argument_record(const char *name, const char *descr, handle value)
-        : name(name), descr(descr), value(value) { }
+    argument_record(const char *name, const char *descr, handle value, bool convert)
+        : name(name), descr(descr), value(value), convert(convert) { }
 };
 
 /// Internal data structure which holds metadata about a bound function (signature, overloads, etc.)
@@ -131,7 +131,7 @@ struct function_record {
     bool is_method : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
-    uint16_t nargs;
+    std::uint16_t nargs;
 
     /// Python method object
     PyMethodDef *def = nullptr;
@@ -222,21 +222,11 @@ struct type_record {
     }
 };
 
-/// Internal data associated with a single function call
-struct function_call {
-    function_call(function_record &f, handle p) : func(f), parent(p) {
-        args.reserve(f.nargs);
-    }
-
-    /// The function data:
-    const function_record &func;
-
-    /// Arguments passed to the function:
-    std::vector<handle> args;
-
-    /// The parent, if any
-    handle parent;
-};
+inline function_call::function_call(function_record &f, handle p) :
+        func(f), parent(p) {
+    args.reserve(f.nargs);
+    args_convert.reserve(f.nargs);
+}
 
 /**
  * Partial template specializations to process custom attributes provided to
@@ -300,8 +290,8 @@ template <> struct process_attribute<is_operator> : process_attribute_default<is
 template <> struct process_attribute<arg> : process_attribute_default<arg> {
     static void init(const arg &a, function_record *r) {
         if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr, handle());
-        r->args.emplace_back(a.name, nullptr, handle());
+            r->args.emplace_back("self", nullptr, handle(), true /*convert*/);
+        r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert);
     }
 };
 
@@ -309,7 +299,7 @@ template <> struct process_attribute<arg> : process_attribute_default<arg> {
 template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
     static void init(const arg_v &a, function_record *r) {
         if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr, handle());
+            r->args.emplace_back("self", nullptr /*descr*/, handle() /*parent*/, true /*convert*/);
 
         if (!a.value) {
 #if !defined(NDEBUG)
@@ -330,7 +320,7 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
                           "Compile in debug mode for more information.");
 #endif
         }
-        r->args.emplace_back(a.name, a.descr, a.value.inc_ref());
+        r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert);
     }
 };
 
