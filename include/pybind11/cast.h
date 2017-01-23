@@ -1248,22 +1248,6 @@ NAMESPACE_BEGIN(detail)
 // forward declaration
 struct function_record;
 
-// Helper struct to only allow py::args and/or py::kwargs at the end of the function arguments
-template <bool args, bool kwargs, bool args_kwargs_are_last> struct assert_args_kwargs_must_be_last {
-    static constexpr bool has_args = args, has_kwargs = kwargs;
-    static_assert(args_kwargs_are_last, "py::args/py::kwargs are only permitted as the last argument(s) of a function");
-};
-template <typename... T> struct args_kwargs_must_be_last;
-template <typename T1, typename... Tmore> struct args_kwargs_must_be_last<T1, Tmore...>
-    : args_kwargs_must_be_last<Tmore...> {};
-template <typename... T> struct args_kwargs_must_be_last<args, T...>
-    : assert_args_kwargs_must_be_last<true, false, sizeof...(T) == 0> {};
-template <typename... T> struct args_kwargs_must_be_last<kwargs, T...>
-    : assert_args_kwargs_must_be_last<false, true, sizeof...(T) == 0> {};
-template <typename... T> struct args_kwargs_must_be_last<args, kwargs, T...>
-    : assert_args_kwargs_must_be_last<true, true, sizeof...(T) == 0> {};
-template <> struct args_kwargs_must_be_last<> : assert_args_kwargs_must_be_last<false, false, true> {};
-
 using function_arguments = const std::vector<handle> &;
 
 /// Helper class which loads arguments for C++ functions called from Python
@@ -1271,11 +1255,19 @@ template <typename... Args>
 class argument_loader {
     using indices = make_index_sequence<sizeof...(Args)>;
 
-    using check_args_kwargs = args_kwargs_must_be_last<intrinsic_t<Args>...>;
+    template <typename Arg> using argument_is_args   = std::is_same<intrinsic_t<Arg>, args>;
+    template <typename Arg> using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
+    // Get args/kwargs argument positions relative to the end of the argument list:
+    static constexpr auto args_pos = constexpr_first<argument_is_args, Args...>() - (int) sizeof...(Args),
+                        kwargs_pos = constexpr_first<argument_is_kwargs, Args...>() - (int) sizeof...(Args);
+
+    static constexpr bool args_kwargs_are_last = kwargs_pos >= - 1 && args_pos >= kwargs_pos - 1;
+
+    static_assert(args_kwargs_are_last, "py::args/py::kwargs are only permitted as the last argument(s) of a function");
 
 public:
-    static constexpr bool has_kwargs = check_args_kwargs::has_kwargs;
-    static constexpr bool has_args = check_args_kwargs::has_args;
+    static constexpr bool has_kwargs = kwargs_pos < 0;
+    static constexpr bool has_args = args_pos < 0;
 
     static PYBIND11_DESCR arg_names() { return detail::concat(make_caster<Args>::name()...); }
 
