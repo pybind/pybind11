@@ -19,6 +19,7 @@ another name and use it in the macro to avoid this problem.
 Global Interpreter Lock (GIL)
 =============================
 
+When calling a C++ function from Python, the GIL is always held.
 The classes :class:`gil_scoped_release` and :class:`gil_scoped_acquire` can be
 used to acquire and release the global interpreter lock in the body of a C++
 function call. In this way, long-running C++ code can be parallelized using
