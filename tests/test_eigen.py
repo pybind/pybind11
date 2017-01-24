@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.requires_eigen_and_numpy
+
 with pytest.suppress(ImportError):
     import numpy as np
 
@@ -18,7 +20,6 @@ def assert_sparse_equal_ref(sparse_mat):
     assert_equal_ref(sparse_mat.todense())
 
 
-@pytest.requires_eigen_and_numpy
 def test_fixed():
     from pybind11_tests import fixed_r, fixed_c, fixed_copy_r, fixed_copy_c
 
@@ -30,7 +31,6 @@ def test_fixed():
     assert_equal_ref(fixed_copy_c(fixed_r()))
 
 
-@pytest.requires_eigen_and_numpy
 def test_dense():
     from pybind11_tests import dense_r, dense_c, dense_copy_r, dense_copy_c
 
@@ -42,7 +42,6 @@ def test_dense():
     assert_equal_ref(dense_copy_c(dense_r()))
 
 
-@pytest.requires_eigen_and_numpy
 def test_partially_fixed():
     from pybind11_tests import (partial_copy_four_rm_r, partial_copy_four_rm_c,
                                 partial_copy_four_cm_r, partial_copy_four_cm_c)
@@ -65,7 +64,6 @@ def test_partially_fixed():
         partial_copy_four_cm_c(ref2[(3, 1, 2), :]), ref2[(3, 1, 2), :])
 
 
-@pytest.requires_eigen_and_numpy
 def test_mutator_descriptors():
     from pybind11_tests import fixed_mutator_r, fixed_mutator_c, fixed_mutator_a
     zr = np.arange(30, dtype='float32').reshape(5, 6)  # row-major
@@ -94,7 +92,6 @@ def test_mutator_descriptors():
         fixed_mutator_a(zr)
 
 
-@pytest.requires_eigen_and_numpy
 def test_cpp_casting():
     from pybind11_tests import (cpp_copy, cpp_ref_c, cpp_ref_r, cpp_ref_any,
                                 fixed_r, fixed_c, get_cm_ref, get_rm_ref, ReturnTester)
@@ -120,7 +117,6 @@ def test_cpp_casting():
     assert cpp_ref_any(get_cm_ref()) == 21.
 
 
-@pytest.requires_eigen_and_numpy
 def test_pass_readonly_array():
     from pybind11_tests import fixed_copy_r, fixed_r, fixed_r_const
     z = np.full((5, 6), 42.0)
@@ -131,7 +127,6 @@ def test_pass_readonly_array():
     np.testing.assert_array_equal(fixed_copy_r(fixed_r_const()), fixed_r_const())
 
 
-@pytest.requires_eigen_and_numpy
 def test_nonunit_stride_from_python():
     from pybind11_tests import (
         double_row, double_col, double_mat_cm, double_mat_rm,
@@ -157,7 +152,6 @@ def test_nonunit_stride_from_python():
     np.testing.assert_array_equal(counting_mat, [[0., 2, 2], [6, 16, 10], [6, 14, 8]])
 
 
-@pytest.requires_eigen_and_numpy
 def test_nonunit_stride_to_python():
     from pybind11_tests import diagonal, diagonal_1, diagonal_n, block
 
@@ -171,7 +165,6 @@ def test_nonunit_stride_to_python():
     assert np.all(block(ref, 1, 4, 3, 2) == ref[1:4, 4:])
 
 
-@pytest.requires_eigen_and_numpy
 def test_eigen_ref_to_python():
     from pybind11_tests import cholesky1, cholesky2, cholesky3, cholesky4
 
@@ -192,7 +185,6 @@ def array_copy_but_one(a, r, c, v):
     return z
 
 
-@pytest.requires_eigen_and_numpy
 def test_eigen_return_references():
     """Tests various ways of returning references and non-referencing copies"""
     from pybind11_tests import ReturnTester
@@ -322,7 +314,6 @@ def assert_keeps_alive(cl, method, *args):
     assert cstats.alive() == start_with
 
 
-@pytest.requires_eigen_and_numpy
 def test_eigen_keepalive():
     from pybind11_tests import ReturnTester, ConstructorStats
     a = ReturnTester()
@@ -346,7 +337,6 @@ def test_eigen_keepalive():
         assert_keeps_alive(ReturnTester, meth, 4, 3, 2, 1)
 
 
-@pytest.requires_eigen_and_numpy
 def test_eigen_ref_mutators():
     """Tests whether Eigen can mutate numpy values"""
     from pybind11_tests import add_rm, add_cm, add_any, add1, add2
@@ -416,7 +406,6 @@ def test_eigen_ref_mutators():
         add_rm(zi)
 
 
-@pytest.requires_eigen_and_numpy
 def test_numpy_ref_mutators():
     """Tests numpy mutating Eigen matrices (for returned Eigen::Ref<...>s)"""
     from pybind11_tests import (
@@ -465,7 +454,6 @@ def test_numpy_ref_mutators():
     assert zc[1, 2] == 99  # Make sure we aren't referencing the original
 
 
-@pytest.requires_eigen_and_numpy
 def test_both_ref_mutators():
     """Tests a complex chain of nested eigen/numpy references"""
     from pybind11_tests import (
@@ -509,7 +497,6 @@ def test_both_ref_mutators():
     assert np.all(y == yexpect)
 
 
-@pytest.requires_eigen_and_numpy
 def test_nocopy_wrapper():
     from pybind11_tests import get_elem, get_elem_nocopy, get_elem_rm_nocopy
     # get_elem requires a column-contiguous matrix reference, but should be
@@ -556,7 +543,6 @@ def test_nocopy_wrapper():
             ', flags.c_contiguous' in str(excinfo.value))
 
 
-@pytest.requires_eigen_and_numpy
 def test_special_matrix_objects():
     from pybind11_tests import incr_diag, symmetric_upper, symmetric_lower
 
@@ -577,7 +563,6 @@ def test_special_matrix_objects():
     assert np.all(symmetric_upper(asymm) == symm_upper)
 
 
-@pytest.requires_eigen_and_numpy
 def test_dense_signature(doc):
     from pybind11_tests import double_col, double_row, double_mat_rm
 

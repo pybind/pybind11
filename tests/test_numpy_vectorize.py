@@ -1,10 +1,11 @@
 import pytest
 
+pytestmark = pytest.requires_numpy
+
 with pytest.suppress(ImportError):
     import numpy as np
 
 
-@pytest.requires_numpy
 def test_vectorize(capture):
     from pybind11_tests import vectorized_func, vectorized_func2, vectorized_func3
 
@@ -58,7 +59,6 @@ def test_vectorize(capture):
         """
 
 
-@pytest.requires_numpy
 def test_type_selection():
     from pybind11_tests import selective_func
 
@@ -67,7 +67,6 @@ def test_type_selection():
     assert selective_func(np.array([1.0j], dtype=np.complex64)) == "Complex float branch taken."
 
 
-@pytest.requires_numpy
 def test_docs(doc):
     from pybind11_tests import vectorized_func
 

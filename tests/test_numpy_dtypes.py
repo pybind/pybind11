@@ -1,6 +1,8 @@
 import re
 import pytest
 
+pytestmark = pytest.requires_numpy
+
 with pytest.suppress(ImportError):
     import numpy as np
 
@@ -58,7 +60,6 @@ def assert_equal(actual, expected_data, expected_dtype):
     np.testing.assert_equal(actual, np.array(expected_data, dtype=expected_dtype))
 
 
-@pytest.requires_numpy
 def test_format_descriptors():
     from pybind11_tests import get_format_unbound, print_format_descriptors
 
@@ -85,7 +86,6 @@ def test_format_descriptors():
     ]
 
 
-@pytest.requires_numpy
 def test_dtype(simple_dtype):
     from pybind11_tests import (print_dtypes, test_dtype_ctors, test_dtype_methods,
                                 trailing_padding_dtype, buffer_to_dtype)
@@ -113,7 +113,6 @@ def test_dtype(simple_dtype):
     assert trailing_padding_dtype() == buffer_to_dtype(np.zeros(1, trailing_padding_dtype()))
 
 
-@pytest.requires_numpy
 def test_recarray(simple_dtype, packed_dtype):
     from pybind11_tests import (create_rec_simple, create_rec_packed, create_rec_nested,
                                 print_rec_simple, print_rec_packed, print_rec_nested,
@@ -178,7 +177,6 @@ def test_recarray(simple_dtype, packed_dtype):
     np.testing.assert_equal(arr['a'], create_rec_partial(3))
 
 
-@pytest.requires_numpy
 def test_array_constructors():
     from pybind11_tests import test_array_ctors
 
@@ -191,7 +189,6 @@ def test_array_constructors():
         np.testing.assert_array_equal(test_array_ctors(40 + i), data)
 
 
-@pytest.requires_numpy
 def test_string_array():
     from pybind11_tests import create_string_array, print_string_array
 
@@ -210,7 +207,6 @@ def test_string_array():
     assert dtype == arr.dtype
 
 
-@pytest.requires_numpy
 def test_enum_array():
     from pybind11_tests import create_enum_array, print_enum_array
 
@@ -227,14 +223,12 @@ def test_enum_array():
     assert create_enum_array(0).dtype == dtype
 
 
-@pytest.requires_numpy
 def test_signature(doc):
     from pybind11_tests import create_rec_nested
 
     assert doc(create_rec_nested) == "create_rec_nested(arg0: int) -> numpy.ndarray[NestedStruct]"
 
 
-@pytest.requires_numpy
 def test_scalar_conversion():
     from pybind11_tests import (create_rec_simple, f_simple,
                                 create_rec_packed, f_packed,
@@ -256,7 +250,6 @@ def test_scalar_conversion():
                 assert 'incompatible function arguments' in str(excinfo.value)
 
 
-@pytest.requires_numpy
 def test_register_dtype():
     from pybind11_tests import register_dtype
 
