@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.requires_numpy
+
 with pytest.suppress(ImportError):
     import numpy as np
 
@@ -9,7 +11,6 @@ def arr():
     return np.array([[1, 2, 3], [4, 5, 6]], '<u2')
 
 
-@pytest.requires_numpy
 def test_array_attributes():
     from pybind11_tests.array import (
         ndim, shape, strides, writeable, size, itemsize, nbytes, owndata
@@ -53,7 +54,6 @@ def test_array_attributes():
     assert not owndata(a)
 
 
-@pytest.requires_numpy
 @pytest.mark.parametrize('args, ret', [([], 0), ([0], 0), ([1], 3), ([0, 1], 1), ([1, 2], 5)])
 def test_index_offset(arr, args, ret):
     from pybind11_tests.array import index_at, index_at_t, offset_at, offset_at_t
@@ -63,7 +63,6 @@ def test_index_offset(arr, args, ret):
     assert offset_at_t(arr, *args) == ret * arr.dtype.itemsize
 
 
-@pytest.requires_numpy
 def test_dim_check_fail(arr):
     from pybind11_tests.array import (index_at, index_at_t, offset_at, offset_at_t, data, data_t,
                                       mutate_data, mutate_data_t)
@@ -74,7 +73,6 @@ def test_dim_check_fail(arr):
         assert str(excinfo.value) == 'too many indices for an array: 3 (ndim = 2)'
 
 
-@pytest.requires_numpy
 @pytest.mark.parametrize('args, ret',
                          [([], [1, 2, 3, 4, 5, 6]),
                           ([1], [4, 5, 6]),
@@ -87,7 +85,6 @@ def test_data(arr, args, ret):
     assert all(data(arr, *args)[1::2] == 0)
 
 
-@pytest.requires_numpy
 def test_mutate_readonly(arr):
     from pybind11_tests.array import mutate_data, mutate_data_t, mutate_at_t
     arr.flags.writeable = False
@@ -97,7 +94,6 @@ def test_mutate_readonly(arr):
         assert str(excinfo.value) == 'array is not writeable'
 
 
-@pytest.requires_numpy
 @pytest.mark.parametrize('dim', [0, 1, 3])
 def test_at_fail(arr, dim):
     from pybind11_tests.array import at_t, mutate_at_t
@@ -107,7 +103,6 @@ def test_at_fail(arr, dim):
         assert str(excinfo.value) == 'index dimension mismatch: {} (ndim = 2)'.format(dim)
 
 
-@pytest.requires_numpy
 def test_at(arr):
     from pybind11_tests.array import at_t, mutate_at_t
 
@@ -118,7 +113,6 @@ def test_at(arr):
     assert all(mutate_at_t(arr, 1, 0).ravel() == [1, 2, 4, 5, 5, 6])
 
 
-@pytest.requires_numpy
 def test_mutate_data(arr):
     from pybind11_tests.array import mutate_data, mutate_data_t
 
@@ -135,7 +129,6 @@ def test_mutate_data(arr):
     assert all(mutate_data_t(arr, 1, 2).ravel() == [6, 19, 27, 68, 84, 197])
 
 
-@pytest.requires_numpy
 def test_bounds_check(arr):
     from pybind11_tests.array import (index_at, index_at_t, data, data_t,
                                       mutate_data, mutate_data_t, at_t, mutate_at_t)
@@ -150,7 +143,6 @@ def test_bounds_check(arr):
         assert str(excinfo.value) == 'index 4 is out of bounds for axis 1 with size 3'
 
 
-@pytest.requires_numpy
 def test_make_c_f_array():
     from pybind11_tests.array import (
         make_c_array, make_f_array
@@ -161,7 +153,6 @@ def test_make_c_f_array():
     assert not make_f_array().flags.c_contiguous
 
 
-@pytest.requires_numpy
 def test_wrap():
     from pybind11_tests.array import wrap
 
@@ -212,7 +203,6 @@ def test_wrap():
     assert_references(a1d, a2, a1)
 
 
-@pytest.requires_numpy
 def test_numpy_view(capture):
     from pybind11_tests.array import ArrayClass
     with capture:
@@ -242,14 +232,12 @@ def test_numpy_view(capture):
 
 
 @pytest.unsupported_on_pypy
-@pytest.requires_numpy
 def test_cast_numpy_int64_to_uint64():
     from pybind11_tests.array import function_taking_uint64
     function_taking_uint64(123)
     function_taking_uint64(np.uint64(123))
 
 
-@pytest.requires_numpy
 def test_isinstance():
     from pybind11_tests.array import isinstance_untyped, isinstance_typed
 
@@ -257,7 +245,6 @@ def test_isinstance():
     assert isinstance_typed(np.array([1.0, 2.0, 3.0]))
 
 
-@pytest.requires_numpy
 def test_constructors():
     from pybind11_tests.array import default_constructors, converting_constructors
 
