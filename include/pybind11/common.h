@@ -406,6 +406,10 @@ template <class... Ts> using any_of = std::disjunction<Ts...>;
 #endif
 template <class... Ts> using none_of = negation<any_of<Ts...>>;
 
+template <class T, template<class> class... Predicates> using satisfies_all_of = all_of<Predicates<T>...>;
+template <class T, template<class> class... Predicates> using satisfies_any_of = any_of<Predicates<T>...>;
+template <class T, template<class> class... Predicates> using satisfies_none_of = none_of<Predicates<T>...>;
+
 /// Strip the class from a method type
 template <typename T> struct remove_class { };
 template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...)> { typedef R type(A...); };
