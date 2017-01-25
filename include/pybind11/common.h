@@ -557,21 +557,31 @@ PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used in
 [[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
 [[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
 
-/// Format strings for basic number types
-#define PYBIND11_DECL_FMT(t, v) template<> struct format_descriptor<t> \
-    { static constexpr const char* value = v; /* for backwards compatibility */ \
-      static std::string format() { return value; } }
-
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 
-template <typename T> struct format_descriptor<T, detail::enable_if_t<std::is_integral<T>::value>> {
-    static constexpr const char c = "bBhHiIqQ"[detail::log2(sizeof(T))*2 + std::is_unsigned<T>::value];
+NAMESPACE_BEGIN(detail)
+// Returns the index of the given type in the type char array below, and in the list in numpy.h
+// The order here is: bool; 8 ints ((signed,unsigned)x(8,16,32,64)bits); float,double,long double;
+// complex float,double,long double.  Note that the long double types only participate when long
+// double is actually longer than double (it isn't under MSVC).
+// NB: not only the string below but also complex.h and numpy.h rely on this order.
+template <typename T, typename SFINAE = void> struct is_fmt_numeric { static constexpr bool value = false; };
+template <typename T> struct is_fmt_numeric<T, enable_if_t<std::is_arithmetic<T>::value>> {
+    static constexpr bool value = true;
+    static constexpr int index = std::is_same<T, bool>::value ? 0 : 1 + (
+        std::is_integral<T>::value ? detail::log2(sizeof(T))*2 + std::is_unsigned<T>::value : 8 + (
+        std::is_same<T, double>::value ? 1 : std::is_same<T, long double>::value ? 2 : 0));
+};
+NAMESPACE_END(detail)
+
+template <typename T> struct format_descriptor<T, detail::enable_if_t<detail::is_fmt_numeric<T>::value>> {
+    static constexpr const char c = "?bBhHiIqQfdgFDG"[detail::is_fmt_numeric<T>::index];
     static constexpr const char value[2] = { c, '\0' };
     static std::string format() { return std::string(1, c); }
 };
 
 template <typename T> constexpr const char format_descriptor<
-    T, detail::enable_if_t<std::is_integral<T>::value>>::value[2];
+    T, detail::enable_if_t<detail::is_fmt_numeric<T>::value>>::value[2];
 
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {
@@ -579,10 +589,6 @@ struct error_scope {
     error_scope() { PyErr_Fetch(&type, &value, &trace); }
     ~error_scope() { PyErr_Restore(type, value, trace); }
 };
-
-PYBIND11_DECL_FMT(float, "f");
-PYBIND11_DECL_FMT(double, "d");
-PYBIND11_DECL_FMT(bool, "?");
 
 /// Dummy destructor wrapper that can be used to expose classes with a private destructor
 struct nodelete { template <typename T> void operator()(T*) { } };

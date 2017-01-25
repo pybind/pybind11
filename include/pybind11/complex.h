@@ -18,11 +18,14 @@
 #endif
 
 NAMESPACE_BEGIN(pybind11)
-
-PYBIND11_DECL_FMT(std::complex<float>, "Zf");
-PYBIND11_DECL_FMT(std::complex<double>, "Zd");
-
 NAMESPACE_BEGIN(detail)
+
+// The format codes are already in the string in common.h, we just need to provide a specialization
+template <typename T> struct is_fmt_numeric<std::complex<T>> {
+    static constexpr bool value = true;
+    static constexpr int index = is_fmt_numeric<T>::index + 3;
+};
+
 template <typename T> class type_caster<std::complex<T>> {
 public:
     bool load(handle src, bool) {
