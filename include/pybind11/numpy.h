@@ -180,21 +180,21 @@ private:
         void **api_ptr = (void **) PyCObject_AsVoidPtr(c.ptr());
 #endif
         npy_api api;
-#define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
-        DECL_NPY_API(PyArray_Type);
-        DECL_NPY_API(PyVoidArrType_Type);
-        DECL_NPY_API(PyArrayDescr_Type);
-        DECL_NPY_API(PyArray_DescrFromType);
-        DECL_NPY_API(PyArray_DescrFromScalar);
-        DECL_NPY_API(PyArray_FromAny);
-        DECL_NPY_API(PyArray_NewCopy);
-        DECL_NPY_API(PyArray_NewFromDescr);
-        DECL_NPY_API(PyArray_DescrNewFromType);
-        DECL_NPY_API(PyArray_DescrConverter);
-        DECL_NPY_API(PyArray_EquivTypes);
-        DECL_NPY_API(PyArray_GetArrayParamsFromObject);
-        DECL_NPY_API(PyArray_Squeeze);
-#undef DECL_NPY_API
+#define PYBIND11_DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
+        PYBIND11_DECL_NPY_API(PyArray_Type);
+        PYBIND11_DECL_NPY_API(PyVoidArrType_Type);
+        PYBIND11_DECL_NPY_API(PyArrayDescr_Type);
+        PYBIND11_DECL_NPY_API(PyArray_DescrFromType);
+        PYBIND11_DECL_NPY_API(PyArray_DescrFromScalar);
+        PYBIND11_DECL_NPY_API(PyArray_FromAny);
+        PYBIND11_DECL_NPY_API(PyArray_NewCopy);
+        PYBIND11_DECL_NPY_API(PyArray_NewFromDescr);
+        PYBIND11_DECL_NPY_API(PyArray_DescrNewFromType);
+        PYBIND11_DECL_NPY_API(PyArray_DescrConverter);
+        PYBIND11_DECL_NPY_API(PyArray_EquivTypes);
+        PYBIND11_DECL_NPY_API(PyArray_GetArrayParamsFromObject);
+        PYBIND11_DECL_NPY_API(PyArray_Squeeze);
+#undef PYBIND11_DECL_NPY_API
         return api;
     }
 };
@@ -714,7 +714,7 @@ public:
 template <typename T> constexpr const int npy_format_descriptor<
     T, enable_if_t<std::is_integral<T>::value>>::values[8];
 
-#define DECL_FMT(Type, NumPyName, Name) template<> struct npy_format_descriptor<Type> { \
+#define PYBIND11_DECL_NPY_FMT(Type, NumPyName, Name) template<> struct npy_format_descriptor<Type> { \
     enum { value = npy_api::NumPyName }; \
     static pybind11::dtype dtype() { \
         if (auto ptr = npy_api::get().PyArray_DescrFromType_(value)) \
@@ -722,19 +722,19 @@ template <typename T> constexpr const int npy_format_descriptor<
         pybind11_fail("Unsupported buffer format!"); \
     } \
     static PYBIND11_DESCR name() { return _(Name); } }
-DECL_FMT(float, NPY_FLOAT_, "float32");
-DECL_FMT(double, NPY_DOUBLE_, "float64");
-DECL_FMT(bool, NPY_BOOL_, "bool");
-DECL_FMT(std::complex<float>, NPY_CFLOAT_, "complex64");
-DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
-#undef DECL_FMT
+PYBIND11_DECL_NPY_FMT(float, NPY_FLOAT_, "float32");
+PYBIND11_DECL_NPY_FMT(double, NPY_DOUBLE_, "float64");
+PYBIND11_DECL_NPY_FMT(bool, NPY_BOOL_, "bool");
+PYBIND11_DECL_NPY_FMT(std::complex<float>, NPY_CFLOAT_, "complex64");
+PYBIND11_DECL_NPY_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
+#undef PYBIND11_DECL_NPY_FMT
 
-#define DECL_CHAR_FMT \
+#define PYBIND11_DECL_CHAR_FMT \
     static PYBIND11_DESCR name() { return _("S") + _<N>(); } \
     static pybind11::dtype dtype() { return pybind11::dtype(std::string("S") + std::to_string(N)); }
-template <size_t N> struct npy_format_descriptor<char[N]> { DECL_CHAR_FMT };
-template <size_t N> struct npy_format_descriptor<std::array<char, N>> { DECL_CHAR_FMT };
-#undef DECL_CHAR_FMT
+template <size_t N> struct npy_format_descriptor<char[N]> { PYBIND11_DECL_CHAR_FMT };
+template <size_t N> struct npy_format_descriptor<std::array<char, N>> { PYBIND11_DECL_CHAR_FMT };
+#undef PYBIND11_DECL_CHAR_FMT
 
 template<typename T> struct npy_format_descriptor<T, enable_if_t<std::is_enum<T>::value>> {
 private:
