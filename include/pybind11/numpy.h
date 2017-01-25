@@ -36,8 +36,7 @@ static_assert(sizeof(size_t) == sizeof(Py_intptr_t), "size_t != Py_intptr_t");
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
-template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
-template <typename type> struct is_pod_struct;
+template <typename type, typename SFINAE = void> struct npy_format_descriptor;
 
 struct PyArrayDescr_Proxy {
     PyObject_HEAD
@@ -219,6 +218,16 @@ inline const PyArrayDescr_Proxy* array_descriptor_proxy(const PyObject* ptr) {
 inline bool check_flags(const void* ptr, int flag) {
     return (flag == (array_proxy(ptr)->flags & flag));
 }
+
+template <typename T> struct is_std_array : std::false_type { };
+template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
+template <typename T> struct is_complex : std::false_type { };
+template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
+
+template <typename T> using is_pod_struct = all_of<
+    std::is_pod<T>, // since we're accessing directly in memory we need a POD type
+    satisfies_none_of<T, std::is_reference, std::is_array, is_std_array, std::is_arithmetic, is_complex, std::is_enum>
+>;
 
 NAMESPACE_END(detail)
 
@@ -685,24 +694,6 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name());
 };
 
-template <typename T> struct is_std_array : std::false_type { };
-template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
-
-template <typename T>
-struct is_pod_struct {
-    enum { value = std::is_pod<T>::value && // offsetof only works correctly for POD types
-           !std::is_reference<T>::value &&
-           !std::is_array<T>::value &&
-           !is_std_array<T>::value &&
-           !std::is_integral<T>::value &&
-           !std::is_enum<T>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, float>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, double>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, bool>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, std::complex<float>>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, std::complex<double>>::value };
-};
-
 template <typename T> struct npy_format_descriptor<T, enable_if_t<std::is_integral<T>::value>> {
 private:
     constexpr static const int values[8] = {
@@ -820,8 +811,9 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
     get_internals().direct_conversions[tindex].push_back(direct_converter);
 }
 
-template <typename T>
-struct npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>> {
+template <typename T, typename SFINAE> struct npy_format_descriptor {
+    static_assert(is_pod_struct<T>::value, "Attempt to use a non-POD or unimplemented POD type as a numpy dtype");
+
     static PYBIND11_DESCR name() { return _("struct"); }
 
     static pybind11::dtype dtype() {

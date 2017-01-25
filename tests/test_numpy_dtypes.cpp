@@ -334,6 +334,11 @@ test_initializer numpy_dtypes([](py::module &m) {
 
     PYBIND11_NUMPY_DTYPE_EX(StructWithUglyNames, __x__, "x", __y__, "y");
 
+    // If uncommented, this should produce a static_assert failure telling the user that the struct
+    // is not a POD type
+//    struct NotPOD { std::string v; NotPOD() : v("hi") {}; };
+//    PYBIND11_NUMPY_DTYPE(NotPOD, v);
+
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
     m.def("create_rec_nested", &create_nested);
