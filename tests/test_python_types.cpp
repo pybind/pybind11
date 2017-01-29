@@ -426,4 +426,7 @@ test_initializer python_types([](py::module &m) {
             "l"_a=l
         );
     });
+
+    m.def("bad_utf8_string", []()  { return std::string("abc\xd0" "def"); });
+    m.def("good_utf8_string", []() { return std::string(u8"Say what‽ 🎂"); });
 });

@@ -639,7 +639,10 @@ public:
     }
 
     static handle cast(const std::string &src, return_value_policy /* policy */, handle /* parent */) {
-        return PyUnicode_FromStringAndSize(src.c_str(), (ssize_t) src.length());
+        handle s = PyUnicode_FromStringAndSize(src.c_str(), (ssize_t) src.length());
+        if (!s)
+            throw error_already_set();
+        return s;
     }
 
     PYBIND11_TYPE_CASTER(std::string, _(PYBIND11_STRING_NAME));

@@ -1,3 +1,4 @@
+# Python < 3 needs this: coding=utf-8
 import pytest
 
 from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, has_exp_optional
@@ -410,3 +411,12 @@ def test_implicit_casting():
         'int_i1': 42, 'int_i2': 42, 'int_e': 43, 'int_p': 44
     }
     assert z['l'] == [3, 6, 9, 12, 15]
+
+
+def test_unicode_conversion():
+    """Tests unicode conversion and error reporting."""
+    from pybind11_tests import (good_utf8_string, bad_utf8_string)
+
+    assert good_utf8_string() == "Say what‽ 🎂"
+    with pytest.raises(UnicodeDecodeError):
+        bad_utf8_string()
