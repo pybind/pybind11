@@ -118,31 +118,31 @@ protected:
                       "The number of named arguments does not match the function signature");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](detail::function_record *rec, detail::function_arguments args, handle parent) -> handle {
+        rec->impl = [](detail::function_call &call) -> handle {
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(args))
+            if (!args_converter.load_args(call.args))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Invoke call policy pre-call hook */
-            detail::process_attributes<Extra...>::precall(args);
+            detail::process_attributes<Extra...>::precall(call);
 
             /* Get a pointer to the capture object */
-            capture *cap = (capture *) (sizeof(capture) <= sizeof(rec->data)
-                                        ? &rec->data : rec->data[0]);
+            capture *cap = (capture *) (sizeof(capture) <= sizeof(call.func.data)
+                                        ? &call.func.data : call.func.data[0]);
 
             /* Override policy for rvalues -- always move */
             constexpr auto is_rvalue = !std::is_pointer<Return>::value
                                        && !std::is_lvalue_reference<Return>::value;
-            const auto policy = is_rvalue ? return_value_policy::move : rec->policy;
+            const auto policy = is_rvalue ? return_value_policy::move : call.func.policy;
 
             /* Perform the function call */
             handle result = cast_out::cast(args_converter.template call<Return>(cap->f),
-                                           policy, parent);
+                                           policy, call.parent);
 
             /* Invoke call policy post-call hook */
-            detail::process_attributes<Extra...>::postcall(args, result);
+            detail::process_attributes<Extra...>::postcall(call, result);
 
             return result;
         };
@@ -381,9 +381,11 @@ protected:
 
     /// Main dispatch logic for calls to functions bound using pybind11
     static PyObject *dispatcher(PyObject *self, PyObject *args_in, PyObject *kwargs_in) {
+        using namespace detail;
+
         /* Iterator over the list of potentially admissible overloads */
-        detail::function_record *overloads = (detail::function_record *) PyCapsule_GetPointer(self, nullptr),
-                                *it = overloads;
+        function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
+                        *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
         const size_t n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
@@ -411,18 +413,18 @@ protected:
                    result other than PYBIND11_TRY_NEXT_OVERLOAD.
                  */
 
-                size_t pos_args = it->nargs;    // Number of positional arguments that we need
-                if (it->has_args) --pos_args;   // (but don't count py::args
-                if (it->has_kwargs) --pos_args; //  or py::kwargs)
+                function_record &func = *it;
+                size_t pos_args = func.nargs;    // Number of positional arguments that we need
+                if (func.has_args) --pos_args;   // (but don't count py::args
+                if (func.has_kwargs) --pos_args; //  or py::kwargs)
 
-                if (!it->has_args && n_args_in > pos_args)
+                if (!func.has_args && n_args_in > pos_args)
                     continue; // Too many arguments for this overload
 
-                if (n_args_in < pos_args && it->args.size() < pos_args)
+                if (n_args_in < pos_args && func.args.size() < pos_args)
                     continue; // Not enough arguments given, and not enough defaults to fill in the blanks
 
-                std::vector<handle> pass_args;
-                pass_args.reserve(it->nargs);
+                function_call call(func, parent);
 
                 size_t args_to_copy = std::min(pos_args, n_args_in);
                 size_t args_copied = 0;
@@ -440,7 +442,7 @@ protected:
                                     std::string(it->args[args_copied].name) + "'");
                     }
 
-                    pass_args.push_back(PyTuple_GET_ITEM(args_in, args_copied));
+                    call.args.push_back(PyTuple_GET_ITEM(args_in, args_copied));
                 }
 
                 // We'll need to copy this if we steal some kwargs for defaults
@@ -470,7 +472,7 @@ protected:
                         }
 
                         if (value)
-                            pass_args.push_back(value);
+                            call.args.push_back(value);
                         else
                             break;
                     }
@@ -502,22 +504,26 @@ protected:
                             extra_args[i] = item.inc_ref().ptr();
                         }
                     }
-                    pass_args.push_back(extra_args);
+                    call.args.push_back(extra_args);
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
                 if (it->has_kwargs) {
                     if (!kwargs.ptr())
                         kwargs = dict(); // If we didn't get one, send an empty one
-                    pass_args.push_back(kwargs);
+                    call.args.push_back(kwargs);
                 }
 
-                // 5. Put everything in a big tuple.  Not technically step 5, we've been building it
-                // in `pass_args` all along.
+                // 5. Put everything in a vector.  Not technically step 5, we've been building it
+                // in `call.args` all along.
+                #if !defined(NDEBUG)
+                if (call.args.size() != call.func.nargs)
+                    pybind11_fail("Internal error: function call dispatcher inserted wrong number of arguments!");
+                #endif
 
                 // 6. Call the function.
                 try {
-                    result = it->impl(it, pass_args, parent);
+                    result = it->impl(call);
                 } catch (reference_cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
@@ -541,7 +547,7 @@ protected:
                 - delegate translation to the next translator by throwing a new type of exception. */
 
             auto last_exception = std::current_exception();
-            auto &registered_exception_translators = pybind11::detail::get_internals().registered_exception_translators;
+            auto &registered_exception_translators = get_internals().registered_exception_translators;
             for (auto& translator : registered_exception_translators) {
                 try {
                     translator(last_exception);
@@ -564,7 +570,7 @@ protected:
                 " arguments. The following argument types are supported:\n";
 
             int ctr = 0;
-            for (detail::function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
+            for (function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
 
                 bool wrote_sig = false;
@@ -609,7 +615,7 @@ protected:
             if (overloads->is_constructor) {
                 /* When a constructor ran successfully, the corresponding
                    holder type (e.g. std::unique_ptr) must still be initialized. */
-                auto tinfo = detail::get_type_info(Py_TYPE(parent.ptr()));
+                auto tinfo = get_type_info(Py_TYPE(parent.ptr()));
                 tinfo->init_holder(parent.ptr(), nullptr);
             }
             return result.ptr();
@@ -1477,10 +1483,10 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     (void) wr.release();
 }
 
-PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_arguments args, handle ret) {
+PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
     keep_alive_impl(
-        Nurse   == 0 ? ret : Nurse   <= args.size() ? args[Nurse   - 1] : handle(),
-        Patient == 0 ? ret : Patient <= args.size() ? args[Patient - 1] : handle()
+        Nurse   == 0 ? ret : Nurse   <= call.args.size() ? call.args[Nurse   - 1] : handle(),
+        Patient == 0 ? ret : Patient <= call.args.size() ? call.args[Patient - 1] : handle()
     );
 }
 
