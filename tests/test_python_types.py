@@ -415,8 +415,34 @@ def test_implicit_casting():
 
 def test_unicode_conversion():
     """Tests unicode conversion and error reporting."""
-    from pybind11_tests import (good_utf8_string, bad_utf8_string)
+    import pybind11_tests
+    from pybind11_tests import (good_utf8_string, bad_utf8_string,
+                                good_utf16_string, bad_utf16_string,
+                                good_utf32_string,  # bad_utf32_string,
+                                good_wchar_string,  # bad_wchar_string,
+                                u8_Z, u8_eacute, u16_ibang, u32_mathbfA, wchar_heart)
 
-    assert good_utf8_string() == "Say what‽ 🎂"
+    assert good_utf8_string() == u"Say utf8‽ 🎂 𝐀"
+    assert good_utf16_string() == u"b‽🎂𝐀z"
+    assert good_utf32_string() == u"a𝐀🎂‽z"
+    assert good_wchar_string() == u"a⸘𝐀z"
+
     with pytest.raises(UnicodeDecodeError):
         bad_utf8_string()
+
+    with pytest.raises(UnicodeDecodeError):
+        bad_utf16_string()
+
+    # These are provided only if they actually fail (they don't when 32-bit and under Python 2.7)
+    if hasattr(pybind11_tests, "bad_utf32_string"):
+        with pytest.raises(UnicodeDecodeError):
+            pybind11_tests.bad_utf32_string()
+    if hasattr(pybind11_tests, "bad_wchar_string"):
+        with pytest.raises(UnicodeDecodeError):
+            pybind11_tests.bad_wchar_string()
+
+    assert u8_Z() == 'Z'
+    assert u8_eacute() == u'é'
+    assert u16_ibang() == u'‽'
+    assert u32_mathbfA() == u'𝐀'
+    assert wchar_heart() == u'♥'
