@@ -69,7 +69,8 @@ struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 template <typename... Args> struct init;
 template <typename... Args> struct init_alias;
-inline void keep_alive_impl(size_t Nurse, size_t Patient, function_arguments args, handle ret);
+struct function_call;
+inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -100,7 +101,7 @@ struct function_record {
     std::vector<argument_record> args;
 
     /// Pointer to lambda function which converts arguments and performs the actual call
-    handle (*impl) (function_record *, function_arguments, handle) = nullptr;
+    handle (*impl) (function_call &) = nullptr;
 
     /// Storage for the wrapped function pointer and captured data, if any
     void *data[3] = { };
@@ -221,6 +222,22 @@ struct type_record {
     }
 };
 
+/// Internal data associated with a single function call
+struct function_call {
+    function_call(function_record &f, handle p) : func(f), parent(p) {
+        args.reserve(f.nargs);
+    }
+
+    /// The function data:
+    const function_record &func;
+
+    /// Arguments passed to the function:
+    std::vector<handle> args;
+
+    /// The parent, if any
+    handle parent;
+};
+
 /**
  * Partial template specializations to process custom attributes provided to
  * cpp_function_ and class_. These are either used to initialize the respective
@@ -233,8 +250,8 @@ template <typename T> struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) { }
     static void init(const T &, type_record *) { }
-    static void precall(function_arguments) { }
-    static void postcall(function_arguments, handle) { }
+    static void precall(function_call &) { }
+    static void postcall(function_call &, handle) { }
 };
 
 /// Process an attribute specifying the function's name
@@ -362,13 +379,13 @@ struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
  */
 template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void precall(function_arguments args) { keep_alive_impl(Nurse, Patient, args, handle()); }
+    static void precall(function_call &call) { keep_alive_impl(Nurse, Patient, call, handle()); }
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void postcall(function_arguments, handle) { }
+    static void postcall(function_call &, handle) { }
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void precall(function_arguments) { }
+    static void precall(function_call &) { }
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void postcall(function_arguments args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
+    static void postcall(function_call &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
 };
 
 /// Recursively iterate over variadic template arguments
@@ -381,12 +398,12 @@ template <typename... Args> struct process_attributes {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
         ignore_unused(unused);
     }
-    static void precall(function_arguments fn_args) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(fn_args), 0) ... };
+    static void precall(function_call &call) {
+        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
         ignore_unused(unused);
     }
-    static void postcall(function_arguments fn_args, handle fn_ret) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(fn_args, fn_ret), 0) ... };
+    static void postcall(function_call &call, handle fn_ret) {
+        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
         ignore_unused(unused);
     }
 };

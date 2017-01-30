@@ -1248,12 +1248,11 @@ NAMESPACE_BEGIN(detail)
 // forward declaration
 struct function_record;
 
-using function_arguments = const std::vector<handle> &;
-
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
 class argument_loader {
     using indices = make_index_sequence<sizeof...(Args)>;
+    using function_arguments = const std::vector<handle> &;
 
     template <typename Arg> using argument_is_args   = std::is_same<intrinsic_t<Arg>, args>;
     template <typename Arg> using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
