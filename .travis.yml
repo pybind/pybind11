@@ -36,6 +36,9 @@ matrix:
       apt:
         sources: [ubuntu-toolchain-r-test, kubuntu-backports]
         packages: [g++-4.8, cmake]
+  - sudo: true
+    services: docker
+    env: ARCH=i386 PYTHON=3.5 CPP=14 GCC=6
   # A barebones build makes sure everything still works without optional deps (numpy/scipy/eigen)
   # and also tests the automatic discovery functions in CMake (Python version, C++ standard).
   - os: linux
@@ -71,7 +74,7 @@ before_install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -z "$GCC" ]; then export GCC=4.8; fi
     export CXX=g++-$GCC CC=gcc-$GCC;
-    if [ "$GCC" = "6" ]; then export DOCKER=debian:testing
+    if [ "$GCC" = "6" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
     elif [ "$GCC" = "7" ]; then export DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
