@@ -14,7 +14,7 @@ lifetime of objects managed by them. This can lead to issues when creating
 bindings for functions that return a non-trivial type. Just by looking at the
 type information, it is not clear whether Python should take charge of the
 returned value and eventually free its resources, or if this is handled on the
-C++ side. For this reason, pybind11 provides a several `return value policy`
+C++ side. For this reason, pybind11 provides a several *return value policy*
 annotations that can be passed to the :func:`module::def` and
 :func:`class_::def` functions. The default policy is
 :enum:`return_value_policy::automatic`.
@@ -24,11 +24,11 @@ Just to illustrate what can go wrong, consider the following simple example:
 
 .. code-block:: cpp
 
-    /* Function declaration */ 
+    /* Function declaration */
     Data *get_data() { return _data; /* (pointer to a static data structure) */ }
     ...
 
-    /* Binding code */ 
+    /* Binding code */
     m.def("get_data", &get_data); // <-- KABOOM, will cause crash when called from Python
 
 What's going on here? When ``get_data()`` is called from Python, the return
@@ -44,7 +44,7 @@ silent data corruption.
 
 In the above example, the policy :enum:`return_value_policy::reference` should have
 been specified so that the global data instance is only *referenced* without any
-implied transfer of ownership, i.e.: 
+implied transfer of ownership, i.e.:
 
 .. code-block:: cpp
 
@@ -158,9 +158,9 @@ targeted arguments can be passed through the :class:`cpp_function` constructor:
 Additional call policies
 ========================
 
-In addition to the above return value policies, further `call policies` can be
-specified to indicate dependencies between parameters. In general, call policies 
-are required when the C++ object is any kind of container and another object is being 
+In addition to the above return value policies, further *call policies* can be
+specified to indicate dependencies between parameters. In general, call policies
+are required when the C++ object is any kind of container and another object is being
 added to the container.
 
 There is currently just

@@ -51,7 +51,10 @@ matrix:
     env: DOCS STYLE LINT
     install:
     - pip install --upgrade sphinx sphinx_rtd_theme flake8 pep8-naming
-    - pip install docutils==0.12
+    - |
+      curl -fsSL ftp://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.12.linux.bin.tar.gz | tar xz
+      export PATH="$PWD/doxygen-1.8.12/bin:$PATH"
+      pip install https://github.com/michaeljones/breathe/archive/master.zip
     script:
     - make -C docs html SPHINX_OPTIONS=-W
     - tools/check-style.sh

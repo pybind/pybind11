@@ -1177,14 +1177,18 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
+/// \ingroup annotations
 /// Annotation for keyword arguments
 struct arg {
+    /// Set the name of the argument
     constexpr explicit arg(const char *name) : name(name) { }
+    /// Assign a value to this argument
     template <typename T> arg_v operator=(T &&value) const;
 
     const char *name;
 };
 
+/// \ingroup annotations
 /// Annotation for keyword arguments with values
 struct arg_v : arg {
     template <typename T>
@@ -1213,7 +1217,9 @@ arg_v arg::operator=(T &&value) const { return {name, std::forward<T>(value)}; }
 template <typename /*unused*/> using arg_t = arg_v;
 
 inline namespace literals {
-/// String literal version of arg
+/** \rst
+    String literal version of `arg`
+ \endrst */
 constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 }
 

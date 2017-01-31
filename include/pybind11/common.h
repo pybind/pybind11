@@ -159,6 +159,19 @@ extern "C" {
 #define PYBIND11_INTERNALS_ID "__pybind11_" \
     PYBIND11_TOSTRING(PYBIND11_VERSION_MAJOR) "_" PYBIND11_TOSTRING(PYBIND11_VERSION_MINOR) "__"
 
+/** \rst
+    This macro creates the entry point that will be invoked when the Python interpreter
+    imports a plugin library. Please create a `module` in the function body and return
+    the pointer to its underlying Python object at the end.
+
+    .. code-block:: cpp
+
+        PYBIND11_PLUGIN(example) {
+            pybind11::module m("example", "pybind11 example plugin");
+            /// Set up bindings here
+            return m.ptr();
+        }
+\endrst */
 #define PYBIND11_PLUGIN(name)                                                  \
     static PyObject *pybind11_init();                                          \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
@@ -388,7 +401,7 @@ template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <class T> using negation = bool_constant<!T::value>;
 #endif
 
-/// Compile-time all/any/none of that check the ::value of all template types
+/// Compile-time all/any/none of that check the boolean value of all template types
 #ifdef PYBIND11_CPP17
 template <class... Ts> using all_of = bool_constant<(Ts::value && ...)>;
 template <class... Ts> using any_of = bool_constant<(Ts::value || ...)>;
@@ -532,7 +545,8 @@ private:
 class builtin_exception : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
-    virtual void set_error() const = 0; /// Set the error using the Python C API
+    /// Set the error using the Python C API
+    virtual void set_error() const = 0;
 };
 
 #define PYBIND11_RUNTIME_EXCEPTION(name, type) \
