@@ -402,6 +402,13 @@ public:
             make_copy_constructor(src), make_move_constructor(src));
     }
 
+    static handle cast_holder(const itype *src, const void *holder) {
+        return type_caster_generic::cast(
+            src, return_value_policy::take_ownership, {},
+            src ? &typeid(*src) : nullptr, &typeid(type),
+            nullptr, nullptr, holder);
+    }
+
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
     operator itype*() { return (type *) value; }
@@ -636,17 +643,6 @@ protected:
     bool success = false;
 };
 
-template <typename type, typename deleter> class type_caster<std::unique_ptr<type, deleter>> {
-public:
-    static handle cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
-        handle result = type_caster_base<type>::cast(src.get(), policy, parent);
-        if (result)
-            src.release();
-        return result;
-    }
-    static PYBIND11_DESCR name() { return type_caster_base<type>::name(); }
-};
-
 template <> class type_caster<std::wstring> {
 public:
     bool load(handle src, bool) {
@@ -837,8 +833,16 @@ protected:
     std::tuple<make_caster<Tuple>...> value;
 };
 
+/// Helper class which abstracts away certain actions. Users can provide specializations for
+/// custom holders, but it's only necessary if the type has a non-standard interface.
+template <typename T>
+struct holder_helper {
+    static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
+};
+
 /// Type caster for holder types like std::shared_ptr, etc.
-template <typename type, typename holder_type> class type_caster_holder : public type_caster_base<type> {
+template <typename type, typename holder_type>
+struct copyable_holder_caster : public type_caster_base<type> {
 public:
     using base = type_caster_base<type>;
     using base::base;
@@ -917,7 +921,7 @@ public:
     template <typename T = holder_type, detail::enable_if_t<std::is_constructible<T, const T &, type*>::value, int> = 0>
     bool try_implicit_casts(handle src, bool convert) {
         for (auto &cast : typeinfo->implicit_casts) {
-            type_caster_holder sub_caster(*cast.first);
+            copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
                 holder = holder_type(sub_caster.holder, (type *) value);
@@ -940,10 +944,8 @@ public:
     #endif
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
-        return type_caster_generic::cast(
-            src.get(), return_value_policy::take_ownership, handle(),
-            src.get() ? &typeid(*src.get()) : nullptr, &typeid(type),
-            nullptr, nullptr, &src);
+        const auto *ptr = holder_helper<holder_type>::get(src);
+        return type_caster_base<type>::cast_holder(ptr, &src);
     }
 
 protected:
@@ -952,7 +954,25 @@ protected:
 
 /// Specialize for the common std::shared_ptr, so users don't need to
 template <typename T>
-class type_caster<std::shared_ptr<T>> : public type_caster_holder<T, std::shared_ptr<T>> { };
+class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> { };
+
+template <typename type, typename holder_type>
+struct move_only_holder_caster {
+    static handle cast(holder_type &&src, return_value_policy, handle) {
+        auto *ptr = holder_helper<holder_type>::get(src);
+        return type_caster_base<type>::cast_holder(ptr, &src);
+    }
+    static PYBIND11_DESCR name() { return type_caster_base<type>::name(); }
+};
+
+template <typename type, typename deleter>
+class type_caster<std::unique_ptr<type, deleter>>
+    : public move_only_holder_caster<type, std::unique_ptr<type, deleter>> { };
+
+template <typename type, typename holder_type>
+using type_caster_holder = conditional_t<std::is_copy_constructible<holder_type>::value,
+                                         copyable_holder_caster<type, holder_type>,
+                                         move_only_holder_caster<type, holder_type>>;
 
 template <typename T, bool Value = false> struct always_construct_holder { static constexpr bool value = Value; };
 
