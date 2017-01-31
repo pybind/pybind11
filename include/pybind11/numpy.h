@@ -36,8 +36,7 @@ static_assert(sizeof(size_t) == sizeof(Py_intptr_t), "size_t != Py_intptr_t");
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
-template <typename type, typename SFINAE = void> struct npy_format_descriptor { };
-template <typename type> struct is_pod_struct;
+template <typename type, typename SFINAE = void> struct npy_format_descriptor;
 
 struct PyArrayDescr_Proxy {
     PyObject_HEAD
@@ -219,6 +218,16 @@ inline const PyArrayDescr_Proxy* array_descriptor_proxy(const PyObject* ptr) {
 inline bool check_flags(const void* ptr, int flag) {
     return (flag == (array_proxy(ptr)->flags & flag));
 }
+
+template <typename T> struct is_std_array : std::false_type { };
+template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
+template <typename T> struct is_complex : std::false_type { };
+template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
+
+template <typename T> using is_pod_struct = all_of<
+    std::is_pod<T>, // since we're accessing directly in memory we need a POD type
+    satisfies_none_of<T, std::is_reference, std::is_array, is_std_array, std::is_arithmetic, is_complex, std::is_enum>
+>;
 
 NAMESPACE_END(detail)
 
@@ -685,65 +694,48 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
     PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name());
 };
 
-template <typename T> struct is_std_array : std::false_type { };
-template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
-
-template <typename T>
-struct is_pod_struct {
-    enum { value = std::is_pod<T>::value && // offsetof only works correctly for POD types
-           !std::is_reference<T>::value &&
-           !std::is_array<T>::value &&
-           !is_std_array<T>::value &&
-           !std::is_integral<T>::value &&
-           !std::is_enum<T>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, float>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, double>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, bool>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, std::complex<float>>::value &&
-           !std::is_same<typename std::remove_cv<T>::type, std::complex<double>>::value };
-};
-
-template <typename T> struct npy_format_descriptor<T, enable_if_t<std::is_integral<T>::value>> {
+template <typename T> struct npy_format_descriptor<T, enable_if_t<satisfies_any_of<T, std::is_arithmetic, is_complex>::value>> {
 private:
-    constexpr static const int values[8] = {
-        npy_api::NPY_BYTE_, npy_api::NPY_UBYTE_, npy_api::NPY_SHORT_,    npy_api::NPY_USHORT_,
-        npy_api::NPY_INT_,  npy_api::NPY_UINT_,  npy_api::NPY_LONGLONG_, npy_api::NPY_ULONGLONG_ };
+    // NB: the order here must match the one in common.h
+    constexpr static const int values[15] = {
+        npy_api::NPY_BOOL_,
+        npy_api::NPY_BYTE_,   npy_api::NPY_UBYTE_,   npy_api::NPY_SHORT_,    npy_api::NPY_USHORT_,
+        npy_api::NPY_INT_,    npy_api::NPY_UINT_,    npy_api::NPY_LONGLONG_, npy_api::NPY_ULONGLONG_,
+        npy_api::NPY_FLOAT_,  npy_api::NPY_DOUBLE_,  npy_api::NPY_LONGDOUBLE_,
+        npy_api::NPY_CFLOAT_, npy_api::NPY_CDOUBLE_, npy_api::NPY_CLONGDOUBLE_
+    };
+
 public:
-    enum { value = values[detail::log2(sizeof(T)) * 2 + (std::is_unsigned<T>::value ? 1 : 0)] };
+    static constexpr int value = values[detail::is_fmt_numeric<T>::index];
+
     static pybind11::dtype dtype() {
         if (auto ptr = npy_api::get().PyArray_DescrFromType_(value))
             return reinterpret_borrow<pybind11::dtype>(ptr);
         pybind11_fail("Unsupported buffer format!");
     }
-    template <typename T2 = T, enable_if_t<std::is_signed<T2>::value, int> = 0>
-    static PYBIND11_DESCR name() { return _("int") + _<sizeof(T)*8>(); }
-    template <typename T2 = T, enable_if_t<!std::is_signed<T2>::value, int> = 0>
-    static PYBIND11_DESCR name() { return _("uint") + _<sizeof(T)*8>(); }
+    template <typename T2 = T, enable_if_t<std::is_integral<T2>::value, int> = 0>
+    static PYBIND11_DESCR name() {
+        return _<std::is_same<T, bool>::value>(_("bool"),
+            _<std::is_signed<T>::value>("int", "uint") + _<sizeof(T)*8>());
+    }
+    template <typename T2 = T, enable_if_t<std::is_floating_point<T2>::value, int> = 0>
+    static PYBIND11_DESCR name() {
+        return _<std::is_same<T, float>::value || std::is_same<T, double>::value>(
+                _("float") + _<sizeof(T)*8>(), _("longdouble"));
+    }
+    template <typename T2 = T, enable_if_t<is_complex<T2>::value, int> = 0>
+    static PYBIND11_DESCR name() {
+        return _<std::is_same<typename T2::value_type, float>::value || std::is_same<typename T2::value_type, double>::value>(
+                _("complex") + _<sizeof(T2::value_type)*16>(), _("longcomplex"));
+    }
 };
-template <typename T> constexpr const int npy_format_descriptor<
-    T, enable_if_t<std::is_integral<T>::value>>::values[8];
 
-#define DECL_FMT(Type, NumPyName, Name) template<> struct npy_format_descriptor<Type> { \
-    enum { value = npy_api::NumPyName }; \
-    static pybind11::dtype dtype() { \
-        if (auto ptr = npy_api::get().PyArray_DescrFromType_(value)) \
-            return reinterpret_borrow<pybind11::dtype>(ptr); \
-        pybind11_fail("Unsupported buffer format!"); \
-    } \
-    static PYBIND11_DESCR name() { return _(Name); } }
-DECL_FMT(float, NPY_FLOAT_, "float32");
-DECL_FMT(double, NPY_DOUBLE_, "float64");
-DECL_FMT(bool, NPY_BOOL_, "bool");
-DECL_FMT(std::complex<float>, NPY_CFLOAT_, "complex64");
-DECL_FMT(std::complex<double>, NPY_CDOUBLE_, "complex128");
-#undef DECL_FMT
-
-#define DECL_CHAR_FMT \
+#define PYBIND11_DECL_CHAR_FMT \
     static PYBIND11_DESCR name() { return _("S") + _<N>(); } \
     static pybind11::dtype dtype() { return pybind11::dtype(std::string("S") + std::to_string(N)); }
-template <size_t N> struct npy_format_descriptor<char[N]> { DECL_CHAR_FMT };
-template <size_t N> struct npy_format_descriptor<std::array<char, N>> { DECL_CHAR_FMT };
-#undef DECL_CHAR_FMT
+template <size_t N> struct npy_format_descriptor<char[N]> { PYBIND11_DECL_CHAR_FMT };
+template <size_t N> struct npy_format_descriptor<std::array<char, N>> { PYBIND11_DECL_CHAR_FMT };
+#undef PYBIND11_DECL_CHAR_FMT
 
 template<typename T> struct npy_format_descriptor<T, enable_if_t<std::is_enum<T>::value>> {
 private:
@@ -798,9 +790,9 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
     for (auto& field : ordered_fields) {
         if (field.offset > offset)
             oss << (field.offset - offset) << 'x';
-        // mark unaligned fields with '='
+        // mark unaligned fields with '^' (unaligned native type)
         if (field.offset % field.alignment)
-            oss << '=';
+            oss << '^';
         oss << field.format << ':' << field.name << ':';
         offset = field.offset + field.size;
     }
@@ -820,8 +812,9 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
     get_internals().direct_conversions[tindex].push_back(direct_converter);
 }
 
-template <typename T>
-struct npy_format_descriptor<T, enable_if_t<is_pod_struct<T>::value>> {
+template <typename T, typename SFINAE> struct npy_format_descriptor {
+    static_assert(is_pod_struct<T>::value, "Attempt to use a non-POD or unimplemented POD type as a numpy dtype");
+
     static PYBIND11_DESCR name() { return _("struct"); }
 
     static pybind11::dtype dtype() {

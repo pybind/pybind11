@@ -176,9 +176,10 @@ function overload.
 Structured types
 ================
 
-In order for ``py::array_t`` to work with structured (record) types, we first need
-to register the memory layout of the type. This can be done via ``PYBIND11_NUMPY_DTYPE``
-macro which expects the type followed by field names:
+In order for ``py::array_t`` to work with structured (record) types, we first
+need to register the memory layout of the type. This can be done via
+``PYBIND11_NUMPY_DTYPE`` macro, called in the plugin definition code, which
+expects the type followed by field names:
 
 .. code-block:: cpp
 
@@ -192,10 +193,14 @@ macro which expects the type followed by field names:
         A a;
     };
 
-    PYBIND11_NUMPY_DTYPE(A, x, y);
-    PYBIND11_NUMPY_DTYPE(B, z, a);
+    // ...
+    PYBIND11_PLUGIN(test) {
+        // ...
 
-    /* now both A and B can be used as template arguments to py::array_t */
+        PYBIND11_NUMPY_DTYPE(A, x, y);
+        PYBIND11_NUMPY_DTYPE(B, z, a);
+        /* now both A and B can be used as template arguments to py::array_t */
+    }
 
 Vectorizing functions
 =====================

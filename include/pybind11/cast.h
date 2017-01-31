@@ -1009,8 +1009,8 @@ class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caste
 // - if the type is non-copy-constructible, the object must be the sole owner of the type (i.e. it
 //   must have ref_count() == 1)h
 // If any of the above are not satisfied, we fall back to copying.
-template <typename T> using move_is_plain_type = none_of<
-    std::is_void<T>, std::is_pointer<T>, std::is_reference<T>, std::is_const<T>
+template <typename T> using move_is_plain_type = satisfies_none_of<T,
+    std::is_void, std::is_pointer, std::is_reference, std::is_const
 >;
 template <typename T, typename SFINAE = void> struct move_always : std::false_type {};
 template <typename T> struct move_always<T, enable_if_t<all_of<

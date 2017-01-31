@@ -547,10 +547,10 @@ public:
 template <typename T> using is_keyword = std::is_base_of<arg, T>;
 template <typename T> using is_s_unpacking = std::is_same<args_proxy, T>; // * unpacking
 template <typename T> using is_ds_unpacking = std::is_same<kwargs_proxy, T>; // ** unpacking
-template <typename T> using is_positional = none_of<
-    is_keyword<T>, is_s_unpacking<T>, is_ds_unpacking<T>
+template <typename T> using is_positional = satisfies_none_of<T,
+    is_keyword, is_s_unpacking, is_ds_unpacking
 >;
-template <typename T> using is_keyword_or_ds = any_of<is_keyword<T>, is_ds_unpacking<T>>;
+template <typename T> using is_keyword_or_ds = satisfies_any_of<T, is_keyword, is_ds_unpacking>;
 
 // Call argument collector forward declarations
 template <return_value_policy policy = return_value_policy::automatic_reference>
