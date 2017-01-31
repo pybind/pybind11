@@ -256,16 +256,21 @@ Such functions can also be created using pybind11:
    m.def("generic", &generic);
 
 The class ``py::args`` derives from ``py::tuple`` and ``py::kwargs`` derives
-from ``py::dict``. Note that the ``kwargs`` argument is invalid if no keyword
-arguments were actually provided. Please refer to the other examples for
-details on how to iterate over these, and on how to cast their entries into
-C++ objects. A demonstration is also available in
-``tests/test_kwargs_and_defaults.cpp``.
+from ``py::dict``.
 
-.. warning::
+You may also use just one or the other, and may combine these with other
+arguments as long as the ``py::args`` and ``py::kwargs`` arguments are the last
+arguments accepted by the function.
 
-   Unlike Python, pybind11 does not allow combining normal parameters with the
-   ``args`` / ``kwargs`` special parameters.
+Please refer to the other examples for details on how to iterate over these,
+and on how to cast their entries into C++ objects. A demonstration is also
+available in ``tests/test_kwargs_and_defaults.cpp``.
+
+.. note::
+
+    When combining \*args or \*\*kwargs with :ref:`keyword_args` you should
+    *not* include ``py::arg`` tags for the ``py::args`` and ``py::kwargs``
+    arguments.
 
 Default arguments revisited
 ===========================

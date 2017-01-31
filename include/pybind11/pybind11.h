@@ -82,8 +82,6 @@ protected:
     /// Special internal constructor for functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Args, typename... Extra /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
     void initialize(Func &&f, Return (*)(Args...) PYBIND11_NOEXCEPT_SPECIFIER, const Extra&... extra) {
-        static_assert(detail::expected_num_args<Extra...>(sizeof...(Args)),
-                      "The number of named arguments does not match the function signature");
 
         struct capture { typename std::remove_reference<Func>::type f; };
 
@@ -116,32 +114,35 @@ protected:
             detail::conditional_t<std::is_void<Return>::value, detail::void_type, Return>
         >;
 
+        static_assert(detail::expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
+                      "The number of named arguments does not match the function signature");
+
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](detail::function_record *rec, handle args, handle kwargs, handle parent) -> handle {
+        rec->impl = [](detail::function_call &call) -> handle {
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(args, kwargs))
+            if (!args_converter.load_args(call.args))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Invoke call policy pre-call hook */
-            detail::process_attributes<Extra...>::precall(args);
+            detail::process_attributes<Extra...>::precall(call);
 
             /* Get a pointer to the capture object */
-            capture *cap = (capture *) (sizeof(capture) <= sizeof(rec->data)
-                                        ? &rec->data : rec->data[0]);
+            capture *cap = (capture *) (sizeof(capture) <= sizeof(call.func.data)
+                                        ? &call.func.data : call.func.data[0]);
 
             /* Override policy for rvalues -- always move */
             constexpr auto is_rvalue = !std::is_pointer<Return>::value
                                        && !std::is_lvalue_reference<Return>::value;
-            const auto policy = is_rvalue ? return_value_policy::move : rec->policy;
+            const auto policy = is_rvalue ? return_value_policy::move : call.func.policy;
 
             /* Perform the function call */
             handle result = cast_out::cast(args_converter.template call<Return>(cap->f),
-                                           policy, parent);
+                                           policy, call.parent);
 
             /* Invoke call policy post-call hook */
-            detail::process_attributes<Extra...>::postcall(args, result);
+            detail::process_attributes<Extra...>::postcall(call, result);
 
             return result;
         };
@@ -379,66 +380,150 @@ protected:
     }
 
     /// Main dispatch logic for calls to functions bound using pybind11
-    static PyObject *dispatcher(PyObject *self, PyObject *args, PyObject *kwargs) {
+    static PyObject *dispatcher(PyObject *self, PyObject *args_in, PyObject *kwargs_in) {
+        using namespace detail;
+
         /* Iterator over the list of potentially admissible overloads */
-        detail::function_record *overloads = (detail::function_record *) PyCapsule_GetPointer(self, nullptr),
-                                *it = overloads;
+        function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
+                        *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
-        size_t nargs = (size_t) PyTuple_GET_SIZE(args),
-               nkwargs = kwargs ? (size_t) PyDict_Size(kwargs) : 0;
+        const size_t n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
 
-        handle parent = nargs > 0 ? PyTuple_GET_ITEM(args, 0) : nullptr,
+        handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
         try {
             for (; it != nullptr; it = it->next) {
-                auto args_ = reinterpret_borrow<tuple>(args);
-                size_t kwargs_consumed = 0;
-
                 /* For each overload:
-                   1. If the required list of arguments is longer than the
-                      actually provided amount, create a copy of the argument
-                      list and fill in any available keyword/default arguments.
-                   2. Ensure that all keyword arguments were "consumed"
-                   3. Call the function call dispatcher (function_record::impl)
+                   1. Copy all positional arguments we were given, also checking to make sure that
+                      named positional arguments weren't *also* specified via kwarg.
+                   2. If we weren't given enough, try to make up the ommitted ones by checking
+                      whether they were provided by a kwarg matching the `py::arg("name")` name.  If
+                      so, use it (and remove it from kwargs; if not, see if the function binding
+                      provided a default that we can use.
+                   3. Ensure that either all keyword arguments were "consumed", or that the function
+                      takes a kwargs argument to accept unconsumed kwargs.
+                   4. Any positional arguments still left get put into a tuple (for args), and any
+                      leftover kwargs get put into a dict.
+                   5. Pack everything into a vector; if we have py::args or py::kwargs, they are an
+                      extra tuple or dict at the end of the positional arguments.
+                   6. Call the function call dispatcher (function_record::impl)
+
+                   If one of these fail, move on to the next overload and keep trying until we get a
+                   result other than PYBIND11_TRY_NEXT_OVERLOAD.
                  */
-                size_t nargs_ = nargs;
-                if (nargs < it->args.size()) {
-                    nargs_ = it->args.size();
-                    args_ = tuple(nargs_);
-                    for (size_t i = 0; i < nargs; ++i) {
-                        handle item = PyTuple_GET_ITEM(args, i);
-                        PyTuple_SET_ITEM(args_.ptr(), i, item.inc_ref().ptr());
-                    }
 
-                    int arg_ctr = 0;
-                    for (auto const &it2 : it->args) {
-                        int index = arg_ctr++;
-                        if (PyTuple_GET_ITEM(args_.ptr(), index))
-                            continue;
+                function_record &func = *it;
+                size_t pos_args = func.nargs;    // Number of positional arguments that we need
+                if (func.has_args) --pos_args;   // (but don't count py::args
+                if (func.has_kwargs) --pos_args; //  or py::kwargs)
 
-                        handle value;
-                        if (kwargs)
-                            value = PyDict_GetItemString(kwargs, it2.name);
+                if (!func.has_args && n_args_in > pos_args)
+                    continue; // Too many arguments for this overload
 
+                if (n_args_in < pos_args && func.args.size() < pos_args)
+                    continue; // Not enough arguments given, and not enough defaults to fill in the blanks
+
+                function_call call(func, parent);
+
+                size_t args_to_copy = std::min(pos_args, n_args_in);
+                size_t args_copied = 0;
+
+                // 1. Copy any position arguments given.
+                for (; args_copied < args_to_copy; ++args_copied) {
+                    // If we find a given positional argument that also has a named kwargs argument,
+                    // raise a TypeError like Python does.  (We could also continue with the next
+                    // overload, but this seems highly likely to be a caller mistake rather than a
+                    // legitimate overload).
+                    if (kwargs_in && args_copied < it->args.size()) {
+                        handle value = PyDict_GetItemString(kwargs_in, it->args[args_copied].name);
                         if (value)
-                            kwargs_consumed++;
-                        else if (it2.value)
-                            value = it2.value;
-
-                        if (value) {
-                            PyTuple_SET_ITEM(args_.ptr(), index, value.inc_ref().ptr());
-                        } else {
-                            kwargs_consumed = (size_t) -1; /* definite failure */
-                            break;
-                        }
+                            throw type_error(std::string(it->name) + "(): got multiple values for argument '" +
+                                    std::string(it->args[args_copied].name) + "'");
                     }
+
+                    call.args.push_back(PyTuple_GET_ITEM(args_in, args_copied));
                 }
 
+                // We'll need to copy this if we steal some kwargs for defaults
+                dict kwargs = reinterpret_borrow<dict>(kwargs_in);
+
+                // 2. Check kwargs and, failing that, defaults that may help complete the list
+                if (args_copied < pos_args) {
+                    bool copied_kwargs = false;
+
+                    for (; args_copied < pos_args; ++args_copied) {
+                        const auto &arg = it->args[args_copied];
+
+                        handle value;
+                        if (kwargs_in)
+                            value = PyDict_GetItemString(kwargs.ptr(), arg.name);
+
+                        if (value) {
+                            // Consume a kwargs value
+                            if (!copied_kwargs) {
+                                kwargs = reinterpret_steal<dict>(PyDict_Copy(kwargs.ptr()));
+                                copied_kwargs = true;
+                            }
+                            PyDict_DelItemString(kwargs.ptr(), arg.name);
+                        }
+                        else if (arg.value) {
+                            value = arg.value;
+                        }
+
+                        if (value)
+                            call.args.push_back(value);
+                        else
+                            break;
+                    }
+
+                    if (args_copied < pos_args)
+                        continue; // Not enough arguments, defaults, or kwargs to fill the positional arguments
+                }
+
+                // 3. Check everything was consumed (unless we have a kwargs arg)
+                if (kwargs && kwargs.size() > 0 && !it->has_kwargs)
+                    continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
+
+                // 4a. If we have a py::args argument, create a new tuple with leftovers
+                tuple extra_args;
+                if (it->has_args) {
+                    if (args_to_copy == 0) {
+                        // We didn't copy out any position arguments from the args_in tuple, so we
+                        // can reuse it directly without copying:
+                        extra_args = reinterpret_borrow<tuple>(args_in);
+                    }
+                    else if (args_copied >= n_args_in) {
+                        extra_args = tuple(0);
+                    }
+                    else {
+                        size_t args_size = n_args_in - args_copied;
+                        extra_args = tuple(args_size);
+                        for (size_t i = 0; i < args_size; ++i) {
+                            handle item = PyTuple_GET_ITEM(args_in, args_copied + i);
+                            extra_args[i] = item.inc_ref().ptr();
+                        }
+                    }
+                    call.args.push_back(extra_args);
+                }
+
+                // 4b. If we have a py::kwargs, pass on any remaining kwargs
+                if (it->has_kwargs) {
+                    if (!kwargs.ptr())
+                        kwargs = dict(); // If we didn't get one, send an empty one
+                    call.args.push_back(kwargs);
+                }
+
+                // 5. Put everything in a vector.  Not technically step 5, we've been building it
+                // in `call.args` all along.
+                #if !defined(NDEBUG)
+                if (call.args.size() != call.func.nargs)
+                    pybind11_fail("Internal error: function call dispatcher inserted wrong number of arguments!");
+                #endif
+
+                // 6. Call the function.
                 try {
-                    if ((kwargs_consumed == nkwargs || it->has_kwargs) &&
-                        (nargs_ == it->nargs || it->has_args))
-                        result = it->impl(it, args_, kwargs, parent);
+                    result = it->impl(call);
                 } catch (reference_cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
@@ -462,7 +547,7 @@ protected:
                 - delegate translation to the next translator by throwing a new type of exception. */
 
             auto last_exception = std::current_exception();
-            auto &registered_exception_translators = pybind11::detail::get_internals().registered_exception_translators;
+            auto &registered_exception_translators = get_internals().registered_exception_translators;
             for (auto& translator : registered_exception_translators) {
                 try {
                     translator(last_exception);
@@ -485,7 +570,7 @@ protected:
                 " arguments. The following argument types are supported:\n";
 
             int ctr = 0;
-            for (detail::function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
+            for (function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
 
                 bool wrote_sig = false;
@@ -512,7 +597,7 @@ protected:
                 msg += "\n";
             }
             msg += "\nInvoked with: ";
-            auto args_ = reinterpret_borrow<tuple>(args);
+            auto args_ = reinterpret_borrow<tuple>(args_in);
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
                 msg += pybind11::repr(args_[ti]);
                 if ((ti + 1) != args_.size() )
@@ -530,9 +615,8 @@ protected:
             if (overloads->is_constructor) {
                 /* When a constructor ran successfully, the corresponding
                    holder type (e.g. std::unique_ptr) must still be initialized. */
-                PyObject *inst = PyTuple_GET_ITEM(args, 0);
-                auto tinfo = detail::get_type_info(Py_TYPE(inst));
-                tinfo->init_holder(inst, nullptr);
+                auto tinfo = get_type_info(Py_TYPE(parent.ptr()));
+                tinfo->init_holder(parent.ptr(), nullptr);
             }
             return result.ptr();
         }
@@ -1401,11 +1485,11 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     (void) wr.release();
 }
 
-PYBIND11_NOINLINE inline void keep_alive_impl(int Nurse, int Patient, handle args, handle ret) {
-    handle nurse  (Nurse   > 0 ? PyTuple_GetItem(args.ptr(), Nurse   - 1) : ret.ptr());
-    handle patient(Patient > 0 ? PyTuple_GetItem(args.ptr(), Patient - 1) : ret.ptr());
-
-    keep_alive_impl(nurse, patient);
+PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+    keep_alive_impl(
+        Nurse   == 0 ? ret : Nurse   <= call.args.size() ? call.args[Nurse   - 1] : handle(),
+        Patient == 0 ? ret : Patient <= call.args.size() ? call.args[Patient - 1] : handle()
+    );
 }
 
 template <typename Iterator, typename Sentinel, bool KeyIterator, return_value_policy Policy>

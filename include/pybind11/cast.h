@@ -1219,22 +1219,33 @@ constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 
 NAMESPACE_BEGIN(detail)
 
+// forward declaration
+struct function_record;
+
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
 class argument_loader {
-    using itypes = type_list<intrinsic_t<Args>...>;
     using indices = make_index_sequence<sizeof...(Args)>;
+    using function_arguments = const std::vector<handle> &;
+
+    template <typename Arg> using argument_is_args   = std::is_same<intrinsic_t<Arg>, args>;
+    template <typename Arg> using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
+    // Get args/kwargs argument positions relative to the end of the argument list:
+    static constexpr auto args_pos = constexpr_first<argument_is_args, Args...>() - (int) sizeof...(Args),
+                        kwargs_pos = constexpr_first<argument_is_kwargs, Args...>() - (int) sizeof...(Args);
+
+    static constexpr bool args_kwargs_are_last = kwargs_pos >= - 1 && args_pos >= kwargs_pos - 1;
+
+    static_assert(args_kwargs_are_last, "py::args/py::kwargs are only permitted as the last argument(s) of a function");
 
 public:
-    argument_loader() : value() {} // Helps gcc-7 properly initialize value
-
-    static constexpr auto has_kwargs = std::is_same<itypes, type_list<args, kwargs>>::value;
-    static constexpr auto has_args = has_kwargs || std::is_same<itypes, type_list<args>>::value;
+    static constexpr bool has_kwargs = kwargs_pos < 0;
+    static constexpr bool has_args = args_pos < 0;
 
     static PYBIND11_DESCR arg_names() { return detail::concat(make_caster<Args>::name()...); }
 
-    bool load_args(handle args, handle kwargs) {
-        return load_impl(args, kwargs, itypes{});
+    bool load_args(function_arguments args) {
+        return load_impl_sequence(args, indices{});
     }
 
     template <typename Return, typename Func>
@@ -1249,26 +1260,12 @@ public:
     }
 
 private:
-    bool load_impl(handle args_, handle, type_list<args>) {
-        std::get<0>(value).load(args_, true);
-        return true;
-    }
 
-    bool load_impl(handle args_, handle kwargs_, type_list<args, kwargs>) {
-        std::get<0>(value).load(args_, true);
-        std::get<1>(value).load(kwargs_, true);
-        return true;
-    }
-
-    bool load_impl(handle args, handle, ... /* anything else */) {
-        return load_impl_sequence(args, indices{});
-    }
-
-    static bool load_impl_sequence(handle, index_sequence<>) { return true; }
+    static bool load_impl_sequence(function_arguments, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(handle src, index_sequence<Is...>) {
-        for (bool r : {std::get<Is>(value).load(PyTuple_GET_ITEM(src.ptr(), Is), true)...})
+    bool load_impl_sequence(function_arguments args, index_sequence<Is...>) {
+        for (bool r : {std::get<Is>(value).load(args[Is], true)...})
             if (!r)
                 return false;
         return true;
@@ -1281,25 +1278,6 @@ private:
 
     std::tuple<make_caster<Args>...> value;
 };
-
-NAMESPACE_BEGIN(constexpr_impl)
-/// Implementation details for constexpr functions
-constexpr int first(int i) { return i; }
-template <typename T, typename... Ts>
-constexpr int first(int i, T v, Ts... vs) { return v ? i : first(i + 1, vs...); }
-
-constexpr int last(int /*i*/, int result) { return result; }
-template <typename T, typename... Ts>
-constexpr int last(int i, int result, T v, Ts... vs) { return last(i + 1, v ? i : result, vs...); }
-NAMESPACE_END(constexpr_impl)
-
-/// Return the index of the first type in Ts which satisfies Predicate<T>
-template <template<typename> class Predicate, typename... Ts>
-constexpr int constexpr_first() { return constexpr_impl::first(0, Predicate<Ts>::value...); }
-
-/// Return the index of the last type in Ts which satisfies Predicate<T>
-template <template<typename> class Predicate, typename... Ts>
-constexpr int constexpr_last() { return constexpr_impl::last(0, -1, Predicate<Ts>::value...); }
 
 /// Helper class which collects only positional arguments for a Python function call.
 /// A fancier version below can collect any argument, but this one is optimal for simple calls.
