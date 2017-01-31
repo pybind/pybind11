@@ -397,7 +397,7 @@ protected:
                 /* For each overload:
                    1. Copy all positional arguments we were given, also checking to make sure that
                       named positional arguments weren't *also* specified via kwarg.
-                   2. If we weren't given enough, try to make up the ommitted ones by checking
+                   2. If we weren't given enough, try to make up the omitted ones by checking
                       whether they were provided by a kwarg matching the `py::arg("name")` name.  If
                       so, use it (and remove it from kwargs; if not, see if the function binding
                       provided a default that we can use.
@@ -466,8 +466,7 @@ protected:
                                 copied_kwargs = true;
                             }
                             PyDict_DelItemString(kwargs.ptr(), arg.name);
-                        }
-                        else if (arg.value) {
+                        } else if (arg.value) {
                             value = arg.value;
                         }
 
@@ -492,11 +491,9 @@ protected:
                         // We didn't copy out any position arguments from the args_in tuple, so we
                         // can reuse it directly without copying:
                         extra_args = reinterpret_borrow<tuple>(args_in);
-                    }
-                    else if (args_copied >= n_args_in) {
+                    } else if (args_copied >= n_args_in) {
                         extra_args = tuple(0);
-                    }
-                    else {
+                    } else {
                         size_t args_size = n_args_in - args_copied;
                         extra_args = tuple(args_size);
                         for (size_t i = 0; i < args_size; ++i) {
