@@ -741,6 +741,7 @@ protected:
         tinfo->type_size = rec->type_size;
         tinfo->init_holder = rec->init_holder;
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
+        tinfo->default_holder = rec->default_holder;
         internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[type] = tinfo;
 
@@ -1006,6 +1007,7 @@ public:
         record.instance_size = sizeof(instance_type);
         record.init_holder = init_holder;
         record.dealloc = dealloc;
+        record.default_holder = std::is_same<holder_type, std::unique_ptr<type>>::value;
 
         /* Register base classes specified via template arguments to class_, if any */
         bool unused[] = { (add_base<options>(record), false)..., false };
