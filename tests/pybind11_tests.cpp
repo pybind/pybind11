@@ -32,7 +32,7 @@ void bind_ConstructorStats(py::module &m) {
 }
 
 PYBIND11_PLUGIN(pybind11_tests) {
-    py::module m("pybind11_tests", "pybind example plugin");
+    py::module m("pybind11_tests", "pybind testing plugin");
 
     bind_ConstructorStats(m);
 
