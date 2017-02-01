@@ -33,6 +33,7 @@ the last case of the above list.
    :maxdepth: 1
 
    overview
+   strings
    stl
    functional
    chrono
