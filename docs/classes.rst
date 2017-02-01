@@ -38,7 +38,7 @@ The binding code for ``Pet`` looks as follows:
         return m.ptr();
     }
 
-:class:`class_` creates bindings for a C++ `class` or `struct`-style data
+:class:`class_` creates bindings for a C++ *class* or *struct*-style data
 structure. :func:`init` is a convenience function that takes the types of a
 constructor's parameters as template arguments and wraps the corresponding
 constructor (see the :ref:`custom_constructors` section for details). An

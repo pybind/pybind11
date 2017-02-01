@@ -4,8 +4,8 @@ Chrono
 When including the additional header file :file:`pybind11/chrono.h` conversions
 from C++11 chrono datatypes to python datetime objects are automatically enabled.
 This header also enables conversions of python floats (often from sources such
-as `time.monotonic()`, `time.perf_counter()` and `time.process_time()`) into
-durations.
+as ``time.monotonic()``, ``time.perf_counter()`` and ``time.process_time()``)
+into durations.
 
 An overview of clocks in C++11
 ------------------------------

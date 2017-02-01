@@ -36,6 +36,9 @@ matrix:
       apt:
         sources: [ubuntu-toolchain-r-test, kubuntu-backports]
         packages: [g++-4.8, cmake]
+  - sudo: true
+    services: docker
+    env: ARCH=i386 PYTHON=3.5 CPP=14 GCC=6
   # A barebones build makes sure everything still works without optional deps (numpy/scipy/eigen)
   # and also tests the automatic discovery functions in CMake (Python version, C++ standard).
   - os: linux
@@ -51,7 +54,10 @@ matrix:
     env: DOCS STYLE LINT
     install:
     - pip install --upgrade sphinx sphinx_rtd_theme flake8 pep8-naming
-    - pip install docutils==0.12
+    - |
+      curl -fsSL ftp://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.12.linux.bin.tar.gz | tar xz
+      export PATH="$PWD/doxygen-1.8.12/bin:$PATH"
+      pip install https://github.com/michaeljones/breathe/archive/master.zip
     script:
     - make -C docs html SPHINX_OPTIONS=-W
     - tools/check-style.sh
@@ -68,7 +74,7 @@ before_install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -z "$GCC" ]; then export GCC=4.8; fi
     export CXX=g++-$GCC CC=gcc-$GCC;
-    if [ "$GCC" = "6" ]; then export DOCKER=debian:testing
+    if [ "$GCC" = "6" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
     elif [ "$GCC" = "7" ]; then export DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then

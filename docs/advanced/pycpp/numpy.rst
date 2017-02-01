@@ -155,7 +155,7 @@ NumPy array containing double precision values.
 When it is invoked with a different type (e.g. an integer or a list of
 integers), the binding code will attempt to cast the input into a NumPy array
 of the requested type. Note that this feature requires the
-:file:``pybind11/numpy.h`` header to be included.
+:file:`pybind11/numpy.h` header to be included.
 
 Data in NumPy arrays is not guaranteed to packed in a dense manner;
 furthermore, entries can be separated by arbitrary column and row strides.
@@ -176,9 +176,10 @@ function overload.
 Structured types
 ================
 
-In order for ``py::array_t`` to work with structured (record) types, we first need
-to register the memory layout of the type. This can be done via ``PYBIND11_NUMPY_DTYPE``
-macro which expects the type followed by field names:
+In order for ``py::array_t`` to work with structured (record) types, we first
+need to register the memory layout of the type. This can be done via
+``PYBIND11_NUMPY_DTYPE`` macro, called in the plugin definition code, which
+expects the type followed by field names:
 
 .. code-block:: cpp
 
@@ -192,10 +193,14 @@ macro which expects the type followed by field names:
         A a;
     };
 
-    PYBIND11_NUMPY_DTYPE(A, x, y);
-    PYBIND11_NUMPY_DTYPE(B, z, a);
+    // ...
+    PYBIND11_PLUGIN(test) {
+        // ...
 
-    /* now both A and B can be used as template arguments to py::array_t */
+        PYBIND11_NUMPY_DTYPE(A, x, y);
+        PYBIND11_NUMPY_DTYPE(B, z, a);
+        /* now both A and B can be used as template arguments to py::array_t */
+    }
 
 Vectorizing functions
 =====================

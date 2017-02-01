@@ -49,6 +49,12 @@ struct BaseClass { virtual ~BaseClass() {} };
 struct DerivedClass1 : BaseClass { };
 struct DerivedClass2 : BaseClass { };
 
+struct MismatchBase1 { };
+struct MismatchDerived1 : MismatchBase1 { };
+
+struct MismatchBase2 { };
+struct MismatchDerived2 : MismatchBase2 { };
+
 test_initializer inheritance([](py::module &m) {
     py::class_<Pet> pet_class(m, "Pet");
     pet_class
@@ -96,5 +102,16 @@ test_initializer inheritance([](py::module &m) {
             py::isinstance<Rabbit>(l[5]),
             py::isinstance<Unregistered>(l[6])
         );
+    });
+
+    m.def("test_mismatched_holder_type_1", []() {
+        auto m = py::module::import("__main__");
+        py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(m, "MismatchBase1");
+        py::class_<MismatchDerived1, MismatchBase1>(m, "MismatchDerived1");
+    });
+    m.def("test_mismatched_holder_type_2", []() {
+        auto m = py::module::import("__main__");
+        py::class_<MismatchBase2>(m, "MismatchBase2");
+        py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>, MismatchBase2>(m, "MismatchDerived2");
     });
 });
