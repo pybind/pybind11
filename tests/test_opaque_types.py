@@ -28,9 +28,10 @@ def test_pointers(msg):
                                 print_opaque_list, return_null_str, get_null_str_value,
                                 return_unique_ptr, ConstructorStats)
 
+    living_before = ConstructorStats.get(ExampleMandA).alive()
     assert get_void_ptr_value(return_void_ptr()) == 0x1234
     assert get_void_ptr_value(ExampleMandA())  # Should also work for other C++ types
-    assert ConstructorStats.get(ExampleMandA).alive() == 0
+    assert ConstructorStats.get(ExampleMandA).alive() == living_before
 
     with pytest.raises(TypeError) as excinfo:
         get_void_ptr_value([1, 2, 3])  # This should not work

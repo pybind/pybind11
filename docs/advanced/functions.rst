@@ -372,3 +372,33 @@ name, i.e. by specifying ``py::arg().noconvert()``.
     enable no-convert behaviour for just one of several arguments, you will
     need to specify a ``py::arg()`` annotation for each argument with the
     no-convert argument modified to ``py::arg().noconvert()``.
+
+Overload resolution order
+=========================
+
+When a function or method with multiple overloads is called from Python,
+pybind11 determines which overload to call in two passes.  The first pass
+attempts to call each overload without allowing argument conversion (as if
+every argument had been specified as ``py::arg().noconvert()`` as decribed
+above).
+
+If no overload succeeds in the no-conversion first pass, a second pass is
+attempted in which argument conversion is allowed (except where prohibited via
+an explicit ``py::arg().noconvert()`` attribute in the function definition).
+
+If the second pass also fails a ``TypeError`` is raised.
+
+Within each pass, overloads are tried in the order they were registered with
+pybind11.
+
+What this means in practice is that pybind11 will prefer any overload that does
+not require conversion of arguments to an overload that does, but otherwise prefers
+earlier-defined overloads to later-defined ones.
+
+.. note::
+
+    pybind11 does *not* further prioritize based on the number/pattern of
+    overloaded arguments.  That is, pybind11 does not prioritize a function
+    requiring one conversion over one requiring three, but only prioritizes
+    overloads requiring no conversion at all to overloads that require
+    conversion of at least one argument.
