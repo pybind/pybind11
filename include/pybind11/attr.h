@@ -14,6 +14,9 @@
 
 NAMESPACE_BEGIN(pybind11)
 
+/// \addtogroup annotations
+/// @{
+
 /// Annotation for methods
 struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
 
@@ -39,7 +42,7 @@ template <typename T> struct base {
 };
 
 /// Keep patient alive while nurse lives
-template <int Nurse, int Patient> struct keep_alive { };
+template <size_t Nurse, size_t Patient> struct keep_alive { };
 
 /// Annotation indicating that a class is involved in a multiple inheritance relationship
 struct multiple_inheritance { };
@@ -56,6 +59,8 @@ struct metaclass { };
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
 
+/// @} annotations
+
 NAMESPACE_BEGIN(detail)
 /* Forward declarations */
 enum op_id : int;
@@ -64,7 +69,8 @@ struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 template <typename... Args> struct init;
 template <typename... Args> struct init_alias;
-inline void keep_alive_impl(int Nurse, int Patient, handle args, handle ret);
+struct function_call;
+inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -95,7 +101,7 @@ struct function_record {
     std::vector<argument_record> args;
 
     /// Pointer to lambda function which converts arguments and performs the actual call
-    handle (*impl) (function_record *, handle, handle, handle) = nullptr;
+    handle (*impl) (function_call &) = nullptr;
 
     /// Storage for the wrapped function pointer and captured data, if any
     void *data[3] = { };
@@ -124,7 +130,7 @@ struct function_record {
     /// True if this is a method
     bool is_method : 1;
 
-    /// Number of arguments
+    /// Number of arguments (including py::args and/or py::kwargs, if present)
     uint16_t nargs;
 
     /// Python method object
@@ -185,6 +191,9 @@ struct type_record {
     /// Does the class require its own metaclass?
     bool metaclass : 1;
 
+    /// Is the default (unique_ptr) holder type used?
+    bool default_holder : 1;
+
     PYBIND11_NOINLINE void add_base(const std::type_info *base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(*base, false);
         if (!base_info) {
@@ -192,6 +201,15 @@ struct type_record {
             detail::clean_type_id(tname);
             pybind11_fail("generic_type: type \"" + std::string(name) +
                           "\" referenced unknown base type \"" + tname + "\"");
+        }
+
+        if (default_holder != base_info->default_holder) {
+            std::string tname(base->name());
+            detail::clean_type_id(tname);
+            pybind11_fail("generic_type: type \"" + std::string(name) + "\" " +
+                    (default_holder ? "does not have" : "has") +
+                    " a non-default holder type while its base \"" + tname + "\" " +
+                    (base_info->default_holder ? "does not" : "does"));
         }
 
         bases.append((PyObject *) base_info->type);
@@ -202,6 +220,22 @@ struct type_record {
         if (caster)
             base_info->implicit_casts.push_back(std::make_pair(type, caster));
     }
+};
+
+/// Internal data associated with a single function call
+struct function_call {
+    function_call(function_record &f, handle p) : func(f), parent(p) {
+        args.reserve(f.nargs);
+    }
+
+    /// The function data:
+    const function_record &func;
+
+    /// Arguments passed to the function:
+    std::vector<handle> args;
+
+    /// The parent, if any
+    handle parent;
 };
 
 /**
@@ -216,8 +250,8 @@ template <typename T> struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) { }
     static void init(const T &, type_record *) { }
-    static void precall(handle) { }
-    static void postcall(handle, handle) { }
+    static void precall(function_call &) { }
+    static void postcall(function_call &, handle) { }
 };
 
 /// Process an attribute specifying the function's name
@@ -343,15 +377,15 @@ struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
  * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
  * otherwise
  */
-template <int Nurse, int Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
-    template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void precall(handle args) { keep_alive_impl(Nurse, Patient, args, handle()); }
-    template <int N = Nurse, int P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void postcall(handle, handle) { }
-    template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void precall(handle) { }
-    template <int N = Nurse, int P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void postcall(handle args, handle ret) { keep_alive_impl(Nurse, Patient, args, ret); }
+template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    static void precall(function_call &call) { keep_alive_impl(Nurse, Patient, call, handle()); }
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    static void postcall(function_call &, handle) { }
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    static void precall(function_call &) { }
+    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    static void postcall(function_call &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
 };
 
 /// Recursively iterate over variadic template arguments
@@ -364,12 +398,12 @@ template <typename... Args> struct process_attributes {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
         ignore_unused(unused);
     }
-    static void precall(handle fn_args) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(fn_args), 0) ... };
+    static void precall(function_call &call) {
+        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
         ignore_unused(unused);
     }
-    static void postcall(handle fn_args, handle fn_ret) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(fn_args, fn_ret), 0) ... };
+    static void postcall(function_call &call, handle fn_ret) {
+        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
         ignore_unused(unused);
     }
 };
@@ -378,8 +412,8 @@ template <typename... Args> struct process_attributes {
 template <typename... Extra,
           size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
           size_t self  = constexpr_sum(std::is_same<is_method, Extra>::value...)>
-constexpr bool expected_num_args(size_t nargs) {
-    return named == 0 || (self + named) == nargs;
+constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
+    return named == 0 || (self + named + has_args + has_kwargs) == nargs;
 }
 
 NAMESPACE_END(detail)

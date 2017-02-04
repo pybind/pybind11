@@ -32,6 +32,8 @@ struct type_info {
     /** A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance */
     bool simple_type = true;
+    /* for base vs derived holder_type checks */
+    bool default_holder = true;
 };
 
 PYBIND11_NOINLINE inline internals &get_internals() {
@@ -400,6 +402,13 @@ public:
             make_copy_constructor(src), make_move_constructor(src));
     }
 
+    static handle cast_holder(const itype *src, const void *holder) {
+        return type_caster_generic::cast(
+            src, return_value_policy::take_ownership, {},
+            src ? &typeid(*src) : nullptr, &typeid(type),
+            nullptr, nullptr, holder);
+    }
+
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 
     operator itype*() { return (type *) value; }
@@ -634,17 +643,6 @@ protected:
     bool success = false;
 };
 
-template <typename type, typename deleter> class type_caster<std::unique_ptr<type, deleter>> {
-public:
-    static handle cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
-        handle result = type_caster_base<type>::cast(src.get(), policy, parent);
-        if (result)
-            src.release();
-        return result;
-    }
-    static PYBIND11_DESCR name() { return type_caster_base<type>::name(); }
-};
-
 template <> class type_caster<std::wstring> {
 public:
     bool load(handle src, bool) {
@@ -835,8 +833,16 @@ protected:
     std::tuple<make_caster<Tuple>...> value;
 };
 
+/// Helper class which abstracts away certain actions. Users can provide specializations for
+/// custom holders, but it's only necessary if the type has a non-standard interface.
+template <typename T>
+struct holder_helper {
+    static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
+};
+
 /// Type caster for holder types like std::shared_ptr, etc.
-template <typename type, typename holder_type> class type_caster_holder : public type_caster_base<type> {
+template <typename type, typename holder_type>
+struct copyable_holder_caster : public type_caster_base<type> {
 public:
     using base = type_caster_base<type>;
     using base::base;
@@ -915,7 +921,7 @@ public:
     template <typename T = holder_type, detail::enable_if_t<std::is_constructible<T, const T &, type*>::value, int> = 0>
     bool try_implicit_casts(handle src, bool convert) {
         for (auto &cast : typeinfo->implicit_casts) {
-            type_caster_holder sub_caster(*cast.first);
+            copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
                 holder = holder_type(sub_caster.holder, (type *) value);
@@ -938,10 +944,8 @@ public:
     #endif
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
-        return type_caster_generic::cast(
-            src.get(), return_value_policy::take_ownership, handle(),
-            src.get() ? &typeid(*src.get()) : nullptr, &typeid(type),
-            nullptr, nullptr, &src);
+        const auto *ptr = holder_helper<holder_type>::get(src);
+        return type_caster_base<type>::cast_holder(ptr, &src);
     }
 
 protected:
@@ -950,7 +954,25 @@ protected:
 
 /// Specialize for the common std::shared_ptr, so users don't need to
 template <typename T>
-class type_caster<std::shared_ptr<T>> : public type_caster_holder<T, std::shared_ptr<T>> { };
+class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> { };
+
+template <typename type, typename holder_type>
+struct move_only_holder_caster {
+    static handle cast(holder_type &&src, return_value_policy, handle) {
+        auto *ptr = holder_helper<holder_type>::get(src);
+        return type_caster_base<type>::cast_holder(ptr, &src);
+    }
+    static PYBIND11_DESCR name() { return type_caster_base<type>::name(); }
+};
+
+template <typename type, typename deleter>
+class type_caster<std::unique_ptr<type, deleter>>
+    : public move_only_holder_caster<type, std::unique_ptr<type, deleter>> { };
+
+template <typename type, typename holder_type>
+using type_caster_holder = conditional_t<std::is_copy_constructible<holder_type>::value,
+                                         copyable_holder_caster<type, holder_type>,
+                                         move_only_holder_caster<type, holder_type>>;
 
 template <typename T, bool Value = false> struct always_construct_holder { static constexpr bool value = Value; };
 
@@ -1007,8 +1029,8 @@ class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caste
 // - if the type is non-copy-constructible, the object must be the sole owner of the type (i.e. it
 //   must have ref_count() == 1)h
 // If any of the above are not satisfied, we fall back to copying.
-template <typename T> using move_is_plain_type = none_of<
-    std::is_void<T>, std::is_pointer<T>, std::is_reference<T>, std::is_const<T>
+template <typename T> using move_is_plain_type = satisfies_none_of<T,
+    std::is_void, std::is_pointer, std::is_reference, std::is_const
 >;
 template <typename T, typename SFINAE = void> struct move_always : std::false_type {};
 template <typename T> struct move_always<T, enable_if_t<all_of<
@@ -1175,14 +1197,18 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     return result;
 }
 
+/// \ingroup annotations
 /// Annotation for keyword arguments
 struct arg {
+    /// Set the name of the argument
     constexpr explicit arg(const char *name) : name(name) { }
+    /// Assign a value to this argument
     template <typename T> arg_v operator=(T &&value) const;
 
     const char *name;
 };
 
+/// \ingroup annotations
 /// Annotation for keyword arguments with values
 struct arg_v : arg {
     template <typename T>
@@ -1211,28 +1237,41 @@ arg_v arg::operator=(T &&value) const { return {name, std::forward<T>(value)}; }
 template <typename /*unused*/> using arg_t = arg_v;
 
 inline namespace literals {
-/// String literal version of arg
+/** \rst
+    String literal version of `arg`
+ \endrst */
 constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 }
 
 NAMESPACE_BEGIN(detail)
 
+// forward declaration
+struct function_record;
+
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>
 class argument_loader {
-    using itypes = type_list<intrinsic_t<Args>...>;
     using indices = make_index_sequence<sizeof...(Args)>;
+    using function_arguments = const std::vector<handle> &;
+
+    template <typename Arg> using argument_is_args   = std::is_same<intrinsic_t<Arg>, args>;
+    template <typename Arg> using argument_is_kwargs = std::is_same<intrinsic_t<Arg>, kwargs>;
+    // Get args/kwargs argument positions relative to the end of the argument list:
+    static constexpr auto args_pos = constexpr_first<argument_is_args, Args...>() - (int) sizeof...(Args),
+                        kwargs_pos = constexpr_first<argument_is_kwargs, Args...>() - (int) sizeof...(Args);
+
+    static constexpr bool args_kwargs_are_last = kwargs_pos >= - 1 && args_pos >= kwargs_pos - 1;
+
+    static_assert(args_kwargs_are_last, "py::args/py::kwargs are only permitted as the last argument(s) of a function");
 
 public:
-    argument_loader() : value() {} // Helps gcc-7 properly initialize value
-
-    static constexpr auto has_kwargs = std::is_same<itypes, type_list<args, kwargs>>::value;
-    static constexpr auto has_args = has_kwargs || std::is_same<itypes, type_list<args>>::value;
+    static constexpr bool has_kwargs = kwargs_pos < 0;
+    static constexpr bool has_args = args_pos < 0;
 
     static PYBIND11_DESCR arg_names() { return detail::concat(make_caster<Args>::name()...); }
 
-    bool load_args(handle args, handle kwargs) {
-        return load_impl(args, kwargs, itypes{});
+    bool load_args(function_arguments args) {
+        return load_impl_sequence(args, indices{});
     }
 
     template <typename Return, typename Func>
@@ -1247,26 +1286,12 @@ public:
     }
 
 private:
-    bool load_impl(handle args_, handle, type_list<args>) {
-        std::get<0>(value).load(args_, true);
-        return true;
-    }
 
-    bool load_impl(handle args_, handle kwargs_, type_list<args, kwargs>) {
-        std::get<0>(value).load(args_, true);
-        std::get<1>(value).load(kwargs_, true);
-        return true;
-    }
-
-    bool load_impl(handle args, handle, ... /* anything else */) {
-        return load_impl_sequence(args, indices{});
-    }
-
-    static bool load_impl_sequence(handle, index_sequence<>) { return true; }
+    static bool load_impl_sequence(function_arguments, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(handle src, index_sequence<Is...>) {
-        for (bool r : {std::get<Is>(value).load(PyTuple_GET_ITEM(src.ptr(), Is), true)...})
+    bool load_impl_sequence(function_arguments args, index_sequence<Is...>) {
+        for (bool r : {std::get<Is>(value).load(args[Is], true)...})
             if (!r)
                 return false;
         return true;
@@ -1279,25 +1304,6 @@ private:
 
     std::tuple<make_caster<Args>...> value;
 };
-
-NAMESPACE_BEGIN(constexpr_impl)
-/// Implementation details for constexpr functions
-constexpr int first(int i) { return i; }
-template <typename T, typename... Ts>
-constexpr int first(int i, T v, Ts... vs) { return v ? i : first(i + 1, vs...); }
-
-constexpr int last(int /*i*/, int result) { return result; }
-template <typename T, typename... Ts>
-constexpr int last(int i, int result, T v, Ts... vs) { return last(i + 1, v ? i : result, vs...); }
-NAMESPACE_END(constexpr_impl)
-
-/// Return the index of the first type in Ts which satisfies Predicate<T>
-template <template<typename> class Predicate, typename... Ts>
-constexpr int constexpr_first() { return constexpr_impl::first(0, Predicate<Ts>::value...); }
-
-/// Return the index of the last type in Ts which satisfies Predicate<T>
-template <template<typename> class Predicate, typename... Ts>
-constexpr int constexpr_last() { return constexpr_impl::last(0, -1, Predicate<Ts>::value...); }
 
 /// Helper class which collects only positional arguments for a Python function call.
 /// A fancier version below can collect any argument, but this one is optimal for simple calls.

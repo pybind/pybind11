@@ -19,23 +19,25 @@
 namespace py = pybind11;
 
 struct SimpleStruct {
-    bool x;
-    uint32_t y;
-    float z;
+    bool bool_;
+    uint32_t uint_;
+    float float_;
+    long double ldbl_;
 };
 
 std::ostream& operator<<(std::ostream& os, const SimpleStruct& v) {
-    return os << "s:" << v.x << "," << v.y << "," << v.z;
+    return os << "s:" << v.bool_ << "," << v.uint_ << "," << v.float_ << "," << v.ldbl_;
 }
 
 PYBIND11_PACKED(struct PackedStruct {
-    bool x;
-    uint32_t y;
-    float z;
+    bool bool_;
+    uint32_t uint_;
+    float float_;
+    long double ldbl_;
 });
 
 std::ostream& operator<<(std::ostream& os, const PackedStruct& v) {
-    return os << "p:" << v.x << "," << v.y << "," << v.z;
+    return os << "p:" << v.bool_ << "," << v.uint_ << "," << v.float_ << "," << v.ldbl_;
 }
 
 PYBIND11_PACKED(struct NestedStruct {
@@ -48,10 +50,11 @@ std::ostream& operator<<(std::ostream& os, const NestedStruct& v) {
 }
 
 struct PartialStruct {
-    bool x;
-    uint32_t y;
-    float z;
+    bool bool_;
+    uint32_t uint_;
+    float float_;
     uint64_t dummy2;
+    long double ldbl_;
 };
 
 struct PartialNestedStruct {
@@ -99,13 +102,19 @@ py::array mkarray_via_buffer(size_t n) {
                                      1, { n }, { sizeof(T) }));
 }
 
+#define SET_TEST_VALS(s, i) do { \
+    s.bool_ = (i) % 2 != 0; \
+    s.uint_ = (uint32_t) (i); \
+    s.float_ = (float) (i) * 1.5f; \
+    s.ldbl_ = (long double) (i) * -2.5L; } while (0)
+
 template <typename S>
 py::array_t<S, 0> create_recarray(size_t n) {
     auto arr = mkarray_via_buffer<S>(n);
     auto req = arr.request();
     auto ptr = static_cast<S*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
-        ptr[i].x = i % 2 != 0; ptr[i].y = (uint32_t) i; ptr[i].z = (float) i * 1.5f;
+        SET_TEST_VALS(ptr[i], i);
     }
     return arr;
 }
@@ -119,8 +128,8 @@ py::array_t<NestedStruct, 0> create_nested(size_t n) {
     auto req = arr.request();
     auto ptr = static_cast<NestedStruct*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
-        ptr[i].a.x = i % 2 != 0; ptr[i].a.y = (uint32_t) i; ptr[i].a.z = (float) i * 1.5f;
-        ptr[i].b.x = (i + 1) % 2 != 0; ptr[i].b.y = (uint32_t) (i + 1); ptr[i].b.z = (float) (i + 1) * 1.5f;
+        SET_TEST_VALS(ptr[i].a, i);
+        SET_TEST_VALS(ptr[i].b, i + 1);
     }
     return arr;
 }
@@ -130,7 +139,7 @@ py::array_t<PartialNestedStruct, 0> create_partial_nested(size_t n) {
     auto req = arr.request();
     auto ptr = static_cast<PartialNestedStruct*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
-        ptr[i].a.x = i % 2 != 0; ptr[i].a.y = (uint32_t) i; ptr[i].a.z = (float) i * 1.5f;
+        SET_TEST_VALS(ptr[i].a, i);
     }
     return arr;
 }
@@ -320,10 +329,10 @@ test_initializer numpy_dtypes([](py::module &m) {
     // typeinfo may be registered before the dtype descriptor for scalar casts to work...
     py::class_<SimpleStruct>(m, "SimpleStruct");
 
-    PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z);
-    PYBIND11_NUMPY_DTYPE(PackedStruct, x, y, z);
+    PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_);
+    PYBIND11_NUMPY_DTYPE(PackedStruct, bool_, uint_, float_, ldbl_);
     PYBIND11_NUMPY_DTYPE(NestedStruct, a, b);
-    PYBIND11_NUMPY_DTYPE(PartialStruct, x, y, z);
+    PYBIND11_NUMPY_DTYPE(PartialStruct, bool_, uint_, float_, ldbl_);
     PYBIND11_NUMPY_DTYPE(PartialNestedStruct, a);
     PYBIND11_NUMPY_DTYPE(StringStruct, a, b);
     PYBIND11_NUMPY_DTYPE(EnumStruct, e1, e2);
@@ -333,6 +342,11 @@ test_initializer numpy_dtypes([](py::module &m) {
     py::class_<PackedStruct>(m, "PackedStruct");
 
     PYBIND11_NUMPY_DTYPE_EX(StructWithUglyNames, __x__, "x", __y__, "y");
+
+    // If uncommented, this should produce a static_assert failure telling the user that the struct
+    // is not a POD type
+//    struct NotPOD { std::string v; NotPOD() : v("hi") {}; };
+//    PYBIND11_NUMPY_DTYPE(NotPOD, v);
 
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
     m.def("create_rec_packed", &create_recarray<PackedStruct>);
@@ -354,10 +368,10 @@ test_initializer numpy_dtypes([](py::module &m) {
     m.def("test_dtype_methods", &test_dtype_methods);
     m.def("trailing_padding_dtype", &trailing_padding_dtype);
     m.def("buffer_to_dtype", &buffer_to_dtype);
-    m.def("f_simple", [](SimpleStruct s) { return s.y * 10; });
-    m.def("f_packed", [](PackedStruct s) { return s.y * 10; });
-    m.def("f_nested", [](NestedStruct s) { return s.a.y * 10; });
-    m.def("register_dtype", []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, x, y, z); });
+    m.def("f_simple", [](SimpleStruct s) { return s.uint_ * 10; });
+    m.def("f_packed", [](PackedStruct s) { return s.uint_ * 10; });
+    m.def("f_nested", [](NestedStruct s) { return s.a.uint_ * 10; });
+    m.def("register_dtype", []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_); });
 });
 
 #undef PYBIND11_PACKED

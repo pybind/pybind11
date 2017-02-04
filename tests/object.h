@@ -164,10 +164,10 @@ public:
     operator T* () { return m_ptr; }
 
     /// Return a const pointer to the referenced object
-    T* get() { return m_ptr; }
+    T* get_ptr() { return m_ptr; }
 
     /// Return a pointer to the referenced object
-    const T* get() const { return m_ptr; }
+    const T* get_ptr() const { return m_ptr; }
 private:
     T *m_ptr;
 };

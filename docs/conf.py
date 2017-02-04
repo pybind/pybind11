@@ -16,6 +16,7 @@
 import sys
 import os
 import shlex
+import subprocess
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -30,7 +31,11 @@ import shlex
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = []
+extensions = ['breathe']
+
+breathe_projects = {'pybind11': '.build/doxygenxml/'}
+breathe_default_project = 'pybind11'
+breathe_domain_by_extension = {'h': 'cpp'}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
@@ -79,7 +84,7 @@ exclude_patterns = ['.build', 'release.rst']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
-#default_role = None
+default_role = 'any'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 #add_function_parentheses = True
@@ -306,3 +311,22 @@ texinfo_documents = [
 
 primary_domain = 'cpp'
 highlight_language = 'cpp'
+
+
+def generate_doxygen_xml(app):
+    build_dir = '.build'
+    if not os.path.exists(build_dir):
+        os.mkdir(build_dir)
+
+    try:
+        subprocess.call(['doxygen', '--version'])
+        retcode = subprocess.call(['doxygen'])
+        if retcode < 0:
+            sys.stderr.write("doxygen error code: {}\n".format(-retcode))
+    except OSError as e:
+        sys.stderr.write("doxygen execution failed: {}\n".format(e))
+
+
+def setup(app):
+    """Add hook for building doxygen xml when needed"""
+    app.connect("builder-inited", generate_doxygen_xml)

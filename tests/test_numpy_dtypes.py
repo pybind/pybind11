@@ -7,14 +7,51 @@ with pytest.suppress(ImportError):
 
 @pytest.fixture(scope='module')
 def simple_dtype():
-    return np.dtype({'names': ['x', 'y', 'z'],
-                     'formats': ['?', 'u4', 'f4'],
-                     'offsets': [0, 4, 8]})
+    ld = np.dtype('longdouble')
+    return np.dtype({'names': ['bool_', 'uint_', 'float_', 'ldbl_'],
+                     'formats': ['?', 'u4', 'f4', 'f{}'.format(ld.itemsize)],
+                     'offsets': [0, 4, 8, (16 if ld.alignment > 4 else 12)]})
 
 
 @pytest.fixture(scope='module')
 def packed_dtype():
-    return np.dtype([('x', '?'), ('y', 'u4'), ('z', 'f4')])
+    return np.dtype([('bool_', '?'), ('uint_', 'u4'), ('float_', 'f4'), ('ldbl_', 'g')])
+
+
+def dt_fmt():
+    return ("{{'names':['bool_','uint_','float_','ldbl_'], 'formats':['?','<u4','<f4','<f{}'],"
+            " 'offsets':[0,4,8,{}], 'itemsize':{}}}")
+
+
+def simple_dtype_fmt():
+    ld = np.dtype('longdouble')
+    simple_ld_off = 12 + 4 * (ld.alignment > 4)
+    return dt_fmt().format(ld.itemsize, simple_ld_off, simple_ld_off + ld.itemsize)
+
+
+def packed_dtype_fmt():
+    return "[('bool_', '?'), ('uint_', '<u4'), ('float_', '<f4'), ('ldbl_', '<f{}')]".format(
+        np.dtype('longdouble').itemsize)
+
+
+def partial_ld_offset():
+    return 12 + 4 * (np.dtype('uint64').alignment > 4) + 8 + 8 * (
+        np.dtype('longdouble').alignment > 8)
+
+
+def partial_dtype_fmt():
+    ld = np.dtype('longdouble')
+    partial_ld_off = partial_ld_offset()
+    return dt_fmt().format(ld.itemsize, partial_ld_off, partial_ld_off + ld.itemsize)
+
+
+def partial_nested_fmt():
+    ld = np.dtype('longdouble')
+    partial_nested_off = 8 + 8 * (ld.alignment > 8)
+    partial_ld_off = partial_ld_offset()
+    partial_nested_size = partial_nested_off * 2 + partial_ld_off + ld.itemsize
+    return "{{'names':['a'], 'formats':[{}], 'offsets':[{}], 'itemsize':{}}}".format(
+        partial_dtype_fmt(), partial_nested_off, partial_nested_size)
 
 
 def assert_equal(actual, expected_data, expected_dtype):
@@ -29,12 +66,20 @@ def test_format_descriptors():
         get_format_unbound()
     assert re.match('^NumPy type info missing for .*UnboundStruct.*$', str(excinfo.value))
 
+    ld = np.dtype('longdouble')
+    ldbl_fmt = ('4x' if ld.alignment > 4 else '') + ld.char
+    ss_fmt = "T{?:bool_:3xI:uint_:f:float_:" + ldbl_fmt + ":ldbl_:}"
+    dbl = np.dtype('double')
+    partial_fmt = ("T{?:bool_:3xI:uint_:f:float_:" +
+                   str(4 * (dbl.alignment > 4) + dbl.itemsize + 8 * (ld.alignment > 8)) +
+                   "xg:ldbl_:}")
+    nested_extra = str(max(8, ld.alignment))
     assert print_format_descriptors() == [
-        "T{?:x:3xI:y:f:z:}",
-        "T{?:x:=I:y:=f:z:}",
-        "T{T{?:x:3xI:y:f:z:}:a:T{?:x:=I:y:=f:z:}:b:}",
-        "T{?:x:3xI:y:f:z:12x}",
-        "T{8xT{?:x:3xI:y:f:z:12x}:a:8x}",
+        ss_fmt,
+        "T{?:bool_:^I:uint_:^f:float_:^g:ldbl_:}",
+        "T{" + ss_fmt + ":a:T{?:bool_:^I:uint_:^f:float_:^g:ldbl_:}:b:}",
+        partial_fmt,
+        "T{" + nested_extra + "x" + partial_fmt + ":a:" + nested_extra + "x}",
         "T{3s:a:3s:b:}",
         'T{q:e1:B:e2:}'
     ]
@@ -46,13 +91,11 @@ def test_dtype(simple_dtype):
                                 trailing_padding_dtype, buffer_to_dtype)
 
     assert print_dtypes() == [
-        "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':12}",
-        "[('x', '?'), ('y', '<u4'), ('z', '<f4')]",
-        "[('a', {'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8],"
-        " 'itemsize':12}), ('b', [('x', '?'), ('y', '<u4'), ('z', '<f4')])]",
-        "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}",
-        "{'names':['a'], 'formats':[{'names':['x','y','z'], 'formats':['?','<u4','<f4'],"
-        " 'offsets':[0,4,8], 'itemsize':24}], 'offsets':[8], 'itemsize':40}",
+        simple_dtype_fmt(),
+        packed_dtype_fmt(),
+        "[('a', {}), ('b', {})]".format(simple_dtype_fmt(), packed_dtype_fmt()),
+        partial_dtype_fmt(),
+        partial_nested_fmt(),
         "[('a', 'S3'), ('b', 'S3')]",
         "[('e1', '<i8'), ('e2', 'u1')]",
         "[('x', 'i1'), ('y', '<u8')]"
@@ -76,7 +119,7 @@ def test_recarray(simple_dtype, packed_dtype):
                                 print_rec_simple, print_rec_packed, print_rec_nested,
                                 create_rec_partial, create_rec_partial_nested)
 
-    elements = [(False, 0, 0.0), (True, 1, 1.5), (False, 2, 3.0)]
+    elements = [(False, 0, 0.0, -0.0), (True, 1, 1.5, -2.5), (False, 2, 3.0, -5.0)]
 
     for func, dtype in [(create_rec_simple, simple_dtype), (create_rec_packed, packed_dtype)]:
         arr = func(0)
@@ -91,15 +134,15 @@ def test_recarray(simple_dtype, packed_dtype):
 
         if dtype == simple_dtype:
             assert print_rec_simple(arr) == [
-                "s:0,0,0",
-                "s:1,1,1.5",
-                "s:0,2,3"
+                "s:0,0,0,-0",
+                "s:1,1,1.5,-2.5",
+                "s:0,2,3,-5"
             ]
         else:
             assert print_rec_packed(arr) == [
-                "p:0,0,0",
-                "p:1,1,1.5",
-                "p:0,2,3"
+                "p:0,0,0,-0",
+                "p:1,1,1.5,-2.5",
+                "p:0,2,3,-5"
             ]
 
     nested_dtype = np.dtype([('a', simple_dtype), ('b', packed_dtype)])
@@ -110,18 +153,17 @@ def test_recarray(simple_dtype, packed_dtype):
 
     arr = create_rec_nested(3)
     assert arr.dtype == nested_dtype
-    assert_equal(arr, [((False, 0, 0.0), (True, 1, 1.5)),
-                       ((True, 1, 1.5), (False, 2, 3.0)),
-                       ((False, 2, 3.0), (True, 3, 4.5))], nested_dtype)
+    assert_equal(arr, [((False, 0, 0.0, -0.0), (True, 1, 1.5, -2.5)),
+                       ((True, 1, 1.5, -2.5), (False, 2, 3.0, -5.0)),
+                       ((False, 2, 3.0, -5.0), (True, 3, 4.5, -7.5))], nested_dtype)
     assert print_rec_nested(arr) == [
-        "n:a=s:0,0,0;b=p:1,1,1.5",
-        "n:a=s:1,1,1.5;b=p:0,2,3",
-        "n:a=s:0,2,3;b=p:1,3,4.5"
+        "n:a=s:0,0,0,-0;b=p:1,1,1.5,-2.5",
+        "n:a=s:1,1,1.5,-2.5;b=p:0,2,3,-5",
+        "n:a=s:0,2,3,-5;b=p:1,3,4.5,-7.5"
     ]
 
     arr = create_rec_partial(3)
-    assert str(arr.dtype) == \
-        "{'names':['x','y','z'], 'formats':['?','<u4','<f4'], 'offsets':[0,4,8], 'itemsize':24}"
+    assert str(arr.dtype) == partial_dtype_fmt()
     partial_dtype = arr.dtype
     assert '' not in arr.dtype.fields
     assert partial_dtype.itemsize > simple_dtype.itemsize
@@ -129,9 +171,7 @@ def test_recarray(simple_dtype, packed_dtype):
     assert_equal(arr, elements, packed_dtype)
 
     arr = create_rec_partial_nested(3)
-    assert str(arr.dtype) == \
-        "{'names':['a'], 'formats':[{'names':['x','y','z'], 'formats':['?','<u4','<f4']," \
-        " 'offsets':[0,4,8], 'itemsize':24}], 'offsets':[8], 'itemsize':40}"
+    assert str(arr.dtype) == partial_nested_fmt()
     assert '' not in arr.dtype.fields
     assert '' not in arr.dtype.fields['a'][0].fields
     assert arr.dtype.itemsize > partial_dtype.itemsize

@@ -1,0 +1,9 @@
+name: rtd
+channels:
+- dean0x7d
+- defaults
+dependencies:
+- doxygen
+- pip
+- pip:
+  - https://github.com/michaeljones/breathe/archive/master.zip
