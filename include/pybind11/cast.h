@@ -473,18 +473,22 @@ public:
 
 template <typename T>
 struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value>> {
-    typedef typename std::conditional<sizeof(T) <= sizeof(long), long, long long>::type _py_type_0;
-    typedef typename std::conditional<std::is_signed<T>::value, _py_type_0, typename std::make_unsigned<_py_type_0>::type>::type _py_type_1;
-    typedef typename std::conditional<std::is_floating_point<T>::value, double, _py_type_1>::type py_type;
+    using _py_type_0 = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
+    using _py_type_1 = conditional_t<std::is_signed<T>::value, _py_type_0, typename std::make_unsigned<_py_type_0>::type>;
+    using py_type = conditional_t<std::is_floating_point<T>::value, double, _py_type_1>;
 public:
 
-    bool load(handle src, bool) {
+    bool load(handle src, bool convert) {
         py_type py_value;
 
-        if (!src) {
+        if (!src)
             return false;
-        } if (std::is_floating_point<T>::value) {
-            py_value = (py_type) PyFloat_AsDouble(src.ptr());
+
+        if (std::is_floating_point<T>::value) {
+            if (convert || PyFloat_Check(src.ptr()))
+                py_value = (py_type) PyFloat_AsDouble(src.ptr());
+            else
+                return false;
         } else if (sizeof(T) <= sizeof(long)) {
             if (PyFloat_Check(src.ptr()))
                 return false;
@@ -511,7 +515,7 @@ public:
             bool type_error = PyErr_ExceptionMatches(PyExc_TypeError);
 #endif
             PyErr_Clear();
-            if (type_error && PyNumber_Check(src.ptr())) {
+            if (type_error && convert && PyNumber_Check(src.ptr())) {
                 auto tmp = reinterpret_borrow<object>(std::is_floating_point<T>::value
                                                       ? PyNumber_Float(src.ptr())
                                                       : PyNumber_Long(src.ptr()));
