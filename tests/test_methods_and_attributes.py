@@ -33,8 +33,16 @@ def test_methods_and_attributes():
 
     assert instance1.overloaded(1, 1.0) == "(int, float)"
     assert instance1.overloaded(2.0, 2) == "(float, int)"
-    assert instance1.overloaded_const(3, 3.0) == "(int, float) const"
-    assert instance1.overloaded_const(4.0, 4) == "(float, int) const"
+    assert instance1.overloaded(3,   3) == "(int, int)"
+    assert instance1.overloaded(4., 4.) == "(float, float)"
+    assert instance1.overloaded_const(5, 5.0) == "(int, float) const"
+    assert instance1.overloaded_const(6.0, 6) == "(float, int) const"
+    assert instance1.overloaded_const(7,   7) == "(int, int) const"
+    assert instance1.overloaded_const(8., 8.) == "(float, float) const"
+    assert instance1.overloaded_float(1, 1) == "(float, float)"
+    assert instance1.overloaded_float(1, 1.) == "(float, float)"
+    assert instance1.overloaded_float(1., 1) == "(float, float)"
+    assert instance1.overloaded_float(1., 1.) == "(float, float)"
 
     assert instance1.value == 320
     instance1.value = 100

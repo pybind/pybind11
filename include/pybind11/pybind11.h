@@ -394,6 +394,15 @@ protected:
                result = PYBIND11_TRY_NEXT_OVERLOAD;
 
         try {
+            // We do this in two passes: in the first pass, we load arguments with `convert=false`;
+            // in the second, we allow conversion (except for arguments with an explicit
+            // py::arg().noconvert()).  This lets us prefer calls without conversion, with
+            // conversion as a fallback.
+            std::vector<function_call> second_pass;
+
+            // However, if there are no overloads, we can just skip the no-convert pass entirely
+            const bool overloaded = it != nullptr && it->next != nullptr;
+
             for (; it != nullptr; it = it->next) {
 
                 /* For each overload:
@@ -525,6 +534,15 @@ protected:
                     pybind11_fail("Internal error: function call dispatcher inserted wrong number of arguments!");
                 #endif
 
+                std::vector<bool> second_pass_convert;
+                if (overloaded) {
+                    // We're in the first no-convert pass, so swap out the conversion flags for a
+                    // set of all-false flags.  If the call fails, we'll swap the flags back in for
+                    // the conversion-allowed call below.
+                    second_pass_convert.resize(func.nargs, false);
+                    call.args_convert.swap(second_pass_convert);
+                }
+
                 // 6. Call the function.
                 try {
                     result = func.impl(call);
@@ -535,6 +553,34 @@ protected:
                 if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
                     break;
 
+                if (overloaded) {
+                    // The (overloaded) call failed; if the call has at least one argument that
+                    // permits conversion (i.e. it hasn't been explicitly specified `.noconvert()`)
+                    // then add this call to the list of second pass overloads to try.
+                    for (size_t i = func.is_method ? 1 : 0; i < pos_args; i++) {
+                        if (second_pass_convert[i]) {
+                            // Found one: swap the converting flags back in and store the call for
+                            // the second pass.
+                            call.args_convert.swap(second_pass_convert);
+                            second_pass.push_back(std::move(call));
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (overloaded && !second_pass.empty() && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
+                // The no-conversion pass finished without success, try again with conversion allowed
+                for (auto &call : second_pass) {
+                    try {
+                        result = call.func.impl(call);
+                    } catch (reference_cast_error &) {
+                        result = PYBIND11_TRY_NEXT_OVERLOAD;
+                    }
+
+                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
+                        break;
+                }
             }
         } catch (error_already_set &e) {
             e.restore();
