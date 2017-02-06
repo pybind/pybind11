@@ -282,7 +282,7 @@ template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen}
     `object` or a class which was exposed to Python as ``py::class_<T>``.
 \endrst */
 template <typename T, detail::enable_if_t<std::is_base_of<object, T>::value, int> = 0>
-bool isinstance(handle obj) { return T::_check(obj); }
+bool isinstance(handle obj) { return T::check_(obj); }
 
 template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) { return detail::isinstance_generic(obj, typeid(T)); }
@@ -572,7 +572,7 @@ NAMESPACE_END(detail)
         Name(handle h, stolen_t) : Parent(h, stolen) { } \
         PYBIND11_DEPRECATED("Use py::isinstance<py::python_type>(obj) instead") \
         bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); } \
-        static bool _check(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); }
+        static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); }
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \

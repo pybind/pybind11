@@ -349,7 +349,7 @@ public:
         int flags = 0;
         if (base && ptr) {
             if (isinstance<array>(base))
-                /* Copy flags from base (except baseship bit) */
+                /* Copy flags from base (except ownership bit) */
                 flags = reinterpret_borrow<array>(base).flags() & ~detail::npy_api::NPY_ARRAY_OWNDATA_;
             else
                 /* Writable by default, easy to downgrade later on if needed */
@@ -639,7 +639,7 @@ public:
         return result;
     }
 
-    static bool _check(handle h) {
+    static bool check_(handle h) {
         const auto &api = detail::npy_api::get();
         return api.PyArray_Check_(h.ptr())
                && api.PyArray_EquivTypes_(detail::array_proxy(h.ptr())->descr, dtype::of<T>().ptr());
