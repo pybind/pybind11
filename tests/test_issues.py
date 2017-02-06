@@ -249,3 +249,27 @@ def test_inheritance_override_def_static():
     assert isinstance(b, MyBase)
     assert isinstance(d1, MyDerived)
     assert isinstance(d2, MyDerived)
+
+
+def test_bad_arg_default(msg):
+    from pybind11_tests.issues import debug_enabled, bad_arg_def_named, bad_arg_def_unnamed
+
+    with pytest.raises(RuntimeError) as excinfo:
+        bad_arg_def_named()
+    assert msg(excinfo.value) == (
+        "arg(): could not convert default argument 'a: NotRegistered' in function 'should_fail'"
+        "into a Python object (type not registered yet?)"
+        if debug_enabled else
+        "arg(): could not convert default argument into a Python object (type not registered "
+        "yet?). Compile in debug mode for more information."
+    )
+
+    with pytest.raises(RuntimeError) as excinfo:
+        bad_arg_def_unnamed()
+    assert msg(excinfo.value) == (
+        "arg(): could not convert default argument 'NotRegistered' in function 'should_fail'"
+        "into a Python object (type not registered yet?)"
+        if debug_enabled else
+        "arg(): could not convert default argument into a Python object (type not registered "
+        "yet?). Compile in debug mode for more information."
+    )
