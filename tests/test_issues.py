@@ -257,7 +257,7 @@ def test_bad_arg_default(msg):
     with pytest.raises(RuntimeError) as excinfo:
         bad_arg_def_named()
     assert msg(excinfo.value) == (
-        "arg(): could not convert default argument 'a: NotRegistered' in function 'should_fail'"
+        "arg(): could not convert default argument 'a: NotRegistered' in function 'should_fail' "
         "into a Python object (type not registered yet?)"
         if debug_enabled else
         "arg(): could not convert default argument into a Python object (type not registered "
@@ -267,7 +267,7 @@ def test_bad_arg_default(msg):
     with pytest.raises(RuntimeError) as excinfo:
         bad_arg_def_unnamed()
     assert msg(excinfo.value) == (
-        "arg(): could not convert default argument 'NotRegistered' in function 'should_fail'"
+        "arg(): could not convert default argument 'NotRegistered' in function 'should_fail' "
         "into a Python object (type not registered yet?)"
         if debug_enabled else
         "arg(): could not convert default argument into a Python object (type not registered "
