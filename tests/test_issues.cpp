@@ -74,9 +74,6 @@ namespace std {
 template <> struct hash<TplConstrClass> { size_t operator()(const TplConstrClass &t) const { return std::hash<std::string>()(t.str); } };
 }
 
-/// Issue/PR #648: bad arg default debugging output
-class NotRegistered {};
-
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
@@ -397,21 +394,6 @@ void init_issues(py::module &m) {
 #elif defined(PYBIND11_HAS_EXP_OPTIONAL)
     m2.def("tpl_constr_optional", [](std::experimental::optional<TplConstrClass> &) {});
 #endif
-
-    /// Issue/PR #648: bad arg default debugging output
-#if !defined(NDEBUG)
-    m2.attr("debug_enabled") = true;
-#else
-    m2.attr("debug_enabled") = false;
-#endif
-    m2.def("bad_arg_def_named", []{
-        auto m = py::module::import("pybind11_tests.issues");
-        m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg("a") = NotRegistered());
-    });
-    m2.def("bad_arg_def_unnamed", []{
-        auto m = py::module::import("pybind11_tests.issues");
-        m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg() = NotRegistered());
-    });
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSVC

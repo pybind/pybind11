@@ -150,6 +150,9 @@ public:
 };
 }}
 
+/// Issue/PR #648: bad arg default debugging output
+class NotRegistered {};
+
 test_initializer methods_and_attributes([](py::module &m) {
     py::class_<ExampleMandA>(m, "ExampleMandA")
         .def(py::init<>())
@@ -270,4 +273,18 @@ test_initializer methods_and_attributes([](py::module &m) {
     m.def("floats_preferred", [](double f) { return 0.5 * f; }, py::arg("f"));
     m.def("floats_only", [](double f) { return 0.5 * f; }, py::arg("f").noconvert());
 
+    /// Issue/PR #648: bad arg default debugging output
+#if !defined(NDEBUG)
+    m.attr("debug_enabled") = true;
+#else
+    m.attr("debug_enabled") = false;
+#endif
+    m.def("bad_arg_def_named", []{
+        auto m = py::module::import("pybind11_tests.issues");
+        m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg("a") = NotRegistered());
+    });
+    m.def("bad_arg_def_unnamed", []{
+        auto m = py::module::import("pybind11_tests.issues");
+        m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg() = NotRegistered());
+    });
 });
