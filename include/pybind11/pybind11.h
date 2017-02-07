@@ -129,8 +129,9 @@ protected:
             detail::process_attributes<Extra...>::precall(call);
 
             /* Get a pointer to the capture object */
-            capture *cap = (capture *) (sizeof(capture) <= sizeof(call.func.data)
-                                        ? &call.func.data : call.func.data[0]);
+            auto data = (sizeof(capture) <= sizeof(call.func.data)
+                         ? &call.func.data : call.func.data[0]);
+            capture *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
             /* Override policy for rvalues -- always move */
             constexpr auto is_rvalue = !std::is_pointer<Return>::value
@@ -167,7 +168,7 @@ protected:
             sizeof(capture) == sizeof(void *);
         if (is_function_ptr) {
             rec->is_stateless = true;
-            rec->data[1] = (void *) &typeid(FunctionType);
+            rec->data[1] = const_cast<void *>(reinterpret_cast<const void *>(&typeid(FunctionType)));
         }
     }
 
@@ -345,7 +346,7 @@ protected:
         /* Install docstring */
         PyCFunctionObject *func = (PyCFunctionObject *) m_ptr;
         if (func->m_ml->ml_doc)
-            std::free((char *) func->m_ml->ml_doc);
+            std::free(const_cast<char *>(func->m_ml->ml_doc));
         func->m_ml->ml_doc = strdup(signatures.c_str());
 
         if (rec->is_method) {
@@ -366,12 +367,12 @@ protected:
             std::free((char *) rec->doc);
             std::free((char *) rec->signature);
             for (auto &arg: rec->args) {
-                std::free((char *) arg.name);
-                std::free((char *) arg.descr);
+                std::free(const_cast<char *>(arg.name));
+                std::free(const_cast<char *>(arg.descr));
                 arg.value.dec_ref();
             }
             if (rec->def) {
-                std::free((char *) rec->def->ml_doc);
+                std::free(const_cast<char *>(rec->def->ml_doc));
                 delete rec->def;
             }
             delete rec;
@@ -1666,7 +1667,7 @@ public:
     exception(handle scope, const char *name, PyObject *base = PyExc_Exception) {
         std::string full_name = scope.attr("__name__").cast<std::string>() +
                                 std::string(".") + name;
-        m_ptr = PyErr_NewException((char *) full_name.c_str(), base, NULL);
+        m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base, NULL);
         if (hasattr(scope, name))
             pybind11_fail("Error during initialization: multiple incompatible "
                           "definitions with name \"" + std::string(name) + "\"");

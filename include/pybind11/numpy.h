@@ -357,8 +357,10 @@ public:
         }
 
         auto tmp = reinterpret_steal<object>(api.PyArray_NewFromDescr_(
-            api.PyArray_Type_, descr.release().ptr(), (int) ndim, (Py_intptr_t *) shape.data(),
-            (Py_intptr_t *) strides.data(), const_cast<void *>(ptr), flags, nullptr));
+            api.PyArray_Type_, descr.release().ptr(), (int) ndim,
+            reinterpret_cast<Py_intptr_t *>(const_cast<size_t*>(shape.data())),
+            reinterpret_cast<Py_intptr_t *>(const_cast<size_t*>(strides.data())),
+            const_cast<void *>(ptr), flags, nullptr));
         if (!tmp)
             pybind11_fail("NumPy: unable to create array!");
         if (ptr) {
@@ -382,7 +384,7 @@ public:
     template<typename T> array(const std::vector<size_t>& shape,
                                const std::vector<size_t>& strides,
                                const T* ptr, handle base = handle())
-    : array(pybind11::dtype::of<T>(), shape, strides, (void *) ptr, base) { }
+    : array(pybind11::dtype::of<T>(), shape, strides, (const void *) ptr, base) { }
 
     template <typename T>
     array(const std::vector<size_t> &shape, const T *ptr,

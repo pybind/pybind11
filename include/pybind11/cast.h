@@ -422,7 +422,7 @@ protected:
     template <typename T = type, typename = enable_if_t<is_copy_constructible<T>::value>> static auto make_copy_constructor(const T *value) -> decltype(new T(*value), Constructor(nullptr)) {
         return [](const void *arg) -> void * { return new T(*((const T *) arg)); }; }
     template <typename T = type> static auto make_move_constructor(const T *value) -> decltype(new T(std::move(*((T *) value))), Constructor(nullptr)) {
-        return [](const void *arg) -> void * { return (void *) new T(std::move(*((T *) arg))); }; }
+        return [](const void *arg) -> void * { return (void *) new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg)))); }; }
 #else
     /* Visual Studio 2015's SFINAE implementation doesn't yet handle the above robustly in all situations.
        Use a workaround that only tests for constructibility for now. */
@@ -706,7 +706,7 @@ public:
         return PyUnicode_DecodeLatin1(str, 1, nullptr);
     }
 
-    operator char*() { return success ? (char *) value.c_str() : nullptr; }
+    operator char*() { return success ? const_cast<char *>(value.c_str()) : nullptr; }
     operator char&() { return value[0]; }
 
     static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
@@ -729,7 +729,7 @@ public:
         return PyUnicode_FromWideChar(wstr, 1);
     }
 
-    operator wchar_t*() { return success ? (wchar_t *) value.c_str() : nullptr; }
+    operator wchar_t*() { return success ? const_cast<wchar_t *>(value.c_str()) : nullptr; }
     operator wchar_t&() { return value[0]; }
 
     static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
