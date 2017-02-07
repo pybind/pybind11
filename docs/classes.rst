@@ -282,6 +282,11 @@ expose fields and methods of both types:
     u'Molly'
     >>> p.bark()
     u'woof!'
+    
+.. note:: When a wrapped function returns a polymorphic type, pybind11 will
+          create a python wrapper object of the actual type if the type has
+          a virtual function in the type hierarchy. Otherwise, the wrapped
+          object will be whatever the pointer is defined as.
 
 Overloaded methods
 ==================
