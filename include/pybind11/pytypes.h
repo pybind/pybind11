@@ -591,47 +591,66 @@ NAMESPACE_END(detail)
 
 /// \addtogroup pytypes
 /// @{
+
+/** \rst
+    Wraps a Python iterator so that it can also be used as a C++ input iterator
+
+    Caveat: copying an iterator does not (and cannot) clone the internal
+    state of the Python iterable. This also applies to the post-increment
+    operator. This iterator should only be used to retrieve the current
+    value using ``operator*()``.
+\endrst */
 class iterator : public object {
 public:
-    /** Caveat: copying an iterator does not (and cannot) clone the internal
-        state of the Python iterable */
     PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
 
     iterator& operator++() {
-        if (m_ptr)
-            advance();
+        advance();
         return *this;
     }
 
-    /** Caveat: this postincrement operator does not (and cannot) clone the
-        internal state of the Python iterable. It should only be used to
-        retrieve the current iterate using <tt>operator*()</tt> */
     iterator operator++(int) {
-        iterator rv(*this);
-        rv.value = value;
-        if (m_ptr)
-            advance();
+        auto rv = *this;
+        advance();
         return rv;
     }
 
-    bool operator==(const iterator &it) const { return *it == **this; }
-    bool operator!=(const iterator &it) const { return *it != **this; }
-
     handle operator*() const {
-        if (!ready && m_ptr) {
+        if (m_ptr && !value.ptr()) {
             auto& self = const_cast<iterator &>(*this);
             self.advance();
-            self.ready = true;
         }
         return value;
     }
 
+    const handle *operator->() const { operator*(); return &value; }
+
+    /** \rst
+         The value which marks the end of the iteration. ``it == iterator::sentinel()``
+         is equivalent to catching ``StopIteration`` in Python.
+
+         .. code-block:: cpp
+
+             void foo(py::iterator it) {
+                 while (it != py::iterator::sentinel()) {
+                    // use `*it`
+                    ++it;
+                 }
+             }
+    \endrst */
+    static iterator sentinel() { return {}; }
+
+    friend bool operator==(const iterator &a, const iterator &b) { return a->ptr() == b->ptr(); }
+    friend bool operator!=(const iterator &a, const iterator &b) { return a->ptr() != b->ptr(); }
+
 private:
-    void advance() { value = reinterpret_steal<object>(PyIter_Next(m_ptr)); }
+    void advance() {
+        value = reinterpret_steal<object>(PyIter_Next(m_ptr));
+        if (PyErr_Occurred()) { throw error_already_set(); }
+    }
 
 private:
     object value = {};
-    bool ready = false;
 };
 
 class iterable : public object {
@@ -1032,15 +1051,17 @@ inline str repr(handle h) {
 #endif
     return reinterpret_steal<str>(str_value);
 }
+
+inline iterator iter(handle obj) {
+    PyObject *result = PyObject_GetIter(obj.ptr());
+    if (!result) { throw error_already_set(); }
+    return reinterpret_steal<iterator>(result);
+}
 /// @} python_builtins
 
 NAMESPACE_BEGIN(detail)
-template <typename D> iterator object_api<D>::begin() const {
-    return reinterpret_steal<iterator>(PyObject_GetIter(derived().ptr()));
-}
-template <typename D> iterator object_api<D>::end() const {
-    return {};
-}
+template <typename D> iterator object_api<D>::begin() const { return iter(derived()); }
+template <typename D> iterator object_api<D>::end() const { return iterator::sentinel(); }
 template <typename D> item_accessor object_api<D>::operator[](handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
 }

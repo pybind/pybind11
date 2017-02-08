@@ -169,7 +169,8 @@ bool operator==(const NonZeroIterator<std::pair<A, B>>& it, const NonZeroSentine
     return !(*it).first || !(*it).second;
 }
 
-test_initializer sequences_and_iterators([](py::module &m) {
+test_initializer sequences_and_iterators([](py::module &pm) {
+    auto m = pm.def_submodule("sequences_and_iterators");
 
     py::class_<Sequence> seq(m, "Sequence");
 
@@ -272,4 +273,21 @@ test_initializer sequences_and_iterators([](py::module &m) {
     On the actual Sequence object, the iterator would be constructed as follows:
     .def("__iter__", [](py::object s) { return PySequenceIterator(s.cast<const Sequence &>(), s); })
 #endif
+
+    m.def("object_to_list", [](py::object o) {
+        auto l = py::list();
+        for (auto item : o) {
+            l.append(item);
+        }
+        return l;
+    });
+
+    m.def("iterator_to_list", [](py::iterator it) {
+        auto l = py::list();
+        while (it != py::iterator::sentinel()) {
+            l.append(*it);
+            ++it;
+        }
+        return l;
+    });
 });
