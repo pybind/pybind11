@@ -189,6 +189,10 @@ extern "C" {
         }                                                                      \
         try {                                                                  \
             return pybind11_init();                                            \
+        } catch (pybind11::error_already_set &e) {                             \
+            e.clear();                                                         \
+            PyErr_SetString(PyExc_ImportError, e.what());                      \
+            return nullptr;                                                    \
         } catch (const std::exception &e) {                                    \
             PyErr_SetString(PyExc_ImportError, e.what());                      \
             return nullptr;                                                    \
@@ -560,6 +564,9 @@ public:
 
     /// Give the error back to Python
     void restore() { PyErr_Restore(type, value, trace); type = value = trace = nullptr; }
+
+    /// Clear the held Python error state (the C++ `what()` message remains intact)
+    void clear() { restore(); PyErr_Clear(); }
 
 private:
     PyObject *type, *value, *trace;
