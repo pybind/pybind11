@@ -1884,8 +1884,7 @@ class gil_scoped_release { };
 error_already_set::~error_already_set() {
     if (value) {
         gil_scoped_acquire gil;
-        PyErr_Restore(type, value, trace);
-        PyErr_Clear();
+        clear();
     }
 }
 
