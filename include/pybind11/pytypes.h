@@ -110,6 +110,8 @@ public:
     PYBIND11_DEPRECATED("call(...) was deprecated in favor of operator()(...)")
         object call(Args&&... args) const;
 
+    /// Equivalent to ``obj is other`` in Python.
+    bool is(object_api const& other) const { return derived().ptr() == other.derived().ptr(); }
     /// Equivalent to ``obj is None`` in Python.
     bool is_none() const { return derived().ptr() == Py_None; }
     PYBIND11_DEPRECATED("Use py::str(obj) instead")
@@ -167,10 +169,12 @@ public:
     /// Return ``true`` when the `handle` wraps a valid Python object
     explicit operator bool() const { return m_ptr != nullptr; }
     /** \rst
-        Check that the underlying pointers are the same.
+        Deprecated: Check that the underlying pointers are the same.
         Equivalent to ``obj1 is obj2`` in Python.
     \endrst */
+    PYBIND11_DEPRECATED("Use obj1.is(obj2) instead")
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
+    PYBIND11_DEPRECATED("Use !obj1.is(obj2) instead")
     bool operator!=(const handle &h) const { return m_ptr != h.m_ptr; }
     PYBIND11_DEPRECATED("Use handle::operator bool() instead")
     bool check() const { return m_ptr != nullptr; }

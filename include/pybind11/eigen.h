@@ -531,7 +531,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         object matrix_type = sparse_module.attr(
             rowMajor ? "csr_matrix" : "csc_matrix");
 
-        if (obj.get_type() != matrix_type.ptr()) {
+        if (!obj.get_type().is(matrix_type)) {
             try {
                 obj = matrix_type(obj);
             } catch (const error_already_set &) {
