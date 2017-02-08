@@ -303,19 +303,21 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 
         if (!a.value) {
 #if !defined(NDEBUG)
-            auto descr = "'" + std::string(a.name) + ": " + a.type + "'";
+            std::string descr("'");
+            if (a.name) descr += std::string(a.name) + ": ";
+            descr += a.type + "'";
             if (r->is_method) {
                 if (r->name)
                     descr += " in method '" + (std::string) str(r->scope) + "." + (std::string) r->name + "'";
                 else
                     descr += " in method of '" + (std::string) str(r->scope) + "'";
             } else if (r->name) {
-                descr += " in function named '" + (std::string) r->name + "'";
+                descr += " in function '" + (std::string) r->name + "'";
             }
-            pybind11_fail("arg(): could not convert default keyword argument "
+            pybind11_fail("arg(): could not convert default argument "
                           + descr + " into a Python object (type not registered yet?)");
 #else
-            pybind11_fail("arg(): could not convert default keyword argument "
+            pybind11_fail("arg(): could not convert default argument "
                           "into a Python object (type not registered yet?). "
                           "Compile in debug mode for more information.");
 #endif

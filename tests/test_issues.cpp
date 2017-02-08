@@ -74,7 +74,6 @@ namespace std {
 template <> struct hash<TplConstrClass> { size_t operator()(const TplConstrClass &t) const { return std::hash<std::string>()(t.str); } };
 }
 
-
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
@@ -397,5 +396,5 @@ void init_issues(py::module &m) {
 #endif
 }
 
-// MSVC workaround: trying to use a lambda here crashes MSCV
+// MSVC workaround: trying to use a lambda here crashes MSVC
 test_initializer issues(&init_issues);
