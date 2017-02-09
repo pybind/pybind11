@@ -169,6 +169,47 @@ bool operator==(const NonZeroIterator<std::pair<A, B>>& it, const NonZeroSentine
     return !(*it).first || !(*it).second;
 }
 
+template <typename PythonType>
+py::list test_random_access_iterator(PythonType x) {
+    if (x.size() < 5)
+        throw py::value_error("Please provide at least 5 elements for testing.");
+
+    auto checks = py::list();
+    auto assert_equal = [&checks](py::handle a, py::handle b) {
+        auto result = PyObject_RichCompareBool(a.ptr(), b.ptr(), Py_EQ);
+        if (result == -1) { throw py::error_already_set(); }
+        checks.append(result != 0);
+    };
+
+    auto it = x.begin();
+    assert_equal(x[0], *it);
+    assert_equal(x[0], it[0]);
+    assert_equal(x[1], it[1]);
+
+    assert_equal(x[1], *(++it));
+    assert_equal(x[1], *(it++));
+    assert_equal(x[2], *it);
+    assert_equal(x[3], *(it += 1));
+    assert_equal(x[2], *(--it));
+    assert_equal(x[2], *(it--));
+    assert_equal(x[1], *it);
+    assert_equal(x[0], *(it -= 1));
+
+    assert_equal(it->attr("real"), x[0].attr("real"));
+    assert_equal((it + 1)->attr("real"), x[1].attr("real"));
+
+    assert_equal(x[1], *(it + 1));
+    assert_equal(x[1], *(1 + it));
+    it += 3;
+    assert_equal(x[1], *(it - 2));
+
+    checks.append(static_cast<std::size_t>(x.end() - x.begin()) == x.size());
+    checks.append((x.begin() + static_cast<std::ptrdiff_t>(x.size())) == x.end());
+    checks.append(x.begin() < x.end());
+
+    return checks;
+}
+
 test_initializer sequences_and_iterators([](py::module &pm) {
     auto m = pm.def_submodule("sequences_and_iterators");
 
@@ -300,4 +341,14 @@ test_initializer sequences_and_iterators([](py::module &pm) {
         auto it = std::find_if(o.begin(), o.end(), [](py::handle h) { return h.is_none(); });
         return it->is_none();
     });
+
+    m.def("count_nonzeros", [](py::dict d) {
+       return std::count_if(d.begin(), d.end(), [](std::pair<py::handle, py::handle> p) {
+           return p.second.cast<int>() != 0;
+       });
+    });
+
+    m.def("tuple_iterator", [](py::tuple x) { return test_random_access_iterator(x); });
+    m.def("list_iterator", [](py::list x) { return test_random_access_iterator(x); });
+    m.def("sequence_iterator", [](py::sequence x) { return test_random_access_iterator(x); });
 });

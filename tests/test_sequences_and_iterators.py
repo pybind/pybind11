@@ -117,3 +117,9 @@ def test_python_iterator_in_cpp():
     l = [1, None, 0, None]
     assert m.count_none(l) == 2
     assert m.find_none(l) is True
+    assert m.count_nonzeros({"a": 0, "b": 1, "c": 2}) == 2
+
+    r = range(5)
+    assert all(m.tuple_iterator(tuple(r)))
+    assert all(m.list_iterator(list(r)))
+    assert all(m.sequence_iterator(r))
