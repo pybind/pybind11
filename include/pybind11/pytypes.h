@@ -499,23 +499,124 @@ struct tuple_item {
 };
 NAMESPACE_END(accessor_policies)
 
-struct dict_iterator {
+/// STL iterator template used for tuple, list, sequence and dict
+template <typename Policy>
+class generic_iterator : public Policy {
+    using It = generic_iterator;
+
 public:
-    explicit dict_iterator(handle dict = handle(), ssize_t pos = -1) : dict(dict), pos(pos) { }
-    dict_iterator& operator++() {
-        if (!PyDict_Next(dict.ptr(), &pos, &key.ptr(), &value.ptr()))
-            pos = -1;
-        return *this;
-    }
-    std::pair<handle, handle> operator*() const {
-        return std::make_pair(key, value);
-    }
-    bool operator==(const dict_iterator &it) const { return it.pos == pos; }
-    bool operator!=(const dict_iterator &it) const { return it.pos != pos; }
-private:
-    handle dict, key, value;
-    ssize_t pos = 0;
+    using difference_type = ssize_t;
+    using iterator_category = typename Policy::iterator_category;
+    using value_type = typename Policy::value_type;
+    using reference = typename Policy::reference;
+    using pointer = typename Policy::pointer;
+
+    generic_iterator() = default;
+    generic_iterator(handle seq, ssize_t index) : Policy(seq, index) { }
+
+    reference operator*() const { return Policy::dereference(); }
+    reference operator[](difference_type n) const { return *(*this + n); }
+    pointer operator->() const { return **this; }
+
+    It &operator++() { Policy::increment(); return *this; }
+    It operator++(int) { auto copy = *this; Policy::increment(); return copy; }
+    It &operator--() { Policy::decrement(); return *this; }
+    It operator--(int) { auto copy = *this; Policy::decrement(); return copy; }
+    It &operator+=(difference_type n) { Policy::advance(n); return *this; }
+    It &operator-=(difference_type n) { Policy::advance(-n); return *this; }
+
+    friend It operator+(const It &a, difference_type n) { auto copy = a; return copy += n; }
+    friend It operator+(difference_type n, const It &b) { return b + n; }
+    friend It operator-(const It &a, difference_type n) { auto copy = a; return copy -= n; }
+    friend difference_type operator-(const It &a, const It &b) { return a.distance_to(b); }
+
+    friend bool operator==(const It &a, const It &b) { return a.equal(b); }
+    friend bool operator!=(const It &a, const It &b) { return !(a == b); }
+    friend bool operator< (const It &a, const It &b) { return b - a > 0; }
+    friend bool operator> (const It &a, const It &b) { return b < a; }
+    friend bool operator>=(const It &a, const It &b) { return !(a < b); }
+    friend bool operator<=(const It &a, const It &b) { return !(a > b); }
 };
+
+NAMESPACE_BEGIN(iterator_policies)
+/// Quick proxy class needed to implement ``operator->`` for iterators which can't return pointers
+template <typename T>
+struct arrow_proxy {
+    T value;
+
+    arrow_proxy(T &&value) : value(std::move(value)) { }
+    T *operator->() const { return &value; }
+};
+
+/// Lightweight iterator policy using just a simple pointer: see ``PySequence_Fast_ITEMS``
+class sequence_fast_readonly {
+protected:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = handle;
+    using reference = const handle;
+    using pointer = arrow_proxy<const handle>;
+
+    sequence_fast_readonly(handle obj, ssize_t n) : ptr(PySequence_Fast_ITEMS(obj.ptr()) + n) { }
+
+    reference dereference() const { return *ptr; }
+    void increment() { ++ptr; }
+    void decrement() { --ptr; }
+    void advance(ssize_t n) { ptr += n; }
+    bool equal(const sequence_fast_readonly &b) const { return ptr == b.ptr; }
+    ssize_t distance_to(const sequence_fast_readonly &b) const { return ptr - b.ptr; }
+
+private:
+    PyObject **ptr;
+};
+
+/// Full read and write access using the sequence protocol: see ``detail::sequence_accessor``
+class sequence_slow_readwrite {
+protected:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = object;
+    using reference = sequence_accessor;
+    using pointer = arrow_proxy<const sequence_accessor>;
+
+    sequence_slow_readwrite(handle obj, ssize_t index) : obj(obj), index(index) { }
+
+    reference dereference() const { return {obj, static_cast<size_t>(index)}; }
+    void increment() { ++index; }
+    void decrement() { --index; }
+    void advance(ssize_t n) { index += n; }
+    bool equal(const sequence_slow_readwrite &b) const { return index == b.index; }
+    ssize_t distance_to(const sequence_slow_readwrite &b) const { return index - b.index; }
+
+private:
+    handle obj;
+    ssize_t index;
+};
+
+/// Python's dictionary protocol permits this to be a forward iterator
+class dict_readonly {
+protected:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = std::pair<handle, handle>;
+    using reference = const value_type;
+    using pointer = arrow_proxy<const value_type>;
+
+    dict_readonly() = default;
+    dict_readonly(handle obj, ssize_t pos) : obj(obj), pos(pos) { increment(); }
+
+    reference dereference() const { return {key, value}; }
+    void increment() { if (!PyDict_Next(obj.ptr(), &pos, &key, &value)) { pos = -1; } }
+    bool equal(const dict_readonly &b) const { return pos == b.pos; }
+
+private:
+    handle obj;
+    PyObject *key, *value;
+    ssize_t pos = -1;
+};
+NAMESPACE_END(iterator_policies)
+
+using tuple_iterator = generic_iterator<iterator_policies::sequence_fast_readonly>;
+using list_iterator = generic_iterator<iterator_policies::sequence_fast_readonly>;
+using sequence_iterator = generic_iterator<iterator_policies::sequence_slow_readwrite>;
+using dict_iterator = generic_iterator<iterator_policies::dict_readonly>;
 
 inline bool PyIterable_Check(PyObject *obj) {
     PyObject *iter = PyObject_GetIter(obj);
@@ -916,6 +1017,8 @@ public:
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
+    detail::tuple_iterator begin() const { return {*this, 0}; }
+    detail::tuple_iterator end() const { return {*this, PyTuple_GET_SIZE(m_ptr)}; }
 };
 
 class dict : public object {
@@ -931,8 +1034,8 @@ public:
     explicit dict(Args &&...args) : dict(collector(std::forward<Args>(args)...).kwargs()) { }
 
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
-    detail::dict_iterator begin() const { return (++detail::dict_iterator(*this, 0)); }
-    detail::dict_iterator end() const { return detail::dict_iterator(); }
+    detail::dict_iterator begin() const { return {*this, 0}; }
+    detail::dict_iterator end() const { return {}; }
     void clear() const { PyDict_Clear(ptr()); }
     bool contains(handle key) const { return PyDict_Contains(ptr(), key.ptr()) == 1; }
     bool contains(const char *key) const { return PyDict_Contains(ptr(), pybind11::str(key).ptr()) == 1; }
@@ -948,9 +1051,11 @@ private:
 
 class sequence : public object {
 public:
-    PYBIND11_OBJECT(sequence, object, PySequence_Check)
+    PYBIND11_OBJECT_DEFAULT(sequence, object, PySequence_Check)
     size_t size() const { return (size_t) PySequence_Size(m_ptr); }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
+    detail::sequence_iterator begin() const { return {*this, 0}; }
+    detail::sequence_iterator end() const { return {*this, PySequence_Size(m_ptr)}; }
 };
 
 class list : public object {
@@ -961,6 +1066,8 @@ public:
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
+    detail::list_iterator begin() const { return {*this, 0}; }
+    detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
     template <typename T> void append(T &&val) const {
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
