@@ -254,7 +254,7 @@ public:
 
     .. code-block:: cpp
 
-        PyObject *result = PySequence_GetItem(obj, index);
+        PyObject *p = PyList_GetItem(obj, index);
         py::object o = reinterpret_borrow<py::object>(p);
         // or
         py::tuple t = reinterpret_borrow<py::tuple>(p); // <-- `p` must be already be a `tuple`
@@ -453,7 +453,7 @@ struct sequence_item {
     static object get(handle obj, size_t index) {
         PyObject *result = PySequence_GetItem(obj.ptr(), static_cast<ssize_t>(index));
         if (!result) { throw error_already_set(); }
-        return reinterpret_borrow<object>(result);
+        return reinterpret_steal<object>(result);
     }
 
     static void set(handle obj, size_t index, handle val) {
