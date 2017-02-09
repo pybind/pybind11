@@ -458,6 +458,12 @@ test_initializer python_types([](py::module &m) {
     m.def("u16_ibang", [=]() -> char16_t { return ib16; });
     m.def("u32_mathbfA", [=]() -> char32_t { return mathbfA32; });
     m.def("wchar_heart", []() -> wchar_t { return 0x2665; });
+
+    m.attr("wchar_size") = py::cast(sizeof(wchar_t));
+    m.def("ord_char", [](char c) -> int { return static_cast<unsigned char>(c); });
+    m.def("ord_char16", [](char16_t c) -> int { return c; });
+    m.def("ord_char32", [](char32_t c) -> int { return c; });
+    m.def("ord_wchar", [](wchar_t c) -> int { return c; });
 });
 
 #if defined(_MSC_VER)
