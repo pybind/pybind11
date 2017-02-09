@@ -738,7 +738,7 @@ public:
             if (char0_bytes == str_len) {
                 // If we have a 128-255 value, we can decode it into a single char:
                 if (char0_bytes == 2 && (v0 & 0xFC) == 0xC0) { // 0x110000xx 0x10xxxxxx
-                    return static_cast<char>(((v0 & 3) << 6) + (static_cast<unsigned char>(value[1]) & 0x3F));
+                    return static_cast<CharT>(((v0 & 3) << 6) + (static_cast<unsigned char>(value[1]) & 0x3F));
                 }
                 // Otherwise we have a single character, but it's > U+00FF
                 throw value_error("Character code point not in range(0x100)");
