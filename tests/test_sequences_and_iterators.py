@@ -113,3 +113,7 @@ def test_python_iterator_in_cpp():
     with pytest.raises(RuntimeError) as excinfo:
         m.iterator_to_list(iter(bad_next_call, None))
     assert str(excinfo.value) == "py::iterator::advance() should propagate errors"
+
+    l = [1, None, 0, None]
+    assert m.count_none(l) == 2
+    assert m.find_none(l) is True

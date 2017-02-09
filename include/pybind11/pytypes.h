@@ -602,6 +602,12 @@ NAMESPACE_END(detail)
 \endrst */
 class iterator : public object {
 public:
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = ssize_t;
+    using value_type = handle;
+    using reference = const handle;
+    using pointer = const handle *;
+
     PYBIND11_OBJECT_DEFAULT(iterator, object, PyIter_Check)
 
     iterator& operator++() {
@@ -615,7 +621,7 @@ public:
         return rv;
     }
 
-    handle operator*() const {
+    reference operator*() const {
         if (m_ptr && !value.ptr()) {
             auto& self = const_cast<iterator &>(*this);
             self.advance();
@@ -623,7 +629,7 @@ public:
         return value;
     }
 
-    const handle *operator->() const { operator*(); return &value; }
+    pointer operator->() const { operator*(); return &value; }
 
     /** \rst
          The value which marks the end of the iteration. ``it == iterator::sentinel()``
