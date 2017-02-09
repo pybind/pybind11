@@ -452,7 +452,8 @@ def test_single_char_arguments():
     """Tests failures for passing invalid inputs to char-accepting functions"""
     from pybind11_tests import ord_char, ord_char16, ord_char32, ord_wchar, wchar_size
 
-    def toobig_message(r): return "Character code point not in range({0:#x})".format(r)
+    def toobig_message(r):
+        return "Character code point not in range({0:#x})".format(r)
     toolong_message = "Expected a character, but multi-character string found"
 
     assert ord_char(u'a') == 0x61  # simple ASCII
