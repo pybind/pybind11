@@ -290,4 +290,14 @@ test_initializer sequences_and_iterators([](py::module &pm) {
         }
         return l;
     });
+
+    // Make sure that py::iterator works with std algorithms
+    m.def("count_none", [](py::object o) {
+        return std::count_if(o.begin(), o.end(), [](py::handle h) { return h.is_none(); });
+    });
+
+    m.def("find_none", [](py::object o) {
+        auto it = std::find_if(o.begin(), o.end(), [](py::handle h) { return h.is_none(); });
+        return it->is_none();
+    });
 });
