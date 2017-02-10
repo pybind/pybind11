@@ -36,61 +36,72 @@ function(select_cxx_standard)
   endif()
 endfunction()
 
-# Internal: try compiling with the given c++ and linker flags; set success_out to 1 if it works
-function(_pybind11_check_cxx_and_linker_flags cxxflags linkerflags success_out)
-  set(CMAKE_REQUIRED_QUIET 1)
-  set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} ${linkerflags})
-  check_cxx_compiler_flag("${cxxflags}" has_lto)
-  set(${success_out} ${has_lto} PARENT_SCOPE)
+# Checks whether the given CXX/linker flags can compile and link a cxx file.  cxxflags and
+# linkerflags are lists of flags to use.  The result variable is a unique variable name for each set
+# of flags: the compilation result will be cached base on the result variable.  If the flags work,
+# sets them in cxxflags_out/linkerflags_out internal cache variables (in addition to ${result}).
+function(_pybind11_return_if_cxx_and_linker_flags_work result cxxflags linkerflags cxxflags_out linkerflags_out)
+  set(CMAKE_REQUIRED_LIBRARIES ${linkerflags})
+  check_cxx_compiler_flag("${cxxflags}" ${result})
+  if (${result})
+    set(${cxxflags_out} "${cxxflags}" CACHE INTERNAL "" FORCE)
+    set(${linkerflags_out} "${linkerflags}" CACHE INTERNAL "" FORCE)
+  endif()
 endfunction()
 
-# Wraps the above in a macro that sets the flags in the parent scope and returns if the check
-# succeeded (since this is a macro, not a function, the PARENT_SCOPE set and return is from the
-# caller's POV)
-macro(_pybind11_return_if_cxx_and_linker_flags_work feature cxxflags linkerflags cxx_out linker_out)
-  _pybind11_check_cxx_and_linker_flags(${cxxflags} ${linkerflags} check_success)
-  if(check_success)
-    set(${cxx_out} ${cxxflags} PARENT_SCOPE)
-    set(${linker_out} ${linkerflags} PARENT_SCOPE)
-    message(STATUS "Found ${feature} flags: ${cxxflags}")
-    return()
-  endif()
-endmacro()
-
 # Internal: find the appropriate link time optimization flags for this compiler
-function(_pybind11_find_lto_flags cxxflags_out linkerflags_out prefer_thin_lto)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set(cxx_append "")
-    set(linker_append "")
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
-      # Clang Gold plugin does not support -Os; append -O3 to MinSizeRel builds to override it
-      set(linker_append "$<$<CONFIG:MinSizeRel>: -O3>")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-      set(cxx_append " -fno-fat-lto-objects")
+function(_pybind11_add_lto_flags target_name prefer_thin_lto)
+  if (NOT DEFINED PYBIND11_LTO_CXX_FLAGS)
+    set(PYBIND11_LTO_CXX_FLAGS "" CACHE INTERNAL "")
+    set(PYBIND11_LTO_LINKER_FLAGS "" CACHE INTERNAL "")
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+      set(cxx_append "")
+      set(linker_append "")
+      if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
+        # Clang Gold plugin does not support -Os; append -O3 to MinSizeRel builds to override it
+        set(linker_append ";$<$<CONFIG:MinSizeRel>:-O3>")
+      elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        set(cxx_append ";-fno-fat-lto-objects")
+      endif()
+
+      if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND prefer_thin_lto)
+        _pybind11_return_if_cxx_and_linker_flags_work(HAS_FLTO_THIN
+          "-flto=thin${cxx_append}" "-flto=thin${linker_append}"
+          PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+      endif()
+
+      if (NOT HAS_FLTO_THIN)
+        _pybind11_return_if_cxx_and_linker_flags_work(HAS_FLTO
+          "-flto${cxx_append}" "-flto${linker_append}"
+          PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+      endif()
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+      # Intel equivalent to LTO is called IPO
+      _pybind11_return_if_cxx_and_linker_flags_work(HAS_INTEL_IPO
+      "-ipo" "-ipo" PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+    elseif(MSVC)
+      # cmake only interprets libraries as linker flags when they start with a - (otherwise it
+      # converts /LTCG to \LTCG as if it was a Windows path).  Luckily MSVC supports passing flags
+      # with - instead of /, even if it is a bit non-standard:
+      _pybind11_return_if_cxx_and_linker_flags_work(HAS_MSVC_GL_LTCG
+        "/GL" "-LTCG" PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     endif()
 
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND ${prefer_thin_lto})
-      _pybind11_return_if_cxx_and_linker_flags_work("LTO"
-        "-flto=thin${cxx_append}" "-flto=thin${linker_append}" ${cxxflags_out} ${linkerflags_out})
+    if (PYBIND11_LTO_CXX_FLAGS)
+      message(STATUS "LTO enabled")
+    else()
+      message(STATUS "LTO disabled (not supported by the compiler and/or linker)")
     endif()
-
-    _pybind11_return_if_cxx_and_linker_flags_work("LTO"
-      "-flto${cxx_append}" "-flto${linker_append}" ${cxxflags_out} ${linkerflags_out})
-  elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-    # Intel equivalent to LTO is called IPO
-    _pybind11_return_if_cxx_and_linker_flags_work("LTO"
-      "-ipo" "-ipo" ${cxxflags_out} ${linkerflags_out})
-  elseif(MSVC)
-    # cmake only interprets libraries as linker flags when they start with a - (otherwise it
-    # converts /LTCG to \LTCG as if it was a Windows path).  Luckily MSVC supports passing flags
-    # with - instead of /, even if it is a bit non-standard:
-    _pybind11_return_if_cxx_and_linker_flags_work("LTO"
-      "/GL" "-LTCG" ${cxxflags_out} ${linkerflags_out})
   endif()
 
-  set(${cxxflags_out} "" PARENT_SCOPE)
-  set(${linkerflags_out} "" PARENT_SCOPE)
-  message(STATUS "LTO disabled (not supported by the compiler and/or linker)")
+  # Enable LTO flags if found, except for Debug builds
+  if (PYBIND11_LTO_CXX_FLAGS)
+    target_compile_options(${target_name} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${PYBIND11_LTO_CXX_FLAGS}>")
+  endif()
+  if (PYBIND11_LTO_LINKER_FLAGS)
+    target_link_libraries(${target_name} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${PYBIND11_LTO_LINKER_FLAGS}>")
+  endif()
 endfunction()
 
 # Build a Python extension module:
@@ -160,15 +171,7 @@ function(pybind11_add_module target_name)
     return()
   endif()
 
-  # Find LTO flags
-  _pybind11_find_lto_flags(lto_cxx_flags lto_linker_flags ARG_THIN_LTO)
-  if (lto_cxx_flags OR lto_linker_flags)
-    # Enable LTO flags if found, except for Debug builds
-    separate_arguments(lto_cxx_flags)
-    separate_arguments(lto_linker_flags)
-    target_compile_options(${target_name} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${lto_cxx_flags}>")
-    target_link_libraries(${target_name} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${lto_linker_flags}>")
-  endif()
+  _pybind11_add_lto_flags(${target_name} ${ARG_THIN_LTO})
 
   # Set the default symbol visibility to hidden (very important to obtain small binaries)
   if (NOT MSVC)
