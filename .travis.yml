@@ -96,13 +96,18 @@ before_install:
   fi
   if [ -n "$DOCKER" ]; then
     docker pull $DOCKER
+    # Disable LTO with gcc until gcc 79296 is fixed:
+    export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYBIND11_LTO_CXX_FLAGS="
     export containerid=$(docker run --detach --tty \
       --volume="$PWD":/pybind11 --workdir=/pybind11 \
+      --env="CXXFLAGS=$CXXFLAGS" \
       --env="CC=$CC" --env="CXX=$CXX" --env="DEBIAN_FRONTEND=$DEBIAN_FRONTEND" \
       --env=GCC_COLORS=\  \
       $DOCKER)
     docker exec --tty "$containerid" sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
     export SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
+    # gcc-7 currently generates warnings; some are upstream bugs, so just turn off -Werror for now
+    if [ "$GCC" = "7" ]; then WERROR=off; fi
   else
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
       pip install --user --upgrade pip virtualenv
@@ -138,7 +143,7 @@ script:
 - $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS}
     -DPYBIND11_PYTHON_VERSION=$PYTHON
     -DPYBIND11_CPP_STANDARD=$CPP
-    -DPYBIND11_WERROR=ON
+    -DPYBIND11_WERROR=${WERROR:-ON}
 - $SCRIPT_RUN_PREFIX make pytest -j 2
 - $SCRIPT_RUN_PREFIX make test_cmake_build
 after_failure: cat tests/test_cmake_build/*.log
