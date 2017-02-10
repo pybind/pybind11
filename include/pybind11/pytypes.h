@@ -613,8 +613,14 @@ private:
 };
 NAMESPACE_END(iterator_policies)
 
+#if !defined(PYPY_VERSION)
 using tuple_iterator = generic_iterator<iterator_policies::sequence_fast_readonly>;
 using list_iterator = generic_iterator<iterator_policies::sequence_fast_readonly>;
+#else
+using tuple_iterator = generic_iterator<iterator_policies::sequence_slow_readwrite>;
+using list_iterator = generic_iterator<iterator_policies::sequence_slow_readwrite>;
+#endif
+
 using sequence_iterator = generic_iterator<iterator_policies::sequence_slow_readwrite>;
 using dict_iterator = generic_iterator<iterator_policies::dict_readonly>;
 
