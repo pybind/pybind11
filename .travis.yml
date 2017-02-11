@@ -39,6 +39,21 @@ matrix:
   - sudo: true
     services: docker
     env: ARCH=i386 PYTHON=3.5 CPP=14 GCC=6
+  # This next one does a make install *before* testing, then builds the tests against the installed version:
+  - sudo: true
+    services: docker
+    env: PYTHON=3.5 CPP=14 CLANG=3.9 INSTALL=1
+    script:
+      - |
+        # Temporary workaround pending PR #604:
+        export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DHAS_LTO_FLAG=0"
+        $SCRIPT_RUN_PREFIX sh -c "set -e
+        cmake ${CMAKE_EXTRA_ARGS} -DPYBIND11_INSTALL=1 -DPYBIND11_TEST=0
+        make install
+        cp -a tests /pybind11-tests
+        mkdir /build-tests && cd /build-tests
+        cmake ../pybind11-tests ${CMAKE_EXTRA_ARGS} -DPYBIND11_WERROR=ON
+        make pytest -j 2"
   # A barebones build makes sure everything still works without optional deps (numpy/scipy/eigen)
   # and also tests the automatic discovery functions in CMake (Python version, C++ standard).
   - os: linux
@@ -72,9 +87,15 @@ before_install:
 - |
   # Configure build variables
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    if [ -z "$GCC" ]; then export GCC=4.8; fi
-    export CXX=g++-$GCC CC=gcc-$GCC;
-    if [ "$GCC" = "6" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
+    if [ -n "$CLANG" ]; then
+      export CXX=clang++-$CLANG CC=clang-$CLANG COMPILER_PACKAGES="clang-$CLANG llvm-$CLANG-dev"
+    else
+      if [ -z "$GCC" ]; then export GCC=4.8
+      else export COMPILER_PACKAGES=g++-$GCC
+      fi
+      export CXX=g++-$GCC CC=gcc-$GCC
+    fi
+    if [ "$GCC" = "6" ] || [ -n "$CLANG" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
     elif [ "$GCC" = "7" ]; then export DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -131,7 +152,7 @@ install:
     docker exec --tty "$containerid" sh -c "for s in 0 15; do sleep \$s; \
       apt-get -qy --no-install-recommends $APT_GET_EXTRA install \
         python$PY-dev python$PY-pytest python$PY-scipy \
-        libeigen3-dev cmake make g++-$GCC && break; done"
+        libeigen3-dev cmake make ${COMPILER_PACKAGES} && break; done"
   else
     pip install numpy scipy pytest
 
