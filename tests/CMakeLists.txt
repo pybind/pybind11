@@ -73,9 +73,26 @@ string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 # skip message).
 list(FIND PYBIND11_TEST_FILES test_eigen.cpp PYBIND11_TEST_FILES_EIGEN_I)
 if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
-  find_package(Eigen3 QUIET)
+  # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake):
+  find_package(Eigen3 QUIET CONFIG)
+  if (EIGEN3_FOUND)
+    # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements
+    if (EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1 AND NOT CMAKE_VERSION VERSION_LESS 3.0)
+      set(PYBIND11_EIGEN_VIA_TARGET 1)
+    endif()
+  else()
+    # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
+    # tools/FindEigen3.cmake
+    find_package(Eigen3 QUIET)
+  endif()
 
   if(EIGEN3_FOUND)
+    # Eigen 3.3.1+ cmake sets EIGEN3_VERSION_STRING (and hard codes the version when installed
+    # rather than looking it up in the cmake script); older versions, and the
+    # tools/FindEigen3.cmake, set EIGEN3_VERSION instead.
+    if(NOT EIGEN3_VERSION AND EIGEN3_VERSION_STRING)
+      set(EIGEN3_VERSION ${EIGEN3_VERSION_STRING})
+    endif()
     message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
   else()
     list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
@@ -108,7 +125,11 @@ pybind11_add_module(pybind11_tests THIN_LTO pybind11_tests.cpp
 pybind11_enable_warnings(pybind11_tests)
 
 if(EIGEN3_FOUND)
-  target_include_directories(pybind11_tests PRIVATE ${EIGEN3_INCLUDE_DIR})
+  if (PYBIND11_EIGEN_VIA_TARGET)
+    target_link_libraries(pybind11_tests PRIVATE Eigen3::Eigen)
+  else()
+    target_include_directories(pybind11_tests PRIVATE ${EIGEN3_INCLUDE_DIR})
+  endif()
   target_compile_definitions(pybind11_tests PRIVATE -DPYBIND11_TEST_EIGEN)
 endif()
 
