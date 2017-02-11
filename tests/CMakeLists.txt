@@ -73,14 +73,18 @@ string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 # skip message).
 list(FIND PYBIND11_TEST_FILES test_eigen.cpp PYBIND11_TEST_FILES_EIGEN_I)
 if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
-  # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake):
-  find_package(Eigen3 QUIET CONFIG)
-  if (EIGEN3_FOUND)
-    # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements
-    if (EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1 AND NOT CMAKE_VERSION VERSION_LESS 3.0)
-      set(PYBIND11_EIGEN_VIA_TARGET 1)
+  # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake).
+  # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements, but also
+  # produces a fatal error if loaded from a pre-3.0 cmake.
+  if (NOT CMAKE_VERSION VERSION_LESS 3.0)
+    find_package(Eigen3 QUIET CONFIG)
+    if (EIGEN3_FOUND)
+      if (EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1)
+        set(PYBIND11_EIGEN_VIA_TARGET 1)
+      endif()
     endif()
-  else()
+  endif()
+  if (NOT EIGEN3_FOUND)
     # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
     # tools/FindEigen3.cmake
     find_package(Eigen3 QUIET)
