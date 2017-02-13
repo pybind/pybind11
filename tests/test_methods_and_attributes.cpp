@@ -214,7 +214,10 @@ test_initializer methods_and_attributes([](py::module &m) {
                                       [](py::object) { return TestProperties::static_get(); })
         .def_property_static("def_property_static",
                              [](py::object) { return TestProperties::static_get(); },
-                             [](py::object, int v) { return TestProperties::static_set(v); });
+                             [](py::object, int v) { TestProperties::static_set(v); })
+        .def_property_static("static_cls",
+                             [](py::object cls) { return cls; },
+                             [](py::object cls, py::function f) { f(cls); });
 
     py::class_<SimpleValue>(m, "SimpleValue")
         .def_readwrite("value", &SimpleValue::value);

@@ -84,18 +84,46 @@ def test_static_properties():
     from pybind11_tests import TestProperties as Type
 
     assert Type.def_readonly_static == 1
-    with pytest.raises(AttributeError):
+    with pytest.raises(AttributeError) as excinfo:
         Type.def_readonly_static = 2
+    assert "can't set attribute" in str(excinfo)
 
     Type.def_readwrite_static = 2
     assert Type.def_readwrite_static == 2
 
     assert Type.def_property_readonly_static == 2
-    with pytest.raises(AttributeError):
+    with pytest.raises(AttributeError) as excinfo:
         Type.def_property_readonly_static = 3
+    assert "can't set attribute" in str(excinfo)
 
     Type.def_property_static = 3
     assert Type.def_property_static == 3
+
+    # Static property read and write via instance
+    instance = Type()
+
+    Type.def_readwrite_static = 0
+    assert Type.def_readwrite_static == 0
+    assert instance.def_readwrite_static == 0
+
+    instance.def_readwrite_static = 2
+    assert Type.def_readwrite_static == 2
+    assert instance.def_readwrite_static == 2
+
+
+def test_static_cls():
+    """Static property getter and setters expect the type object as the their only argument"""
+    from pybind11_tests import TestProperties as Type
+
+    instance = Type()
+    assert Type.static_cls is Type
+    assert instance.static_cls is Type
+
+    def check_self(self):
+        assert self is Type
+
+    Type.static_cls = check_self
+    instance.static_cls = check_self
 
 
 @pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])

@@ -6,7 +6,7 @@ from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, h
 
 def test_repr():
     # In Python 3.3+, repr() accesses __qualname__
-    assert "ExamplePythonTypes__Meta" in repr(type(ExamplePythonTypes))
+    assert "pybind11_type" in repr(type(ExamplePythonTypes))
     assert "ExamplePythonTypes" in repr(ExamplePythonTypes)
 
 

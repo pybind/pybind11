@@ -35,6 +35,7 @@
 
 #include "attr.h"
 #include "options.h"
+#include "class_support.h"
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -818,15 +819,12 @@ protected:
         object scope_qualname;
         if (rec->scope && hasattr(rec->scope, "__qualname__"))
             scope_qualname = rec->scope.attr("__qualname__");
-        object ht_qualname, ht_qualname_meta;
+        object ht_qualname;
         if (scope_qualname)
             ht_qualname = reinterpret_steal<object>(PyUnicode_FromFormat(
                 "%U.%U", scope_qualname.ptr(), name.ptr()));
         else
             ht_qualname = name;
-        if (rec->metaclass)
-            ht_qualname_meta = reinterpret_steal<object>(
-                PyUnicode_FromFormat("%U__Meta", ht_qualname.ptr()));
 #endif
 
 #if !defined(PYPY_VERSION)
@@ -835,36 +833,6 @@ protected:
 #else
         std::string full_name = std::string(rec->name);
 #endif
-
-        /* Create a custom metaclass if requested (used for static properties) */
-        object metaclass;
-        if (rec->metaclass) {
-            std::string meta_name_ = full_name + "__Meta";
-            object meta_name = reinterpret_steal<object>(PYBIND11_FROM_STRING(meta_name_.c_str()));
-            metaclass = reinterpret_steal<object>(PyType_Type.tp_alloc(&PyType_Type, 0));
-            if (!metaclass || !name)
-                pybind11_fail("generic_type::generic_type(): unable to create metaclass!");
-
-            /* Danger zone: from now (and until PyType_Ready), make sure to
-               issue no Python C API calls which could potentially invoke the
-               garbage collector (the GC will call type_traverse(), which will in
-               turn find the newly constructed type in an invalid state) */
-
-            auto type = (PyHeapTypeObject*) metaclass.ptr();
-            type->ht_name = meta_name.release().ptr();
-
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-            /* Qualified names for Python >= 3.3 */
-            type->ht_qualname = ht_qualname_meta.release().ptr();
-#endif
-            type->ht_type.tp_name = strdup(meta_name_.c_str());
-            type->ht_type.tp_base = &PyType_Type;
-            type->ht_type.tp_flags |= (Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE) &
-                                      ~Py_TPFLAGS_HAVE_GC;
-
-            if (PyType_Ready(&type->ht_type) < 0)
-                pybind11_fail("generic_type::generic_type(): failure in PyType_Ready() for metaclass!");
-        }
 
         size_t num_bases = rec->bases.size();
         auto bases = tuple(rec->bases);
@@ -915,8 +883,9 @@ protected:
         type->ht_qualname = ht_qualname.release().ptr();
 #endif
 
-        /* Metaclass */
-        PYBIND11_OB_TYPE(type->ht_type) = (PyTypeObject *) metaclass.release().ptr();
+        /* Custom metaclass if requested (used for static properties) */
+        if (rec->metaclass)
+            PYBIND11_OB_TYPE(type->ht_type) = internals.default_metaclass;
 
         /* Supported protocols */
         type->ht_type.tp_as_number = &type->as_number;
@@ -1105,15 +1074,10 @@ protected:
     void def_property_static_impl(const char *name,
                                   handle fget, handle fset,
                                   detail::function_record *rec_fget) {
-        pybind11::str doc_obj = pybind11::str(
-            (rec_fget->doc && pybind11::options::show_user_defined_docstrings())
-                ? rec_fget->doc : "");
-        const auto property = reinterpret_steal<object>(
-            PyObject_CallFunctionObjArgs((PyObject *) &PyProperty_Type, fget.ptr() ? fget.ptr() : Py_None,
-                                         fset.ptr() ? fset.ptr() : Py_None, Py_None, doc_obj.ptr(), nullptr));
-        if (rec_fget->is_method && rec_fget->scope) {
-            attr(name) = property;
-        } else {
+        const auto is_static = !(rec_fget->is_method && rec_fget->scope);
+        const auto has_doc = rec_fget->doc && pybind11::options::show_user_defined_docstrings();
+
+        if (is_static) {
             auto mclass = handle((PyObject *) PYBIND11_OB_TYPE(*((PyTypeObject *) m_ptr)));
 
             if ((PyTypeObject *) mclass.ptr() == &PyType_Type)
@@ -1123,8 +1087,14 @@ protected:
                     "' requires the type to have a custom metaclass. Please "
                     "ensure that one is created by supplying the pybind11::metaclass() "
                     "annotation to the associated class_<>(..) invocation.");
-            mclass.attr(name) = property;
         }
+
+        auto property = handle((PyObject *) (is_static ? get_internals().static_property_type
+                                                       : &PyProperty_Type));
+        attr(name) = property(fget.ptr() ? fget : none(),
+                              fset.ptr() ? fset : none(),
+                              /*deleter*/none(),
+                              pybind11::str(has_doc ? rec_fget->doc : ""));
     }
 };
 
