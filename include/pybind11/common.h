@@ -352,7 +352,7 @@ struct overload_hash {
     }
 };
 
-/// Internal data struture used to track registered instances and types
+/// Internal data structure used to track registered instances and types
 struct internals {
     std::unordered_map<std::type_index, void*> registered_types_cpp;   // std::type_index -> type_info
     std::unordered_map<const void *, void*> registered_types_py;       // PyTypeObject* -> type_info
@@ -361,6 +361,8 @@ struct internals {
     std::unordered_map<std::type_index, std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
+    PyTypeObject *static_property_type;
+    PyTypeObject *default_metaclass;
 #if defined(WITH_THREAD)
     decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
     PyInterpreterState *istate = nullptr;

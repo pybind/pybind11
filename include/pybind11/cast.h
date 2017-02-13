@@ -18,6 +18,8 @@
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
+inline PyTypeObject *make_static_property_type();
+inline PyTypeObject *make_default_metaclass();
 
 /// Additional type information which does not fit into the PyTypeObject
 struct type_info {
@@ -73,6 +75,8 @@ PYBIND11_NOINLINE inline internals &get_internals() {
                 }
             }
         );
+        internals_ptr->static_property_type = make_static_property_type();
+        internals_ptr->default_metaclass = make_default_metaclass();
     }
     return *internals_ptr;
 }
