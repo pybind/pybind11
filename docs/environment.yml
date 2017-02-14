@@ -3,6 +3,7 @@ channels:
 - dean0x7d
 - defaults
 dependencies:
+- python==3.5
 - doxygen
 - pip
 - pip:
