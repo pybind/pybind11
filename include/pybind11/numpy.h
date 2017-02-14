@@ -337,8 +337,9 @@ public:
 
     array() : array(0, static_cast<const double *>(nullptr)) {}
 
-    array(const pybind11::dtype &dt, const std::vector<size_t> &shape,
-          const std::vector<size_t> &strides, const void *ptr = nullptr,
+    template <typename Shape, typename Strides>
+    array(const pybind11::dtype &dt, const Shape &shape,
+          const Strides &strides, const void *ptr = nullptr,
           handle base = handle()) {
         auto& api = detail::npy_api::get();
         auto ndim = shape.size();
@@ -536,7 +537,7 @@ protected:
             throw std::runtime_error("array is not writeable");
     }
 
-    static std::vector<size_t> default_strides(const std::vector<size_t>& shape, size_t itemsize) {
+    template <typename Shape> static std::vector<size_t> default_strides(const Shape& shape, size_t itemsize) {
         auto ndim = shape.size();
         std::vector<size_t> strides(ndim);
         if (ndim) {
