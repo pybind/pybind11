@@ -4,18 +4,14 @@
 
 from setuptools import setup
 from pybind11 import __version__
+import os
 
-setup(
-    name='pybind11',
-    version=__version__,
-    description='Seamless operability between C++11 and Python',
-    author='Wenzel Jakob',
-    author_email='wenzel.jakob@epfl.ch',
-    url='https://github.com/wjakob/pybind11',
-    download_url='https://github.com/wjakob/pybind11/tarball/v' + __version__,
-    packages=['pybind11'],
-    license='BSD',
-    headers=[
+# Prevent installation of pybind11 headers by setting
+# PYBIND11_USE_CMAKE.
+if os.environ.get('PYBIND11_USE_CMAKE'):
+    headers = []
+else:
+    headers = [
         'include/pybind11/attr.h',
         'include/pybind11/cast.h',
         'include/pybind11/chrono.h',
@@ -33,7 +29,19 @@ setup(
         'include/pybind11/stl.h',
         'include/pybind11/stl_bind.h',
         'include/pybind11/typeid.h'
-    ],
+    ]
+
+setup(
+    name='pybind11',
+    version=__version__,
+    description='Seamless operability between C++11 and Python',
+    author='Wenzel Jakob',
+    author_email='wenzel.jakob@epfl.ch',
+    url='https://github.com/wjakob/pybind11',
+    download_url='https://github.com/wjakob/pybind11/tarball/v' + __version__,
+    packages=['pybind11'],
+    license='BSD',
+    headers=headers,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',

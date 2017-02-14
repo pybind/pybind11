@@ -92,6 +92,11 @@ endforeach()
 set(${PROJECT_NAME}_VERSION ${PYBIND11_VERSION_MAJOR}.${PYBIND11_VERSION_MINOR}.${PYBIND11_VERSION_PATCH})
 message(STATUS "pybind11 v${${PROJECT_NAME}_VERSION}")
 
+option (USE_PYTHON_INCLUDE_DIR "Install pybind11 headers in Python include directory instead of default installation prefix" OFF)
+if (USE_PYTHON_INCLUDE_DIR)
+    file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
+endif()
+
 if(NOT (CMAKE_VERSION VERSION_LESS 3.0))  # CMake >= 3.0
   # Build an interface library target:
   add_library(module INTERFACE)
