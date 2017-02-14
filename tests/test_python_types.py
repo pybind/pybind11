@@ -1,3 +1,4 @@
+# Python < 3 needs this: coding=utf-8
 import pytest
 
 from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, has_exp_optional
@@ -410,3 +411,93 @@ def test_implicit_casting():
         'int_i1': 42, 'int_i2': 42, 'int_e': 43, 'int_p': 44
     }
     assert z['l'] == [3, 6, 9, 12, 15]
+
+
+def test_unicode_conversion():
+    """Tests unicode conversion and error reporting."""
+    import pybind11_tests
+    from pybind11_tests import (good_utf8_string, bad_utf8_string,
+                                good_utf16_string, bad_utf16_string,
+                                good_utf32_string,  # bad_utf32_string,
+                                good_wchar_string,  # bad_wchar_string,
+                                u8_Z, u8_eacute, u16_ibang, u32_mathbfA, wchar_heart)
+
+    assert good_utf8_string() == u"Say utf8‽ 🎂 𝐀"
+    assert good_utf16_string() == u"b‽🎂𝐀z"
+    assert good_utf32_string() == u"a𝐀🎂‽z"
+    assert good_wchar_string() == u"a⸘𝐀z"
+
+    with pytest.raises(UnicodeDecodeError):
+        bad_utf8_string()
+
+    with pytest.raises(UnicodeDecodeError):
+        bad_utf16_string()
+
+    # These are provided only if they actually fail (they don't when 32-bit and under Python 2.7)
+    if hasattr(pybind11_tests, "bad_utf32_string"):
+        with pytest.raises(UnicodeDecodeError):
+            pybind11_tests.bad_utf32_string()
+    if hasattr(pybind11_tests, "bad_wchar_string"):
+        with pytest.raises(UnicodeDecodeError):
+            pybind11_tests.bad_wchar_string()
+
+    assert u8_Z() == 'Z'
+    assert u8_eacute() == u'é'
+    assert u16_ibang() == u'‽'
+    assert u32_mathbfA() == u'𝐀'
+    assert wchar_heart() == u'♥'
+
+
+def test_single_char_arguments():
+    """Tests failures for passing invalid inputs to char-accepting functions"""
+    from pybind11_tests import ord_char, ord_char16, ord_char32, ord_wchar, wchar_size
+
+    def toobig_message(r):
+        return "Character code point not in range({0:#x})".format(r)
+    toolong_message = "Expected a character, but multi-character string found"
+
+    assert ord_char(u'a') == 0x61  # simple ASCII
+    assert ord_char(u'é') == 0xE9  # requires 2 bytes in utf-8, but can be stuffed in a char
+    with pytest.raises(ValueError) as excinfo:
+        assert ord_char(u'Ā') == 0x100  # requires 2 bytes, doesn't fit in a char
+    assert str(excinfo.value) == toobig_message(0x100)
+    with pytest.raises(ValueError) as excinfo:
+        assert ord_char(u'ab')
+    assert str(excinfo.value) == toolong_message
+
+    assert ord_char16(u'a') == 0x61
+    assert ord_char16(u'é') == 0xE9
+    assert ord_char16(u'Ā') == 0x100
+    assert ord_char16(u'‽') == 0x203d
+    assert ord_char16(u'♥') == 0x2665
+    with pytest.raises(ValueError) as excinfo:
+        assert ord_char16(u'🎂') == 0x1F382  # requires surrogate pair
+    assert str(excinfo.value) == toobig_message(0x10000)
+    with pytest.raises(ValueError) as excinfo:
+        assert ord_char16(u'aa')
+    assert str(excinfo.value) == toolong_message
+
+    assert ord_char32(u'a') == 0x61
+    assert ord_char32(u'é') == 0xE9
+    assert ord_char32(u'Ā') == 0x100
+    assert ord_char32(u'‽') == 0x203d
+    assert ord_char32(u'♥') == 0x2665
+    assert ord_char32(u'🎂') == 0x1F382
+    with pytest.raises(ValueError) as excinfo:
+        assert ord_char32(u'aa')
+    assert str(excinfo.value) == toolong_message
+
+    assert ord_wchar(u'a') == 0x61
+    assert ord_wchar(u'é') == 0xE9
+    assert ord_wchar(u'Ā') == 0x100
+    assert ord_wchar(u'‽') == 0x203d
+    assert ord_wchar(u'♥') == 0x2665
+    if wchar_size == 2:
+        with pytest.raises(ValueError) as excinfo:
+            assert ord_wchar(u'🎂') == 0x1F382  # requires surrogate pair
+        assert str(excinfo.value) == toobig_message(0x10000)
+    else:
+        assert ord_wchar(u'🎂') == 0x1F382
+    with pytest.raises(ValueError) as excinfo:
+        assert ord_wchar(u'aa')
+    assert str(excinfo.value) == toolong_message

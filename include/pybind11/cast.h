@@ -471,8 +471,15 @@ public:
         template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>
 
 
+template <typename CharT> using is_std_char_type = any_of<
+    std::is_same<CharT, char>, /* std::string */
+    std::is_same<CharT, char16_t>, /* std::u16string */
+    std::is_same<CharT, char32_t>, /* std::u32string */
+    std::is_same<CharT, wchar_t> /* std::wstring */
+>;
+
 template <typename T>
-struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value>> {
+struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
     using _py_type_0 = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
     using _py_type_1 = conditional_t<std::is_signed<T>::value, _py_type_0, typename std::make_unsigned<_py_type_0>::type>;
     using py_type = conditional_t<std::is_floating_point<T>::value, double, _py_type_1>;
@@ -617,122 +624,144 @@ public:
     PYBIND11_TYPE_CASTER(bool, _("bool"));
 };
 
-template <> class type_caster<std::string> {
-public:
+// Helper class for UTF-{8,16,32} C++ stl strings:
+template <typename CharT, class Traits, class Allocator>
+struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_std_char_type<CharT>::value>> {
+    // Simplify life by being able to assume standard char sizes (the standard only guarantees
+    // minimums), but Python requires exact sizes
+    static_assert(!std::is_same<CharT, char>::value || sizeof(CharT) == 1, "Unsupported char size != 1");
+    static_assert(!std::is_same<CharT, char16_t>::value || sizeof(CharT) == 2, "Unsupported char16_t size != 2");
+    static_assert(!std::is_same<CharT, char32_t>::value || sizeof(CharT) == 4, "Unsupported char32_t size != 4");
+    // wchar_t can be either 16 bits (Windows) or 32 (everywhere else)
+    static_assert(!std::is_same<CharT, wchar_t>::value || sizeof(CharT) == 2 || sizeof(CharT) == 4,
+            "Unsupported wchar_t size != 2/4");
+    static constexpr size_t UTF_N = 8 * sizeof(CharT);
+    static constexpr const char *encoding = UTF_N == 8 ? "utf8" : UTF_N == 16 ? "utf16" : "utf32";
+
+    using StringType = std::basic_string<CharT, Traits, Allocator>;
+
     bool load(handle src, bool) {
+#if PY_VERSION_MAJOR < 3
         object temp;
-        handle load_src = src;
-        if (!src) {
-            return false;
-        } else if (PyUnicode_Check(load_src.ptr())) {
-            temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(load_src.ptr()));
-            if (!temp) { PyErr_Clear(); return false; }  // UnicodeEncodeError
-            load_src = temp;
-        }
-        char *buffer;
-        ssize_t length;
-        int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(load_src.ptr(), &buffer, &length);
-        if (err == -1) { PyErr_Clear(); return false; }  // TypeError
-        value = std::string(buffer, (size_t) length);
-        success = true;
-        return true;
-    }
-
-    static handle cast(const std::string &src, return_value_policy /* policy */, handle /* parent */) {
-        return PyUnicode_FromStringAndSize(src.c_str(), (ssize_t) src.length());
-    }
-
-    PYBIND11_TYPE_CASTER(std::string, _(PYBIND11_STRING_NAME));
-protected:
-    bool success = false;
-};
-
-template <> class type_caster<std::wstring> {
-public:
-    bool load(handle src, bool) {
-        object temp;
+#endif
         handle load_src = src;
         if (!src) {
             return false;
         } else if (!PyUnicode_Check(load_src.ptr())) {
+#if PY_VERSION_MAJOR >= 3
+            return false;
+            // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
+#else
             temp = reinterpret_steal<object>(PyUnicode_FromObject(load_src.ptr()));
             if (!temp) { PyErr_Clear(); return false; }
             load_src = temp;
-        }
-        wchar_t *buffer = nullptr;
-        ssize_t length = -1;
-#if PY_MAJOR_VERSION >= 3
-        buffer = PyUnicode_AsWideCharString(load_src.ptr(), &length);
-#else
-        temp = reinterpret_steal<object>(PyUnicode_AsEncodedString(
-            load_src.ptr(), sizeof(wchar_t) == sizeof(short)
-            ? "utf16" : "utf32", nullptr));
-
-        if (temp) {
-            int err = PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), (char **) &buffer, &length);
-            if (err == -1) { buffer = nullptr; }  // TypeError
-            length = length / (ssize_t) sizeof(wchar_t) - 1; ++buffer; // Skip BOM
-        }
 #endif
-        if (!buffer) { PyErr_Clear(); return false; }
-        value = std::wstring(buffer, (size_t) length);
-        success = true;
+        }
+
+        object utfNbytes = reinterpret_steal<object>(PyUnicode_AsEncodedString(
+            load_src.ptr(), encoding, nullptr));
+        if (!utfNbytes) { PyErr_Clear(); return false; }
+
+        const CharT *buffer = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
+        size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
+        if (UTF_N > 8) { buffer++; length--; } // Skip BOM for UTF-16/32
+        value = StringType(buffer, length);
         return true;
     }
 
-    static handle cast(const std::wstring &src, return_value_policy /* policy */, handle /* parent */) {
-        return PyUnicode_FromWideChar(src.c_str(), (ssize_t) src.length());
+    static handle cast(const StringType &src, return_value_policy /* policy */, handle /* parent */) {
+        const char *buffer = reinterpret_cast<const char *>(src.c_str());
+        ssize_t nbytes = ssize_t(src.size() * sizeof(CharT));
+        handle s = PyUnicode_Decode(buffer, nbytes, encoding, nullptr);
+        if (!s) throw error_already_set();
+        return s;
     }
 
-    PYBIND11_TYPE_CASTER(std::wstring, _(PYBIND11_STRING_NAME));
-protected:
-    bool success = false;
+    PYBIND11_TYPE_CASTER(StringType, _(PYBIND11_STRING_NAME));
 };
 
-template <> class type_caster<char> : public type_caster<std::string> {
+// Type caster for C-style strings.  We basically use a std::string type caster, but also add the
+// ability to use None as a nullptr char* (which the string caster doesn't allow).
+template <typename CharT> struct type_caster<CharT, enable_if_t<is_std_char_type<CharT>::value>> {
+    using StringType = std::basic_string<CharT>;
+    using StringCaster = type_caster<StringType>;
+    StringCaster str_caster;
+    bool none = false;
 public:
     bool load(handle src, bool convert) {
-        if (src.is_none()) return true;
-        return type_caster<std::string>::load(src, convert);
+        if (!src) return false;
+        if (src.is_none()) {
+            // Defer accepting None to other overloads (if we aren't in convert mode):
+            if (!convert) return false;
+            none = true;
+            return true;
+        }
+        return str_caster.load(src, convert);
     }
 
-    static handle cast(const char *src, return_value_policy /* policy */, handle /* parent */) {
-        if (src == nullptr) return none().inc_ref();
-        return PyUnicode_FromString(src);
+    static handle cast(const CharT *src, return_value_policy policy, handle parent) {
+        if (src == nullptr) return pybind11::none().inc_ref();
+        return StringCaster::cast(StringType(src), policy, parent);
     }
 
-    static handle cast(char src, return_value_policy /* policy */, handle /* parent */) {
-        char str[2] = { src, '\0' };
-        return PyUnicode_DecodeLatin1(str, 1, nullptr);
+    static handle cast(CharT src, return_value_policy policy, handle parent) {
+        if (std::is_same<char, CharT>::value) {
+            handle s = PyUnicode_DecodeLatin1((const char *) &src, 1, nullptr);
+            if (!s) throw error_already_set();
+            return s;
+        }
+        return StringCaster::cast(StringType(1, src), policy, parent);
     }
 
-    operator char*() { return success ? const_cast<char *>(value.c_str()) : nullptr; }
-    operator char&() { return value[0]; }
+    operator CharT*() { return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str()); }
+    operator CharT() {
+        if (none)
+            throw value_error("Cannot convert None to a character");
+
+        auto &value = static_cast<StringType &>(str_caster);
+        size_t str_len = value.size();
+        if (str_len == 0)
+            throw value_error("Cannot convert empty string to a character");
+
+        // If we're in UTF-8 mode, we have two possible failures: one for a unicode character that
+        // is too high, and one for multiple unicode characters (caught later), so we need to figure
+        // out how long the first encoded character is in bytes to distinguish between these two
+        // errors.  We also allow want to allow unicode characters U+0080 through U+00FF, as those
+        // can fit into a single char value.
+        if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
+            unsigned char v0 = static_cast<unsigned char>(value[0]);
+            size_t char0_bytes = !(v0 & 0x80) ? 1 : // low bits only: 0-127
+                (v0 & 0xE0) == 0xC0 ? 2 : // 0b110xxxxx - start of 2-byte sequence
+                (v0 & 0xF0) == 0xE0 ? 3 : // 0b1110xxxx - start of 3-byte sequence
+                4; // 0b11110xxx - start of 4-byte sequence
+
+            if (char0_bytes == str_len) {
+                // If we have a 128-255 value, we can decode it into a single char:
+                if (char0_bytes == 2 && (v0 & 0xFC) == 0xC0) { // 0x110000xx 0x10xxxxxx
+                    return static_cast<CharT>(((v0 & 3) << 6) + (static_cast<unsigned char>(value[1]) & 0x3F));
+                }
+                // Otherwise we have a single character, but it's > U+00FF
+                throw value_error("Character code point not in range(0x100)");
+            }
+        }
+
+        // UTF-16 is much easier: we can only have a surrogate pair for values above U+FFFF, thus a
+        // surrogate pair with total length 2 instantly indicates a range error (but not a "your
+        // string was too long" error).
+        else if (StringCaster::UTF_N == 16 && str_len == 2) {
+            char16_t v0 = static_cast<char16_t>(value[0]);
+            if (v0 >= 0xD800 && v0 < 0xE000)
+                throw value_error("Character code point not in range(0x10000)");
+        }
+
+        if (str_len != 1)
+            throw value_error("Expected a character, but multi-character string found");
+
+        return value[0];
+    }
 
     static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
-};
-
-template <> class type_caster<wchar_t> : public type_caster<std::wstring> {
-public:
-    bool load(handle src, bool convert) {
-        if (src.is_none()) return true;
-        return type_caster<std::wstring>::load(src, convert);
-    }
-
-    static handle cast(const wchar_t *src, return_value_policy /* policy */, handle /* parent */) {
-        if (src == nullptr) return none().inc_ref();
-        return PyUnicode_FromWideChar(src, (ssize_t) wcslen(src));
-    }
-
-    static handle cast(wchar_t src, return_value_policy /* policy */, handle /* parent */) {
-        wchar_t wstr[2] = { src, L'\0' };
-        return PyUnicode_FromWideChar(wstr, 1);
-    }
-
-    operator wchar_t*() { return success ? const_cast<wchar_t *>(value.c_str()) : nullptr; }
-    operator wchar_t&() { return value[0]; }
-
-    static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
+    template <typename _T> using cast_op_type = typename std::remove_reference<pybind11::detail::cast_op_type<_T>>::type;
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
