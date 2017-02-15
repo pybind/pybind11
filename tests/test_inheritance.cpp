@@ -36,6 +36,10 @@ public:
     Hamster(const std::string &name) : Pet(name, "rodent") {}
 };
 
+class Chimera : public Pet {
+    Chimera() : Pet("Kimmy", "chimera") {}
+};
+
 std::string pet_name_species(const Pet &pet) {
     return pet.name() + " is a " + pet.species();
 }
@@ -73,6 +77,8 @@ test_initializer inheritance([](py::module &m) {
     /* And another: list parent in class template arguments */
     py::class_<Hamster, Pet>(m, "Hamster")
         .def(py::init<std::string>());
+
+    py::class_<Chimera, Pet>(m, "Chimera");
 
     m.def("pet_name_species", pet_name_species);
     m.def("dog_bark", dog_bark);

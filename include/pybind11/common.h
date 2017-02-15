@@ -122,7 +122,6 @@
 #define PYBIND11_SLICE_OBJECT PyObject
 #define PYBIND11_FROM_STRING PyUnicode_FromString
 #define PYBIND11_STR_TYPE ::pybind11::str
-#define PYBIND11_OB_TYPE(ht_type) (ht_type).ob_base.ob_base.ob_type
 #define PYBIND11_PLUGIN_IMPL(name) \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 #else
@@ -141,7 +140,6 @@
 #define PYBIND11_SLICE_OBJECT PySliceObject
 #define PYBIND11_FROM_STRING PyString_FromString
 #define PYBIND11_STR_TYPE ::pybind11::bytes
-#define PYBIND11_OB_TYPE(ht_type) (ht_type).ob_type
 #define PYBIND11_PLUGIN_IMPL(name) \
     static PyObject *pybind11_init_wrapper();               \
     extern "C" PYBIND11_EXPORT void init##name() {          \
@@ -363,10 +361,14 @@ struct internals {
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
+    std::unordered_map<size_t, PyObject *> bases; // one base type per `instance_size` (very few)
 #if defined(WITH_THREAD)
     decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
     PyInterpreterState *istate = nullptr;
 #endif
+
+    /// Return the appropriate base type for the given instance size
+    PyObject *get_base(size_t instance_size);
 };
 
 /// Return a reference to the current 'internals' information

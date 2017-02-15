@@ -760,196 +760,39 @@ public:
 };
 
 NAMESPACE_BEGIN(detail)
-extern "C" inline PyObject *get_dict(PyObject *op, void *) {
-    PyObject *&dict = *_PyObject_GetDictPtr(op);
-    if (!dict)
-        dict = PyDict_New();
-    Py_XINCREF(dict);
-    return dict;
-}
-
-extern "C" inline int set_dict(PyObject *op, PyObject *new_dict, void *) {
-    if (!PyDict_Check(new_dict)) {
-        PyErr_Format(PyExc_TypeError, "__dict__ must be set to a dictionary, not a '%.200s'",
-                     Py_TYPE(new_dict)->tp_name);
-        return -1;
-    }
-    PyObject *&dict = *_PyObject_GetDictPtr(op);
-    Py_INCREF(new_dict);
-    Py_CLEAR(dict);
-    dict = new_dict;
-    return 0;
-}
-
-static PyGetSetDef generic_getset[] = {
-    {const_cast<char*>("__dict__"), get_dict, set_dict, nullptr, nullptr},
-    {nullptr, nullptr, nullptr, nullptr, nullptr}
-};
-
 /// Generic support for creating new Python heap types
 class generic_type : public object {
     template <typename...> friend class class_;
 public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
-    void initialize(type_record *rec) {
-        auto &internals = get_internals();
-        auto tindex = std::type_index(*(rec->type));
+    void initialize(const type_record &rec) {
+        if (rec.scope && hasattr(rec.scope, rec.name))
+            pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name) +
+                          "\": an object with that name is already defined");
 
-        if (get_type_info(*(rec->type)))
-            pybind11_fail("generic_type: type \"" + std::string(rec->name) +
+        if (get_type_info(*rec.type))
+            pybind11_fail("generic_type: type \"" + std::string(rec.name) +
                           "\" is already registered!");
 
-        auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec->name));
-        object scope_module;
-        if (rec->scope) {
-            if (hasattr(rec->scope, rec->name))
-                pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec->name) +
-                        "\": an object with that name is already defined");
-
-            if (hasattr(rec->scope, "__module__")) {
-                scope_module = rec->scope.attr("__module__");
-            } else if (hasattr(rec->scope, "__name__")) {
-                scope_module = rec->scope.attr("__name__");
-            }
-        }
-
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-        /* Qualified names for Python >= 3.3 */
-        object scope_qualname;
-        if (rec->scope && hasattr(rec->scope, "__qualname__"))
-            scope_qualname = rec->scope.attr("__qualname__");
-        object ht_qualname;
-        if (scope_qualname)
-            ht_qualname = reinterpret_steal<object>(PyUnicode_FromFormat(
-                "%U.%U", scope_qualname.ptr(), name.ptr()));
-        else
-            ht_qualname = name;
-#endif
-
-#if !defined(PYPY_VERSION)
-        std::string full_name = (scope_module ? ((std::string) pybind11::str(scope_module) + "." + rec->name)
-                                              : std::string(rec->name));
-#else
-        std::string full_name = std::string(rec->name);
-#endif
-
-        size_t num_bases = rec->bases.size();
-        auto bases = tuple(rec->bases);
-
-        char *tp_doc = nullptr;
-        if (rec->doc && options::show_user_defined_docstrings()) {
-            /* Allocate memory for docstring (using PyObject_MALLOC, since
-               Python will free this later on) */
-            size_t size = strlen(rec->doc) + 1;
-            tp_doc = (char *) PyObject_MALLOC(size);
-            memcpy((void *) tp_doc, rec->doc, size);
-        }
-
-        /* Danger zone: from now (and until PyType_Ready), make sure to
-           issue no Python C API calls which could potentially invoke the
-           garbage collector (the GC will call type_traverse(), which will in
-           turn find the newly constructed type in an invalid state) */
-
-        auto type_holder = reinterpret_steal<object>(PyType_Type.tp_alloc(&PyType_Type, 0));
-        auto type = (PyHeapTypeObject*) type_holder.ptr();
-
-        if (!type_holder || !name)
-            pybind11_fail(std::string(rec->name) + ": Unable to create type object!");
+        m_ptr = make_new_python_type(rec);
 
         /* Register supplemental type information in C++ dict */
-        detail::type_info *tinfo = new detail::type_info();
-        tinfo->type = (PyTypeObject *) type;
-        tinfo->type_size = rec->type_size;
-        tinfo->init_holder = rec->init_holder;
+        auto *tinfo = new detail::type_info();
+        tinfo->type = (PyTypeObject *) m_ptr;
+        tinfo->type_size = rec.type_size;
+        tinfo->init_holder = rec.init_holder;
+        tinfo->dealloc = rec.dealloc;
+
+        auto &internals = get_internals();
+        auto tindex = std::type_index(*rec.type);
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
-        tinfo->default_holder = rec->default_holder;
+        tinfo->default_holder = rec.default_holder;
         internals.registered_types_cpp[tindex] = tinfo;
-        internals.registered_types_py[type] = tinfo;
+        internals.registered_types_py[m_ptr] = tinfo;
 
-        /* Basic type attributes */
-        type->ht_type.tp_name = strdup(full_name.c_str());
-        type->ht_type.tp_basicsize = (ssize_t) rec->instance_size;
-
-        if (num_bases > 0) {
-            type->ht_type.tp_base = (PyTypeObject *) ((object) bases[0]).inc_ref().ptr();
-            type->ht_type.tp_bases = bases.release().ptr();
-            rec->multiple_inheritance |= num_bases > 1;
-        }
-
-        type->ht_name = name.release().ptr();
-
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-        type->ht_qualname = ht_qualname.release().ptr();
-#endif
-
-        /* Custom metaclass if requested (used for static properties) */
-        if (rec->metaclass)
-            PYBIND11_OB_TYPE(type->ht_type) = internals.default_metaclass;
-
-        /* Supported protocols */
-        type->ht_type.tp_as_number = &type->as_number;
-        type->ht_type.tp_as_sequence = &type->as_sequence;
-        type->ht_type.tp_as_mapping = &type->as_mapping;
-
-        /* Supported elementary operations */
-        type->ht_type.tp_init = (initproc) init;
-        type->ht_type.tp_new = (newfunc) new_instance;
-        type->ht_type.tp_dealloc = rec->dealloc;
-
-        /* Support weak references (needed for the keep_alive feature) */
-        type->ht_type.tp_weaklistoffset = offsetof(instance_essentials<void>, weakrefs);
-
-        /* Flags */
-        type->ht_type.tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
-#if PY_MAJOR_VERSION < 3
-        type->ht_type.tp_flags |= Py_TPFLAGS_CHECKTYPES;
-#endif
-        type->ht_type.tp_flags &= ~Py_TPFLAGS_HAVE_GC;
-
-        /* Support dynamic attributes */
-        if (rec->dynamic_attr) {
-            #if defined(PYPY_VERSION)
-                pybind11_fail(std::string(rec->name) + ": dynamic attributes are "
-                                                       "currently not supported in "
-                                                       "conunction with PyPy!");
-            #endif
-            type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_GC;
-            type->ht_type.tp_dictoffset = type->ht_type.tp_basicsize; // place the dict at the end
-            type->ht_type.tp_basicsize += sizeof(PyObject *); // and allocate enough space for it
-            type->ht_type.tp_getset = generic_getset;
-            type->ht_type.tp_traverse = traverse;
-            type->ht_type.tp_clear = clear;
-        }
-
-        if (rec->buffer_protocol) {
-            type->ht_type.tp_as_buffer = &type->as_buffer;
-#if PY_MAJOR_VERSION < 3
-            type->ht_type.tp_flags |= Py_TPFLAGS_HAVE_NEWBUFFER;
-#endif
-            type->as_buffer.bf_getbuffer = getbuffer;
-            type->as_buffer.bf_releasebuffer = releasebuffer;
-        }
-
-        type->ht_type.tp_doc = tp_doc;
-
-        m_ptr = type_holder.ptr();
-
-        if (PyType_Ready(&type->ht_type) < 0)
-            pybind11_fail(std::string(rec->name) + ": PyType_Ready failed (" +
-                          detail::error_string() + ")!");
-
-        if (scope_module) // Needed by pydoc
-            attr("__module__") = scope_module;
-
-        /* Register type with the parent scope */
-        if (rec->scope)
-            rec->scope.attr(handle(type->ht_name)) = *this;
-
-        if (rec->multiple_inheritance)
-            mark_parents_nonsimple(&type->ht_type);
-
-        type_holder.release();
+        if (rec.bases.size() > 1 || rec.multiple_inheritance)
+            mark_parents_nonsimple(tinfo->type);
     }
 
     /// Helper function which tags all parents of a type using mult. inheritance
@@ -961,66 +804,6 @@ protected:
                 tinfo2->simple_type = false;
             mark_parents_nonsimple((PyTypeObject *) h.ptr());
         }
-    }
-
-    static int init(void *self, PyObject *, PyObject *) {
-        PyTypeObject *type = Py_TYPE(self);
-        std::string msg;
-#if defined(PYPY_VERSION)
-        msg += handle((PyObject *) type).attr("__module__").cast<std::string>() + ".";
-#endif
-        msg += type->tp_name;
-        msg += ": No constructor defined!";
-        PyErr_SetString(PyExc_TypeError, msg.c_str());
-        return -1;
-    }
-
-    static PyObject *new_instance(PyTypeObject *type, PyObject *, PyObject *) {
-        instance<void> *self = (instance<void> *) PyType_GenericAlloc((PyTypeObject *) type, 0);
-        auto tinfo = detail::get_type_info(type);
-        self->value = ::operator new(tinfo->type_size);
-        self->owned = true;
-        self->holder_constructed = false;
-        detail::get_internals().registered_instances.emplace(self->value, (PyObject *) self);
-        return (PyObject *) self;
-    }
-
-    static void dealloc(instance<void> *self) {
-        if (self->value) {
-            auto instance_type = Py_TYPE(self);
-            auto &registered_instances = detail::get_internals().registered_instances;
-            auto range = registered_instances.equal_range(self->value);
-            bool found = false;
-            for (auto it = range.first; it != range.second; ++it) {
-                if (instance_type == Py_TYPE(it->second)) {
-                    registered_instances.erase(it);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-                pybind11_fail("generic_type::dealloc(): Tried to deallocate unregistered instance!");
-
-            if (self->weakrefs)
-                PyObject_ClearWeakRefs((PyObject *) self);
-
-            PyObject **dict_ptr = _PyObject_GetDictPtr((PyObject *) self);
-            if (dict_ptr)
-                Py_CLEAR(*dict_ptr);
-        }
-        Py_TYPE(self)->tp_free((PyObject*) self);
-    }
-
-    static int traverse(PyObject *op, visitproc visit, void *arg) {
-        PyObject *&dict = *_PyObject_GetDictPtr(op);
-        Py_VISIT(dict);
-        return 0;
-    }
-
-    static int clear(PyObject *op) {
-        PyObject *&dict = *_PyObject_GetDictPtr(op);
-        Py_CLEAR(dict);
-        return 0;
     }
 
     void install_buffer_funcs(
@@ -1040,37 +823,6 @@ protected:
         tinfo->get_buffer_data = get_buffer_data;
     }
 
-    static int getbuffer(PyObject *obj, Py_buffer *view, int flags) {
-        auto tinfo = detail::get_type_info(Py_TYPE(obj));
-        if (view == nullptr || obj == nullptr || !tinfo || !tinfo->get_buffer) {
-            if (view)
-                view->obj = nullptr;
-            PyErr_SetString(PyExc_BufferError, "generic_type::getbuffer(): Internal error");
-            return -1;
-        }
-        memset(view, 0, sizeof(Py_buffer));
-        buffer_info *info = tinfo->get_buffer(obj, tinfo->get_buffer_data);
-        view->obj = obj;
-        view->ndim = 1;
-        view->internal = info;
-        view->buf = info->ptr;
-        view->itemsize = (ssize_t) info->itemsize;
-        view->len = view->itemsize;
-        for (auto s : info->shape)
-            view->len *= s;
-        if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
-            view->format = const_cast<char *>(info->format.c_str());
-        if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {
-            view->ndim = (int) info->ndim;
-            view->strides = (ssize_t *) &info->strides[0];
-            view->shape = (ssize_t *) &info->shape[0];
-        }
-        Py_INCREF(view->obj);
-        return 0;
-    }
-
-    static void releasebuffer(PyObject *, Py_buffer *view) { delete (buffer_info *) view->internal; }
-
     void def_property_static_impl(const char *name,
                                   handle fget, handle fset,
                                   detail::function_record *rec_fget) {
@@ -1078,7 +830,7 @@ protected:
         const auto has_doc = rec_fget->doc && pybind11::options::show_user_defined_docstrings();
 
         if (is_static) {
-            auto mclass = handle((PyObject *) PYBIND11_OB_TYPE(*((PyTypeObject *) m_ptr)));
+            auto mclass = handle((PyObject *) Py_TYPE(m_ptr));
 
             if ((PyTypeObject *) mclass.ptr() == &PyType_Type)
                 pybind11_fail(
@@ -1140,7 +892,7 @@ public:
         /* Process optional arguments, if any */
         detail::process_attributes<Extra...>::init(extra..., &record);
 
-        detail::generic_type::initialize(&record);
+        detail::generic_type::initialize(record);
 
         if (has_alias) {
             auto &instances = pybind11::detail::get_internals().registered_types_cpp;
@@ -1352,8 +1104,6 @@ private:
             inst->holder.~holder_type();
         else if (inst->owned)
             ::operator delete(inst->value);
-
-        generic_type::dealloc((detail::instance<void> *) inst);
     }
 
     static detail::function_record *get_function_record(handle h) {

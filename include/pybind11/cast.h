@@ -26,6 +26,7 @@ struct type_info {
     PyTypeObject *type;
     size_t type_size;
     void (*init_holder)(PyObject *, const void *);
+    void (*dealloc)(PyObject *);
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
