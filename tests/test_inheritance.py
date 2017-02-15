@@ -2,7 +2,7 @@ import pytest
 
 
 def test_inheritance(msg):
-    from pybind11_tests import Pet, Dog, Rabbit, Hamster, dog_bark, pet_name_species
+    from pybind11_tests import Pet, Dog, Rabbit, Hamster, Chimera, dog_bark, pet_name_species
 
     roger = Rabbit('Rabbit')
     assert roger.name() + " is a " + roger.species() == "Rabbit is a parrot"
@@ -29,6 +29,10 @@ def test_inheritance(msg):
 
         Invoked with: <m.Pet object at 0>
     """
+
+    with pytest.raises(TypeError) as excinfo:
+        Chimera("lion", "goat")
+    assert "No constructor defined!" in str(excinfo.value)
 
 
 def test_automatic_upcasting():
