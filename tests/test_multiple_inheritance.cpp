@@ -123,24 +123,24 @@ test_initializer mi_static_properties([](py::module &pm) {
         .def(py::init<>())
         .def("vanilla", &Vanilla::vanilla);
 
-    py::class_<WithStatic1>(m, "WithStatic1", py::metaclass())
+    py::class_<WithStatic1>(m, "WithStatic1")
         .def(py::init<>())
         .def_static("static_func1", &WithStatic1::static_func1)
         .def_readwrite_static("static_value1", &WithStatic1::static_value1);
 
-    py::class_<WithStatic2>(m, "WithStatic2", py::metaclass())
+    py::class_<WithStatic2>(m, "WithStatic2")
         .def(py::init<>())
         .def_static("static_func2", &WithStatic2::static_func2)
         .def_readwrite_static("static_value2", &WithStatic2::static_value2);
 
     py::class_<VanillaStaticMix1, Vanilla, WithStatic1, WithStatic2>(
-        m, "VanillaStaticMix1", py::metaclass())
+        m, "VanillaStaticMix1")
         .def(py::init<>())
         .def_static("static_func", &VanillaStaticMix1::static_func)
         .def_readwrite_static("static_value", &VanillaStaticMix1::static_value);
 
     py::class_<VanillaStaticMix2, WithStatic1, Vanilla, WithStatic2>(
-        m, "VanillaStaticMix2", py::metaclass())
+        m, "VanillaStaticMix2")
         .def(py::init<>())
         .def_static("static_func", &VanillaStaticMix2::static_func)
         .def_readwrite_static("static_value", &VanillaStaticMix2::static_value);

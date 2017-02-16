@@ -54,7 +54,15 @@ struct dynamic_attr { };
 struct buffer_protocol { };
 
 /// Annotation which requests that a special metaclass is created for a type
-struct metaclass { };
+struct metaclass {
+    handle value;
+
+    PYBIND11_DEPRECATED("py::metaclass() is no longer required. It's turned on by default now.")
+    metaclass() = default;
+
+    /// Override pybind11's default metaclass
+    explicit metaclass(handle value) : value(value) { }
+};
 
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
@@ -149,8 +157,7 @@ struct function_record {
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
     PYBIND11_NOINLINE type_record()
-        : multiple_inheritance(false), dynamic_attr(false),
-          buffer_protocol(false), metaclass(false) { }
+        : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false) { }
 
     /// Handle to the parent scope
     handle scope;
@@ -179,6 +186,9 @@ struct type_record {
     /// Optional docstring
     const char *doc = nullptr;
 
+    /// Custom metaclass (optional)
+    handle metaclass;
+
     /// Multiple inheritance marker
     bool multiple_inheritance : 1;
 
@@ -187,9 +197,6 @@ struct type_record {
 
     /// Does the class implement the buffer protocol?
     bool buffer_protocol : 1;
-
-    /// Does the class require its own metaclass?
-    bool metaclass : 1;
 
     /// Is the default (unique_ptr) holder type used?
     bool default_holder : 1;
@@ -356,7 +363,7 @@ struct process_attribute<buffer_protocol> : process_attribute_default<buffer_pro
 
 template <>
 struct process_attribute<metaclass> : process_attribute_default<metaclass> {
-    static void init(const metaclass &, type_record *r) { r->metaclass = true; }
+    static void init(const metaclass &m, type_record *r) { r->metaclass = m.value; }
 };
 
 

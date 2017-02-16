@@ -202,7 +202,7 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value);
 
-    py::class_<TestProperties>(m, "TestProperties", py::metaclass())
+    py::class_<TestProperties>(m, "TestProperties")
         .def(py::init<>())
         .def_readonly("def_readonly", &TestProperties::value)
         .def_readwrite("def_readwrite", &TestProperties::value)
@@ -228,7 +228,7 @@ test_initializer methods_and_attributes([](py::module &m) {
     auto static_set2 = [](py::object, int v) { TestPropRVP::sv2.value = v; };
     auto rvp_copy = py::return_value_policy::copy;
 
-    py::class_<TestPropRVP>(m, "TestPropRVP", py::metaclass())
+    py::class_<TestPropRVP>(m, "TestPropRVP")
         .def(py::init<>())
         .def_property_readonly("ro_ref", &TestPropRVP::get1)
         .def_property_readonly("ro_copy", &TestPropRVP::get2, rvp_copy)
@@ -244,6 +244,10 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def_property_static("static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
         .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
         .def_property_readonly_static("static_rvalue", [](py::object) { return SimpleValue(); });
+
+    struct MetaclassOverride { };
+    py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
+        .def_property_readonly_static("readonly", [](py::object) { return 1; });
 
 #if !defined(PYPY_VERSION)
     py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())

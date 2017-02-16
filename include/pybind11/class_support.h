@@ -244,7 +244,8 @@ inline PyObject *make_object_base_type(size_t instance_size) {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
+    auto metaclass = get_internals().default_metaclass;
+    auto heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
     if (!heap_type)
         pybind11_fail("make_object_base_type(): error allocating type!");
 
@@ -437,7 +438,10 @@ inline PyObject* make_new_python_type(const type_record &rec) {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
+    auto metaclass = rec.metaclass.ptr() ? (PyTypeObject *) rec.metaclass.ptr()
+                                         : internals.default_metaclass;
+
+    auto heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
     if (!heap_type)
         pybind11_fail(std::string(rec.name) + ": Unable to create type object!");
 
@@ -456,12 +460,6 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     /* Don't inherit base __init__ */
     type->tp_init = pybind11_object_init;
-
-    /* Custom metaclass if requested (used for static properties) */
-    if (rec.metaclass) {
-        Py_INCREF(internals.default_metaclass);
-        Py_TYPE(type) = (PyTypeObject *) internals.default_metaclass;
-    }
 
     /* Supported protocols */
     type->tp_as_number = &heap_type->as_number;

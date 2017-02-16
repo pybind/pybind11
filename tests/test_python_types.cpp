@@ -190,7 +190,7 @@ struct MoveOutContainer {
 test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
-    py::class_<ExamplePythonTypes>(m, "ExamplePythonTypes", "Example 2 documentation", py::metaclass())
+    py::class_<ExamplePythonTypes>(m, "ExamplePythonTypes", "Example 2 documentation")
         .def("get_dict", &ExamplePythonTypes::get_dict, "Return a Python dictionary")
         .def("get_dict_2", &ExamplePythonTypes::get_dict_2, "Return a C++ dictionary")
         .def("get_list", &ExamplePythonTypes::get_list, "Return a Python list")

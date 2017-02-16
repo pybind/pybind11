@@ -126,6 +126,22 @@ def test_static_cls():
     instance.static_cls = check_self
 
 
+def test_metaclass_override():
+    """Overriding pybind11's default metaclass changes the behavior of `static_property`"""
+    from pybind11_tests import MetaclassOverride
+
+    assert type(ExampleMandA).__name__ == "pybind11_type"
+    assert type(MetaclassOverride).__name__ == "type"
+
+    assert MetaclassOverride.readonly == 1
+    assert type(MetaclassOverride.__dict__["readonly"]).__name__ == "pybind11_static_property"
+
+    # Regular `type` replaces the property instead of calling `__set__()`
+    MetaclassOverride.readonly = 2
+    assert MetaclassOverride.readonly == 2
+    assert isinstance(MetaclassOverride.__dict__["readonly"], int)
+
+
 @pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])
 def test_property_return_value_policies(access):
     from pybind11_tests import TestPropRVP
