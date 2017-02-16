@@ -175,6 +175,31 @@ to an independently constructed (through ``add_library``, not
     (``/bigobj``). The :ref:`FAQ <faq:symhidden>` contains an
     explanation on why these are needed.
 
+Building with Visual Studio 2015
+=====================================
+
+Create a new empty project in Visual Studio.
+
+Set the following project properties:
+
+- **General**
+    - **Configuration Type:** *Dynamic Library (.dll)*
+- **VC++ Directories**
+    - **Include Directories:** ``PYTHON\include; PYBIND11\include``
+    - **Library Directories:** ``PYTHON\libs``
+- **C/C++**
+    - **General**
+        - **Debug Information Format:** e.g. *Program Database (/Zi)* (**not** *Edit And Continue (/ZI)*)
+    - **Optimization**
+        - **Whole Program Optimization:** *YES (/GL)*
+    - **Command Line**
+        - **Additional Options:** ``/bigobj``
+- **Linker**
+    - **General**
+        - **OutputFile:** Replace ``$(TargetExt)`` with ``.pyd``
+    - **Optimization**
+        - **Link Time Code Generation:** *Use Link Time Code Generation (/LTCG)*
+
 Generating binding code automatically
 =====================================
 
