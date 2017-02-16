@@ -829,18 +829,6 @@ protected:
         const auto is_static = !(rec_fget->is_method && rec_fget->scope);
         const auto has_doc = rec_fget->doc && pybind11::options::show_user_defined_docstrings();
 
-        if (is_static) {
-            auto mclass = handle((PyObject *) Py_TYPE(m_ptr));
-
-            if ((PyTypeObject *) mclass.ptr() == &PyType_Type)
-                pybind11_fail(
-                    "Adding static properties to the type '" +
-                    std::string(((PyTypeObject *) m_ptr)->tp_name) +
-                    "' requires the type to have a custom metaclass. Please "
-                    "ensure that one is created by supplying the pybind11::metaclass() "
-                    "annotation to the associated class_<>(..) invocation.");
-        }
-
         auto property = handle((PyObject *) (is_static ? get_internals().static_property_type
                                                        : &PyProperty_Type));
         attr(name) = property(fget.ptr() ? fget : none(),
