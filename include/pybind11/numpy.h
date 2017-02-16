@@ -1140,23 +1140,22 @@ template <typename T, int Flags> struct handle_type_name<array_t<T, Flags>> {
 
 NAMESPACE_END(detail)
 
-template <typename Func, typename Return, typename... Args /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
+template <typename Func, typename Return, typename... Args>
 detail::vectorize_helper<Func, Return, Args...>
-vectorize(const Func &f, Return (*) (Args ...) PYBIND11_NOEXCEPT_SPECIFIER) {
+vectorize(const Func &f, Return (*) (Args ...)) {
     return detail::vectorize_helper<Func, Return, Args...>(f);
 }
 
-template <typename Return, typename... Args /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
-detail::vectorize_helper<Return (*) (Args ...) PYBIND11_NOEXCEPT_SPECIFIER, Return, Args...>
-vectorize(Return (*f) (Args ...) PYBIND11_NOEXCEPT_SPECIFIER) {
+template <typename Return, typename... Args>
+detail::vectorize_helper<Return (*) (Args ...), Return, Args...>
+vectorize(Return (*f) (Args ...)) {
     return vectorize<Return (*) (Args ...), Return, Args...>(f, f);
 }
 
-template <typename Func>
+template <typename Func, typename FuncType = typename detail::remove_class<decltype(&std::remove_reference<Func>::type::operator())>::type>
 auto vectorize(Func &&f) -> decltype(
-        vectorize(std::forward<Func>(f), (typename detail::remove_class<decltype(&std::remove_reference<Func>::type::operator())>::type *) nullptr)) {
-    return vectorize(std::forward<Func>(f), (typename detail::remove_class<decltype(
-                   &std::remove_reference<Func>::type::operator())>::type *) nullptr);
+        vectorize(std::forward<Func>(f), (FuncType *) nullptr)) {
+    return vectorize(std::forward<Func>(f), (FuncType *) nullptr);
 }
 
 NAMESPACE_END(pybind11)
