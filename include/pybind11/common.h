@@ -202,17 +202,6 @@ extern "C" {
     }                                                                          \
     PyObject *pybind11_init()
 
-// Function return value and argument type deduction support.  When compiling under C++17 these
-// differ as C++17 makes the noexcept specifier part of the function type, while it is not part of
-// the type under earlier standards.
-#ifdef __cpp_noexcept_function_type
-#  define PYBIND11_NOEXCEPT_TPL_ARG , bool NoExceptions
-#  define PYBIND11_NOEXCEPT_SPECIFIER noexcept(NoExceptions)
-#else
-#  define PYBIND11_NOEXCEPT_TPL_ARG
-#  define PYBIND11_NOEXCEPT_SPECIFIER
-#endif
-
 NAMESPACE_BEGIN(pybind11)
 
 using ssize_t = Py_ssize_t;
@@ -643,16 +632,16 @@ struct nodelete { template <typename T> void operator()(T*) { } };
 NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
-    template <typename Return /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
-    constexpr auto operator()(Return (*pf)(Args...) PYBIND11_NOEXCEPT_SPECIFIER) const noexcept
+    template <typename Return>
+    constexpr auto operator()(Return (*pf)(Args...)) const noexcept
                               -> decltype(pf) { return pf; }
 
-    template <typename Return, typename Class /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) PYBIND11_NOEXCEPT_SPECIFIER, std::false_type = {}) const noexcept
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...), std::false_type = {}) const noexcept
                               -> decltype(pmf) { return pmf; }
 
-    template <typename Return, typename Class /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const PYBIND11_NOEXCEPT_SPECIFIER, std::true_type) const noexcept
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const, std::true_type) const noexcept
                               -> decltype(pmf) { return pmf; }
 };
 NAMESPACE_END(detail)

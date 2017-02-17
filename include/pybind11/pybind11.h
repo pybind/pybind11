@@ -44,30 +44,31 @@ public:
     cpp_function() { }
 
     /// Construct a cpp_function from a vanilla function pointer
-    template <typename Return, typename... Args, typename... Extra /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
-    cpp_function(Return (*f)(Args...) PYBIND11_NOEXCEPT_SPECIFIER, const Extra&... extra) {
+    template <typename Return, typename... Args, typename... Extra>
+    cpp_function(Return (*f)(Args...), const Extra&... extra) {
         initialize(f, f, extra...);
     }
 
     /// Construct a cpp_function from a lambda function (possibly with internal state)
-    template <typename Func, typename... Extra> cpp_function(Func &&f, const Extra&... extra) {
+    template <typename Func, typename... Extra,
+             typename FuncType = typename detail::remove_class<decltype(&std::remove_reference<Func>::type::operator())>::type>
+    cpp_function(Func &&f, const Extra&... extra) {
         initialize(std::forward<Func>(f),
-                   (typename detail::remove_class<decltype(
-                       &std::remove_reference<Func>::type::operator())>::type *) nullptr, extra...);
+                   (FuncType *) nullptr, extra...);
     }
 
     /// Construct a cpp_function from a class method (non-const)
-    template <typename Return, typename Class, typename... Arg, typename... Extra /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
-    cpp_function(Return (Class::*f)(Arg...) PYBIND11_NOEXCEPT_SPECIFIER, const Extra&... extra) {
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    cpp_function(Return (Class::*f)(Arg...), const Extra&... extra) {
         initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(args...); },
-                   (Return (*) (Class *, Arg...) PYBIND11_NOEXCEPT_SPECIFIER) nullptr, extra...);
+                   (Return (*) (Class *, Arg...)) nullptr, extra...);
     }
 
     /// Construct a cpp_function from a class method (const)
-    template <typename Return, typename Class, typename... Arg, typename... Extra /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
-    cpp_function(Return (Class::*f)(Arg...) const PYBIND11_NOEXCEPT_SPECIFIER, const Extra&... extra) {
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    cpp_function(Return (Class::*f)(Arg...) const, const Extra&... extra) {
         initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(args...); },
-                   (Return (*)(const Class *, Arg ...) PYBIND11_NOEXCEPT_SPECIFIER) nullptr, extra...);
+                   (Return (*)(const Class *, Arg ...)) nullptr, extra...);
     }
 
     /// Return the function name
@@ -80,8 +81,8 @@ protected:
     }
 
     /// Special internal constructor for functors, lambda functions, etc.
-    template <typename Func, typename Return, typename... Args, typename... Extra /*,*/ PYBIND11_NOEXCEPT_TPL_ARG>
-    void initialize(Func &&f, Return (*)(Args...) PYBIND11_NOEXCEPT_SPECIFIER, const Extra&... extra) {
+    template <typename Func, typename Return, typename... Args, typename... Extra>
+    void initialize(Func &&f, Return (*)(Args...), const Extra&... extra) {
 
         struct capture { typename std::remove_reference<Func>::type f; };
 
@@ -162,7 +163,7 @@ protected:
         if (cast_in::has_kwargs) rec->has_kwargs = true;
 
         /* Stash some additional information used by an important optimization in 'functional.h' */
-        using FunctionType = Return (*)(Args...) PYBIND11_NOEXCEPT_SPECIFIER;
+        using FunctionType = Return (*)(Args...);
         constexpr bool is_function_ptr =
             std::is_convertible<Func, FunctionType>::value &&
             sizeof(capture) == sizeof(void *);
