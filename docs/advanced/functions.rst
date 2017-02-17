@@ -90,9 +90,10 @@ The following table provides an overview of available policies:
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::automatic`           | **Default policy.** This policy falls back to the policy                   |
 |                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
-|                                                  | pointer. Otherwise, it uses :enum:`return_value::move` or                  |
-|                                                  | :enum:`return_value::copy` for rvalue and lvalue references, respectively. |
-|                                                  | See above for a description of what all of these different policies do.    |
+|                                                  | pointer. Otherwise, it uses :enum:`return_value_policy::move` or           |
+|                                                  | :enum:`return_value_policy::copy` for rvalue and lvalue references,        |
+|                                                  | respectively. See above for a description of what all of these different   |
+|                                                  | policies do.                                                               |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
 |                                                  | return value is a pointer. This is the default conversion policy for       |
