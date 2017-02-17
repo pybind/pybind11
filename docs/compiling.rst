@@ -183,6 +183,7 @@ Create a new empty project in Visual Studio.
 Set the following project properties:
 
 - **General**
+    - **Target Extension:** ``.pyd``
     - **Configuration Type:** *Dynamic Library (.dll)*
 - **VC++ Directories**
     - **Include Directories:** ``PYTHON\include; PYBIND11\include``
@@ -195,8 +196,6 @@ Set the following project properties:
     - **Command Line**
         - **Additional Options:** ``/bigobj``
 - **Linker**
-    - **General**
-        - **OutputFile:** Replace ``$(TargetExt)`` with ``.pyd``
     - **Optimization**
         - **Link Time Code Generation:** *Use Link Time Code Generation (/LTCG)*
 
