@@ -96,3 +96,9 @@ def test_function_signatures(doc):
 
     assert doc(test_callback3) == "test_callback3(arg0: Callable[[int], int]) -> str"
     assert doc(test_callback4) == "test_callback4() -> Callable[[int], int]"
+
+
+def test_movable_object():
+    from pybind11_tests import callback_with_movable
+
+    assert callback_with_movable(lambda _: None) is True

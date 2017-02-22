@@ -52,7 +52,7 @@ public:
         auto src = reinterpret_borrow<object>(src_);
         value = [src](Args... args) -> Return {
             gil_scoped_acquire acq;
-            object retval(src(std::move(args)...));
+            object retval(src(std::forward<Args>(args)...));
             /* Visual studio 2015 parser issue: need parentheses around this expression */
             return (retval.template cast<Return>());
         };
