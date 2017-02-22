@@ -7,6 +7,7 @@ endif()
 
 # Full set of test files (you can override these; see below)
 set(PYBIND11_TEST_FILES
+  test_abstract_base_class.cpp
   test_alias_initialization.cpp
   test_buffers.cpp
   test_callbacks.cpp
