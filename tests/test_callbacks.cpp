@@ -74,6 +74,27 @@ struct Payload {
 /// Something to trigger a conversion error
 struct Unregistered {};
 
+class AbstractBase {
+public:
+  virtual unsigned int func() = 0;
+};
+
+void func_accepting_func_accepting_base(std::function<double(AbstractBase&)>) { }
+
+struct MovableObject {
+  bool valid = true;
+
+  MovableObject() = default;
+  MovableObject(const MovableObject &) = default;
+  MovableObject &operator=(const MovableObject &) = default;
+  MovableObject(MovableObject &&o) : valid(o.valid) { o.valid = false; }
+  MovableObject &operator=(MovableObject &&o) {
+    valid = o.valid;
+    o.valid = false;
+    return *this;
+  }
+};
+
 test_initializer callbacks([](py::module &m) {
     m.def("test_callback1", &test_callback1);
     m.def("test_callback2", &test_callback2);
@@ -146,4 +167,15 @@ test_initializer callbacks([](py::module &m) {
     m.def("test_dummy_function", &test_dummy_function);
     // Export the payload constructor statistics for testing purposes:
     m.def("payload_cstats", &ConstructorStats::get<Payload>);
+
+    m.def("func_accepting_func_accepting_base",
+          func_accepting_func_accepting_base);
+
+    py::class_<MovableObject>(m, "MovableObject");
+
+    m.def("callback_with_movable", [](std::function<void(MovableObject &)> f) {
+        auto x = MovableObject();
+        f(x); // lvalue reference shouldn't move out object
+        return x.valid; // must still return `true`
+      });
 });

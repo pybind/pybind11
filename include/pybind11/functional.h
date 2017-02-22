@@ -50,7 +50,7 @@ public:
         }
 
         auto src = reinterpret_borrow<object>(src_);
-        value = [src](Args&&... args) -> Return {
+        value = [src](Args... args) -> Return {
             gil_scoped_acquire acq;
             object retval(src(std::forward<Args>(args)...));
             /* Visual studio 2015 parser issue: need parentheses around this expression */
