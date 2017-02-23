@@ -657,6 +657,8 @@ struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_s
             return false;
             // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
 #else
+            if (!PYBIND11_BYTES_CHECK(load_src.ptr()))
+                return false;
             temp = reinterpret_steal<object>(PyUnicode_FromObject(load_src.ptr()));
             if (!temp) { PyErr_Clear(); return false; }
             load_src = temp;

@@ -272,3 +272,11 @@ def test_constructors():
     assert results["array"].dtype == np.int_
     assert results["array_t<int32>"].dtype == np.int32
     assert results["array_t<double>"].dtype == np.float64
+
+
+def test_greedy_string_overload():  # issue 685
+    from pybind11_tests.array import issue685
+
+    assert issue685("abc") == "string"
+    assert issue685(np.array([97, 98, 99], dtype='b')) == "array"
+    assert issue685(123) == "other"
