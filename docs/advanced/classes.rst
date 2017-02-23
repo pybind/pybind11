@@ -619,27 +619,19 @@ interspersed with alias types and holder types (discussed earlier in this
 document)---pybind11 will automatically find out which is which. The only
 requirement is that the first template argument is the type to be declared.
 
-There are two caveats regarding the implementation of this feature:
+It is also permitted to inherit multiply from exported C++ classes in Python,
+as well as inheriting from multiple Python and/or pybind-exported classes.
 
-1. When only one base type is specified for a C++ type that actually has
-   multiple bases, pybind11 will assume that it does not participate in
-   multiple inheritance, which can lead to undefined behavior. In such cases,
-   add the tag ``multiple_inheritance``:
+There is one caveat regarding the implementation of this feature:
 
-    .. code-block:: cpp
+When only one base type is specified for a C++ type that actually has multiple
+bases, pybind11 will assume that it does not participate in multiple
+inheritance, which can lead to undefined behavior. In such cases, add the tag
+``multiple_inheritance`` to the class constructor:
 
-        py::class_<MyType, BaseType2>(m, "MyType", py::multiple_inheritance());
+.. code-block:: cpp
 
-   The tag is redundant and does not need to be specified when multiple base
-   types are listed.
+    py::class_<MyType, BaseType2>(m, "MyType", py::multiple_inheritance());
 
-2. As was previously discussed in the section on :ref:`overriding_virtuals`, it
-   is easy to create Python types that derive from C++ classes. It is even
-   possible to make use of multiple inheritance to declare a Python class which
-   has e.g. a C++ and a Python class as bases. However, any attempt to create a
-   type that has *two or more* C++ classes in its hierarchy of base types will
-   fail with a fatal error message: ``TypeError: multiple bases have instance
-   lay-out conflict``. Core Python types that are implemented in C (e.g.
-   ``dict``, ``list``, ``Exception``, etc.) also fall under this combination
-   and cannot be combined with C++ types bound using pybind11 via multiple
-   inheritance.
+The tag is redundant and does not need to be specified when multiple base types
+are listed.

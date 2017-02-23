@@ -210,17 +210,17 @@ struct type_record {
     /// How large is the underlying C++ type?
     size_t type_size = 0;
 
-    /// How large is pybind11::instance<type>?
-    size_t instance_size = 0;
+    /// How large is the type's holder?
+    size_t holder_size = 0;
 
     /// The global operator new can be overridden with a class-specific variant
     void *(*operator_new)(size_t) = ::operator new;
 
     /// Function pointer to class_<..>::init_holder
-    void (*init_holder)(PyObject *, const void *) = nullptr;
+    void (*init_holder)(instance *, const void *) = nullptr;
 
     /// Function pointer to class_<..>::dealloc
-    void (*dealloc)(PyObject *) = nullptr;
+    void (*dealloc)(const detail::value_and_holder &) = nullptr;
 
     /// List of base classes of the newly created type
     list bases;

@@ -346,21 +346,77 @@ NAMESPACE_BEGIN(detail)
 
 inline static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
+// Returns the size as a multiple of sizeof(void *), rounded up.
+inline static constexpr size_t size_in_ptrs(size_t s) { return 1 + ((s - 1) >> log2(sizeof(void *))); }
+
 inline std::string error_string();
 
-/// Core part of the 'instance' type which POD (needed to be able to use 'offsetof')
-template <typename type> struct instance_essentials {
+/**
+ * The space to allocate for simple layout instance holders (see below) in multiple of the size of
+ * a pointer (e.g.  2 means 16 bytes on 64-bit architectures).  The default is the minimum required
+ * to holder either a std::unique_ptr or std::shared_ptr (which is almost always
+ * sizeof(std::shared_ptr<T>)).
+ */
+constexpr size_t instance_simple_holder_in_ptrs() {
+    static_assert(sizeof(std::shared_ptr<int>) >= sizeof(std::unique_ptr<int>),
+            "pybind assumes std::shared_ptrs are at least as big as std::unique_ptrs");
+    return size_in_ptrs(sizeof(std::shared_ptr<int>));
+}
+
+// Forward declarations
+struct type_info;
+struct value_and_holder;
+
+/// The 'instance' type which needs to be standard layout (need to be able to use 'offsetof')
+struct instance {
     PyObject_HEAD
-    type *value;
+    /// Storage for pointers and holder; see simple_layout, below, for a description
+    union {
+        void *simple_value_holder[1 + instance_simple_holder_in_ptrs()];
+        struct {
+            void **values_and_holders;
+            bool *holder_constructed;
+        } nonsimple;
+    };
+    /// Weak references (needed for keep alive):
     PyObject *weakrefs;
+    /// If true, the pointer is owned which means we're free to manage it with a holder.
     bool owned : 1;
-    bool holder_constructed : 1;
+    /**
+     * An instance has two possible value/holder layouts.
+     *
+     * Simple layout (when this flag is true), means the `simple_value_holder` is set with a pointer
+     * and the holder object governing that pointer, i.e. [val1*][holder].  This layout is applied
+     * whenever there is no python-side multiple inheritance of bound C++ types *and* the type's
+     * holder will fit in the default space (which is large enough to hold either a std::unique_ptr
+     * or std::shared_ptr).
+     *
+     * Non-simple layout applies when using custom holders that require more space than `shared_ptr`
+     * (which is typically the size of two pointers), or when multiple inheritance is used on the
+     * python side.  Non-simple layout allocates the required amount of memory to have multiple
+     * bound C++ classes as parents.  Under this layout, `nonsimple.values_and_holders` is set to a
+     * pointer to allocated space of the required space to hold a a sequence of value pointers and
+     * holders followed by a set of holder-constructed flags (1 byte each), i.e.
+     * [val1*][holder1][val2*][holder2]...[bb...]  where each [block] is rounded up to a multiple of
+     * `sizeof(void *)`.  `nonsimple.holder_constructed` is, for convenience, a pointer to the
+     * beginning of the [bb...] block (but not independently allocated).
+     */
+    bool simple_layout : 1;
+    /// For simple layout, tracks whether the holder has been constructed
+    bool simple_holder_constructed : 1;
+
+    /// Initializes all of the above type/values/holders data
+    void allocate_layout();
+
+    /// Destroys/deallocates all of the above
+    void deallocate_layout();
+
+    /// Returns the value_and_holder wrapper for the given type (or the first, if `find_type`
+    /// omitted)
+    value_and_holder get_value_and_holder(const type_info *find_type = nullptr);
 };
 
-/// PyObject wrapper around generic types, includes a special holder type that is responsible for lifetime management
-template <typename type, typename holder_type = std::unique_ptr<type>> struct instance : instance_essentials<type> {
-    holder_type holder;
-};
+static_assert(std::is_standard_layout<instance>::value, "Internal error: `pybind11::detail::instance` is not standard layout!");
 
 struct overload_hash {
     inline size_t operator()(const std::pair<const PyObject *, const char *>& v) const {
@@ -372,23 +428,20 @@ struct overload_hash {
 
 /// Internal data structure used to track registered instances and types
 struct internals {
-    std::unordered_map<std::type_index, void*> registered_types_cpp;   // std::type_index -> type_info
-    std::unordered_map<const void *, void*> registered_types_py;       // PyTypeObject* -> type_info
-    std::unordered_multimap<const void *, void*> registered_instances; // void * -> PyObject*
+    std::unordered_map<std::type_index, void*> registered_types_cpp; // std::type_index -> type_info
+    std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py; // PyTypeObject* -> base type_info(s)
+    std::unordered_multimap<const void *, instance*> registered_instances; // void * -> instance*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
     std::unordered_map<std::type_index, std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
-    std::unordered_map<size_t, PyObject *> bases; // one base type per `instance_size` (very few)
+    PyObject *instance_base;
 #if defined(WITH_THREAD)
     decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
     PyInterpreterState *istate = nullptr;
 #endif
-
-    /// Return the appropriate base type for the given instance size
-    PyObject *get_base(size_t instance_size);
 };
 
 /// Return a reference to the current 'internals' information

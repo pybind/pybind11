@@ -16,20 +16,24 @@
 #include <array>
 #include <limits>
 #include <tuple>
+#include <cstring>
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
+// Forward declarations:
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
+inline PyObject *make_object_base_type(PyTypeObject *metaclass);
+struct value_and_holder;
 
 /// Additional type information which does not fit into the PyTypeObject
 struct type_info {
     PyTypeObject *type;
     const std::type_info *cpptype;
-    size_t type_size;
+    size_t type_size, holder_size_in_ptrs;
     void *(*operator_new)(size_t);
-    void (*init_holder)(PyObject *, const void *);
-    void (*dealloc)(PyObject *);
+    void (*init_holder)(instance *, const void *);
+    void (*dealloc)(const value_and_holder &v_h);
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
@@ -90,20 +94,93 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         );
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
+        internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
     }
     return *internals_ptr;
 }
 
-PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
+// Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
+// returned by emplace, i.e. an iterator for the entry and a bool set to `true` if the entry was
+// just created.
+inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_type_info_get_cache(PyTypeObject *type);
+
+// Populates a just-created cache entry.
+PYBIND11_NOINLINE inline void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
+    std::vector<PyTypeObject *> check;
+    for (handle parent : reinterpret_borrow<tuple>(t->tp_bases))
+        check.push_back((PyTypeObject *) parent.ptr());
+
     auto const &type_dict = get_internals().registered_types_py;
-    do {
+    for (size_t i = 0; i < check.size(); i++) {
+        auto type = check[i];
+        // Ignore Python2 old-style class super type:
+        if (!PyType_Check((PyObject *) type)) continue;
+
+        // Check `type` in the current set of registered python types:
         auto it = type_dict.find(type);
-        if (it != type_dict.end())
-            return (detail::type_info *) it->second;
-        type = type->tp_base;
-        if (!type)
-            return nullptr;
-    } while (true);
+        if (it != type_dict.end()) {
+            // We found a cache entry for it, so it's either pybind-registered or has pre-computed
+            // pybind bases, but we have to make sure we haven't already seen the type(s) before: we
+            // want to follow Python/virtual C++ rules that there should only be one instance of a
+            // common base.
+            for (auto *tinfo : it->second) {
+                // NB: Could use a second set here, rather than doing a linear search, but since
+                // having a large number of immediate pybind11-registered types seems fairly
+                // unlikely, that probably isn't worthwhile.
+                bool found = false;
+                for (auto *known : bases) {
+                    if (known == tinfo) { found = true; break; }
+                }
+                if (!found) bases.push_back(tinfo);
+            }
+        }
+        else if (type->tp_bases) {
+            // It's some python type, so keep follow its bases classes to look for one or more
+            // registered types
+            if (i + 1 == check.size()) {
+                // When we're at the end, we can pop off the current element to avoid growing
+                // `check` when adding just one base (which is typical--.e. when there is no
+                // multiple inheritance)
+                check.pop_back();
+                i--;
+            }
+            for (handle parent : reinterpret_borrow<tuple>(type->tp_bases))
+                check.push_back((PyTypeObject *) parent.ptr());
+        }
+    }
+}
+
+/**
+ * Extracts vector of type_info pointers of pybind-registered roots of the given Python type.  Will
+ * be just 1 pybind type for the Python type of a pybind-registered class, or for any Python-side
+ * derived class that uses single inheritance.  Will contain as many types as required for a Python
+ * class that uses multiple inheritance to inherit (directly or indirectly) from multiple
+ * pybind-registered classes.  Will be empty if neither the type nor any base classes are
+ * pybind-registered.
+ *
+ * The value is cached for the lifetime of the Python type.
+ */
+inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type) {
+    auto ins = all_type_info_get_cache(type);
+    if (ins.second)
+        // New cache entry: populate it
+        all_type_info_populate(type, ins.first->second);
+
+    return ins.first->second;
+}
+
+/**
+ * Gets a single pybind11 type info for a python type.  Returns nullptr if neither the type nor any
+ * ancestors are pybind11-registered.  Throws an exception if there are multiple bases--use
+ * `all_type_info` instead if you want to support multiple bases.
+ */
+PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
+    auto &bases = all_type_info(type);
+    if (bases.size() == 0)
+        return nullptr;
+    if (bases.size() > 1)
+        pybind11_fail("pybind11::detail::get_type_info: type has multiple pybind11-registered bases");
+    return bases.front();
 }
 
 PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp,
@@ -124,6 +201,178 @@ PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &
 PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
     detail::type_info *type_info = get_type_info(tp, throw_if_missing);
     return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
+}
+
+struct value_and_holder {
+    instance *inst;
+    size_t index;
+    const detail::type_info *type;
+    void **vh;
+
+    value_and_holder(instance *i, const detail::type_info *type, size_t vpos, size_t index) :
+        inst{i}, index{index}, type{type},
+        vh{inst->simple_layout ? inst->simple_value_holder : &inst->nonsimple.values_and_holders[vpos]}
+    {}
+
+    // Used for past-the-end iterator
+    value_and_holder(size_t index) : index{index} {}
+
+    template <typename V = void> V *&value_ptr() const {
+        return reinterpret_cast<V *&>(vh[0]);
+    }
+    // True if this `value_and_holder` has a non-null value pointer
+    explicit operator bool() const { return value_ptr(); }
+
+    template <typename H> H &holder() const {
+        return reinterpret_cast<H &>(vh[1]);
+    }
+    bool holder_constructed() const {
+        return inst->simple_layout
+            ? inst->simple_holder_constructed
+            : inst->nonsimple.holder_constructed[index];
+    }
+    void set_holder_constructed() {
+        if (inst->simple_layout)
+            inst->simple_holder_constructed = true;
+        else
+            inst->nonsimple.holder_constructed[index] = true;
+    }
+};
+
+// Container for accessing and iterating over an instance's values/holders
+struct values_and_holders {
+private:
+    instance *inst;
+    using type_vec = std::vector<detail::type_info *>;
+    const type_vec &tinfo;
+
+public:
+    values_and_holders(instance *inst) : inst{inst}, tinfo(all_type_info(Py_TYPE(inst))) {}
+
+    struct iterator {
+    private:
+        instance *inst;
+        using vec_iter = std::vector<detail::type_info *>::const_iterator;
+        vec_iter typeit;
+        value_and_holder curr;
+        friend struct values_and_holders;
+        iterator(instance *inst, const type_vec &tinfo)
+            : inst{inst}, typeit{tinfo.begin()},
+            curr(inst /* instance */,
+                 tinfo.size() > 0 ? *typeit : nullptr /* type info */,
+                 0, /* vpos: (non-simple types only): the first vptr comes first */
+                 0 /* index */)
+        {}
+        // Past-the-end iterator:
+        iterator(size_t end) : curr(end) {}
+    public:
+        bool operator==(const iterator &other) { return curr.index == other.curr.index; }
+        bool operator!=(const iterator &other) { return curr.index != other.curr.index; }
+        iterator &operator++() {
+            if (!inst->simple_layout) {
+                curr.vh += 1 + (*typeit)->holder_size_in_ptrs;
+                curr.type = *(++typeit);
+            }
+            ++curr.index;
+            return *this;
+        }
+        value_and_holder &operator*() { return curr; }
+        value_and_holder *operator->() { return &curr; }
+    };
+
+    iterator begin() { return iterator(inst, tinfo); }
+    iterator end() { return iterator(tinfo.size()); }
+
+    iterator find(const type_info *find_type) {
+        auto it = begin(), endit = end();
+        while (it != endit && it->type != find_type) ++it;
+        return it;
+    }
+
+    size_t size() { return tinfo.size(); }
+};
+
+/**
+ * Extracts C++ value and holder pointer references from an instance (which may contain multiple
+ * values/holders for python-side multiple inheritance) that match the given type.  Throws an error
+ * if the given type (or ValueType, if omitted) is not a pybind11 base of the given instance.  If
+ * `find_type` is omitted (or explicitly specified as nullptr) the first value/holder are returned,
+ * regardless of type (and the resulting .type will be nullptr).
+ *
+ * The returned object should be short-lived: in particular, it must not outlive the called-upon
+ * instance.
+ */
+PYBIND11_NOINLINE inline value_and_holder instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/) {
+    // Optimize common case:
+    if (!find_type || Py_TYPE(this) == find_type->type)
+        return value_and_holder(this, find_type, 0, 0);
+
+    detail::values_and_holders vhs(this);
+    auto it = vhs.find(find_type);
+    if (it != vhs.end())
+        return *it;
+
+#if defined(NDEBUG)
+    pybind11_fail("pybind11::detail::instance::get_value_and_holder: "
+            "type is not a pybind11 base of the given instance "
+            "(compile in debug mode for type details)");
+#else
+    pybind11_fail("pybind11::detail::instance::get_value_and_holder: `" +
+            std::string(find_type->type->tp_name) + "' is not a pybind11 base of the given `" +
+            std::string(Py_TYPE(this)->tp_name) + "' instance");
+#endif
+}
+
+PYBIND11_NOINLINE inline void instance::allocate_layout() {
+    auto &tinfo = all_type_info(Py_TYPE(this));
+
+    const size_t n_types = tinfo.size();
+
+    if (n_types == 0)
+        pybind11_fail("instance allocation failed: new instance has no pybind11-registered base types");
+
+    simple_layout =
+        n_types == 1 && tinfo.front()->holder_size_in_ptrs <= instance_simple_holder_in_ptrs();
+
+    // Simple path: no python-side multiple inheritance, and a small-enough holder
+    if (simple_layout) {
+        simple_value_holder[0] = nullptr;
+        simple_holder_constructed = false;
+    }
+    else { // multiple base types or a too-large holder
+        // Allocate space to hold: [v1*][h1][v2*][h2]...[bb...] where [vN*] is a value pointer,
+        // [hN] is the (uninitialized) holder instance for value N, and [bb...] is a set of bool
+        // values that tracks whether each associated holder has been initialized.  Each [block] is
+        // padded, if necessary, to an integer multiple of sizeof(void *).
+        size_t space = 0;
+        for (auto t : tinfo) {
+            space += 1; // value pointer
+            space += t->holder_size_in_ptrs; // holder instance
+        }
+        size_t flags_at = space;
+        space += size_in_ptrs(n_types * sizeof(bool)); // holder constructed flags
+
+        // Allocate space for flags, values, and holders, and initialize it to 0 (flags and values,
+        // in particular, need to be 0).  Use Python's memory allocation functions: in Python 3.6
+        // they default to using pymalloc, which is designed to be efficient for small allocations
+        // like the one we're doing here; in earlier versions (and for larger allocations) they are
+        // just wrappers around malloc.
+#if PY_VERSION_HEX >= 0x03050000
+        nonsimple.values_and_holders = (void **) PyMem_Calloc(space, sizeof(void *));
+        if (!nonsimple.values_and_holders) throw std::bad_alloc();
+#else
+        nonsimple.values_and_holders = (void **) PyMem_New(void *, space);
+        if (!nonsimple.values_and_holders) throw std::bad_alloc();
+        std::memset(nonsimple.values_and_holders, 0, space * sizeof(void *));
+#endif
+        nonsimple.holder_constructed = reinterpret_cast<bool *>(&nonsimple.values_and_holders[flags_at]);
+    }
+    owned = true;
+}
+
+PYBIND11_NOINLINE inline void instance::deallocate_layout() {
+    if (!simple_layout)
+        PyMem_Free(nonsimple.values_and_holders);
 }
 
 PYBIND11_NOINLINE inline bool isinstance_generic(handle obj, const std::type_info &tp) {
@@ -185,9 +434,10 @@ PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail:
     auto &instances = get_internals().registered_instances;
     auto range = instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
-        auto instance_type = detail::get_type_info(Py_TYPE(it->second));
-        if (instance_type && instance_type == type)
-            return handle((PyObject *) it->second);
+        for (auto vh : values_and_holders(it->second)) {
+            if (vh.type == type)
+                return handle((PyObject *) it->second);
+        }
     }
     return handle();
 }
@@ -208,7 +458,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 
 // Forward declarations
 inline void keep_alive_impl(handle nurse, handle patient);
-inline void register_instance(void *self, const type_info *tinfo);
+inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
 inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value = true);
 
 class type_caster_generic {
@@ -216,70 +466,8 @@ public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
      : typeinfo(get_type_info(type_info)) { }
 
-    PYBIND11_NOINLINE bool load(handle src, bool convert) {
-        if (!src)
-            return false;
-        return load(src, convert, Py_TYPE(src.ptr()));
-    }
-
-    bool load(handle src, bool convert, PyTypeObject *tobj) {
-        if (!src || !typeinfo)
-            return false;
-        if (src.is_none()) {
-            // Defer accepting None to other overloads (if we aren't in convert mode):
-            if (!convert) return false;
-            value = nullptr;
-            return true;
-        }
-
-        if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
-            /* Check if we can safely perform a reinterpret-style cast */
-            if (PyType_IsSubtype(tobj, typeinfo->type)) {
-                value = reinterpret_cast<instance<void> *>(src.ptr())->value;
-                return true;
-            }
-        } else { /* Case 2: multiple inheritance */
-            /* Check if we can safely perform a reinterpret-style cast */
-            if (tobj == typeinfo->type) {
-                value = reinterpret_cast<instance<void> *>(src.ptr())->value;
-                return true;
-            }
-
-            /* If this is a python class, also check the parents recursively */
-            auto const &type_dict = get_internals().registered_types_py;
-            bool new_style_class = PyType_Check((PyObject *) tobj);
-            if (type_dict.find(tobj) == type_dict.end() && new_style_class && tobj->tp_bases) {
-                auto parents = reinterpret_borrow<tuple>(tobj->tp_bases);
-                for (handle parent : parents) {
-                    bool result = load(src, convert, (PyTypeObject *) parent.ptr());
-                    if (result)
-                        return true;
-                }
-            }
-
-            /* Try implicit casts */
-            for (auto &cast : typeinfo->implicit_casts) {
-                type_caster_generic sub_caster(*cast.first);
-                if (sub_caster.load(src, convert)) {
-                    value = cast.second(sub_caster.value);
-                    return true;
-                }
-            }
-        }
-
-        /* Perform an implicit conversion */
-        if (convert) {
-            for (auto &converter : typeinfo->implicit_conversions) {
-                temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
-                if (load(temp, false))
-                    return true;
-            }
-            for (auto &converter : *typeinfo->direct_conversions) {
-                if (converter(src.ptr(), value))
-                    return true;
-            }
-        }
-        return false;
+    bool load(handle src, bool convert) {
+        return load_impl<type_caster_generic>(src, convert);
     }
 
     PYBIND11_NOINLINE static handle cast(const void *_src, return_value_policy policy, handle parent,
@@ -296,34 +484,33 @@ public:
 
         auto it_instances = get_internals().registered_instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            auto instance_type = detail::get_type_info(Py_TYPE(it_i->second));
-            if (instance_type && instance_type == tinfo)
-                return handle((PyObject *) it_i->second).inc_ref();
+            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+                if (instance_type && instance_type == tinfo)
+                    return handle((PyObject *) it_i->second).inc_ref();
+            }
         }
 
         auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type, false /* don't allocate value */));
-
-        auto wrapper = (instance<void> *) inst.ptr();
-
-        wrapper->value = nullptr;
+        auto wrapper = reinterpret_cast<instance *>(inst.ptr());
         wrapper->owned = false;
+        void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
 
         switch (policy) {
             case return_value_policy::automatic:
             case return_value_policy::take_ownership:
-                wrapper->value = src;
+                valueptr = src;
                 wrapper->owned = true;
                 break;
 
             case return_value_policy::automatic_reference:
             case return_value_policy::reference:
-                wrapper->value = src;
+                valueptr = src;
                 wrapper->owned = false;
                 break;
 
             case return_value_policy::copy:
                 if (copy_constructor)
-                    wrapper->value = copy_constructor(src);
+                    valueptr = copy_constructor(src);
                 else
                     throw cast_error("return_value_policy = copy, but the "
                                      "object is non-copyable!");
@@ -332,9 +519,9 @@ public:
 
             case return_value_policy::move:
                 if (move_constructor)
-                    wrapper->value = move_constructor(src);
+                    valueptr = move_constructor(src);
                 else if (copy_constructor)
-                    wrapper->value = copy_constructor(src);
+                    valueptr = copy_constructor(src);
                 else
                     throw cast_error("return_value_policy = move, but the "
                                      "object is neither movable nor copyable!");
@@ -342,22 +529,118 @@ public:
                 break;
 
             case return_value_policy::reference_internal:
-                wrapper->value = src;
+                valueptr = src;
                 wrapper->owned = false;
-                detail::keep_alive_impl(inst, parent);
+                keep_alive_impl(inst, parent);
                 break;
 
             default:
                 throw cast_error("unhandled return_value_policy: should not happen!");
         }
 
-        register_instance(wrapper, tinfo);
-        tinfo->init_holder(inst.ptr(), existing_holder);
+        register_instance(wrapper, valueptr, tinfo);
+        tinfo->init_holder(wrapper, existing_holder);
 
         return inst.release();
     }
 
 protected:
+
+    // Base methods for generic caster; there are overridden in copyable_holder_caster
+    void load_value(const value_and_holder &v_h) {
+        value = v_h.value_ptr();
+    }
+    bool try_implicit_casts(handle src, bool convert) {
+        for (auto &cast : typeinfo->implicit_casts) {
+            type_caster_generic sub_caster(*cast.first);
+            if (sub_caster.load(src, convert)) {
+                value = cast.second(sub_caster.value);
+                return true;
+            }
+        }
+        return false;
+    }
+    bool try_direct_conversions(handle src) {
+        for (auto &converter : *typeinfo->direct_conversions) {
+            if (converter(src.ptr(), value))
+                return true;
+        }
+        return false;
+    }
+    void check_holder_compat() {}
+
+    // Implementation of `load`; this takes the type of `this` so that it can dispatch the relevant
+    // bits of code between here and copyable_holder_caster where the two classes need different
+    // logic (without having to resort to virtual inheritance).
+    template <typename ThisT>
+    PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
+        if (!src || !typeinfo)
+            return false;
+        if (src.is_none()) {
+            // Defer accepting None to other overloads (if we aren't in convert mode):
+            if (!convert) return false;
+            value = nullptr;
+            return true;
+        }
+
+        auto &this_ = static_cast<ThisT &>(*this);
+        this_.check_holder_compat();
+
+        PyTypeObject *srctype = Py_TYPE(src.ptr());
+
+        // Case 1: If src is an exact type match for the target type then we can reinterpret_cast
+        // the instance's value pointer to the target type:
+        if (srctype == typeinfo->type) {
+            this_.load_value(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+            return true;
+        }
+        // Case 2: We have a derived class
+        else if (PyType_IsSubtype(srctype, typeinfo->type)) {
+            auto &bases = all_type_info(srctype);
+            bool no_cpp_mi = typeinfo->simple_type;
+
+            // Case 2a: the python type is a Python-inherited derived class that inherits from just
+            // one simple (no MI) pybind11 class, or is an exact match, so the C++ instance is of
+            // the right type and we can use reinterpret_cast.
+            // (This is essentially the same as case 2b, but because not using multiple inheritance
+            // is extremely common, we handle it specially to avoid the loop iterator and type
+            // pointer lookup overhead)
+            if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
+                this_.load_value(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+                return true;
+            }
+            // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see if
+            // we can find an exact match (or, for a simple C++ type, an inherited match); if so, we
+            // can safely reinterpret_cast to the relevant pointer.
+            else if (bases.size() > 1) {
+                for (auto base : bases) {
+                    if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
+                        this_.load_value(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
+                        return true;
+                    }
+                }
+            }
+
+            // Case 2c: C++ multiple inheritance is involved and we couldn't find an exact type match
+            // in the registered bases, above, so try implicit casting (needed for proper C++ casting
+            // when MI is involved).
+            if (this_.try_implicit_casts(src, convert))
+                return true;
+        }
+
+        // Perform an implicit conversion
+        if (convert) {
+            for (auto &converter : typeinfo->implicit_conversions) {
+                temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
+                if (load_impl<ThisT>(temp, false))
+                    return true;
+            }
+            if (this_.try_direct_conversions(src))
+                return true;
+        }
+        return false;
+    }
+
 
     // Called to do type lookup and wrap the pointer and type in a pair when a dynamic_cast
     // isn't needed or can't be used.  If the type is unknown, sets the error and returns a pair
@@ -669,8 +952,9 @@ public:
         }
 
         /* Check if this is a C++ type */
-        if (get_type_info((PyTypeObject *) h.get_type().ptr())) {
-            value = ((instance<void> *) h.ptr())->value;
+        auto &bases = all_type_info((PyTypeObject *) h.get_type().ptr());
+        if (bases.size() == 1) { // Only allowing loading from a single-value type
+            value = values_and_holders(reinterpret_cast<instance *>(h.ptr())).begin()->value_ptr();
             return true;
         }
 
@@ -1016,64 +1300,38 @@ public:
     using base::value;
     using base::temp;
 
-    PYBIND11_NOINLINE bool load(handle src, bool convert) {
-        return load(src, convert, Py_TYPE(src.ptr()));
+    bool load(handle src, bool convert) {
+        return base::template load_impl<copyable_holder_caster<type, holder_type>>(src, convert);
     }
 
-    bool load(handle src, bool convert, PyTypeObject *tobj) {
-        if (!src || !typeinfo)
-            return false;
-        if (src.is_none()) {
-            // Defer accepting None to other overloads (if we aren't in convert mode):
-            if (!convert) return false;
-            value = nullptr;
-            return true;
-        }
+    explicit operator type*() { return this->value; }
+    explicit operator type&() { return *(this->value); }
+    explicit operator holder_type*() { return &holder; }
 
+    // Workaround for Intel compiler bug
+    // see pybind11 issue 94
+    #if defined(__ICC) || defined(__INTEL_COMPILER)
+    operator holder_type&() { return holder; }
+    #else
+    explicit operator holder_type&() { return holder; }
+    #endif
+
+    static handle cast(const holder_type &src, return_value_policy, handle) {
+        const auto *ptr = holder_helper<holder_type>::get(src);
+        return type_caster_base<type>::cast_holder(ptr, &src);
+    }
+
+protected:
+    friend class type_caster_generic;
+    void check_holder_compat() {
         if (typeinfo->default_holder)
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
-
-        if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
-            /* Check if we can safely perform a reinterpret-style cast */
-            if (PyType_IsSubtype(tobj, typeinfo->type))
-                return load_value_and_holder(src);
-        } else { /* Case 2: multiple inheritance */
-            /* Check if we can safely perform a reinterpret-style cast */
-            if (tobj == typeinfo->type)
-                return load_value_and_holder(src);
-
-            /* If this is a python class, also check the parents recursively */
-            auto const &type_dict = get_internals().registered_types_py;
-            bool new_style_class = PyType_Check((PyObject *) tobj);
-            if (type_dict.find(tobj) == type_dict.end() && new_style_class && tobj->tp_bases) {
-                auto parents = reinterpret_borrow<tuple>(tobj->tp_bases);
-                for (handle parent : parents) {
-                    bool result = load(src, convert, (PyTypeObject *) parent.ptr());
-                    if (result)
-                        return true;
-                }
-            }
-
-            if (try_implicit_casts(src, convert))
-                return true;
-        }
-
-        if (convert) {
-            for (auto &converter : typeinfo->implicit_conversions) {
-                temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
-                if (load(temp, false))
-                    return true;
-            }
-        }
-
-        return false;
     }
 
-    bool load_value_and_holder(handle src) {
-        auto inst = (instance<type, holder_type> *) src.ptr();
-        value = (void *) inst->value;
-        if (inst->holder_constructed) {
-            holder = inst->holder;
+    bool load_value(const value_and_holder &v_h) {
+        if (v_h.holder_constructed()) {
+            value = v_h.value_ptr();
+            holder = v_h.holder<holder_type>();
             return true;
         } else {
             throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
@@ -1101,24 +1359,9 @@ public:
         return false;
     }
 
-    explicit operator type*() { return this->value; }
-    explicit operator type&() { return *(this->value); }
-    explicit operator holder_type*() { return &holder; }
+    static constexpr bool try_direct_conversions(handle) { return false; }
 
-    // Workaround for Intel compiler bug
-    // see pybind11 issue 94
-    #if defined(__ICC) || defined(__INTEL_COMPILER)
-    operator holder_type&() { return holder; }
-    #else
-    explicit operator holder_type&() { return holder; }
-    #endif
 
-    static handle cast(const holder_type &src, return_value_policy, handle) {
-        const auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, &src);
-    }
-
-protected:
     holder_type holder;
 };
 

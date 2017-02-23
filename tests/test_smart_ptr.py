@@ -132,6 +132,16 @@ def test_unique_nodelete():
     assert cstats.alive() == 1  # Leak, but that's intentional
 
 
+def test_large_holder():
+    from pybind11_tests import MyObject5
+    o = MyObject5(5)
+    assert o.value == 5
+    cstats = ConstructorStats.get(MyObject5)
+    assert cstats.alive() == 1
+    del o
+    assert cstats.alive() == 0
+
+
 def test_shared_ptr_and_references():
     from pybind11_tests.smart_ptr import SharedPtrRef, A
 

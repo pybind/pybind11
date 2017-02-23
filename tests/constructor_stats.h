@@ -169,7 +169,7 @@ public:
         auto &internals = py::detail::get_internals();
         const std::type_index *t1 = nullptr, *t2 = nullptr;
         try {
-            auto *type_info = internals.registered_types_py.at(class_.ptr());
+            auto *type_info = internals.registered_types_py.at((PyTypeObject *) class_.ptr()).at(0);
             for (auto &p : internals.registered_types_cpp) {
                 if (p.second == type_info) {
                     if (t1) {

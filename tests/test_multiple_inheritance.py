@@ -53,15 +53,174 @@ def test_multiple_inheritance_mix2():
     assert mt.bar() == 4
 
 
-def test_multiple_inheritance_error():
-    """Inheriting from multiple C++ bases in Python is not supported"""
+def test_multiple_inheritance_python():
     from pybind11_tests import Base1, Base2
 
-    with pytest.raises(TypeError) as excinfo:
-        # noinspection PyUnusedLocal
-        class MI(Base1, Base2):
-            pass
-    assert "Can't inherit from multiple C++ classes in Python" in str(excinfo.value)
+    class MI1(Base1, Base2):
+        def __init__(self, i, j):
+            Base1.__init__(self, i)
+            Base2.__init__(self, j)
+
+    class B1(object):
+        def v(self):
+            return 1
+
+    class MI2(B1, Base1, Base2):
+        def __init__(self, i, j):
+            B1.__init__(self)
+            Base1.__init__(self, i)
+            Base2.__init__(self, j)
+
+    class MI3(MI2):
+        def __init__(self, i, j):
+            MI2.__init__(self, i, j)
+
+    class MI4(MI3, Base2):
+        def __init__(self, i, j, k):
+            MI2.__init__(self, j, k)
+            Base2.__init__(self, i)
+
+    class MI5(Base2, B1, Base1):
+        def __init__(self, i, j):
+            B1.__init__(self)
+            Base1.__init__(self, i)
+            Base2.__init__(self, j)
+
+    class MI6(Base2, B1):
+        def __init__(self, i):
+            Base2.__init__(self, i)
+            B1.__init__(self)
+
+    class B2(B1):
+        def v(self):
+            return 2
+
+    class B3(object):
+        def v(self):
+            return 3
+
+    class B4(B3, B2):
+        def v(self):
+            return 4
+
+    class MI7(B4, MI6):
+        def __init__(self, i):
+            B4.__init__(self)
+            MI6.__init__(self, i)
+
+    class MI8(MI6, B3):
+        def __init__(self, i):
+            MI6.__init__(self, i)
+            B3.__init__(self)
+
+    class MI8b(B3, MI6):
+        def __init__(self, i):
+            B3.__init__(self)
+            MI6.__init__(self, i)
+
+    mi1 = MI1(1, 2)
+    assert mi1.foo() == 1
+    assert mi1.bar() == 2
+
+    mi2 = MI2(3, 4)
+    assert mi2.v() == 1
+    assert mi2.foo() == 3
+    assert mi2.bar() == 4
+
+    mi3 = MI3(5, 6)
+    assert mi3.v() == 1
+    assert mi3.foo() == 5
+    assert mi3.bar() == 6
+
+    mi4 = MI4(7, 8, 9)
+    assert mi4.v() == 1
+    assert mi4.foo() == 8
+    assert mi4.bar() == 7
+
+    mi5 = MI5(10, 11)
+    assert mi5.v() == 1
+    assert mi5.foo() == 10
+    assert mi5.bar() == 11
+
+    mi6 = MI6(12)
+    assert mi6.v() == 1
+    assert mi6.bar() == 12
+
+    mi7 = MI7(13)
+    assert mi7.v() == 4
+    assert mi7.bar() == 13
+
+    mi8 = MI8(14)
+    assert mi8.v() == 1
+    assert mi8.bar() == 14
+
+    mi8b = MI8b(15)
+    assert mi8b.v() == 3
+    assert mi8b.bar() == 15
+
+
+def test_multiple_inheritance_python_many_bases():
+    from pybind11_tests import (BaseN1,  BaseN2,  BaseN3,  BaseN4,  BaseN5,  BaseN6,  BaseN7,
+                                BaseN8,  BaseN9,  BaseN10, BaseN11, BaseN12, BaseN13, BaseN14,
+                                BaseN15, BaseN16, BaseN17)
+
+    class MIMany14(BaseN1, BaseN2, BaseN3, BaseN4):
+        def __init__(self):
+            BaseN1.__init__(self, 1)
+            BaseN2.__init__(self, 2)
+            BaseN3.__init__(self, 3)
+            BaseN4.__init__(self, 4)
+
+    class MIMany58(BaseN5, BaseN6, BaseN7, BaseN8):
+        def __init__(self):
+            BaseN5.__init__(self, 5)
+            BaseN6.__init__(self, 6)
+            BaseN7.__init__(self, 7)
+            BaseN8.__init__(self, 8)
+
+    class MIMany916(BaseN9, BaseN10, BaseN11, BaseN12, BaseN13, BaseN14, BaseN15, BaseN16):
+        def __init__(self):
+            BaseN9.__init__(self, 9)
+            BaseN10.__init__(self, 10)
+            BaseN11.__init__(self, 11)
+            BaseN12.__init__(self, 12)
+            BaseN13.__init__(self, 13)
+            BaseN14.__init__(self, 14)
+            BaseN15.__init__(self, 15)
+            BaseN16.__init__(self, 16)
+
+    class MIMany19(MIMany14, MIMany58, BaseN9):
+        def __init__(self):
+            MIMany14.__init__(self)
+            MIMany58.__init__(self)
+            BaseN9.__init__(self, 9)
+
+    class MIMany117(MIMany14, MIMany58, MIMany916, BaseN17):
+        def __init__(self):
+            MIMany14.__init__(self)
+            MIMany58.__init__(self)
+            MIMany916.__init__(self)
+            BaseN17.__init__(self, 17)
+
+    # Inherits from 4 registered C++ classes: can fit in one pointer on any modern arch:
+    a = MIMany14()
+    for i in range(1, 4):
+        assert getattr(a, "f" + str(i))() == 2 * i
+
+    # Inherits from 8: requires 1/2 pointers worth of holder flags on 32/64-bit arch:
+    b = MIMany916()
+    for i in range(9, 16):
+        assert getattr(b, "f" + str(i))() == 2 * i
+
+    # Inherits from 9: requires >= 2 pointers worth of holder flags
+    c = MIMany19()
+    for i in range(1, 9):
+        assert getattr(c, "f" + str(i))() == 2 * i
+
+    # Inherits from 17: requires >= 3 pointers worth of holder flags
+    d = MIMany117()
+    for i in range(1, 17):
+        assert getattr(d, "f" + str(i))() == 2 * i
 
 
 def test_multiple_inheritance_virtbase():
