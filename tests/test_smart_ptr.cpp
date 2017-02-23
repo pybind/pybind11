@@ -81,6 +81,28 @@ private:
     }
 };
 
+/// This is just a wrapper around unique_ptr, but with extra fields to deliberately bloat up the
+/// holder size to trigger the non-simple-layout internal instance layout for single inheritance with
+/// large holder type.
+template <typename T> class huge_unique_ptr {
+    std::unique_ptr<T> ptr;
+    uint64_t padding[10];
+public:
+    huge_unique_ptr(T *p) : ptr(p) {};
+    T *get() { return ptr.get(); }
+};
+
+class MyObject5 { // managed by huge_unique_ptr
+public:
+    MyObject5(int value) : value{value} {
+        print_created(this);
+    }
+    int value;
+    ~MyObject5() {
+        print_destroyed(this);
+    }
+};
+
 /// Make pybind aware of the ref-counted wrapper type (s)
 
 // ref<T> is a wrapper for 'Object' which uses intrusive reference counting
@@ -89,6 +111,7 @@ private:
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>); // Not required any more for std::shared_ptr,
                                                      // but it should compile without error
+PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>);
 
 // Make pybind11 aware of the non-standard getter member function
 namespace pybind11 { namespace detail {
@@ -183,6 +206,10 @@ test_initializer smart_ptr([](py::module &m) {
     py::class_<MyObject4, std::unique_ptr<MyObject4, py::nodelete>>(m, "MyObject4")
         .def(py::init<int>())
         .def_readwrite("value", &MyObject4::value);
+
+    py::class_<MyObject5, huge_unique_ptr<MyObject5>>(m, "MyObject5")
+        .def(py::init<int>())
+        .def_readwrite("value", &MyObject5::value);
 
     py::implicitly_convertible<py::int_, MyObject1>();
 

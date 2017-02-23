@@ -23,6 +23,11 @@ struct Base2 {
     int i;
 };
 
+template <int N> struct BaseN {
+    BaseN(int i) : i(i) { }
+    int i;
+};
+
 struct Base12 : Base1, Base2 {
     Base12(int i, int j) : Base1(i), Base2(j) { }
 };
@@ -44,6 +49,15 @@ test_initializer multiple_inheritance([](py::module &m) {
 
     py::class_<MIType, Base12>(m, "MIType")
         .def(py::init<int, int>());
+
+    // Many bases for testing that multiple inheritance from many classes (i.e. requiring extra
+    // space for holder constructed flags) works.
+    #define PYBIND11_BASEN(N) py::class_<BaseN<N>>(m, "BaseN" #N).def(py::init<int>()).def("f" #N, [](BaseN<N> &b) { return b.i + N; })
+    PYBIND11_BASEN( 1); PYBIND11_BASEN( 2); PYBIND11_BASEN( 3); PYBIND11_BASEN( 4);
+    PYBIND11_BASEN( 5); PYBIND11_BASEN( 6); PYBIND11_BASEN( 7); PYBIND11_BASEN( 8);
+    PYBIND11_BASEN( 9); PYBIND11_BASEN(10); PYBIND11_BASEN(11); PYBIND11_BASEN(12);
+    PYBIND11_BASEN(13); PYBIND11_BASEN(14); PYBIND11_BASEN(15); PYBIND11_BASEN(16);
+    PYBIND11_BASEN(17);
 
     // Uncommenting this should result in a compile time failure (MI can only be specified via
     // template parameters because pybind has to know the types involved; see discussion in #742 for
