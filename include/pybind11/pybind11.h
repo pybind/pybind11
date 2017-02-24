@@ -444,21 +444,19 @@ protected:
                 size_t args_copied = 0;
 
                 // 1. Copy any position arguments given.
+                bool bad_kwarg = false;
                 for (; args_copied < args_to_copy; ++args_copied) {
-                    // If we find a given positional argument that also has a named kwargs argument,
-                    // raise a TypeError like Python does.  (We could also continue with the next
-                    // overload, but this seems highly likely to be a caller mistake rather than a
-                    // legitimate overload).
-                    if (kwargs_in && args_copied < func.args.size() && func.args[args_copied].name) {
-                        handle value = PyDict_GetItemString(kwargs_in, func.args[args_copied].name);
-                        if (value)
-                            throw type_error(std::string(func.name) + "(): got multiple values for argument '" +
-                                    std::string(func.args[args_copied].name) + "'");
+                    if (kwargs_in && args_copied < func.args.size() && func.args[args_copied].name
+                            && PyDict_GetItemString(kwargs_in, func.args[args_copied].name)) {
+                        bad_kwarg = true;
+                        break;
                     }
 
                     call.args.push_back(PyTuple_GET_ITEM(args_in, args_copied));
                     call.args_convert.push_back(args_copied < func.args.size() ? func.args[args_copied].convert : true);
                 }
+                if (bad_kwarg)
+                    continue; // Maybe it was meant for another overload (issue #688)
 
                 // We'll need to copy this if we steal some kwargs for defaults
                 dict kwargs = reinterpret_borrow<dict>(kwargs_in);
