@@ -45,8 +45,6 @@ matrix:
     env: PYTHON=3.5 CPP=14 CLANG=3.9 INSTALL=1
     script:
       - |
-        # Temporary workaround pending PR #604:
-        export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DHAS_LTO_FLAG=0"
         $SCRIPT_RUN_PREFIX sh -c "set -e
         cmake ${CMAKE_EXTRA_ARGS} -DPYBIND11_INSTALL=1 -DPYBIND11_TEST=0
         make install
