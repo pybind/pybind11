@@ -274,6 +274,7 @@ def test_constructors():
     assert results["array_t<double>"].dtype == np.float64
 
 
+@pytest.requires_numpy
 def test_greedy_string_overload():  # issue 685
     from pybind11_tests.array import issue685
 
