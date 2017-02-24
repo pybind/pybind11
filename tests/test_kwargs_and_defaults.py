@@ -35,7 +35,7 @@ def test_named_arguments(msg):
         # noinspection PyArgumentList
         kw_func2(x=5, y=10, z=12)
     assert excinfo.match(
-        r'(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$)){3}$')
+        r'(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$))' + '{3}$')
 
     assert kw_func4() == "{13 17}"
     assert kw_func4(myList=[1, 2, 3]) == "{1 2 3}"
