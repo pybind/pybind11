@@ -22,7 +22,6 @@ endif()
 
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST    "Build pybind11 test suite?"     ${PYBIND11_MASTER_PROJECT})
-option(PYBIND11_WERROR  "Report all warnings as errors"  OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools")
 
@@ -34,23 +33,6 @@ set(PYTHON_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS} CACHE INTERNAL "")
 set(PYTHON_LIBRARIES ${PYTHON_LIBRARIES} CACHE INTERNAL "")
 set(PYTHON_MODULE_PREFIX ${PYTHON_MODULE_PREFIX} CACHE INTERNAL "")
 set(PYTHON_MODULE_EXTENSION ${PYTHON_MODULE_EXTENSION} CACHE INTERNAL "")
-
-# Compile with compiler warnings turned on
-function(pybind11_enable_warnings target_name)
-  if(MSVC)
-    target_compile_options(${target_name} PRIVATE /W4)
-  else()
-    target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wconversion -Wcast-qual)
-  endif()
-
-  if(PYBIND11_WERROR)
-    if(MSVC)
-      target_compile_options(${target_name} PRIVATE /WX)
-    else()
-      target_compile_options(${target_name} PRIVATE -Werror)
-    endif()
-  endif()
-endfunction()
 
 set(PYBIND11_HEADERS
   include/pybind11/attr.h
