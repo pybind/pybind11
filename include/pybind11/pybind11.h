@@ -650,11 +650,26 @@ protected:
             }
             msg += "\nInvoked with: ";
             auto args_ = reinterpret_borrow<tuple>(args_in);
+            bool some_args = false;
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
+                if (!some_args) some_args = true;
+                else msg += ", ";
                 msg += pybind11::repr(args_[ti]);
-                if ((ti + 1) != args_.size() )
-                    msg += ", ";
             }
+            if (kwargs_in) {
+                auto kwargs = reinterpret_borrow<dict>(kwargs_in);
+                if (kwargs.size() > 0) {
+                    if (some_args) msg += "; ";
+                    msg += "kwargs: ";
+                    bool first = true;
+                    for (auto kwarg : kwargs) {
+                        if (first) first = false;
+                        else msg += ", ";
+                        msg += pybind11::str("{}={!r}").format(kwarg.first, kwarg.second);
+                    }
+                }
+            }
+
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         } else if (!result) {
