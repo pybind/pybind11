@@ -136,21 +136,6 @@ def test_mutate_data(arr):
 
 
 @pytest.requires_numpy
-def test_bounds_check(arr):
-    from pybind11_tests.array import (index_at, index_at_t, data, data_t,
-                                      mutate_data, mutate_data_t, at_t, mutate_at_t)
-    funcs = (index_at, index_at_t, data, data_t,
-             mutate_data, mutate_data_t, at_t, mutate_at_t)
-    for func in funcs:
-        with pytest.raises(IndexError) as excinfo:
-            func(arr, 2, 0)
-        assert str(excinfo.value) == 'index 2 is out of bounds for axis 0 with size 2'
-        with pytest.raises(IndexError) as excinfo:
-            func(arr, 0, 4)
-        assert str(excinfo.value) == 'index 4 is out of bounds for axis 1 with size 3'
-
-
-@pytest.requires_numpy
 def test_make_c_f_array():
     from pybind11_tests.array import (
         make_c_array, make_f_array
