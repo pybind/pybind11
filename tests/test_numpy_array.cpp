@@ -150,4 +150,9 @@ test_initializer numpy_array([](py::module &m) {
             "array_t<double>"_a=py::array_t<double>(o)
         );
     });
+
+    // Issue 685: ndarray shouldn't go to std::string overload
+    sm.def("issue685", [](std::string) { return "string"; });
+    sm.def("issue685", [](py::array) { return "array"; });
+    sm.def("issue685", [](py::object) { return "other"; });
 });
