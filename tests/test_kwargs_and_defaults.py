@@ -34,8 +34,10 @@ def test_named_arguments(msg):
     with pytest.raises(TypeError) as excinfo:
         # noinspection PyArgumentList
         kw_func2(x=5, y=10, z=12)
-    assert excinfo.match(
-        r'(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$))' + '{3}$')
+    if hasattr(excinfo, "match"):  # (pytest <3.0 doesn't have `.match()`)
+        assert excinfo.match(
+            r'(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$))' +
+            '{3}$')
 
     assert kw_func4() == "{13 17}"
     assert kw_func4(myList=[1, 2, 3]) == "{1 2 3}"
