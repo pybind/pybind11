@@ -8,7 +8,7 @@ with pytest.suppress(ImportError):
 
 @pytest.fixture(scope='function')
 def arr():
-    return np.array([[1, 2, 3], [4, 5, 6]], '<u2')
+    return np.array([[1, 2, 3], [4, 5, 6]], '=u2')
 
 
 def test_array_attributes():
@@ -80,9 +80,10 @@ def test_dim_check_fail(arr):
                           ([1, 2], [6])])
 def test_data(arr, args, ret):
     from pybind11_tests.array import data, data_t
+    from sys import byteorder
     assert all(data_t(arr, *args) == ret)
-    assert all(data(arr, *args)[::2] == ret)
-    assert all(data(arr, *args)[1::2] == 0)
+    assert all(data(arr, *args)[(0 if byteorder == 'little' else 1)::2] == ret)
+    assert all(data(arr, *args)[(1 if byteorder == 'little' else 0)::2] == 0)
 
 
 def test_mutate_readonly(arr):

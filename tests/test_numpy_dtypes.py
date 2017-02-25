@@ -21,7 +21,10 @@ def packed_dtype():
 
 
 def dt_fmt():
-    return ("{{'names':['bool_','uint_','float_','ldbl_'], 'formats':['?','<u4','<f4','<f{}'],"
+    from sys import byteorder
+    e = '<' if byteorder == 'little' else '>'
+    return ("{{'names':['bool_','uint_','float_','ldbl_'],"
+            " 'formats':['?','" + e + "u4','" + e + "f4','" + e + "f{}'],"
             " 'offsets':[0,4,8,{}], 'itemsize':{}}}")
 
 
@@ -32,8 +35,9 @@ def simple_dtype_fmt():
 
 
 def packed_dtype_fmt():
-    return "[('bool_', '?'), ('uint_', '<u4'), ('float_', '<f4'), ('ldbl_', '<f{}')]".format(
-        np.dtype('longdouble').itemsize)
+    from sys import byteorder
+    return "[('bool_', '?'), ('uint_', '{e}u4'), ('float_', '{e}f4'), ('ldbl_', '{e}f{}')]".format(
+        np.dtype('longdouble').itemsize, e='<' if byteorder == 'little' else '>')
 
 
 def partial_ld_offset():
@@ -89,6 +93,8 @@ def test_format_descriptors():
 def test_dtype(simple_dtype):
     from pybind11_tests import (print_dtypes, test_dtype_ctors, test_dtype_methods,
                                 trailing_padding_dtype, buffer_to_dtype)
+    from sys import byteorder
+    e = '<' if byteorder == 'little' else '>'
 
     assert print_dtypes() == [
         simple_dtype_fmt(),
@@ -97,8 +103,8 @@ def test_dtype(simple_dtype):
         partial_dtype_fmt(),
         partial_nested_fmt(),
         "[('a', 'S3'), ('b', 'S3')]",
-        "[('e1', '<i8'), ('e2', 'u1')]",
-        "[('x', 'i1'), ('y', '<u8')]"
+        "[('e1', '" + e + "i8'), ('e2', 'u1')]",
+        "[('x', 'i1'), ('y', '" + e + "u8')]"
     ]
 
     d1 = np.dtype({'names': ['a', 'b'], 'formats': ['int32', 'float64'],
@@ -209,10 +215,12 @@ def test_string_array():
 
 def test_enum_array():
     from pybind11_tests import create_enum_array, print_enum_array
+    from sys import byteorder
+    e = '<' if byteorder == 'little' else '>'
 
     arr = create_enum_array(3)
     dtype = arr.dtype
-    assert dtype == np.dtype([('e1', '<i8'), ('e2', 'u1')])
+    assert dtype == np.dtype([('e1', e + 'i8'), ('e2', 'u1')])
     assert print_enum_array(arr) == [
         "e1=A,e2=X",
         "e1=B,e2=Y",
