@@ -688,7 +688,9 @@ template <typename T, int ExtraFlags>
 struct pyobject_caster<array_t<T, ExtraFlags>> {
     using type = array_t<T, ExtraFlags>;
 
-    bool load(handle src, bool /* convert */) {
+    bool load(handle src, bool convert) {
+        if (!convert && !type::check_(src))
+            return false;
         value = type::ensure(src);
         return static_cast<bool>(value);
     }
