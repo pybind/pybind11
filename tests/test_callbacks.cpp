@@ -157,6 +157,7 @@ test_initializer callbacks([](py::module &m) {
 
         return [p]() {
             /* p should be cleaned up when the returned function is garbage collected */
+            (void) p;
         };
     });
 
