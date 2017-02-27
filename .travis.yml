@@ -147,9 +147,13 @@ install:
 - |
   # Install dependencies
   if [ -n "$DOCKER" ]; then
+    if [ -n "$DEBUG" ]; then
+      PY_DEBUG="python$PY-dbg python$PY-scipy-dbg"
+      export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
+    fi
     docker exec --tty "$containerid" sh -c "for s in 0 15; do sleep \$s; \
       apt-get -qy --no-install-recommends $APT_GET_EXTRA install \
-        python$PY-dev python$PY-pytest python$PY-scipy \
+        $PY_DEBUG python$PY-dev python$PY-pytest python$PY-scipy \
         libeigen3-dev cmake make ${COMPILER_PACKAGES} && break; done"
   else
     pip install numpy scipy pytest

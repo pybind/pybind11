@@ -159,7 +159,7 @@ if(NOT PYBIND11_PYTEST_FOUND)
 endif()
 
 # A single command to compile and run the tests
-add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest -rws ${PYBIND11_PYTEST_FILES}
+add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest -rws --capture=sys ${PYBIND11_PYTEST_FILES}
                   DEPENDS pybind11_tests WORKING_DIRECTORY ${testdir})
 
 if(PYBIND11_TEST_OVERRIDE)
