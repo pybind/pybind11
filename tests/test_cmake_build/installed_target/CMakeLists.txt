@@ -14,5 +14,9 @@ target_link_libraries(test_cmake_build PRIVATE pybind11::module)
 set_target_properties(test_cmake_build PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                                   SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
+# Do not treat includes from IMPORTED target as SYSTEM (Python headers in pybind11::module).
+# This may be needed to resolve header conflicts, e.g. between Python release and debug headers.
+set_target_properties(test_cmake_build PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
+
 add_custom_target(check ${CMAKE_COMMAND} -E env PYTHONPATH=$<TARGET_FILE_DIR:test_cmake_build>
                   ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/../test.py ${PROJECT_NAME})
