@@ -646,14 +646,14 @@ struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_s
     using StringType = std::basic_string<CharT, Traits, Allocator>;
 
     bool load(handle src, bool) {
-#if PY_VERSION_MAJOR < 3
+#if PY_MAJOR_VERSION < 3
         object temp;
 #endif
         handle load_src = src;
         if (!src) {
             return false;
         } else if (!PyUnicode_Check(load_src.ptr())) {
-#if PY_VERSION_MAJOR >= 3
+#if PY_MINOR_VERSION >= 3
             return false;
             // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
 #else
