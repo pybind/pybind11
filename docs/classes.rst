@@ -423,6 +423,12 @@ typed enums.
     >>> int(p.type)
     1L
 
+The entries defined by the enumeration type are exposed in the ``__members__`` property:
+
+.. code-block:: pycon
+
+    >>> Pet.Kind.__members__
+    {'Dog': Kind.Dog, 'Cat': Kind.Cat}
 
 .. note::
 
