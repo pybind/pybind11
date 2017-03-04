@@ -1143,7 +1143,6 @@ public:
             return m;
         }, return_value_policy::copy);
         def("__init__", [](Type& value, Scalar i) { value = (Type)i; });
-        def("__init__", [](Type& value, Scalar i) { new (&value) Type((Type) i); });
         def("__int__", [](Type value) { return (Scalar) value; });
         def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
         def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
