@@ -24,6 +24,15 @@ test_initializer docstring_generation([](py::module &m) {
         m.def("test_function1", [](int, int) {}, py::arg("a"), py::arg("b"));
         m.def("test_function2", [](int, int) {}, py::arg("a"), py::arg("b"), "A custom docstring");
 
+        m.def("test_overloaded1", [](int) {}, py::arg("i"), "Overload docstring");
+        m.def("test_overloaded1", [](double) {}, py::arg("d"));
+
+        m.def("test_overloaded2", [](int) {}, py::arg("i"), "overload docstring 1");
+        m.def("test_overloaded2", [](double) {}, py::arg("d"), "overload docstring 2");
+
+        m.def("test_overloaded3", [](int) {}, py::arg("i"));
+        m.def("test_overloaded3", [](double) {}, py::arg("d"), "Overload docstr");
+
         options.enable_function_signatures();
 
         m.def("test_function3", [](int, int) {}, py::arg("a"), py::arg("b"));
