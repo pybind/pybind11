@@ -23,6 +23,9 @@ matrix:
   - sudo: true
     services: docker
     env: PYTHON=3.5 CPP=17 GCC=7
+  - sudo: true
+    services: docker
+    env: PYTHON=3.5 CPP=17 CLANG=4.0
   - os: osx
     osx_image: xcode7.3
     env: PYTHON=2.7 CPP=14 CLANG
@@ -77,6 +80,7 @@ matrix:
     - flake8
   allow_failures:
     - env: PYTHON=3.5 CPP=17 GCC=7
+    - env: PYTHON=3.5 CPP=17 CLANG=4.0
 cache:
   directories:
   - $HOME/.cache/pip
@@ -87,13 +91,15 @@ before_install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -n "$CLANG" ]; then
       export CXX=clang++-$CLANG CC=clang-$CLANG COMPILER_PACKAGES="clang-$CLANG llvm-$CLANG-dev"
+      if [ "$CLANG" = "4.0" ]; then export CXXFLAGS="-stdlib=libc++"; fi
     else
       if [ -z "$GCC" ]; then export GCC=4.8
       else export COMPILER_PACKAGES=g++-$GCC
       fi
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
-    if [ "$GCC" = "6" ] || [ -n "$CLANG" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
+    if [ "$CLANG" = "4.0" ]; then export DOCKER=debian:sid
+    elif [ "$GCC" = "6" ] || [ -n "$CLANG" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
     elif [ "$GCC" = "7" ]; then export DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -115,15 +121,16 @@ before_install:
   elif [ -n "$DOCKER" ]; then
     docker pull $DOCKER
     # Disable LTO with gcc until gcc 79296 is fixed:
-    export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYBIND11_LTO_CXX_FLAGS="
+    if [ -n "$GCC" ]; then export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYBIND11_LTO_CXX_FLAGS="; fi
+
     export containerid=$(docker run --detach --tty \
       --volume="$PWD":/pybind11 --workdir=/pybind11 \
       --env="CXXFLAGS=$CXXFLAGS" \
       --env="CC=$CC" --env="CXX=$CXX" --env="DEBIAN_FRONTEND=$DEBIAN_FRONTEND" \
       --env=GCC_COLORS=\  \
       $DOCKER)
-    docker exec --tty "$containerid" sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
     export SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
+    $SCRIPT_RUN_PREFIX sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
     # gcc-7 currently generates warnings; some are upstream bugs, so just turn off -Werror for now
     if [ "$GCC" = "7" ]; then WERROR=off; fi
   else
@@ -150,10 +157,24 @@ install:
       PY_DEBUG="python$PY-dbg python$PY-scipy-dbg"
       export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
     fi
-    docker exec --tty "$containerid" sh -c "for s in 0 15; do sleep \$s; \
+    $SCRIPT_RUN_PREFIX sh -c "for s in 0 15; do sleep \$s; \
       apt-get -qy --no-install-recommends $APT_GET_EXTRA install \
         $PY_DEBUG python$PY-dev python$PY-pytest python$PY-scipy \
         libeigen3-dev cmake make ${COMPILER_PACKAGES} && break; done"
+
+    if [ "$CLANG" = "4.0" ]; then
+      # Neither debian nor llvm provide a libc++ deb; luckily it's fairly quick
+      # to build and install, so do it ourselves:
+      git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
+      git clone https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx -b release_40
+      git clone https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi -b release_40
+      $SCRIPT_RUN_PREFIX sh -c "mkdir llvm-build && cd llvm-build && \
+        CXXFLAGS= cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ../llvm-source && \
+        make -j2 install-cxxabi install-cxx && \
+        cp -a include/c++/v1/*cxxabi*.h /usr/include/c++/v1"
+
+      if [ "$CPP" = "-std=c++17" ]; then export CPP="-std=c++1z"; fi
+    fi
   elif [ -z "$PYPY" ]; then
     pip install numpy scipy pytest
 
