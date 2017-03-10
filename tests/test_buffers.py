@@ -1,11 +1,12 @@
 import pytest
 from pybind11_tests import Matrix, ConstructorStats
 
+pytestmark = pytest.requires_numpy
+
 with pytest.suppress(ImportError):
     import numpy as np
 
 
-@pytest.requires_numpy
 def test_from_python():
     with pytest.raises(RuntimeError) as excinfo:
         Matrix(np.array([1, 2, 3]))  # trying to assign a 1D array
@@ -32,7 +33,6 @@ def test_from_python():
 # PyPy: Memory leak in the "np.array(m, copy=False)" call
 # https://bitbucket.org/pypy/pypy/issues/2444
 @pytest.unsupported_on_pypy
-@pytest.requires_numpy
 def test_to_python():
     m = Matrix(5, 5)
 

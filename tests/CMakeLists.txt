@@ -150,16 +150,20 @@ endif()
 
 # Make sure pytest is found or produce a fatal error
 if(NOT PYBIND11_PYTEST_FOUND)
-  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import pytest" OUTPUT_QUIET ERROR_QUIET
-                  RESULT_VARIABLE PYBIND11_EXEC_PYTHON_ERR)
-  if(PYBIND11_EXEC_PYTHON_ERR)
-    message(FATAL_ERROR "Running the tests requires pytest.  Please install it manually (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
+  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import pytest; print(pytest.__version__)"
+                  RESULT_VARIABLE pytest_not_found OUTPUT_VARIABLE pytest_version ERROR_QUIET)
+  if(pytest_not_found)
+    message(FATAL_ERROR "Running the tests requires pytest. Please install it manually"
+                        " (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
+  elseif(pytest_version VERSION_LESS 3.0)
+    message(FATAL_ERROR "Running the tests requires pytest >= 3.0. Found: ${pytest_version}"
+                        "Please update it (try: ${PYTHON_EXECUTABLE} -m pip install -U pytest)")
   endif()
   set(PYBIND11_PYTEST_FOUND TRUE CACHE INTERNAL "")
 endif()
 
 # A single command to compile and run the tests
-add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest -rws --capture=sys ${PYBIND11_PYTEST_FILES}
+add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_PYTEST_FILES}
                   DEPENDS pybind11_tests WORKING_DIRECTORY ${testdir})
 
 if(PYBIND11_TEST_OVERRIDE)

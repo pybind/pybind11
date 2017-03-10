@@ -103,9 +103,9 @@ class Capture(object):
 
 
 @pytest.fixture
-def capture(capfd):
-    """Extended `capfd` with context manager and custom equality operators"""
-    return Capture(capfd)
+def capture(capsys):
+    """Extended `capsys` with context manager and custom equality operators"""
+    return Capture(capsys)
 
 
 class SanitizedString(object):
