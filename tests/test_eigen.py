@@ -129,7 +129,7 @@ def test_pass_readonly_array():
 
 def test_nonunit_stride_from_python():
     from pybind11_tests import (
-        double_row, double_col, double_mat_cm, double_mat_rm,
+        double_row, double_col, double_complex, double_mat_cm, double_mat_rm,
         double_threec, double_threer)
 
     counting_mat = np.arange(9.0, dtype=np.float32).reshape((3, 3))
@@ -137,8 +137,10 @@ def test_nonunit_stride_from_python():
     second_col = counting_mat[:, 1]
     np.testing.assert_array_equal(double_row(second_row), 2.0 * second_row)
     np.testing.assert_array_equal(double_col(second_row), 2.0 * second_row)
+    np.testing.assert_array_equal(double_complex(second_row), 2.0 * second_row)
     np.testing.assert_array_equal(double_row(second_col), 2.0 * second_col)
     np.testing.assert_array_equal(double_col(second_col), 2.0 * second_col)
+    np.testing.assert_array_equal(double_complex(second_col), 2.0 * second_col)
 
     counting_3d = np.arange(27.0, dtype=np.float32).reshape((3, 3, 3))
     slices = [counting_3d[0, :, :], counting_3d[:, 0, :], counting_3d[:, :, 0]]
@@ -564,13 +566,16 @@ def test_special_matrix_objects():
 
 
 def test_dense_signature(doc):
-    from pybind11_tests import double_col, double_row, double_mat_rm
+    from pybind11_tests import double_col, double_row, double_complex, double_mat_rm
 
     assert doc(double_col) == """
         double_col(arg0: numpy.ndarray[float32[m, 1]]) -> numpy.ndarray[float32[m, 1]]
     """
     assert doc(double_row) == """
         double_row(arg0: numpy.ndarray[float32[1, n]]) -> numpy.ndarray[float32[1, n]]
+    """
+    assert doc(double_complex) == """
+        double_complex(arg0: numpy.ndarray[complex64[m, 1]]) -> numpy.ndarray[complex64[m, 1]]
     """
     assert doc(double_mat_rm) == """
         double_mat_rm(arg0: numpy.ndarray[float32[m, n]]) -> numpy.ndarray[float32[m, n]]

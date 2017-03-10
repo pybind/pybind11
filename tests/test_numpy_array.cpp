@@ -151,6 +151,34 @@ test_initializer numpy_array([](py::module &m) {
         );
     });
 
+    // Overload resolution tests:
+    sm.def("overloaded", [](py::array_t<double>) { return "double"; });
+    sm.def("overloaded", [](py::array_t<float>) { return "float"; });
+    sm.def("overloaded", [](py::array_t<int>) { return "int"; });
+    sm.def("overloaded", [](py::array_t<unsigned short>) { return "unsigned short"; });
+    sm.def("overloaded", [](py::array_t<long long>) { return "long long"; });
+    sm.def("overloaded", [](py::array_t<std::complex<double>>) { return "double complex"; });
+    sm.def("overloaded", [](py::array_t<std::complex<float>>) { return "float complex"; });
+
+    sm.def("overloaded2", [](py::array_t<std::complex<double>>) { return "double complex"; });
+    sm.def("overloaded2", [](py::array_t<double>) { return "double"; });
+    sm.def("overloaded2", [](py::array_t<std::complex<float>>) { return "float complex"; });
+    sm.def("overloaded2", [](py::array_t<float>) { return "float"; });
+
+    // Only accept the exact types:
+    sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg().noconvert());
+    sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg().noconvert());
+
+    // Make sure we don't do unsafe coercion (e.g. float to int) when not using forcecast, but
+    // rather that float gets converted via the safe (conversion to double) overload:
+    sm.def("overloaded4", [](py::array_t<long long, 0>) { return "long long"; });
+    sm.def("overloaded4", [](py::array_t<double, 0>) { return "double"; });
+
+    // But we do allow conversion to int if forcecast is enabled (but only if no overload matches
+    // without conversion)
+    sm.def("overloaded5", [](py::array_t<unsigned int>) { return "unsigned int"; });
+    sm.def("overloaded5", [](py::array_t<double>) { return "double"; });
+
     // Issue 685: ndarray shouldn't go to std::string overload
     sm.def("issue685", [](std::string) { return "string"; });
     sm.def("issue685", [](py::array) { return "array"; });

@@ -264,6 +264,60 @@ def test_constructors():
     assert results["array_t<double>"].dtype == np.float64
 
 
+def test_overload_resolution(msg):
+    from pybind11_tests.array import overloaded, overloaded2, overloaded3, overloaded4, overloaded5
+
+    # Exact overload matches:
+    assert overloaded(np.array([1], dtype='float64')) == 'double'
+    assert overloaded(np.array([1], dtype='float32')) == 'float'
+    assert overloaded(np.array([1], dtype='ushort')) == 'unsigned short'
+    assert overloaded(np.array([1], dtype='intc')) == 'int'
+    assert overloaded(np.array([1], dtype='longlong')) == 'long long'
+    assert overloaded(np.array([1], dtype='complex')) == 'double complex'
+    assert overloaded(np.array([1], dtype='csingle')) == 'float complex'
+
+    # No exact match, should call first convertible version:
+    assert overloaded(np.array([1], dtype='uint8')) == 'double'
+
+    assert overloaded2(np.array([1], dtype='float64')) == 'double'
+    assert overloaded2(np.array([1], dtype='float32')) == 'float'
+    assert overloaded2(np.array([1], dtype='complex64')) == 'float complex'
+    assert overloaded2(np.array([1], dtype='complex128')) == 'double complex'
+    assert overloaded2(np.array([1], dtype='float32')) == 'float'
+
+    assert overloaded3(np.array([1], dtype='float64')) == 'double'
+    assert overloaded3(np.array([1], dtype='intc')) == 'int'
+    expected_exc = """
+        overloaded3(): incompatible function arguments. The following argument types are supported:
+            1. (arg0: numpy.ndarray[int]) -> str
+            2. (arg0: numpy.ndarray[float]) -> str
+
+        Invoked with:"""
+
+    with pytest.raises(TypeError) as excinfo:
+        overloaded3(np.array([1], dtype='uintc'))
+    assert msg(excinfo.value) == expected_exc + " array([1], dtype=uint32)"
+    with pytest.raises(TypeError) as excinfo:
+        overloaded3(np.array([1], dtype='float32'))
+    assert msg(excinfo.value) == expected_exc + " array([ 1.], dtype=float32)"
+    with pytest.raises(TypeError) as excinfo:
+        overloaded3(np.array([1], dtype='complex'))
+    assert msg(excinfo.value) == expected_exc + " array([ 1.+0.j])"
+
+    # Exact matches:
+    assert overloaded4(np.array([1], dtype='double')) == 'double'
+    assert overloaded4(np.array([1], dtype='longlong')) == 'long long'
+    # Non-exact matches requiring conversion.  Since float to integer isn't a
+    # save conversion, it should go to the double overload, but short can go to
+    # either (and so should end up on the first-registered, the long long).
+    assert overloaded4(np.array([1], dtype='float32')) == 'double'
+    assert overloaded4(np.array([1], dtype='short')) == 'long long'
+
+    assert overloaded5(np.array([1], dtype='double')) == 'double'
+    assert overloaded5(np.array([1], dtype='uintc')) == 'unsigned int'
+    assert overloaded5(np.array([1], dtype='float32')) == 'unsigned int'
+
+
 def test_greedy_string_overload():  # issue 685
     from pybind11_tests.array import issue685
 
