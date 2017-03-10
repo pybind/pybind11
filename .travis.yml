@@ -31,10 +31,10 @@ matrix:
     env: PYTHON=3.6 CPP=14 CLANG
   # Test a PyPy 2.7 nightly build
   - os: linux
+    dist: trusty
     env: PYPY=1 PYTHON=2.7 CPP=11 GCC=4.8
     addons:
       apt:
-        sources: [ubuntu-toolchain-r-test, kubuntu-backports]
         packages: [g++-4.8, cmake]
   - sudo: true
     services: docker
@@ -112,8 +112,7 @@ before_install:
   if [ -n "$PYPY" ]; then
     $PYPY_BINARY -m ensurepip
     $PYPY_BINARY -m pip install pytest
-  fi
-  if [ -n "$DOCKER" ]; then
+  elif [ -n "$DOCKER" ]; then
     docker pull $DOCKER
     # Disable LTO with gcc until gcc 79296 is fixed:
     export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYBIND11_LTO_CXX_FLAGS="
@@ -155,7 +154,7 @@ install:
       apt-get -qy --no-install-recommends $APT_GET_EXTRA install \
         $PY_DEBUG python$PY-dev python$PY-pytest python$PY-scipy \
         libeigen3-dev cmake make ${COMPILER_PACKAGES} && break; done"
-  else
+  elif [ -z "$PYPY" ]; then
     pip install numpy scipy pytest
 
     wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.3.0.tar.gz
