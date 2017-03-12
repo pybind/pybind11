@@ -51,9 +51,14 @@ public:
     }
 
     /// Construct a cpp_function from a lambda function (possibly with internal state)
-    template <typename Func, typename... Extra,
-             typename FuncType = typename detail::remove_class<decltype(&std::remove_reference<Func>::type::operator())>::type>
+    template <typename Func, typename... Extra, typename = detail::enable_if_t<
+        detail::satisfies_none_of<
+            typename std::remove_reference<Func>::type,
+            std::is_function, std::is_pointer, std::is_member_pointer
+        >::value>
+    >
     cpp_function(Func &&f, const Extra&... extra) {
+        using FuncType = typename detail::remove_class<decltype(&std::remove_reference<Func>::type::operator())>::type;
         initialize(std::forward<Func>(f),
                    (FuncType *) nullptr, extra...);
     }
