@@ -929,7 +929,9 @@ public:
     }
 
     template <typename Func, typename... Extra> class_ &
-    def_static(const char *name_, Func f, const Extra&... extra) {
+    def_static(const char *name_, Func &&f, const Extra&... extra) {
+        static_assert(!std::is_member_function_pointer<Func>::value,
+                "def_static(...) called with a non-static member function pointer");
         cpp_function cf(std::forward<Func>(f), name(name_), scope(*this),
                         sibling(getattr(*this, name_, none())), extra...);
         attr(cf.name()) = cf;
