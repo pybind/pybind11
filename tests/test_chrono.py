@@ -104,7 +104,7 @@ def test_chrono_steady_clock_roundtrip():
 
 
 def test_floating_point_duration():
-    from pybind11_tests import test_chrono7
+    from pybind11_tests import test_chrono7, test_chrono_float_diff
     import datetime
 
     # Test using 35.525123 seconds as an example floating point number in seconds
@@ -114,3 +114,7 @@ def test_floating_point_duration():
 
     assert time.seconds == 35
     assert 525122 <= time.microseconds <= 525123
+
+    diff = test_chrono_float_diff(43.789012, 1.123456)
+    assert diff.seconds == 42
+    assert 665556 <= diff.microseconds <= 665557

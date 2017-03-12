@@ -48,6 +48,11 @@ std::chrono::microseconds test_chrono7(std::chrono::microseconds t) {
     return t;
 }
 
+// Float durations (issue #719)
+std::chrono::duration<double> test_chrono_float_diff(std::chrono::duration<float> a, std::chrono::duration<float> b) {
+    return a - b;
+}
+
 test_initializer chrono([] (py::module &m) {
     m.def("test_chrono1", &test_chrono1);
     m.def("test_chrono2", &test_chrono2);
@@ -56,4 +61,5 @@ test_initializer chrono([] (py::module &m) {
     m.def("test_chrono5", &test_chrono5);
     m.def("test_chrono6", &test_chrono6);
     m.def("test_chrono7", &test_chrono7);
+    m.def("test_chrono_float_diff", &test_chrono_float_diff);
 });
