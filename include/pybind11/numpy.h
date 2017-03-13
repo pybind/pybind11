@@ -577,6 +577,8 @@ protected:
 
 template <typename T, int ExtraFlags = array::forcecast> class array_t : public array {
 public:
+    using value_type = T;
+
     array_t() : array(0, static_cast<const T *>(nullptr)) {}
     array_t(handle h, borrowed_t) : array(h, borrowed) { }
     array_t(handle h, stolen_t) : array(h, stolen) { }
@@ -822,7 +824,7 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
 template <typename T, typename SFINAE> struct npy_format_descriptor {
     static_assert(is_pod_struct<T>::value, "Attempt to use a non-POD or unimplemented POD type as a numpy dtype");
 
-    static PYBIND11_DESCR name() { return _("struct"); }
+    static PYBIND11_DESCR name() { return make_caster<T>::name(); }
 
     static pybind11::dtype dtype() {
         return reinterpret_borrow<pybind11::dtype>(dtype_ptr());
@@ -1140,7 +1142,9 @@ struct vectorize_helper {
 };
 
 template <typename T, int Flags> struct handle_type_name<array_t<T, Flags>> {
-    static PYBIND11_DESCR name() { return _("numpy.ndarray[") + make_caster<T>::name() + _("]"); }
+    static PYBIND11_DESCR name() {
+        return _("numpy.ndarray[") + npy_format_descriptor<T>::name() + _("]");
+    }
 };
 
 NAMESPACE_END(detail)

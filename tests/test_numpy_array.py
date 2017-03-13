@@ -279,6 +279,21 @@ def test_overload_resolution(msg):
     # No exact match, should call first convertible version:
     assert overloaded(np.array([1], dtype='uint8')) == 'double'
 
+    with pytest.raises(TypeError) as excinfo:
+        overloaded("not an array")
+    assert msg(excinfo.value) == """
+        overloaded(): incompatible function arguments. The following argument types are supported:
+            1. (arg0: numpy.ndarray[float64]) -> str
+            2. (arg0: numpy.ndarray[float32]) -> str
+            3. (arg0: numpy.ndarray[int32]) -> str
+            4. (arg0: numpy.ndarray[uint16]) -> str
+            5. (arg0: numpy.ndarray[int64]) -> str
+            6. (arg0: numpy.ndarray[complex128]) -> str
+            7. (arg0: numpy.ndarray[complex64]) -> str
+
+        Invoked with: 'not an array'
+    """
+
     assert overloaded2(np.array([1], dtype='float64')) == 'double'
     assert overloaded2(np.array([1], dtype='float32')) == 'float'
     assert overloaded2(np.array([1], dtype='complex64')) == 'float complex'
@@ -289,8 +304,8 @@ def test_overload_resolution(msg):
     assert overloaded3(np.array([1], dtype='intc')) == 'int'
     expected_exc = """
         overloaded3(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[int]) -> str
-            2. (arg0: numpy.ndarray[float]) -> str
+            1. (arg0: numpy.ndarray[int32]) -> str
+            2. (arg0: numpy.ndarray[float64]) -> str
 
         Invoked with:"""
 

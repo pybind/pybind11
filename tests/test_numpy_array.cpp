@@ -17,6 +17,7 @@
 
 using arr = py::array;
 using arr_t = py::array_t<uint16_t, 0>;
+static_assert(std::is_same<arr_t::value_type, uint16_t>::value, "");
 
 template<typename... Ix> arr data(const arr& a, Ix... index) {
     return arr(a.nbytes() - a.offset_at(index...), (const uint8_t *) a.data(index...));
