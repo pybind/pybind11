@@ -824,7 +824,7 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
 template <typename T, typename SFINAE> struct npy_format_descriptor {
     static_assert(is_pod_struct<T>::value, "Attempt to use a non-POD or unimplemented POD type as a numpy dtype");
 
-    static PYBIND11_DESCR name() { return _("struct"); }
+    static PYBIND11_DESCR name() { return make_caster<T>::name(); }
 
     static pybind11::dtype dtype() {
         return reinterpret_borrow<pybind11::dtype>(dtype_ptr());

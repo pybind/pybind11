@@ -234,7 +234,7 @@ def test_enum_array():
 def test_signature(doc):
     from pybind11_tests import create_rec_nested
 
-    assert doc(create_rec_nested) == "create_rec_nested(arg0: int) -> numpy.ndarray[struct]"
+    assert doc(create_rec_nested) == "create_rec_nested(arg0: int) -> numpy.ndarray[NestedStruct]"
 
 
 def test_scalar_conversion():
