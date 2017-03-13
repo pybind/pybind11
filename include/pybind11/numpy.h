@@ -577,6 +577,8 @@ protected:
 
 template <typename T, int ExtraFlags = array::forcecast> class array_t : public array {
 public:
+    using value_type = T;
+
     array_t() : array(0, static_cast<const T *>(nullptr)) {}
     array_t(handle h, borrowed_t) : array(h, borrowed) { }
     array_t(handle h, stolen_t) : array(h, stolen) { }
