@@ -435,7 +435,7 @@ public:
             fits = props::conformable(copy);
             if (!fits || !fits.template stride_compatible<props>())
                 return false;
-            copy_or_ref = copy;
+            copy_or_ref = std::move(copy);
         }
 
         ref.reset();
