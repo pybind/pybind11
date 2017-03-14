@@ -118,8 +118,9 @@ Dean Moldovan,
 Ben Pritchard,
 Jason Rhinelander,
 Boris Schäling,
-Pim Schellart, and
-Ivan Smirnov.
+Pim Schellart,
+Ivan Smirnov, and
+Patrick Stewart.
 
 ### License
 
