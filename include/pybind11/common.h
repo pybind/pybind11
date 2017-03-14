@@ -28,6 +28,33 @@
 #  endif
 #endif
 
+// Compiler version assertions
+#if defined(__INTEL_COMPILER)
+#  if __INTEL_COMPILER < 1500
+#    error pybind11 requires Intel C++ compiler v15 or newer
+#  endif
+#elif defined(__clang__) && !defined(__apple_build_version__)
+#  if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 3)
+#    error pybind11 requires clang 3.3 or newer
+#  endif
+#elif defined(__clang__)
+// Apple changes clang version macros to its Xcode version; the first Xcode release based on
+// (upstream) clang 3.3 was Xcode 5:
+#  if __clang_major__ < 5
+#    error pybind11 requires Xcode/clang 5.0 or newer
+#  endif
+#elif defined(__GNUG__)
+#  if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8)
+#    error pybind11 requires gcc 4.8 or newer
+#  endif
+#elif defined(_MSC_VER)
+// Pybind hits various compiler bugs in 2015u2 and earlier, and also makes use of some stl features
+// (e.g. std::negation) added in 2015u3:
+#  if _MSC_FULL_VER < 190024213
+#    error pybind11 requires MSVC 2015 update 3 or newer
+#  endif
+#endif
+
 #if !defined(PYBIND11_EXPORT)
 #  if defined(WIN32) || defined(_WIN32)
 #    define PYBIND11_EXPORT __declspec(dllexport)
@@ -651,8 +678,8 @@ struct error_scope {
 /// Dummy destructor wrapper that can be used to expose classes with a private destructor
 struct nodelete { template <typename T> void operator()(T*) { } };
 
-// overload_cast requires variable templates: C++14 or MSVC 2015 Update 2
-#if defined(PYBIND11_CPP14) || _MSC_FULL_VER >= 190023918
+// overload_cast requires variable templates: C++14 or MSVC
+#if defined(PYBIND11_CPP14) || defined(_MSC_VER)
 #define PYBIND11_OVERLOAD_CAST 1
 
 NAMESPACE_BEGIN(detail)

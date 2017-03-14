@@ -96,9 +96,9 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 
 ## Supported compilers
 
-1. Clang/LLVM (any non-ancient version with C++11 support)
+1. Clang/LLVM 3.3 or newer (for Apple Xcode's clang, this is 5.0.0 or newer)
 2. GCC 4.8 or newer
-3. Microsoft Visual Studio 2015 or newer
+3. Microsoft Visual Studio 2015 Update 3 or newer
 4. Intel C++ compiler 16 or newer (15 with a [workaround](https://github.com/pybind/pybind11/issues/276))
 5. Cygwin/GCC (tested on 2.5.1)
 
