@@ -57,6 +57,35 @@ def test_vectorize(capture):
             my_func(x:int=5, y:float=3, z:float=2)
             my_func(x:int=6, y:float=3, z:float=2)
         """
+        with capture:
+            a, b, c = np.array([[1, 2, 3], [4, 5, 6]], order='F'), np.array([[2], [3]]), 2
+            assert np.allclose(f(a, b, c), a * b * c)
+        assert capture == """
+            my_func(x:int=1, y:float=2, z:float=2)
+            my_func(x:int=2, y:float=2, z:float=2)
+            my_func(x:int=3, y:float=2, z:float=2)
+            my_func(x:int=4, y:float=3, z:float=2)
+            my_func(x:int=5, y:float=3, z:float=2)
+            my_func(x:int=6, y:float=3, z:float=2)
+        """
+        with capture:
+            a, b, c = np.array([[1, 2, 3], [4, 5, 6]])[::, ::2], np.array([[2], [3]]), 2
+            assert np.allclose(f(a, b, c), a * b * c)
+        assert capture == """
+            my_func(x:int=1, y:float=2, z:float=2)
+            my_func(x:int=3, y:float=2, z:float=2)
+            my_func(x:int=4, y:float=3, z:float=2)
+            my_func(x:int=6, y:float=3, z:float=2)
+        """
+        with capture:
+            a, b, c = np.array([[1, 2, 3], [4, 5, 6]], order='F')[::, ::2], np.array([[2], [3]]), 2
+            assert np.allclose(f(a, b, c), a * b * c)
+        assert capture == """
+            my_func(x:int=1, y:float=2, z:float=2)
+            my_func(x:int=3, y:float=2, z:float=2)
+            my_func(x:int=4, y:float=3, z:float=2)
+            my_func(x:int=6, y:float=3, z:float=2)
+        """
 
 
 def test_type_selection():
@@ -73,3 +102,32 @@ def test_docs(doc):
     assert doc(vectorized_func) == """
         vectorized_func(arg0: numpy.ndarray[int32], arg1: numpy.ndarray[float32], arg2: numpy.ndarray[float64]) -> object
     """  # noqa: E501 line too long
+
+
+def test_trivial_broadcasting():
+    from pybind11_tests import vectorized_is_trivial
+
+    assert vectorized_is_trivial(1, 2, 3)
+    assert vectorized_is_trivial(np.array(1), np.array(2), 3)
+    assert vectorized_is_trivial(np.array([1, 3]), np.array([2, 4]), 3)
+    assert vectorized_is_trivial(
+        np.array([[1, 3, 5], [7, 9, 11]]), np.array([[2, 4, 6], [8, 10, 12]]), 3)
+    assert not vectorized_is_trivial(
+        np.array([[1, 2, 3], [4, 5, 6]]), np.array([2, 3, 4]), 2)
+    assert not vectorized_is_trivial(
+        np.array([[1, 2, 3], [4, 5, 6]]), np.array([[2], [3]]), 2)
+    z1 = np.array([[1, 2, 3, 4], [5, 6, 7, 8]], dtype='int32')
+    z2 = np.array(z1, dtype='float32')
+    z3 = np.array(z1, dtype='float64')
+    assert vectorized_is_trivial(z1, z2, z3)
+    assert not vectorized_is_trivial(z1[::2, ::2], 1, 1)
+    assert vectorized_is_trivial(1, 1, z1[::2, ::2])
+    assert not vectorized_is_trivial(1, 1, z3[::2, ::2])
+    assert vectorized_is_trivial(z1, 1, z3[1::4, 1::4])
+
+    y1 = np.array(z1, order='F')
+    y2 = np.array(y1)
+    y3 = np.array(y1)
+    assert not vectorized_is_trivial(y1, y2, y3)
+    assert not vectorized_is_trivial(y1, z2, z3)
+    assert not vectorized_is_trivial(y1, 1, 1)
