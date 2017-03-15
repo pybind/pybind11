@@ -501,3 +501,14 @@ def test_single_char_arguments():
     with pytest.raises(ValueError) as excinfo:
         assert ord_wchar(u'aa')
     assert str(excinfo.value) == toolong_message
+
+
+def test_builtins_cast_return_none():
+    """Casters produced with PYBIND11_TYPE_CASTER() should convert nullptr to None"""
+    import pybind11_tests as m
+
+    assert m.return_none_string() is None
+    assert m.return_none_char() is None
+    assert m.return_none_bool() is None
+    assert m.return_none_int() is None
+    assert m.return_none_float() is None
