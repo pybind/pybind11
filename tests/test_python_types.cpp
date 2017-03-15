@@ -464,6 +464,12 @@ test_initializer python_types([](py::module &m) {
     m.def("ord_char16", [](char16_t c) -> uint16_t { return c; });
     m.def("ord_char32", [](char32_t c) -> uint32_t { return c; });
     m.def("ord_wchar", [](wchar_t c) -> int { return c; });
+
+    m.def("return_none_string", []() -> std::string * { return nullptr; });
+    m.def("return_none_char",   []() -> const char *  { return nullptr; });
+    m.def("return_none_bool",   []() -> bool *        { return nullptr; });
+    m.def("return_none_int",    []() -> int *         { return nullptr; });
+    m.def("return_none_float",  []() -> float *       { return nullptr; });
 });
 
 #if defined(_MSC_VER)

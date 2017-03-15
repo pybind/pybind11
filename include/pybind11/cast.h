@@ -469,6 +469,7 @@ public:
     public: \
         static PYBIND11_DESCR name() { return type_descr(py_name); } \
         static handle cast(const type *src, return_value_policy policy, handle parent) { \
+            if (!src) return none().release(); \
             return cast(*src, policy, parent); \
         } \
         operator type*() { return &value; } \
