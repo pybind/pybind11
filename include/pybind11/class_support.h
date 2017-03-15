@@ -57,6 +57,8 @@ inline PyTypeObject *make_static_property_type() {
     if (PyType_Ready(type) < 0)
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
 
+    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+
     return type;
 }
 
@@ -170,6 +172,8 @@ inline PyTypeObject* make_default_metaclass() {
     if (PyType_Ready(type) < 0)
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");
 
+    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+
     return type;
 }
 
@@ -269,6 +273,8 @@ inline PyObject *make_object_base_type(size_t instance_size) {
 
     if (PyType_Ready(type) < 0)
         pybind11_fail("PyType_Ready failed in make_object_base_type():" + error_string());
+
+    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
 
     assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
     return (PyObject *) heap_type;

@@ -52,3 +52,11 @@ def test_importing():
 
     assert OD is OrderedDict
     assert str(OD([(1, 'a'), (2, 'b')])) == "OrderedDict([(1, 'a'), (2, 'b')])"
+
+
+def test_pydoc():
+    """Pydoc needs to be able to provide help() for everything inside a pybind11 module"""
+    import pybind11_tests
+    import pydoc
+
+    assert pydoc.text.docmodule(pybind11_tests)
