@@ -38,4 +38,17 @@ test_initializer numpy_vectorize([](py::module &m) {
     m.def("selective_func", [](py::array_t<int, py::array::c_style>) { return "Int branch taken."; });
     m.def("selective_func", [](py::array_t<float, py::array::c_style>) { return "Float branch taken."; });
     m.def("selective_func", [](py::array_t<std::complex<float>, py::array::c_style>) { return "Complex float branch taken."; });
+
+
+    // Internal optimization test for whether the input is trivially broadcastable:
+    m.def("vectorized_is_trivial", [](
+                py::array_t<int, py::array::forcecast> arg1,
+                py::array_t<float, py::array::forcecast> arg2,
+                py::array_t<double, py::array::forcecast> arg3
+                ) {
+        size_t ndim;
+        std::vector<size_t> shape;
+        std::array<py::buffer_info, 3> buffers {{ arg1.request(), arg2.request(), arg3.request() }};
+        return py::detail::broadcast(buffers, ndim, shape);
+    });
 });

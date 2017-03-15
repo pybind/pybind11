@@ -1052,28 +1052,47 @@ private:
     std::array<common_iter, N> m_common_iterator;
 };
 
+// Populates the shape and number of dimensions for the set of buffers.  Returns true if the
+// broadcast is "trivial"--that is, has each buffer being either a singleton or a full-size,
+// C-contiguous storage buffer.
 template <size_t N>
-bool broadcast(const std::array<buffer_info, N>& buffers, size_t& ndim, std::vector<size_t>& shape) {
+bool broadcast(const std::array<buffer_info, N> &buffers, size_t &ndim, std::vector<size_t> &shape) {
     ndim = std::accumulate(buffers.begin(), buffers.end(), size_t(0), [](size_t res, const buffer_info& buf) {
         return std::max(res, buf.ndim);
     });
 
-    shape = std::vector<size_t>(ndim, 1);
+    shape.clear();
+    shape.resize(ndim, 1);
+
     bool trivial_broadcast = true;
     for (size_t i = 0; i < N; ++i) {
+        trivial_broadcast = trivial_broadcast && (buffers[i].size == 1 || buffers[i].ndim == ndim);
+        size_t expect_stride = buffers[i].itemsize;
         auto res_iter = shape.rbegin();
-        bool i_trivial_broadcast = (buffers[i].size == 1) || (buffers[i].ndim == ndim);
-        for (auto shape_iter = buffers[i].shape.rbegin();
-             shape_iter != buffers[i].shape.rend(); ++shape_iter, ++res_iter) {
+        auto stride_iter = buffers[i].strides.rbegin();
+        auto shape_iter = buffers[i].shape.rbegin();
+        while (shape_iter != buffers[i].shape.rend()) {
+            const auto &dim_size_in = *shape_iter;
+            auto &dim_size_out = *res_iter;
 
-            if (*res_iter == 1)
-                *res_iter = *shape_iter;
-            else if ((*shape_iter != 1) && (*res_iter != *shape_iter))
+            // Each input dimension can either be 1 or `n`, but `n` values must match across buffers
+            if (dim_size_out == 1)
+                dim_size_out = dim_size_in;
+            else if (dim_size_in != 1 && dim_size_in != dim_size_out)
                 pybind11_fail("pybind11::vectorize: incompatible size/dimension of inputs!");
 
-            i_trivial_broadcast = i_trivial_broadcast && (*res_iter == *shape_iter);
+            if (trivial_broadcast && buffers[i].size > 1) {
+                if (dim_size_in == dim_size_out && expect_stride == *stride_iter) {
+                    expect_stride *= dim_size_in;
+                    ++stride_iter;
+                } else {
+                    trivial_broadcast = false;
+                }
+            }
+
+            ++shape_iter;
+            ++res_iter;
         }
-        trivial_broadcast = trivial_broadcast && i_trivial_broadcast;
     }
     return trivial_broadcast;
 }
@@ -1081,18 +1100,17 @@ bool broadcast(const std::array<buffer_info, N>& buffers, size_t& ndim, std::vec
 template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {
     typename std::remove_reference<Func>::type f;
+    static constexpr size_t N = sizeof...(Args);
 
     template <typename T>
     explicit vectorize_helper(T&&f) : f(std::forward<T>(f)) { }
 
-    object operator()(array_t<Args, array::c_style | array::forcecast>... args) {
-        return run(args..., make_index_sequence<sizeof...(Args)>());
+    object operator()(array_t<Args, array::forcecast>... args) {
+        return run(args..., make_index_sequence<N>());
     }
 
-    template <size_t ... Index> object run(array_t<Args, array::c_style | array::forcecast>&... args, index_sequence<Index...> index) {
+    template <size_t ... Index> object run(array_t<Args, array::forcecast>&... args, index_sequence<Index...> index) {
         /* Request buffers from all parameters */
-        const size_t N = sizeof...(Args);
-
         std::array<buffer_info, N> buffers {{ args.request()... }};
 
         /* Determine dimensions parameters of output array */
@@ -1112,27 +1130,24 @@ struct vectorize_helper {
         }
 
         if (size == 1)
-            return cast(f(*((Args *) buffers[Index].ptr)...));
+            return cast(f(*reinterpret_cast<Args *>(buffers[Index].ptr)...));
 
-        array_t<Return> result(shape, strides);
+        array_t<Return, array::c_style> result(shape, strides);
         auto buf = result.request();
         auto output = (Return *) buf.ptr;
 
         if (trivial_broadcast) {
             /* Call the function */
-            for (size_t i = 0; i < size; ++i) {
-                output[i] = f((buffers[Index].size == 1
-                               ? *((Args *) buffers[Index].ptr)
-                               : ((Args *) buffers[Index].ptr)[i])...);
-            }
+            for (size_t i = 0; i < size; ++i)
+                output[i] = f((reinterpret_cast<Args *>(buffers[Index].ptr)[buffers[Index].size == 1 ? 0 : i])...);
         } else {
-            apply_broadcast<N, Index...>(buffers, buf, index);
+            apply_broadcast<Index...>(buffers, buf, index);
         }
 
         return result;
     }
 
-    template <size_t N, size_t... Index>
+    template <size_t... Index>
     void apply_broadcast(const std::array<buffer_info, N> &buffers,
                          buffer_info &output, index_sequence<Index...>) {
         using input_iterator = multi_array_iterator<N>;
