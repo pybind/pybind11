@@ -67,6 +67,44 @@ struct metaclass {
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
 
+/** \rst
+    A call policy which places one or more guard variables (``Ts...``) around the function call.
+
+    For example, this definition:
+
+    .. code-block:: cpp
+
+        m.def("foo", foo, py::call_guard<T>());
+
+    is equivalent to the following pseudocode:
+
+    .. code-block:: cpp
+
+        m.def("foo", [](args...) {
+            T scope_guard;
+            return foo(args...); // forwarded arguments
+        });
+ \endrst */
+template <typename... Ts> struct call_guard;
+
+template <> struct call_guard<> { using type = detail::void_type; };
+
+template <typename T>
+struct call_guard<T> {
+    static_assert(std::is_default_constructible<T>::value,
+                  "The guard type must be default constructible");
+
+    using type = T;
+};
+
+template <typename T, typename... Ts>
+struct call_guard<T, Ts...> {
+    struct type {
+        T guard{}; // Compose multiple guard types with left-to-right default-constructor order
+        typename call_guard<Ts...>::type next{};
+    };
+};
+
 /// @} annotations
 
 NAMESPACE_BEGIN(detail)
@@ -374,6 +412,9 @@ struct process_attribute<metaclass> : process_attribute_default<metaclass> {
 template <>
 struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
 
+template <typename... Ts>
+struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_guard<Ts...>> { };
+
 /***
  * Process a keep_alive call policy -- invokes keep_alive_impl during the
  * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
@@ -409,6 +450,13 @@ template <typename... Args> struct process_attributes {
         ignore_unused(unused);
     }
 };
+
+template <typename T>
+using is_call_guard = is_instantiation<call_guard, T>;
+
+/// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
+template <typename... Extra>
+using extract_guard_t = typename first_of_t<is_call_guard, call_guard<>, Extra...>::type;
 
 /// Check the number of named arguments at compile time
 template <typename... Extra,

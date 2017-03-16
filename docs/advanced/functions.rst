@@ -162,14 +162,16 @@ Additional call policies
 ========================
 
 In addition to the above return value policies, further *call policies* can be
-specified to indicate dependencies between parameters. In general, call policies
-are required when the C++ object is any kind of container and another object is being
-added to the container.
+specified to indicate dependencies between parameters or ensure a certain state
+for the function call.
 
-There is currently just
-one policy named ``keep_alive<Nurse, Patient>``, which indicates that the
-argument with index ``Patient`` should be kept alive at least until the
-argument with index ``Nurse`` is freed by the garbage collector. Argument
+Keep alive
+----------
+
+In general, this policy is required when the C++ object is any kind of container
+and another object is being added to the container. ``keep_alive<Nurse, Patient>``
+indicates that the argument with index ``Patient`` should be kept alive at least
+until the argument with index ``Nurse`` is freed by the garbage collector. Argument
 indices start at one, while zero refers to the return value. For methods, index
 ``1`` refers to the implicit ``this`` pointer, while regular arguments begin at
 index ``2``. Arbitrarily many call policies can be specified. When a ``Nurse``
@@ -194,10 +196,36 @@ container:
     Patient != 0) and ``with_custodian_and_ward_postcall`` (if Nurse/Patient ==
     0) policies from Boost.Python.
 
+Call guard
+----------
+
+The ``call_guard<T>`` policy allows any scope guard type ``T`` to be placed
+around the function call. For example, this definition:
+
+.. code-block:: cpp
+
+    m.def("foo", foo, py::call_guard<T>());
+
+is equivalent to the following pseudocode:
+
+.. code-block:: cpp
+
+    m.def("foo", [](args...) {
+        T scope_guard;
+        return foo(args...); // forwarded arguments
+    });
+
+The only requirement is that ``T`` is default-constructible, but otherwise any
+scope guard will work. This is very useful in combination with `gil_scoped_release`.
+See :ref:`gil`.
+
+Multiple guards can also be specified as ``py::call_guard<T1, T2, T3...>``. The
+constructor order is left to right and destruction happens in reverse.
+
 .. seealso::
 
-    The file :file:`tests/test_keep_alive.cpp` contains a complete example
-    that demonstrates using :class:`keep_alive` in more detail.
+    The file :file:`tests/test_call_policies.cpp` contains a complete example
+    that demonstrates using `keep_alive` and `call_guard` in more detail.
 
 .. _python_objects_as_args:
 

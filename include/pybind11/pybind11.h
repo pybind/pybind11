@@ -143,8 +143,11 @@ protected:
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
             const auto policy = detail::return_value_policy_override<Return>::policy(call.func.policy);
 
+            /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
+            using Guard = detail::extract_guard_t<Extra...>;
+
             /* Perform the function call */
-            handle result = cast_out::cast(args_converter.template call<Return>(cap->f),
+            handle result = cast_out::cast(args_converter.template call<Return, Guard>(cap->f),
                                            policy, call.parent);
 
             /* Invoke call policy post-call hook */
