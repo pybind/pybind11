@@ -31,18 +31,27 @@ struct MIType : Base12 {
 };
 
 test_initializer multiple_inheritance([](py::module &m) {
-    py::class_<Base1>(m, "Base1")
-        .def(py::init<int>())
-        .def("foo", &Base1::foo);
+    py::class_<Base1> b1(m, "Base1");
+    b1.def(py::init<int>())
+      .def("foo", &Base1::foo);
 
-    py::class_<Base2>(m, "Base2")
-        .def(py::init<int>())
-        .def("bar", &Base2::bar);
+    py::class_<Base2> b2(m, "Base2");
+    b2.def(py::init<int>())
+      .def("bar", &Base2::bar);
 
     py::class_<Base12, Base1, Base2>(m, "Base12");
 
     py::class_<MIType, Base12>(m, "MIType")
         .def(py::init<int, int>());
+
+    // Uncommenting this should result in a compile time failure (MI can only be specified via
+    // template parameters because pybind has to know the types involved; see discussion in #742 for
+    // details).
+//    struct Base12v2 : Base1, Base2 {
+//        Base12v2(int i, int j) : Base1(i), Base2(j) { }
+//    };
+//    py::class_<Base12v2>(m, "Base12v2", b1, b2)
+//        .def(py::init<int, int>());
 });
 
 /* Test the case where not all base classes are specified,

@@ -885,11 +885,21 @@ public:
 
     template <typename... Extra>
     class_(handle scope, const char *name, const Extra &... extra) {
-        detail::type_record record;
+        using namespace detail;
+
+        // MI can only be specified via class_ template options, not constructor parameters
+        static_assert(
+            none_of<is_pyobject<Extra>...>::value || // no base class arguments, or:
+            (   constexpr_sum(is_pyobject<Extra>::value...) == 1 && // Exactly one base
+                constexpr_sum(is_base<options>::value...)   == 0 && // no template option bases
+                none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
+            "Error: multiple inheritance bases must be specified via class_ template options");
+
+        type_record record;
         record.scope = scope;
         record.name = name;
         record.type = &typeid(type);
-        record.type_size = sizeof(detail::conditional_t<has_alias, type_alias, type>);
+        record.type_size = sizeof(conditional_t<has_alias, type_alias, type>);
         record.instance_size = sizeof(instance_type);
         record.init_holder = init_holder;
         record.dealloc = dealloc;
@@ -900,12 +910,12 @@ public:
         (void) unused;
 
         /* Process optional arguments, if any */
-        detail::process_attributes<Extra...>::init(extra..., &record);
+        process_attributes<Extra...>::init(extra..., &record);
 
-        detail::generic_type::initialize(record);
+        generic_type::initialize(record);
 
         if (has_alias) {
-            auto &instances = pybind11::detail::get_internals().registered_types_cpp;
+            auto &instances = get_internals().registered_types_cpp;
             instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
         }
     }

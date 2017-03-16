@@ -333,7 +333,7 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
     }
 };
 
-/// Process a parent class attribute
+/// Process a parent class attribute.  Single inheritance only (class_ itself already guarantees that)
 template <typename T>
 struct process_attribute<T, enable_if_t<is_pyobject<T>::value>> : process_attribute_default<handle> {
     static void init(const handle &h, type_record *r) { r->bases.append(h); }
