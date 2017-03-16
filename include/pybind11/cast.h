@@ -1383,14 +1383,14 @@ public:
         return load_impl_sequence(call, indices{});
     }
 
-    template <typename Return, typename Func>
+    template <typename Return, typename Guard, typename Func>
     enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) {
-        return call_impl<Return>(std::forward<Func>(f), indices{});
+        return call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
     }
 
-    template <typename Return, typename Func>
+    template <typename Return, typename Guard, typename Func>
     enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) {
-        call_impl<Return>(std::forward<Func>(f), indices{});
+        call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
         return void_type();
     }
 
@@ -1406,8 +1406,8 @@ private:
         return true;
     }
 
-    template <typename Return, typename Func, size_t... Is>
-    Return call_impl(Func &&f, index_sequence<Is...>) {
+    template <typename Return, typename Func, size_t... Is, typename Guard>
+    Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) {
         return std::forward<Func>(f)(cast_op<Args>(std::get<Is>(value))...);
     }
 

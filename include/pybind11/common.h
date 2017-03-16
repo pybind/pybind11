@@ -536,9 +536,15 @@ using is_template_base_of = decltype(is_template_base_of_impl<Base>::check((remo
 struct is_template_base_of : decltype(is_template_base_of_impl<Base>::check((remove_cv_t<T>*)nullptr)) { };
 #endif
 
+/// Check if T is an instantiation of the template `Class`. For example:
+/// `is_instantiation<shared_ptr, T>` is true if `T == shared_ptr<U>` where U can be anything.
+template <template<typename...> class Class, typename T>
+struct is_instantiation : std::false_type { };
+template <template<typename...> class Class, typename... Us>
+struct is_instantiation<Class, Class<Us...>> : std::true_type { };
+
 /// Check if T is std::shared_ptr<U> where U can be anything
-template <typename T> struct is_shared_ptr : std::false_type { };
-template <typename U> struct is_shared_ptr<std::shared_ptr<U>> : std::true_type { };
+template <typename T> using is_shared_ptr = is_instantiation<std::shared_ptr, T>;
 
 /// Ignore that a variable is unused in compiler warnings
 inline void ignore_unused(const int *) { }

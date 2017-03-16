@@ -15,6 +15,7 @@ T2>, myFunc)``. In this case, the preprocessor assumes that the comma indicates
 the beginning of the next parameter. Use a ``typedef`` to bind the template to
 another name and use it in the macro to avoid this problem.
 
+.. _gil:
 
 Global Interpreter Lock (GIL)
 =============================
@@ -67,6 +68,13 @@ could be realized as follows (important changes highlighted):
 
         return m.ptr();
     }
+
+The ``call_go`` wrapper can also be simplified using the `call_guard` policy
+(see :ref:`call_policies`) which yields the same result:
+
+.. code-block:: cpp
+
+    m.def("call_go", &call_go, py::call_guard<py::gil_scoped_release>());
 
 
 Binding sequence data types, iterators, the slicing protocol, etc.

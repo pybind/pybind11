@@ -95,3 +95,17 @@ def test_return_none(capture):
         del p
         pytest.gc_collect()
     assert capture == "Releasing parent."
+
+
+def test_call_guard():
+    from pybind11_tests import call_policies
+
+    assert call_policies.unguarded_call() == "unguarded"
+    assert call_policies.guarded_call() == "guarded"
+
+    assert call_policies.multiple_guards_correct_order() == "guarded & guarded"
+    assert call_policies.multiple_guards_wrong_order() == "unguarded & guarded"
+
+    if hasattr(call_policies, "with_gil"):
+        assert call_policies.with_gil() == "GIL held"
+        assert call_policies.without_gil() == "GIL released"
