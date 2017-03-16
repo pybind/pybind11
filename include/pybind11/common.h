@@ -396,7 +396,10 @@ template<size_t ...S> struct make_index_sequence_impl <0, S...> { typedef index_
 template<size_t N> using make_index_sequence = typename make_index_sequence_impl<N>::type;
 #endif
 
-#if defined(PYBIND11_CPP17) || defined(_MSC_VER)
+#if defined(PYBIND11_CPP17)
+using std::bool_constant;
+using std::negation;
+#elif defined(_MSC_VER) && (_MSC_FULL_VER >= 190024123)
 using std::bool_constant;
 using std::negation;
 #else
