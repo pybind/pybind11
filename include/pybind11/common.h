@@ -396,7 +396,7 @@ template<size_t ...S> struct make_index_sequence_impl <0, S...> { typedef index_
 template<size_t N> using make_index_sequence = typename make_index_sequence_impl<N>::type;
 #endif
 
-#if defined(PYBIND11_CPP17) || defined(_MSC_VER)
+#if (defined(PYBIND11_CPP17) && (defined(__cpp_lib_logical_traits) || defined(__cpp_lib_experimental_logical_traits))) || defined(_MSC_VER)
 using std::bool_constant;
 using std::negation;
 #else
