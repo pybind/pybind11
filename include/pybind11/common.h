@@ -397,7 +397,7 @@ template<size_t N> using make_index_sequence = typename make_index_sequence_impl
 #endif
 
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
-template <class T> using negation = bool_constant<!T::value>;
+template <typename T> struct negation : bool_constant<!T::value> { };
 
 /// Compile-time all/any/none of that check the boolean value of all template types
 #ifdef PYBIND11_CPP17
