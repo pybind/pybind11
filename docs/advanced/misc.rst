@@ -171,6 +171,26 @@ would be then able to access the data behind the same pointer.
 .. [#f6] https://docs.python.org/3/extending/extending.html#using-capsules
 
 
+Module Destructors
+==================
+
+pybind11 does not explicitly provide a mechanism that can be called at module
+destruction time (and most users will not need this functionality). However,
+if you do happen to need the ability to do something when a module is
+destroyed, you can use a Python capsule to accomplish this:
+
+.. code-block:: cpp
+
+    // the capsule needs something to reference
+    static int unused;
+    
+    py::capsule cleanup(&unused, [](PyObject * capsule) {
+        // do cleanup here -- this function is called with the GIL held
+    });
+    
+    m.add_object("_cleanup", cleanup);
+
+
 Generating documentation using Sphinx
 =====================================
 
