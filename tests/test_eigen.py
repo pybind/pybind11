@@ -604,3 +604,13 @@ def test_sparse_signature(doc):
     assert doc(sparse_copy_c) == """
         sparse_copy_c(arg0: scipy.sparse.csc_matrix[float32]) -> scipy.sparse.csc_matrix[float32]
     """  # noqa: E501 line too long
+
+
+def test_issue738():
+    from pybind11_tests import iss738_f1, iss738_f2
+
+    assert np.all(iss738_f1(np.array([[1., 2, 3]])) == np.array([[1., 102, 203]]))
+    assert np.all(iss738_f1(np.array([[1.], [2], [3]])) == np.array([[1.], [12], [23]]))
+
+    assert np.all(iss738_f2(np.array([[1., 2, 3]])) == np.array([[1., 102, 203]]))
+    assert np.all(iss738_f2(np.array([[1.], [2], [3]])) == np.array([[1.], [12], [23]]))
