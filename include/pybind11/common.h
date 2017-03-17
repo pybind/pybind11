@@ -401,7 +401,7 @@ template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T> struct negation : bool_constant<!T::value> { };
 
 /// Compile-time all/any/none of that check the boolean value of all template types
-#ifdef PYBIND11_CPP17
+#ifdef __cpp_fold_expressions
 template <class... Ts> using all_of = bool_constant<(Ts::value && ...)>;
 template <class... Ts> using any_of = bool_constant<(Ts::value || ...)>;
 #elif !defined(_MSC_VER)
@@ -444,9 +444,13 @@ struct void_type { };
 template <typename...> struct type_list { };
 
 /// Compile-time integer sum
+#ifdef __cpp_fold_expressions
+template <typename... Ts> constexpr size_t constexpr_sum(Ts... ns) { return (0 + ... + size_t{ns}); }
+#else
 constexpr size_t constexpr_sum() { return 0; }
 template <typename T, typename... Ts>
 constexpr size_t constexpr_sum(T n, Ts... ns) { return size_t{n} + constexpr_sum(ns...); }
+#endif
 
 NAMESPACE_BEGIN(constexpr_impl)
 /// Implementation details for constexpr functions
