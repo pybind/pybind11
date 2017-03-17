@@ -79,11 +79,17 @@ template <bool EigenRowMajor> struct EigenConformable {
                EigenRowMajor ? cstride : rstride /* inner stride */)
         {}
     // Vector type:
-    EigenConformable(EigenIndex r, EigenIndex c, EigenIndex stride) : EigenConformable(r, c, r == 1 ? c*stride : stride, c == 1 ? r : r*stride) {}
+    EigenConformable(EigenIndex r, EigenIndex c, EigenIndex stride)
+        : EigenConformable(r, c, r == 1 ? c*stride : stride, c == 1 ? r : r*stride) {}
+
     template <typename props> bool stride_compatible() const {
+        // To have compatible strides, we need (on both dimensions) one of fully dynamic strides,
+        // matching strides, or a dimension size of 1 (in which case the stride value is irrelevant)
         return
-            (props::inner_stride == Eigen::Dynamic || props::inner_stride == stride.inner()) &&
-            (props::outer_stride == Eigen::Dynamic || props::outer_stride == stride.outer());
+            (props::inner_stride == Eigen::Dynamic || props::inner_stride == stride.inner() ||
+                (EigenRowMajor ? cols : rows) == 1) &&
+            (props::outer_stride == Eigen::Dynamic || props::outer_stride == stride.outer() ||
+                (EigenRowMajor ? rows : cols) == 1);
     }
     operator bool() const { return conformable; }
 };

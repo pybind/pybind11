@@ -50,6 +50,16 @@ void reset_refs() {
 // Returns element 2,1 from a matrix (used to test copy/nocopy)
 double get_elem(Eigen::Ref<const Eigen::MatrixXd> m) { return m(2, 1); };
 
+
+// Returns a matrix with 10*r + 100*c added to each matrix element (to help test that the matrix
+// reference is referencing rows/columns correctly).
+template <typename MatrixArgType> Eigen::MatrixXd adjust_matrix(MatrixArgType m) {
+    Eigen::MatrixXd ret(m);
+    for (int c = 0; c < m.cols(); c++) for (int r = 0; r < m.rows(); r++)
+        ret(r, c) += 10*r + 100*c;
+    return ret;
+}
+
 test_initializer eigen([](py::module &m) {
     typedef Eigen::Matrix<float, 5, 6, Eigen::RowMajor> FixedMatrixR;
     typedef Eigen::Matrix<float, 5, 6> FixedMatrixC;
@@ -261,4 +271,10 @@ test_initializer eigen([](py::module &m) {
     // Also test a row-major-only no-copy const ref:
     m.def("get_elem_rm_nocopy", [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long { return m(2, 1); },
             py::arg().noconvert());
+
+    // Issue #738: 1xN or Nx1 2D matrices were neither accepted nor properly copied with an
+    // incompatible stride value on the length-1 dimension--but that should be allowed (without
+    // requiring a copy!) because the stride value can be safely ignored on a size-1 dimension.
+    m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg().noconvert());
+    m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg().noconvert());
 });
