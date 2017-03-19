@@ -122,7 +122,7 @@ protected:
         >;
 
         static_assert(detail::expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
-                      "The number of named arguments does not match the function signature");
+                      "The number of argument annotations does not match the number of function arguments");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](detail::function_call &call) -> handle {
