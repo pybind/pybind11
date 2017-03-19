@@ -336,7 +336,7 @@ where ``N`` gives the required dimensionality of the array:
             for (size_t j = 0; j < r.shape(1); j++)
                 for (size_t k = 0; k < r.shape(2); k++)
                     r(i, j, k) += 1.0;
-    });
+    }, py::arg().noconvert());
 
 To obtain the proxy from an ``array`` object, you must specify both the data
 type and number of dimensions as a template argument, such as ``auto r =
@@ -346,3 +346,8 @@ Note that the returned proxy object directly references the array's data,
 shape, and strides: you must take care to ensure that the referenced array
 object is not destroyed or reshaped for the duration of the returned object,
 typically by limiting the scope of the returned instance.
+
+.. seealso::
+
+    The file :file:`tests/test_numpy_array.cpp` contains additional examples
+    demonstrating the use of this feature.

@@ -184,4 +184,43 @@ test_initializer numpy_array([](py::module &m) {
     sm.def("issue685", [](std::string) { return "string"; });
     sm.def("issue685", [](py::array) { return "array"; });
     sm.def("issue685", [](py::object) { return "other"; });
+
+    sm.def("proxy_add2", [](py::array_t<double> a, double v) {
+        auto r = a.unchecked<2>();
+        for (size_t i = 0; i < r.shape(0); i++)
+            for (size_t j = 0; j < r.shape(1); j++)
+                r(i, j) += v;
+    }, py::arg().noconvert(), py::arg());
+    sm.def("proxy_init3", [](double start) {
+        py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
+        auto r = a.unchecked<3>();
+        for (size_t i = 0; i < r.shape(0); i++)
+        for (size_t j = 0; j < r.shape(1); j++)
+        for (size_t k = 0; k < r.shape(2); k++)
+            r(i, j, k) = start++;
+        return a;
+    });
+    sm.def("proxy_init3F", [](double start) {
+        py::array_t<double, py::array::f_style> a({ 3, 3, 3 });
+        auto r = a.unchecked<3>();
+        for (size_t k = 0; k < r.shape(2); k++)
+        for (size_t j = 0; j < r.shape(1); j++)
+        for (size_t i = 0; i < r.shape(0); i++)
+            r(i, j, k) = start++;
+        return a;
+    });
+    sm.def("proxy_squared_L2_norm", [](py::array_t<double> a) {
+        auto r = a.unchecked_readonly<1>();
+        double sumsq = 0;
+        for (size_t i = 0; i < r.shape(0); i++)
+            sumsq += r[i] * r(i); // Either notation works for a 1D array
+        return sumsq;
+    });
+    sm.def("proxy_squared_L2_norm_v2", [](const py::array_t<double> &a) {
+        auto r = a.unchecked<1>(); // equivalent to unchecked_readonly when `a` is const
+        double sumsq = 0;
+        for (size_t i = 0; i < r.shape(0); i++)
+            sumsq += r[i] * r(i); // Either notation works for a 1D array
+        return sumsq;
+    });
 });
