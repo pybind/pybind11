@@ -305,3 +305,44 @@ simply using ``vectorize``).
 
     The file :file:`tests/test_numpy_vectorize.cpp` contains a complete
     example that demonstrates using :func:`vectorize` in more detail.
+
+Direct access
+=============
+
+For performance reasons, particularly when dealing with very large arrays, it
+is often desirable to directly access array elements without internal checking
+of dimensions and bounds on every access when indices are known to be already
+valid.  To avoid such checks, the ``array`` class and ``array_t<T>`` template
+class offer an unchecked proxy object that can be used for this unchecked
+access through the ``unchecked<N>`` and ``unchecked_readonly<N>`` methods,
+where ``N`` gives the required dimensionality of the array:
+
+.. code-block:: cpp
+
+    m.def("sum_3d", [](py::array_t<double> x) {
+        auto r = x.unchecked_readonly<3>(); // x must have ndim = 3; can be non-writeable
+        double sum = 0;
+        for (size_t i = 0; i < r.shape(0); i++)
+            for (size_t j = 0; j < r.shape(1); j++)
+                for (size_t k = 0; k < r.shape(2); k++)
+                    sum += r(i, j, k);
+        return sum;
+    });
+    m.def("increment_3d", [](py::array_t<double> x) {
+        auto r = x.unchecked<3>(); // Will throw if ndim != 3 or flags.writeable is false
+        if (x.ndim() != 3)
+            throw std::runtime_error("error: 3D array required");
+        for (size_t i = 0; i < r.shape(0); i++)
+            for (size_t j = 0; j < r.shape(1); j++)
+                for (size_t k = 0; k < r.shape(2); k++)
+                    r(i, j, k) += 1.0;
+    });
+
+To obtain the proxy from an ``array`` object, you must specify both the data
+type and number of dimensions as a template argument, such as ``auto r =
+myarray.unchecked<float, 2>()``.
+
+Note that the returned proxy object directly references the array's data,
+shape, and strides: you must take care to ensure that the referenced array
+object is not destroyed or reshaped for the duration of the returned object,
+typically by limiting the scope of the returned instance.

@@ -232,6 +232,12 @@ template <typename T> using is_pod_struct = all_of<
     satisfies_none_of<T, std::is_reference, std::is_array, is_std_array, std::is_arithmetic, is_complex, std::is_enum>
 >;
 
+template <size_t Dim = 0, typename Strides> size_t byte_offset_unsafe(const Strides &) { return 0; }
+template <size_t Dim = 0, typename Strides, typename... Ix>
+size_t byte_offset_unsafe(const Strides &strides, size_t i, Ix... index) {
+    return i * strides[Dim] + byte_offset_unsafe<Dim + 1>(strides, index...);
+}
+
 NAMESPACE_END(detail)
 
 class dtype : public object {
@@ -326,6 +332,64 @@ private:
         }
         return dtype(names, formats, offsets, itemsize);
     }
+};
+
+/** Class provide unsafe, unchecked const access to array data.  This is constructed through the
+ * `unchecked<T, N>()` method of `array` or the `unchecked<N>()` method of `array_t<T>`.
+ */
+template <typename T, size_t Dims>
+class unchecked_const_reference {
+protected:
+    const unsigned char *data_;
+    // Storing the shape & strides in local variables (i.e. these arrays) allows the compiler to
+    // make large performance gains on big, nested loops.
+    std::array<size_t, Dims> shape_, strides_;
+
+    friend class array;
+    unchecked_const_reference(const void *data, const size_t *shape, const size_t *strides)
+    : data_{reinterpret_cast<const unsigned char *>(data)} {
+        for (size_t i = 0; i < Dims; i++) {
+            shape_[i] = shape[i];
+            strides_[i] = strides[i];
+        }
+    }
+
+public:
+    /** Unchecked const reference access to data at the given indices.  Omiting trailing indices
+     * is equivalent to specifying them as 0.
+     */
+    template <typename... Ix> const T& operator()(Ix... index) const {
+        static_assert(sizeof...(Ix) <= Dims, "Invalid number of indices for unchecked array reference");
+        return *reinterpret_cast<const T *>(data_ + detail::byte_offset_unsafe(strides_, size_t{index}...));
+    }
+    /** Unchecked const reference access to data; this operator only participates if the reference
+     * is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
+     */
+    template <typename = detail::enable_if_t<Dims == 1>>
+    const T &operator[](size_t index) const { return operator()(index); }
+
+    /// Returns the shape (i.e. size) of dimension `dim`
+    size_t shape(size_t dim) const { return shape_[dim]; }
+
+    /// Returns the number of dimensions of the array
+    constexpr static size_t ndim() { return Dims; }
+};
+
+template <typename T, size_t Dims>
+class unchecked_reference : public unchecked_const_reference<T, Dims> {
+    friend class array;
+    using unchecked_const_reference<T, Dims>::unchecked_const_reference;
+public:
+    /// Mutable, unchecked access to data at the given indices.
+    template <typename... Ix> T& operator()(Ix... index) {
+        static_assert(sizeof...(Ix) == Dims, "Invalid number of indices for unchecked array reference");
+        return const_cast<T &>(unchecked_const_reference<T, Dims>::operator()(index...));
+    }
+    /** Mutable, unchecked access data at the given index; this operator only participates if the
+     * reference is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
+     */
+    template <typename = detail::enable_if_t<Dims == 1>>
+    T &operator[](size_t index) { return operator()(index); }
 };
 
 class array : public buffer {
@@ -500,6 +564,36 @@ public:
         return offset_at(index...) / itemsize();
     }
 
+    /** Returns a proxy object that provides access to the array's data without bounds or
+     * dimensionality checking.  Will throw if the array is missing the `writeable` flag.  Use with
+     * care: the array must not be destroyed or reshaped for the duration of the returned object,
+     * and the caller must take care not to access invalid dimensions or dimension indices.
+     */
+    template <typename T, size_t Dims> unchecked_reference<T, Dims> unchecked() {
+        if (ndim() != Dims)
+            throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
+                    "; expected " + std::to_string(Dims));
+        return unchecked_reference<T, Dims>(mutable_data(), shape(), strides());
+    }
+
+    /** Returns a proxy object that provides const access to the array's data without bounds or
+     * dimensionality checking.  Unlike `unchecked()`, this does not require that the underlying
+     * array have the `writable` flag.  Use with care: the array must not be destroyed or reshaped
+     * for the duration of the returned object, and the caller must take care not to access invalid
+     * dimensions or dimension indices.
+     */
+    template <typename T, size_t Dims> unchecked_const_reference<T, Dims> unchecked_readonly() const {
+        if (ndim() != Dims)
+            throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
+                    "; expected " + std::to_string(Dims));
+        return unchecked_const_reference<T, Dims>(data(), shape(), strides());
+    }
+
+    /// Equivalent to `unchecked_readonly()` (for `const array_t<T>` object)
+    template <typename T, size_t Dims> unchecked_const_reference<T, Dims> unchecked() const {
+        return unchecked_readonly<T, Dims>();
+    }
+
     /// Return a new view with all of the dimensions of length 1 removed
     array squeeze() {
         auto& api = detail::npy_api::get();
@@ -525,14 +619,8 @@ protected:
 
     template<typename... Ix> size_t byte_offset(Ix... index) const {
         check_dimensions(index...);
-        return byte_offset_unsafe(index...);
+        return detail::byte_offset_unsafe(strides(), size_t{index}...);
     }
-
-    template<size_t dim = 0, typename... Ix> size_t byte_offset_unsafe(size_t i, Ix... index) const {
-        return i * strides()[dim] + byte_offset_unsafe<dim + 1>(index...);
-    }
-
-    template<size_t dim = 0> size_t byte_offset_unsafe() const { return 0; }
 
     void check_writeable() const {
         if (!writeable())
@@ -635,6 +723,30 @@ public:
         if (sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(size_t(index)...) / itemsize());
+    }
+
+    /** Returns a proxy object that provides access to the array's data without bounds or
+     * dimensionality checking.  Will throw if the array is missing the `writeable` flag.  Use with
+     * care: the array must not be destroyed or reshaped for the duration of the returned object,
+     * and the caller must take care not to access invalid dimensions or dimension indices.
+     */
+    template <size_t Dims> unchecked_reference<T, Dims> unchecked() {
+        return array::unchecked<T, Dims>();
+    }
+
+    /** Returns a proxy object that provides const access to the array's data without bounds or
+     * dimensionality checking.  Unlike `unchecked()`, this does not require that the underlying
+     * array have the `writable` flag.  Use with care: the array must not be destroyed or reshaped
+     * for the duration of the returned object, and the caller must take care not to access invalid
+     * dimensions or dimension indices.
+     */
+    template <size_t Dims> unchecked_const_reference<T, Dims> unchecked_readonly() const {
+        return array::unchecked_readonly<T, Dims>();
+    }
+
+    /// Equivalent to `unchecked_readonly()` (for `const array_t<T>` object)
+    template <size_t Dims> unchecked_const_reference<T, Dims> unchecked() const {
+        return unchecked_readonly<Dims>();
     }
 
     /// Ensure that the argument is a NumPy array of the correct dtype (and if not, try to convert
