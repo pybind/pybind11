@@ -339,3 +339,23 @@ def test_greedy_string_overload():  # issue 685
     assert issue685("abc") == "string"
     assert issue685(np.array([97, 98, 99], dtype='b')) == "array"
     assert issue685(123) == "other"
+
+
+def test_array_unchecked(msg):
+    from pybind11_tests.array import proxy_add2, proxy_init3F, proxy_init3, proxy_squared_L2_norm
+
+    z1 = np.array([[1, 2], [3, 4]], dtype='float64')
+    proxy_add2(z1, 10)
+    assert np.all(z1 == [[11, 12], [13, 14]])
+
+    with pytest.raises(ValueError) as excinfo:
+        proxy_add2(np.array([1., 2, 3]), 5.0)
+    assert msg(excinfo.value) == "array has incorrect number of dimensions: 1; expected 2"
+
+    expect_c = np.ndarray(shape=(3, 3, 3), buffer=np.array(range(3, 30)), dtype='int')
+    assert np.all(proxy_init3(3.0) == expect_c)
+    expect_f = np.transpose(expect_c)
+    assert np.all(proxy_init3F(3.0) == expect_f)
+
+    assert proxy_squared_L2_norm(np.array(range(6))) == 55
+    assert proxy_squared_L2_norm(np.array(range(6), dtype="float64")) == 55

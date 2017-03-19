@@ -305,3 +305,48 @@ simply using ``vectorize``).
 
     The file :file:`tests/test_numpy_vectorize.cpp` contains a complete
     example that demonstrates using :func:`vectorize` in more detail.
+
+Direct access
+=============
+
+For performance reasons, particularly when dealing with very large arrays, it
+is often desirable to directly access array elements without internal checking
+of dimensions and bounds on every access when indices are known to be already
+valid.  To avoid such checks, the ``array`` class and ``array_t<T>`` template
+class offer an unchecked proxy object that can be used for this unchecked
+access through the ``unchecked<N>`` and ``mutable_unchecked<N>`` methods,
+where ``N`` gives the required dimensionality of the array:
+
+.. code-block:: cpp
+
+    m.def("sum_3d", [](py::array_t<double> x) {
+        auto r = x.unchecked<3>(); // x must have ndim = 3; can be non-writeable
+        double sum = 0;
+        for (size_t i = 0; i < r.shape(0); i++)
+            for (size_t j = 0; j < r.shape(1); j++)
+                for (size_t k = 0; k < r.shape(2); k++)
+                    sum += r(i, j, k);
+        return sum;
+    });
+    m.def("increment_3d", [](py::array_t<double> x) {
+        auto r = x.mutable_unchecked<3>(); // Will throw if ndim != 3 or flags.writeable is false
+        for (size_t i = 0; i < r.shape(0); i++)
+            for (size_t j = 0; j < r.shape(1); j++)
+                for (size_t k = 0; k < r.shape(2); k++)
+                    r(i, j, k) += 1.0;
+    }, py::arg().noconvert());
+
+To obtain the proxy from an ``array`` object, you must specify both the data
+type and number of dimensions as template arguments, such as ``auto r =
+myarray.mutable_unchecked<float, 2>()``.
+
+Note that the returned proxy object directly references the array's data, and
+only reads its shape, strides, and writeable flag when constructed.  You must
+take care to ensure that the referenced array is not destroyed or reshaped for
+the duration of the returned object, typically by limiting the scope of the
+returned instance.
+
+.. seealso::
+
+    The file :file:`tests/test_numpy_array.cpp` contains additional examples
+    demonstrating the use of this feature.
