@@ -35,6 +35,9 @@
 static_assert(sizeof(size_t) == sizeof(Py_intptr_t), "size_t != Py_intptr_t");
 
 NAMESPACE_BEGIN(pybind11)
+
+class array; // Forward declaration
+
 NAMESPACE_BEGIN(detail)
 template <typename type, typename SFINAE = void> struct npy_format_descriptor;
 
@@ -238,6 +241,71 @@ size_t byte_offset_unsafe(const Strides &strides, size_t i, Ix... index) {
     return i * strides[Dim] + byte_offset_unsafe<Dim + 1>(strides, index...);
 }
 
+/** Proxy class providing unsafe, unchecked const access to array data.  This is constructed through
+ * the `unchecked<T, N>()` method of `array` or the `unchecked<N>()` method of `array_t<T>`.
+ */
+template <typename T, size_t Dims>
+class unchecked_const_reference {
+protected:
+    const unsigned char *data_;
+    // Storing the shape & strides in local variables (i.e. these arrays) allows the compiler to
+    // make large performance gains on big, nested loops.
+    std::array<size_t, Dims> shape_, strides_;
+
+    friend class pybind11::array;
+    unchecked_const_reference(const void *data, const size_t *shape, const size_t *strides)
+    : data_{reinterpret_cast<const unsigned char *>(data)} {
+        for (size_t i = 0; i < Dims; i++) {
+            shape_[i] = shape[i];
+            strides_[i] = strides[i];
+        }
+    }
+
+public:
+    /** Unchecked const reference access to data at the given indices.  Omiting trailing indices
+     * is equivalent to specifying them as 0.
+     */
+    template <typename... Ix> const T& operator()(Ix... index) const {
+        static_assert(sizeof...(Ix) <= Dims, "Invalid number of indices for unchecked array reference");
+        return *reinterpret_cast<const T *>(data_ + byte_offset_unsafe(strides_, size_t{index}...));
+    }
+    /** Unchecked const reference access to data; this operator only participates if the reference
+     * is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
+     */
+    template <typename = enable_if_t<Dims == 1>>
+    const T &operator[](size_t index) const { return operator()(index); }
+
+    /// Returns the shape (i.e. size) of dimension `dim`
+    size_t shape(size_t dim) const { return shape_[dim]; }
+
+    /// Returns the number of dimensions of the array
+    constexpr static size_t ndim() { return Dims; }
+};
+
+template <typename T, size_t Dims>
+class unchecked_reference : public unchecked_const_reference<T, Dims> {
+    friend class pybind11::array;
+    using unchecked_const_reference<T, Dims>::unchecked_const_reference;
+public:
+    /// Mutable, unchecked access to data at the given indices.
+    template <typename... Ix> T& operator()(Ix... index) {
+        static_assert(sizeof...(Ix) == Dims, "Invalid number of indices for unchecked array reference");
+        return const_cast<T &>(unchecked_const_reference<T, Dims>::operator()(index...));
+    }
+    /** Mutable, unchecked access data at the given index; this operator only participates if the
+     * reference is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
+     */
+    template <typename = enable_if_t<Dims == 1>>
+    T &operator[](size_t index) { return operator()(index); }
+};
+
+template <typename T, size_t Dim>
+struct type_caster<unchecked_const_reference<T, Dim>> {
+    static_assert(Dim == (size_t) -1 /* always fail */, "unchecked array proxy object is not castable");
+};
+template <typename T, size_t Dim>
+struct type_caster<unchecked_reference<T, Dim>> : type_caster<unchecked_const_reference<T, Dim>> {};
+
 NAMESPACE_END(detail)
 
 class dtype : public object {
@@ -333,75 +401,6 @@ private:
         return dtype(names, formats, offsets, itemsize);
     }
 };
-
-/** Proxy class providing unsafe, unchecked const access to array data.  This is constructed through
- * the `unchecked<T, N>()` method of `array` or the `unchecked<N>()` method of `array_t<T>`.
- */
-template <typename T, size_t Dims>
-class unchecked_const_reference {
-protected:
-    const unsigned char *data_;
-    // Storing the shape & strides in local variables (i.e. these arrays) allows the compiler to
-    // make large performance gains on big, nested loops.
-    std::array<size_t, Dims> shape_, strides_;
-
-    friend class array;
-    unchecked_const_reference(const void *data, const size_t *shape, const size_t *strides)
-    : data_{reinterpret_cast<const unsigned char *>(data)} {
-        for (size_t i = 0; i < Dims; i++) {
-            shape_[i] = shape[i];
-            strides_[i] = strides[i];
-        }
-    }
-
-public:
-    /** Unchecked const reference access to data at the given indices.  Omiting trailing indices
-     * is equivalent to specifying them as 0.
-     */
-    template <typename... Ix> const T& operator()(Ix... index) const {
-        static_assert(sizeof...(Ix) <= Dims, "Invalid number of indices for unchecked array reference");
-        return *reinterpret_cast<const T *>(data_ + detail::byte_offset_unsafe(strides_, size_t{index}...));
-    }
-    /** Unchecked const reference access to data; this operator only participates if the reference
-     * is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
-     */
-    template <typename = detail::enable_if_t<Dims == 1>>
-    const T &operator[](size_t index) const { return operator()(index); }
-
-    /// Returns the shape (i.e. size) of dimension `dim`
-    size_t shape(size_t dim) const { return shape_[dim]; }
-
-    /// Returns the number of dimensions of the array
-    constexpr static size_t ndim() { return Dims; }
-};
-
-template <typename T, size_t Dims>
-class unchecked_reference : public unchecked_const_reference<T, Dims> {
-    friend class array;
-    using unchecked_const_reference<T, Dims>::unchecked_const_reference;
-public:
-    /// Mutable, unchecked access to data at the given indices.
-    template <typename... Ix> T& operator()(Ix... index) {
-        static_assert(sizeof...(Ix) == Dims, "Invalid number of indices for unchecked array reference");
-        return const_cast<T &>(unchecked_const_reference<T, Dims>::operator()(index...));
-    }
-    /** Mutable, unchecked access data at the given index; this operator only participates if the
-     * reference is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
-     */
-    template <typename = detail::enable_if_t<Dims == 1>>
-    T &operator[](size_t index) { return operator()(index); }
-};
-
-NAMESPACE_BEGIN(detail)
-
-template <typename T, size_t Dim>
-struct type_caster<unchecked_const_reference<T, Dim>> {
-    static_assert(Dim == (size_t) -1 /* always fail */, "unchecked array proxy object is not castable");
-};
-template <typename T, size_t Dim>
-struct type_caster<unchecked_reference<T, Dim>> : type_caster<unchecked_const_reference<T, Dim>> {};
-
-NAMESPACE_END(detail)
 
 class array : public buffer {
 public:
@@ -580,11 +579,11 @@ public:
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
-    template <typename T, size_t Dims> unchecked_reference<T, Dims> unchecked() {
+    template <typename T, size_t Dims> detail::unchecked_reference<T, Dims> unchecked() {
         if (ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
-        return unchecked_reference<T, Dims>(mutable_data(), shape(), strides());
+        return detail::unchecked_reference<T, Dims>(mutable_data(), shape(), strides());
     }
 
     /** Returns a proxy object that provides const access to the array's data without bounds or
@@ -593,15 +592,15 @@ public:
      * for the duration of the returned object, and the caller must take care not to access invalid
      * dimensions or dimension indices.
      */
-    template <typename T, size_t Dims> unchecked_const_reference<T, Dims> unchecked_readonly() const {
+    template <typename T, size_t Dims> detail::unchecked_const_reference<T, Dims> unchecked_readonly() const {
         if (ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
-        return unchecked_const_reference<T, Dims>(data(), shape(), strides());
+        return detail::unchecked_const_reference<T, Dims>(data(), shape(), strides());
     }
 
     /// Equivalent to `unchecked_readonly()` (for `const array_t<T>` object)
-    template <typename T, size_t Dims> unchecked_const_reference<T, Dims> unchecked() const {
+    template <typename T, size_t Dims> detail::unchecked_const_reference<T, Dims> unchecked() const {
         return unchecked_readonly<T, Dims>();
     }
 
@@ -741,7 +740,7 @@ public:
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
-    template <size_t Dims> unchecked_reference<T, Dims> unchecked() {
+    template <size_t Dims> detail::unchecked_reference<T, Dims> unchecked() {
         return array::unchecked<T, Dims>();
     }
 
@@ -751,12 +750,12 @@ public:
      * for the duration of the returned object, and the caller must take care not to access invalid
      * dimensions or dimension indices.
      */
-    template <size_t Dims> unchecked_const_reference<T, Dims> unchecked_readonly() const {
+    template <size_t Dims> detail::unchecked_const_reference<T, Dims> unchecked_readonly() const {
         return array::unchecked_readonly<T, Dims>();
     }
 
     /// Equivalent to `unchecked_readonly()` (for `const array_t<T>` object)
-    template <size_t Dims> unchecked_const_reference<T, Dims> unchecked() const {
+    template <size_t Dims> detail::unchecked_const_reference<T, Dims> unchecked() const {
         return unchecked_readonly<Dims>();
     }
 
