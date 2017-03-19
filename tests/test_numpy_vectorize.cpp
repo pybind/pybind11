@@ -41,6 +41,10 @@ test_initializer numpy_vectorize([](py::module &m) {
 
 
     // Internal optimization test for whether the input is trivially broadcastable:
+    py::enum_<py::detail::broadcast_trivial>(m, "trivial")
+        .value("f_trivial", py::detail::broadcast_trivial::f_trivial)
+        .value("c_trivial", py::detail::broadcast_trivial::c_trivial)
+        .value("non_trivial", py::detail::broadcast_trivial::non_trivial);
     m.def("vectorized_is_trivial", [](
                 py::array_t<int, py::array::forcecast> arg1,
                 py::array_t<float, py::array::forcecast> arg2,
