@@ -1052,11 +1052,14 @@ private:
     std::array<common_iter, N> m_common_iterator;
 };
 
-// Populates the shape and number of dimensions for the set of buffers.  Returns true if the
-// broadcast is "trivial"--that is, has each buffer being either a singleton or a full-size,
-// C-contiguous storage buffer.
+enum class broadcast_trivial { non_trivial, c_trivial, f_trivial };
+
+// Populates the shape and number of dimensions for the set of buffers.  Returns a broadcast_trivial
+// enum value indicating whether the broadcast is "trivial"--that is, has each buffer being either a
+// singleton or a full-size, C-contiguous (`c_trivial`) or Fortran-contiguous (`f_trivial`) storage
+// buffer; returns `non_trivial` otherwise.
 template <size_t N>
-bool broadcast(const std::array<buffer_info, N> &buffers, size_t &ndim, std::vector<size_t> &shape) {
+broadcast_trivial broadcast(const std::array<buffer_info, N> &buffers, size_t &ndim, std::vector<size_t> &shape) {
     ndim = std::accumulate(buffers.begin(), buffers.end(), size_t(0), [](size_t res, const buffer_info& buf) {
         return std::max(res, buf.ndim);
     });
@@ -1064,14 +1067,12 @@ bool broadcast(const std::array<buffer_info, N> &buffers, size_t &ndim, std::vec
     shape.clear();
     shape.resize(ndim, 1);
 
-    bool trivial_broadcast = true;
+    // Figure out the output size, and make sure all input arrays conform (i.e. are either size 1 or
+    // the full size).
     for (size_t i = 0; i < N; ++i) {
-        trivial_broadcast = trivial_broadcast && (buffers[i].size == 1 || buffers[i].ndim == ndim);
-        size_t expect_stride = buffers[i].itemsize;
         auto res_iter = shape.rbegin();
-        auto stride_iter = buffers[i].strides.rbegin();
-        auto shape_iter = buffers[i].shape.rbegin();
-        while (shape_iter != buffers[i].shape.rend()) {
+        auto end = buffers[i].shape.rend();
+        for (auto shape_iter = buffers[i].shape.rbegin(); shape_iter != end; ++shape_iter, ++res_iter) {
             const auto &dim_size_in = *shape_iter;
             auto &dim_size_out = *res_iter;
 
@@ -1080,21 +1081,54 @@ bool broadcast(const std::array<buffer_info, N> &buffers, size_t &ndim, std::vec
                 dim_size_out = dim_size_in;
             else if (dim_size_in != 1 && dim_size_in != dim_size_out)
                 pybind11_fail("pybind11::vectorize: incompatible size/dimension of inputs!");
-
-            if (trivial_broadcast && buffers[i].size > 1) {
-                if (dim_size_in == dim_size_out && expect_stride == *stride_iter) {
-                    expect_stride *= dim_size_in;
-                    ++stride_iter;
-                } else {
-                    trivial_broadcast = false;
-                }
-            }
-
-            ++shape_iter;
-            ++res_iter;
         }
     }
-    return trivial_broadcast;
+
+    bool trivial_broadcast_c = true;
+    bool trivial_broadcast_f = true;
+    for (size_t i = 0; i < N && (trivial_broadcast_c || trivial_broadcast_f); ++i) {
+        if (buffers[i].size == 1)
+            continue;
+
+        // Require the same number of dimensions:
+        if (buffers[i].ndim != ndim)
+            return broadcast_trivial::non_trivial;
+
+        // Require all dimensions be full-size:
+        if (!std::equal(buffers[i].shape.cbegin(), buffers[i].shape.cend(), shape.cbegin()))
+            return broadcast_trivial::non_trivial;
+
+        // Check for C contiguity (but only if previous inputs were also C contiguous)
+        if (trivial_broadcast_c) {
+            size_t expect_stride = buffers[i].itemsize;
+            auto end = buffers[i].shape.crend();
+            for (auto shape_iter = buffers[i].shape.crbegin(), stride_iter = buffers[i].strides.crbegin();
+                    trivial_broadcast_c && shape_iter != end; ++shape_iter, ++stride_iter) {
+                if (expect_stride == *stride_iter)
+                    expect_stride *= *shape_iter;
+                else
+                    trivial_broadcast_c = false;
+            }
+        }
+
+        // Check for Fortran contiguity (if previous inputs were also F contiguous)
+        if (trivial_broadcast_f) {
+            size_t expect_stride = buffers[i].itemsize;
+            auto end = buffers[i].shape.cend();
+            for (auto shape_iter = buffers[i].shape.cbegin(), stride_iter = buffers[i].strides.cbegin();
+                    trivial_broadcast_f && shape_iter != end; ++shape_iter, ++stride_iter) {
+                if (expect_stride == *stride_iter)
+                    expect_stride *= *shape_iter;
+                else
+                    trivial_broadcast_f = false;
+            }
+        }
+    }
+
+    return
+        trivial_broadcast_c ? broadcast_trivial::c_trivial :
+        trivial_broadcast_f ? broadcast_trivial::f_trivial :
+        broadcast_trivial::non_trivial;
 }
 
 template <typename Func, typename Return, typename... Args>
@@ -1116,32 +1150,42 @@ struct vectorize_helper {
         /* Determine dimensions parameters of output array */
         size_t ndim = 0;
         std::vector<size_t> shape(0);
-        bool trivial_broadcast = broadcast(buffers, ndim, shape);
+        auto trivial = broadcast(buffers, ndim, shape);
 
         size_t size = 1;
         std::vector<size_t> strides(ndim);
         if (ndim > 0) {
-            strides[ndim-1] = sizeof(Return);
-            for (size_t i = ndim - 1; i > 0; --i) {
-                strides[i - 1] = strides[i] * shape[i];
-                size *= shape[i];
+            if (trivial == broadcast_trivial::f_trivial) {
+                strides[0] = sizeof(Return);
+                for (size_t i = 1; i < ndim; ++i) {
+                    strides[i] = strides[i - 1] * shape[i - 1];
+                    size *= shape[i - 1];
+                }
+                size *= shape[ndim - 1];
             }
-            size *= shape[0];
+            else {
+                strides[ndim-1] = sizeof(Return);
+                for (size_t i = ndim - 1; i > 0; --i) {
+                    strides[i - 1] = strides[i] * shape[i];
+                    size *= shape[i];
+                }
+                size *= shape[0];
+            }
         }
 
         if (size == 1)
             return cast(f(*reinterpret_cast<Args *>(buffers[Index].ptr)...));
 
-        array_t<Return, array::c_style> result(shape, strides);
+        array_t<Return> result(shape, strides);
         auto buf = result.request();
         auto output = (Return *) buf.ptr;
 
-        if (trivial_broadcast) {
-            /* Call the function */
+        /* Call the function */
+        if (trivial == broadcast_trivial::non_trivial) {
+            apply_broadcast<Index...>(buffers, buf, index);
+        } else {
             for (size_t i = 0; i < size; ++i)
                 output[i] = f((reinterpret_cast<Args *>(buffers[Index].ptr)[buffers[Index].size == 1 ? 0 : i])...);
-        } else {
-            apply_broadcast<Index...>(buffers, buf, index);
         }
 
         return result;
