@@ -272,7 +272,7 @@ public:
     /** Unchecked const reference access to data; this operator only participates if the reference
      * is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
      */
-    template <typename = enable_if_t<Dims == 1>>
+    template <size_t D = Dims, typename = enable_if_t<D == 1>>
     const T &operator[](size_t index) const { return operator()(index); }
 
     /// Returns the shape (i.e. size) of dimension `dim`
@@ -295,7 +295,7 @@ public:
     /** Mutable, unchecked access data at the given index; this operator only participates if the
      * reference is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
      */
-    template <typename = enable_if_t<Dims == 1>>
+    template <size_t D = Dims, typename = enable_if_t<D == 1>>
     T &operator[](size_t index) { return operator()(index); }
 };
 
