@@ -334,8 +334,8 @@ private:
     }
 };
 
-/** Class provide unsafe, unchecked const access to array data.  This is constructed through the
- * `unchecked<T, N>()` method of `array` or the `unchecked<N>()` method of `array_t<T>`.
+/** Proxy class providing unsafe, unchecked const access to array data.  This is constructed through
+ * the `unchecked<T, N>()` method of `array` or the `unchecked<N>()` method of `array_t<T>`.
  */
 template <typename T, size_t Dims>
 class unchecked_const_reference {
@@ -391,6 +391,17 @@ public:
     template <typename = detail::enable_if_t<Dims == 1>>
     T &operator[](size_t index) { return operator()(index); }
 };
+
+NAMESPACE_BEGIN(detail)
+
+template <typename T, size_t Dim>
+struct type_caster<unchecked_const_reference<T, Dim>> {
+    static_assert(Dim == (size_t) -1 /* always fail */, "unchecked array proxy object is not castable");
+};
+template <typename T, size_t Dim>
+struct type_caster<unchecked_reference<T, Dim>> : type_caster<unchecked_const_reference<T, Dim>> {};
+
+NAMESPACE_END(detail)
 
 class array : public buffer {
 public:
