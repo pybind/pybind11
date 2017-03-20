@@ -330,8 +330,6 @@ where ``N`` gives the required dimensionality of the array:
     });
     m.def("increment_3d", [](py::array_t<double> x) {
         auto r = x.unchecked<3>(); // Will throw if ndim != 3 or flags.writeable is false
-        if (x.ndim() != 3)
-            throw std::runtime_error("error: 3D array required");
         for (size_t i = 0; i < r.shape(0); i++)
             for (size_t j = 0; j < r.shape(1); j++)
                 for (size_t k = 0; k < r.shape(2); k++)
