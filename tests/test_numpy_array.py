@@ -341,8 +341,9 @@ def test_greedy_string_overload():  # issue 685
     assert issue685(123) == "other"
 
 
-def test_array_unchecked(msg):
-    from pybind11_tests.array import proxy_add2, proxy_init3F, proxy_init3, proxy_squared_L2_norm
+def test_array_unchecked_fixed_dims(msg):
+    from pybind11_tests.array import (proxy_add2, proxy_init3F, proxy_init3, proxy_squared_L2_norm,
+                                      proxy_auxiliaries2, array_auxiliaries2)
 
     z1 = np.array([[1, 2], [3, 4]], dtype='float64')
     proxy_add2(z1, 10)
@@ -359,3 +360,20 @@ def test_array_unchecked(msg):
 
     assert proxy_squared_L2_norm(np.array(range(6))) == 55
     assert proxy_squared_L2_norm(np.array(range(6), dtype="float64")) == 55
+
+    assert proxy_auxiliaries2(z1) == [11, 11, True, 2, 8, 2, 2, 4, 32]
+    assert proxy_auxiliaries2(z1) == array_auxiliaries2(z1)
+
+
+def test_array_unchecked_dyn_dims(msg):
+    from pybind11_tests.array import (proxy_add2_dyn, proxy_init3_dyn, proxy_auxiliaries2_dyn,
+                                      array_auxiliaries2)
+    z1 = np.array([[1, 2], [3, 4]], dtype='float64')
+    proxy_add2_dyn(z1, 10)
+    assert np.all(z1 == [[11, 12], [13, 14]])
+
+    expect_c = np.ndarray(shape=(3, 3, 3), buffer=np.array(range(3, 30)), dtype='int')
+    assert np.all(proxy_init3_dyn(3.0) == expect_c)
+
+    assert proxy_auxiliaries2_dyn(z1) == [11, 11, True, 2, 8, 2, 2, 4, 32]
+    assert proxy_auxiliaries2_dyn(z1) == array_auxiliaries2(z1)
