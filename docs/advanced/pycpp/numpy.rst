@@ -342,10 +342,11 @@ To obtain the proxy from an ``array`` object, you must specify both the data
 type and number of dimensions as a template argument, such as ``auto r =
 myarray.unchecked<float, 2>()``.
 
-Note that the returned proxy object directly references the array's data,
-shape, and strides: you must take care to ensure that the referenced array
-object is not destroyed or reshaped for the duration of the returned object,
-typically by limiting the scope of the returned instance.
+Note that the returned proxy object directly references the array's data, and
+only reads its shape, strides, and writeable flag when constructed.  You must
+take care to ensure that the referenced array is not destroyed or reshaped for
+the duration of the returned object, typically by limiting the scope of the
+returned instance.
 
 .. seealso::
 
