@@ -211,3 +211,12 @@ def test_move_only_holder():
     assert stats.alive() == 1
     del a
     assert stats.alive() == 0
+
+
+def test_smart_ptr_from_default():
+    from pybind11_tests.smart_ptr import HeldByDefaultHolder
+
+    instance = HeldByDefaultHolder()
+    with pytest.raises(RuntimeError) as excinfo:
+        HeldByDefaultHolder.load_shared_ptr(instance)
+    assert "Unable to load a custom holder type from a default-holder instance" in str(excinfo)
