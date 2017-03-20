@@ -342,8 +342,7 @@ def test_greedy_string_overload():  # issue 685
 
 
 def test_array_unchecked(msg):
-    from pybind11_tests.array import (proxy_add2, proxy_init3F, proxy_init3,
-                                      proxy_squared_L2_norm, proxy_squared_L2_norm_v2)
+    from pybind11_tests.array import proxy_add2, proxy_init3F, proxy_init3, proxy_squared_L2_norm
 
     z1 = np.array([[1, 2], [3, 4]], dtype='float64')
     proxy_add2(z1, 10)
@@ -360,5 +359,3 @@ def test_array_unchecked(msg):
 
     assert proxy_squared_L2_norm(np.array(range(6))) == 55
     assert proxy_squared_L2_norm(np.array(range(6), dtype="float64")) == 55
-    assert proxy_squared_L2_norm_v2(np.array(range(6))) == 55
-    assert proxy_squared_L2_norm_v2(np.array(range(6), dtype="float64")) == 55

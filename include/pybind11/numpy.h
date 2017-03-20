@@ -245,7 +245,7 @@ size_t byte_offset_unsafe(const Strides &strides, size_t i, Ix... index) {
  * the `unchecked<T, N>()` method of `array` or the `unchecked<N>()` method of `array_t<T>`.
  */
 template <typename T, size_t Dims>
-class unchecked_const_reference {
+class unchecked_reference {
 protected:
     const unsigned char *data_;
     // Storing the shape & strides in local variables (i.e. these arrays) allows the compiler to
@@ -253,7 +253,7 @@ protected:
     std::array<size_t, Dims> shape_, strides_;
 
     friend class pybind11::array;
-    unchecked_const_reference(const void *data, const size_t *shape, const size_t *strides)
+    unchecked_reference(const void *data, const size_t *shape, const size_t *strides)
     : data_{reinterpret_cast<const unsigned char *>(data)} {
         for (size_t i = 0; i < Dims; i++) {
             shape_[i] = shape[i];
@@ -283,14 +283,15 @@ public:
 };
 
 template <typename T, size_t Dims>
-class unchecked_reference : public unchecked_const_reference<T, Dims> {
+class unchecked_mutable_reference : public unchecked_reference<T, Dims> {
     friend class pybind11::array;
-    using unchecked_const_reference<T, Dims>::unchecked_const_reference;
+    using ConstBase = unchecked_reference<T, Dims>;
+    using ConstBase::ConstBase;
 public:
     /// Mutable, unchecked access to data at the given indices.
     template <typename... Ix> T& operator()(Ix... index) {
         static_assert(sizeof...(Ix) == Dims, "Invalid number of indices for unchecked array reference");
-        return const_cast<T &>(unchecked_const_reference<T, Dims>::operator()(index...));
+        return const_cast<T &>(ConstBase::operator()(index...));
     }
     /** Mutable, unchecked access data at the given index; this operator only participates if the
      * reference is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
@@ -300,11 +301,11 @@ public:
 };
 
 template <typename T, size_t Dim>
-struct type_caster<unchecked_const_reference<T, Dim>> {
+struct type_caster<unchecked_reference<T, Dim>> {
     static_assert(Dim == (size_t) -1 /* always fail */, "unchecked array proxy object is not castable");
 };
 template <typename T, size_t Dim>
-struct type_caster<unchecked_reference<T, Dim>> : type_caster<unchecked_const_reference<T, Dim>> {};
+struct type_caster<unchecked_mutable_reference<T, Dim>> : type_caster<unchecked_reference<T, Dim>> {};
 
 NAMESPACE_END(detail)
 
@@ -579,29 +580,24 @@ public:
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
-    template <typename T, size_t Dims> detail::unchecked_reference<T, Dims> unchecked() {
+    template <typename T, size_t Dims> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() {
         if (ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
-        return detail::unchecked_reference<T, Dims>(mutable_data(), shape(), strides());
+        return detail::unchecked_mutable_reference<T, Dims>(mutable_data(), shape(), strides());
     }
 
     /** Returns a proxy object that provides const access to the array's data without bounds or
-     * dimensionality checking.  Unlike `unchecked()`, this does not require that the underlying
-     * array have the `writable` flag.  Use with care: the array must not be destroyed or reshaped
-     * for the duration of the returned object, and the caller must take care not to access invalid
-     * dimensions or dimension indices.
+     * dimensionality checking.  Unlike `mutable_unchecked()`, this does not require that the
+     * underlying array have the `writable` flag.  Use with care: the array must not be destroyed or
+     * reshaped for the duration of the returned object, and the caller must take care not to access
+     * invalid dimensions or dimension indices.
      */
-    template <typename T, size_t Dims> detail::unchecked_const_reference<T, Dims> unchecked_readonly() const {
+    template <typename T, size_t Dims> detail::unchecked_reference<T, Dims> unchecked() const {
         if (ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
-        return detail::unchecked_const_reference<T, Dims>(data(), shape(), strides());
-    }
-
-    /// Equivalent to `unchecked_readonly()` (for `const array_t<T>` object)
-    template <typename T, size_t Dims> detail::unchecked_const_reference<T, Dims> unchecked() const {
-        return unchecked_readonly<T, Dims>();
+        return detail::unchecked_reference<T, Dims>(data(), shape(), strides());
     }
 
     /// Return a new view with all of the dimensions of length 1 removed
@@ -740,8 +736,8 @@ public:
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
-    template <size_t Dims> detail::unchecked_reference<T, Dims> unchecked() {
-        return array::unchecked<T, Dims>();
+    template <size_t Dims> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() {
+        return array::mutable_unchecked<T, Dims>();
     }
 
     /** Returns a proxy object that provides const access to the array's data without bounds or
@@ -750,13 +746,8 @@ public:
      * for the duration of the returned object, and the caller must take care not to access invalid
      * dimensions or dimension indices.
      */
-    template <size_t Dims> detail::unchecked_const_reference<T, Dims> unchecked_readonly() const {
-        return array::unchecked_readonly<T, Dims>();
-    }
-
-    /// Equivalent to `unchecked_readonly()` (for `const array_t<T>` object)
-    template <size_t Dims> detail::unchecked_const_reference<T, Dims> unchecked() const {
-        return unchecked_readonly<Dims>();
+    template <size_t Dims> detail::unchecked_reference<T, Dims> unchecked() const {
+        return array::unchecked<T, Dims>();
     }
 
     /// Ensure that the argument is a NumPy array of the correct dtype (and if not, try to convert
