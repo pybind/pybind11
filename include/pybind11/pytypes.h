@@ -1011,7 +1011,14 @@ public:
             pybind11_fail("Could not allocate capsule object!");
     }
 
-    explicit capsule(const void *value, void (*destructor)(void *)) {
+    PYBIND11_DEPRECATED("Please pass a destructor that takes a void pointer as input")
+    capsule(const void *value, void (*destruct)(PyObject *))
+        : object(PyCapsule_New(const_cast<void*>(value), nullptr, destruct), stolen) {
+        if (!m_ptr)
+            pybind11_fail("Could not allocate capsule object!");
+    }
+
+    capsule(const void *value, void (*destructor)(void *)) {
         m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
             auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
             void *ptr = PyCapsule_GetPointer(o, nullptr);
