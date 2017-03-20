@@ -919,6 +919,9 @@ public:
             return true;
         }
 
+        if (typeinfo->default_holder)
+            throw cast_error("Unable to load a custom holder type from a default-holder instance");
+
         if (typeinfo->simple_type) { /* Case 1: no multiple inheritance etc. involved */
             /* Check if we can safely perform a reinterpret-style cast */
             if (PyType_IsSubtype(tobj, typeinfo->type))

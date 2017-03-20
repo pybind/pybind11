@@ -265,4 +265,10 @@ test_initializer smart_ptr_and_references([](py::module &pm) {
 
     py::class_<C, CustomUniquePtr<C>>(m, "TypeWithMoveOnlyHolder")
         .def_static("make", []() { return CustomUniquePtr<C>(new C); });
+
+    struct HeldByDefaultHolder { };
+
+    py::class_<HeldByDefaultHolder>(m, "HeldByDefaultHolder")
+        .def(py::init<>())
+        .def_static("load_shared_ptr", [](std::shared_ptr<HeldByDefaultHolder>) {});
 });
