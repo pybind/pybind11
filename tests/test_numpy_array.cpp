@@ -191,6 +191,7 @@ test_initializer numpy_array([](py::module &m) {
             for (size_t j = 0; j < r.shape(1); j++)
                 r(i, j) += v;
     }, py::arg().noconvert(), py::arg());
+
     sm.def("proxy_init3", [](double start) {
         py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
         auto r = a.mutable_unchecked<3>();
@@ -215,5 +216,56 @@ test_initializer numpy_array([](py::module &m) {
         for (size_t i = 0; i < r.shape(0); i++)
             sumsq += r[i] * r(i); // Either notation works for a 1D array
         return sumsq;
+    });
+
+    sm.def("proxy_auxiliaries2", [](py::array_t<double> a) {
+        auto r = a.unchecked<2>();
+        auto r2 = a.mutable_unchecked<2>();
+        py::list l;
+        l.append(*r.data(0, 0));
+        l.append(*r2.mutable_data(0, 0));
+        l.append(r.data(0, 1) == r2.mutable_data(0, 1));
+        l.append(r.ndim());
+        l.append(r.itemsize());
+        l.append(r.shape(0));
+        l.append(r.shape(1));
+        l.append(r.size());
+        l.append(r.nbytes());
+        return l.release();
+    });
+
+    // Same as the above, but without a compile-time dimensions specification:
+    sm.def("proxy_add2_dyn", [](py::array_t<double> a, double v) {
+        auto r = a.mutable_unchecked();
+        if (r.ndim() != 2) throw std::domain_error("error: ndim != 2");
+        for (size_t i = 0; i < r.shape(0); i++)
+            for (size_t j = 0; j < r.shape(1); j++)
+                r(i, j) += v;
+    }, py::arg().noconvert(), py::arg());
+    sm.def("proxy_init3_dyn", [](double start) {
+        py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
+        auto r = a.mutable_unchecked();
+        if (r.ndim() != 3) throw std::domain_error("error: ndim != 3");
+        for (size_t i = 0; i < r.shape(0); i++)
+        for (size_t j = 0; j < r.shape(1); j++)
+        for (size_t k = 0; k < r.shape(2); k++)
+            r(i, j, k) = start++;
+        return a;
+    });
+    sm.def("proxy_auxiliaries2_dyn", [](py::array_t<double> a) {
+        auto r = a.unchecked();
+        if (r.ndim() != 2) throw std::domain_error("error: ndim != 2");
+        auto r2 = a.mutable_unchecked();
+        py::list l;
+        l.append(*r.data(0, 0));
+        l.append(*r2.mutable_data(0, 0));
+        l.append(r.data(0, 1) == r2.mutable_data(0, 1));
+        l.append(r.ndim());
+        l.append(r.itemsize());
+        l.append(r.shape(0));
+        l.append(r.shape(1));
+        l.append(r.size());
+        l.append(r.nbytes());
+        return l.release();
     });
 });

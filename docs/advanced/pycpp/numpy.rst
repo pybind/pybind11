@@ -340,11 +340,38 @@ To obtain the proxy from an ``array`` object, you must specify both the data
 type and number of dimensions as template arguments, such as ``auto r =
 myarray.mutable_unchecked<float, 2>()``.
 
+If the number of dimensions is not known at compile time, you can omit the
+dimensions template parameter (i.e. calling ``arr_t.unchecked()`` or
+``arr.unchecked<T>()``.  This will give you a proxy object that works in the
+same way, but results in less optimizable code and thus a small efficiency
+loss in tight loops.
+
 Note that the returned proxy object directly references the array's data, and
 only reads its shape, strides, and writeable flag when constructed.  You must
 take care to ensure that the referenced array is not destroyed or reshaped for
 the duration of the returned object, typically by limiting the scope of the
 returned instance.
+
+The returned proxy object supports some of the same methods as ``py::array`` so
+that it can be used as a drop-in replacement for some existing, index-checked
+uses of ``py::array``:
+
+- ``r.ndim()`` returns the number of dimensions
+
+- ``r.data(1, 2, ...)`` and ``r.mutable_data(1, 2, ...)``` returns a pointer to
+  the ``const T`` or ``T`` data, respectively, at the given indices.  The
+  latter is only available to proxies obtained via ``a.mutable_unchecked()``.
+
+- ``itemsize()`` returns the size of an item in bytes, i.e. ``sizeof(T)``.
+
+- ``ndim()`` returns the number of dimensions.
+
+- ``shape(n)`` returns the size of dimension ``n``
+
+- ``size()`` returns the total number of elements (i.e. the product of the shapes).
+
+- ``nbytes()`` returns the number of bytes used by the referenced elements
+  (i.e. ``itemsize()`` times ``size()``).
 
 .. seealso::
 
