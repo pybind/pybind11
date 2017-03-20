@@ -1004,10 +1004,27 @@ public:
     PYBIND11_OBJECT_DEFAULT(capsule, object, PyCapsule_CheckExact)
     PYBIND11_DEPRECATED("Use reinterpret_borrow<capsule>() or reinterpret_steal<capsule>()")
     capsule(PyObject *ptr, bool is_borrowed) : object(is_borrowed ? object(ptr, borrowed) : object(ptr, stolen)) { }
-    explicit capsule(const void *value, void (*destruct)(PyObject *) = nullptr)
-        : object(PyCapsule_New(const_cast<void*>(value), nullptr, destruct), stolen) {
-        if (!m_ptr) pybind11_fail("Could not allocate capsule object!");
+
+    explicit capsule(const void *value)
+        : object(PyCapsule_New(const_cast<void *>(value), nullptr, nullptr), stolen) {
+        if (!m_ptr)
+            pybind11_fail("Could not allocate capsule object!");
     }
+
+    explicit capsule(const void *value, void (*destructor)(void *)) {
+        m_ptr = PyCapsule_New(const_cast<void *>(value), nullptr, [](PyObject *o) {
+            auto destructor = reinterpret_cast<void (*)(void *)>(PyCapsule_GetContext(o));
+            void *ptr = PyCapsule_GetPointer(o, nullptr);
+            destructor(ptr);
+        });
+
+        if (!m_ptr)
+            pybind11_fail("Could not allocate capsule object!");
+
+        if (PyCapsule_SetContext(m_ptr, (void *) destructor) != 0)
+            pybind11_fail("Could not set capsule context!");
+    }
+
     template <typename T> operator T *() const {
         T * result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, nullptr));
         if (!result) pybind11_fail("Unable to extract capsule contents!");
