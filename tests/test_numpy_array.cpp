@@ -68,6 +68,21 @@ template<typename... Ix> arr_t& mutate_at_t(arr_t& a, Ix... idx) { a.mutable_at(
     sm.def(#name, [](type a, int i, int j) { return name(a, i, j); }); \
     sm.def(#name, [](type a, int i, int j, int k) { return name(a, i, j, k); });
 
+template <typename T, typename T2> py::handle auxiliaries(T &&r, T2 &&r2) {
+    if (r.ndim() != 2) throw std::domain_error("error: ndim != 2");
+    py::list l;
+    l.append(*r.data(0, 0));
+    l.append(*r2.mutable_data(0, 0));
+    l.append(r.data(0, 1) == r2.mutable_data(0, 1));
+    l.append(r.ndim());
+    l.append(r.itemsize());
+    l.append(r.shape(0));
+    l.append(r.shape(1));
+    l.append(r.size());
+    l.append(r.nbytes());
+    return l.release();
+}
+
 test_initializer numpy_array([](py::module &m) {
     auto sm = m.def_submodule("array");
 
@@ -221,17 +236,7 @@ test_initializer numpy_array([](py::module &m) {
     sm.def("proxy_auxiliaries2", [](py::array_t<double> a) {
         auto r = a.unchecked<2>();
         auto r2 = a.mutable_unchecked<2>();
-        py::list l;
-        l.append(*r.data(0, 0));
-        l.append(*r2.mutable_data(0, 0));
-        l.append(r.data(0, 1) == r2.mutable_data(0, 1));
-        l.append(r.ndim());
-        l.append(r.itemsize());
-        l.append(r.shape(0));
-        l.append(r.shape(1));
-        l.append(r.size());
-        l.append(r.nbytes());
-        return l.release();
+        return auxiliaries(r, r2);
     });
 
     // Same as the above, but without a compile-time dimensions specification:
@@ -253,19 +258,10 @@ test_initializer numpy_array([](py::module &m) {
         return a;
     });
     sm.def("proxy_auxiliaries2_dyn", [](py::array_t<double> a) {
-        auto r = a.unchecked();
-        if (r.ndim() != 2) throw std::domain_error("error: ndim != 2");
-        auto r2 = a.mutable_unchecked();
-        py::list l;
-        l.append(*r.data(0, 0));
-        l.append(*r2.mutable_data(0, 0));
-        l.append(r.data(0, 1) == r2.mutable_data(0, 1));
-        l.append(r.ndim());
-        l.append(r.itemsize());
-        l.append(r.shape(0));
-        l.append(r.shape(1));
-        l.append(r.size());
-        l.append(r.nbytes());
-        return l.release();
+        return auxiliaries(a.unchecked(), a.mutable_unchecked());
+    });
+
+    sm.def("array_auxiliaries2", [](py::array_t<double> a) {
+        return auxiliaries(a, a);
     });
 });
