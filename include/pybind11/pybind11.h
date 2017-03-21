@@ -803,6 +803,7 @@ protected:
         auto *tinfo = new detail::type_info();
         tinfo->type = (PyTypeObject *) m_ptr;
         tinfo->type_size = rec.type_size;
+        tinfo->operator_new = rec.operator_new;
         tinfo->init_holder = rec.init_holder;
         tinfo->dealloc = rec.dealloc;
 
@@ -860,6 +861,18 @@ protected:
     }
 };
 
+/// Set the pointer to operator new if it exists. The cast is needed because it can be overloaded.
+template <typename T, typename = void_t<decltype(static_cast<void *(*)(size_t)>(T::operator new))>>
+void set_operator_new(type_record *r) { r->operator_new = &T::operator new; }
+
+template <typename> void set_operator_new(...) { }
+
+/// Call class-specific delete if it exists or global otherwise. Can also be an overload set.
+template <typename T, typename = void_t<decltype(static_cast<void (*)(void *)>(T::operator delete))>>
+void call_operator_delete(T *p) { T::operator delete(p); }
+
+inline void call_operator_delete(void *p) { ::operator delete(p); }
+
 NAMESPACE_END(detail)
 
 template <typename type_, typename... options>
@@ -904,6 +917,8 @@ public:
         record.init_holder = init_holder;
         record.dealloc = dealloc;
         record.default_holder = std::is_same<holder_type, std::unique_ptr<type>>::value;
+
+        set_operator_new<type>(&record);
 
         /* Register base classes specified via template arguments to class_, if any */
         bool unused[] = { (add_base<options>(record), false)..., false };
@@ -1125,7 +1140,7 @@ private:
         if (inst->holder_constructed)
             inst->holder.~holder_type();
         else if (inst->owned)
-            ::operator delete(inst->value);
+            detail::call_operator_delete(inst->value);
     }
 
     static detail::function_record *get_function_record(handle h) {

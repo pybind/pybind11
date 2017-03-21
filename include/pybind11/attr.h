@@ -174,6 +174,9 @@ struct type_record {
     /// How large is pybind11::instance<type>?
     size_t instance_size = 0;
 
+    /// The global operator new can be overridden with a class-specific variant
+    void *(*operator_new)(size_t) = ::operator new;
+
     /// Function pointer to class_<..>::init_holder
     void (*init_holder)(PyObject *, const void *) = nullptr;
 
