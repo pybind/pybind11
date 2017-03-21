@@ -183,7 +183,7 @@ extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, 
     PyObject *self = type->tp_alloc(type, 0);
     auto instance = (instance_essentials<void> *) self;
     auto tinfo = get_type_info(type);
-    instance->value = ::operator new(tinfo->type_size);
+    instance->value = tinfo->operator_new(tinfo->type_size);
     instance->owned = true;
     instance->holder_constructed = false;
     get_internals().registered_instances.emplace(instance->value, self);

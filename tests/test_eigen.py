@@ -614,3 +614,13 @@ def test_issue738():
 
     assert np.all(iss738_f2(np.array([[1., 2, 3]])) == np.array([[1., 102, 203]]))
     assert np.all(iss738_f2(np.array([[1.], [2], [3]])) == np.array([[1.], [12], [23]]))
+
+
+def test_custom_operator_new():
+    """Using Eigen types as member variables requires a class-specific
+    operator new with proper alignment"""
+    from pybind11_tests import CustomOperatorNew
+
+    o = CustomOperatorNew()
+    np.testing.assert_allclose(o.a, 0.0)
+    np.testing.assert_allclose(o.b.diagonal(), 1.0)

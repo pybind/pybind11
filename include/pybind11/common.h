@@ -427,6 +427,13 @@ template<size_t N> using make_index_sequence = typename make_index_sequence_impl
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T> struct negation : bool_constant<!T::value> { };
 
+#ifdef __cpp_lib_void_t
+using std::void_t;
+#else
+template <typename...> struct void_t_impl { using type = void; };
+template <typename... Ts> using void_t = typename void_t_impl<Ts...>::type;
+#endif
+
 /// Compile-time all/any/none of that check the boolean value of all template types
 #ifdef __cpp_fold_expressions
 template <class... Ts> using all_of = bool_constant<(Ts::value && ...)>;

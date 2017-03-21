@@ -60,6 +60,15 @@ template <typename MatrixArgType> Eigen::MatrixXd adjust_matrix(MatrixArgType m)
     return ret;
 }
 
+struct CustomOperatorNew {
+    CustomOperatorNew() = default;
+
+    Eigen::Matrix4d a = Eigen::Matrix4d::Zero();
+    Eigen::Matrix4d b = Eigen::Matrix4d::Identity();
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+};
+
 test_initializer eigen([](py::module &m) {
     typedef Eigen::Matrix<float, 5, 6, Eigen::RowMajor> FixedMatrixR;
     typedef Eigen::Matrix<float, 5, 6> FixedMatrixC;
@@ -277,4 +286,9 @@ test_initializer eigen([](py::module &m) {
     // requiring a copy!) because the stride value can be safely ignored on a size-1 dimension.
     m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg().noconvert());
     m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg().noconvert());
+
+    py::class_<CustomOperatorNew>(m, "CustomOperatorNew")
+        .def(py::init<>())
+        .def_readonly("a", &CustomOperatorNew::a)
+        .def_readonly("b", &CustomOperatorNew::b);
 });
