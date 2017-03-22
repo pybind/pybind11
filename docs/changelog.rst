@@ -6,11 +6,75 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
-v2.0.2 (not yet released)
+v2.1.0 (not yet released)
 -----------------------------------------------------
 
-* Use -x flag to strip shared libraries on OSX
-  `#595 <https://github.com/pybind/pybind11/pull/595>`_.
+* pybind11 now performs function overload resolution in two phases. The first
+  phase only considers exact type matches, while the second allows for implicit
+  conversions to take place. A special ``noconvert()`` syntax can be used to
+  completely disable implicit conversions for specific arguments.
+  `#643 <https://github.com/pybind/pybind11/pull/643>`_,
+  `#634 <https://github.com/pybind/pybind11/pull/634>`_,
+  `#650 <https://github.com/pybind/pybind11/pull/650>`_.
+
+* Ability to mix ``py::args/kwargs`` with positional arguments.
+  `#611 <https://github.com/pybind/pybind11/pull/611>`_.
+
+* Improved support for C++11 unicode string and character types; added
+  extensive documentation regarding pybind11's string conversion behavior.
+  `#624 <https://github.com/pybind/pybind11/pull/624>`_,
+  `#636 <https://github.com/pybind/pybind11/pull/636>`_,
+  `#715 <https://github.com/pybind/pybind11/pull/715>`_.
+
+* pybind11 can now avoid expensive copies when converting Eigen arrays to NumPy
+  arrays (and vice versa). `#610 <https://github.com/pybind/pybind11/pull/610>`_.
+
+* The "fast path" in ``py::vectorize`` now works for any group of C and
+  F-contiguous arrays. `#610 <https://github.com/pybind/pybind11/pull/610>`_.
+
+* Added proxy objects for fast unchecked access to NumPy arrays.
+  `#746 <https://github.com/pybind/pybind11/pull/746>`_.
+
+* Transparent support for class-specific ``operator new`` and ``operator delete``.
+  `#755 <https://github.com/pybind/pybind11/pull/755>`_.
+
+* Slimmer and more efficient STL-compatible iterator interface for sequence types.
+  `#662 <https://github.com/pybind/pybind11/pull/662>`_.
+
+* Improved custom holder type support
+  `#607 <https://github.com/pybind/pybind11/pull/607>`_.
+
+* ``nullptr`` to ``None`` conversion fixed in various builtin type casters
+  `#732 <https://github.com/pybind/pybind11/pull/732>`_.
+
+* ``enum_`` now exposes its members via a special ``__members__`` attribute.
+  `#666 <https://github.com/pybind/pybind11/pull/666>`_.
+
+* ``std::vector`` bindings created using ``stl_bind.h`` can now optionally
+  implement the buffer protocol. `#488 <https://github.com/pybind/pybind11/pull/488>`_.
+
+* Automated C++ reference documentation usin doxygen and breathe.
+  `#598 <https://github.com/pybind/pybind11/pull/598>`_.
+
+* Added minimum compiler version assertions.
+  `#727 <https://github.com/pybind/pybind11/pull/727>`_.
+
+* Use -x flag to strip shared libraries on OSX.
+
+* Various minor improvements and fixes.
+  `#595 <https://github.com/pybind/pybind11/pull/595>`_,
+  `#588 <https://github.com/pybind/pybind11/pull/588>`_,
+  `#589 <https://github.com/pybind/pybind11/pull/589>`_,
+  `#603 <https://github.com/pybind/pybind11/pull/603>`_,
+  `#619 <https://github.com/pybind/pybind11/pull/619>`_,
+  `#648 <https://github.com/pybind/pybind11/pull/648>`_,
+  `#695 <https://github.com/pybind/pybind11/pull/695>`_,
+  `#720 <https://github.com/pybind/pybind11/pull/720>`_,
+  `#723 <https://github.com/pybind/pybind11/pull/723>`_,
+  `#729 <https://github.com/pybind/pybind11/pull/729>`_,
+  `#724 <https://github.com/pybind/pybind11/pull/724>`_,
+  `#742 <https://github.com/pybind/pybind11/pull/742>`_,
+  `#753 <https://github.com/pybind/pybind11/pull/753>`_.
 
 v2.0.1 (Jan 4, 2017)
 -----------------------------------------------------
