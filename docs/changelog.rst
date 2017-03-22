@@ -52,7 +52,7 @@ v2.1.0 (March 22, 2017)
 * Added fast, unchecked access to NumPy arrays via a proxy object.
   `#746 <https://github.com/pybind/pybind11/pull/746>`_.
 
-* Transparent support for class-specific ``operator new`` and 
+* Transparent support for class-specific ``operator new`` and
   ``operator delete`` implementations.
   `#755 <https://github.com/pybind/pybind11/pull/755>`_.
 
