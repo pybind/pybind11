@@ -6,7 +6,7 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
-v2.1.0 (not yet released)
+v2.1.0 (March 22, 2017)
 -----------------------------------------------------
 
 * pybind11 now performs function overload resolution in two phases. The first
