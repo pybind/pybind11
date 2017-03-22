@@ -17,6 +17,15 @@ v2.1.0 (not yet released)
   `#634 <https://github.com/pybind/pybind11/pull/634>`_,
   `#650 <https://github.com/pybind/pybind11/pull/650>`_.
 
+* Fixed a regression where static properties no longer worked with classes
+  using multiple inheritance. The ``py::metaclass`` attribute is no longer
+  necessary (and deprecated as of this release) when binding classes with
+  static properties.
+  `#679 <https://github.com/pybind/pybind11/pull/679>`_,
+
+* Classes bound using ``pybind11`` can now use custom metaclasses.
+  `#679 <https://github.com/pybind/pybind11/pull/679>`_,
+
 * ``py::args`` and ``py::kwargs`` can now be mixed with other positional
   arguments when binding functions using pybind11.
   `#611 <https://github.com/pybind/pybind11/pull/611>`_.
