@@ -72,6 +72,13 @@ v2.1.0 (not yet released)
 * Added minimum compiler version assertions.
   `#727 <https://github.com/pybind/pybind11/pull/727>`_.
 
+* Improved compatibility with C++1z.
+  `#677 <https://github.com/pybind/pybind11/pull/677>`_.
+
+* Improved ``py::capsule`` API. Can be used to implement cleanup
+  callbacks that are involved at module destruction time.
+  `#752 <https://github.com/pybind/pybind11/pull/752>`_.
+
 * Various minor improvements and fixes.
   `#595 <https://github.com/pybind/pybind11/pull/595>`_,
   `#588 <https://github.com/pybind/pybind11/pull/588>`_,
