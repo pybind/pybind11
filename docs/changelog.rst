@@ -17,7 +17,8 @@ v2.1.0 (not yet released)
   `#634 <https://github.com/pybind/pybind11/pull/634>`_,
   `#650 <https://github.com/pybind/pybind11/pull/650>`_.
 
-* Ability to mix ``py::args/kwargs`` with positional arguments.
+* ``py::args`` and ``py::kwargs`` can now be mixed with other positional
+  arguments when binding functions using pybind11.
   `#611 <https://github.com/pybind/pybind11/pull/611>`_.
 
 * Improved support for C++11 unicode string and character types; added
@@ -29,22 +30,24 @@ v2.1.0 (not yet released)
 * pybind11 can now avoid expensive copies when converting Eigen arrays to NumPy
   arrays (and vice versa). `#610 <https://github.com/pybind/pybind11/pull/610>`_.
 
-* The "fast path" in ``py::vectorize`` now works for any group of C and
-  F-contiguous arrays. `#610 <https://github.com/pybind/pybind11/pull/610>`_.
+* The "fast path" in ``py::vectorize`` now works for any full-size group of C or
+  F-contiguous arrays. Copies are always avoided.
+  `#610 <https://github.com/pybind/pybind11/pull/610>`_.
 
 * Added proxy objects for fast unchecked access to NumPy arrays.
   `#746 <https://github.com/pybind/pybind11/pull/746>`_.
 
-* Transparent support for class-specific ``operator new`` and ``operator delete``.
+* Transparent support for class-specific ``operator new`` and 
+  ``operator delete`` implementations.
   `#755 <https://github.com/pybind/pybind11/pull/755>`_.
 
 * Slimmer and more efficient STL-compatible iterator interface for sequence types.
   `#662 <https://github.com/pybind/pybind11/pull/662>`_.
 
-* Improved custom holder type support
+* Improved custom holder type support.
   `#607 <https://github.com/pybind/pybind11/pull/607>`_.
 
-* ``nullptr`` to ``None`` conversion fixed in various builtin type casters
+* ``nullptr`` to ``None`` conversion fixed in various builtin type casters.
   `#732 <https://github.com/pybind/pybind11/pull/732>`_.
 
 * ``enum_`` now exposes its members via a special ``__members__`` attribute.
@@ -58,8 +61,6 @@ v2.1.0 (not yet released)
 
 * Added minimum compiler version assertions.
   `#727 <https://github.com/pybind/pybind11/pull/727>`_.
-
-* Use -x flag to strip shared libraries on OSX.
 
 * Various minor improvements and fixes.
   `#595 <https://github.com/pybind/pybind11/pull/595>`_,
