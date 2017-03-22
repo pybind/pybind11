@@ -31,10 +31,11 @@ v2.1.0 (not yet released)
   arrays (and vice versa). `#610 <https://github.com/pybind/pybind11/pull/610>`_.
 
 * The "fast path" in ``py::vectorize`` now works for any full-size group of C or
-  F-contiguous arrays. Copies are always avoided.
+  F-contiguous arrays. The non-fast path is also faster since it no longer performs
+  copies of the input arguments (except when type conversions are necessary).
   `#610 <https://github.com/pybind/pybind11/pull/610>`_.
 
-* Added proxy objects for fast unchecked access to NumPy arrays.
+* Added fast, unchecked access to NumPy arrays via a proxy object.
   `#746 <https://github.com/pybind/pybind11/pull/746>`_.
 
 * Transparent support for class-specific ``operator new`` and 
@@ -56,7 +57,7 @@ v2.1.0 (not yet released)
 * ``std::vector`` bindings created using ``stl_bind.h`` can now optionally
   implement the buffer protocol. `#488 <https://github.com/pybind/pybind11/pull/488>`_.
 
-* Automated C++ reference documentation usin doxygen and breathe.
+* Automated C++ reference documentation using doxygen and breathe.
   `#598 <https://github.com/pybind/pybind11/pull/598>`_.
 
 * Added minimum compiler version assertions.
