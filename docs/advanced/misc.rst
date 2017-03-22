@@ -170,6 +170,20 @@ would be then able to access the data behind the same pointer.
 
 .. [#f6] https://docs.python.org/3/extending/extending.html#using-capsules
 
+Module Destructors
+==================
+
+pybind11 does not provide an explicit mechanism to invoke cleanup code at
+module destruction time. In rare cases where such functionality is required, it
+is possible to emulate it using Python capsules with a destruction callback.
+
+.. code-block:: cpp
+
+    auto cleanup_callback = []() {
+        // perform cleanup here -- this function is called with the GIL held
+    };
+
+    m.add_object("_cleanup", py::capsule(cleanup_callback));
 
 Generating documentation using Sphinx
 =====================================
