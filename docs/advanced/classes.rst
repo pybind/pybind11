@@ -230,6 +230,13 @@ override the ``name()`` method):
         std::string bark() override { PYBIND11_OVERLOAD(std::string, Dog, bark, ); }
     };
 
+.. note::
+
+    Note the trailing commas in the ``PYBIND11_OVERLOAD`` calls to ``name()``
+    and ``bark()``. These are needed to portably implement a trampoline for a
+    function that does not take any arguments. For functions that take
+    a nonzero number of arguments, the trailing comma must be omitted.
+
 A registered class derived from a pybind11-registered class with virtual
 methods requires a similar trampoline class, *even if* it doesn't explicitly
 declare or override any virtual methods itself:
