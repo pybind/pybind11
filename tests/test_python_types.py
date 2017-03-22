@@ -519,6 +519,7 @@ def test_capsule_with_destructor(capture):
     with capture:
         a = m.return_capsule_with_destructor()
         del a
+        pytest.gc_collect()
     assert capture.unordered == """
         creating capsule
         destructing capsule
@@ -527,6 +528,7 @@ def test_capsule_with_destructor(capture):
     with capture:
         a = m.return_capsule_with_destructor_2()
         del a
+        pytest.gc_collect()
     print(capture)
     assert capture.unordered == """
         creating capsule
