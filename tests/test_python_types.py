@@ -529,7 +529,6 @@ def test_capsule_with_destructor(capture):
         a = m.return_capsule_with_destructor_2()
         del a
         pytest.gc_collect()
-    print(capture)
     assert capture.unordered == """
         creating capsule
         destructing capsule: 1234
