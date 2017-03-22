@@ -470,6 +470,24 @@ test_initializer python_types([](py::module &m) {
     m.def("return_none_bool",   []() -> bool *        { return nullptr; });
     m.def("return_none_int",    []() -> int *         { return nullptr; });
     m.def("return_none_float",  []() -> float *       { return nullptr; });
+
+    m.def("return_capsule_with_destructor",
+        []() {
+            py::print("creating capsule");
+            return py::capsule([]() {
+                py::print("destructing capsule");
+            });
+        }
+    );
+
+    m.def("return_capsule_with_destructor_2",
+        []() {
+            py::print("creating capsule");
+            return py::capsule((void *) 1234, [](void *ptr) {
+                py::print("destructing capsule: {}"_s.format((size_t) ptr));
+            });
+        }
+    );
 });
 
 #if defined(_MSC_VER)

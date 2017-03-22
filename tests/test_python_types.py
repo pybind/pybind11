@@ -512,3 +512,22 @@ def test_builtins_cast_return_none():
     assert m.return_none_bool() is None
     assert m.return_none_int() is None
     assert m.return_none_float() is None
+
+def test_capsule_with_destructor(capture):
+    import pybind11_tests as m
+    with capture:
+        a = m.return_capsule_with_destructor()
+        del a
+    assert capture.unordered == """
+        creating capsule
+        destructing capsule
+    """
+
+    with capture:
+        a = m.return_capsule_with_destructor_2()
+        del a
+    print(capture)
+    assert capture.unordered == """
+        creating capsule
+        destructing capsule: 1234
+    """

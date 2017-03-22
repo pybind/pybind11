@@ -1032,6 +1032,16 @@ public:
             pybind11_fail("Could not set capsule context!");
     }
 
+    capsule(void (*destructor)()) {
+        m_ptr = PyCapsule_New(reinterpret_cast<void *>(destructor), nullptr, [](PyObject *o) {
+            auto destructor = reinterpret_cast<void (*)()>(PyCapsule_GetPointer(o, nullptr));
+            destructor();
+        });
+
+        if (!m_ptr)
+            pybind11_fail("Could not allocate capsule object!");
+    }
+
     template <typename T> operator T *() const {
         T * result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, nullptr));
         if (!result) pybind11_fail("Unable to extract capsule contents!");
