@@ -235,7 +235,7 @@ handle eigen_ref_array(Type &src, handle parent = none()) {
 // not the Type of the pointer given is const.
 template <typename props, typename Type, typename = enable_if_t<is_eigen_dense_plain<Type>::value>>
 handle eigen_encapsulate(Type *src) {
-    capsule base(src, [](PyObject *o) { delete static_cast<Type *>(PyCapsule_GetPointer(o, nullptr)); });
+    capsule base(src, [](void *o) { delete static_cast<Type *>(o); });
     return eigen_ref_array<props>(*src, base);
 }
 

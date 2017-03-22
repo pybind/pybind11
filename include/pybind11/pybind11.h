@@ -294,8 +294,8 @@ protected:
             rec->def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
-            capsule rec_capsule(rec, [](PyObject *o) {
-                destruct((detail::function_record *) PyCapsule_GetPointer(o, nullptr));
+            capsule rec_capsule(rec, [](void *ptr) {
+                destruct((detail::function_record *) ptr);
             });
 
             object scope_module;
