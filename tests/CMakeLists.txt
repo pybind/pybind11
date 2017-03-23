@@ -233,6 +233,9 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.1)
 
   pybind11_add_build_test(subdirectory_function)
   pybind11_add_build_test(subdirectory_target)
+  if(NOT ${PYTHON_MODULE_EXTENSION} MATCHES "pypy")
+    pybind11_add_build_test(subdirectory_embed)
+  endif()
 
   if(PYBIND11_INSTALL)
     add_custom_target(mock_install ${CMAKE_COMMAND}
@@ -242,6 +245,9 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.1)
 
     pybind11_add_build_test(installed_function INSTALL)
     pybind11_add_build_test(installed_target INSTALL)
+    if(NOT ${PYTHON_MODULE_EXTENSION} MATCHES "pypy")
+      pybind11_add_build_test(installed_embed INSTALL)
+    endif()
   endif()
 endif()
 

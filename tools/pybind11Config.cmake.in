@@ -21,17 +21,26 @@
 # Exported targets::
 #
 # If pybind11 is found, this module defines the following :prop_tgt:`IMPORTED`
-# target. Python headers, libraries (as needed by platform), and C++ standard
+# interface library targets::
+#
+#   pybind11::module - for extension modules
+#   pybind11::embed - for embedding the Python interpreter
+#
+# Python headers, libraries (as needed by platform), and the C++ standard
 # are attached to the target. Set PythonLibsNew variables to influence
 # python detection and PYBIND11_CPP_STANDARD (-std=c++11 or -std=c++14) to
 # influence standard setting. ::
 #
-#   pybind11::module - the main pybind11 interface library for extension modules (i.e., headers)
-#
 #   find_package(pybind11 CONFIG REQUIRED)
-#   message(STATUS "Found pybind11: ${pybind11_INCLUDE_DIR} (found version ${pybind11_VERSION} & Py${PYTHON_VERSION_STRING})")
+#   message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
+#
+#   # Create an extension module
 #   add_library(mylib MODULE main.cpp)
 #   target_link_libraries(mylib pybind11::module)
+#
+#   # Or embed the Python interpreter into an executable
+#   add_executable(myexe main.cpp)
+#   target_link_libraries(myexe pybind11::embed)
 #
 # Suggested usage::
 #
@@ -71,21 +80,21 @@ if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
 # Don't include targets if this file is being picked up by another
 # project which has already built this as a subproject
 #-----------------------------------------------------------------------------
-if(NOT TARGET ${PN}::module)
+if(NOT TARGET ${PN}::pybind11)
     include("${CMAKE_CURRENT_LIST_DIR}/${PN}Targets.cmake")
 
     find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
-    set_property(TARGET ${PN}::module APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIRS})
+    set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIRS})
+    set_property(TARGET ${PN}::embed APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
     if(WIN32 OR CYGWIN)
       set_property(TARGET ${PN}::module APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
     endif()
 
     select_cxx_standard()
-    set_property(TARGET ${PN}::module APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${PYBIND11_CPP_STANDARD}")
+    set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${PYBIND11_CPP_STANDARD}")
 
-    get_property(_iid TARGET ${PN}::module PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+    get_property(_iid TARGET ${PN}::pybind11 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
     get_property(_ill TARGET ${PN}::module PROPERTY INTERFACE_LINK_LIBRARIES)
-    get_property(_ico TARGET ${PN}::module PROPERTY INTERFACE_COMPILE_OPTIONS)
     set(${PN}_INCLUDE_DIRS ${_iid})
     set(${PN}_LIBRARIES ${_ico} ${_ill})
 endif()
