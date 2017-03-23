@@ -192,8 +192,10 @@ script:
     -DPYBIND11_PYTHON_VERSION=$PYTHON
     -DPYBIND11_CPP_STANDARD=$CPP
     -DPYBIND11_WERROR=${WERROR:-ON}
+    -DDOWNLOAD_CATCH=ON
 - $SCRIPT_RUN_PREFIX make pytest -j 2
+- $SCRIPT_RUN_PREFIX make cpptest -j 2
 - $SCRIPT_RUN_PREFIX make test_cmake_build
-after_failure: cat tests/test_cmake_build/*.log
+after_failure: cat tests/test_cmake_build/*.log*
 after_script:
 - if [ -n "$DOCKER" ]; then docker stop "$containerid"; docker rm "$containerid"; fi
