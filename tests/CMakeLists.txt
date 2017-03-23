@@ -195,6 +195,9 @@ add_custom_command(TARGET pybind11_tests POST_BUILD
   COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/libsize.py
   $<TARGET_FILE:pybind11_tests> ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
 
+# Test embedding the interpreter. Provides the `cpptest` target.
+add_subdirectory(test_embed)
+
 # Test CMake build using functions and targets from subdirectory or installed location
 add_custom_target(test_cmake_build)
 if(NOT CMAKE_VERSION VERSION_LESS 3.1)

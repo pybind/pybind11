@@ -39,6 +39,7 @@ install:
       if ($env:CONDA -eq "27") { $env:CONDA = "" }
       if ($env:PLATFORM -eq "x64") { $env:CONDA = "$env:CONDA-x64" }
       $env:PATH = "C:\Miniconda$env:CONDA\;C:\Miniconda$env:CONDA\Scripts\;$env:PATH"
+      $env:PYTHONHOME = "C:\Miniconda$env:CONDA"
       conda install -y -q pytest numpy scipy
     }
 - ps: |
@@ -46,8 +47,13 @@ install:
     7z x 3.3.3.zip -y > $null
     $env:CMAKE_INCLUDE_PATH = "eigen-eigen-67e894c6cd8f"
 build_script:
-- cmake -G "%CMAKE_GENERATOR%" -A "%CMAKE_ARCH%" -DPYBIND11_CPP_STANDARD=/std:c++%CPP% -DPYBIND11_WERROR=ON -DCMAKE_SUPPRESS_REGENERATION=1
+- cmake -G "%CMAKE_GENERATOR%" -A "%CMAKE_ARCH%"
+    -DPYBIND11_CPP_STANDARD=/std:c++%CPP%
+    -DPYBIND11_WERROR=ON
+    -DDOWNLOAD_CATCH=ON
+    -DCMAKE_SUPPRESS_REGENERATION=1
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 - cmake --build . --config Release --target pytest -- /v:m /logger:%MSBuildLogger%
+- cmake --build . --config Release --target cpptest -- /v:m /logger:%MSBuildLogger%
 - cmake --build . --config Release --target test_cmake_build -- /v:m /logger:%MSBuildLogger%
-on_failure: if exist "tests\test_cmake_build" type tests\test_cmake_build\*.log
+on_failure: if exist "tests\test_cmake_build" type tests\test_cmake_build\*.log*
