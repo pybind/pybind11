@@ -11,8 +11,6 @@
 
 #pragma once
 
-#pragma once
-
 #include "pybind11.h"
 
 NAMESPACE_BEGIN(pybind11)
@@ -37,6 +35,9 @@ object eval(str expr, object global = object(), object local = object()) {
     }
     if (!local)
         local = global;
+
+    /* Support raw string literals by removing common leading whitespace */
+    expr = module::import("textwrap").attr("dedent")(expr);
 
     /* PyRun_String does not accept a PyObject / encoding specifier,
        this seems to be the only alternative */

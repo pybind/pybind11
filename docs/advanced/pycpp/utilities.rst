@@ -55,3 +55,16 @@ is always ``none``).
 
     // Evaluate the statements in an separate Python file on disk
     py::eval_file("script.py", scope);
+
+C++11 raw string literals are also supported and quite handy for this purpose:
+
+.. code-block:: cpp
+
+    py::eval<py::eval_statements>(R"(
+        x = get_answer()
+        if x == 42:
+            print('Hello World!')
+        else:
+            print('Bye!')
+        )", scope
+    );
