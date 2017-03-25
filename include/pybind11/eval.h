@@ -36,9 +36,6 @@ object eval(str expr, object global = object(), object local = object()) {
     if (!local)
         local = global;
 
-    /* Support raw string literals by removing common leading whitespace */
-    expr = module::import("textwrap").attr("dedent")(expr);
-
     /* PyRun_String does not accept a PyObject / encoding specifier,
        this seems to be the only alternative */
     std::string buffer = "# -*- coding: utf-8 -*-\n" + (std::string) expr;
@@ -55,6 +52,14 @@ object eval(str expr, object global = object(), object local = object()) {
     if (!result)
         throw error_already_set();
     return reinterpret_steal<object>(result);
+}
+
+template <eval_mode mode = eval_expr, size_t N>
+object eval(const char (&s)[N], object global = object(), object local = object()) {
+    /* Support raw string literals by removing common leading whitespace */
+    auto expr = (s[0] == '\n') ? str(module::import("textwrap").attr("dedent")(s))
+                               : str(s);
+    return eval<mode>(expr, global, local);
 }
 
 template <eval_mode mode = eval_statements>
