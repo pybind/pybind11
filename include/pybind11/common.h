@@ -504,6 +504,14 @@ struct is_input_iterator<T, void_t<decltype(*std::declval<T &>()), decltype(++st
 /// Ignore that a variable is unused in compiler warnings
 inline void ignore_unused(const int *) { }
 
+/// Apply a function over each element of a parameter pack
+#ifdef __cpp_fold_expressions
+#define PYBIND11_EXPAND_SIDE_EFFECTS(PATTERN) (((PATTERN), void()), ...)
+#else
+using expand_side_effects = bool[];
+#define PYBIND11_EXPAND_SIDE_EFFECTS(PATTERN) pybind11::detail::expand_side_effects{ ((PATTERN), void(), false)..., false }
+#endif
+
 NAMESPACE_END(detail)
 
 /// Returns a named pointer that is shared among all extension modules (using the same
