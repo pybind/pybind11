@@ -1289,8 +1289,8 @@ public:
         return *this;
     }
 
-    template <size_t K, class T> const T& data() const {
-        return *reinterpret_cast<T*>(m_common_iterator[K].data());
+    template <size_t K, class T = void> T* data() const {
+        return reinterpret_cast<T*>(m_common_iterator[K].data());
     }
 
 private:
@@ -1340,7 +1340,7 @@ enum class broadcast_trivial { non_trivial, c_trivial, f_trivial };
 // buffer; returns `non_trivial` otherwise.
 template <size_t N>
 broadcast_trivial broadcast(const std::array<buffer_info, N> &buffers, ssize_t &ndim, std::vector<ssize_t> &shape) {
-    ndim = std::accumulate(buffers.begin(), buffers.end(), ssize_t(0), [](ssize_t res, const buffer_info& buf) {
+    ndim = std::accumulate(buffers.begin(), buffers.end(), ssize_t(0), [](ssize_t res, const buffer_info &buf) {
         return std::max(res, buf.ndim);
     });
 
@@ -1411,21 +1411,63 @@ broadcast_trivial broadcast(const std::array<buffer_info, N> &buffers, ssize_t &
         broadcast_trivial::non_trivial;
 }
 
+template <typename T>
+struct vectorize_arg {
+    static_assert(!std::is_rvalue_reference<T>::value, "Functions with rvalue reference arguments cannot be vectorized");
+    // The wrapped function gets called with this type:
+    using call_type = remove_reference_t<T>;
+    // Is this a vectorized argument?
+    static constexpr bool vectorize =
+        satisfies_any_of<call_type, std::is_arithmetic, is_complex, std::is_pod>::value &&
+        satisfies_none_of<call_type, std::is_pointer, std::is_array, is_std_array, std::is_enum>::value &&
+        (!std::is_reference<T>::value ||
+         (std::is_lvalue_reference<T>::value && std::is_const<call_type>::value));
+    // Accept this type: an array for vectorized types, otherwise the type as-is:
+    using type = conditional_t<vectorize, array_t<remove_cv_t<call_type>, array::forcecast>, T>;
+};
+
 template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {
-    typename std::remove_reference<Func>::type f;
+private:
     static constexpr size_t N = sizeof...(Args);
+    static constexpr size_t NVectorized = constexpr_sum(vectorize_arg<Args>::vectorize...);
+    static_assert(NVectorized >= 1,
+            "pybind11::vectorize(...) requires a function with at least one vectorizable argument");
 
+public:
     template <typename T>
-    explicit vectorize_helper(T&&f) : f(std::forward<T>(f)) { }
+    explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) { }
 
-    object operator()(array_t<Args, array::forcecast>... args) {
-        return run(args..., make_index_sequence<N>());
+    object operator()(typename vectorize_arg<Args>::type... args) {
+        return run(args...,
+                   make_index_sequence<N>(),
+                   select_indices<vectorize_arg<Args>::vectorize...>(),
+                   make_index_sequence<NVectorized>());
     }
 
-    template <size_t ... Index> object run(array_t<Args, array::forcecast>&... args, index_sequence<Index...> index) {
-        /* Request buffers from all parameters */
-        std::array<buffer_info, N> buffers {{ args.request()... }};
+private:
+    remove_reference_t<Func> f;
+
+    template <size_t Index> using param_n_t = typename pack_element<Index, typename vectorize_arg<Args>::call_type...>::type;
+
+    // Runs a vectorized function given arguments tuple and three index sequences:
+    //     - Index is the full set of 0 ... (N-1) argument indices;
+    //     - VIndex is the subset of argument indices with vectorized parameters, letting us access
+    //       vectorized arguments (anything not in this sequence is passed through)
+    //     - BIndex is a incremental sequence (beginning at 0) of the same size as VIndex, so that
+    //       we can store vectorized buffer_infos in an array (argument VIndex has its buffer at
+    //       index BIndex in the array).
+    template <size_t... Index, size_t... VIndex, size_t... BIndex> object run(
+            typename vectorize_arg<Args>::type &...args,
+            index_sequence<Index...> i_seq, index_sequence<VIndex...> vi_seq, index_sequence<BIndex...> bi_seq) {
+
+        // Pointers to values the function was called with; the vectorized ones set here will start
+        // out as array_t<T> pointers, but they will be changed them to T pointers before we make
+        // call the wrapped function.  Non-vectorized pointers are left as-is.
+        std::array<void *, N> params{{ &args... }};
+
+        // The array of `buffer_info`s of vectorized arguments:
+        std::array<buffer_info, NVectorized> buffers{{ reinterpret_cast<array *>(params[VIndex])->request()... }};
 
         /* Determine dimensions parameters of output array */
         ssize_t nd = 0;
@@ -1433,60 +1475,78 @@ struct vectorize_helper {
         auto trivial = broadcast(buffers, nd, shape);
         size_t ndim = (size_t) nd;
 
-        ssize_t size = 1;
-        std::vector<ssize_t> strides(ndim);
-        if (ndim > 0) {
-            if (trivial == broadcast_trivial::f_trivial) {
-                strides[0] = sizeof(Return);
-                for (size_t i = 1; i < ndim; ++i) {
-                    strides[i] = strides[i - 1] * shape[i - 1];
-                    size *= shape[i - 1];
-                }
-                size *= shape[ndim - 1];
-            }
-            else {
-                strides[ndim-1] = sizeof(Return);
-                for (size_t i = ndim - 1; i > 0; --i) {
-                    strides[i - 1] = strides[i] * shape[i];
-                    size *= shape[i];
-                }
-                size *= shape[0];
-            }
+        size_t size = std::accumulate(shape.begin(), shape.end(), (size_t) 1, std::multiplies<size_t>());
+
+        // If all arguments are 0-dimension arrays (i.e. single values) return a plain value (i.e.
+        // not wrapped in an array).
+        if (size == 1 && ndim == 0) {
+            PYBIND11_EXPAND_SIDE_EFFECTS(params[VIndex] = buffers[BIndex].ptr);
+            return cast(f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...));
         }
 
-        if (size == 1)
-            return cast(f(*reinterpret_cast<Args *>(buffers[Index].ptr)...));
+        array_t<Return> result;
+        if (trivial == broadcast_trivial::f_trivial) result = array_t<Return, array::f_style>(shape);
+        else result = array_t<Return>(shape);
 
-        array_t<Return> result(shape, strides);
-        auto buf = result.request();
-        auto output = (Return *) buf.ptr;
+        if (size == 0) return result;
 
         /* Call the function */
-        if (trivial == broadcast_trivial::non_trivial) {
-            apply_broadcast<Index...>(buffers, buf, index);
-        } else {
-            for (ssize_t i = 0; i < size; ++i)
-                output[i] = f((reinterpret_cast<Args *>(buffers[Index].ptr)[buffers[Index].size == 1 ? 0 : i])...);
-        }
+        if (trivial == broadcast_trivial::non_trivial)
+            apply_broadcast(buffers, params, result, i_seq, vi_seq, bi_seq);
+        else
+            apply_trivial(buffers, params, result.mutable_data(), size, i_seq, vi_seq, bi_seq);
 
         return result;
     }
 
-    template <size_t... Index>
-    void apply_broadcast(const std::array<buffer_info, N> &buffers,
-                         buffer_info &output, index_sequence<Index...>) {
-        using input_iterator = multi_array_iterator<N>;
-        using output_iterator = array_iterator<Return>;
+    template <size_t... Index, size_t... VIndex, size_t... BIndex>
+    void apply_trivial(std::array<buffer_info, NVectorized> &buffers,
+                       std::array<void *, N> &params,
+                       Return *out,
+                       size_t size,
+                       index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
 
-        input_iterator input_iter(buffers, output.shape);
-        output_iterator output_end = array_end<Return>(output);
+        // Initialize an array of mutable byte references and sizes with references set to the
+        // appropriate pointer in `params`; as we iterate, we'll increment each pointer by its size
+        // (except for singletons, which get an increment of 0).
+        std::array<std::pair<unsigned char *&, const size_t>, NVectorized> vecparams{{
+            std::pair<unsigned char *&, const size_t>(
+                    reinterpret_cast<unsigned char *&>(params[VIndex] = buffers[BIndex].ptr),
+                    buffers[BIndex].size == 1 ? 0 : sizeof(param_n_t<VIndex>)
+            )...
+        }};
 
-        for (output_iterator iter = array_begin<Return>(output);
-             iter != output_end; ++iter, ++input_iter) {
-            *iter = f((input_iter.template data<Index, Args>())...);
+        for (size_t i = 0; i < size; ++i) {
+            out[i] = f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...);
+            for (auto &x : vecparams) x.first += x.second;
+        }
+    }
+
+    template <size_t... Index, size_t... VIndex, size_t... BIndex>
+    void apply_broadcast(std::array<buffer_info, NVectorized> &buffers,
+                         std::array<void *, N> &params,
+                         array_t<Return> &output_array,
+                         index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
+
+        buffer_info output = output_array.request();
+        multi_array_iterator<NVectorized> input_iter(buffers, output.shape);
+
+        for (array_iterator<Return> iter = array_begin<Return>(output), end = array_end<Return>(output);
+             iter != end;
+             ++iter, ++input_iter) {
+            PYBIND11_EXPAND_SIDE_EFFECTS((
+                params[VIndex] = input_iter.template data<BIndex>()
+            ));
+            *iter = f(*reinterpret_cast<param_n_t<Index> *>(std::get<Index>(params))...);
         }
     }
 };
+
+template <typename Func, typename Return, typename... Args>
+vectorize_helper<Func, Return, Args...>
+vectorize_extractor(const Func &f, Return (*) (Args ...)) {
+    return detail::vectorize_helper<Func, Return, Args...>(f);
+}
 
 template <typename T, int Flags> struct handle_type_name<array_t<T, Flags>> {
     static PYBIND11_DESCR name() {
@@ -1496,22 +1556,32 @@ template <typename T, int Flags> struct handle_type_name<array_t<T, Flags>> {
 
 NAMESPACE_END(detail)
 
-template <typename Func, typename Return, typename... Args>
-detail::vectorize_helper<Func, Return, Args...>
-vectorize(const Func &f, Return (*) (Args ...)) {
-    return detail::vectorize_helper<Func, Return, Args...>(f);
-}
-
+// Vanilla pointer vectorizer:
 template <typename Return, typename... Args>
-detail::vectorize_helper<Return (*) (Args ...), Return, Args...>
+detail::vectorize_helper<Return (*)(Args...), Return, Args...>
 vectorize(Return (*f) (Args ...)) {
-    return vectorize<Return (*) (Args ...), Return, Args...>(f, f);
+    return detail::vectorize_helper<Return (*)(Args...), Return, Args...>(f);
 }
 
-template <typename Func, typename FuncType = typename detail::remove_class<decltype(&std::remove_reference<Func>::type::operator())>::type>
+// lambda vectorizer:
+template <typename Func, typename FuncType = typename detail::remove_class<decltype(&detail::remove_reference_t<Func>::operator())>::type>
 auto vectorize(Func &&f) -> decltype(
-        vectorize(std::forward<Func>(f), (FuncType *) nullptr)) {
-    return vectorize(std::forward<Func>(f), (FuncType *) nullptr);
+        detail::vectorize_extractor(std::forward<Func>(f), (FuncType *) nullptr)) {
+    return detail::vectorize_extractor(std::forward<Func>(f), (FuncType *) nullptr);
+}
+
+// Vectorize a class method (non-const):
+template <typename Return, typename Class, typename... Args,
+          typename Helper = detail::vectorize_helper<decltype(std::mem_fn(std::declval<Return (Class::*)(Args...)>())), Return, Class *, Args...>>
+Helper vectorize(Return (Class::*f)(Args...)) {
+    return Helper(std::mem_fn(f));
+}
+
+// Vectorize a class method (non-const):
+template <typename Return, typename Class, typename... Args,
+          typename Helper = detail::vectorize_helper<decltype(std::mem_fn(std::declval<Return (Class::*)(Args...) const>())), Return, const Class *, Args...>>
+Helper vectorize(Return (Class::*f)(Args...) const) {
+    return Helper(std::mem_fn(f));
 }
 
 NAMESPACE_END(pybind11)

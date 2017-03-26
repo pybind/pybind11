@@ -239,27 +239,13 @@ by the compiler. The result is returned as a NumPy array of type
 The scalar argument ``z`` is transparently replicated 4 times.  The input
 arrays ``x`` and ``y`` are automatically converted into the right types (they
 are of type  ``numpy.dtype.int64`` but need to be ``numpy.dtype.int32`` and
-``numpy.dtype.float32``, respectively)
+``numpy.dtype.float32``, respectively).
 
-Sometimes we might want to explicitly exclude an argument from the vectorization
-because it makes little sense to wrap it in a NumPy array. For instance,
-suppose the function signature was
+.. note::
 
-.. code-block:: cpp
-
-    double my_func(int x, float y, my_custom_type *z);
-
-This can be done with a stateful Lambda closure:
-
-.. code-block:: cpp
-
-    // Vectorize a lambda function with a capture object (e.g. to exclude some arguments from the vectorization)
-    m.def("vectorized_func",
-        [](py::array_t<int> x, py::array_t<float> y, my_custom_type *z) {
-            auto stateful_closure = [z](int x, float y) { return my_func(x, y, z); };
-            return py::vectorize(stateful_closure)(x, y);
-        }
-    );
+    Only arithmetic, complex, and POD types passed by value or by ``const &``
+    reference are vectorized; all other arguments are passed through as-is.
+    Functions taking rvalue reference arguments cannot be vectorized.
 
 In cases where the computation is too complicated to be reduced to
 ``vectorize``, it will be necessary to create and access the buffer contents
