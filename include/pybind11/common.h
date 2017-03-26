@@ -348,10 +348,12 @@ inline internals &get_internals();
 using std::enable_if_t;
 using std::conditional_t;
 using std::remove_cv_t;
+using std::remove_reference_t;
 #else
 template <bool B, typename T = void> using enable_if_t = typename std::enable_if<B, T>::type;
 template <bool B, typename T, typename F> using conditional_t = typename std::conditional<B, T, F>::type;
 template <typename T> using remove_cv_t = typename std::remove_cv<T>::type;
+template <typename T> using remove_reference_t = typename std::remove_reference<T>::type;
 #endif
 
 /// Index sequences
