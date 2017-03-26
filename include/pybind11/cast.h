@@ -15,6 +15,7 @@
 #include "descr.h"
 #include <array>
 #include <limits>
+#include <tuple>
 
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
