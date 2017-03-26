@@ -390,7 +390,7 @@ protected:
  */
 template <typename T>
 using cast_op_type =
-    conditional_t<std::is_pointer<typename std::remove_reference<T>::type>::value,
+    conditional_t<std::is_pointer<remove_reference_t<T>>::value,
         typename std::add_pointer<intrinsic_t<T>>::type,
         typename std::add_lvalue_reference<intrinsic_t<T>>::type>;
 
@@ -883,7 +883,7 @@ public:
     }
 
     static PYBIND11_DESCR name() { return type_descr(_(PYBIND11_STRING_NAME)); }
-    template <typename _T> using cast_op_type = typename std::remove_reference<pybind11::detail::cast_op_type<_T>>::type;
+    template <typename _T> using cast_op_type = remove_reference_t<pybind11::detail::cast_op_type<_T>>;
 };
 
 template <typename T1, typename T2> class type_caster<std::pair<T1, T2>> {
