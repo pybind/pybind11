@@ -183,7 +183,8 @@ is possible to emulate it using Python capsules with a destruction callback.
         // perform cleanup here -- this function is called with the GIL held
     };
 
-    m.add_object("_cleanup", py::capsule(cleanup_callback));
+    py::capsule cleanup(cleanup_callback));
+    m.add_object("_cleanup", cleanup);
 
 Generating documentation using Sphinx
 =====================================
