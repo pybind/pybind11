@@ -714,16 +714,16 @@ public:
     using value_type = T;
 
     array_t() : array(0, static_cast<const T *>(nullptr)) {}
-    array_t(handle h, borrowed_t) : array(h, borrowed) { }
-    array_t(handle h, stolen_t) : array(h, stolen) { }
+    array_t(handle h, borrowed_t) : array(h, borrowed_t{}) { }
+    array_t(handle h, stolen_t) : array(h, stolen_t{}) { }
 
     PYBIND11_DEPRECATED("Use array_t<T>::ensure() instead")
-    array_t(handle h, bool is_borrowed) : array(raw_array_t(h.ptr()), stolen) {
+    array_t(handle h, bool is_borrowed) : array(raw_array_t(h.ptr()), stolen_t{}) {
         if (!m_ptr) PyErr_Clear();
         if (!is_borrowed) Py_XDECREF(h.ptr());
     }
 
-    array_t(const object &o) : array(raw_array_t(o.ptr()), stolen) {
+    array_t(const object &o) : array(raw_array_t(o.ptr()), stolen_t{}) {
         if (!m_ptr) throw error_already_set();
     }
 
