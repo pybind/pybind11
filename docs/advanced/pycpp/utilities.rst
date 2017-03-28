@@ -55,3 +55,18 @@ is always ``none``).
 
     // Evaluate the statements in an separate Python file on disk
     py::eval_file("script.py", scope);
+
+C++11 raw string literals are also supported and quite handy for this purpose.
+The only requirement is that the first statement must be on a new line following
+the raw string delimiter ``R"(``, ensuring all lines have common leading indent:
+
+.. code-block:: cpp
+
+    py::eval<py::eval_statements>(R"(
+        x = get_answer()
+        if x == 42:
+            print('Hello World!')
+        else:
+            print('Bye!')
+        )", scope
+    );

@@ -20,10 +20,20 @@ test_initializer eval([](py::module &m) {
             return 42;
         });
 
-        auto result = py::eval<py::eval_statements>(
-            "print('Hello World!');\n"
-            "x = call_test();",
+        // Regular string literal
+        py::eval<py::eval_statements>(
+            "message = 'Hello World!'\n"
+            "x = call_test()",
             global, local
+        );
+
+        // Multi-line raw string literal
+        auto result = py::eval<py::eval_statements>(R"(
+            if x == 42:
+                print(message)
+            else:
+                raise RuntimeError
+            )", global, local
         );
         auto x = local["x"].cast<int>();
 
