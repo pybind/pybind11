@@ -889,9 +889,9 @@ class class_ : public detail::generic_type {
 
 public:
     using type = type_;
-    using type_alias = detail::first_of_t<is_subtype, void, options...>;
+    using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type = detail::first_of_t<is_holder, std::unique_ptr<type>, options...>;
+    using holder_type = detail::exactly_one_t<is_holder, std::unique_ptr<type>, options...>;
     using instance_type = detail::instance<type, holder_type>;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
@@ -1159,15 +1159,12 @@ public:
     using class_<Type>::def;
     using class_<Type>::def_property_readonly_static;
     using Scalar = typename std::underlying_type<Type>::type;
-    template <typename T> using arithmetic_tag = std::is_same<T, arithmetic>;
 
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : class_<Type>(scope, name, extra...), m_entries(), m_parent(scope) {
 
-        constexpr bool is_arithmetic =
-            !std::is_same<detail::first_of_t<arithmetic_tag, void, Extra...>,
-                          void>::value;
+        constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
 
         auto m_entries_ptr = m_entries.inc_ref().ptr();
         def("__repr__", [name, m_entries_ptr](Type value) -> pybind11::str {

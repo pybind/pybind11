@@ -502,20 +502,27 @@ constexpr int constexpr_first() { return constexpr_impl::first(0, Predicate<Ts>:
 template <template<typename> class Predicate, typename... Ts>
 constexpr int constexpr_last() { return constexpr_impl::last(0, -1, Predicate<Ts>::value...); }
 
-// Extracts the first type from the template parameter pack matching the predicate, or Default if none match.
-template <template<class> class Predicate, class Default, class... Ts> struct first_of;
-template <template<class> class Predicate, class Default> struct first_of<Predicate, Default> {
-    using type = Default;
+/// Return the Nth element from the parameter pack
+template <size_t N, typename T, typename... Ts>
+struct pack_element { using type = typename pack_element<N - 1, Ts...>::type; };
+template <typename T, typename... Ts>
+struct pack_element<0, T, Ts...> { using type = T; };
+
+/// Return the one and only type which matches the predicate, or Default if none match.
+/// If more than one type matches the predicate, fail at compile-time.
+template <template<typename> class Predicate, typename Default, typename... Ts>
+struct exactly_one {
+    static constexpr auto found = constexpr_sum(Predicate<Ts>::value...);
+    static_assert(found <= 1, "Found more than one type matching the predicate");
+
+    static constexpr auto index = found ? constexpr_first<Predicate, Ts...>() : 0;
+    using type = conditional_t<found, typename pack_element<index, Ts...>::type, Default>;
 };
-template <template<class> class Predicate, class Default, class T, class... Ts>
-struct first_of<Predicate, Default, T, Ts...> {
-    using type = typename std::conditional<
-        Predicate<T>::value,
-        T,
-        typename first_of<Predicate, Default, Ts...>::type
-    >::type;
-};
-template <template<class> class Predicate, class Default, class... T> using first_of_t = typename first_of<Predicate, Default, T...>::type;
+template <template<typename> class P, typename Default>
+struct exactly_one<P, Default> { using type = Default; };
+
+template <template<typename> class Predicate, typename Default, typename... Ts>
+using exactly_one_t = typename exactly_one<Predicate, Default, Ts...>::type;
 
 /// Defer the evaluation of type T until types Us are instantiated
 template <typename T, typename... /*Us*/> struct deferred_type { using type = T; };
