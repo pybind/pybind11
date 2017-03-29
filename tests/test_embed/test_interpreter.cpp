@@ -1,6 +1,4 @@
-#include <pybind11/pybind11.h>
-#include <pybind11/eval.h>
-
+#include <pybind11/embed.h>
 #include <catch.hpp>
 
 namespace py = pybind11;
@@ -24,41 +22,62 @@ class PyWidget final : public Widget {
     int the_answer() const override { PYBIND11_OVERLOAD_PURE(int, Widget, the_answer); }
 };
 
-PyObject *make_embedded_module() {
-    py::module m("widget_module");
-
+PYBIND11_EMBEDDED_MODULE(widget_module, m) {
     py::class_<Widget, PyWidget>(m, "Widget")
         .def(py::init<std::string>())
         .def_property_readonly("the_message", &Widget::the_message);
-
-    return m.ptr();
 }
 
-py::object import_file(const std::string &module, const std::string &path, py::object globals) {
-    auto locals = py::dict("module_name"_a=module, "path"_a=path);
-    py::eval<py::eval_statements>(
-        "import imp\n"
-        "with open(path) as file:\n"
-        "    new_module = imp.load_module(module_name, file, path, ('py', 'U', imp.PY_SOURCE))",
-        globals, locals
-    );
-    return locals["new_module"];
+PYBIND11_EMBEDDED_MODULE(throw_exception, ) {
+    throw std::runtime_error("C++ Error");
+}
+
+PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
+    auto d = py::dict();
+    d["missing"].cast<py::object>();
 }
 
 TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
-    PyImport_AppendInittab("widget_module", &make_embedded_module);
-    Py_Initialize();
+    auto module = py::module::import("test_interpreter");
+    REQUIRE(py::hasattr(module, "DerivedWidget"));
+
+    auto locals = py::dict("hello"_a="Hello, World!", "x"_a=5, **module.attr("__dict__"));
+    py::exec(R"(
+        widget = DerivedWidget("{} - {}".format(hello, x))
+        message = widget.the_message
+    )", py::globals(), locals);
+    REQUIRE(locals["message"].cast<std::string>() == "Hello, World! - 5");
+
+    auto py_widget = module.attr("DerivedWidget")("The question");
+    auto message = py_widget.attr("the_message");
+    REQUIRE(message.cast<std::string>() == "The question");
+
+    const auto &cpp_widget = py_widget.cast<const Widget &>();
+    REQUIRE(cpp_widget.the_answer() == 42);
+}
+
+TEST_CASE("Import error handling") {
+    REQUIRE_NOTHROW(py::module::import("widget_module"));
+    REQUIRE_THROWS_WITH(py::module::import("throw_exception"),
+                        "ImportError: C++ Error");
+    REQUIRE_THROWS_WITH(py::module::import("throw_error_already_set"),
+                        Catch::Contains("ImportError: KeyError"));
+}
+
+TEST_CASE("There can be only one interpreter") {
+    static_assert(std::is_move_constructible<py::scoped_interpreter>::value, "");
+    static_assert(!std::is_move_assignable<py::scoped_interpreter>::value, "");
+    static_assert(!std::is_copy_constructible<py::scoped_interpreter>::value, "");
+    static_assert(!std::is_copy_assignable<py::scoped_interpreter>::value, "");
+
+    REQUIRE_THROWS_WITH(py::initialize_interpreter(), "The interpreter is already running");
+    REQUIRE_THROWS_WITH(py::scoped_interpreter(), "The interpreter is already running");
+
+    py::finalize_interpreter();
+    REQUIRE_NOTHROW(py::scoped_interpreter());
     {
-        auto globals = py::module::import("__main__").attr("__dict__");
-        auto module = import_file("widget", "test_interpreter.py", globals);
-        REQUIRE(py::hasattr(module, "DerivedWidget"));
-
-        auto py_widget = module.attr("DerivedWidget")("Hello, World!");
-        auto message = py_widget.attr("the_message");
-        REQUIRE(message.cast<std::string>() == "Hello, World!");
-
-        const auto &cpp_widget = py_widget.cast<const Widget &>();
-        REQUIRE(cpp_widget.the_answer() == 42);
+        auto pyi1 = py::scoped_interpreter();
+        auto pyi2 = std::move(pyi1);
     }
-    Py_Finalize();
+    py::initialize_interpreter();
 }

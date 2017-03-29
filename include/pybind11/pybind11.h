@@ -798,6 +798,10 @@ public:
     }
 };
 
+/// \ingroup python_builtins
+/// Return a dictionary representing the global symbol table, i.e. ``__main__.__dict__``.
+inline dict globals() { return module::import("__main__").attr("__dict__").cast<dict>(); }
+
 NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
