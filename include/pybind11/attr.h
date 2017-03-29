@@ -456,7 +456,7 @@ using is_call_guard = is_instantiation<call_guard, T>;
 
 /// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
 template <typename... Extra>
-using extract_guard_t = typename first_of_t<is_call_guard, call_guard<>, Extra...>::type;
+using extract_guard_t = typename exactly_one_t<is_call_guard, call_guard<>, Extra...>::type;
 
 /// Check the number of named arguments at compile time
 template <typename... Extra,
