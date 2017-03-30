@@ -771,13 +771,12 @@ public:
     //
     // overwrite should almost always be false: attempting to overwrite objects that pybind11 has
     // established will, in most cases, break things.
-    PYBIND11_NOINLINE void add_object(const char *name, object &obj, bool overwrite = false) {
+    PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
         if (!overwrite && hasattr(*this, name))
             pybind11_fail("Error during initialization: multiple incompatible definitions with name \"" +
                     std::string(name) + "\"");
 
-        obj.inc_ref(); // PyModule_AddObject() steals a reference
-        PyModule_AddObject(ptr(), name, obj.ptr());
+        PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 };
 
