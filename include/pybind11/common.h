@@ -50,7 +50,7 @@
 #elif defined(_MSC_VER)
 // Pybind hits various compiler bugs in 2015u2 and earlier, and also makes use of some stl features
 // (e.g. std::negation) added in 2015u3:
-#  if _MSC_FULL_VER < 190024213
+#  if _MSC_FULL_VER < 190024210
 #    error pybind11 requires MSVC 2015 update 3 or newer
 #  endif
 #endif
