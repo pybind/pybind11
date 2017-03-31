@@ -597,6 +597,9 @@ public:
     /// Clear the held Python error state (the C++ `what()` message remains intact)
     void clear() { restore(); PyErr_Clear(); }
 
+    /// Check if the trapped exception matches a given Python exception class
+    bool matches(PyObject *ex) const { return PyErr_GivenExceptionMatches(ex, type); }
+
 private:
     PyObject *type, *value, *trace;
 };
