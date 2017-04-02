@@ -21,6 +21,11 @@ def test_python_call_in_catch():
     assert d["good"] is True
 
 
+def test_exception_matches():
+    from pybind11_tests import exception_matches
+    exception_matches()
+
+
 def test_custom(msg):
     from pybind11_tests import (MyException, MyException5, MyException5_1,
                                 throws1, throws2, throws3, throws4, throws5, throws5_1,
