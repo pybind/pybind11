@@ -120,8 +120,6 @@ before_install:
     $PYPY_BINARY -m pip install pytest
   elif [ -n "$DOCKER" ]; then
     docker pull $DOCKER
-    # Disable LTO with gcc until gcc 79296 is fixed:
-    if [ -n "$GCC" ]; then export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYBIND11_LTO_CXX_FLAGS="; fi
 
     export containerid=$(docker run --detach --tty \
       --volume="$PWD":/pybind11 --workdir=/pybind11 \
@@ -131,8 +129,6 @@ before_install:
       $DOCKER)
     export SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
     $SCRIPT_RUN_PREFIX sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
-    # gcc-7 currently generates warnings; some are upstream bugs, so just turn off -Werror for now
-    if [ "$GCC" = "7" ]; then WERROR=off; fi
   else
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
       pip install --user --upgrade pip virtualenv
