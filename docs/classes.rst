@@ -443,3 +443,46 @@ The entries defined by the enumeration type are exposed in the ``__members__`` p
            ...
 
     By default, these are omitted to conserve space.
+
+Python 3 enumerations
+=====================
+
+Python 3 provides support for rich enumeration types in ``enum`` module [#enum]_ of the
+standard library; it can be also used in Python 2 by installing ``enum34`` backport package.
+
+In order to expose a C++ enumeration type as a subclass of ``enum.IntEnum`` in Python,
+one can use the :class:`py3_enum` wrapper whose interface is similar to that of :class:`enum_`:
+
+.. code-block:: cpp
+
+    enum class Captain {
+        Kirk = 0,
+        Picard
+    };
+
+The binding code will look like this:
+
+.. code-block:: cpp
+
+    py::py3_enum<Captain>(m, "Captain")
+        .value("Kirk", Captain::Kirk)
+        .value("Picard", Captain::Picard);
+
+The corresponding Python type is a subclass of ``enum.IntEnum`` and, as a result, is also
+a subclass of ``int``:
+
+.. code-block:: pycon
+
+    >>> Captain.mro()
+    [<enum 'Captain'>, <enum 'IntEnum'>, int, <enum 'Enum'>, object]
+    >>> list(Captain)
+    [<Captain.Kirk: 0>, <Captain.Picard: 1>]
+    >>> int(Captain.Picard)
+    1
+    >>> Captain.Kirk.name, Captain.Kirk.value
+    ('Kirk', 0)
+
+For more details on ``IntEnum`` functionality, see the official docs [#intenum]_.
+
+.. [#enum] https://docs.python.org/3/library/enum.html
+.. [#intenum] https://docs.python.org/3/library/enum.html#intenum
