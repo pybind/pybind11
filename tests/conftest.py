@@ -200,6 +200,7 @@ def pytest_namespace():
     except ImportError:
         have_eigen = False
     pypy = platform.python_implementation() == "PyPy"
+    py3 = sys.version_info.major == 3
 
     skipif = pytest.mark.skipif
     return {
@@ -211,7 +212,8 @@ def pytest_namespace():
         'requires_eigen_and_scipy': skipif(not have_eigen or not scipy,
                                            reason="eigen and/or scipy are not installed"),
         'unsupported_on_pypy': skipif(pypy, reason="unsupported on PyPy"),
-        'gc_collect': gc_collect
+        'gc_collect': gc_collect,
+        'requires_py3': skipif(not py3, reason='requires Python 3')
     }
 
 

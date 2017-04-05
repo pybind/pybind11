@@ -127,3 +127,33 @@ def test_enum_to_int():
     test_enum_to_uint(ClassWithUnscopedEnum.EMode.EFirstMode)
     test_enum_to_long_long(Flags.Read)
     test_enum_to_long_long(ClassWithUnscopedEnum.EMode.EFirstMode)
+
+
+@pytest.requires_py3
+def test_py3_enum():
+    from pybind11_tests import (
+        Py3Enum, Py3EnumEmpty, Py3EnumScoped,
+        make_py3_enum, take_py3_enum, non_unique_py3_enum
+    )
+
+    from enum import IntEnum
+
+    expected = {
+        Py3Enum: [('A', -42), ('B', 1), ('C', 42)],
+        Py3EnumEmpty: [],
+        Py3EnumScoped: [('X', 10), ('Y', -1024)]
+    }
+
+    for tp, entries in expected.items():
+        assert issubclass(tp, IntEnum)
+        assert sorted(tp.__members__.items()) == entries
+
+    assert make_py3_enum(True) is Py3EnumScoped.X
+    assert make_py3_enum(False) is Py3EnumScoped.Y
+
+    assert take_py3_enum(Py3EnumScoped.X)
+    assert not take_py3_enum(Py3EnumScoped.Y)
+
+    with pytest.raises(ValueError) as excinfo:
+        non_unique_py3_enum()
+    assert 'duplicate values found' in str(excinfo.value)

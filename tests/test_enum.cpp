@@ -37,6 +37,23 @@ public:
     }
 };
 
+enum Py3Enum {
+    A = -42,
+    B = 1,
+    C = 42,
+};
+
+enum class Py3EnumScoped : short {
+    X = 10,
+    Y = -1024,
+};
+
+enum class Py3EnumEmpty {};
+
+enum class Py3EnumNonUnique {
+    X = 1
+};
+
 std::string test_scoped_enum(ScopedEnum z) {
     return "ScopedEnum::" + std::string(z == ScopedEnum::Two ? "Two" : "Three");
 }
@@ -58,6 +75,33 @@ test_initializer enums([](py::module &m) {
         .value("Write", Flags::Write)
         .value("Execute", Flags::Execute)
         .export_values();
+
+#if PY_VERSION_HEX >= 0x03000000
+    py::py3_enum<Py3EnumEmpty>(m, "Py3EnumEmpty");
+
+    py::py3_enum<Py3Enum>(m, "Py3Enum")
+        .value("A", Py3Enum::A)
+        .value("B", Py3Enum::B)
+        .value("C", Py3Enum::C);
+
+    py::py3_enum<Py3EnumScoped>(m, "Py3EnumScoped")
+        .value("X", Py3EnumScoped::X)
+        .value("Y", Py3EnumScoped::Y);
+
+    m.def("make_py3_enum", [](bool x) {
+        return x ? Py3EnumScoped::X : Py3EnumScoped::Y;
+    });
+
+    m.def("take_py3_enum", [](Py3EnumScoped x) {
+        return x == Py3EnumScoped::X;
+    });
+
+    m.def("non_unique_py3_enum", [=]() {
+        py::py3_enum<Py3EnumNonUnique>(m, "Py3EnumNonUnique")
+            .value("X", Py3EnumNonUnique::X)
+            .value("Y", Py3EnumNonUnique::X);
+    });
+#endif
 
     py::class_<ClassWithUnscopedEnum> exenum_class(m, "ClassWithUnscopedEnum");
     exenum_class.def_static("test_function", &ClassWithUnscopedEnum::test_function);
