@@ -109,8 +109,8 @@ test_initializer buffers([](py::module &m) {
                 py::format_descriptor<float>::format(), /* Python struct-style format descriptor */
                 2,                                      /* Number of dimensions */
                 { m.rows(), m.cols() },                 /* Buffer dimensions */
-                { sizeof(float) * m.rows(),             /* Strides (in bytes) for each index */
-                  sizeof(float) }
+                { static_cast<ssize_t>(sizeof(float) * m.rows()), /* Strides (in bytes) for each index */
+                  static_cast<ssize_t>(sizeof(float)) }
             );
         })
         ;
