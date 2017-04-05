@@ -258,7 +258,7 @@ def test_module():
 
 
 def test_print(capture):
-    from pybind11_tests import test_print_function
+    from pybind11_tests import test_print_function, test_print_failure, debug_enabled
 
     with capture:
         test_print_function()
@@ -271,6 +271,14 @@ def test_print(capture):
         py::print + str.format = this
     """
     assert capture.stderr == "this goes to stderr"
+
+    with pytest.raises(RuntimeError) as excinfo:
+        test_print_failure()
+    assert str(excinfo.value) == "make_tuple(): unable to convert " + (
+        "argument of type 'UnregisteredType' to Python object"
+        if debug_enabled else
+        "arguments to Python object (compile in debug mode for details)"
+    )
 
 
 def test_str_api():

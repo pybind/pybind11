@@ -1246,18 +1246,19 @@ NAMESPACE_END(detail)
 
 template <return_value_policy policy = return_value_policy::automatic_reference,
           typename... Args> tuple make_tuple(Args&&... args_) {
-    const size_t size = sizeof...(Args);
+    constexpr size_t size = sizeof...(Args);
     std::array<object, size> args {
         { reinterpret_steal<object>(detail::make_caster<Args>::cast(
             std::forward<Args>(args_), policy, nullptr))... }
     };
-    for (auto &arg_value : args) {
-        if (!arg_value) {
+    for (size_t i = 0; i < args.size(); i++) {
+        if (!args[i]) {
 #if defined(NDEBUG)
             throw cast_error("make_tuple(): unable to convert arguments to Python object (compile in debug mode for details)");
 #else
-            throw cast_error("make_tuple(): unable to convert arguments of types '" +
-                (std::string) type_id<std::tuple<Args...>>() + "' to Python object");
+            std::array<std::string, size> argtypes { type_id<Args>()... };
+            throw cast_error("make_tuple(): unable to convert argument of type '" +
+                argtypes[i] + "' to Python object");
 #endif
         }
     }

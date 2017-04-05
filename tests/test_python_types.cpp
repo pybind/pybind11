@@ -186,6 +186,7 @@ struct MoveOutContainer {
     std::list<Value> move_list() const { return {{0}, {1}, {2}}; }
 };
 
+struct UnregisteredType { };
 
 test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
@@ -234,6 +235,13 @@ test_initializer python_types([](py::module &m) {
 
         py::print("{a} + {b} = {c}"_s.format("a"_a="py::print", "b"_a="str.format", "c"_a="this"));
     });
+
+    m.def("test_print_failure", []() { py::print(42, UnregisteredType()); });
+#if !defined(NDEBUG)
+    m.attr("debug_enabled") = true;
+#else
+    m.attr("debug_enabled") = false;
+#endif
 
     m.def("test_str_format", []() {
         auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
