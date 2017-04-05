@@ -1256,7 +1256,7 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
 #if defined(NDEBUG)
             throw cast_error("make_tuple(): unable to convert arguments to Python object (compile in debug mode for details)");
 #else
-            std::array<std::string, size> argtypes { type_id<Args>()... };
+            std::array<std::string, size> argtypes { {type_id<Args>()...} };
             throw cast_error("make_tuple(): unable to convert argument of type '" +
                 argtypes[i] + "' to Python object");
 #endif
