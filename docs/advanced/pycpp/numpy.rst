@@ -41,8 +41,8 @@ completely avoid copy operations with Python expressions like
                 py::format_descriptor<float>::format(), /* Python struct-style format descriptor */
                 2,                                      /* Number of dimensions */
                 { m.rows(), m.cols() },                 /* Buffer dimensions */
-                { sizeof(float) * m.rows(),             /* Strides (in bytes) for each index */
-                  sizeof(float) }
+                { (ssize_t)( sizeof(float) * m.rows() ),/* Strides (in bytes) for each index */
+                  (ssize_t)( sizeof(float) ) }
             );
         });
 
@@ -61,7 +61,7 @@ specification.
         std::string format;
         int ndim;
         std::vector<size_t> shape;
-        std::vector<size_t> strides;
+        std::vector<ssize_t> strides;
     };
 
 To create a C++ function that can take a Python buffer object as an argument,
@@ -121,8 +121,8 @@ as follows:
             { (size_t) m.rows(),
               (size_t) m.cols() },
             /* Strides (in bytes) for each index */
-            { sizeof(Scalar) * (rowMajor ? m.cols() : 1),
-              sizeof(Scalar) * (rowMajor ? 1 : m.rows()) }
+            { (ssize_t)( sizeof(Scalar) * (rowMajor ? m.cols() : 1) ),
+              (ssize_t)( sizeof(Scalar) * (rowMajor ? 1 : m.rows()) ) }
         );
      })
 

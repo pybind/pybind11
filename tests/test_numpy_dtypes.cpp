@@ -226,7 +226,7 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
 
     std::vector<int32_t> data { 1, 2, 3, 4, 5, 6 };
     std::vector<size_t> shape { 3, 2 };
-    std::vector<size_t> strides { 8, 4 };
+    std::vector<ssize_t> strides { 8, 4 };
 
     auto ptr = data.data();
     auto vptr = (void *) ptr;

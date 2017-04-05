@@ -13,6 +13,7 @@
 #include <pybind11/stl.h>
 
 #include <cstdint>
+#include <vector>
 
 using arr = py::array;
 using arr_t = py::array_t<uint16_t, 0>;
