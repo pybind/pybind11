@@ -1257,6 +1257,39 @@ private:
     handle m_parent;
 };
 
+template<typename T>
+class py3_enum {
+public:
+    using underlying_type = typename std::underlying_type<T>::type;
+
+    py3_enum(handle scope, const char* name)
+    : name(name),
+      parent(scope),
+      ctor(module::import("enum").attr("IntEnum")),
+      unique(module::import("enum").attr("unique")) {
+        update();
+    }
+
+    py3_enum& value(const char* name, T value) {
+        entries[name] = cast(static_cast<underlying_type>(value));
+        update();
+        return *this;
+    }
+
+private:
+    const char *name;
+    handle parent;
+    dict entries;
+    object ctor;
+    object unique;
+
+    void update() {
+        object type = unique(ctor(name, entries));
+        setattr(parent, name, type);
+        detail::py3_enum_info::bind<T>(type, entries);
+    }
+};
+
 NAMESPACE_BEGIN(detail)
 template <typename... Args> struct init {
     template <typename Class, typename... Extra, enable_if_t<!Class::has_alias, int> = 0>
