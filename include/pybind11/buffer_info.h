@@ -21,12 +21,12 @@ struct buffer_info {
     std::string format;          // For homogeneous buffers, this should be set to format_descriptor<T>::format()
     size_t ndim = 0;             // Number of dimensions
     std::vector<size_t> shape;   // Shape of the tensor (1 entry per dimension)
-    std::vector<size_t> strides; // Number of entries between adjacent entries (for each per dimension)
+    std::vector<ssize_t> strides; // Number of entries between adjacent entries (for each per dimension)
 
     buffer_info() { }
 
     buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t ndim,
-                detail::any_container<size_t> shape_in, detail::any_container<size_t> strides_in)
+                detail::any_container<size_t> shape_in, detail::any_container<ssize_t> strides_in)
     : ptr(ptr), itemsize(itemsize), size(1), format(format), ndim(ndim),
       shape(std::move(shape_in)), strides(std::move(strides_in)) {
         if (ndim != shape.size() || ndim != strides.size())

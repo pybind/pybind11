@@ -152,6 +152,7 @@ struct npy_api {
         (PyTypeObject *, PyObject *, int, Py_intptr_t *,
          Py_intptr_t *, void *, int, PyObject *);
     PyObject *(*PyArray_DescrNewFromType_)(int);
+    int (*PyArray_CopyInto_)(PyObject *, PyObject *);
     PyObject *(*PyArray_NewCopy_)(PyObject *, int);
     PyTypeObject *PyArray_Type_;
     PyTypeObject *PyVoidArrType_Type_;
@@ -175,6 +176,7 @@ private:
         API_PyArray_DescrFromScalar = 57,
         API_PyArray_FromAny = 69,
         API_PyArray_Resize = 80,
+        API_PyArray_CopyInto = 82,
         API_PyArray_NewCopy = 85,
         API_PyArray_NewFromDescr = 94,
         API_PyArray_DescrNewFromType = 9,
@@ -205,6 +207,7 @@ private:
         DECL_NPY_API(PyArray_DescrFromScalar);
         DECL_NPY_API(PyArray_FromAny);
         DECL_NPY_API(PyArray_Resize);
+        DECL_NPY_API(PyArray_CopyInto);
         DECL_NPY_API(PyArray_NewCopy);
         DECL_NPY_API(PyArray_NewFromDescr);
         DECL_NPY_API(PyArray_DescrNewFromType);
