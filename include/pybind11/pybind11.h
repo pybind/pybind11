@@ -1262,8 +1262,8 @@ class py3_enum {
 public:
     using underlying_type = typename std::underlying_type<T>::type;
 
-    py3_enum(handle scope, const char* name)
-    : name(name),
+    py3_enum(handle scope, const char* enum_name)
+    : name(enum_name),
       parent(scope),
       ctor(module::import("enum").attr("IntEnum")),
       unique(module::import("enum").attr("unique")) {
@@ -1286,7 +1286,7 @@ private:
     void update() {
         object type = unique(ctor(name, entries));
         setattr(parent, name, type);
-        detail::py3_enum_info::bind<T>(type, entries);
+        detail::type_caster<T>::bind(type, entries);
     }
 };
 

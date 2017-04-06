@@ -950,52 +950,45 @@ protected:
     std::tuple<make_caster<Tuple>...> value;
 };
 
+template<typename U>
 struct py3_enum_info {
     handle type = {};
-    std::unordered_map<long long, handle> values = {};
+    std::unordered_map<U, handle> values = {};
 
     py3_enum_info() = default;
 
     py3_enum_info(handle type, const dict& values) : type(type) {
-        for (auto item : values)
-            this->values[static_cast<long long>(item.second.cast<int>())] = type.attr(item.first);
-    }
-
-    static std::unordered_map<std::type_index, py3_enum_info>& registry() {
-        static std::unordered_map<std::type_index, py3_enum_info> map = {};
-        return map;
-    }
-
-    template<typename T>
-    static void bind(handle type, const dict& values) {
-        registry()[typeid(T)] = py3_enum_info(type, values);
-    }
-
-    template<typename T>
-    static const py3_enum_info* get() {
-        auto it = registry().find(typeid(T));
-        return it == registry().end() ? nullptr : &it->second;
+        for (auto item : values) {
+            this->values[item.second.cast<U>()] = type.attr(item.first);
+        }
     }
 };
 
 template<typename T>
 struct type_caster<T, enable_if_t<std::is_enum<T>::value>> {
+    using underlying_type = typename std::underlying_type<T>::type;
+
 private:
     using base_caster = type_caster_base<T>;
+
+    static std::unique_ptr<py3_enum_info<underlying_type>>& py3_info() {
+        static std::unique_ptr<py3_enum_info<underlying_type>> info;
+        return info;
+    }
+
     base_caster caster;
-    bool py3 = false;
     T value;
 
 public:
     template<typename U> using cast_op_type = pybind11::detail::cast_op_type<U>;
 
-    operator T*() { return py3 ? &value : static_cast<T*>(caster); }
-    operator T&() { return py3 ? value : static_cast<T&>(caster); }
+    operator T*() { return py3_info() ? &value : static_cast<T*>(caster); }
+    operator T&() { return py3_info() ? value : static_cast<T&>(caster); }
 
     static handle cast(const T& src, return_value_policy rvp, handle parent) {
-        if (auto info = py3_enum_info::get<T>()) {
-            auto it = info->values.find(static_cast<long long>(src));
-            if (it == info->values.end())
+        if (py3_info()) {
+            auto it = py3_info()->values.find(static_cast<underlying_type>(src));
+            if (it == py3_info()->values.end())
                 return {};
             return it->second.inc_ref();
         }
@@ -1005,19 +998,21 @@ public:
     bool load(handle src, bool convert) {
         if (!src)
             return false;
-        if (auto info = py3_enum_info::get<T>()) {
-            py3 = true;
-            if (!isinstance(src, info->type))
+        if (py3_info()) {
+            if (!isinstance(src, py3_info()->type))
                 return false;
-            value = static_cast<T>(src.cast<long long>());
+            value = static_cast<T>(src.cast<underlying_type>());
             return true;
         }
-        py3 = false;
         return caster.load(src, convert);
     }
 
     static PYBIND11_DESCR name() {
         return base_caster::name();
+    }
+
+    static void bind(handle type, const dict& values) {
+        py3_info().reset(new py3_enum_info<underlying_type>(type, values));
     }
 };
 
