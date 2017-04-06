@@ -124,8 +124,15 @@ extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyOb
     // descriptor (`property`) instead of calling `tp_descr_get` (`property.__get__()`).
     PyObject *descr = _PyType_Lookup((PyTypeObject *) obj, name);
 
-    // Call `static_property.__set__()` instead of replacing the `static_property`.
-    if (descr && PyObject_IsInstance(descr, (PyObject *) get_internals().static_property_type)) {
+    // The following assignment combinations are possible:
+    //   1. `Type.static_prop = value`             --> descr_set: `Type.static_prop.__set__(value)`
+    //   2. `Type.static_prop = other_static_prop` --> setattro:  replace existing `static_prop`
+    //   3. `Type.regular_attribute = value`       --> setattro:  regular attribute assignment
+    const auto static_prop = (PyObject *) get_internals().static_property_type;
+    const auto call_descr_set = descr && PyObject_IsInstance(descr, static_prop)
+                                && !PyObject_IsInstance(value, static_prop);
+    if (call_descr_set) {
+        // Call `static_property.__set__()` instead of replacing the `static_property`.
 #if !defined(PYPY_VERSION)
         return Py_TYPE(descr)->tp_descr_set(descr, obj, value);
 #else
@@ -137,6 +144,7 @@ extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyOb
         }
 #endif
     } else {
+        // Replace existing attribute.
         return PyType_Type.tp_setattro(obj, name, value);
     }
 }

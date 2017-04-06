@@ -110,6 +110,12 @@ def test_static_properties():
     assert Type.def_readwrite_static == 2
     assert instance.def_readwrite_static == 2
 
+    # It should be possible to override properties in derived classes
+    from pybind11_tests import TestPropertiesOverride as TypeOverride
+
+    assert TypeOverride().def_readonly == 99
+    assert TypeOverride.def_readonly_static == 99
+
 
 def test_static_cls():
     """Static property getter and setters expect the type object as the their only argument"""
