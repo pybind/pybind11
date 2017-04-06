@@ -54,6 +54,8 @@ enum class Py3EnumNonUnique {
     X = 1
 };
 
+class DummyScope {};
+
 std::string test_scoped_enum(ScopedEnum z) {
     return "ScopedEnum::" + std::string(z == ScopedEnum::Two ? "Two" : "Three");
 }
@@ -77,7 +79,8 @@ test_initializer enums([](py::module &m) {
         .export_values();
 
 #if PY_VERSION_HEX >= 0x03000000
-    py::py3_enum<Py3EnumEmpty>(m, "Py3EnumEmpty");
+    auto scope = py::class_<DummyScope>(m, "DummyScope");
+    py::py3_enum<Py3EnumEmpty>(scope, "Py3EnumEmpty");
 
     py::py3_enum<Py3Enum>(m, "Py3Enum")
         .value("A", Py3Enum::A)

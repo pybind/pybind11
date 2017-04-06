@@ -1274,6 +1274,10 @@ public:
                 kwargs["module"] = scope.attr("__module__");
             else if (hasattr(scope, "__name__"))
                 kwargs["module"] = scope.attr("__name__");
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+            if (hasattr(scope, "__qualname__"))
+                kwargs["qualname"] = scope.attr("__qualname__").cast<std::string>() + "." + name;
+#endif
         }
         update();
     }
