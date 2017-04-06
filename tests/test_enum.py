@@ -147,6 +147,7 @@ def test_py3_enum():
     for tp, entries in expected.items():
         assert issubclass(tp, IntEnum)
         assert sorted(tp.__members__.items()) == entries
+        assert tp.__module__ == 'pybind11_tests'
 
     assert make_py3_enum(True) is Py3EnumScoped.X
     assert make_py3_enum(False) is Py3EnumScoped.Y

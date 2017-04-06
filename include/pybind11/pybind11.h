@@ -1262,11 +1262,19 @@ class py3_enum {
 public:
     using underlying_type = typename std::underlying_type<T>::type;
 
-    py3_enum(handle scope, const char* enum_name)
-    : name(enum_name),
-      parent(scope),
+    py3_enum(handle scope, const char* name)
+    : name(name),
+      scope(scope),
       ctor(module::import("enum").attr("IntEnum")),
       unique(module::import("enum").attr("unique")) {
+        kwargs["value"] = cast(name);
+        kwargs["names"] = entries;
+        if (scope) {
+            if (hasattr(scope, "__module__"))
+                kwargs["module"] = scope.attr("__module__");
+            else if (hasattr(scope, "__name__"))
+                kwargs["module"] = scope.attr("__name__");
+        }
         update();
     }
 
@@ -1278,14 +1286,15 @@ public:
 
 private:
     const char *name;
-    handle parent;
+    handle scope;
     dict entries;
     object ctor;
     object unique;
+    dict kwargs;
 
     void update() {
-        object type = unique(ctor(name, entries));
-        setattr(parent, name, type);
+        object type = unique(ctor(**kwargs));
+        setattr(scope, name, type);
         detail::type_caster<T>::bind(type, entries);
     }
 };
