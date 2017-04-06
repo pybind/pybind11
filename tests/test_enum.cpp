@@ -82,10 +82,14 @@ test_initializer enums([](py::module &m) {
     auto scope = py::class_<DummyScope>(m, "DummyScope");
     py::py3_enum<Py3EnumEmpty>(scope, "Py3EnumEmpty");
 
-    py::py3_enum<Py3Enum>(m, "Py3Enum")
+    auto e = py::py3_enum<Py3Enum>(m, "Py3Enum")
         .value("A", Py3Enum::A)
         .value("B", Py3Enum::B)
-        .value("C", Py3Enum::C);
+        .value("C", Py3Enum::C)
+        .extend()
+        .def("add", [](Py3Enum x, int y) { return static_cast<int>(x) + y; })
+        .def_property_readonly("is_b", [](Py3Enum e) { return e == Py3Enum::B; })
+        .def_property_readonly_static("ultimate_answer", [](py::object) { return 42; });
 
     py::py3_enum<Py3EnumScoped>(m, "Py3EnumScoped")
         .value("X", Py3EnumScoped::X)

@@ -1282,10 +1282,18 @@ public:
         update();
     }
 
-    py3_enum& value(const char* name, T value) {
-        entries[name] = cast(static_cast<underlying_type>(value));
-        update();
+    py3_enum& value(const char* name, T value) & {
+        add_entry(name, value);
         return *this;
+    }
+
+    py3_enum&& value(const char* name, T value) && {
+        add_entry(name, value);
+        return std::move(*this);
+    }
+
+    class_<T> extend() && {
+        return cast<class_<T>>(type);
     }
 
 private:
@@ -1295,9 +1303,15 @@ private:
     object ctor;
     object unique;
     dict kwargs;
+    object type;
+
+    void add_entry(const char *name, T value) {
+        entries[name] = cast(static_cast<underlying_type>(value));
+        update();
+    }
 
     void update() {
-        object type = unique(ctor(**kwargs));
+        type = unique(ctor(**kwargs));
         setattr(scope, name, type);
         detail::type_caster<T>::bind(type, entries);
     }

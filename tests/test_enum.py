@@ -164,3 +164,7 @@ def test_py3_enum():
     with pytest.raises(ValueError) as excinfo:
         non_unique_py3_enum()
     assert 'duplicate values found' in str(excinfo.value)
+
+    assert Py3Enum.ultimate_answer == 42
+    assert not Py3Enum.A.is_b and Py3Enum.B.is_b and not Py3Enum.C.is_b
+    assert Py3Enum.A.add(10) == -32 and Py3Enum.C.add(-1) == 41
