@@ -350,14 +350,14 @@ vector_buffer(Class_& cl) {
 
     cl.def("__init__", [](Vector& vec, buffer buf) {
         auto info = buf.request();
-        if (info.ndim != 1 || info.strides[0] <= 0 || info.strides[0] % sizeof(T))
+        if (info.ndim != 1 || info.strides[0] <= 0 || info.strides[0] % static_cast<ssize_t>(sizeof(T)))
             throw type_error("Only valid 1D buffers can be copied to a vector");
         if (!detail::compare_buffer_info<T>::compare(info) || sizeof(T) != info.itemsize)
             throw type_error("Format mismatch (Python: " + info.format + " C++: " + format_descriptor<T>::format() + ")");
         new (&vec) Vector();
         vec.reserve(info.shape[0]);
         T *p = static_cast<T*>(info.ptr);
-        auto step = info.strides[0] / sizeof(T);
+        auto step = info.strides[0] / static_cast<ssize_t>(sizeof(T));
         T *end = p + info.shape[0] * step;
         for (; p < end; p += step)
             vec.push_back(*p);

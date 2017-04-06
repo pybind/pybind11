@@ -248,10 +248,10 @@ template <typename T> using is_pod_struct = all_of<
     satisfies_none_of<T, std::is_reference, std::is_array, is_std_array, std::is_arithmetic, is_complex, std::is_enum>
 >;
 
-template <size_t Dim = 0, typename Strides> size_t byte_offset_unsafe(const Strides &) { return 0; }
+template <size_t Dim = 0, typename Strides> ssize_t byte_offset_unsafe(const Strides &) { return 0; }
 template <size_t Dim = 0, typename Strides, typename... Ix>
-size_t byte_offset_unsafe(const Strides &strides, size_t i, Ix... index) {
-    return i * strides[Dim] + byte_offset_unsafe<Dim + 1>(strides, index...);
+ssize_t byte_offset_unsafe(const Strides &strides, size_t i, Ix... index) {
+    return static_cast<ssize_t>(i) * strides[Dim] + byte_offset_unsafe<Dim + 1>(strides, index...);
 }
 
 /** Proxy class providing unsafe, unchecked const access to array data.  This is constructed through
@@ -615,18 +615,18 @@ public:
 
     /// Byte offset from beginning of the array to a given index (full or partial).
     /// May throw if the index would lead to out of bounds access.
-    template<typename... Ix> size_t offset_at(Ix... index) const {
+    template<typename... Ix> ssize_t offset_at(Ix... index) const {
         if (sizeof...(index) > ndim())
             fail_dim_check(sizeof...(index), "too many indices for an array");
         return byte_offset(size_t(index)...);
     }
 
-    size_t offset_at() const { return 0; }
+    ssize_t offset_at() const { return 0; }
 
     /// Item count from beginning of the array to a given index (full or partial).
     /// May throw if the index would lead to out of bounds access.
-    template<typename... Ix> size_t index_at(Ix... index) const {
-        return offset_at(index...) / itemsize();
+    template<typename... Ix> ssize_t index_at(Ix... index) const {
+        return offset_at(index...) / static_cast<ssize_t>(itemsize());
     }
 
     /** Returns a proxy object that provides access to the array's data without bounds or
@@ -692,7 +692,7 @@ protected:
                           " (ndim = " + std::to_string(ndim()) + ")");
     }
 
-    template<typename... Ix> size_t byte_offset(Ix... index) const {
+    template<typename... Ix> ssize_t byte_offset(Ix... index) const {
         check_dimensions(index...);
         return detail::byte_offset_unsafe(strides(), size_t(index)...);
     }
@@ -773,8 +773,8 @@ public:
         return sizeof(T);
     }
 
-    template<typename... Ix> size_t index_at(Ix... index) const {
-        return offset_at(index...) / itemsize();
+    template<typename... Ix> ssize_t index_at(Ix... index) const {
+        return offset_at(index...) / static_cast<ssize_t>(itemsize());
     }
 
     template<typename... Ix> const T* data(Ix... index) const {
@@ -789,14 +789,14 @@ public:
     template<typename... Ix> const T& at(Ix... index) const {
         if (sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
-        return *(static_cast<const T*>(array::data()) + byte_offset(size_t(index)...) / itemsize());
+        return *(static_cast<const T*>(array::data()) + byte_offset(size_t(index)...) / static_cast<ssize_t>(itemsize()));
     }
 
     // Mutable reference to element at a given index
     template<typename... Ix> T& mutable_at(Ix... index) {
         if (sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
-        return *(static_cast<T*>(array::mutable_data()) + byte_offset(size_t(index)...) / itemsize());
+        return *(static_cast<T*>(array::mutable_data()) + byte_offset(size_t(index)...) / static_cast<ssize_t>(itemsize()));
     }
 
     /** Returns a proxy object that provides access to the array's data without bounds or
