@@ -358,7 +358,7 @@ vector_buffer(Class_& cl) {
         vec.reserve(info.shape[0]);
         T *p = static_cast<T*>(info.ptr);
         auto step = info.strides[0] / static_cast<ssize_t>(sizeof(T));
-        T *end = p + info.shape[0] * step;
+        T *end = p + static_cast<ssize_t>(info.shape[0]) * step;
         for (; p < end; p += step)
             vec.push_back(*p);
     });

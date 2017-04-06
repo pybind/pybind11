@@ -249,8 +249,14 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
     using Scalar = typename Type::Scalar;
     using props = EigenProps<Type>;
 
-    bool load(handle src, bool) {
-        auto buf = array_t<Scalar>::ensure(src);
+    bool load(handle src, bool convert) {
+        // If we're in no-convert mode, only load if given an array of the correct type
+        if (!convert && !isinstance<array_t<Scalar>>(src))
+            return false;
+
+        // Coerce into an array, but don't do type conversion yet; the copy below handles it.
+        auto buf = array::ensure(src);
+
         if (!buf)
             return false;
 
@@ -259,25 +265,16 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
             return false;
 
         auto fits = props::conformable(buf);
-        if (!fits)
-            return false; // Non-comformable vector/matrix types
+        // Allocate the new type, then build a numpy reference into it
+        value = Type(fits.rows, fits.cols);
+        auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
+        if (dims == 1) ref = ref.squeeze();
 
-        if (fits.negativestrides) {
+        int result = detail::npy_api::get().PyArray_CopyInto_(ref.ptr(), buf.ptr());
 
-            // Eigen does not support negative strides, so we need to make a copy here with normal strides.
-            // TODO: when Eigen bug #747 is fixed, remove this if case, always execute the else part.
-            // http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
-            auto buf2 = array_t<Scalar,array::forcecast || array::f_style>::ensure(src);
-            if (!buf2)
-                return false;
-            // not checking sizes, we already did that
-            fits = props::conformable(buf2);
-            value = Eigen::Map<const Type, 0, EigenDStride>(buf2.data(), fits.rows, fits.cols, fits.stride);
-
-        } else {
-
-           value = Eigen::Map<const Type, 0, EigenDStride>(buf.data(), fits.rows, fits.cols, fits.stride);
-
+        if (result < 0) { // Copy failed!
+            PyErr_Clear();
+            return false;
         }
 
         return true;
