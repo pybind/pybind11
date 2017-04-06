@@ -75,6 +75,13 @@ struct TestProperties {
 
 int TestProperties::static_value = 1;
 
+struct TestPropertiesOverride : TestProperties {
+    int value = 99;
+    static int static_value;
+};
+
+int TestPropertiesOverride::static_value = 99;
+
 struct SimpleValue { int value = 1; };
 
 struct TestPropRVP {
@@ -218,6 +225,11 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def_property_static("static_cls",
                              [](py::object cls) { return cls; },
                              [](py::object cls, py::function f) { f(cls); });
+
+    py::class_<TestPropertiesOverride, TestProperties>(m, "TestPropertiesOverride")
+        .def(py::init<>())
+        .def_readonly("def_readonly", &TestPropertiesOverride::value)
+        .def_readonly_static("def_readonly_static", &TestPropertiesOverride::static_value);
 
     py::class_<SimpleValue>(m, "SimpleValue")
         .def_readwrite("value", &SimpleValue::value);
