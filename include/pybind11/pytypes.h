@@ -236,11 +236,6 @@ protected:
     // Tags for choosing constructors from raw PyObject *
     struct borrowed_t { };
     struct stolen_t { };
-    // These can cause linkage problems; see #770
-    PYBIND11_DEPRECATED("Use of the `borrowed` static variable is deprecated; use `borrowed_t{}' instead")
-    static constexpr borrowed_t borrowed{};
-    PYBIND11_DEPRECATED("Use of the `stolen` static variable is deprecated; use `stolen_t{}' instead")
-    static constexpr stolen_t stolen{};
 
     template <typename T> friend T reinterpret_borrow(handle);
     template <typename T> friend T reinterpret_steal(handle);
