@@ -68,16 +68,22 @@ template <typename T> using is_eigen_other = all_of<
 template <bool EigenRowMajor> struct EigenConformable {
     bool conformable = false;
     EigenIndex rows = 0, cols = 0;
-    EigenDStride stride{0, 0};
+    EigenDStride stride{0, 0};      // Only valid if negativestridees is false!
+    bool negativestrides = false;   // If true, do not use stride!
 
     EigenConformable(bool fits = false) : conformable{fits} {}
     // Matrix type:
     EigenConformable(EigenIndex r, EigenIndex c,
             EigenIndex rstride, EigenIndex cstride) :
-        conformable{true}, rows{r}, cols{c},
-        stride(EigenRowMajor ? rstride : cstride /* outer stride */,
-               EigenRowMajor ? cstride : rstride /* inner stride */)
-        {}
+        conformable{true}, rows{r}, cols{c} {
+        // TODO: when Eigen bug #747 is fixed, remove the tests for non-negativity. http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
+        if (rstride < 0 || cstride < 0) {
+            negativestrides = true;
+        } else {
+            stride = {EigenRowMajor ? rstride : cstride /* outer stride */,
+                      EigenRowMajor ? cstride : rstride /* inner stride */ };
+        }
+    }
     // Vector type:
     EigenConformable(EigenIndex r, EigenIndex c, EigenIndex stride)
         : EigenConformable(r, c, r == 1 ? c*stride : stride, c == 1 ? r : r*stride) {}
@@ -86,6 +92,7 @@ template <bool EigenRowMajor> struct EigenConformable {
         // To have compatible strides, we need (on both dimensions) one of fully dynamic strides,
         // matching strides, or a dimension size of 1 (in which case the stride value is irrelevant)
         return
+            !negativestrides &&
             (props::inner_stride == Eigen::Dynamic || props::inner_stride == stride.inner() ||
                 (EigenRowMajor ? cols : rows) == 1) &&
             (props::outer_stride == Eigen::Dynamic || props::outer_stride == stride.outer() ||
@@ -138,8 +145,8 @@ template <typename Type_> struct EigenProps {
             EigenIndex
                 np_rows = a.shape(0),
                 np_cols = a.shape(1),
-                np_rstride = a.strides(0) / sizeof(Scalar),
-                np_cstride = a.strides(1) / sizeof(Scalar);
+                np_rstride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar)),
+                np_cstride = a.strides(1) / static_cast<ssize_t>(sizeof(Scalar));
             if ((fixed_rows && np_rows != rows) || (fixed_cols && np_cols != cols))
                 return false;
 
@@ -149,7 +156,7 @@ template <typename Type_> struct EigenProps {
         // Otherwise we're storing an n-vector.  Only one of the strides will be used, but whichever
         // is used, we want the (single) numpy stride value.
         const EigenIndex n = a.shape(0),
-              stride = a.strides(0) / sizeof(Scalar);
+              stride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar));
 
         if (vector) { // Eigen type is a compile-time vector
             if (fixed && size != n)
@@ -255,7 +262,23 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
         if (!fits)
             return false; // Non-comformable vector/matrix types
 
-        value = Eigen::Map<const Type, 0, EigenDStride>(buf.data(), fits.rows, fits.cols, fits.stride);
+        if (fits.negativestrides) {
+
+            // Eigen does not support negative strides, so we need to make a copy here with normal strides.
+            // TODO: when Eigen bug #747 is fixed, remove this if case, always execute the else part.
+            // http://eigen.tuxfamily.org/bz/show_bug.cgi?id=747
+            auto buf2 = array_t<Scalar,array::forcecast || array::f_style>::ensure(src);
+            if (!buf2)
+                return false;
+            // not checking sizes, we already did that
+            fits = props::conformable(buf2);
+            value = Eigen::Map<const Type, 0, EigenDStride>(buf2.data(), fits.rows, fits.cols, fits.stride);
+
+        } else {
+
+           value = Eigen::Map<const Type, 0, EigenDStride>(buf.data(), fits.rows, fits.cols, fits.stride);
+
+        }
 
         return true;
     }
