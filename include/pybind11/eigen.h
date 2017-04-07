@@ -201,18 +201,13 @@ template <typename Type_> struct EigenProps {
 // otherwise it'll make a copy.  writeable lets you turn off the writeable flag for the array.
 template <typename props> handle eigen_array_cast(typename props::Type const &src, handle base = handle(), bool writeable = true) {
     constexpr size_t elem_size = sizeof(typename props::Scalar);
-    std::vector<size_t> shape, strides;
-    if (props::vector) {
-        shape.push_back(src.size());
-        strides.push_back(elem_size * src.innerStride());
-    }
-    else {
-        shape.push_back(src.rows());
-        shape.push_back(src.cols());
-        strides.push_back(elem_size * src.rowStride());
-        strides.push_back(elem_size * src.colStride());
-    }
-    array a(std::move(shape), std::move(strides), src.data(), base);
+    array a;
+    if (props::vector)
+        a = array({ src.size() }, { elem_size * src.innerStride() }, src.data(), base);
+    else
+        a = array({ src.rows(), src.cols() }, { elem_size * src.rowStride(), elem_size * src.colStride() },
+                  src.data(), base);
+
     if (!writeable)
         array_proxy(a.ptr())->flags &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
 

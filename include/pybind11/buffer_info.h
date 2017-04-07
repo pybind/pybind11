@@ -7,7 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#pragma once 
+#pragma once
 
 #include "common.h"
 
@@ -26,25 +26,22 @@ struct buffer_info {
     buffer_info() { }
 
     buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t ndim,
-                const std::vector<size_t> &shape, const std::vector<size_t> &strides)
-        : ptr(ptr), itemsize(itemsize), size(1), format(format),
-          ndim(ndim), shape(shape), strides(strides) {
+                detail::any_container<size_t> shape_in, detail::any_container<size_t> strides_in)
+    : ptr(ptr), itemsize(itemsize), size(1), format(format), ndim(ndim),
+      shape(std::move(shape_in)), strides(std::move(strides_in)) {
+        if (ndim != shape.size() || ndim != strides.size())
+            pybind11_fail("buffer_info: ndim doesn't match shape and/or strides length");
         for (size_t i = 0; i < ndim; ++i)
             size *= shape[i];
     }
 
     buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t size)
-    : buffer_info(ptr, itemsize, format, 1, std::vector<size_t> { size },
-                  std::vector<size_t> { itemsize }) { }
+    : buffer_info(ptr, itemsize, format, 1, { size }, { itemsize }) { }
 
-    explicit buffer_info(Py_buffer *view, bool ownview = true)
-        : ptr(view->buf), itemsize((size_t) view->itemsize), size(1), format(view->format),
-          ndim((size_t) view->ndim), shape((size_t) view->ndim), strides((size_t) view->ndim), view(view), ownview(ownview) {
-        for (size_t i = 0; i < (size_t) view->ndim; ++i) {
-            shape[i] = (size_t) view->shape[i];
-            strides[i] = (size_t) view->strides[i];
-            size *= shape[i];
-        }
+    explicit buffer_info(Py_buffer *view, bool ownview_in = true)
+    : buffer_info(view->buf, (size_t) view->itemsize, view->format, (size_t) view->ndim,
+            {view->shape, view->shape + view->ndim}, {view->strides, view->strides + view->ndim}) {
+        ownview = ownview_in;
     }
 
     buffer_info(const buffer_info &) = delete;

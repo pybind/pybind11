@@ -455,12 +455,18 @@ public:
 
     array() : array(0, static_cast<const double *>(nullptr)) {}
 
-    array(const pybind11::dtype &dt, const std::vector<size_t> &shape,
-          const std::vector<size_t> &strides, const void *ptr = nullptr,
-          handle base = handle()) {
-        auto& api = detail::npy_api::get();
-        auto ndim = shape.size();
-        if (shape.size() != strides.size())
+    using ShapeContainer = detail::any_container<Py_intptr_t>;
+    using StridesContainer = detail::any_container<Py_intptr_t>;
+
+    // Constructs an array taking shape/strides from arbitrary container types
+    array(const pybind11::dtype &dt, ShapeContainer shape, StridesContainer strides,
+          const void *ptr = nullptr, handle base = handle()) {
+
+        if (strides->empty())
+            strides = default_strides(*shape, dt.itemsize());
+
+        auto ndim = shape->size();
+        if (ndim != strides->size())
             pybind11_fail("NumPy: shape ndim doesn't match strides ndim");
         auto descr = dt;
 
@@ -474,10 +480,9 @@ public:
                 flags = detail::npy_api::NPY_ARRAY_WRITEABLE_;
         }
 
+        auto &api = detail::npy_api::get();
         auto tmp = reinterpret_steal<object>(api.PyArray_NewFromDescr_(
-            api.PyArray_Type_, descr.release().ptr(), (int) ndim,
-            reinterpret_cast<Py_intptr_t *>(const_cast<size_t*>(shape.data())),
-            reinterpret_cast<Py_intptr_t *>(const_cast<size_t*>(strides.data())),
+            api.PyArray_Type_, descr.release().ptr(), (int) ndim, shape->data(), strides->data(),
             const_cast<void *>(ptr), flags, nullptr));
         if (!tmp)
             pybind11_fail("NumPy: unable to create array!");
@@ -491,27 +496,24 @@ public:
         m_ptr = tmp.release().ptr();
     }
 
-    array(const pybind11::dtype &dt, const std::vector<size_t> &shape,
-          const void *ptr = nullptr, handle base = handle())
-        : array(dt, shape, default_strides(shape, dt.itemsize()), ptr, base) { }
+    array(const pybind11::dtype &dt, ShapeContainer shape, const void *ptr = nullptr, handle base = handle())
+        : array(dt, std::move(shape), {}, ptr, base) { }
 
     array(const pybind11::dtype &dt, size_t count, const void *ptr = nullptr,
           handle base = handle())
-        : array(dt, std::vector<size_t>{ count }, ptr, base) { }
-
-    template<typename T> array(const std::vector<size_t>& shape,
-                               const std::vector<size_t>& strides,
-                               const T* ptr, handle base = handle())
-    : array(pybind11::dtype::of<T>(), shape, strides, (const void *) ptr, base) { }
+        : array(dt, ShapeContainer{{ count }}, ptr, base) { }
 
     template <typename T>
-    array(const std::vector<size_t> &shape, const T *ptr,
-          handle base = handle())
-        : array(shape, default_strides(shape, sizeof(T)), ptr, base) { }
+    array(ShapeContainer shape, StridesContainer strides, const T *ptr, handle base = handle())
+        : array(pybind11::dtype::of<T>(), std::move(shape), std::move(strides), ptr, base) { }
+
+    template <typename T>
+    array(ShapeContainer shape, const T *ptr, handle base = handle())
+        : array(std::move(shape), {}, ptr, base) { }
 
     template <typename T>
     array(size_t count, const T *ptr, handle base = handle())
-        : array(std::vector<size_t>{ count }, ptr, base) { }
+        : array({{ count }}, ptr, base) { }
 
     explicit array(const buffer_info &info)
     : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
@@ -673,9 +675,9 @@ protected:
             throw std::domain_error("array is not writeable");
     }
 
-    static std::vector<size_t> default_strides(const std::vector<size_t>& shape, size_t itemsize) {
+    static std::vector<Py_intptr_t> default_strides(const std::vector<Py_intptr_t>& shape, size_t itemsize) {
         auto ndim = shape.size();
-        std::vector<size_t> strides(ndim);
+        std::vector<Py_intptr_t> strides(ndim);
         if (ndim) {
             std::fill(strides.begin(), strides.end(), itemsize);
             for (size_t i = 0; i < ndim - 1; i++)
@@ -731,14 +733,11 @@ public:
 
     explicit array_t(const buffer_info& info) : array(info) { }
 
-    array_t(const std::vector<size_t> &shape,
-            const std::vector<size_t> &strides, const T *ptr = nullptr,
-            handle base = handle())
-        : array(shape, strides, ptr, base) { }
+    array_t(ShapeContainer shape, StridesContainer strides, const T *ptr = nullptr, handle base = handle())
+        : array(std::move(shape), std::move(strides), ptr, base) { }
 
-    explicit array_t(const std::vector<size_t> &shape, const T *ptr = nullptr,
-            handle base = handle())
-        : array(shape, ptr, base) { }
+    explicit array_t(ShapeContainer shape, const T *ptr = nullptr, handle base = handle())
+        : array(std::move(shape), ptr, base) { }
 
     explicit array_t(size_t count, const T *ptr = nullptr, handle base = handle())
         : array(count, ptr, base) { }
