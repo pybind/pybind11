@@ -902,6 +902,8 @@ template <typename type, typename holder_type>
 struct copyable_holder_caster : public type_caster_base<type> {
 public:
     using base = type_caster_base<type>;
+    static_assert(std::is_base_of<base, type_caster<type>>::value,
+            "Holder classes are only supported for custom types");
     using base::base;
     using base::cast;
     using base::typeinfo;
@@ -1018,6 +1020,9 @@ class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::sh
 
 template <typename type, typename holder_type>
 struct move_only_holder_caster {
+    static_assert(std::is_base_of<type_caster_base<type>, type_caster<type>>::value,
+            "Holder classes are only supported for custom types");
+
     static handle cast(holder_type &&src, return_value_policy, handle) {
         auto *ptr = holder_helper<holder_type>::get(src);
         return type_caster_base<type>::cast_holder(ptr, &src);
