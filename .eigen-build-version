@@ -1,0 +1,5 @@
+3.3.2
+eigen-eigen-da9b4e14c255
+# This is the version and extracted directory used for appveyor and travis-ci
+# builds.  The first line is the eigen version to download, the second is the
+# extracted directory name.  These comments must stay after the first two lines.

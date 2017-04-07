@@ -34,9 +34,10 @@ install:
       conda install -y -q pytest numpy scipy
     }
 - ps: |
-    Start-FileDownload 'http://bitbucket.org/eigen/eigen/get/3.3.0.zip'
-    7z x 3.3.0.zip -y > $null
-    $env:CMAKE_INCLUDE_PATH = "eigen-eigen-26667be4f70b"
+    $eigen = Get-Content -head 2 .eigen-build-version
+    Start-FileDownload "http://bitbucket.org/eigen/eigen/get/$($eigen[0]).zip"
+    7z x "$($eigen[0]).zip" -y > $null
+    $env:CMAKE_INCLUDE_PATH = $eigen[1]
 build_script:
 - cmake -G "%CMAKE_GENERATOR%" -A "%CMAKE_ARCH%" -DPYBIND11_WERROR=ON
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
