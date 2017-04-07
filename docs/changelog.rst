@@ -6,6 +6,13 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+
+v2.1.1 (April 7, 2017)
+-----------------------------------------------------
+
+* Fixed minimum version requirement for MSVC 2015u3
+  `#773 <https://github.com/pybind/pybind11/pull/773>`_.
+
 v2.1.0 (March 22, 2017)
 -----------------------------------------------------
 
