@@ -13,7 +13,6 @@
 #include <pybind11/stl.h>
 
 #include <cstdint>
-#include <vector>
 
 using arr = py::array;
 using arr_t = py::array_t<uint16_t, 0>;
@@ -119,8 +118,8 @@ test_initializer numpy_array([](py::module &m) {
     sm.def("wrap", [](py::array a) {
         return py::array(
             a.dtype(),
-            std::vector<size_t>(a.shape(), a.shape() + a.ndim()),
-            std::vector<size_t>(a.strides(), a.strides() + a.ndim()),
+            {a.shape(), a.shape() + a.ndim()},
+            {a.strides(), a.strides() + a.ndim()},
             a.data(),
             a
         );
