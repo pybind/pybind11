@@ -10,6 +10,7 @@
 #pragma once
 
 #include "common.h"
+#include "buffer_info.h"
 #include <utility>
 #include <type_traits>
 
