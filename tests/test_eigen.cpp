@@ -287,6 +287,13 @@ test_initializer eigen([](py::module &m) {
     m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg().noconvert());
     m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg().noconvert());
 
+    // Make sure named arguments are working properly:
+    m.def("matrix_multiply", [](const py::EigenDRef<const Eigen::MatrixXd> A, const py::EigenDRef<const Eigen::MatrixXd> B)
+            -> Eigen::MatrixXd {
+        if (A.cols() != B.rows()) throw std::domain_error("Nonconformable matrices!");
+        return A * B;
+    }, py::arg("A"), py::arg("B"));
+
     py::class_<CustomOperatorNew>(m, "CustomOperatorNew")
         .def(py::init<>())
         .def_readonly("a", &CustomOperatorNew::a)

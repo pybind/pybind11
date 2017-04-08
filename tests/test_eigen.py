@@ -75,15 +75,15 @@ def test_mutator_descriptors():
     fixed_mutator_a(zc)
     with pytest.raises(TypeError) as excinfo:
         fixed_mutator_r(zc)
-    assert ('(numpy.ndarray[float32[5, 6], flags.writeable, flags.c_contiguous]) -> arg0: None'
+    assert ('(arg0: numpy.ndarray[float32[5, 6], flags.writeable, flags.c_contiguous]) -> None'
             in str(excinfo.value))
     with pytest.raises(TypeError) as excinfo:
         fixed_mutator_c(zr)
-    assert ('(numpy.ndarray[float32[5, 6], flags.writeable, flags.f_contiguous]) -> arg0: None'
+    assert ('(arg0: numpy.ndarray[float32[5, 6], flags.writeable, flags.f_contiguous]) -> None'
             in str(excinfo.value))
     with pytest.raises(TypeError) as excinfo:
         fixed_mutator_a(np.array([[1, 2], [3, 4]], dtype='float32'))
-    assert ('(numpy.ndarray[float32[5, 6], flags.writeable]) -> arg0: None'
+    assert ('(arg0: numpy.ndarray[float32[5, 6], flags.writeable]) -> None'
             in str(excinfo.value))
     zr.flags.writeable = False
     with pytest.raises(TypeError):
@@ -580,6 +580,29 @@ def test_dense_signature(doc):
     assert doc(double_mat_rm) == """
         double_mat_rm(arg0: numpy.ndarray[float32[m, n]]) -> numpy.ndarray[float32[m, n]]
     """
+
+
+def test_named_arguments():
+    from pybind11_tests import matrix_multiply
+
+    a = np.array([[1.0, 2], [3, 4], [5, 6]])
+    b = np.ones((2, 1))
+
+    assert np.all(matrix_multiply(a, b) == np.array([[3.], [7], [11]]))
+    assert np.all(matrix_multiply(A=a, B=b) == np.array([[3.], [7], [11]]))
+    assert np.all(matrix_multiply(B=b, A=a) == np.array([[3.], [7], [11]]))
+
+    with pytest.raises(ValueError) as excinfo:
+        matrix_multiply(b, a)
+    assert str(excinfo.value) == 'Nonconformable matrices!'
+
+    with pytest.raises(ValueError) as excinfo:
+        matrix_multiply(A=b, B=a)
+    assert str(excinfo.value) == 'Nonconformable matrices!'
+
+    with pytest.raises(ValueError) as excinfo:
+        matrix_multiply(B=a, A=b)
+    assert str(excinfo.value) == 'Nonconformable matrices!'
 
 
 @pytest.requires_eigen_and_scipy

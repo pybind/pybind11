@@ -179,20 +179,21 @@ template <typename Type_> struct EigenProps {
         constexpr bool show_c_contiguous = show_order && requires_row_major;
         constexpr bool show_f_contiguous = !show_c_contiguous && show_order && requires_col_major;
 
-    return _("numpy.ndarray[") + npy_format_descriptor<Scalar>::name() +
-        _("[")  + _<fixed_rows>(_<(size_t) rows>(), _("m")) +
-        _(", ") + _<fixed_cols>(_<(size_t) cols>(), _("n")) +
-        _("]") +
-        // For a reference type (e.g. Ref<MatrixXd>) we have other constraints that might need to be
-        // satisfied: writeable=True (for a mutable reference), and, depending on the map's stride
-        // options, possibly f_contiguous or c_contiguous.  We include them in the descriptor output
-        // to provide some hint as to why a TypeError is occurring (otherwise it can be confusing to
-        // see that a function accepts a 'numpy.ndarray[float64[3,2]]' and an error message that you
-        // *gave* a numpy.ndarray of the right type and dimensions.
-        _<show_writeable>(", flags.writeable", "") +
-        _<show_c_contiguous>(", flags.c_contiguous", "") +
-        _<show_f_contiguous>(", flags.f_contiguous", "") +
-        _("]");
+        return type_descr(_("numpy.ndarray[") + npy_format_descriptor<Scalar>::name() +
+            _("[")  + _<fixed_rows>(_<(size_t) rows>(), _("m")) +
+            _(", ") + _<fixed_cols>(_<(size_t) cols>(), _("n")) +
+            _("]") +
+            // For a reference type (e.g. Ref<MatrixXd>) we have other constraints that might need to be
+            // satisfied: writeable=True (for a mutable reference), and, depending on the map's stride
+            // options, possibly f_contiguous or c_contiguous.  We include them in the descriptor output
+            // to provide some hint as to why a TypeError is occurring (otherwise it can be confusing to
+            // see that a function accepts a 'numpy.ndarray[float64[3,2]]' and an error message that you
+            // *gave* a numpy.ndarray of the right type and dimensions.
+            _<show_writeable>(", flags.writeable", "") +
+            _<show_c_contiguous>(", flags.c_contiguous", "") +
+            _<show_f_contiguous>(", flags.f_contiguous", "") +
+            _("]")
+        );
     }
 };
 
@@ -318,7 +319,7 @@ public:
         return cast_impl(src, policy, parent);
     }
 
-    static PYBIND11_DESCR name() { return type_descr(props::descriptor()); }
+    static PYBIND11_DESCR name() { return props::descriptor(); }
 
     operator Type*() { return &value; }
     operator Type&() { return value; }
