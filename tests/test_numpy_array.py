@@ -377,3 +377,15 @@ def test_array_unchecked_dyn_dims(msg):
 
     assert proxy_auxiliaries2_dyn(z1) == [11, 11, True, 2, 8, 2, 2, 4, 32]
     assert proxy_auxiliaries2_dyn(z1) == array_auxiliaries2(z1)
+
+
+def test_array_failure():
+    from pybind11_tests.array import array_fail_test, array_t_fail_test
+
+    with pytest.raises(ValueError) as excinfo:
+        array_fail_test()
+    assert str(excinfo.value) == 'cannot create a pybind11::array from a nullptr'
+
+    with pytest.raises(ValueError) as excinfo:
+        array_t_fail_test()
+    assert str(excinfo.value) == 'cannot create a pybind11::array_t from a nullptr'

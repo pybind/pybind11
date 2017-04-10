@@ -264,4 +264,8 @@ test_initializer numpy_array([](py::module &m) {
     sm.def("array_auxiliaries2", [](py::array_t<double> a) {
         return auxiliaries(a, a);
     });
+
+    // Issue #785: Uninformative "Unknown internal error" exception when constructing array from empty object:
+    sm.def("array_fail_test", []() { return py::array(py::object()); });
+    sm.def("array_t_fail_test", []() { return py::array_t<double>(py::object()); });
 });
