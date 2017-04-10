@@ -620,11 +620,8 @@ public:
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
-    template <typename T, ssize_t Dims = -1> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() {
-        if (Dims >= 0 && ndim() != (size_t) Dims)
-            throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
-                    "; expected " + std::to_string(Dims));
-        return detail::unchecked_mutable_reference<T, Dims>(mutable_data(), shape(), strides(), ndim());
+    template <typename T, ssize_t Dims = -1> auto mutable_unchecked() {
+        return mutable_unchecked_impl<T, Dims>(std::integral_constant<bool, Dims == 1>());
     }
 
     /** Returns a proxy object that provides const access to the array's data without bounds or
@@ -633,11 +630,8 @@ public:
      * reshaped for the duration of the returned object, and the caller must take care not to access
      * invalid dimensions or dimension indices.
      */
-    template <typename T, ssize_t Dims = -1> detail::unchecked_reference<T, Dims> unchecked() const {
-        if (Dims >= 0 && ndim() != (size_t) Dims)
-            throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
-                    "; expected " + std::to_string(Dims));
-        return detail::unchecked_reference<T, Dims>(data(), shape(), strides(), ndim());
+    template <typename T, ssize_t Dims = -1> auto unchecked() const {
+        return unchecked_impl<T, Dims>(std::integral_constant<bool, Dims == 1>());
     }
 
     /// Return a new view with all of the dimensions of length 1 removed
@@ -706,6 +700,41 @@ protected:
             return nullptr;
         return detail::npy_api::get().PyArray_FromAny_(
             ptr, nullptr, 0, 0, detail::npy_api::NPY_ARRAY_ENSUREARRAY_ | ExtraFlags, nullptr);
+    }
+
+    /// Unchecked proxy access implementation is selected by Dims == 1 condition
+    template <typename T, ssize_t Dims> detail::unchecked_reference<T, Dims>
+    unchecked_impl(std::false_type) const {
+        if (Dims >= 0 && ndim() != (size_t) Dims)
+            throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
+                    "; expected " + std::to_string(Dims));
+        return detail::unchecked_reference<T, Dims>(data(), shape(), strides(), ndim());
+    }
+    template <typename T, ssize_t Dims> detail::unchecked_reference<T, Dims>
+    unchecked_impl(std::true_type) const {
+        if (ndim() != 0 && (flags() & (c_style | f_style))) {
+            std::array<const size_t, 1> shape1d{{size()}};
+            std::array<const size_t, 1> strides1d{{itemsize()}};
+            return detail::unchecked_reference<T, 1>(data(), shape1d.data(), strides1d.data(), 1);
+        }
+        return unchecked_impl<T, Dims>(std::false_type());
+    }
+
+    template <typename T, ssize_t Dims> detail::unchecked_mutable_reference<T, Dims>
+    mutable_unchecked_impl(std::false_type) {
+        if (Dims >= 0 && ndim() != (size_t) Dims)
+            throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
+                    "; expected " + std::to_string(Dims));
+        return detail::unchecked_mutable_reference<T, Dims>(mutable_data(), shape(), strides(), ndim());
+    }
+    template <typename T, ssize_t Dims> detail::unchecked_mutable_reference<T, Dims>
+    mutable_unchecked_impl(std::true_type) {
+        if (ndim() != 0 && (flags() & (c_style | f_style))) {
+            std::array<const size_t, 1> shape1d{{size()}};
+            std::array<const size_t, 1> strides1d{{itemsize()}};
+            return detail::unchecked_mutable_reference<T, 1>(mutable_data(), shape1d.data(), strides1d.data(), 1);
+        }
+        return mutable_unchecked_impl<T, Dims>(std::false_type());
     }
 };
 

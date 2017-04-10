@@ -367,13 +367,14 @@ def test_array_unchecked_fixed_dims(msg):
 
 def test_array_unchecked_dyn_dims(msg):
     from pybind11_tests.array import (proxy_add2_dyn, proxy_init3_dyn, proxy_auxiliaries2_dyn,
-                                      array_auxiliaries2)
+                                      array_auxiliaries2, proxy_init3_ct)
     z1 = np.array([[1, 2], [3, 4]], dtype='float64')
     proxy_add2_dyn(z1, 10)
     assert np.all(z1 == [[11, 12], [13, 14]])
 
     expect_c = np.ndarray(shape=(3, 3, 3), buffer=np.array(range(3, 30)), dtype='int')
     assert np.all(proxy_init3_dyn(3.0) == expect_c)
+    assert np.all(proxy_init3_ct(3.0) == expect_c)
 
     assert proxy_auxiliaries2_dyn(z1) == [11, 11, True, 2, 8, 2, 2, 4, 32]
     assert proxy_auxiliaries2_dyn(z1) == array_auxiliaries2(z1)

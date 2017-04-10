@@ -264,4 +264,13 @@ test_initializer numpy_array([](py::module &m) {
     sm.def("array_auxiliaries2", [](py::array_t<double> a) {
         return auxiliaries(a, a);
     });
+
+    sm.def("proxy_init3_ct", [](double start) {
+        py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
+        auto r = a.mutable_unchecked<1>();
+        if (r.ndim() != 1) throw std::domain_error("error: ndim != 1, no compile-time opt");
+        for (size_t i = 0; i < r.shape(0); i++)
+            r(i) = start++;
+        return a;
+    });
 });
