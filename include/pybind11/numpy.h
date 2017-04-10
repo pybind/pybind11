@@ -702,8 +702,10 @@ protected:
 
     /// Create array from any object -- always returns a new reference
     static PyObject *raw_array(PyObject *ptr, int ExtraFlags = 0) {
-        if (ptr == nullptr)
+        if (ptr == nullptr) {
+            PyErr_SetString(PyExc_ValueError, "cannot create a pybind11::array from a nullptr");
             return nullptr;
+        }
         return detail::npy_api::get().PyArray_FromAny_(
             ptr, nullptr, 0, 0, detail::npy_api::NPY_ARRAY_ENSUREARRAY_ | ExtraFlags, nullptr);
     }
@@ -808,8 +810,10 @@ public:
 protected:
     /// Create array from any object -- always returns a new reference
     static PyObject *raw_array_t(PyObject *ptr) {
-        if (ptr == nullptr)
+        if (ptr == nullptr) {
+            PyErr_SetString(PyExc_ValueError, "cannot create a pybind11::array_t from a nullptr");
             return nullptr;
+        }
         return detail::npy_api::get().PyArray_FromAny_(
             ptr, dtype::of<T>().release().ptr(), 0, 0,
             detail::npy_api::NPY_ARRAY_ENSUREARRAY_ | ExtraFlags, nullptr);
