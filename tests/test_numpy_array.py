@@ -389,3 +389,38 @@ def test_array_failure():
     with pytest.raises(ValueError) as excinfo:
         array_t_fail_test()
     assert str(excinfo.value) == 'cannot create a pybind11::array_t from a nullptr'
+
+
+def test_array_resize(msg):
+    from pybind11_tests.array import (array_reshape2, array_resize3)
+
+    a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype='float64')
+    array_reshape2(a)
+    assert(a.size == 9)
+    assert(np.all(a == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]))
+
+    # total size change should succced with refcheck off
+    array_resize3(a, 4, False)
+    assert(a.size == 64)
+    # ... and fail with refcheck on
+    try:
+        array_resize3(a, 3, True)
+    except ValueError as e:
+        assert(str(e).startswith("cannot resize an array"))
+    # transposed array doesn't own data
+    b = a.transpose()
+    try:
+        array_resize3(b, 3, False)
+    except ValueError as e:
+        assert(str(e).startswith("cannot resize this array: it does not own its data"))
+    # ... but reshape should be fine
+    array_reshape2(b)
+    assert(b.shape == (8, 8))
+
+
+@pytest.unsupported_on_pypy
+def test_array_create_and_resize(msg):
+    from pybind11_tests.array import create_and_resize
+    a = create_and_resize(2)
+    assert(a.size == 4)
+    assert(np.all(a == 42.))

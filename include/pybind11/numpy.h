@@ -129,6 +129,11 @@ struct npy_api {
         NPY_STRING_, NPY_UNICODE_, NPY_VOID_
     };
 
+    typedef struct {
+        Py_intptr_t *ptr;
+        int len;
+    } PyArray_Dims;
+
     static npy_api& get() {
         static npy_api api = lookup();
         return api;
@@ -159,6 +164,7 @@ struct npy_api {
                                              Py_ssize_t *, PyObject **, PyObject *);
     PyObject *(*PyArray_Squeeze_)(PyObject *);
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
+    PyObject* (*PyArray_Resize_)(PyObject*, PyArray_Dims*, int, int);
 private:
     enum functions {
         API_PyArray_GetNDArrayCFeatureVersion = 211,
@@ -168,6 +174,7 @@ private:
         API_PyArray_DescrFromType = 45,
         API_PyArray_DescrFromScalar = 57,
         API_PyArray_FromAny = 69,
+        API_PyArray_Resize = 80,
         API_PyArray_NewCopy = 85,
         API_PyArray_NewFromDescr = 94,
         API_PyArray_DescrNewFromType = 9,
@@ -197,6 +204,7 @@ private:
         DECL_NPY_API(PyArray_DescrFromType);
         DECL_NPY_API(PyArray_DescrFromScalar);
         DECL_NPY_API(PyArray_FromAny);
+        DECL_NPY_API(PyArray_Resize);
         DECL_NPY_API(PyArray_NewCopy);
         DECL_NPY_API(PyArray_NewFromDescr);
         DECL_NPY_API(PyArray_DescrNewFromType);
@@ -650,6 +658,21 @@ public:
     array squeeze() {
         auto& api = detail::npy_api::get();
         return reinterpret_steal<array>(api.PyArray_Squeeze_(m_ptr));
+    }
+
+    /// Resize array to given shape
+    /// If refcheck is true and more that one reference exist to this array
+    /// then resize will succeed only if it makes a reshape, i.e. original size doesn't change
+    void resize(ShapeContainer new_shape, bool refcheck = true) {
+        detail::npy_api::PyArray_Dims d = {
+            new_shape->data(), int(new_shape->size())
+        };
+        // try to resize, set ordering param to -1 cause it's not used anyway
+        object new_array = reinterpret_steal<object>(
+            detail::npy_api::get().PyArray_Resize_(m_ptr, &d, int(refcheck), -1)
+        );
+        if (!new_array) throw error_already_set();
+        if (isinstance<array>(new_array)) { *this = std::move(new_array); }
     }
 
     /// Ensure that the argument is a NumPy array
