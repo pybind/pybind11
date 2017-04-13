@@ -273,4 +273,25 @@ test_initializer numpy_array([](py::module &m) {
     sm.def("array_initializer_list", []() { return py::array_t<float>({ 1, 2 }); });
     sm.def("array_initializer_list", []() { return py::array_t<float>({ 1, 2, 3 }); });
     sm.def("array_initializer_list", []() { return py::array_t<float>({ 1, 2, 3, 4 }); });
+
+    // reshape array to 2D without changing size
+    sm.def("array_reshape2", [](py::array_t<double> a) {
+        const size_t dim_sz = (size_t)std::sqrt(a.size());
+        if (dim_sz * dim_sz != a.size())
+            throw std::domain_error("array_reshape2: input array total size is not a squared integer");
+        a.resize({dim_sz, dim_sz});
+    });
+
+    // resize to 3D array with each dimension = N
+    sm.def("array_resize3", [](py::array_t<double> a, size_t N, bool refcheck) {
+        a.resize({N, N, N}, refcheck);
+    });
+
+    // return 2D array with Nrows = Ncols = N
+    sm.def("create_and_resize", [](size_t N) {
+        py::array_t<double> a;
+        a.resize({N, N});
+        std::fill(a.mutable_data(), a.mutable_data() + a.size(), 42.);
+        return a;
+    });
 });
