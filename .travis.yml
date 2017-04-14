@@ -23,9 +23,12 @@ matrix:
   - sudo: true
     services: docker
     env: PYTHON=3.5 CPP=17 GCC=7
-  - sudo: true
-    services: docker
-    env: PYTHON=3.5 CPP=17 CLANG=4.0
+  - os: linux
+    env: PYTHON=3.6 CPP=17 CLANG=4.0
+    addons:
+      apt:
+        sources: [deadsnakes, llvm-toolchain-trusty-4.0]
+        packages: [python3.6-dev python3.6-venv clang-4.0 llvm-4.0-dev]
   - os: osx
     osx_image: xcode7.3
     env: PYTHON=2.7 CPP=14 CLANG
@@ -76,27 +79,27 @@ matrix:
     - flake8
   allow_failures:
     - env: PYTHON=3.5 CPP=17 GCC=7
-    - env: PYTHON=3.5 CPP=17 CLANG=4.0
+    - env: PYTHON=3.6 CPP=17 CLANG=4.0
 cache:
   directories:
   - $HOME/.local/bin
   - $HOME/.local/lib
+  - $HOME/.local/include
   - $HOME/Library/Python
 before_install:
 - |
   # Configure build variables
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -n "$CLANG" ]; then
-      export CXX=clang++-$CLANG CC=clang-$CLANG COMPILER_PACKAGES="clang-$CLANG llvm-$CLANG-dev"
-      if [ "$CLANG" = "4.0" ]; then export CXXFLAGS="-stdlib=libc++"; fi
+      export CXX=clang++-$CLANG CC=clang-$CLANG
+      COMPILER_PACKAGES="clang-$CLANG llvm-$CLANG-dev"
     else
       if [ -z "$GCC" ]; then export GCC=4.8
       else export COMPILER_PACKAGES=g++-$GCC
       fi
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
-    if [ "$CLANG" = "4.0" ]; then export DOCKER=debian:sid
-    elif [ "$GCC" = "6" ] || [ -n "$CLANG" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
+    if [ "$GCC" = "6" ] || [ "$CLANG" = "3.9" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
     elif [ "$GCC" = "7" ]; then export DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -113,7 +116,6 @@ before_install:
 
     export containerid=$(docker run --detach --tty \
       --volume="$PWD":/pybind11 --workdir=/pybind11 \
-      --env="CXXFLAGS=$CXXFLAGS" \
       --env="CC=$CC" --env="CXX=$CXX" --env="DEBIAN_FRONTEND=$DEBIAN_FRONTEND" \
       --env=GCC_COLORS=\  \
       $DOCKER)
@@ -153,21 +155,30 @@ install:
       apt-get -qy --no-install-recommends $APT_GET_EXTRA install \
         $PY_DEBUG python$PY-dev python$PY-pytest python$PY-scipy \
         libeigen3-dev cmake make ${COMPILER_PACKAGES} && break; done"
+  else
 
     if [ "$CLANG" = "4.0" ]; then
-      # Neither debian nor llvm provide a libc++ deb; luckily it's fairly quick
-      # to build and install, so do it ourselves:
-      git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
-      git clone https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx -b release_40
-      git clone https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi -b release_40
-      $SCRIPT_RUN_PREFIX sh -c "mkdir llvm-build && cd llvm-build && \
-        CXXFLAGS= cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ../llvm-source && \
-        make -j2 install-cxxabi install-cxx && \
-        cp -a include/c++/v1/*cxxabi*.h /usr/include/c++/v1"
-
-      if [ "$CPP" = "-std=c++17" ]; then export CPP="-std=c++1z"; fi
+      if ! [ -d ~/.local/include/c++/v1 ]; then
+        # Neither debian nor llvm provide a libc++ 4.0 deb; luckily it's fairly quick
+        # to build, install (and cache), so do it ourselves:
+        git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
+        git clone https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx -b release_40
+        git clone https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi -b release_40
+        mkdir llvm-build && cd llvm-build
+        # Building llvm requires a newer cmake than is provided by the trusty container:
+        CMAKE=cmake-3.8.0-Linux-x86_64
+        curl https://cmake.org/files/v3.8/$CMAKE.tar.gz | tar xz
+        ./$CMAKE/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/.local ../llvm-source
+        make -j2 install-cxxabi install-cxx
+        cp -a include/c++/v1/*cxxabi*.h ~/.local/include/c++/v1
+        cd ..
+      fi
+      export CXXFLAGS="-isystem $HOME/.local/include/c++/v1 -stdlib=libc++"
+      export LDFLAGS="-L$HOME/.local/lib"
+      export LD_LIBRARY_PATH="$HOME/.local/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      if [ "$CPP" = "-std=c++17" ]; then CPP="-std=c++1z"; fi
     fi
-  else
+
     export NPY_NUM_BUILD_JOBS=2
     echo "Installing pytest, numpy, scipy..."
     ${PYPY:+travis_wait 30} $PY_CMD -m pip install --user --upgrade --quiet pytest numpy scipy
@@ -175,7 +186,7 @@ install:
 
     wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.3.3.tar.gz
     tar xzf eigen.tar.gz
-    export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_INCLUDE_PATH=$PWD/eigen-eigen-67e894c6cd8f"
+    export CMAKE_INCLUDE_PATH="${CMAKE_INCLUDE_PATH:+:}$PWD/eigen-eigen-67e894c6cd8f"
   fi
   set +e
 script:
