@@ -94,40 +94,40 @@ before_install:
       export CXX=clang++-$CLANG CC=clang-$CLANG
       COMPILER_PACKAGES="clang-$CLANG llvm-$CLANG-dev"
     else
-      if [ -z "$GCC" ]; then export GCC=4.8
-      else export COMPILER_PACKAGES=g++-$GCC
+      if [ -z "$GCC" ]; then GCC=4.8
+      else COMPILER_PACKAGES=g++-$GCC
       fi
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
-    if [ "$GCC" = "6" ] || [ "$CLANG" = "3.9" ]; then export DOCKER=${ARCH:+$ARCH/}debian:testing
-    elif [ "$GCC" = "7" ]; then export DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
+    if [ "$GCC" = "6" ] || [ "$CLANG" = "3.9" ]; then DOCKER=${ARCH:+$ARCH/}debian:testing
+    elif [ "$GCC" = "7" ]; then DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export CXX=clang++ CC=clang;
   fi
-  if [ -n "$CPP" ]; then export CPP=-std=c++$CPP; fi
-  if [ "${PYTHON:0:1}" = "3" ]; then export PY=3; fi
-  if [ -n "$DEBUG" ]; then export CMAKE_EXTRA_ARGS="-DCMAKE_BUILD_TYPE=Debug"; fi
+  if [ -n "$CPP" ]; then CPP=-std=c++$CPP; fi
+  if [ "${PYTHON:0:1}" = "3" ]; then PY=3; fi
+  if [ -n "$DEBUG" ]; then CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_BUILD_TYPE=Debug"; fi
 - |
   # Initialize environment
   set -e
   if [ -n "$DOCKER" ]; then
     docker pull $DOCKER
 
-    export containerid=$(docker run --detach --tty \
+    containerid=$(docker run --detach --tty \
       --volume="$PWD":/pybind11 --workdir=/pybind11 \
       --env="CC=$CC" --env="CXX=$CXX" --env="DEBIAN_FRONTEND=$DEBIAN_FRONTEND" \
       --env=GCC_COLORS=\  \
       $DOCKER)
-    export SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
+    SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
     $SCRIPT_RUN_PREFIX sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
   else
     if [ "$PYPY" = "5.7" ]; then
-      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.7.1-linux64.tar.bz2 | tar -xj
-      export PY_CMD=$(echo `pwd`/pypy2-v5.7.1-linux64/bin/pypy)
-      export CMAKE_EXTRA_ARGS="-DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
+      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.7.1-linux64.tar.bz2 | tar xj
+      PY_CMD=$(echo `pwd`/pypy2-v5.7.1-linux64/bin/pypy)
+      CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
     else
-      export PY_CMD=python$PYTHON
+      PY_CMD=python$PYTHON
       if [ "$TRAVIS_OS_NAME" = "osx" ]; then
         if [ "$PY" = "3" ]; then
           brew update; brew install python$PY;
@@ -149,7 +149,7 @@ install:
   if [ -n "$DOCKER" ]; then
     if [ -n "$DEBUG" ]; then
       PY_DEBUG="python$PY-dbg python$PY-scipy-dbg"
-      export CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
+      CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
     fi
     $SCRIPT_RUN_PREFIX sh -c "for s in 0 15; do sleep \$s; \
       apt-get -qy --no-install-recommends $APT_GET_EXTRA install \
