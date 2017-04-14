@@ -38,10 +38,11 @@ struct buffer_info {
     buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t size)
     : buffer_info(ptr, itemsize, format, 1, size, itemsize) { }
 
-    explicit buffer_info(Py_buffer *view, bool ownview_in = true)
+    explicit buffer_info(Py_buffer *view, bool ownview = true)
     : buffer_info(view->buf, (size_t) view->itemsize, view->format, (size_t) view->ndim,
             {view->shape, view->shape + view->ndim}, {view->strides, view->strides + view->ndim}) {
-        ownview = ownview_in;
+        this->view = view;
+        this->ownview = ownview;
     }
 
     buffer_info(const buffer_info &) = delete;
