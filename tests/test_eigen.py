@@ -186,7 +186,7 @@ def test_negative_stride_from_python(msg):
         double_threer(second_row)
     assert msg(excinfo.value) == """
     double_threer(): incompatible function arguments. The following argument types are supported:
-        1. (numpy.ndarray[float32[1, 3], flags.writeable]) -> arg0: None
+        1. (arg0: numpy.ndarray[float32[1, 3], flags.writeable]) -> None
 
     Invoked with: array([ 5.,  4.,  3.], dtype=float32)
 """
@@ -195,7 +195,7 @@ def test_negative_stride_from_python(msg):
         double_threec(second_col)
     assert msg(excinfo.value) == """
     double_threec(): incompatible function arguments. The following argument types are supported:
-        1. (numpy.ndarray[float32[3, 1], flags.writeable]) -> arg0: None
+        1. (arg0: numpy.ndarray[float32[3, 1], flags.writeable]) -> None
 
     Invoked with: array([ 7.,  4.,  1.], dtype=float32)
 """

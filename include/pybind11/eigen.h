@@ -68,7 +68,7 @@ template <typename T> using is_eigen_other = all_of<
 template <bool EigenRowMajor> struct EigenConformable {
     bool conformable = false;
     EigenIndex rows = 0, cols = 0;
-    EigenDStride stride{0, 0};      // Only valid if negativestridees is false!
+    EigenDStride stride{0, 0};      // Only valid if negativestrides is false!
     bool negativestrides = false;   // If true, do not use stride!
 
     EigenConformable(bool fits = false) : conformable{fits} {}
@@ -207,7 +207,7 @@ template <typename Type_> struct EigenProps {
 // Casts an Eigen type to numpy array.  If given a base, the numpy array references the src data,
 // otherwise it'll make a copy.  writeable lets you turn off the writeable flag for the array.
 template <typename props> handle eigen_array_cast(typename props::Type const &src, handle base = handle(), bool writeable = true) {
-    constexpr size_t elem_size = sizeof(typename props::Scalar);
+    constexpr ssize_t elem_size = sizeof(typename props::Scalar);
     array a;
     if (props::vector)
         a = array({ src.size() }, { elem_size * src.innerStride() }, src.data(), base);
@@ -581,9 +581,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         object matrix_type = module::import("scipy.sparse").attr(
             rowMajor ? "csr_matrix" : "csc_matrix");
 
-        array data((size_t) src.nonZeros(), src.valuePtr());
-        array outerIndices((size_t) (rowMajor ? src.rows() : src.cols()) + 1, src.outerIndexPtr());
-        array innerIndices((size_t) src.nonZeros(), src.innerIndexPtr());
+        array data(src.nonZeros(), src.valuePtr());
+        array outerIndices((rowMajor ? src.rows() : src.cols()) + 1, src.outerIndexPtr());
+        array innerIndices(src.nonZeros(), src.innerIndexPtr());
 
         return matrix_type(
             std::make_tuple(data, innerIndices, outerIndices),
