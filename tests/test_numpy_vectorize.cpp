@@ -50,8 +50,8 @@ test_initializer numpy_vectorize([](py::module &m) {
                 py::array_t<float, py::array::forcecast> arg2,
                 py::array_t<double, py::array::forcecast> arg3
                 ) {
-        size_t ndim;
-        std::vector<size_t> shape;
+        ssize_t ndim;
+        std::vector<ssize_t> shape;
         std::array<py::buffer_info, 3> buffers {{ arg1.request(), arg2.request(), arg3.request() }};
         return py::detail::broadcast(buffers, ndim, shape);
     });
