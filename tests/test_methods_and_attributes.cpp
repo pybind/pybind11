@@ -299,11 +299,11 @@ test_initializer methods_and_attributes([](py::module &m) {
     m.attr("debug_enabled") = false;
 #endif
     m.def("bad_arg_def_named", []{
-        auto m = py::module::import("pybind11_tests.issues");
+        auto m = py::module::import("pybind11_tests");
         m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg("a") = NotRegistered());
     });
     m.def("bad_arg_def_unnamed", []{
-        auto m = py::module::import("pybind11_tests.issues");
+        auto m = py::module::import("pybind11_tests");
         m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg() = NotRegistered());
     });
 });
