@@ -135,6 +135,8 @@
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
+#define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
+#define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
 #define PYBIND11_BYTES_CHECK PyBytes_Check
 #define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
 #define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
@@ -153,6 +155,8 @@
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 #else
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyMethod_New(ptr, nullptr, class_)
+#define PYBIND11_INSTANCE_METHOD_CHECK PyMethod_Check
+#define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyMethod_GET_FUNCTION
 #define PYBIND11_BYTES_CHECK PyString_Check
 #define PYBIND11_BYTES_FROM_STRING PyString_FromString
 #define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyString_FromStringAndSize

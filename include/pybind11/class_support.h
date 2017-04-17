@@ -149,6 +149,24 @@ extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyOb
     }
 }
 
+#if PY_MAJOR_VERSION >= 3
+/** Python 3's PyInstanceMethod_Type hides itself via its tp_descr_get, which prevents aliasing
+ * methods via cls.attr("m2") = cls.attr("m1"): instead the tp_descr_get returns a plain function,
+ * when called on a class, or a PyMethod, when called on an instance.  Override that behaviour here
+ * to do a special case bypass for PyInstanceMethod_Types.
+ */
+extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name) {
+    PyObject *descr = _PyType_Lookup((PyTypeObject *) obj, name);
+    if (descr && PyInstanceMethod_Check(descr)) {
+        Py_INCREF(descr);
+        return descr;
+    }
+    else {
+        return PyType_Type.tp_getattro(obj, name);
+    }
+}
+#endif
+
 /** This metaclass is assigned by default to all pybind11 types and is required in order
     for static properties to function correctly. Users may override this using `py::metaclass`.
     Return value: New reference. */
@@ -176,6 +194,9 @@ inline PyTypeObject* make_default_metaclass() {
 
     type->tp_new = pybind11_meta_new;
     type->tp_setattro = pybind11_meta_setattro;
+#if PY_MAJOR_VERSION >= 3
+    type->tp_getattro = pybind11_meta_getattro;
+#endif
 
     if (PyType_Ready(type) < 0)
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");

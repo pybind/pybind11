@@ -163,8 +163,8 @@ public:
 class NotRegistered {};
 
 test_initializer methods_and_attributes([](py::module &m) {
-    py::class_<ExampleMandA>(m, "ExampleMandA")
-        .def(py::init<>())
+    py::class_<ExampleMandA> emna(m, "ExampleMandA");
+    emna.def(py::init<>())
         .def(py::init<int>())
         .def(py::init<const ExampleMandA&>())
         .def("add1", &ExampleMandA::add1)
@@ -221,6 +221,9 @@ test_initializer methods_and_attributes([](py::module &m) {
         })
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value);
+
+    // Issue #443: can't call copied methods in Python 3
+    emna.attr("add2b") = emna.attr("add2");
 
     py::class_<TestProperties>(m, "TestProperties")
         .def(py::init<>())
