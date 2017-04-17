@@ -268,10 +268,8 @@ protected:
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
         rec->nargs = (std::uint16_t) args;
 
-#if PY_MAJOR_VERSION < 3
-        if (rec->sibling && PyMethod_Check(rec->sibling.ptr()))
-            rec->sibling = PyMethod_GET_FUNCTION(rec->sibling.ptr());
-#endif
+        if (rec->sibling && PYBIND11_INSTANCE_METHOD_CHECK(rec->sibling.ptr()))
+            rec->sibling = PYBIND11_INSTANCE_METHOD_GET_FUNCTION(rec->sibling.ptr());
 
         detail::function_record *chain = nullptr, *chain_start = rec;
         if (rec->sibling) {

@@ -80,6 +80,24 @@ def test_properties():
     assert instance.def_property == 3
 
 
+def test_copy_method():
+    """Issue #443: calling copied methods fails in Python 3"""
+    from pybind11_tests import ExampleMandA
+
+    ExampleMandA.add2c = ExampleMandA.add2
+    ExampleMandA.add2d = ExampleMandA.add2b
+    a = ExampleMandA(123)
+    assert a.value == 123
+    a.add2(ExampleMandA(-100))
+    assert a.value == 23
+    a.add2b(ExampleMandA(20))
+    assert a.value == 43
+    a.add2c(ExampleMandA(6))
+    assert a.value == 49
+    a.add2d(ExampleMandA(-7))
+    assert a.value == 42
+
+
 def test_static_properties():
     from pybind11_tests import TestProperties as Type
 
