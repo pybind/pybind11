@@ -655,6 +655,11 @@ static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
 ///  - sweet:   overload_cast<Arg>(&Class::func, const_)
 static constexpr auto const_ = std::true_type{};
 
+#else // no overload_cast: providing something that static_assert-fails:
+template <typename... Args> struct overload_cast {
+    static_assert(detail::deferred_t<std::false_type, Args...>::value,
+                  "pybind11::overload_cast<...> requires compiling in C++14 mode");
+};
 #endif // overload_cast
 
 NAMESPACE_BEGIN(detail)
