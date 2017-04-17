@@ -1100,8 +1100,26 @@ private:
     template <typename T>
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
         try {
-            new (&inst->holder) holder_type(std::static_pointer_cast<typename holder_type::element_type>(inst->value->shared_from_this()));
+            new (&inst->holder) holder_type(std::dynamic_pointer_cast<typename holder_type::element_type>(
+                dynamic_cast<std::enable_shared_from_this<T>*>(
+                    static_cast<T*>((void*)inst->value))->shared_from_this()
+            ));
             inst->holder_constructed = true;
+            if(!inst->holder.get()) {
+                // create dumb holder for the fail case
+                // otherwise, if holder_constructed is false, cleanup code will try to `delete inst->value`
+                // that would probably lead to double free and segfault
+                // (because instance is already managed by shared_ptr)
+                new (&inst->holder) holder_type();
+                auto &internals = detail::get_internals();
+                internals.registered_instances.emplace((void*)inst->value, (void*)inst);
+                // ... and throw exception
+                std::string tname = typeid(*inst->value).name();
+                detail::clean_type_id(tname);
+                throw type_error(std::string("Unable to create holder for type : ") + tname);
+            }
+            // correct pointer to actual type instance
+            inst->value = dynamic_cast<type*>(inst->holder.get());
         } catch (const std::bad_weak_ptr &) {
             if (inst->owned) {
                 new (&inst->holder) holder_type(inst->value);
