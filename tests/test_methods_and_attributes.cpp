@@ -59,6 +59,8 @@ public:
     py::str overloaded(int, int)     const { return "(int, int) const"; }
     py::str overloaded(float, float) const { return "(float, float) const"; }
 
+    static py::str overloaded() { return "static"; }
+
     int value = 0;
 };
 
@@ -206,6 +208,17 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(int,     int) const>(&ExampleMandA::overloaded))
         .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(float, float) const>(&ExampleMandA::overloaded))
 #endif
+        // Raise error if trying to mix static/non-static overloads on the same name:
+        .def_static("add_mixed_overloads1", []() {
+            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests").attr("ExampleMandA"));
+            emna.def       ("overload_mixed1", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded))
+                .def_static("overload_mixed1", static_cast<py::str (              *)(        )>(&ExampleMandA::overloaded));
+        })
+        .def_static("add_mixed_overloads2", []() {
+            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests").attr("ExampleMandA"));
+            emna.def_static("overload_mixed2", static_cast<py::str (              *)(        )>(&ExampleMandA::overloaded))
+                .def       ("overload_mixed2", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded));
+        })
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value);
 
