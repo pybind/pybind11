@@ -991,12 +991,11 @@ public:
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
         if (!m_ptr) pybind11_fail("Could not allocate slice object!");
     }
-    bool compute(size_t length, size_t *start, size_t *stop, size_t *step,
-                 size_t *slicelength) const {
+    bool compute(size_t length, ssize_t *start, ssize_t *stop, ssize_t *step,
+                 ssize_t *slicelength) const {
         return PySlice_GetIndicesEx((PYBIND11_SLICE_OBJECT *) m_ptr,
-                                    (ssize_t) length, (ssize_t *) start,
-                                    (ssize_t *) stop, (ssize_t *) step,
-                                    (ssize_t *) slicelength) == 0;
+                                    (ssize_t) length, start,
+                                     stop, step, slicelength) == 0;
     }
 };
 
