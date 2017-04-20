@@ -26,6 +26,8 @@ PYBIND11_EMBEDDED_MODULE(widget_module, m) {
     py::class_<Widget, PyWidget>(m, "Widget")
         .def(py::init<std::string>())
         .def_property_readonly("the_message", &Widget::the_message);
+
+    m.def("add", [](int i, int j) { return i + j; });
 }
 
 PYBIND11_EMBEDDED_MODULE(throw_exception, ) {
@@ -80,4 +82,74 @@ TEST_CASE("There can be only one interpreter") {
         auto pyi2 = std::move(pyi1);
     }
     py::initialize_interpreter();
+}
+
+bool has_pybind11_internals() {
+    auto builtins = py::handle(PyEval_GetBuiltins());
+    return builtins.contains(PYBIND11_INTERNALS_ID);
+};
+
+TEST_CASE("Restart the interpreter") {
+    // Verify pre-restart state.
+    REQUIRE(py::module::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
+    REQUIRE(has_pybind11_internals());
+
+    // Restart the interpreter.
+    py::finalize_interpreter();
+    REQUIRE(Py_IsInitialized() == 0);
+
+    py::initialize_interpreter();
+    REQUIRE(Py_IsInitialized() == 1);
+
+    // Internals are deleted after a restart.
+    REQUIRE_FALSE(has_pybind11_internals());
+    pybind11::detail::get_internals();
+    REQUIRE(has_pybind11_internals());
+
+    // C++ modules can be reloaded.
+    auto cpp_module = py::module::import("widget_module");
+    REQUIRE(cpp_module.attr("add")(1, 2).cast<int>() == 3);
+
+    // C++ type information is reloaded and can be used in python modules.
+    auto py_module = py::module::import("test_interpreter");
+    auto py_widget = py_module.attr("DerivedWidget")("Hello after restart");
+    REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
+}
+
+TEST_CASE("Subinterpreter") {
+    // Add tags to the modules in the main interpreter and test the basics.
+    py::module::import("__main__").attr("main_tag") = "main interpreter";
+    {
+        auto m = py::module::import("widget_module");
+        m.attr("extension_module_tag") = "added to module in main interpreter";
+
+        REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
+    }
+    REQUIRE(has_pybind11_internals());
+
+    /// Create and switch to a subinterpreter.
+    auto main_tstate = PyThreadState_Get();
+    auto sub_tstate = Py_NewInterpreter();
+
+    // Subinterpreters get their own copy of builtins. detail::get_internals() still
+    // works by returning from the static variable, i.e. all interpreters share a single
+    // global pybind11::internals;
+    REQUIRE_FALSE(has_pybind11_internals());
+
+    // Modules tags should be gone.
+    REQUIRE_FALSE(py::hasattr(py::module::import("__main__"), "tag"));
+    {
+        auto m = py::module::import("widget_module");
+        REQUIRE_FALSE(py::hasattr(m, "extension_module_tag"));
+
+        // Function bindings should still work.
+        REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
+    }
+
+    // Restore main interpreter.
+    Py_EndInterpreter(sub_tstate);
+    PyThreadState_Swap(main_tstate);
+
+    REQUIRE(py::hasattr(py::module::import("__main__"), "main_tag"));
+    REQUIRE(py::hasattr(py::module::import("widget_module"), "extension_module_tag"));
 }

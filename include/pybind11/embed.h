@@ -131,13 +131,29 @@ inline void initialize_interpreter(bool init_signal_handlers = true) {
 
     .. warning::
 
-        Python cannot unload binary extension modules. If `initialize_interpreter` is
-        called again to restart the interpreter, the initializers of those modules will
-        be executed for a second time and they will fail. This is a known CPython issue.
-        See the Python documentation for details.
+        The interpreter can be restarted by calling `initialize_interpreter` again.
+        Modules created using pybind11 can be safely re-initialized. However, Python
+        itself cannot completely unload binary extension modules and there are several
+        caveats with regard to interpreter restarting. All the details can be found
+        in the CPython documentation. In short, not all interpreter memory may be
+        freed, either due to reference cycles or user-created global data.
 
  \endrst */
-inline void finalize_interpreter() { Py_Finalize(); }
+inline void finalize_interpreter() {
+    handle builtins(PyEval_GetBuiltins());
+    const char *id = PYBIND11_INTERNALS_ID;
+
+    detail::internals **internals_ptr_ptr = nullptr;
+    if (builtins.contains(id) && isinstance<capsule>(builtins[id]))
+        internals_ptr_ptr = capsule(builtins[id]);
+
+    Py_Finalize();
+
+    if (internals_ptr_ptr) {
+        delete *internals_ptr_ptr;
+        *internals_ptr_ptr = nullptr;
+    }
+}
 
 /** \rst
     Scope guard version of `initialize_interpreter` and `finalize_interpreter`.
