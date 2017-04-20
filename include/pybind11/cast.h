@@ -58,7 +58,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     handle builtins(PyEval_GetBuiltins());
     const char *id = PYBIND11_INTERNALS_ID;
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
-        internals_ptr = capsule(builtins[id]);
+        internals_ptr = *static_cast<internals **>(capsule(builtins[id]));
     } else {
         internals_ptr = new internals();
         #if defined(WITH_THREAD)
@@ -68,7 +68,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
             PyThread_set_key_value(internals_ptr->tstate, tstate);
             internals_ptr->istate = tstate->interp;
         #endif
-        builtins[id] = capsule(internals_ptr);
+        builtins[id] = capsule(&internals_ptr);
         internals_ptr->registered_exception_translators.push_front(
             [](std::exception_ptr p) -> void {
                 try {
