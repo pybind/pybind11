@@ -195,8 +195,10 @@ inline PyThreadState *get_thread_state_unchecked() {
 #endif
 }
 
-// Forward declaration
+// Forward declarations
 inline void keep_alive_impl(handle nurse, handle patient);
+inline void register_instance(void *self);
+inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value = true);
 
 class type_caster_generic {
 public:
@@ -302,7 +304,7 @@ public:
                 return handle((PyObject *) it_i->second).inc_ref();
         }
 
-        auto inst = reinterpret_steal<object>(PyType_GenericAlloc(tinfo->type, 0));
+        auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type, false /* don't allocate value */));
 
         auto wrapper = (instance<void> *) inst.ptr();
 
@@ -352,9 +354,8 @@ public:
                 throw cast_error("unhandled return_value_policy: should not happen!");
         }
 
+        register_instance(wrapper);
         tinfo->init_holder(inst.ptr(), existing_holder);
-
-        internals.registered_instances.emplace(wrapper->value, inst.ptr());
 
         return inst.release();
     }
