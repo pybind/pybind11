@@ -24,6 +24,7 @@ inline PyTypeObject *make_default_metaclass();
 /// Additional type information which does not fit into the PyTypeObject
 struct type_info {
     PyTypeObject *type;
+    const std::type_info *cpptype;
     size_t type_size;
     void *(*operator_new)(size_t);
     void (*init_holder)(PyObject *, const void *);
@@ -35,9 +36,11 @@ struct type_info {
     void *get_buffer_data = nullptr;
     /** A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance */
-    bool simple_type = true;
+    bool simple_type : 1;
+    /* True if there is no multiple inheritance in this type's inheritance tree */
+    bool simple_ancestors : 1;
     /* for base vs derived holder_type checks */
-    bool default_holder = true;
+    bool default_holder : 1;
 };
 
 PYBIND11_NOINLINE inline internals &get_internals() {
@@ -197,7 +200,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 
 // Forward declarations
 inline void keep_alive_impl(handle nurse, handle patient);
-inline void register_instance(void *self);
+inline void register_instance(void *self, const type_info *tinfo);
 inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value = true);
 
 class type_caster_generic {
@@ -338,7 +341,7 @@ public:
                 throw cast_error("unhandled return_value_policy: should not happen!");
         }
 
-        register_instance(wrapper);
+        register_instance(wrapper, tinfo);
         tinfo->init_holder(inst.ptr(), existing_holder);
 
         return inst.release();
