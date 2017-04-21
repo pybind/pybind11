@@ -41,7 +41,15 @@ void bind_ConstructorStats(py::module &m) {
         .def_readwrite("move_assignments", &ConstructorStats::move_assignments)
         .def_readwrite("copy_constructions", &ConstructorStats::copy_constructions)
         .def_readwrite("move_constructions", &ConstructorStats::move_constructions)
-        .def_static("get", (ConstructorStats &(*)(py::object)) &ConstructorStats::get, py::return_value_policy::reference_internal);
+        .def_static("get", (ConstructorStats &(*)(py::object)) &ConstructorStats::get, py::return_value_policy::reference_internal)
+
+        // Not exactly ConstructorStats, but related: expose the internal pybind number of registered instances
+        // to allow instance cleanup checks (invokes a GC first)
+        .def_static("detail_reg_inst", []() {
+            ConstructorStats::gc();
+            return py::detail::get_internals().registered_instances.size();
+        })
+        ;
 }
 
 PYBIND11_PLUGIN(pybind11_tests) {

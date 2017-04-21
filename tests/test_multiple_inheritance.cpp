@@ -9,6 +9,7 @@
 */
 
 #include "pybind11_tests.h"
+#include "constructor_stats.h"
 
 struct Base1 {
     Base1(int i) : i(i) { }
@@ -90,6 +91,36 @@ test_initializer multiple_inheritance_nonexplicit([](py::module &m) {
     m.def("bar_base2a", [](Base2a *b) { return b->bar(); });
     m.def("bar_base2a_sharedptr", [](std::shared_ptr<Base2a> b) { return b->bar(); });
 });
+
+// Issue #801: invalid casting to derived type with MI bases
+struct I801B1 { int a = 1; virtual ~I801B1() = default; };
+struct I801B2 { int b = 2; virtual ~I801B2() = default; };
+struct I801C : I801B1, I801B2 {};
+struct I801D : I801C {}; // Indirect MI
+// Unregistered classes:
+struct I801B3 { int c = 3; virtual ~I801B3() = default; };
+struct I801E : I801B3, I801D {};
+
+test_initializer multiple_inheritance_casting([](py::module &m) {
+    py::class_<I801B1, std::shared_ptr<I801B1>>(m, "I801B1").def(py::init<>()).def_readonly("a", &I801B1::a);
+    py::class_<I801B2, std::shared_ptr<I801B2>>(m, "I801B2").def(py::init<>()).def_readonly("b", &I801B2::b);
+    py::class_<I801C, I801B1, I801B2, std::shared_ptr<I801C>>(m, "I801C").def(py::init<>());
+    py::class_<I801D, I801C, std::shared_ptr<I801D>>(m, "I801D").def(py::init<>());
+
+    // When returned a base class pointer to a derived instance, we cannot assume that the
+    // pointer is `reinterpret_cast`able to the derived pointer because the base class
+    // pointer could be offset.
+    m.def("i801c_b1", []() -> I801B1 * { return new I801C(); });
+    m.def("i801c_b2", []() -> I801B2 * { return new I801C(); });
+    m.def("i801d_b1", []() -> I801B1 * { return new I801D(); });
+    m.def("i801d_b2", []() -> I801B2 * { return new I801D(); });
+
+    // Return a base class pointer to a pybind-registered type when the actual derived type
+    // isn't pybind-registered (and uses multiple-inheritance to offset the pybind base)
+    m.def("i801e_c", []() -> I801C * { return new I801E(); });
+    m.def("i801e_b2", []() -> I801B2 * { return new I801E(); });
+});
+
 
 struct Vanilla {
     std::string vanilla() { return "Vanilla"; };

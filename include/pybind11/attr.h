@@ -266,7 +266,7 @@ struct type_record {
             dynamic_attr = true;
 
         if (caster)
-            base_info->implicit_casts.push_back(std::make_pair(type, caster));
+            base_info->implicit_casts.emplace_back(type, caster);
     }
 };
 
