@@ -144,6 +144,8 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::experimental::optional<T>`` | STL optional type (exp.)  | :file:`pybind11/stl.h`        |
 +------------------------------------+---------------------------+-------------------------------+
+| ``std::variant<...>``              | Type-safe union (C++17)   | :file:`pybind11/stl.h`        |
++------------------------------------+---------------------------+-------------------------------+
 | ``std::function<...>``             | STL polymorphic function  | :file:`pybind11/functional.h` |
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::chrono::duration<...>``     | STL time duration         | :file:`pybind11/chrono.h`     |

@@ -1,5 +1,6 @@
 # Python < 3 needs this: coding=utf-8
 import pytest
+import pybind11_tests
 
 from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, has_exp_optional
 
@@ -368,6 +369,18 @@ def test_exp_optional():
     assert test_nullopt_exp(None) == 42
     assert test_nullopt_exp(42) == 42
     assert test_nullopt_exp(43) == 43
+
+
+@pytest.mark.skipif(not hasattr(pybind11_tests, "load_variant"), reason='no <variant>')
+def test_variant(doc):
+    from pybind11_tests import load_variant, cast_variant
+
+    assert load_variant(1) == "int"
+    assert load_variant("1") == "std::string"
+    assert load_variant(1.0) == "double"
+    assert cast_variant() == (5, "Hello")
+
+    assert doc(load_variant) == "load_variant(arg0: Union[int, str, float]) -> str"
 
 
 def test_constructors():

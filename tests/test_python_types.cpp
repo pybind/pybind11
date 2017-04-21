@@ -354,6 +354,23 @@ test_initializer python_types([](py::module &m) {
     m.attr("has_optional") = has_optional;
     m.attr("has_exp_optional") = has_exp_optional;
 
+#ifdef PYBIND11_HAS_VARIANT
+    struct visitor {
+        const char *operator()(int) { return "int"; }
+        const char *operator()(std::string) { return "std::string"; }
+        const char *operator()(double) { return "double"; }
+    };
+
+    m.def("load_variant", [](std::variant<int, std::string, double> v) {
+        return std::visit(visitor(), v);
+    });
+
+    m.def("cast_variant", []() {
+        using V = std::variant<int, std::string>;
+        return py::make_tuple(V(5), V("Hello"));
+    });
+#endif
+
     m.def("test_default_constructors", []() {
         return py::dict(
             "str"_a=py::str(),
