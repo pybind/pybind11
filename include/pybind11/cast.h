@@ -270,34 +270,18 @@ public:
     }
 
     PYBIND11_NOINLINE static handle cast(const void *_src, return_value_policy policy, handle parent,
-                                         const std::type_info *type_info,
-                                         const std::type_info *type_info_backup,
+                                         const detail::type_info *tinfo,
                                          void *(*copy_constructor)(const void *),
                                          void *(*move_constructor)(const void *),
                                          const void *existing_holder = nullptr) {
+        if (!tinfo) // no type info: error will be set already
+            return handle();
+
         void *src = const_cast<void *>(_src);
         if (src == nullptr)
-            return none().inc_ref();
+            return none().release();
 
-        auto &internals = get_internals();
-
-        auto it = internals.registered_types_cpp.find(std::type_index(*type_info));
-        if (it == internals.registered_types_cpp.end()) {
-            type_info = type_info_backup;
-            it = internals.registered_types_cpp.find(std::type_index(*type_info));
-        }
-
-        if (it == internals.registered_types_cpp.end()) {
-            std::string tname = type_info->name();
-            detail::clean_type_id(tname);
-            std::string msg = "Unregistered type : " + tname;
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
-            return handle();
-        }
-
-        auto tinfo = (const detail::type_info *) it->second;
-
-        auto it_instances = internals.registered_instances.equal_range(src);
+        auto it_instances = get_internals().registered_instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             auto instance_type = detail::get_type_info(Py_TYPE(it_i->second));
             if (instance_type && instance_type == tinfo)
@@ -361,6 +345,25 @@ public:
     }
 
 protected:
+
+    // Called to do type lookup and wrap the pointer and type in a pair when a dynamic_cast
+    // isn't needed or can't be used.  If the type is unknown, sets the error and returns a pair
+    // with .second = nullptr.  (p.first = nullptr is not an error: it becomes None).
+    PYBIND11_NOINLINE static std::pair<const void *, const type_info *> src_and_type(
+            const void *src, const std::type_info *cast_type, const std::type_info *rtti_type = nullptr) {
+        auto &internals = get_internals();
+        auto it = internals.registered_types_cpp.find(std::type_index(*cast_type));
+        if (it != internals.registered_types_cpp.end())
+            return {src, (const type_info *) it->second};
+
+        // Not found, set error:
+        std::string tname = (rtti_type ? rtti_type : cast_type)->name();
+        detail::clean_type_id(tname);
+        std::string msg = "Unregistered type : " + tname;
+        PyErr_SetString(PyExc_TypeError, msg.c_str());
+        return {nullptr, nullptr};
+    }
+
     const type_info *typeinfo = nullptr;
     void *value = nullptr;
     object temp;
@@ -403,16 +406,47 @@ public:
         return cast(&src, return_value_policy::move, parent);
     }
 
+    // Returns a (pointer, type_info) pair taking care of necessary RTTI type lookup for a
+    // polymorphic type.  If the instance isn't derived, returns the non-RTTI base version.
+    template <typename T = itype, enable_if_t<std::is_polymorphic<T>::value, int> = 0>
+    static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
+        const void *vsrc = src;
+        auto &internals = get_internals();
+        auto cast_type = &typeid(itype);
+        const std::type_info *instance_type = nullptr;
+        if (vsrc) {
+            instance_type = &typeid(*src);
+            if (instance_type != cast_type) {
+                // This is a base pointer to a derived type; if it is a pybind11-registered type, we
+                // can get the correct derived pointer (which may be != base pointer) by a
+                // dynamic_cast to most derived type:
+                auto it = internals.registered_types_cpp.find(std::type_index(*instance_type));
+                if (it != internals.registered_types_cpp.end())
+                    return {dynamic_cast<const void *>(src), (const type_info *) it->second};
+            }
+        }
+        // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer, so
+        // don't do a cast
+        return type_caster_generic::src_and_type(vsrc, cast_type, instance_type);
+    }
+
+    // Non-polymorphic type, so no dynamic casting; just call the generic version directly
+    template <typename T = itype, enable_if_t<!std::is_polymorphic<T>::value, int> = 0>
+    static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
+        return type_caster_generic::src_and_type(src, &typeid(itype));
+    }
+
     static handle cast(const itype *src, return_value_policy policy, handle parent) {
+        auto st = src_and_type(src);
         return type_caster_generic::cast(
-            src, policy, parent, src ? &typeid(*src) : nullptr, &typeid(type),
+            st.first, policy, parent, st.second,
             make_copy_constructor(src), make_move_constructor(src));
     }
 
     static handle cast_holder(const itype *src, const void *holder) {
+        auto st = src_and_type(src);
         return type_caster_generic::cast(
-            src, return_value_policy::take_ownership, {},
-            src ? &typeid(*src) : nullptr, &typeid(type),
+            st.first, return_value_policy::take_ownership, {}, st.second,
             nullptr, nullptr, holder);
     }
 
