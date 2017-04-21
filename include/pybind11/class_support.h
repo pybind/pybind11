@@ -185,23 +185,55 @@ inline PyTypeObject* make_default_metaclass() {
     return type;
 }
 
-inline void register_instance(void *self) {
-    auto *inst = (instance_essentials<void> *) self;
-    get_internals().registered_instances.emplace(inst->value, self);
+/// For multiple inheritance types we need to recursively register/deregister base pointers for any
+/// base classes with pointers that are difference from the instance value pointer so that we can
+/// correctly recognize an offset base class pointer. This calls a function with any offset base ptrs.
+inline void traverse_offset_bases(void *valueptr, const detail::type_info *tinfo, void *self,
+        bool (*f)(void * /*parentptr*/, void * /*self*/)) {
+    for (handle h : reinterpret_borrow<tuple>(tinfo->type->tp_bases)) {
+        if (auto parent_tinfo = get_type_info((PyTypeObject *) h.ptr())) {
+            for (auto &c : parent_tinfo->implicit_casts) {
+                if (c.first == tinfo->cpptype) {
+                    auto *parentptr = c.second(valueptr);
+                    if (parentptr != valueptr)
+                        f(parentptr, self);
+                    traverse_offset_bases(parentptr, parent_tinfo, self, f);
+                    break;
+                }
+            }
+        }
+    }
 }
 
-inline bool deregister_instance(void *self) {
-    auto *inst = (instance_essentials<void> *) self;
-    auto type = Py_TYPE(inst);
+inline bool register_instance_impl(void *ptr, void *self) {
+    get_internals().registered_instances.emplace(ptr, self);
+    return true; // unused, but gives the same signature as the deregister func
+}
+inline bool deregister_instance_impl(void *ptr, void *self) {
     auto &registered_instances = get_internals().registered_instances;
-    auto range = registered_instances.equal_range(inst->value);
+    auto range = registered_instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
-        if (type == Py_TYPE(it->second)) {
+        if (Py_TYPE(self) == Py_TYPE(it->second)) {
             registered_instances.erase(it);
             return true;
         }
     }
     return false;
+}
+
+inline void register_instance(void *self, const type_info *tinfo) {
+    auto *inst = (instance_essentials<void> *) self;
+    register_instance_impl(inst->value, self);
+    if (!tinfo->simple_ancestors)
+        traverse_offset_bases(inst->value, tinfo, self, register_instance_impl);
+}
+
+inline bool deregister_instance(void *self, const detail::type_info *tinfo) {
+    auto *inst = (instance_essentials<void> *) self;
+    bool ret = deregister_instance_impl(inst->value, self);
+    if (!tinfo->simple_ancestors)
+        traverse_offset_bases(inst->value, tinfo, self, deregister_instance_impl);
+    return ret;
 }
 
 /// Creates a new instance which, by default, includes allocation (but not construction of) the
@@ -215,7 +247,7 @@ inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value /*= t
     instance->holder_constructed = false;
     if (allocate_value) {
         instance->value = tinfo->operator_new(tinfo->type_size);
-        register_instance(self);
+        register_instance(self, tinfo);
     } else {
         instance->value = nullptr;
     }
@@ -248,12 +280,15 @@ extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject 
 inline void clear_instance(PyObject *self) {
     auto instance = (instance_essentials<void> *) self;
     bool has_value = instance->value;
+    type_info *tinfo = nullptr;
     if (has_value || instance->holder_constructed) {
         auto type = Py_TYPE(self);
-        get_type_info(type)->dealloc(self);
+        tinfo = get_type_info(type);
+        tinfo->dealloc(self);
     }
     if (has_value) {
-        if (!deregister_instance(self))
+        if (!tinfo) tinfo = get_type_info(Py_TYPE(self));
+        if (!deregister_instance(self, tinfo))
             pybind11_fail("pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
 
         if (instance->weakrefs)

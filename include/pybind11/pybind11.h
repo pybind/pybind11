@@ -813,10 +813,13 @@ protected:
         /* Register supplemental type information in C++ dict */
         auto *tinfo = new detail::type_info();
         tinfo->type = (PyTypeObject *) m_ptr;
+        tinfo->cpptype = rec.type;
         tinfo->type_size = rec.type_size;
         tinfo->operator_new = rec.operator_new;
         tinfo->init_holder = rec.init_holder;
         tinfo->dealloc = rec.dealloc;
+        tinfo->simple_type = true;
+        tinfo->simple_ancestors = true;
 
         auto &internals = get_internals();
         auto tindex = std::type_index(*rec.type);
@@ -825,8 +828,14 @@ protected:
         internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[m_ptr] = tinfo;
 
-        if (rec.bases.size() > 1 || rec.multiple_inheritance)
+        if (rec.bases.size() > 1 || rec.multiple_inheritance) {
             mark_parents_nonsimple(tinfo->type);
+            tinfo->simple_ancestors = false;
+        }
+        else if (rec.bases.size() == 1) {
+            auto parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
+            tinfo->simple_ancestors = parent_tinfo->simple_ancestors;
+        }
     }
 
     /// Helper function which tags all parents of a type using mult. inheritance

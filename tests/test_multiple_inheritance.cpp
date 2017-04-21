@@ -107,8 +107,16 @@ test_initializer multiple_inheritance_casting([](py::module &m) {
     py::class_<I801C, I801B1, I801B2, std::shared_ptr<I801C>>(m, "I801C").def(py::init<>());
     py::class_<I801D, I801C, std::shared_ptr<I801D>>(m, "I801D").def(py::init<>());
 
-    // When returned a base class pointer to a derived instance, we cannot assume that the
-    // pointer is `reinterpret_cast`able to the derived pointer because the base class
+    // Two separate issues here: first, we want to recognize a pointer to a base type as being a
+    // known instance even when the pointer value is unequal (i.e. due to a non-first
+    // multiple-inheritance base class):
+    m.def("i801b1_c", [](I801C *c) { return static_cast<I801B1 *>(c); });
+    m.def("i801b2_c", [](I801C *c) { return static_cast<I801B2 *>(c); });
+    m.def("i801b1_d", [](I801D *d) { return static_cast<I801B1 *>(d); });
+    m.def("i801b2_d", [](I801D *d) { return static_cast<I801B2 *>(d); });
+
+    // Second, when returned a base class pointer to a derived instance, we cannot assume that the
+    // pointer is `reinterpret_cast`able to the derived pointer because, like above, the base class
     // pointer could be offset.
     m.def("i801c_b1", []() -> I801B1 * { return new I801C(); });
     m.def("i801c_b2", []() -> I801B2 * { return new I801C(); });
