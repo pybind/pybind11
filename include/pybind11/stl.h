@@ -36,6 +36,11 @@
 #      define PYBIND11_HAS_EXP_OPTIONAL 1
 #    endif
 #  endif
+// std::variant
+#  if defined(PYBIND11_CPP17) && __has_include(<variant>)
+#    include <variant>
+#    define PYBIND11_HAS_VARIANT 1
+#  endif
 #endif
 
 NAMESPACE_BEGIN(pybind11)
@@ -262,6 +267,66 @@ template<> struct type_caster<std::experimental::nullopt_t>
     : public void_caster<std::experimental::nullopt_t> {};
 #endif
 
+/// Visit a variant and cast any found type to Python
+struct variant_caster_visitor {
+    return_value_policy policy;
+    handle parent;
+
+    template <typename T>
+    handle operator()(T &&src) const {
+        return make_caster<T>::cast(std::forward<T>(src), policy, parent);
+    }
+};
+
+/// Helper class which abstracts away variant's `visit` function. `std::variant` and similar
+/// `namespace::variant` types which provide a `namespace::visit()` function are handled here
+/// automatically using argument-dependent lookup. Users can provide specializations for other
+/// variant-like classes, e.g. `boost::variant` and `boost::apply_visitor`.
+template <template<typename...> class Variant>
+struct visit_helper {
+    template <typename... Args>
+    static auto call(Args &&...args) -> decltype(visit(std::forward<Args>(args)...)) {
+        return visit(std::forward<Args>(args)...);
+    }
+};
+
+/// Generic variant caster
+template <typename Variant> struct variant_caster;
+
+template <template<typename...> class V, typename... Ts>
+struct variant_caster<V<Ts...>> {
+    static_assert(sizeof...(Ts) > 0, "Variant must consist of at least one alternative.");
+
+    template <typename U, typename... Us>
+    bool load_alternative(handle src, bool convert, type_list<U, Us...>) {
+        auto caster = make_caster<U>();
+        if (caster.load(src, convert)) {
+            value = cast_op<U>(caster);
+            return true;
+        }
+        return load_alternative(src, convert, type_list<Us...>{});
+    }
+
+    bool load_alternative(handle, bool, type_list<>) { return false; }
+
+    bool load(handle src, bool convert) {
+        return load_alternative(src, convert, type_list<Ts...>{});
+    }
+
+    template <typename Variant>
+    static handle cast(Variant &&src, return_value_policy policy, handle parent) {
+        return visit_helper<V>::call(variant_caster_visitor{policy, parent},
+                                     std::forward<Variant>(src));
+    }
+
+    using Type = V<Ts...>;
+    PYBIND11_TYPE_CASTER(Type, _("Union[") + detail::concat(make_caster<Ts>::name()...) + _("]"));
+};
+
+#if PYBIND11_HAS_VARIANT
+template <typename... Ts>
+struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { };
+#endif
 NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const handle &obj) {

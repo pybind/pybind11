@@ -26,6 +26,51 @@ next sections for more details and alternative approaches that avoid this.
     The file :file:`tests/test_python_types.cpp` contains a complete
     example that demonstrates how to pass STL data types in more detail.
 
+C++17 library containers
+========================
+
+The :file:`pybind11/stl.h` header also includes support for ``std::optional<>``
+and ``std::variant<>``. These require a C++17 compiler and standard library.
+In C++14 mode, ``std::experimental::optional<>`` is supported if available.
+
+Various versions of these containers also exist for C++11 (e.g. in Boost).
+pybind11 provides an easy way to specialize the ``type_caster`` for such
+types:
+
+.. code-block:: cpp
+
+    // `boost::optional` as an example -- can be any `std::optional`-like container
+    namespace pybind11 { namespace detail {
+        template <typename T>
+        struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
+    }}
+
+The above should be placed in a header file and included in all translation units
+where automatic conversion is needed. Similarly, a specialization can be provided
+for custom variant types:
+
+.. code-block:: cpp
+
+    // `boost::variant` as an example -- can be any `std::variant`-like container
+    namespace pybind11 { namespace detail {
+        template <typename... Ts>
+        struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
+
+        // Specifies the function used to visit the variant -- `apply_visitor` instead of `visit`
+        template <>
+        struct visit_helper<boost::variant> {
+            template <typename... Args>
+            static auto call(Args &&...args)
+                -> decltype(boost::apply_visitor(std::forward<Args>(args)...)) {
+                return boost::apply_visitor(std::forward<Args>(args)...);
+            }
+        };
+    }} // namespace pybind11::detail
+
+The ``visit_helper`` specialization is not required if your ``name::variant`` provides
+a ``name::visit()`` function. For any other function name, the specialization must be
+included to tell pybind11 how to visit the variant.
+
 .. _opaque:
 
 Making opaque types
