@@ -21,6 +21,8 @@ expected in Python:
     auto args = py::make_tuple("unpacked", true);
     py::print("->", *args, "end"_a="<-"); // -> unpacked True <-
 
+.. _eval:
+
 Evaluating Python expressions from strings and files
 ====================================================
 
