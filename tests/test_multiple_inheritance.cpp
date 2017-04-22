@@ -91,6 +91,99 @@ test_initializer multiple_inheritance_nonexplicit([](py::module &m) {
     m.def("bar_base2a_sharedptr", [](std::shared_ptr<Base2a> b) { return b->bar(); });
 });
 
+// Issue #801: invalid casting to derived type with MI bases
+struct I801B1 { int a = 1; virtual ~I801B1() = default; };
+struct I801B2 { int b = 2; virtual ~I801B2() = default; };
+struct I801C : I801B1, I801B2 {};
+struct I801D : I801C {}; // Indirect MI
+
+// one more example for issue #801
+class objbase : public std::enable_shared_from_this<objbase> {
+    int a = 1;
+public:
+    virtual std::string name() const {
+        return "objbase";
+    }
+};
+using sp_obj = std::shared_ptr<objbase>;
+using sp_cobj = std::shared_ptr<const objbase>;
+
+class iface {
+    int b = 2;
+public:
+    virtual int f() const = 0;
+};
+
+class mytype : public iface, public objbase {
+public:
+    std::string name() const override { return "mytype"; }
+    int f() const override { return 42; }
+};
+using sp_my = std::shared_ptr<mytype>;
+
+class myslot {
+public:
+    virtual void act(sp_cobj param) const = 0;
+};
+
+// trmapoline
+class py_myslot : public myslot {
+public:
+    using myslot::myslot;
+
+    void act(sp_cobj obj) const override {
+        PYBIND11_OVERLOAD_PURE(void, myslot, act, std::move(obj));
+    }
+};
+
+test_initializer multiple_inheritance_casting([](py::module &m) {
+    py::class_<I801B1, std::shared_ptr<I801B1>>(m, "I801B1").def(py::init<>()).def_readonly("a", &I801B1::a);
+    py::class_<I801B2, std::shared_ptr<I801B2>>(m, "I801B2").def(py::init<>()).def_readonly("b", &I801B2::b);
+    py::class_<I801C, I801B1, I801B2, std::shared_ptr<I801C>>(m, "I801C").def(py::init<>());
+    py::class_<I801D, I801C, std::shared_ptr<I801D>>(m, "I801D").def(py::init<>());
+
+    // Two separate issues here: first, we want to recognize a pointer to a base type as being a
+    // known instance even when the pointer value is unequal (i.e. due to a non-first
+    // multiple-inheritance base class):
+    m.def("i801b1_c", [](I801C *c) { return static_cast<I801B1 *>(c); });
+    m.def("i801b2_c", [](I801C *c) { return static_cast<I801B2 *>(c); });
+    m.def("i801b1_d", [](I801D *d) { return static_cast<I801B1 *>(d); });
+    m.def("i801b2_d", [](I801D *d) { return static_cast<I801B2 *>(d); });
+
+    // Second, when returned a base class pointer to a derived instance, we cannot assume that the
+    // pointer is `reinterpret_cast`able to the derived pointer because, like above, the base class
+    // pointer could be offset.
+    m.def("i801c_b1", []() -> I801B1 * { return new I801C(); });
+    m.def("i801c_b2", []() -> I801B2 * { return new I801C(); });
+    m.def("i801d_b1", []() -> I801B1 * { return new I801D(); });
+    m.def("i801d_b2", []() -> I801B2 * { return new I801D(); });
+
+    // test one more example
+    py::class_<objbase, sp_obj>(m, "objbase")
+        .def(py::init<>())
+        .def("name", &objbase::name)
+        .def_property_readonly("refs", [](const objbase& src) { return src.shared_from_this().use_count() - 1; })
+        ;
+    py::class_<iface, std::shared_ptr<iface>>(m, "iface")
+        .def("f", &iface::f)
+        ;
+    py::class_<mytype, iface, objbase, sp_my>(m, "mytype")
+        .def(py::init<>())
+        .def("test_slot", [](mytype& src, std::shared_ptr<myslot> s) {
+            s->act(std::dynamic_pointer_cast<mytype>(src.shared_from_this()));
+        })
+        ;
+    py::class_<myslot, py_myslot, std::shared_ptr<myslot>>(m, "myslot")
+        .def(py::init_alias<>())
+        .def("act", &myslot::act)
+        ;
+
+    m.def("who_am_i", [](sp_cobj inst) {
+        return std::string("My name is ") + inst->name();
+    });
+
+});
+
 struct Vanilla {
     std::string vanilla() { return "Vanilla"; };
 };

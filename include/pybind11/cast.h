@@ -963,7 +963,7 @@ public:
 
     bool load_value_and_holder(handle src) {
         auto inst = (instance<type, holder_type> *) src.ptr();
-        value = (void *) inst->value;
+        value = const_cast<void *>((const void*) inst->value);
         if (inst->holder_constructed) {
             holder = inst->holder;
             return true;
