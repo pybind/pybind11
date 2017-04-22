@@ -186,6 +186,27 @@ to an independently constructed (through ``add_library``, not
     (``/bigobj``). The :ref:`FAQ <faq:symhidden>` contains an
     explanation on why these are needed.
 
+Embedding the Python interpreter
+--------------------------------
+
+In addition to extension modules, pybind11 also supports embedding Python into
+a C++ executable or library. In CMake, simply link with the ``pybind11::embed``
+target. It provides everything needed to get the interpreter running. The Python
+headers and libraries are attached to the target. Unlike ``pybind11::module``,
+there is no need to manually set any additional properties here. For more
+information about usage in C++, see :doc:`/advanced/embedding`.
+
+.. code-block:: cmake
+
+    cmake_minimum_required(VERSION 3.0)
+    project(example)
+
+    find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
+
+    add_executable(example MODULE main.cpp)
+    target_link_libraries(example PRIVATE pybind11::embed)
+
+
 Generating binding code automatically
 =====================================
 
