@@ -117,6 +117,9 @@ public:
     PYBIND11_DEPRECATED("Use py::str(obj) instead")
     pybind11::str str() const;
 
+    /// Get or set the object's docstring, i.e. ``obj.__doc__``.
+    str_attr_accessor doc() const;
+
     /// Return the object's current reference count
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
     /// Return a handle to the Python type object underlying the instance
@@ -1247,6 +1250,9 @@ template <typename D> template <typename T> bool object_api<D>::contains(T &&ite
 
 template <typename D>
 pybind11::str object_api<D>::str() const { return pybind11::str(derived()); }
+
+template <typename D>
+str_attr_accessor object_api<D>::doc() const { return attr("__doc__"); }
 
 template <typename D>
 handle object_api<D>::get_type() const { return (PyObject *) Py_TYPE(derived().ptr()); }

@@ -45,9 +45,7 @@ Normally, the binding code for these classes would look as follows:
 
 .. code-block:: cpp
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
-
+    PYBIND11_MODULE(example, m) {
         py::class_<Animal> animal(m, "Animal");
         animal
             .def("go", &Animal::go);
@@ -56,8 +54,6 @@ Normally, the binding code for these classes would look as follows:
             .def(py::init<>());
 
         m.def("call_go", &call_go);
-
-        return m.ptr();
     }
 
 However, these bindings are impossible to extend: ``Animal`` is not
@@ -97,11 +93,9 @@ function have different names, e.g.  ``operator()`` vs ``__call__``.
 The binding code also needs a few minor adaptations (highlighted):
 
 .. code-block:: cpp
-    :emphasize-lines: 4,6,7
+    :emphasize-lines: 2,4,5
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
-
+    PYBIND11_MODULE(example, m) {
         py::class_<Animal, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
         animal
             .def(py::init<>())
@@ -111,8 +105,6 @@ The binding code also needs a few minor adaptations (highlighted):
             .def(py::init<>());
 
         m.def("call_go", &call_go);
-
-        return m.ptr();
     }
 
 Importantly, pybind11 is made aware of the trampoline helper class by
@@ -491,9 +483,7 @@ to Python.
 
     #include <pybind11/operators.h>
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
-
+    PYBIND11_MODULE(example, m) {
         py::class_<Vector2>(m, "Vector2")
             .def(py::init<float, float>())
             .def(py::self + py::self)
@@ -502,8 +492,6 @@ to Python.
             .def(float() * py::self)
             .def(py::self * float())
             .def("__repr__", &Vector2::toString);
-
-        return m.ptr();
     }
 
 Note that a line like

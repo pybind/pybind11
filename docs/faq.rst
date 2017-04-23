@@ -4,30 +4,24 @@ Frequently asked questions
 "ImportError: dynamic module does not define init function"
 ===========================================================
 
-1. Make sure that the name specified in ``pybind::module`` and
-   ``PYBIND11_PLUGIN`` is consistent and identical to the filename of the
-   extension library. The latter should not contain any extra prefixes (e.g.
-   ``test.so`` instead of ``libtest.so``).
-
-2. If the above did not fix your issue, then you are likely using an
-   incompatible version of Python (for instance, the extension library was
-   compiled against Python 2, while the interpreter is running on top of some
-   version of Python 3, or vice versa)
+You are likely using an incompatible version of Python (for instance, the
+extension library was compiled against Python 2, while the interpreter is
+running on top of some version of Python 3, or vice versa).
 
 "Symbol not found: ``__Py_ZeroStruct`` / ``_PyInstanceMethod_Type``"
 ========================================================================
 
-See item 2 of the first answer.
+See the first answer.
 
 "SystemError: dynamic module not initialized properly"
 ======================================================
 
-See item 2 of the first answer.
+See the first answer.
 
 The Python interpreter immediately crashes when importing my module
 ===================================================================
 
-See item 2 of the first answer.
+See the first answer.
 
 CMake doesn't detect the right Python version
 =============================================
@@ -104,14 +98,10 @@ following example:
     void init_ex2(py::module &);
     /* ... */
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
-
+    PYBIND11_MODULE(example, m) {
         init_ex1(m);
         init_ex2(m);
         /* ... */
-
-        return m.ptr();
     }
 
 :file:`ex1.cpp`:

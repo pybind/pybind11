@@ -56,14 +56,10 @@ trivial to generate binding code for all of these functions.
 
     #include <pybind11/functional.h>
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
-
+    PYBIND11_MODULE(example, m) {
         m.def("func_arg", &func_arg);
         m.def("func_ret", &func_ret);
         m.def("func_cpp", &func_cpp);
-
-        return m.ptr();
     }
 
 The following interactive session shows how to call them from Python.

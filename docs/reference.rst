@@ -12,7 +12,7 @@ Reference
 Macros
 ======
 
-.. doxygendefine:: PYBIND11_PLUGIN
+.. doxygendefine:: PYBIND11_MODULE
 
 .. _core_types:
 

@@ -52,8 +52,8 @@ void bind_ConstructorStats(py::module &m) {
         ;
 }
 
-PYBIND11_PLUGIN(pybind11_tests) {
-    py::module m("pybind11_tests", "pybind testing plugin");
+PYBIND11_MODULE(pybind11_tests, m) {
+    m.doc() = "pybind11 test module";
 
     bind_ConstructorStats(m);
 
@@ -61,6 +61,4 @@ PYBIND11_PLUGIN(pybind11_tests) {
         initializer(m);
 
     if (!py::hasattr(m, "have_eigen")) m.attr("have_eigen") = false;
-
-    return m.ptr();
 }
