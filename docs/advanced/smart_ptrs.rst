@@ -63,16 +63,12 @@ code?
         std::shared_ptr<Child> child;
     };
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example");
-
+    PYBIND11_MODULE(example, m) {
         py::class_<Child, std::shared_ptr<Child>>(m, "Child");
 
         py::class_<Parent, std::shared_ptr<Parent>>(m, "Parent")
            .def(py::init<>())
            .def("get_child", &Parent::get_child);
-
-        return m.ptr();
     }
 
 The following Python code will cause undefined behavior (and likely a

@@ -190,7 +190,7 @@ expects the type followed by field names:
     };
 
     // ...
-    PYBIND11_PLUGIN(test) {
+    PYBIND11_MODULE(test, m) {
         // ...
 
         PYBIND11_NUMPY_DTYPE(A, x, y);
@@ -284,10 +284,8 @@ simply using ``vectorize``).
         return result;
     }
 
-    PYBIND11_PLUGIN(test) {
-        py::module m("test");
+    PYBIND11_MODULE(test, m) {
         m.def("add_arrays", &add_arrays, "Add two NumPy arrays");
-        return m.ptr();
     }
 
 .. seealso::

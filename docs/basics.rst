@@ -96,25 +96,21 @@ a file named :file:`example.cpp` with the following contents:
         return i + j;
     }
 
-    namespace py = pybind11;
-
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
+    PYBIND11_MODULE(example, m) {
+        m.doc() = "pybind11 example plugin"; // optional module docstring
 
         m.def("add", &add, "A function which adds two numbers");
-
-        return m.ptr();
     }
 
 .. [#f1] In practice, implementation and binding code will generally be located
          in separate files.
 
-The :func:`PYBIND11_PLUGIN` macro creates a function that will be called when an
-``import`` statement is issued from within Python. The next line creates a
-module named ``example`` (with the supplied docstring). The method
-:func:`module::def` generates binding code that exposes the
-``add()`` function to Python. The last line returns the internal Python object
-associated with ``m`` to the Python interpreter.
+The :func:`PYBIND11_MODULE` macro creates a function that will be called when an
+``import`` statement is issued from within Python. The module name (``example``)
+is given as the fist macro argument (it should not be in quotes). The second
+argument (``m``) defines a variable of type :class:`py::module <module>` which
+is the main interface for creating bindings. The method :func:`module::def`
+generates binding code that exposes the ``add()`` function to Python.
 
 .. note::
 
@@ -261,12 +257,10 @@ converted using the function ``py::cast``.
 
 .. code-block:: cpp
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
+    PYBIND11_MODULE(example, m) {
         m.attr("the_answer") = 42;
         py::object world = py::cast("World");
         m.attr("what") = world;
-        return m.ptr();
     }
 
 These are then accessible from Python:

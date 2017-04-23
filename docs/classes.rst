@@ -27,15 +27,11 @@ The binding code for ``Pet`` looks as follows:
 
     namespace py = pybind11;
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind11 example plugin");
-
+    PYBIND11_MODULE(example, m) {
         py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())
             .def("setName", &Pet::setName)
             .def("getName", &Pet::getName);
-
-        return m.ptr();
     }
 
 :class:`class_` creates bindings for a C++ *class* or *struct*-style data
