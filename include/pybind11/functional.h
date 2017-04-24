@@ -22,13 +22,14 @@ struct type_caster<std::function<Return(Args...)>> {
     using function_type = Return (*) (Args...);
 
 public:
-    bool load(handle src_, bool) {
-        if (src_.is_none())
+    bool load(handle src, bool) {
+        if (src.is_none())
             return true;
 
-        src_ = detail::get_function(src_);
-        if (!src_ || !PyCallable_Check(src_.ptr()))
+        if (!isinstance<function>(src))
             return false;
+
+        auto func = reinterpret_borrow<function>(src);
 
         /*
            When passing a C++ function as an argument to another C++
@@ -38,8 +39,8 @@ public:
            stateless (i.e. function pointer or lambda function without
            captured variables), in which case the roundtrip can be avoided.
          */
-        if (PyCFunction_Check(src_.ptr())) {
-            auto c = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(src_.ptr()));
+        if (auto cfunc = func.cpp_function()) {
+            auto c = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
             auto rec = (function_record *) c;
 
             if (rec && rec->is_stateless && rec->data[1] == &typeid(function_type)) {
@@ -49,10 +50,9 @@ public:
             }
         }
 
-        auto src = reinterpret_borrow<object>(src_);
-        value = [src](Args... args) -> Return {
+        value = [func](Args... args) -> Return {
             gil_scoped_acquire acq;
-            object retval(src(std::forward<Args>(args)...));
+            object retval(func(std::forward<Args>(args)...));
             /* Visual studio 2015 parser issue: need parentheses around this expression */
             return (retval.template cast<Return>());
         };

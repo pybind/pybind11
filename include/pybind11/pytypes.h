@@ -355,6 +355,7 @@ inline handle get_function(handle value) {
 #if PY_MAJOR_VERSION >= 3
         if (PyInstanceMethod_Check(value.ptr()))
             value = PyInstanceMethod_GET_FUNCTION(value.ptr());
+        else
 #endif
         if (PyMethod_Check(value.ptr()))
             value = PyMethod_GET_FUNCTION(value.ptr());
@@ -1133,10 +1134,13 @@ public:
 class function : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(function, object, PyCallable_Check)
-    bool is_cpp_function() const {
+    handle cpp_function() const {
         handle fun = detail::get_function(m_ptr);
-        return fun && PyCFunction_Check(fun.ptr());
+        if (fun && PyCFunction_Check(fun.ptr()))
+            return fun;
+        return handle();
     }
+    bool is_cpp_function() const { return (bool) cpp_function(); }
 };
 
 class buffer : public object {

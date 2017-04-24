@@ -27,6 +27,21 @@ def test_callbacks():
     assert f(number=43) == 44
 
 
+def test_bound_method_callback():
+    from pybind11_tests import test_callback3, CppBoundMethodTest
+
+    # Bound Python method:
+    class MyClass:
+        def double(self, val):
+            return 2 * val
+
+    z = MyClass()
+    assert test_callback3(z.double) == "func(43) = 86"
+
+    z = CppBoundMethodTest()
+    assert test_callback3(z.triple) == "func(43) = 129"
+
+
 def test_keyword_args_and_generalized_unpacking():
     from pybind11_tests import (test_tuple_unpacking, test_dict_unpacking, test_keyword_args,
                                 test_unpacking_and_keywords1, test_unpacking_and_keywords2,

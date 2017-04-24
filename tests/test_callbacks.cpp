@@ -179,4 +179,9 @@ test_initializer callbacks([](py::module &m) {
         f(x); // lvalue reference shouldn't move out object
         return x.valid; // must still return `true`
       });
+
+    struct CppBoundMethodTest {};
+    py::class_<CppBoundMethodTest>(m, "CppBoundMethodTest")
+        .def(py::init<>())
+        .def("triple", [](CppBoundMethodTest &, int val) { return 3 * val; });
 });
