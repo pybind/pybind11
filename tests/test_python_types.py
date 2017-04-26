@@ -511,6 +511,20 @@ def test_single_char_arguments():
     assert str(excinfo.value) == toolong_message
 
 
+def test_bytes_to_string():
+    """Tests the ability to pass bytes to C++ string-accepting functions.  Note that this is
+    one-way: the only way to return bytes to Python is via the pybind11::bytes class."""
+    # Issue #816
+    from pybind11_tests import strlen, string_length
+    import sys
+    byte = bytes if sys.version_info[0] < 3 else str
+
+    assert strlen(byte("hi")) == 2
+    assert string_length(byte("world")) == 5
+    assert string_length(byte("a\x00b")) == 3
+    assert strlen(byte("a\x00b")) == 1  # C-string limitation
+
+
 def test_builtins_cast_return_none():
     """Casters produced with PYBIND11_TYPE_CASTER() should convert nullptr to None"""
     import pybind11_tests as m
