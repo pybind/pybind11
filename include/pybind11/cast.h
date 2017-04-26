@@ -693,9 +693,9 @@ struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_s
             return false;
         } else if (!PyUnicode_Check(load_src.ptr())) {
 #if PY_MAJOR_VERSION >= 3
-            return false;
-            // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
+            return load_bytes(load_src);
 #else
+            // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
             if (!PYBIND11_BYTES_CHECK(load_src.ptr()))
                 return false;
             temp = reinterpret_steal<object>(PyUnicode_FromObject(load_src.ptr()));
@@ -740,6 +740,28 @@ private:
         return PyUnicode_Decode(buffer, nbytes, UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr);
 #endif
     }
+
+#if PY_MAJOR_VERSION >= 3
+    // In Python 3, when loading into a std::string or char*, accept a bytes object as-is (i.e.
+    // without any encoding/decoding attempt).  For other C++ char sizes this is a no-op.  Python 2,
+    // which supports loading a unicode from a str, doesn't take this path.
+    template <typename C = CharT>
+    bool load_bytes(enable_if_t<sizeof(C) == 1, handle> src) {
+        if (PYBIND11_BYTES_CHECK(src.ptr())) {
+            // We were passed a Python 3 raw bytes; accept it into a std::string or char*
+            // without any encoding attempt.
+            const char *bytes = PYBIND11_BYTES_AS_STRING(src.ptr());
+            if (bytes) {
+                value = StringType(bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
+                return true;
+            }
+        }
+
+        return false;
+    }
+    template <typename C = CharT>
+    bool load_bytes(enable_if_t<sizeof(C) != 1, handle>) { return false; }
+#endif
 };
 
 // Type caster for C-style strings.  We basically use a std::string type caster, but also add the
