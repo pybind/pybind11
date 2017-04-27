@@ -141,6 +141,7 @@ struct npy_api {
         return (bool) PyObject_TypeCheck(obj, PyArrayDescr_Type_);
     }
 
+    unsigned int (*PyArray_GetNDArrayCFeatureVersion_)();
     PyObject *(*PyArray_DescrFromType_)(int);
     PyObject *(*PyArray_NewFromDescr_)
         (PyTypeObject *, PyObject *, int, Py_intptr_t *,
@@ -160,6 +161,7 @@ struct npy_api {
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
 private:
     enum functions {
+        API_PyArray_GetNDArrayCFeatureVersion = 211,
         API_PyArray_Type = 2,
         API_PyArrayDescr_Type = 3,
         API_PyVoidArrType_Type = 39,
@@ -186,6 +188,9 @@ private:
 #endif
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
+        DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
+        if (api.PyArray_GetNDArrayCFeatureVersion_() < 0x7)
+            pybind11_fail("pybind11 numpy support requires numpy >= 1.7.0");
         DECL_NPY_API(PyArray_Type);
         DECL_NPY_API(PyVoidArrType_Type);
         DECL_NPY_API(PyArrayDescr_Type);
