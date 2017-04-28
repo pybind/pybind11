@@ -116,6 +116,7 @@ def test_binary_operators():
     assert state2 == -7
     assert int(state ^ state2) == -1
 
+
 def test_enum_to_int():
     from pybind11_tests import Flags, ClassWithUnscopedEnum
     from pybind11_tests import test_enum_to_int, test_enum_to_uint, test_enum_to_long_long
