@@ -65,4 +65,8 @@ test_initializer enums([](py::module &m) {
         .value("EFirstMode", ClassWithUnscopedEnum::EFirstMode)
         .value("ESecondMode", ClassWithUnscopedEnum::ESecondMode)
         .export_values();
+
+    m.def("test_enum_to_int", [](int) { });
+    m.def("test_enum_to_uint", [](uint32_t) { });
+    m.def("test_enum_to_long_long", [](long long) { });
 });

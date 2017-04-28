@@ -561,7 +561,7 @@ public:
             (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) &&
                (py_value < (py_type) std::numeric_limits<T>::min() ||
                 py_value > (py_type) std::numeric_limits<T>::max()))) {
-#if PY_VERSION_HEX < 0x03000000
+#if PY_VERSION_HEX < 0x03000000 && !defined(PYPY_VERSION)
             bool type_error = PyErr_ExceptionMatches(PyExc_SystemError);
 #else
             bool type_error = PyErr_ExceptionMatches(PyExc_TypeError);

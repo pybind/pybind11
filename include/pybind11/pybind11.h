@@ -1199,6 +1199,9 @@ public:
         }, return_value_policy::copy);
         def("__init__", [](Type& value, Scalar i) { value = (Type)i; });
         def("__int__", [](Type value) { return (Scalar) value; });
+        #if PY_MAJOR_VERSION < 3
+            def("__long__", [](Type value) { return (Scalar) value; });
+        #endif
         def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
         def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
         if (is_arithmetic) {
