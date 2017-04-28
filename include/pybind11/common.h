@@ -690,11 +690,6 @@ public:
     template <typename TIn, typename = enable_if_t<std::is_convertible<TIn, T>::value>>
     any_container(const std::initializer_list<TIn> &c) : any_container(c.begin(), c.end()) { }
 
-    // Implicit conversion constructor from any arithmetic type (only participates if T is also
-    // arithmetic).
-    template <typename TIn, typename = enable_if_t<std::is_arithmetic<T>::value && std::is_arithmetic<TIn>::value>>
-    any_container(TIn singleton) : v(1, static_cast<T>(singleton)) { }
-
     // Avoid copying if given an rvalue vector of the correct type.
     any_container(std::vector<T> &&v) : v(std::move(v)) { }
 

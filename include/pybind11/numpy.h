@@ -458,7 +458,7 @@ public:
         forcecast = detail::npy_api::NPY_ARRAY_FORCECAST_
     };
 
-    array() : array(0, static_cast<const double *>(nullptr)) {}
+    array() : array({{0}}, static_cast<const double *>(nullptr)) {}
 
     using ShapeContainer = detail::any_container<Py_intptr_t>;
     using StridesContainer = detail::any_container<Py_intptr_t>;
@@ -504,12 +504,9 @@ public:
     array(const pybind11::dtype &dt, ShapeContainer shape, const void *ptr = nullptr, handle base = handle())
         : array(dt, std::move(shape), {}, ptr, base) { }
 
-    // This constructor is only needed to avoid ambiguity with the deprecated (handle, bool)
-    // constructor that comes from PYBIND11_OBJECT_CVT; once that is gone, the above constructor can
-    // handle it (because ShapeContainer is implicitly constructible from arithmetic types)
-    template <typename T, typename = detail::enable_if_t<std::is_arithmetic<T>::value && !std::is_same<bool, T>::value>>
-    array(const pybind11::dtype &dt, T count)
-        : array(dt, count, nullptr) { }
+    template <typename T, typename = detail::enable_if_t<std::is_integral<T>::value && !std::is_same<bool, T>::value>>
+    array(const pybind11::dtype &dt, T count, const void *ptr = nullptr, handle base = handle())
+        : array(dt, {{count}}, ptr, base) { }
 
     template <typename T>
     array(ShapeContainer shape, StridesContainer strides, const T *ptr, handle base = handle())
@@ -518,6 +515,9 @@ public:
     template <typename T>
     array(ShapeContainer shape, const T *ptr, handle base = handle())
         : array(std::move(shape), {}, ptr, base) { }
+
+    template <typename T>
+    explicit array(size_t count, const T *ptr, handle base = handle()) : array({count}, {}, ptr, base) { }
 
     explicit array(const buffer_info &info)
     : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
@@ -742,6 +742,9 @@ public:
 
     explicit array_t(ShapeContainer shape, const T *ptr = nullptr, handle base = handle())
         : array(std::move(shape), ptr, base) { }
+
+    explicit array_t(size_t count, const T *ptr = nullptr, handle base = handle())
+        : array({count}, {}, ptr, base) { }
 
     constexpr size_t itemsize() const {
         return sizeof(T);
