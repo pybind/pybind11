@@ -267,4 +267,10 @@ test_initializer numpy_array([](py::module &m) {
     // Issue #785: Uninformative "Unknown internal error" exception when constructing array from empty object:
     sm.def("array_fail_test", []() { return py::array(py::object()); });
     sm.def("array_t_fail_test", []() { return py::array_t<double>(py::object()); });
+
+    // Issue (unnumbered; reported in #788): regression: initializer lists can be ambiguous
+    sm.def("array_initializer_list", []() { return py::array_t<float>(1); }); // { 1 } also works, but clang warns about it
+    sm.def("array_initializer_list", []() { return py::array_t<float>({ 1, 2 }); });
+    sm.def("array_initializer_list", []() { return py::array_t<float>({ 1, 2, 3 }); });
+    sm.def("array_initializer_list", []() { return py::array_t<float>({ 1, 2, 3, 4 }); });
 });

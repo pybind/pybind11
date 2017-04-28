@@ -36,7 +36,7 @@ struct buffer_info {
     }
 
     buffer_info(void *ptr, size_t itemsize, const std::string &format, size_t size)
-    : buffer_info(ptr, itemsize, format, 1, size, itemsize) { }
+    : buffer_info(ptr, itemsize, format, 1, {size}, {itemsize}) { }
 
     explicit buffer_info(Py_buffer *view, bool ownview = true)
     : buffer_info(view->buf, (size_t) view->itemsize, view->format, (size_t) view->ndim,
