@@ -78,7 +78,6 @@ matrix:
     - flake8
   allow_failures:
     - env: PYTHON=3.5 CPP=17 GCC=7
-    - env: PYTHON=3.6 CPP=17 CLANG=4.0
 cache:
   directories:
   - $HOME/.local/bin
