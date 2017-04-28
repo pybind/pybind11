@@ -162,9 +162,15 @@ if(NOT PYBIND11_PYTEST_FOUND)
   set(PYBIND11_PYTEST_FOUND TRUE CACHE INTERNAL "")
 endif()
 
+if(CMAKE_VERSION VERSION_LESS 3.2)
+  set(PYBIND11_USES_TERMINAL "")
+else()
+  set(PYBIND11_USES_TERMINAL "USES_TERMINAL")
+endif()
+
 # A single command to compile and run the tests
 add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_PYTEST_FILES}
-                  DEPENDS pybind11_tests WORKING_DIRECTORY ${testdir})
+                  DEPENDS pybind11_tests WORKING_DIRECTORY ${testdir} ${PYBIND11_USES_TERMINAL})
 
 if(PYBIND11_TEST_OVERRIDE)
   add_custom_command(TARGET pytest POST_BUILD
