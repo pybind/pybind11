@@ -39,6 +39,8 @@
 
 NAMESPACE_BEGIN(pybind11)
 
+template<typename, typename...> class class_;
+
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
 public:
@@ -891,16 +893,197 @@ void call_operator_delete(T *p) { T::operator delete(p); }
 
 inline void call_operator_delete(void *p) { ::operator delete(p); }
 
+template<typename derived, typename type, typename... options>
+class class_interface {
+    using cls = typename std::conditional<
+        std::is_convertible<derived&, class_<type, options...>&>::value,
+        class_<type, options...>&,
+        class_<type, options...>
+    >::type;
+
+public:
+    template <typename Func, typename... Extra>
+    cls def(const char *name_, Func&& f, const Extra&... extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        cpp_function cf(std::forward<Func>(f), name(name_), is_method(self),
+                        sibling(getattr(self, name_, none())), extra...);
+        self.attr(cf.name()) = cf;
+        return self;
+    }
+
+    template <typename Func, typename... Extra>
+    cls def_static(const char *name_, Func &&f, const Extra&... extra) {
+        static_assert(!std::is_member_function_pointer<Func>::value,
+                "def_static(...) called with a non-static member function pointer");
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        cpp_function cf(std::forward<Func>(f), name(name_), scope(self),
+                        sibling(getattr(self, name_, none())), extra...);
+        self.attr(cf.name()) = cf;
+        return self;
+    }
+
+    template <op_id id, op_type ot, typename L, typename R, typename... Extra>
+    cls def(const op_<id, ot, L, R> &op, const Extra&... extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        op.execute(self, extra...);
+        return self;
+    }
+
+    template <op_id id, op_type ot, typename L, typename R, typename... Extra>
+    cls def_cast(const op_<id, ot, L, R> &op, const Extra&... extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        op.execute_cast(self, extra...);
+        return self;
+    }
+
+    template <typename... Args, typename... Extra>
+    cls def(const init<Args...> &init, const Extra&... extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        init.execute(self, extra...);
+        return self;
+    }
+
+    template <typename... Args, typename... Extra>
+    cls def(const init_alias<Args...> &init, const Extra&... extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        init.execute(self, extra...);
+        return self;
+    }
+
+    template <typename Func>
+    cls def_buffer(Func &&func) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        struct capture { Func func; };
+        capture *ptr = new capture { std::forward<Func>(func) };
+        self.install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
+            detail::make_caster<type> caster;
+            if (!caster.load(obj, false))
+                return nullptr;
+            return new buffer_info(((capture *) ptr)->func(caster));
+        }, ptr);
+        return self;
+    }
+
+    template <typename C, typename D, typename... Extra>
+    cls def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(self)),
+                     fset([pm](C &c, const D &value) { c.*pm = value; }, is_method(self));
+        self.def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
+        return self;
+    }
+
+    template <typename C, typename D, typename... Extra>
+    cls def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(self));
+        self.def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
+        return self;
+    }
+
+    template <typename D, typename... Extra>
+    cls def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(self)),
+                     fset([pm](object, const D &value) { *pm = value; }, scope(self));
+        self.def_property_static(name, fget, fset, return_value_policy::reference, extra...);
+        return self;
+    }
+
+    template <typename D, typename... Extra>
+    cls def_readonly_static(const char *name, const D *pm, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(self));
+        self.def_property_readonly_static(name, fget, return_value_policy::reference, extra...);
+        return self;
+    }
+
+    /// Uses return_value_policy::reference_internal by default
+    template <typename Getter, typename... Extra>
+    cls def_property_readonly(const char *name, const Getter &fget, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        return self.def_property_readonly(name, cpp_function(fget), return_value_policy::reference_internal, extra...);
+    }
+
+    /// Uses cpp_function's return_value_policy by default
+    template <typename... Extra>
+    cls def_property_readonly(const char *name, const cpp_function &fget, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        return self.def_property(name, fget, cpp_function(), extra...);
+    }
+
+    /// Uses return_value_policy::reference by default
+    template <typename Getter, typename... Extra>
+    cls def_property_readonly_static(const char *name, const Getter &fget, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        return self.def_property_readonly_static(name, cpp_function(fget), return_value_policy::reference, extra...);
+    }
+
+    /// Uses cpp_function's return_value_policy by default
+    template <typename... Extra>
+    cls def_property_readonly_static(const char *name, const cpp_function &fget, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        return self.def_property_static(name, fget, cpp_function(), extra...);
+    }
+
+    /// Uses return_value_policy::reference_internal by default
+    template <typename Getter, typename... Extra>
+    cls def_property(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        return self.def_property(name, cpp_function(fget), fset, return_value_policy::reference_internal, extra...);
+    }
+
+    /// Uses cpp_function's return_value_policy by default
+    template <typename... Extra>
+    cls def_property(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        return self.def_property_static(name, fget, fset, is_method(self), extra...);
+    }
+
+    /// Uses return_value_policy::reference by default
+    template <typename Getter, typename... Extra>
+    cls def_property_static(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        return self.def_property_static(name, cpp_function(fget), fset, return_value_policy::reference, extra...);
+    }
+
+    /// Uses cpp_function's return_value_policy by default
+    template <typename... Extra>
+    cls def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
+        cls self = static_cast<cls>(static_cast<derived&>(*this));
+        auto rec_fget = self.get_function_record(fget), rec_fset = self.get_function_record(fset);
+        char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific documentation string */
+        process_attributes<Extra...>::init(extra..., rec_fget);
+        if (rec_fget->doc && rec_fget->doc != doc_prev) {
+            free(doc_prev);
+            rec_fget->doc = strdup(rec_fget->doc);
+        }
+        if (rec_fset) {
+            doc_prev = rec_fset->doc;
+            process_attributes<Extra...>::init(extra..., rec_fset);
+            if (rec_fset->doc && rec_fset->doc != doc_prev) {
+                free(doc_prev);
+                rec_fset->doc = strdup(rec_fset->doc);
+            }
+        }
+        self.def_property_static_impl(name, fget, fset, rec_fget);
+        return self;
+    }
+};
+
 NAMESPACE_END(detail)
 
 template <typename type_, typename... options>
-class class_ : public detail::generic_type {
+class class_ : public detail::generic_type,
+               public detail::class_interface<class_<type_, options...>, type_, options...> {
     template <typename T> using is_holder = detail::is_holder_type<type_, T>;
     template <typename T> using is_subtype = detail::bool_constant<std::is_base_of<type_, T>::value && !std::is_same<T, type_>::value>;
     template <typename T> using is_base = detail::bool_constant<std::is_base_of<T, type_>::value && !std::is_same<T, type_>::value>;
     // struct instead of using here to help MSVC:
     template <typename T> struct is_valid_class_option :
         detail::any_of<is_holder<T>, is_subtype<T>, is_base<T>> {};
+
+    friend detail::class_interface<class_, type_, options...>;
 
 public:
     using type = type_;
@@ -962,154 +1145,6 @@ public:
 
     template <typename Base, detail::enable_if_t<!is_base<Base>::value, int> = 0>
     static void add_base(detail::type_record &) { }
-
-    template <typename Func, typename... Extra>
-    class_ &def(const char *name_, Func&& f, const Extra&... extra) {
-        cpp_function cf(std::forward<Func>(f), name(name_), is_method(*this),
-                        sibling(getattr(*this, name_, none())), extra...);
-        attr(cf.name()) = cf;
-        return *this;
-    }
-
-    template <typename Func, typename... Extra> class_ &
-    def_static(const char *name_, Func &&f, const Extra&... extra) {
-        static_assert(!std::is_member_function_pointer<Func>::value,
-                "def_static(...) called with a non-static member function pointer");
-        cpp_function cf(std::forward<Func>(f), name(name_), scope(*this),
-                        sibling(getattr(*this, name_, none())), extra...);
-        attr(cf.name()) = cf;
-        return *this;
-    }
-
-    template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
-    class_ &def(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.execute(*this, extra...);
-        return *this;
-    }
-
-    template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
-    class_ & def_cast(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
-        op.execute_cast(*this, extra...);
-        return *this;
-    }
-
-    template <typename... Args, typename... Extra>
-    class_ &def(const detail::init<Args...> &init, const Extra&... extra) {
-        init.execute(*this, extra...);
-        return *this;
-    }
-
-    template <typename... Args, typename... Extra>
-    class_ &def(const detail::init_alias<Args...> &init, const Extra&... extra) {
-        init.execute(*this, extra...);
-        return *this;
-    }
-
-    template <typename Func> class_& def_buffer(Func &&func) {
-        struct capture { Func func; };
-        capture *ptr = new capture { std::forward<Func>(func) };
-        install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
-            detail::make_caster<type> caster;
-            if (!caster.load(obj, false))
-                return nullptr;
-            return new buffer_info(((capture *) ptr)->func(caster));
-        }, ptr);
-        return *this;
-    }
-
-    template <typename C, typename D, typename... Extra>
-    class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
-        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(*this)),
-                     fset([pm](C &c, const D &value) { c.*pm = value; }, is_method(*this));
-        def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
-        return *this;
-    }
-
-    template <typename C, typename D, typename... Extra>
-    class_ &def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
-        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(*this));
-        def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
-        return *this;
-    }
-
-    template <typename D, typename... Extra>
-    class_ &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this)),
-                     fset([pm](object, const D &value) { *pm = value; }, scope(*this));
-        def_property_static(name, fget, fset, return_value_policy::reference, extra...);
-        return *this;
-    }
-
-    template <typename D, typename... Extra>
-    class_ &def_readonly_static(const char *name, const D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this));
-        def_property_readonly_static(name, fget, return_value_policy::reference, extra...);
-        return *this;
-    }
-
-    /// Uses return_value_policy::reference_internal by default
-    template <typename Getter, typename... Extra>
-    class_ &def_property_readonly(const char *name, const Getter &fget, const Extra& ...extra) {
-        return def_property_readonly(name, cpp_function(fget), return_value_policy::reference_internal, extra...);
-    }
-
-    /// Uses cpp_function's return_value_policy by default
-    template <typename... Extra>
-    class_ &def_property_readonly(const char *name, const cpp_function &fget, const Extra& ...extra) {
-        return def_property(name, fget, cpp_function(), extra...);
-    }
-
-    /// Uses return_value_policy::reference by default
-    template <typename Getter, typename... Extra>
-    class_ &def_property_readonly_static(const char *name, const Getter &fget, const Extra& ...extra) {
-        return def_property_readonly_static(name, cpp_function(fget), return_value_policy::reference, extra...);
-    }
-
-    /// Uses cpp_function's return_value_policy by default
-    template <typename... Extra>
-    class_ &def_property_readonly_static(const char *name, const cpp_function &fget, const Extra& ...extra) {
-        return def_property_static(name, fget, cpp_function(), extra...);
-    }
-
-    /// Uses return_value_policy::reference_internal by default
-    template <typename Getter, typename... Extra>
-    class_ &def_property(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
-        return def_property(name, cpp_function(fget), fset, return_value_policy::reference_internal, extra...);
-    }
-
-    /// Uses cpp_function's return_value_policy by default
-    template <typename... Extra>
-    class_ &def_property(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
-        return def_property_static(name, fget, fset, is_method(*this), extra...);
-    }
-
-    /// Uses return_value_policy::reference by default
-    template <typename Getter, typename... Extra>
-    class_ &def_property_static(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
-        return def_property_static(name, cpp_function(fget), fset, return_value_policy::reference, extra...);
-    }
-
-    /// Uses cpp_function's return_value_policy by default
-    template <typename... Extra>
-    class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
-        auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
-        char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific documentation string */
-        detail::process_attributes<Extra...>::init(extra..., rec_fget);
-        if (rec_fget->doc && rec_fget->doc != doc_prev) {
-            free(doc_prev);
-            rec_fget->doc = strdup(rec_fget->doc);
-        }
-        if (rec_fset) {
-            doc_prev = rec_fset->doc;
-            detail::process_attributes<Extra...>::init(extra..., rec_fset);
-            if (rec_fset->doc && rec_fset->doc != doc_prev) {
-                free(doc_prev);
-                rec_fset->doc = strdup(rec_fset->doc);
-            }
-        }
-        def_property_static_impl(name, fget, fset, rec_fget);
-        return *this;
-    }
 
 private:
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
