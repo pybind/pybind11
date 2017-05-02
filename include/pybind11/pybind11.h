@@ -1317,14 +1317,18 @@ public:
         update();
     }
 
+    /// Add an enumeration entry
     py3_enum& value(const char* name, T value) {
         add_entry(name, value);
         return *this;
     }
 
-    operator class_<T>() {
-        locked = true;
-        return cast<class_<T>>(type);
+    /// Export enumeration entries into the parent scope
+    py3_enum& export_values() {
+        for (const auto &kv : entries)
+            scope.attr(kv.first) = type.attr(kv.first);
+        reexport = true;
+        return *this;
     }
 
 private:
@@ -1336,6 +1340,7 @@ private:
     dict kwargs;
     object type;
     bool locked = false;
+    bool reexport = false;
 
     void add_entry(const char *name, T value) {
         if (locked)
@@ -1347,8 +1352,17 @@ private:
     void update() {
         type = unique(ctor(**kwargs));
         setattr(scope, name, type);
+        if (reexport)
+            export_values();
         detail::type_caster<T>::bind(type, entries);
     }
+
+    operator class_<T>() {
+        locked = true;
+        return cast<class_<T>>(type);
+    }
+
+    friend detail::class_interface<py3_enum<T>, T>;
 };
 
 NAMESPACE_BEGIN(detail)

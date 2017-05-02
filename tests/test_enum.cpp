@@ -79,8 +79,7 @@ test_initializer enums([](py::module &m) {
         .export_values();
 
 #if PY_VERSION_HEX >= 0x03000000
-    auto scope = py::class_<DummyScope>(m, "DummyScope");
-    py::py3_enum<Py3EnumEmpty>(scope, "Py3EnumEmpty");
+    py::py3_enum<Py3EnumEmpty>(m, "Py3EnumEmpty");
 
     auto e = py::py3_enum<Py3Enum>(m, "Py3Enum")
         .value("A", Py3Enum::A)
@@ -90,8 +89,11 @@ test_initializer enums([](py::module &m) {
         .def_property_readonly("is_b", [](Py3Enum e) { return e == Py3Enum::B; })
         .def_property_readonly_static("ultimate_answer", [](py::object) { return 42; });
 
-    py::py3_enum<Py3EnumScoped>(m, "Py3EnumScoped")
+    auto scope = py::class_<DummyScope>(m, "DummyScope");
+
+    py::py3_enum<Py3EnumScoped>(scope, "Py3EnumScoped")
         .value("X", Py3EnumScoped::X)
+        .export_values()
         .value("Y", Py3EnumScoped::Y);
 
     m.def("make_py3_enum", [](bool x) {

@@ -132,11 +132,11 @@ def test_enum_to_int():
 @pytest.requires_py3
 def test_py3_enum():
     from pybind11_tests import (
-        Py3Enum, DummyScope, Py3EnumScoped,
+        Py3Enum, DummyScope, Py3EnumEmpty,
         make_py3_enum, take_py3_enum, non_unique_py3_enum
     )
 
-    Py3EnumEmpty = DummyScope.Py3EnumEmpty  # noqa
+    Py3EnumScoped = DummyScope.Py3EnumScoped # noqa
 
     from enum import IntEnum
 
@@ -151,9 +151,12 @@ def test_py3_enum():
         assert sorted(tp.__members__.items()) == entries
         assert tp.__module__ == 'pybind11_tests'
 
+    assert DummyScope.X is Py3EnumScoped.X
+    assert DummyScope.Y is Py3EnumScoped.Y
+
     assert Py3Enum.__qualname__ == 'Py3Enum'
-    assert Py3EnumEmpty.__qualname__ == 'DummyScope.Py3EnumEmpty'
-    assert Py3EnumScoped.__qualname__ == 'Py3EnumScoped'
+    assert Py3EnumEmpty.__qualname__ == 'Py3EnumEmpty'
+    assert Py3EnumScoped.__qualname__ == 'DummyScope.Py3EnumScoped'
 
     assert make_py3_enum(True) is Py3EnumScoped.X
     assert make_py3_enum(False) is Py3EnumScoped.Y
