@@ -313,9 +313,6 @@ void initialize_inherited_virtuals(py::module &m) {
 
 
 test_initializer virtual_functions([](py::module &m) {
-    /* Important: indicate the trampoline class PyExampleVirt using the third
-       argument to py::class_. The second argument with the unique pointer
-       is simply the default holder type used by pybind11. */
     py::class_<ExampleVirt, PyExampleVirt>(m, "ExampleVirt")
         .def(py::init<int>())
         /* Reference original class in function definitions */
