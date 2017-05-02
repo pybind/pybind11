@@ -136,7 +136,7 @@ def test_py3_enum():
         make_py3_enum, take_py3_enum, non_unique_py3_enum
     )
 
-    Py3EnumEmpty = DummyScope.Py3EnumEmpty
+    Py3EnumEmpty = DummyScope.Py3EnumEmpty  # noqa
 
     from enum import IntEnum
 
