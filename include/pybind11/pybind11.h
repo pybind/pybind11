@@ -1293,7 +1293,7 @@ private:
 };
 
 template<typename T>
-class py3_enum {
+class py3_enum : public detail::class_interface<py3_enum<T>, T> {
 public:
     using underlying_type = typename std::underlying_type<T>::type;
 
@@ -1317,17 +1317,13 @@ public:
         update();
     }
 
-    py3_enum& value(const char* name, T value) & {
+    py3_enum& value(const char* name, T value) {
         add_entry(name, value);
         return *this;
     }
 
-    py3_enum&& value(const char* name, T value) && {
-        add_entry(name, value);
-        return std::move(*this);
-    }
-
-    class_<T> extend() && {
+    operator class_<T>() {
+        locked = true;
         return cast<class_<T>>(type);
     }
 
@@ -1339,8 +1335,11 @@ private:
     object unique;
     dict kwargs;
     object type;
+    bool locked = false;
 
     void add_entry(const char *name, T value) {
+        if (locked)
+            throw std::runtime_error("Unable to modify a locked enum class");
         entries[name] = cast(static_cast<underlying_type>(value));
         update();
     }
