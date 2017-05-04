@@ -245,7 +245,14 @@ template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
 
 template <typename T> using is_pod_struct = all_of<
     std::is_standard_layout<T>,     // since we're accessing directly in memory we need a standard layout type
+#if !defined(__GNUG__) || defined(__clang__) || __GNUC__ >= 5
     std::is_trivially_copyable<T>,
+#else
+    // GCC 4 doesn't implement is_trivially_copyable, so approximate it
+    std::is_trivially_destructible<T>,
+    std::has_trivial_copy_constructor<T>,
+    std::has_trivial_copy_assign<T>,
+#endif
     satisfies_none_of<T, std::is_reference, std::is_array, is_std_array, std::is_arithmetic, is_complex, std::is_enum>
 >;
 
