@@ -991,14 +991,15 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
         [](const field_descriptor &a, const field_descriptor &b) { return a.offset < b.offset; });
     size_t offset = 0;
     std::ostringstream oss;
-    oss << "T{";
+    // mark the structure as unaligned with '^', because numpy and C++ don't
+    // always agree about alignment (particularly for complex), and we're
+    // explicitly listing all our padding. This depends on none of the fields
+    // overriding the endianness. Putting the ^ in front of individual fields
+    // isn't guaranteed to work due to https://github.com/numpy/numpy/issues/9049
+    oss << "^T{";
     for (auto& field : ordered_fields) {
         if (field.offset > offset)
             oss << (field.offset - offset) << 'x';
-        // mark all fields with '^' (unaligned native type), because numpy
-        // and C++ don't always agree about alignment (particularly for
-        // complex, and we're explicitly listing all padding.
-        oss << '^';
         oss << field.format << ':' << field.name << ':';
         offset = field.offset + field.size;
     }

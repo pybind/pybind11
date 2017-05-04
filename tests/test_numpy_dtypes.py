@@ -72,22 +72,22 @@ def test_format_descriptors():
     assert re.match('^NumPy type info missing for .*UnboundStruct.*$', str(excinfo.value))
 
     ld = np.dtype('longdouble')
-    ldbl_fmt = ('4x' if ld.alignment > 4 else '') + '^' + ld.char
-    ss_fmt = "T{^?:bool_:3x^I:uint_:^f:float_:" + ldbl_fmt + ":ldbl_:}"
+    ldbl_fmt = ('4x' if ld.alignment > 4 else '') + ld.char
+    ss_fmt = "^T{?:bool_:3xI:uint_:f:float_:" + ldbl_fmt + ":ldbl_:}"
     dbl = np.dtype('double')
-    partial_fmt = ("T{^?:bool_:3x^I:uint_:^f:float_:" +
+    partial_fmt = ("^T{?:bool_:3xI:uint_:f:float_:" +
                    str(4 * (dbl.alignment > 4) + dbl.itemsize + 8 * (ld.alignment > 8)) +
-                   "x^g:ldbl_:}")
+                   "xg:ldbl_:}")
     nested_extra = str(max(8, ld.alignment))
     assert print_format_descriptors() == [
         ss_fmt,
-        "T{^?:bool_:^I:uint_:^f:float_:^g:ldbl_:}",
-        "T{^" + ss_fmt + ":a:^T{^?:bool_:^I:uint_:^f:float_:^g:ldbl_:}:b:}",
+        "^T{?:bool_:I:uint_:f:float_:g:ldbl_:}",
+        "^T{" + ss_fmt + ":a:^T{?:bool_:I:uint_:f:float_:g:ldbl_:}:b:}",
         partial_fmt,
-        "T{" + nested_extra + "x^" + partial_fmt + ":a:" + nested_extra + "x}",
-        "T{^3s:a:^3s:b:}",
-        'T{^q:e1:^B:e2:}',
-        'T{^Zf:cflt:^Zd:cdbl:}'
+        "^T{" + nested_extra + "x" + partial_fmt + ":a:" + nested_extra + "x}",
+        "^T{3s:a:3s:b:}",
+        '^T{q:e1:B:e2:}',
+        '^T{Zf:cflt:Zd:cdbl:}'
     ]
 
 
