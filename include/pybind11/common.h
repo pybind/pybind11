@@ -608,13 +608,14 @@ template <typename T> struct is_fmt_numeric<T, enable_if_t<std::is_arithmetic<T>
 NAMESPACE_END(detail)
 
 template <typename T> struct format_descriptor<T, detail::enable_if_t<detail::is_fmt_numeric<T>::value>> {
-    static constexpr const char c = "?bBhHiIqQfdgFDG"[detail::is_fmt_numeric<T>::index];
-    static constexpr const char value[2] = { c, '\0' };
-    static std::string format() { return std::string(1, c); }
+    static constexpr const char c1 = "?bBhHiIqQfdgZZZ"[detail::is_fmt_numeric<T>::index];
+    static constexpr const char c2 = "\0\0\0\0\0\0\0\0\0\0\0\0fdg"[detail::is_fmt_numeric<T>::index];
+    static constexpr const char value[3] = { c1, c2, '\0' };
+    static std::string format() { return std::string(value); }
 };
 
 template <typename T> constexpr const char format_descriptor<
-    T, detail::enable_if_t<detail::is_fmt_numeric<T>::value>>::value[2];
+    T, detail::enable_if_t<detail::is_fmt_numeric<T>::value>>::value[3];
 
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {
