@@ -104,7 +104,8 @@ def test_dtype(simple_dtype):
         partial_dtype_fmt(),
         partial_nested_fmt(),
         "[('a', 'S3'), ('b', 'S3')]",
-        "[('a', 'S4', (3,)), ('b', '{e}i4', (2,)), ('c', '<i4', (3,)), ('d', '{e}f4', (4, 2))]".format(e=e),
+        ("[('a', 'S4', (3,)), ('b', '{e}i4', (2,)), " +
+         "('c', '<i4', (3,)), ('d', '{e}f4', (4, 2))]").format(e=e),
         "[('e1', '" + e + "i8'), ('e2', 'u1')]",
         "[('x', 'i1'), ('y', '" + e + "u8')]"
     ]
@@ -221,13 +222,19 @@ def test_array_array():
     e = '<' if byteorder == 'little' else '>'
 
     arr = create_array_array(3)
-    assert str(arr.dtype) == "[('a', 'S4', (3,)), ('b', '{e}i4', (2,)), ('c', '<i4', (3,)), ('d', '{e}f4', (4, 2))]".format(e=e)
+    assert str(arr.dtype) == ("[('a', 'S4', (3,)), ('b', '{e}i4', (2,)), " +
+                              "('c', '<i4', (3,)), ('d', '{e}f4', (4, 2))]").format(e=e)
     assert print_array_array(arr) == [
-        "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1},c={0,1,2},d={{0,1},{10,11},{20,21},{30,31}}",
-        "a={{W,X,Y,Z},{G,H,I,J},{Q,R,S,T}},b={1000,1001},c={10,11,12},d={{100,101},{110,111},{120,121},{130,131}}",
-        "a={{S,T,U,V},{C,D,E,F},{M,N,O,P}},b={2000,2001},c={20,21,22},d={{200,201},{210,211},{220,221},{230,231}}",
+        "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1}," +
+        "c={0,1,2},d={{0,1},{10,11},{20,21},{30,31}}",
+        "a={{W,X,Y,Z},{G,H,I,J},{Q,R,S,T}},b={1000,1001}," +
+        "c={10,11,12},d={{100,101},{110,111},{120,121},{130,131}}",
+        "a={{S,T,U,V},{C,D,E,F},{M,N,O,P}},b={2000,2001}," +
+        "c={20,21,22},d={{200,201},{210,211},{220,221},{230,231}}",
     ]
-    assert arr['a'].tolist() == [[b'ABCD', b'KLMN', b'UVWX'], [b'WXYZ', b'GHIJ', b'QRST'], [b'STUV', b'CDEF', b'MNOP']]
+    assert arr['a'].tolist() == [[b'ABCD', b'KLMN', b'UVWX'],
+                                 [b'WXYZ', b'GHIJ', b'QRST'],
+                                 [b'STUV', b'CDEF', b'MNOP']]
     assert arr['b'].tolist() == [[0, 1], [1000, 1001], [2000, 2001]]
     assert create_array_array(0).dtype == arr.dtype
 
