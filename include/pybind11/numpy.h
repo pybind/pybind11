@@ -247,7 +247,7 @@ template <typename T> struct array_info_scalar {
     typedef T type;
     static constexpr const bool is_array = false;
     static PYBIND11_DESCR extents() { return _(""); }
-    static void extents(list& /* shape */) { }
+    static void append_extents(list& /* shape */) { }
 };
 // Computes underlying type and a comma-separated list of extents for array
 // types (any mix of std::array and built-in arrays). An array of char is
@@ -259,9 +259,9 @@ template <typename T, size_t N> struct array_info<T[N]> {
     static constexpr const size_t extent = N;
 
     // appends the extents to shape
-    static void extents(list& shape) {
+    static void append_extents(list& shape) {
         shape.append(N);
-        array_info<T>::extents(shape);
+        array_info<T>::append_extents(shape);
     }
 
     template<typename T2 = T, enable_if_t<!array_info<T2>::is_array, int> = 0>
@@ -990,7 +990,7 @@ public:
     static PYBIND11_DESCR name() { return _("(") + array_info<T>::extents() + _(")") + base_descr::name(); }
     static pybind11::dtype dtype() {
         list shape;
-        array_info<T>::extents(shape);
+        array_info<T>::append_extents(shape);
         return pybind11::dtype::from_args(pybind11::make_tuple(base_descr::dtype(), shape));
     }
 };
