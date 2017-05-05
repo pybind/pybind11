@@ -86,7 +86,7 @@ def test_format_descriptors():
         partial_fmt,
         "T{" + nested_extra + "x" + partial_fmt + ":a:" + nested_extra + "x}",
         "T{3s:a:3s:b:}",
-        "T{(3)4s:a:(2)i:b:(3)i:c:(4, 2)f:d:}",
+        "T{(3)4s:a:(2)i:b:(3)B:c:1x(4, 2)f:d:}",
         'T{q:e1:B:e2:}'
     ]
 
@@ -104,8 +104,9 @@ def test_dtype(simple_dtype):
         partial_dtype_fmt(),
         partial_nested_fmt(),
         "[('a', 'S3'), ('b', 'S3')]",
-        ("[('a', 'S4', (3,)), ('b', '{e}i4', (2,)), " +
-         "('c', '<i4', (3,)), ('d', '{e}f4', (4, 2))]").format(e=e),
+        ("{{'names':['a','b','c','d'], " +
+         "'formats':[('S4', (3,)),('<i4', (2,)),('u1', (3,)),('<f4', (4, 2))], " +
+         "'offsets':[0,12,20,24], 'itemsize':56}}").format(e=e),
         "[('e1', '" + e + "i8'), ('e2', 'u1')]",
         "[('x', 'i1'), ('y', '" + e + "u8')]"
     ]
@@ -222,8 +223,10 @@ def test_array_array():
     e = '<' if byteorder == 'little' else '>'
 
     arr = create_array_array(3)
-    assert str(arr.dtype) == ("[('a', 'S4', (3,)), ('b', '{e}i4', (2,)), " +
-                              "('c', '<i4', (3,)), ('d', '{e}f4', (4, 2))]").format(e=e)
+    assert str(arr.dtype) == (
+        "{{'names':['a','b','c','d'], " +
+        "'formats':[('S4', (3,)),('<i4', (2,)),('u1', (3,)),('{e}f4', (4, 2))], " +
+        "'offsets':[0,12,20,24], 'itemsize':56}}").format(e=e)
     assert print_array_array(arr) == [
         "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1}," +
         "c={0,1,2},d={{0,1},{10,11},{20,21},{30,31}}",

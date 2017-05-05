@@ -72,8 +72,8 @@ struct StringStruct {
 
 struct ArrayStruct {
     char a[3][4];
-    int b[2];
-    std::array<int, 3> c;
+    int32_t b[2];
+    std::array<uint8_t, 3> c;
     std::array<float, 2> d[4];
 };
 
@@ -109,7 +109,7 @@ std::ostream& operator<<(std::ostream& os, const ArrayStruct& v) {
         os << v.a[i][3] << '}';
     }
     os << "},b={" << v.b[0] << ',' << v.b[1];
-    os << "},c={" << v.c[0] << ',' << v.c[1] << ',' << v.c[2];
+    os << "},c={" << int(v.c[0]) << ',' << int(v.c[1]) << ',' << int(v.c[2]);
     os << "},d={";
     for (int i = 0; i < 4; i++) {
         if (i > 0)
@@ -199,9 +199,9 @@ py::array_t<ArrayStruct, 0> create_array_array(size_t n) {
             for (size_t k = 0; k < 4; k++)
                 ptr[i].a[j][k] = char('A' + (i * 100 + j * 10 + k) % 26);
         for (size_t j = 0; j < 2; j++)
-            ptr[i].b[j] = int(i * 1000 + j);
+            ptr[i].b[j] = int32_t(i * 1000 + j);
         for (size_t j = 0; j < 3; j++)
-            ptr[i].c[j] = int(i * 10 + j);
+            ptr[i].c[j] = uint8_t(i * 10 + j);
         for (size_t j = 0; j < 4; j++)
             for (size_t k = 0; k < 2; k++)
                 ptr[i].d[j][k] = float(i) * 100.0f + float(j) * 10.0f + float(k);
