@@ -98,50 +98,25 @@ std::ostream& operator<<(std::ostream& os, const StringStruct& v) {
     return os << "'";
 }
 
-template<typename T>
-struct ArrayPrinter {
-    static void print(std::ostream& os, const T& v) { os << v; }
-};
-
-template<typename T, size_t N>
-struct ArrayPrinter<T[N]> {
-    static void print(std::ostream& os, const T v[N]) {
-        os << "{";
-        for (size_t i = 0; i < N; i++) {
-            if (i > 0) os << ",";
-            ArrayPrinter<T>::print(os, v[i]);
-        }
-        os << "}";
-    }
-};
-
-template<typename T, size_t N>
-struct ArrayPrinter<std::array<T, N>> {
-    static void print(std::ostream& os, const std::array<T, N>& v) {
-        os << "{";
-        for (size_t i = 0; i < N; i++) {
-            if (i > 0) os << ",";
-            ArrayPrinter<T>::print(os, v[i]);
-        }
-        os << "}";
-    }
-};
-
-template<typename T>
-void print_array(std::ostream& os, const T& v) {
-    ArrayPrinter<T>::print(os, v);
-}
-
 std::ostream& operator<<(std::ostream& os, const ArrayStruct& v) {
-    os << "a=";
-    print_array(os, v.a);
-    os << ",b=";
-    print_array(os, v.b);
-    os << ",c=";
-    print_array(os, v.c);
-    os << ",d=";
-    print_array(os, v.d);
-    return os;
+    os << "a={";
+    for (int i = 0; i < 3; i++) {
+        if (i > 0)
+            os << ',';
+        os << '{';
+        for (int j = 0; j < 3; j++)
+            os << v.a[i][j] << ',';
+        os << v.a[i][3] << '}';
+    }
+    os << "},b={" << v.b[0] << ',' << v.b[1];
+    os << "},c={" << v.c[0] << ',' << v.c[1] << ',' << v.c[2];
+    os << "},d={";
+    for (int i = 0; i < 4; i++) {
+        if (i > 0)
+            os << ',';
+        os << '{' << v.d[i][0] << ',' << v.d[i][1] << '}';
+    }
+    return os << '}';
 }
 
 std::ostream& operator<<(std::ostream& os, const EnumStruct& v) {
