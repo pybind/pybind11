@@ -246,6 +246,7 @@ template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
 template <typename T> struct array_info_scalar {
     typedef T type;
     static constexpr const bool is_array = false;
+    static constexpr const bool is_empty = false;
     static PYBIND11_DESCR extents() { return _(""); }
     static void append_extents(list& /* shape */) { }
 };
@@ -253,9 +254,10 @@ template <typename T> struct array_info_scalar {
 // types (any mix of std::array and built-in arrays). An array of char is
 // treated as scalar because it gets special handling.
 template <typename T> struct array_info : array_info_scalar<T> { };
-template <typename T, size_t N> struct array_info<T[N]> {
+template <typename T, size_t N> struct array_info<std::array<T, N>> {
     typedef typename array_info<T>::type type;
     static constexpr const bool is_array = true;
+    static constexpr const bool is_empty = (N == 0) || array_info<T>::is_empty;
     static constexpr const size_t extent = N;
 
     // appends the extents to shape
@@ -278,7 +280,7 @@ template <typename T, size_t N> struct array_info<T[N]> {
 // the size in the array extents.
 template <size_t N> struct array_info<char[N]> : array_info_scalar<char[N]> { };
 template <size_t N> struct array_info<std::array<char, N>> : array_info_scalar<std::array<char, N>> { };
-template <typename T, size_t N> struct array_info<std::array<T, N>> : array_info<T[N]> { };
+template <typename T, size_t N> struct array_info<T[N]> : array_info<std::array<T, N>> { };
 template <typename T> using remove_all_extents_t = typename array_info<T>::type;
 
 template <typename T> using is_pod_struct = all_of<
@@ -987,6 +989,8 @@ template<typename T> struct npy_format_descriptor<T, enable_if_t<array_info<T>::
 private:
     using base_descr = npy_format_descriptor<typename array_info<T>::type>;
 public:
+    static_assert(!array_info<T>::is_empty, "Zero-sized arrays are not supported");
+
     static PYBIND11_DESCR name() { return _("(") + array_info<T>::extents() + _(")") + base_descr::name(); }
     static pybind11::dtype dtype() {
         list shape;
