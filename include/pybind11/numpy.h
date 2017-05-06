@@ -1002,6 +1002,7 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
     for (auto& field : ordered_fields) {
         if (field.offset > offset)
             oss << (field.offset - offset) << 'x';
+        std::cerr << "Field " << field.name << " has format " << field.format << std::endl;
         oss << field.format << ':' << field.name << ':';
         offset = field.offset + field.size;
     }
