@@ -132,7 +132,6 @@
 #include <memory>
 #include <typeindex>
 #include <type_traits>
-#include <iostream>
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
@@ -613,13 +612,15 @@ template <typename T> struct format_descriptor<T, detail::enable_if_t<detail::is
     static constexpr const char c2 = "\0\0\0\0\0\0\0\0\0\0\0\0fdg"[detail::is_fmt_numeric<T>::index];
     static constexpr const char value[3] = { c1, c2, '\0' };
     static std::string format() {
+#if !defined(_MSC_VER) || _MSC_VER >= 1910
+        return std::string(value);
+#else
+        // MSVC 2015 has trouble constructing std::string from value
         std::string out(1, c1);
         if (c2)
             out += c2;
-        std::cerr << "format of " << detail::is_fmt_numeric<T>::index << " is " << out << '\n';
-        std::cerr << "c1 is " << int(c1) << " c2 is " << int(c2) << '\n';
-        std::cerr << "value[0] = " << int(c1) << " value[1] = " << int(value[1]) << '\n';
         return out;
+#endif
     }
 };
 

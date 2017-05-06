@@ -22,7 +22,6 @@
 #include <functional>
 #include <utility>
 #include <typeindex>
-#include <iostream>
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
@@ -375,7 +374,6 @@ public:
     PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
 
     explicit dtype(const buffer_info &info) {
-        std::cerr << "Constructing dtype for " << info.format << std::endl;
         dtype descr(_dtype_from_pep3118()(PYBIND11_STR_TYPE(info.format)));
         // If info.itemsize == 0, use the value calculated from the format string
         m_ptr = descr.strip_padding(info.itemsize ? info.itemsize : descr.itemsize()).release().ptr();
@@ -1002,7 +1000,6 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
     for (auto& field : ordered_fields) {
         if (field.offset > offset)
             oss << (field.offset - offset) << 'x';
-        std::cerr << "Field " << field.name << " has format " << field.format << std::endl;
         oss << field.format << ':' << field.name << ':';
         offset = field.offset + field.size;
     }
