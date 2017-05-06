@@ -615,6 +615,7 @@ template <typename T> struct format_descriptor<T, detail::enable_if_t<detail::is
     static std::string format() {
         std::cerr << "format of " << detail::is_fmt_numeric<T>::index << " is " << value << '\n';
         std::cerr << "c1 is " << int(c1) << " c2 is " << int(c2) << '\n';
+        std::cerr << "value[0] = " << int(c1) << " value[1] = " << value[1] << '\n';
         return std::string(value);
     }
 };
