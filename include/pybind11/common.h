@@ -611,7 +611,17 @@ template <typename T> struct format_descriptor<T, detail::enable_if_t<detail::is
     static constexpr const char c1 = "?bBhHiIqQfdgZZZ"[detail::is_fmt_numeric<T>::index];
     static constexpr const char c2 = "\0\0\0\0\0\0\0\0\0\0\0\0fdg"[detail::is_fmt_numeric<T>::index];
     static constexpr const char value[3] = { c1, c2, '\0' };
-    static std::string format() { return std::string(value); }
+    static std::string format() {
+#if !defined(_MSC_VER) || _MSC_VER >= 1910
+        return std::string(value);
+#else
+        // MSVC 2015 has trouble constructing std::string from value
+        std::string out(1, c1);
+        if (c2)
+            out += c2;
+        return out;
+#endif
+    }
 };
 
 template <typename T> constexpr const char format_descriptor<
