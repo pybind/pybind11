@@ -132,6 +132,7 @@
 #include <memory>
 #include <typeindex>
 #include <type_traits>
+#include <iostream>
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
@@ -611,7 +612,10 @@ template <typename T> struct format_descriptor<T, detail::enable_if_t<detail::is
     static constexpr const char c1 = "?bBhHiIqQfdgZZZ"[detail::is_fmt_numeric<T>::index];
     static constexpr const char c2 = "\0\0\0\0\0\0\0\0\0\0\0\0fdg"[detail::is_fmt_numeric<T>::index];
     static constexpr const char value[3] = { c1, c2, '\0' };
-    static std::string format() { return std::string(value); }
+    static std::string format() {
+        std::cerr << "format of " << detail::is_fmt_numeric<T>::index << " is " << value << '\n';
+        return std::string(value);
+    }
 };
 
 template <typename T> constexpr const char format_descriptor<
