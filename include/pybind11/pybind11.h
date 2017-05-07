@@ -1173,6 +1173,9 @@ template <typename Type> class enum_ {
 public:
     using Scalar = typename std::underlying_type<Type>::type;
 
+    enum_(const enum_&) = delete;
+    enum_(enum_&&) = default;
+
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : cls(scope, name, extra...), m_entries(), m_parent(scope) {
@@ -1242,18 +1245,28 @@ public:
     }
 
     /// Export enumeration entries into the parent scope
-    enum_& export_values() {
+    enum_& export_values() & {
         for (const auto &kv : m_entries)
             m_parent.attr(kv.first) = kv.second;
         return *this;
     }
 
+    enum_ export_values() && {
+        this->export_values();
+        return std::move(*this);
+    }
+
     /// Add an enumeration entry
-    enum_& value(char const* name, Type value) {
+    enum_& value(char const* name, Type value) & {
         auto v = pybind11::cast(value, return_value_policy::copy);
         cls.attr(name) = v;
         m_entries[pybind11::str(name)] = v;
         return *this;
+    }
+
+    enum_ value(char const* name, Type value) && {
+        this->value(name, value);
+        return std::move(*this);
     }
 
     /// Get the associated class object.
