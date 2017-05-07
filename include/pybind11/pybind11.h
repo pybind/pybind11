@@ -1169,72 +1169,76 @@ private:
 };
 
 /// Binds C++ enumerations and enumeration classes to Python
-template <typename Type> class enum_ : public class_<Type> {
+template <typename Type> class enum_ {
 public:
-    using class_<Type>::def;
-    using class_<Type>::def_property_readonly_static;
     using Scalar = typename std::underlying_type<Type>::type;
 
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
-      : class_<Type>(scope, name, extra...), m_entries(), m_parent(scope) {
+      : cls(scope, name, extra...), m_entries(), m_parent(scope) {
 
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
 
         auto m_entries_ptr = m_entries.inc_ref().ptr();
-        def("__repr__", [name, m_entries_ptr](Type value) -> pybind11::str {
+
+        cls
+        .def("__repr__", [name, m_entries_ptr](Type value) -> pybind11::str {
             for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr)) {
                 if (pybind11::cast<Type>(kv.second) == value)
                     return pybind11::str("{}.{}").format(name, kv.first);
             }
             return pybind11::str("{}.???").format(name);
-        });
-        def_property_readonly_static("__members__", [m_entries_ptr](object /* self */) {
+        })
+        .def_property_readonly_static("__members__", [m_entries_ptr](object /* self */) {
             dict m;
             for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr))
                 m[kv.first] = kv.second;
             return m;
-        }, return_value_policy::copy);
-        def("__init__", [](Type& value, Scalar i) { value = (Type)i; });
-        def("__int__", [](Type value) { return (Scalar) value; });
+        }, return_value_policy::copy)
+        .def("__init__", [](Type& value, Scalar i) { value = (Type)i; })
+        .def("__int__", [](Type value) { return (Scalar) value; })
         #if PY_MAJOR_VERSION < 3
-            def("__long__", [](Type value) { return (Scalar) value; });
+            .def("__long__", [](Type value) { return (Scalar) value; })
         #endif
-        def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
-        def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
+        .def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; })
+        .def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
         if (is_arithmetic) {
-            def("__lt__", [](const Type &value, Type *value2) { return value2 && value < *value2; });
-            def("__gt__", [](const Type &value, Type *value2) { return value2 && value > *value2; });
-            def("__le__", [](const Type &value, Type *value2) { return value2 && value <= *value2; });
-            def("__ge__", [](const Type &value, Type *value2) { return value2 && value >= *value2; });
+            cls
+            .def("__lt__", [](const Type &value, Type *value2) { return value2 && value < *value2; })
+            .def("__gt__", [](const Type &value, Type *value2) { return value2 && value > *value2; })
+            .def("__le__", [](const Type &value, Type *value2) { return value2 && value <= *value2; })
+            .def("__ge__", [](const Type &value, Type *value2) { return value2 && value >= *value2; });
         }
         if (std::is_convertible<Type, Scalar>::value) {
             // Don't provide comparison with the underlying type if the enum isn't convertible,
             // i.e. if Type is a scoped enum, mirroring the C++ behaviour.  (NB: we explicitly
             // convert Type to Scalar below anyway because this needs to compile).
-            def("__eq__", [](const Type &value, Scalar value2) { return (Scalar) value == value2; });
-            def("__ne__", [](const Type &value, Scalar value2) { return (Scalar) value != value2; });
+            cls
+            .def("__eq__", [](const Type &value, Scalar value2) { return (Scalar) value == value2; })
+            .def("__ne__", [](const Type &value, Scalar value2) { return (Scalar) value != value2; });
             if (is_arithmetic) {
-                def("__lt__", [](const Type &value, Scalar value2) { return (Scalar) value < value2; });
-                def("__gt__", [](const Type &value, Scalar value2) { return (Scalar) value > value2; });
-                def("__le__", [](const Type &value, Scalar value2) { return (Scalar) value <= value2; });
-                def("__ge__", [](const Type &value, Scalar value2) { return (Scalar) value >= value2; });
-                def("__invert__", [](const Type &value) { return ~((Scalar) value); });
-                def("__and__", [](const Type &value, Scalar value2) { return (Scalar) value & value2; });
-                def("__or__", [](const Type &value, Scalar value2) { return (Scalar) value | value2; });
-                def("__xor__", [](const Type &value, Scalar value2) { return (Scalar) value ^ value2; });
-                def("__rand__", [](const Type &value, Scalar value2) { return (Scalar) value & value2; });
-                def("__ror__", [](const Type &value, Scalar value2) { return (Scalar) value | value2; });
-                def("__rxor__", [](const Type &value, Scalar value2) { return (Scalar) value ^ value2; });
-                def("__and__", [](const Type &value, const Type &value2) { return (Scalar) value & (Scalar) value2; });
-                def("__or__", [](const Type &value, const Type &value2) { return (Scalar) value | (Scalar) value2; });
-                def("__xor__", [](const Type &value, const Type &value2) { return (Scalar) value ^ (Scalar) value2; });
+                cls
+                .def("__lt__", [](const Type &value, Scalar value2) { return (Scalar) value < value2; })
+                .def("__gt__", [](const Type &value, Scalar value2) { return (Scalar) value > value2; })
+                .def("__le__", [](const Type &value, Scalar value2) { return (Scalar) value <= value2; })
+                .def("__ge__", [](const Type &value, Scalar value2) { return (Scalar) value >= value2; })
+                .def("__invert__", [](const Type &value) { return ~((Scalar) value); })
+                .def("__and__", [](const Type &value, Scalar value2) { return (Scalar) value & value2; })
+                .def("__or__", [](const Type &value, Scalar value2) { return (Scalar) value | value2; })
+                .def("__xor__", [](const Type &value, Scalar value2) { return (Scalar) value ^ value2; })
+                .def("__rand__", [](const Type &value, Scalar value2) { return (Scalar) value & value2; })
+                .def("__ror__", [](const Type &value, Scalar value2) { return (Scalar) value | value2; })
+                .def("__rxor__", [](const Type &value, Scalar value2) { return (Scalar) value ^ value2; })
+                .def("__and__", [](const Type &value, const Type &value2) { return (Scalar) value & (Scalar) value2; })
+                .def("__or__", [](const Type &value, const Type &value2) { return (Scalar) value | (Scalar) value2; })
+                .def("__xor__", [](const Type &value, const Type &value2) { return (Scalar) value ^ (Scalar) value2; });
             }
         }
-        def("__hash__", [](const Type &value) { return (Scalar) value; });
+        cls
+        .def("__hash__", [](const Type &value) { return (Scalar) value; })
         // Pickling and unpickling -- needed for use with the 'multiprocessing' module
-        def("__getstate__", [](const Type &value) { return pybind11::make_tuple((Scalar) value); });
-        def("__setstate__", [](Type &p, tuple t) { new (&p) Type((Type) t[0].cast<Scalar>()); });
+        .def("__getstate__", [](const Type &value) { return pybind11::make_tuple((Scalar) value); })
+        .def("__setstate__", [](Type &p, tuple t) { new (&p) Type((Type) t[0].cast<Scalar>()); });
     }
 
     /// Export enumeration entries into the parent scope
@@ -1247,12 +1251,18 @@ public:
     /// Add an enumeration entry
     enum_& value(char const* name, Type value) {
         auto v = pybind11::cast(value, return_value_policy::copy);
-        this->attr(name) = v;
+        cls.attr(name) = v;
         m_entries[pybind11::str(name)] = v;
         return *this;
     }
 
+    /// Get the associated class object.
+    class_<Type> into_class() && {
+        return cls;
+    }
+
 private:
+    class_<Type> cls;
     dict m_entries;
     handle m_parent;
 };
