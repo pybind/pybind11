@@ -244,7 +244,14 @@ template <typename T> struct is_complex : std::false_type { };
 template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
 
 template <typename T> using is_pod_struct = all_of<
-    std::is_pod<T>, // since we're accessing directly in memory we need a POD type
+    std::is_standard_layout<T>,     // since we're accessing directly in memory we need a standard layout type
+#if !defined(__GNUG__) || defined(__clang__) || __GNUC__ >= 5
+    std::is_trivially_copyable<T>,
+#else
+    // GCC 4 doesn't implement is_trivially_copyable, so approximate it
+    std::is_trivially_destructible<T>,
+    satisfies_any_of<T, std::has_trivial_copy_constructor, std::has_trivial_copy_assign>,
+#endif
     satisfies_none_of<T, std::is_reference, std::is_array, is_std_array, std::is_arithmetic, is_complex, std::is_enum>
 >;
 
@@ -948,7 +955,6 @@ struct field_descriptor {
     const char *name;
     size_t offset;
     size_t size;
-    size_t alignment;
     std::string format;
     dtype descr;
 };
@@ -985,13 +991,15 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
         [](const field_descriptor &a, const field_descriptor &b) { return a.offset < b.offset; });
     size_t offset = 0;
     std::ostringstream oss;
-    oss << "T{";
+    // mark the structure as unaligned with '^', because numpy and C++ don't
+    // always agree about alignment (particularly for complex), and we're
+    // explicitly listing all our padding. This depends on none of the fields
+    // overriding the endianness. Putting the ^ in front of individual fields
+    // isn't guaranteed to work due to https://github.com/numpy/numpy/issues/9049
+    oss << "^T{";
     for (auto& field : ordered_fields) {
         if (field.offset > offset)
             oss << (field.offset - offset) << 'x';
-        // mark unaligned fields with '^' (unaligned native type)
-        if (field.offset % field.alignment)
-            oss << '^';
         oss << field.format << ':' << field.name << ':';
         offset = field.offset + field.size;
     }
@@ -1053,7 +1061,6 @@ private:
 #define PYBIND11_FIELD_DESCRIPTOR_EX(T, Field, Name)                                          \
     ::pybind11::detail::field_descriptor {                                                    \
         Name, offsetof(T, Field), sizeof(decltype(std::declval<T>().Field)),                  \
-        alignof(decltype(std::declval<T>().Field)),                                           \
         ::pybind11::format_descriptor<decltype(std::declval<T>().Field)>::format(),           \
         ::pybind11::detail::npy_format_descriptor<decltype(std::declval<T>().Field)>::dtype() \
     }

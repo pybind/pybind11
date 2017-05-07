@@ -73,20 +73,21 @@ def test_format_descriptors():
 
     ld = np.dtype('longdouble')
     ldbl_fmt = ('4x' if ld.alignment > 4 else '') + ld.char
-    ss_fmt = "T{?:bool_:3xI:uint_:f:float_:" + ldbl_fmt + ":ldbl_:}"
+    ss_fmt = "^T{?:bool_:3xI:uint_:f:float_:" + ldbl_fmt + ":ldbl_:}"
     dbl = np.dtype('double')
-    partial_fmt = ("T{?:bool_:3xI:uint_:f:float_:" +
+    partial_fmt = ("^T{?:bool_:3xI:uint_:f:float_:" +
                    str(4 * (dbl.alignment > 4) + dbl.itemsize + 8 * (ld.alignment > 8)) +
                    "xg:ldbl_:}")
     nested_extra = str(max(8, ld.alignment))
     assert print_format_descriptors() == [
         ss_fmt,
-        "T{?:bool_:^I:uint_:^f:float_:^g:ldbl_:}",
-        "T{" + ss_fmt + ":a:T{?:bool_:^I:uint_:^f:float_:^g:ldbl_:}:b:}",
+        "^T{?:bool_:I:uint_:f:float_:g:ldbl_:}",
+        "^T{" + ss_fmt + ":a:^T{?:bool_:I:uint_:f:float_:g:ldbl_:}:b:}",
         partial_fmt,
-        "T{" + nested_extra + "x" + partial_fmt + ":a:" + nested_extra + "x}",
-        "T{3s:a:3s:b:}",
-        'T{q:e1:B:e2:}'
+        "^T{" + nested_extra + "x" + partial_fmt + ":a:" + nested_extra + "x}",
+        "^T{3s:a:3s:b:}",
+        '^T{q:e1:B:e2:}',
+        '^T{Zf:cflt:Zd:cdbl:}'
     ]
 
 
@@ -104,7 +105,8 @@ def test_dtype(simple_dtype):
         partial_nested_fmt(),
         "[('a', 'S3'), ('b', 'S3')]",
         "[('e1', '" + e + "i8'), ('e2', 'u1')]",
-        "[('x', 'i1'), ('y', '" + e + "u8')]"
+        "[('x', 'i1'), ('y', '" + e + "u8')]",
+        "[('cflt', '" + e + "c8'), ('cdbl', '" + e + "c16')]"
     ]
 
     d1 = np.dtype({'names': ['a', 'b'], 'formats': ['int32', 'float64'],
@@ -229,6 +231,24 @@ def test_enum_array():
     assert arr['e1'].tolist() == [-1, 1, -1]
     assert arr['e2'].tolist() == [1, 2, 1]
     assert create_enum_array(0).dtype == dtype
+
+
+def test_complex_array():
+    from pybind11_tests import create_complex_array, print_complex_array
+    from sys import byteorder
+    e = '<' if byteorder == 'little' else '>'
+
+    arr = create_complex_array(3)
+    dtype = arr.dtype
+    assert dtype == np.dtype([('cflt', e + 'c8'), ('cdbl', e + 'c16')])
+    assert print_complex_array(arr) == [
+        "c:(0,0.25),(0.5,0.75)",
+        "c:(1,1.25),(1.5,1.75)",
+        "c:(2,2.25),(2.5,2.75)"
+    ]
+    assert arr['cflt'].tolist() == [0.0 + 0.25j, 1.0 + 1.25j, 2.0 + 2.25j]
+    assert arr['cdbl'].tolist() == [0.5 + 0.75j, 1.5 + 1.75j, 2.5 + 2.75j]
+    assert create_complex_array(0).dtype == dtype
 
 
 def test_signature(doc):
