@@ -443,3 +443,14 @@ The entries defined by the enumeration type are exposed in the ``__members__`` p
            ...
 
     By default, these are omitted to conserve space.
+
+In order to define additional methods on the enum class in Python, use `into_class()`
+method of the `enum_` object which will yield a `class_` instance:
+
+.. code-block:: cpp
+
+    py::enum_<Pet::Kind>(pet, "Kind")
+        .value("Dog", Pet::Kind::Dog)
+        .value("Cat", Pet::Kind::Cat)
+        .into_class()
+        .def("is_cat", [](const Pet::Kind& kind) { return kind == Pet::Kind::Cat; });
