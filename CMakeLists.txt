@@ -34,6 +34,7 @@ set(PYTHON_LIBRARIES ${PYTHON_LIBRARIES} CACHE INTERNAL "")
 set(PYTHON_MODULE_PREFIX ${PYTHON_MODULE_PREFIX} CACHE INTERNAL "")
 set(PYTHON_MODULE_EXTENSION ${PYTHON_MODULE_EXTENSION} CACHE INTERNAL "")
 
+# NB: when adding a header don't forget to also add it to setup.py
 set(PYBIND11_HEADERS
   include/pybind11/attr.h
   include/pybind11/buffer_info.h
