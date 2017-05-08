@@ -568,3 +568,13 @@ def test_capsule_with_destructor(capture):
         creating capsule
         destructing capsule: 1234
     """
+
+
+def test_void_caster():
+    import pybind11_tests as m
+
+    with pytest.raises(TypeError) as excinfo:
+        m.load_nullptr_t(None)
+    assert "incompatible function arguments" in str(excinfo)
+
+    assert m.cast_nullptr_t() is None

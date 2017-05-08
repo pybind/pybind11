@@ -516,6 +516,9 @@ test_initializer python_types([](py::module &m) {
             });
         }
     );
+
+    m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
+    m.def("cast_nullptr_t", []() -> std::nullptr_t { return {}; });
 });
 
 #if defined(_MSC_VER)

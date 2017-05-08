@@ -653,7 +653,7 @@ private:
     void *value = nullptr;
 };
 
-template <> class type_caster<std::nullptr_t> : public type_caster<void_type> { };
+template <> class type_caster<std::nullptr_t> : public void_caster<std::nullptr_t> { };
 
 template <> class type_caster<bool> {
 public:
