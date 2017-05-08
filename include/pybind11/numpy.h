@@ -785,6 +785,8 @@ protected:
 
 template <typename T, int ExtraFlags = array::forcecast> class array_t : public array {
 public:
+    static_assert(!detail::array_info<T>::is_array, "Array types cannot be used with array_t");
+
     using value_type = T;
 
     array_t() : array(0, static_cast<const T *>(nullptr)) {}
