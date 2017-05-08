@@ -245,8 +245,8 @@ template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
 
 template <typename T> struct array_info_scalar {
     typedef T type;
-    static constexpr const bool is_array = false;
-    static constexpr const bool is_empty = false;
+    static constexpr bool is_array = false;
+    static constexpr bool is_empty = false;
     static PYBIND11_DESCR extents() { return _(""); }
     static void append_extents(list& /* shape */) { }
 };
@@ -256,9 +256,9 @@ template <typename T> struct array_info_scalar {
 template <typename T> struct array_info : array_info_scalar<T> { };
 template <typename T, size_t N> struct array_info<std::array<T, N>> {
     typedef typename array_info<T>::type type;
-    static constexpr const bool is_array = true;
-    static constexpr const bool is_empty = (N == 0) || array_info<T>::is_empty;
-    static constexpr const size_t extent = N;
+    static constexpr bool is_array = true;
+    static constexpr bool is_empty = (N == 0) || array_info<T>::is_empty;
+    static constexpr size_t extent = N;
 
     // appends the extents to shape
     static void append_extents(list& shape) {
