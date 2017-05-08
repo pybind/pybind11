@@ -69,7 +69,7 @@ template <size_t Size> constexpr descr<Size - 1, 0> _(char const(&text)[Size]) {
 
 template <size_t Rem, size_t... Digits> struct int_to_str : int_to_str<Rem/10, Rem%10, Digits...> { };
 template <size_t...Digits> struct int_to_str<0, Digits...> {
-    static constexpr const descr<sizeof...(Digits), 0> digits{{ ('0' + Digits)..., '\0' }, { nullptr }};
+    static constexpr auto digits = descr<sizeof...(Digits), 0>({ ('0' + Digits)..., '\0' }, { nullptr });
 };
 
 // Ternary description (like std::conditional)
