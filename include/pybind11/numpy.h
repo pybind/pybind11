@@ -255,7 +255,7 @@ template <typename T> struct array_info_scalar {
 // treated as scalar because it gets special handling.
 template <typename T> struct array_info : array_info_scalar<T> { };
 template <typename T, size_t N> struct array_info<std::array<T, N>> {
-    typedef typename array_info<T>::type type;
+    using type = typename array_info<T>::type;
     static constexpr bool is_array = true;
     static constexpr bool is_empty = (N == 0) || array_info<T>::is_empty;
     static constexpr size_t extent = N;
