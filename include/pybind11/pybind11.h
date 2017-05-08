@@ -278,7 +278,7 @@ protected:
                 chain = (detail::function_record *) rec_capsule;
                 /* Never append a method to an overload chain of a parent class;
                    instead, hide the parent's overloads in this case */
-                if (chain->scope != rec->scope)
+                if (!chain->scope.is(rec->scope))
                     chain = nullptr;
             }
             // Don't trigger for things like the default __init__, which are wrapper_descriptors that we are intentionally replacing
@@ -1274,7 +1274,7 @@ template <typename... Args> struct init {
         using Alias = typename Class::type_alias;
         handle cl_type = cl;
         cl.def("__init__", [cl_type](handle self_, Args... args) {
-                if (self_.get_type() == cl_type)
+                if (self_.get_type().is(cl_type))
                     new (self_.cast<Base *>()) Base(args...);
                 else
                     new (self_.cast<Alias *>()) Alias(args...);
@@ -1708,7 +1708,7 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
         Py_file_input, d.ptr(), d.ptr());
     if (result == nullptr)
         throw error_already_set();
-    if ((handle) d["self"] == Py_None)
+    if (d["self"].is_none())
         return function();
     Py_DECREF(result);
 #endif
