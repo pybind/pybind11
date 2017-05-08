@@ -57,11 +57,11 @@ specification.
 
     struct buffer_info {
         void *ptr;
-        size_t itemsize;
+        ssize_t itemsize;
         std::string format;
-        int ndim;
-        std::vector<size_t> shape;
-        std::vector<size_t> strides;
+        ssize_t ndim;
+        std::vector<ssize_t> shape;
+        std::vector<ssize_t> strides;
     };
 
 To create a C++ function that can take a Python buffer object as an argument,
@@ -95,8 +95,8 @@ buffer objects (e.g. a NumPy matrix).
                 throw std::runtime_error("Incompatible buffer dimension!");
 
             auto strides = Strides(
-                info.strides[rowMajor ? 0 : 1] / sizeof(Scalar),
-                info.strides[rowMajor ? 1 : 0] / sizeof(Scalar));
+                info.strides[rowMajor ? 0 : 1] / (py::ssize_t)sizeof(Scalar),
+                info.strides[rowMajor ? 1 : 0] / (py::ssize_t)sizeof(Scalar));
 
             auto map = Eigen::Map<Matrix, 0, Strides>(
                 static_cat<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
@@ -111,18 +111,14 @@ as follows:
 
     .def_buffer([](Matrix &m) -> py::buffer_info {
         return py::buffer_info(
-            m.data(),                /* Pointer to buffer */
-            sizeof(Scalar),          /* Size of one scalar */
-            /* Python struct-style format descriptor */
-            py::format_descriptor<Scalar>::format(),
-            /* Number of dimensions */
-            2,
-            /* Buffer dimensions */
-            { (size_t) m.rows(),
-              (size_t) m.cols() },
-            /* Strides (in bytes) for each index */
+            m.data(),                                /* Pointer to buffer */
+            sizeof(Scalar),                          /* Size of one scalar */
+            py::format_descriptor<Scalar>::format(), /* Python struct-style format descriptor */
+            2,                                       /* Number of dimensions */
+            { m.rows(), m.cols() },                  /* Buffer dimensions */
             { sizeof(Scalar) * (rowMajor ? m.cols() : 1),
               sizeof(Scalar) * (rowMajor ? 1 : m.rows()) }
+                                                     /* Strides (in bytes) for each index */
         );
      })
 
@@ -322,17 +318,17 @@ where ``N`` gives the required dimensionality of the array:
     m.def("sum_3d", [](py::array_t<double> x) {
         auto r = x.unchecked<3>(); // x must have ndim = 3; can be non-writeable
         double sum = 0;
-        for (size_t i = 0; i < r.shape(0); i++)
-            for (size_t j = 0; j < r.shape(1); j++)
-                for (size_t k = 0; k < r.shape(2); k++)
+        for (ssize_t i = 0; i < r.shape(0); i++)
+            for (ssize_t j = 0; j < r.shape(1); j++)
+                for (ssize_t k = 0; k < r.shape(2); k++)
                     sum += r(i, j, k);
         return sum;
     });
     m.def("increment_3d", [](py::array_t<double> x) {
         auto r = x.mutable_unchecked<3>(); // Will throw if ndim != 3 or flags.writeable is false
-        for (size_t i = 0; i < r.shape(0); i++)
-            for (size_t j = 0; j < r.shape(1); j++)
-                for (size_t k = 0; k < r.shape(2); k++)
+        for (ssize_t i = 0; i < r.shape(0); i++)
+            for (ssize_t j = 0; j < r.shape(1); j++)
+                for (ssize_t k = 0; k < r.shape(2); k++)
                     r(i, j, k) += 1.0;
     }, py::arg().noconvert());
 
