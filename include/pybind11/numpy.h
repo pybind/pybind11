@@ -912,8 +912,8 @@ template <typename T>
 struct format_descriptor<T, detail::enable_if_t<detail::array_info<T>::is_array>> {
     static std::string format() {
         using detail::_;
-        return (_("(") + detail::array_info<T>::extents() + _(")")).text()
-            + format_descriptor<detail::remove_all_extents_t<T>>::format();
+        PYBIND11_DESCR extents = _("(") + detail::array_info<T>::extents() + _(")");
+        return extents.text() + format_descriptor<detail::remove_all_extents_t<T>>::format();
     }
 };
 

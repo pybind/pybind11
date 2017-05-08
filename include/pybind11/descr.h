@@ -72,8 +72,6 @@ template <size_t...Digits> struct int_to_str<0, Digits...> {
     static constexpr const descr<sizeof...(Digits), 0> digits{{ ('0' + Digits)..., '\0' }, { nullptr }};
 };
 
-template <size_t... Digits> constexpr descr<sizeof...(Digits), 0> int_to_str<0, Digits...>::digits;
-
 // Ternary description (like std::conditional)
 template <bool B, size_t Size1, size_t Size2>
 constexpr enable_if_t<B, descr<Size1 - 1, 0>> _(char const(&text1)[Size1], char const(&)[Size2]) {
