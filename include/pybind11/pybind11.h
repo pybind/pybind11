@@ -1274,6 +1274,10 @@ public:
         return cls;
     }
 
+    operator handle() & {
+        return cls;
+    }
+
 private:
     class_<Type> cls;
     dict m_entries;

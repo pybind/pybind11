@@ -44,7 +44,7 @@ std::string test_scoped_enum(ScopedEnum z) {
 test_initializer enums([](py::module &m) {
     m.def("test_scoped_enum", &test_scoped_enum);
 
-    py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic())
+    auto e = py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic())
         .value("EOne", EOne)
         .value("ETwo", ETwo)
         .export_values()
@@ -58,6 +58,8 @@ test_initializer enums([](py::module &m) {
     scoped_enum
         .value("Two", ScopedEnum::Two)
         .value("Three", ScopedEnum::Three);
+
+    py::setattr(e, "Alias", scoped_enum);
 
     py::enum_<Flags>(m, "Flags", py::arithmetic())
         .value("Read", Flags::Read)

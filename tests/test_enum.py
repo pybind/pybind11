@@ -40,6 +40,11 @@ def test_unscoped_enum():
     assert not (2 < UnscopedEnum.EOne)
 
 
+def test_enum_as_handle():
+    from pybind11_tests import UnscopedEnum, ScopedEnum
+    assert UnscopedEnum.Alias is ScopedEnum
+
+
 def test_extra_defs():
     from pybind11_tests import UnscopedEnum
     assert UnscopedEnum.EOne.x() == 2 and UnscopedEnum.ETwo.x() == 3
