@@ -607,25 +607,14 @@ template <typename T> struct is_fmt_numeric<T, enable_if_t<std::is_arithmetic<T>
 };
 NAMESPACE_END(detail)
 
-template <typename T> struct format_descriptor<T, detail::enable_if_t<detail::is_fmt_numeric<T>::value>> {
-    static constexpr const char c1 = "?bBhHiIqQfdgZZZ"[detail::is_fmt_numeric<T>::index];
-    static constexpr const char c2 = "\0\0\0\0\0\0\0\0\0\0\0\0fdg"[detail::is_fmt_numeric<T>::index];
-    static constexpr const char value[3] = { c1, c2, '\0' };
-    static std::string format() {
-#if !defined(_MSC_VER) || _MSC_VER >= 1910
-        return std::string(value);
-#else
-        // MSVC 2015 has trouble constructing std::string from value
-        std::string out(1, c1);
-        if (c2)
-            out += c2;
-        return out;
-#endif
-    }
+template <typename T> struct format_descriptor<T, detail::enable_if_t<std::is_arithmetic<T>::value>> {
+    static constexpr const char c = "?bBhHiIqQfdg"[detail::is_fmt_numeric<T>::index];
+    static constexpr const char value[2] = { c, '\0' };
+    static std::string format() { return std::string(1, c); }
 };
 
 template <typename T> constexpr const char format_descriptor<
-    T, detail::enable_if_t<detail::is_fmt_numeric<T>::value>>::value[3];
+    T, detail::enable_if_t<std::is_arithmetic<T>::value>>::value[2];
 
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {
