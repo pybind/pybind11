@@ -602,7 +602,11 @@ public:
 
 template<typename T> struct void_caster {
 public:
-    bool load(handle, bool) { return false; }
+    bool load(handle src, bool) {
+        if (src && src.is_none())
+            return true;
+        return false;
+    }
     static handle cast(T, return_value_policy /* policy */, handle /* parent */) {
         return none().inc_ref();
     }

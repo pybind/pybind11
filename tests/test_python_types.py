@@ -378,9 +378,10 @@ def test_variant(doc):
     assert load_variant(1) == "int"
     assert load_variant("1") == "std::string"
     assert load_variant(1.0) == "double"
+    assert load_variant(None) == "std::nullptr_t"
     assert cast_variant() == (5, "Hello")
 
-    assert doc(load_variant) == "load_variant(arg0: Union[int, str, float]) -> str"
+    assert doc(load_variant) == "load_variant(arg0: Union[int, str, float, None]) -> str"
 
 
 def test_constructors():
@@ -573,8 +574,5 @@ def test_capsule_with_destructor(capture):
 def test_void_caster():
     import pybind11_tests as m
 
-    with pytest.raises(TypeError) as excinfo:
-        m.load_nullptr_t(None)
-    assert "incompatible function arguments" in str(excinfo)
-
+    assert m.load_nullptr_t(None) is None
     assert m.cast_nullptr_t() is None
