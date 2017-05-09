@@ -252,7 +252,7 @@ protected:
         if (type_depth != 0 || types[type_index] != nullptr)
             pybind11_fail("Internal error while parsing type signature (2)");
 
-        #if !defined(PYBIND11_CPP14)
+        #if !defined(PYBIND11_CONSTEXPR_DESCR)
             delete[] types;
             delete[] text;
         #endif

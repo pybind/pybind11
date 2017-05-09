@@ -15,7 +15,9 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
-#if defined(PYBIND11_CPP14) /* Concatenate type signatures at compile time using C++14 */
+/* Concatenate type signatures at compile time using C++14 */
+#if defined(PYBIND11_CPP14) && !defined(_MSC_VER)
+#define PYBIND11_CONSTEXPR_DESCR
 
 template <size_t Size1, size_t Size2> class descr {
     template <size_t Size1_, size_t Size2_> friend class descr;
