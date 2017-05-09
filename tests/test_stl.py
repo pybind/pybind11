@@ -131,3 +131,26 @@ def test_vec_of_reference_wrapper():
     """#171: Can't return reference wrappers (or STL structures containing them)"""
     assert str(m.return_vec_of_reference_wrapper(UserType(4))) == \
         "[UserType(1), UserType(2), UserType(3), UserType(4)]"
+
+
+def test_stl_pass_by_pointer(msg):
+    """Passing nullptr or None to an STL container pointer is not expected to work"""
+    with pytest.raises(TypeError) as excinfo:
+        m.stl_pass_by_pointer()  # default value is `nullptr`
+    assert msg(excinfo.value) == """
+        stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
+            1. (v: List[int]=None) -> List[int]
+
+        Invoked with:
+    """  # noqa: E501 line too long
+
+    with pytest.raises(TypeError) as excinfo:
+        m.stl_pass_by_pointer(None)
+    assert msg(excinfo.value) == """
+        stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
+            1. (v: List[int]=None) -> List[int]
+
+        Invoked with: None
+    """  # noqa: E501 line too long
+
+    assert m.stl_pass_by_pointer([1, 2, 3]) == [1, 2, 3]
