@@ -31,7 +31,9 @@
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #  pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #  pragma GCC diagnostic ignored "-Wattributes"
-#  pragma GCC diagnostic ignored "-Wnoexcept-type"
+#  if __GNUC__ >= 7
+#    pragma GCC diagnostic ignored "-Wnoexcept-type"
+#  endif
 #endif
 
 #include "attr.h"
