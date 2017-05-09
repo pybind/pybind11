@@ -22,9 +22,12 @@ struct type_caster<std::function<Return(Args...)>> {
     using function_type = Return (*) (Args...);
 
 public:
-    bool load(handle src, bool) {
-        if (src.is_none())
+    bool load(handle src, bool convert) {
+        if (src.is_none()) {
+            // Defer accepting None to other overloads (if we aren't in convert mode):
+            if (!convert) return false;
             return true;
+        }
 
         if (!isinstance<function>(src))
             return false;

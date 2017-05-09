@@ -499,6 +499,18 @@ test_initializer python_types([](py::module &m) {
     m.def("return_none_int",    []() -> int *         { return nullptr; });
     m.def("return_none_float",  []() -> float *       { return nullptr; });
 
+    m.def("defer_none_cstring", [](char *) { return false; });
+    m.def("defer_none_cstring", [](py::none) { return true; });
+    m.def("defer_none_custom", [](ExamplePythonTypes *) { return false; });
+    m.def("defer_none_custom", [](py::none) { return true; });
+    // void and optional, however, don't defer:
+    m.def("nodefer_none_void", [](void *) { return true; });
+    m.def("nodefer_none_void", [](py::none) { return false; });
+#ifdef PYBIND11_HAS_OPTIONAL
+    m.def("nodefer_none_optional", [](std::optional<int>) { return true; });
+    m.def("nodefer_none_optional", [](py::none) { return false; });
+#endif
+
     m.def("return_capsule_with_destructor",
         []() {
             py::print("creating capsule");

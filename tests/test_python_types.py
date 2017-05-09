@@ -549,8 +549,22 @@ def test_builtins_cast_return_none():
     assert m.return_none_float() is None
 
 
+def test_none_deferred():
+    """None passed as various argument types should defer to other overloads"""
+    import pybind11_tests as m
+
+    assert not m.defer_none_cstring("abc")
+    assert m.defer_none_cstring(None)
+    assert not m.defer_none_custom(m.ExamplePythonTypes.new_instance())
+    assert m.defer_none_custom(None)
+    assert m.nodefer_none_void(None)
+    if has_optional:
+        assert m.nodefer_none_optional(None)
+
+
 def test_capsule_with_destructor(capture):
     import pybind11_tests as m
+    pytest.gc_collect()
     with capture:
         a = m.return_capsule_with_destructor()
         del a
