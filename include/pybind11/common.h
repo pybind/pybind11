@@ -16,13 +16,18 @@
 #  define NAMESPACE_END(name) }
 #endif
 
-// Neither MSVC nor Intel support enough of C++14 yet (in particular, as of MSVC 2015 and ICC 17
-// beta, neither support extended constexpr, which we rely on in descr.h), so don't enable pybind
-// CPP14 features for them.
 #if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  if __cplusplus >= 201402L
 #    define PYBIND11_CPP14
 #    if __cplusplus > 201402L /* Temporary: should be updated to >= the final C++17 value once known */
+#      define PYBIND11_CPP17
+#    endif
+#  endif
+#elif defined(_MSC_VER)
+// MSVC sets _MSVC_LANG rather than __cplusplus (supposedly until the standard is fully implemented)
+#  if _MSVC_LANG >= 201402L
+#    define PYBIND11_CPP14
+#    if _MSVC_LANG > 201402L && _MSC_VER >= 1910
 #      define PYBIND11_CPP17
 #    endif
 #  endif
@@ -69,7 +74,7 @@
 #  define PYBIND11_NOINLINE __attribute__ ((noinline))
 #endif
 
-#if defined(PYBIND11_CPP14) || defined(_MSC_VER)
+#if defined(PYBIND11_CPP14)
 #  define PYBIND11_DEPRECATED(reason) [[deprecated(reason)]]
 #else
 #  define PYBIND11_DEPRECATED(reason) __attribute__((deprecated(reason)))
@@ -339,7 +344,7 @@ struct internals {
 inline internals &get_internals();
 
 /// from __cpp_future__ import (convenient aliases from C++14/17)
-#ifdef PYBIND11_CPP14
+#if defined(PYBIND11_CPP14) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
 using std::enable_if_t;
 using std::conditional_t;
 using std::remove_cv_t;
@@ -350,7 +355,7 @@ template <typename T> using remove_cv_t = typename std::remove_cv<T>::type;
 #endif
 
 /// Index sequences
-#if defined(PYBIND11_CPP14) || defined(_MSC_VER)
+#if defined(PYBIND11_CPP14)
 using std::index_sequence;
 using std::make_index_sequence;
 #else
@@ -622,8 +627,8 @@ struct error_scope {
 /// Dummy destructor wrapper that can be used to expose classes with a private destructor
 struct nodelete { template <typename T> void operator()(T*) { } };
 
-// overload_cast requires variable templates: C++14 or MSVC
-#if defined(PYBIND11_CPP14) || defined(_MSC_VER)
+// overload_cast requires variable templates: C++14
+#if defined(PYBIND11_CPP14)
 #define PYBIND11_OVERLOAD_CAST 1
 
 NAMESPACE_BEGIN(detail)
