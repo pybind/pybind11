@@ -160,4 +160,6 @@ TEST_SUBMODULE(stl, m) {
         };
     });
 
+    // test_stl_pass_by_pointer
+    m.def("stl_pass_by_pointer", [](std::vector<int>* v) { return *v; }, "v"_a=nullptr);
 }
