@@ -218,6 +218,8 @@ public:
         if (!src || !typeinfo)
             return false;
         if (src.is_none()) {
+            // Defer accepting None to other overloads (if we aren't in convert mode):
+            if (!convert) return false;
             value = nullptr;
             return true;
         }
@@ -982,6 +984,8 @@ public:
         if (!src || !typeinfo)
             return false;
         if (src.is_none()) {
+            // Defer accepting None to other overloads (if we aren't in convert mode):
+            if (!convert) return false;
             value = nullptr;
             return true;
         }
