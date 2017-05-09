@@ -249,3 +249,9 @@ def test_inheritance_override_def_static():
     assert isinstance(b, MyBase)
     assert isinstance(d1, MyDerived)
     assert isinstance(d2, MyDerived)
+
+def test_default_set():
+    from pybind11_tests.issues import test_default_set_null, test_default_set_none
+
+    test_default_set_null()
+    test_default_set_none()
