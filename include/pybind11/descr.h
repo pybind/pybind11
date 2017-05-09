@@ -115,20 +115,20 @@ public:
         memcpy(m_types, types, nTypes * sizeof(const std::type_info *));
     }
 
-    PYBIND11_NOINLINE descr friend operator+(descr &&d1, descr &&d2) {
+    PYBIND11_NOINLINE descr operator+(descr &&d2) && {
         descr r;
 
-        size_t nChars1 = len(d1.m_text), nTypes1 = len(d1.m_types);
+        size_t nChars1 = len(m_text),    nTypes1 = len(m_types);
         size_t nChars2 = len(d2.m_text), nTypes2 = len(d2.m_types);
 
         r.m_text  = new char[nChars1 + nChars2 - 1];
         r.m_types = new const std::type_info *[nTypes1 + nTypes2 - 1];
-        memcpy(r.m_text, d1.m_text, (nChars1-1) * sizeof(char));
+        memcpy(r.m_text, m_text, (nChars1-1) * sizeof(char));
         memcpy(r.m_text + nChars1 - 1, d2.m_text, nChars2 * sizeof(char));
-        memcpy(r.m_types, d1.m_types, (nTypes1-1) * sizeof(std::type_info *));
+        memcpy(r.m_types, m_types, (nTypes1-1) * sizeof(std::type_info *));
         memcpy(r.m_types + nTypes1 - 1, d2.m_types, nTypes2 * sizeof(std::type_info *));
 
-        delete[] d1.m_text; delete[] d1.m_types;
+        delete[] m_text;    delete[] m_types;
         delete[] d2.m_text; delete[] d2.m_types;
 
         return r;
