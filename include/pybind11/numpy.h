@@ -1571,10 +1571,10 @@ vectorize(Return (*f) (Args ...)) {
 }
 
 // lambda vectorizer:
-template <typename Func, typename FuncType = typename detail::remove_class<decltype(&detail::remove_reference_t<Func>::operator())>::type>
+template <typename Func, detail::enable_if_t<detail::is_lambda<Func>::value, int> = 0>
 auto vectorize(Func &&f) -> decltype(
-        detail::vectorize_extractor(std::forward<Func>(f), (FuncType *) nullptr)) {
-    return detail::vectorize_extractor(std::forward<Func>(f), (FuncType *) nullptr);
+        detail::vectorize_extractor(std::forward<Func>(f), (detail::function_signature_t<Func> *) nullptr)) {
+    return detail::vectorize_extractor(std::forward<Func>(f), (detail::function_signature_t<Func> *) nullptr);
 }
 
 // Vectorize a class method (non-const):

@@ -689,6 +689,31 @@ template <typename T>
 struct is_input_iterator<T, void_t<decltype(*std::declval<T &>()), decltype(++std::declval<T &>())>>
     : std::true_type {};
 
+template <typename T> using is_function_pointer = bool_constant<
+    std::is_pointer<T>::value && std::is_function<typename std::remove_pointer<T>::type>::value>;
+
+template <typename F> struct strip_function_object {
+    using type = typename remove_class<decltype(&F::operator())>::type;
+};
+
+// Extracts the function signature from a function, function pointer or lambda.
+template <typename Function, typename F = remove_reference_t<Function>>
+using function_signature_t = conditional_t<
+    std::is_function<F>::value,
+    F,
+    typename conditional_t<
+        std::is_pointer<F>::value || std::is_member_pointer<F>::value,
+        std::remove_pointer<F>,
+        strip_function_object<F>
+    >::type
+>;
+
+/// Returns true if the type looks like a lambda: that is, isn't a function, pointer or member
+/// pointer.  Note that this can catch all sorts of other things, too; this is intended to be used
+/// in a place where passing a lambda makes sense.
+template <typename T> using is_lambda = satisfies_none_of<remove_reference_t<T>,
+        std::is_function, std::is_pointer, std::is_member_pointer>;
+
 /// Ignore that a variable is unused in compiler warnings
 inline void ignore_unused(const int *) { }
 
