@@ -70,6 +70,15 @@ struct StringStruct {
     std::array<char, 3> b;
 };
 
+struct ComplexStruct {
+    std::complex<float> cflt;
+    std::complex<double> cdbl;
+};
+
+std::ostream& operator<<(std::ostream& os, const ComplexStruct& v) {
+    return os << "c:" << v.cflt << "," << v.cdbl;
+}
+
 struct ArrayStruct {
     char a[3][4];
     int32_t b[2];
@@ -219,6 +228,18 @@ py::array_t<EnumStruct, 0> create_enum_array(size_t n) {
     return arr;
 }
 
+py::array_t<ComplexStruct, 0> create_complex_array(size_t n) {
+    auto arr = mkarray_via_buffer<ComplexStruct>(n);
+    auto ptr = (ComplexStruct *) arr.mutable_data();
+    for (size_t i = 0; i < n; i++) {
+        ptr[i].cflt.real(float(i));
+        ptr[i].cflt.imag(float(i) + 0.25f);
+        ptr[i].cdbl.real(double(i) + 0.5);
+        ptr[i].cdbl.imag(double(i) + 0.75);
+    }
+    return arr;
+}
+
 template <typename S>
 py::list print_recarray(py::array_t<S, 0> arr) {
     const auto req = arr.request();
@@ -241,7 +262,8 @@ py::list print_format_descriptors() {
         py::format_descriptor<PartialNestedStruct>::format(),
         py::format_descriptor<StringStruct>::format(),
         py::format_descriptor<ArrayStruct>::format(),
-        py::format_descriptor<EnumStruct>::format()
+        py::format_descriptor<EnumStruct>::format(),
+        py::format_descriptor<ComplexStruct>::format()
     };
     auto l = py::list();
     for (const auto &fmt : fmts) {
@@ -260,7 +282,8 @@ py::list print_dtypes() {
         py::str(py::dtype::of<StringStruct>()),
         py::str(py::dtype::of<ArrayStruct>()),
         py::str(py::dtype::of<EnumStruct>()),
-        py::str(py::dtype::of<StructWithUglyNames>())
+        py::str(py::dtype::of<StructWithUglyNames>()),
+        py::str(py::dtype::of<ComplexStruct>())
     };
     auto l = py::list();
     for (const auto &s : dtypes) {
@@ -401,6 +424,7 @@ test_initializer numpy_dtypes([](py::module &m) {
     PYBIND11_NUMPY_DTYPE(StringStruct, a, b);
     PYBIND11_NUMPY_DTYPE(ArrayStruct, a, b, c, d);
     PYBIND11_NUMPY_DTYPE(EnumStruct, e1, e2);
+    PYBIND11_NUMPY_DTYPE(ComplexStruct, cflt, cdbl);
     PYBIND11_NUMPY_DTYPE(TrailingPaddingStruct, a, b);
     PYBIND11_NUMPY_DTYPE(CompareStruct, x, y, z);
 
@@ -431,6 +455,8 @@ test_initializer numpy_dtypes([](py::module &m) {
     m.def("print_array_array", &print_recarray<ArrayStruct>);
     m.def("create_enum_array", &create_enum_array);
     m.def("print_enum_array", &print_recarray<EnumStruct>);
+    m.def("create_complex_array", &create_complex_array);
+    m.def("print_complex_array", &print_recarray<ComplexStruct>);
     m.def("test_array_ctors", &test_array_ctors);
     m.def("test_dtype_ctors", &test_dtype_ctors);
     m.def("test_dtype_methods", &test_dtype_methods);
