@@ -315,6 +315,12 @@ struct variant_caster<V<Ts...>> {
     bool load_alternative(handle, bool, type_list<>) { return false; }
 
     bool load(handle src, bool convert) {
+        // Do a first pass without conversions to improve constructor resolution.
+        // E.g. `py::int_(1).cast<variant<double, int>>()` needs to fill the `int`
+        // slot of the variant. Without two-pass loading `double` would be filled
+        // because it appears first and a conversion is possible.
+        if (convert && load_alternative(src, false, type_list<Ts...>{}))
+            return true;
         return load_alternative(src, convert, type_list<Ts...>{});
     }
 

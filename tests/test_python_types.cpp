@@ -366,6 +366,10 @@ test_initializer python_types([](py::module &m) {
         return std::visit(visitor(), v);
     });
 
+    m.def("load_variant_2pass", [](std::variant<double, int> v) {
+        return std::visit(visitor(), v);
+    });
+
     m.def("cast_variant", []() {
         using V = std::variant<int, std::string>;
         return py::make_tuple(V(5), V("Hello"));
