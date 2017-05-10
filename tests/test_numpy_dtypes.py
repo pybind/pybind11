@@ -86,6 +86,7 @@ def test_format_descriptors():
         partial_fmt,
         "T{" + nested_extra + "x" + partial_fmt + ":a:" + nested_extra + "x}",
         "T{3s:a:3s:b:}",
+        "T{(3)4s:a:(2)i:b:(3)B:c:1x(4, 2)f:d:}",
         'T{q:e1:B:e2:}'
     ]
 
@@ -103,6 +104,9 @@ def test_dtype(simple_dtype):
         partial_dtype_fmt(),
         partial_nested_fmt(),
         "[('a', 'S3'), ('b', 'S3')]",
+        ("{{'names':['a','b','c','d'], " +
+         "'formats':[('S4', (3,)),('<i4', (2,)),('u1', (3,)),('<f4', (4, 2))], " +
+         "'offsets':[0,12,20,24], 'itemsize':56}}").format(e=e),
         "[('e1', '" + e + "i8'), ('e2', 'u1')]",
         "[('x', 'i1'), ('y', '" + e + "u8')]"
     ]
@@ -211,6 +215,31 @@ def test_string_array():
     assert arr['b'].tolist() == [b'', b'a', b'ab', b'abc']
     arr = create_string_array(False)
     assert dtype == arr.dtype
+
+
+def test_array_array():
+    from pybind11_tests import create_array_array, print_array_array
+    from sys import byteorder
+    e = '<' if byteorder == 'little' else '>'
+
+    arr = create_array_array(3)
+    assert str(arr.dtype) == (
+        "{{'names':['a','b','c','d'], " +
+        "'formats':[('S4', (3,)),('<i4', (2,)),('u1', (3,)),('{e}f4', (4, 2))], " +
+        "'offsets':[0,12,20,24], 'itemsize':56}}").format(e=e)
+    assert print_array_array(arr) == [
+        "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1}," +
+        "c={0,1,2},d={{0,1},{10,11},{20,21},{30,31}}",
+        "a={{W,X,Y,Z},{G,H,I,J},{Q,R,S,T}},b={1000,1001}," +
+        "c={10,11,12},d={{100,101},{110,111},{120,121},{130,131}}",
+        "a={{S,T,U,V},{C,D,E,F},{M,N,O,P}},b={2000,2001}," +
+        "c={20,21,22},d={{200,201},{210,211},{220,221},{230,231}}",
+    ]
+    assert arr['a'].tolist() == [[b'ABCD', b'KLMN', b'UVWX'],
+                                 [b'WXYZ', b'GHIJ', b'QRST'],
+                                 [b'STUV', b'CDEF', b'MNOP']]
+    assert arr['b'].tolist() == [[0, 1], [1000, 1001], [2000, 2001]]
+    assert create_array_array(0).dtype == arr.dtype
 
 
 def test_enum_array():

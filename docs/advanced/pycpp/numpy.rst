@@ -198,6 +198,10 @@ expects the type followed by field names:
         /* now both A and B can be used as template arguments to py::array_t */
     }
 
+The structure should consist of fundamental arithmetic types, previously
+registered substructures, and arrays of any of the above. Both C++ arrays and
+``std::array`` are supported.
+
 Vectorizing functions
 =====================
 

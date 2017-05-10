@@ -70,6 +70,13 @@ struct StringStruct {
     std::array<char, 3> b;
 };
 
+struct ArrayStruct {
+    char a[3][4];
+    int32_t b[2];
+    std::array<uint8_t, 3> c;
+    std::array<float, 2> d[4];
+};
+
 PYBIND11_PACKED(struct StructWithUglyNames {
     int8_t __x__;
     uint64_t __y__;
@@ -89,6 +96,27 @@ std::ostream& operator<<(std::ostream& os, const StringStruct& v) {
     os << "',b='";
     for (size_t i = 0; i < 3 && v.b[i]; i++) os << v.b[i];
     return os << "'";
+}
+
+std::ostream& operator<<(std::ostream& os, const ArrayStruct& v) {
+    os << "a={";
+    for (int i = 0; i < 3; i++) {
+        if (i > 0)
+            os << ',';
+        os << '{';
+        for (int j = 0; j < 3; j++)
+            os << v.a[i][j] << ',';
+        os << v.a[i][3] << '}';
+    }
+    os << "},b={" << v.b[0] << ',' << v.b[1];
+    os << "},c={" << int(v.c[0]) << ',' << int(v.c[1]) << ',' << int(v.c[2]);
+    os << "},d={";
+    for (int i = 0; i < 4; i++) {
+        if (i > 0)
+            os << ',';
+        os << '{' << v.d[i][0] << ',' << v.d[i][1] << '}';
+    }
+    return os << '}';
 }
 
 std::ostream& operator<<(std::ostream& os, const EnumStruct& v) {
@@ -163,6 +191,24 @@ py::array_t<StringStruct, 0> create_string_array(bool non_empty) {
     return arr;
 }
 
+py::array_t<ArrayStruct, 0> create_array_array(size_t n) {
+    auto arr = mkarray_via_buffer<ArrayStruct>(n);
+    auto ptr = (ArrayStruct *) arr.mutable_data();
+    for (size_t i = 0; i < n; i++) {
+        for (size_t j = 0; j < 3; j++)
+            for (size_t k = 0; k < 4; k++)
+                ptr[i].a[j][k] = char('A' + (i * 100 + j * 10 + k) % 26);
+        for (size_t j = 0; j < 2; j++)
+            ptr[i].b[j] = int32_t(i * 1000 + j);
+        for (size_t j = 0; j < 3; j++)
+            ptr[i].c[j] = uint8_t(i * 10 + j);
+        for (size_t j = 0; j < 4; j++)
+            for (size_t k = 0; k < 2; k++)
+                ptr[i].d[j][k] = float(i) * 100.0f + float(j) * 10.0f + float(k);
+    }
+    return arr;
+}
+
 py::array_t<EnumStruct, 0> create_enum_array(size_t n) {
     auto arr = mkarray_via_buffer<EnumStruct>(n);
     auto ptr = (EnumStruct *) arr.mutable_data();
@@ -194,6 +240,7 @@ py::list print_format_descriptors() {
         py::format_descriptor<PartialStruct>::format(),
         py::format_descriptor<PartialNestedStruct>::format(),
         py::format_descriptor<StringStruct>::format(),
+        py::format_descriptor<ArrayStruct>::format(),
         py::format_descriptor<EnumStruct>::format()
     };
     auto l = py::list();
@@ -211,6 +258,7 @@ py::list print_dtypes() {
         py::str(py::dtype::of<PartialStruct>()),
         py::str(py::dtype::of<PartialNestedStruct>()),
         py::str(py::dtype::of<StringStruct>()),
+        py::str(py::dtype::of<ArrayStruct>()),
         py::str(py::dtype::of<EnumStruct>()),
         py::str(py::dtype::of<StructWithUglyNames>())
     };
@@ -351,6 +399,7 @@ test_initializer numpy_dtypes([](py::module &m) {
     PYBIND11_NUMPY_DTYPE(PartialStruct, bool_, uint_, float_, ldbl_);
     PYBIND11_NUMPY_DTYPE(PartialNestedStruct, a);
     PYBIND11_NUMPY_DTYPE(StringStruct, a, b);
+    PYBIND11_NUMPY_DTYPE(ArrayStruct, a, b, c, d);
     PYBIND11_NUMPY_DTYPE(EnumStruct, e1, e2);
     PYBIND11_NUMPY_DTYPE(TrailingPaddingStruct, a, b);
     PYBIND11_NUMPY_DTYPE(CompareStruct, x, y, z);
@@ -378,6 +427,8 @@ test_initializer numpy_dtypes([](py::module &m) {
     m.def("get_format_unbound", &get_format_unbound);
     m.def("create_string_array", &create_string_array);
     m.def("print_string_array", &print_recarray<StringStruct>);
+    m.def("create_array_array", &create_array_array);
+    m.def("print_array_array", &print_recarray<ArrayStruct>);
     m.def("create_enum_array", &create_enum_array);
     m.def("print_enum_array", &print_recarray<EnumStruct>);
     m.def("test_array_ctors", &test_array_ctors);
