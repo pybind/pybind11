@@ -92,17 +92,28 @@ regular LTO if ``-flto=thin`` is not available.
 Configuration variables
 -----------------------
 
-By default, pybind11 will compile modules with the latest C++ standard
-available on the target compiler. To override this, the standard flag can
-be given explicitly in ``PYBIND11_CPP_STANDARD``:
+By default, pybind11 will compile modules with the C++14 standard, if available
+on the target compiler, falling back to C++11 if C++14 support is not
+available.  Note, however, that this default is subject to change: future
+pybind11 releases are expected to migrate to newer C++ standards as they become
+available.  To override this, the standard flag can be given explicitly in
+``PYBIND11_CPP_STANDARD``:
 
 .. code-block:: cmake
 
+    # Use just one of these:
+    # GCC/clang:
     set(PYBIND11_CPP_STANDARD -std=c++11)
+    set(PYBIND11_CPP_STANDARD -std=c++14)
+    set(PYBIND11_CPP_STANDARD -std=c++1z) # Experimental C++17 support
+    # MSVC:
+    set(PYBIND11_CPP_STANDARD /std:c++14)
+    set(PYBIND11_CPP_STANDARD /std:c++latest) # Enables some MSVC C++17 features
+
     add_subdirectory(pybind11)  # or find_package(pybind11)
 
 Note that this and all other configuration variables must be set **before** the
-call to ``add_subdiretory`` or ``find_package``. The variables can also be set
+call to ``add_subdirectory`` or ``find_package``. The variables can also be set
 when calling CMake from the command line using the ``-D<variable>=<value>`` flag.
 
 The target Python version can be selected by setting ``PYBIND11_PYTHON_VERSION``

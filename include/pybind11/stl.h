@@ -41,6 +41,11 @@
 #    include <variant>
 #    define PYBIND11_HAS_VARIANT 1
 #  endif
+#elif defined(_MSC_VER) && defined(PYBIND11_CPP17)
+#  include <optional>
+#  include <variant>
+#  define PYBIND11_HAS_OPTIONAL 1
+#  define PYBIND11_HAS_VARIANT 1
 #endif
 
 NAMESPACE_BEGIN(pybind11)

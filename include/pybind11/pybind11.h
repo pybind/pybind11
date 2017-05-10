@@ -31,6 +31,9 @@
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #  pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #  pragma GCC diagnostic ignored "-Wattributes"
+#  if __GNUC__ >= 7
+#    pragma GCC diagnostic ignored "-Wnoexcept-type"
+#  endif
 #endif
 
 #include "attr.h"
@@ -249,7 +252,7 @@ protected:
         if (type_depth != 0 || types[type_index] != nullptr)
             pybind11_fail("Internal error while parsing type signature (2)");
 
-        #if !defined(PYBIND11_CPP14)
+        #if !defined(PYBIND11_CONSTEXPR_DESCR)
             delete[] types;
             delete[] text;
         #endif

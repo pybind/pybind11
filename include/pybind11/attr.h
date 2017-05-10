@@ -1,5 +1,5 @@
 /*
-    pybind11/pybind11.h: Infrastructure for processing custom
+    pybind11/attr.h: Infrastructure for processing custom
     type and function attributes
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>

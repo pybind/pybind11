@@ -199,7 +199,8 @@ expects the type followed by field names:
     }
 
 The structure should consist of fundamental arithmetic types, ``std::complex``,
-and previously registered substructures. While there is a static assertion to
+previously registered substructures, and arrays of any of the above. Both C++
+arrays and ``std::array`` are supported. While there is a static assertion to
 prevent many types of unsupported structures, it is still the user's
 responsibility to use only "plain" structures that can be safely manipulated as
 raw memory without violating invariants.

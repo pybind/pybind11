@@ -359,9 +359,10 @@ test_initializer python_types([](py::module &m) {
         const char *operator()(int) { return "int"; }
         const char *operator()(std::string) { return "std::string"; }
         const char *operator()(double) { return "double"; }
+        const char *operator()(std::nullptr_t) { return "std::nullptr_t"; }
     };
 
-    m.def("load_variant", [](std::variant<int, std::string, double> v) {
+    m.def("load_variant", [](std::variant<int, std::string, double, std::nullptr_t> v) {
         return std::visit(visitor(), v);
     });
 
@@ -516,6 +517,9 @@ test_initializer python_types([](py::module &m) {
             });
         }
     );
+
+    m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
+    m.def("cast_nullptr_t", []() { return std::nullptr_t{}; });
 });
 
 #if defined(_MSC_VER)
