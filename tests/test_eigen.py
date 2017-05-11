@@ -63,6 +63,16 @@ def test_partially_fixed():
     np.testing.assert_array_equal(
         partial_copy_four_cm_c(ref2[(3, 1, 2), :]), ref2[(3, 1, 2), :])
 
+    # TypeError should be raise for a shape mismatch
+    functions = [partial_copy_four_rm_r, partial_copy_four_rm_c,
+                 partial_copy_four_cm_r, partial_copy_four_cm_c]
+    matrix_with_wrong_shape = [[1, 2],
+                               [3, 4]]
+    for f in functions:
+        with pytest.raises(TypeError) as excinfo:
+            f(matrix_with_wrong_shape)
+        assert "incompatible function arguments" in str(excinfo.value)
+
 
 def test_mutator_descriptors():
     from pybind11_tests import fixed_mutator_r, fixed_mutator_c, fixed_mutator_a
