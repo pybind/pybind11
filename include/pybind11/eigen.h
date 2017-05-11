@@ -265,6 +265,9 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
             return false;
 
         auto fits = props::conformable(buf);
+        if (!fits)
+            return false;
+
         // Allocate the new type, then build a numpy reference into it
         value = Type(fits.rows, fits.cols);
         auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
