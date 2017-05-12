@@ -606,3 +606,15 @@ def test_void_caster():
 
     assert m.load_nullptr_t(None) is None
     assert m.cast_nullptr_t() is None
+
+
+def test_reference_wrapper():
+    """std::reference_wrapper<T> tests.
+
+    #171: Can't return reference wrappers (or STL data structures containing them)
+    """
+    from pybind11_tests import IntWrapper, return_vec_of_reference_wrapper
+
+    # 171:
+    assert str(return_vec_of_reference_wrapper(IntWrapper(4))) == \
+        "[IntWrapper[1], IntWrapper[2], IntWrapper[3], IntWrapper[4]]"

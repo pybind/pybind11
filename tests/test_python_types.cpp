@@ -560,6 +560,25 @@ test_initializer python_types([](py::module &m) {
 
     m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
     m.def("cast_nullptr_t", []() { return std::nullptr_t{}; });
+
+    struct IntWrapper { int i; IntWrapper(int i) : i(i) { } };
+    py::class_<IntWrapper>(m, "IntWrapper")
+        .def(py::init<int>())
+        .def("__repr__", [](const IntWrapper &p) { return "IntWrapper[" + std::to_string(p.i) + "]"; });
+
+    // #171: Can't return reference wrappers (or STL datastructures containing them)
+    m.def("return_vec_of_reference_wrapper", [](std::reference_wrapper<IntWrapper> p4) {
+        IntWrapper *p1 = new IntWrapper{1};
+        IntWrapper *p2 = new IntWrapper{2};
+        IntWrapper *p3 = new IntWrapper{3};
+        std::vector<std::reference_wrapper<IntWrapper>> v;
+        v.push_back(std::ref(*p1));
+        v.push_back(std::ref(*p2));
+        v.push_back(std::ref(*p3));
+        v.push_back(p4);
+        return v;
+    });
+
 });
 
 #if defined(_MSC_VER)
