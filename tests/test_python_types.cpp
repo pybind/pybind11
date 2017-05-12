@@ -200,6 +200,21 @@ struct NoAssign {
     NoAssign &operator=(NoAssign &&) = delete;
 };
 
+// Increments on copy
+struct IncrIntWrapper {
+    int i;
+    IncrIntWrapper(int i) : i(i) {}
+    IncrIntWrapper(const IncrIntWrapper &copy) : i(copy.i + 1) {}
+};
+
+std::vector<std::reference_wrapper<IncrIntWrapper>> incr_int_wrappers() {
+    static IncrIntWrapper x1(1), x2(2);
+    std::vector<std::reference_wrapper<IncrIntWrapper>> r;
+    r.emplace_back(x1);
+    r.emplace_back(x2);
+    return r;
+};
+
 test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
@@ -567,6 +582,7 @@ test_initializer python_types([](py::module &m) {
         .def("__repr__", [](const IntWrapper &p) { return "IntWrapper[" + std::to_string(p.i) + "]"; });
 
     // #171: Can't return reference wrappers (or STL datastructures containing them)
+    // Also used to test #848: reference_wrapper shouldn't allow None
     m.def("return_vec_of_reference_wrapper", [](std::reference_wrapper<IntWrapper> p4) {
         IntWrapper *p1 = new IntWrapper{1};
         IntWrapper *p2 = new IntWrapper{2};
@@ -577,6 +593,41 @@ test_initializer python_types([](py::module &m) {
         v.push_back(std::ref(*p3));
         v.push_back(p4);
         return v;
+    });
+
+    // Reference-wrapper to non-generic type caster type:
+    m.def("refwrap_int", [](std::reference_wrapper<int> p) { return 10 * p.get(); });
+
+    // Not currently supported (std::pair caster has return-by-value cast operator);
+    // triggers static_assert failure.
+    //m.def("refwrap_pair", [](std::reference_wrapper<std::pair<int, int>>) { });
+
+    // Test that copying/referencing is working as expected with reference_wrappers:
+    py::class_<IncrIntWrapper>(m, "IncrIntWrapper")
+        .def(py::init<int>())
+        .def_readonly("i", &IncrIntWrapper::i);
+
+    m.def("refwrap_list_refs", []() {
+        py::list l;
+        for (auto &f : incr_int_wrappers()) l.append(py::cast(f, py::return_value_policy::reference));
+        return l;
+    });
+    m.def("refwrap_list_copies", []() {
+        py::list l;
+        for (auto &f : incr_int_wrappers()) l.append(py::cast(f, py::return_value_policy::copy));
+        return l;
+    });
+    m.def("refwrap_iiw", [](const IncrIntWrapper &w) { return w.i; });
+    m.def("refwrap_call_iiw", [](IncrIntWrapper &w, py::function f) {
+        py::list l;
+        l.append(f(std::ref(w)));
+        l.append(f(std::cref(w)));
+        IncrIntWrapper x(w.i);
+        l.append(f(std::ref(x)));
+        IncrIntWrapper y(w.i);
+        auto r3 = std::ref(y);
+        l.append(f(r3));
+        return l;
     });
 
 });

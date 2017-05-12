@@ -527,13 +527,24 @@ cast_op(make_caster<T> &&caster) {
         typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
 
-template <typename type> class type_caster<std::reference_wrapper<type>> : public type_caster_base<type> {
+template <typename type> class type_caster<std::reference_wrapper<type>> {
+private:
+    using caster_t = make_caster<type>;
+    caster_t subcaster;
+    using subcaster_cast_op_type = typename caster_t::template cast_op_type<type>;
+    static_assert(std::is_same<typename std::remove_const<type>::type &, subcaster_cast_op_type>::value,
+            "std::reference_wrapper<T> caster requires T to have a caster with an `T &` operator");
 public:
+    bool load(handle src, bool convert) { return subcaster.load(src, convert); }
+    static PYBIND11_DESCR name() { return caster_t::name(); }
     static handle cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
-        return type_caster_base<type>::cast(&src.get(), policy, parent);
+        // It is definitely wrong to take ownership of this pointer, so mask that rvp
+        if (policy == return_value_policy::take_ownership || policy == return_value_policy::automatic)
+            policy = return_value_policy::automatic_reference;
+        return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
-    operator std::reference_wrapper<type>() { return std::ref(*((type *) this->value)); }
+    operator std::reference_wrapper<type>() { return subcaster.operator subcaster_cast_op_type&(); }
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name) \
