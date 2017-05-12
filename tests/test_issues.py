@@ -32,14 +32,6 @@ def test_dispatch_issue(msg):
     assert dispatch_issue_go(b) == "Yay.."
 
 
-def test_reference_wrapper():
-    """#171: Can't return reference wrappers (or STL data structures containing them)"""
-    from pybind11_tests.issues import Placeholder, return_vec_of_reference_wrapper
-
-    assert str(return_vec_of_reference_wrapper(Placeholder(4))) == \
-        "[Placeholder[1], Placeholder[2], Placeholder[3], Placeholder[4]]"
-
-
 def test_iterator_passthrough():
     """#181: iterator passthrough did not compile"""
     from pybind11_tests.issues import iterator_passthrough
