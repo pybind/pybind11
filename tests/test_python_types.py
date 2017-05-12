@@ -612,9 +612,35 @@ def test_reference_wrapper():
     """std::reference_wrapper<T> tests.
 
     #171: Can't return reference wrappers (or STL data structures containing them)
+    #848: std::reference_wrapper accepts nullptr / None arguments [but shouldn't]
+    (no issue): reference_wrappers should work for types with custom type casters
     """
-    from pybind11_tests import IntWrapper, return_vec_of_reference_wrapper
+    from pybind11_tests import (IntWrapper, return_vec_of_reference_wrapper, refwrap_int,
+                                IncrIntWrapper, refwrap_iiw, refwrap_call_iiw,
+                                refwrap_list_copies, refwrap_list_refs)
 
     # 171:
     assert str(return_vec_of_reference_wrapper(IntWrapper(4))) == \
         "[IntWrapper[1], IntWrapper[2], IntWrapper[3], IntWrapper[4]]"
+
+    # 848:
+    with pytest.raises(TypeError) as excinfo:
+        return_vec_of_reference_wrapper(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+
+    assert refwrap_int(42) == 420
+
+    a1 = refwrap_list_copies()
+    a2 = refwrap_list_copies()
+    assert [x.i for x in a1] == [2, 3]
+    assert [x.i for x in a2] == [2, 3]
+    assert not a1[0] is a2[0] and not a1[1] is a2[1]
+
+    b1 = refwrap_list_refs()
+    b2 = refwrap_list_refs()
+    assert [x.i for x in b1] == [1, 2]
+    assert [x.i for x in b2] == [1, 2]
+    assert b1[0] is b2[0] and b1[1] is b2[1]
+
+    assert refwrap_iiw(IncrIntWrapper(5)) == 5
+    assert refwrap_call_iiw(IncrIntWrapper(10), refwrap_iiw) == [10, 10, 10, 10]
