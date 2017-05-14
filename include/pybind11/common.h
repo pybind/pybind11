@@ -97,6 +97,14 @@
 #  endif
 #endif
 
+// Pythons pyconfig.h #defines hypot to _hypot on windows + gnuc but the cmath from mingw expects it to be named hypot. We work around that by including cmath before python
+#if defined(__GNUC__) && defined(_WIN32) && defined(__MINGW32__)
+   // including a system header before Python.h is strongly recommended against by python but we want to be able to compile
+   // #warning should exist in this particular build configuration
+#  warning "including <cmath> before <Python.h> to work around wrong definition of hypot. Be warned that this might break stuff."
+#  include <cmath>
+#endif
+
 #include <Python.h>
 #include <frameobject.h>
 #include <pythread.h>
