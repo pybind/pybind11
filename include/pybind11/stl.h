@@ -270,7 +270,7 @@ template<typename T> struct optional_caster {
         if (!inner_caster.load(src, convert))
             return false;
 
-        value.emplace(std::move(cast_op<typename T::value_type>(inner_caster)));
+        value.emplace(cast_op<typename T::value_type>(inner_caster));
         return true;
     }
 
