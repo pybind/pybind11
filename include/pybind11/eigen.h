@@ -341,7 +341,8 @@ public:
 
     operator Type*() { return &value; }
     operator Type&() { return value; }
-    template <typename T> using cast_op_type = cast_op_type<T>;
+    operator Type&&() && { return std::move(value); }
+    template <typename T> using cast_op_type = movable_cast_op_type<T>;
 
 private:
     Type value;
