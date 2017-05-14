@@ -33,7 +33,7 @@ set(PYBIND11_TEST_FILES
   test_chrono.cpp
   test_class_args.cpp
   test_constants_and_functions.cpp
-  test_copy_move_policies.cpp
+  test_copy_move.cpp
   test_docstring_options.cpp
   test_eigen.cpp
   test_enum.cpp

@@ -60,11 +60,11 @@ template <typename Type, typename Key> struct set_caster {
             return false;
         auto s = reinterpret_borrow<pybind11::set>(src);
         value.clear();
-        key_conv conv;
         for (auto entry : s) {
+            key_conv conv;
             if (!conv.load(entry, convert))
                 return false;
-            value.insert(cast_op<Key>(conv));
+            value.insert(cast_op<Key &&>(std::move(conv)));
         }
         return true;
     }
@@ -90,14 +90,14 @@ template <typename Type, typename Key, typename Value> struct map_caster {
         if (!isinstance<dict>(src))
             return false;
         auto d = reinterpret_borrow<dict>(src);
-        key_conv kconv;
-        value_conv vconv;
         value.clear();
         for (auto it : d) {
+            key_conv kconv;
+            value_conv vconv;
             if (!kconv.load(it.first.ptr(), convert) ||
                 !vconv.load(it.second.ptr(), convert))
                 return false;
-            value.emplace(cast_op<Key>(kconv), cast_op<Value>(vconv));
+            value.emplace(cast_op<Key &&>(std::move(kconv)), cast_op<Value &&>(std::move(vconv)));
         }
         return true;
     }
@@ -124,13 +124,13 @@ template <typename Type, typename Value> struct list_caster {
         if (!isinstance<sequence>(src))
             return false;
         auto s = reinterpret_borrow<sequence>(src);
-        value_conv conv;
         value.clear();
         reserve_maybe(s, &value);
         for (auto it : s) {
+            value_conv conv;
             if (!conv.load(it, convert))
                 return false;
-            value.push_back(cast_op<Value>(conv));
+            value.push_back(cast_op<Value &&>(std::move(conv)));
         }
         return true;
     }
@@ -185,12 +185,12 @@ public:
         auto l = reinterpret_borrow<list>(src);
         if (!require_size(l.size()))
             return false;
-        value_conv conv;
         size_t ctr = 0;
         for (auto it : l) {
+            value_conv conv;
             if (!conv.load(it, convert))
                 return false;
-            value[ctr++] = cast_op<Value>(conv);
+            value[ctr++] = cast_op<Value &&>(std::move(conv));
         }
         return true;
     }
@@ -249,7 +249,7 @@ template<typename T> struct optional_caster {
         if (!inner_caster.load(src, convert))
             return false;
 
-        value.emplace(cast_op<typename T::value_type>(inner_caster));
+        value.emplace(cast_op<typename T::value_type &&>(std::move(inner_caster)));
         return true;
     }
 
