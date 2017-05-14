@@ -337,7 +337,8 @@ def test_accessors():
 
 @pytest.mark.skipif(not has_optional, reason='no <optional>')
 def test_optional():
-    from pybind11_tests import double_or_zero, half_or_none, test_nullopt
+    from pybind11_tests import (double_or_zero, half_or_none, test_nullopt,
+                                test_no_move_assign, NoMoveAssign)
 
     assert double_or_zero(None) == 0
     assert double_or_zero(42) == 84
@@ -352,10 +353,16 @@ def test_optional():
     assert test_nullopt(42) == 42
     assert test_nullopt(43) == 43
 
+    assert test_no_move_assign() == 42
+    assert test_no_move_assign(None) == 42
+    assert test_no_move_assign(NoMoveAssign(43)) == 43
+    pytest.raises(TypeError, test_no_move_assign, 43)
+
 
 @pytest.mark.skipif(not has_exp_optional, reason='no <experimental/optional>')
 def test_exp_optional():
-    from pybind11_tests import double_or_zero_exp, half_or_none_exp, test_nullopt_exp
+    from pybind11_tests import (double_or_zero_exp, half_or_none_exp, test_nullopt_exp,
+                                test_no_move_assign_exp, NoMoveAssign)
 
     assert double_or_zero_exp(None) == 0
     assert double_or_zero_exp(42) == 84
@@ -369,6 +376,11 @@ def test_exp_optional():
     assert test_nullopt_exp(None) == 42
     assert test_nullopt_exp(42) == 42
     assert test_nullopt_exp(43) == 43
+
+    assert test_no_move_assign_exp() == 42
+    assert test_no_move_assign_exp(None) == 42
+    assert test_no_move_assign_exp(NoMoveAssign(43)) == 43
+    pytest.raises(TypeError, test_no_move_assign_exp, 43)
 
 
 @pytest.mark.skipif(not hasattr(pybind11_tests, "load_variant"), reason='no <variant>')

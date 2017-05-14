@@ -17,6 +17,7 @@
 #include <iostream>
 #include <list>
 #include <valarray>
+#include <utility>
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -228,6 +229,26 @@ template <typename Key, typename Value, typename Compare, typename Alloc> struct
 template <typename Key, typename Value, typename Hash, typename Equal, typename Alloc> struct type_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>>
   : map_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>, Key, Value> { };
 
+/// Helper class to reset an std::optional-like class in the best way.
+template<typename T> struct optional_reset {
+private:
+    // Either or both of these overloads may exist (SFINAE decides), and if
+    // both exist then the .reset version is preferred due to a better match
+    // in the second argument.
+    template<typename T2 = T>
+    static decltype(std::declval<T2>().reset()) reset_impl(T &value, int) {
+        return value.reset();
+    }
+
+    template<typename T2 = T>
+    static decltype(std::declval<T2>() = {}) reset_impl(T &value, long) {
+        return value = {};
+    }
+
+public:
+    static void reset(T &value) { reset_impl(value, 0); }
+};
+
 // This type caster is intended to be used for std::optional and std::experimental::optional
 template<typename T> struct optional_caster {
     using value_conv = make_caster<typename T::value_type>;
@@ -242,14 +263,14 @@ template<typename T> struct optional_caster {
         if (!src) {
             return false;
         } else if (src.is_none()) {
-            value = {};  // nullopt
+            optional_reset<T>::reset(value);
             return true;
         }
         value_conv inner_caster;
         if (!inner_caster.load(src, convert))
             return false;
 
-        value.emplace(cast_op<typename T::value_type>(inner_caster));
+        value.emplace(std::move(cast_op<typename T::value_type>(inner_caster)));
         return true;
     }
 
@@ -265,11 +286,20 @@ template<> struct type_caster<std::nullopt_t>
 #endif
 
 #if PYBIND11_HAS_EXP_OPTIONAL
+// std::experimental::optional doesn't have a reset method, and the value = {}
+// strategy can fail if the underlying type isn't move-assignable.
+template<typename T> struct optional_reset<std::experimental::optional<T>> {
+    static void reset(std::experimental::optional<T> &value) {
+        value = std::experimental::nullopt;
+    }
+};
+
 template<typename T> struct type_caster<std::experimental::optional<T>>
     : public optional_caster<std::experimental::optional<T>> {};
 
 template<> struct type_caster<std::experimental::nullopt_t>
     : public void_caster<std::experimental::nullopt_t> {};
+
 #endif
 
 /// Visit a variant and cast any found type to Python
