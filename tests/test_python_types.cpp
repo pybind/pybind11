@@ -353,8 +353,8 @@ test_initializer python_types([](py::module &m) {
         return x.value_or(42);
     }, py::arg_v("x", std::nullopt, "None"));
     m.def("test_no_move_assign", [](const opt_no_move_assign &x) {
-        return x ? x.value : 42;
-    }, py::argv_("x", std::nullopt, "None"));
+        return x ? x->value : 42;
+    }, py::arg_v("x", std::nullopt, "None"));
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
