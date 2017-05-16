@@ -620,6 +620,11 @@ using exactly_one_t = typename exactly_one<Predicate, Default, Ts...>::type;
 template <typename T, typename... /*Us*/> struct deferred_type { using type = T; };
 template <typename T, typename... Us> using deferred_t = typename deferred_type<T, Us...>::type;
 
+/// Like is_base_of, but requires a strict base (i.e. `is_strict_base_of<T, T>::value == false`,
+/// unlike `std::is_base_of`)
+template <typename Base, typename Derived> using is_strict_base_of = bool_constant<
+    std::is_base_of<Base, Derived>::value && !std::is_same<Base, Derived>::value>;
+
 template <template<typename...> class Base>
 struct is_template_base_of_impl {
     template <typename... Us> static std::true_type check(Base<Us...> *);

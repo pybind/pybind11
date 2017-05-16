@@ -159,7 +159,7 @@ public:
 };
 }}
 
-/// Issue/PR #648: bad arg default debugging output
+// Issue/PR #648: bad arg default debugging output
 class NotRegistered {};
 
 // Test None-allowed py::arg argument policy
@@ -175,6 +175,23 @@ struct StrIssue {
 
     StrIssue() = default;
     StrIssue(int i) : val{i} {}
+};
+
+// Issues #854, #910: incompatible function args when member function/pointer is in unregistered base class
+class UnregisteredBase {
+public:
+    void do_nothing() const {}
+    void increase_value() { rw_value++; ro_value += 0.25; }
+    void set_int(int v) { rw_value = v; }
+    int get_int() const { return rw_value; }
+    double get_double() const { return ro_value; }
+    int rw_value = 42;
+    double ro_value = 1.25;
+};
+class RegisteredDerived : public UnregisteredBase {
+public:
+    using UnregisteredBase::UnregisteredBase;
+    double sum() const { return rw_value + ro_value; }
 };
 
 test_initializer methods_and_attributes([](py::module &m) {
@@ -325,7 +342,7 @@ test_initializer methods_and_attributes([](py::module &m) {
     m.def("ints_preferred", [](int i) { return i / 2; }, py::arg("i"));
     m.def("ints_only", [](int i) { return i / 2; }, py::arg("i").noconvert());
 
-    /// Issue/PR #648: bad arg default debugging output
+    // Issue/PR #648: bad arg default debugging output
 #if !defined(NDEBUG)
     m.attr("debug_enabled") = true;
 #else
@@ -360,4 +377,26 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def("__str__", [](const StrIssue &si) {
             return "StrIssue[" + std::to_string(si.val) + "]"; }
         );
+
+    // Issues #854/910: incompatible function args when member function/pointer is in unregistered
+    // base class The methods and member pointers below actually resolve to members/pointers in
+    // UnregisteredBase; before this test/fix they would be registered via lambda with a first
+    // argument of an unregistered type, and thus uncallable.
+    py::class_<RegisteredDerived>(m, "RegisteredDerived")
+        .def(py::init<>())
+        .def("do_nothing", &RegisteredDerived::do_nothing)
+        .def("increase_value", &RegisteredDerived::increase_value)
+        .def_readwrite("rw_value", &RegisteredDerived::rw_value)
+        .def_readonly("ro_value", &RegisteredDerived::ro_value)
+        // These should trigger a static_assert if uncommented
+        //.def_readwrite("fails", &SimpleValue::value) // should trigger a static_assert if uncommented
+        //.def_readonly("fails", &SimpleValue::value) // should trigger a static_assert if uncommented
+        .def_property("rw_value_prop", &RegisteredDerived::get_int, &RegisteredDerived::set_int)
+        .def_property_readonly("ro_value_prop", &RegisteredDerived::get_double)
+        // This one is in the registered class:
+        .def("sum", &RegisteredDerived::sum)
+        ;
+
+    using Adapted = decltype(py::method_adaptor<RegisteredDerived>(&RegisteredDerived::do_nothing));
+    static_assert(std::is_same<Adapted, void (RegisteredDerived::*)() const>::value, "");
 });

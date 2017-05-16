@@ -910,11 +910,22 @@ inline void call_operator_delete(void *p) { ::operator delete(p); }
 
 NAMESPACE_END(detail)
 
+/// Given a pointer to a member function, cast it to its `Derived` version.
+/// Forward everything else unchanged.
+template <typename /*Derived*/, typename F>
+auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) { return std::forward<F>(f); }
+
+template <typename Derived, typename Return, typename Class, typename... Args>
+auto method_adaptor(Return (Class::*pmf)(Args...)) -> Return (Derived::*)(Args...) { return pmf; }
+
+template <typename Derived, typename Return, typename Class, typename... Args>
+auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(Args...) const { return pmf; }
+
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T> using is_holder = detail::is_holder_type<type_, T>;
-    template <typename T> using is_subtype = detail::bool_constant<std::is_base_of<type_, T>::value && !std::is_same<T, type_>::value>;
-    template <typename T> using is_base = detail::bool_constant<std::is_base_of<T, type_>::value && !std::is_same<T, type_>::value>;
+    template <typename T> using is_subtype = detail::is_strict_base_of<type_, T>;
+    template <typename T> using is_base = detail::is_strict_base_of<T, type_>;
     // struct instead of using here to help MSVC:
     template <typename T> struct is_valid_class_option :
         detail::any_of<is_holder<T>, is_subtype<T>, is_base<T>> {};
@@ -980,7 +991,7 @@ public:
 
     template <typename Func, typename... Extra>
     class_ &def(const char *name_, Func&& f, const Extra&... extra) {
-        cpp_function cf(std::forward<Func>(f), name(name_), is_method(*this),
+        cpp_function cf(method_adaptor<type>(std::forward<Func>(f)), name(name_), is_method(*this),
                         sibling(getattr(*this, name_, none())), extra...);
         attr(cf.name()) = cf;
         return *this;
@@ -1044,15 +1055,17 @@ public:
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
-        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(*this)),
-                     fset([pm](C &c, const D &value) { c.*pm = value; }, is_method(*this));
+        static_assert(std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
+        cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this)),
+                     fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
         def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
         return *this;
     }
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
-        cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(*this));
+        static_assert(std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
+        cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this));
         def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
         return *this;
     }
@@ -1075,7 +1088,8 @@ public:
     /// Uses return_value_policy::reference_internal by default
     template <typename Getter, typename... Extra>
     class_ &def_property_readonly(const char *name, const Getter &fget, const Extra& ...extra) {
-        return def_property_readonly(name, cpp_function(fget), return_value_policy::reference_internal, extra...);
+        return def_property_readonly(name, cpp_function(method_adaptor<type>(fget)),
+                                     return_value_policy::reference_internal, extra...);
     }
 
     /// Uses cpp_function's return_value_policy by default
@@ -1097,9 +1111,14 @@ public:
     }
 
     /// Uses return_value_policy::reference_internal by default
+    template <typename Getter, typename Setter, typename... Extra>
+    class_ &def_property(const char *name, const Getter &fget, const Setter &fset, const Extra& ...extra) {
+        return def_property(name, fget, cpp_function(method_adaptor<type>(fset)), extra...);
+    }
     template <typename Getter, typename... Extra>
     class_ &def_property(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
-        return def_property(name, cpp_function(fget), fset, return_value_policy::reference_internal, extra...);
+        return def_property(name, cpp_function(method_adaptor<type>(fget)), fset,
+                            return_value_policy::reference_internal, extra...);
     }
 
     /// Uses cpp_function's return_value_policy by default
