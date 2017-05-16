@@ -1155,8 +1155,10 @@ public:
         int flags = PyBUF_STRIDES | PyBUF_FORMAT;
         if (writable) flags |= PyBUF_WRITABLE;
         Py_buffer *view = new Py_buffer();
-        if (PyObject_GetBuffer(m_ptr, view, flags) != 0)
+        if (PyObject_GetBuffer(m_ptr, view, flags) != 0) {
+            delete view;
             throw error_already_set();
+        }
         return buffer_info(view);
     }
 };
