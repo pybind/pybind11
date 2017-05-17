@@ -43,8 +43,15 @@ struct type_info {
     bool default_holder : 1;
 };
 
+// Store the static internals pointer in a version-specific function so that we're guaranteed it
+// will be distinct for modules compiled for different pybind11 versions.  Without this, some
+// compilers (i.e. gcc) can use the same static pointer storage location across different .so's,
+// even though the `get_internals()` function itself is local to each shared object.
+template <int = PYBIND11_VERSION_MAJOR, int = PYBIND11_VERSION_MINOR>
+internals *&get_internals_ptr() { static internals *internals_ptr = nullptr; return internals_ptr; }
+
 PYBIND11_NOINLINE inline internals &get_internals() {
-    static internals *internals_ptr = nullptr;
+    internals *&internals_ptr = get_internals_ptr();
     if (internals_ptr)
         return *internals_ptr;
     handle builtins(PyEval_GetBuiltins());
