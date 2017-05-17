@@ -466,18 +466,23 @@ protected:
                 size_t args_copied = 0;
 
                 // 1. Copy any position arguments given.
-                bool bad_kwarg = false;
+                bool bad_arg = false;
                 for (; args_copied < args_to_copy; ++args_copied) {
-                    if (kwargs_in && args_copied < func.args.size() && func.args[args_copied].name
-                            && PyDict_GetItemString(kwargs_in, func.args[args_copied].name)) {
-                        bad_kwarg = true;
+                    argument_record *arg_rec = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
+                    if (kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(kwargs_in, arg_rec->name)) {
+                        bad_arg = true;
                         break;
                     }
 
-                    call.args.push_back(PyTuple_GET_ITEM(args_in, args_copied));
-                    call.args_convert.push_back(args_copied < func.args.size() ? func.args[args_copied].convert : true);
+                    handle arg(PyTuple_GET_ITEM(args_in, args_copied));
+                    if (arg_rec && !arg_rec->none && arg.is_none()) {
+                        bad_arg = true;
+                        break;
+                    }
+                    call.args.push_back(arg);
+                    call.args_convert.push_back(arg_rec ? arg_rec->convert : true);
                 }
-                if (bad_kwarg)
+                if (bad_arg)
                     continue; // Maybe it was meant for another overload (issue #688)
 
                 // We'll need to copy this if we steal some kwargs for defaults
