@@ -1,11 +1,17 @@
 /*
-    tests/test_issues.cpp -- collection of testcases for miscellaneous issues
+    tests/test_issues.cpp -- collection of testcases for miscellaneous issues (DEPRECATED!)
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
 */
+
+//
+// Don't add new tests into this file!  Rather they should go into some more relevant test script,
+// or into a new test.  The tests contained here will eventually be moved out into more appropriate
+// test files.
+//
 
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
