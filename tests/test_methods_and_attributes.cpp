@@ -162,6 +162,14 @@ public:
 /// Issue/PR #648: bad arg default debugging output
 class NotRegistered {};
 
+// Test None-allowed py::arg argument policy
+class NoneTester { public: int answer = 42; };
+int none1(const NoneTester &obj) { return obj.answer; }
+int none2(NoneTester *obj) { return obj ? obj->answer : -1; }
+int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
+int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
+int none5(std::shared_ptr<NoneTester> obj) { return obj ? obj->answer : -1; }
+
 test_initializer methods_and_attributes([](py::module &m) {
     py::class_<ExampleMandA> emna(m, "ExampleMandA");
     emna.def(py::init<>())
@@ -322,4 +330,18 @@ test_initializer methods_and_attributes([](py::module &m) {
         auto m = py::module::import("pybind11_tests");
         m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg() = NotRegistered());
     });
+
+    py::class_<NoneTester, std::shared_ptr<NoneTester>>(m, "NoneTester")
+        .def(py::init<>());
+    m.def("no_none1", &none1, py::arg().none(false));
+    m.def("no_none2", &none2, py::arg().none(false));
+    m.def("no_none3", &none3, py::arg().none(false));
+    m.def("no_none4", &none4, py::arg().none(false));
+    m.def("no_none5", &none5, py::arg().none(false));
+    m.def("ok_none1", &none1);
+    m.def("ok_none2", &none2, py::arg().none(true));
+    m.def("ok_none3", &none3);
+    m.def("ok_none4", &none4, py::arg().none(true));
+    m.def("ok_none5", &none5);
+
 });

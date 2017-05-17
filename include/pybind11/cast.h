@@ -1353,14 +1353,17 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
 /// Annotation for arguments
 struct arg {
     /// Constructs an argument with the name of the argument; if null or omitted, this is a positional argument.
-    constexpr explicit arg(const char *name = nullptr) : name(name), flag_noconvert(false) { }
+    constexpr explicit arg(const char *name = nullptr) : name(name), flag_noconvert(false), flag_none(true) { }
     /// Assign a value to this argument
     template <typename T> arg_v operator=(T &&value) const;
     /// Indicate that the type should not be converted in the type caster
     arg &noconvert(bool flag = true) { flag_noconvert = flag; return *this; }
+    /// Indicates that the argument should/shouldn't allow None (e.g. for nullable pointer args)
+    arg &none(bool flag = true) { flag_none = flag; return *this; }
 
     const char *name; ///< If non-null, this is a named kwargs argument
     bool flag_noconvert : 1; ///< If set, do not allow conversion (requires a supporting type caster!)
+    bool flag_none : 1; ///< If set (the default), allow None to be passed to this argument
 };
 
 /// \ingroup annotations
@@ -1392,6 +1395,9 @@ public:
 
     /// Same as `arg::noconvert()`, but returns *this as arg_v&, not arg&
     arg_v &noconvert(bool flag = true) { arg::noconvert(flag); return *this; }
+
+    /// Same as `arg::nonone()`, but returns *this as arg_v&, not arg&
+    arg_v &none(bool flag = true) { arg::none(flag); return *this; }
 
     /// The default value
     object value;

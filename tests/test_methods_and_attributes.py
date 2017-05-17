@@ -369,3 +369,47 @@ def test_bad_arg_default(msg):
         "arg(): could not convert default argument into a Python object (type not registered "
         "yet?). Compile in debug mode for more information."
     )
+
+
+def test_accepts_none():
+    from pybind11_tests import (NoneTester,
+                                no_none1, no_none2, no_none3, no_none4, no_none5,
+                                ok_none1, ok_none2, ok_none3, ok_none4, ok_none5)
+
+    a = NoneTester()
+    assert no_none1(a) == 42
+    assert no_none2(a) == 42
+    assert no_none3(a) == 42
+    assert no_none4(a) == 42
+    assert no_none5(a) == 42
+    assert ok_none1(a) == 42
+    assert ok_none2(a) == 42
+    assert ok_none3(a) == 42
+    assert ok_none4(a) == 42
+    assert ok_none5(a) == 42
+
+    with pytest.raises(TypeError) as excinfo:
+        no_none1(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        no_none2(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        no_none3(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        no_none4(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        no_none5(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+
+    # The first one still raises because you can't pass None as a lvalue reference arg:
+    with pytest.raises(TypeError) as excinfo:
+        assert ok_none1(None) == -1
+    assert "incompatible function arguments" in str(excinfo.value)
+    # The rest take the argument as pointer or holder, and accept None:
+    assert ok_none2(None) == -1
+    assert ok_none3(None) == -1
+    assert ok_none4(None) == -1
+    assert ok_none5(None) == -1

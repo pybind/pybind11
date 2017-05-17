@@ -406,6 +406,53 @@ name, i.e. by specifying ``py::arg().noconvert()``.
     need to specify a ``py::arg()`` annotation for each argument with the
     no-convert argument modified to ``py::arg().noconvert()``.
 
+Allow/Prohibiting None arguments
+================================
+
+When a C++ type registered with :class:`py::class_` is passed as an argument to
+a function taking the instance as pointer or shared holder (e.g. ``shared_ptr``
+or a custom, copyable holder as described in :ref:`smart_pointers`), pybind
+allows ``None`` to be passed from Python which results in calling the C++
+function with ``nullptr`` (or an empty holder) for the argument.
+
+To explicitly enable or disable this behaviour, using the
+``.none`` method of the :class:`py::arg` object:
+
+.. code-block:: cpp
+
+    py::class_<Dog>(m, "Dog").def(py::init<>());
+    py::class_<Cat>(m, "Cat").def(py::init<>());
+    m.def("bark", [](Dog *dog) -> std::string {
+        if (dog) return "woof!"; /* Called with a Dog instance */
+        else return "(no dog)"; /* Called with None, d == nullptr */
+    }, py::arg("dog").none(true));
+    m.def("meow", [](Cat *cat) -> std::string {
+        // Can't be called with None argument
+        return "meow";
+    }, py::arg("cat").none(false));
+
+With the above, the Python call ``bark(None)`` will return the string ``"(no
+dog)"``, while attempting to call ``meow(None)`` will throw a :exc:`TypeError`:
+
+.. code-block:: pycon
+
+    >>> from animals import Dog, Cat, bark, meow
+    >>> bark(Dog())
+    'woof!'
+    >>> meow(Cat())
+    'meow'
+    >>> bark(None)
+    '(no dog)'
+    >>> meow(None)
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    TypeError: meow(): incompatible function arguments. The following argument types are supported:
+        1. (cat: animals.Cat) -> str
+
+    Invoked with: None
+
+The default behaviour when the tag is unspecified is to allow ``None``.
+
 Overload resolution order
 =========================
 
