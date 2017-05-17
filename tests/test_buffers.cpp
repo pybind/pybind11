@@ -105,9 +105,6 @@ test_initializer buffers([](py::module &m) {
        .def_buffer([](Matrix &m) -> py::buffer_info {
             return py::buffer_info(
                 m.data(),                               /* Pointer to buffer */
-                sizeof(float),                          /* Size of one scalar */
-                py::format_descriptor<float>::format(), /* Python struct-style format descriptor */
-                2,                                      /* Number of dimensions */
                 { m.rows(), m.cols() },                 /* Buffer dimensions */
                 { sizeof(float) * size_t(m.rows()),     /* Strides (in bytes) for each index */
                   sizeof(float) }

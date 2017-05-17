@@ -35,8 +35,17 @@ struct buffer_info {
             size *= shape[i];
     }
 
+    template <typename T>
+    buffer_info(T *ptr, detail::any_container<ssize_t> shape_in, detail::any_container<ssize_t> strides_in)
+    // Brace-initialization of the base class ensures left-to-right evaluation order of parameters (i.e. getting ndim before moving the shape container)
+    : buffer_info{ptr, sizeof(T), format_descriptor<T>::format(), static_cast<ssize_t>(shape_in->size()), std::move(shape_in), std::move(strides_in)} { }
+
     buffer_info(void *ptr, ssize_t itemsize, const std::string &format, ssize_t size)
     : buffer_info(ptr, itemsize, format, 1, {size}, {itemsize}) { }
+
+    template <typename T>
+    buffer_info(T *ptr, ssize_t size)
+    : buffer_info(ptr, sizeof(T), format_descriptor<T>::format(), size) { }
 
     explicit buffer_info(Py_buffer *view, bool ownview = true)
     : buffer_info(view->buf, view->itemsize, view->format, view->ndim,
