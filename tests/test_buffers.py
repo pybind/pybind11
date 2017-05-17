@@ -1,5 +1,6 @@
+import struct
 import pytest
-from pybind11_tests import Matrix, ConstructorStats
+from pybind11_tests import Matrix, ConstructorStats, PTMFBuffer, ConstPTMFBuffer, DerivedPTMFBuffer
 
 pytestmark = pytest.requires_numpy
 
@@ -60,3 +61,12 @@ def test_to_python():
     # assert cstats.move_constructions >= 0  # Don't invoke any
     assert cstats.copy_assignments == 0
     assert cstats.move_assignments == 0
+
+
+@pytest.unsupported_on_pypy
+def test_ptmf():
+    for cls in [PTMFBuffer, ConstPTMFBuffer, DerivedPTMFBuffer]:
+        buf = cls()
+        buf.value = 0x12345678
+        value = struct.unpack('i', bytearray(buf))[0]
+        assert value == 0x12345678
