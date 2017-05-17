@@ -1020,6 +1020,16 @@ public:
         return *this;
     }
 
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...)) {
+        return def_buffer([func] (type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) const) {
+        return def_buffer([func] (const type &obj) { return (obj.*func)(); });
+    }
+
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
         cpp_function fget([pm](const C &c) -> const D &{ return c.*pm; }, is_method(*this)),

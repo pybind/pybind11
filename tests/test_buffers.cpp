@@ -74,6 +74,32 @@ private:
     float *m_data;
 };
 
+struct PTMFBuffer {
+    int32_t value = 0;
+
+    py::buffer_info get_buffer_info() {
+        return py::buffer_info(&value, sizeof(value),
+                               py::format_descriptor<int32_t>::format(), 1);
+    }
+};
+
+class ConstPTMFBuffer {
+    std::unique_ptr<int32_t> value;
+
+public:
+    int32_t get_value() const { return *value; }
+    void set_value(int32_t v) { *value = v; }
+
+    py::buffer_info get_buffer_info() const {
+        return py::buffer_info(value.get(), sizeof(*value),
+                               py::format_descriptor<int32_t>::format(), 1);
+    }
+
+    ConstPTMFBuffer() : value(new int32_t{0}) { };
+};
+
+struct DerivedPTMFBuffer : public PTMFBuffer { };
+
 test_initializer buffers([](py::module &m) {
     py::class_<Matrix> mtx(m, "Matrix", py::buffer_protocol());
 
@@ -114,4 +140,21 @@ test_initializer buffers([](py::module &m) {
             );
         })
         ;
+
+    py::class_<PTMFBuffer>(m, "PTMFBuffer", py::buffer_protocol())
+        .def(py::init<>())
+        .def_readwrite("value", &PTMFBuffer::value)
+        .def_buffer(&PTMFBuffer::get_buffer_info);
+
+    py::class_<ConstPTMFBuffer>(m, "ConstPTMFBuffer", py::buffer_protocol())
+        .def(py::init<>())
+        .def_property("value", &ConstPTMFBuffer::get_value, &ConstPTMFBuffer::set_value)
+        .def_buffer(&ConstPTMFBuffer::get_buffer_info);
+
+    // Tests that passing a pointer to member to the base class works in
+    // the derived class.
+    py::class_<DerivedPTMFBuffer>(m, "DerivedPTMFBuffer", py::buffer_protocol())
+        .def(py::init<>())
+        .def_readwrite("value", (int32_t DerivedPTMFBuffer::*) &DerivedPTMFBuffer::value)
+        .def_buffer(&DerivedPTMFBuffer::get_buffer_info);
 });
