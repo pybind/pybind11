@@ -166,7 +166,7 @@ def test_shared_ptr_and_references():
 
 
 def test_shared_ptr_from_this_and_references():
-    from pybind11_tests.smart_ptr import SharedFromThisRef, B
+    from pybind11_tests.smart_ptr import SharedFromThisRef, B, SharedFromThisVirt
 
     s = SharedFromThisRef()
     stats = ConstructorStats.get(B)
@@ -201,6 +201,10 @@ def test_shared_ptr_from_this_and_references():
 
     del ref, bad_wp, copy, holder_ref, holder_copy, s
     assert stats.alive() == 0
+
+    z = SharedFromThisVirt.get()
+    y = SharedFromThisVirt.get()
+    assert y is z
 
 
 def test_move_only_holder():

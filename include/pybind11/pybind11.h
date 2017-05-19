@@ -1119,13 +1119,15 @@ private:
     template <typename T>
     static void init_holder_helper(instance_type *inst, const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
         try {
-            new (&inst->holder) holder_type(std::static_pointer_cast<typename holder_type::element_type>(inst->value->shared_from_this()));
-            inst->holder_constructed = true;
-        } catch (const std::bad_weak_ptr &) {
-            if (inst->owned) {
-                new (&inst->holder) holder_type(inst->value);
+            auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(inst->value->shared_from_this());
+            if (sh) {
+                new (&inst->holder) holder_type(std::move(sh));
                 inst->holder_constructed = true;
             }
+        } catch (const std::bad_weak_ptr &) {}
+        if (!inst->holder_constructed && inst->owned) {
+            new (&inst->holder) holder_type(inst->value);
+            inst->holder_constructed = true;
         }
     }
 
