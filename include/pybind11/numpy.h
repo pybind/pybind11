@@ -29,10 +29,10 @@
 #endif
 
 /* This will be true on all flat address space platforms and allows us to reduce the
-   whole npy_intp / size_t / Py_intptr_t business down to just size_t for all size
+   whole npy_intp / ssize_t / Py_intptr_t business down to just ssize_t for all size
    and dimension types (e.g. shape, strides, indexing), instead of inflicting this
    upon the library user. */
-static_assert(sizeof(size_t) == sizeof(Py_intptr_t), "size_t != Py_intptr_t");
+static_assert(sizeof(ssize_t) == sizeof(Py_intptr_t), "ssize_t != Py_intptr_t");
 
 NAMESPACE_BEGIN(pybind11)
 
@@ -518,8 +518,8 @@ public:
 
     array() : array({{0}}, static_cast<const double *>(nullptr)) {}
 
-    using ShapeContainer = detail::any_container<Py_intptr_t>;
-    using StridesContainer = detail::any_container<Py_intptr_t>;
+    using ShapeContainer = detail::any_container<ssize_t>;
+    using StridesContainer = detail::any_container<ssize_t>;
 
     // Constructs an array taking shape/strides from arbitrary container types
     array(const pybind11::dtype &dt, ShapeContainer shape, StridesContainer strides,
@@ -752,7 +752,7 @@ protected:
             throw std::domain_error("array is not writeable");
     }
 
-    static std::vector<Py_intptr_t> default_strides(const std::vector<Py_intptr_t>& shape, ssize_t itemsize) {
+    static std::vector<ssize_t> default_strides(const std::vector<ssize_t>& shape, ssize_t itemsize) {
         auto ndim = shape.size();
         std::vector<ssize_t> strides(ndim);
         if (ndim) {
