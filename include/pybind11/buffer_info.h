@@ -27,14 +27,20 @@ struct buffer_info {
 
     buffer_info(void *ptr, ssize_t itemsize, const std::string &format, ssize_t ndim,
                 detail::any_container<ssize_t> shape_in, detail::any_container<ssize_t> strides_in)
-    : buffer_info(private_ctr_tag(), ptr, itemsize, format, ndim, std::move(shape_in), std::move(strides_in)) { }
+    : ptr(ptr), itemsize(itemsize), size(1), format(format), ndim(ndim),
+      shape(std::move(shape_in)), strides(std::move(strides_in)) {
+        if (ndim != (ssize_t) shape.size() || ndim != (ssize_t) strides.size())
+            pybind11_fail("buffer_info: ndim doesn't match shape and/or strides length");
+        for (size_t i = 0; i < (size_t) ndim; ++i)
+            size *= shape[i];
+    }
 
     template <typename T>
     buffer_info(T *ptr, detail::any_container<ssize_t> shape_in, detail::any_container<ssize_t> strides_in)
     : buffer_info(private_ctr_tag(), ptr, sizeof(T), format_descriptor<T>::format(), static_cast<ssize_t>(shape_in->size()), std::move(shape_in), std::move(strides_in)) { }
 
     buffer_info(void *ptr, ssize_t itemsize, const std::string &format, ssize_t size)
-    : buffer_info(private_ctr_tag(), ptr, itemsize, format, 1, {size}, {itemsize}) { }
+    : buffer_info(ptr, itemsize, format, 1, {size}, {itemsize}) { }
 
     template <typename T>
     buffer_info(T *ptr, ssize_t size)
@@ -72,17 +78,11 @@ struct buffer_info {
     }
 
 private:
-    struct private_ctr_tag { explicit private_ctr_tag() = default; };
+    struct private_ctr_tag { };
 
     buffer_info(private_ctr_tag, void *ptr, ssize_t itemsize, const std::string &format, ssize_t ndim,
                 detail::any_container<ssize_t> &&shape_in, detail::any_container<ssize_t> &&strides_in)
-    : ptr(ptr), itemsize(itemsize), size(1), format(format), ndim(ndim),
-      shape(std::move(shape_in)), strides(std::move(strides_in)) {
-        if (ndim != (ssize_t) shape.size() || ndim != (ssize_t) strides.size())
-            pybind11_fail("buffer_info: ndim doesn't match shape and/or strides length");
-        for (size_t i = 0; i < (size_t) ndim; ++i)
-            size *= shape[i];
-    }
+    : buffer_info(ptr, itemsize, format, ndim, std::move(shape_in), std::move(strides_in)) { }
 
     Py_buffer *view = nullptr;
     bool ownview = false;
