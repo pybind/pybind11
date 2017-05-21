@@ -49,22 +49,22 @@ template <op_id, op_type, typename B, typename L, typename R> struct op_impl { }
 /// Operator implementation generator
 template <op_id id, op_type ot, typename L, typename R> struct op_ {
     template <typename Class, typename... Extra> void execute(Class &cl, const Extra&... extra) const {
-        typedef typename Class::type Base;
-        typedef typename std::conditional<std::is_same<L, self_t>::value, Base, L>::type L_type;
-        typedef typename std::conditional<std::is_same<R, self_t>::value, Base, R>::type R_type;
-        typedef op_impl<id, ot, Base, L_type, R_type> op;
+        using Base = typename Class::type;
+        using L_type = conditional_t<std::is_same<L, self_t>::value, Base, L>;
+        using R_type = conditional_t<std::is_same<R, self_t>::value, Base, R>;
+        using op = op_impl<id, ot, Base, L_type, R_type>;
         cl.def(op::name(), &op::execute, is_operator(), extra...);
     }
     template <typename Class, typename... Extra> void execute_cast(Class &cl, const Extra&... extra) const {
-        typedef typename Class::type Base;
-        typedef typename std::conditional<std::is_same<L, self_t>::value, Base, L>::type L_type;
-        typedef typename std::conditional<std::is_same<R, self_t>::value, Base, R>::type R_type;
-        typedef op_impl<id, ot, Base, L_type, R_type> op;
+        using Base = typename Class::type;
+        using L_type = conditional_t<std::is_same<L, self_t>::value, Base, L>;
+        using R_type = conditional_t<std::is_same<R, self_t>::value, Base, R>;
+        using op = op_impl<id, ot, Base, L_type, R_type>;
         cl.def(op::name(), &op::execute_cast, is_operator(), extra...);
     }
 };
 
-#define PYBIND11_BINARY_OPERATOR(id, rid, op, expr)                                      \
+#define PYBIND11_BINARY_OPERATOR(id, rid, op, expr)                                    \
 template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L, R> { \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(const L &l, const R &r) -> decltype(expr) { return (expr); }   \
@@ -85,7 +85,7 @@ template <typename T> op_<op_##id, op_r, T, self_t> op(const T &, const self_t &
     return op_<op_##id, op_r, T, self_t>();                                            \
 }
 
-#define PYBIND11_INPLACE_OPERATOR(id, op, expr)                                          \
+#define PYBIND11_INPLACE_OPERATOR(id, op, expr)                                        \
 template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L, R> { \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(L &l, const R &r) -> decltype(expr) { return expr; }           \
@@ -95,7 +95,7 @@ template <typename T> op_<op_##id, op_l, self_t, T> op(const self_t &, const T &
     return op_<op_##id, op_l, self_t, T>();                                            \
 }
 
-#define PYBIND11_UNARY_OPERATOR(id, op, expr)                                            \
+#define PYBIND11_UNARY_OPERATOR(id, op, expr)                                          \
 template <typename B, typename L> struct op_impl<op_##id, op_u, B, L, undefined_t> {   \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(const L &l) -> decltype(expr) { return expr; }                 \
