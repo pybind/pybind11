@@ -25,7 +25,7 @@ enum op_id : int {
     op_int, op_long, op_float, op_str, op_cmp, op_gt, op_ge, op_lt, op_le,
     op_eq, op_ne, op_iadd, op_isub, op_imul, op_idiv, op_imod, op_ilshift,
     op_irshift, op_iand, op_ixor, op_ior, op_complex, op_bool, op_nonzero,
-    op_repr, op_truediv
+    op_repr, op_truediv, op_itruediv
 };
 
 enum op_type : int {
@@ -129,7 +129,11 @@ PYBIND11_BINARY_OPERATOR(le,        ge,           operator<=,   l <= r)
 PYBIND11_INPLACE_OPERATOR(iadd,     operator+=,   l += r)
 PYBIND11_INPLACE_OPERATOR(isub,     operator-=,   l -= r)
 PYBIND11_INPLACE_OPERATOR(imul,     operator*=,   l *= r)
+#if PY_MAJOR_VERSION >= 3
+PYBIND11_INPLACE_OPERATOR(itruediv, operator/=,   l /= r)
+#else
 PYBIND11_INPLACE_OPERATOR(idiv,     operator/=,   l /= r)
+#endif
 PYBIND11_INPLACE_OPERATOR(imod,     operator%=,   l %= r)
 PYBIND11_INPLACE_OPERATOR(ilshift,  operator<<=,  l <<= r)
 PYBIND11_INPLACE_OPERATOR(irshift,  operator>>=,  l >>= r)
