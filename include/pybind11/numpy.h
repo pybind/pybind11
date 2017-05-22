@@ -304,7 +304,8 @@ ssize_t byte_offset_unsafe(const Strides &strides, ssize_t i, Ix... index) {
     return i * strides[Dim] + byte_offset_unsafe<Dim + 1>(strides, index...);
 }
 
-/** Proxy class providing unsafe, unchecked const access to array data.  This is constructed through
+/**
+ * Proxy class providing unsafe, unchecked const access to array data.  This is constructed through
  * the `unchecked<T, N>()` method of `array` or the `unchecked<N>()` method of `array_t<T>`.  `Dims`
  * will be -1 for dimensions determined at runtime.
  */
@@ -335,7 +336,8 @@ protected:
     : data_{reinterpret_cast<const unsigned char *>(data)}, shape_{shape}, strides_{strides}, dims_{dims} {}
 
 public:
-    /** Unchecked const reference access to data at the given indices.  For a compile-time known
+    /**
+     * Unchecked const reference access to data at the given indices.  For a compile-time known
      * number of dimensions, this requires the correct number of arguments; for run-time
      * dimensionality, this is not checked (and so is up to the caller to use safely).
      */
@@ -344,7 +346,8 @@ public:
                 "Invalid number of indices for unchecked array reference");
         return *reinterpret_cast<const T *>(data_ + byte_offset_unsafe(strides_, ssize_t(index)...));
     }
-    /** Unchecked const reference access to data; this operator only participates if the reference
+    /**
+     * Unchecked const reference access to data; this operator only participates if the reference
      * is to a 1-dimensional array.  When present, this is exactly equivalent to `obj(index)`.
      */
     template <ssize_t D = Dims, typename = enable_if_t<D == 1 || Dynamic>>
@@ -392,7 +395,8 @@ public:
                 "Invalid number of indices for unchecked array reference");
         return const_cast<T &>(ConstBase::operator()(index...));
     }
-    /** Mutable, unchecked access data at the given index; this operator only participates if the
+    /**
+     * Mutable, unchecked access data at the given index; this operator only participates if the
      * reference is to a 1-dimensional array (or has runtime dimensions).  When present, this is
      * exactly equivalent to `obj(index)`.
      */
@@ -679,7 +683,8 @@ public:
         return offset_at(index...) / itemsize();
     }
 
-    /** Returns a proxy object that provides access to the array's data without bounds or
+    /**
+     * Returns a proxy object that provides access to the array's data without bounds or
      * dimensionality checking.  Will throw if the array is missing the `writeable` flag.  Use with
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
@@ -691,7 +696,8 @@ public:
         return detail::unchecked_mutable_reference<T, Dims>(mutable_data(), shape(), strides(), ndim());
     }
 
-    /** Returns a proxy object that provides const access to the array's data without bounds or
+    /**
+     * Returns a proxy object that provides const access to the array's data without bounds or
      * dimensionality checking.  Unlike `mutable_unchecked()`, this does not require that the
      * underlying array have the `writable` flag.  Use with care: the array must not be destroyed or
      * reshaped for the duration of the returned object, and the caller must take care not to access
@@ -851,7 +857,8 @@ public:
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(ssize_t(index)...) / itemsize());
     }
 
-    /** Returns a proxy object that provides access to the array's data without bounds or
+    /**
+     * Returns a proxy object that provides access to the array's data without bounds or
      * dimensionality checking.  Will throw if the array is missing the `writeable` flag.  Use with
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
@@ -860,7 +867,8 @@ public:
         return array::mutable_unchecked<T, Dims>();
     }
 
-    /** Returns a proxy object that provides const access to the array's data without bounds or
+    /**
+     * Returns a proxy object that provides const access to the array's data without bounds or
      * dimensionality checking.  Unlike `unchecked()`, this does not require that the underlying
      * array have the `writable` flag.  Use with care: the array must not be destroyed or reshaped
      * for the duration of the returned object, and the caller must take care not to access invalid

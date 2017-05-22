@@ -1430,7 +1430,8 @@ void register_exception_translator(ExceptionTranslator&& translator) {
         std::forward<ExceptionTranslator>(translator));
 }
 
-/* Wrapper to generate a new Python exception type.
+/**
+ * Wrapper to generate a new Python exception type.
  *
  * This should only be used with PyErr_SetString for now.
  * It is not (yet) possible to use as a py::base.
@@ -1455,7 +1456,8 @@ public:
     }
 };
 
-/** Registers a Python exception in `m` of the given `name` and installs an exception translator to
+/**
+ * Registers a Python exception in `m` of the given `name` and installs an exception translator to
  * translate the C++ exception to the created Python exception using the exceptions what() method.
  * This is intended for simple exception translations; for more complex translation, register the
  * exception object and translator directly.

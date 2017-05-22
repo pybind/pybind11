@@ -34,7 +34,7 @@ struct type_info {
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;
-    /** A simple type never occurs as a (direct or indirect) parent
+    /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance */
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */

@@ -415,7 +415,7 @@ struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
 template <typename... Ts>
 struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_guard<Ts...>> { };
 
-/***
+/**
  * Process a keep_alive call policy -- invokes keep_alive_impl during the
  * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
  * otherwise
