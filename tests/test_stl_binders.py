@@ -18,11 +18,13 @@ def test_vector_int():
     assert v_int != v_int2
 
     v_int2.append(2)
-    v_int2.append(3)
     v_int2.insert(0, 1)
     v_int2.insert(0, 2)
     v_int2.insert(0, 3)
+    v_int2.insert(6, 3)
     assert str(v_int2) == "VectorInt[3, 2, 1, 0, 1, 2, 3]"
+    with pytest.raises(IndexError):
+        v_int2.insert(8, 4)
 
     v_int.append(99)
     v_int2[2:-2] = v_int
