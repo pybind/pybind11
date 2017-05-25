@@ -128,6 +128,10 @@ pybind11_add_module(pybind11_tests THIN_LTO pybind11_tests.cpp
 
 pybind11_enable_warnings(pybind11_tests)
 
+if(MSVC)
+  target_compile_options(pybind11_tests PRIVATE /utf-8)
+endif()
+
 if(EIGEN3_FOUND)
   if (PYBIND11_EIGEN_VIA_TARGET)
     target_link_libraries(pybind11_tests PRIVATE Eigen3::Eigen)
