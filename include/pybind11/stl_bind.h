@@ -137,7 +137,6 @@ void vector_modifiers(enable_if_t<std::is_copy_constructible<typename Vector::va
 
     cl.def("extend",
        [](Vector &v, const Vector &src) {
-           v.reserve(v.size() + src.size());
            v.insert(v.end(), src.begin(), src.end());
        },
        arg("L"),
