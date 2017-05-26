@@ -188,6 +188,18 @@ struct MoveOutContainer {
 
 struct UnregisteredType { };
 
+// Class that can be move- and copy-constructed, but not assigned
+struct NoAssign {
+    int value;
+
+    explicit NoAssign(int value = 0) : value(value) {}
+    NoAssign(const NoAssign &) = default;
+    NoAssign(NoAssign &&) = default;
+
+    NoAssign &operator=(const NoAssign &) = delete;
+    NoAssign &operator=(NoAssign &&) = delete;
+};
+
 test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
@@ -235,6 +247,10 @@ test_initializer python_types([](py::module &m) {
 
         py::print("{a} + {b} = {c}"_s.format("a"_a="py::print", "b"_a="str.format", "c"_a="this"));
     });
+
+    py::class_<NoAssign>(m, "NoAssign", "Class with no C++ assignment operators")
+        .def(py::init<>())
+        .def(py::init<int>());
 
     m.def("test_print_failure", []() { py::print(42, UnregisteredType()); });
 #if !defined(NDEBUG)
@@ -326,6 +342,7 @@ test_initializer python_types([](py::module &m) {
 #ifdef PYBIND11_HAS_OPTIONAL
     has_optional = true;
     using opt_int = std::optional<int>;
+    using opt_no_assign = std::optional<NoAssign>;
     m.def("double_or_zero", [](const opt_int& x) -> int {
         return x.value_or(0) * 2;
     });
@@ -335,11 +352,15 @@ test_initializer python_types([](py::module &m) {
     m.def("test_nullopt", [](opt_int x) {
         return x.value_or(42);
     }, py::arg_v("x", std::nullopt, "None"));
+    m.def("test_no_assign", [](const opt_no_assign &x) {
+        return x ? x->value : 42;
+    }, py::arg_v("x", std::nullopt, "None"));
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
     has_exp_optional = true;
     using exp_opt_int = std::experimental::optional<int>;
+    using exp_opt_no_assign = std::experimental::optional<NoAssign>;
     m.def("double_or_zero_exp", [](const exp_opt_int& x) -> int {
         return x.value_or(0) * 2;
     });
@@ -348,6 +369,9 @@ test_initializer python_types([](py::module &m) {
     });
     m.def("test_nullopt_exp", [](exp_opt_int x) {
         return x.value_or(42);
+    }, py::arg_v("x", std::experimental::nullopt, "None"));
+    m.def("test_no_assign_exp", [](const exp_opt_no_assign &x) {
+        return x ? x->value : 42;
     }, py::arg_v("x", std::experimental::nullopt, "None"));
 #endif
 
