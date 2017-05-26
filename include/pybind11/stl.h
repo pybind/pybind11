@@ -242,8 +242,7 @@ template<typename T> struct optional_caster {
         if (!src) {
             return false;
         } else if (src.is_none()) {
-            value = {};  // nullopt
-            return true;
+            return true;  // default-constructed value is already empty
         }
         value_conv inner_caster;
         if (!inner_caster.load(src, convert))
