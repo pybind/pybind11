@@ -99,7 +99,7 @@ buffer objects (e.g. a NumPy matrix).
                 info.strides[rowMajor ? 1 : 0] / (py::ssize_t)sizeof(Scalar));
 
             auto map = Eigen::Map<Matrix, 0, Strides>(
-                static_cat<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
+                static_cast<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
 
             new (&m) Matrix(map);
         });
