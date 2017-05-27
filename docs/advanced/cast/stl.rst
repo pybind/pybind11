@@ -46,8 +46,23 @@ types:
     }}
 
 The above should be placed in a header file and included in all translation units
-where automatic conversion is needed. Similarly, a specialization can be provided
-for custom variant types:
+where automatic conversion is needed. If the type provides a ``reset`` member
+function, that is used to clear the stored value; otherwise, it is cleared by
+assigning ``{}`` to it. If neither approach is suitable, ``optional_reset`` can
+be specialized to provide an alternative. Here is how pybind11 specializes it for
+``std::experimental::optional<>`` (which does not have a ``reset`` method):
+
+.. code-block:: cpp
+
+    namespace pybind11 { namespace detail {
+        template<typename T> struct optional_reset<std::experimental::optional<T>> {
+            static void reset(std::experimental::optional<T> &value) {
+                value = std::experimental::nullopt;
+            }
+        };
+    }} // namespace pybind11::detail
+
+Similarly, a specialization can be provided for custom variant types:
 
 .. code-block:: cpp
 
