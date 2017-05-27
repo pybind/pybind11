@@ -432,7 +432,7 @@ To explicitly enable or disable this behaviour, using the
     }, py::arg("cat").none(false));
 
 With the above, the Python call ``bark(None)`` will return the string ``"(no
-dog)"``, while attempting to call ``meow(None)`` will throw a :exc:`TypeError`:
+dog)"``, while attempting to call ``meow(None)`` will raise a ``TypeError``:
 
 .. code-block:: pycon
 
