@@ -447,11 +447,17 @@ inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
 
 /// buffer_protocol: Fill in the view as specified by flags.
 extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
-    auto tinfo = get_type_info(Py_TYPE(obj));
+    // Look for a `get_buffer` implementation in this type's info or any bases (following MRO).
+    type_info *tinfo = nullptr;
+    for (auto type : reinterpret_borrow<tuple>(Py_TYPE(obj)->tp_mro)) {
+        tinfo = get_type_info((PyTypeObject *) type.ptr());
+        if (tinfo && tinfo->get_buffer)
+            break;
+    }
     if (view == nullptr || obj == nullptr || !tinfo || !tinfo->get_buffer) {
         if (view)
             view->obj = nullptr;
-        PyErr_SetString(PyExc_BufferError, "generic_type::getbuffer(): Internal error");
+        PyErr_SetString(PyExc_BufferError, "pybind11_getbuffer(): Internal error");
         return -1;
     }
     memset(view, 0, sizeof(Py_buffer));
