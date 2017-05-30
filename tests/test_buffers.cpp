@@ -10,6 +10,9 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
+#include <pybind11/numpy.h>
+#include <vector>
+
 class Matrix {
 public:
     Matrix(ssize_t rows, ssize_t cols) : m_rows(rows), m_cols(cols) {
@@ -105,6 +108,21 @@ public:
 
 struct DerivedPTMFBuffer : public PTMFBuffer { };
 
+struct Point3D {
+  double x;
+  double y;
+  double z;
+};
+
+std::vector<Point3D> get_vector_of_points() {
+  return {
+    {1,2,3},
+    {4,5,6},
+    {7,8,9},
+    {10,11,12}
+  };
+}
+
 test_initializer buffers([](py::module &m) {
     py::class_<Matrix> mtx(m, "Matrix", py::buffer_protocol());
 
@@ -163,4 +181,24 @@ test_initializer buffers([](py::module &m) {
         .def(py::init<>())
         .def_readwrite("value", (int32_t DerivedPTMFBuffer::*) &DerivedPTMFBuffer::value)
         .def_buffer(&DerivedPTMFBuffer::get_buffer_info);
+
+
+    // Tests passing an brace-enclosed initializer list with different
+    // types as the array size.
+    m.def("get_vector_of_points",
+          []() {
+            auto points = get_vector_of_points();
+            
+            auto buf = py::buffer_info(
+              points.data(),
+              sizeof(double),
+              py::format_descriptor<double>::format(),
+              2,
+              // points.size() is a size_t, while 3 is a signed int
+              { points.size(), 3 },
+              { sizeof(Point3D), sizeof(double) }
+            );
+
+            return py::array(buf);
+          });    
 });
