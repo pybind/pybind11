@@ -1147,6 +1147,11 @@ private:
     }
 };
 
+#ifdef __CLION_IDE__ // replace heavy macro with dummy code for the IDE (doesn't affect code)
+# define PYBIND11_NUMPY_DTYPE(Type, ...) ((void)0)
+# define PYBIND11_NUMPY_DTYPE_EX(Type, ...) ((void)0)
+#else
+
 #define PYBIND11_FIELD_DESCRIPTOR_EX(T, Field, Name)                                          \
     ::pybind11::detail::field_descriptor {                                                    \
         Name, offsetof(T, Field), sizeof(decltype(std::declval<T>().Field)),                  \
@@ -1213,6 +1218,8 @@ private:
 #define PYBIND11_NUMPY_DTYPE_EX(Type, ...) \
     ::pybind11::detail::npy_format_descriptor<Type>::register_dtype \
         ({PYBIND11_MAP2_LIST (PYBIND11_FIELD_DESCRIPTOR_EX, Type, __VA_ARGS__)})
+
+#endif // __CLION_IDE__
 
 template  <class T>
 using array_iterator = typename std::add_pointer<T>::type;
