@@ -21,7 +21,7 @@ information, see :doc:`/compiling`.
 
     find_package(pybind11 REQUIRED)  # or `add_subdirectory(pybind11)`
 
-    add_executable(example MODULE main.cpp)
+    add_executable(example main.cpp)
     target_link_libraries(example PRIVATE pybind11::embed)
 
 The essential structure of the ``main.cpp`` file looks like this:
@@ -45,7 +45,7 @@ shuts down and clears its memory. No Python functions can be called after this.
 Executing Python code
 =====================
 
-There are few different ways to run Python code. One option is to use `eval`,
+There are a few different ways to run Python code. One option is to use `eval`,
 `exec` or `eval_file`, as explained in :ref:`eval`. Here is a quick example in
 the context of an executable with an embedded interpreter:
 
