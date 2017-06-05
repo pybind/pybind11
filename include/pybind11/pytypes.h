@@ -393,6 +393,7 @@ public:
     // to replace default compiler-generated assignments).
     void operator=(const accessor &a) && { std::move(*this).operator=(handle(a)); }
     void operator=(const accessor &a) & { operator=(handle(a)); }
+    accessor(accessor &&a) = default;
 
     template <typename T> void operator=(T &&value) && {
         Policy::set(obj, key, object_or_cast(std::forward<T>(value)));
