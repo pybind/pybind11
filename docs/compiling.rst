@@ -4,20 +4,32 @@ Build systems
 Building with setuptools
 ========================
 
-For projects on PyPI, building with setuptools is the way to go. Sylvain Corlay
-has kindly provided an example project which shows how to set up everything,
-including automatic generation of documentation using Sphinx. Please refer to
-the [python_example]_ repository.
+For projects on PyPI, building with setuptools is the way to go. pybind11
+provides a subclass of `setuptools.Extension` that sets the correct build
+options:
+
+.. code-block:: python
+
+    from setuptools import setup
+    from pybind11.setuptools import Extension
+
+    setup(ext_modules=[
+        Extension("module.path", ["module/path.cpp"])
+    ])
+
+For a more complete example, including automatic generation of documentation
+using Sphinx, provided by Sylvain Corlay, please refer to the [python_example]_
+repository.
 
 .. [python_example] https://github.com/pybind/python_example
 
 Building with cppimport
 ========================
 
- cppimport is a small Python import hook that determines whether there is a C++
- source file whose name matches the requested module. If there is, the file is
- compiled as a Python extension using pybind11 and placed in the same folder as
- the C++ source file. Python is then able to find the module and load it.
+cppimport is a small Python import hook that determines whether there is a C++
+source file whose name matches the requested module. If there is, the file is
+compiled as a Python extension using pybind11 and placed in the same folder as
+the C++ source file. Python is then able to find the module and load it.
 
 .. [cppimport] https://github.com/tbenthompson/cppimport
 
