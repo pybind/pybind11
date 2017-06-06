@@ -554,6 +554,8 @@ def test_bytes_to_string():
     assert string_length(byte("a\x00b")) == 3
     assert strlen(byte("a\x00b")) == 1  # C-string limitation
 
+    # passing in a utf8 encoded string should work
+    assert string_length(u'💩'.encode("utf8")) == 4
 
 def test_builtins_cast_return_none():
     """Casters produced with PYBIND11_TYPE_CASTER() should convert nullptr to None"""
