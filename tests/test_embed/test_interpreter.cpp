@@ -153,3 +153,10 @@ TEST_CASE("Subinterpreter") {
     REQUIRE(py::hasattr(py::module::import("__main__"), "main_tag"));
     REQUIRE(py::hasattr(py::module::import("widget_module"), "extension_module_tag"));
 }
+
+TEST_CASE("Execution frame") {
+    // When the interpreter is embedded, there is no execution frame, but `py::exec`
+    // should still function by using reasonable globals: `__main__.__dict__`.
+    py::exec("var = dict(number=42)");
+    REQUIRE(py::globals()["var"]["number"].cast<int>() == 42);
+}

@@ -27,12 +27,7 @@ enum eval_mode {
 };
 
 template <eval_mode mode = eval_expr>
-object eval(str expr, object global = object(), object local = object()) {
-    if (!global) {
-        global = reinterpret_borrow<object>(PyEval_GetGlobals());
-        if (!global)
-            global = dict();
-    }
+object eval(str expr, object global = globals(), object local = object()) {
     if (!local)
         local = global;
 
@@ -55,29 +50,24 @@ object eval(str expr, object global = object(), object local = object()) {
 }
 
 template <eval_mode mode = eval_expr, size_t N>
-object eval(const char (&s)[N], object global = object(), object local = object()) {
+object eval(const char (&s)[N], object global = globals(), object local = object()) {
     /* Support raw string literals by removing common leading whitespace */
     auto expr = (s[0] == '\n') ? str(module::import("textwrap").attr("dedent")(s))
                                : str(s);
     return eval<mode>(expr, global, local);
 }
 
-inline void exec(str expr, object global = object(), object local = object()) {
+inline void exec(str expr, object global = globals(), object local = object()) {
     eval<eval_statements>(expr, global, local);
 }
 
 template <size_t N>
-void exec(const char (&s)[N], object global = object(), object local = object()) {
+void exec(const char (&s)[N], object global = globals(), object local = object()) {
     eval<eval_statements>(s, global, local);
 }
 
 template <eval_mode mode = eval_statements>
-object eval_file(str fname, object global = object(), object local = object()) {
-    if (!global) {
-        global = reinterpret_borrow<object>(PyEval_GetGlobals());
-        if (!global)
-            global = dict();
-    }
+object eval_file(str fname, object global = globals(), object local = object()) {
     if (!local)
         local = global;
 

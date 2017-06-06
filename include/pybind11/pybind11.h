@@ -799,8 +799,12 @@ public:
 };
 
 /// \ingroup python_builtins
-/// Return a dictionary representing the global symbol table, i.e. ``__main__.__dict__``.
-inline dict globals() { return module::import("__main__").attr("__dict__").cast<dict>(); }
+/// Return a dictionary representing the global variables in the current execution frame,
+/// or ``__main__.__dict__`` if there is no frame (usually when the interpreter is embedded).
+inline dict globals() {
+    PyObject *p = PyEval_GetGlobals();
+    return reinterpret_borrow<dict>(p ? p : module::import("__main__").attr("__dict__").ptr());
+}
 
 NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
