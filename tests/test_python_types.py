@@ -557,6 +557,7 @@ def test_bytes_to_string():
     # passing in a utf8 encoded string should work
     assert string_length(u'💩'.encode("utf8")) == 4
 
+
 def test_builtins_cast_return_none():
     """Casters produced with PYBIND11_TYPE_CASTER() should convert nullptr to None"""
     import pybind11_tests as m
