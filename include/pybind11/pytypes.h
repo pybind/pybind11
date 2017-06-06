@@ -388,6 +388,8 @@ class accessor : public object_api<accessor<Policy>> {
 
 public:
     accessor(handle obj, key_type key) : obj(obj), key(std::move(key)) { }
+    accessor(const accessor &a) = default;
+    accessor(accessor &&a) = default;
 
     // accessor overload required to override default assignment operator (templates are not allowed
     // to replace default compiler-generated assignments).
