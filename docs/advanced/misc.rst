@@ -189,6 +189,26 @@ is possible to emulate it using Python capsules with a destruction callback.
 
     m.add_object("_cleanup", py::capsule(cleanup_callback));
 
+Module Destructors
+==================
+
+pybind11 does not explicitly provide a mechanism that can be called at module
+destruction time (and most users will not need this functionality). However,
+if you do happen to need the ability to do something when a module is
+destroyed, you can use a Python capsule to accomplish this:
+
+.. code-block:: cpp
+
+    // the capsule needs something to reference
+    static int unused;
+    
+    py::capsule cleanup(&unused, [](PyObject * capsule) {
+        // do cleanup here -- this function is called with the GIL held
+    });
+    
+    m.add_object("_cleanup", cleanup);
+
+
 Generating documentation using Sphinx
 =====================================
 
