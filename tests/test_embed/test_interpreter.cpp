@@ -84,15 +84,20 @@ TEST_CASE("There can be only one interpreter") {
     py::initialize_interpreter();
 }
 
-bool has_pybind11_internals() {
+bool has_pybind11_internals_builtin() {
     auto builtins = py::handle(PyEval_GetBuiltins());
     return builtins.contains(PYBIND11_INTERNALS_ID);
 };
 
+bool has_pybind11_internals_static() {
+    return py::detail::get_internals_ptr() != nullptr;
+}
+
 TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
     REQUIRE(py::module::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
-    REQUIRE(has_pybind11_internals());
+    REQUIRE(has_pybind11_internals_builtin());
+    REQUIRE(has_pybind11_internals_static());
 
     // Restart the interpreter.
     py::finalize_interpreter();
@@ -102,9 +107,27 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(Py_IsInitialized() == 1);
 
     // Internals are deleted after a restart.
-    REQUIRE_FALSE(has_pybind11_internals());
+    REQUIRE_FALSE(has_pybind11_internals_builtin());
+    REQUIRE_FALSE(has_pybind11_internals_static());
     pybind11::detail::get_internals();
-    REQUIRE(has_pybind11_internals());
+    REQUIRE(has_pybind11_internals_builtin());
+    REQUIRE(has_pybind11_internals_static());
+
+    // Make sure that an interpreter with no get_internals() created until finalize still gets the
+    // internals destroyed
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+    bool ran = false;
+    py::module::import("__main__").attr("internals_destroy_test") =
+        py::capsule(&ran, [](void *ran) { py::detail::get_internals(); *static_cast<bool *>(ran) = true; });
+    REQUIRE_FALSE(has_pybind11_internals_builtin());
+    REQUIRE_FALSE(has_pybind11_internals_static());
+    REQUIRE_FALSE(ran);
+    py::finalize_interpreter();
+    REQUIRE(ran);
+    py::initialize_interpreter();
+    REQUIRE_FALSE(has_pybind11_internals_builtin());
+    REQUIRE_FALSE(has_pybind11_internals_static());
 
     // C++ modules can be reloaded.
     auto cpp_module = py::module::import("widget_module");
@@ -125,7 +148,8 @@ TEST_CASE("Subinterpreter") {
 
         REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
     }
-    REQUIRE(has_pybind11_internals());
+    REQUIRE(has_pybind11_internals_builtin());
+    REQUIRE(has_pybind11_internals_static());
 
     /// Create and switch to a subinterpreter.
     auto main_tstate = PyThreadState_Get();
@@ -134,7 +158,8 @@ TEST_CASE("Subinterpreter") {
     // Subinterpreters get their own copy of builtins. detail::get_internals() still
     // works by returning from the static variable, i.e. all interpreters share a single
     // global pybind11::internals;
-    REQUIRE_FALSE(has_pybind11_internals());
+    REQUIRE_FALSE(has_pybind11_internals_builtin());
+    REQUIRE(has_pybind11_internals_static());
 
     // Modules tags should be gone.
     REQUIRE_FALSE(py::hasattr(py::module::import("__main__"), "tag"));

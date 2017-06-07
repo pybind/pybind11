@@ -143,7 +143,11 @@ inline void finalize_interpreter() {
     handle builtins(PyEval_GetBuiltins());
     const char *id = PYBIND11_INTERNALS_ID;
 
-    detail::internals **internals_ptr_ptr = nullptr;
+    // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
+    // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
+    // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
+    detail::internals **internals_ptr_ptr = &detail::get_internals_ptr();
+    // It could also be stashed in builtins, so look there too:
     if (builtins.contains(id) && isinstance<capsule>(builtins[id]))
         internals_ptr_ptr = capsule(builtins[id]);
 
