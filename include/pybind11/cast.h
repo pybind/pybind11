@@ -745,15 +745,14 @@ struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_s
 #if PY_MAJOR_VERSION >= 3
             return load_bytes(load_src);
 #else
+            if (sizeof(CharT) == 1) {
+                return load_bytes(load_src);
+            }
+
             // The below is a guaranteed failure in Python 3 when PyUnicode_Check returns false
             if (!PYBIND11_BYTES_CHECK(load_src.ptr()))
                 return false;
 
-            // try just loading directly from object
-            if (load_bytes(load_src))
-                return true;
-
-            // otherwise convert to unicode (if sizeof(CharT) > 1)
             temp = reinterpret_steal<object>(PyUnicode_FromObject(load_src.ptr()));
             if (!temp) { PyErr_Clear(); return false; }
             load_src = temp;
