@@ -187,4 +187,23 @@ test_initializer copy_move_policies([](py::module &m) {
         static PrivateOpNew x{};
         return x;
     }, py::return_value_policy::reference);
+
+    // #389: rvp::move should fall-through to copy on non-movable objects
+    struct MoveIssue1 {
+        int v;
+        MoveIssue1(int v) : v{v} {}
+        MoveIssue1(const MoveIssue1 &c) = default;
+        MoveIssue1(MoveIssue1 &&) = delete;
+    };
+
+    struct MoveIssue2 {
+        int v;
+        MoveIssue2(int v) : v{v} {}
+        MoveIssue2(MoveIssue2 &&) = default;
+    };
+
+    py::class_<MoveIssue1>(m, "MoveIssue1").def(py::init<int>()).def_readwrite("value", &MoveIssue1::v);
+    py::class_<MoveIssue2>(m, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
+    m.def("get_moveissue1", [](int i) { return new MoveIssue1(i); }, py::return_value_policy::move);
+    m.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
 });

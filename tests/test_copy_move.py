@@ -109,3 +109,13 @@ def test_private_op_new():
     assert "the object is neither movable nor copyable" in str(excinfo.value)
 
     assert m.private_op_new_reference().value == 1
+
+
+def test_move_fallback():
+    """#389: rvp::move should fall-through to copy on non-movable objects"""
+    from pybind11_tests import get_moveissue1, get_moveissue2
+
+    m2 = get_moveissue2(2)
+    assert m2.value == 2
+    m1 = get_moveissue1(1)
+    assert m1.value == 1

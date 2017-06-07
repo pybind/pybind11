@@ -452,6 +452,12 @@ def test_implicit_casting():
     assert z['l'] == [3, 6, 9, 12, 15]
 
 
+def test_simple_string():
+    from pybind11_tests import string_roundtrip
+
+    assert string_roundtrip("const char *") == "const char *"
+
+
 def test_unicode_conversion():
     """Tests unicode conversion and error reporting."""
     import pybind11_tests
@@ -699,3 +705,11 @@ def test_reference_wrapper():
 
     assert refwrap_iiw(IncrIntWrapper(5)) == 5
     assert refwrap_call_iiw(IncrIntWrapper(10), refwrap_iiw) == [10, 10, 10, 10]
+
+
+def test_complex_cast():
+    """#484: number conversion generates unhandled exceptions"""
+    from pybind11_tests import test_complex
+
+    assert test_complex(1) == "1.0"
+    assert test_complex(2j) == "(0.0, 2.0)"

@@ -55,4 +55,47 @@ test_initializer modules([](py::module &m) {
         .def_readwrite("a2", &B::a2);
 
     m.attr("OD") = py::module::import("collections").attr("OrderedDict");
+
+    // Registering two things with the same name
+    m.def("duplicate_registration", []() {
+        class Dupe1 { };
+        class Dupe2 { };
+        class Dupe3 { };
+        class DupeException { };
+
+        auto dm = py::module("dummy");
+        auto failures = py::list();
+
+        py::class_<Dupe1>(dm, "Dupe1");
+        py::class_<Dupe2>(dm, "Dupe2");
+        dm.def("dupe1_factory", []() { return Dupe1(); });
+        py::exception<DupeException>(dm, "DupeException");
+
+        try {
+            py::class_<Dupe1>(dm, "Dupe1");
+            failures.append("Dupe1 class");
+        } catch (std::runtime_error &) {}
+        try {
+            dm.def("Dupe1", []() { return Dupe1(); });
+            failures.append("Dupe1 function");
+        } catch (std::runtime_error &) {}
+        try {
+            py::class_<Dupe3>(dm, "dupe1_factory");
+            failures.append("dupe1_factory");
+        } catch (std::runtime_error &) {}
+        try {
+            py::exception<Dupe3>(dm, "Dupe2");
+            failures.append("Dupe2");
+        } catch (std::runtime_error &) {}
+        try {
+            dm.def("DupeException", []() { return 30; });
+            failures.append("DupeException1");
+        } catch (std::runtime_error &) {}
+        try {
+            py::class_<DupeException>(dm, "DupeException");
+            failures.append("DupeException2");
+        } catch (std::runtime_error &) {}
+
+        return failures;
+    });
 });

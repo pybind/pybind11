@@ -61,3 +61,10 @@ def test_pydoc():
 
     assert pybind11_tests.__doc__ == "pybind11 test module"
     assert pydoc.text.docmodule(pybind11_tests)
+
+
+def test_duplicate_registration():
+    """Registering two things with the same name"""
+    from pybind11_tests import duplicate_registration
+
+    assert duplicate_registration() == []

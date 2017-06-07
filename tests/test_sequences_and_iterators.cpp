@@ -351,4 +351,14 @@ test_initializer sequences_and_iterators([](py::module &pm) {
     m.def("tuple_iterator", [](py::tuple x) { return test_random_access_iterator(x); });
     m.def("list_iterator", [](py::list x) { return test_random_access_iterator(x); });
     m.def("sequence_iterator", [](py::sequence x) { return test_random_access_iterator(x); });
+
+    // #181: iterator passthrough did not compile
+    m.def("iterator_passthrough", [](py::iterator s) -> py::iterator {
+        return py::make_iterator(std::begin(s), std::end(s));
+    });
+
+    // #388: Can't make iterators via make_iterator() with different r/v policies
+    static std::vector<int> list = { 1, 2, 3 };
+    m.def("make_iterator_1", []() { return py::make_iterator<py::return_value_policy::copy>(list); });
+    m.def("make_iterator_2", []() { return py::make_iterator<py::return_value_policy::automatic>(list); });
 });
