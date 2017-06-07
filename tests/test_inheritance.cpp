@@ -120,4 +120,24 @@ test_initializer inheritance([](py::module &m) {
         py::class_<MismatchBase2>(m, "MismatchBase2");
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>, MismatchBase2>(m, "MismatchDerived2");
     });
+
+    // #511: problem with inheritance + overwritten def_static
+    struct MyBase {
+        static std::unique_ptr<MyBase> make() {
+            return std::unique_ptr<MyBase>(new MyBase());
+        }
+    };
+
+    struct MyDerived : MyBase {
+        static std::unique_ptr<MyDerived> make() {
+            return std::unique_ptr<MyDerived>(new MyDerived());
+        }
+    };
+
+    py::class_<MyBase>(m, "MyBase")
+        .def_static("make", &MyBase::make);
+
+    py::class_<MyDerived, MyBase>(m, "MyDerived")
+        .def_static("make", &MyDerived::make)
+        .def_static("make2", &MyDerived::make);
 });

@@ -170,6 +170,13 @@ int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
 int none5(std::shared_ptr<NoneTester> obj) { return obj ? obj->answer : -1; }
 
+struct StrIssue {
+    int val = -1;
+
+    StrIssue() = default;
+    StrIssue(int i) : val{i} {}
+};
+
 test_initializer methods_and_attributes([](py::module &m) {
     py::class_<ExampleMandA> emna(m, "ExampleMandA");
     emna.def(py::init<>())
@@ -315,6 +322,8 @@ test_initializer methods_and_attributes([](py::module &m) {
 
     m.def("floats_preferred", [](double f) { return 0.5 * f; }, py::arg("f"));
     m.def("floats_only", [](double f) { return 0.5 * f; }, py::arg("f").noconvert());
+    m.def("ints_preferred", [](int i) { return i / 2; }, py::arg("i"));
+    m.def("ints_only", [](int i) { return i / 2; }, py::arg("i").noconvert());
 
     /// Issue/PR #648: bad arg default debugging output
 #if !defined(NDEBUG)
@@ -344,4 +353,11 @@ test_initializer methods_and_attributes([](py::module &m) {
     m.def("ok_none4", &none4, py::arg().none(true));
     m.def("ok_none5", &none5);
 
+    // Issue #283: __str__ called on uninitialized instance when constructor arguments invalid
+    py::class_<StrIssue>(m, "StrIssue")
+        .def(py::init<int>())
+        .def(py::init<>())
+        .def("__str__", [](const StrIssue &si) {
+            return "StrIssue[" + std::to_string(si.val) + "]"; }
+        );
 });

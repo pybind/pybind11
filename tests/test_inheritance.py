@@ -76,3 +76,16 @@ def test_holder():
     assert str(excinfo.value) == ("generic_type: type \"MismatchDerived2\" has a "
                                   "non-default holder type while its base "
                                   "\"MismatchBase2\" does not")
+
+
+def test_inheritance_override_def_static():
+    """#511: problem with inheritance + overwritten def_static"""
+    from pybind11_tests import MyBase, MyDerived
+
+    b = MyBase.make()
+    d1 = MyDerived.make2()
+    d2 = MyDerived.make()
+
+    assert isinstance(b, MyBase)
+    assert isinstance(d1, MyDerived)
+    assert isinstance(d2, MyDerived)

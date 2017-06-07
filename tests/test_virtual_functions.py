@@ -257,3 +257,42 @@ def test_move_support():
     assert mv_stats.copy_constructions == 1
     assert nc_stats.move_constructions >= 0
     assert mv_stats.move_constructions >= 0
+
+
+def test_dispatch_issue(msg):
+    """#159: virtual function dispatch has problems with similar-named functions"""
+    from pybind11_tests import DispatchIssue, dispatch_issue_go
+
+    class PyClass1(DispatchIssue):
+        def dispatch(self):
+            return "Yay.."
+
+    class PyClass2(DispatchIssue):
+        def dispatch(self):
+            with pytest.raises(RuntimeError) as excinfo:
+                super(PyClass2, self).dispatch()
+            assert msg(excinfo.value) == 'Tried to call pure virtual function "Base::dispatch"'
+
+            p = PyClass1()
+            return dispatch_issue_go(p)
+
+    b = PyClass2()
+    assert dispatch_issue_go(b) == "Yay.."
+
+
+def test_override_ref():
+    """#392/397: overridding reference-returning functions"""
+    from pybind11_tests import OverrideTest
+
+    o = OverrideTest("asdf")
+
+    # Not allowed (see associated .cpp comment)
+    # i = o.str_ref()
+    # assert o.str_ref() == "asdf"
+    assert o.str_value() == "asdf"
+
+    assert o.A_value().value == "hi"
+    a = o.A_ref()
+    assert a.value == "hi"
+    a.value = "bye"
+    assert a.value == "bye"

@@ -40,7 +40,6 @@ set(PYBIND11_TEST_FILES
   test_eval.cpp
   test_exceptions.cpp
   test_inheritance.cpp
-  test_issues.cpp
   test_kwargs_and_defaults.cpp
   test_methods_and_attributes.cpp
   test_modules.cpp
@@ -59,7 +58,7 @@ set(PYBIND11_TEST_FILES
 )
 
 # Invoking cmake with something like:
-#     cmake -DPYBIND11_TEST_OVERRIDE="test_issues.cpp;test_picking.cpp" ..
+#     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_picking.cpp" ..
 # lets you override the tests that get compiled and run.  You can restore to all tests with:
 #     cmake -DPYBIND11_TEST_OVERRIDE= ..
 if (PYBIND11_TEST_OVERRIDE)

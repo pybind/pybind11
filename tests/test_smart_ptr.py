@@ -234,3 +234,15 @@ def test_smart_ptr_from_default():
     with pytest.raises(RuntimeError) as excinfo:
         HeldByDefaultHolder.load_shared_ptr(instance)
     assert "Unable to load a custom holder type from a default-holder instance" in str(excinfo)
+
+
+def test_shared_ptr_gc():
+    """#187: issue involving std::shared_ptr<> return value policy & garbage collection"""
+    from pybind11_tests.smart_ptr import ElementList, ElementA
+
+    el = ElementList()
+    for i in range(10):
+        el.add(ElementA(i))
+    pytest.gc_collect()
+    for i, v in enumerate(el.get()):
+        assert i == v.value()

@@ -11,6 +11,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/stl.h>
+#include <pybind11/complex.h>
 
 #ifdef _WIN32
 #  include <io.h>
@@ -214,6 +215,17 @@ std::vector<std::reference_wrapper<IncrIntWrapper>> incr_int_wrappers() {
     r.emplace_back(x2);
     return r;
 };
+
+/// Issue #528: templated constructor
+struct TplCtorClass {
+    template <typename T> TplCtorClass(const T &) { }
+    bool operator==(const TplCtorClass &) const { return true; }
+};
+
+namespace std {
+    template <>
+    struct hash<TplCtorClass> { size_t operator()(const TplCtorClass &) const { return 0; } };
+}
 
 test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
@@ -501,6 +513,8 @@ test_initializer python_types([](py::module &m) {
         );
     });
 
+    m.def("string_roundtrip", [](const char *s) { return s; });
+
     // Some test characters in utf16 and utf32 encodings.  The last one (the 𝐀) contains a null byte
     char32_t a32 = 0x61 /*a*/, z32 = 0x7a /*z*/, ib32 = 0x203d /*‽*/, cake32 = 0x1f382 /*🎂*/,              mathbfA32 = 0x1d400 /*𝐀*/;
     char16_t b16 = 0x62 /*b*/, z16 = 0x7a,       ib16 = 0x203d,       cake16_1 = 0xd83c, cake16_2 = 0xdf82, mathbfA16_1 = 0xd835, mathbfA16_2 = 0xdc00;
@@ -661,6 +675,19 @@ test_initializer python_types([](py::module &m) {
         return l;
     });
 
+    /// Issue #484: number conversion generates unhandled exceptions
+    m.def("test_complex", [](float x) { return "{}"_s.format(x); });
+    m.def("test_complex", [](std::complex<float> x) { return "({}, {})"_s.format(x.real(), x.imag()); });
+
+    /// Issue #528: templated constructor
+    m.def("tpl_ctor_vector", [](std::vector<TplCtorClass> &) {});
+    m.def("tpl_ctor_map", [](std::unordered_map<TplCtorClass, TplCtorClass> &) {});
+    m.def("tpl_ctor_set", [](std::unordered_set<TplCtorClass> &) {});
+#if defined(PYBIND11_HAS_OPTIONAL)
+    m.def("tpl_constr_optional", [](std::optional<TplCtorClass> &) {});
+#elif defined(PYBIND11_HAS_EXP_OPTIONAL)
+    m.def("tpl_constr_optional", [](std::experimental::optional<TplCtorClass> &) {});
+#endif
 });
 
 #if defined(_MSC_VER)

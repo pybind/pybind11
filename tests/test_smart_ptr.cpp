@@ -259,6 +259,18 @@ public:
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, CustomUniquePtr<T>);
 
+struct ElementBase { virtual void foo() { } /* Force creation of virtual table */ };
+struct ElementA : ElementBase {
+    ElementA(int v) : v(v) { }
+    int value() { return v; }
+    int v;
+};
+
+struct ElementList {
+    void add(std::shared_ptr<ElementBase> e) { l.push_back(e); }
+    std::vector<std::shared_ptr<ElementBase>> l;
+};
+
 test_initializer smart_ptr_and_references([](py::module &pm) {
     auto m = pm.def_submodule("smart_ptr");
 
@@ -309,4 +321,21 @@ test_initializer smart_ptr_and_references([](py::module &pm) {
     py::class_<HeldByDefaultHolder>(m, "HeldByDefaultHolder")
         .def(py::init<>())
         .def_static("load_shared_ptr", [](std::shared_ptr<HeldByDefaultHolder>) {});
+
+    // #187: issue involving std::shared_ptr<> return value policy & garbage collection
+    py::class_<ElementBase, std::shared_ptr<ElementBase>>(m, "ElementBase");
+
+    py::class_<ElementA, ElementBase, std::shared_ptr<ElementA>>(m, "ElementA")
+        .def(py::init<int>())
+        .def("value", &ElementA::value);
+
+    py::class_<ElementList, std::shared_ptr<ElementList>>(m, "ElementList")
+        .def(py::init<>())
+        .def("add", &ElementList::add)
+        .def("get", [](ElementList &el) {
+            py::list list;
+            for (auto &e : el.l)
+                list.append(py::cast(e));
+            return list;
+        });
 });

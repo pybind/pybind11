@@ -147,3 +147,20 @@ def test_python_iterator_in_cpp():
     assert all(m.tuple_iterator(tuple(r)))
     assert all(m.list_iterator(list(r)))
     assert all(m.sequence_iterator(r))
+
+
+def test_iterator_passthrough():
+    """#181: iterator passthrough did not compile"""
+    from pybind11_tests.sequences_and_iterators import iterator_passthrough
+
+    assert list(iterator_passthrough(iter([3, 5, 7, 9, 11, 13, 15]))) == [3, 5, 7, 9, 11, 13, 15]
+
+
+def test_iterator_rvp():
+    """#388: Can't make iterators via make_iterator() with different r/v policies """
+    import pybind11_tests.sequences_and_iterators as m
+
+    assert list(m.make_iterator_1()) == [1, 2, 3]
+    assert list(m.make_iterator_2()) == [1, 2, 3]
+    assert not isinstance(m.make_iterator_1(), type(m.make_iterator_2()))
+

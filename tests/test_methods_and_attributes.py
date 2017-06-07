@@ -304,9 +304,9 @@ def test_cyclic_gc():
 
 
 def test_noconvert_args(msg):
-    from pybind11_tests import ArgInspector, arg_inspect_func, floats_only, floats_preferred
+    import pybind11_tests as m
 
-    a = ArgInspector()
+    a = m.ArgInspector()
     assert msg(a.f("hi")) == """
         loading ArgInspector1 argument WITH conversion allowed.  Argument value = hi
     """
@@ -330,20 +330,41 @@ def test_noconvert_args(msg):
     """
     assert (a.h("arg 1") ==
             "loading ArgInspector2 argument WITHOUT conversion allowed.  Argument value = arg 1")
-    assert msg(arg_inspect_func("A1", "A2")) == """
+    assert msg(m.arg_inspect_func("A1", "A2")) == """
         loading ArgInspector2 argument WITH conversion allowed.  Argument value = A1
         loading ArgInspector1 argument WITHOUT conversion allowed.  Argument value = A2
     """
 
-    assert floats_preferred(4) == 2.0
-    assert floats_only(4.0) == 2.0
+    assert m.floats_preferred(4) == 2.0
+    assert m.floats_only(4.0) == 2.0
     with pytest.raises(TypeError) as excinfo:
-        floats_only(4)
+        m.floats_only(4)
     assert msg(excinfo.value) == """
         floats_only(): incompatible function arguments. The following argument types are supported:
             1. (f: float) -> float
 
         Invoked with: 4
+    """
+
+    assert m.ints_preferred(4) == 2
+    assert m.ints_preferred(True) == 0
+    with pytest.raises(TypeError) as excinfo:
+        m.ints_preferred(4.0)
+    assert msg(excinfo.value) == """
+        ints_preferred(): incompatible function arguments. The following argument types are supported:
+            1. (i: int) -> int
+
+        Invoked with: 4.0
+    """  # noqa: E501 line too long
+
+    assert m.ints_only(4) == 2
+    with pytest.raises(TypeError) as excinfo:
+        m.ints_only(4.0)
+    assert msg(excinfo.value) == """
+        ints_only(): incompatible function arguments. The following argument types are supported:
+            1. (i: int) -> int
+
+        Invoked with: 4.0
     """
 
 
@@ -371,7 +392,7 @@ def test_bad_arg_default(msg):
     )
 
 
-def test_accepts_none():
+def test_accepts_none(msg):
     from pybind11_tests import (NoneTester,
                                 no_none1, no_none2, no_none3, no_none4, no_none5,
                                 ok_none1, ok_none2, ok_none3, ok_none4, ok_none5)
@@ -407,9 +428,32 @@ def test_accepts_none():
     # The first one still raises because you can't pass None as a lvalue reference arg:
     with pytest.raises(TypeError) as excinfo:
         assert ok_none1(None) == -1
-    assert "incompatible function arguments" in str(excinfo.value)
+    assert msg(excinfo.value) == """
+        ok_none1(): incompatible function arguments. The following argument types are supported:
+            1. (arg0: m.NoneTester) -> int
+
+        Invoked with: None
+    """
+
     # The rest take the argument as pointer or holder, and accept None:
     assert ok_none2(None) == -1
     assert ok_none3(None) == -1
     assert ok_none4(None) == -1
     assert ok_none5(None) == -1
+
+
+def test_str_issue(msg):
+    """#283: __str__ called on uninitialized instance when constructor arguments invalid"""
+    from pybind11_tests import StrIssue
+
+    assert str(StrIssue(3)) == "StrIssue[3]"
+
+    with pytest.raises(TypeError) as excinfo:
+        str(StrIssue("no", "such", "constructor"))
+    assert msg(excinfo.value) == """
+        __init__(): incompatible constructor arguments. The following argument types are supported:
+            1. m.StrIssue(arg0: int)
+            2. m.StrIssue()
+
+        Invoked with: 'no', 'such', 'constructor'
+    """
