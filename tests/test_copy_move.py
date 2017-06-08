@@ -98,3 +98,14 @@ def test_move_and_copy_load_optional():
     assert c_c.copy_assignments == 2
     assert c_c.copy_constructions == 5
     assert c_m.alive() + c_mc.alive() + c_c.alive() == 0
+
+
+def test_private_op_new():
+    """An object with a private `operator new` cannot be returned by value"""
+    import pybind11_tests as m
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.private_op_new_value()
+    assert "the object is neither movable nor copyable" in str(excinfo.value)
+
+    assert m.private_op_new_reference().value == 1

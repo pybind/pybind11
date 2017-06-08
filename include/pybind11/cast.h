@@ -492,23 +492,12 @@ public:
 
 protected:
     typedef void *(*Constructor)(const void *stream);
-#if !defined(_MSC_VER)
     /* Only enabled when the types are {copy,move}-constructible *and* when the type
        does not have a private operator new implementaton. */
     template <typename T = type, typename = enable_if_t<is_copy_constructible<T>::value>> static auto make_copy_constructor(const T *value) -> decltype(new T(*value), Constructor(nullptr)) {
         return [](const void *arg) -> void * { return new T(*((const T *) arg)); }; }
     template <typename T = type> static auto make_move_constructor(const T *value) -> decltype(new T(std::move(*((T *) value))), Constructor(nullptr)) {
         return [](const void *arg) -> void * { return (void *) new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg)))); }; }
-#else
-    /* Visual Studio 2015's SFINAE implementation doesn't yet handle the above robustly in all situations.
-       Use a workaround that only tests for constructibility for now. */
-    template <typename T = type, typename = enable_if_t<is_copy_constructible<T>::value>>
-    static Constructor make_copy_constructor(const T *value) {
-        return [](const void *arg) -> void * { return new T(*((const T *)arg)); }; }
-    template <typename T = type, typename = enable_if_t<std::is_move_constructible<T>::value>>
-    static Constructor make_move_constructor(const T *value) {
-        return [](const void *arg) -> void * { return (void *) new T(std::move(*((T *)arg))); }; }
-#endif
 
     static Constructor make_copy_constructor(...) { return nullptr; }
     static Constructor make_move_constructor(...) { return nullptr; }

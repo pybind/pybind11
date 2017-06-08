@@ -98,6 +98,12 @@ public:
 };
 }}
 
+struct PrivateOpNew {
+    int value = 1;
+
+private:
+    void *operator new(size_t bytes);
+};
 
 test_initializer copy_move_policies([](py::module &m) {
     py::class_<lacking_copy_ctor>(m, "lacking_copy_ctor")
@@ -174,4 +180,11 @@ test_initializer copy_move_policies([](py::module &m) {
     m.attr("has_optional") = false;
 #endif
 
+    // #70 compilation issue if operator new is not public
+    py::class_<PrivateOpNew>(m, "PrivateOpNew").def_readonly("value", &PrivateOpNew::value);
+    m.def("private_op_new_value", []() { return PrivateOpNew(); });
+    m.def("private_op_new_reference", []() -> const PrivateOpNew & {
+        static PrivateOpNew x{};
+        return x;
+    }, py::return_value_policy::reference);
 });
