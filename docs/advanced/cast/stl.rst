@@ -23,7 +23,7 @@ next sections for more details and alternative approaches that avoid this.
 
 .. seealso::
 
-    The file :file:`tests/test_python_types.cpp` contains a complete
+    The file :file:`tests/test_stl.cpp` contains a complete
     example that demonstrates how to pass STL data types in more detail.
 
 C++17 library containers

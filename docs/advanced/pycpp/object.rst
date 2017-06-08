@@ -90,7 +90,7 @@ Generalized unpacking according to PEP448_ is also supported:
 
 .. seealso::
 
-    The file :file:`tests/test_python_types.cpp` contains a complete
+    The file :file:`tests/test_pytypes.cpp` contains a complete
     example that demonstrates passing native Python types in more detail. The
     file :file:`tests/test_callbacks.cpp` presents a few examples of calling
     Python functions from C++, including keywords arguments and unpacking.

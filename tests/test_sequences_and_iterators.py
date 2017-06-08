@@ -163,4 +163,3 @@ def test_iterator_rvp():
     assert list(m.make_iterator_1()) == [1, 2, 3]
     assert list(m.make_iterator_2()) == [1, 2, 3]
     assert not isinstance(m.make_iterator_1(), type(m.make_iterator_2()))
-

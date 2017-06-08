@@ -59,6 +59,7 @@ def test_pydoc():
     import pybind11_tests
     import pydoc
 
+    assert pybind11_tests.__name__ == "pybind11_tests"
     assert pybind11_tests.__doc__ == "pybind11 test module"
     assert pydoc.text.docmodule(pybind11_tests)
 

@@ -10,6 +10,9 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
+#include <functional>
+#include <list>
+
 /*
 For testing purposes, we define a static global variable here in a function that each individual
 test .cpp calls with its initialization lambda.  It's convenient here because we can just not
@@ -28,8 +31,15 @@ std::list<std::function<void(py::module &)>> &initializers() {
     return inits;
 }
 
-test_initializer::test_initializer(std::function<void(py::module &)> initializer) {
-    initializers().push_back(std::move(initializer));
+test_initializer::test_initializer(Initializer init) {
+    initializers().push_back(init);
+}
+
+test_initializer::test_initializer(const char *submodule_name, Initializer init) {
+    initializers().push_back([=](py::module &parent) {
+        auto m = parent.def_submodule(submodule_name);
+        init(m);
+    });
 }
 
 void bind_ConstructorStats(py::module &m) {
@@ -56,6 +66,24 @@ PYBIND11_MODULE(pybind11_tests, m) {
     m.doc() = "pybind11 test module";
 
     bind_ConstructorStats(m);
+
+#if !defined(NDEBUG)
+    m.attr("debug_enabled") = true;
+#else
+    m.attr("debug_enabled") = false;
+#endif
+
+    py::class_<UserType>(m, "UserType", "A `py::class_` type for testing")
+        .def(py::init<>())
+        .def(py::init<int>())
+        .def("get_value", &UserType::value, "Get value using a method")
+        .def_property_readonly("value", &UserType::value, "Get value using a property")
+        .def("__repr__", [](const UserType& u) { return "UserType({})"_s.format(u.value()); });
+
+    py::class_<IncType, UserType>(m, "IncType")
+        .def(py::init<>())
+        .def(py::init<int>())
+        .def("__repr__", [](const IncType& u) { return "IncType({})"_s.format(u.value()); });
 
     for (const auto &initializer : initializers())
         initializer(m);

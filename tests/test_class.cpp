@@ -1,5 +1,5 @@
 /*
-    tests/test_class_args.cpp -- tests that various way of defining a class work
+    tests/test_class.cpp -- test py::class_ definitions and basic functionality
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -8,7 +8,22 @@
 */
 
 #include "pybind11_tests.h"
+#include "constructor_stats.h"
 
+TEST_SUBMODULE(class_, m) {
+    // test_instance
+    struct NoConstructor {
+        static NoConstructor *new_instance() {
+            auto *ptr = new NoConstructor();
+            print_created(ptr, "via new_instance");
+            return ptr;
+        }
+        ~NoConstructor() { print_destroyed(this); }
+    };
+
+    py::class_<NoConstructor>(m, "NoConstructor")
+        .def_static("new_instance", &NoConstructor::new_instance, "Return an instance");
+}
 
 template <int N> class BreaksBase {};
 template <int N> class BreaksTramp : public BreaksBase<N> {};
@@ -61,8 +76,3 @@ CHECK_HOLDER(6, shared); CHECK_HOLDER(7, shared); CHECK_HOLDER(8, shared);
 //template <> struct BreaksBase<-8> : BreaksBase<-6>, BreaksBase<-7> {};
 //typedef py::class_<BreaksBase<-8>, BreaksBase<-6>, BreaksBase<-7>> Breaks8;
 //CHECK_BROKEN(8);
-
-test_initializer class_args([](py::module &m) {
-    // Just test that this compiled okay
-    m.def("class_args_noop", []() {});
-});
