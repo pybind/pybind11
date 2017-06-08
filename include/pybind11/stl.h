@@ -32,9 +32,7 @@
 // std::experimental::optional (but not allowed in c++11 mode)
 #  if defined(PYBIND11_CPP14) && __has_include(<experimental/optional>)
 #    include <experimental/optional>
-#    if __cpp_lib_experimental_optional  // just in case
-#      define PYBIND11_HAS_EXP_OPTIONAL 1
-#    endif
+#    define PYBIND11_HAS_EXP_OPTIONAL 1
 #  endif
 // std::variant
 #  if defined(PYBIND11_CPP17) && __has_include(<variant>)
