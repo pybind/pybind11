@@ -77,16 +77,6 @@ template <> struct hash<TplConstrClass> { size_t operator()(const TplConstrClass
 void init_issues(py::module &m) {
     py::module m2 = m.def_submodule("issues");
 
-#if !defined(_MSC_VER)
-    // Visual Studio 2015 currently cannot compile this test
-    // (see the comment in type_caster_base::make_copy_constructor)
-    // #70 compilation issue if operator new is not public
-    class NonConstructible { private: void *operator new(size_t bytes) throw(); };
-    py::class_<NonConstructible>(m, "Foo");
-    m2.def("getstmt", []() -> NonConstructible * { return nullptr; },
-        py::return_value_policy::reference);
-#endif
-
     // #137: const char* isn't handled properly
     m2.def("print_cchar", [](const char *s) { return std::string(s); });
 
