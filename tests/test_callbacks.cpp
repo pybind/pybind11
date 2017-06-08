@@ -71,9 +71,6 @@ struct Payload {
     }
 };
 
-/// Something to trigger a conversion error
-struct Unregistered {};
-
 class AbstractBase {
 public:
   virtual unsigned int func() = 0;
@@ -144,11 +141,11 @@ test_initializer callbacks([](py::module &m) {
     });
 
     m.def("test_arg_conversion_error1", [](py::function f) {
-        f(234, Unregistered(), "kw"_a=567);
+        f(234, UnregisteredType(), "kw"_a=567);
     });
 
     m.def("test_arg_conversion_error2", [](py::function f) {
-        f(234, "expected_name"_a=Unregistered(), "kw"_a=567);
+        f(234, "expected_name"_a=UnregisteredType(), "kw"_a=567);
     });
 
     /* Test cleanup of lambda closure */

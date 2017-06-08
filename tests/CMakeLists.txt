@@ -28,10 +28,11 @@ endif()
 set(PYBIND11_TEST_FILES
   test_alias_initialization.cpp
   test_buffers.cpp
+  test_builtin_casters.cpp
   test_call_policies.cpp
   test_callbacks.cpp
   test_chrono.cpp
-  test_class_args.cpp
+  test_class.cpp
   test_constants_and_functions.cpp
   test_copy_move.cpp
   test_docstring_options.cpp
@@ -50,9 +51,10 @@ set(PYBIND11_TEST_FILES
   test_opaque_types.cpp
   test_operator_overloading.cpp
   test_pickling.cpp
-  test_python_types.cpp
+  test_pytypes.cpp
   test_sequences_and_iterators.cpp
   test_smart_ptr.cpp
+  test_stl.cpp
   test_stl_binders.cpp
   test_virtual_functions.cpp
 )

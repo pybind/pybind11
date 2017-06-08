@@ -108,6 +108,10 @@ struct PythonCallInDestructor {
 };
 
 test_initializer custom_exceptions([](py::module &m) {
+    m.def("throw_std_exception", []() {
+        throw std::runtime_error("This exception was intentionally thrown.");
+    });
+
     // make a new custom exception and use it as a translation target
     static py::exception<MyException> ex(m, "MyException");
     py::register_exception_translator([](std::exception_ptr p) {

@@ -97,8 +97,6 @@ test_initializer inheritance([](py::module &m) {
     m.def("return_none", []() -> BaseClass* { return nullptr; });
 
     m.def("test_isinstance", [](py::list l) {
-        struct Unregistered { }; // checks missing type_info code path
-
         return py::make_tuple(
             py::isinstance<py::tuple>(l[0]),
             py::isinstance<py::dict>(l[1]),
@@ -106,7 +104,7 @@ test_initializer inheritance([](py::module &m) {
             py::isinstance<Pet>(l[3]),
             py::isinstance<Dog>(l[4]),
             py::isinstance<Rabbit>(l[5]),
-            py::isinstance<Unregistered>(l[6])
+            py::isinstance<UnregisteredType>(l[6])
         );
     });
 
