@@ -755,8 +755,7 @@ public:
 
     // initializer_list's aren't deducible, so don't get matched by the above template; we need this
     // to explicitly allow implicit conversion from one:
-    template <typename TIn, typename = enable_if_t<std::is_convertible<TIn, T>::value>>
-    any_container(const std::initializer_list<TIn> &c) : any_container(c.begin(), c.end()) { }
+    any_container(const std::initializer_list<T> &c) : any_container(c.begin(), c.end()) { }
 
     // Avoid copying if given an rvalue vector of the correct type.
     any_container(std::vector<T> &&v) : v(std::move(v)) { }
