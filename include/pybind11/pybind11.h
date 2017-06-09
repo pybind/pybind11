@@ -1353,7 +1353,7 @@ template <typename Iterator, typename Sentinel, bool KeyIterator, return_value_p
 struct iterator_state {
     Iterator it;
     Sentinel end;
-    bool first;
+    bool first_or_done;
 };
 
 NAMESPACE_END(detail)
@@ -1374,17 +1374,19 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
         class_<state>(handle(), "iterator")
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> ValueType {
-                if (!s.first)
+                if (!s.first_or_done)
                     ++s.it;
                 else
-                    s.first = false;
-                if (s.it == s.end)
+                    s.first_or_done = false;
+                if (s.it == s.end) {
+                    s.first_or_done = true;
                     throw stop_iteration();
+                }
                 return *s.it;
             }, std::forward<Extra>(extra)..., Policy);
     }
 
-    return (iterator) cast(state { first, last, true });
+    return cast(state{first, last, true});
 }
 
 /// Makes an python iterator over the keys (`.first`) of a iterator over pairs from a
@@ -1401,17 +1403,19 @@ iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
         class_<state>(handle(), "iterator")
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> KeyType {
-                if (!s.first)
+                if (!s.first_or_done)
                     ++s.it;
                 else
-                    s.first = false;
-                if (s.it == s.end)
+                    s.first_or_done = false;
+                if (s.it == s.end) {
+                    s.first_or_done = true;
                     throw stop_iteration();
+                }
                 return (*s.it).first;
             }, std::forward<Extra>(extra)..., Policy);
     }
 
-    return (iterator) cast(state { first, last, true });
+    return cast(state{first, last, true});
 }
 
 /// Makes an iterator over values of an stl container or other container supporting
