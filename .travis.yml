@@ -37,7 +37,7 @@ matrix:
     env: PYTHON=3.6 CPP=14 CLANG
   # Test a PyPy 2.7 build
   - os: linux
-    env: PYPY=5.7 PYTHON=2.7 CPP=11 GCC=4.8
+    env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
     addons:
       apt:
         packages: [libblas-dev, liblapack-dev, gfortran]
@@ -120,9 +120,9 @@ before_install:
     SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
     $SCRIPT_RUN_PREFIX sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
   else
-    if [ "$PYPY" = "5.7" ]; then
-      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.7.1-linux64.tar.bz2 | tar xj
-      PY_CMD=$(echo `pwd`/pypy2-v5.7.1-linux64/bin/pypy)
+    if [ "$PYPY" = "5.8" ]; then
+      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.8.0-linux64.tar.bz2 | tar xj
+      PY_CMD=$(echo `pwd`/pypy2-v5.8.0-linux64/bin/pypy)
       CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
     else
       PY_CMD=python$PYTHON
@@ -179,7 +179,8 @@ install:
 
     export NPY_NUM_BUILD_JOBS=2
     echo "Installing pytest, numpy, scipy..."
-    ${PYPY:+travis_wait 30} $PY_CMD -m pip install --user --upgrade --quiet pytest numpy scipy
+    ${PYPY:+travis_wait 30} $PY_CMD -m pip install --user --upgrade pytest numpy scipy \
+        ${PYPY:+--extra-index-url https://imaginary.ca/trusty-pypi}
     echo "done."
 
     wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.3.3.tar.gz
