@@ -37,12 +37,20 @@ public:
     options& disable_function_signatures() & { global_state().show_function_signatures = false; return *this; }
 
     options& enable_function_signatures() & { global_state().show_function_signatures = true; return *this; }
+    
+    options& enable_type_error_print_repr() { global_state().type_error_print_repr = true; return *this; }
+    options& enable_type_error_print_str() { global_state().type_error_print_repr = false; return *this; }
+
+
 
     // Getter methods (return the global state):
 
     static bool show_user_defined_docstrings() { return global_state().show_user_defined_docstrings; }
 
     static bool show_function_signatures() { return global_state().show_function_signatures; }
+
+    static bool type_error_print_repr() { return global_state().type_error_print_repr; }
+    static bool type_error_print_str() { return !global_state().type_error_print_repr; }
 
     // This type is not meant to be allocated on the heap.
     void* operator new(size_t) = delete;
@@ -52,6 +60,8 @@ private:
     struct state {
         bool show_user_defined_docstrings = true;  //< Include user-supplied texts in docstrings.
         bool show_function_signatures = true;      //< Include auto-generated function signatures in docstrings.
+        bool type_error_print_repr = true;               //< If true, if args mismatch __repr__ of argument is shown if true, 
+                                                   //< else __str__ is used
     };
 
     static state &global_state() {
