@@ -681,7 +681,14 @@ protected:
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
                 if (!some_args) some_args = true;
                 else msg += ", ";
-                msg += pybind11::repr(args_[ti]);
+                // using repr will lead to very
+                // long cout if a class implements
+                // __repr__
+                // For array like classes this can even
+                // take a long time
+                // therefore we should use __str__ 
+                //msg += pybind11::repr(args_[ti]);
+                msg += pybind11::str(args_[ti]);
             }
             if (kwargs_in) {
                 auto kwargs = reinterpret_borrow<dict>(kwargs_in);
