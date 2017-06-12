@@ -38,8 +38,8 @@ public:
 
     options& enable_function_signatures() & { global_state().show_function_signatures = true; return *this; }
 
-    options& enable_type_error_print_repr() { global_state().type_error_print_repr = true; return *this; }
-    options& enable_type_error_print_str() { global_state().type_error_print_repr = false; return *this; }
+    options& set_type_error_print_repr() { global_state().type_error_print_repr = true; return *this; }
+    options& set_type_error_print_str() { global_state().type_error_print_repr = false; return *this; }
 
 
 
