@@ -20,13 +20,25 @@ def test_override(capture, msg):
             print('ExtendedExampleVirt::run_bool()')
             return False
 
+        def get_string1(self):
+            return "override1"
+
         def pure_virtual(self):
             print('ExtendedExampleVirt::pure_virtual(): %s' % self.data)
+
+    class ExtendedExampleVirt2(ExtendedExampleVirt):
+        def __init__(self, state):
+            super(ExtendedExampleVirt2, self).__init__(state + 1)
+
+        def get_string2(self):
+            return "override2"
 
     ex12 = ExampleVirt(10)
     with capture:
         assert runExampleVirt(ex12, 20) == 30
-    assert capture == "Original implementation of ExampleVirt::run(state=10, value=20)"
+    assert capture == """
+        Original implementation of ExampleVirt::run(state=10, value=20, str1=default1, str2=default2)
+    """  # noqa: E501 line too long
 
     with pytest.raises(RuntimeError) as excinfo:
         runExampleVirtVirtual(ex12)
@@ -37,8 +49,8 @@ def test_override(capture, msg):
         assert runExampleVirt(ex12p, 20) == 32
     assert capture == """
         ExtendedExampleVirt::run(20), calling parent..
-        Original implementation of ExampleVirt::run(state=11, value=21)
-    """
+        Original implementation of ExampleVirt::run(state=11, value=21, str1=override1, str2=default2)
+    """  # noqa: E501 line too long
     with capture:
         assert runExampleVirtBool(ex12p) is False
     assert capture == "ExtendedExampleVirt::run_bool()"
@@ -46,11 +58,19 @@ def test_override(capture, msg):
         runExampleVirtVirtual(ex12p)
     assert capture == "ExtendedExampleVirt::pure_virtual(): Hello world"
 
+    ex12p2 = ExtendedExampleVirt2(15)
+    with capture:
+        assert runExampleVirt(ex12p2, 50) == 68
+    assert capture == """
+        ExtendedExampleVirt::run(50), calling parent..
+        Original implementation of ExampleVirt::run(state=17, value=51, str1=override1, str2=override2)
+    """  # noqa: E501 line too long
+
     cstats = ConstructorStats.get(ExampleVirt)
-    assert cstats.alive() == 2
-    del ex12, ex12p
+    assert cstats.alive() == 3
+    del ex12, ex12p, ex12p2
     assert cstats.alive() == 0
-    assert cstats.values() == ['10', '11']
+    assert cstats.values() == ['10', '11', '17']
     assert cstats.copy_constructions == 0
     assert cstats.move_constructions >= 0
 
@@ -58,68 +78,76 @@ def test_override(capture, msg):
 def test_inheriting_repeat():
     from pybind11_tests import A_Repeat, B_Repeat, C_Repeat, D_Repeat, A_Tpl, B_Tpl, C_Tpl, D_Tpl
 
-    class VI_AR(A_Repeat):
+    class AR(A_Repeat):
         def unlucky_number(self):
             return 99
 
-    class VI_AT(A_Tpl):
+    class AT(A_Tpl):
         def unlucky_number(self):
             return 999
 
-    obj = VI_AR()
+    obj = AR()
     assert obj.say_something(3) == "hihihi"
     assert obj.unlucky_number() == 99
+    assert obj.say_everything() == "hi 99"
 
-    obj = VI_AT()
+    obj = AT()
     assert obj.say_something(3) == "hihihi"
     assert obj.unlucky_number() == 999
+    assert obj.say_everything() == "hi 999"
 
     for obj in [B_Repeat(), B_Tpl()]:
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 13
         assert obj.lucky_number() == 7.0
+        assert obj.say_everything() == "B says hi 1 times 13"
 
     for obj in [C_Repeat(), C_Tpl()]:
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 4444
         assert obj.lucky_number() == 888.0
+        assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_CR(C_Repeat):
+    class CR(C_Repeat):
         def lucky_number(self):
             return C_Repeat.lucky_number(self) + 1.25
 
-    obj = VI_CR()
+    obj = CR()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 889.25
+    assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_CT(C_Tpl):
+    class CT(C_Tpl):
         pass
 
-    obj = VI_CT()
+    obj = CT()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 888.0
+    assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_CCR(VI_CR):
+    class CCR(CR):
         def lucky_number(self):
-            return VI_CR.lucky_number(self) * 10
+            return CR.lucky_number(self) * 10
 
-    obj = VI_CCR()
+    obj = CCR()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 8892.5
+    assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_CCT(VI_CT):
+    class CCT(CT):
         def lucky_number(self):
-            return VI_CT.lucky_number(self) * 1000
+            return CT.lucky_number(self) * 1000
 
-    obj = VI_CCT()
+    obj = CCT()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 4444
     assert obj.lucky_number() == 888000.0
+    assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class VI_DR(D_Repeat):
+    class DR(D_Repeat):
         def unlucky_number(self):
             return 123
 
@@ -130,15 +158,17 @@ def test_inheriting_repeat():
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 4444
         assert obj.lucky_number() == 888.0
+        assert obj.say_everything() == "B says hi 1 times 4444"
 
-    obj = VI_DR()
+    obj = DR()
     assert obj.say_something(3) == "B says hi 3 times"
     assert obj.unlucky_number() == 123
     assert obj.lucky_number() == 42.0
+    assert obj.say_everything() == "B says hi 1 times 123"
 
-    class VI_DT(D_Tpl):
+    class DT(D_Tpl):
         def say_something(self, times):
-            return "VI_DT says:" + (' quack' * times)
+            return "DT says:" + (' quack' * times)
 
         def unlucky_number(self):
             return 1234
@@ -146,11 +176,39 @@ def test_inheriting_repeat():
         def lucky_number(self):
             return -4.25
 
-    obj = VI_DT()
-    assert obj.say_something(3) == "VI_DT says: quack quack quack"
+    obj = DT()
+    assert obj.say_something(3) == "DT says: quack quack quack"
     assert obj.unlucky_number() == 1234
     assert obj.lucky_number() == -4.25
+    assert obj.say_everything() == "DT says: quack 1234"
 
+    class DT2(DT):
+        def say_something(self, times):
+            return "DT2: " + ('QUACK' * times)
+
+        def unlucky_number(self):
+            return -3
+
+    class BT(B_Tpl):
+        def say_something(self, times):
+            return "BT" * times
+
+        def unlucky_number(self):
+            return -7
+
+        def lucky_number(self):
+            return -1.375
+
+    obj = BT()
+    assert obj.say_something(3) == "BTBTBT"
+    assert obj.unlucky_number() == -7
+    assert obj.lucky_number() == -1.375
+    assert obj.say_everything() == "BT -7"
+
+
+# PyPy: Reference count > 1 causes call with noncopyable instance
+# to fail in ncv1.print_nc()
+@pytest.unsupported_on_pypy
 @pytest.mark.skipif(not hasattr(pybind11_tests, 'NCVirt'),
                     reason="NCVirt test broken on ICPC")
 def test_move_support():

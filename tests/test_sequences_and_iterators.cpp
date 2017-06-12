@@ -129,7 +129,8 @@ private:
 // map-like functionality.
 class StringMap {
 public:
-    StringMap(std::unordered_map<std::string, std::string> init = {})
+    StringMap() = default;
+    StringMap(std::unordered_map<std::string, std::string> init)
         : map(std::move(init)) {}
 
     void set(std::string key, std::string val) {
@@ -168,7 +169,49 @@ bool operator==(const NonZeroIterator<std::pair<A, B>>& it, const NonZeroSentine
     return !(*it).first || !(*it).second;
 }
 
-void init_ex_sequences_and_iterators(py::module &m) {
+template <typename PythonType>
+py::list test_random_access_iterator(PythonType x) {
+    if (x.size() < 5)
+        throw py::value_error("Please provide at least 5 elements for testing.");
+
+    auto checks = py::list();
+    auto assert_equal = [&checks](py::handle a, py::handle b) {
+        auto result = PyObject_RichCompareBool(a.ptr(), b.ptr(), Py_EQ);
+        if (result == -1) { throw py::error_already_set(); }
+        checks.append(result != 0);
+    };
+
+    auto it = x.begin();
+    assert_equal(x[0], *it);
+    assert_equal(x[0], it[0]);
+    assert_equal(x[1], it[1]);
+
+    assert_equal(x[1], *(++it));
+    assert_equal(x[1], *(it++));
+    assert_equal(x[2], *it);
+    assert_equal(x[3], *(it += 1));
+    assert_equal(x[2], *(--it));
+    assert_equal(x[2], *(it--));
+    assert_equal(x[1], *it);
+    assert_equal(x[0], *(it -= 1));
+
+    assert_equal(it->attr("real"), x[0].attr("real"));
+    assert_equal((it + 1)->attr("real"), x[1].attr("real"));
+
+    assert_equal(x[1], *(it + 1));
+    assert_equal(x[1], *(1 + it));
+    it += 3;
+    assert_equal(x[1], *(it - 2));
+
+    checks.append(static_cast<std::size_t>(x.end() - x.begin()) == x.size());
+    checks.append((x.begin() + static_cast<std::ptrdiff_t>(x.size())) == x.end());
+    checks.append(x.begin() < x.end());
+
+    return checks;
+}
+
+test_initializer sequences_and_iterators([](py::module &pm) {
+    auto m = pm.def_submodule("sequences_and_iterators");
 
     py::class_<Sequence> seq(m, "Sequence");
 
@@ -271,4 +314,41 @@ void init_ex_sequences_and_iterators(py::module &m) {
     On the actual Sequence object, the iterator would be constructed as follows:
     .def("__iter__", [](py::object s) { return PySequenceIterator(s.cast<const Sequence &>(), s); })
 #endif
-}
+
+    m.def("object_to_list", [](py::object o) {
+        auto l = py::list();
+        for (auto item : o) {
+            l.append(item);
+        }
+        return l;
+    });
+
+    m.def("iterator_to_list", [](py::iterator it) {
+        auto l = py::list();
+        while (it != py::iterator::sentinel()) {
+            l.append(*it);
+            ++it;
+        }
+        return l;
+    });
+
+    // Make sure that py::iterator works with std algorithms
+    m.def("count_none", [](py::object o) {
+        return std::count_if(o.begin(), o.end(), [](py::handle h) { return h.is_none(); });
+    });
+
+    m.def("find_none", [](py::object o) {
+        auto it = std::find_if(o.begin(), o.end(), [](py::handle h) { return h.is_none(); });
+        return it->is_none();
+    });
+
+    m.def("count_nonzeros", [](py::dict d) {
+       return std::count_if(d.begin(), d.end(), [](std::pair<py::handle, py::handle> p) {
+           return p.second.cast<int>() != 0;
+       });
+    });
+
+    m.def("tuple_iterator", [](py::tuple x) { return test_random_access_iterator(x); });
+    m.def("list_iterator", [](py::list x) { return test_random_access_iterator(x); });
+    m.def("sequence_iterator", [](py::sequence x) { return test_random_access_iterator(x); });
+});

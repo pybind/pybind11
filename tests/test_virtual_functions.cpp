@@ -20,15 +20,23 @@ public:
     ~ExampleVirt() { print_destroyed(this); }
 
     virtual int run(int value) {
-        std::cout << "Original implementation of ExampleVirt::run(state=" << state
-                  << ", value=" << value << ")" << std::endl;
+        py::print("Original implementation of "
+                  "ExampleVirt::run(state={}, value={}, str1={}, str2={})"_s.format(state, value, get_string1(), *get_string2()));
         return state + value;
     }
 
     virtual bool run_bool() = 0;
     virtual void pure_virtual() = 0;
+
+    // Returning a reference/pointer to a type converted from python (numbers, strings, etc.) is a
+    // bit trickier, because the actual int& or std::string& or whatever only exists temporarily, so
+    // we have to handle it specially in the trampoline class (see below).
+    virtual const std::string &get_string1() { return str1; }
+    virtual const std::string *get_string2() { return &str2; }
+
 private:
     int state;
+    const std::string str1{"default1"}, str2{"default2"};
 };
 
 /* This is a wrapper class that must be generated */
@@ -36,7 +44,7 @@ class PyExampleVirt : public ExampleVirt {
 public:
     using ExampleVirt::ExampleVirt; /* Inherit constructors */
 
-    virtual int run(int value) {
+    int run(int value) override {
         /* Generate wrapping code that enables native function overloading */
         PYBIND11_OVERLOAD(
             int,         /* Return type */
@@ -46,7 +54,7 @@ public:
         );
     }
 
-    virtual bool run_bool() {
+    bool run_bool() override {
         PYBIND11_OVERLOAD_PURE(
             bool,         /* Return type */
             ExampleVirt,  /* Parent class */
@@ -56,7 +64,7 @@ public:
         );
     }
 
-    virtual void pure_virtual() {
+    void pure_virtual() override {
         PYBIND11_OVERLOAD_PURE(
             void,         /* Return type */
             ExampleVirt,  /* Parent class */
@@ -65,6 +73,27 @@ public:
                              in the previous line is needed for some compilers */
         );
     }
+
+    // We can return reference types for compatibility with C++ virtual interfaces that do so, but
+    // note they have some significant limitations (see the documentation).
+    const std::string &get_string1() override {
+        PYBIND11_OVERLOAD(
+            const std::string &, /* Return type */
+            ExampleVirt,         /* Parent class */
+            get_string1,         /* Name of function */
+                                 /* (no arguments) */
+        );
+    }
+
+    const std::string *get_string2() override {
+        PYBIND11_OVERLOAD(
+            const std::string *, /* Return type */
+            ExampleVirt,         /* Parent class */
+            get_string2,         /* Name of function */
+                                 /* (no arguments) */
+        );
+    }
+
 };
 
 class NonCopyable {
@@ -107,11 +136,11 @@ public:
 };
 class NCVirtTrampoline : public NCVirt {
 #if !defined(__INTEL_COMPILER)
-    virtual NonCopyable get_noncopyable(int a, int b) {
+    NonCopyable get_noncopyable(int a, int b) override {
         PYBIND11_OVERLOAD(NonCopyable, NCVirt, get_noncopyable, a, b);
     }
 #endif
-    virtual Movable get_movable(int a, int b) {
+    Movable get_movable(int a, int b) override {
         PYBIND11_OVERLOAD_PURE(Movable, NCVirt, get_movable, a, b);
     }
 };
@@ -145,6 +174,9 @@ public: \
         for (unsigned i = 0; i < times; ++i) \
             s += "hi"; \
         return s; \
+    } \
+    std::string say_everything() { \
+        return say_something(1) + " " + std::to_string(unlucky_number()); \
     }
 A_METHODS
 };
@@ -250,39 +282,38 @@ public:
 
 void initialize_inherited_virtuals(py::module &m) {
     // Method 1: repeat
-    py::class_<A_Repeat, std::unique_ptr<A_Repeat>, PyA_Repeat>(m, "A_Repeat")
+    py::class_<A_Repeat, PyA_Repeat>(m, "A_Repeat")
         .def(py::init<>())
         .def("unlucky_number", &A_Repeat::unlucky_number)
-        .def("say_something", &A_Repeat::say_something);
-    py::class_<B_Repeat, std::unique_ptr<B_Repeat>, PyB_Repeat>(m, "B_Repeat", py::base<A_Repeat>())
+        .def("say_something", &A_Repeat::say_something)
+        .def("say_everything", &A_Repeat::say_everything);
+    py::class_<B_Repeat, A_Repeat, PyB_Repeat>(m, "B_Repeat")
         .def(py::init<>())
         .def("lucky_number", &B_Repeat::lucky_number);
-    py::class_<C_Repeat, std::unique_ptr<C_Repeat>, PyC_Repeat>(m, "C_Repeat", py::base<B_Repeat>())
+    py::class_<C_Repeat, B_Repeat, PyC_Repeat>(m, "C_Repeat")
         .def(py::init<>());
-    py::class_<D_Repeat, std::unique_ptr<D_Repeat>, PyD_Repeat>(m, "D_Repeat", py::base<C_Repeat>())
+    py::class_<D_Repeat, C_Repeat, PyD_Repeat>(m, "D_Repeat")
         .def(py::init<>());
 
     // Method 2: Templated trampolines
-    py::class_<A_Tpl, std::unique_ptr<A_Tpl>, PyA_Tpl<>>(m, "A_Tpl")
+    py::class_<A_Tpl, PyA_Tpl<>>(m, "A_Tpl")
         .def(py::init<>())
         .def("unlucky_number", &A_Tpl::unlucky_number)
-        .def("say_something", &A_Tpl::say_something);
-    py::class_<B_Tpl, std::unique_ptr<B_Tpl>, PyB_Tpl<>>(m, "B_Tpl", py::base<A_Tpl>())
+        .def("say_something", &A_Tpl::say_something)
+        .def("say_everything", &A_Tpl::say_everything);
+    py::class_<B_Tpl, A_Tpl, PyB_Tpl<>>(m, "B_Tpl")
         .def(py::init<>())
         .def("lucky_number", &B_Tpl::lucky_number);
-    py::class_<C_Tpl, std::unique_ptr<C_Tpl>, PyB_Tpl<C_Tpl>>(m, "C_Tpl", py::base<B_Tpl>())
+    py::class_<C_Tpl, B_Tpl, PyB_Tpl<C_Tpl>>(m, "C_Tpl")
         .def(py::init<>());
-    py::class_<D_Tpl, std::unique_ptr<D_Tpl>, PyB_Tpl<D_Tpl>>(m, "D_Tpl", py::base<C_Tpl>())
+    py::class_<D_Tpl, C_Tpl, PyB_Tpl<D_Tpl>>(m, "D_Tpl")
         .def(py::init<>());
 
 };
 
 
-void init_ex_virtual_functions(py::module &m) {
-    /* Important: indicate the trampoline class PyExampleVirt using the third
-       argument to py::class_. The second argument with the unique pointer
-       is simply the default holder type used by pybind11. */
-    py::class_<ExampleVirt, std::unique_ptr<ExampleVirt>, PyExampleVirt>(m, "ExampleVirt")
+test_initializer virtual_functions([](py::module &m) {
+    py::class_<ExampleVirt, PyExampleVirt>(m, "ExampleVirt")
         .def(py::init<int>())
         /* Reference original class in function definitions */
         .def("run", &ExampleVirt::run)
@@ -296,7 +327,7 @@ void init_ex_virtual_functions(py::module &m) {
         .def(py::init<int, int>());
 
 #if !defined(__INTEL_COMPILER)
-    py::class_<NCVirt, std::unique_ptr<NCVirt>, NCVirtTrampoline>(m, "NCVirt")
+    py::class_<NCVirt, NCVirtTrampoline>(m, "NCVirt")
         .def(py::init<>())
         .def("get_noncopyable", &NCVirt::get_noncopyable)
         .def("get_movable", &NCVirt::get_movable)
@@ -310,4 +341,4 @@ void init_ex_virtual_functions(py::module &m) {
 
     m.def("cstats_debug", &ConstructorStats::get<ExampleVirt>);
     initialize_inherited_virtuals(m);
-}
+});

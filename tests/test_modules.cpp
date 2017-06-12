@@ -39,7 +39,7 @@ public:
     A a2{2};
 };
 
-void init_ex_modules(py::module &m) {
+test_initializer modules([](py::module &m) {
     py::module m_sub = m.def_submodule("submodule");
     m_sub.def("submodule_func", &submodule_func);
 
@@ -55,4 +55,4 @@ void init_ex_modules(py::module &m) {
         .def_readwrite("a2", &B::a2);
 
     m.attr("OD") = py::module::import("collections").attr("OrderedDict");
-}
+});

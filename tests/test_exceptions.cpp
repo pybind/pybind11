@@ -46,6 +46,18 @@ private:
     std::string message = "";
 };
 
+
+// Like the above, but declared via the helper function
+class MyException5 : public std::logic_error {
+public:
+    explicit MyException5(const std::string &what) : std::logic_error(what) {}
+};
+
+// Inherits from MyException5
+class MyException5_1 : public MyException5 {
+    using MyException5::MyException5;
+};
+
 void throws1() {
     throw MyException("this error should go to a custom type");
 }
@@ -62,18 +74,48 @@ void throws4() {
     throw MyException4("this error is rethrown");
 }
 
+void throws5() {
+    throw MyException5("this is a helper-defined translated exception");
+}
+
+void throws5_1() {
+    throw MyException5_1("MyException5 subclass");
+}
+
 void throws_logic_error() {
     throw std::logic_error("this error should fall through to the standard handler");
 }
 
-void init_ex_custom_exceptions(py::module &m) {
+// Test error_already_set::matches() method
+void exception_matches() {
+    py::dict foo;
+    try {
+        foo["bar"];
+    }
+    catch (py::error_already_set& ex) {
+        if (ex.matches(PyExc_KeyError))
+            ex.clear();
+        else
+            throw;
+    }
+}
+
+struct PythonCallInDestructor {
+    PythonCallInDestructor(const py::dict &d) : d(d) {}
+    ~PythonCallInDestructor() { d["good"] = true; }
+
+    py::dict d;
+};
+
+test_initializer custom_exceptions([](py::module &m) {
     // make a new custom exception and use it as a translation target
     static py::exception<MyException> ex(m, "MyException");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) std::rethrow_exception(p);
         } catch (const MyException &e) {
-            PyErr_SetString(ex.ptr(), e.what());
+            // Set MyException as the active python error
+            ex(e.what());
         }
     });
 
@@ -84,6 +126,7 @@ void init_ex_custom_exceptions(py::module &m) {
         try {
             if (p) std::rethrow_exception(p);
         } catch (const MyException2 &e) {
+            // Translate this exception to a standard RuntimeError
             PyErr_SetString(PyExc_RuntimeError, e.what());
         }
     });
@@ -99,10 +142,47 @@ void init_ex_custom_exceptions(py::module &m) {
         }
     });
 
+    // A simple exception translation:
+    auto ex5 = py::register_exception<MyException5>(m, "MyException5");
+    // A slightly more complicated one that declares MyException5_1 as a subclass of MyException5
+    py::register_exception<MyException5_1>(m, "MyException5_1", ex5.ptr());
+
     m.def("throws1", &throws1);
     m.def("throws2", &throws2);
     m.def("throws3", &throws3);
     m.def("throws4", &throws4);
+    m.def("throws5", &throws5);
+    m.def("throws5_1", &throws5_1);
     m.def("throws_logic_error", &throws_logic_error);
-}
+    m.def("exception_matches", &exception_matches);
 
+    m.def("throw_already_set", [](bool err) {
+        if (err)
+            PyErr_SetString(PyExc_ValueError, "foo");
+        try {
+            throw py::error_already_set();
+        } catch (const std::runtime_error& e) {
+            if ((err && e.what() != std::string("ValueError: foo")) ||
+                (!err && e.what() != std::string("Unknown internal error occurred")))
+            {
+                PyErr_Clear();
+                throw std::runtime_error("error message mismatch");
+            }
+        }
+        PyErr_Clear();
+        if (err)
+            PyErr_SetString(PyExc_ValueError, "foo");
+        throw py::error_already_set();
+    });
+
+    m.def("python_call_in_destructor", [](py::dict d) {
+        try {
+            PythonCallInDestructor set_dict_in_destructor(d);
+            PyErr_SetString(PyExc_ValueError, "foo");
+            throw py::error_already_set();
+        } catch (const py::error_already_set&) {
+            return true;
+        }
+        return false;
+    });
+});

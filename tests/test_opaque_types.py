@@ -28,17 +28,19 @@ def test_pointers(msg):
                                 print_opaque_list, return_null_str, get_null_str_value,
                                 return_unique_ptr, ConstructorStats)
 
+    living_before = ConstructorStats.get(ExampleMandA).alive()
     assert get_void_ptr_value(return_void_ptr()) == 0x1234
     assert get_void_ptr_value(ExampleMandA())  # Should also work for other C++ types
-    assert ConstructorStats.get(ExampleMandA).alive() == 0
+    assert ConstructorStats.get(ExampleMandA).alive() == living_before
 
     with pytest.raises(TypeError) as excinfo:
         get_void_ptr_value([1, 2, 3])  # This should not work
     assert msg(excinfo.value) == """
-        Incompatible function arguments. The following argument types are supported:
+        get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
             1. (arg0: capsule) -> int
-            Invoked with: [1, 2, 3]
-    """
+
+        Invoked with: [1, 2, 3]
+    """  # noqa: E501 line too long
 
     assert return_null_str() is None
     assert get_null_str_value(return_null_str()) is not None

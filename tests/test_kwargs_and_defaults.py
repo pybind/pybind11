@@ -1,7 +1,6 @@
 import pytest
-from pybind11_tests import (kw_func0, kw_func1, kw_func2, kw_func3, kw_func4, call_kw_func,
-                            args_function, args_kwargs_function, kw_func_udl, kw_func_udl_z,
-                            KWClass)
+from pybind11_tests import (kw_func0, kw_func1, kw_func2, kw_func3, kw_func4, args_function,
+                            args_kwargs_function, kw_func_udl, kw_func_udl_z, KWClass)
 
 
 def test_function_signatures(doc):
@@ -35,11 +34,8 @@ def test_named_arguments(msg):
     with pytest.raises(TypeError) as excinfo:
         # noinspection PyArgumentList
         kw_func2(x=5, y=10, z=12)
-    assert msg(excinfo.value) == """
-        Incompatible function arguments. The following argument types are supported:
-            1. (x: int=100, y: int=200) -> str
-            Invoked with:
-    """
+    assert excinfo.match(
+        r'(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$))' + '{3}$')
 
     assert kw_func4() == "{13 17}"
     assert kw_func4(myList=[1, 2, 3]) == "{1 2 3}"
@@ -49,11 +45,64 @@ def test_named_arguments(msg):
 
 
 def test_arg_and_kwargs():
-    assert call_kw_func(kw_func2) == "x=1234, y=5678"
-
     args = 'arg1_value', 'arg2_value', 3
     assert args_function(*args) == args
 
     args = 'a1', 'a2'
     kwargs = dict(arg3='a3', arg4=4)
     assert args_kwargs_function(*args, **kwargs) == (args, kwargs)
+
+
+def test_mixed_args_and_kwargs(msg):
+    from pybind11_tests import (mixed_plus_args, mixed_plus_kwargs, mixed_plus_args_kwargs,
+                                mixed_plus_args_kwargs_defaults)
+    mpa = mixed_plus_args
+    mpk = mixed_plus_kwargs
+    mpak = mixed_plus_args_kwargs
+    mpakd = mixed_plus_args_kwargs_defaults
+
+    assert mpa(1, 2.5, 4, 99.5, None) == (1, 2.5, (4, 99.5, None))
+    assert mpa(1, 2.5) == (1, 2.5, ())
+    with pytest.raises(TypeError) as excinfo:
+        assert mpa(1)
+    assert msg(excinfo.value) == """
+        mixed_plus_args(): incompatible function arguments. The following argument types are supported:
+            1. (arg0: int, arg1: float, *args) -> tuple
+
+        Invoked with: 1
+    """  # noqa: E501 line too long
+    with pytest.raises(TypeError) as excinfo:
+        assert mpa()
+    assert msg(excinfo.value) == """
+        mixed_plus_args(): incompatible function arguments. The following argument types are supported:
+            1. (arg0: int, arg1: float, *args) -> tuple
+
+        Invoked with:
+    """  # noqa: E501 line too long
+
+    assert mpk(-2, 3.5, pi=3.14159, e=2.71828) == (-2, 3.5, {'e': 2.71828, 'pi': 3.14159})
+    assert mpak(7, 7.7, 7.77, 7.777, 7.7777, minusseven=-7) == (
+        7, 7.7, (7.77, 7.777, 7.7777), {'minusseven': -7})
+    assert mpakd() == (1, 3.14159, (), {})
+    assert mpakd(3) == (3, 3.14159, (), {})
+    assert mpakd(j=2.71828) == (1, 2.71828, (), {})
+    assert mpakd(k=42) == (1, 3.14159, (), {'k': 42})
+    assert mpakd(1, 1, 2, 3, 5, 8, then=13, followedby=21) == (
+        1, 1, (2, 3, 5, 8), {'then': 13, 'followedby': 21})
+    # Arguments specified both positionally and via kwargs should fail:
+    with pytest.raises(TypeError) as excinfo:
+        assert mpakd(1, i=1)
+    assert msg(excinfo.value) == """
+        mixed_plus_args_kwargs_defaults(): incompatible function arguments. The following argument types are supported:
+            1. (i: int=1, j: float=3.14159, *args, **kwargs) -> tuple
+
+        Invoked with: 1; kwargs: i=1
+    """  # noqa: E501 line too long
+    with pytest.raises(TypeError) as excinfo:
+        assert mpakd(1, 2, j=1)
+    assert msg(excinfo.value) == """
+        mixed_plus_args_kwargs_defaults(): incompatible function arguments. The following argument types are supported:
+            1. (i: int=1, j: float=3.14159, *args, **kwargs) -> tuple
+
+        Invoked with: 1, 2; kwargs: j=1
+    """  # noqa: E501 line too long

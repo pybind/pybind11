@@ -39,10 +39,14 @@ public:
     Vector2 operator+(float value) const { return Vector2(x + value, y + value); }
     Vector2 operator*(float value) const { return Vector2(x * value, y * value); }
     Vector2 operator/(float value) const { return Vector2(x / value, y / value); }
+    Vector2 operator*(const Vector2 &v) const { return Vector2(x * v.x, y * v.y); }
+    Vector2 operator/(const Vector2 &v) const { return Vector2(x / v.x, y / v.y); }
     Vector2& operator+=(const Vector2 &v) { x += v.x; y += v.y; return *this; }
     Vector2& operator-=(const Vector2 &v) { x -= v.x; y -= v.y; return *this; }
     Vector2& operator*=(float v) { x *= v; y *= v; return *this; }
     Vector2& operator/=(float v) { x /= v; y /= v; return *this; }
+    Vector2& operator*=(const Vector2 &v) { x *= v.x; y *= v.y; return *this; }
+    Vector2& operator/=(const Vector2 &v) { x /= v.x; y /= v.y; return *this; }
 
     friend Vector2 operator+(float f, const Vector2 &v) { return Vector2(f + v.x, f + v.y); }
     friend Vector2 operator-(float f, const Vector2 &v) { return Vector2(f - v.x, f - v.y); }
@@ -52,7 +56,7 @@ private:
     float x, y;
 };
 
-void init_ex_operator_overloading(py::module &m) {
+test_initializer operator_overloading([](py::module &m) {
     py::class_<Vector2>(m, "Vector2")
         .def(py::init<float, float>())
         .def(py::self + py::self)
@@ -61,10 +65,14 @@ void init_ex_operator_overloading(py::module &m) {
         .def(py::self - float())
         .def(py::self * float())
         .def(py::self / float())
+        .def(py::self * py::self)
+        .def(py::self / py::self)
         .def(py::self += py::self)
         .def(py::self -= py::self)
         .def(py::self *= float())
         .def(py::self /= float())
+        .def(py::self *= py::self)
+        .def(py::self /= py::self)
         .def(float() + py::self)
         .def(float() - py::self)
         .def(float() * py::self)
@@ -73,4 +81,4 @@ void init_ex_operator_overloading(py::module &m) {
         ;
 
     m.attr("Vector") = m.attr("Vector2");
-}
+});

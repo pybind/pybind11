@@ -1,8 +1,10 @@
 To release a new version of pybind11:
 
 - Update the version number and push to pypi
-    - Update ``pybind11/_version.py`` (set release version, remove 'dev')
-    - Update version in ``docs/conf.py``
+    - Update ``pybind11/_version.py`` (set release version, remove 'dev').
+    - Update ``PYBIND11_VERSION_MAJOR`` etc. in ``include/pybind11/common.h``.
+    - Ensure that all the information in ``setup.py`` is up-to-date.
+    - Update version in ``docs/conf.py``.
     - Tag release date in ``docs/changelog.rst``.
     - ``git add`` and ``git commit``.
     - if new minor version: ``git checkout -b vX.Y``, ``git push -u origin vX.Y``

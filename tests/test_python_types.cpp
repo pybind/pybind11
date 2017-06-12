@@ -17,6 +17,11 @@
 #  include <fcntl.h>
 #endif
 
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+#endif
+
 class ExamplePythonTypes {
 public:
     static ExamplePythonTypes *new_instance() {
@@ -37,7 +42,8 @@ public:
     py::set get_set() {
         py::set set;
         set.add(py::str("key1"));
-        set.add(py::str("key2"));
+        set.add("key2");
+        set.add(std::string("key3"));
         return set;
     }
 
@@ -59,8 +65,8 @@ public:
     /* Create, manipulate, and return a Python list */
     py::list get_list() {
         py::list list;
-        list.append(py::str("value"));
-        cout << "Entry at positon 0: " << py::object(list[0]) << endl;
+        list.append("value");
+        py::print("Entry at position 0:", list[0]);
         list[0] = py::str("overwritten");
         return list;
     }
@@ -77,45 +83,46 @@ public:
         return std::array<std::string, 2> {{ "array entry 1" , "array entry 2"}};
     }
 
+    std::valarray<int> get_valarray() {
+        return std::valarray<int>({ 1, 4, 9 });
+    }
+
     /* Easily iterate over a dictionary using a C++11 range-based for loop */
     void print_dict(py::dict dict) {
         for (auto item : dict)
-            std::cout << "key: " << item.first << ", value=" << item.second << std::endl;
+            py::print("key: {}, value={}"_s.format(item.first, item.second));
     }
 
     /* Easily iterate over a set using a C++11 range-based for loop */
     void print_set(py::set set) {
         for (auto item : set)
-            std::cout << "key: " << item << std::endl;
+            py::print("key:", item);
     }
 
     /* Easily iterate over a list using a C++11 range-based for loop */
     void print_list(py::list list) {
         int index = 0;
         for (auto item : list)
-            std::cout << "list item " << index++ << ": " << item << std::endl;
+            py::print("list item {}: {}"_s.format(index++, item));
     }
 
     /* STL data types (such as maps) are automatically casted from Python */
     void print_dict_2(const std::map<std::string, std::string> &dict) {
         for (auto item : dict)
-            std::cout << "key: " << item.first << ", value=" << item.second << std::endl;
+            py::print("key: {}, value={}"_s.format(item.first, item.second));
     }
 
     /* STL data types (such as sets) are automatically casted from Python */
     void print_set_2(const std::set<std::string> &set) {
         for (auto item : set)
-            std::cout << "key: " << item << std::endl;
+            py::print("key:", item);
     }
 
     /* STL data types (such as vectors) are automatically casted from Python */
     void print_list_2(std::vector<std::wstring> &list) {
-#ifdef _WIN32 /* Can't easily mix cout and wcout on Windows */
-        _setmode(_fileno(stdout), _O_TEXT);
-#endif
         int index = 0;
         for (auto item : list)
-            std::wcout << L"list item " << index++ << L": " << item << std::endl;
+            py::print("list item {}: {}"_s.format(index++, item));
     }
 
     /* pybind automatically translates between C++11 and Python tuples */
@@ -132,7 +139,13 @@ public:
     void print_array(std::array<std::string, 2> &array) {
         int index = 0;
         for (auto item : array)
-            std::cout << "array item " << index++ << ": " << item << std::endl;
+            py::print("array item {}: {}"_s.format(index++, item));
+    }
+
+    void print_valarray(std::valarray<int> &varray) {
+        int index = 0;
+        for (auto item : varray)
+            py::print("valarray item {}: {}"_s.format(index++, item));
     }
 
     void throw_exception() {
@@ -156,8 +169,8 @@ public:
     }
 
     void test_print(const py::object& obj) {
-        std::cout << obj.str() << std::endl;
-        std::cout << obj.repr() << std::endl;
+        py::print(py::str(obj));
+        py::print(py::repr(obj));
     }
 
     static int value;
@@ -167,7 +180,42 @@ public:
 int ExamplePythonTypes::value = 0;
 const int ExamplePythonTypes::value2 = 5;
 
-void init_ex_python_types(py::module &m) {
+struct MoveOutContainer {
+    struct Value { int value; };
+
+    std::list<Value> move_list() const { return {{0}, {1}, {2}}; }
+};
+
+struct UnregisteredType { };
+
+// Class that can be move- and copy-constructed, but not assigned
+struct NoAssign {
+    int value;
+
+    explicit NoAssign(int value = 0) : value(value) {}
+    NoAssign(const NoAssign &) = default;
+    NoAssign(NoAssign &&) = default;
+
+    NoAssign &operator=(const NoAssign &) = delete;
+    NoAssign &operator=(NoAssign &&) = delete;
+};
+
+// Increments on copy
+struct IncrIntWrapper {
+    int i;
+    IncrIntWrapper(int i) : i(i) {}
+    IncrIntWrapper(const IncrIntWrapper &copy) : i(copy.i + 1) {}
+};
+
+std::vector<std::reference_wrapper<IncrIntWrapper>> incr_int_wrappers() {
+    static IncrIntWrapper x1(1), x2(2);
+    std::vector<std::reference_wrapper<IncrIntWrapper>> r;
+    r.emplace_back(x1);
+    r.emplace_back(x2);
+    return r;
+};
+
+test_initializer python_types([](py::module &m) {
     /* No constructor is explicitly defined below. An exception is raised when
        trying to construct it directly from Python */
     py::class_<ExamplePythonTypes>(m, "ExamplePythonTypes", "Example 2 documentation")
@@ -178,6 +226,7 @@ void init_ex_python_types(py::module &m) {
         .def("get_set", &ExamplePythonTypes::get_set, "Return a Python set")
         .def("get_set2", &ExamplePythonTypes::get_set_2, "Return a C++ set")
         .def("get_array", &ExamplePythonTypes::get_array, "Return a C++ array")
+        .def("get_valarray", &ExamplePythonTypes::get_valarray, "Return a C++ valarray")
         .def("print_dict", &ExamplePythonTypes::print_dict, "Print entries of a Python dictionary")
         .def("print_dict_2", &ExamplePythonTypes::print_dict_2, "Print entries of a C++ dictionary")
         .def("print_set", &ExamplePythonTypes::print_set, "Print entries of a Python set")
@@ -185,6 +234,7 @@ void init_ex_python_types(py::module &m) {
         .def("print_list", &ExamplePythonTypes::print_list, "Print entries of a Python list")
         .def("print_list_2", &ExamplePythonTypes::print_list_2, "Print entries of a C++ list")
         .def("print_array", &ExamplePythonTypes::print_array, "Print entries of a C++ array")
+        .def("print_valarray", &ExamplePythonTypes::print_valarray, "Print entries of a C++ valarray")
         .def("pair_passthrough", &ExamplePythonTypes::pair_passthrough, "Return a pair in reversed order")
         .def("tuple_passthrough", &ExamplePythonTypes::tuple_passthrough, "Return a triple in reversed order")
         .def("throw_exception", &ExamplePythonTypes::throw_exception, "Throw an exception")
@@ -195,6 +245,393 @@ void init_ex_python_types(py::module &m) {
         .def("test_print", &ExamplePythonTypes::test_print, "test the print function")
         .def_static("new_instance", &ExamplePythonTypes::new_instance, "Return an instance")
         .def_readwrite_static("value", &ExamplePythonTypes::value, "Static value member")
-        .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)")
-        ;
-}
+        .def_readonly_static("value2", &ExamplePythonTypes::value2, "Static value member (readonly)");
+
+    m.def("test_print_function", []() {
+        py::print("Hello, World!");
+        py::print(1, 2.0, "three", true, std::string("-- multiple args"));
+        auto args = py::make_tuple("and", "a", "custom", "separator");
+        py::print("*args", *args, "sep"_a="-");
+        py::print("no new line here", "end"_a=" -- ");
+        py::print("next print");
+
+        auto py_stderr = py::module::import("sys").attr("stderr");
+        py::print("this goes to stderr", "file"_a=py_stderr);
+
+        py::print("flush", "flush"_a=true);
+
+        py::print("{a} + {b} = {c}"_s.format("a"_a="py::print", "b"_a="str.format", "c"_a="this"));
+    });
+
+    py::class_<NoAssign>(m, "NoAssign", "Class with no C++ assignment operators")
+        .def(py::init<>())
+        .def(py::init<int>());
+
+    m.def("test_print_failure", []() { py::print(42, UnregisteredType()); });
+#if !defined(NDEBUG)
+    m.attr("debug_enabled") = true;
+#else
+    m.attr("debug_enabled") = false;
+#endif
+
+    m.def("test_str_format", []() {
+        auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
+        auto s2 = "{a} + {b} = {c}"_s.format("a"_a=1, "b"_a=2, "c"_a=3);
+        return py::make_tuple(s1, s2);
+    });
+
+    m.def("test_dict_keyword_constructor", []() {
+        auto d1 = py::dict("x"_a=1, "y"_a=2);
+        auto d2 = py::dict("z"_a=3, **d1);
+        return d2;
+    });
+
+    m.def("test_accessor_api", [](py::object o) {
+        auto d = py::dict();
+
+        d["basic_attr"] = o.attr("basic_attr");
+
+        auto l = py::list();
+        for (const auto &item : o.attr("begin_end")) {
+            l.append(item);
+        }
+        d["begin_end"] = l;
+
+        d["operator[object]"] = o.attr("d")["operator[object]"_s];
+        d["operator[char *]"] = o.attr("d")["operator[char *]"];
+
+        d["attr(object)"] = o.attr("sub").attr("attr_obj");
+        d["attr(char *)"] = o.attr("sub").attr("attr_char");
+        try {
+            o.attr("sub").attr("missing").ptr();
+        } catch (const py::error_already_set &) {
+            d["missing_attr_ptr"] = "raised"_s;
+        }
+        try {
+            o.attr("missing").attr("doesn't matter");
+        } catch (const py::error_already_set &) {
+            d["missing_attr_chain"] = "raised"_s;
+        }
+
+        d["is_none"] = o.attr("basic_attr").is_none();
+
+        d["operator()"] = o.attr("func")(1);
+        d["operator*"] = o.attr("func")(*o.attr("begin_end"));
+
+        return d;
+    });
+
+    m.def("test_tuple_accessor", [](py::tuple existing_t) {
+        try {
+            existing_t[0] = 1;
+        } catch (const py::error_already_set &) {
+            // --> Python system error
+            // Only new tuples (refcount == 1) are mutable
+            auto new_t = py::tuple(3);
+            for (size_t i = 0; i < new_t.size(); ++i) {
+                new_t[i] = i;
+            }
+            return new_t;
+        }
+        return py::tuple();
+    });
+
+    m.def("test_accessor_assignment", []() {
+        auto l = py::list(1);
+        l[0] = 0;
+
+        auto d = py::dict();
+        d["get"] = l[0];
+        auto var = l[0];
+        d["deferred_get"] = var;
+        l[0] = 1;
+        d["set"] = l[0];
+        var = 99; // this assignment should not overwrite l[0]
+        d["deferred_set"] = l[0];
+        d["var"] = var;
+
+        return d;
+    });
+
+    bool has_optional = false, has_exp_optional = false;
+#ifdef PYBIND11_HAS_OPTIONAL
+    has_optional = true;
+    using opt_int = std::optional<int>;
+    using opt_no_assign = std::optional<NoAssign>;
+    m.def("double_or_zero", [](const opt_int& x) -> int {
+        return x.value_or(0) * 2;
+    });
+    m.def("half_or_none", [](int x) -> opt_int {
+        return x ? opt_int(x / 2) : opt_int();
+    });
+    m.def("test_nullopt", [](opt_int x) {
+        return x.value_or(42);
+    }, py::arg_v("x", std::nullopt, "None"));
+    m.def("test_no_assign", [](const opt_no_assign &x) {
+        return x ? x->value : 42;
+    }, py::arg_v("x", std::nullopt, "None"));
+#endif
+
+#ifdef PYBIND11_HAS_EXP_OPTIONAL
+    has_exp_optional = true;
+    using exp_opt_int = std::experimental::optional<int>;
+    using exp_opt_no_assign = std::experimental::optional<NoAssign>;
+    m.def("double_or_zero_exp", [](const exp_opt_int& x) -> int {
+        return x.value_or(0) * 2;
+    });
+    m.def("half_or_none_exp", [](int x) -> exp_opt_int {
+        return x ? exp_opt_int(x / 2) : exp_opt_int();
+    });
+    m.def("test_nullopt_exp", [](exp_opt_int x) {
+        return x.value_or(42);
+    }, py::arg_v("x", std::experimental::nullopt, "None"));
+    m.def("test_no_assign_exp", [](const exp_opt_no_assign &x) {
+        return x ? x->value : 42;
+    }, py::arg_v("x", std::experimental::nullopt, "None"));
+#endif
+
+    m.attr("has_optional") = has_optional;
+    m.attr("has_exp_optional") = has_exp_optional;
+
+#ifdef PYBIND11_HAS_VARIANT
+    struct visitor {
+        const char *operator()(int) { return "int"; }
+        const char *operator()(std::string) { return "std::string"; }
+        const char *operator()(double) { return "double"; }
+        const char *operator()(std::nullptr_t) { return "std::nullptr_t"; }
+    };
+
+    m.def("load_variant", [](std::variant<int, std::string, double, std::nullptr_t> v) {
+        return std::visit(visitor(), v);
+    });
+
+    m.def("load_variant_2pass", [](std::variant<double, int> v) {
+        return std::visit(visitor(), v);
+    });
+
+    m.def("cast_variant", []() {
+        using V = std::variant<int, std::string>;
+        return py::make_tuple(V(5), V("Hello"));
+    });
+#endif
+
+    m.def("test_default_constructors", []() {
+        return py::dict(
+            "str"_a=py::str(),
+            "bool"_a=py::bool_(),
+            "int"_a=py::int_(),
+            "float"_a=py::float_(),
+            "tuple"_a=py::tuple(),
+            "list"_a=py::list(),
+            "dict"_a=py::dict(),
+            "set"_a=py::set()
+        );
+    });
+
+    m.def("test_converting_constructors", [](py::dict d) {
+        return py::dict(
+            "str"_a=py::str(d["str"]),
+            "bool"_a=py::bool_(d["bool"]),
+            "int"_a=py::int_(d["int"]),
+            "float"_a=py::float_(d["float"]),
+            "tuple"_a=py::tuple(d["tuple"]),
+            "list"_a=py::list(d["list"]),
+            "dict"_a=py::dict(d["dict"]),
+            "set"_a=py::set(d["set"]),
+            "memoryview"_a=py::memoryview(d["memoryview"])
+        );
+    });
+
+    m.def("test_cast_functions", [](py::dict d) {
+        // When converting between Python types, obj.cast<T>() should be the same as T(obj)
+        return py::dict(
+            "str"_a=d["str"].cast<py::str>(),
+            "bool"_a=d["bool"].cast<py::bool_>(),
+            "int"_a=d["int"].cast<py::int_>(),
+            "float"_a=d["float"].cast<py::float_>(),
+            "tuple"_a=d["tuple"].cast<py::tuple>(),
+            "list"_a=d["list"].cast<py::list>(),
+            "dict"_a=d["dict"].cast<py::dict>(),
+            "set"_a=d["set"].cast<py::set>(),
+            "memoryview"_a=d["memoryview"].cast<py::memoryview>()
+        );
+    });
+
+    py::class_<MoveOutContainer::Value>(m, "MoveOutContainerValue")
+        .def_readonly("value", &MoveOutContainer::Value::value);
+
+    py::class_<MoveOutContainer>(m, "MoveOutContainer")
+        .def(py::init<>())
+        .def_property_readonly("move_list", &MoveOutContainer::move_list);
+
+    m.def("get_implicit_casting", []() {
+        py::dict d;
+        d["char*_i1"] = "abc";
+        const char *c2 = "abc";
+        d["char*_i2"] = c2;
+        d["char*_e"] = py::cast(c2);
+        d["char*_p"] = py::str(c2);
+
+        d["int_i1"] = 42;
+        int i = 42;
+        d["int_i2"] = i;
+        i++;
+        d["int_e"] = py::cast(i);
+        i++;
+        d["int_p"] = py::int_(i);
+
+        d["str_i1"] = std::string("str");
+        std::string s2("str1");
+        d["str_i2"] = s2;
+        s2[3] = '2';
+        d["str_e"] = py::cast(s2);
+        s2[3] = '3';
+        d["str_p"] = py::str(s2);
+
+        py::list l(2);
+        l[0] = 3;
+        l[1] = py::cast(6);
+        l.append(9);
+        l.append(py::cast(12));
+        l.append(py::int_(15));
+
+        return py::dict(
+            "d"_a=d,
+            "l"_a=l
+        );
+    });
+
+    // Some test characters in utf16 and utf32 encodings.  The last one (the 𝐀) contains a null byte
+    char32_t a32 = 0x61 /*a*/, z32 = 0x7a /*z*/, ib32 = 0x203d /*‽*/, cake32 = 0x1f382 /*🎂*/,              mathbfA32 = 0x1d400 /*𝐀*/;
+    char16_t b16 = 0x62 /*b*/, z16 = 0x7a,       ib16 = 0x203d,       cake16_1 = 0xd83c, cake16_2 = 0xdf82, mathbfA16_1 = 0xd835, mathbfA16_2 = 0xdc00;
+    std::wstring wstr;
+    wstr.push_back(0x61); // a
+    wstr.push_back(0x2e18); // ⸘
+    if (sizeof(wchar_t) == 2) { wstr.push_back(mathbfA16_1); wstr.push_back(mathbfA16_2); } // 𝐀, utf16
+    else { wstr.push_back((wchar_t) mathbfA32); } // 𝐀, utf32
+    wstr.push_back(0x7a); // z
+
+    m.def("good_utf8_string", []() { return std::string(u8"Say utf8\u203d \U0001f382 \U0001d400"); }); // Say utf8‽ 🎂 𝐀
+    m.def("good_utf16_string", [=]() { return std::u16string({ b16, ib16, cake16_1, cake16_2, mathbfA16_1, mathbfA16_2, z16 }); }); // b‽🎂𝐀z
+    m.def("good_utf32_string", [=]() { return std::u32string({ a32, mathbfA32, cake32, ib32, z32 }); }); // a𝐀🎂‽z
+    m.def("good_wchar_string", [=]() { return wstr; }); // a‽𝐀z
+    m.def("bad_utf8_string", []()  { return std::string("abc\xd0" "def"); });
+    m.def("bad_utf16_string", [=]() { return std::u16string({ b16, char16_t(0xd800), z16 }); });
+    // Under Python 2.7, invalid unicode UTF-32 characters don't appear to trigger UnicodeDecodeError
+    if (PY_MAJOR_VERSION >= 3)
+        m.def("bad_utf32_string", [=]() { return std::u32string({ a32, char32_t(0xd800), z32 }); });
+    if (PY_MAJOR_VERSION >= 3 || sizeof(wchar_t) == 2)
+        m.def("bad_wchar_string", [=]() { return std::wstring({ wchar_t(0x61), wchar_t(0xd800) }); });
+    m.def("u8_Z", []() -> char { return 'Z'; });
+    m.def("u8_eacute", []() -> char { return '\xe9'; });
+    m.def("u16_ibang", [=]() -> char16_t { return ib16; });
+    m.def("u32_mathbfA", [=]() -> char32_t { return mathbfA32; });
+    m.def("wchar_heart", []() -> wchar_t { return 0x2665; });
+
+    m.attr("wchar_size") = py::cast(sizeof(wchar_t));
+    m.def("ord_char", [](char c) -> int { return static_cast<unsigned char>(c); });
+    m.def("ord_char16", [](char16_t c) -> uint16_t { return c; });
+    m.def("ord_char32", [](char32_t c) -> uint32_t { return c; });
+    m.def("ord_wchar", [](wchar_t c) -> int { return c; });
+
+    m.def("strlen", [](char *s) { return strlen(s); });
+    m.def("string_length", [](std::string s) { return s.length(); });
+
+    m.def("return_none_string", []() -> std::string * { return nullptr; });
+    m.def("return_none_char",   []() -> const char *  { return nullptr; });
+    m.def("return_none_bool",   []() -> bool *        { return nullptr; });
+    m.def("return_none_int",    []() -> int *         { return nullptr; });
+    m.def("return_none_float",  []() -> float *       { return nullptr; });
+
+    m.def("defer_none_cstring", [](char *) { return false; });
+    m.def("defer_none_cstring", [](py::none) { return true; });
+    m.def("defer_none_custom", [](ExamplePythonTypes *) { return false; });
+    m.def("defer_none_custom", [](py::none) { return true; });
+    // void and optional, however, don't defer:
+    m.def("nodefer_none_void", [](void *) { return true; });
+    m.def("nodefer_none_void", [](py::none) { return false; });
+#ifdef PYBIND11_HAS_OPTIONAL
+    m.def("nodefer_none_optional", [](std::optional<int>) { return true; });
+    m.def("nodefer_none_optional", [](py::none) { return false; });
+#endif
+
+    m.def("return_capsule_with_destructor",
+        []() {
+            py::print("creating capsule");
+            return py::capsule([]() {
+                py::print("destructing capsule");
+            });
+        }
+    );
+
+    m.def("return_capsule_with_destructor_2",
+        []() {
+            py::print("creating capsule");
+            return py::capsule((void *) 1234, [](void *ptr) {
+                py::print("destructing capsule: {}"_s.format((size_t) ptr));
+            });
+        }
+    );
+
+    m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
+    m.def("cast_nullptr_t", []() { return std::nullptr_t{}; });
+
+    struct IntWrapper { int i; IntWrapper(int i) : i(i) { } };
+    py::class_<IntWrapper>(m, "IntWrapper")
+        .def(py::init<int>())
+        .def("__repr__", [](const IntWrapper &p) { return "IntWrapper[" + std::to_string(p.i) + "]"; });
+
+    // #171: Can't return reference wrappers (or STL datastructures containing them)
+    // Also used to test #848: reference_wrapper shouldn't allow None
+    m.def("return_vec_of_reference_wrapper", [](std::reference_wrapper<IntWrapper> p4) {
+        IntWrapper *p1 = new IntWrapper{1};
+        IntWrapper *p2 = new IntWrapper{2};
+        IntWrapper *p3 = new IntWrapper{3};
+        std::vector<std::reference_wrapper<IntWrapper>> v;
+        v.push_back(std::ref(*p1));
+        v.push_back(std::ref(*p2));
+        v.push_back(std::ref(*p3));
+        v.push_back(p4);
+        return v;
+    });
+
+    // Reference-wrapper to non-generic type caster type:
+    m.def("refwrap_int", [](std::reference_wrapper<int> p) { return 10 * p.get(); });
+
+    // Not currently supported (std::pair caster has return-by-value cast operator);
+    // triggers static_assert failure.
+    //m.def("refwrap_pair", [](std::reference_wrapper<std::pair<int, int>>) { });
+
+    // Test that copying/referencing is working as expected with reference_wrappers:
+    py::class_<IncrIntWrapper>(m, "IncrIntWrapper")
+        .def(py::init<int>())
+        .def_readonly("i", &IncrIntWrapper::i);
+
+    m.def("refwrap_list_refs", []() {
+        py::list l;
+        for (auto &f : incr_int_wrappers()) l.append(py::cast(f, py::return_value_policy::reference));
+        return l;
+    });
+    m.def("refwrap_list_copies", []() {
+        py::list l;
+        for (auto &f : incr_int_wrappers()) l.append(py::cast(f, py::return_value_policy::copy));
+        return l;
+    });
+    m.def("refwrap_iiw", [](const IncrIntWrapper &w) { return w.i; });
+    m.def("refwrap_call_iiw", [](IncrIntWrapper &w, py::function f) {
+        py::list l;
+        l.append(f(std::ref(w)));
+        l.append(f(std::cref(w)));
+        IncrIntWrapper x(w.i);
+        l.append(f(std::ref(x)));
+        IncrIntWrapper y(w.i);
+        auto r3 = std::ref(y);
+        l.append(f(r3));
+        return l;
+    });
+
+});
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif

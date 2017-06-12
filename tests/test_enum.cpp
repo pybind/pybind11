@@ -19,13 +19,19 @@ enum class ScopedEnum {
     Three
 };
 
+enum Flags {
+    Read = 4,
+    Write = 2,
+    Execute = 1
+};
+
 class ClassWithUnscopedEnum {
 public:
     enum EMode {
         EFirstMode = 1,
         ESecondMode
     };
-    
+
     static EMode test_function(EMode mode) {
         return mode;
     }
@@ -35,18 +41,23 @@ std::string test_scoped_enum(ScopedEnum z) {
     return "ScopedEnum::" + std::string(z == ScopedEnum::Two ? "Two" : "Three");
 }
 
-void init_ex_enum(py::module &m) {
+test_initializer enums([](py::module &m) {
     m.def("test_scoped_enum", &test_scoped_enum);
 
-    py::enum_<UnscopedEnum>(m, "UnscopedEnum")
+    py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic())
         .value("EOne", EOne)
         .value("ETwo", ETwo)
         .export_values();
 
-    py::enum_<ScopedEnum>(m, "ScopedEnum")
+    py::enum_<ScopedEnum>(m, "ScopedEnum", py::arithmetic())
         .value("Two", ScopedEnum::Two)
-        .value("Three", ScopedEnum::Three)
-        ;
+        .value("Three", ScopedEnum::Three);
+
+    py::enum_<Flags>(m, "Flags", py::arithmetic())
+        .value("Read", Flags::Read)
+        .value("Write", Flags::Write)
+        .value("Execute", Flags::Execute)
+        .export_values();
 
     py::class_<ClassWithUnscopedEnum> exenum_class(m, "ClassWithUnscopedEnum");
     exenum_class.def_static("test_function", &ClassWithUnscopedEnum::test_function);
@@ -54,4 +65,8 @@ void init_ex_enum(py::module &m) {
         .value("EFirstMode", ClassWithUnscopedEnum::EFirstMode)
         .value("ESecondMode", ClassWithUnscopedEnum::ESecondMode)
         .export_values();
-}
+
+    m.def("test_enum_to_int", [](int) { });
+    m.def("test_enum_to_uint", [](uint32_t) { });
+    m.def("test_enum_to_long_long", [](long long) { });
+});

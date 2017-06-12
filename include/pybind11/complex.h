@@ -19,14 +19,28 @@
 
 NAMESPACE_BEGIN(pybind11)
 
-PYBIND11_DECL_FMT(std::complex<float>, "Zf");
-PYBIND11_DECL_FMT(std::complex<double>, "Zd");
+template <typename T> struct format_descriptor<std::complex<T>, detail::enable_if_t<std::is_floating_point<T>::value>> {
+    static constexpr const char c = format_descriptor<T>::c;
+    static constexpr const char value[3] = { 'Z', c, '\0' };
+    static std::string format() { return std::string(value); }
+};
+
+template <typename T> constexpr const char format_descriptor<
+    std::complex<T>, detail::enable_if_t<std::is_floating_point<T>::value>>::value[3];
 
 NAMESPACE_BEGIN(detail)
+
+template <typename T> struct is_fmt_numeric<std::complex<T>, detail::enable_if_t<std::is_floating_point<T>::value>> {
+    static constexpr bool value = true;
+    static constexpr int index = is_fmt_numeric<T>::index + 3;
+};
+
 template <typename T> class type_caster<std::complex<T>> {
 public:
-    bool load(handle src, bool) {
+    bool load(handle src, bool convert) {
         if (!src)
+            return false;
+        if (!convert && !PyComplex_Check(src.ptr()))
             return false;
         Py_complex result = PyComplex_AsCComplex(src.ptr());
         if (result.real == -1.0 && PyErr_Occurred()) {

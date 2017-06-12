@@ -4,25 +4,24 @@ Frequently asked questions
 "ImportError: dynamic module does not define init function"
 ===========================================================
 
-1. Make sure that the name specified in ``pybind::module`` and
-   ``PYBIND11_PLUGIN`` is consistent and identical to the filename of the
-   extension library. The latter should not contain any extra prefixes (e.g.
-   ``test.so`` instead of ``libtest.so``).
-
-2. If the above did not fix your issue, then you are likely using an
-   incompatible version of Python (for instance, the extension library was
-   compiled against Python 2, while the interpreter is running on top of some
-   version of Python 3, or vice versa)
+You are likely using an incompatible version of Python (for instance, the
+extension library was compiled against Python 2, while the interpreter is
+running on top of some version of Python 3, or vice versa).
 
 "Symbol not found: ``__Py_ZeroStruct`` / ``_PyInstanceMethod_Type``"
 ========================================================================
 
-See item 2 of the first answer.
+See the first answer.
+
+"SystemError: dynamic module not initialized properly"
+======================================================
+
+See the first answer.
 
 The Python interpreter immediately crashes when importing my module
 ===================================================================
 
-See item 2 of the first answer.
+See the first answer.
 
 CMake doesn't detect the right Python version
 =============================================
@@ -88,8 +87,10 @@ and the binding code
 How can I reduce the build time?
 ================================
 
-It's good practice to split binding code over multiple files, as is done in
-the included file :file:`example/example.cpp`.
+It's good practice to split binding code over multiple files, as in the
+following example:
+
+:file:`example.cpp`:
 
 .. code-block:: cpp
 
@@ -97,27 +98,61 @@ the included file :file:`example/example.cpp`.
     void init_ex2(py::module &);
     /* ... */
 
-    PYBIND11_PLUGIN(example) {
-        py::module m("example", "pybind example plugin");
-
+    PYBIND11_MODULE(example, m) {
         init_ex1(m);
         init_ex2(m);
-
         /* ... */
-
-        return m.ptr();
     }
 
-The various ``init_ex`` functions should be contained in separate files that
-can be compiled independently from another. Following this approach will
+:file:`ex1.cpp`:
+
+.. code-block:: cpp
+
+    void init_ex1(py::module &m) {
+        m.def("add", [](int a, int b) { return a + b; });
+    }
+
+:file:`ex2.cpp`:
+
+.. code-block:: cpp
+
+    void init_ex1(py::module &m) {
+        m.def("sub", [](int a, int b) { return a - b; });
+    }
+
+:command:`python`:
+
+.. code-block:: pycon
+
+    >>> import example
+    >>> example.add(1, 2)
+    3
+    >>> example.sub(1, 1)
+    0
+
+As shown above, the various ``init_ex`` functions should be contained in
+separate files that can be compiled independently from one another, and then
+linked together into the same final shared object.  Following this approach
+will:
 
 1. reduce memory requirements per compilation unit.
 
 2. enable parallel builds (if desired).
 
 3. allow for faster incremental builds. For instance, when a single class
-   definiton is changed, only a subset of the binding code will generally need
+   definition is changed, only a subset of the binding code will generally need
    to be recompiled.
+
+"recursive template instantiation exceeded maximum depth of 256"
+================================================================
+
+If you receive an error about excessive recursive template evaluation, try
+specifying a larger value, e.g. ``-ftemplate-depth=1024`` on GCC/Clang. The
+culprit is generally the generation of function signatures at compile time
+using C++14 template metaprogramming.
+
+
+.. _`faq:symhidden`:
 
 How can I create smaller binaries?
 ==================================
@@ -126,7 +161,7 @@ To do its job, pybind11 extensively relies on a programming technique known as
 *template metaprogramming*, which is a way of performing computation at compile
 time using type information. Template metaprogamming usually instantiates code
 involving significant numbers of deeply nested types that are either completely
-removed or reduced to just a few instrutions during the compiler's optimization
+removed or reduced to just a few instructions during the compiler's optimization
 phase. However, due to the nested nature of these types, the resulting symbol
 names in the compiled extension library can be extremely long. For instance,
 the included test suite contains the following symbol:
@@ -135,7 +170,7 @@ the included test suite contains the following symbol:
 
     .. code-block:: none
 
-        _​_​Z​N​8​p​y​b​i​n​d​1​1​1​2​c​p​p​_​f​u​n​c​t​i​o​n​C​1​I​v​8​E​x​a​m​p​l​e​2​J​R​N​S​t​3​_​_​1​6​v​e​c​t​o​r​I​N​S​3​_​1​2​b​a​s​i​c​_​s​t​r​i​n​g​I​w​N​S​3​_​1​1​c​h​a​r​_​t​r​a​i​t​s​I​w​E​E​N​S​3​_​9​a​l​l​o​c​a​t​o​r​I​w​E​E​E​E​N​S​8​_​I​S​A​_​E​E​E​E​E​J​N​S​_​4​n​a​m​e​E​N​S​_​7​s​i​b​l​i​n​g​E​N​S​_​9​i​s​_​m​e​t​h​o​d​E​A​2​8​_​c​E​E​E​M​T​0​_​F​T​_​D​p​T​1​_​E​D​p​R​K​T​2​_​
+        _​_​Z​N​8​p​y​b​i​n​d​1​1​1​2​c​p​p​_​f​u​n​c​t​i​o​n​C​1​I​v​8​E​x​a​m​p​l​e​2​J​R​N​S​t​3​_​_​1​6​v​e​c​t​o​r​I​N​S​3​_​1​2​b​a​s​i​c​_​s​t​r​i​n​g​I​w​N​S​3​_​1​1​c​h​a​r​_​t​r​a​i​t​s​I​w​E​E​N​S​3​_​9​a​l​l​o​c​a​t​o​r​I​w​E​E​E​E​N​S​8​_​I​S​A​_​E​E​E​E​E​J​N​S​_​4​n​a​m​e​E​N​S​_​7​s​i​b​l​i​n​g​E​N​S​_​9​i​s​_​m​e​t​h​o​d​E​A​2​8​_​c​E​E​E​M​T​0​_​F​T​_​D​p​T​1​_​E​D​p​R​K​T​2​_
 
 .. only:: not html
 

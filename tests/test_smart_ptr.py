@@ -1,3 +1,4 @@
+import pytest
 from pybind11_tests import ConstructorStats
 
 
@@ -113,3 +114,123 @@ def test_smart_ptr(capture):
     # assert cstats.move_constructions >= 0 # Doesn't invoke any
     assert cstats.copy_assignments == 30
     assert cstats.move_assignments == 0
+
+
+def test_smart_ptr_refcounting():
+    from pybind11_tests import test_object1_refcounting
+    assert test_object1_refcounting()
+
+
+def test_unique_nodelete():
+    from pybind11_tests import MyObject4
+    o = MyObject4(23)
+    assert o.value == 23
+    cstats = ConstructorStats.get(MyObject4)
+    assert cstats.alive() == 1
+    del o
+    cstats = ConstructorStats.get(MyObject4)
+    assert cstats.alive() == 1  # Leak, but that's intentional
+
+
+def test_large_holder():
+    from pybind11_tests import MyObject5
+    o = MyObject5(5)
+    assert o.value == 5
+    cstats = ConstructorStats.get(MyObject5)
+    assert cstats.alive() == 1
+    del o
+    assert cstats.alive() == 0
+
+
+def test_shared_ptr_and_references():
+    from pybind11_tests.smart_ptr import SharedPtrRef, A
+
+    s = SharedPtrRef()
+    stats = ConstructorStats.get(A)
+    assert stats.alive() == 2
+
+    ref = s.ref  # init_holder_helper(holder_ptr=false, owned=false)
+    assert stats.alive() == 2
+    assert s.set_ref(ref)
+    with pytest.raises(RuntimeError) as excinfo:
+        assert s.set_holder(ref)
+    assert "Unable to cast from non-held to held instance" in str(excinfo.value)
+
+    copy = s.copy  # init_holder_helper(holder_ptr=false, owned=true)
+    assert stats.alive() == 3
+    assert s.set_ref(copy)
+    assert s.set_holder(copy)
+
+    holder_ref = s.holder_ref  # init_holder_helper(holder_ptr=true, owned=false)
+    assert stats.alive() == 3
+    assert s.set_ref(holder_ref)
+    assert s.set_holder(holder_ref)
+
+    holder_copy = s.holder_copy  # init_holder_helper(holder_ptr=true, owned=true)
+    assert stats.alive() == 3
+    assert s.set_ref(holder_copy)
+    assert s.set_holder(holder_copy)
+
+    del ref, copy, holder_ref, holder_copy, s
+    assert stats.alive() == 0
+
+
+def test_shared_ptr_from_this_and_references():
+    from pybind11_tests.smart_ptr import SharedFromThisRef, B, SharedFromThisVirt
+
+    s = SharedFromThisRef()
+    stats = ConstructorStats.get(B)
+    assert stats.alive() == 2
+
+    ref = s.ref  # init_holder_helper(holder_ptr=false, owned=false, bad_wp=false)
+    assert stats.alive() == 2
+    assert s.set_ref(ref)
+    assert s.set_holder(ref)  # std::enable_shared_from_this can create a holder from a reference
+
+    bad_wp = s.bad_wp  # init_holder_helper(holder_ptr=false, owned=false, bad_wp=true)
+    assert stats.alive() == 2
+    assert s.set_ref(bad_wp)
+    with pytest.raises(RuntimeError) as excinfo:
+        assert s.set_holder(bad_wp)
+    assert "Unable to cast from non-held to held instance" in str(excinfo.value)
+
+    copy = s.copy  # init_holder_helper(holder_ptr=false, owned=true, bad_wp=false)
+    assert stats.alive() == 3
+    assert s.set_ref(copy)
+    assert s.set_holder(copy)
+
+    holder_ref = s.holder_ref  # init_holder_helper(holder_ptr=true, owned=false, bad_wp=false)
+    assert stats.alive() == 3
+    assert s.set_ref(holder_ref)
+    assert s.set_holder(holder_ref)
+
+    holder_copy = s.holder_copy  # init_holder_helper(holder_ptr=true, owned=true, bad_wp=false)
+    assert stats.alive() == 3
+    assert s.set_ref(holder_copy)
+    assert s.set_holder(holder_copy)
+
+    del ref, bad_wp, copy, holder_ref, holder_copy, s
+    assert stats.alive() == 0
+
+    z = SharedFromThisVirt.get()
+    y = SharedFromThisVirt.get()
+    assert y is z
+
+
+def test_move_only_holder():
+    from pybind11_tests.smart_ptr import TypeWithMoveOnlyHolder
+
+    a = TypeWithMoveOnlyHolder.make()
+    stats = ConstructorStats.get(TypeWithMoveOnlyHolder)
+    assert stats.alive() == 1
+    del a
+    assert stats.alive() == 0
+
+
+def test_smart_ptr_from_default():
+    from pybind11_tests.smart_ptr import HeldByDefaultHolder
+
+    instance = HeldByDefaultHolder()
+    with pytest.raises(RuntimeError) as excinfo:
+        HeldByDefaultHolder.load_shared_ptr(instance)
+    assert "Unable to load a custom holder type from a default-holder instance" in str(excinfo)

@@ -10,10 +10,12 @@
 #pragma once
 
 #include "pybind11.h"
-#include <type_traits>
 
-#if defined(__clang__)
+#if defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma clang diagnostic ignored "-Wunsequenced" // multiple unsequenced modifications to 'self' (when using def(py::self OP Type()))
+#elif defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
 NAMESPACE_BEGIN(pybind11)
@@ -26,7 +28,7 @@ enum op_id : int {
     op_int, op_long, op_float, op_str, op_cmp, op_gt, op_ge, op_lt, op_le,
     op_eq, op_ne, op_iadd, op_isub, op_imul, op_idiv, op_imod, op_ilshift,
     op_irshift, op_iand, op_ixor, op_ior, op_complex, op_bool, op_nonzero,
-    op_repr, op_truediv
+    op_repr, op_truediv, op_itruediv
 };
 
 enum op_type : int {
@@ -49,21 +51,33 @@ template <op_id, op_type, typename B, typename L, typename R> struct op_impl { }
 
 /// Operator implementation generator
 template <op_id id, op_type ot, typename L, typename R> struct op_ {
-    template <typename Base, typename Holder, typename... Extra> void execute(pybind11::class_<Base, Holder> &class_, const Extra&... extra) const {
-        typedef typename std::conditional<std::is_same<L, self_t>::value, Base, L>::type L_type;
-        typedef typename std::conditional<std::is_same<R, self_t>::value, Base, R>::type R_type;
-        typedef op_impl<id, ot, Base, L_type, R_type> op;
-        class_.def(op::name(), &op::execute, extra...);
+    template <typename Class, typename... Extra> void execute(Class &cl, const Extra&... extra) const {
+        using Base = typename Class::type;
+        using L_type = conditional_t<std::is_same<L, self_t>::value, Base, L>;
+        using R_type = conditional_t<std::is_same<R, self_t>::value, Base, R>;
+        using op = op_impl<id, ot, Base, L_type, R_type>;
+        cl.def(op::name(), &op::execute, is_operator(), extra...);
+        #if PY_MAJOR_VERSION < 3
+        if (id == op_truediv || id == op_itruediv)
+            cl.def(id == op_itruediv ? "__idiv__" : ot == op_l ? "__div__" : "__rdiv__",
+                    &op::execute, is_operator(), extra...);
+        #endif
     }
-    template <typename Base, typename Holder, typename... Extra> void execute_cast(pybind11::class_<Base, Holder> &class_, const Extra&... extra) const {
-        typedef typename std::conditional<std::is_same<L, self_t>::value, Base, L>::type L_type;
-        typedef typename std::conditional<std::is_same<R, self_t>::value, Base, R>::type R_type;
-        typedef op_impl<id, ot, Base, L_type, R_type> op;
-        class_.def(op::name(), &op::execute_cast, extra...);
+    template <typename Class, typename... Extra> void execute_cast(Class &cl, const Extra&... extra) const {
+        using Base = typename Class::type;
+        using L_type = conditional_t<std::is_same<L, self_t>::value, Base, L>;
+        using R_type = conditional_t<std::is_same<R, self_t>::value, Base, R>;
+        using op = op_impl<id, ot, Base, L_type, R_type>;
+        cl.def(op::name(), &op::execute_cast, is_operator(), extra...);
+        #if PY_MAJOR_VERSION < 3
+        if (id == op_truediv || id == op_itruediv)
+            cl.def(id == op_itruediv ? "__idiv__" : ot == op_l ? "__div__" : "__rdiv__",
+                    &op::execute, is_operator(), extra...);
+        #endif
     }
 };
 
-#define PYBIND11_BINARY_OPERATOR(id, rid, op, expr)                                      \
+#define PYBIND11_BINARY_OPERATOR(id, rid, op, expr)                                    \
 template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L, R> { \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(const L &l, const R &r) -> decltype(expr) { return (expr); }   \
@@ -84,7 +98,7 @@ template <typename T> op_<op_##id, op_r, T, self_t> op(const T &, const self_t &
     return op_<op_##id, op_r, T, self_t>();                                            \
 }
 
-#define PYBIND11_INPLACE_OPERATOR(id, op, expr)                                          \
+#define PYBIND11_INPLACE_OPERATOR(id, op, expr)                                        \
 template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L, R> { \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(L &l, const R &r) -> decltype(expr) { return expr; }           \
@@ -94,7 +108,7 @@ template <typename T> op_<op_##id, op_l, self_t, T> op(const self_t &, const T &
     return op_<op_##id, op_l, self_t, T>();                                            \
 }
 
-#define PYBIND11_UNARY_OPERATOR(id, op, expr)                                            \
+#define PYBIND11_UNARY_OPERATOR(id, op, expr)                                          \
 template <typename B, typename L> struct op_impl<op_##id, op_u, B, L, undefined_t> {   \
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(const L &l) -> decltype(expr) { return expr; }                 \
@@ -107,11 +121,7 @@ inline op_<op_##id, op_u, self_t, undefined_t> op(const self_t &) {             
 PYBIND11_BINARY_OPERATOR(sub,       rsub,         operator-,    l - r)
 PYBIND11_BINARY_OPERATOR(add,       radd,         operator+,    l + r)
 PYBIND11_BINARY_OPERATOR(mul,       rmul,         operator*,    l * r)
-#if PY_MAJOR_VERSION >= 3
 PYBIND11_BINARY_OPERATOR(truediv,   rtruediv,     operator/,    l / r)
-#else
-PYBIND11_BINARY_OPERATOR(div,       rdiv,         operator/,    l / r)
-#endif
 PYBIND11_BINARY_OPERATOR(mod,       rmod,         operator%,    l % r)
 PYBIND11_BINARY_OPERATOR(lshift,    rlshift,      operator<<,   l << r)
 PYBIND11_BINARY_OPERATOR(rshift,    rrshift,      operator>>,   l >> r)
@@ -128,7 +138,7 @@ PYBIND11_BINARY_OPERATOR(le,        ge,           operator<=,   l <= r)
 PYBIND11_INPLACE_OPERATOR(iadd,     operator+=,   l += r)
 PYBIND11_INPLACE_OPERATOR(isub,     operator-=,   l -= r)
 PYBIND11_INPLACE_OPERATOR(imul,     operator*=,   l *= r)
-PYBIND11_INPLACE_OPERATOR(idiv,     operator/=,   l /= r)
+PYBIND11_INPLACE_OPERATOR(itruediv, operator/=,   l /= r)
 PYBIND11_INPLACE_OPERATOR(imod,     operator%=,   l %= r)
 PYBIND11_INPLACE_OPERATOR(ilshift,  operator<<=,  l <<= r)
 PYBIND11_INPLACE_OPERATOR(irshift,  operator>>=,  l >>= r)
@@ -151,3 +161,7 @@ NAMESPACE_END(detail)
 using detail::self;
 
 NAMESPACE_END(pybind11)
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif

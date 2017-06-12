@@ -71,20 +71,93 @@ struct Payload {
     }
 };
 
-void init_ex_callbacks(py::module &m) {
+/// Something to trigger a conversion error
+struct Unregistered {};
+
+class AbstractBase {
+public:
+  virtual unsigned int func() = 0;
+};
+
+void func_accepting_func_accepting_base(std::function<double(AbstractBase&)>) { }
+
+struct MovableObject {
+  bool valid = true;
+
+  MovableObject() = default;
+  MovableObject(const MovableObject &) = default;
+  MovableObject &operator=(const MovableObject &) = default;
+  MovableObject(MovableObject &&o) : valid(o.valid) { o.valid = false; }
+  MovableObject &operator=(MovableObject &&o) {
+    valid = o.valid;
+    o.valid = false;
+    return *this;
+  }
+};
+
+test_initializer callbacks([](py::module &m) {
     m.def("test_callback1", &test_callback1);
     m.def("test_callback2", &test_callback2);
     m.def("test_callback3", &test_callback3);
     m.def("test_callback4", &test_callback4);
     m.def("test_callback5", &test_callback5);
 
-    /* Test cleanup of lambda closure */
+    // Test keyword args and generalized unpacking
+    m.def("test_tuple_unpacking", [](py::function f) {
+        auto t1 = py::make_tuple(2, 3);
+        auto t2 = py::make_tuple(5, 6);
+        return f("positional", 1, *t1, 4, *t2);
+    });
 
-    m.def("test_cleanup", []() -> std::function<void(void)> { 
+    m.def("test_dict_unpacking", [](py::function f) {
+        auto d1 = py::dict("key"_a="value", "a"_a=1);
+        auto d2 = py::dict();
+        auto d3 = py::dict("b"_a=2);
+        return f("positional", 1, **d1, **d2, **d3);
+    });
+
+    m.def("test_keyword_args", [](py::function f) {
+        return f("x"_a=10, "y"_a=20);
+    });
+
+    m.def("test_unpacking_and_keywords1", [](py::function f) {
+        auto args = py::make_tuple(2);
+        auto kwargs = py::dict("d"_a=4);
+        return f(1, *args, "c"_a=3, **kwargs);
+    });
+
+    m.def("test_unpacking_and_keywords2", [](py::function f) {
+        auto kwargs1 = py::dict("a"_a=1);
+        auto kwargs2 = py::dict("c"_a=3, "d"_a=4);
+        return f("positional", *py::make_tuple(1), 2, *py::make_tuple(3, 4), 5,
+                 "key"_a="value", **kwargs1, "b"_a=2, **kwargs2, "e"_a=5);
+    });
+
+    m.def("test_unpacking_error1", [](py::function f) {
+        auto kwargs = py::dict("x"_a=3);
+        return f("x"_a=1, "y"_a=2, **kwargs); // duplicate ** after keyword
+    });
+
+    m.def("test_unpacking_error2", [](py::function f) {
+        auto kwargs = py::dict("x"_a=3);
+        return f(**kwargs, "x"_a=1); // duplicate keyword after **
+    });
+
+    m.def("test_arg_conversion_error1", [](py::function f) {
+        f(234, Unregistered(), "kw"_a=567);
+    });
+
+    m.def("test_arg_conversion_error2", [](py::function f) {
+        f(234, "expected_name"_a=Unregistered(), "kw"_a=567);
+    });
+
+    /* Test cleanup of lambda closure */
+    m.def("test_cleanup", []() -> std::function<void(void)> {
         Payload p;
 
         return [p]() {
             /* p should be cleaned up when the returned function is garbage collected */
+            (void) p;
         };
     });
 
@@ -95,4 +168,20 @@ void init_ex_callbacks(py::module &m) {
     m.def("test_dummy_function", &test_dummy_function);
     // Export the payload constructor statistics for testing purposes:
     m.def("payload_cstats", &ConstructorStats::get<Payload>);
-}
+
+    m.def("func_accepting_func_accepting_base",
+          func_accepting_func_accepting_base);
+
+    py::class_<MovableObject>(m, "MovableObject");
+
+    m.def("callback_with_movable", [](std::function<void(MovableObject &)> f) {
+        auto x = MovableObject();
+        f(x); // lvalue reference shouldn't move out object
+        return x.valid; // must still return `true`
+      });
+
+    struct CppBoundMethodTest {};
+    py::class_<CppBoundMethodTest>(m, "CppBoundMethodTest")
+        .def(py::init<>())
+        .def("triple", [](CppBoundMethodTest &, int val) { return 3 * val; });
+});

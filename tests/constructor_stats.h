@@ -24,7 +24,7 @@ function calls to constructors:
         ...
     }
 
-You can find various examples of these in several of the existing example .cpp files.  (Of course
+You can find various examples of these in several of the existing testing .cpp files.  (Of course
 you don't need to add any of the above constructors/operators that you don't actually have, except
 for the destructor).
 
@@ -41,7 +41,7 @@ value constructor) for all of the above methods which will be included in the ou
 For testing, each of these also keeps track the created instances and allows you to check how many
 of the various constructors have been invoked from the Python side via code such as:
 
-    from example import ConstructorStats
+    from pybind11_tests import ConstructorStats
     cstats = ConstructorStats.get(MyClass)
     print(cstats.alive())
     print(cstats.default_constructions)
@@ -56,7 +56,7 @@ from the ConstructorStats instance `.values()` method.
 In some cases, when you need to track instances of a C++ class not registered with pybind11, you
 need to add a function returning the ConstructorStats for the C++ class; this can be done with:
 
-    m.def("get_special_cstats", &ConstructorStats::get<SpecialClass>, py::return_value_policy::reference_internal)
+    m.def("get_special_cstats", &ConstructorStats::get<SpecialClass>, py::return_value_policy::reference)
 
 Finally, you can suppress the output messages, but keep the constructor tracking (for
 inspection/testing in python) by using the functions with `print_` replaced with `track_` (e.g.
@@ -85,27 +85,51 @@ public:
         created(inst);
         copy_constructions++;
     }
+
     void move_created(void *inst) {
         created(inst);
         move_constructions++;
     }
+
     void default_created(void *inst) {
         created(inst);
         default_constructions++;
     }
+
     void created(void *inst) {
         ++_instances[inst];
-    };
+    }
+
     void destroyed(void *inst) {
         if (--_instances[inst] < 0)
-            throw std::runtime_error("cstats.destroyed() called with unknown instance; potential double-destruction or a missing cstats.created()");
+            throw std::runtime_error("cstats.destroyed() called with unknown "
+                                     "instance; potential double-destruction "
+                                     "or a missing cstats.created()");
+    }
+
+    static void gc() {
+        // Force garbage collection to ensure any pending destructors are invoked:
+#if defined(PYPY_VERSION)
+        PyObject *globals = PyEval_GetGlobals();
+        PyObject *result = PyRun_String(
+            "import gc\n"
+            "for i in range(2):"
+            "    gc.collect()\n",
+            Py_file_input, globals, globals);
+        if (result == nullptr)
+            throw py::error_already_set();
+        Py_DECREF(result);
+#else
+        py::module::import("gc").attr("collect")();
+#endif
     }
 
     int alive() {
-        // Force garbage collection to ensure any pending destructors are invoked:
-        py::module::import("gc").attr("collect").operator py::object()();
+        gc();
         int total = 0;
-        for (const auto &p : _instances) if (p.second > 0) total += p.second;
+        for (const auto &p : _instances)
+            if (p.second > 0)
+                total += p.second;
         return total;
     }
 
@@ -134,6 +158,9 @@ public:
 
     // Gets constructor stats from a C++ type
     template <typename T> static ConstructorStats& get() {
+#if defined(PYPY_VERSION)
+        gc();
+#endif
         return get(typeid(T));
     }
 
@@ -142,7 +169,7 @@ public:
         auto &internals = py::detail::get_internals();
         const std::type_index *t1 = nullptr, *t2 = nullptr;
         try {
-            auto *type_info = internals.registered_types_py.at(class_.ptr());
+            auto *type_info = internals.registered_types_py.at((PyTypeObject *) class_.ptr()).at(0);
             for (auto &p : internals.registered_types_cpp) {
                 if (p.second == type_info) {
                     if (t1) {
@@ -200,14 +227,17 @@ template <class T, typename... Values> void track_values(T *, Values &&...values
     ConstructorStats::get<T>().value(std::forward<Values>(values)...);
 }
 
-inline void print_constr_details_more() { std::cout << std::endl; }
-template <typename Head, typename... Tail> void print_constr_details_more(const Head &head, Tail &&...tail) {
-    std::cout << " " << head;
-    print_constr_details_more(std::forward<Tail>(tail)...);
-}
-template <class T, typename... Output> void print_constr_details(T *inst, const std::string &action, Output &&...output) {
-    std::cout << "### " << py::type_id<T>() << " @ " << inst << " " << action;
-    print_constr_details_more(std::forward<Output>(output)...);
+/// Don't cast pointers to Python, print them as strings
+inline const char *format_ptrs(const char *p) { return p; }
+template <typename T>
+py::str format_ptrs(T *p) { return "{:#x}"_s.format(reinterpret_cast<std::uintptr_t>(p)); }
+template <typename T>
+auto format_ptrs(T &&x) -> decltype(std::forward<T>(x)) { return std::forward<T>(x); }
+
+template <class T, typename... Output>
+void print_constr_details(T *inst, const std::string &action, Output &&...output) {
+    py::print("###", py::type_id<T>(), "@", format_ptrs(inst), action,
+              format_ptrs(std::forward<Output>(output))...);
 }
 
 // Verbose versions of the above:

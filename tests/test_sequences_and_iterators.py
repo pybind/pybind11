@@ -2,7 +2,7 @@ import pytest
 
 
 def isclose(a, b, rel_tol=1e-05, abs_tol=0.0):
-    """Like to math.isclose() from Python 3.5"""
+    """Like math.isclose() from Python 3.5"""
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
@@ -11,7 +11,7 @@ def allclose(a_list, b_list, rel_tol=1e-05, abs_tol=0.0):
 
 
 def test_generalized_iterators():
-    from pybind11_tests import IntPairs
+    from pybind11_tests.sequences_and_iterators import IntPairs
 
     assert list(IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero()) == [(1, 2), (3, 4)]
     assert list(IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero()) == [(1, 2)]
@@ -21,9 +21,21 @@ def test_generalized_iterators():
     assert list(IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero_keys()) == [1]
     assert list(IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero_keys()) == []
 
+    # __next__ must continue to raise StopIteration
+    it = IntPairs([(0, 0)]).nonzero()
+    for _ in range(3):
+        with pytest.raises(StopIteration):
+            next(it)
+
+    it = IntPairs([(0, 0)]).nonzero_keys()
+    for _ in range(3):
+        with pytest.raises(StopIteration):
+            next(it)
+
 
 def test_sequence():
-    from pybind11_tests import Sequence, ConstructorStats
+    from pybind11_tests import ConstructorStats
+    from pybind11_tests.sequences_and_iterators import Sequence
 
     cstats = ConstructorStats.get(Sequence)
 
@@ -44,6 +56,12 @@ def test_sequence():
     rev2 = s[::-1]
     assert cstats.values() == ['of size', '5']
 
+    it = iter(Sequence(0))
+    for _ in range(3):  # __next__ must continue to raise StopIteration
+        with pytest.raises(StopIteration):
+            next(it)
+    assert cstats.values() == ['of size', '0']
+
     expected = [0, 56.78, 0, 0, 12.34]
     assert allclose(rev, expected)
     assert allclose(rev2, expected)
@@ -54,6 +72,8 @@ def test_sequence():
 
     assert allclose(rev, [2, 56.78, 2, 0, 2])
 
+    assert cstats.alive() == 4
+    del it
     assert cstats.alive() == 3
     del s
     assert cstats.alive() == 2
@@ -71,7 +91,7 @@ def test_sequence():
 
 
 def test_map_iterator():
-    from pybind11_tests import StringMap
+    from pybind11_tests.sequences_and_iterators import StringMap
 
     m = StringMap({'hi': 'bye', 'black': 'white'})
     assert m['hi'] == 'bye'
@@ -88,3 +108,42 @@ def test_map_iterator():
         assert m[k] == expected[k]
     for k, v in m.items():
         assert v == expected[k]
+
+    it = iter(StringMap({}))
+    for _ in range(3):  # __next__ must continue to raise StopIteration
+        with pytest.raises(StopIteration):
+            next(it)
+
+
+def test_python_iterator_in_cpp():
+    import pybind11_tests.sequences_and_iterators as m
+
+    t = (1, 2, 3)
+    assert m.object_to_list(t) == [1, 2, 3]
+    assert m.object_to_list(iter(t)) == [1, 2, 3]
+    assert m.iterator_to_list(iter(t)) == [1, 2, 3]
+
+    with pytest.raises(TypeError) as excinfo:
+        m.object_to_list(1)
+    assert "object is not iterable" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        m.iterator_to_list(1)
+    assert "incompatible function arguments" in str(excinfo.value)
+
+    def bad_next_call():
+        raise RuntimeError("py::iterator::advance() should propagate errors")
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.iterator_to_list(iter(bad_next_call, None))
+    assert str(excinfo.value) == "py::iterator::advance() should propagate errors"
+
+    l = [1, None, 0, None]
+    assert m.count_none(l) == 2
+    assert m.find_none(l) is True
+    assert m.count_nonzeros({"a": 0, "b": 1, "c": 2}) == 2
+
+    r = range(5)
+    assert all(m.tuple_iterator(tuple(r)))
+    assert all(m.list_iterator(list(r)))
+    assert all(m.sequence_iterator(r))

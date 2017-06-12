@@ -7,6 +7,15 @@ def test_unscoped_enum():
     assert str(UnscopedEnum.EOne) == "UnscopedEnum.EOne"
     assert str(UnscopedEnum.ETwo) == "UnscopedEnum.ETwo"
     assert str(EOne) == "UnscopedEnum.EOne"
+    # __members__ property
+    assert UnscopedEnum.__members__ == {"EOne": UnscopedEnum.EOne, "ETwo": UnscopedEnum.ETwo}
+    # __members__ readonly
+    with pytest.raises(AttributeError):
+        UnscopedEnum.__members__ = {}
+    # __members__ returns a copy
+    foo = UnscopedEnum.__members__
+    foo["bar"] = "baz"
+    assert UnscopedEnum.__members__ == {"EOne": UnscopedEnum.EOne, "ETwo": UnscopedEnum.ETwo}
 
     # no TypeError exception for unscoped enum ==/!= int comparisons
     y = UnscopedEnum.ETwo
@@ -15,6 +24,20 @@ def test_unscoped_enum():
 
     assert int(UnscopedEnum.ETwo) == 2
     assert str(UnscopedEnum(2)) == "UnscopedEnum.ETwo"
+
+    # order
+    assert UnscopedEnum.EOne < UnscopedEnum.ETwo
+    assert UnscopedEnum.EOne < 2
+    assert UnscopedEnum.ETwo > UnscopedEnum.EOne
+    assert UnscopedEnum.ETwo > 1
+    assert UnscopedEnum.ETwo <= 2
+    assert UnscopedEnum.ETwo >= 2
+    assert UnscopedEnum.EOne <= UnscopedEnum.ETwo
+    assert UnscopedEnum.EOne <= 2
+    assert UnscopedEnum.ETwo >= UnscopedEnum.EOne
+    assert UnscopedEnum.ETwo >= 1
+    assert not (UnscopedEnum.ETwo < UnscopedEnum.EOne)
+    assert not (2 < UnscopedEnum.EOne)
 
 
 def test_scoped_enum():
@@ -29,6 +52,14 @@ def test_scoped_enum():
         assert z == 2
     with pytest.raises(TypeError):
         assert z != 3
+
+    # order
+    assert ScopedEnum.Two < ScopedEnum.Three
+    assert ScopedEnum.Three > ScopedEnum.Two
+    assert ScopedEnum.Two <= ScopedEnum.Three
+    assert ScopedEnum.Two <= ScopedEnum.Two
+    assert ScopedEnum.Two >= ScopedEnum.Two
+    assert ScopedEnum.Three >= ScopedEnum.Two
 
 
 def test_implicit_conversion():
@@ -61,3 +92,38 @@ def test_implicit_conversion():
     x[f(second)] = 4
     # Hashing test
     assert str(x) == "{EMode.EFirstMode: 3, EMode.ESecondMode: 4}"
+
+
+def test_binary_operators():
+    from pybind11_tests import Flags
+
+    assert int(Flags.Read) == 4
+    assert int(Flags.Write) == 2
+    assert int(Flags.Execute) == 1
+    assert int(Flags.Read | Flags.Write | Flags.Execute) == 7
+    assert int(Flags.Read | Flags.Write) == 6
+    assert int(Flags.Read | Flags.Execute) == 5
+    assert int(Flags.Write | Flags.Execute) == 3
+    assert int(Flags.Write | 1) == 3
+
+    state = Flags.Read | Flags.Write
+    assert (state & Flags.Read) != 0
+    assert (state & Flags.Write) != 0
+    assert (state & Flags.Execute) == 0
+    assert (state & 1) == 0
+
+    state2 = ~state
+    assert state2 == -7
+    assert int(state ^ state2) == -1
+
+
+def test_enum_to_int():
+    from pybind11_tests import Flags, ClassWithUnscopedEnum
+    from pybind11_tests import test_enum_to_int, test_enum_to_uint, test_enum_to_long_long
+
+    test_enum_to_int(Flags.Read)
+    test_enum_to_int(ClassWithUnscopedEnum.EMode.EFirstMode)
+    test_enum_to_uint(Flags.Read)
+    test_enum_to_uint(ClassWithUnscopedEnum.EMode.EFirstMode)
+    test_enum_to_long_long(Flags.Read)
+    test_enum_to_long_long(ClassWithUnscopedEnum.EMode.EFirstMode)

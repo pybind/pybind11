@@ -27,6 +27,56 @@ def test_callbacks():
     assert f(number=43) == 44
 
 
+def test_bound_method_callback():
+    from pybind11_tests import test_callback3, CppBoundMethodTest
+
+    # Bound Python method:
+    class MyClass:
+        def double(self, val):
+            return 2 * val
+
+    z = MyClass()
+    assert test_callback3(z.double) == "func(43) = 86"
+
+    z = CppBoundMethodTest()
+    assert test_callback3(z.triple) == "func(43) = 129"
+
+
+def test_keyword_args_and_generalized_unpacking():
+    from pybind11_tests import (test_tuple_unpacking, test_dict_unpacking, test_keyword_args,
+                                test_unpacking_and_keywords1, test_unpacking_and_keywords2,
+                                test_unpacking_error1, test_unpacking_error2,
+                                test_arg_conversion_error1, test_arg_conversion_error2)
+
+    def f(*args, **kwargs):
+        return args, kwargs
+
+    assert test_tuple_unpacking(f) == (("positional", 1, 2, 3, 4, 5, 6), {})
+    assert test_dict_unpacking(f) == (("positional", 1), {"key": "value", "a": 1, "b": 2})
+    assert test_keyword_args(f) == ((), {"x": 10, "y": 20})
+    assert test_unpacking_and_keywords1(f) == ((1, 2), {"c": 3, "d": 4})
+    assert test_unpacking_and_keywords2(f) == (
+        ("positional", 1, 2, 3, 4, 5),
+        {"key": "value", "a": 1, "b": 2, "c": 3, "d": 4, "e": 5}
+    )
+
+    with pytest.raises(TypeError) as excinfo:
+        test_unpacking_error1(f)
+    assert "Got multiple values for keyword argument" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        test_unpacking_error2(f)
+    assert "Got multiple values for keyword argument" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        test_arg_conversion_error1(f)
+    assert "Unable to convert call argument" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        test_arg_conversion_error2(f)
+    assert "Unable to convert call argument" in str(excinfo.value)
+
+
 def test_lambda_closure_cleanup():
     from pybind11_tests import test_cleanup, payload_cstats
 
@@ -48,7 +98,7 @@ def test_cpp_function_roundtrip():
 
     with pytest.raises(TypeError) as excinfo:
         test_dummy_function(dummy_function2)
-    assert "Incompatible function arguments" in str(excinfo.value)
+    assert "incompatible function arguments" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
         test_dummy_function(lambda x, y: x + y)
@@ -61,3 +111,9 @@ def test_function_signatures(doc):
 
     assert doc(test_callback3) == "test_callback3(arg0: Callable[[int], int]) -> str"
     assert doc(test_callback4) == "test_callback4() -> Callable[[int], int]"
+
+
+def test_movable_object():
+    from pybind11_tests import callback_with_movable
+
+    assert callback_with_movable(lambda _: None) is True

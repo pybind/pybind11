@@ -33,10 +33,8 @@ def generate_dummy_code_pybind11(nclasses=10):
     result = "#include <pybind11/pybind11.h>\n\n"
     result += "namespace py = pybind11;\n\n"
     result += decl + '\n'
-    result += "PYBIND11_PLUGIN(example) {\n"
-    result += "    py::module m(\"example\");"
+    result += "PYBIND11_MODULE(example, m) {\n"
     result += bindings
-    result += "    return m.ptr();"
     result += "}"
     return result
 

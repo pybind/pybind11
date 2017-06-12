@@ -8,13 +8,14 @@ import pytest
 import textwrap
 import difflib
 import re
-import os
 import sys
 import contextlib
+import platform
+import gc
 
 _unicode_marker = re.compile(r'u(\'[^\']*\')')
-_long_marker    = re.compile(r'([0-9])L')
-_hexadecimal    = re.compile(r'0x[0-9a-fA-F]+')
+_long_marker = re.compile(r'([0-9])L')
+_hexadecimal = re.compile(r'0x[0-9a-fA-F]+')
 
 
 def _strip_and_dedent(s):
@@ -68,18 +69,14 @@ class Capture(object):
     def __init__(self, capfd):
         self.capfd = capfd
         self.out = ""
-
-    def _flush_stdout(self):
-        sys.stdout.flush()
-        os.fsync(sys.stdout.fileno())  # make sure C++ output is also read
-        return self.capfd.readouterr()[0]
+        self.err = ""
 
     def __enter__(self):
-        self._flush_stdout()
+        self.capfd.readouterr()
         return self
 
     def __exit__(self, *_):
-        self.out = self._flush_stdout()
+        self.out, self.err = self.capfd.readouterr()
 
     def __eq__(self, other):
         a = Output(self.out)
@@ -100,11 +97,15 @@ class Capture(object):
     def unordered(self):
         return Unordered(self.out)
 
+    @property
+    def stderr(self):
+        return Output(self.err)
+
 
 @pytest.fixture
-def capture(capfd):
-    """Extended `capfd` with context manager and custom equality operators"""
-    return Capture(capfd)
+def capture(capsys):
+    """Extended `capsys` with context manager and custom equality operators"""
+    return Capture(capsys)
 
 
 class SanitizedString(object):
@@ -177,6 +178,13 @@ def suppress(exception):
         pass
 
 
+def gc_collect():
+    ''' Run the garbage collector twice (needed when running
+    reference counting tests with PyPy) '''
+    gc.collect()
+    gc.collect()
+
+
 def pytest_namespace():
     """Add import suppression and test requirements to `pytest` namespace"""
     try:
@@ -191,6 +199,7 @@ def pytest_namespace():
         from pybind11_tests import have_eigen
     except ImportError:
         have_eigen = False
+    pypy = platform.python_implementation() == "PyPy"
 
     skipif = pytest.mark.skipif
     return {
@@ -201,6 +210,8 @@ def pytest_namespace():
                                            reason="eigen and/or numpy are not installed"),
         'requires_eigen_and_scipy': skipif(not have_eigen or not scipy,
                                            reason="eigen and/or scipy are not installed"),
+        'unsupported_on_pypy': skipif(pypy, reason="unsupported on PyPy"),
+        'gc_collect': gc_collect
     }
 
 
@@ -218,7 +229,7 @@ def _test_import_pybind11():
     """
     # noinspection PyBroadException
     try:
-        import pybind11_tests
+        import pybind11_tests  # noqa: F401 imported but unused
     except Exception as e:
         print("Failed to import pybind11_tests from pytest:")
         print("  {}: {}".format(type(e).__name__, e))

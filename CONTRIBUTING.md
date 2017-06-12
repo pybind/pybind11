@@ -25,8 +25,8 @@ adhere to the following rules to make the process as smooth as possible:
 * Make a new branch for every feature you're working on.
 * Make small and clean pull requests that are easy to review but make sure they
   do add value by themselves.
-* Add tests for any new functionality and run the test suite (``make test``) to
-  ensure that no existing features break.
+* Add tests for any new functionality and run the test suite (``make pytest``)
+  to ensure that no existing features break.
 * This project has a strong focus on providing general solutions using a
   minimal amount of code, thus small pull requests are greatly preferred.
 

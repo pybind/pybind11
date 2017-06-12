@@ -82,11 +82,12 @@ print(s.get_config_var('SO'));
 print(hasattr(sys, 'gettotalrefcount')+0);
 print(struct.calcsize('@P'));
 print(s.get_config_var('LDVERSION') or s.get_config_var('VERSION'));
+print(s.get_config_var('LIBDIR') or '');
+print(s.get_config_var('MULTIARCH') or '');
 "
     RESULT_VARIABLE _PYTHON_SUCCESS
     OUTPUT_VARIABLE _PYTHON_VALUES
-    ERROR_VARIABLE _PYTHON_ERROR_VALUE
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    ERROR_VARIABLE _PYTHON_ERROR_VALUE)
 
 if(NOT _PYTHON_SUCCESS MATCHES 0)
     if(PythonLibsNew_FIND_REQUIRED)
@@ -108,6 +109,8 @@ list(GET _PYTHON_VALUES 4 PYTHON_MODULE_EXTENSION)
 list(GET _PYTHON_VALUES 5 PYTHON_IS_DEBUG)
 list(GET _PYTHON_VALUES 6 PYTHON_SIZEOF_VOID_P)
 list(GET _PYTHON_VALUES 7 PYTHON_LIBRARY_SUFFIX)
+list(GET _PYTHON_VALUES 8 PYTHON_LIBDIR)
+list(GET _PYTHON_VALUES 9 PYTHON_MULTIARCH)
 
 # Make sure the Python has the same pointer-size as the chosen compiler
 # Skip if CMAKE_SIZEOF_VOID_P is not defined
@@ -134,36 +137,28 @@ string(REGEX REPLACE "\\\\" "/" PYTHON_PREFIX ${PYTHON_PREFIX})
 string(REGEX REPLACE "\\\\" "/" PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIR})
 string(REGEX REPLACE "\\\\" "/" PYTHON_SITE_PACKAGES ${PYTHON_SITE_PACKAGES})
 
-# TODO: All the nuances of CPython debug builds have not been dealt with/tested.
-if(PYTHON_IS_DEBUG)
-    set(PYTHON_MODULE_EXTENSION "_d${PYTHON_MODULE_EXTENSION}")
-endif()
-
 if(CMAKE_HOST_WIN32)
     set(PYTHON_LIBRARY
         "${PYTHON_PREFIX}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
-        
-    # when run in a venv, PYTHON_PREFIX points to it. But the libraries remain in the 
+
+    # when run in a venv, PYTHON_PREFIX points to it. But the libraries remain in the
     # original python installation. They may be found relative to PYTHON_INCLUDE_DIR.
     if(NOT EXISTS "${PYTHON_LIBRARY}")
         get_filename_component(_PYTHON_ROOT ${PYTHON_INCLUDE_DIR} DIRECTORY)
         set(PYTHON_LIBRARY
             "${_PYTHON_ROOT}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
     endif()
-        
+
     # raise an error if the python libs are still not found.
     if(NOT EXISTS "${PYTHON_LIBRARY}")
         message(FATAL_ERROR "Python libraries not found")
     endif()
-    
-elseif(APPLE)
-    set(PYTHON_LIBRARY
-        "${PYTHON_PREFIX}/lib/libpython${PYTHON_LIBRARY_SUFFIX}.dylib")
+
 else()
-    if(${PYTHON_SIZEOF_VOID_P} MATCHES 8)
-        set(_PYTHON_LIBS_SEARCH "${PYTHON_PREFIX}/lib64" "${PYTHON_PREFIX}/lib")
+    if(PYTHON_MULTIARCH)
+        set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}/${PYTHON_MULTIARCH}" "${PYTHON_LIBDIR}")
     else()
-        set(_PYTHON_LIBS_SEARCH "${PYTHON_PREFIX}/lib")
+        set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}")
     endif()
     #message(STATUS "Searching for Python libs in ${_PYTHON_LIBS_SEARCH}")
     # Probably this needs to be more involved. It would be nice if the config
@@ -195,3 +190,5 @@ SET(PYTHON_DEBUG_LIBRARIES "${PYTHON_DEBUG_LIBRARY}")
 find_package_message(PYTHON
     "Found PythonLibs: ${PYTHON_LIBRARY}"
     "${PYTHON_EXECUTABLE}${PYTHON_VERSION}")
+
+set(PYTHONLIBS_FOUND TRUE)

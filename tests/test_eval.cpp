@@ -11,7 +11,7 @@
 #include <pybind11/eval.h>
 #include "pybind11_tests.h"
 
-void init_ex_eval(py::module & m) {
+test_initializer eval([](py::module &m) {
     auto global = py::dict(py::module::import("__main__").attr("__dict__"));
 
     m.def("test_eval_statements", [global]() {
@@ -20,14 +20,24 @@ void init_ex_eval(py::module & m) {
             return 42;
         });
 
-        auto result = py::eval<py::eval_statements>(
-            "print('Hello World!');\n"
-            "x = call_test();",
+        // Regular string literal
+        py::exec(
+            "message = 'Hello World!'\n"
+            "x = call_test()",
             global, local
+        );
+
+        // Multi-line raw string literal
+        py::exec(R"(
+            if x == 42:
+                print(message)
+            else:
+                raise RuntimeError
+            )", global, local
         );
         auto x = local["x"].cast<int>();
 
-        return result == py::none() && x == 42;
+        return x == 42;
     });
 
     m.def("test_eval", [global]() {
@@ -45,7 +55,7 @@ void init_ex_eval(py::module & m) {
 
         auto result = py::eval<py::eval_single_statement>("x = call_test()", py::dict(), local);
         auto x = local["x"].cast<int>();
-        return result == py::none() && x == 42;
+        return result.is_none() && x == 42;
     });
 
     m.def("test_eval_file", [global](py::str filename) {
@@ -56,14 +66,13 @@ void init_ex_eval(py::module & m) {
         local["call_test2"] = py::cpp_function([&](int value) { val_out = value; });
 
         auto result = py::eval_file(filename, global, local);
-        return val_out == 43 && result == py::none();
+        return val_out == 43 && result.is_none();
     });
 
     m.def("test_eval_failure", []() {
         try {
             py::eval("nonsense code ...");
         } catch (py::error_already_set &) {
-            PyErr_Clear();
             return true;
         }
         return false;
@@ -77,4 +86,4 @@ void init_ex_eval(py::module & m) {
         }
         return false;
     });
-}
+});
