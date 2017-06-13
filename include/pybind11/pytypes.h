@@ -1016,8 +1016,8 @@ public:
     PYBIND11_DEPRECATED("Use reinterpret_borrow<capsule>() or reinterpret_steal<capsule>()")
     capsule(PyObject *ptr, bool is_borrowed) : object(is_borrowed ? object(ptr, borrowed_t{}) : object(ptr, stolen_t{})) { }
 
-    explicit capsule(const void *value)
-        : object(PyCapsule_New(const_cast<void *>(value), nullptr, nullptr), stolen_t{}) {
+    explicit capsule(const void *value, const char *name = nullptr, void (*destructor)(PyObject *) = nullptr)
+        : object(PyCapsule_New(const_cast<void *>(value), name, destructor), stolen_t{}) {
         if (!m_ptr)
             pybind11_fail("Could not allocate capsule object!");
     }

@@ -603,6 +603,17 @@ def test_capsule_with_destructor(capture):
         destructing capsule: 1234
     """
 
+    with capture:
+        a = m.return_capsule_with_name_and_destructor_3()
+        del a
+        pytest.gc_collect()
+    assert capture.unordered == """
+        creating capsule
+        pointer type description
+        destructing capsule
+    """
+
+    
 
 def test_void_caster():
     import pybind11_tests as m

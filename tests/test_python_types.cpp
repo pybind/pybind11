@@ -573,6 +573,18 @@ test_initializer python_types([](py::module &m) {
         }
     );
 
+    m.def("return_capsule_with_name_and_destructor_3",
+        []() {
+            py::print("creating capsule");
+            auto capsule=py::object(py::capsule((void *) 1234, "pointer type description",
+                [](PyObject *ptr) {py::print("destructing capsule");}));
+            auto name=PyCapsule_GetName(capsule.ptr());
+            py::print(name);
+            return capsule;
+        }
+    );
+
+    
     m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
     m.def("cast_nullptr_t", []() { return std::nullptr_t{}; });
 
