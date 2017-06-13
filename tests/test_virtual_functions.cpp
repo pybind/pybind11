@@ -234,6 +234,7 @@ TEST_SUBMODULE(virtual_functions, m) {
 
     py::class_<A2, PyA2>(m, "A2")
         .def(py::init_alias<>())
+        .def(py::init([](int) { return new PyA2(); }))
         .def("f", &A2::f);
 
     m.def("call_f", [](A2 *a2) { a2->f(); });
@@ -444,4 +445,3 @@ void initialize_inherited_virtuals(py::module &m) {
         .def(py::init<>());
 
 };
-

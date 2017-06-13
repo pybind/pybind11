@@ -43,6 +43,7 @@
 #include "attr.h"
 #include "options.h"
 #include "detail/class.h"
+#include "detail/init.h"
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -198,6 +199,8 @@ protected:
                 a.descr = strdup(a.value.attr("__repr__")().cast<std::string>().c_str());
         }
 
+        rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
+
         /* Generate a proper function signature */
         std::string signature;
         size_t type_depth = 0, char_index = 0, type_index = 0, arg_index = 0;
@@ -239,6 +242,12 @@ protected:
                                      .cast<std::string>() + ".";
 #endif
                     signature += tinfo->type->tp_name;
+                } else if (rec->is_constructor && arg_index == 0 && detail::same_type(typeid(handle), *t) && rec->scope) {
+                    // A py::init(...) constructor takes `self` as a `handle`; rewrite it to the type
+#if defined(PYPY_VERSION)
+                    signature += rec->scope.attr("__module__").cast<std::string>() + ".";
+#endif
+                    signature += ((PyTypeObject *) rec->scope.ptr())->tp_name;
                 } else {
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
@@ -267,7 +276,6 @@ protected:
 #endif
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();
-        rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
         rec->nargs = (std::uint16_t) args;
 
         if (rec->sibling && PYBIND11_INSTANCE_METHOD_CHECK(rec->sibling.ptr()))
@@ -709,7 +717,11 @@ protected:
         } else {
             if (overloads->is_constructor) {
                 auto tinfo = get_type_info((PyTypeObject *) overloads->scope.ptr());
-                tinfo->init_instance(reinterpret_cast<instance *>(parent.ptr()), nullptr);
+                auto *pi = reinterpret_cast<instance *>(parent.ptr());
+                auto v_h = pi->get_value_and_holder(tinfo);
+                if (!v_h.holder_constructed()) {
+                    tinfo->init_instance(pi, nullptr);
+                }
             }
             return result.ptr();
         }
@@ -1045,6 +1057,12 @@ public:
         return *this;
     }
 
+    template <typename... Args, typename... Extra>
+    class_ &def(detail::initimpl::factory<Args...> &&init, const Extra&... extra) {
+        std::move(init).execute(*this, extra...);
+        return *this;
+    }
+
     template <typename Func> class_& def_buffer(Func &&func) {
         struct capture { Func func; };
         capture *ptr = new capture { std::forward<Func>(func) };
@@ -1225,11 +1243,15 @@ private:
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
-    static void dealloc(const detail::value_and_holder &v_h) {
-        if (v_h.holder_constructed())
+    static void dealloc(detail::value_and_holder &v_h) {
+        if (v_h.holder_constructed()) {
             v_h.holder<holder_type>().~holder_type();
-        else
+            v_h.set_holder_constructed(false);
+        }
+        else {
             detail::call_operator_delete(v_h.value_ptr<type>(), v_h.type->type_size);
+        }
+        v_h.value_ptr() = nullptr;
     }
 
     static detail::function_record *get_function_record(handle h) {
@@ -1327,6 +1349,23 @@ private:
     dict m_entries;
     handle m_parent;
 };
+
+/// Binds an existing constructor taking arguments Args...
+template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
+/// Like `init<Args...>()`, but the instance is always constructed through the alias class (even
+/// when not inheriting on the Python side).
+template <typename... Args> detail::init_alias<Args...> init_alias() { return detail::init_alias<Args...>(); }
+
+/// Binds a factory function as a constructor
+template <typename Func, typename Ret = detail::initimpl::factory_t<Func>>
+Ret init(Func &&f) { return {std::forward<Func>(f)}; }
+
+/// Dual-argument factory function: the first function is called when no alias is needed, the second
+/// when an alias is needed (i.e. due to python-side inheritance).  Arguments must be identical.
+template <typename CFunc, typename AFunc, typename Ret = detail::initimpl::factory_t<CFunc, AFunc>>
+Ret init(CFunc &&c, AFunc &&a) {
+    return {std::forward<CFunc>(c), std::forward<AFunc>(a)};
+}
 
 NAMESPACE_BEGIN(detail)
 template <typename... Args> struct init {
@@ -1430,9 +1469,6 @@ struct iterator_state {
 };
 
 NAMESPACE_END(detail)
-
-template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
-template <typename... Args> detail::init_alias<Args...> init_alias() { return detail::init_alias<Args...>(); }
 
 /// Makes a python iterator from a first and past-the-end C++ InputIterator.
 template <return_value_policy Policy = return_value_policy::reference_internal,
