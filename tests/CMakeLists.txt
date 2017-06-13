@@ -56,6 +56,7 @@ set(PYBIND11_TEST_FILES
   test_smart_ptr.cpp
   test_stl_binders.cpp
   test_virtual_functions.cpp
+  test_type_error_truncation.cpp
 )
 
 # Invoking cmake with something like:

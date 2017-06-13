@@ -38,10 +38,6 @@ public:
 
     options& enable_function_signatures() & { global_state().show_function_signatures = true; return *this; }
 
-    options& set_type_error_print_repr() { global_state().type_error_print_repr = true; return *this; }
-    options& set_type_error_print_str() { global_state().type_error_print_repr = false; return *this; }
-
-
 
     // Getter methods (return the global state):
 
@@ -49,8 +45,6 @@ public:
 
     static bool show_function_signatures() { return global_state().show_function_signatures; }
 
-    static bool type_error_print_repr() { return global_state().type_error_print_repr; }
-    static bool type_error_print_str() { return !global_state().type_error_print_repr; }
 
     // This type is not meant to be allocated on the heap.
     void* operator new(size_t) = delete;

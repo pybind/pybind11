@@ -681,12 +681,12 @@ protected:
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
                 if (!some_args) some_args = true;
                 else msg += ", ";
-                
-                if(options::type_error_print_repr())
-                    msg += pybind11::repr(args_[ti]);
-                else{
-                    msg += pybind11::str(args_[ti]);
+                const std::string argRepr = pybind11::repr(args_[ti]);
+                if(argRepr.size() > 100){
+                    msg += pybind11::str("{:.100} ...[truncated by pybind11]").format(argRepr);
                 }
+                else
+                    msg += argRepr;
             }
             if (kwargs_in) {
                 auto kwargs = reinterpret_borrow<dict>(kwargs_in);
@@ -697,7 +697,10 @@ protected:
                     for (auto kwarg : kwargs) {
                         if (first) first = false;
                         else msg += ", ";
-                        msg += pybind11::str("{}={!r}").format(kwarg.first, kwarg.second);
+                        const std::string argRepr = pybind11::repr( kwarg.second);
+                        if(argRepr.size()>100){
+                            msg += pybind11::str("{}={!r:.100} ...[truncated by pybind11]").format(kwarg.first, argRepr);
+                        }
                     }
                 }
             }
