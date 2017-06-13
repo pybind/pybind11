@@ -441,8 +441,9 @@ struct instance {
     void deallocate_layout();
 
     /// Returns the value_and_holder wrapper for the given type (or the first, if `find_type`
-    /// omitted)
-    value_and_holder get_value_and_holder(const type_info *find_type = nullptr);
+    /// omitted).  Returns a default-constructed (with `.inst = nullptr`) object on failure if
+    /// `throw_if_missing` is false.
+    value_and_holder get_value_and_holder(const type_info *find_type = nullptr, bool throw_if_missing = true);
 
     /// Bit values for the non-simple status flags
     static constexpr uint8_t status_holder_constructed  = 1;

@@ -71,9 +71,9 @@ def test_multiple_inheritance_python():
             MI2.__init__(self, i, j)
 
     class MI4(MI3, m.Base2):
-        def __init__(self, i, j, k):
-            MI3.__init__(self, j, k)
-            m.Base2.__init__(self, i)
+        def __init__(self, i, j):
+            MI3.__init__(self, i, j)
+            # m.Base2 is already initialized (via MI2)
 
     class MI5(m.Base2, B1, m.Base1):
         def __init__(self, i, j):
@@ -127,10 +127,10 @@ def test_multiple_inheritance_python():
     assert mi3.foo() == 5
     assert mi3.bar() == 6
 
-    mi4 = MI4(7, 8, 9)
+    mi4 = MI4(7, 8)
     assert mi4.v() == 1
-    assert mi4.foo() == 8
-    assert mi4.bar() == 7
+    assert mi4.foo() == 7
+    assert mi4.bar() == 8
 
     mi5 = MI5(10, 11)
     assert mi5.v() == 1

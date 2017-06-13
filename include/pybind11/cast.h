@@ -45,7 +45,7 @@ struct type_info {
     size_t type_size, holder_size_in_ptrs;
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
-    void (*dealloc)(const value_and_holder &v_h);
+    void (*dealloc)(value_and_holder &v_h);
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
@@ -301,10 +301,14 @@ struct value_and_holder {
     const detail::type_info *type;
     void **vh;
 
+    // Main constructor for a found value/holder:
     value_and_holder(instance *i, const detail::type_info *type, size_t vpos, size_t index) :
         inst{i}, index{index}, type{type},
         vh{inst->simple_layout ? inst->simple_value_holder : &inst->nonsimple.values_and_holders[vpos]}
     {}
+
+    // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
+    value_and_holder() : inst{nullptr} {}
 
     // Used for past-the-end iterator
     value_and_holder(size_t index) : index{index} {}
@@ -323,22 +327,26 @@ struct value_and_holder {
             ? inst->simple_holder_constructed
             : inst->nonsimple.status[index] & instance::status_holder_constructed;
     }
-    void set_holder_constructed() {
+    void set_holder_constructed(bool v = true) {
         if (inst->simple_layout)
-            inst->simple_holder_constructed = true;
-        else
+            inst->simple_holder_constructed = v;
+        else if (v)
             inst->nonsimple.status[index] |= instance::status_holder_constructed;
+        else
+            inst->nonsimple.status[index] &= (uint8_t) ~instance::status_holder_constructed;
     }
     bool instance_registered() const {
         return inst->simple_layout
             ? inst->simple_instance_registered
             : inst->nonsimple.status[index] & instance::status_instance_registered;
     }
-    void set_instance_registered() {
+    void set_instance_registered(bool v = true) {
         if (inst->simple_layout)
-            inst->simple_instance_registered = true;
-        else
+            inst->simple_instance_registered = v;
+        else if (v)
             inst->nonsimple.status[index] |= instance::status_instance_registered;
+        else
+            inst->nonsimple.status[index] &= (uint8_t) ~instance::status_instance_registered;
     }
 };
 
@@ -403,7 +411,7 @@ public:
  * The returned object should be short-lived: in particular, it must not outlive the called-upon
  * instance.
  */
-PYBIND11_NOINLINE inline value_and_holder instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/) {
+PYBIND11_NOINLINE inline value_and_holder instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/, bool throw_if_missing /*= true in common.h*/) {
     // Optimize common case:
     if (!find_type || Py_TYPE(this) == find_type->type)
         return value_and_holder(this, find_type, 0, 0);
@@ -412,6 +420,9 @@ PYBIND11_NOINLINE inline value_and_holder instance::get_value_and_holder(const t
     auto it = vhs.find(find_type);
     if (it != vhs.end())
         return *it;
+
+    if (!throw_if_missing)
+        return value_and_holder();
 
 #if defined(NDEBUG)
     pybind11_fail("pybind11::detail::instance::get_value_and_holder: "
@@ -1454,7 +1465,7 @@ protected:
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
     }
 
-    bool load_value(const value_and_holder &v_h) {
+    bool load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
             holder = v_h.holder<holder_type>();

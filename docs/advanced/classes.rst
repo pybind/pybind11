@@ -322,6 +322,8 @@ can now create a python class that inherits from ``Dog``:
     See the file :file:`tests/test_virtual_functions.cpp` for complete examples
     using both the duplication and templated trampoline approaches.
 
+.. _extended_aliases:
+
 Extended trampoline class functionality
 =======================================
 
@@ -358,16 +360,124 @@ Custom constructors
 ===================
 
 The syntax for binding constructors was previously introduced, but it only
-works when a constructor with the given parameters actually exists on the C++
-side. To extend this to more general cases, let's take a look at what actually
-happens under the hood: the following statement
+works when a constructor of the appropriate arguments actually exists on the
+C++ side.  To extend this to more general cases, pybind11 offers two different
+approaches: binding factory functions, and placement-new creation.
+
+Factory function constructors
+-----------------------------
+
+It is possible to expose a Python-side constructor from a C++ function that
+returns a new object by value or pointer.  For example, suppose you have a
+class like this:
+
+.. code-block:: cpp
+
+    class Example {
+    private:
+        Example(int); // private constructor
+    public:
+        // Factory function:
+        static Example create(int a) { return Example(a); }
+    };
+
+While it is possible to expose the ``create`` method to Python, it is often
+preferrable to expose it on the Python side as a constructor rather than a
+named static method.  You can do this by calling ``.def(py::init(...))`` with
+the function reference returning the new instance passed as an argument.  It is
+also possible to use this approach to bind a function returning a new instance
+by raw pointer or by the holder (e.g. ``std::unique_ptr``).
+
+The following example shows the different approaches:
+
+.. code-block:: cpp
+
+    class Example {
+    private:
+        Example(int); // private constructor
+    public:
+        // Factory function - returned by value:
+        static Example create(int a) { return Example(a); }
+
+        // These constructors are publicly callable:
+        Example(double);
+        Example(int, int);
+        Example(std::string);
+    };
+
+    py::class_<Example>(m, "Example")
+        // Bind the factory function as a constructor:
+        .def(py::init(&Example::create))
+        // Bind a lambda function returning a pointer wrapped in a holder:
+        .def(py::init([](std::string arg) {
+            return std::unique_ptr<Example>(new Example(arg));
+        }))
+        // Return a raw pointer:
+        .def(py::init([](int a, int b) { return new Example(a, b); }))
+        // You can mix the above with regular C++ constructor bindings as well:
+        .def(py::init<double>())
+        ;
+
+When the constructor is invoked from Python, pybind11 will call the factory
+function and store the resulting C++ instance in the Python instance.
+
+When combining factory functions constructors with :ref:`overriding_virtuals`
+there are two approaches.  The first is to add a constructor to the alias class
+that takes a base value by rvalue-reference.  If such a constructor is
+available, it will be used to construct an alias instance from the value
+returned by the factory function.  The second option is to provide two factory
+functions to ``py::init()``: the first will be invoked when no alias class is
+required (i.e. when the class is being used but not inherited from in Python),
+and the second will be invoked when an alias is required.
+
+You can also specify a single factory function that always returns an alias
+instance: this will result in behaviour similar to ``py::init_alias<...>()``,
+as described in :ref:`extended_aliases`.
+
+The following example shows the different factory approaches for a class with
+an alias:
+
+.. code-block:: cpp
+
+    #include <pybind11/factory.h>
+    class Example {
+    public:
+        // ...
+        virtual ~Example() = default;
+    };
+    class PyExample : public Example {
+    public:
+        using Example::Example;
+        PyExample(Example &&base) : Example(std::move(base)) {}
+    };
+    py::class_<Example, PyExample>(m, "Example")
+        // Returns an Example pointer.  If a PyExample is needed, the Example
+        // instance will be moved via the extra constructor in PyExample, above.
+        .def(py::init([]() { return new Example(); }))
+        // Two callbacks:
+        .def(py::init([]() { return new Example(); } /* no alias needed */,
+                      []() { return new PyExample(); } /* alias needed */))
+        // *Always* returns an alias instance (like py::init_alias<>())
+        .def(py::init([]() { return new PyExample(); }))
+        ;
+
+Low-level placement-new construction
+------------------------------------
+
+A second approach for creating new instances use C++ placement new to construct
+an object in-place in preallocated memory.  To do this, you simply bind a
+method name ``__init__`` that takes the class instance as the first argument by
+pointer or reference, then uses a placement-new constructor to construct the
+object in the pre-allocated (but uninitialized) memory.
+
+For example, instead of:
 
 .. code-block:: cpp
 
     py::class_<Example>(m, "Example")
         .def(py::init<int>());
 
-is short hand notation for
+you could equivalently write:
 
 .. code-block:: cpp
 
@@ -378,9 +488,7 @@ is short hand notation for
             }
         );
 
-In other words, :func:`init` creates an anonymous function that invokes an
-in-place constructor. Memory allocation etc. is already take care of beforehand
-within pybind11.
+which will invoke the constructor in-place at the pre-allocated memory.
 
 .. _classes_with_non_public_destructors:
 

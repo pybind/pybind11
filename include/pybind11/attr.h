@@ -223,7 +223,7 @@ struct type_record {
     void (*init_instance)(instance *, const void *) = nullptr;
 
     /// Function pointer to class_<..>::dealloc
-    void (*dealloc)(const detail::value_and_holder &) = nullptr;
+    void (*dealloc)(detail::value_and_holder &) = nullptr;
 
     /// List of base classes of the newly created type
     list bases;

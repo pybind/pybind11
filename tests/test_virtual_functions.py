@@ -128,7 +128,15 @@ def test_alias_delay_initialization2(capture):
         m.call_f(a2)
         del a2
         pytest.gc_collect()
+        a3 = m.A2(1)
+        m.call_f(a3)
+        del a3
+        pytest.gc_collect()
     assert capture == """
+        PyA2.PyA2()
+        PyA2.f()
+        A2.f()
+        PyA2.~PyA2()
         PyA2.PyA2()
         PyA2.f()
         A2.f()
