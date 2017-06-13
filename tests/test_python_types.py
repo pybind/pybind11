@@ -608,8 +608,8 @@ def test_capsule_with_destructor(capture):
         del a
         pytest.gc_collect()
     assert capture.unordered == """
+        created capsule with name --pointer type description-- and contents 1234
         creating capsule
-        pointer type description
         destructing capsule
     """
 
