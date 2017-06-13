@@ -950,6 +950,9 @@ public:
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
             "Unknown/invalid class_ template parameters provided");
 
+    static_assert(!has_alias || std::is_polymorphic<type>::value,
+            "Cannot use an alias class with a non-polymorphic type");
+
     PYBIND11_OBJECT(class_, generic_type, PyType_Check)
 
     template <typename... Extra>
