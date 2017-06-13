@@ -774,13 +774,23 @@ public:
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
 
 protected:
-    typedef void *(*Constructor)(const void *stream);
+    using Constructor = void *(*)(const void *);
+
     /* Only enabled when the types are {copy,move}-constructible *and* when the type
-       does not have a private operator new implementaton. */
-    template <typename T = type, typename = enable_if_t<is_copy_constructible<T>::value>> static auto make_copy_constructor(const T *value) -> decltype(new T(*value), Constructor(nullptr)) {
-        return [](const void *arg) -> void * { return new T(*((const T *) arg)); }; }
-    template <typename T = type> static auto make_move_constructor(const T *value) -> decltype(new T(std::move(*((T *) value))), Constructor(nullptr)) {
-        return [](const void *arg) -> void * { return (void *) new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg)))); }; }
+       does not have a private operator new implementation. */
+    template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
+    static auto make_copy_constructor(const T *x) -> decltype(new T(*x), Constructor{}) {
+        return [](const void *arg) -> void * {
+            return new T(*reinterpret_cast<const T *>(arg));
+        };
+    }
+
+    template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
+    static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*(T *) x)), Constructor{}) {
+        return [](const void *arg) -> void * {
+            return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
+        };
+    }
 
     static Constructor make_copy_constructor(...) { return nullptr; }
     static Constructor make_move_constructor(...) { return nullptr; }
