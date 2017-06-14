@@ -28,7 +28,7 @@ matrix:
     addons:
       apt:
         sources: [deadsnakes, llvm-toolchain-trusty-4.0]
-        packages: [python3.6-dev python3.6-venv clang-4.0 llvm-4.0-dev]
+        packages: [python3.6-dev python3.6-venv clang-4.0 llvm-4.0-dev, lld-4.0]
   - os: osx
     osx_image: xcode7.3
     env: PYTHON=2.7 CPP=14 CLANG
@@ -172,7 +172,7 @@ install:
         cd ..
       fi
       export CXXFLAGS="-isystem $HOME/.local/include/c++/v1 -stdlib=libc++"
-      export LDFLAGS="-L$HOME/.local/lib"
+      export LDFLAGS="-L$HOME/.local/lib -fuse-ld=lld-$CLANG"
       export LD_LIBRARY_PATH="$HOME/.local/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       if [ "$CPP" = "-std=c++17" ]; then CPP="-std=c++1z"; fi
     fi
