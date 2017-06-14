@@ -613,8 +613,6 @@ def test_capsule_with_destructor(capture):
         destructing capsule
     """
 
-    
-
 def test_void_caster():
     import pybind11_tests as m
 
