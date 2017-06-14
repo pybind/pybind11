@@ -578,7 +578,7 @@ test_initializer python_types([](py::module &m) {
             py::print("creating capsule");
             auto capsule=py::capsule((void *) 1234, "pointer type description",
                 [](PyObject *ptr) {
-                 if (ptr){
+                 if (ptr) {
                     py::print("destructing capsule");
                  }
             });

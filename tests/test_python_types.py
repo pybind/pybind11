@@ -615,7 +615,6 @@ def test_capsule_with_destructor(capture):
 
 def test_void_caster():
     import pybind11_tests as m
-
     assert m.load_nullptr_t(None) is None
     assert m.cast_nullptr_t() is None
 
