@@ -1054,10 +1054,13 @@ public:
     }
 
     template <typename T> operator T *() const {
-        T * result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, nullptr));
+        auto name = this->name();
+        T * result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, name));
         if (!result) pybind11_fail("Unable to extract capsule contents!");
         return result;
     }
+
+    const char *name() const { return PyCapsule_GetName(m_ptr); }
 };
 
 class tuple : public object {

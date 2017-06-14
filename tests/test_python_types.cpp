@@ -575,14 +575,14 @@ test_initializer python_types([](py::module &m) {
 
     m.def("return_capsule_with_name_and_destructor_3",
         []() {
-            auto capsule=py::object(py::capsule((void *) 1234, "pointer type description",
+            auto capsule=py::capsule((void *) 1234, "pointer type description",
                 [](PyObject *ptr) {
                  if(ptr){
                     py::print("destructing capsule");
                  }
-            }));
-            auto name=PyCapsule_GetName(capsule.ptr());
-            auto contents=PyCapsule_GetPointer(capsule.ptr(),name);
+            });
+            auto name = capsule.name();
+            void *contents = capsule;
             py::print("created capsule with name --{}-- and contents {}"_s.format(name,(size_t) contents));
             return capsule;
         }
