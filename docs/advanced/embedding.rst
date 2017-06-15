@@ -111,7 +111,7 @@ Python modules can be imported using `module::import()`:
 .. code-block:: cpp
 
     py::module sys = py::module::import("sys");
-    py::print(sys.attr("path"))
+    py::print(sys.attr("path"));
 
 For convenience, the current working directory is included in ``sys.path`` when
 embedding the interpreter. This makes it easy to import local Python files:
