@@ -97,8 +97,8 @@ before_install:
       fi
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
-    if [ "$GCC" = "6" ] || [ "$CLANG" = "3.9" ]; then DOCKER=${ARCH:+$ARCH/}debian:testing
-    elif [ "$GCC" = "7" ]; then DOCKER=debian:experimental APT_GET_EXTRA="-t experimental"
+    if [ "$GCC" = "6" ] || [ "$CLANG" = "3.9" ]; then DOCKER=${ARCH:+$ARCH/}debian:stretch
+    elif [ "$GCC" = "7" ]; then DOCKER=debian:sid
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export CXX=clang++ CC=clang;
@@ -150,7 +150,7 @@ install:
       CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
     fi
     $SCRIPT_RUN_PREFIX sh -c "for s in 0 15; do sleep \$s; \
-      apt-get -qy --no-install-recommends $APT_GET_EXTRA install \
+      apt-get -qy --no-install-recommends install \
         $PY_DEBUG python$PY-dev python$PY-pytest python$PY-scipy \
         libeigen3-dev cmake make ${COMPILER_PACKAGES} && break; done"
   else
