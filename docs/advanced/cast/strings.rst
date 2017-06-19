@@ -287,6 +287,15 @@ expressed as a single Unicode code point
 no way to capture them in a C++ character type.
 
 
+C++17 string views
+==================
+
+C++17 string views are automatically supported when compiling in C++17 mode.
+They follow the same rules for encoding and decoding as the corresponding STL
+string type (for example, a ``std::u16string_view`` argument will be passed
+UTF-16-encoded data, and a returned ``std::string_view`` will be decoded as
+UTF-8).
+
 References
 ==========
 
