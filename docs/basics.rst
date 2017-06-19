@@ -122,21 +122,45 @@ generates binding code that exposes the ``add()`` function to Python.
 
 pybind11 is a header-only-library, hence it is not necessary to link against
 any special libraries (other than Python itself). On Windows, use the CMake
-build file discussed in section :ref:`cmake`. On Linux and Mac OS, the above
-example can be compiled using the following command
+build file discussed in section :ref:`cmake`.
+
+On Linux, the above example can be compiled using the following command:
 
 .. code-block:: bash
 
-    $ c++ -O3 -shared -std=c++11 -I <path-to-pybind11>/include `python-config --cflags --ldflags` example.cpp -o example.so
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC -I$PYBIND11_INCLUDE `python3-config --includes` example.cpp -o example`python3-config --extension-suffix`
+
+where ``PYBIND11_INCLUDE`` is the path to the include folder of pybind11.
+If pybind11 installed as a Python package, it can be obtained as follows:
+
+.. code-block:: bash
+
+   $ PYBIND11_INCLUDE=`python -c 'import pybind11; print(pybind11.get_include())'`
+
+Note that for some Python distributions the list of Python's system include
+folders contains the one where pybind11 gets installed, in which case
+passing ``-I$PYBIND11_INCLUDE`` is optional.
+
+On Python 2.7.x: ``python-config`` has to be used instead of ``python3-config``
+in the command above. Besides, ``--extension-suffix`` option may or may not
+be available, depending on the distribution; in the latter case, the module
+extension can be manually set to ``.so``.
+
+On Mac OS: the build command is almost the same but it also requires passing
+the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
+building the module:
+
+.. code-block:: bash
+
+    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup -I$PYBIND11_INCLUDE `python3-config --includes` example.cpp -o example`python3-config --extension-suffix`
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section
 :ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
 build system.
 
-Assuming that the created file :file:`example.so` (:file:`example.pyd` on Windows)
-is located in the current directory, the following interactive Python session
-shows how to load and execute the example.
+Assuming that the compiled module is located in the current directory, the
+following interactive Python session shows how to load and execute the example.
 
 .. code-block:: pycon
 
