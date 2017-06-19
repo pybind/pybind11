@@ -18,6 +18,19 @@
 #include <tuple>
 #include <cstring>
 
+#if defined(PYBIND11_CPP17)
+#  if defined(__has_include)
+#    if __has_include(<string_view>)
+#      define PYBIND11_HAS_STRING_VIEW
+#    endif
+#  elif defined(_MSC_VER)
+#    define PYBIND11_HAS_STRING_VIEW
+#  endif
+#endif
+#ifdef PYBIND11_HAS_STRING_VIEW
+#include <string_view>
+#endif
+
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 // Forward declarations:
@@ -1003,10 +1016,11 @@ public:
 };
 
 // Helper class for UTF-{8,16,32} C++ stl strings:
-template <typename CharT, class Traits, class Allocator>
-struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_std_char_type<CharT>::value>> {
+template <typename StringType, bool IsView = false> struct string_caster {
+    using CharT = typename StringType::value_type;
+
     // Simplify life by being able to assume standard char sizes (the standard only guarantees
-    // minimums), but Python requires exact sizes
+    // minimums, but Python requires exact sizes)
     static_assert(!std::is_same<CharT, char>::value || sizeof(CharT) == 1, "Unsupported char size != 1");
     static_assert(!std::is_same<CharT, char16_t>::value || sizeof(CharT) == 2, "Unsupported char16_t size != 2");
     static_assert(!std::is_same<CharT, char32_t>::value || sizeof(CharT) == 4, "Unsupported char32_t size != 4");
@@ -1014,8 +1028,6 @@ struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_s
     static_assert(!std::is_same<CharT, wchar_t>::value || sizeof(CharT) == 2 || sizeof(CharT) == 4,
             "Unsupported wchar_t size != 2/4");
     static constexpr size_t UTF_N = 8 * sizeof(CharT);
-
-    using StringType = std::basic_string<CharT, Traits, Allocator>;
 
     bool load(handle src, bool) {
 #if PY_MAJOR_VERSION < 3
@@ -1050,11 +1062,16 @@ struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_s
         size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
         if (UTF_N > 8) { buffer++; length--; } // Skip BOM for UTF-16/32
         value = StringType(buffer, length);
+
+        // If we're loading a string_view we need to keep the encoded Python object alive:
+        if (IsView)
+            view_into = std::move(utfNbytes);
+
         return true;
     }
 
     static handle cast(const StringType &src, return_value_policy /* policy */, handle /* parent */) {
-        const char *buffer = reinterpret_cast<const char *>(src.c_str());
+        const char *buffer = reinterpret_cast<const char *>(src.data());
         ssize_t nbytes = ssize_t(src.size() * sizeof(CharT));
         handle s = decode_utfN(buffer, nbytes);
         if (!s) throw error_already_set();
@@ -1064,6 +1081,8 @@ struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_s
     PYBIND11_TYPE_CASTER(StringType, _(PYBIND11_STRING_NAME));
 
 private:
+    object view_into;
+
     static handle decode_utfN(const char *buffer, ssize_t nbytes) {
 #if !defined(PYPY_VERSION)
         return
@@ -1100,6 +1119,16 @@ private:
     template <typename C = CharT>
     bool load_bytes(enable_if_t<sizeof(C) != 1, handle>) { return false; }
 };
+
+template <typename CharT, class Traits, class Allocator>
+struct type_caster<std::basic_string<CharT, Traits, Allocator>, enable_if_t<is_std_char_type<CharT>::value>>
+    : string_caster<std::basic_string<CharT, Traits, Allocator>> {};
+
+#ifdef PYBIND11_HAS_STRING_VIEW
+template <typename CharT, class Traits>
+struct type_caster<std::basic_string_view<CharT, Traits>, enable_if_t<is_std_char_type<CharT>::value>>
+    : string_caster<std::basic_string_view<CharT, Traits>, true> {};
+#endif
 
 // Type caster for C-style strings.  We basically use a std::string type caster, but also add the
 // ability to use None as a nullptr char* (which the string caster doesn't allow).

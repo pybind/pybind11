@@ -2,7 +2,8 @@
 import pytest
 import pybind11_tests
 
-from pybind11_tests import ExamplePythonTypes, ConstructorStats, has_optional, has_exp_optional
+from pybind11_tests import (ExamplePythonTypes, ConstructorStats, has_optional, has_exp_optional,
+                            has_string_view)
 
 
 def test_repr():
@@ -556,6 +557,48 @@ def test_bytes_to_string():
 
     # passing in a utf8 encoded string should work
     assert string_length(u'💩'.encode("utf8")) == 4
+
+
+@pytest.mark.skipif(not has_string_view, reason='no <string_view>')
+def test_string_view(capture):
+    """Tests support for C++17 string_view arguments and return values"""
+    from pybind11_tests import (string_view_print, string_view16_print, string_view32_print,
+                                string_view_chars, string_view16_chars, string_view32_chars,
+                                string_view_return, string_view16_return, string_view32_return)
+
+    assert string_view_chars("Hi") == [72, 105]
+    assert string_view_chars("Hi 🎂") == [72, 105, 32, 0xf0, 0x9f, 0x8e, 0x82]
+    assert string_view16_chars("Hi 🎂") == [72, 105, 32, 0xd83c, 0xdf82]
+    assert string_view32_chars("Hi 🎂") == [72, 105, 32, 127874]
+
+    assert string_view_return() == "utf8 secret 🎂"
+    assert string_view16_return() == "utf16 secret 🎂"
+    assert string_view32_return() == "utf32 secret 🎂"
+
+    with capture:
+        string_view_print("Hi")
+        string_view_print("utf8 🎂")
+        string_view16_print("utf16 🎂")
+        string_view32_print("utf32 🎂")
+
+    assert capture == """
+        Hi 2
+        utf8 🎂 9
+        utf16 🎂 8
+        utf32 🎂 7
+    """
+
+    with capture:
+        string_view_print("Hi, ascii")
+        string_view_print("Hi, utf8 🎂")
+        string_view16_print("Hi, utf16 🎂")
+        string_view32_print("Hi, utf32 🎂")
+    assert capture == """
+        Hi, ascii 9
+        Hi, utf8 🎂 13
+        Hi, utf16 🎂 12
+        Hi, utf32 🎂 11
+    """
 
 
 def test_builtins_cast_return_none():

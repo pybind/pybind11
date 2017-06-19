@@ -555,6 +555,21 @@ test_initializer python_types([](py::module &m) {
     m.def("nodefer_none_optional", [](py::none) { return false; });
 #endif
 
+#ifdef PYBIND11_HAS_STRING_VIEW
+    m.attr("has_string_view") = true;
+    m.def("string_view_print",   [](std::string_view s)    { py::print(s, s.size()); });
+    m.def("string_view16_print", [](std::u16string_view s) { py::print(s, s.size()); });
+    m.def("string_view32_print", [](std::u32string_view s) { py::print(s, s.size()); });
+    m.def("string_view_chars",   [](std::string_view s)    { py::list l; for (auto c : s) l.append((std::uint8_t) c); return l; });
+    m.def("string_view16_chars", [](std::u16string_view s) { py::list l; for (auto c : s) l.append((int) c); return l; });
+    m.def("string_view32_chars", [](std::u32string_view s) { py::list l; for (auto c : s) l.append((int) c); return l; });
+    m.def("string_view_return",   []() { return std::string_view(u8"utf8 secret \U0001f382"); });
+    m.def("string_view16_return", []() { return std::u16string_view(u"utf16 secret \U0001f382"); });
+    m.def("string_view32_return", []() { return std::u32string_view(U"utf32 secret \U0001f382"); });
+#else
+    m.attr("has_string_view") = false;
+#endif
+
     m.def("return_capsule_with_destructor",
         []() {
             py::print("creating capsule");
