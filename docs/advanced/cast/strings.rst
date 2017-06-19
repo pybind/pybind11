@@ -173,9 +173,9 @@ Wide character strings
 When a Python ``str`` is passed to a C++ function expecting ``std::wstring``,
 ``wchar_t*``, ``std::u16string`` or ``std::u32string``, the ``str`` will be
 encoded to UTF-16 or UTF-32 depending on how the C++ compiler implements each
-type, in the platform's endian. When strings of these types are returned, they
-are assumed to contain valid UTF-16 or UTF-32, and will be decoded to Python
-``str``.
+type, in the platform's native endianness. When strings of these types are
+returned, they are assumed to contain valid UTF-16 or UTF-32, and will be
+decoded to Python ``str``.
 
 .. code-block:: c++
 
