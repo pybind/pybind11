@@ -1,6 +1,8 @@
 #include <pybind11/embed.h>
 #include <catch.hpp>
 
+#include <thread>
+
 namespace py = pybind11;
 using namespace py::literals;
 
@@ -184,4 +186,33 @@ TEST_CASE("Execution frame") {
     // should still function by using reasonable globals: `__main__.__dict__`.
     py::exec("var = dict(number=42)");
     REQUIRE(py::globals()["var"]["number"].cast<int>() == 42);
+}
+
+TEST_CASE("Threads") {
+    // Restart interpreter to ensure threads are not initialized
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+    REQUIRE_FALSE(has_pybind11_internals_static());
+
+    constexpr auto num_threads = 10;
+    auto locals = py::dict("count"_a=0);
+
+    {
+        py::gil_scoped_release gil_release{};
+        REQUIRE(has_pybind11_internals_static());
+
+        auto threads = std::vector<std::thread>();
+        for (auto i = 0; i < num_threads; ++i) {
+            threads.emplace_back([&]() {
+                py::gil_scoped_acquire gil{};
+                py::exec("count += 1", py::globals(), locals);
+            });
+        }
+
+        for (auto &thread : threads) {
+            thread.join();
+        }
+    }
+
+    REQUIRE(locals["count"].cast<int>() == num_threads);
 }
