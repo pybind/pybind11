@@ -26,6 +26,9 @@ else()
   target_link_libraries(test_embed PRIVATE ${PYTHON_LIBRARIES})
 endif()
 
+find_package(Threads REQUIRED)
+target_link_libraries(test_embed PUBLIC ${CMAKE_THREAD_LIBS_INIT})
+
 add_custom_target(cpptest COMMAND $<TARGET_FILE:test_embed>
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 add_dependencies(check cpptest)
