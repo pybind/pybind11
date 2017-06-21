@@ -46,7 +46,8 @@ public:
             auto c = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
             auto rec = (function_record *) c;
 
-            if (rec && rec->is_stateless && rec->data[1] == &typeid(function_type)) {
+            if (rec && rec->is_stateless &&
+                    same_type(typeid(function_type), *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
                 struct capture { function_type f; };
                 value = ((capture *) &rec->data)->f;
                 return true;
