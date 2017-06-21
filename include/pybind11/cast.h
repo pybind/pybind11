@@ -16,7 +16,6 @@
 #include <array>
 #include <limits>
 #include <tuple>
-#include <cstring>
 
 #if defined(PYBIND11_CPP17)
 #  if defined(__has_include)
@@ -659,14 +658,14 @@ protected:
     // isn't needed or can't be used.  If the type is unknown, sets the error and returns a pair
     // with .second = nullptr.  (p.first = nullptr is not an error: it becomes None).
     PYBIND11_NOINLINE static std::pair<const void *, const type_info *> src_and_type(
-            const void *src, const std::type_info *cast_type, const std::type_info *rtti_type = nullptr) {
+            const void *src, const std::type_info &cast_type, const std::type_info *rtti_type = nullptr) {
         auto &internals = get_internals();
-        auto it = internals.registered_types_cpp.find(std::type_index(*cast_type));
+        auto it = internals.registered_types_cpp.find(std::type_index(cast_type));
         if (it != internals.registered_types_cpp.end())
             return {src, (const type_info *) it->second};
 
         // Not found, set error:
-        std::string tname = (rtti_type ? rtti_type : cast_type)->name();
+        std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
         detail::clean_type_id(tname);
         std::string msg = "Unregistered type : " + tname;
         PyErr_SetString(PyExc_TypeError, msg.c_str());
@@ -743,11 +742,11 @@ public:
     static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
         const void *vsrc = src;
         auto &internals = get_internals();
-        auto cast_type = &typeid(itype);
+        auto &cast_type = typeid(itype);
         const std::type_info *instance_type = nullptr;
         if (vsrc) {
             instance_type = &typeid(*src);
-            if (instance_type != cast_type) {
+            if (!same_type(cast_type, *instance_type)) {
                 // This is a base pointer to a derived type; if it is a pybind11-registered type, we
                 // can get the correct derived pointer (which may be != base pointer) by a
                 // dynamic_cast to most derived type:
@@ -764,7 +763,7 @@ public:
     // Non-polymorphic type, so no dynamic casting; just call the generic version directly
     template <typename T = itype, enable_if_t<!std::is_polymorphic<T>::value, int> = 0>
     static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        return type_caster_generic::src_and_type(src, &typeid(itype));
+        return type_caster_generic::src_and_type(src, typeid(itype));
     }
 
     static handle cast(const itype *src, return_value_policy policy, handle parent) {
@@ -1739,7 +1738,7 @@ constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 
 NAMESPACE_BEGIN(detail)
 
-// forward declaration
+// forward declaration (definition in attr.h)
 struct function_record;
 
 /// Internal data associated with a single function call
