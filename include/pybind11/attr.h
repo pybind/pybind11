@@ -243,17 +243,17 @@ struct type_record {
     /// Is the default (unique_ptr) holder type used?
     bool default_holder : 1;
 
-    PYBIND11_NOINLINE void add_base(const std::type_info *base, void *(*caster)(void *)) {
-        auto base_info = detail::get_type_info(*base, false);
+    PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
+        auto base_info = detail::get_type_info(base, false);
         if (!base_info) {
-            std::string tname(base->name());
+            std::string tname(base.name());
             detail::clean_type_id(tname);
             pybind11_fail("generic_type: type \"" + std::string(name) +
                           "\" referenced unknown base type \"" + tname + "\"");
         }
 
         if (default_holder != base_info->default_holder) {
-            std::string tname(base->name());
+            std::string tname(base.name());
             detail::clean_type_id(tname);
             pybind11_fail("generic_type: type \"" + std::string(name) + "\" " +
                     (default_holder ? "does not have" : "has") +
@@ -384,7 +384,7 @@ struct process_attribute<T, enable_if_t<is_pyobject<T>::value>> : process_attrib
 /// Process a parent class attribute (deprecated, does not support multiple inheritance)
 template <typename T>
 struct process_attribute<base<T>> : process_attribute_default<base<T>> {
-    static void init(const base<T> &, type_record *r) { r->add_base(&typeid(T), nullptr); }
+    static void init(const base<T> &, type_record *r) { r->add_base(typeid(T), nullptr); }
 };
 
 /// Process a multiple inheritance attribute
