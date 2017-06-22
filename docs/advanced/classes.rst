@@ -325,7 +325,7 @@ ensuring member initialization and (eventual) destruction.
 
 .. seealso::
 
-    See the file :file:`tests/test_alias_initialization.cpp` for complete examples
+    See the file :file:`tests/test_virtual_functions.cpp` for complete examples
     showing both normal and forced trampoline instantiation.
 
 .. _custom_constructors:
