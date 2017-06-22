@@ -425,6 +425,9 @@ private:
     // storage order conversion.  (Note that we refuse to use this temporary copy when loading an
     // argument for a Ref<M> with M non-const, i.e. a read-write reference).
     Array copy_or_ref;
+    // Set when copy_or_ref is a copy, in which case subcaster_keepalive() returns it to keep the
+    // temporary copy alive when this caster is invoked by a subcaster.
+    bool is_copy;
 public:
     bool load(handle src, bool convert) {
         // First check whether what we have is already an array of the right type.  If not, we can't
@@ -462,6 +465,7 @@ public:
             if (!fits || !fits.template stride_compatible<props>())
                 return false;
             copy_or_ref = std::move(copy);
+            is_copy = true;
         }
 
         ref.reset();
@@ -470,6 +474,8 @@ public:
 
         return true;
     }
+
+    handle subcaster_keepalive() { return is_copy ? (handle) copy_or_ref : handle(); }
 
     operator Type*() { return ref.get(); }
     operator Type&() { return *ref; }

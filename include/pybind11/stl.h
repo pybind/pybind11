@@ -49,6 +49,27 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
+template <typename caster_t, typename = void>
+struct subcaster_keepalive_impl { static handle get(caster_t &) { return {}; } };
+template <typename caster_t>
+struct subcaster_keepalive_impl<caster_t, void_t<decltype(std::declval<caster_t>().subcaster_keepalive())>> {
+    static handle get(caster_t &caster) { return caster.subcaster_keepalive(); } };
+template <typename caster_t>
+
+// Calls caster.subcaster_keepalive() if the caster has it, otherwise returns an empty handle
+inline handle subcaster_keepalive(caster_t &caster) { return subcaster_keepalive_impl<caster_t>::get(caster); }
+
+
+
+template <typename caster_t>
+void append_subcaster_keepalive(object &deps, caster_t &caster) {
+    if (handle h = subcaster_keepalive(caster)) {
+        if (!deps) deps = list{};
+        list deplist(deps);
+        deplist.append(reinterpret_borrow<object>(h));
+    }
+}
+
 template <typename Type, typename Key> struct set_caster {
     using type = Type;
     using key_conv = make_caster<Key>;
@@ -62,6 +83,7 @@ template <typename Type, typename Key> struct set_caster {
             key_conv conv;
             if (!conv.load(entry, convert))
                 return false;
+            append_subcaster_keepalive(deps, conv);
             value.insert(cast_op<Key &&>(std::move(conv)));
         }
         return true;
@@ -78,6 +100,10 @@ template <typename Type, typename Key> struct set_caster {
     }
 
     PYBIND11_TYPE_CASTER(type, _("Set[") + key_conv::name() + _("]"));
+private:
+    object deps;
+public:
+    handle dependency() { return deps; }
 };
 
 template <typename Type, typename Key, typename Value> struct map_caster {
@@ -95,6 +121,8 @@ template <typename Type, typename Key, typename Value> struct map_caster {
             if (!kconv.load(it.first.ptr(), convert) ||
                 !vconv.load(it.second.ptr(), convert))
                 return false;
+            append_subcaster_keepalive(deps, kconv);
+            append_subcaster_keepalive(deps, vconv);
             value.emplace(cast_op<Key &&>(std::move(kconv)), cast_op<Value &&>(std::move(vconv)));
         }
         return true;
@@ -113,6 +141,10 @@ template <typename Type, typename Key, typename Value> struct map_caster {
     }
 
     PYBIND11_TYPE_CASTER(Type, _("Dict[") + key_conv::name() + _(", ") + value_conv::name() + _("]"));
+private:
+    object deps;
+public:
+    handle dependency() { return deps; }
 };
 
 template <typename Type, typename Value> struct list_caster {
@@ -128,6 +160,7 @@ template <typename Type, typename Value> struct list_caster {
             value_conv conv;
             if (!conv.load(it, convert))
                 return false;
+            append_subcaster_keepalive(deps, conv);
             value.push_back(cast_op<Value &&>(std::move(conv)));
         }
         return true;
@@ -153,6 +186,10 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type, _("List[") + value_conv::name() + _("]"));
+private:
+    object deps;
+public:
+    handle dependency() { return deps; }
 };
 
 template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>>
@@ -188,6 +225,7 @@ public:
             value_conv conv;
             if (!conv.load(it, convert))
                 return false;
+            append_subcaster_keepalive(deps, conv);
             value[ctr++] = cast_op<Value &&>(std::move(conv));
         }
         return true;
@@ -206,6 +244,10 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(ArrayType, _("List[") + value_conv::name() + _<Resizable>(_(""), _("[") + _<Size>() + _("]")) + _("]"));
+private:
+    object deps;
+public:
+    handle dependency() { return deps; }
 };
 
 template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
@@ -246,11 +288,18 @@ template<typename T> struct optional_caster {
         if (!inner_caster.load(src, convert))
             return false;
 
+        if (handle h = subcaster_keepalive(inner_caster))
+            dep = reinterpret_borrow<object>(h);
         value.emplace(cast_op<typename T::value_type &&>(std::move(inner_caster)));
         return true;
     }
 
     PYBIND11_TYPE_CASTER(T, _("Optional[") + value_conv::name() + _("]"));
+
+private:
+    object dep;
+public:
+    handle dependency() { return dep; }
 };
 
 #if PYBIND11_HAS_OPTIONAL
@@ -304,6 +353,8 @@ struct variant_caster<V<Ts...>> {
         auto caster = make_caster<U>();
         if (caster.load(src, convert)) {
             value = cast_op<U>(caster);
+            if (handle h = subcaster_keepalive(caster))
+                dep = reinterpret_borrow<object>(h);
             return true;
         }
         return load_alternative(src, convert, type_list<Us...>{});
@@ -329,6 +380,11 @@ struct variant_caster<V<Ts...>> {
 
     using Type = V<Ts...>;
     PYBIND11_TYPE_CASTER(Type, _("Union[") + detail::concat(make_caster<Ts>::name()...) + _("]"));
+
+private:
+    object dep;
+public:
+    handle dependency() { return dep; }
 };
 
 #if PYBIND11_HAS_VARIANT
