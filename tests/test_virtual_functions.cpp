@@ -322,7 +322,7 @@ struct DispatchIssue : Base {
     }
 };
 
-test_initializer virtual_functions([](py::module &m) {
+TEST_SUBMODULE(virtual_functions, m) {
     py::class_<ExampleVirt, PyExampleVirt>(m, "ExampleVirt")
         .def(py::init<int>())
         /* Reference original class in function definitions */
@@ -351,6 +351,52 @@ test_initializer virtual_functions([](py::module &m) {
 
     m.def("cstats_debug", &ConstructorStats::get<ExampleVirt>);
     initialize_inherited_virtuals(m);
+
+    // test_alias_delay_initialization1
+    // don't invoke Python dispatch classes by default when instantiating C++ classes
+    // that were not extended on the Python side
+    struct A {
+        virtual ~A() {}
+        virtual void f() { py::print("A.f()"); }
+    };
+
+    struct PyA : A {
+        PyA() { py::print("PyA.PyA()"); }
+        ~PyA() { py::print("PyA.~PyA()"); }
+
+        void f() override {
+            py::print("PyA.f()");
+            PYBIND11_OVERLOAD(void, A, f);
+        }
+    };
+
+    py::class_<A, PyA>(m, "A")
+        .def(py::init<>())
+        .def("f", &A::f);
+
+    m.def("call_f", [](A *a) { a->f(); });
+
+    // test_alias_delay_initialization2
+    // ... unless we explicitly request it, as in this example:
+    struct A2 {
+        virtual ~A2() {}
+        virtual void f() { py::print("A2.f()"); }
+    };
+
+    struct PyA2 : A2 {
+        PyA2() { py::print("PyA2.PyA2()"); }
+        ~PyA2() { py::print("PyA2.~PyA2()"); }
+        void f() override {
+            py::print("PyA2.f()");
+            PYBIND11_OVERLOAD(void, A2, f);
+        }
+    };
+
+    py::class_<A2, PyA2>(m, "A2")
+        .def(py::init_alias<>())
+        .def("f", &A2::f);
+
+    m.def("call_f", [](A2 *a2) { a2->f(); });
 
     // #159: virtual function dispatch has problems with similar-named functions
     py::class_<Base, DispatchIssue>(m, "DispatchIssue")
@@ -398,4 +444,4 @@ test_initializer virtual_functions([](py::module &m) {
 //      .def("str_ref", &OverrideTest::str_ref)
         .def("A_value", &OverrideTest::A_value)
         .def("A_ref", &OverrideTest::A_ref);
-});
+}

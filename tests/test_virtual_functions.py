@@ -1,13 +1,11 @@
 import pytest
-import pybind11_tests
+
+from pybind11_tests import virtual_functions as m
 from pybind11_tests import ConstructorStats
 
 
 def test_override(capture, msg):
-    from pybind11_tests import (ExampleVirt, runExampleVirt, runExampleVirtVirtual,
-                                runExampleVirtBool)
-
-    class ExtendedExampleVirt(ExampleVirt):
+    class ExtendedExampleVirt(m.ExampleVirt):
         def __init__(self, state):
             super(ExtendedExampleVirt, self).__init__(state + 1)
             self.data = "Hello world"
@@ -33,40 +31,40 @@ def test_override(capture, msg):
         def get_string2(self):
             return "override2"
 
-    ex12 = ExampleVirt(10)
+    ex12 = m.ExampleVirt(10)
     with capture:
-        assert runExampleVirt(ex12, 20) == 30
+        assert m.runExampleVirt(ex12, 20) == 30
     assert capture == """
         Original implementation of ExampleVirt::run(state=10, value=20, str1=default1, str2=default2)
     """  # noqa: E501 line too long
 
     with pytest.raises(RuntimeError) as excinfo:
-        runExampleVirtVirtual(ex12)
+        m.runExampleVirtVirtual(ex12)
     assert msg(excinfo.value) == 'Tried to call pure virtual function "ExampleVirt::pure_virtual"'
 
     ex12p = ExtendedExampleVirt(10)
     with capture:
-        assert runExampleVirt(ex12p, 20) == 32
+        assert m.runExampleVirt(ex12p, 20) == 32
     assert capture == """
         ExtendedExampleVirt::run(20), calling parent..
         Original implementation of ExampleVirt::run(state=11, value=21, str1=override1, str2=default2)
     """  # noqa: E501 line too long
     with capture:
-        assert runExampleVirtBool(ex12p) is False
+        assert m.runExampleVirtBool(ex12p) is False
     assert capture == "ExtendedExampleVirt::run_bool()"
     with capture:
-        runExampleVirtVirtual(ex12p)
+        m.runExampleVirtVirtual(ex12p)
     assert capture == "ExtendedExampleVirt::pure_virtual(): Hello world"
 
     ex12p2 = ExtendedExampleVirt2(15)
     with capture:
-        assert runExampleVirt(ex12p2, 50) == 68
+        assert m.runExampleVirt(ex12p2, 50) == 68
     assert capture == """
         ExtendedExampleVirt::run(50), calling parent..
         Original implementation of ExampleVirt::run(state=17, value=51, str1=override1, str2=override2)
     """  # noqa: E501 line too long
 
-    cstats = ConstructorStats.get(ExampleVirt)
+    cstats = ConstructorStats.get(m.ExampleVirt)
     assert cstats.alive() == 3
     del ex12, ex12p, ex12p2
     assert cstats.alive() == 0
@@ -75,14 +73,88 @@ def test_override(capture, msg):
     assert cstats.move_constructions >= 0
 
 
-def test_inheriting_repeat():
-    from pybind11_tests import A_Repeat, B_Repeat, C_Repeat, D_Repeat, A_Tpl, B_Tpl, C_Tpl, D_Tpl
+def test_alias_delay_initialization1(capture):
+    """`A` only initializes its trampoline class when we inherit from it
 
-    class AR(A_Repeat):
+    If we just create and use an A instance directly, the trampoline initialization is
+    bypassed and we only initialize an A() instead (for performance reasons).
+    """
+    class B(m.A):
+        def __init__(self):
+            super(B, self).__init__()
+
+        def f(self):
+            print("In python f()")
+
+    # C++ version
+    with capture:
+        a = m.A()
+        m.call_f(a)
+        del a
+        pytest.gc_collect()
+    assert capture == "A.f()"
+
+    # Python version
+    with capture:
+        b = B()
+        m.call_f(b)
+        del b
+        pytest.gc_collect()
+    assert capture == """
+        PyA.PyA()
+        PyA.f()
+        In python f()
+        PyA.~PyA()
+    """
+
+
+def test_alias_delay_initialization2(capture):
+    """`A2`, unlike the above, is configured to always initialize the alias
+
+    While the extra initialization and extra class layer has small virtual dispatch
+    performance penalty, it also allows us to do more things with the trampoline
+    class such as defining local variables and performing construction/destruction.
+    """
+    class B2(m.A2):
+        def __init__(self):
+            super(B2, self).__init__()
+
+        def f(self):
+            print("In python B2.f()")
+
+    # No python subclass version
+    with capture:
+        a2 = m.A2()
+        m.call_f(a2)
+        del a2
+        pytest.gc_collect()
+    assert capture == """
+        PyA2.PyA2()
+        PyA2.f()
+        A2.f()
+        PyA2.~PyA2()
+    """
+
+    # Python subclass version
+    with capture:
+        b2 = B2()
+        m.call_f(b2)
+        del b2
+        pytest.gc_collect()
+    assert capture == """
+        PyA2.PyA2()
+        PyA2.f()
+        In python B2.f()
+        PyA2.~PyA2()
+    """
+
+
+def test_inheriting_repeat():
+    class AR(m.A_Repeat):
         def unlucky_number(self):
             return 99
 
-    class AT(A_Tpl):
+    class AT(m.A_Tpl):
         def unlucky_number(self):
             return 999
 
@@ -96,21 +168,21 @@ def test_inheriting_repeat():
     assert obj.unlucky_number() == 999
     assert obj.say_everything() == "hi 999"
 
-    for obj in [B_Repeat(), B_Tpl()]:
+    for obj in [m.B_Repeat(), m.B_Tpl()]:
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 13
         assert obj.lucky_number() == 7.0
         assert obj.say_everything() == "B says hi 1 times 13"
 
-    for obj in [C_Repeat(), C_Tpl()]:
+    for obj in [m.C_Repeat(), m.C_Tpl()]:
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 4444
         assert obj.lucky_number() == 888.0
         assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class CR(C_Repeat):
+    class CR(m.C_Repeat):
         def lucky_number(self):
-            return C_Repeat.lucky_number(self) + 1.25
+            return m.C_Repeat.lucky_number(self) + 1.25
 
     obj = CR()
     assert obj.say_something(3) == "B says hi 3 times"
@@ -118,7 +190,7 @@ def test_inheriting_repeat():
     assert obj.lucky_number() == 889.25
     assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class CT(C_Tpl):
+    class CT(m.C_Tpl):
         pass
 
     obj = CT()
@@ -147,14 +219,14 @@ def test_inheriting_repeat():
     assert obj.lucky_number() == 888000.0
     assert obj.say_everything() == "B says hi 1 times 4444"
 
-    class DR(D_Repeat):
+    class DR(m.D_Repeat):
         def unlucky_number(self):
             return 123
 
         def lucky_number(self):
             return 42.0
 
-    for obj in [D_Repeat(), D_Tpl()]:
+    for obj in [m.D_Repeat(), m.D_Tpl()]:
         assert obj.say_something(3) == "B says hi 3 times"
         assert obj.unlucky_number() == 4444
         assert obj.lucky_number() == 888.0
@@ -166,7 +238,7 @@ def test_inheriting_repeat():
     assert obj.lucky_number() == 42.0
     assert obj.say_everything() == "B says hi 1 times 123"
 
-    class DT(D_Tpl):
+    class DT(m.D_Tpl):
         def say_something(self, times):
             return "DT says:" + (' quack' * times)
 
@@ -189,7 +261,7 @@ def test_inheriting_repeat():
         def unlucky_number(self):
             return -3
 
-    class BT(B_Tpl):
+    class BT(m.B_Tpl):
         def say_something(self, times):
             return "BT" * times
 
@@ -209,31 +281,28 @@ def test_inheriting_repeat():
 # PyPy: Reference count > 1 causes call with noncopyable instance
 # to fail in ncv1.print_nc()
 @pytest.unsupported_on_pypy
-@pytest.mark.skipif(not hasattr(pybind11_tests, 'NCVirt'),
-                    reason="NCVirt test broken on ICPC")
+@pytest.mark.skipif(not hasattr(m, "NCVirt"), reason="NCVirt test broken on ICPC")
 def test_move_support():
-    from pybind11_tests import NCVirt, NonCopyable, Movable
-
-    class NCVirtExt(NCVirt):
+    class NCVirtExt(m.NCVirt):
         def get_noncopyable(self, a, b):
             # Constructs and returns a new instance:
-            nc = NonCopyable(a * a, b * b)
+            nc = m.NonCopyable(a * a, b * b)
             return nc
 
         def get_movable(self, a, b):
             # Return a referenced copy
-            self.movable = Movable(a, b)
+            self.movable = m.Movable(a, b)
             return self.movable
 
-    class NCVirtExt2(NCVirt):
+    class NCVirtExt2(m.NCVirt):
         def get_noncopyable(self, a, b):
             # Keep a reference: this is going to throw an exception
-            self.nc = NonCopyable(a, b)
+            self.nc = m.NonCopyable(a, b)
             return self.nc
 
         def get_movable(self, a, b):
             # Return a new instance without storing it
-            return Movable(a, b)
+            return m.Movable(a, b)
 
     ncv1 = NCVirtExt()
     assert ncv1.print_nc(2, 3) == "36"
@@ -244,8 +313,8 @@ def test_move_support():
     with pytest.raises(RuntimeError):
         ncv2.print_nc(9, 9)
 
-    nc_stats = ConstructorStats.get(NonCopyable)
-    mv_stats = ConstructorStats.get(Movable)
+    nc_stats = ConstructorStats.get(m.NonCopyable)
+    mv_stats = ConstructorStats.get(m.Movable)
     assert nc_stats.alive() == 1
     assert mv_stats.alive() == 1
     del ncv1, ncv2
@@ -261,30 +330,26 @@ def test_move_support():
 
 def test_dispatch_issue(msg):
     """#159: virtual function dispatch has problems with similar-named functions"""
-    from pybind11_tests import DispatchIssue, dispatch_issue_go
-
-    class PyClass1(DispatchIssue):
+    class PyClass1(m.DispatchIssue):
         def dispatch(self):
             return "Yay.."
 
-    class PyClass2(DispatchIssue):
+    class PyClass2(m.DispatchIssue):
         def dispatch(self):
             with pytest.raises(RuntimeError) as excinfo:
                 super(PyClass2, self).dispatch()
             assert msg(excinfo.value) == 'Tried to call pure virtual function "Base::dispatch"'
 
             p = PyClass1()
-            return dispatch_issue_go(p)
+            return m.dispatch_issue_go(p)
 
     b = PyClass2()
-    assert dispatch_issue_go(b) == "Yay.."
+    assert m.dispatch_issue_go(b) == "Yay.."
 
 
 def test_override_ref():
     """#392/397: overridding reference-returning functions"""
-    from pybind11_tests import OverrideTest
-
-    o = OverrideTest("asdf")
+    o = m.OverrideTest("asdf")
 
     # Not allowed (see associated .cpp comment)
     # i = o.str_ref()
