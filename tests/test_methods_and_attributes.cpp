@@ -102,6 +102,9 @@ struct TestPropRVP {
 SimpleValue TestPropRVP::sv1{};
 SimpleValue TestPropRVP::sv2{};
 
+struct UnregisteredBaseWithMember { int ro = 6; int rw = 13; };
+struct RegisteredDerivedInheritsMember : UnregisteredBaseWithMember {};
+
 class DynamicClass {
 public:
     DynamicClass() { print_default_created(this); }
@@ -257,6 +260,16 @@ test_initializer methods_and_attributes([](py::module &m) {
 
     py::class_<SimpleValue>(m, "SimpleValue")
         .def_readwrite("value", &SimpleValue::value);
+
+    // Unnumbered issue: can't expose unregistered base class member with def_readwrite/def_readonly
+    py::class_<RegisteredDerivedInheritsMember>(m, "RegisteredDerivedInheritsMember")
+        .def(py::init<>())
+        .def_readonly("ro", &UnregisteredBaseWithMember::ro)
+        .def_readwrite("rw", &UnregisteredBaseWithMember::rw)
+        // These should trigger a static_assert if uncommented
+        //.def_readwrite("fails", &SimpleValue::value) // should trigger a static_assert if uncommented
+        //.def_readonly("fails", &SimpleValue::value) // should trigger a static_assert if uncommented
+        ;
 
     auto static_get1 = [](py::object) -> const SimpleValue & { return TestPropRVP::sv1; };
     auto static_get2 = [](py::object) -> const SimpleValue & { return TestPropRVP::sv2; };

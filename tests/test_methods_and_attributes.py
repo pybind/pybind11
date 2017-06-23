@@ -61,7 +61,7 @@ def test_methods_and_attributes():
 
 
 def test_properties():
-    from pybind11_tests import TestProperties
+    from pybind11_tests import TestProperties, RegisteredDerivedInheritsMember
 
     instance = TestProperties()
 
@@ -78,6 +78,12 @@ def test_properties():
 
     instance.def_property = 3
     assert instance.def_property == 3
+
+    z = RegisteredDerivedInheritsMember()
+    assert z.ro == 6
+    assert z.rw == 13
+    z.rw += z.ro
+    assert z.ro == 6 and z.rw == 19
 
 
 def test_copy_method():
