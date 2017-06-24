@@ -1328,20 +1328,30 @@ template <typename... Args> struct init_alias {
 
 
 inline void keep_alive_impl(handle nurse, handle patient) {
-    /* Clever approach based on weak references taken from Boost.Python */
     if (!nurse || !patient)
         pybind11_fail("Could not activate keep_alive!");
 
     if (patient.is_none() || nurse.is_none())
         return; /* Nothing to keep alive or nothing to be kept alive by */
 
-    cpp_function disable_lifesupport(
-        [patient](handle weakref) { patient.dec_ref(); weakref.dec_ref(); });
+    auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
+    if (!tinfo.empty()) {
+        /* It's a pybind-registered type, so we can store the patient in the
+         * internal list. */
+        add_patient(nurse.ptr(), patient.ptr());
+    }
+    else {
+        /* Fall back to clever approach based on weak references taken from
+         * Boost.Python. This is not used for pybind-registered types because
+         * the objects can be destroyed out-of-order in a GC pass. */
+        cpp_function disable_lifesupport(
+            [patient](handle weakref) { patient.dec_ref(); weakref.dec_ref(); });
 
-    weakref wr(nurse, disable_lifesupport);
+        weakref wr(nurse, disable_lifesupport);
 
-    patient.inc_ref(); /* reference patient and leak the weak reference */
-    (void) wr.release();
+        patient.inc_ref(); /* reference patient and leak the weak reference */
+        (void) wr.release();
+    }
 }
 
 PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
