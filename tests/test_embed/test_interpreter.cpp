@@ -205,7 +205,7 @@ TEST_CASE("Threads") {
         for (auto i = 0; i < num_threads; ++i) {
             threads.emplace_back([&]() {
                 py::gil_scoped_acquire gil{};
-                py::exec("count += 1", py::globals(), locals);
+                locals["count"] = locals["count"].cast<int>() + 1;
             });
         }
 
