@@ -2,21 +2,22 @@ import pytest
 
 
 def test_keep_alive_argument(capture):
-    from pybind11_tests import Parent, Child
+    from pybind11_tests import Parent, Child, ConstructorStats
 
+    n_inst = ConstructorStats.detail_reg_inst()
     with capture:
         p = Parent()
     assert capture == "Allocating parent."
     with capture:
         p.addChild(Child())
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst + 1
     assert capture == """
         Allocating child.
         Releasing child.
     """
     with capture:
         del p
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst
     assert capture == "Releasing parent."
 
     with capture:
@@ -24,11 +25,11 @@ def test_keep_alive_argument(capture):
     assert capture == "Allocating parent."
     with capture:
         p.addChildKeepAlive(Child())
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst + 2
     assert capture == "Allocating child."
     with capture:
         del p
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst
     assert capture == """
         Releasing parent.
         Releasing child.
@@ -36,21 +37,22 @@ def test_keep_alive_argument(capture):
 
 
 def test_keep_alive_return_value(capture):
-    from pybind11_tests import Parent
+    from pybind11_tests import Parent, ConstructorStats
 
+    n_inst = ConstructorStats.detail_reg_inst()
     with capture:
         p = Parent()
     assert capture == "Allocating parent."
     with capture:
         p.returnChild()
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst + 1
     assert capture == """
         Allocating child.
         Releasing child.
     """
     with capture:
         del p
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst
     assert capture == "Releasing parent."
 
     with capture:
@@ -58,11 +60,74 @@ def test_keep_alive_return_value(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnChildKeepAlive()
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst + 2
     assert capture == "Allocating child."
     with capture:
         del p
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst
+    assert capture == """
+        Releasing parent.
+        Releasing child.
+    """
+
+
+# https://bitbucket.org/pypy/pypy/issues/2447
+@pytest.unsupported_on_pypy
+def test_alive_gc(capture):
+    from pybind11_tests import ParentGC, Child, ConstructorStats
+
+    n_inst = ConstructorStats.detail_reg_inst()
+    p = ParentGC()
+    p.addChildKeepAlive(Child())
+    assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    lst = [p]
+    lst.append(lst)   # creates a circular reference
+    with capture:
+        del p, lst
+        assert ConstructorStats.detail_reg_inst() == n_inst
+    assert capture == """
+        Releasing parent.
+        Releasing child.
+    """
+
+
+def test_alive_gc_derived(capture):
+    from pybind11_tests import Parent, Child, ConstructorStats
+
+    class Derived(Parent):
+        pass
+
+    n_inst = ConstructorStats.detail_reg_inst()
+    p = Derived()
+    p.addChildKeepAlive(Child())
+    assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    lst = [p]
+    lst.append(lst)   # creates a circular reference
+    with capture:
+        del p, lst
+        assert ConstructorStats.detail_reg_inst() == n_inst
+    assert capture == """
+        Releasing parent.
+        Releasing child.
+    """
+
+
+def test_alive_gc_multi_derived(capture):
+    from pybind11_tests import Parent, Child, ConstructorStats
+
+    class Derived(Parent, Child):
+        pass
+
+    n_inst = ConstructorStats.detail_reg_inst()
+    p = Derived()
+    p.addChildKeepAlive(Child())
+    # +3 rather than +2 because Derived corresponds to two registered instances
+    assert ConstructorStats.detail_reg_inst() == n_inst + 3
+    lst = [p]
+    lst.append(lst)   # creates a circular reference
+    with capture:
+        del p, lst
+        assert ConstructorStats.detail_reg_inst() == n_inst
     assert capture == """
         Releasing parent.
         Releasing child.
@@ -70,18 +135,19 @@ def test_keep_alive_return_value(capture):
 
 
 def test_return_none(capture):
-    from pybind11_tests import Parent
+    from pybind11_tests import Parent, ConstructorStats
 
+    n_inst = ConstructorStats.detail_reg_inst()
     with capture:
         p = Parent()
     assert capture == "Allocating parent."
     with capture:
         p.returnNullChildKeepAliveChild()
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst + 1
     assert capture == ""
     with capture:
         del p
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst
     assert capture == "Releasing parent."
 
     with capture:
@@ -89,11 +155,11 @@ def test_return_none(capture):
     assert capture == "Allocating parent."
     with capture:
         p.returnNullChildKeepAliveParent()
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst + 1
     assert capture == ""
     with capture:
         del p
-        pytest.gc_collect()
+        assert ConstructorStats.detail_reg_inst() == n_inst
     assert capture == "Releasing parent."
 
 

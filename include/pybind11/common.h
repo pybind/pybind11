@@ -405,6 +405,8 @@ struct instance {
     bool simple_layout : 1;
     /// For simple layout, tracks whether the holder has been constructed
     bool simple_holder_constructed : 1;
+    /// If true, get_internals().patients has an entry for this object
+    bool has_patients : 1;
 
     /// Initializes all of the above type/values/holders data
     void allocate_layout();
@@ -469,6 +471,7 @@ struct internals {
     std::unordered_multimap<const void *, instance*> registered_instances; // void * -> instance*
     std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
+    std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
     std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     PyTypeObject *static_property_type;

@@ -24,6 +24,13 @@ public:
     Child *returnNullChild() { return nullptr; }
 };
 
+#if !defined(PYPY_VERSION)
+class ParentGC : public Parent {
+public:
+    using Parent::Parent;
+};
+#endif
+
 test_initializer keep_alive([](py::module &m) {
     py::class_<Parent>(m, "Parent")
         .def(py::init<>())
@@ -33,6 +40,11 @@ test_initializer keep_alive([](py::module &m) {
         .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveChild", &Parent::returnNullChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>());
+
+#if !defined(PYPY_VERSION)
+    py::class_<ParentGC, Parent>(m, "ParentGC", py::dynamic_attr())
+        .def(py::init<>());
+#endif
 
     py::class_<Child>(m, "Child")
         .def(py::init<>());

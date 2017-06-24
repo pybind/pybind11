@@ -280,6 +280,29 @@ extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject 
     return -1;
 }
 
+inline void add_patient(PyObject *nurse, PyObject *patient) {
+    auto &internals = get_internals();
+    auto instance = reinterpret_cast<detail::instance *>(nurse);
+    instance->has_patients = true;
+    Py_INCREF(patient);
+    internals.patients[nurse].push_back(patient);
+}
+
+inline void clear_patients(PyObject *self) {
+    auto instance = reinterpret_cast<detail::instance *>(self);
+    auto &internals = get_internals();
+    auto pos = internals.patients.find(self);
+    assert(pos != internals.patients.end());
+    // Clearing the patients can cause more Python code to run, which
+    // can invalidate the iterator. Extract the vector of patients
+    // from the unordered_map first.
+    auto patients = std::move(pos->second);
+    internals.patients.erase(pos);
+    instance->has_patients = false;
+    for (PyObject *&patient : patients)
+        Py_CLEAR(patient);
+}
+
 /// Clears all internal data from the instance and removes it from registered instances in
 /// preparation for deallocation.
 inline void clear_instance(PyObject *self) {
@@ -304,6 +327,9 @@ inline void clear_instance(PyObject *self) {
     PyObject **dict_ptr = _PyObject_GetDictPtr(self);
     if (dict_ptr)
         Py_CLEAR(*dict_ptr);
+
+    if (instance->has_patients)
+        clear_patients(self);
 }
 
 /// Instance destructor function for all pybind11 types. It calls `type_info.dealloc`
