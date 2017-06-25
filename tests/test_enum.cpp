@@ -44,14 +44,22 @@ std::string test_scoped_enum(ScopedEnum z) {
 test_initializer enums([](py::module &m) {
     m.def("test_scoped_enum", &test_scoped_enum);
 
-    py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic())
+    auto e = py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic())
         .value("EOne", EOne)
         .value("ETwo", ETwo)
-        .export_values();
+        .export_values()
+        .into_class()
+        .def("x", [](const UnscopedEnum& e) { return static_cast<int>(e) + 1; })
+        .def_property_readonly("y", [](const UnscopedEnum& e) { return static_cast<int>(e) + 2; })
+        .def_static("a", []() { return 41; })
+        .def_property_readonly_static("b", [](py::object /* unused */) { return 42; });
 
-    py::enum_<ScopedEnum>(m, "ScopedEnum", py::arithmetic())
+    auto scoped_enum = py::enum_<ScopedEnum>(m, "ScopedEnum", py::arithmetic());
+    scoped_enum
         .value("Two", ScopedEnum::Two)
         .value("Three", ScopedEnum::Three);
+
+    py::setattr(e, "Alias", scoped_enum);
 
     py::enum_<Flags>(m, "Flags", py::arithmetic())
         .value("Read", Flags::Read)
