@@ -225,8 +225,8 @@ just brings them on par.
 
 .. _inheritance:
 
-Inheritance
-===========
+Inheritance and automatic upcasting
+===================================
 
 Suppose now that the example consists of two data structures with an
 inheritance relationship:
@@ -282,11 +282,65 @@ expose fields and methods of both types:
     u'Molly'
     >>> p.bark()
     u'woof!'
-    
-.. note:: When a wrapped function returns a polymorphic type, pybind11 will
-          create a python wrapper object of the actual type if the type has
-          a virtual function in the type hierarchy. Otherwise, the wrapped
-          object will be whatever the pointer is defined as.
+
+The C++ classes defined above are regular non-polymorphic types with an
+inheritance relationship. This is reflected in Python:
+
+.. code-block:: cpp
+
+    // Return a base pointer to a derived instance
+    m.def("pet_store", []() { return std::unique_ptr<Pet>(new Dog("Molly")); });
+
+.. code-block:: pycon
+
+    >>> p = example.pet_store()
+    >>> type(p)  # `Dog` instance behind `Pet` pointer
+    Pet          # no pointer upcasting for regular non-polymorphic types
+    >>> p.bark()
+    AttributeError: 'Pet' object has no attribute 'bark'
+
+The function returned a ``Dog`` instance, but because it's a non-polymorphic
+type behind a base pointer, Python only sees a ``Pet``. In C++, a type is only
+considered polymorphic if it has at least one virtual function and pybind11
+will automatically recognize this:
+
+.. code-block:: cpp
+
+    struct PolymorphicPet {
+        virtual ~PolymorphicPet() = default;
+    };
+
+    struct PolymorphicDog : PolymorphicPet {
+        std::string bark() const { return "woof!"; }
+    };
+
+    // Same binding code
+    py::class_<PolymorphicPet>(m, "PolymorphicPet");
+    py::class_<PolymorphicDog, PolymorphicPet>(m, "PolymorphicDog")
+        .def(py::init<>())
+        .def("bark", &PolymorphicDog::bark);
+
+    // Again, return a base pointer to a derived instance
+    m.def("pet_store2", []() { return std::unique_ptr<PolymorphicPet>(new PolymorphicDog); });
+
+.. code-block:: pycon
+
+    >>> p = example.pet_store2()
+    >>> type(p)
+    PolymorphicDog  # automatically upcast
+    >>> p.bark()
+    u'woof!'
+
+Given a pointer to a polymorphic base, pybind11 performs automatic upcasting
+to the actual derived type. Note that this goes beyond the usual situation in
+C++: we don't just get access to the virtual functions of the base, we get the
+concrete derived type including functions and attributes that the base type may
+not even be aware of.
+
+.. seealso::
+
+    For more information about polymorphic behavior see :ref:`overriding_virtuals`.
+
 
 Overloaded methods
 ==================
