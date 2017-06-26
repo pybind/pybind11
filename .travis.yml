@@ -76,8 +76,6 @@ matrix:
     - make -C docs html SPHINX_OPTIONS=-W
     - tools/check-style.sh
     - flake8
-  allow_failures:
-    - env: PYTHON=3.5 CPP=17 GCC=7
 cache:
   directories:
   - $HOME/.local/bin
@@ -98,7 +96,7 @@ before_install:
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
     if [ "$GCC" = "6" ] || [ "$CLANG" = "3.9" ]; then DOCKER=${ARCH:+$ARCH/}debian:stretch
-    elif [ "$GCC" = "7" ]; then DOCKER=debian:sid
+    elif [ "$GCC" = "7" ]; then DOCKER=debian:buster
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export CXX=clang++ CC=clang;
