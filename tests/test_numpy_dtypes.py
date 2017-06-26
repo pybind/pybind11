@@ -319,3 +319,10 @@ def test_register_dtype():
 def test_compare_buffer_info():
     from pybind11_tests import compare_buffer_info
     assert all(compare_buffer_info())
+
+
+@pytest.requires_numpy
+def test_numpy_bool():
+    from pybind11_tests import negate_bool
+    assert negate_bool(np.bool_(True)) is False
+    assert negate_bool(np.bool_(False)) is True
