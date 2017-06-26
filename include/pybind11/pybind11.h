@@ -573,6 +573,7 @@ protected:
 
                 // 6. Call the function.
                 try {
+                    loader_life_support guard{};
                     result = func.impl(call);
                 } catch (reference_cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
@@ -601,6 +602,7 @@ protected:
                 // The no-conversion pass finished without success, try again with conversion allowed
                 for (auto &call : second_pass) {
                     try {
+                        loader_life_support guard{};
                         result = call.func.impl(call);
                     } catch (reference_cast_error &) {
                         result = PYBIND11_TRY_NEXT_OVERLOAD;

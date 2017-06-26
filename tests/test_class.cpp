@@ -150,6 +150,40 @@ TEST_SUBMODULE(class_, m) {
     py::class_<MyDerived, MyBase>(m, "MyDerived")
         .def_static("make", &MyDerived::make)
         .def_static("make2", &MyDerived::make);
+
+    // test_implicit_conversion_life_support
+    struct ConvertibleFromUserType {
+        int i;
+
+        ConvertibleFromUserType(UserType u) : i(u.value()) { }
+    };
+
+    py::class_<ConvertibleFromUserType>(m, "AcceptsUserType")
+        .def(py::init<UserType>());
+    py::implicitly_convertible<UserType, ConvertibleFromUserType>();
+
+    m.def("implicitly_convert_argument", [](const ConvertibleFromUserType &r) { return r.i; });
+    m.def("implicitly_convert_variable", [](py::object o) {
+        // `o` is `UserType` and `r` is a reference to a temporary created by implicit
+        // conversion. This is valid when called inside a bound function because the temp
+        // object is attached to the same life support system as the arguments.
+        const auto &r = o.cast<const ConvertibleFromUserType &>();
+        return r.i;
+    });
+    m.add_object("implicitly_convert_variable_fail", [&] {
+        auto f = [](PyObject *, PyObject *args) -> PyObject * {
+            auto o = py::reinterpret_borrow<py::tuple>(args)[0];
+            try { // It should fail here because there is no life support.
+                o.cast<const ConvertibleFromUserType &>();
+            } catch (const py::cast_error &e) {
+                return py::str(e.what()).release().ptr();
+            }
+            return py::str().release().ptr();
+        };
+
+        auto def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
+        return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, nullptr, m.ptr()));
+    }());
 }
 
 template <int N> class BreaksBase {};
