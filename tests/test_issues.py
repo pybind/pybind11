@@ -241,3 +241,18 @@ def test_inheritance_override_def_static():
     assert isinstance(b, MyBase)
     assert isinstance(d1, MyDerived)
     assert isinstance(d2, MyDerived)
+
+def test_default_set():
+    from pybind11_tests.issues import test_default_set_null, test_default_set_none
+
+    try:
+        test_default_set_null()
+        assert False, "Defaulting to nullptr is not intended to work"
+    except TypeError:
+        assert True
+
+    try:
+        test_default_set_none()
+        assert False, "Defaulting to None is not intended to work"
+    except TypeError:
+        assert True

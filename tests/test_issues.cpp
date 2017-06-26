@@ -371,6 +371,9 @@ void init_issues(py::module &m) {
 #elif defined(PYBIND11_HAS_EXP_OPTIONAL)
     m2.def("tpl_constr_optional", [](std::experimental::optional<TplConstrClass> &) {});
 #endif
+
+    m2.def("test_default_set_null", [](std::unordered_set<std::uint64_t>*) {}, "ids"_a = nullptr);
+    m2.def("test_default_set_none", [](std::unordered_set<std::uint64_t>*) {}, "ids"_a = py::none());
 }
 
 // MSVC workaround: trying to use a lambda here crashes MSVC
