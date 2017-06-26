@@ -602,6 +602,21 @@ def test_nocopy_wrapper():
             ', flags.c_contiguous' in str(excinfo.value))
 
 
+def test_eigen_ref_life_support():
+    """Ensure the lifetime of temporary arrays created by the `Ref` caster
+
+    The `Ref` caster sometimes creates a copy which needs to stay alive. This needs to
+    happen both for directs casts (just the array) or indirectly (e.g. list of arrays).
+    """
+    from pybind11_tests import get_elem_direct, get_elem_indirect
+
+    a = np.full(shape=10, fill_value=8, dtype=np.int8)
+    assert get_elem_direct(a) == 8
+
+    list_of_a = [a]
+    assert get_elem_indirect(list_of_a) == 8
+
+
 def test_special_matrix_objects():
     from pybind11_tests import incr_diag, symmetric_upper, symmetric_lower
 
