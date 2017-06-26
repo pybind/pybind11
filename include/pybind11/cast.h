@@ -111,6 +111,53 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     return *internals_ptr;
 }
 
+/// A life support system for temporary objects created by `type_caster::load()`.
+/// Adding a patient will keep it alive up until the enclosing function returns.
+class loader_life_support {
+public:
+    /// A new patient frame is created when a function is entered
+    loader_life_support() {
+        get_internals().loader_patient_stack.push_back(nullptr);
+    }
+
+    /// ... and destroyed after it returns
+    ~loader_life_support() {
+        auto &stack = get_internals().loader_patient_stack;
+        if (stack.empty())
+            pybind11_fail("loader_life_support: internal error");
+
+        auto ptr = stack.back();
+        stack.pop_back();
+        Py_CLEAR(ptr);
+
+        // A heuristic to reduce the stack's capacity (e.g. after long recursive calls)
+        if (stack.capacity() > 16 && stack.size() != 0 && stack.capacity() / stack.size() > 2)
+            stack.shrink_to_fit();
+    }
+
+    /// This can only be used inside a pybind11-bound function, either by `argument_loader`
+    /// at argument preparation time or by `py::cast()` at execution time.
+    PYBIND11_NOINLINE static void add_patient(handle h) {
+        auto &stack = get_internals().loader_patient_stack;
+        if (stack.empty())
+            throw cast_error("When called outside a bound function, py::cast() cannot "
+                             "do Python -> C++ conversions which require the creation "
+                             "of temporary values");
+
+        auto &list_ptr = stack.back();
+        if (list_ptr == nullptr) {
+            list_ptr = PyList_New(1);
+            if (!list_ptr)
+                pybind11_fail("loader_life_support: error allocating list");
+            PyList_SET_ITEM(list_ptr, 0, h.inc_ref().ptr());
+        } else {
+            auto result = PyList_Append(list_ptr, h.ptr());
+            if (result == -1)
+                pybind11_fail("loader_life_support: error adding patient");
+        }
+    }
+};
+
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
 // returned by emplace, i.e. an iterator for the entry and a bool set to `true` if the entry was
 // just created.
@@ -643,9 +690,11 @@ protected:
         // Perform an implicit conversion
         if (convert) {
             for (auto &converter : typeinfo->implicit_conversions) {
-                temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
-                if (load_impl<ThisT>(temp, false))
+                auto temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
+                if (load_impl<ThisT>(temp, false)) {
+                    loader_life_support::add_patient(temp);
                     return true;
+                }
             }
             if (this_.try_direct_conversions(src))
                 return true;
@@ -674,7 +723,6 @@ protected:
 
     const type_info *typeinfo = nullptr;
     void *value = nullptr;
-    object temp;
 };
 
 /**
@@ -1064,7 +1112,7 @@ template <typename StringType, bool IsView = false> struct string_caster {
 
         // If we're loading a string_view we need to keep the encoded Python object alive:
         if (IsView)
-            view_into = std::move(utfNbytes);
+            loader_life_support::add_patient(utfNbytes);
 
         return true;
     }
@@ -1080,8 +1128,6 @@ template <typename StringType, bool IsView = false> struct string_caster {
     PYBIND11_TYPE_CASTER(StringType, _(PYBIND11_STRING_NAME));
 
 private:
-    object view_into;
-
     static handle decode_utfN(const char *buffer, ssize_t nbytes) {
 #if !defined(PYPY_VERSION)
         return
@@ -1336,7 +1382,6 @@ public:
     using base::cast;
     using base::typeinfo;
     using base::value;
-    using base::temp;
 
     bool load(handle src, bool convert) {
         return base::template load_impl<copyable_holder_caster<type, holder_type>>(src, convert);
