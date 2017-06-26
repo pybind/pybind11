@@ -462,6 +462,7 @@ public:
             if (!fits || !fits.template stride_compatible<props>())
                 return false;
             copy_or_ref = std::move(copy);
+            loader_life_support::add_patient(copy_or_ref);
         }
 
         ref.reset();

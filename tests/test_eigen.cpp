@@ -10,6 +10,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/eigen.h>
+#include <pybind11/stl.h>
 #include <Eigen/Cholesky>
 
 using MatrixXdR = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
@@ -298,4 +299,17 @@ test_initializer eigen([](py::module &m) {
         .def(py::init<>())
         .def_readonly("a", &CustomOperatorNew::a)
         .def_readonly("b", &CustomOperatorNew::b);
+
+    // test_eigen_ref_life_support
+    // In case of a failure (the caster's temp array does not live long enough), creating
+    // a new array (np.ones(10)) increases the chances that the temp array will be garbage
+    // collected and/or that its memory will be overridden with different values.
+    m.def("get_elem_direct", [](Eigen::Ref<const Eigen::VectorXd> v) {
+        py::module::import("numpy").attr("ones")(10);
+        return v(5);
+    });
+    m.def("get_elem_indirect", [](std::vector<Eigen::Ref<const Eigen::VectorXd>> v) {
+        py::module::import("numpy").attr("ones")(10);
+        return v[0](5);
+    });
 });
