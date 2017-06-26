@@ -1049,11 +1049,18 @@ template <> class type_caster<std::nullptr_t> : public void_caster<std::nullptr_
 
 template <> class type_caster<bool> {
 public:
-    bool load(handle src, bool) {
+    bool load(handle src, bool convert) {
         if (!src) return false;
         else if (src.ptr() == Py_True) { value = true; return true; }
         else if (src.ptr() == Py_False) { value = false; return true; }
-        else return false;
+        else if (convert && hasattr(src, "dtype")) {
+            auto dtype = src.attr("dtype");
+            if (hasattr(dtype, "kind") && dtype.attr("kind").cast<char>() == 'b') {
+                value = PyObject_IsTrue(src.ptr()) == 1;
+                return true;
+            }
+        }
+        return false;
     }
     static handle cast(bool src, return_value_policy /* policy */, handle /* parent */) {
         return handle(src ? Py_True : Py_False).inc_ref();
