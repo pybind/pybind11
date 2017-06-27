@@ -1053,7 +1053,34 @@ public:
         if (!src) return false;
         else if (src.ptr() == Py_True) { value = true; return true; }
         else if (src.ptr() == Py_False) { value = false; return true; }
-        else if (convert && hasattr(src, "dtype")) {
+        else if (convert) {
+            // This is quite similar to PyObject_IsTrue(), but it doesn't default
+            // to "True" for arbitrary objects.
+            Py_ssize_t res = -1;
+            auto tp = src.ptr()->ob_type;
+            if (src.is_none()) {
+                res = 0;
+            }
+            #if PY_MAJOR_VERSION >= 3
+            else if (tp->tp_as_number && tp->tp_as_number->nb_bool) {
+                res = (*tp->tp_as_number->nb_bool)(src.ptr());
+            }
+            #else
+            else if (tp->tp_as_number && tp->tp_as_number->nb_nonzero) {
+                res = (*tp->tp_as_number->nb_nonzero)(src.ptr());
+            }
+            #endif
+            else if (tp->tp_as_mapping && tp->tp_as_mapping->mp_length) {
+                res = (*tp->tp_as_mapping->mp_length)(src.ptr());
+            } else if (tp->tp_as_sequence && tp->tp_as_sequence->sq_length) {
+                res = (*tp->tp_as_sequence->sq_length)(src.ptr());
+            }
+            if (res >= 0) {
+                value = res != 0;
+                return true;
+            }
+        } else if (hasattr(src, "dtype")) {
+            // Allow non-implicit conversion for numpy booleans
             auto dtype = src.attr("dtype");
             if (hasattr(dtype, "kind") && dtype.attr("kind").cast<char>() == 'b') {
                 value = PyObject_IsTrue(src.ptr()) == 1;
