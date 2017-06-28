@@ -323,10 +323,14 @@ def test_compare_buffer_info():
 
 @pytest.requires_numpy
 def test_numpy_bool():
-    from pybind11_tests import bool_passthrough as convert, bool_passthrough_noconvert as noconvert
+    from pybind11_tests import (bool_passthrough as convert,
+                                bool_passthrough_noconvert as noconvert)
 
-    require_implicit = lambda v: pytest.raises(TypeError, noconvert, v)
-    cant_convert = lambda v: pytest.raises(TypeError, convert, v)
+    def require_implicit(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
 
     # straight up bool
     assert convert(True) is True
@@ -356,9 +360,14 @@ def test_numpy_bool():
     assert convert('foo') is True
 
     class A(object):
-        def __init__(self, x): self.x = x
-        def __nonzero__(self): return self.x
-        __bool__ = __nonzero__
+        def __init__(self, x):
+            self.x = x
+
+        def __nonzero__(self):
+            return self.x
+
+        def __bool__(self):
+            return self.x
 
     class B(object):
         pass
