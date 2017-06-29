@@ -50,7 +50,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #=============================================================================
 
-if(PYTHONLIBS_FOUND)
+# Checking for the extension makes sure that `LibsNew` was found and not just `Libs`.
+if(PYTHONLIBS_FOUND AND PYTHON_MODULE_EXTENSION)
     return()
 endif()
 
