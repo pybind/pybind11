@@ -931,6 +931,28 @@ private:
     }
 };
 
+NAMESPACE_BEGIN(detail)
+// Converts a value to the given unsigned type.  If an error occurs, you get back (Unsigned) -1;
+// otherwise you get back the unsigned long or unsigned long long value cast to (Unsigned).
+// (The distinction is critically important when casting a returned -1 error value to some other
+// unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
+template <typename Unsigned>
+Unsigned as_unsigned(PyObject *o) {
+    if (sizeof(Unsigned) <= sizeof(unsigned long)
+#if PY_VERSION_HEX < 0x03000000
+            || PyInt_Check(o)
+#endif
+    ) {
+        unsigned long v = PyLong_AsUnsignedLong(o);
+        return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
+    }
+    else {
+        unsigned long long v = PyLong_AsUnsignedLongLong(o);
+        return v == (unsigned long long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
+    }
+}
+NAMESPACE_END(detail)
+
 class int_ : public object {
 public:
     PYBIND11_OBJECT_CVT(int_, object, PYBIND11_LONG_CHECK, PyNumber_Long)
@@ -956,17 +978,11 @@ public:
     template <typename T,
               detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     operator T() const {
-        if (sizeof(T) <= sizeof(long)) {
-            if (std::is_signed<T>::value)
-                return (T) PyLong_AsLong(m_ptr);
-            else
-                return (T) PyLong_AsUnsignedLong(m_ptr);
-        } else {
-            if (std::is_signed<T>::value)
-                return (T) PYBIND11_LONG_AS_LONGLONG(m_ptr);
-            else
-                return (T) PYBIND11_LONG_AS_UNSIGNED_LONGLONG(m_ptr);
-        }
+        return std::is_unsigned<T>::value
+            ? detail::as_unsigned<T>(m_ptr)
+            : sizeof(T) <= sizeof(long)
+              ? (T) PyLong_AsLong(m_ptr)
+              : (T) PYBIND11_LONG_AS_LONGLONG(m_ptr);
     }
 };
 
