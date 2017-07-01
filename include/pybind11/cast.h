@@ -929,31 +929,27 @@ public:
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             else
                 return false;
-        } else if (sizeof(T) <= sizeof(long)) {
-            if (PyFloat_Check(src.ptr()))
-                return false;
-            if (std::is_signed<T>::value)
-                py_value = (py_type) PyLong_AsLong(src.ptr());
-            else
-                py_value = (py_type) PyLong_AsUnsignedLong(src.ptr());
-        } else {
-            if (PyFloat_Check(src.ptr()))
-                return false;
-            if (std::is_signed<T>::value)
-                py_value = (py_type) PYBIND11_LONG_AS_LONGLONG(src.ptr());
-            else
-                py_value = (py_type) PYBIND11_LONG_AS_UNSIGNED_LONGLONG(src.ptr());
+        } else if (PyFloat_Check(src.ptr())) {
+            return false;
+        } else if (std::is_unsigned<py_type>::value) {
+            py_value = as_unsigned<py_type>(src.ptr());
+        } else { // signed integer:
+            py_value = sizeof(T) <= sizeof(long)
+                ? (py_type) PyLong_AsLong(src.ptr())
+                : (py_type) PYBIND11_LONG_AS_LONGLONG(src.ptr());
         }
 
-        if ((py_value == (py_type) -1 && PyErr_Occurred()) ||
-            (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) &&
-               (py_value < (py_type) std::numeric_limits<T>::min() ||
-                py_value > (py_type) std::numeric_limits<T>::max()))) {
+        bool py_err = py_value == (py_type) -1 && PyErr_Occurred();
+        if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) &&
+                       (py_value < (py_type) std::numeric_limits<T>::min() ||
+                        py_value > (py_type) std::numeric_limits<T>::max()))) {
+            bool type_error = py_err && PyErr_ExceptionMatches(
 #if PY_VERSION_HEX < 0x03000000 && !defined(PYPY_VERSION)
-            bool type_error = PyErr_ExceptionMatches(PyExc_SystemError);
+                PyExc_SystemError
 #else
-            bool type_error = PyErr_ExceptionMatches(PyExc_TypeError);
+                PyExc_TypeError
 #endif
+            );
             PyErr_Clear();
             if (type_error && convert && PyNumber_Check(src.ptr())) {
                 auto tmp = reinterpret_borrow<object>(std::is_floating_point<T>::value

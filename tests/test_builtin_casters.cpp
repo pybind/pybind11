@@ -72,6 +72,12 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("string_view32_return", []() { return std::u32string_view(U"utf32 secret \U0001f382"); });
 #endif
 
+    // test_integer_casting
+    m.def("i32_str", [](std::int32_t v) { return std::to_string(v); });
+    m.def("u32_str", [](std::uint32_t v) { return std::to_string(v); });
+    m.def("i64_str", [](std::int64_t v) { return std::to_string(v); });
+    m.def("u64_str", [](std::uint64_t v) { return std::to_string(v); });
+
     // test_tuple
     m.def("pair_passthrough", [](std::pair<bool, std::string> input) {
         return std::make_pair(input.second, input.first);
