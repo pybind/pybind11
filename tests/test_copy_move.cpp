@@ -86,7 +86,7 @@ template <> struct type_caster<CopyOnlyInt> {
 protected:
     CopyOnlyInt value;
 public:
-    static PYBIND11_DESCR name() { return _("CopyOnlyInt"); }
+    static constexpr auto name = _("CopyOnlyInt");
     bool load(handle src, bool) { value = CopyOnlyInt(src.cast<int>()); return true; }
     static handle cast(const CopyOnlyInt &m, return_value_policy r, handle p) { return pybind11::cast(m.value, r, p); }
     static handle cast(const CopyOnlyInt *src, return_value_policy policy, handle parent) {

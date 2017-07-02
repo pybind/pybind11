@@ -164,7 +164,7 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return value types */
         using detail::descr; using detail::_;
-        PYBIND11_DESCR signature = _("(") + cast_in::arg_names() + _(") -> ") + cast_out::name();
+        constexpr auto signature = _("(") + cast_in::arg_names + _(") -> ") + cast_out::name;
 
         /* Register the function with Python from generic (non-templated) code */
         initialize_generic(rec, signature.text(), signature.types(), sizeof...(Args));
@@ -274,11 +274,6 @@ protected:
         }
         if (type_depth != 0 || types[type_index] != nullptr)
             pybind11_fail("Internal error while parsing type signature (2)");
-
-        #if !defined(PYBIND11_CONSTEXPR_DESCR)
-            delete[] types;
-            delete[] text;
-        #endif
 
 #if PY_MAJOR_VERSION < 3
         if (strcmp(rec->name, "__next__") == 0) {
