@@ -9,7 +9,11 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.3.0 (Not yet released)
 -----------------------------------------------------
 
-* TBD
+* Significantly reduced module binary size (10-20%) when compiled in C++11 mode
+  with GCC/Clang, or in any mode with MSVC. Function signatures are now always
+  precomputed at compile time (this was previously only available in C++14 mode
+  for non-MSVC compilers).
+  `#934 <https://github.com/pybind/pybind11/pull/934>`_.
 
 v2.2.1 (September 14, 2017)
 -----------------------------------------------------
