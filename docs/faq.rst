@@ -228,36 +228,6 @@ In addition to decreasing binary size, ``-fvisibility=hidden`` also avoids
 potential serious issues when loading multiple modules and is required for
 proper pybind operation.  See the previous FAQ entry for more details.
 
-Another aspect that can require a fair bit of code are function signature
-descriptions. pybind11 automatically generates human-readable function
-signatures for docstrings, e.g.:
-
-.. code-block:: none
-
-     |  __init__(...)
-     |      __init__(*args, **kwargs)
-     |      Overloaded function.
-     |
-     |      1. __init__(example.Example1) -> NoneType
-     |
-     |      Docstring for overload #1 goes here
-     |
-     |      2. __init__(example.Example1, int) -> NoneType
-     |
-     |      Docstring for overload #2 goes here
-     |
-     |      3. __init__(example.Example1, example.Example1) -> NoneType
-     |
-     |      Docstring for overload #3 goes here
-
-
-In C++11 mode, these are generated at run time using string concatenation,
-which can amount to 10-20% of the size of the resulting binary. If you can,
-enable C++14 language features (using ``-std=c++14`` for GCC/Clang), in which
-case signatures are efficiently pre-generated at compile time. Unfortunately,
-Visual Studio's C++14 support (``constexpr``) is not good enough as of April
-2016, so it always uses the more expensive run-time approach.
-
 Working with ancient Visual Studio 2009 builds on Windows
 =========================================================
 

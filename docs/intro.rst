@@ -77,9 +77,8 @@ In addition to the core functionality, pybind11 provides some extra goodies:
   of `PyRosetta`_, an enormous Boost.Python binding project, reported a binary
   size reduction of **5.4x** and compile time reduction by **5.8x**.
 
-- When supported by the compiler, two new C++14 features (relaxed constexpr and
-  return value deduction) are used to precompute function signatures at compile
-  time, leading to smaller binaries.
+- Function signatures are precomputed at compile time (using ``constexpr``),
+  leading to smaller binaries.
 
 - With little extra effort, C++ types can be pickled and unpickled similar to
   regular Python objects.
