@@ -1,6 +1,11 @@
 #pragma once
 #include <pybind11/pybind11.h>
 
+#if defined(_MSC_VER) && _MSC_VER < 1910
+// We get some really long type names here which causes MSVC 2015 to emit warnings
+#  pragma warning(disable: 4503) // warning C4503: decorated name length exceeded, name was truncated
+#endif
+
 namespace py = pybind11;
 using namespace pybind11::literals;
 
@@ -43,3 +48,17 @@ public:
     IncType &operator=(const IncType &) = delete;
     IncType &operator=(IncType &&) = delete;
 };
+
+/// Custom cast-only type that casts to a string "rvalue" or "lvalue" depending on the cast context.
+/// Used to test recursive casters (e.g. std::tuple, stl containers).
+struct RValueCaster {};
+NAMESPACE_BEGIN(pybind11)
+NAMESPACE_BEGIN(detail)
+template<> class type_caster<RValueCaster> {
+public:
+    PYBIND11_TYPE_CASTER(RValueCaster, _("RValueCaster"));
+    static handle cast(RValueCaster &&, return_value_policy, handle) { return py::str("rvalue").release(); }
+    static handle cast(const RValueCaster &, return_value_policy, handle) { return py::str("lvalue").release(); }
+};
+NAMESPACE_END(detail)
+NAMESPACE_END(pybind11)

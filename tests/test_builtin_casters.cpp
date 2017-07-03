@@ -86,6 +86,16 @@ TEST_SUBMODULE(builtin_casters, m) {
         return std::make_tuple(std::get<2>(input), std::get<1>(input), std::get<0>(input));
     }, "Return a triple in reversed order");
     m.def("empty_tuple", []() { return std::tuple<>(); });
+    static std::pair<RValueCaster, RValueCaster> lvpair;
+    static std::tuple<RValueCaster, RValueCaster, RValueCaster> lvtuple;
+    static std::pair<RValueCaster, std::tuple<RValueCaster, std::pair<RValueCaster, RValueCaster>>> lvnested;
+    m.def("rvalue_pair", []() { return std::make_pair(RValueCaster{}, RValueCaster{}); });
+    m.def("lvalue_pair", []() -> const decltype(lvpair) & { return lvpair; });
+    m.def("rvalue_tuple", []() { return std::make_tuple(RValueCaster{}, RValueCaster{}, RValueCaster{}); });
+    m.def("lvalue_tuple", []() -> const decltype(lvtuple) & { return lvtuple; });
+    m.def("rvalue_nested", []() {
+        return std::make_pair(RValueCaster{}, std::make_tuple(RValueCaster{}, std::make_pair(RValueCaster{}, RValueCaster{}))); });
+    m.def("lvalue_nested", []() -> const decltype(lvnested) & { return lvnested; });
 
     // test_builtins_cast_return_none
     m.def("return_none_string", []() -> std::string * { return nullptr; });

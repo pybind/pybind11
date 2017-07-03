@@ -201,6 +201,13 @@ def test_tuple(doc):
         Return a triple in reversed order
     """
 
+    assert m.rvalue_pair() == ("rvalue", "rvalue")
+    assert m.lvalue_pair() == ("lvalue", "lvalue")
+    assert m.rvalue_tuple() == ("rvalue", "rvalue", "rvalue")
+    assert m.lvalue_tuple() == ("lvalue", "lvalue", "lvalue")
+    assert m.rvalue_nested() == ("rvalue", ("rvalue", ("rvalue", "rvalue")))
+    assert m.lvalue_nested() == ("lvalue", ("lvalue", ("lvalue", "lvalue")))
+
 
 def test_builtins_cast_return_none():
     """Casters produced with PYBIND11_TYPE_CASTER() should convert nullptr to None"""
