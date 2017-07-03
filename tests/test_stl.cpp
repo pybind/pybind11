@@ -61,6 +61,46 @@ TEST_SUBMODULE(stl, m) {
         return set.count("key1") && set.count("key2") && set.count("key3");
     });
 
+    // test_recursive_casting
+    m.def("cast_rv_vector", []() { return std::vector<RValueCaster>{2}; });
+    m.def("cast_rv_array", []() { return std::array<RValueCaster, 3>(); });
+    // NB: map and set keys are `const`, so while we technically do move them (as `const Type &&`),
+    // casters don't typically do anything with that, which means they fall to the `const Type &`
+    // caster.
+    m.def("cast_rv_map", []() { return std::unordered_map<std::string, RValueCaster>{{"a", RValueCaster{}}}; });
+    m.def("cast_rv_nested", []() {
+        std::vector<std::array<std::list<std::unordered_map<std::string, RValueCaster>>, 2>> v;
+        v.emplace_back(); // add an array
+        v.back()[0].emplace_back(); // add a map to the array
+        v.back()[0].back().emplace("b", RValueCaster{});
+        v.back()[0].back().emplace("c", RValueCaster{});
+        v.back()[1].emplace_back(); // add a map to the array
+        v.back()[1].back().emplace("a", RValueCaster{});
+        return v;
+    });
+    static std::vector<RValueCaster> lvv{2};
+    static std::array<RValueCaster, 2> lva;
+    static std::unordered_map<std::string, RValueCaster> lvm{{"a", RValueCaster{}}, {"b", RValueCaster{}}};
+    static std::unordered_map<std::string, std::vector<std::list<std::array<RValueCaster, 2>>>> lvn;
+    lvn["a"].emplace_back(); // add a list
+    lvn["a"].back().emplace_back(); // add an array
+    lvn["a"].emplace_back(); // another list
+    lvn["a"].back().emplace_back(); // add an array
+    lvn["b"].emplace_back(); // add a list
+    lvn["b"].back().emplace_back(); // add an array
+    lvn["b"].back().emplace_back(); // add another array
+    m.def("cast_lv_vector", []() -> const decltype(lvv) & { return lvv; });
+    m.def("cast_lv_array", []() -> const decltype(lva) & { return lva; });
+    m.def("cast_lv_map", []() -> const decltype(lvm) & { return lvm; });
+    m.def("cast_lv_nested", []() -> const decltype(lvn) & { return lvn; });
+    // #853:
+    m.def("cast_unique_ptr_vector", []() {
+        std::vector<std::unique_ptr<UserType>> v;
+        v.emplace_back(new UserType{7});
+        v.emplace_back(new UserType{42});
+        return v;
+    });
+
     struct MoveOutContainer {
         struct Value { int value; };
 
