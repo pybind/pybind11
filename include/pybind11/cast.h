@@ -846,7 +846,7 @@ protected:
     }
 
     template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
-    static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*(T *) x)), Constructor{}) {
+    static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*const_cast<T *>(x))), Constructor{}) {
         return [](const void *arg) -> void * {
             return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
         };
@@ -1404,7 +1404,7 @@ protected:
         return false;
     }
 
-    static constexpr bool try_direct_conversions(handle) { return false; }
+    static bool try_direct_conversions(handle) { return false; }
 
 
     holder_type holder;
