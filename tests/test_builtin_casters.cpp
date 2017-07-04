@@ -85,7 +85,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("tuple_passthrough", [](std::tuple<bool, std::string, int> input) {
         return std::make_tuple(std::get<2>(input), std::get<1>(input), std::get<0>(input));
     }, "Return a triple in reversed order");
-
+    m.def("empty_tuple", []() { return std::tuple<>(); });
 
     // test_builtins_cast_return_none
     m.def("return_none_string", []() -> std::string * { return nullptr; });
