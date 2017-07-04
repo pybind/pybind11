@@ -188,6 +188,7 @@ def test_tuple(doc):
     # Any sequence can be cast to a std::pair or std::tuple
     assert m.pair_passthrough([True, "test"]) == ("test", True)
     assert m.tuple_passthrough([True, "test", 5]) == (5, "test", True)
+    assert m.empty_tuple() == ()
 
     assert doc(m.pair_passthrough) == """
         pair_passthrough(arg0: Tuple[bool, str]) -> Tuple[str, bool]
