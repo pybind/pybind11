@@ -22,7 +22,7 @@ matrix:
     env: PYTHON=3.5 CPP=14 GCC=6 DEBUG=1
   - sudo: true
     services: docker
-    env: PYTHON=3.5 CPP=17 GCC=7
+    env: PYTHON=3.6 CPP=17 GCC=7
   - os: linux
     env: PYTHON=3.6 CPP=17 CLANG=4.0
     addons:
@@ -144,12 +144,12 @@ install:
   set -e
   if [ -n "$DOCKER" ]; then
     if [ -n "$DEBUG" ]; then
-      PY_DEBUG="python$PY-dbg python$PY-scipy-dbg"
+      PY_DEBUG="python$PYTHON-dbg python$PY-scipy-dbg"
       CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
     fi
     $SCRIPT_RUN_PREFIX sh -c "for s in 0 15; do sleep \$s; \
       apt-get -qy --no-install-recommends install \
-        $PY_DEBUG python$PY-dev python$PY-pytest python$PY-scipy \
+        $PY_DEBUG python$PYTHON-dev python$PY-pytest python$PY-scipy \
         libeigen3-dev cmake make ${COMPILER_PACKAGES} && break; done"
   else
 
