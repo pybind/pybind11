@@ -895,7 +895,11 @@ public:
         template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0> \
         static handle cast(T_ *src, return_value_policy policy, handle parent) { \
             if (!src) return none().release(); \
-            return cast(*src, policy, parent); \
+            if (policy == return_value_policy::take_ownership) { \
+                auto h = cast(std::move(*src), policy, parent); delete src; return h; \
+            } else { \
+                return cast(*src, policy, parent); \
+            } \
         } \
         operator type*() { return &value; } \
         operator type&() { return value; } \

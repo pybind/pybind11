@@ -154,7 +154,28 @@ public:
     }
 
     static handle cast(const ArgAlwaysConverts &, return_value_policy, handle) {
-        return py::none();
+        return py::none().release();
+    }
+};
+}}
+
+// test_custom_caster_destruction
+class DestructionTester {
+public:
+    DestructionTester() { print_default_created(this); }
+    ~DestructionTester() { print_destroyed(this); }
+    DestructionTester(const DestructionTester &) { print_copy_created(this); }
+    DestructionTester(DestructionTester &&) { print_move_created(this); }
+    DestructionTester &operator=(const DestructionTester &) { print_copy_assigned(this); return *this; }
+    DestructionTester &operator=(DestructionTester &&) { print_move_assigned(this); return *this; }
+};
+namespace pybind11 { namespace detail {
+template <> struct type_caster<DestructionTester> {
+    PYBIND11_TYPE_CASTER(DestructionTester, _("DestructionTester"));
+    bool load(handle, bool) { return true; }
+
+    static handle cast(const DestructionTester &, return_value_policy, handle) {
+        return py::bool_(true).release();
     }
 };
 }}
@@ -399,4 +420,16 @@ test_initializer methods_and_attributes([](py::module &m) {
 
     using Adapted = decltype(py::method_adaptor<RegisteredDerived>(&RegisteredDerived::do_nothing));
     static_assert(std::is_same<Adapted, void (RegisteredDerived::*)() const>::value, "");
+
+    // test_custom_caster_destruction
+    // Test that `take_ownership` works on types with a custom type caster when given a pointer
+
+    // default policy: don't take ownership:
+    m.def("custom_caster_no_destroy", []() { static auto *dt = new DestructionTester(); return dt; });
+
+    m.def("custom_caster_destroy", []() { return new DestructionTester(); },
+            py::return_value_policy::take_ownership); // Takes ownership: destroy when finished
+    m.def("custom_caster_destroy_const", []() -> const DestructionTester * { return new DestructionTester(); },
+            py::return_value_policy::take_ownership); // Likewise (const doesn't inhibit destruction)
+    m.def("destruction_tester_cstats", &ConstructorStats::get<DestructionTester>, py::return_value_policy::reference);
 });
