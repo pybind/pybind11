@@ -38,6 +38,9 @@ TEST_SUBMODULE(stl, m) {
     // test_vector
     m.def("cast_vector", []() { return std::vector<int>{1}; });
     m.def("load_vector", [](const std::vector<int> &v) { return v.at(0) == 1 && v.at(1) == 2; });
+    // Unnumbered regression (caused by #936): pointers to stl containers aren't castable
+    static std::vector<RValueCaster> lvv{2};
+    m.def("cast_ptr_vector", []() { return &lvv; });
 
     // test_array
     m.def("cast_array", []() { return std::array<int, 2> {{1 , 2}}; });
@@ -78,7 +81,6 @@ TEST_SUBMODULE(stl, m) {
         v.back()[1].back().emplace("a", RValueCaster{});
         return v;
     });
-    static std::vector<RValueCaster> lvv{2};
     static std::array<RValueCaster, 2> lva;
     static std::unordered_map<std::string, RValueCaster> lvm{{"a", RValueCaster{}}, {"b", RValueCaster{}}};
     static std::unordered_map<std::string, std::vector<std::list<std::array<RValueCaster, 2>>>> lvn;

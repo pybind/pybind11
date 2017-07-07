@@ -15,6 +15,9 @@ def test_vector(doc):
     assert doc(m.cast_vector) == "cast_vector() -> List[int]"
     assert doc(m.load_vector) == "load_vector(arg0: List[int]) -> bool"
 
+    # Test regression caused by 936: pointers to stl containers weren't castable
+    assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
+
 
 def test_array(doc):
     """std::array <-> list"""
