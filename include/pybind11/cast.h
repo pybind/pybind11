@@ -892,14 +892,15 @@ public:
         type value; \
     public: \
         static PYBIND11_DESCR name() { return type_descr(py_name); } \
-        static handle cast(const type *src, return_value_policy policy, handle parent) { \
+        template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0> \
+        static handle cast(T_ *src, return_value_policy policy, handle parent) { \
             if (!src) return none().release(); \
             return cast(*src, policy, parent); \
         } \
         operator type*() { return &value; } \
         operator type&() { return value; } \
         operator type&&() && { return std::move(value); } \
-        template <typename _T> using cast_op_type = pybind11::detail::movable_cast_op_type<_T>
+        template <typename T_> using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
 
 template <typename CharT> using is_std_char_type = any_of<
