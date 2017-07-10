@@ -1070,11 +1070,6 @@ public:
                 res = (*tp->tp_as_number->nb_nonzero)(src.ptr());
             }
             #endif
-            else if (tp->tp_as_mapping && tp->tp_as_mapping->mp_length) {
-                res = (*tp->tp_as_mapping->mp_length)(src.ptr());
-            } else if (tp->tp_as_sequence && tp->tp_as_sequence->sq_length) {
-                res = (*tp->tp_as_sequence->sq_length)(src.ptr());
-            }
             if (res >= 0) {
                 value = res != 0;
                 return true;
