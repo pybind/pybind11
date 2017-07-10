@@ -1079,7 +1079,9 @@ public:
                 value = res != 0;
                 return true;
             }
-        } else if (hasattr(src, "dtype")) {
+            return false;
+        }
+        if (hasattr(src, "dtype")) {
             // Allow non-implicit conversion for numpy booleans
             auto dtype = src.attr("dtype");
             if (hasattr(dtype, "kind") && dtype.attr("kind").cast<char>() == 'b') {
