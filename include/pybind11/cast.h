@@ -1078,8 +1078,11 @@ public:
             }
             return false;
         }
-        if (hasattr(src, "dtype")) {
+        else if (hasattr(src, "dtype")) {
             // Allow non-implicit conversion for numpy booleans
+            //
+            // Note: this will only run in the first (noconvert) pass;
+            // during the second pass, it will be handled by __bool__ logic.
             auto dtype = src.attr("dtype");
             if (hasattr(dtype, "kind") && dtype.attr("kind").cast<char>() == 'b') {
                 value = PyObject_IsTrue(src.ptr()) == 1;
