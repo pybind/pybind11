@@ -467,8 +467,6 @@ test_initializer numpy_dtypes([](py::module &m) {
     m.def("f_packed", [](PackedStruct s) { return s.uint_ * 10; });
     m.def("f_nested", [](NestedStruct s) { return s.a.uint_ * 10; });
     m.def("register_dtype", []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_); });
-    m.def("bool_passthrough", [](bool arg) { return arg; });
-    m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg().noconvert());
 });
 
 #undef PYBIND11_PACKED
