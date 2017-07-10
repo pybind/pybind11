@@ -348,20 +348,6 @@ def test_numpy_bool():
     require_implicit(None)
     assert convert(None) is False
 
-    # Sequence types check for lengths (same as in PyObject_IsTrue)
-    require_implicit([])
-    require_implicit(())
-    require_implicit('')
-    require_implicit({})
-    assert convert([]) is False
-    assert convert([1]) is True
-    assert convert(()) is False
-    assert convert((0,)) is True
-    assert convert('') is False
-    assert convert('foo') is True
-    assert convert({}) is False
-    assert convert({1: 2}) is True
-
     class A(object):
         def __init__(self, x):
             self.x = x
