@@ -361,16 +361,6 @@ def test_numpy_bool():
     class B(object):
         pass
 
-    class C(object):
-        def __init__(self, x):
-            self.x = x
-
-        def __getitem__(self, _):
-            pass
-
-        def __len__(self):
-            return self.x
-
     # Arbitrary objects are not accepted
     cant_convert(object())
     cant_convert(B())
@@ -379,8 +369,3 @@ def test_numpy_bool():
     require_implicit(A(True))
     assert convert(A(True)) is True
     assert convert(A(False)) is False
-
-    # Objects implementing mapping or sequence protocol can be converted
-    require_implicit(C(1))
-    assert convert(C(1)) is True
-    assert convert(C(0)) is False
