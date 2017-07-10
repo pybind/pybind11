@@ -1057,18 +1057,17 @@ public:
             // This is quite similar to PyObject_IsTrue(), but it doesn't default
             // to "True" for arbitrary objects.
             Py_ssize_t res = -1;
-            auto tp = src.ptr()->ob_type;
             if (src.is_none()) {
                 res = 0;
             }
             #if !defined(PYPY_VERSION)
             #if PY_MAJOR_VERSION >= 3
-            else if (tp->tp_as_number && tp->tp_as_number->nb_bool) {
-                res = (*tp->tp_as_number->nb_bool)(src.ptr());
+            else if (src.ptr()->ob_type->tp_as_number && src.ptr()->ob_type->tp_as_number->nb_bool) {
+                res = (*src.ptr()->ob_type->tp_as_number->nb_bool)(src.ptr());
             }
             #else
-            else if (tp->tp_as_number && tp->tp_as_number->nb_nonzero) {
-                res = (*tp->tp_as_number->nb_nonzero)(src.ptr());
+            else if (src.ptr()->ob_type->tp_as_number && src.ptr()->ob_type->tp_as_number->nb_nonzero) {
+                res = (*src.ptr()->ob_type->tp_as_number->nb_nonzero)(src.ptr());
             }
             #endif
             #else
