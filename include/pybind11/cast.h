@@ -1061,6 +1061,7 @@ public:
             if (src.is_none()) {
                 res = 0;
             }
+            #if !defined(PYPY_VERSION)
             #if PY_MAJOR_VERSION >= 3
             else if (tp->tp_as_number && tp->tp_as_number->nb_bool) {
                 res = (*tp->tp_as_number->nb_bool)(src.ptr());
@@ -1068,6 +1069,11 @@ public:
             #else
             else if (tp->tp_as_number && tp->tp_as_number->nb_nonzero) {
                 res = (*tp->tp_as_number->nb_nonzero)(src.ptr());
+            }
+            #endif
+            #else
+            if (hasattr(src, PYBIND11_NONZERO)) {
+                res = PyObject_IsTrue(src.ptr());
             }
             #endif
             if (res >= 0) {
