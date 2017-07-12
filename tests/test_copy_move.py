@@ -29,14 +29,14 @@ def test_move_and_copy_casts():
     assert move_and_copy_casts(3) == 18
     assert c_m.copy_assignments + c_m.copy_constructions == 0
     assert c_m.move_assignments == 2
-    assert c_m.move_constructions == 2
+    assert c_m.move_constructions >= 2
     assert c_mc.alive() == 0
     assert c_mc.copy_assignments + c_mc.copy_constructions == 0
     assert c_mc.move_assignments == 2
-    assert c_mc.move_constructions == 2
+    assert c_mc.move_constructions >= 2
     assert c_c.alive() == 0
     assert c_c.copy_assignments == 2
-    assert c_c.copy_constructions == 2
+    assert c_c.copy_constructions >= 2
     assert c_m.alive() + c_mc.alive() + c_c.alive() == 0
 
 
