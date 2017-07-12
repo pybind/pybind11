@@ -311,14 +311,13 @@ public:
     struct iterator {
     private:
         instance *inst;
-        using vec_iter = std::vector<detail::type_info *>::const_iterator;
-        vec_iter typeit;
+        const type_vec *types;
         value_and_holder curr;
         friend struct values_and_holders;
-        iterator(instance *inst, const type_vec &tinfo)
-            : inst{inst}, typeit{tinfo.begin()},
+        iterator(instance *inst, const type_vec *tinfo)
+            : inst{inst}, types{tinfo},
             curr(inst /* instance */,
-                 tinfo.size() > 0 ? *typeit : nullptr /* type info */,
+                 types->empty() ? nullptr : (*types)[0] /* type info */,
                  0, /* vpos: (non-simple types only): the first vptr comes first */
                  0 /* index */)
         {}
@@ -328,18 +327,17 @@ public:
         bool operator==(const iterator &other) { return curr.index == other.curr.index; }
         bool operator!=(const iterator &other) { return curr.index != other.curr.index; }
         iterator &operator++() {
-            if (!inst->simple_layout) {
-                curr.vh += 1 + (*typeit)->holder_size_in_ptrs;
-                curr.type = *(++typeit);
-            }
+            if (!inst->simple_layout)
+                curr.vh += 1 + (*types)[curr.index]->holder_size_in_ptrs;
             ++curr.index;
+            curr.type = curr.index < types->size() ? (*types)[curr.index] : nullptr;
             return *this;
         }
         value_and_holder &operator*() { return curr; }
         value_and_holder *operator->() { return &curr; }
     };
 
-    iterator begin() { return iterator(inst, tinfo); }
+    iterator begin() { return iterator(inst, &tinfo); }
     iterator end() { return iterator(tinfo.size()); }
 
     iterator find(const type_info *find_type) {
