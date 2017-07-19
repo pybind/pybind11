@@ -28,7 +28,8 @@ extern "C" inline int pybind11_static_set(PyObject *self, PyObject *obj, PyObjec
 }
 
 static PyTypeObject *type_with_ref_incd(PyTypeObject *type) {
-    return (PyTypeObject *)(handle((PyObject *)(type)).inc_ref().ptr());
+    Py_INCREF(type);
+    return type;
 }
 
 /** A `static_property` is the same as a `property` but the `__get__()` and `__set__()`
