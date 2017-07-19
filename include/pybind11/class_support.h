@@ -14,6 +14,11 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
+inline PyTypeObject *type_with_ref_incd(PyTypeObject *type) {
+    Py_INCREF(type);
+    return type;
+}
+
 #if !defined(PYPY_VERSION)
 
 /// `pybind11_static_property.__get__()`: Always pass the class instead of the instance.
@@ -25,11 +30,6 @@ extern "C" inline PyObject *pybind11_static_get(PyObject *self, PyObject * /*ob*
 extern "C" inline int pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
     PyObject *cls = PyType_Check(obj) ? obj : (PyObject *) Py_TYPE(obj);
     return PyProperty_Type.tp_descr_set(self, cls, value);
-}
-
-inline PyTypeObject *type_with_ref_incd(PyTypeObject *type) {
-    Py_INCREF(type);
-    return type;
 }
 
 /** A `static_property` is the same as a `property` but the `__get__()` and `__set__()`
