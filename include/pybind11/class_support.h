@@ -27,7 +27,7 @@ extern "C" inline int pybind11_static_set(PyObject *self, PyObject *obj, PyObjec
     return PyProperty_Type.tp_descr_set(self, cls, value);
 }
 
-static PyTypeObject *type_with_ref_incd(PyTypeObject *type) {
+inline PyTypeObject *type_with_ref_incd(PyTypeObject *type) {
     Py_INCREF(type);
     return type;
 }
