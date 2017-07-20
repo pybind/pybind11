@@ -557,7 +557,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     auto type = &heap_type->ht_type;
     type->tp_name = strdup(full_name.c_str());
     type->tp_doc = tp_doc;
-    type->tp_base = (PyTypeObject *) handle(base).inc_ref().ptr();
+    type->tp_base = type_incref((PyTypeObject *)base);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
     if (bases.size() > 0)
         type->tp_bases = bases.release().ptr();
