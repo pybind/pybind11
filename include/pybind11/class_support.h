@@ -14,6 +14,11 @@
 NAMESPACE_BEGIN(pybind11)
 NAMESPACE_BEGIN(detail)
 
+inline PyTypeObject *type_incref(PyTypeObject *type) {
+    Py_INCREF(type);
+    return type;
+}
+
 #if !defined(PYPY_VERSION)
 
 /// `pybind11_static_property.__get__()`: Always pass the class instead of the instance.
@@ -49,7 +54,7 @@ inline PyTypeObject *make_static_property_type() {
 
     auto type = &heap_type->ht_type;
     type->tp_name = name;
-    type->tp_base = &PyProperty_Type;
+    type->tp_base = type_incref(&PyProperty_Type);
     type->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
     type->tp_descr_get = pybind11_static_get;
     type->tp_descr_set = pybind11_static_set;
@@ -162,7 +167,7 @@ inline PyTypeObject* make_default_metaclass() {
 
     auto type = &heap_type->ht_type;
     type->tp_name = name;
-    type->tp_base = &PyType_Type;
+    type->tp_base = type_incref(&PyType_Type);
     type->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
 
     type->tp_setattro = pybind11_meta_setattro;
@@ -361,7 +366,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
 
     auto type = &heap_type->ht_type;
     type->tp_name = name;
-    type->tp_base = &PyBaseObject_Type;
+    type->tp_base = type_incref(&PyBaseObject_Type);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
     type->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
 
@@ -552,7 +557,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     auto type = &heap_type->ht_type;
     type->tp_name = strdup(full_name.c_str());
     type->tp_doc = tp_doc;
-    type->tp_base = (PyTypeObject *) handle(base).inc_ref().ptr();
+    type->tp_base = type_incref((PyTypeObject *)base);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
     if (bases.size() > 0)
         type->tp_bases = bases.release().ptr();
