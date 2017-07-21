@@ -231,7 +231,6 @@ extern "C" {
         try {                                                                  \
             return pybind11_init();                                            \
         } catch (pybind11::error_already_set &e) {                             \
-            e.clear();                                                         \
             PyErr_SetString(PyExc_ImportError, e.what());                      \
             return nullptr;                                                    \
         } catch (const std::exception &e) {                                    \
@@ -278,7 +277,6 @@ extern "C" {
             pybind11_init_##name(m);                                           \
             return m.ptr();                                                    \
         } catch (pybind11::error_already_set &e) {                             \
-            e.clear();                                                         \
             PyErr_SetString(PyExc_ImportError, e.what());                      \
             return nullptr;                                                    \
         } catch (const std::exception &e) {                                    \
@@ -352,8 +350,6 @@ inline static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : lo
 
 // Returns the size as a multiple of sizeof(void *), rounded up.
 inline static constexpr size_t size_in_ptrs(size_t s) { return 1 + ((s - 1) >> log2(sizeof(void *))); }
-
-inline std::string error_string();
 
 /**
  * The space to allocate for simple layout instance holders (see below) in multiple of the size of
@@ -702,36 +698,6 @@ template<typename T> T& get_or_create_shared_data(const std::string& name) {
     }
     return *ptr;
 }
-
-/// Fetch and hold an error which was already set in Python
-class error_already_set : public std::runtime_error {
-public:
-    error_already_set() : std::runtime_error(detail::error_string()) {
-        PyErr_Fetch(&type, &value, &trace);
-    }
-
-    error_already_set(const error_already_set &) = delete;
-
-    error_already_set(error_already_set &&e)
-        : std::runtime_error(e.what()), type(e.type), value(e.value),
-          trace(e.trace) { e.type = e.value = e.trace = nullptr; }
-
-    inline ~error_already_set(); // implementation in pybind11.h
-
-    error_already_set& operator=(const error_already_set &) = delete;
-
-    /// Give the error back to Python
-    void restore() { PyErr_Restore(type, value, trace); type = value = trace = nullptr; }
-
-    /// Clear the held Python error state (the C++ `what()` message remains intact)
-    void clear() { restore(); PyErr_Clear(); }
-
-    /// Check if the trapped exception matches a given Python exception class
-    bool matches(PyObject *ex) const { return PyErr_GivenExceptionMatches(ex, type); }
-
-private:
-    PyObject *type, *value, *trace;
-};
 
 /// C++ bindings of builtin Python exceptions
 class builtin_exception : public std::runtime_error {
