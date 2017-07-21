@@ -51,7 +51,6 @@
             pybind11_init_##name(m);                                          \
             return m.ptr();                                                   \
         } catch (pybind11::error_already_set &e) {                            \
-            e.clear();                                                        \
             PyErr_SetString(PyExc_ImportError, e.what());                     \
             return nullptr;                                                   \
         } catch (const std::exception &e) {                                   \

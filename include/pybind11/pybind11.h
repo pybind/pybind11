@@ -1758,9 +1758,11 @@ class gil_scoped_release { };
 #endif
 
 error_already_set::~error_already_set() {
-    if (value) {
+    if (type) {
         gil_scoped_acquire gil;
-        clear();
+        type.release().dec_ref();
+        value.release().dec_ref();
+        trace.release().dec_ref();
     }
 }
 

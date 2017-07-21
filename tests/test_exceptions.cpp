@@ -120,10 +120,7 @@ TEST_SUBMODULE(exceptions, m) {
         py::dict foo;
         try { foo["bar"]; }
         catch (py::error_already_set& ex) {
-            if (ex.matches(PyExc_KeyError))
-                ex.clear();
-            else
-                throw;
+            if (!ex.matches(PyExc_KeyError)) throw;
         }
     });
 
@@ -156,4 +153,16 @@ TEST_SUBMODULE(exceptions, m) {
         }
         return false;
     });
+
+    // test_nested_throws
+    m.def("try_catch", [m](py::object exc_type, py::function f, py::args args) {
+        try { f(*args); }
+        catch (py::error_already_set &ex) {
+            if (ex.matches(exc_type))
+                py::print(ex.what());
+            else
+                throw;
+        }
+    });
+
 }
