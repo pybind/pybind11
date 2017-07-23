@@ -906,11 +906,19 @@ void set_operator_new(type_record *r) { r->operator_new = &T::operator new; }
 
 template <typename> void set_operator_new(...) { }
 
+template <typename T, typename SFINAE = void> struct has_operator_delete : std::false_type { };
+template <typename T> struct has_operator_delete<T, void_t<decltype(static_cast<void (*)(void *)>(T::operator delete))>>
+    : std::true_type { };
+template <typename T, typename SFINAE = void> struct has_operator_delete_size : std::false_type { };
+template <typename T> struct has_operator_delete_size<T, void_t<decltype(static_cast<void (*)(void *, size_t)>(T::operator delete))>>
+    : std::true_type { };
 /// Call class-specific delete if it exists or global otherwise. Can also be an overload set.
-template <typename T, typename = void_t<decltype(static_cast<void (*)(void *)>(T::operator delete))>>
-void call_operator_delete(T *p) { T::operator delete(p); }
+template <typename T, enable_if_t<has_operator_delete<T>::value, int> = 0>
+void call_operator_delete(T *p, size_t) { T::operator delete(p); }
+template <typename T, enable_if_t<!has_operator_delete<T>::value && has_operator_delete_size<T>::value, int> = 0>
+void call_operator_delete(T *p, size_t s) { T::operator delete(p, s); }
 
-inline void call_operator_delete(void *p) { ::operator delete(p); }
+inline void call_operator_delete(void *p, size_t) { ::operator delete(p); }
 
 NAMESPACE_END(detail)
 
@@ -1212,7 +1220,7 @@ private:
         if (v_h.holder_constructed())
             v_h.holder<holder_type>().~holder_type();
         else
-            detail::call_operator_delete(v_h.value_ptr<type>());
+            detail::call_operator_delete(v_h.value_ptr<type>(), v_h.type->type_size);
     }
 
     static detail::function_record *get_function_record(handle h) {

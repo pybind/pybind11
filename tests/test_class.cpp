@@ -184,6 +184,46 @@ TEST_SUBMODULE(class_, m) {
         auto def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
         return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, nullptr, m.ptr()));
     }());
+
+    // test_operator_new_delete
+    struct HasOpNewDel {
+        std::uint64_t i;
+        static void *operator new(size_t s) { py::print("A new", s); return ::operator new(s); }
+        static void *operator new(size_t s, void *ptr) { py::print("A placement-new", s); return ptr; }
+        static void operator delete(void *p) { py::print("A delete"); return ::operator delete(p); }
+    };
+    struct HasOpNewDelSize {
+        std::uint32_t i;
+        static void *operator new(size_t s) { py::print("B new", s); return ::operator new(s); }
+        static void *operator new(size_t s, void *ptr) { py::print("B placement-new", s); return ptr; }
+        static void operator delete(void *p, size_t s) { py::print("B delete", s); return ::operator delete(p); }
+    };
+    struct AliasedHasOpNewDelSize {
+        std::uint64_t i;
+        static void *operator new(size_t s) { py::print("C new", s); return ::operator new(s); }
+        static void *operator new(size_t s, void *ptr) { py::print("C placement-new", s); return ptr; }
+        static void operator delete(void *p, size_t s) { py::print("C delete", s); return ::operator delete(p); }
+        virtual ~AliasedHasOpNewDelSize() = default;
+    };
+    struct PyAliasedHasOpNewDelSize : AliasedHasOpNewDelSize {
+        PyAliasedHasOpNewDelSize() = default;
+        PyAliasedHasOpNewDelSize(int) { }
+        std::uint64_t j;
+    };
+    struct HasOpNewDelBoth {
+        std::uint32_t i[8];
+        static void *operator new(size_t s) { py::print("D new", s); return ::operator new(s); }
+        static void *operator new(size_t s, void *ptr) { py::print("D placement-new", s); return ptr; }
+        static void operator delete(void *p) { py::print("D delete"); return ::operator delete(p); }
+        static void operator delete(void *p, size_t s) { py::print("D wrong delete", s); return ::operator delete(p); }
+    };
+    py::class_<HasOpNewDel>(m, "HasOpNewDel").def(py::init<>());
+    py::class_<HasOpNewDelSize>(m, "HasOpNewDelSize").def(py::init<>());
+    py::class_<HasOpNewDelBoth>(m, "HasOpNewDelBoth").def(py::init<>());
+    py::class_<AliasedHasOpNewDelSize, PyAliasedHasOpNewDelSize> aliased(m, "AliasedHasOpNewDelSize");
+    aliased.def(py::init<>());
+    aliased.attr("size_noalias") = py::int_(sizeof(AliasedHasOpNewDelSize));
+    aliased.attr("size_alias") = py::int_(sizeof(PyAliasedHasOpNewDelSize));
 }
 
 template <int N> class BreaksBase {};
