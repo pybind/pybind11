@@ -1,5 +1,37 @@
+.. _compiling:
+
 Build systems
 #############
+
+Building manually
+=================
+
+pybind11 is a header-only-library, hence it is not necessary to link against
+any special libraries (other than Python itself).
+
+On Linux, the above example can be compiled using the following command:
+
+.. code-block:: bash
+
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+
+Note that on Python 2.7.x ``python-config`` has to be used instead of
+``python3-config`` in the command above. Besides, ``--extension-suffix``
+option may or may not be available, depending on the distribution; in the latter
+case, the module extension can be manually set to ``.so``.
+
+On Mac OS: the build command is almost the same but it also requires passing
+the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
+building the module:
+
+.. code-block:: bash
+
+    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+
+In general, it is advisable to include several additional build parameters
+that can considerably reduce the size of the created binary. Refer to section
+:ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
+build system that works on all platforms including Windows.
 
 Building with setuptools
 ========================
