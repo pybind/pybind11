@@ -135,21 +135,21 @@ def test_operator_new_delete(capture):
     class SubAliased(m.AliasedHasOpNewDelSize):
         pass
 
-    with(capture):
+    with capture:
         a = m.HasOpNewDel()
         b = m.HasOpNewDelSize()
         d = m.HasOpNewDelBoth()
     assert capture == """
-    A new 8
-    A placement-new 8
-    B new 4
-    B placement-new 4
-    D new 32
-    D placement-new 32
+        A new 8
+        A placement-new 8
+        B new 4
+        B placement-new 4
+        D new 32
+        D placement-new 32
     """
     sz_alias = str(m.AliasedHasOpNewDelSize.size_alias)
     sz_noalias = str(m.AliasedHasOpNewDelSize.size_noalias)
-    with(capture):
+    with capture:
         c = m.AliasedHasOpNewDelSize()
         c2 = SubAliased()
     assert capture == (
@@ -157,7 +157,7 @@ def test_operator_new_delete(capture):
         "C new " + sz_alias + "\nC placement-new " + sz_alias + "\n"
     )
 
-    with(capture):
+    with capture:
         del a
         ConstructorStats.detail_reg_inst()
         del b
@@ -165,12 +165,12 @@ def test_operator_new_delete(capture):
         del d
         ConstructorStats.detail_reg_inst()
     assert capture == """
-    A delete
-    B delete 4
-    D delete
+        A delete
+        B delete 4
+        D delete
     """
 
-    with(capture):
+    with capture:
         del c
         ConstructorStats.detail_reg_inst()
         del c2
