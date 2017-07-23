@@ -58,48 +58,6 @@ class MyException5_1 : public MyException5 {
     using MyException5::MyException5;
 };
 
-void throws1() {
-    throw MyException("this error should go to a custom type");
-}
-
-void throws2() {
-    throw MyException2("this error should go to a standard Python exception");
-}
-
-void throws3() {
-    throw MyException3("this error cannot be translated");
-}
-
-void throws4() {
-    throw MyException4("this error is rethrown");
-}
-
-void throws5() {
-    throw MyException5("this is a helper-defined translated exception");
-}
-
-void throws5_1() {
-    throw MyException5_1("MyException5 subclass");
-}
-
-void throws_logic_error() {
-    throw std::logic_error("this error should fall through to the standard handler");
-}
-
-// Test error_already_set::matches() method
-void exception_matches() {
-    py::dict foo;
-    try {
-        foo["bar"];
-    }
-    catch (py::error_already_set& ex) {
-        if (ex.matches(PyExc_KeyError))
-            ex.clear();
-        else
-            throw;
-    }
-}
-
 struct PythonCallInDestructor {
     PythonCallInDestructor(const py::dict &d) : d(d) {}
     ~PythonCallInDestructor() { d["good"] = true; }
@@ -107,7 +65,7 @@ struct PythonCallInDestructor {
     py::dict d;
 };
 
-test_initializer custom_exceptions([](py::module &m) {
+TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception", []() {
         throw std::runtime_error("This exception was intentionally thrown.");
     });
@@ -151,14 +109,23 @@ test_initializer custom_exceptions([](py::module &m) {
     // A slightly more complicated one that declares MyException5_1 as a subclass of MyException5
     py::register_exception<MyException5_1>(m, "MyException5_1", ex5.ptr());
 
-    m.def("throws1", &throws1);
-    m.def("throws2", &throws2);
-    m.def("throws3", &throws3);
-    m.def("throws4", &throws4);
-    m.def("throws5", &throws5);
-    m.def("throws5_1", &throws5_1);
-    m.def("throws_logic_error", &throws_logic_error);
-    m.def("exception_matches", &exception_matches);
+    m.def("throws1", []() { throw MyException("this error should go to a custom type"); });
+    m.def("throws2", []() { throw MyException2("this error should go to a standard Python exception"); });
+    m.def("throws3", []() { throw MyException3("this error cannot be translated"); });
+    m.def("throws4", []() { throw MyException4("this error is rethrown"); });
+    m.def("throws5", []() { throw MyException5("this is a helper-defined translated exception"); });
+    m.def("throws5_1", []() { throw MyException5_1("MyException5 subclass"); });
+    m.def("throws_logic_error", []() { throw std::logic_error("this error should fall through to the standard handler"); });
+    m.def("exception_matches", []() {
+        py::dict foo;
+        try { foo["bar"]; }
+        catch (py::error_already_set& ex) {
+            if (ex.matches(PyExc_KeyError))
+                ex.clear();
+            else
+                throw;
+        }
+    });
 
     m.def("throw_already_set", [](bool err) {
         if (err)
@@ -189,4 +156,4 @@ test_initializer custom_exceptions([](py::module &m) {
         }
         return false;
     });
-});
+}
