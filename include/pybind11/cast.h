@@ -1049,11 +1049,37 @@ template <> class type_caster<std::nullptr_t> : public void_caster<std::nullptr_
 
 template <> class type_caster<bool> {
 public:
-    bool load(handle src, bool) {
+    bool load(handle src, bool convert) {
         if (!src) return false;
         else if (src.ptr() == Py_True) { value = true; return true; }
         else if (src.ptr() == Py_False) { value = false; return true; }
-        else return false;
+        else if (convert || !strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
+            // (allow non-implicit conversion for numpy booleans)
+
+            Py_ssize_t res = -1;
+            if (src.is_none()) {
+                res = 0;  // None is implicitly converted to False
+            }
+            #if defined(PYPY_VERSION)
+            // On PyPy, check that "__bool__" (or "__nonzero__" on Python 2.7) attr exists
+            else if (hasattr(src, PYBIND11_BOOL_ATTR)) {
+                res = PyObject_IsTrue(src.ptr());
+            }
+            #else
+            // Alternate approach for CPython: this does the same as the above, but optimized
+            // using the CPython API so as to avoid an unneeded attribute lookup.
+            else if (auto tp_as_number = src.ptr()->ob_type->tp_as_number) {
+                if (PYBIND11_NB_BOOL(tp_as_number)) {
+                    res = (*PYBIND11_NB_BOOL(tp_as_number))(src.ptr());
+                }
+            }
+            #endif
+            if (res == 0 || res == 1) {
+                value = (bool) res;
+                return true;
+            }
+        }
+        return false;
     }
     static handle cast(bool src, return_value_policy /* policy */, handle /* parent */) {
         return handle(src ? Py_True : Py_False).inc_ref();

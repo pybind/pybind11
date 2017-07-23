@@ -116,6 +116,10 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
     m.def("cast_nullptr_t", []() { return std::nullptr_t{}; });
 
+    // test_bool_caster
+    m.def("bool_passthrough", [](bool arg) { return arg; });
+    m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg().noconvert());
+
     // test_reference_wrapper
     m.def("refwrap_builtin", [](std::reference_wrapper<int> p) { return 10 * p.get(); });
     m.def("refwrap_usertype", [](std::reference_wrapper<UserType> p) { return p.get().value(); });
