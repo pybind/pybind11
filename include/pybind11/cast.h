@@ -1053,7 +1053,9 @@ public:
         if (!src) return false;
         else if (src.ptr() == Py_True) { value = true; return true; }
         else if (src.ptr() == Py_False) { value = false; return true; }
-        else if (convert) {
+        else if (convert || !strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
+            // (allow non-implicit conversion for numpy booleans)
+
             Py_ssize_t res = -1;
             if (src.is_none()) {
                 res = 0;  // None is implicitly converted to False
@@ -1074,18 +1076,6 @@ public:
             #endif
             if (res == 0 || res == 1) {
                 value = (bool) res;
-                return true;
-            }
-            return false;
-        }
-        else if (hasattr(src, "dtype")) {
-            // Allow non-implicit conversion for numpy booleans
-            //
-            // Note: this will only run in the first (noconvert) pass;
-            // during the second pass, it will be handled by __bool__ logic.
-            auto dtype = src.attr("dtype");
-            if (hasattr(dtype, "kind") && dtype.attr("kind").cast<char>() == 'b') {
-                value = PyObject_IsTrue(src.ptr()) == 1;
                 return true;
             }
         }
