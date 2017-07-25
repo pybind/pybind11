@@ -11,47 +11,74 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
-struct Base1 {
-    Base1(int i) : i(i) { }
-    int foo() { return i; }
-    int i;
-};
-
-struct Base2 {
-    Base2(int i) : i(i) { }
-    int bar() { return i; }
-    int i;
-};
-
+// Many bases for testing that multiple inheritance from many classes (i.e. requiring extra
+// space for holder constructed flags) works.
 template <int N> struct BaseN {
     BaseN(int i) : i(i) { }
     int i;
 };
 
-struct Base12 : Base1, Base2 {
-    Base12(int i, int j) : Base1(i), Base2(j) { }
+// test_mi_static_properties
+struct Vanilla {
+    std::string vanilla() { return "Vanilla"; };
 };
-
-struct MIType : Base12 {
-    MIType(int i, int j) : Base12(i, j) { }
+struct WithStatic1 {
+    static std::string static_func1() { return "WithStatic1"; };
+    static int static_value1;
 };
+struct WithStatic2 {
+    static std::string static_func2() { return "WithStatic2"; };
+    static int static_value2;
+};
+struct VanillaStaticMix1 : Vanilla, WithStatic1, WithStatic2 {
+    static std::string static_func() { return "VanillaStaticMix1"; }
+    static int static_value;
+};
+struct VanillaStaticMix2 : WithStatic1, Vanilla, WithStatic2 {
+    static std::string static_func() { return "VanillaStaticMix2"; }
+    static int static_value;
+};
+int WithStatic1::static_value1 = 1;
+int WithStatic2::static_value2 = 2;
+int VanillaStaticMix1::static_value = 12;
+int VanillaStaticMix2::static_value = 12;
 
-test_initializer multiple_inheritance([](py::module &m) {
+TEST_SUBMODULE(multiple_inheritance, m) {
+
+    // test_multiple_inheritance_mix1
+    // test_multiple_inheritance_mix2
+    struct Base1 {
+        Base1(int i) : i(i) { }
+        int foo() { return i; }
+        int i;
+    };
     py::class_<Base1> b1(m, "Base1");
     b1.def(py::init<int>())
       .def("foo", &Base1::foo);
 
+    struct Base2 {
+        Base2(int i) : i(i) { }
+        int bar() { return i; }
+        int i;
+    };
     py::class_<Base2> b2(m, "Base2");
     b2.def(py::init<int>())
       .def("bar", &Base2::bar);
 
-    py::class_<Base12, Base1, Base2>(m, "Base12");
 
+    // test_multiple_inheritance_cpp
+    struct Base12 : Base1, Base2 {
+        Base12(int i, int j) : Base1(i), Base2(j) { }
+    };
+    struct MIType : Base12 {
+        MIType(int i, int j) : Base12(i, j) { }
+    };
+    py::class_<Base12, Base1, Base2>(m, "Base12");
     py::class_<MIType, Base12>(m, "MIType")
         .def(py::init<int, int>());
 
-    // Many bases for testing that multiple inheritance from many classes (i.e. requiring extra
-    // space for holder constructed flags) works.
+
+    // test_multiple_inheritance_python_many_bases
     #define PYBIND11_BASEN(N) py::class_<BaseN<N>>(m, "BaseN" #N).def(py::init<int>()).def("f" #N, [](BaseN<N> &b) { return b.i + N; })
     PYBIND11_BASEN( 1); PYBIND11_BASEN( 2); PYBIND11_BASEN( 3); PYBIND11_BASEN( 4);
     PYBIND11_BASEN( 5); PYBIND11_BASEN( 6); PYBIND11_BASEN( 7); PYBIND11_BASEN( 8);
@@ -67,55 +94,50 @@ test_initializer multiple_inheritance([](py::module &m) {
 //    };
 //    py::class_<Base12v2>(m, "Base12v2", b1, b2)
 //        .def(py::init<int, int>());
-});
 
-/* Test the case where not all base classes are specified,
-   and where pybind11 requires the py::multiple_inheritance
-   flag to perform proper casting between types */
 
-struct Base1a {
-    Base1a(int i) : i(i) { }
-    int foo() { return i; }
-    int i;
-};
-
-struct Base2a {
-    Base2a(int i) : i(i) { }
-    int bar() { return i; }
-    int i;
-};
-
-struct Base12a : Base1a, Base2a {
-    Base12a(int i, int j) : Base1a(i), Base2a(j) { }
-};
-
-test_initializer multiple_inheritance_nonexplicit([](py::module &m) {
+    // test_multiple_inheritance_virtbase
+    // Test the case where not all base classes are specified, and where pybind11 requires the
+    // py::multiple_inheritance flag to perform proper casting between types.
+    struct Base1a {
+        Base1a(int i) : i(i) { }
+        int foo() { return i; }
+        int i;
+    };
     py::class_<Base1a, std::shared_ptr<Base1a>>(m, "Base1a")
         .def(py::init<int>())
         .def("foo", &Base1a::foo);
 
+    struct Base2a {
+        Base2a(int i) : i(i) { }
+        int bar() { return i; }
+        int i;
+    };
     py::class_<Base2a, std::shared_ptr<Base2a>>(m, "Base2a")
         .def(py::init<int>())
         .def("bar", &Base2a::bar);
 
+    struct Base12a : Base1a, Base2a {
+        Base12a(int i, int j) : Base1a(i), Base2a(j) { }
+    };
     py::class_<Base12a, /* Base1 missing */ Base2a,
                std::shared_ptr<Base12a>>(m, "Base12a", py::multiple_inheritance())
         .def(py::init<int, int>());
 
     m.def("bar_base2a", [](Base2a *b) { return b->bar(); });
     m.def("bar_base2a_sharedptr", [](std::shared_ptr<Base2a> b) { return b->bar(); });
-});
 
-// Issue #801: invalid casting to derived type with MI bases
-struct I801B1 { int a = 1; virtual ~I801B1() = default; };
-struct I801B2 { int b = 2; virtual ~I801B2() = default; };
-struct I801C : I801B1, I801B2 {};
-struct I801D : I801C {}; // Indirect MI
-// Unregistered classes:
-struct I801B3 { int c = 3; virtual ~I801B3() = default; };
-struct I801E : I801B3, I801D {};
+    // test_mi_unaligned_base
+    // test_mi_base_return
+    // Issue #801: invalid casting to derived type with MI bases
+    struct I801B1 { int a = 1; virtual ~I801B1() = default; };
+    struct I801B2 { int b = 2; virtual ~I801B2() = default; };
+    struct I801C : I801B1, I801B2 {};
+    struct I801D : I801C {}; // Indirect MI
+    // Unregistered classes:
+    struct I801B3 { int c = 3; virtual ~I801B3() = default; };
+    struct I801E : I801B3, I801D {};
 
-test_initializer multiple_inheritance_casting([](py::module &m) {
     py::class_<I801B1, std::shared_ptr<I801B1>>(m, "I801B1").def(py::init<>()).def_readonly("a", &I801B1::a);
     py::class_<I801B2, std::shared_ptr<I801B2>>(m, "I801B2").def(py::init<>()).def_readonly("b", &I801B2::b);
     py::class_<I801C, I801B1, I801B2, std::shared_ptr<I801C>>(m, "I801C").def(py::init<>());
@@ -141,46 +163,9 @@ test_initializer multiple_inheritance_casting([](py::module &m) {
     // isn't pybind-registered (and uses multiple-inheritance to offset the pybind base)
     m.def("i801e_c", []() -> I801C * { return new I801E(); });
     m.def("i801e_b2", []() -> I801B2 * { return new I801E(); });
-});
 
 
-struct Vanilla {
-    std::string vanilla() { return "Vanilla"; };
-};
-
-struct WithStatic1 {
-    static std::string static_func1() { return "WithStatic1"; };
-    static int static_value1;
-};
-
-struct WithStatic2 {
-    static std::string static_func2() { return "WithStatic2"; };
-    static int static_value2;
-};
-
-struct WithDict { };
-
-struct VanillaStaticMix1 : Vanilla, WithStatic1, WithStatic2 {
-    static std::string static_func() { return "VanillaStaticMix1"; }
-    static int static_value;
-};
-
-struct VanillaStaticMix2 : WithStatic1, Vanilla, WithStatic2 {
-    static std::string static_func() { return "VanillaStaticMix2"; }
-    static int static_value;
-};
-
-struct VanillaDictMix1 : Vanilla, WithDict { };
-struct VanillaDictMix2 : WithDict, Vanilla { };
-
-int WithStatic1::static_value1 = 1;
-int WithStatic2::static_value2 = 2;
-int VanillaStaticMix1::static_value = 12;
-int VanillaStaticMix2::static_value = 12;
-
-test_initializer mi_static_properties([](py::module &pm) {
-    auto m = pm.def_submodule("mi");
-
+    // test_mi_static_properties
     py::class_<Vanilla>(m, "Vanilla")
         .def(py::init<>())
         .def("vanilla", &Vanilla::vanilla);
@@ -207,9 +192,13 @@ test_initializer mi_static_properties([](py::module &pm) {
         .def_static("static_func", &VanillaStaticMix2::static_func)
         .def_readwrite_static("static_value", &VanillaStaticMix2::static_value);
 
+
 #if !defined(PYPY_VERSION)
+    struct WithDict { };
+    struct VanillaDictMix1 : Vanilla, WithDict { };
+    struct VanillaDictMix2 : WithDict, Vanilla { };
     py::class_<WithDict>(m, "WithDict", py::dynamic_attr()).def(py::init<>());
     py::class_<VanillaDictMix1, Vanilla, WithDict>(m, "VanillaDictMix1").def(py::init<>());
     py::class_<VanillaDictMix2, WithDict, Vanilla>(m, "VanillaDictMix2").def(py::init<>());
 #endif
-});
+}
