@@ -1,10 +1,11 @@
 import pytest
-from pybind11_tests import ExampleMandA, ConstructorStats
+from pybind11_tests import methods_and_attributes as m
+from pybind11_tests import ConstructorStats
 
 
 def test_methods_and_attributes():
-    instance1 = ExampleMandA()
-    instance2 = ExampleMandA(32)
+    instance1 = m.ExampleMandA()
+    instance2 = m.ExampleMandA(32)
 
     instance1.add1(instance2)
     instance1.add2(instance2)
@@ -31,10 +32,13 @@ def test_methods_and_attributes():
     assert instance1.internal4() == 320
     assert instance1.internal5() == 320
 
+    assert instance1.overloaded() == "()"
+    assert instance1.overloaded(0) == "(int)"
     assert instance1.overloaded(1, 1.0) == "(int, float)"
     assert instance1.overloaded(2.0, 2) == "(float, int)"
     assert instance1.overloaded(3,   3) == "(int, int)"
     assert instance1.overloaded(4., 4.) == "(float, float)"
+    assert instance1.overloaded_const(-3) == "(int) const"
     assert instance1.overloaded_const(5, 5.0) == "(int, float) const"
     assert instance1.overloaded_const(6.0, 6) == "(float, int) const"
     assert instance1.overloaded_const(7,   7) == "(int, int) const"
@@ -48,7 +52,7 @@ def test_methods_and_attributes():
     instance1.value = 100
     assert str(instance1) == "ExampleMandA[value=100]"
 
-    cstats = ConstructorStats.get(ExampleMandA)
+    cstats = ConstructorStats.get(m.ExampleMandA)
     assert cstats.alive() == 2
     del instance1, instance2
     assert cstats.alive() == 0
@@ -60,10 +64,25 @@ def test_methods_and_attributes():
     assert cstats.move_assignments == 0
 
 
-def test_properties():
-    from pybind11_tests import TestProperties
+def test_copy_method():
+    """Issue #443: calling copied methods fails in Python 3"""
 
-    instance = TestProperties()
+    m.ExampleMandA.add2c = m.ExampleMandA.add2
+    m.ExampleMandA.add2d = m.ExampleMandA.add2b
+    a = m.ExampleMandA(123)
+    assert a.value == 123
+    a.add2(m.ExampleMandA(-100))
+    assert a.value == 23
+    a.add2b(m.ExampleMandA(20))
+    assert a.value == 43
+    a.add2c(m.ExampleMandA(6))
+    assert a.value == 49
+    a.add2d(m.ExampleMandA(-7))
+    assert a.value == 42
+
+
+def test_properties():
+    instance = m.TestProperties()
 
     assert instance.def_readonly == 1
     with pytest.raises(AttributeError):
@@ -80,122 +99,97 @@ def test_properties():
     assert instance.def_property == 3
 
 
-def test_copy_method():
-    """Issue #443: calling copied methods fails in Python 3"""
-    from pybind11_tests import ExampleMandA
-
-    ExampleMandA.add2c = ExampleMandA.add2
-    ExampleMandA.add2d = ExampleMandA.add2b
-    a = ExampleMandA(123)
-    assert a.value == 123
-    a.add2(ExampleMandA(-100))
-    assert a.value == 23
-    a.add2b(ExampleMandA(20))
-    assert a.value == 43
-    a.add2c(ExampleMandA(6))
-    assert a.value == 49
-    a.add2d(ExampleMandA(-7))
-    assert a.value == 42
-
-
 def test_static_properties():
-    from pybind11_tests import TestProperties as Type
-
-    assert Type.def_readonly_static == 1
+    assert m.TestProperties.def_readonly_static == 1
     with pytest.raises(AttributeError) as excinfo:
-        Type.def_readonly_static = 2
+        m.TestProperties.def_readonly_static = 2
     assert "can't set attribute" in str(excinfo)
 
-    Type.def_readwrite_static = 2
-    assert Type.def_readwrite_static == 2
+    m.TestProperties.def_readwrite_static = 2
+    assert m.TestProperties.def_readwrite_static == 2
 
-    assert Type.def_property_readonly_static == 2
+    assert m.TestProperties.def_property_readonly_static == 2
     with pytest.raises(AttributeError) as excinfo:
-        Type.def_property_readonly_static = 3
+        m.TestProperties.def_property_readonly_static = 3
     assert "can't set attribute" in str(excinfo)
 
-    Type.def_property_static = 3
-    assert Type.def_property_static == 3
+    m.TestProperties.def_property_static = 3
+    assert m.TestProperties.def_property_static == 3
 
     # Static property read and write via instance
-    instance = Type()
+    instance = m.TestProperties()
 
-    Type.def_readwrite_static = 0
-    assert Type.def_readwrite_static == 0
+    m.TestProperties.def_readwrite_static = 0
+    assert m.TestProperties.def_readwrite_static == 0
     assert instance.def_readwrite_static == 0
 
     instance.def_readwrite_static = 2
-    assert Type.def_readwrite_static == 2
+    assert m.TestProperties.def_readwrite_static == 2
     assert instance.def_readwrite_static == 2
 
     # It should be possible to override properties in derived classes
-    from pybind11_tests import TestPropertiesOverride as TypeOverride
-
-    assert TypeOverride().def_readonly == 99
-    assert TypeOverride.def_readonly_static == 99
+    assert m.TestPropertiesOverride().def_readonly == 99
+    assert m.TestPropertiesOverride.def_readonly_static == 99
 
 
 def test_static_cls():
     """Static property getter and setters expect the type object as the their only argument"""
-    from pybind11_tests import TestProperties as Type
 
-    instance = Type()
-    assert Type.static_cls is Type
-    assert instance.static_cls is Type
+    instance = m.TestProperties()
+    assert m.TestProperties.static_cls is m.TestProperties
+    assert instance.static_cls is m.TestProperties
 
     def check_self(self):
-        assert self is Type
+        assert self is m.TestProperties
 
-    Type.static_cls = check_self
+    m.TestProperties.static_cls = check_self
     instance.static_cls = check_self
 
 
 def test_metaclass_override():
     """Overriding pybind11's default metaclass changes the behavior of `static_property`"""
-    from pybind11_tests import MetaclassOverride
 
-    assert type(ExampleMandA).__name__ == "pybind11_type"
-    assert type(MetaclassOverride).__name__ == "type"
+    assert type(m.ExampleMandA).__name__ == "pybind11_type"
+    assert type(m.MetaclassOverride).__name__ == "type"
 
-    assert MetaclassOverride.readonly == 1
-    assert type(MetaclassOverride.__dict__["readonly"]).__name__ == "pybind11_static_property"
+    assert m.MetaclassOverride.readonly == 1
+    assert type(m.MetaclassOverride.__dict__["readonly"]).__name__ == "pybind11_static_property"
 
     # Regular `type` replaces the property instead of calling `__set__()`
-    MetaclassOverride.readonly = 2
-    assert MetaclassOverride.readonly == 2
-    assert isinstance(MetaclassOverride.__dict__["readonly"], int)
+    m.MetaclassOverride.readonly = 2
+    assert m.MetaclassOverride.readonly == 2
+    assert isinstance(m.MetaclassOverride.__dict__["readonly"], int)
 
 
 def test_no_mixed_overloads():
     from pybind11_tests import debug_enabled
 
     with pytest.raises(RuntimeError) as excinfo:
-        ExampleMandA.add_mixed_overloads1()
+        m.ExampleMandA.add_mixed_overloads1()
     assert (str(excinfo.value) ==
             "overloading a method with both static and instance methods is not supported; " +
             ("compile in debug mode for more details" if not debug_enabled else
              "error while attempting to bind static method ExampleMandA.overload_mixed1"
-             "() -> str")
+             "(arg0: float) -> str")
             )
 
     with pytest.raises(RuntimeError) as excinfo:
-        ExampleMandA.add_mixed_overloads2()
+        m.ExampleMandA.add_mixed_overloads2()
     assert (str(excinfo.value) ==
             "overloading a method with both static and instance methods is not supported; " +
             ("compile in debug mode for more details" if not debug_enabled else
              "error while attempting to bind instance method ExampleMandA.overload_mixed2"
-             "(self: pybind11_tests.ExampleMandA, arg0: int, arg1: int) -> str")
+             "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: int, arg1: int)"
+             " -> str")
             )
 
 
 @pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])
 def test_property_return_value_policies(access):
-    from pybind11_tests import TestPropRVP
-
     if not access.startswith("static"):
-        obj = TestPropRVP()
+        obj = m.TestPropRVP()
     else:
-        obj = TestPropRVP
+        obj = m.TestPropRVP
 
     ref = getattr(obj, access + "_ref")
     assert ref.value == 1
@@ -216,30 +210,20 @@ def test_property_return_value_policies(access):
 
 def test_property_rvalue_policy():
     """When returning an rvalue, the return value policy is automatically changed from
-    `reference(_internal)` to `move`. The following would not work otherwise.
-    """
-    from pybind11_tests import TestPropRVP
+    `reference(_internal)` to `move`. The following would not work otherwise."""
 
-    instance = TestPropRVP()
+    instance = m.TestPropRVP()
     o = instance.rvalue
     assert o.value == 1
 
-
-def test_property_rvalue_policy_static():
-    """When returning an rvalue, the return value policy is automatically changed from
-    `reference(_internal)` to `move`. The following would not work otherwise.
-    """
-    from pybind11_tests import TestPropRVP
-    o = TestPropRVP.static_rvalue
-    assert o.value == 1
+    os = m.TestPropRVP.static_rvalue
+    assert os.value == 1
 
 
 # https://bitbucket.org/pypy/pypy/issues/2447
 @pytest.unsupported_on_pypy
 def test_dynamic_attributes():
-    from pybind11_tests import DynamicClass, CppDerivedDynamicClass
-
-    instance = DynamicClass()
+    instance = m.DynamicClass()
     assert not hasattr(instance, "foo")
     assert "foo" not in dir(instance)
 
@@ -259,16 +243,16 @@ def test_dynamic_attributes():
         instance.__dict__ = []
     assert str(excinfo.value) == "__dict__ must be set to a dictionary, not a 'list'"
 
-    cstats = ConstructorStats.get(DynamicClass)
+    cstats = ConstructorStats.get(m.DynamicClass)
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
 
     # Derived classes should work as well
-    class PythonDerivedDynamicClass(DynamicClass):
+    class PythonDerivedDynamicClass(m.DynamicClass):
         pass
 
-    for cls in CppDerivedDynamicClass, PythonDerivedDynamicClass:
+    for cls in m.CppDerivedDynamicClass, PythonDerivedDynamicClass:
         derived = cls()
         derived.foobar = 100
         assert derived.foobar == 100
@@ -281,20 +265,18 @@ def test_dynamic_attributes():
 # https://bitbucket.org/pypy/pypy/issues/2447
 @pytest.unsupported_on_pypy
 def test_cyclic_gc():
-    from pybind11_tests import DynamicClass
-
     # One object references itself
-    instance = DynamicClass()
+    instance = m.DynamicClass()
     instance.circular_reference = instance
 
-    cstats = ConstructorStats.get(DynamicClass)
+    cstats = ConstructorStats.get(m.DynamicClass)
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
 
     # Two object reference each other
-    i1 = DynamicClass()
-    i2 = DynamicClass()
+    i1 = m.DynamicClass()
+    i2 = m.DynamicClass()
     i1.cycle = i2
     i2.cycle = i1
 
@@ -304,8 +286,6 @@ def test_cyclic_gc():
 
 
 def test_noconvert_args(msg):
-    import pybind11_tests as m
-
     a = m.ArgInspector()
     assert msg(a.f("hi")) == """
         loading ArgInspector1 argument WITH conversion allowed.  Argument value = hi
@@ -369,23 +349,23 @@ def test_noconvert_args(msg):
 
 
 def test_bad_arg_default(msg):
-    from pybind11_tests import debug_enabled, bad_arg_def_named, bad_arg_def_unnamed
+    from pybind11_tests import debug_enabled
 
     with pytest.raises(RuntimeError) as excinfo:
-        bad_arg_def_named()
+        m.bad_arg_def_named()
     assert msg(excinfo.value) == (
-        "arg(): could not convert default argument 'a: NotRegistered' in function 'should_fail' "
-        "into a Python object (type not registered yet?)"
+        "arg(): could not convert default argument 'a: UnregisteredType' in function "
+        "'should_fail' into a Python object (type not registered yet?)"
         if debug_enabled else
         "arg(): could not convert default argument into a Python object (type not registered "
         "yet?). Compile in debug mode for more information."
     )
 
     with pytest.raises(RuntimeError) as excinfo:
-        bad_arg_def_unnamed()
+        m.bad_arg_def_unnamed()
     assert msg(excinfo.value) == (
-        "arg(): could not convert default argument 'NotRegistered' in function 'should_fail' "
-        "into a Python object (type not registered yet?)"
+        "arg(): could not convert default argument 'UnregisteredType' in function "
+        "'should_fail' into a Python object (type not registered yet?)"
         if debug_enabled else
         "arg(): could not convert default argument into a Python object (type not registered "
         "yet?). Compile in debug mode for more information."
@@ -393,76 +373,69 @@ def test_bad_arg_default(msg):
 
 
 def test_accepts_none(msg):
-    from pybind11_tests import (NoneTester,
-                                no_none1, no_none2, no_none3, no_none4, no_none5,
-                                ok_none1, ok_none2, ok_none3, ok_none4, ok_none5)
-
-    a = NoneTester()
-    assert no_none1(a) == 42
-    assert no_none2(a) == 42
-    assert no_none3(a) == 42
-    assert no_none4(a) == 42
-    assert no_none5(a) == 42
-    assert ok_none1(a) == 42
-    assert ok_none2(a) == 42
-    assert ok_none3(a) == 42
-    assert ok_none4(a) == 42
-    assert ok_none5(a) == 42
+    a = m.NoneTester()
+    assert m.no_none1(a) == 42
+    assert m.no_none2(a) == 42
+    assert m.no_none3(a) == 42
+    assert m.no_none4(a) == 42
+    assert m.no_none5(a) == 42
+    assert m.ok_none1(a) == 42
+    assert m.ok_none2(a) == 42
+    assert m.ok_none3(a) == 42
+    assert m.ok_none4(a) == 42
+    assert m.ok_none5(a) == 42
 
     with pytest.raises(TypeError) as excinfo:
-        no_none1(None)
+        m.no_none1(None)
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
-        no_none2(None)
+        m.no_none2(None)
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
-        no_none3(None)
+        m.no_none3(None)
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
-        no_none4(None)
+        m.no_none4(None)
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
-        no_none5(None)
+        m.no_none5(None)
     assert "incompatible function arguments" in str(excinfo.value)
 
     # The first one still raises because you can't pass None as a lvalue reference arg:
     with pytest.raises(TypeError) as excinfo:
-        assert ok_none1(None) == -1
+        assert m.ok_none1(None) == -1
     assert msg(excinfo.value) == """
         ok_none1(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: m.NoneTester) -> int
+            1. (arg0: m.methods_and_attributes.NoneTester) -> int
 
         Invoked with: None
     """
 
     # The rest take the argument as pointer or holder, and accept None:
-    assert ok_none2(None) == -1
-    assert ok_none3(None) == -1
-    assert ok_none4(None) == -1
-    assert ok_none5(None) == -1
+    assert m.ok_none2(None) == -1
+    assert m.ok_none3(None) == -1
+    assert m.ok_none4(None) == -1
+    assert m.ok_none5(None) == -1
 
 
 def test_str_issue(msg):
     """#283: __str__ called on uninitialized instance when constructor arguments invalid"""
-    from pybind11_tests import StrIssue
 
-    assert str(StrIssue(3)) == "StrIssue[3]"
+    assert str(m.StrIssue(3)) == "StrIssue[3]"
 
     with pytest.raises(TypeError) as excinfo:
-        str(StrIssue("no", "such", "constructor"))
+        str(m.StrIssue("no", "such", "constructor"))
     assert msg(excinfo.value) == """
         __init__(): incompatible constructor arguments. The following argument types are supported:
-            1. m.StrIssue(arg0: int)
-            2. m.StrIssue()
+            1. m.methods_and_attributes.StrIssue(arg0: int)
+            2. m.methods_and_attributes.StrIssue()
 
         Invoked with: 'no', 'such', 'constructor'
     """
 
 
 def test_unregistered_base_implementations():
-    from pybind11_tests import RegisteredDerived
-
-    a = RegisteredDerived()
+    a = m.RegisteredDerived()
     a.do_nothing()
     assert a.rw_value == 42
     assert a.ro_value == 1.25
@@ -480,11 +453,8 @@ def test_unregistered_base_implementations():
 
 
 def test_custom_caster_destruction():
-    """
-    Tests that returning a pointer to a type that gets converted with a custom type caster gets
-    destroyed when the function has py::return_value_policy::take_ownership policy applied.
-    """
-    import pybind11_tests as m
+    """Tests that returning a pointer to a type that gets converted with a custom type caster gets
+    destroyed when the function has py::return_value_policy::take_ownership policy applied."""
 
     cstats = m.destruction_tester_cstats()
     # This one *doesn't* have take_ownership: the pointer should be used but not destroyed:

@@ -77,7 +77,8 @@ PYBIND11_MODULE(pybind11_tests, m) {
         .def(py::init<>())
         .def(py::init<int>())
         .def("get_value", &UserType::value, "Get value using a method")
-        .def_property_readonly("value", &UserType::value, "Get value using a property")
+        .def("set_value", &UserType::set, "Set value using a method")
+        .def_property("value", &UserType::value, &UserType::set, "Get/set value using a property")
         .def("__repr__", [](const UserType& u) { return "UserType({})"_s.format(u.value()); });
 
     py::class_<IncType, UserType>(m, "IncType")

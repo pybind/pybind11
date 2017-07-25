@@ -1,4 +1,6 @@
 import pytest
+from pybind11_tests import sequences_and_iterators as m
+from pybind11_tests import ConstructorStats
 
 
 def isclose(a, b, rel_tol=1e-05, abs_tol=0.0):
@@ -11,35 +13,30 @@ def allclose(a_list, b_list, rel_tol=1e-05, abs_tol=0.0):
 
 
 def test_generalized_iterators():
-    from pybind11_tests.sequences_and_iterators import IntPairs
+    assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero()) == [(1, 2), (3, 4)]
+    assert list(m.IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero()) == [(1, 2)]
+    assert list(m.IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero()) == []
 
-    assert list(IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero()) == [(1, 2), (3, 4)]
-    assert list(IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero()) == [(1, 2)]
-    assert list(IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero()) == []
-
-    assert list(IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero_keys()) == [1, 3]
-    assert list(IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero_keys()) == [1]
-    assert list(IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero_keys()) == []
+    assert list(m.IntPairs([(1, 2), (3, 4), (0, 5)]).nonzero_keys()) == [1, 3]
+    assert list(m.IntPairs([(1, 2), (2, 0), (0, 3), (4, 5)]).nonzero_keys()) == [1]
+    assert list(m.IntPairs([(0, 3), (1, 2), (3, 4)]).nonzero_keys()) == []
 
     # __next__ must continue to raise StopIteration
-    it = IntPairs([(0, 0)]).nonzero()
+    it = m.IntPairs([(0, 0)]).nonzero()
     for _ in range(3):
         with pytest.raises(StopIteration):
             next(it)
 
-    it = IntPairs([(0, 0)]).nonzero_keys()
+    it = m.IntPairs([(0, 0)]).nonzero_keys()
     for _ in range(3):
         with pytest.raises(StopIteration):
             next(it)
 
 
 def test_sequence():
-    from pybind11_tests import ConstructorStats
-    from pybind11_tests.sequences_and_iterators import Sequence
+    cstats = ConstructorStats.get(m.Sequence)
 
-    cstats = ConstructorStats.get(Sequence)
-
-    s = Sequence(5)
+    s = m.Sequence(5)
     assert cstats.values() == ['of size', '5']
 
     assert "Sequence" in repr(s)
@@ -56,7 +53,7 @@ def test_sequence():
     rev2 = s[::-1]
     assert cstats.values() == ['of size', '5']
 
-    it = iter(Sequence(0))
+    it = iter(m.Sequence(0))
     for _ in range(3):  # __next__ must continue to raise StopIteration
         with pytest.raises(StopIteration):
             next(it)
@@ -67,7 +64,7 @@ def test_sequence():
     assert allclose(rev2, expected)
     assert rev == rev2
 
-    rev[0::2] = Sequence([2.0, 2.0, 2.0])
+    rev[0::2] = m.Sequence([2.0, 2.0, 2.0])
     assert cstats.values() == ['of size', '3', 'from std::vector']
 
     assert allclose(rev, [2, 56.78, 2, 0, 2])
@@ -91,33 +88,29 @@ def test_sequence():
 
 
 def test_map_iterator():
-    from pybind11_tests.sequences_and_iterators import StringMap
-
-    m = StringMap({'hi': 'bye', 'black': 'white'})
-    assert m['hi'] == 'bye'
-    assert len(m) == 2
-    assert m['black'] == 'white'
+    sm = m.StringMap({'hi': 'bye', 'black': 'white'})
+    assert sm['hi'] == 'bye'
+    assert len(sm) == 2
+    assert sm['black'] == 'white'
 
     with pytest.raises(KeyError):
-        assert m['orange']
-    m['orange'] = 'banana'
-    assert m['orange'] == 'banana'
+        assert sm['orange']
+    sm['orange'] = 'banana'
+    assert sm['orange'] == 'banana'
 
     expected = {'hi': 'bye', 'black': 'white', 'orange': 'banana'}
-    for k in m:
-        assert m[k] == expected[k]
-    for k, v in m.items():
+    for k in sm:
+        assert sm[k] == expected[k]
+    for k, v in sm.items():
         assert v == expected[k]
 
-    it = iter(StringMap({}))
+    it = iter(m.StringMap({}))
     for _ in range(3):  # __next__ must continue to raise StopIteration
         with pytest.raises(StopIteration):
             next(it)
 
 
 def test_python_iterator_in_cpp():
-    import pybind11_tests.sequences_and_iterators as m
-
     t = (1, 2, 3)
     assert m.object_to_list(t) == [1, 2, 3]
     assert m.object_to_list(iter(t)) == [1, 2, 3]

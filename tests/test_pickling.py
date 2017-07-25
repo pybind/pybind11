@@ -1,4 +1,5 @@
 import pytest
+from pybind11_tests import pickling as m
 
 try:
     import cPickle as pickle  # Use cPickle on Python 2.7
@@ -7,9 +8,7 @@ except ImportError:
 
 
 def test_roundtrip():
-    from pybind11_tests import Pickleable
-
-    p = Pickleable("test_value")
+    p = m.Pickleable("test_value")
     p.setExtra1(15)
     p.setExtra2(48)
 
@@ -22,9 +21,7 @@ def test_roundtrip():
 
 @pytest.unsupported_on_pypy
 def test_roundtrip_with_dict():
-    from pybind11_tests import PickleableWithDict
-
-    p = PickleableWithDict("test_value")
+    p = m.PickleableWithDict("test_value")
     p.extra = 15
     p.dynamic = "Attribute"
 

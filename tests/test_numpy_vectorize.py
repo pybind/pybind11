@@ -1,4 +1,5 @@
 import pytest
+from pybind11_tests import numpy_vectorize as m
 
 pytestmark = pytest.requires_numpy
 
@@ -7,11 +8,9 @@ with pytest.suppress(ImportError):
 
 
 def test_vectorize(capture):
-    from pybind11_tests import vectorized_func, vectorized_func2, vectorized_func3
+    assert np.isclose(m.vectorized_func3(np.array(3 + 7j)), [6 + 14j])
 
-    assert np.isclose(vectorized_func3(np.array(3 + 7j)), [6 + 14j])
-
-    for f in [vectorized_func, vectorized_func2]:
+    for f in [m.vectorized_func, m.vectorized_func2]:
         with capture:
             assert np.isclose(f(1, 2, 3), 6)
         assert capture == "my_func(x:int=1, y:float=2, z:float=3)"
@@ -103,23 +102,19 @@ def test_vectorize(capture):
 
 
 def test_type_selection():
-    from pybind11_tests import selective_func
-
-    assert selective_func(np.array([1], dtype=np.int32)) == "Int branch taken."
-    assert selective_func(np.array([1.0], dtype=np.float32)) == "Float branch taken."
-    assert selective_func(np.array([1.0j], dtype=np.complex64)) == "Complex float branch taken."
+    assert m.selective_func(np.array([1], dtype=np.int32)) == "Int branch taken."
+    assert m.selective_func(np.array([1.0], dtype=np.float32)) == "Float branch taken."
+    assert m.selective_func(np.array([1.0j], dtype=np.complex64)) == "Complex float branch taken."
 
 
 def test_docs(doc):
-    from pybind11_tests import vectorized_func
-
-    assert doc(vectorized_func) == """
+    assert doc(m.vectorized_func) == """
         vectorized_func(arg0: numpy.ndarray[int32], arg1: numpy.ndarray[float32], arg2: numpy.ndarray[float64]) -> object
     """  # noqa: E501 line too long
 
 
 def test_trivial_broadcasting():
-    from pybind11_tests import vectorized_is_trivial, trivial, vectorized_func
+    trivial, vectorized_is_trivial = m.trivial, m.vectorized_is_trivial
 
     assert vectorized_is_trivial(1, 2, 3) == trivial.c_trivial
     assert vectorized_is_trivial(np.array(1), np.array(2), 3) == trivial.c_trivial
@@ -153,51 +148,49 @@ def test_trivial_broadcasting():
     assert vectorized_is_trivial(z1[1::4, 1::4], y2, 1) == trivial.f_trivial
     assert vectorized_is_trivial(y1[1::4, 1::4], z2, 1) == trivial.c_trivial
 
-    assert vectorized_func(z1, z2, z3).flags.c_contiguous
-    assert vectorized_func(y1, y2, y3).flags.f_contiguous
-    assert vectorized_func(z1, 1, 1).flags.c_contiguous
-    assert vectorized_func(1, y2, 1).flags.f_contiguous
-    assert vectorized_func(z1[1::4, 1::4], y2, 1).flags.f_contiguous
-    assert vectorized_func(y1[1::4, 1::4], z2, 1).flags.c_contiguous
+    assert m.vectorized_func(z1, z2, z3).flags.c_contiguous
+    assert m.vectorized_func(y1, y2, y3).flags.f_contiguous
+    assert m.vectorized_func(z1, 1, 1).flags.c_contiguous
+    assert m.vectorized_func(1, y2, 1).flags.f_contiguous
+    assert m.vectorized_func(z1[1::4, 1::4], y2, 1).flags.f_contiguous
+    assert m.vectorized_func(y1[1::4, 1::4], z2, 1).flags.c_contiguous
 
 
 def test_passthrough_arguments(doc):
-    from pybind11_tests import vec_passthrough, NonPODClass
-
-    assert doc(vec_passthrough) == (
-        "vec_passthrough("
-        "arg0: float, arg1: numpy.ndarray[float64], arg2: numpy.ndarray[float64], "
-        "arg3: numpy.ndarray[int32], arg4: int, arg5: m.NonPODClass, arg6: numpy.ndarray[float64]"
-        ") -> object")
+    assert doc(m.vec_passthrough) == (
+        "vec_passthrough(" + ", ".join([
+            "arg0: float",
+            "arg1: numpy.ndarray[float64]",
+            "arg2: numpy.ndarray[float64]",
+            "arg3: numpy.ndarray[int32]",
+            "arg4: int",
+            "arg5: m.numpy_vectorize.NonPODClass",
+            "arg6: numpy.ndarray[float64]"]) + ") -> object")
 
     b = np.array([[10, 20, 30]], dtype='float64')
     c = np.array([100, 200])  # NOT a vectorized argument
     d = np.array([[1000], [2000], [3000]], dtype='int')
     g = np.array([[1000000, 2000000, 3000000]], dtype='int')  # requires casting
     assert np.all(
-        vec_passthrough(1, b, c, d, 10000, NonPODClass(100000), g) ==
+        m.vec_passthrough(1, b, c, d, 10000, m.NonPODClass(100000), g) ==
         np.array([[1111111, 2111121, 3111131],
                   [1112111, 2112121, 3112131],
                   [1113111, 2113121, 3113131]]))
 
 
 def test_method_vectorization():
-    from pybind11_tests import VectorizeTestClass
-
-    o = VectorizeTestClass(3)
+    o = m.VectorizeTestClass(3)
     x = np.array([1, 2], dtype='int')
     y = np.array([[10], [20]], dtype='float32')
     assert np.all(o.method(x, y) == [[14, 15], [24, 25]])
 
 
 def test_array_collapse():
-    from pybind11_tests import vectorized_func
-
-    assert not isinstance(vectorized_func(1, 2, 3), np.ndarray)
-    assert not isinstance(vectorized_func(np.array(1), 2, 3), np.ndarray)
-    z = vectorized_func([1], 2, 3)
+    assert not isinstance(m.vectorized_func(1, 2, 3), np.ndarray)
+    assert not isinstance(m.vectorized_func(np.array(1), 2, 3), np.ndarray)
+    z = m.vectorized_func([1], 2, 3)
     assert isinstance(z, np.ndarray)
     assert z.shape == (1, )
-    z = vectorized_func(1, [[[2]]], 3)
+    z = m.vectorized_func(1, [[[2]]], 3)
     assert isinstance(z, np.ndarray)
     assert z.shape == (1, 1, 1)

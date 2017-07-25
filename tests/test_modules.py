@@ -1,32 +1,34 @@
+from pybind11_tests import modules as m
+from pybind11_tests.modules import subsubmodule as ms
+from pybind11_tests import ConstructorStats
+
 
 def test_nested_modules():
     import pybind11_tests
-    from pybind11_tests.submodule import submodule_func
-
     assert pybind11_tests.__name__ == "pybind11_tests"
-    assert pybind11_tests.submodule.__name__ == "pybind11_tests.submodule"
+    assert pybind11_tests.modules.__name__ == "pybind11_tests.modules"
+    assert pybind11_tests.modules.subsubmodule.__name__ == "pybind11_tests.modules.subsubmodule"
+    assert m.__name__ == "pybind11_tests.modules"
+    assert ms.__name__ == "pybind11_tests.modules.subsubmodule"
 
-    assert submodule_func() == "submodule_func()"
+    assert ms.submodule_func() == "submodule_func()"
 
 
 def test_reference_internal():
-    from pybind11_tests import ConstructorStats
-    from pybind11_tests.submodule import A, B
-
-    b = B()
+    b = ms.B()
     assert str(b.get_a1()) == "A[1]"
     assert str(b.a1) == "A[1]"
     assert str(b.get_a2()) == "A[2]"
     assert str(b.a2) == "A[2]"
 
-    b.a1 = A(42)
-    b.a2 = A(43)
+    b.a1 = ms.A(42)
+    b.a2 = ms.A(43)
     assert str(b.get_a1()) == "A[42]"
     assert str(b.a1) == "A[42]"
     assert str(b.get_a2()) == "A[43]"
     assert str(b.a2) == "A[43]"
 
-    astats, bstats = ConstructorStats.get(A), ConstructorStats.get(B)
+    astats, bstats = ConstructorStats.get(ms.A), ConstructorStats.get(ms.B)
     assert astats.alive() == 2
     assert bstats.alive() == 1
     del b
@@ -47,7 +49,7 @@ def test_reference_internal():
 
 
 def test_importing():
-    from pybind11_tests import OD
+    from pybind11_tests.modules import OD
     from collections import OrderedDict
 
     assert OD is OrderedDict
@@ -66,6 +68,5 @@ def test_pydoc():
 
 def test_duplicate_registration():
     """Registering two things with the same name"""
-    from pybind11_tests import duplicate_registration
 
-    assert duplicate_registration() == []
+    assert m.duplicate_registration() == []

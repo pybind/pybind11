@@ -26,40 +26,43 @@ public:
     void operator=(const ExampleMandA &e) { print_copy_assigned(this); value = e.value; }
     void operator=(ExampleMandA &&e) { print_move_assigned(this); value = e.value; }
 
-    void add1(ExampleMandA other) { value += other.value; }           // passing by value
-    void add2(ExampleMandA &other) { value += other.value; }          // passing by reference
-    void add3(const ExampleMandA &other) { value += other.value; }    // passing by const reference
-    void add4(ExampleMandA *other) { value += other->value; }         // passing by pointer
-    void add5(const ExampleMandA *other) { value += other->value; }   // passing by const pointer
+    void add1(ExampleMandA other) { value += other.value; }         // passing by value
+    void add2(ExampleMandA &other) { value += other.value; }        // passing by reference
+    void add3(const ExampleMandA &other) { value += other.value; }  // passing by const reference
+    void add4(ExampleMandA *other) { value += other->value; }       // passing by pointer
+    void add5(const ExampleMandA *other) { value += other->value; } // passing by const pointer
 
-    void add6(int other) { value += other; }                      // passing by value
-    void add7(int &other) { value += other; }                     // passing by reference
-    void add8(const int &other) { value += other; }               // passing by const reference
-    void add9(int *other) { value += *other; }                    // passing by pointer
-    void add10(const int *other) { value += *other; }             // passing by const pointer
+    void add6(int other) { value += other; }                        // passing by value
+    void add7(int &other) { value += other; }                       // passing by reference
+    void add8(const int &other) { value += other; }                 // passing by const reference
+    void add9(int *other) { value += *other; }                      // passing by pointer
+    void add10(const int *other) { value += *other; }               // passing by const pointer
 
-    ExampleMandA self1() { return *this; }                            // return by value
-    ExampleMandA &self2() { return *this; }                           // return by reference
-    const ExampleMandA &self3() { return *this; }                     // return by const reference
-    ExampleMandA *self4() { return this; }                            // return by pointer
-    const ExampleMandA *self5() { return this; }                      // return by const pointer
+    ExampleMandA self1() { return *this; }                          // return by value
+    ExampleMandA &self2() { return *this; }                         // return by reference
+    const ExampleMandA &self3() { return *this; }                   // return by const reference
+    ExampleMandA *self4() { return this; }                          // return by pointer
+    const ExampleMandA *self5() { return this; }                    // return by const pointer
 
-    int internal1() { return value; }                             // return by value
-    int &internal2() { return value; }                            // return by reference
-    const int &internal3() { return value; }                      // return by const reference
-    int *internal4() { return &value; }                           // return by pointer
-    const int *internal5() { return &value; }                     // return by const pointer
+    int internal1() { return value; }                               // return by value
+    int &internal2() { return value; }                              // return by reference
+    const int &internal3() { return value; }                        // return by const reference
+    int *internal4() { return &value; }                             // return by pointer
+    const int *internal5() { return &value; }                       // return by const pointer
 
+    py::str overloaded()             { return "()"; }
+    py::str overloaded(int)          { return "(int)"; }
     py::str overloaded(int, float)   { return "(int, float)"; }
     py::str overloaded(float, int)   { return "(float, int)"; }
     py::str overloaded(int, int)     { return "(int, int)"; }
     py::str overloaded(float, float) { return "(float, float)"; }
+    py::str overloaded(int)          const { return "(int) const"; }
     py::str overloaded(int, float)   const { return "(int, float) const"; }
     py::str overloaded(float, int)   const { return "(float, int) const"; }
     py::str overloaded(int, int)     const { return "(int, int) const"; }
     py::str overloaded(float, float) const { return "(float, float) const"; }
 
-    static py::str overloaded() { return "static"; }
+    static py::str overloaded(float) { return "static float"; }
 
     int value = 0;
 };
@@ -74,41 +77,28 @@ struct TestProperties {
     static int static_get() { return static_value; }
     static void static_set(int v) { static_value = v; }
 };
-
 int TestProperties::static_value = 1;
 
 struct TestPropertiesOverride : TestProperties {
     int value = 99;
     static int static_value;
 };
-
 int TestPropertiesOverride::static_value = 99;
 
-struct SimpleValue { int value = 1; };
-
 struct TestPropRVP {
-    SimpleValue v1;
-    SimpleValue v2;
-    static SimpleValue sv1;
-    static SimpleValue sv2;
+    UserType v1{1};
+    UserType v2{1};
+    static UserType sv1;
+    static UserType sv2;
 
-    const SimpleValue &get1() const { return v1; }
-    const SimpleValue &get2() const { return v2; }
-    SimpleValue get_rvalue() const { return v2; }
-    void set1(int v) { v1.value = v; }
-    void set2(int v) { v2.value = v; }
+    const UserType &get1() const { return v1; }
+    const UserType &get2() const { return v2; }
+    UserType get_rvalue() const { return v2; }
+    void set1(int v) { v1.set(v); }
+    void set2(int v) { v2.set(v); }
 };
-
-SimpleValue TestPropRVP::sv1{};
-SimpleValue TestPropRVP::sv2{};
-
-class DynamicClass {
-public:
-    DynamicClass() { print_default_created(this); }
-    ~DynamicClass() { print_destroyed(this); }
-};
-
-class CppDerivedDynamicClass : public DynamicClass { };
+UserType TestPropRVP::sv1(1);
+UserType TestPropRVP::sv2(1);
 
 // py::arg/py::arg_v testing: these arguments just record their argument when invoked
 class ArgInspector1 { public: std::string arg = "(default arg inspector 1)"; };
@@ -180,9 +170,6 @@ template <> struct type_caster<DestructionTester> {
 };
 }}
 
-// Issue/PR #648: bad arg default debugging output
-class NotRegistered {};
-
 // Test None-allowed py::arg argument policy
 class NoneTester { public: int answer = 42; };
 int none1(const NoneTester &obj) { return obj.answer; }
@@ -215,7 +202,8 @@ public:
     double sum() const { return rw_value + ro_value; }
 };
 
-test_initializer methods_and_attributes([](py::module &m) {
+TEST_SUBMODULE(methods_and_attributes, m) {
+    // test_methods_and_attributes
     py::class_<ExampleMandA> emna(m, "ExampleMandA");
     emna.def(py::init<>())
         .def(py::init<int>())
@@ -241,43 +229,52 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def("internal4", &ExampleMandA::internal4)
         .def("internal5", &ExampleMandA::internal5)
 #if defined(PYBIND11_OVERLOAD_CAST)
+        .def("overloaded", py::overload_cast<>(&ExampleMandA::overloaded))
+        .def("overloaded", py::overload_cast<int>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<int,   float>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<float,   int>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<int,     int>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<float, float>(&ExampleMandA::overloaded))
         .def("overloaded_float", py::overload_cast<float, float>(&ExampleMandA::overloaded))
+        .def("overloaded_const", py::overload_cast<int         >(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const", py::overload_cast<int,   float>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const", py::overload_cast<float,   int>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const", py::overload_cast<int,     int>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const", py::overload_cast<float, float>(&ExampleMandA::overloaded, py::const_))
 #else
+        .def("overloaded", static_cast<py::str (ExampleMandA::*)()>(&ExampleMandA::overloaded))
+        .def("overloaded", static_cast<py::str (ExampleMandA::*)(int)>(&ExampleMandA::overloaded))
         .def("overloaded", static_cast<py::str (ExampleMandA::*)(int,   float)>(&ExampleMandA::overloaded))
         .def("overloaded", static_cast<py::str (ExampleMandA::*)(float,   int)>(&ExampleMandA::overloaded))
         .def("overloaded", static_cast<py::str (ExampleMandA::*)(int,     int)>(&ExampleMandA::overloaded))
         .def("overloaded", static_cast<py::str (ExampleMandA::*)(float, float)>(&ExampleMandA::overloaded))
         .def("overloaded_float", static_cast<py::str (ExampleMandA::*)(float, float)>(&ExampleMandA::overloaded))
+        .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(int         ) const>(&ExampleMandA::overloaded))
         .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(int,   float) const>(&ExampleMandA::overloaded))
         .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(float,   int) const>(&ExampleMandA::overloaded))
         .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(int,     int) const>(&ExampleMandA::overloaded))
         .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(float, float) const>(&ExampleMandA::overloaded))
 #endif
+        // test_no_mixed_overloads
         // Raise error if trying to mix static/non-static overloads on the same name:
         .def_static("add_mixed_overloads1", []() {
-            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests").attr("ExampleMandA"));
+            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
             emna.def       ("overload_mixed1", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded))
-                .def_static("overload_mixed1", static_cast<py::str (              *)(        )>(&ExampleMandA::overloaded));
+                .def_static("overload_mixed1", static_cast<py::str (              *)(float   )>(&ExampleMandA::overloaded));
         })
         .def_static("add_mixed_overloads2", []() {
-            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests").attr("ExampleMandA"));
-            emna.def_static("overload_mixed2", static_cast<py::str (              *)(        )>(&ExampleMandA::overloaded))
+            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
+            emna.def_static("overload_mixed2", static_cast<py::str (              *)(float   )>(&ExampleMandA::overloaded))
                 .def       ("overload_mixed2", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded));
         })
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value);
 
+    // test_copy_method
     // Issue #443: can't call copied methods in Python 3
     emna.attr("add2b") = emna.attr("add2");
 
+    // test_properties, test_static_properties, test_static_cls
     py::class_<TestProperties>(m, "TestProperties")
         .def(py::init<>())
         .def_readonly("def_readonly", &TestProperties::value)
@@ -300,15 +297,13 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def_readonly("def_readonly", &TestPropertiesOverride::value)
         .def_readonly_static("def_readonly_static", &TestPropertiesOverride::static_value);
 
-    py::class_<SimpleValue>(m, "SimpleValue")
-        .def_readwrite("value", &SimpleValue::value);
-
-    auto static_get1 = [](py::object) -> const SimpleValue & { return TestPropRVP::sv1; };
-    auto static_get2 = [](py::object) -> const SimpleValue & { return TestPropRVP::sv2; };
-    auto static_set1 = [](py::object, int v) { TestPropRVP::sv1.value = v; };
-    auto static_set2 = [](py::object, int v) { TestPropRVP::sv2.value = v; };
+    auto static_get1 = [](py::object) -> const UserType & { return TestPropRVP::sv1; };
+    auto static_get2 = [](py::object) -> const UserType & { return TestPropRVP::sv2; };
+    auto static_set1 = [](py::object, int v) { TestPropRVP::sv1.set(v); };
+    auto static_set2 = [](py::object, int v) { TestPropRVP::sv2.set(v); };
     auto rvp_copy = py::return_value_policy::copy;
 
+    // test_property_return_value_policies
     py::class_<TestPropRVP>(m, "TestPropRVP")
         .def(py::init<>())
         .def_property_readonly("ro_ref", &TestPropRVP::get1)
@@ -323,21 +318,32 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def_property_static("static_rw_ref", static_get1, static_set1)
         .def_property_static("static_rw_copy", static_get2, static_set2, rvp_copy)
         .def_property_static("static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
+        // test_property_rvalue_policy
         .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
-        .def_property_readonly_static("static_rvalue", [](py::object) { return SimpleValue(); });
+        .def_property_readonly_static("static_rvalue", [](py::object) { return UserType(1); });
 
+    // test_metaclass_override
     struct MetaclassOverride { };
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
         .def_property_readonly_static("readonly", [](py::object) { return 1; });
 
 #if !defined(PYPY_VERSION)
+    // test_dynamic_attributes
+    class DynamicClass {
+    public:
+        DynamicClass() { print_default_created(this); }
+        ~DynamicClass() { print_destroyed(this); }
+    };
     py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())
         .def(py::init());
 
+    class CppDerivedDynamicClass : public DynamicClass { };
     py::class_<CppDerivedDynamicClass, DynamicClass>(m, "CppDerivedDynamicClass")
         .def(py::init());
 #endif
 
+    // test_noconvert_args
+    //
     // Test converting.  The ArgAlwaysConverts is just there to make the first no-conversion pass
     // fail so that our call always ends up happening via the second dispatch (the one that allows
     // some conversion).
@@ -363,6 +369,7 @@ test_initializer methods_and_attributes([](py::module &m) {
     m.def("ints_preferred", [](int i) { return i / 2; }, py::arg("i"));
     m.def("ints_only", [](int i) { return i / 2; }, py::arg("i").noconvert());
 
+    // test_bad_arg_default
     // Issue/PR #648: bad arg default debugging output
 #if !defined(NDEBUG)
     m.attr("debug_enabled") = true;
@@ -371,13 +378,14 @@ test_initializer methods_and_attributes([](py::module &m) {
 #endif
     m.def("bad_arg_def_named", []{
         auto m = py::module::import("pybind11_tests");
-        m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg("a") = NotRegistered());
+        m.def("should_fail", [](int, UnregisteredType) {}, py::arg(), py::arg("a") = UnregisteredType());
     });
     m.def("bad_arg_def_unnamed", []{
         auto m = py::module::import("pybind11_tests");
-        m.def("should_fail", [](int, NotRegistered) {}, py::arg(), py::arg() = NotRegistered());
+        m.def("should_fail", [](int, UnregisteredType) {}, py::arg(), py::arg() = UnregisteredType());
     });
 
+    // test_accepts_none
     py::class_<NoneTester, std::shared_ptr<NoneTester>>(m, "NoneTester")
         .def(py::init<>());
     m.def("no_none1", &none1, py::arg().none(false));
@@ -391,6 +399,7 @@ test_initializer methods_and_attributes([](py::module &m) {
     m.def("ok_none4", &none4, py::arg().none(true));
     m.def("ok_none5", &none5);
 
+    // test_str_issue
     // Issue #283: __str__ called on uninitialized instance when constructor arguments invalid
     py::class_<StrIssue>(m, "StrIssue")
         .def(py::init<int>())
@@ -399,6 +408,8 @@ test_initializer methods_and_attributes([](py::module &m) {
             return "StrIssue[" + std::to_string(si.val) + "]"; }
         );
 
+    // test_unregistered_base_implementations
+    //
     // Issues #854/910: incompatible function args when member function/pointer is in unregistered
     // base class The methods and member pointers below actually resolve to members/pointers in
     // UnregisteredBase; before this test/fix they would be registered via lambda with a first
@@ -410,8 +421,8 @@ test_initializer methods_and_attributes([](py::module &m) {
         .def_readwrite("rw_value", &RegisteredDerived::rw_value)
         .def_readonly("ro_value", &RegisteredDerived::ro_value)
         // These should trigger a static_assert if uncommented
-        //.def_readwrite("fails", &SimpleValue::value) // should trigger a static_assert if uncommented
-        //.def_readonly("fails", &SimpleValue::value) // should trigger a static_assert if uncommented
+        //.def_readwrite("fails", &UserType::value) // should trigger a static_assert if uncommented
+        //.def_readonly("fails", &UserType::value) // should trigger a static_assert if uncommented
         .def_property("rw_value_prop", &RegisteredDerived::get_int, &RegisteredDerived::set_int)
         .def_property_readonly("ro_value_prop", &RegisteredDerived::get_double)
         // This one is in the registered class:
@@ -432,4 +443,4 @@ test_initializer methods_and_attributes([](py::module &m) {
     m.def("custom_caster_destroy_const", []() -> const DestructionTester * { return new DestructionTester(); },
             py::return_value_policy::take_ownership); // Likewise (const doesn't inhibit destruction)
     m.def("destruction_tester_cstats", &ConstructorStats::get<DestructionTester>, py::return_value_policy::reference);
-});
+}

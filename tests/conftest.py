@@ -196,7 +196,7 @@ def pytest_namespace():
     except ImportError:
         scipy = None
     try:
-        from pybind11_tests import have_eigen
+        from pybind11_tests.eigen import have_eigen
     except ImportError:
         have_eigen = False
     pypy = platform.python_implementation() == "PyPy"

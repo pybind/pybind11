@@ -1,40 +1,36 @@
 import pytest
+from pybind11_tests import opaque_types as m
+from pybind11_tests import ConstructorStats, UserType
 
 
 def test_string_list():
-    from pybind11_tests import StringList, ClassWithSTLVecProperty, print_opaque_list
-
-    l = StringList()
+    l = m.StringList()
     l.push_back("Element 1")
     l.push_back("Element 2")
-    assert print_opaque_list(l) == "Opaque list: [Element 1, Element 2]"
+    assert m.print_opaque_list(l) == "Opaque list: [Element 1, Element 2]"
     assert l.back() == "Element 2"
 
     for i, k in enumerate(l, start=1):
         assert k == "Element {}".format(i)
     l.pop_back()
-    assert print_opaque_list(l) == "Opaque list: [Element 1]"
+    assert m.print_opaque_list(l) == "Opaque list: [Element 1]"
 
-    cvp = ClassWithSTLVecProperty()
-    assert print_opaque_list(cvp.stringList) == "Opaque list: []"
+    cvp = m.ClassWithSTLVecProperty()
+    assert m.print_opaque_list(cvp.stringList) == "Opaque list: []"
 
     cvp.stringList = l
     cvp.stringList.push_back("Element 3")
-    assert print_opaque_list(cvp.stringList) == "Opaque list: [Element 1, Element 3]"
+    assert m.print_opaque_list(cvp.stringList) == "Opaque list: [Element 1, Element 3]"
 
 
 def test_pointers(msg):
-    from pybind11_tests import (return_void_ptr, get_void_ptr_value, ExampleMandA,
-                                print_opaque_list, return_null_str, get_null_str_value,
-                                return_unique_ptr, ConstructorStats)
-
-    living_before = ConstructorStats.get(ExampleMandA).alive()
-    assert get_void_ptr_value(return_void_ptr()) == 0x1234
-    assert get_void_ptr_value(ExampleMandA())  # Should also work for other C++ types
-    assert ConstructorStats.get(ExampleMandA).alive() == living_before
+    living_before = ConstructorStats.get(UserType).alive()
+    assert m.get_void_ptr_value(m.return_void_ptr()) == 0x1234
+    assert m.get_void_ptr_value(UserType())  # Should also work for other C++ types
+    assert ConstructorStats.get(UserType).alive() == living_before
 
     with pytest.raises(TypeError) as excinfo:
-        get_void_ptr_value([1, 2, 3])  # This should not work
+        m.get_void_ptr_value([1, 2, 3])  # This should not work
     assert msg(excinfo.value) == """
         get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
             1. (arg0: capsule) -> int
@@ -42,9 +38,9 @@ def test_pointers(msg):
         Invoked with: [1, 2, 3]
     """  # noqa: E501 line too long
 
-    assert return_null_str() is None
-    assert get_null_str_value(return_null_str()) is not None
+    assert m.return_null_str() is None
+    assert m.get_null_str_value(m.return_null_str()) is not None
 
-    ptr = return_unique_ptr()
+    ptr = m.return_unique_ptr()
     assert "StringList" in repr(ptr)
-    assert print_opaque_list(ptr) == "Opaque list: [some value]"
+    assert m.print_opaque_list(ptr) == "Opaque list: [some value]"

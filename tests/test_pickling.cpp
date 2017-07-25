@@ -9,30 +9,22 @@
 
 #include "pybind11_tests.h"
 
-class Pickleable {
-public:
-    Pickleable(const std::string &value) : m_value(value) { }
-    const std::string &value() const { return m_value; }
+TEST_SUBMODULE(pickling, m) {
+    // test_roundtrip
+    class Pickleable {
+    public:
+        Pickleable(const std::string &value) : m_value(value) { }
+        const std::string &value() const { return m_value; }
 
-    void setExtra1(int extra1) { m_extra1 = extra1; }
-    void setExtra2(int extra2) { m_extra2 = extra2; }
-    int extra1() const { return m_extra1; }
-    int extra2() const { return m_extra2; }
-private:
-    std::string m_value;
-    int m_extra1 = 0;
-    int m_extra2 = 0;
-};
-
-class PickleableWithDict {
-public:
-    PickleableWithDict(const std::string &value) : value(value) { }
-
-    std::string value;
-    int extra;
-};
-
-test_initializer pickling([](py::module &m) {
+        void setExtra1(int extra1) { m_extra1 = extra1; }
+        void setExtra2(int extra2) { m_extra2 = extra2; }
+        int extra1() const { return m_extra1; }
+        int extra2() const { return m_extra2; }
+    private:
+        std::string m_value;
+        int m_extra1 = 0;
+        int m_extra2 = 0;
+    };
     py::class_<Pickleable>(m, "Pickleable")
         .def(py::init<std::string>())
         .def("value", &Pickleable::value)
@@ -58,6 +50,14 @@ test_initializer pickling([](py::module &m) {
         });
 
 #if !defined(PYPY_VERSION)
+    // test_roundtrip_with_dict
+    class PickleableWithDict {
+    public:
+        PickleableWithDict(const std::string &value) : value(value) { }
+
+        std::string value;
+        int extra;
+    };
     py::class_<PickleableWithDict>(m, "PickleableWithDict", py::dynamic_attr())
         .def(py::init<std::string>())
         .def_readwrite("value", &PickleableWithDict::value)
@@ -80,4 +80,4 @@ test_initializer pickling([](py::module &m) {
             self.attr("__dict__") = t[2];
         });
 #endif
-});
+}

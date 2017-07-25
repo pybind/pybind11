@@ -35,7 +35,7 @@ def test_docstrings(doc):
 
         Get value using a method
     """
-    assert doc(UserType.value) == "Get value using a property"
+    assert doc(UserType.value) == "Get/set value using a property"
 
     assert doc(m.NoConstructor.new_instance) == """
         new_instance() -> m.class_.NoConstructor

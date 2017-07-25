@@ -1,18 +1,17 @@
 import pytest
 import sys
+from pybind11_tests import stl_binders as m
 
 with pytest.suppress(ImportError):
     import numpy as np
 
 
 def test_vector_int():
-    from pybind11_tests import VectorInt
-
-    v_int = VectorInt([0, 0])
+    v_int = m.VectorInt([0, 0])
     assert len(v_int) == 2
     assert bool(v_int) is True
 
-    v_int2 = VectorInt([0, 0])
+    v_int2 = m.VectorInt([0, 0])
     assert v_int == v_int2
     v_int2[1] = 1
     assert v_int != v_int2
@@ -28,85 +27,66 @@ def test_vector_int():
 
     v_int.append(99)
     v_int2[2:-2] = v_int
-    assert v_int2 == VectorInt([3, 2, 0, 0, 99, 2, 3])
+    assert v_int2 == m.VectorInt([3, 2, 0, 0, 99, 2, 3])
     del v_int2[1:3]
-    assert v_int2 == VectorInt([3, 0, 99, 2, 3])
+    assert v_int2 == m.VectorInt([3, 0, 99, 2, 3])
     del v_int2[0]
-    assert v_int2 == VectorInt([0, 99, 2, 3])
+    assert v_int2 == m.VectorInt([0, 99, 2, 3])
 
 
-# As of pypy 5.7.1, running this and the next test seems to trigger a segfault
 # related to the PyPy's buffer protocol.
 @pytest.unsupported_on_pypy
 def test_vector_buffer():
-    from pybind11_tests import VectorUChar, create_undeclstruct
     b = bytearray([1, 2, 3, 4])
-    v = VectorUChar(b)
+    v = m.VectorUChar(b)
     assert v[1] == 2
     v[2] = 5
-    m = memoryview(v)  # We expose the buffer interface
+    mv = memoryview(v)  # We expose the buffer interface
     if sys.version_info.major > 2:
-        assert m[2] == 5
-        m[2] = 6
+        assert mv[2] == 5
+        mv[2] = 6
     else:
-        assert m[2] == '\x05'
-        m[2] = '\x06'
+        assert mv[2] == '\x05'
+        mv[2] = '\x06'
     assert v[2] == 6
 
-    with pytest.raises(RuntimeError):
-        create_undeclstruct()  # Undeclared struct contents, no buffer interface
+    with pytest.raises(RuntimeError) as excinfo:
+        m.create_undeclstruct()  # Undeclared struct contents, no buffer interface
+    assert "NumPy type info missing for " in str(excinfo.value)
 
 
 @pytest.unsupported_on_pypy
 @pytest.requires_numpy
 def test_vector_buffer_numpy():
-    from pybind11_tests import VectorInt, VectorStruct, get_vectorstruct
-
     a = np.array([1, 2, 3, 4], dtype=np.int32)
     with pytest.raises(TypeError):
-        VectorInt(a)
+        m.VectorInt(a)
 
     a = np.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]], dtype=np.uintc)
-    v = VectorInt(a[0, :])
+    v = m.VectorInt(a[0, :])
     assert len(v) == 4
     assert v[2] == 3
-    m = np.asarray(v)
-    m[2] = 5
+    ma = np.asarray(v)
+    ma[2] = 5
     assert v[2] == 5
 
-    v = VectorInt(a[:, 1])
+    v = m.VectorInt(a[:, 1])
     assert len(v) == 3
     assert v[2] == 10
 
-    v = get_vectorstruct()
+    v = m.get_vectorstruct()
     assert v[0].x == 5
-    m = np.asarray(v)
-    m[1]['x'] = 99
+    ma = np.asarray(v)
+    ma[1]['x'] = 99
     assert v[1].x == 99
 
-    v = VectorStruct(np.zeros(3, dtype=np.dtype([('w', 'bool'), ('x', 'I'),
-                                                 ('y', 'float64'), ('z', 'bool')], align=True)))
+    v = m.VectorStruct(np.zeros(3, dtype=np.dtype([('w', 'bool'), ('x', 'I'),
+                                                   ('y', 'float64'), ('z', 'bool')], align=True)))
     assert len(v) == 3
 
 
-def test_vector_custom():
-    from pybind11_tests import El, VectorEl, VectorVectorEl
-
-    v_a = VectorEl()
-    v_a.append(El(1))
-    v_a.append(El(2))
-    assert str(v_a) == "VectorEl[El{1}, El{2}]"
-
-    vv_a = VectorVectorEl()
-    vv_a.append(v_a)
-    vv_b = vv_a[0]
-    assert str(vv_b) == "VectorEl[El{1}, El{2}]"
-
-
 def test_vector_bool():
-    from pybind11_tests import VectorBool
-
-    vv_c = VectorBool()
+    vv_c = m.VectorBool()
     for i in range(10):
         vv_c.append(i % 2 == 0)
     for i in range(10):
@@ -114,18 +94,28 @@ def test_vector_bool():
     assert str(vv_c) == "VectorBool[1, 0, 1, 0, 1, 0, 1, 0, 1, 0]"
 
 
+def test_vector_custom():
+    v_a = m.VectorEl()
+    v_a.append(m.El(1))
+    v_a.append(m.El(2))
+    assert str(v_a) == "VectorEl[El{1}, El{2}]"
+
+    vv_a = m.VectorVectorEl()
+    vv_a.append(v_a)
+    vv_b = vv_a[0]
+    assert str(vv_b) == "VectorEl[El{1}, El{2}]"
+
+
 def test_map_string_double():
-    from pybind11_tests import MapStringDouble, UnorderedMapStringDouble
+    mm = m.MapStringDouble()
+    mm['a'] = 1
+    mm['b'] = 2.5
 
-    m = MapStringDouble()
-    m['a'] = 1
-    m['b'] = 2.5
+    assert list(mm) == ['a', 'b']
+    assert list(mm.items()) == [('a', 1), ('b', 2.5)]
+    assert str(mm) == "MapStringDouble{a: 1, b: 2.5}"
 
-    assert list(m) == ['a', 'b']
-    assert list(m.items()) == [('a', 1), ('b', 2.5)]
-    assert str(m) == "MapStringDouble{a: 1, b: 2.5}"
-
-    um = UnorderedMapStringDouble()
+    um = m.UnorderedMapStringDouble()
     um['ua'] = 1.1
     um['ub'] = 2.6
 
@@ -135,35 +125,29 @@ def test_map_string_double():
 
 
 def test_map_string_double_const():
-    from pybind11_tests import MapStringDoubleConst, UnorderedMapStringDoubleConst
-
-    mc = MapStringDoubleConst()
+    mc = m.MapStringDoubleConst()
     mc['a'] = 10
     mc['b'] = 20.5
     assert str(mc) == "MapStringDoubleConst{a: 10, b: 20.5}"
 
-    umc = UnorderedMapStringDoubleConst()
+    umc = m.UnorderedMapStringDoubleConst()
     umc['a'] = 11
     umc['b'] = 21.5
 
     str(umc)
 
 
-def test_noncopyable_vector():
-    from pybind11_tests import get_vnc
-
-    vnc = get_vnc(5)
+def test_noncopyable_containers():
+    # std::vector
+    vnc = m.get_vnc(5)
     for i in range(0, 5):
         assert vnc[i].value == i + 1
 
     for i, j in enumerate(vnc, start=1):
         assert j.value == i
 
-
-def test_noncopyable_deque():
-    from pybind11_tests import get_dnc
-
-    dnc = get_dnc(5)
+    # std::deque
+    dnc = m.get_dnc(5)
     for i in range(0, 5):
         assert dnc[i].value == i + 1
 
@@ -172,11 +156,8 @@ def test_noncopyable_deque():
         assert(j.value == i)
         i += 1
 
-
-def test_noncopyable_map():
-    from pybind11_tests import get_mnc
-
-    mnc = get_mnc(5)
+    # std::map
+    mnc = m.get_mnc(5)
     for i in range(1, 6):
         assert mnc[i].value == 10 * i
 
@@ -187,11 +168,8 @@ def test_noncopyable_map():
 
     assert vsum == 150
 
-
-def test_noncopyable_unordered_map():
-    from pybind11_tests import get_umnc
-
-    mnc = get_umnc(5)
+    # std::unordered_map
+    mnc = m.get_umnc(5)
     for i in range(1, 6):
         assert mnc[i].value == 10 * i
 
