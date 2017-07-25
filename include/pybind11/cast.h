@@ -44,7 +44,7 @@ struct type_info {
     const std::type_info *cpptype;
     size_t type_size, holder_size_in_ptrs;
     void *(*operator_new)(size_t);
-    void (*init_holder)(instance *, const void *);
+    void (*init_instance)(instance *, const void *);
     void (*dealloc)(const value_and_holder &v_h);
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
@@ -515,7 +515,6 @@ inline PyThreadState *get_thread_state_unchecked() {
 
 // Forward declarations
 inline void keep_alive_impl(handle nurse, handle patient);
-inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
 inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value = true);
 
 class type_caster_generic {
@@ -595,8 +594,7 @@ public:
                 throw cast_error("unhandled return_value_policy: should not happen!");
         }
 
-        register_instance(wrapper, valueptr, tinfo);
-        tinfo->init_holder(wrapper, existing_holder);
+        tinfo->init_instance(wrapper, existing_holder);
 
         return inst.release();
     }

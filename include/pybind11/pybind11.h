@@ -714,7 +714,7 @@ protected:
         } else {
             if (overloads->is_constructor) {
                 auto tinfo = get_type_info((PyTypeObject *) overloads->scope.ptr());
-                tinfo->init_holder(reinterpret_cast<instance *>(parent.ptr()), nullptr);
+                tinfo->init_instance(reinterpret_cast<instance *>(parent.ptr()), nullptr);
             }
             return result.ptr();
         }
@@ -835,7 +835,7 @@ protected:
         tinfo->type_size = rec.type_size;
         tinfo->operator_new = rec.operator_new;
         tinfo->holder_size_in_ptrs = size_in_ptrs(rec.holder_size);
-        tinfo->init_holder = rec.init_holder;
+        tinfo->init_instance = rec.init_instance;
         tinfo->dealloc = rec.dealloc;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
@@ -971,7 +971,7 @@ public:
         record.type = &typeid(type);
         record.type_size = sizeof(conditional_t<has_alias, type_alias, type>);
         record.holder_size = sizeof(holder_type);
-        record.init_holder = init_holder;
+        record.init_instance = init_instance;
         record.dealloc = dealloc;
         record.default_holder = std::is_same<holder_type, std::unique_ptr<type>>::value;
 
@@ -1170,7 +1170,7 @@ public:
 private:
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
-    static void init_holder_helper(detail::instance *inst, detail::value_and_holder &v_h,
+    static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
             const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
         try {
             auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(
@@ -1198,7 +1198,7 @@ private:
     }
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
-    static void init_holder_helper(detail::instance *inst, detail::value_and_holder &v_h,
+    static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
             const holder_type *holder_ptr, const void * /* dummy -- not enable_shared_from_this<T>) */) {
         if (holder_ptr) {
             init_holder_from_existing(v_h, holder_ptr, std::is_copy_constructible<holder_type>());
@@ -1209,10 +1209,14 @@ private:
         }
     }
 
-    /// Initialize holder object of an instance, possibly given a pointer to an existing holder
-    static void init_holder(detail::instance *inst, const void *holder_ptr) {
+    /// Performs instance initialization including constructing a holder and registering the known
+    /// instance.  Should be called as soon as the `type` value_ptr is set for an instance.  Takes an
+    /// optional pointer to an existing holder to use; if not specified and the instance is
+    /// `.owned`, a new holder will be constructed to manage the value pointer.
+    static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
-        init_holder_helper(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
+        register_instance(inst, v_h.value_ptr(), v_h.type);
+        init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
