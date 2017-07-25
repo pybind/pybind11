@@ -689,7 +689,7 @@ public:
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
-    template <typename T, ssize_t Dims = -1> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() {
+    template <typename T, ssize_t Dims = -1> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() & {
         if (Dims >= 0 && ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
@@ -703,7 +703,7 @@ public:
      * reshaped for the duration of the returned object, and the caller must take care not to access
      * invalid dimensions or dimension indices.
      */
-    template <typename T, ssize_t Dims = -1> detail::unchecked_reference<T, Dims> unchecked() const {
+    template <typename T, ssize_t Dims = -1> detail::unchecked_reference<T, Dims> unchecked() const & {
         if (Dims >= 0 && ndim() != Dims)
             throw std::domain_error("array has incorrect number of dimensions: " + std::to_string(ndim()) +
                     "; expected " + std::to_string(Dims));
@@ -876,7 +876,7 @@ public:
      * care: the array must not be destroyed or reshaped for the duration of the returned object,
      * and the caller must take care not to access invalid dimensions or dimension indices.
      */
-    template <ssize_t Dims = -1> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() {
+    template <ssize_t Dims = -1> detail::unchecked_mutable_reference<T, Dims> mutable_unchecked() & {
         return array::mutable_unchecked<T, Dims>();
     }
 
@@ -887,7 +887,7 @@ public:
      * for the duration of the returned object, and the caller must take care not to access invalid
      * dimensions or dimension indices.
      */
-    template <ssize_t Dims = -1> detail::unchecked_reference<T, Dims> unchecked() const {
+    template <ssize_t Dims = -1> detail::unchecked_reference<T, Dims> unchecked() const & {
         return array::unchecked<T, Dims>();
     }
 
