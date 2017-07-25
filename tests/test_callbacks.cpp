@@ -12,94 +12,20 @@
 #include <pybind11/functional.h>
 
 
-py::object test_callback1(py::object func) {
-    return func();
-}
-
-py::tuple test_callback2(py::object func) {
-    return func("Hello", 'x', true, 5);
-}
-
-std::string test_callback3(const std::function<int(int)> &func) {
-    return "func(43) = " + std::to_string(func(43));
-}
-
-std::function<int(int)> test_callback4() {
-    return [](int i) { return i+1; };
-}
-
-py::cpp_function test_callback5() {
-    return py::cpp_function([](int i) { return i+1; },
-       py::arg("number"));
-}
-
 int dummy_function(int i) { return i + 1; }
-int dummy_function2(int i, int j) { return i + j; }
-std::function<int(int)> roundtrip(std::function<int(int)> f, bool expect_none = false) {
-    if (expect_none && f) {
-        throw std::runtime_error("Expected None to be converted to empty std::function");
-    }
-    return f;
-}
 
-std::string test_dummy_function(const std::function<int(int)> &f) {
-    using fn_type = int (*)(int);
-    auto result = f.target<fn_type>();
-    if (!result) {
-        auto r = f(1);
-        return "can't convert to function pointer: eval(1) = " + std::to_string(r);
-    } else if (*result == dummy_function) {
-        auto r = (*result)(1);
-        return "matches dummy_function: eval(1) = " + std::to_string(r);
-    } else {
-        return "argument does NOT match dummy_function. This should never happen!";
-    }
-}
+TEST_SUBMODULE(callbacks, m) {
+    // test_callbacks, test_function_signatures
+    m.def("test_callback1", [](py::object func) { return func(); });
+    m.def("test_callback2", [](py::object func) { return func("Hello", 'x', true, 5); });
+    m.def("test_callback3", [](const std::function<int(int)> &func) {
+        return "func(43) = " + std::to_string(func(43)); });
+    m.def("test_callback4", []() -> std::function<int(int)> { return [](int i) { return i+1; }; });
+    m.def("test_callback5", []() {
+        return py::cpp_function([](int i) { return i+1; }, py::arg("number"));
+    });
 
-struct Payload {
-    Payload() {
-        print_default_created(this);
-    }
-    ~Payload() {
-        print_destroyed(this);
-    }
-    Payload(const Payload &) {
-        print_copy_created(this);
-    }
-    Payload(Payload &&) {
-        print_move_created(this);
-    }
-};
-
-class AbstractBase {
-public:
-  virtual unsigned int func() = 0;
-};
-
-void func_accepting_func_accepting_base(std::function<double(AbstractBase&)>) { }
-
-struct MovableObject {
-  bool valid = true;
-
-  MovableObject() = default;
-  MovableObject(const MovableObject &) = default;
-  MovableObject &operator=(const MovableObject &) = default;
-  MovableObject(MovableObject &&o) : valid(o.valid) { o.valid = false; }
-  MovableObject &operator=(MovableObject &&o) {
-    valid = o.valid;
-    o.valid = false;
-    return *this;
-  }
-};
-
-test_initializer callbacks([](py::module &m) {
-    m.def("test_callback1", &test_callback1);
-    m.def("test_callback2", &test_callback2);
-    m.def("test_callback3", &test_callback3);
-    m.def("test_callback4", &test_callback4);
-    m.def("test_callback5", &test_callback5);
-
-    // Test keyword args and generalized unpacking
+    // test_keyword_args_and_generalized_unpacking
     m.def("test_tuple_unpacking", [](py::function f) {
         auto t1 = py::make_tuple(2, 3);
         auto t2 = py::make_tuple(5, 6);
@@ -148,6 +74,15 @@ test_initializer callbacks([](py::module &m) {
         f(234, "expected_name"_a=UnregisteredType(), "kw"_a=567);
     });
 
+    // test_lambda_closure_cleanup
+    struct Payload {
+        Payload() { print_default_created(this); }
+        ~Payload() { print_destroyed(this); }
+        Payload(const Payload &) { print_copy_created(this); }
+        Payload(Payload &&) { print_move_created(this); }
+    };
+    // Export the payload constructor statistics for testing purposes:
+    m.def("payload_cstats", &ConstructorStats::get<Payload>);
     /* Test cleanup of lambda closure */
     m.def("test_cleanup", []() -> std::function<void(void)> {
         Payload p;
@@ -158,27 +93,57 @@ test_initializer callbacks([](py::module &m) {
         };
     });
 
+    // test_cpp_function_roundtrip
     /* Test if passing a function pointer from C++ -> Python -> C++ yields the original pointer */
     m.def("dummy_function", &dummy_function);
-    m.def("dummy_function2", &dummy_function2);
-    m.def("roundtrip", &roundtrip, py::arg("f"), py::arg("expect_none")=false);
-    m.def("test_dummy_function", &test_dummy_function);
-    // Export the payload constructor statistics for testing purposes:
-    m.def("payload_cstats", &ConstructorStats::get<Payload>);
+    m.def("dummy_function2", [](int i, int j) { return i + j; });
+    m.def("roundtrip", [](std::function<int(int)> f, bool expect_none = false) {
+        if (expect_none && f)
+            throw std::runtime_error("Expected None to be converted to empty std::function");
+        return f;
+    }, py::arg("f"), py::arg("expect_none")=false);
+    m.def("test_dummy_function", [](const std::function<int(int)> &f) -> std::string {
+        using fn_type = int (*)(int);
+        auto result = f.target<fn_type>();
+        if (!result) {
+            auto r = f(1);
+            return "can't convert to function pointer: eval(1) = " + std::to_string(r);
+        } else if (*result == dummy_function) {
+            auto r = (*result)(1);
+            return "matches dummy_function: eval(1) = " + std::to_string(r);
+        } else {
+            return "argument does NOT match dummy_function. This should never happen!";
+        }
+    });
 
-    m.def("func_accepting_func_accepting_base",
-          func_accepting_func_accepting_base);
+    class AbstractBase { public: virtual unsigned int func() = 0; };
+    m.def("func_accepting_func_accepting_base", [](std::function<double(AbstractBase&)>) { });
 
+    struct MovableObject {
+        bool valid = true;
+
+        MovableObject() = default;
+        MovableObject(const MovableObject &) = default;
+        MovableObject &operator=(const MovableObject &) = default;
+        MovableObject(MovableObject &&o) : valid(o.valid) { o.valid = false; }
+        MovableObject &operator=(MovableObject &&o) {
+            valid = o.valid;
+            o.valid = false;
+            return *this;
+        }
+    };
     py::class_<MovableObject>(m, "MovableObject");
 
+    // test_movable_object
     m.def("callback_with_movable", [](std::function<void(MovableObject &)> f) {
         auto x = MovableObject();
         f(x); // lvalue reference shouldn't move out object
         return x.valid; // must still return `true`
-      });
+    });
 
+    // test_bound_method_callback
     struct CppBoundMethodTest {};
     py::class_<CppBoundMethodTest>(m, "CppBoundMethodTest")
         .def(py::init<>())
         .def("triple", [](CppBoundMethodTest &, int val) { return 3 * val; });
-});
+}

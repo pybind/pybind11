@@ -68,7 +68,8 @@ public:
 
     int value;
 };
-namespace pybind11 { namespace detail {
+NAMESPACE_BEGIN(pybind11)
+NAMESPACE_BEGIN(detail)
 template <> struct type_caster<MoveOnlyInt> {
     PYBIND11_TYPE_CASTER(MoveOnlyInt, _("MoveOnlyInt"));
     bool load(handle src, bool) { value = MoveOnlyInt(src.cast<int>()); return true; }
@@ -96,32 +97,20 @@ public:
     operator CopyOnlyInt&() { return value; }
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 };
-}}
+NAMESPACE_END(detail)
+NAMESPACE_END(pybind11)
 
-struct PrivateOpNew {
-    int value = 1;
-
-private:
-    void *operator new(size_t bytes);
-};
-
-test_initializer copy_move_policies([](py::module &m) {
+TEST_SUBMODULE(copy_move_policies, m) {
+    // test_lacking_copy_ctor
     py::class_<lacking_copy_ctor>(m, "lacking_copy_ctor")
         .def_static("get_one", &lacking_copy_ctor::get_one,
                     py::return_value_policy::copy);
+    // test_lacking_move_ctor
     py::class_<lacking_move_ctor>(m, "lacking_move_ctor")
         .def_static("get_one", &lacking_move_ctor::get_one,
                     py::return_value_policy::move);
 
-    m.def("move_only", [](MoveOnlyInt m) {
-        return m.value;
-    });
-    m.def("move_or_copy", [](MoveOrCopyInt m) {
-        return m.value;
-    });
-    m.def("copy_only", [](CopyOnlyInt m) {
-        return m.value;
-    });
+    // test_move_and_copy_casts
     m.def("move_and_copy_casts", [](py::object o) {
         int r = 0;
         r += py::cast<MoveOrCopyInt>(o).value; /* moves */
@@ -134,6 +123,11 @@ test_initializer copy_move_policies([](py::module &m) {
 
         return r;
     });
+
+    // test_move_and_copy_loads
+    m.def("move_only", [](MoveOnlyInt m) { return m.value; });
+    m.def("move_or_copy", [](MoveOrCopyInt m) { return m.value; });
+    m.def("copy_only", [](CopyOnlyInt m) { return m.value; });
     m.def("move_pair", [](std::pair<MoveOnlyInt, MoveOrCopyInt> p) {
         return p.first.value + p.second.value;
     });
@@ -163,6 +157,7 @@ test_initializer copy_move_policies([](py::module &m) {
         return d;
     });
 #ifdef PYBIND11_HAS_OPTIONAL
+    // test_move_and_copy_load_optional
     m.attr("has_optional") = true;
     m.def("move_optional", [](std::optional<MoveOnlyInt> o) {
         return o->value;
@@ -181,6 +176,14 @@ test_initializer copy_move_policies([](py::module &m) {
 #endif
 
     // #70 compilation issue if operator new is not public
+    struct PrivateOpNew {
+        int value = 1;
+    private:
+#if defined(_MSC_VER)
+#  pragma warning(disable: 4822) // warning C4822: local class member function does not have a body
+#endif
+        void *operator new(size_t bytes);
+    };
     py::class_<PrivateOpNew>(m, "PrivateOpNew").def_readonly("value", &PrivateOpNew::value);
     m.def("private_op_new_value", []() { return PrivateOpNew(); });
     m.def("private_op_new_reference", []() -> const PrivateOpNew & {
@@ -188,6 +191,7 @@ test_initializer copy_move_policies([](py::module &m) {
         return x;
     }, py::return_value_policy::reference);
 
+    // test_move_fallback
     // #389: rvp::move should fall-through to copy on non-movable objects
     struct MoveIssue1 {
         int v;
@@ -195,15 +199,15 @@ test_initializer copy_move_policies([](py::module &m) {
         MoveIssue1(const MoveIssue1 &c) = default;
         MoveIssue1(MoveIssue1 &&) = delete;
     };
+    py::class_<MoveIssue1>(m, "MoveIssue1").def(py::init<int>()).def_readwrite("value", &MoveIssue1::v);
 
     struct MoveIssue2 {
         int v;
         MoveIssue2(int v) : v{v} {}
         MoveIssue2(MoveIssue2 &&) = default;
     };
-
-    py::class_<MoveIssue1>(m, "MoveIssue1").def(py::init<int>()).def_readwrite("value", &MoveIssue1::v);
     py::class_<MoveIssue2>(m, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
+
     m.def("get_moveissue1", [](int i) { return new MoveIssue1(i); }, py::return_value_policy::move);
     m.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
-});
+}

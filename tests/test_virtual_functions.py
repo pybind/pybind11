@@ -149,7 +149,92 @@ def test_alias_delay_initialization2(capture):
     """
 
 
-def test_inheriting_repeat():
+# PyPy: Reference count > 1 causes call with noncopyable instance
+# to fail in ncv1.print_nc()
+@pytest.unsupported_on_pypy
+@pytest.mark.skipif(not hasattr(m, "NCVirt"), reason="NCVirt test broken on ICPC")
+def test_move_support():
+    class NCVirtExt(m.NCVirt):
+        def get_noncopyable(self, a, b):
+            # Constructs and returns a new instance:
+            nc = m.NonCopyable(a * a, b * b)
+            return nc
+
+        def get_movable(self, a, b):
+            # Return a referenced copy
+            self.movable = m.Movable(a, b)
+            return self.movable
+
+    class NCVirtExt2(m.NCVirt):
+        def get_noncopyable(self, a, b):
+            # Keep a reference: this is going to throw an exception
+            self.nc = m.NonCopyable(a, b)
+            return self.nc
+
+        def get_movable(self, a, b):
+            # Return a new instance without storing it
+            return m.Movable(a, b)
+
+    ncv1 = NCVirtExt()
+    assert ncv1.print_nc(2, 3) == "36"
+    assert ncv1.print_movable(4, 5) == "9"
+    ncv2 = NCVirtExt2()
+    assert ncv2.print_movable(7, 7) == "14"
+    # Don't check the exception message here because it differs under debug/non-debug mode
+    with pytest.raises(RuntimeError):
+        ncv2.print_nc(9, 9)
+
+    nc_stats = ConstructorStats.get(m.NonCopyable)
+    mv_stats = ConstructorStats.get(m.Movable)
+    assert nc_stats.alive() == 1
+    assert mv_stats.alive() == 1
+    del ncv1, ncv2
+    assert nc_stats.alive() == 0
+    assert mv_stats.alive() == 0
+    assert nc_stats.values() == ['4', '9', '9', '9']
+    assert mv_stats.values() == ['4', '5', '7', '7']
+    assert nc_stats.copy_constructions == 0
+    assert mv_stats.copy_constructions == 1
+    assert nc_stats.move_constructions >= 0
+    assert mv_stats.move_constructions >= 0
+
+
+def test_dispatch_issue(msg):
+    """#159: virtual function dispatch has problems with similar-named functions"""
+    class PyClass1(m.DispatchIssue):
+        def dispatch(self):
+            return "Yay.."
+
+    class PyClass2(m.DispatchIssue):
+        def dispatch(self):
+            with pytest.raises(RuntimeError) as excinfo:
+                super(PyClass2, self).dispatch()
+            assert msg(excinfo.value) == 'Tried to call pure virtual function "Base::dispatch"'
+
+            p = PyClass1()
+            return m.dispatch_issue_go(p)
+
+    b = PyClass2()
+    assert m.dispatch_issue_go(b) == "Yay.."
+
+
+def test_override_ref():
+    """#392/397: overridding reference-returning functions"""
+    o = m.OverrideTest("asdf")
+
+    # Not allowed (see associated .cpp comment)
+    # i = o.str_ref()
+    # assert o.str_ref() == "asdf"
+    assert o.str_value() == "asdf"
+
+    assert o.A_value().value == "hi"
+    a = o.A_ref()
+    assert a.value == "hi"
+    a.value = "bye"
+    assert a.value == "bye"
+
+
+def test_inherited_virtuals():
     class AR(m.A_Repeat):
         def unlucky_number(self):
             return 99
@@ -276,88 +361,3 @@ def test_inheriting_repeat():
     assert obj.unlucky_number() == -7
     assert obj.lucky_number() == -1.375
     assert obj.say_everything() == "BT -7"
-
-
-# PyPy: Reference count > 1 causes call with noncopyable instance
-# to fail in ncv1.print_nc()
-@pytest.unsupported_on_pypy
-@pytest.mark.skipif(not hasattr(m, "NCVirt"), reason="NCVirt test broken on ICPC")
-def test_move_support():
-    class NCVirtExt(m.NCVirt):
-        def get_noncopyable(self, a, b):
-            # Constructs and returns a new instance:
-            nc = m.NonCopyable(a * a, b * b)
-            return nc
-
-        def get_movable(self, a, b):
-            # Return a referenced copy
-            self.movable = m.Movable(a, b)
-            return self.movable
-
-    class NCVirtExt2(m.NCVirt):
-        def get_noncopyable(self, a, b):
-            # Keep a reference: this is going to throw an exception
-            self.nc = m.NonCopyable(a, b)
-            return self.nc
-
-        def get_movable(self, a, b):
-            # Return a new instance without storing it
-            return m.Movable(a, b)
-
-    ncv1 = NCVirtExt()
-    assert ncv1.print_nc(2, 3) == "36"
-    assert ncv1.print_movable(4, 5) == "9"
-    ncv2 = NCVirtExt2()
-    assert ncv2.print_movable(7, 7) == "14"
-    # Don't check the exception message here because it differs under debug/non-debug mode
-    with pytest.raises(RuntimeError):
-        ncv2.print_nc(9, 9)
-
-    nc_stats = ConstructorStats.get(m.NonCopyable)
-    mv_stats = ConstructorStats.get(m.Movable)
-    assert nc_stats.alive() == 1
-    assert mv_stats.alive() == 1
-    del ncv1, ncv2
-    assert nc_stats.alive() == 0
-    assert mv_stats.alive() == 0
-    assert nc_stats.values() == ['4', '9', '9', '9']
-    assert mv_stats.values() == ['4', '5', '7', '7']
-    assert nc_stats.copy_constructions == 0
-    assert mv_stats.copy_constructions == 1
-    assert nc_stats.move_constructions >= 0
-    assert mv_stats.move_constructions >= 0
-
-
-def test_dispatch_issue(msg):
-    """#159: virtual function dispatch has problems with similar-named functions"""
-    class PyClass1(m.DispatchIssue):
-        def dispatch(self):
-            return "Yay.."
-
-    class PyClass2(m.DispatchIssue):
-        def dispatch(self):
-            with pytest.raises(RuntimeError) as excinfo:
-                super(PyClass2, self).dispatch()
-            assert msg(excinfo.value) == 'Tried to call pure virtual function "Base::dispatch"'
-
-            p = PyClass1()
-            return m.dispatch_issue_go(p)
-
-    b = PyClass2()
-    assert m.dispatch_issue_go(b) == "Yay.."
-
-
-def test_override_ref():
-    """#392/397: overridding reference-returning functions"""
-    o = m.OverrideTest("asdf")
-
-    # Not allowed (see associated .cpp comment)
-    # i = o.str_ref()
-    # assert o.str_ref() == "asdf"
-    assert o.str_value() == "asdf"
-
-    assert o.A_value().value == "hi"
-    a = o.A_ref()
-    assert a.value == "hi"
-    a.value = "bye"
-    assert a.value == "bye"

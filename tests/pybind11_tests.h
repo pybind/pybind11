@@ -33,6 +33,7 @@ public:
     UserType(int i) : i(i) { }
 
     int value() const { return i; }
+    void set(int set) { i = set; }
 
 private:
     int i = -1;

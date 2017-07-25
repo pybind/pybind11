@@ -1,12 +1,11 @@
 import pytest
+from pybind11_tests import operators as m
 from pybind11_tests import ConstructorStats
 
 
 def test_operator_overloading():
-    from pybind11_tests.operators import Vector2, Vector
-
-    v1 = Vector2(1, 2)
-    v2 = Vector(3, -1)
+    v1 = m.Vector2(1, 2)
+    v2 = m.Vector(3, -1)
     assert str(v1) == "[1.000000, 2.000000]"
     assert str(v2) == "[3.000000, -1.000000]"
 
@@ -36,7 +35,7 @@ def test_operator_overloading():
     v2 /= v1
     assert str(v2) == "[2.000000, 8.000000]"
 
-    cstats = ConstructorStats.get(Vector2)
+    cstats = ConstructorStats.get(m.Vector2)
     assert cstats.alive() == 2
     del v1
     assert cstats.alive() == 1
@@ -59,9 +58,8 @@ def test_operator_overloading():
 
 def test_operators_notimplemented():
     """#393: need to return NotSupported to ensure correct arithmetic operator behavior"""
-    from pybind11_tests.operators import C1, C2
 
-    c1, c2 = C1(), C2()
+    c1, c2 = m.C1(), m.C2()
     assert c1 + c1 == 11
     assert c2 + c2 == 22
     assert c2 + c1 == 21
@@ -70,24 +68,23 @@ def test_operators_notimplemented():
 
 def test_nested():
     """#328: first member in a class can't be used in operators"""
-    from pybind11_tests.operators import NestA, NestB, NestC, get_NestA, get_NestB, get_NestC
 
-    a = NestA()
-    b = NestB()
-    c = NestC()
+    a = m.NestA()
+    b = m.NestB()
+    c = m.NestC()
 
     a += 10
-    assert get_NestA(a) == 13
+    assert m.get_NestA(a) == 13
     b.a += 100
-    assert get_NestA(b.a) == 103
+    assert m.get_NestA(b.a) == 103
     c.b.a += 1000
-    assert get_NestA(c.b.a) == 1003
+    assert m.get_NestA(c.b.a) == 1003
     b -= 1
-    assert get_NestB(b) == 3
+    assert m.get_NestB(b) == 3
     c.b -= 3
-    assert get_NestB(c.b) == 1
+    assert m.get_NestB(c.b) == 1
     c *= 7
-    assert get_NestC(c) == 35
+    assert m.get_NestC(c) == 35
 
     abase = a.as_base()
     assert abase.value == -2

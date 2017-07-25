@@ -9,56 +9,54 @@
 
 #include "pybind11_tests.h"
 
-enum UnscopedEnum {
-    EOne = 1,
-    ETwo
-};
-
-enum class ScopedEnum {
-    Two = 2,
-    Three
-};
-
-enum Flags {
-    Read = 4,
-    Write = 2,
-    Execute = 1
-};
-
-class ClassWithUnscopedEnum {
-public:
-    enum EMode {
-        EFirstMode = 1,
-        ESecondMode
+TEST_SUBMODULE(enums, m) {
+    // test_unscoped_enum
+    enum UnscopedEnum {
+        EOne = 1,
+        ETwo
     };
-
-    static EMode test_function(EMode mode) {
-        return mode;
-    }
-};
-
-std::string test_scoped_enum(ScopedEnum z) {
-    return "ScopedEnum::" + std::string(z == ScopedEnum::Two ? "Two" : "Three");
-}
-
-test_initializer enums([](py::module &m) {
-    m.def("test_scoped_enum", &test_scoped_enum);
-
     py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic())
         .value("EOne", EOne)
         .value("ETwo", ETwo)
         .export_values();
 
+    // test_scoped_enum
+    enum class ScopedEnum {
+        Two = 2,
+        Three
+    };
     py::enum_<ScopedEnum>(m, "ScopedEnum", py::arithmetic())
         .value("Two", ScopedEnum::Two)
         .value("Three", ScopedEnum::Three);
 
+    m.def("test_scoped_enum", [](ScopedEnum z) {
+        return "ScopedEnum::" + std::string(z == ScopedEnum::Two ? "Two" : "Three");
+    });
+
+    // test_binary_operators
+    enum Flags {
+        Read = 4,
+        Write = 2,
+        Execute = 1
+    };
     py::enum_<Flags>(m, "Flags", py::arithmetic())
         .value("Read", Flags::Read)
         .value("Write", Flags::Write)
         .value("Execute", Flags::Execute)
         .export_values();
 
+    // test_implicit_conversion
+    class ClassWithUnscopedEnum {
+    public:
+        enum EMode {
+            EFirstMode = 1,
+            ESecondMode
+        };
+
+        static EMode test_function(EMode mode) {
+            return mode;
+        }
+    };
     py::class_<ClassWithUnscopedEnum> exenum_class(m, "ClassWithUnscopedEnum");
     exenum_class.def_static("test_function", &ClassWithUnscopedEnum::test_function);
     py::enum_<ClassWithUnscopedEnum::EMode>(exenum_class, "EMode")
@@ -66,7 +64,8 @@ test_initializer enums([](py::module &m) {
         .value("ESecondMode", ClassWithUnscopedEnum::ESecondMode)
         .export_values();
 
+    // test_enum_to_int
     m.def("test_enum_to_int", [](int) { });
     m.def("test_enum_to_uint", [](uint32_t) { });
     m.def("test_enum_to_long_long", [](long long) { });
-});
+}

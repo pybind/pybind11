@@ -10,17 +10,6 @@
 #include "pybind11_tests.h"
 #include <pybind11/stl.h>
 
-// Class that can be move- and copy-constructed, but not assigned
-struct NoAssign {
-    int value;
-
-    explicit NoAssign(int value = 0) : value(value) { }
-    NoAssign(const NoAssign &) = default;
-    NoAssign(NoAssign &&) = default;
-
-    NoAssign &operator=(const NoAssign &) = delete;
-    NoAssign &operator=(NoAssign &&) = delete;
-};
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
@@ -103,24 +92,34 @@ TEST_SUBMODULE(stl, m) {
         return v;
     });
 
+    // test_move_out_container
     struct MoveOutContainer {
         struct Value { int value; };
-
         std::list<Value> move_list() const { return {{0}, {1}, {2}}; }
     };
-
     py::class_<MoveOutContainer::Value>(m, "MoveOutContainerValue")
         .def_readonly("value", &MoveOutContainer::Value::value);
-
     py::class_<MoveOutContainer>(m, "MoveOutContainer")
         .def(py::init<>())
         .def_property_readonly("move_list", &MoveOutContainer::move_list);
 
+    // Class that can be move- and copy-constructed, but not assigned
+    struct NoAssign {
+        int value;
+
+        explicit NoAssign(int value = 0) : value(value) { }
+        NoAssign(const NoAssign &) = default;
+        NoAssign(NoAssign &&) = default;
+
+        NoAssign &operator=(const NoAssign &) = delete;
+        NoAssign &operator=(NoAssign &&) = delete;
+    };
     py::class_<NoAssign>(m, "NoAssign", "Class with no C++ assignment operators")
         .def(py::init<>())
         .def(py::init<int>());
 
 #ifdef PYBIND11_HAS_OPTIONAL
+    // test_optional
     m.attr("has_optional") = true;
 
     using opt_int = std::optional<int>;
@@ -143,6 +142,7 @@ TEST_SUBMODULE(stl, m) {
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
+    // test_exp_optional
     m.attr("has_exp_optional") = true;
 
     using exp_opt_int = std::experimental::optional<int>;
@@ -169,21 +169,21 @@ TEST_SUBMODULE(stl, m) {
         const char *operator()(std::nullptr_t) { return "std::nullptr_t"; }
     };
 
+    // test_variant
     m.def("load_variant", [](std::variant<int, std::string, double, std::nullptr_t> v) {
         return std::visit(visitor(), v);
     });
-
     m.def("load_variant_2pass", [](std::variant<double, int> v) {
         return std::visit(visitor(), v);
     });
-
     m.def("cast_variant", []() {
         using V = std::variant<int, std::string>;
         return py::make_tuple(V(5), V("Hello"));
     });
 #endif
 
-    /// #528: templated constructor
+    // #528: templated constructor
+    // (no python tests: the test here is that this compiles)
     m.def("tpl_ctor_vector", [](std::vector<TplCtorClass> &) {});
     m.def("tpl_ctor_map", [](std::unordered_map<TplCtorClass, TplCtorClass> &) {});
     m.def("tpl_ctor_set", [](std::unordered_set<TplCtorClass> &) {});

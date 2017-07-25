@@ -1,15 +1,15 @@
 import pytest
+from pybind11_tests import call_policies as m
+from pybind11_tests import ConstructorStats
 
 
 def test_keep_alive_argument(capture):
-    from pybind11_tests import Parent, Child, ConstructorStats
-
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:
-        p = Parent()
+        p = m.Parent()
     assert capture == "Allocating parent."
     with capture:
-        p.addChild(Child())
+        p.addChild(m.Child())
         assert ConstructorStats.detail_reg_inst() == n_inst + 1
     assert capture == """
         Allocating child.
@@ -21,10 +21,10 @@ def test_keep_alive_argument(capture):
     assert capture == "Releasing parent."
 
     with capture:
-        p = Parent()
+        p = m.Parent()
     assert capture == "Allocating parent."
     with capture:
-        p.addChildKeepAlive(Child())
+        p.addChildKeepAlive(m.Child())
         assert ConstructorStats.detail_reg_inst() == n_inst + 2
     assert capture == "Allocating child."
     with capture:
@@ -37,11 +37,9 @@ def test_keep_alive_argument(capture):
 
 
 def test_keep_alive_return_value(capture):
-    from pybind11_tests import Parent, ConstructorStats
-
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:
-        p = Parent()
+        p = m.Parent()
     assert capture == "Allocating parent."
     with capture:
         p.returnChild()
@@ -56,7 +54,7 @@ def test_keep_alive_return_value(capture):
     assert capture == "Releasing parent."
 
     with capture:
-        p = Parent()
+        p = m.Parent()
     assert capture == "Allocating parent."
     with capture:
         p.returnChildKeepAlive()
@@ -74,11 +72,9 @@ def test_keep_alive_return_value(capture):
 # https://bitbucket.org/pypy/pypy/issues/2447
 @pytest.unsupported_on_pypy
 def test_alive_gc(capture):
-    from pybind11_tests import ParentGC, Child, ConstructorStats
-
     n_inst = ConstructorStats.detail_reg_inst()
-    p = ParentGC()
-    p.addChildKeepAlive(Child())
+    p = m.ParentGC()
+    p.addChildKeepAlive(m.Child())
     assert ConstructorStats.detail_reg_inst() == n_inst + 2
     lst = [p]
     lst.append(lst)   # creates a circular reference
@@ -92,14 +88,12 @@ def test_alive_gc(capture):
 
 
 def test_alive_gc_derived(capture):
-    from pybind11_tests import Parent, Child, ConstructorStats
-
-    class Derived(Parent):
+    class Derived(m.Parent):
         pass
 
     n_inst = ConstructorStats.detail_reg_inst()
     p = Derived()
-    p.addChildKeepAlive(Child())
+    p.addChildKeepAlive(m.Child())
     assert ConstructorStats.detail_reg_inst() == n_inst + 2
     lst = [p]
     lst.append(lst)   # creates a circular reference
@@ -113,16 +107,14 @@ def test_alive_gc_derived(capture):
 
 
 def test_alive_gc_multi_derived(capture):
-    from pybind11_tests import Parent, Child, ConstructorStats
-
-    class Derived(Parent, Child):
+    class Derived(m.Parent, m.Child):
         def __init__(self):
-            Parent.__init__(self)
-            Child.__init__(self)
+            m.Parent.__init__(self)
+            m.Child.__init__(self)
 
     n_inst = ConstructorStats.detail_reg_inst()
     p = Derived()
-    p.addChildKeepAlive(Child())
+    p.addChildKeepAlive(m.Child())
     # +3 rather than +2 because Derived corresponds to two registered instances
     assert ConstructorStats.detail_reg_inst() == n_inst + 3
     lst = [p]
@@ -138,11 +130,9 @@ def test_alive_gc_multi_derived(capture):
 
 
 def test_return_none(capture):
-    from pybind11_tests import Parent, ConstructorStats
-
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:
-        p = Parent()
+        p = m.Parent()
     assert capture == "Allocating parent."
     with capture:
         p.returnNullChildKeepAliveChild()
@@ -154,7 +144,7 @@ def test_return_none(capture):
     assert capture == "Releasing parent."
 
     with capture:
-        p = Parent()
+        p = m.Parent()
     assert capture == "Allocating parent."
     with capture:
         p.returnNullChildKeepAliveParent()
@@ -167,14 +157,12 @@ def test_return_none(capture):
 
 
 def test_call_guard():
-    from pybind11_tests import call_policies
+    assert m.unguarded_call() == "unguarded"
+    assert m.guarded_call() == "guarded"
 
-    assert call_policies.unguarded_call() == "unguarded"
-    assert call_policies.guarded_call() == "guarded"
+    assert m.multiple_guards_correct_order() == "guarded & guarded"
+    assert m.multiple_guards_wrong_order() == "unguarded & guarded"
 
-    assert call_policies.multiple_guards_correct_order() == "guarded & guarded"
-    assert call_policies.multiple_guards_wrong_order() == "unguarded & guarded"
-
-    if hasattr(call_policies, "with_gil"):
-        assert call_policies.with_gil() == "GIL held"
-        assert call_policies.without_gil() == "GIL released"
+    if hasattr(m, "with_gil"):
+        assert m.with_gil() == "GIL held"
+        assert m.without_gil() == "GIL released"

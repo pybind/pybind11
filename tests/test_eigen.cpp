@@ -70,20 +70,21 @@ struct CustomOperatorNew {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
 
-test_initializer eigen([](py::module &m) {
-    typedef Eigen::Matrix<float, 5, 6, Eigen::RowMajor> FixedMatrixR;
-    typedef Eigen::Matrix<float, 5, 6> FixedMatrixC;
-    typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> DenseMatrixR;
-    typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> DenseMatrixC;
-    typedef Eigen::Matrix<float, 4, Eigen::Dynamic> FourRowMatrixC;
-    typedef Eigen::Matrix<float, Eigen::Dynamic, 4> FourColMatrixC;
-    typedef Eigen::Matrix<float, 4, Eigen::Dynamic> FourRowMatrixR;
-    typedef Eigen::Matrix<float, Eigen::Dynamic, 4> FourColMatrixR;
-    typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SparseMatrixR;
-    typedef Eigen::SparseMatrix<float> SparseMatrixC;
+TEST_SUBMODULE(eigen, m) {
+    using FixedMatrixR = Eigen::Matrix<float, 5, 6, Eigen::RowMajor>;
+    using FixedMatrixC = Eigen::Matrix<float, 5, 6>;
+    using DenseMatrixR = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+    using DenseMatrixC = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
+    using FourRowMatrixC = Eigen::Matrix<float, 4, Eigen::Dynamic>;
+    using FourColMatrixC = Eigen::Matrix<float, Eigen::Dynamic, 4>;
+    using FourRowMatrixR = Eigen::Matrix<float, 4, Eigen::Dynamic>;
+    using FourColMatrixR = Eigen::Matrix<float, Eigen::Dynamic, 4>;
+    using SparseMatrixR = Eigen::SparseMatrix<float, Eigen::RowMajor>;
+    using SparseMatrixC = Eigen::SparseMatrix<float>;
 
     m.attr("have_eigen") = true;
 
+    // various tests
     m.def("double_col", [](const Eigen::VectorXf &x) -> Eigen::VectorXf { return 2.0f * x; });
     m.def("double_row", [](const Eigen::RowVectorXf &x) -> Eigen::RowVectorXf { return 2.0f * x; });
     m.def("double_complex", [](const Eigen::VectorXcf &x) -> Eigen::VectorXcf { return 2.0f * x; });
@@ -92,12 +93,14 @@ test_initializer eigen([](py::module &m) {
     m.def("double_mat_cm", [](Eigen::MatrixXf x) -> Eigen::MatrixXf { return 2.0f * x; });
     m.def("double_mat_rm", [](DenseMatrixR x) -> DenseMatrixR { return 2.0f * x; });
 
+    // test_eigen_ref_to_python
     // Different ways of passing via Eigen::Ref; the first and second are the Eigen-recommended
     m.def("cholesky1", [](Eigen::Ref<MatrixXdR> x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky2", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky3", [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky4", [](Eigen::Ref<const MatrixXdR> x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
 
+    // test_eigen_ref_mutators
     // Mutators: these add some value to the given element using Eigen, but Eigen should be mapping into
     // the numpy array data and so the result should show up there.  There are three versions: one that
     // works on a contiguous-row matrix (numpy's default), one for a contiguous-column matrix, and one
@@ -122,19 +125,6 @@ test_initializer eigen([](py::module &m) {
     // The same references, but non-mutable (numpy maps into eigen variables, but is !writeable)
     m.def("get_cm_const_ref", []() { return Eigen::Ref<const Eigen::MatrixXd>(get_cm()); });
     m.def("get_rm_const_ref", []() { return Eigen::Ref<const MatrixXdR>(get_rm()); });
-    // Just the corners (via a Map instead of a Ref):
-    m.def("get_cm_corners", []() {
-        auto &x = get_cm();
-        return py::EigenDMap<Eigen::Matrix2d>(
-                x.data(),
-                py::EigenDStride(x.outerStride() * (x.rows() - 1), x.innerStride() * (x.cols() - 1)));
-    });
-    m.def("get_cm_corners_const", []() {
-        const auto &x = get_cm();
-        return py::EigenDMap<const Eigen::Matrix2d>(
-                x.data(),
-                py::EigenDStride(x.outerStride() * (x.rows() - 1), x.innerStride() * (x.cols() - 1)));
-    });
 
     m.def("reset_refs", reset_refs); // Restores get_{cm,rm}_ref to original values
 
@@ -174,6 +164,7 @@ test_initializer eigen([](py::module &m) {
         return x.block(start_row, start_col, block_rows, block_cols);
     });
 
+    // test_eigen_return_references, test_eigen_keepalive
     // return value referencing/copying tests:
     class ReturnTester {
         Eigen::MatrixXd mat = create();
@@ -220,6 +211,7 @@ test_initializer eigen([](py::module &m) {
         .def("corners_const", &ReturnTester::cornersConst, rvp::reference_internal)
         ;
 
+    // test_special_matrix_objects
     // Returns a DiagonalMatrix with diagonal (1,2,3,...)
     m.def("incr_diag", [](int k) {
         Eigen::DiagonalMatrix<int, Eigen::Dynamic> m(k);
@@ -244,27 +236,33 @@ test_initializer eigen([](py::module &m) {
            0,  0,  0,  0,  0, 11,
            0,  0, 14,  0,  8, 11;
 
+    // test_fixed, and various other tests
     m.def("fixed_r", [mat]() -> FixedMatrixR { return FixedMatrixR(mat); });
     m.def("fixed_r_const", [mat]() -> const FixedMatrixR { return FixedMatrixR(mat); });
     m.def("fixed_c", [mat]() -> FixedMatrixC { return FixedMatrixC(mat); });
     m.def("fixed_copy_r", [](const FixedMatrixR &m) -> FixedMatrixR { return m; });
     m.def("fixed_copy_c", [](const FixedMatrixC &m) -> FixedMatrixC { return m; });
+    // test_mutator_descriptors
     m.def("fixed_mutator_r", [](Eigen::Ref<FixedMatrixR>) {});
     m.def("fixed_mutator_c", [](Eigen::Ref<FixedMatrixC>) {});
     m.def("fixed_mutator_a", [](py::EigenDRef<FixedMatrixC>) {});
+    // test_dense
     m.def("dense_r", [mat]() -> DenseMatrixR { return DenseMatrixR(mat); });
     m.def("dense_c", [mat]() -> DenseMatrixC { return DenseMatrixC(mat); });
     m.def("dense_copy_r", [](const DenseMatrixR &m) -> DenseMatrixR { return m; });
     m.def("dense_copy_c", [](const DenseMatrixC &m) -> DenseMatrixC { return m; });
+    // test_sparse, test_sparse_signature
     m.def("sparse_r", [mat]() -> SparseMatrixR { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_c", [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_copy_r", [](const SparseMatrixR &m) -> SparseMatrixR { return m; });
     m.def("sparse_copy_c", [](const SparseMatrixC &m) -> SparseMatrixC { return m; });
+    // test_partially_fixed
     m.def("partial_copy_four_rm_r", [](const FourRowMatrixR &m) -> FourRowMatrixR { return m; });
     m.def("partial_copy_four_rm_c", [](const FourColMatrixR &m) -> FourColMatrixR { return m; });
     m.def("partial_copy_four_cm_r", [](const FourRowMatrixC &m) -> FourRowMatrixC { return m; });
     m.def("partial_copy_four_cm_c", [](const FourColMatrixC &m) -> FourColMatrixC { return m; });
 
+    // test_cpp_casting
     // Test that we can cast a numpy object to a Eigen::MatrixXd explicitly
     m.def("cpp_copy", [](py::handle m) { return m.cast<Eigen::MatrixXd>()(1, 0); });
     m.def("cpp_ref_c", [](py::handle m) { return m.cast<Eigen::Ref<Eigen::MatrixXd>>()(1, 0); });
@@ -272,6 +270,7 @@ test_initializer eigen([](py::module &m) {
     m.def("cpp_ref_any", [](py::handle m) { return m.cast<py::EigenDRef<Eigen::MatrixXd>>()(1, 0); });
 
 
+    // test_nocopy_wrapper
     // Test that we can prevent copying into an argument that would normally copy: First a version
     // that would allow copying (if types or strides don't match) for comparison:
     m.def("get_elem", &get_elem);
@@ -282,12 +281,14 @@ test_initializer eigen([](py::module &m) {
     m.def("get_elem_rm_nocopy", [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long { return m(2, 1); },
             py::arg().noconvert());
 
+    // test_issue738
     // Issue #738: 1xN or Nx1 2D matrices were neither accepted nor properly copied with an
     // incompatible stride value on the length-1 dimension--but that should be allowed (without
     // requiring a copy!) because the stride value can be safely ignored on a size-1 dimension.
     m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg().noconvert());
     m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg().noconvert());
 
+    // test_named_arguments
     // Make sure named arguments are working properly:
     m.def("matrix_multiply", [](const py::EigenDRef<const Eigen::MatrixXd> A, const py::EigenDRef<const Eigen::MatrixXd> B)
             -> Eigen::MatrixXd {
@@ -295,6 +296,7 @@ test_initializer eigen([](py::module &m) {
         return A * B;
     }, py::arg("A"), py::arg("B"));
 
+    // test_custom_operator_new
     py::class_<CustomOperatorNew>(m, "CustomOperatorNew")
         .def(py::init<>())
         .def_readonly("a", &CustomOperatorNew::a)
@@ -312,4 +314,4 @@ test_initializer eigen([](py::module &m) {
         py::module::import("numpy").attr("ones")(10);
         return v[0](5);
     });
-});
+}

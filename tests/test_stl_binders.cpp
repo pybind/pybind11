@@ -54,70 +54,58 @@ template <class Map> Map *times_ten(int n) {
     return m;
 }
 
-struct VStruct {
-    bool w;
-    uint32_t x;
-    double y;
-    bool z;
-};
+TEST_SUBMODULE(stl_binders, m) {
 
-struct VUndeclStruct { //dtype not declared for this version
-    bool w;
-    uint32_t x;
-    double y;
-    bool z;
-};
-
-test_initializer stl_binder_vector([](py::module &m) {
-    py::class_<El>(m, "El")
-        .def(py::init<int>());
-
-    py::bind_vector<std::vector<unsigned char>>(m, "VectorUChar", py::buffer_protocol());
+    // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
+
+    // test_vector_bool
     py::bind_vector<std::vector<bool>>(m, "VectorBool");
 
+    // test_vector_custom
+    py::class_<El>(m, "El")
+        .def(py::init<int>());
     py::bind_vector<std::vector<El>>(m, "VectorEl");
-
     py::bind_vector<std::vector<std::vector<El>>>(m, "VectorVectorEl");
 
-    m.def("create_undeclstruct", [m] () mutable {
-        py::bind_vector<std::vector<VUndeclStruct>>(m, "VectorUndeclStruct", py::buffer_protocol());
-    });
-
-    try {
-        py::module::import("numpy");
-    } catch (...) {
-        return;
-    }
-    PYBIND11_NUMPY_DTYPE(VStruct, w, x, y, z);
-    py::class_<VStruct>(m, "VStruct").def_readwrite("x", &VStruct::x);
-    py::bind_vector<std::vector<VStruct>>(m, "VectorStruct", py::buffer_protocol());
-    m.def("get_vectorstruct", [] {return std::vector<VStruct> {{0, 5, 3.0, 1}, {1, 30, -1e4, 0}};});
-});
-
-test_initializer stl_binder_map([](py::module &m) {
+    // test_map_string_double
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
     py::bind_map<std::unordered_map<std::string, double>>(m, "UnorderedMapStringDouble");
 
+    // test_map_string_double_const
     py::bind_map<std::map<std::string, double const>>(m, "MapStringDoubleConst");
     py::bind_map<std::unordered_map<std::string, double const>>(m, "UnorderedMapStringDoubleConst");
 
-});
-
-test_initializer stl_binder_noncopyable([](py::module &m) {
     py::class_<E_nc>(m, "ENC")
         .def(py::init<int>())
         .def_readwrite("value", &E_nc::value);
 
+    // test_noncopyable_containers
     py::bind_vector<std::vector<E_nc>>(m, "VectorENC");
     m.def("get_vnc", &one_to_n<std::vector<E_nc>>, py::return_value_policy::reference);
-
     py::bind_vector<std::deque<E_nc>>(m, "DequeENC");
     m.def("get_dnc", &one_to_n<std::deque<E_nc>>, py::return_value_policy::reference);
-
     py::bind_map<std::map<int, E_nc>>(m, "MapENC");
     m.def("get_mnc", &times_ten<std::map<int, E_nc>>, py::return_value_policy::reference);
-
     py::bind_map<std::unordered_map<int, E_nc>>(m, "UmapENC");
     m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>, py::return_value_policy::reference);
-});
+
+    // test_vector_buffer
+    py::bind_vector<std::vector<unsigned char>>(m, "VectorUChar", py::buffer_protocol());
+    // no dtype declared for this version:
+    struct VUndeclStruct { bool w; uint32_t x; double y; bool z; };
+    m.def("create_undeclstruct", [m] () mutable {
+        py::bind_vector<std::vector<VUndeclStruct>>(m, "VectorUndeclStruct", py::buffer_protocol());
+    });
+
+    // The rest depends on numpy:
+    try { py::module::import("numpy"); }
+    catch (...) { return; }
+
+    // test_vector_buffer_numpy
+    struct VStruct { bool w; uint32_t x; double y; bool z; };
+    PYBIND11_NUMPY_DTYPE(VStruct, w, x, y, z);
+    py::class_<VStruct>(m, "VStruct").def_readwrite("x", &VStruct::x);
+    py::bind_vector<std::vector<VStruct>>(m, "VectorStruct", py::buffer_protocol());
+    m.def("get_vectorstruct", [] {return std::vector<VStruct> {{0, 5, 3.0, 1}, {1, 30, -1e4, 0}};});
+}

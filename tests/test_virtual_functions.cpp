@@ -145,16 +145,147 @@ class NCVirtTrampoline : public NCVirt {
     }
 };
 
-int runExampleVirt(ExampleVirt *ex, int value) {
-    return ex->run(value);
-}
+struct Base {
+    /* for some reason MSVC2015 can't compile this if the function is pure virtual */
+    virtual std::string dispatch() const { return {}; };
+};
 
-bool runExampleVirtBool(ExampleVirt* ex) {
-    return ex->run_bool();
-}
+struct DispatchIssue : Base {
+    virtual std::string dispatch() const {
+        PYBIND11_OVERLOAD_PURE(std::string, Base, dispatch, /* no arguments */);
+    }
+};
 
-void runExampleVirtVirtual(ExampleVirt *ex) {
-    ex->pure_virtual();
+// Forward declaration (so that we can put the main tests here; the inherited virtual approaches are
+// rather long).
+void initialize_inherited_virtuals(py::module &m);
+
+TEST_SUBMODULE(virtual_functions, m) {
+    // test_override
+    py::class_<ExampleVirt, PyExampleVirt>(m, "ExampleVirt")
+        .def(py::init<int>())
+        /* Reference original class in function definitions */
+        .def("run", &ExampleVirt::run)
+        .def("run_bool", &ExampleVirt::run_bool)
+        .def("pure_virtual", &ExampleVirt::pure_virtual);
+
+    py::class_<NonCopyable>(m, "NonCopyable")
+        .def(py::init<int, int>());
+
+    py::class_<Movable>(m, "Movable")
+        .def(py::init<int, int>());
+
+    // test_move_support
+#if !defined(__INTEL_COMPILER)
+    py::class_<NCVirt, NCVirtTrampoline>(m, "NCVirt")
+        .def(py::init<>())
+        .def("get_noncopyable", &NCVirt::get_noncopyable)
+        .def("get_movable", &NCVirt::get_movable)
+        .def("print_nc", &NCVirt::print_nc)
+        .def("print_movable", &NCVirt::print_movable);
+#endif
+
+    m.def("runExampleVirt", [](ExampleVirt *ex, int value) { return ex->run(value); });
+    m.def("runExampleVirtBool", [](ExampleVirt* ex) { return ex->run_bool(); });
+    m.def("runExampleVirtVirtual", [](ExampleVirt *ex) { ex->pure_virtual(); });
+
+    m.def("cstats_debug", &ConstructorStats::get<ExampleVirt>);
+    initialize_inherited_virtuals(m);
+
+    // test_alias_delay_initialization1
+    // don't invoke Python dispatch classes by default when instantiating C++ classes
+    // that were not extended on the Python side
+    struct A {
+        virtual ~A() {}
+        virtual void f() { py::print("A.f()"); }
+    };
+
+    struct PyA : A {
+        PyA() { py::print("PyA.PyA()"); }
+        ~PyA() { py::print("PyA.~PyA()"); }
+
+        void f() override {
+            py::print("PyA.f()");
+            PYBIND11_OVERLOAD(void, A, f);
+        }
+    };
+
+    py::class_<A, PyA>(m, "A")
+        .def(py::init<>())
+        .def("f", &A::f);
+
+    m.def("call_f", [](A *a) { a->f(); });
+
+    // test_alias_delay_initialization2
+    // ... unless we explicitly request it, as in this example:
+    struct A2 {
+        virtual ~A2() {}
+        virtual void f() { py::print("A2.f()"); }
+    };
+
+    struct PyA2 : A2 {
+        PyA2() { py::print("PyA2.PyA2()"); }
+        ~PyA2() { py::print("PyA2.~PyA2()"); }
+        void f() override {
+            py::print("PyA2.f()");
+            PYBIND11_OVERLOAD(void, A2, f);
+        }
+    };
+
+    py::class_<A2, PyA2>(m, "A2")
+        .def(py::init_alias<>())
+        .def("f", &A2::f);
+
+    m.def("call_f", [](A2 *a2) { a2->f(); });
+
+    // test_dispatch_issue
+    // #159: virtual function dispatch has problems with similar-named functions
+    py::class_<Base, DispatchIssue>(m, "DispatchIssue")
+        .def(py::init<>())
+        .def("dispatch", &Base::dispatch);
+
+    m.def("dispatch_issue_go", [](const Base * b) { return b->dispatch(); });
+
+    // test_override_ref
+    // #392/397: overridding reference-returning functions
+    class OverrideTest {
+    public:
+        struct A { std::string value = "hi"; };
+        std::string v;
+        A a;
+        explicit OverrideTest(const std::string &v) : v{v} {}
+        virtual std::string str_value() { return v; }
+        virtual std::string &str_ref() { return v; }
+        virtual A A_value() { return a; }
+        virtual A &A_ref() { return a; }
+    };
+
+    class PyOverrideTest : public OverrideTest {
+    public:
+        using OverrideTest::OverrideTest;
+        std::string str_value() override { PYBIND11_OVERLOAD(std::string, OverrideTest, str_value); }
+        // Not allowed (uncommenting should hit a static_assert failure): we can't get a reference
+        // to a python numeric value, since we only copy values in the numeric type caster:
+//      std::string &str_ref() override { PYBIND11_OVERLOAD(std::string &, OverrideTest, str_ref); }
+        // But we can work around it like this:
+    private:
+        std::string _tmp;
+        std::string str_ref_helper() { PYBIND11_OVERLOAD(std::string, OverrideTest, str_ref); }
+    public:
+        std::string &str_ref() override { return _tmp = str_ref_helper(); }
+
+        A A_value() override { PYBIND11_OVERLOAD(A, OverrideTest, A_value); }
+        A &A_ref() override { PYBIND11_OVERLOAD(A &, OverrideTest, A_ref); }
+    };
+
+    py::class_<OverrideTest::A>(m, "OverrideTest_A")
+        .def_readwrite("value", &OverrideTest::A::value);
+    py::class_<OverrideTest, PyOverrideTest>(m, "OverrideTest")
+        .def(py::init<const std::string &>())
+        .def("str_value", &OverrideTest::str_value)
+//      .def("str_ref", &OverrideTest::str_ref)
+        .def("A_value", &OverrideTest::A_value)
+        .def("A_ref", &OverrideTest::A_ref);
 }
 
 
@@ -281,6 +412,8 @@ public:
 
 
 void initialize_inherited_virtuals(py::module &m) {
+    // test_inherited_virtuals
+
     // Method 1: repeat
     py::class_<A_Repeat, PyA_Repeat>(m, "A_Repeat")
         .def(py::init<>())
@@ -295,6 +428,7 @@ void initialize_inherited_virtuals(py::module &m) {
     py::class_<D_Repeat, C_Repeat, PyD_Repeat>(m, "D_Repeat")
         .def(py::init<>());
 
+    // test_
     // Method 2: Templated trampolines
     py::class_<A_Tpl, PyA_Tpl<>>(m, "A_Tpl")
         .def(py::init<>())
@@ -311,137 +445,3 @@ void initialize_inherited_virtuals(py::module &m) {
 
 };
 
-struct Base {
-    /* for some reason MSVC2015 can't compile this if the function is pure virtual */
-    virtual std::string dispatch() const { return {}; };
-};
-
-struct DispatchIssue : Base {
-    virtual std::string dispatch() const {
-        PYBIND11_OVERLOAD_PURE(std::string, Base, dispatch, /* no arguments */);
-    }
-};
-
-TEST_SUBMODULE(virtual_functions, m) {
-    py::class_<ExampleVirt, PyExampleVirt>(m, "ExampleVirt")
-        .def(py::init<int>())
-        /* Reference original class in function definitions */
-        .def("run", &ExampleVirt::run)
-        .def("run_bool", &ExampleVirt::run_bool)
-        .def("pure_virtual", &ExampleVirt::pure_virtual);
-
-    py::class_<NonCopyable>(m, "NonCopyable")
-        .def(py::init<int, int>());
-
-    py::class_<Movable>(m, "Movable")
-        .def(py::init<int, int>());
-
-#if !defined(__INTEL_COMPILER)
-    py::class_<NCVirt, NCVirtTrampoline>(m, "NCVirt")
-        .def(py::init<>())
-        .def("get_noncopyable", &NCVirt::get_noncopyable)
-        .def("get_movable", &NCVirt::get_movable)
-        .def("print_nc", &NCVirt::print_nc)
-        .def("print_movable", &NCVirt::print_movable);
-#endif
-
-    m.def("runExampleVirt", &runExampleVirt);
-    m.def("runExampleVirtBool", &runExampleVirtBool);
-    m.def("runExampleVirtVirtual", &runExampleVirtVirtual);
-
-    m.def("cstats_debug", &ConstructorStats::get<ExampleVirt>);
-    initialize_inherited_virtuals(m);
-
-    // test_alias_delay_initialization1
-    // don't invoke Python dispatch classes by default when instantiating C++ classes
-    // that were not extended on the Python side
-    struct A {
-        virtual ~A() {}
-        virtual void f() { py::print("A.f()"); }
-    };
-
-    struct PyA : A {
-        PyA() { py::print("PyA.PyA()"); }
-        ~PyA() { py::print("PyA.~PyA()"); }
-
-        void f() override {
-            py::print("PyA.f()");
-            PYBIND11_OVERLOAD(void, A, f);
-        }
-    };
-
-    py::class_<A, PyA>(m, "A")
-        .def(py::init<>())
-        .def("f", &A::f);
-
-    m.def("call_f", [](A *a) { a->f(); });
-
-    // test_alias_delay_initialization2
-    // ... unless we explicitly request it, as in this example:
-    struct A2 {
-        virtual ~A2() {}
-        virtual void f() { py::print("A2.f()"); }
-    };
-
-    struct PyA2 : A2 {
-        PyA2() { py::print("PyA2.PyA2()"); }
-        ~PyA2() { py::print("PyA2.~PyA2()"); }
-        void f() override {
-            py::print("PyA2.f()");
-            PYBIND11_OVERLOAD(void, A2, f);
-        }
-    };
-
-    py::class_<A2, PyA2>(m, "A2")
-        .def(py::init_alias<>())
-        .def("f", &A2::f);
-
-    m.def("call_f", [](A2 *a2) { a2->f(); });
-
-    // #159: virtual function dispatch has problems with similar-named functions
-    py::class_<Base, DispatchIssue>(m, "DispatchIssue")
-        .def(py::init<>())
-        .def("dispatch", &Base::dispatch);
-
-    m.def("dispatch_issue_go", [](const Base * b) { return b->dispatch(); });
-
-    // #392/397: overridding reference-returning functions
-    class OverrideTest {
-    public:
-        struct A { std::string value = "hi"; };
-        std::string v;
-        A a;
-        explicit OverrideTest(const std::string &v) : v{v} {}
-        virtual std::string str_value() { return v; }
-        virtual std::string &str_ref() { return v; }
-        virtual A A_value() { return a; }
-        virtual A &A_ref() { return a; }
-    };
-
-    class PyOverrideTest : public OverrideTest {
-    public:
-        using OverrideTest::OverrideTest;
-        std::string str_value() override { PYBIND11_OVERLOAD(std::string, OverrideTest, str_value); }
-        // Not allowed (uncommenting should hit a static_assert failure): we can't get a reference
-        // to a python numeric value, since we only copy values in the numeric type caster:
-//      std::string &str_ref() override { PYBIND11_OVERLOAD(std::string &, OverrideTest, str_ref); }
-        // But we can work around it like this:
-    private:
-        std::string _tmp;
-        std::string str_ref_helper() { PYBIND11_OVERLOAD(std::string, OverrideTest, str_ref); }
-    public:
-        std::string &str_ref() override { return _tmp = str_ref_helper(); }
-
-        A A_value() override { PYBIND11_OVERLOAD(A, OverrideTest, A_value); }
-        A &A_ref() override { PYBIND11_OVERLOAD(A &, OverrideTest, A_ref); }
-    };
-
-    py::class_<OverrideTest::A>(m, "OverrideTest_A")
-        .def_readwrite("value", &OverrideTest::A::value);
-    py::class_<OverrideTest, PyOverrideTest>(m, "OverrideTest")
-        .def(py::init<const std::string &>())
-        .def("str_value", &OverrideTest::str_value)
-//      .def("str_ref", &OverrideTest::str_ref)
-        .def("A_value", &OverrideTest::A_value)
-        .def("A_ref", &OverrideTest::A_ref);
-}
