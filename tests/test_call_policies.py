@@ -116,7 +116,9 @@ def test_alive_gc_multi_derived(capture):
     from pybind11_tests import Parent, Child, ConstructorStats
 
     class Derived(Parent, Child):
-        pass
+        def __init__(self):
+            Parent.__init__(self)
+            Child.__init__(self)
 
     n_inst = ConstructorStats.detail_reg_inst()
     p = Derived()
@@ -130,6 +132,7 @@ def test_alive_gc_multi_derived(capture):
         assert ConstructorStats.detail_reg_inst() == n_inst
     assert capture == """
         Releasing parent.
+        Releasing child.
         Releasing child.
     """
 

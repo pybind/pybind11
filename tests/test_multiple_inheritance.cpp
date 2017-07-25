@@ -201,4 +201,20 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     py::class_<VanillaDictMix1, Vanilla, WithDict>(m, "VanillaDictMix1").def(py::init<>());
     py::class_<VanillaDictMix2, WithDict, Vanilla>(m, "VanillaDictMix2").def(py::init<>());
 #endif
+
+    // test_diamond_inheritance
+    // Issue #959: segfault when constructing diamond inheritance instance
+    // All of these have int members so that there will be various unequal pointers involved.
+    struct B { int b; virtual ~B() = default; };
+    struct C0 : public virtual B { int c0; };
+    struct C1 : public virtual B { int c1; };
+    struct D : public C0, public C1 { int d; };
+    py::class_<B>(m, "B")
+        .def("b", [](B *self) { return self; });
+    py::class_<C0, B>(m, "C0")
+        .def("c0", [](C0 *self) { return self; });
+    py::class_<C1, B>(m, "C1")
+        .def("c1", [](C1 *self) { return self; });
+    py::class_<D, C0, C1>(m, "D")
+        .def(py::init<>());
 }

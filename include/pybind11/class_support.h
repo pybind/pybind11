@@ -234,9 +234,8 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
 
 /// Instance creation function for all pybind11 types. It only allocates space for the C++ object
 /// (or multiple objects, for Python-side inheritance from multiple pybind11 types), but doesn't
-/// call the constructor -- an `__init__` function must do that.  If allocating value, the instance
-/// is registered; otherwise register_instance will need to be called once the value has been
-/// assigned.
+/// call the constructor -- an `__init__` function must do that.  `register_instance` will need to
+/// be called after the object has been initialized.
 inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value /*= true (in cast.h)*/) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first inherited
@@ -257,7 +256,6 @@ inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value /*= t
         for (auto &v_h : values_and_holders(inst)) {
             void *&vptr = v_h.value_ptr();
             vptr = v_h.type->operator_new(v_h.type->type_size);
-            register_instance(inst, vptr, v_h.type);
         }
     }
 
@@ -316,11 +314,12 @@ inline void clear_instance(PyObject *self) {
     // Deallocate any values/holders, if present:
     for (auto &v_h : values_and_holders(instance)) {
         if (v_h) {
+            // This is allowed to fail (the type might have been allocated but not
+            // initialized/registered):
+            deregister_instance(instance, v_h.value_ptr(), v_h.type);
+
             if (instance->owned || v_h.holder_constructed())
                 v_h.type->dealloc(v_h);
-
-            if (!deregister_instance(instance, v_h.value_ptr(), v_h.type))
-                pybind11_fail("pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
         }
     }
     // Deallocate the value/holder layout internals:
