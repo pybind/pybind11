@@ -159,11 +159,11 @@ def test_operator_new_delete(capture):
 
     with capture:
         del a
-        ConstructorStats.detail_reg_inst()
+        pytest.gc_collect()
         del b
-        ConstructorStats.detail_reg_inst()
+        pytest.gc_collect()
         del d
-        ConstructorStats.detail_reg_inst()
+        pytest.gc_collect()
     assert capture == """
         A delete
         B delete 4
@@ -172,9 +172,9 @@ def test_operator_new_delete(capture):
 
     with capture:
         del c
-        ConstructorStats.detail_reg_inst()
+        pytest.gc_collect()
         del c2
-        ConstructorStats.detail_reg_inst()
+        pytest.gc_collect()
     assert capture == (
         "C delete " + sz_noalias + "\n" +
         "C delete " + sz_alias + "\n"
