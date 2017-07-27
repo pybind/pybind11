@@ -758,10 +758,17 @@ template <typename T, typename SFINAE = void> struct is_copy_constructible : std
 // Specialization for types that appear to be copy constructible but also look like stl containers
 // (we specifically check for: has `value_type` and `reference` with `reference = value_type&`): if
 // so, copy constructability depends on whether the value_type is copy constructible.
-template <typename Container> struct is_copy_constructible<Container, enable_if_t<
-        std::is_copy_constructible<Container>::value &&
-        std::is_same<typename Container::value_type &, typename Container::reference>::value
-    >> : std::is_copy_constructible<typename Container::value_type> {};
+template <typename Container> struct is_copy_constructible<Container, enable_if_t<all_of<
+        std::is_copy_constructible<Container>,
+        std::is_same<typename Container::value_type &, typename Container::reference>
+    >::value>> : is_copy_constructible<typename Container::value_type> {};
+
+#if !defined(PYBIND11_CPP17)
+// Likewise for std::pair before C++17 (which mandates that the copy constructor not exist when the
+// two types aren't themselves copy constructible).
+template <typename T1, typename T2> struct is_copy_constructible<std::pair<T1, T2>>
+    : all_of<is_copy_constructible<T1>, is_copy_constructible<T2>> {};
+#endif
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
@@ -1460,7 +1467,7 @@ class type_caster<std::unique_ptr<type, deleter>>
     : public move_only_holder_caster<type, std::unique_ptr<type, deleter>> { };
 
 template <typename type, typename holder_type>
-using type_caster_holder = conditional_t<std::is_copy_constructible<holder_type>::value,
+using type_caster_holder = conditional_t<is_copy_constructible<holder_type>::value,
                                          copyable_holder_caster<type, holder_type>,
                                          move_only_holder_caster<type, holder_type>>;
 
@@ -1525,7 +1532,7 @@ template <typename T> using move_is_plain_type = satisfies_none_of<T,
 template <typename T, typename SFINAE = void> struct move_always : std::false_type {};
 template <typename T> struct move_always<T, enable_if_t<all_of<
     move_is_plain_type<T>,
-    negation<std::is_copy_constructible<T>>,
+    negation<is_copy_constructible<T>>,
     std::is_move_constructible<T>,
     std::is_same<decltype(std::declval<make_caster<T>>().operator T&()), T&>
 >::value>> : std::true_type {};
