@@ -66,10 +66,7 @@ template <typename, typename, typename... Args> void vector_if_insertion_operato
 template <typename, typename, typename... Args> void vector_modifiers(const Args &...) { }
 
 template<typename Vector, typename Class_>
-void vector_if_copy_constructible(enable_if_t<
-    std::is_copy_constructible<Vector>::value &&
-    std::is_copy_constructible<typename Vector::value_type>::value, Class_> &cl) {
-
+void vector_if_copy_constructible(enable_if_t<is_copy_constructible<Vector>::value, Class_> &cl) {
     cl.def(init<const Vector &>(), "Copy constructor");
 }
 
@@ -113,7 +110,7 @@ void vector_if_equal_operator(enable_if_t<is_comparable<Vector>::value, Class_> 
 // (Technically, some of these (pop and __delitem__) don't actually require copyability, but it seems
 // silly to allow deletion but not insertion, so include them here too.)
 template <typename Vector, typename Class_>
-void vector_modifiers(enable_if_t<std::is_copy_constructible<typename Vector::value_type>::value, Class_> &cl) {
+void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_type>::value, Class_> &cl) {
     using T = typename Vector::value_type;
     using SizeType = typename Vector::size_type;
     using DiffType = typename Vector::difference_type;
@@ -487,7 +484,7 @@ void map_assignment(enable_if_t<std::is_copy_assignable<typename Map::mapped_typ
 template<typename Map, typename Class_>
 void map_assignment(enable_if_t<
         !std::is_copy_assignable<typename Map::mapped_type>::value &&
-        std::is_copy_constructible<typename Map::mapped_type>::value,
+        is_copy_constructible<typename Map::mapped_type>::value,
         Class_> &cl) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
