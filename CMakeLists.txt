@@ -18,6 +18,13 @@ project(pybind11)
 set(PYBIND11_MASTER_PROJECT OFF)
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(PYBIND11_MASTER_PROJECT ON)
+  set(PYBIND11_EXPORT_NAME "${PROJECT_NAME}Targets")
+  set(PYBIND11_INSTALL_EXPORT ON)
+else ()
+  if (NOT PYBIND11_EXPORT_NAME)
+    set(PYBIND11_EXPORT_NAME "${PROJECT_NAME}Targets")
+  endif ()
+  set(PYBIND11_INSTALL_EXPORT OFF)
 endif()
 
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
@@ -88,22 +95,22 @@ if(NOT (CMAKE_VERSION VERSION_LESS 3.0))  # CMake >= 3.0
   add_library(pybind11 INTERFACE)
   add_library(pybind11::pybind11 ALIAS pybind11)  # to match exported target
   target_include_directories(pybind11 INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
-                                                $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>
+                                                ${PYTHON_INCLUDE_DIRS}
                                                 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-  target_compile_options(pybind11 INTERFACE $<BUILD_INTERFACE:${PYBIND11_CPP_STANDARD}>)
+  target_compile_options(pybind11 INTERFACE ${PYBIND11_CPP_STANDARD})
 
   add_library(module INTERFACE)
   add_library(pybind11::module ALIAS module)
   target_link_libraries(module INTERFACE pybind11::pybind11)
   if(WIN32 OR CYGWIN)
-    target_link_libraries(module INTERFACE $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+    target_link_libraries(module INTERFACE ${PYTHON_LIBRARIES})
   elseif(APPLE)
     target_link_libraries(module INTERFACE "-undefined dynamic_lookup")
   endif()
 
   add_library(embed INTERFACE)
   add_library(pybind11::embed ALIAS embed)
-  target_link_libraries(embed INTERFACE pybind11::pybind11 $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+  target_link_libraries(embed INTERFACE pybind11::pybind11 ${PYTHON_LIBRARIES})
 endif()
 
 if (PYBIND11_INSTALL)
@@ -131,9 +138,11 @@ if (PYBIND11_INSTALL)
 
   if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
     install(TARGETS pybind11 module embed
-            EXPORT "${PROJECT_NAME}Targets")
-    install(EXPORT "${PROJECT_NAME}Targets"
-            NAMESPACE "${PROJECT_NAME}::"
-            DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
+            EXPORT "${PYBIND11_EXPORT_NAME}")
+    if(PYBIND11_INSTALL_EXPORT)
+      install(EXPORT "${PYBIND11_EXPORT_NAME}"
+              NAMESPACE "${PROJECT_NAME}::"
+              DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
+    endif()
   endif()
 endif()
