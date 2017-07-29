@@ -75,6 +75,23 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     const char *id = PYBIND11_INTERNALS_ID;
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
         internals_ptr = *static_cast<internals **>(capsule(builtins[id]));
+
+        // We loaded builtins through python's builtins, which means that our error_already_set and
+        // builtin_exception may be different local classes than the ones set up in the initial
+        // exception translator, below, so add another for our local exception classes.
+        //
+        // stdlibc++ doesn't require this (types there are identified only by name)
+        #if !defined(__GLIBCXX__)
+        internals_ptr->registered_exception_translators.push_front(
+            [](std::exception_ptr p) -> void {
+                try {
+                    if (p) std::rethrow_exception(p);
+                } catch (error_already_set &e)       { e.restore();   return;
+                } catch (const builtin_exception &e) { e.set_error(); return;
+                }
+            }
+        );
+        #endif
     } else {
         internals_ptr = new internals();
         #if defined(WITH_THREAD)
