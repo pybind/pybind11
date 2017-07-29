@@ -67,6 +67,12 @@ endif()
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 
+# Contains the set of test files that require pybind11_cross_module_tests to be
+# built; if none of these are built (i.e. because TEST_OVERRIDE is used and
+# doesn't include them) the second module doesn't get built.
+set(PYBIND11_CROSS_MODULE_TESTS
+)
+
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
 # skip message).
@@ -120,36 +126,52 @@ function(pybind11_enable_warnings target_name)
   endif()
 endfunction()
 
+set(test_targets pybind11_tests)
 
-# Create the binding library
-pybind11_add_module(pybind11_tests THIN_LTO pybind11_tests.cpp
-  ${PYBIND11_TEST_FILES} ${PYBIND11_HEADERS})
-
-pybind11_enable_warnings(pybind11_tests)
-
-if(MSVC)
-  target_compile_options(pybind11_tests PRIVATE /utf-8)
-endif()
-
-if(EIGEN3_FOUND)
-  if (PYBIND11_EIGEN_VIA_TARGET)
-    target_link_libraries(pybind11_tests PRIVATE Eigen3::Eigen)
-  else()
-    target_include_directories(pybind11_tests PRIVATE ${EIGEN3_INCLUDE_DIR})
+# Build pybind11_cross_module_tests if any test_whatever.py are being built that require it
+foreach(t ${PYBIND11_CROSS_MODULE_TESTS})
+  list(FIND PYBIND11_PYTEST_FILES ${t} i)
+  if (i GREATER -1)
+    list(APPEND test_targets pybind11_cross_module_tests)
+    break()
   endif()
-  target_compile_definitions(pybind11_tests PRIVATE -DPYBIND11_TEST_EIGEN)
-endif()
+endforeach()
 
 set(testdir ${CMAKE_CURRENT_SOURCE_DIR})
+foreach(tgt ${test_targets})
+  set(test_files ${PYBIND11_TEST_FILES})
+  if(NOT tgt STREQUAL "pybind11_tests")
+    set(test_files "")
+  endif()
 
-# Always write the output file directly into the 'tests' directory (even on MSVC)
-if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
-  set_target_properties(pybind11_tests PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${testdir})
-  foreach(config ${CMAKE_CONFIGURATION_TYPES})
-    string(TOUPPER ${config} config)
-    set_target_properties(pybind11_tests PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config} ${testdir})
-  endforeach()
-endif()
+  # Create the binding library
+  pybind11_add_module(${tgt} THIN_LTO ${tgt}.cpp
+    ${test_files} ${PYBIND11_HEADERS})
+
+  pybind11_enable_warnings(${tgt})
+
+  if(MSVC)
+    target_compile_options(${tgt} PRIVATE /utf-8)
+  endif()
+
+  if(EIGEN3_FOUND)
+    if (PYBIND11_EIGEN_VIA_TARGET)
+      target_link_libraries(${tgt} PRIVATE Eigen3::Eigen)
+    else()
+      target_include_directories(${tgt} PRIVATE ${EIGEN3_INCLUDE_DIR})
+    endif()
+    target_compile_definitions(${tgt} PRIVATE -DPYBIND11_TEST_EIGEN)
+  endif()
+
+  # Always write the output file directly into the 'tests' directory (even on MSVC)
+  if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+    set_target_properties(${tgt} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${testdir})
+    foreach(config ${CMAKE_CONFIGURATION_TYPES})
+      string(TOUPPER ${config} config)
+      set_target_properties(${tgt} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config} ${testdir})
+    endforeach()
+  endif()
+endforeach()
 
 # Make sure pytest is found or produce a fatal error
 if(NOT PYBIND11_PYTEST_FOUND)
@@ -173,7 +195,7 @@ endif()
 
 # A single command to compile and run the tests
 add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_PYTEST_FILES}
-                  DEPENDS pybind11_tests WORKING_DIRECTORY ${testdir} ${PYBIND11_USES_TERMINAL})
+                  DEPENDS ${test_targets} WORKING_DIRECTORY ${testdir} ${PYBIND11_USES_TERMINAL})
 
 if(PYBIND11_TEST_OVERRIDE)
   add_custom_command(TARGET pytest POST_BUILD
@@ -189,7 +211,7 @@ if (NOT PROJECT_NAME STREQUAL "pybind11")
   return()
 endif()
 
-# Add a post-build comment to show the .so size and, if a previous size, compare it:
+# Add a post-build comment to show the primary test suite .so size and, if a previous size, compare it:
 add_custom_command(TARGET pybind11_tests POST_BUILD
   COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/libsize.py
   $<TARGET_FILE:pybind11_tests> ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
