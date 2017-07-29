@@ -72,7 +72,7 @@ def test_multiple_inheritance_python():
 
     class MI4(MI3, m.Base2):
         def __init__(self, i, j, k):
-            MI2.__init__(self, j, k)
+            MI3.__init__(self, j, k)
             m.Base2.__init__(self, i)
 
     class MI5(m.Base2, B1, m.Base1):
