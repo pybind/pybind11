@@ -40,6 +40,7 @@ set(PYBIND11_TEST_FILES
   test_eval.cpp
   test_exceptions.cpp
   test_kwargs_and_defaults.cpp
+  test_local_bindings.cpp
   test_methods_and_attributes.cpp
   test_modules.cpp
   test_multiple_inheritance.cpp
@@ -72,6 +73,7 @@ string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 # doesn't include them) the second module doesn't get built.
 set(PYBIND11_CROSS_MODULE_TESTS
   test_exceptions.py
+  test_local_bindings.py
 )
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but

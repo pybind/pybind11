@@ -64,6 +64,9 @@ struct metaclass {
     explicit metaclass(handle value) : value(value) { }
 };
 
+/// Annotation that marks a class as local to the module:
+struct module_local { const bool value; constexpr module_local(bool v = true) : value(v) { } };
+
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
 
@@ -196,7 +199,7 @@ struct function_record {
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
     PYBIND11_NOINLINE type_record()
-        : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false) { }
+        : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false), module_local(false) { }
 
     /// Handle to the parent scope
     handle scope;
@@ -242,6 +245,9 @@ struct type_record {
 
     /// Is the default (unique_ptr) holder type used?
     bool default_holder : 1;
+
+    /// Is the class definition local to the module shared object?
+    bool module_local : 1;
 
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(base, false);
@@ -408,6 +414,10 @@ struct process_attribute<metaclass> : process_attribute_default<metaclass> {
     static void init(const metaclass &m, type_record *r) { r->metaclass = m.value; }
 };
 
+template <>
+struct process_attribute<module_local> : process_attribute_default<module_local> {
+    static void init(const module_local &l, type_record *r) { r->module_local = l.value; }
+};
 
 /// Process an 'arithmetic' attribute for enums (does nothing here)
 template <>
