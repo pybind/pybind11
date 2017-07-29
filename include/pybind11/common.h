@@ -68,6 +68,16 @@
 #  endif
 #endif
 
+// Attribute macro for a function containing one or more static local variables that mustn't share
+// the variable across shared objects (for example, because the value might be incompatible for
+// modules compiled under different pybind versions).  This is required under g++ (depending on the
+// specific compiler and linker options), and won't hurt under gcc-compatible compilers:
+#if defined(__GNUG__)
+#  define PYBIND11_UNSHARED_STATIC_LOCALS __attribute__ ((visibility("hidden")))
+#else
+#  define PYBIND11_UNSHARED_STATIC_LOCALS
+#endif
+
 #if defined(_MSC_VER)
 #  define PYBIND11_NOINLINE __declspec(noinline)
 #else
