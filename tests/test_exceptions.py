@@ -1,6 +1,7 @@
 import pytest
 
 from pybind11_tests import exceptions as m
+import pybind11_cross_module_tests as cm
 
 
 def test_std_exception(msg):
@@ -17,6 +18,27 @@ def test_error_already_set(msg):
     with pytest.raises(ValueError) as excinfo:
         m.throw_already_set(True)
     assert msg(excinfo.value) == "foo"
+
+
+def test_cross_module_exceptions():
+    with pytest.raises(RuntimeError) as excinfo:
+        cm.raise_runtime_error()
+    assert str(excinfo.value) == "My runtime error"
+
+    with pytest.raises(ValueError) as excinfo:
+        cm.raise_value_error()
+    assert str(excinfo.value) == "My value error"
+
+    with pytest.raises(ValueError) as excinfo:
+        cm.throw_pybind_value_error()
+    assert str(excinfo.value) == "pybind11 value error"
+
+    with pytest.raises(TypeError) as excinfo:
+        cm.throw_pybind_type_error()
+    assert str(excinfo.value) == "pybind11 type error"
+
+    with pytest.raises(StopIteration) as excinfo:
+        cm.throw_stop_iteration()
 
 
 def test_python_call_in_catch():
