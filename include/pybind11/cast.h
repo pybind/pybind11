@@ -288,13 +288,24 @@ struct value_and_holder {
     bool holder_constructed() const {
         return inst->simple_layout
             ? inst->simple_holder_constructed
-            : inst->nonsimple.holder_constructed[index];
+            : inst->nonsimple.status[index] & instance::status_holder_constructed;
     }
     void set_holder_constructed() {
         if (inst->simple_layout)
             inst->simple_holder_constructed = true;
         else
-            inst->nonsimple.holder_constructed[index] = true;
+            inst->nonsimple.status[index] |= instance::status_holder_constructed;
+    }
+    bool instance_registered() const {
+        return inst->simple_layout
+            ? inst->simple_instance_registered
+            : inst->nonsimple.status[index] & instance::status_instance_registered;
+    }
+    void set_instance_registered() {
+        if (inst->simple_layout)
+            inst->simple_instance_registered = true;
+        else
+            inst->nonsimple.status[index] |= instance::status_instance_registered;
     }
 };
 
@@ -395,6 +406,7 @@ PYBIND11_NOINLINE inline void instance::allocate_layout() {
     if (simple_layout) {
         simple_value_holder[0] = nullptr;
         simple_holder_constructed = false;
+        simple_instance_registered = false;
     }
     else { // multiple base types or a too-large holder
         // Allocate space to hold: [v1*][h1][v2*][h2]...[bb...] where [vN*] is a value pointer,
@@ -407,7 +419,7 @@ PYBIND11_NOINLINE inline void instance::allocate_layout() {
             space += t->holder_size_in_ptrs; // holder instance
         }
         size_t flags_at = space;
-        space += size_in_ptrs(n_types * sizeof(bool)); // holder constructed flags
+        space += size_in_ptrs(n_types); // status bytes (holder_constructed and instance_registered)
 
         // Allocate space for flags, values, and holders, and initialize it to 0 (flags and values,
         // in particular, need to be 0).  Use Python's memory allocation functions: in Python 3.6
@@ -422,7 +434,7 @@ PYBIND11_NOINLINE inline void instance::allocate_layout() {
         if (!nonsimple.values_and_holders) throw std::bad_alloc();
         std::memset(nonsimple.values_and_holders, 0, space * sizeof(void *));
 #endif
-        nonsimple.holder_constructed = reinterpret_cast<bool *>(&nonsimple.values_and_holders[flags_at]);
+        nonsimple.status = reinterpret_cast<uint8_t *>(&nonsimple.values_and_holders[flags_at]);
     }
     owned = true;
 }

@@ -375,7 +375,7 @@ struct instance {
         void *simple_value_holder[1 + instance_simple_holder_in_ptrs()];
         struct {
             void **values_and_holders;
-            bool *holder_constructed;
+            uint8_t *status;
         } nonsimple;
     };
     /// Weak references (needed for keep alive):
@@ -396,14 +396,20 @@ struct instance {
      * python side.  Non-simple layout allocates the required amount of memory to have multiple
      * bound C++ classes as parents.  Under this layout, `nonsimple.values_and_holders` is set to a
      * pointer to allocated space of the required space to hold a a sequence of value pointers and
-     * holders followed by a set of holder-constructed flags (1 byte each), i.e.
+     * holders followed `status`, a set of bit flags (1 byte each), i.e.
      * [val1*][holder1][val2*][holder2]...[bb...]  where each [block] is rounded up to a multiple of
      * `sizeof(void *)`.  `nonsimple.holder_constructed` is, for convenience, a pointer to the
      * beginning of the [bb...] block (but not independently allocated).
+     *
+     * Status bits indicate whether the associated holder is constructed (&
+     * status_holder_constructed) and whether the value pointer is registered (&
+     * status_instance_registered) in `registered_instances`.
      */
     bool simple_layout : 1;
     /// For simple layout, tracks whether the holder has been constructed
     bool simple_holder_constructed : 1;
+    /// For simple layout, tracks whether the instance is registered in `registered_instances`
+    bool simple_instance_registered : 1;
     /// If true, get_internals().patients has an entry for this object
     bool has_patients : 1;
 
@@ -416,6 +422,10 @@ struct instance {
     /// Returns the value_and_holder wrapper for the given type (or the first, if `find_type`
     /// omitted)
     value_and_holder get_value_and_holder(const type_info *find_type = nullptr);
+
+    /// Bit values for the non-simple status flags
+    static constexpr uint8_t status_holder_constructed  = 1;
+    static constexpr uint8_t status_instance_registered = 2;
 };
 
 static_assert(std::is_standard_layout<instance>::value, "Internal error: `pybind11::detail::instance` is not standard layout!");
