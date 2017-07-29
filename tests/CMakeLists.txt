@@ -71,6 +71,7 @@ string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 # built; if none of these are built (i.e. because TEST_OVERRIDE is used and
 # doesn't include them) the second module doesn't get built.
 set(PYBIND11_CROSS_MODULE_TESTS
+  test_exceptions.py
 )
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
