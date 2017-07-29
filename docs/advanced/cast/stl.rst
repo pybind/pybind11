@@ -150,10 +150,10 @@ the declaration
 before any binding code (e.g. invocations to ``class_::def()``, etc.). This
 macro must be specified at the top level (and outside of any namespaces), since
 it instantiates a partial template overload. If your binding code consists of
-multiple compilation units, it must be present in every file preceding any
-usage of ``std::vector<int>``. Opaque types must also have a corresponding
-``class_`` declaration to associate them with a name in Python, and to define a
-set of available operations, e.g.:
+multiple compilation units, it must be present in every file (typically via a
+common header) preceding any usage of ``std::vector<int>``. Opaque types must
+also have a corresponding ``class_`` declaration to associate them with a name
+in Python, and to define a set of available operations, e.g.:
 
 .. code-block:: cpp
 
@@ -166,6 +166,20 @@ set of available operations, e.g.:
            return py::make_iterator(v.begin(), v.end());
         }, py::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */
         // ....
+
+Please take a look at the :ref:`macro_notes` before using the
+``PYBIND11_MAKE_OPAQUE`` macro.
+
+.. seealso::
+
+    The file :file:`tests/test_opaque_types.cpp` contains a complete
+    example that demonstrates how to create and expose opaque types using
+    pybind11 in more detail.
+
+.. _stl_bind:
+
+Binding STL containers
+======================
 
 The ability to expose STL containers as native Python objects is a fairly
 common request, hence pybind11 also provides an optional header file named
@@ -188,14 +202,34 @@ The following example showcases usage of :file:`pybind11/stl_bind.h`:
     py::bind_vector<std::vector<int>>(m, "VectorInt");
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
 
-Please take a look at the :ref:`macro_notes` before using the
-``PYBIND11_MAKE_OPAQUE`` macro.
+When binding STL containers pybind11 considers the types of the container's
+elements to decide whether the container should be confined to the local module
+(via the :ref:`module_local` feature).  If the container element types are
+anything other than already-bound custom types bound without
+``py::module_local()`` the container binding will have ``py::module_local()``
+applied.  This includes converting types such as numeric types, strings, Eigen
+types; and types that have not yet been bound at the time of the stl container
+binding.  This module-local binding is designed to avoid potential conflicts
+between module bindings (for example, from two separate modules each attempting
+to bind ``std::vector<int>`` as a python type).
+
+It is possible to override this behavior to force a definition to be either
+module-local or global.  To do so, you can pass the attributes
+``py::module_local()`` (to make the binding module-local) or
+``py::module_local(false)`` (to make the binding global) into the
+``py::bind_vector`` or ``py::bind_map`` arguments:
+
+.. code-block:: cpp
+
+    py::bind_vector<std::vector<int>>(m, "VectorInt", py::module_local(false));
+
+Note, however, that such a global binding would make it impossible to load this
+module at the same time as any other pybind module that also attempts to bind
+the same container type (``std::vector<int>`` in the above example).
+
+See :ref:`module_local` for more details on module-local bindings.
 
 .. seealso::
-
-    The file :file:`tests/test_opaque_types.cpp` contains a complete
-    example that demonstrates how to create and expose opaque types using
-    pybind11 in more detail.
 
     The file :file:`tests/test_stl_binders.cpp` shows how to use the
     convenience STL container wrappers.

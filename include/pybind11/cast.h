@@ -58,6 +58,8 @@ struct type_info {
     bool simple_ancestors : 1;
     /* for base vs derived holder_type checks */
     bool default_holder : 1;
+    /* true if this is a type registered with py::module_local */
+    bool module_local : 1;
 };
 
 PYBIND11_UNSHARED_STATIC_LOCALS PYBIND11_NOINLINE inline internals *&get_internals_ptr() {
@@ -124,6 +126,12 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
     }
     return *internals_ptr;
+}
+
+// Works like internals.registered_types_cpp, but for module-local registered types:
+PYBIND11_NOINLINE PYBIND11_UNSHARED_STATIC_LOCALS inline type_map<void *> &registered_local_types_cpp() {
+    static type_map<void *> locals{};
+    return locals;
 }
 
 /// A life support system for temporary objects created by `type_caster::load()`.
@@ -213,7 +221,7 @@ PYBIND11_NOINLINE inline void all_type_info_populate(PyTypeObject *t, std::vecto
             // registered types
             if (i + 1 == check.size()) {
                 // When we're at the end, we can pop off the current element to avoid growing
-                // `check` when adding just one base (which is typical--.e. when there is no
+                // `check` when adding just one base (which is typical--i.e. when there is no
                 // multiple inheritance)
                 check.pop_back();
                 i--;
@@ -257,12 +265,17 @@ PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
     return bases.front();
 }
 
-PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_info &tp,
+/// Return the type info for a given C++ type; on lookup failure can either throw or return nullptr.
+PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_index &tp,
                                                           bool throw_if_missing = false) {
+    std::type_index type_idx(tp);
     auto &types = get_internals().registered_types_cpp;
-
-    auto it = types.find(std::type_index(tp));
+    auto it = types.find(type_idx);
     if (it != types.end())
+        return (detail::type_info *) it->second;
+    auto &locals = registered_local_types_cpp();
+    it = locals.find(type_idx);
+    if (it != locals.end())
         return (detail::type_info *) it->second;
     if (throw_if_missing) {
         std::string tname = tp.name();
@@ -731,10 +744,8 @@ protected:
     // with .second = nullptr.  (p.first = nullptr is not an error: it becomes None).
     PYBIND11_NOINLINE static std::pair<const void *, const type_info *> src_and_type(
             const void *src, const std::type_info &cast_type, const std::type_info *rtti_type = nullptr) {
-        auto &internals = get_internals();
-        auto it = internals.registered_types_cpp.find(std::type_index(cast_type));
-        if (it != internals.registered_types_cpp.end())
-            return {src, (const type_info *) it->second};
+        if (auto *tpi = get_type_info(cast_type))
+            return {src, const_cast<const type_info *>(tpi)};
 
         // Not found, set error:
         std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
@@ -819,7 +830,6 @@ public:
     template <typename T = itype, enable_if_t<std::is_polymorphic<T>::value, int> = 0>
     static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
         const void *vsrc = src;
-        auto &internals = get_internals();
         auto &cast_type = typeid(itype);
         const std::type_info *instance_type = nullptr;
         if (vsrc) {
@@ -828,9 +838,8 @@ public:
                 // This is a base pointer to a derived type; if it is a pybind11-registered type, we
                 // can get the correct derived pointer (which may be != base pointer) by a
                 // dynamic_cast to most derived type:
-                auto it = internals.registered_types_cpp.find(std::type_index(*instance_type));
-                if (it != internals.registered_types_cpp.end())
-                    return {dynamic_cast<const void *>(src), (const type_info *) it->second};
+                if (auto *tpi = get_type_info(*instance_type))
+                    return {dynamic_cast<const void *>(src), const_cast<const type_info *>(tpi)};
             }
         }
         // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer, so

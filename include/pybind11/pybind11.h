@@ -839,12 +839,16 @@ protected:
         tinfo->dealloc = rec.dealloc;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
+        tinfo->default_holder = rec.default_holder;
+        tinfo->module_local = rec.module_local;
 
         auto &internals = get_internals();
         auto tindex = std::type_index(*rec.type);
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
-        tinfo->default_holder = rec.default_holder;
-        internals.registered_types_cpp[tindex] = tinfo;
+        if (rec.module_local)
+            registered_local_types_cpp()[tindex] = tinfo;
+        else
+            internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[(PyTypeObject *) m_ptr] = { tinfo };
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
@@ -986,7 +990,7 @@ public:
         generic_type::initialize(record);
 
         if (has_alias) {
-            auto &instances = get_internals().registered_types_cpp;
+            auto &instances = record.module_local ? registered_local_types_cpp() : get_internals().registered_types_cpp;
             instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
         }
     }
@@ -1442,7 +1446,7 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator, Sentinel, false, Policy> state;
 
     if (!detail::get_type_info(typeid(state), false)) {
-        class_<state>(handle(), "iterator")
+        class_<state>(handle(), "iterator", pybind11::module_local())
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> ValueType {
                 if (!s.first_or_done)
@@ -1471,7 +1475,7 @@ iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
 
     if (!detail::get_type_info(typeid(state), false)) {
-        class_<state>(handle(), "iterator")
+        class_<state>(handle(), "iterator", pybind11::module_local())
             .def("__iter__", [](state &s) -> state& { return s; })
             .def("__next__", [](state &s) -> KeyType {
                 if (!s.first_or_done)

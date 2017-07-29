@@ -1,3 +1,5 @@
+.. _embedding:
+
 Embedding the interpreter
 #########################
 
@@ -131,6 +133,7 @@ embedding the interpreter. This makes it easy to import local Python files:
     int n = result.cast<int>();
     assert(n == 3);
 
+.. _embedding_modules:
 
 Adding embedded modules
 =======================

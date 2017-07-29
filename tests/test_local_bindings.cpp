@@ -1,0 +1,62 @@
+/*
+    tests/test_local_bindings.cpp -- tests the py::module_local class feature which makes a class
+                                     binding local to the module in which it is defined.
+
+    Copyright (c) 2017 Jason Rhinelander <jason@imaginary.ca>
+
+    All rights reserved. Use of this source code is governed by a
+    BSD-style license that can be found in the LICENSE file.
+*/
+
+#include "pybind11_tests.h"
+#include "local_bindings.h"
+#include <pybind11/stl_bind.h>
+
+TEST_SUBMODULE(local_bindings, m) {
+
+    // test_local_bindings
+    // Register a class with py::module_local:
+    bind_local<LocalType, -1>(m, "LocalType", py::module_local())
+        .def("get3", [](LocalType &t) { return t.i + 3; })
+        ;
+
+    m.def("local_value", [](LocalType &l) { return l.i; });
+
+    // test_nonlocal_failure
+    // The main pybind11 test module is loaded first, so this registration will succeed (the second
+    // one, in pybind11_cross_module_tests.cpp, is designed to fail):
+    bind_local<NonLocalType, 0>(m, "NonLocalType")
+        .def(py::init<int>())
+        .def("get", [](LocalType &i) { return i.i; })
+        ;
+
+    // test_duplicate_local
+    // py::module_local declarations should be visible across compilation units that get linked together;
+    // this tries to register a duplicate local.  It depends on a definition in test_class.cpp and
+    // should raise a runtime error from the duplicate definition attempt.  If test_class isn't
+    // available it *also* throws a runtime error (with "test_class not enabled" as value).
+    m.def("register_local_external", [m]() {
+        auto main = py::module::import("pybind11_tests");
+        if (py::hasattr(main, "class_")) {
+            bind_local<LocalExternal, 7>(m, "LocalExternal", py::module_local());
+        }
+        else throw std::runtime_error("test_class not enabled");
+    });
+
+    // test_stl_bind_local
+    // stl_bind.h binders defaults to py::module_local if the types are local or converting:
+    py::bind_vector<std::vector<LocalType>>(m, "LocalVec");
+    py::bind_map<std::unordered_map<std::string, LocalType>>(m, "LocalMap");
+    // and global if the type (or one of the types, for the map) is global:
+    py::bind_vector<std::vector<NonLocalType>>(m, "NonLocalVec");
+    py::bind_map<std::unordered_map<std::string, NonLocalType>>(m, "NonLocalMap");
+
+    // test_stl_bind_global
+    // They can, however, be overridden to global using `py::module_local(false)`:
+    bind_local<NonLocal2, 10>(m, "NonLocal2");
+    py::bind_vector<std::vector<NonLocal2>>(m, "LocalVec2", py::module_local());
+    py::bind_map<std::unordered_map<std::string, uint8_t>>(m, "NonLocalMap2", py::module_local(false));
+
+    // test_internal_locals_differ
+    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::registered_local_types_cpp(); });
+}

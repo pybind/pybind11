@@ -9,6 +9,7 @@
 
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
+#include "local_bindings.h"
 
 TEST_SUBMODULE(class_, m) {
     // test_instance
@@ -224,6 +225,10 @@ TEST_SUBMODULE(class_, m) {
     aliased.def(py::init<>());
     aliased.attr("size_noalias") = py::int_(sizeof(AliasedHasOpNewDelSize));
     aliased.attr("size_alias") = py::int_(sizeof(PyAliasedHasOpNewDelSize));
+
+    // This test is actually part of test_local_bindings (test_duplicate_local), but we need a
+    // definition in a different compilation unit within the same module:
+    bind_local<LocalExternal, 17>(m, "LocalExternal", py::module_local());
 }
 
 template <int N> class BreaksBase {};
