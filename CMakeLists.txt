@@ -19,6 +19,9 @@ set(PYBIND11_MASTER_PROJECT OFF)
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(PYBIND11_MASTER_PROJECT ON)
 endif()
+if (NOT PYBIND11_EXPORT_NAME)
+  set(PYBIND11_EXPORT_NAME "${PROJECT_NAME}Targets")
+endif ()
 
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST    "Build pybind11 test suite?"     ${PYBIND11_MASTER_PROJECT})
@@ -131,9 +134,11 @@ if (PYBIND11_INSTALL)
 
   if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
     install(TARGETS pybind11 module embed
-            EXPORT "${PROJECT_NAME}Targets")
-    install(EXPORT "${PROJECT_NAME}Targets"
-            NAMESPACE "${PROJECT_NAME}::"
-            DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
+            EXPORT "${PYBIND11_EXPORT_NAME}")
+    if(PYBIND11_MASTER_PROJECT)
+      install(EXPORT "${PYBIND11_EXPORT_NAME}"
+              NAMESPACE "${PROJECT_NAME}::"
+              DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
+    endif()
   endif()
 endif()
