@@ -232,11 +232,10 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
     return ret;
 }
 
-/// Instance creation function for all pybind11 types. It only allocates space for the C++ object
-/// (or multiple objects, for Python-side inheritance from multiple pybind11 types), but doesn't
-/// call the constructor -- an `__init__` function must do that (followed by an `init_instance`
-/// to set up the holder and register the instance).
-inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value /*= true (in cast.h)*/) {
+/// Instance creation function for all pybind11 types. It allocates the internal instance layout for
+/// holding C++ objects and holders.  Allocation is done lazily (the first time the instance is cast
+/// to a reference or pointer), and initialization is done by an `__init__` function.
+inline PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first inherited
     // object is a a plain Python type (i.e. not derived from an extension type).  Fix it.
@@ -251,13 +250,6 @@ inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value /*= t
     inst->allocate_layout();
 
     inst->owned = true;
-    // Allocate (if requested) the value pointers; otherwise leave them as nullptr
-    if (allocate_value) {
-        for (auto &v_h : values_and_holders(inst)) {
-            void *&vptr = v_h.value_ptr();
-            vptr = v_h.type->operator_new(v_h.type->type_size);
-        }
-    }
 
     return self;
 }

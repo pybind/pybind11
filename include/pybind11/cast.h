@@ -560,7 +560,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 
 // Forward declarations
 inline void keep_alive_impl(handle nurse, handle patient);
-inline PyObject *make_new_instance(PyTypeObject *type, bool allocate_value = true);
+inline PyObject *make_new_instance(PyTypeObject *type);
 
 class type_caster_generic {
 public:
@@ -591,7 +591,7 @@ public:
             }
         }
 
-        auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type, false /* don't allocate value */));
+        auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto wrapper = reinterpret_cast<instance *>(inst.ptr());
         wrapper->owned = false;
         void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
@@ -647,8 +647,14 @@ public:
 protected:
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
-    void load_value(const value_and_holder &v_h) {
-        value = v_h.value_ptr();
+    void load_value(value_and_holder &&v_h) {
+        auto *&vptr = v_h.value_ptr();
+        // Lazy allocation for unallocated values:
+        if (vptr == nullptr) {
+            auto *type = v_h.type ? v_h.type : typeinfo;
+            vptr = type->operator_new(type->type_size);
+        }
+        value = vptr;
     }
     bool try_implicit_casts(handle src, bool convert) {
         for (auto &cast : typeinfo->implicit_casts) {
