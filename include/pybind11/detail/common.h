@@ -434,7 +434,7 @@ struct instance {
     /// If true, get_internals().patients has an entry for this object
     bool has_patients : 1;
 
-    /// Initializes all of the above type/values/holders data
+    /// Initializes all of the above type/values/holders data (but not the instance values themselves)
     void allocate_layout();
 
     /// Destroys/deallocates all of the above
