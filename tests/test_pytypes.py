@@ -174,8 +174,19 @@ def test_constructors():
     }
     inputs = {k.__name__: v for k, v in data.items()}
     expected = {k.__name__: k(v) for k, v in data.items()}
+
     assert m.converting_constructors(inputs) == expected
     assert m.cast_functions(inputs) == expected
+
+    # Converting constructors and cast functions should just reference rather
+    # than copy when no conversion is needed:
+    noconv1 = m.converting_constructors(expected)
+    for k in noconv1:
+        assert noconv1[k] is expected[k]
+
+    noconv2 = m.cast_functions(expected)
+    for k in noconv2:
+        assert noconv2[k] is expected[k]
 
 
 def test_implicit_casting():
