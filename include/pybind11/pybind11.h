@@ -822,7 +822,7 @@ protected:
             pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name) +
                           "\": an object with that name is already defined");
 
-        if (get_type_info(*rec.type))
+        if (get_type_info(*rec.type, false /* don't throw */, !rec.module_local))
             pybind11_fail("generic_type: type \"" + std::string(rec.name) +
                           "\" is already registered!");
 

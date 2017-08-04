@@ -57,6 +57,18 @@ TEST_SUBMODULE(local_bindings, m) {
     py::bind_vector<std::vector<NonLocal2>>(m, "LocalVec2", py::module_local());
     py::bind_map<std::unordered_map<std::string, uint8_t>>(m, "NonLocalMap2", py::module_local(false));
 
+    // test_mixed_local_global
+    // We try this both with the global type registered first and vice versa (the order shouldn't
+    // matter).
+    m.def("register_mixed_global", [m]() {
+        bind_local<MixedGlobalLocal, 100>(m, "MixedGlobalLocal", py::module_local(false));
+    });
+    m.def("register_mixed_local", [m]() {
+        bind_local<MixedLocalGlobal, 1000>(m, "MixedLocalGlobal", py::module_local());
+    });
+    m.def("get_mixed_gl", [](int i) { return MixedGlobalLocal(i); });
+    m.def("get_mixed_lg", [](int i) { return MixedLocalGlobal(i); });
+
     // test_internal_locals_differ
     m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::registered_local_types_cpp(); });
 }
