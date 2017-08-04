@@ -518,12 +518,11 @@ inline PyObject* make_new_python_type(const type_record &rec) {
             module = rec.scope.attr("__name__");
     }
 
+    auto full_name = c_str(
 #if !defined(PYPY_VERSION)
-    const auto full_name = module ? str(module).cast<std::string>() + "." + rec.name
-                                  : std::string(rec.name);
-#else
-    const auto full_name = std::string(rec.name);
+        module ? str(module).cast<std::string>() + "." + rec.name :
 #endif
+        rec.name);
 
     char *tp_doc = nullptr;
     if (rec.doc && options::show_user_defined_docstrings()) {
@@ -556,7 +555,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 #endif
 
     auto type = &heap_type->ht_type;
-    type->tp_name = strdup(full_name.c_str());
+    type->tp_name = full_name;
     type->tp_doc = tp_doc;
     type->tp_base = type_incref((PyTypeObject *)base);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
