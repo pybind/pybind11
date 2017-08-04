@@ -494,6 +494,7 @@ struct internals {
     std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     std::vector<PyObject *> loader_patient_stack; // Used by `loader_life_support`
+    std::forward_list<std::string> static_strings; // Stores the std::strings backing detail::c_str()
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
@@ -687,6 +688,16 @@ inline void ignore_unused(const int *) { }
 using expand_side_effects = bool[];
 #define PYBIND11_EXPAND_SIDE_EFFECTS(PATTERN) pybind11::detail::expand_side_effects{ ((PATTERN), void(), false)..., false }
 #endif
+
+/// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
+/// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only
+/// cleared when the program exits or after interpreter shutdown (when embedding), and so are
+/// suitable for c-style strings needed by Python internals (such as PyTypeObject's tp_name).
+template <typename... Args> const char *c_str(Args &&...args) {
+    auto &strings = get_internals().static_strings;
+    strings.emplace_front(std::forward<Args>(args)...);
+    return strings.front().c_str();
+}
 
 NAMESPACE_END(detail)
 
