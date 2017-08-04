@@ -16,6 +16,10 @@ using NonLocalType = LocalBase<1>;
 using NonLocal2 = LocalBase<2>;
 /// Tests within-module, different-compilation-unit local definition conflict:
 using LocalExternal = LocalBase<3>;
+/// Mixed: registered local first, then global
+using MixedLocalGlobal = LocalBase<4>;
+/// Mixed: global first, then local (which fails)
+using MixedGlobalLocal = LocalBase<5>;
 
 // Simple bindings (used with the above):
 template <typename T, int Adjust, typename... Args>

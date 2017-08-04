@@ -266,17 +266,22 @@ PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
 }
 
 /// Return the type info for a given C++ type; on lookup failure can either throw or return nullptr.
+/// `check_global_types` can be specified as `false` to only check types registered locally to the
+/// current module.
 PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_index &tp,
-                                                          bool throw_if_missing = false) {
+                                                          bool throw_if_missing = false,
+                                                          bool check_global_types = true) {
     std::type_index type_idx(tp);
-    auto &types = get_internals().registered_types_cpp;
-    auto it = types.find(type_idx);
-    if (it != types.end())
-        return (detail::type_info *) it->second;
     auto &locals = registered_local_types_cpp();
-    it = locals.find(type_idx);
+    auto it = locals.find(type_idx);
     if (it != locals.end())
         return (detail::type_info *) it->second;
+    if (check_global_types) {
+        auto &types = get_internals().registered_types_cpp;
+        it = types.find(type_idx);
+        if (it != types.end())
+            return (detail::type_info *) it->second;
+    }
     if (throw_if_missing) {
         std::string tname = tp.name();
         detail::clean_type_id(tname);

@@ -752,6 +752,11 @@ you will only be able to call the function with the local module's class:
 
     Invoked with: <dogs.Dog object at 0x123>
 
+It is possible to use ``py::module_local()`` registrations in one module even if another module
+registers the same type globally: within the module with the module-local definition, all C++
+instances will be cast to the associated bound Python type.  Outside the module, any such values
+are converted to the global Python type created elsewhere.
+
 .. note::
 
     STL bindings (as provided via the optional :file:`pybind11/stl_bind.h`
