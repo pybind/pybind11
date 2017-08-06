@@ -123,7 +123,7 @@ Bindings should be made against the actual class, not the trampoline helper clas
             .def("go", &PyAnimal::go); /* <--- THIS IS WRONG, use &Animal::go */
 
 Note, however, that the above is sufficient for allowing python classes to
-extend ``Animal``, but not ``Dog``: see ref:`virtual_and_inheritance` for the
+extend ``Animal``, but not ``Dog``: see :ref:`virtual_and_inheritance` for the
 necessary steps required to providing proper overload support for inherited
 classes.
 
