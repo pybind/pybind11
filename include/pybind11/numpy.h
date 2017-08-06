@@ -740,7 +740,7 @@ public:
         detail::npy_api::PyArray_Dims d = {
             new_shape->data(), int(new_shape->size())
         };
-        // try to reshape, set ordering param to -1 cause it's not used anyway
+        // try to reshape, set ordering param to 0 cause it's not used anyway
         object new_array = reinterpret_steal<object>(
               detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0)
         );
