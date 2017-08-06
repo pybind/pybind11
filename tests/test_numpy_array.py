@@ -400,3 +400,13 @@ def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
     assert(a.size == 4)
     assert(np.all(a == 42.))
+
+def test_array_view1(msg):
+    a = np.ones(100*4).astype('uint8')
+    a_float_view = m.array_view1(a, "float32")
+    assert(a_float_view.shape == (100*1,)) # 1 / 4 bytes = 8 / 32
+
+    a_int16_view = m.array_view1(a, "int16") # 1 / 2 bytes = 16 / 32
+    assert(a_int16_view.shape == (100*2,))
+
+
