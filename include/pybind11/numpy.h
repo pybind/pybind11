@@ -736,16 +736,13 @@ public:
         if (isinstance<array>(new_array)) { *this = std::move(new_array); }
     }
 
-    void reshape(ShapeContainer new_shape) {
+    array reshape(ShapeContainer new_shape) {
         detail::npy_api::PyArray_Dims d = {
             new_shape->data(), int(new_shape->size())
         };
         // try to reshape, set ordering param to 0 cause it's not used anyway
-        object new_array = reinterpret_steal<object>(
-              detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0)
-        );
-        if (!new_array) throw error_already_set();
-        if (isinstance<array>(new_array)) { *this = std::move(new_array); }
+        return reinterpret_steal<object>(
+              detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0));
     }
     
 
