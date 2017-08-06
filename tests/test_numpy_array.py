@@ -412,5 +412,5 @@ def test_create_and_reshape(msg):
 
 def test_reshape_tuple(msg):
     a = np.random.randn(10*10*10).astype('float64')
-    x = m.array_reshape1(a, (10,10,10))
+    x = m.reshape_tuple(a, (10,10,10))
     assert (x.shape == (10,10,10))
