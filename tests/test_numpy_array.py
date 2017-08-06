@@ -400,3 +400,17 @@ def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
     assert(a.size == 4)
     assert(np.all(a == 42.))
+
+def test_array_reshape(msg):
+    a = np.random.randn(10*10*10).astype('float64')
+    x = m.array_reshape1(a, 10)
+    assert (x.shape == (10,10,10))
+
+def test_create_and_reshape(msg):
+    x = m.create_and_reshape(10,20,30)
+    assert(x.shape == (10,20,30))
+
+def test_reshape_tuple(msg):
+    a = np.random.randn(10*10*10).astype('float64')
+    x = m.reshape_tuple(a, (10,10,10))
+    assert (x.shape == (10,10,10))
