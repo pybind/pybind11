@@ -409,3 +409,8 @@ def test_array_reshape(msg):
 def test_create_and_reshape(msg):
     x = m.create_and_reshape(10,20,30)
     assert(x.shape == (10,20,30))
+
+def test_reshape_tuple(msg):
+    a = np.random.randn(10*10*10).astype('float64')
+    x = m.array_reshape1(a, (10,10,10))
+    assert (x.shape == (10,10,10))
