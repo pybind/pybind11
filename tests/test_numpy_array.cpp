@@ -292,4 +292,17 @@ TEST_SUBMODULE(numpy_array, sm) {
         std::fill(a.mutable_data(), a.mutable_data() + a.size(), 42.);
         return a;
     });
+
+    m.def("array_reshape1", [](py::array_t<double> a, size_t N) {
+        a.reshape({N, N, N});
+        return a;
+    });
+
+    m.def("create_and_reshape", [](size_t N, size_t M, size_t O) {
+        py::array_t<double> a;
+        a.resize({N*M*O});
+        std::fill(a.mutable_data(), a.mutable_data() + a.size(), 42.);
+        a.reshape({N, M, O});
+        return a;
+    });
 }

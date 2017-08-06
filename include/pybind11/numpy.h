@@ -166,6 +166,8 @@ struct npy_api {
     PyObject *(*PyArray_Squeeze_)(PyObject *);
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
     PyObject* (*PyArray_Resize_)(PyObject*, PyArray_Dims*, int, int);
+    PyObject* (*PyArray_Newshape_)(PyObject*, PyArray_Dims*, int);
+
 private:
     enum functions {
         API_PyArray_GetNDArrayCFeatureVersion = 211,
@@ -176,6 +178,7 @@ private:
         API_PyArray_DescrFromScalar = 57,
         API_PyArray_FromAny = 69,
         API_PyArray_Resize = 80,
+        API_PyArray_Newshape = 135,
         API_PyArray_CopyInto = 82,
         API_PyArray_NewCopy = 85,
         API_PyArray_NewFromDescr = 94,
@@ -207,6 +210,7 @@ private:
         DECL_NPY_API(PyArray_DescrFromScalar);
         DECL_NPY_API(PyArray_FromAny);
         DECL_NPY_API(PyArray_Resize);
+        DECL_NPY_API(PyArray_Newshape);
         DECL_NPY_API(PyArray_CopyInto);
         DECL_NPY_API(PyArray_NewCopy);
         DECL_NPY_API(PyArray_NewFromDescr);
@@ -216,6 +220,7 @@ private:
         DECL_NPY_API(PyArray_GetArrayParamsFromObject);
         DECL_NPY_API(PyArray_Squeeze);
         DECL_NPY_API(PyArray_SetBaseObject);
+
 #undef DECL_NPY_API
         return api;
     }
@@ -730,6 +735,19 @@ public:
         if (!new_array) throw error_already_set();
         if (isinstance<array>(new_array)) { *this = std::move(new_array); }
     }
+
+    void reshape(ShapeContainer new_shape) {
+        detail::npy_api::PyArray_Dims d = {
+            new_shape->data(), int(new_shape->size())
+        };
+        // try to reshape, set ordering param to -1 cause it's not used anyway
+        object new_array = reinterpret_steal<object>(
+              detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0)
+        );
+        if (!new_array) throw error_already_set();
+        if (isinstance<array>(new_array)) { *this = std::move(new_array); }
+    }
+    
 
     /// Ensure that the argument is a NumPy array
     /// In case of an error, nullptr is returned and the Python error is cleared.
