@@ -123,7 +123,7 @@ Bindings should be made against the actual class, not the trampoline helper clas
             .def("go", &PyAnimal::go); /* <--- THIS IS WRONG, use &Animal::go */
 
 Note, however, that the above is sufficient for allowing python classes to
-extend ``Animal``, but not ``Dog``: see ref:`virtual_and_inheritance` for the
+extend ``Animal``, but not ``Dog``: see :ref:`virtual_and_inheritance` for the
 necessary steps required to providing proper overload support for inherited
 classes.
 
@@ -143,6 +143,30 @@ a virtual method call.
     >>> c = Cat()
     >>> call_go(c)
     u'meow! meow! meow! '
+
+If you are defining a custom constructor in a derived Python class, you *must*
+ensure that you explicitly call the bound C++ constructor using ``__init__``,
+*regardless* of whether it is a default constructor or not. Otherwise, the
+memory for the C++ portion of the instance will be left uninitialized, which
+will generally leave the C++ instance in an invalid state and cause undefined
+behavior if the C++ instance is subsequently used.
+
+Here is an example:
+
+.. code-block:: python
+
+    class Dachschund(Dog):
+        def __init__(self, name):
+            Dog.__init__(self) # Without this, undefind behavior may occur if the C++ portions are referenced.
+            self.name = name
+        def bark(self):
+            return "yap!"
+
+Note that a direct ``__init__`` constructor *should be called*, and ``super()``
+should not be used. For simple cases of linear inheritance, ``super()``
+may work, but once you begin mixing Python and C++ multiple inheritance,
+things will fall apart due to differences between Python's MRO and C++'s
+mechanisms.
 
 Please take a look at the :ref:`macro_notes` before using this feature.
 
