@@ -61,8 +61,8 @@ for custom variant types:
         struct visit_helper<boost::variant> {
             template <typename... Args>
             static auto call(Args &&...args)
-                -> decltype(boost::apply_visitor(std::forward<Args>(args)...)) {
-                return boost::apply_visitor(std::forward<Args>(args)...);
+                -> decltype(boost::apply_visitor(args...)) {
+                return boost::apply_visitor(args...);
             }
         };
     }} // namespace pybind11::detail
