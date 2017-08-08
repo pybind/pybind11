@@ -112,6 +112,9 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   endif()
 endif()
 
+# Optional dependency for some tests
+find_package(Boost)
+
 # Compile with compiler warnings turned on
 function(pybind11_enable_warnings target_name)
   if(MSVC)
@@ -141,37 +144,40 @@ foreach(t ${PYBIND11_CROSS_MODULE_TESTS})
 endforeach()
 
 set(testdir ${CMAKE_CURRENT_SOURCE_DIR})
-foreach(tgt ${test_targets})
+foreach(target ${test_targets})
   set(test_files ${PYBIND11_TEST_FILES})
-  if(NOT tgt STREQUAL "pybind11_tests")
+  if(NOT target STREQUAL "pybind11_tests")
     set(test_files "")
   endif()
 
   # Create the binding library
-  pybind11_add_module(${tgt} THIN_LTO ${tgt}.cpp
-    ${test_files} ${PYBIND11_HEADERS})
-
-  pybind11_enable_warnings(${tgt})
+  pybind11_add_module(${target} THIN_LTO ${target}.cpp ${test_files} ${PYBIND11_HEADERS})
+  pybind11_enable_warnings(${target})
 
   if(MSVC)
-    target_compile_options(${tgt} PRIVATE /utf-8)
+    target_compile_options(${target} PRIVATE /utf-8)
   endif()
 
   if(EIGEN3_FOUND)
     if (PYBIND11_EIGEN_VIA_TARGET)
-      target_link_libraries(${tgt} PRIVATE Eigen3::Eigen)
+      target_link_libraries(${target} PRIVATE Eigen3::Eigen)
     else()
-      target_include_directories(${tgt} PRIVATE ${EIGEN3_INCLUDE_DIR})
+      target_include_directories(${target} PRIVATE ${EIGEN3_INCLUDE_DIR})
     endif()
-    target_compile_definitions(${tgt} PRIVATE -DPYBIND11_TEST_EIGEN)
+    target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_EIGEN)
+  endif()
+
+  if(Boost_FOUND)
+    target_include_directories(${target} PRIVATE ${Boost_INCLUDE_DIRS})
+    target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_BOOST)
   endif()
 
   # Always write the output file directly into the 'tests' directory (even on MSVC)
   if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
-    set_target_properties(${tgt} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${testdir})
+    set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${testdir})
     foreach(config ${CMAKE_CONFIGURATION_TYPES})
       string(TOUPPER ${config} config)
-      set_target_properties(${tgt} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config} ${testdir})
+      set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config} ${testdir})
     endforeach()
   endif()
 endforeach()

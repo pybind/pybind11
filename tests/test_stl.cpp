@@ -10,6 +10,27 @@
 #include "pybind11_tests.h"
 #include <pybind11/stl.h>
 
+// Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
+#if PYBIND11_HAS_VARIANT
+using std::variant;
+#elif PYBIND11_TEST_BOOST
+#  include <boost/variant.hpp>
+#  define PYBIND11_HAS_VARIANT 1
+using boost::variant;
+
+namespace pybind11 { namespace detail {
+template <typename... Ts>
+struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
+
+template <>
+struct visit_helper<boost::variant> {
+    template <typename... Args>
+    static auto call(Args &&...args) -> decltype(boost::apply_visitor(args...)) {
+        return boost::apply_visitor(args...);
+    }
+};
+}} // namespace pybind11::detail
+#endif
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
@@ -162,22 +183,27 @@ TEST_SUBMODULE(stl, m) {
 #endif
 
 #ifdef PYBIND11_HAS_VARIANT
+    static_assert(std::is_same<py::detail::variant_caster_visitor::result_type, py::handle>::value,
+                  "visitor::result_type is required by boost::variant in C++11 mode");
+
     struct visitor {
-        const char *operator()(int) { return "int"; }
-        const char *operator()(std::string) { return "std::string"; }
-        const char *operator()(double) { return "double"; }
-        const char *operator()(std::nullptr_t) { return "std::nullptr_t"; }
+        using result_type = const char *;
+
+        result_type operator()(int) { return "int"; }
+        result_type operator()(std::string) { return "std::string"; }
+        result_type operator()(double) { return "double"; }
+        result_type operator()(std::nullptr_t) { return "std::nullptr_t"; }
     };
 
     // test_variant
-    m.def("load_variant", [](std::variant<int, std::string, double, std::nullptr_t> v) {
-        return std::visit(visitor(), v);
+    m.def("load_variant", [](variant<int, std::string, double, std::nullptr_t> v) {
+        return py::detail::visit_helper<variant>::call(visitor(), v);
     });
-    m.def("load_variant_2pass", [](std::variant<double, int> v) {
-        return std::visit(visitor(), v);
+    m.def("load_variant_2pass", [](variant<double, int> v) {
+        return py::detail::visit_helper<variant>::call(visitor(), v);
     });
     m.def("cast_variant", []() {
-        using V = std::variant<int, std::string>;
+        using V = variant<int, std::string>;
         return py::make_tuple(V(5), V("Hello"));
     });
 #endif
