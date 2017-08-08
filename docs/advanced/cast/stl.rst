@@ -60,8 +60,7 @@ for custom variant types:
         template <>
         struct visit_helper<boost::variant> {
             template <typename... Args>
-            static auto call(Args &&...args)
-                -> decltype(boost::apply_visitor(args...)) {
+            static auto call(Args &&...args) -> decltype(boost::apply_visitor(args...)) {
                 return boost::apply_visitor(args...);
             }
         };
@@ -70,6 +69,13 @@ for custom variant types:
 The ``visit_helper`` specialization is not required if your ``name::variant`` provides
 a ``name::visit()`` function. For any other function name, the specialization must be
 included to tell pybind11 how to visit the variant.
+
+.. note::
+
+    pybind11 only supports the modern implementation of ``boost::variant``
+    which makes use of variadic templates. This requires Boost 1.56 or newer.
+    Additionally, on Windows, MSVC 2017 is required because ``boost::variant``
+    falls back to the old non-variadic implementation on MSVC 2015.
 
 .. _opaque:
 

@@ -292,8 +292,10 @@ struct variant_caster_visitor {
     return_value_policy policy;
     handle parent;
 
+    using result_type = handle; // required by boost::variant in C++11
+
     template <typename T>
-    handle operator()(T &&src) const {
+    result_type operator()(T &&src) const {
         return make_caster<T>::cast(std::forward<T>(src), policy, parent);
     }
 };
