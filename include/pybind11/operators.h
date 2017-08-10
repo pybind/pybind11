@@ -18,7 +18,7 @@
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
-NAMESPACE_BEGIN(pybind11)
+NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)
 
 /// Enumeration with all supported operator types
@@ -160,7 +160,7 @@ NAMESPACE_END(detail)
 
 using detail::self;
 
-NAMESPACE_END(pybind11)
+NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER)
 #  pragma warning(pop)

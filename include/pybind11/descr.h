@@ -12,7 +12,7 @@
 
 #include "common.h"
 
-NAMESPACE_BEGIN(pybind11)
+NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)
 
 /* Concatenate type signatures at compile time using C++14 */
@@ -182,4 +182,4 @@ PYBIND11_NOINLINE inline descr type_descr(descr&& d) { return _("{") + std::move
 #endif
 
 NAMESPACE_END(detail)
-NAMESPACE_END(pybind11)
+NAMESPACE_END(PYBIND11_NAMESPACE)
