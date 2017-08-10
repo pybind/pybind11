@@ -74,13 +74,15 @@ removes this target from the default build (see CMake docs for details).
 
 Since pybind11 is a template library, ``pybind11_add_module`` adds compiler
 flags to ensure high quality code generation without bloat arising from long
-symbol names and duplication of code in different translation units. The
-additional flags enable LTO (Link Time Optimization), set default visibility
-to *hidden* and strip unneeded symbols. See the :ref:`FAQ entry <faq:symhidden>`
-for a more detailed explanation. These optimizations are never applied in
-``Debug`` mode. If ``NO_EXTRAS`` is given, they will always be disabled, even
-in ``Release`` mode. However, this will result in code bloat and is generally
-not recommended.
+symbol names and duplication of code in different translation units. It
+sets default visibility to *hidden*, which is required for some pybind11
+features and functionality when attempting to load multiple pybind11 modules
+compiled under different pybind11 versions.  It also adds additional flags
+enabling LTO (Link Time Optimization) and strip unneeded symbols. See the
+:ref:`FAQ entry <faq:symhidden>` for a more detailed explanation. These
+latter optimizations are never applied in ``Debug`` mode.  If ``NO_EXTRAS`` is
+given, they will always be disabled, even in ``Release`` mode. However, this
+will result in code bloat and is generally not recommended.
 
 As stated above, LTO is enabled by default. Some newer compilers also support
 different flavors of LTO such as `ThinLTO`_. Setting ``THIN_LTO`` will cause
@@ -181,9 +183,8 @@ to an independently constructed (through ``add_library``, not
     flags (i.e. this is up to you).
 
     These include Link Time Optimization (``-flto`` on GCC/Clang/ICPC, ``/GL``
-    and ``/LTCG`` on Visual Studio). Default-hidden symbols on GCC/Clang/ICPC
-    (``-fvisibility=hidden``) and .OBJ files with many sections on Visual Studio
-    (``/bigobj``). The :ref:`FAQ <faq:symhidden>` contains an
+    and ``/LTCG`` on Visual Studio) and .OBJ files with many sections on Visual
+    Studio (``/bigobj``). The :ref:`FAQ <faq:symhidden>` contains an
     explanation on why these are needed.
 
 Embedding the Python interpreter
