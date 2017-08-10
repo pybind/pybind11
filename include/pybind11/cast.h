@@ -30,7 +30,7 @@
 #include <string_view>
 #endif
 
-NAMESPACE_BEGIN(pybind11)
+NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)
 // Forward declarations:
 inline PyTypeObject *make_static_property_type();
@@ -2084,4 +2084,4 @@ NAMESPACE_END(detail)
         template<> class type_caster<Type> : public type_caster_base<Type> { }; \
     }}
 
-NAMESPACE_END(pybind11)
+NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -11,7 +11,7 @@
 
 #include "common.h"
 
-NAMESPACE_BEGIN(pybind11)
+NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// Information record describing a Python buffer object
 struct buffer_info {
@@ -105,4 +105,4 @@ template <typename T> struct compare_buffer_info<T, detail::enable_if_t<std::is_
 };
 
 NAMESPACE_END(detail)
-NAMESPACE_END(pybind11)
+NAMESPACE_END(PYBIND11_NAMESPACE)

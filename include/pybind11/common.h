@@ -16,6 +16,17 @@
 #  define NAMESPACE_END(name) }
 #endif
 
+// Robust support for some features and loading modules compiled against different pybind versions
+// requires forcing hidden visibility on pybind code, so we enforce this by setting the attribute on
+// the main `pybind11` namespace.
+#if !defined(PYBIND11_NAMESPACE)
+#  ifdef __GNUG__
+#    define PYBIND11_NAMESPACE pybind11 __attribute__((visibility("hidden")))
+#  else
+#    define PYBIND11_NAMESPACE pybind11
+#  endif
+#endif
+
 #if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  if __cplusplus >= 201402L
 #    define PYBIND11_CPP14
@@ -297,7 +308,7 @@ extern "C" {
     void pybind11_init_##name(pybind11::module &variable)
 
 
-NAMESPACE_BEGIN(pybind11)
+NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using ssize_t = Py_ssize_t;
 using size_t  = std::size_t;
@@ -877,4 +888,4 @@ NAMESPACE_END(detail)
 
 
 
-NAMESPACE_END(pybind11)
+NAMESPACE_END(PYBIND11_NAMESPACE)
