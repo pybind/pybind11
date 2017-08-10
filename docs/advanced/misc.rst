@@ -135,22 +135,16 @@ has been executed:
 
 Naturally, both methods will fail when there are cyclic dependencies.
 
-Note that compiling code which has its default symbol visibility set to
-*hidden* (e.g. via the command line flag ``-fvisibility=hidden`` on GCC/Clang) can interfere with the
-ability to access types defined in another extension module. Workarounds
-include changing the global symbol visibility (not recommended, because it will
-lead unnecessarily large binaries) or manually exporting types that are
-accessed by multiple extension modules:
+Note that pybind11 code compiled with hidden-by-default symbol visibility (e.g.
+via the command line flag ``-fvisibility=hidden`` on GCC/Clang), which is
+required proper pybind11 functionality, can interfere with the ability to
+access types defined in another extension module.  Working around this requires
+manually exporting types that are accessed by multiple extension modules;
+pybind11 provides a macro to do just this:
 
 .. code-block:: cpp
 
-    #ifdef _WIN32
-    #  define EXPORT_TYPE __declspec(dllexport)
-    #else
-    #  define EXPORT_TYPE __attribute__ ((visibility("default")))
-    #endif
-
-    class EXPORT_TYPE Dog : public Animal {
+    class PYBIND11_EXPORT Dog : public Animal {
         ...
     };
 
