@@ -26,6 +26,7 @@ MANIFEST
 /docs/.build
 *.py[co]
 *.egg-info
+*.class
 *~
 .DS_Store
 /dist
