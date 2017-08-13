@@ -9,7 +9,280 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.2.0 (Not yet released)
 -----------------------------------------------------
 
-* TBD
+* Support for embedding the Python interpreter. See the
+  :doc:`documentation page </advanced/embedding>` for a
+  full overview of the new features.
+  `#774 <https://github.com/pybind/pybind11/pull/774>`_,
+  `#889 <https://github.com/pybind/pybind11/pull/889>`_,
+  `#892 <https://github.com/pybind/pybind11/pull/892>`_,
+  `#920 <https://github.com/pybind/pybind11/pull/920>`_.
+
+  .. code-block:: cpp
+
+      #include <pybind11/embed.h>
+      namespace py = pybind11;
+
+      int main() {
+          py::scoped_interpreter guard{}; // start the interpreter and keep it alive
+
+          py::print("Hello, World!"); // use the Python API
+      }
+
+* Support for inheriting from multiple C++ bases in Python.
+  `#693 <https://github.com/pybind/pybind11/pull/693>`_.
+
+  .. code-block:: python
+
+      from cpp_module import CppBase1, CppBase2
+
+      class PyDerived(CppBase1, CppBase2):
+          def __init__(self):
+              CppBase1.__init__(self)  # C++ bases must be initialized explicitly
+              CppBase2.__init__(self)
+
+* ``PYBIND11_MODULE`` is now the preferred way to create module entry points.
+  ``PYBIND11_PLUGIN`` is deprecated. See :ref:`macros` for details.
+  `#879 <https://github.com/pybind/pybind11/pull/879>`_.
+
+  .. code-block:: cpp
+
+      // new
+      PYBIND11_MODULE(example, m) {
+          m.def("add", [](int a, int b) { return a + b; });
+      }
+
+      // old
+      PYBIND11_PLUGIN(example) {
+          py::module m("example");
+          m.def("add", [](int a, int b) { return a + b; });
+          return m.ptr();
+      }
+
+* pybind11's headers and build system now more strictly enforce hidden symbol
+  visibility for extension modules. This should be seamless for most users,
+  but see the upgrade guide if you use a custom build system.
+
+* Support for ``py::module_local`` types which allow multiple modules to
+  export the same C++ types without conflicts. This is useful for opaque
+  types like ``std::vector<int>``. ``py::bind_vector`` and ``py::bind_map``
+  now default to ``py::module_local`` if their elements are builtins or
+  local types. See :ref:`module_local` for details.
+  `#949 <https://github.com/pybind/pybind11/pull/949>`_,
+  `#981 <https://github.com/pybind/pybind11/pull/981>`_,
+  `#995 <https://github.com/pybind/pybind11/pull/995>`_,
+  `#997 <https://github.com/pybind/pybind11/pull/997>`_.
+
+* Custom constructors can now be added very easily using lambdas or factory
+  functions which return a class instance by value, pointer or holder. This
+  supersedes the old placement-new ``__init__`` technique.
+  See :ref:`custom_constructors` for details.
+  `#805 <https://github.com/pybind/pybind11/pull/997>`_.
+
+  .. code-block:: cpp
+
+      struct Example {
+          Example(std::string);
+      };
+
+      py::class_<Example>(m, "Example")
+          .def(py::init<std::string>()) // existing constructor
+          .def(py::init([](int n) { // custom constructor
+              return std::make_unique<Example>(std::to_string(n));
+          }));
+
+* Builtin support for converting C++17 standard library types and general
+  conversion improvements:
+
+  1. C++17 ``std::variant`` is supported right out of the box. C++11/14
+     equivalents (e.g. ``boost::variant``) can also be added with a simple
+     user-defined specialization. See :ref:`cpp17_container_casters` for details.
+     `#811 <https://github.com/pybind/pybind11/pull/811>`_,
+     `#845 <https://github.com/pybind/pybind11/pull/845>`_,
+     `#989 <https://github.com/pybind/pybind11/pull/989>`_.
+
+  2. Out-of-the-box support for C++17 ``std::string_view``.
+     `#906 <https://github.com/pybind/pybind11/pull/906>`_.
+
+  3. Improved compatibility of the builtin ``optional`` converter.
+     `#874 <https://github.com/pybind/pybind11/pull/874>`_.
+
+  4. The ``bool`` converter now accepts ``numpy.bool_`` and types which
+     define ``__bool__`` (Python 3.x) or ``__nonzero__`` (Python 2.7).
+     `#925 <https://github.com/pybind/pybind11/pull/925>`_.
+
+  5. C++-to-Python casters are now more efficient and move elements out
+     of rvalue containers whenever possible.
+     `#851 <https://github.com/pybind/pybind11/pull/851>`_,
+     `#936 <https://github.com/pybind/pybind11/pull/936>`_,
+     `#938 <https://github.com/pybind/pybind11/pull/938>`_.
+
+  6. Fixed ``bytes`` to ``std::string/char*`` conversion on Python 3.
+     `#817 <https://github.com/pybind/pybind11/pull/817>`_.
+
+  7. Fixed lifetime of temporary C++ objects created in Python-to-C++ conversions.
+     `#924 <https://github.com/pybind/pybind11/pull/924>`_.
+
+* Scope guard call policy for RAII types, e.g. ``py::call_guard<py::gil_scoped_release>()``.
+  See :ref:`call_policies` for details.
+  `#740 <https://github.com/pybind/pybind11/pull/740>`_.
+
+* Improved handling of types and exceptions across module boundaries.
+  `#915 <https://github.com/pybind/pybind11/pull/915>`_,
+  `#951 <https://github.com/pybind/pybind11/pull/951>`_,
+  `#995 <https://github.com/pybind/pybind11/pull/995>`_.
+
+* Fixed destruction order of ``py::keep_alive`` nurse/patient objects
+  in reference cycles.
+  `#856 <https://github.com/pybind/pybind11/pull/856>`_.
+
+* Numpy and buffer protocol related improvements:
+
+  1. Support for negative strides in Python buffer objects/numpy arrays. This
+     required changing integers from unsigned to signed for the related C++ APIs.
+     Note: If you have compiler warnings enabled, you may notice some new conversion
+     warnings after upgrading. These can be resolved with ``static_cast``.
+     `#782 <https://github.com/pybind/pybind11/pull/782>`_.
+
+  2. Support ``std::complex`` and arrays inside ``PYBIND11_NUMPY_DTYPE``.
+     `#831 <https://github.com/pybind/pybind11/pull/831>`_,
+     `#832 <https://github.com/pybind/pybind11/pull/832>`_.
+
+  3. Support for constructing ``py::buffer_info`` and ``py::arrays`` using
+     arbitrary containers or iterators instead of requiring a ``std::vector``.
+     `#788 <https://github.com/pybind/pybind11/pull/788>`_,
+     `#822 <https://github.com/pybind/pybind11/pull/822>`_,
+     `#860 <https://github.com/pybind/pybind11/pull/860>`_.
+
+  4. Explicitly check numpy version and require >= 1.7.0.
+     `#819 <https://github.com/pybind/pybind11/pull/819>`_.
+
+* Support for allowing/prohibiting ``None`` for specific arguments and improved
+  ``None`` overload resolution order. See :ref:`none_arguments` for details.
+  `#843 <https://github.com/pybind/pybind11/pull/843>`_.
+  `#859 <https://github.com/pybind/pybind11/pull/859>`_.
+
+* Added ``py::exec()`` as a shortcut for ``py::eval<py::eval_statements>()``
+  and support for C++11 raw string literals as input. See :ref:`eval`.
+  `#766 <https://github.com/pybind/pybind11/pull/766>`_,
+  `#827 <https://github.com/pybind/pybind11/pull/827>`_.
+
+* ``py::vectorize()`` ignores non-vectorizable arguments and supports
+  member functions.
+  `#762 <https://github.com/pybind/pybind11/pull/762>`_.
+
+* Support for bound methods as callbacks (``pybind11/functional.h``).
+  `#815 <https://github.com/pybind/pybind11/pull/815>`_.
+
+* Allow aliasing pybind11 methods: ``cls.attr("foo") = cls.attr("bar")``.
+  `#802 <https://github.com/pybind/pybind11/pull/802>`_.
+
+* Don't allow mixed static/non-static overloads.
+  `#804 <https://github.com/pybind/pybind11/pull/804>`_.
+
+* Fixed overriding static properties in derived classes.
+  `#784 <https://github.com/pybind/pybind11/pull/784>`_.
+
+* Improved deduction of member function of derived class when the bases
+  isn't registered with pybind11.
+  `#855 <https://github.com/pybind/pybind11/pull/855>`_.
+
+  .. code-block:: cpp
+
+      struct Base {
+          int foo() { return 42; }
+      }
+
+      struct Derived : Base {}
+
+      // Now works, but previously required also binding `Base`
+      py::class_<Derived>(m, "Derived")
+          .def("foo", &Derived::foo); // function is actually from `Base`
+
+* Fixed issues with multiple inheritance with offset base/derived pointers.
+  `#812 <https://github.com/pybind/pybind11/pull/812>`_,
+  `#866 <https://github.com/pybind/pybind11/pull/866>`_,
+  `#960 <https://github.com/pybind/pybind11/pull/960>`_.
+
+* Improved support for the ``/std:c++14`` and ``/std:c++latest`` modes
+  on MSVC 2017.
+  `#841 <https://github.com/pybind/pybind11/pull/841>`_,
+  `#999 <https://github.com/pybind/pybind11/pull/999>`_.
+
+* Fixed detection of private operator new on MSVC.
+  `#893 <https://github.com/pybind/pybind11/pull/893>`_,
+  `#918 <https://github.com/pybind/pybind11/pull/918>`_.
+
+* Intel C++ compiler compatibility fixes.
+  `#937 <https://github.com/pybind/pybind11/pull/937>`_.
+
+* Fixed implicit conversion of `py::enum_` to integer types on Python 2.7.
+  `#821 <https://github.com/pybind/pybind11/pull/821>`_.
+
+* Fixed ``__truediv__`` on Python 2 and ``__itruediv__`` on Python 3.
+  `#867 <https://github.com/pybind/pybind11/pull/867>`_.
+
+* ``py::capsule`` objects now support the ``name`` attribute. This is useful
+  for interfacing with ``scipy.LowLevelCallable``.
+  `#902 <https://github.com/pybind/pybind11/pull/902>`_.
+
+* Fixed ``py::make_iterator``'s ``__next__()`` for past-the-end calls.
+  `#897 <https://github.com/pybind/pybind11/pull/897>`_.
+
+* Added ``error_already_set::matches()`` for checking Python exceptions.
+  `#772 <https://github.com/pybind/pybind11/pull/772>`_.
+
+* Deprecated ``py::error_already_set::clear()``. It's no longer needed
+  following a simplification of the ``py::error_already_set`` class.
+  `#954 <https://github.com/pybind/pybind11/pull/954>`_.
+
+* Deprecated ``py::handle::operator==()`` in favor of ``py::handle::is()``
+  `#825 <https://github.com/pybind/pybind11/pull/825>`_.
+
+* Deprecated ``py::object::borrowed``/``py::object::stolen``.
+  Use ``py::object::borrowed_t{}``/``py::object::stolen_t{}`` instead.
+  `#771 <https://github.com/pybind/pybind11/pull/771>`_.
+
+* Additional compile-time and run-time error checking and more informative messages.
+  `#786 <https://github.com/pybind/pybind11/pull/786>`_,
+  `#794 <https://github.com/pybind/pybind11/pull/794>`_,
+  `#803 <https://github.com/pybind/pybind11/pull/803>`_.
+
+* Various minor improvements and fixes.
+  `#764 <https://github.com/pybind/pybind11/pull/764>`_,
+  `#791 <https://github.com/pybind/pybind11/pull/791>`_,
+  `#795 <https://github.com/pybind/pybind11/pull/795>`_,
+  `#840 <https://github.com/pybind/pybind11/pull/840>`_,
+  `#844 <https://github.com/pybind/pybind11/pull/844>`_,
+  `#846 <https://github.com/pybind/pybind11/pull/846>`_,
+  `#849 <https://github.com/pybind/pybind11/pull/849>`_,
+  `#858 <https://github.com/pybind/pybind11/pull/858>`_,
+  `#862 <https://github.com/pybind/pybind11/pull/862>`_,
+  `#871 <https://github.com/pybind/pybind11/pull/871>`_,
+  `#872 <https://github.com/pybind/pybind11/pull/872>`_,
+  `#881 <https://github.com/pybind/pybind11/pull/881>`_,
+  `#888 <https://github.com/pybind/pybind11/pull/888>`_,
+  `#899 <https://github.com/pybind/pybind11/pull/899>`_,
+  `#928 <https://github.com/pybind/pybind11/pull/928>`_,
+  `#931 <https://github.com/pybind/pybind11/pull/931>`_,
+  `#944 <https://github.com/pybind/pybind11/pull/944>`_,
+  `#950 <https://github.com/pybind/pybind11/pull/950>`_,
+  `#952 <https://github.com/pybind/pybind11/pull/952>`_,
+  `#962 <https://github.com/pybind/pybind11/pull/962>`_,
+  `#965 <https://github.com/pybind/pybind11/pull/965>`_,
+  `#970 <https://github.com/pybind/pybind11/pull/970>`_,
+  `#979 <https://github.com/pybind/pybind11/pull/979>`_,
+  `#978 <https://github.com/pybind/pybind11/pull/978>`_,
+  `#986 <https://github.com/pybind/pybind11/pull/986>`_.
+
+* Testing improvements.
+  `#798 <https://github.com/pybind/pybind11/pull/798>`_,
+  `#882 <https://github.com/pybind/pybind11/pull/882>`_,
+  `#898 <https://github.com/pybind/pybind11/pull/898>`_,
+  `#900 <https://github.com/pybind/pybind11/pull/900>`_,
+  `#921 <https://github.com/pybind/pybind11/pull/921>`_,
+  `#923 <https://github.com/pybind/pybind11/pull/923>`_,
+  `#963 <https://github.com/pybind/pybind11/pull/963>`_.
+
 
 v2.1.1 (April 7, 2017)
 -----------------------------------------------------
