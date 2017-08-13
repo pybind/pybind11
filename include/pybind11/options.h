@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "common.h"
+#include "detail/common.h"
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 

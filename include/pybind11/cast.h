@@ -11,8 +11,8 @@
 #pragma once
 
 #include "pytypes.h"
-#include "typeid.h"
-#include "descr.h"
+#include "detail/typeid.h"
+#include "detail/descr.h"
 #include <array>
 #include <limits>
 #include <tuple>

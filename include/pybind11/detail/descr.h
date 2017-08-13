@@ -1,5 +1,5 @@
 /*
-    pybind11/descr.h: Helper type for concatenating type signatures
+    pybind11/detail/descr.h: Helper type for concatenating type signatures
     either at runtime (C++11) or compile time (C++14)
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>

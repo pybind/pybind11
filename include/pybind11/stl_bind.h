@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "common.h"
+#include "detail/common.h"
 #include "operators.h"
 
 #include <algorithm>

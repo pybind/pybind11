@@ -1,5 +1,5 @@
 /*
-    pybind11/typeid.h: Convenience wrapper classes for basic Python types
+    pybind11/pytypes.h: Convenience wrapper classes for basic Python types
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "common.h"
+#include "detail/common.h"
 #include "buffer_info.h"
 #include <utility>
 #include <type_traits>

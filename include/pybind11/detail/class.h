@@ -1,5 +1,5 @@
 /*
-    pybind11/class_support.h: Python C API implementation details for py::class_
+    pybind11/detail/class.h: Python C API implementation details for py::class_
 
     Copyright (c) 2017 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "attr.h"
+#include "../attr.h"
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)

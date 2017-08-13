@@ -1,5 +1,5 @@
 /*
-    pybind11/common.h -- Basic macros
+    pybind11/detail/common.h -- Basic macros
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
