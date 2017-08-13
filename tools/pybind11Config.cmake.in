@@ -91,9 +91,6 @@ if(NOT TARGET ${PN}::pybind11)
     endif()
 
     set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${PYBIND11_CPP_STANDARD}")
-    if(NOT MSVC)
-      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "-fvisibility=hidden")
-    endif()
 
     get_property(_iid TARGET ${PN}::pybind11 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
     get_property(_ill TARGET ${PN}::module PROPERTY INTERFACE_LINK_LIBRARIES)
