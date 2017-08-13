@@ -18,7 +18,7 @@ find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 include(CheckCXXCompilerFlag)
 include(CMakeParseArguments)
 
-if(NOT PYBIND11_CPP_STANDARD)
+if(NOT PYBIND11_CPP_STANDARD AND NOT CMAKE_CXX_STANDARD)
   if(NOT MSVC)
     check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
 
