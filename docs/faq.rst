@@ -151,6 +151,33 @@ specifying a larger value, e.g. ``-ftemplate-depth=1024`` on GCC/Clang. The
 culprit is generally the generation of function signatures at compile time
 using C++14 template metaprogramming.
 
+.. _`faq:hidden_visibility`:
+
+"‘SomeClass’ declared with greater visibility than the type of its field ‘SomeClass::member’ [-Wattributes]"
+============================================================================================================
+
+This error typically indicates that you are compiling without the required
+``-fvisibility`` flag.  pybind11 code internally forces hidden visibility on
+all internal code, but if non-hidden (and thus *exported*) code attempts to
+include a pybind type (for example, ``py::object`` or ``py::list``) you can run
+into this warning.
+
+To avoid it, make sure you are specifying ``-fvisibility=hidden`` when
+compiling pybind code.
+
+As to why ``-fvisibility=hidden`` is necessary, because pybind modules could
+have been compiled under different versions of pybind itself, it is also
+important that the symbols defined in one module do not clash with the
+potentially-incompatible symbols defined in another.  While Python extension
+modules are usually loaded with localized symbols (under POSIX systems
+typically using ``dlopen`` with the ``RTLD_LOCAL`` flag), this Python default
+can be changed, but even if it isn't it is not always enough to guarantee
+complete independence of the symbols involved when not using
+``-fvisibility=hidden``.
+
+Additionally, ``-fvisiblity=hidden`` can deliver considerably binary size
+savings.  (See the following section for more details).
+
 
 .. _`faq:symhidden`:
 
@@ -192,11 +219,14 @@ world. So we'll generally only want to export symbols for those functions which
 are actually called from the outside.
 
 This can be achieved by specifying the parameter ``-fvisibility=hidden`` to GCC
-and Clang, which sets the default symbol visibility to *hidden*. It's best to
-do this only for release builds, since the symbol names can be helpful in
-debugging sessions. On Visual Studio, symbols are already hidden by default, so
-nothing needs to be done there. Needless to say, this has a tremendous impact
-on the final binary size of the resulting extension library.
+and Clang, which sets the default symbol visibility to *hidden*, which has a
+tremendous impact on the final binary size of the resulting extension library.
+(On Visual Studio, symbols are already hidden by default, so nothing needs to
+be done there.)
+
+In addition to decreasing binary size, ``-fvisibility=hidden`` also avoids
+potential serious issues when loading multiple modules and is required for
+proper pybind operation.  See the previous FAQ entry for more details.
 
 Another aspect that can require a fair bit of code are function signature
 descriptions. pybind11 automatically generates human-readable function

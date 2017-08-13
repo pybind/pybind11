@@ -184,7 +184,7 @@ to an independently constructed (through ``add_library``, not
 
     These include Link Time Optimization (``-flto`` on GCC/Clang/ICPC, ``/GL``
     and ``/LTCG`` on Visual Studio) and .OBJ files with many sections on Visual
-    Studio (``/bigobj``). The :ref:`FAQ <faq:symhidden>` contains an
+    Studio (``/bigobj``).  The :ref:`FAQ <faq:symhidden>` contains an
     explanation on why these are needed.
 
 Embedding the Python interpreter
