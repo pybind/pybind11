@@ -9,6 +9,8 @@
 Reference
 #########
 
+.. _macros:
+
 Macros
 ======
 

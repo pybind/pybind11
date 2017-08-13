@@ -26,6 +26,8 @@ next sections for more details and alternative approaches that avoid this.
     The file :file:`tests/test_stl.cpp` contains a complete
     example that demonstrates how to pass STL data types in more detail.
 
+.. _cpp17_container_casters:
+
 C++17 library containers
 ========================
 

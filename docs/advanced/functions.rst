@@ -406,6 +406,8 @@ name, i.e. by specifying ``py::arg().noconvert()``.
     need to specify a ``py::arg()`` annotation for each argument with the
     no-convert argument modified to ``py::arg().noconvert()``.
 
+.. _none_arguments:
+
 Allow/Prohibiting None arguments
 ================================
 
