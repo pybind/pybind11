@@ -21,6 +21,14 @@ using MixedLocalGlobal = LocalBase<4>;
 /// Mixed: global first, then local (which fails)
 using MixedGlobalLocal = LocalBase<5>;
 
+using LocalVec = std::vector<LocalType>;
+using LocalVec2 = std::vector<NonLocal2>;
+using LocalMap = std::unordered_map<std::string, LocalType>;
+using NonLocalVec = std::vector<NonLocalType>;
+using NonLocalVec2 = std::vector<NonLocal2>;
+using NonLocalMap = std::unordered_map<std::string, NonLocalType>;
+using NonLocalMap2 = std::unordered_map<std::string, uint8_t>;
+
 // Simple bindings (used with the above):
 template <typename T, int Adjust, typename... Args>
 py::class_<T> bind_local(Args && ...args) {

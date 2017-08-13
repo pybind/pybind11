@@ -10,10 +10,18 @@
 
 #include "pybind11_tests.h"
 #include "local_bindings.h"
+#include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include <numeric>
+
+PYBIND11_MAKE_OPAQUE(LocalVec);
+PYBIND11_MAKE_OPAQUE(LocalVec2);
+PYBIND11_MAKE_OPAQUE(LocalMap);
+PYBIND11_MAKE_OPAQUE(NonLocalVec);
+PYBIND11_MAKE_OPAQUE(NonLocalMap);
+PYBIND11_MAKE_OPAQUE(NonLocalMap2);
 
 TEST_SUBMODULE(local_bindings, m) {
-
     // test_local_bindings
     // Register a class with py::module_local:
     bind_local<LocalType, -1>(m, "LocalType", py::module_local())
@@ -45,17 +53,17 @@ TEST_SUBMODULE(local_bindings, m) {
 
     // test_stl_bind_local
     // stl_bind.h binders defaults to py::module_local if the types are local or converting:
-    py::bind_vector<std::vector<LocalType>>(m, "LocalVec");
-    py::bind_map<std::unordered_map<std::string, LocalType>>(m, "LocalMap");
+    py::bind_vector<LocalVec>(m, "LocalVec");
+    py::bind_map<LocalMap>(m, "LocalMap");
     // and global if the type (or one of the types, for the map) is global:
-    py::bind_vector<std::vector<NonLocalType>>(m, "NonLocalVec");
-    py::bind_map<std::unordered_map<std::string, NonLocalType>>(m, "NonLocalMap");
+    py::bind_vector<NonLocalVec>(m, "NonLocalVec");
+    py::bind_map<NonLocalMap>(m, "NonLocalMap");
 
     // test_stl_bind_global
     // They can, however, be overridden to global using `py::module_local(false)`:
     bind_local<NonLocal2, 10>(m, "NonLocal2");
-    py::bind_vector<std::vector<NonLocal2>>(m, "LocalVec2", py::module_local());
-    py::bind_map<std::unordered_map<std::string, uint8_t>>(m, "NonLocalMap2", py::module_local(false));
+    py::bind_vector<LocalVec2>(m, "LocalVec2", py::module_local());
+    py::bind_map<NonLocalMap2>(m, "NonLocalMap2", py::module_local(false));
 
     // test_mixed_local_global
     // We try this both with the global type registered first and vice versa (the order shouldn't
@@ -71,4 +79,9 @@ TEST_SUBMODULE(local_bindings, m) {
 
     // test_internal_locals_differ
     m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::registered_local_types_cpp(); });
+
+    // test_stl_caster_vs_stl_bind
+    m.def("load_vector_via_caster", [](std::vector<int> v) {
+        return std::accumulate(v.begin(), v.end(), 0);
+    });
 }

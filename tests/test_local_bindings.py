@@ -4,13 +4,12 @@ from pybind11_tests import local_bindings as m
 
 
 def test_local_bindings():
-    """Tests that duplicate py::local class bindings work across modules"""
+    """Tests that duplicate `py::module_local` class bindings work across modules"""
 
     # Make sure we can load the second module with the conflicting (but local) definition:
     import pybind11_cross_module_tests as cm
 
     i1 = m.LocalType(5)
-
     assert i1.get() == 4
     assert i1.get3() == 8
 
@@ -138,3 +137,24 @@ def test_internal_locals_differ():
     """Makes sure the internal local type map differs across the two modules"""
     import pybind11_cross_module_tests as cm
     assert m.local_cpp_types_addr() != cm.local_cpp_types_addr()
+
+
+def test_stl_caster_vs_stl_bind(msg):
+    """One module uses a generic vector caster from `<pybind11/stl.h>` while the other
+    exports `std::vector<int>` via `py:bind_vector` and `py::module_local`"""
+    import pybind11_cross_module_tests as cm
+
+    v1 = cm.VectorInt([1, 2, 3])
+    assert m.load_vector_via_caster(v1) == 6
+    assert cm.load_vector_via_binding(v1) == 6
+
+    v2 = [1, 2, 3]
+    assert m.load_vector_via_caster(v2) == 6
+    with pytest.raises(TypeError) as excinfo:
+        cm.load_vector_via_binding(v2) == 6
+    assert msg(excinfo.value) == """
+    load_vector_via_binding(): incompatible function arguments. The following argument types are supported:
+        1. (arg0: pybind11_cross_module_tests.VectorInt) -> int
+
+    Invoked with: [1, 2, 3]
+    """  # noqa: E501 line too long
