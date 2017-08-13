@@ -91,6 +91,9 @@ if(NOT (CMAKE_VERSION VERSION_LESS 3.0))  # CMake >= 3.0
                                                 $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>
                                                 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
   target_compile_options(pybind11 INTERFACE $<BUILD_INTERFACE:${PYBIND11_CPP_STANDARD}>)
+  if(NOT MSVC)
+    target_compile_options(pybind11 INTERFACE $<BUILD_INTERFACE:-fvisibility=hidden>)
+  endif()
 
   add_library(module INTERFACE)
   add_library(pybind11::module ALIAS module)
