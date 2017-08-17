@@ -314,13 +314,13 @@ highlight_language = 'cpp'
 
 
 def generate_doxygen_xml(app):
-    build_dir = '.build'
+    build_dir = os.path.join(app.confdir, '.build')
     if not os.path.exists(build_dir):
         os.mkdir(build_dir)
 
     try:
         subprocess.call(['doxygen', '--version'])
-        retcode = subprocess.call(['doxygen'])
+        retcode = subprocess.call(['doxygen'], cwd=app.confdir)
         if retcode < 0:
             sys.stderr.write("doxygen error code: {}\n".format(-retcode))
     except OSError as e:

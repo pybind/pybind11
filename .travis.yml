@@ -73,7 +73,7 @@ matrix:
       curl -fsSL ftp://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.12.linux.bin.tar.gz | tar xz
       export PATH="$PWD/doxygen-1.8.12/bin:$PATH"
     script:
-    - make -C docs html SPHINX_OPTIONS=-W
+    - $PY_CMD -m sphinx -W -b html docs docs/.build
     - tools/check-style.sh
     - flake8
 cache:

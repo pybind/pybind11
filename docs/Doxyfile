@@ -1,5 +1,6 @@
 PROJECT_NAME           = pybind11
 INPUT                  = ../include/pybind11/
+RECURSIVE              = YES
 
 GENERATE_HTML          = NO
 GENERATE_LATEX         = NO
