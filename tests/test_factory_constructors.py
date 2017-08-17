@@ -40,8 +40,7 @@ def test_init_factory_basic():
 
     with pytest.raises(TypeError) as excinfo:
         m.TestFactory3(tag.null_ptr)
-    assert (str(excinfo.value) ==
-            "pybind11::init(): factory function returned nullptr")
+    assert str(excinfo.value) == "pybind11::init(): factory function returned nullptr"
 
     assert [i.alive() for i in cstats] == [3, 3, 3]
     assert ConstructorStats.detail_reg_inst() == n_inst + 9
@@ -352,9 +351,9 @@ def test_reallocations(capture, msg):
         create_and_destroy(1.5)
     assert msg(capture) == strip_comments("""
         noisy new               # allocation required to attempt first overload
+        noisy delete            # have to dealloc before considering factory init overload
         noisy new               # pointer factory calling "new", part 1: allocation
         NoisyAlloc(double 1.5)  # ... part two, invoking constructor
-        noisy delete            # have to dealloc before stashing factory-generated pointer
         ---
         ~NoisyAlloc()  # Destructor
         noisy delete   # operator delete
@@ -396,9 +395,9 @@ def test_reallocations(capture, msg):
         create_and_destroy(4, 0.5)
     assert msg(capture) == strip_comments("""
         noisy new          # preallocation needed before invoking placement-new overload
+        noisy delete       # deallocation of preallocated storage
         noisy new          # Factory pointer allocation
         NoisyAlloc(int 4)  # factory pointer construction
-        noisy delete       # deallocation of preallocated storage
         ---
         ~NoisyAlloc()  # Destructor
         noisy delete   # operator delete
@@ -408,6 +407,8 @@ def test_reallocations(capture, msg):
         create_and_destroy(5, "hi")
     assert msg(capture) == strip_comments("""
         noisy new            # preallocation needed before invoking first placement new
+        noisy delete         # delete before considering new-style constructor
+        noisy new            # preallocation for second placement new
         noisy placement new  # Placement new in the second placement new overload
         NoisyAlloc(int 5)    # construction
         ---
@@ -450,11 +451,9 @@ def test_invalid_self():
     for arg in (1, 2):
         with pytest.raises(TypeError) as excinfo:
             BrokenTF1(arg)
-        assert (str(excinfo.value) ==
-                "__init__(self, ...) called with invalid `self` argument")
+        assert str(excinfo.value) == "__init__(self, ...) called with invalid `self` argument"
 
     for arg in (1, 2, 3, 4):
         with pytest.raises(TypeError) as excinfo:
             BrokenTF6(arg)
-        assert (str(excinfo.value) ==
-                "__init__(self, ...) called with invalid `self` argument")
+        assert str(excinfo.value) == "__init__(self, ...) called with invalid `self` argument"

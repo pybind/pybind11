@@ -242,8 +242,9 @@ protected:
                                      .cast<std::string>() + ".";
 #endif
                     signature += tinfo->type->tp_name;
-                } else if (rec->is_constructor && arg_index == 0 && detail::same_type(typeid(handle), *t) && rec->scope) {
-                    // A py::init(...) constructor takes `self` as a `handle`; rewrite it to the type
+                } else if (rec->is_new_style_constructor && arg_index == 0) {
+                    // A new-style `__init__` takes `self` as `value_and_holder`.
+                    // Rewrite it to the proper class type.
 #if defined(PYPY_VERSION)
                     signature += rec->scope.attr("__module__").cast<std::string>() + ".";
 #endif
@@ -425,6 +426,23 @@ protected:
         handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
 
+        auto self_value_and_holder = value_and_holder();
+        if (overloads->is_constructor) {
+            const auto tinfo = get_type_info((PyTypeObject *) overloads->scope.ptr());
+            const auto pi = reinterpret_cast<instance *>(parent.ptr());
+            self_value_and_holder = pi->get_value_and_holder(tinfo, false);
+
+            if (!self_value_and_holder.type || !self_value_and_holder.inst) {
+                PyErr_SetString(PyExc_TypeError, "__init__(self, ...) called with invalid `self` argument");
+                return nullptr;
+            }
+
+            // If this value is already registered it must mean __init__ is invoked multiple times;
+            // we really can't support that in C++, so just ignore the second __init__.
+            if (self_value_and_holder.instance_registered())
+                return none().release().ptr();
+        }
+
         try {
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
             // in the second, we allow conversion (except for arguments with an explicit
@@ -471,6 +489,18 @@ protected:
 
                 size_t args_to_copy = std::min(pos_args, n_args_in);
                 size_t args_copied = 0;
+
+                // 0. Inject new-style `self` argument
+                if (func.is_new_style_constructor) {
+                    // The `value` may have been preallocated by an old-style `__init__`
+                    // if it was a preceding candidate for overload resolution.
+                    if (self_value_and_holder)
+                        self_value_and_holder.type->dealloc(self_value_and_holder);
+
+                    call.args.push_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
+                    call.args_convert.push_back(false);
+                    ++args_copied;
+                }
 
                 // 1. Copy any position arguments given.
                 bool bad_arg = false;
@@ -715,13 +745,9 @@ protected:
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         } else {
-            if (overloads->is_constructor) {
-                auto tinfo = get_type_info((PyTypeObject *) overloads->scope.ptr());
+            if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
                 auto *pi = reinterpret_cast<instance *>(parent.ptr());
-                auto v_h = pi->get_value_and_holder(tinfo);
-                if (!v_h.holder_constructed()) {
-                    tinfo->init_instance(pi, nullptr);
-                }
+                self_value_and_holder.type->init_instance(pi, nullptr);
             }
             return result.ptr();
         }

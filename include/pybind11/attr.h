@@ -133,8 +133,8 @@ struct argument_record {
 /// Internal data structure which holds metadata about a bound function (signature, overloads, etc.)
 struct function_record {
     function_record()
-        : is_constructor(false), is_stateless(false), is_operator(false),
-          has_args(false), has_kwargs(false), is_method(false) { }
+        : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
+          is_operator(false), has_args(false), has_kwargs(false), is_method(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -162,6 +162,9 @@ struct function_record {
 
     /// True if name == '__init__'
     bool is_constructor : 1;
+
+    /// True if this is a new-style `__init__` defined in `detail/init.h`
+    bool is_new_style_constructor : 1;
 
     /// True if this is a stateless function pointer
     bool is_stateless : 1;
@@ -281,6 +284,9 @@ inline function_call::function_call(function_record &f, handle p) :
     args_convert.reserve(f.nargs);
 }
 
+/// Tag for a new-style `__init__` defined in `detail/init.h`
+struct is_new_style_constructor { };
+
 /**
  * Partial template specializations to process custom attributes provided to
  * cpp_function_ and class_. These are either used to initialize the respective
@@ -337,6 +343,10 @@ template <> struct process_attribute<scope> : process_attribute_default<scope> {
 /// Process an attribute which indicates that this function is an operator
 template <> struct process_attribute<is_operator> : process_attribute_default<is_operator> {
     static void init(const is_operator &, function_record *r) { r->is_operator = true; }
+};
+
+template <> struct process_attribute<is_new_style_constructor> : process_attribute_default<is_new_style_constructor> {
+    static void init(const is_new_style_constructor &, function_record *r) { r->is_new_style_constructor = true; }
 };
 
 /// Process a keyword argument attribute (*without* a default value)
