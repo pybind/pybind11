@@ -176,3 +176,22 @@ def test_operator_new_delete(capture):
         "C delete " + sz_noalias + "\n" +
         "C delete " + sz_alias + "\n"
     )
+
+
+def test_bind_protected_functions():
+    """Expose protected member functions to Python using a helper class"""
+    a = m.ProtectedA()
+    assert a.foo() == 42
+
+    b = m.ProtectedB()
+    assert b.foo() == 42
+
+    class C(m.ProtectedB):
+        def __init__(self):
+            m.ProtectedB.__init__(self)
+
+        def foo(self):
+            return 0
+
+    c = C()
+    assert c.foo() == 0

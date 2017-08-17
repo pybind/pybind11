@@ -86,7 +86,7 @@ functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
 a default implementation.  There are also two alternate macros
 :func:`PYBIND11_OVERLOAD_PURE_NAME` and :func:`PYBIND11_OVERLOAD_NAME` which
 take a string-valued name argument between the *Parent class* and *Name of the
-function* slots, which defines the name of function in Python. This is required 
+function* slots, which defines the name of function in Python. This is required
 when the C++ and Python versions of the
 function have different names, e.g.  ``operator()`` vs ``__call__``.
 
@@ -916,3 +916,78 @@ Python type created elsewhere.
 
     The file :file:`tests/test_local_bindings.cpp` contains additional examples
     that demonstrate how ``py::module_local()`` works.
+
+Binding protected member functions
+==================================
+
+It's normally not possible to expose ``protected`` member functions to Python:
+
+.. code-block:: cpp
+
+    class A {
+    protected:
+        int foo() const { return 42; }
+    };
+
+    py::class_<A>(m, "A")
+        .def("foo", &A::foo); // error: 'foo' is a protected member of 'A'
+
+On one hand, this is good because non-``public`` members aren't meant to be
+accessed from the outside. But we may want to make use of ``protected``
+functions in derived Python classes.
+
+The following pattern makes this possible:
+
+.. code-block:: cpp
+
+    class A {
+    protected:
+        int foo() const { return 42; }
+    };
+
+    class Publicist : public A { // helper type for exposing protected functions
+    public:
+        using A::foo; // inherited with different access modifier
+    };
+
+    py::class_<A>(m, "A") // bind the primary class
+        .def("foo", &Publicist::foo); // expose protected methods via the publicist
+
+This works because ``&Publicist::foo`` is exactly the same function as
+``&A::foo`` (same signature and address), just with a different access
+modifier. The only purpose of the ``Publicist`` helper class is to make
+the function name ``public``.
+
+If the intent is to expose ``protected`` ``virtual`` functions which can be
+overridden in Python, the publicist pattern can be combined with the previously
+described trampoline:
+
+.. code-block:: cpp
+
+    class A {
+    public:
+        virtual ~A() = default;
+
+    protected:
+        virtual int foo() const { return 42; }
+    };
+
+    class Trampoline : public A {
+    public:
+        int foo() const override { PYBIND11_OVERLOAD(int, A, foo, ); }
+    };
+
+    class Publicist : public A {
+    public:
+        using A::foo;
+    };
+
+    py::class_<A, Trampoline>(m, "A") // <-- `Trampoline` here
+        .def("foo", &Publicist::foo); // <-- `Publicist` here, not `Trampoline`!
+
+.. note::
+
+    MSVC 2015 has a compiler bug (fixed in version 2017) which
+    requires a more explicit function binding in the form of
+    ``.def("foo", static_cast<int (A::*)() const>(&Publicist::foo));``
+    where ``int (A::*)() const`` is the type of ``A::foo``.
