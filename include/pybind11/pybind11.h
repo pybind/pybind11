@@ -829,7 +829,7 @@ protected:
             pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name) +
                           "\": an object with that name is already defined");
 
-        if (get_type_info(*rec.type, false /* don't throw */, !rec.module_local))
+        if (rec.module_local ? get_local_type_info(*rec.type) : get_global_type_info(*rec.type))
             pybind11_fail("generic_type: type \"" + std::string(rec.name) +
                           "\" is already registered!");
 
@@ -865,6 +865,12 @@ protected:
         else if (rec.bases.size() == 1) {
             auto parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
             tinfo->simple_ancestors = parent_tinfo->simple_ancestors;
+        }
+
+        if (rec.module_local) {
+            // Stash the local typeinfo and loader so that external modules can access it.
+            tinfo->module_local_load = &type_caster_generic::local_load;
+            setattr(m_ptr, "_pybind11_module_local_typeinfo", capsule(tinfo));
         }
     }
 

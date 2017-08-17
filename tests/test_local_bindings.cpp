@@ -14,13 +14,6 @@
 #include <pybind11/stl_bind.h>
 #include <numeric>
 
-PYBIND11_MAKE_OPAQUE(LocalVec);
-PYBIND11_MAKE_OPAQUE(LocalVec2);
-PYBIND11_MAKE_OPAQUE(LocalMap);
-PYBIND11_MAKE_OPAQUE(NonLocalVec);
-PYBIND11_MAKE_OPAQUE(NonLocalMap);
-PYBIND11_MAKE_OPAQUE(NonLocalMap2);
-
 TEST_SUBMODULE(local_bindings, m) {
     // test_local_bindings
     // Register a class with py::module_local:
@@ -84,4 +77,21 @@ TEST_SUBMODULE(local_bindings, m) {
     m.def("load_vector_via_caster", [](std::vector<int> v) {
         return std::accumulate(v.begin(), v.end(), 0);
     });
+
+    // test_cross_module_calls
+    m.def("return_self", [](LocalVec *v) { return v; });
+    m.def("return_copy", [](const LocalVec &v) { return LocalVec(v); });
+
+    class Cat : public pets::Pet { public: Cat(std::string name) : Pet(name) {}; };
+    py::class_<pets::Pet>(m, "Pet", py::module_local())
+        .def("get_name", &pets::Pet::name);
+    // Binding for local extending class:
+    py::class_<Cat, pets::Pet>(m, "Cat")
+        .def(py::init<std::string>());
+    m.def("pet_name", [](pets::Pet &p) { return p.name(); });
+
+    py::class_<MixGL>(m, "MixGL").def(py::init<int>());
+    m.def("get_gl_value", [](MixGL &o) { return o.i + 10; });
+
+    py::class_<MixGL2>(m, "MixGL2").def(py::init<int>());
 }

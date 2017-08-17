@@ -775,27 +775,29 @@ Module-local class bindings
 
 When creating a binding for a class, pybind by default makes that binding
 "global" across modules.  What this means is that a type defined in one module
-can be passed to functions of other modules that expect the same C++ type.  For
+can be returned from any module resulting in the same Python type.  For
 example, this allows the following:
 
 .. code-block:: cpp
 
     // In the module1.cpp binding code for module1:
     py::class_<Pet>(m, "Pet")
-        .def(py::init<std::string>());
+        .def(py::init<std::string>())
+        .def_readonly("name", &Pet::name);
 
 .. code-block:: cpp
 
     // In the module2.cpp binding code for module2:
-    m.def("pet_name", [](Pet &p) { return p.name(); });
+    m.def("create_pet", [](std::string name) { return new Pet(name); });
 
 .. code-block:: pycon
 
     >>> from module1 import Pet
-    >>> from module2 import pet_name
-    >>> mypet = Pet("Kitty")
-    >>> pet_name(mypet)
-    'Kitty'
+    >>> from module2 import create_pet
+    >>> pet1 = Pet("Kitty")
+    >>> pet2 = create_pet("Doggy")
+    >>> pet2.name()
+    'Doggy'
 
 When writing binding code for a library, this is usually desirable: this
 allows, for example, splitting up a complex library into multiple Python
@@ -855,39 +857,45 @@ the ``py::class_`` constructor:
     py::class<pets::Pet>(m, "Pet", py::module_local())
         .def("get_name", &pets::Pet::name);
 
-This makes the Python-side ``dogs.Pet`` and ``cats.Pet`` into distinct classes
-that can only be accepted as ``Pet`` arguments within those classes.  This
-avoids the conflict and allows both modules to be loaded.
+This makes the Python-side ``dogs.Pet`` and ``cats.Pet`` into distinct classes,
+avoiding the conflict and allowing both modules to be loaded.  C++ code in the
+``dogs`` module that casts or returns a ``Pet`` instance will result in a
+``dogs.Pet`` Python instance, while C++ code in the ``cats`` module will result
+in a ``cats.Pet`` Python instance.
 
-One limitation of this approach is that because ``py::module_local`` types are
-distinct on the Python side, it is not possible to pass such a module-local
-type as a C++ ``Pet``-taking function outside that module.  For example, if the
-above ``cats`` and ``dogs`` module are each extended with a function:
+This does come with two caveats, however: First, external modules cannot return
+or cast a ``Pet`` instance to Python (unless they also provide their own local
+bindings).  Second, from the Python point of view they are two distinct classes.
+
+Note that the locality only applies in the C++ -> Python direction.  When
+passing such a ``py::module_local`` type into a C++ function, the module-local
+classes are still considered.  This means that if the following function is
+added to any module (including but not limited to the ``cats`` and ``dogs``
+modules above) it will be callable with either a ``dogs.Pet`` or ``cats.Pet``
+argument:
 
 .. code-block:: cpp
 
-    m.def("petname", [](pets::Pet &p) { return p.name(); });
+    m.def("pet_name", [](const pets::Pet &pet) { return pet.name(); });
 
-you will only be able to call the function with the local module's class:
+For example, suppose the above function is added to each of ``cats.cpp``,
+``dogs.cpp`` and ``frogs.cpp`` (where ``frogs.cpp`` is some other module that
+does *not* bind ``Pets`` at all).
 
 .. code-block:: pycon
 
-    >>> import cats, dogs  # No error because of the added py::module_local()
+    >>> import cats, dogs, frogs  # No error because of the added py::module_local()
     >>> mycat, mydog = cats.Cat("Fluffy"), dogs.Dog("Rover")
-    >>> (cats.petname(mycat), dogs.petname(mydog))
+    >>> (cats.pet_name(mycat), dogs.pet_name(mydog))
     ('Fluffy', 'Rover')
-    >>> cats.petname(mydog)
-    Traceback (most recent call last):
-      File "<stdin>", line 1, in <module>
-    TypeError: petname(): incompatible function arguments. The following argument types are supported:
-        1. (arg0: cats.Pet) -> str
+    >>> (cats.pet_name(mydog), dogs.pet_name(mycat), frogs.pet_name(mycat))
+    ('Rover', 'Fluffy', 'Fluffy')
 
-    Invoked with: <dogs.Dog object at 0x123>
-
-It is possible to use ``py::module_local()`` registrations in one module even if another module
-registers the same type globally: within the module with the module-local definition, all C++
-instances will be cast to the associated bound Python type.  Outside the module, any such values
-are converted to the global Python type created elsewhere.
+It is possible to use ``py::module_local()`` registrations in one module even
+if another module registers the same type globally: within the module with the
+module-local definition, all C++ instances will be cast to the associated bound
+Python type.  In other modules any such values are converted to the global
+Python type created elsewhere.
 
 .. note::
 
