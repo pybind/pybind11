@@ -141,11 +141,8 @@ def test_operator_new_delete(capture):
         d = m.HasOpNewDelBoth()
     assert capture == """
         A new 8
-        A placement-new 8
         B new 4
-        B placement-new 4
         D new 32
-        D placement-new 32
     """
     sz_alias = str(m.AliasedHasOpNewDelSize.size_alias)
     sz_noalias = str(m.AliasedHasOpNewDelSize.size_noalias)
@@ -153,8 +150,8 @@ def test_operator_new_delete(capture):
         c = m.AliasedHasOpNewDelSize()
         c2 = SubAliased()
     assert capture == (
-        "C new " + sz_alias + "\nC placement-new " + sz_noalias + "\n" +
-        "C new " + sz_alias + "\nC placement-new " + sz_alias + "\n"
+        "C new " + sz_noalias + "\n" +
+        "C new " + sz_alias + "\n"
     )
 
     with capture:

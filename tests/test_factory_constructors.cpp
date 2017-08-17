@@ -274,8 +274,9 @@ TEST_SUBMODULE(factory_constructors, m) {
         }
         int i;
     };
-    // Workaround for a `py::init<args>` on a class without placement new support
+    // As of 2.2, `py::init<args>` no longer requires placement new
     py::class_<NoPlacementNew>(m, "NoPlacementNew")
+        .def(py::init<int>())
         .def(py::init([]() { return new NoPlacementNew(100); }))
         .def_readwrite("i", &NoPlacementNew::i)
         ;
