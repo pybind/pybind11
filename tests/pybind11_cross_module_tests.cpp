@@ -87,4 +87,21 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("load_vector_via_binding", [](std::vector<int> &v) {
         return std::accumulate(v.begin(), v.end(), 0);
     });
+
+    // test_cross_module_calls
+    m.def("return_self", [](LocalVec *v) { return v; });
+    m.def("return_copy", [](const LocalVec &v) { return LocalVec(v); });
+
+    class Dog : public pets::Pet { public: Dog(std::string name) : Pet(name) {}; };
+    py::class_<pets::Pet>(m, "Pet", py::module_local())
+        .def("name", &pets::Pet::name);
+    // Binding for local extending class:
+    py::class_<Dog, pets::Pet>(m, "Dog")
+        .def(py::init<std::string>());
+    m.def("pet_name", [](pets::Pet &p) { return p.name(); });
+
+    py::class_<MixGL>(m, "MixGL", py::module_local()).def(py::init<int>());
+    m.def("get_gl_value", [](MixGL &o) { return o.i + 100; });
+
+    py::class_<MixGL2>(m, "MixGL2", py::module_local()).def(py::init<int>());
 }

@@ -51,6 +51,7 @@ struct type_info {
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;
+    void *(*module_local_load)(PyObject *, const type_info *) = nullptr;
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance */
     bool simple_type : 1;
@@ -265,23 +266,30 @@ PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
     return bases.front();
 }
 
-/// Return the type info for a given C++ type; on lookup failure can either throw or return nullptr.
-/// `check_global_types` can be specified as `false` to only check types registered locally to the
-/// current module.
-PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_index &tp,
-                                                          bool throw_if_missing = false,
-                                                          bool check_global_types = true) {
-    std::type_index type_idx(tp);
+inline detail::type_info *get_local_type_info(const std::type_index &tp) {
     auto &locals = registered_local_types_cpp();
-    auto it = locals.find(type_idx);
+    auto it = locals.find(tp);
     if (it != locals.end())
         return (detail::type_info *) it->second;
-    if (check_global_types) {
-        auto &types = get_internals().registered_types_cpp;
-        it = types.find(type_idx);
-        if (it != types.end())
-            return (detail::type_info *) it->second;
-    }
+    return nullptr;
+}
+
+inline detail::type_info *get_global_type_info(const std::type_index &tp) {
+    auto &types = get_internals().registered_types_cpp;
+    auto it = types.find(tp);
+    if (it != types.end())
+        return (detail::type_info *) it->second;
+    return nullptr;
+}
+
+/// Return the type info for a given C++ type; on lookup failure can either throw or return nullptr.
+PYBIND11_NOINLINE inline detail::type_info *get_type_info(const std::type_index &tp,
+                                                          bool throw_if_missing = false) {
+    if (auto ltype = get_local_type_info(tp))
+        return ltype;
+    if (auto gtype = get_global_type_info(tp))
+        return gtype;
+
     if (throw_if_missing) {
         std::string tname = tp.name();
         detail::clean_type_id(tname);
@@ -578,6 +586,8 @@ public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
      : typeinfo(get_type_info(type_info)) { }
 
+    type_caster_generic(const type_info *typeinfo) : typeinfo(typeinfo) { }
+
     bool load(handle src, bool convert) {
         return load_impl<type_caster_generic>(src, convert);
     }
@@ -597,7 +607,7 @@ public:
         auto it_instances = get_internals().registered_instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-                if (instance_type && instance_type == tinfo)
+                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
                     return handle((PyObject *) it_i->second).inc_ref();
             }
         }
@@ -655,8 +665,6 @@ public:
         return inst.release();
     }
 
-protected:
-
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
         auto *&vptr = v_h.value_ptr();
@@ -686,13 +694,41 @@ protected:
     }
     void check_holder_compat() {}
 
+    PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
+        auto caster = type_caster_generic(ti);
+        if (caster.load(src, false))
+            return caster.value;
+        return nullptr;
+    }
+
+    /// Try to load with foreign typeinfo, if available. Used when there is no
+    /// native typeinfo, or when the native one wasn't able to produce a value.
+    PYBIND11_NOINLINE bool try_load_foreign_module_local(handle src) {
+        constexpr auto *local_key = "_pybind11_module_local_typeinfo";
+        const auto pytype = src.get_type();
+        if (!hasattr(pytype, local_key))
+            return false;
+
+        type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
+        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp type
+        if (foreign_typeinfo->module_local_load == &local_load
+                || !same_type(*typeinfo->cpptype, *foreign_typeinfo->cpptype))
+            return false;
+
+        if (auto result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
+            value = result;
+            return true;
+        }
+        return false;
+    }
+
     // Implementation of `load`; this takes the type of `this` so that it can dispatch the relevant
     // bits of code between here and copyable_holder_caster where the two classes need different
     // logic (without having to resort to virtual inheritance).
     template <typename ThisT>
     PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
-        if (!src || !typeinfo)
-            return false;
+        if (!src) return false;
+        if (!typeinfo) return try_load_foreign_module_local(src);
         if (src.is_none()) {
             // Defer accepting None to other overloads (if we aren't in convert mode):
             if (!convert) return false;
@@ -757,7 +793,17 @@ protected:
             if (this_.try_direct_conversions(src))
                 return true;
         }
-        return false;
+
+        // Failed to match local typeinfo. Try again with global.
+        if (typeinfo->module_local) {
+            if (auto gtype = get_global_type_info(*typeinfo->cpptype)) {
+                typeinfo = gtype;
+                return load(src, false);
+            }
+        }
+
+        // Global typeinfo has precedence over foreign module_local
+        return try_load_foreign_module_local(src);
     }
 
 

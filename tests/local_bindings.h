@@ -18,7 +18,7 @@ using NonLocal2 = LocalBase<2>;
 using LocalExternal = LocalBase<3>;
 /// Mixed: registered local first, then global
 using MixedLocalGlobal = LocalBase<4>;
-/// Mixed: global first, then local (which fails)
+/// Mixed: global first, then local
 using MixedGlobalLocal = LocalBase<5>;
 
 using LocalVec = std::vector<LocalType>;
@@ -29,6 +29,15 @@ using NonLocalVec2 = std::vector<NonLocal2>;
 using NonLocalMap = std::unordered_map<std::string, NonLocalType>;
 using NonLocalMap2 = std::unordered_map<std::string, uint8_t>;
 
+PYBIND11_MAKE_OPAQUE(LocalVec);
+PYBIND11_MAKE_OPAQUE(LocalVec2);
+PYBIND11_MAKE_OPAQUE(LocalMap);
+PYBIND11_MAKE_OPAQUE(NonLocalVec);
+//PYBIND11_MAKE_OPAQUE(NonLocalVec2); // same type as LocalVec2
+PYBIND11_MAKE_OPAQUE(NonLocalMap);
+PYBIND11_MAKE_OPAQUE(NonLocalMap2);
+
+
 // Simple bindings (used with the above):
 template <typename T, int Adjust, typename... Args>
 py::class_<T> bind_local(Args && ...args) {
@@ -36,3 +45,16 @@ py::class_<T> bind_local(Args && ...args) {
         .def(py::init<int>())
         .def("get", [](T &i) { return i.i + Adjust; });
 };
+
+// Simulate a foreign library base class (to match the example in the docs):
+namespace pets {
+class Pet {
+public:
+    Pet(std::string name) : name_(name) {}
+    std::string name_;
+    const std::string &name() { return name_; }
+};
+}
+
+struct MixGL { int i; MixGL(int i) : i{i} {} };
+struct MixGL2 { int i; MixGL2(int i) : i{i} {} };
