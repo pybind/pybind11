@@ -148,6 +148,7 @@ class NCVirtTrampoline : public NCVirt {
 struct Base {
     /* for some reason MSVC2015 can't compile this if the function is pure virtual */
     virtual std::string dispatch() const { return {}; };
+    virtual ~Base() = default;
 };
 
 struct DispatchIssue : Base {
@@ -259,6 +260,7 @@ TEST_SUBMODULE(virtual_functions, m) {
         virtual std::string &str_ref() { return v; }
         virtual A A_value() { return a; }
         virtual A &A_ref() { return a; }
+        virtual ~OverrideTest() = default;
     };
 
     class PyOverrideTest : public OverrideTest {
@@ -311,6 +313,7 @@ public: \
         return say_something(1) + " " + std::to_string(unlucky_number()); \
     }
 A_METHODS
+    virtual ~A_Repeat() = default;
 };
 class B_Repeat : public A_Repeat {
 #define B_METHODS \
@@ -335,7 +338,7 @@ D_METHODS
 };
 
 // Base classes for templated inheritance trampolines.  Identical to the repeat-everything version:
-class A_Tpl { A_METHODS };
+class A_Tpl { A_METHODS; virtual ~A_Tpl() = default; };
 class B_Tpl : public A_Tpl { B_METHODS };
 class C_Tpl : public B_Tpl { C_METHODS };
 class D_Tpl : public C_Tpl { D_METHODS };

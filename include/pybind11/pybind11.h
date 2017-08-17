@@ -1046,13 +1046,13 @@ public:
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(const detail::init<Args...> &init, const Extra&... extra) {
+    class_ &def(const detail::initimpl::constructor<Args...> &init, const Extra&... extra) {
         init.execute(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(const detail::init_alias<Args...> &init, const Extra&... extra) {
+    class_ &def(const detail::initimpl::alias_constructor<Args...> &init, const Extra&... extra) {
         init.execute(*this, extra...);
         return *this;
     }
@@ -1351,10 +1351,10 @@ private:
 };
 
 /// Binds an existing constructor taking arguments Args...
-template <typename... Args> detail::init<Args...> init() { return detail::init<Args...>(); }
+template <typename... Args> detail::initimpl::constructor<Args...> init() { return {}; }
 /// Like `init<Args...>()`, but the instance is always constructed through the alias class (even
 /// when not inheriting on the Python side).
-template <typename... Args> detail::init_alias<Args...> init_alias() { return detail::init_alias<Args...>(); }
+template <typename... Args> detail::initimpl::alias_constructor<Args...> init_alias() { return {}; }
 
 /// Binds a factory function as a constructor
 template <typename Func, typename Ret = detail::initimpl::factory_t<Func>>
@@ -1368,44 +1368,6 @@ Ret init(CFunc &&c, AFunc &&a) {
 }
 
 NAMESPACE_BEGIN(detail)
-template <typename... Args> struct init {
-    template <typename Class, typename... Extra, enable_if_t<!Class::has_alias, int> = 0>
-    static void execute(Class &cl, const Extra&... extra) {
-        using Base = typename Class::type;
-        /// Function which calls a specific C++ in-place constructor
-        cl.def("__init__", [](Base *self_, Args... args) { new (self_) Base(args...); }, extra...);
-    }
-
-    template <typename Class, typename... Extra,
-              enable_if_t<Class::has_alias &&
-                          std::is_constructible<typename Class::type, Args...>::value, int> = 0>
-    static void execute(Class &cl, const Extra&... extra) {
-        using Base = typename Class::type;
-        using Alias = typename Class::type_alias;
-        handle cl_type = cl;
-        cl.def("__init__", [cl_type](handle self_, Args... args) {
-                if (self_.get_type().is(cl_type))
-                    new (self_.cast<Base *>()) Base(args...);
-                else
-                    new (self_.cast<Alias *>()) Alias(args...);
-            }, extra...);
-    }
-
-    template <typename Class, typename... Extra,
-              enable_if_t<Class::has_alias &&
-                          !std::is_constructible<typename Class::type, Args...>::value, int> = 0>
-    static void execute(Class &cl, const Extra&... extra) {
-        init_alias<Args...>::execute(cl, extra...);
-    }
-};
-template <typename... Args> struct init_alias {
-    template <typename Class, typename... Extra,
-              enable_if_t<Class::has_alias && std::is_constructible<typename Class::type_alias, Args...>::value, int> = 0>
-    static void execute(Class &cl, const Extra&... extra) {
-        using Alias = typename Class::type_alias;
-        cl.def("__init__", [](Alias *self_, Args... args) { new (self_) Alias(args...); }, extra...);
-    }
-};
 
 
 inline void keep_alive_impl(handle nurse, handle patient) {
