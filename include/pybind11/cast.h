@@ -62,7 +62,7 @@ struct type_info {
     bool module_local : 1;
 };
 
-PYBIND11_UNSHARED_STATIC_LOCALS PYBIND11_NOINLINE inline internals *&get_internals_ptr() {
+PYBIND11_NOINLINE inline internals *&get_internals_ptr() {
     static internals *internals_ptr = nullptr;
     return internals_ptr;
 }
@@ -129,7 +129,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
 }
 
 // Works like internals.registered_types_cpp, but for module-local registered types:
-PYBIND11_NOINLINE PYBIND11_UNSHARED_STATIC_LOCALS inline type_map<void *> &registered_local_types_cpp() {
+PYBIND11_NOINLINE inline type_map<void *> &registered_local_types_cpp() {
     static type_map<void *> locals{};
     return locals;
 }
