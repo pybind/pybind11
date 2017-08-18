@@ -60,7 +60,8 @@ v2.2.0 (Not yet released)
 
 * pybind11's headers and build system now more strictly enforce hidden symbol
   visibility for extension modules. This should be seamless for most users,
-  but see the upgrade guide if you use a custom build system.
+  but see the :doc:`upgrade` if you use a custom build system.
+  `#995 <https://github.com/pybind/pybind11/pull/995>`_.
 
 * Support for ``py::module_local`` types which allow multiple modules to
   export the same C++ types without conflicts. This is useful for opaque
