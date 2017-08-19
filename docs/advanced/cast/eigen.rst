@@ -57,7 +57,7 @@ expected:
 
 .. code-block:: cpp
 
-    void scale_by_2(Eigen::Ref<Eigen::VectorXd> m) {
+    void scale_by_2(Eigen::Ref<Eigen::VectorXd> v) {
         v *= 2;
     }
 
@@ -252,11 +252,11 @@ copying to take place:
     using namespace pybind11::literals; // for "arg"_a
     py::class_<MyClass>(m, "MyClass")
         // ... other class definitions
-        .def("some_method", &MyClass::some_method, py::arg().nocopy());
+        .def("some_method", &MyClass::some_method, py::arg().noconvert());
 
     m.def("some_function", &some_function,
-        "big"_a.nocopy(), // <- Don't allow copying for this arg
-        "small"_a         // <- This one can be copied if needed
+        "big"_a.noconvert(), // <- Don't allow copying for this arg
+        "small"_a            // <- This one can be copied if needed
     );
 
 With the above binding code, attempting to call the the ``some_method(m)``
