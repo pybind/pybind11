@@ -62,6 +62,8 @@ struct overload_hash {
 };
 
 /// Internal data structure used to track registered instances and types.
+/// Whenever binary incompatible changes are made to this structure,
+/// `PYBIND11_INTERNALS_VERSION` must be incremented.
 struct internals {
     type_map<void *> registered_types_cpp; // std::type_index -> type_info
     std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py; // PyTypeObject* -> base type_info(s)
@@ -83,6 +85,7 @@ struct internals {
 };
 
 /// Additional type information which does not fit into the PyTypeObject.
+/// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
 struct type_info {
     PyTypeObject *type;
     const std::type_info *cpptype;
@@ -107,8 +110,20 @@ struct type_info {
     bool module_local : 1;
 };
 
-#define PYBIND11_INTERNALS_ID "__pybind11_" \
-    PYBIND11_TOSTRING(PYBIND11_VERSION_MAJOR) "_" PYBIND11_TOSTRING(PYBIND11_VERSION_MINOR) "__"
+/// Tracks the `internals` and `type_info` ABI version independent of the main library version
+#define PYBIND11_INTERNALS_VERSION 1
+
+#if defined(WITH_THREAD)
+#  define PYBIND11_INTERNALS_KIND ""
+#else
+#  define PYBIND11_INTERNALS_KIND "_without_thread"
+#endif
+
+#define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND "__"
+
+#define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
