@@ -603,7 +603,7 @@ public:
     /// Try to load with foreign typeinfo, if available. Used when there is no
     /// native typeinfo, or when the native one wasn't able to produce a value.
     PYBIND11_NOINLINE bool try_load_foreign_module_local(handle src) {
-        constexpr auto *local_key = "_pybind11_module_local_typeinfo";
+        constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
         const auto pytype = src.get_type();
         if (!hasattr(pytype, local_key))
             return false;

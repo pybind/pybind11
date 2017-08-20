@@ -870,7 +870,7 @@ protected:
         if (rec.module_local) {
             // Stash the local typeinfo and loader so that external modules can access it.
             tinfo->module_local_load = &type_caster_generic::local_load;
-            setattr(m_ptr, "_pybind11_module_local_typeinfo", capsule(tinfo));
+            setattr(m_ptr, PYBIND11_MODULE_LOCAL_ID, capsule(tinfo));
         }
     }
 
