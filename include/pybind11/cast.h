@@ -169,7 +169,7 @@ inline detail::type_info *get_local_type_info(const std::type_index &tp) {
     auto &locals = registered_local_types_cpp();
     auto it = locals.find(tp);
     if (it != locals.end())
-        return (detail::type_info *) it->second;
+        return it->second;
     return nullptr;
 }
 
@@ -177,7 +177,7 @@ inline detail::type_info *get_global_type_info(const std::type_index &tp) {
     auto &types = get_internals().registered_types_cpp;
     auto it = types.find(tp);
     if (it != types.end())
-        return (detail::type_info *) it->second;
+        return it->second;
     return nullptr;
 }
 
