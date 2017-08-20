@@ -127,7 +127,7 @@ struct type_info {
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
-PYBIND11_NOINLINE inline internals *&get_internals_ptr() {
+inline internals *&get_internals_ptr() {
     static internals *internals_ptr = nullptr;
     return internals_ptr;
 }
@@ -196,7 +196,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
 }
 
 /// Works like `internals.registered_types_cpp`, but for module-local registered types:
-PYBIND11_NOINLINE inline type_map<type_info *> &registered_local_types_cpp() {
+inline type_map<type_info *> &registered_local_types_cpp() {
     static type_map<type_info *> locals{};
     return locals;
 }
