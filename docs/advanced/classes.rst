@@ -381,12 +381,12 @@ class like this:
         static Example create(int a) { return Example(a); }
     };
 
-While it is possible to expose the ``create`` method to Python, it is often
-preferrable to expose it on the Python side as a constructor rather than a
-named static method.  You can do this by calling ``.def(py::init(...))`` with
-the function reference returning the new instance passed as an argument.  It is
-also possible to use this approach to bind a function returning a new instance
-by raw pointer or by the holder (e.g. ``std::unique_ptr``).
+While it is possible to create a straightforward binding of the static
+``create`` method, it may sometimes be preferable to expose it as a constructor
+on the Python side. This can be accomplished by calling ``.def(py::init(...))``
+with the function reference returning the new instance passed as an argument.
+It is also possible to use this approach to bind a function returning a new
+instance by raw pointer or by the holder (e.g. ``std::unique_ptr``).
 
 The following example shows the different approaches:
 
@@ -421,18 +421,20 @@ The following example shows the different approaches:
 When the constructor is invoked from Python, pybind11 will call the factory
 function and store the resulting C++ instance in the Python instance.
 
-When combining factory functions constructors with :ref:`overriding_virtuals`
-there are two approaches.  The first is to add a constructor to the alias class
-that takes a base value by rvalue-reference.  If such a constructor is
-available, it will be used to construct an alias instance from the value
-returned by the factory function.  The second option is to provide two factory
-functions to ``py::init()``: the first will be invoked when no alias class is
-required (i.e. when the class is being used but not inherited from in Python),
-and the second will be invoked when an alias is required.
+When combining factory functions constructors with :ref:`virtual function
+trampolines <overriding_virtuals>` there are two approaches.  The first is to
+add a constructor to the alias class that takes a base value by
+rvalue-reference.  If such a constructor is available, it will be used to
+construct an alias instance from the value returned by the factory function.
+The second option is to provide two factory functions to ``py::init()``: the
+first will be invoked when no alias class is required (i.e. when the class is
+being used but not inherited from in Python), and the second will be invoked
+when an alias is required.
 
 You can also specify a single factory function that always returns an alias
 instance: this will result in behaviour similar to ``py::init_alias<...>()``,
-as described in :ref:`extended_aliases`.
+as described in the :ref:`extended trampoline class documentation
+<extended_aliases>`.
 
 The following example shows the different factory approaches for a class with
 an alias:
