@@ -172,7 +172,7 @@ template <typename... Args> struct constructor {
             // we really can't support that in C++, so just ignore the second __init__.
             if (v_h.instance_registered()) return;
 
-            construct<Class>(v_h, new Cpp<Class>(std::forward<Args>(args)...), false);
+            construct<Class>(v_h, new Cpp<Class>{std::forward<Args>(args)...}, false);
         }, extra...);
     }
 
@@ -186,9 +186,9 @@ template <typename... Args> struct constructor {
             if (v_h.instance_registered()) return; // Ignore duplicate __init__ calls (see above)
 
             if (Py_TYPE(v_h.inst) == cl_type->type)
-                construct<Class>(v_h, new Cpp<Class>(std::forward<Args>(args)...), false);
+                construct<Class>(v_h, new Cpp<Class>{std::forward<Args>(args)...}, false);
             else
-                construct<Class>(v_h, new Alias<Class>(std::forward<Args>(args)...), true);
+                construct<Class>(v_h, new Alias<Class>{std::forward<Args>(args)...}, true);
         }, extra...);
     }
 
@@ -200,7 +200,7 @@ template <typename... Args> struct constructor {
         cl.def("__init__", [cl_type](handle self_, Args... args) {
             auto v_h = load_v_h(self_, cl_type);
             if (v_h.instance_registered()) return; // Ignore duplicate __init__ calls (see above)
-            construct<Class>(v_h, new Alias<Class>(std::forward<Args>(args)...), true);
+            construct<Class>(v_h, new Alias<Class>{std::forward<Args>(args)...}, true);
         }, extra...);
     }
 };
@@ -214,7 +214,7 @@ template <typename... Args> struct alias_constructor {
         cl.def("__init__", [cl_type](handle self_, Args... args) {
             auto v_h = load_v_h(self_, cl_type);
             if (v_h.instance_registered()) return; // Ignore duplicate __init__ calls (see above)
-            construct<Class>(v_h, new Alias<Class>(std::forward<Args>(args)...), true);
+            construct<Class>(v_h, new Alias<Class>{std::forward<Args>(args)...}, true);
         }, extra...);
     }
 };

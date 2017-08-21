@@ -195,3 +195,10 @@ def test_bind_protected_functions():
 
     c = C()
     assert c.foo() == 0
+
+
+def test_brace_initialization():
+    """ Tests that simple POD classes can be constructed using C++11 brace initialization """
+    a = m.BraceInitialization(123, "test")
+    assert a.field1 == 123
+    assert a.field2 == "test"
