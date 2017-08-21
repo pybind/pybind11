@@ -168,7 +168,9 @@ template <typename... Args> struct constructor {
         auto *cl_type = get_type_info(typeid(Cpp<Class>));
         cl.def("__init__", [cl_type](handle self_, Args... args) {
             auto v_h = load_v_h(self_, cl_type);
-            if (v_h.instance_registered()) return; // Ignore duplicate __init__ calls (see above)
+            // If this value is already registered it must mean __init__ is invoked multiple times;
+            // we really can't support that in C++, so just ignore the second __init__.
+            if (v_h.instance_registered()) return;
 
             construct<Class>(v_h, new Cpp<Class>(std::forward<Args>(args)...), false);
         }, extra...);
