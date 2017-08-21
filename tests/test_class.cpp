@@ -280,6 +280,17 @@ TEST_SUBMODULE(class_, m) {
 #else
         .def("foo", static_cast<int (ProtectedB::*)() const>(&PublicistB::foo));
 #endif
+
+    // test_brace_initialization
+    struct BraceInitialization {
+        int field1;
+        std::string field2;
+    };
+
+    py::class_<BraceInitialization>(m, "BraceInitialization")
+        .def(py::init<int, const std::string &>())
+        .def_readwrite("field1", &BraceInitialization::field1)
+        .def_readwrite("field2", &BraceInitialization::field2);
 }
 
 template <int N> class BreaksBase { public: virtual ~BreaksBase() = default; };

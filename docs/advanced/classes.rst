@@ -492,6 +492,30 @@ you could equivalently write:
 
 which will invoke the constructor in-place at the pre-allocated memory.
 
+Brace initialization
+--------------------
+
+``pybind11::init<>`` internally uses C++11 brace initialization to call the
+constructor of the target class. This means that it can be used to bind
+*implicit* constructors as well:
+
+.. code-block:: cpp
+
+    struct Aggregate {
+        int a;
+        std::string b;
+    };
+
+    py::class_<Aggregate>(m, "Aggregate")
+        .def(py::init<int, const std::string &>());
+
+.. note::
+
+    Note that brace initialization preferentially invokes constructor overloads
+    taking a ``std::initializer_list``. In the rare event that this causes an
+    issue, you can work around it by using ``py::init(...)`` with a lambda
+    function that constructs the new object as desired.
+
 .. _classes_with_non_public_destructors:
 
 Non-public destructors
