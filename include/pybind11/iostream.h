@@ -49,13 +49,10 @@ public:
 };
 
 // Stream that writes to Python instead of C++ file descriptors
-class opythonstream : private virtual pythonbuf, public std::ostream {
+class opythonstream : public std::ostream {
 public:
-    opythonstream(object pyostream)
-        : pythonbuf(pyostream),
-          std::ostream(static_cast<std::streambuf*>(this)) {
-        // this->flags(std::ios_base::unitbuf);
-    }
+    opythonstream(object pyostream) : std::ostream(new pythonbuf(pyostream)) { }
+    virtual ~opythonstream() { delete rdbuf(nullptr); }
 };
 
 NAMESPACE_END(detail)
