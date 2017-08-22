@@ -659,9 +659,9 @@ struct is_template_base_of_impl {
 /// `is_template_base_of<Base, T>` is true if `struct T : Base<U> {}` where U can be anything
 template <template<typename...> class Base, typename T>
 #if !defined(_MSC_VER)
-using is_template_base_of = decltype(is_template_base_of_impl<Base>::check((remove_cv_t<T>*)nullptr));
+using is_template_base_of = decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T>*)nullptr));
 #else // MSVC2015 has trouble with decltype in template aliases
-struct is_template_base_of : decltype(is_template_base_of_impl<Base>::check((remove_cv_t<T>*)nullptr)) { };
+struct is_template_base_of : decltype(is_template_base_of_impl<Base>::check((intrinsic_t<T>*)nullptr)) { };
 #endif
 
 /// Check if T is an instantiation of the template `Class`. For example:
