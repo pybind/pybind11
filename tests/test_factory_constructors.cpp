@@ -177,7 +177,7 @@ TEST_SUBMODULE(factory_constructors, m) {
 
     // Stateful & reused:
     int c = 1;
-    auto c4a = [c](pointer_tag, TF4_tag, int a) { return new TestFactory4(a);};
+    auto c4a = [c](pointer_tag, TF4_tag, int a) { (void) c; return new TestFactory4(a);};
 
     // test_init_factory_basic, test_init_factory_casting
     py::class_<TestFactory3, std::shared_ptr<TestFactory3>>(m, "TestFactory3")
