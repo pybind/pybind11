@@ -10,12 +10,15 @@ platform:
 - x86
 environment:
   matrix:
-  - CONDA: 36
+  - PYTHON: 36
     CPP: 14
-  - CONDA: 27
+    CONFIG: Debug
+  - PYTHON: 27
     CPP: 14
+    CONFIG: Debug
   - CONDA: 36
     CPP: latest
+    CONFIG: Release
 matrix:
   exclude:
     - image: Visual Studio 2015
@@ -38,7 +41,7 @@ install:
       if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
       $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
       pip install --disable-pip-version-check --user --upgrade pip wheel
-      pip install pytest numpy scipy
+      pip install pytest numpy
     } elseif ($env:CONDA) {
       if ($env:CONDA -eq "27") { $env:CONDA = "" }
       if ($env:PLATFORM -eq "x64") { $env:CONDA = "$env:CONDA-x64" }
@@ -57,7 +60,7 @@ build_script:
     -DDOWNLOAD_CATCH=ON
     -DCMAKE_SUPPRESS_REGENERATION=1
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-- cmake --build . --config Release --target pytest -- /v:m /logger:%MSBuildLogger%
-- cmake --build . --config Release --target cpptest -- /v:m /logger:%MSBuildLogger%
-- cmake --build . --config Release --target test_cmake_build -- /v:m /logger:%MSBuildLogger%
+- cmake --build . --config %CONFIG% --target pytest -- /m /v:m /logger:%MSBuildLogger%
+- cmake --build . --config %CONFIG% --target cpptest -- /m /v:m /logger:%MSBuildLogger%
+- if "%CPP%"=="latest" (cmake --build . --config %CONFIG% --target test_cmake_build -- /m /v:m /logger:%MSBuildLogger%)
 on_failure: if exist "tests\test_cmake_build" type tests\test_cmake_build\*.log*
