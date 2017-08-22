@@ -342,7 +342,7 @@ public:
      * dimensionality, this is not checked (and so is up to the caller to use safely).
      */
     template <typename... Ix> const T &operator()(Ix... index) const {
-        static_assert(sizeof...(Ix) == Dims || Dynamic,
+        static_assert(ssize_t{sizeof...(Ix)} == Dims || Dynamic,
                 "Invalid number of indices for unchecked array reference");
         return *reinterpret_cast<const T *>(data_ + byte_offset_unsafe(strides_, ssize_t(index)...));
     }
@@ -391,7 +391,7 @@ class unchecked_mutable_reference : public unchecked_reference<T, Dims> {
 public:
     /// Mutable, unchecked access to data at the given indices.
     template <typename... Ix> T& operator()(Ix... index) {
-        static_assert(sizeof...(Ix) == Dims || Dynamic,
+        static_assert(ssize_t{sizeof...(Ix)} == Dims || Dynamic,
                 "Invalid number of indices for unchecked array reference");
         return const_cast<T &>(ConstBase::operator()(index...));
     }
