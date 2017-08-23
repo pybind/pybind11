@@ -1,5 +1,14 @@
 #pragma once
 
+/*
+    pybind11/iostream -- Tools to assist with redirecting cout and cerr to Python
+
+    Copyright (c) 2017 Henry F. Schreiner
+
+    All rights reserved. Use of this source code is governed by a
+    BSD-style license that can be found in the LICENSE file.
+*/
+
 #include "pybind11.h"
 
 #include <streambuf>
@@ -48,13 +57,6 @@ public:
     }
 };
 
-// Stream that writes to Python instead of C++ file descriptors
-class opythonstream : public std::ostream {
-public:
-    opythonstream(object pyostream) : std::ostream(new pythonbuf(pyostream)) { }
-    virtual ~opythonstream() { delete rdbuf(nullptr); }
-};
-
 NAMESPACE_END(detail)
 
 
@@ -83,18 +85,19 @@ NAMESPACE_END(detail)
 class scoped_ostream_redirect {
     std::streambuf * old {nullptr};
     std::ostream& costream;
-    detail::opythonstream buffer;
+    detail::pythonbuf buffer;
 
 public:
     scoped_ostream_redirect(
             std::ostream& costream = std::cout,
             object pyostream = module::import("sys").attr("stdout") )
         : costream(costream), buffer(pyostream) {
-        old = costream.rdbuf(buffer.rdbuf());
+        old = costream.rdbuf(&buffer);
     }
 
     ~scoped_ostream_redirect() {
         costream.rdbuf(old);
+        
     }
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
