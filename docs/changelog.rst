@@ -199,6 +199,20 @@ v2.2.0 (Not yet released)
       py::class_<Derived>(m, "Derived")
           .def("foo", &Derived::foo); // function is actually from `Base`
 
+* The implementation of ``py::init<>`` now uses C++11 brace initialization
+  syntax to construct instances, which permits binding implicit constructors of
+  aggregate types. `#1015 <https://github.com/pybind/pybind11/pull/1015>`_.
+
+    .. code-block:: cpp
+
+        struct Aggregate {
+            int a;
+            std::string b;
+        };
+
+        py::class_<Aggregate>(m, "Aggregate")
+            .def(py::init<int, const std::string &>());
+
 * Fixed issues with multiple inheritance with offset base/derived pointers.
   `#812 <https://github.com/pybind/pybind11/pull/812>`_,
   `#866 <https://github.com/pybind/pybind11/pull/866>`_,
