@@ -26,16 +26,14 @@ expected in Python:
 Capturing standard output from ostream
 ======================================
 
-Often, a library will use the streams :cpp:var:`std::cout` and
-:cpp:var:`std::cerr` to print, but this does not play well with Python's
-standard :py:obj:`sys.stdout` and :py:obj:`sys.stderr` redirection. Replacing a
-library's printing with :cpp:func:`py::print` may not be feasible. This can be
-fixed using a guard around the library function that redirects output to the
-corresponding python streams:
+Often, a library will use the streams ``std::cout`` and ``std::cerr`` to print,
+but this does not play well with Python's standard ``sys.stdout`` and ``sys.stderr``
+redirection. Replacing a library's printing with `py::print <print>` may not
+be feasible. This can be fixed using a guard around the library function that
+redirects output to the corresponding Python streams:
 
 .. code-block:: cpp
 
-    // At beginning of file
     #include <pybind11/iostream.h>
 
     ...
@@ -49,13 +47,13 @@ corresponding python streams:
         call_noisy_func();
     });
 
-This method respects flushes on the output streams, and will flush if needed
+This method respects flushes on the output streams and will flush if needed
 when the scoped guard is destroyed. This allows the output to be redirected in
 real time, such as to a Jupyter notebook. The two arguments, the C++ stream and
 the Python output, are optional, and default to standard output if not given. An
-extra type, `py::scoped_estream_redirect`, is identical execpt for
-defaulting to the error stream; this can be useful with `py::call_guard`, which
-allows multiple items, but uses the default constuctor:
+extra type, `py::scoped_estream_redirect <scoped_estream_redirect>`, is identical
+except for defaulting to ``std::cerr`` and ``sys.stderr``; this can be useful with
+`py::call_guard`, which allows multiple items, but uses the default constructor:
 
 .. code-block:: py
 
@@ -64,8 +62,8 @@ allows multiple items, but uses the default constuctor:
           py::call_guard<py::scoped_ostream_redirect,
                          py::scoped_estream_redirect>());
 
-The redirection can also be done in python with the addition of a context
-manager, using the `py::add_ostream_redirect()` function:
+The redirection can also be done in Python with the addition of a context
+manager, using the `py::add_ostream_redirect() <add_ostream_redirect>` function:
 
 .. code-block:: cpp
 
@@ -79,14 +77,14 @@ creates the following context manager in Python:
     with ostream_redirect(stdout=True, stderr=True):
         noisy_function()
 
-The added context manager defaults to redirecting both streams, though you can
-use the keyword arguments to disable one of the streams if needed.
+It defaults to redirecting both streams, though you can use the keyword
+arguments to disable one of the streams if needed.
 
-.. note:
+.. note::
 
-    The above methods will not redirect direct output to file descriptors, such
+    The above methods will not redirect C-level output to file descriptors, such
     as ``fprintf``. For those cases, you'll need to redirect the file
-    descriptors either directly in C or with Python's :py:obj:`os.dup2` function
+    descriptors either directly in C or with Python's ``os.dup2`` function
     in an operating-system dependent way.
 
 .. _eval:

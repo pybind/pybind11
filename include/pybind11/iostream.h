@@ -1,13 +1,13 @@
-#pragma once
-
 /*
-    pybind11/iostream -- Tools to assist with redirecting cout and cerr to Python
+    pybind11/iostream.h -- Tools to assist with redirecting cout and cerr to Python
 
     Copyright (c) 2017 Henry F. Schreiner
 
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
 */
+
+#pragma once
 
 #include "pybind11.h"
 
@@ -24,8 +24,8 @@ NAMESPACE_BEGIN(detail)
 class pythonbuf : public std::streambuf {
 private:
     using traits_type = std::streambuf::traits_type;
-    char          d_buffer[1024];
 
+    char d_buffer[1024];
     object pywrite;
     object pyflush;
 
@@ -49,12 +49,14 @@ private:
         }
         return 0;
     }
+
 public:
     pythonbuf(object pyostream)
         : pywrite(pyostream.attr("write")),
           pyflush(pyostream.attr("flush")) {
         setp(d_buffer, d_buffer + sizeof(d_buffer) - 1);
     }
+
     /// Sync before destroy
     ~pythonbuf() {
         sync();
@@ -65,37 +67,38 @@ NAMESPACE_END(detail)
 
 
 /** \rst
-    Scoped ostream output redirect
     This a move-only guard that redirects output.
 
     .. code-block:: cpp
 
         #include <pybind11/iostream.h>
 
-        int main() {
+        ...
+
+        {
             py::scoped_ostream_redirect output;
             std::cout << "Hello, World!"; // Python stdout
         } // <-- return std::cout to normal
 
-    You can explicitly pass the c++ stream and the python object, for example to gaurd stderr instead.
+    You can explicitly pass the c++ stream and the python object,
+    for example to guard stderr instead.
 
     .. code-block:: cpp
-        int main() {
+
+        {
             py::scoped_ostream_redirect output{std::cerr, py::module::import("sys").attr("stderr")};
             std::cerr << "Hello, World!";
         }
  \endrst */
-
 class scoped_ostream_redirect {
 protected:
-    std::streambuf * old;
-    std::ostream& costream;
+    std::streambuf *old;
+    std::ostream &costream;
     detail::pythonbuf buffer;
 
 public:
-
     scoped_ostream_redirect(
-            std::ostream& costream = std::cout,
+            std::ostream &costream = std::cout,
             object pyostream = module::import("sys").attr("stdout"))
         : costream(costream), buffer(pyostream) {
         old = costream.rdbuf(&buffer);
@@ -113,11 +116,10 @@ public:
 
 
 /** \rst
-    Scoped ostream output redirect with cerr defaults
+    Like `scoped_ostream_redirect`, but redirects cerr by default. This class
+    is provided primary to make ``py::call_guard`` easier to make.
 
-    This class is provided primary to make call_guards easier to make.
-
-    .. code_block:: cpp
+    .. code-block:: cpp
 
      m.def("noisy_func", &noisy_func,
            py::call_guard<scoped_ostream_redirect,
@@ -127,14 +129,9 @@ public:
 class scoped_estream_redirect : public scoped_ostream_redirect {
 public:
     scoped_estream_redirect(
-            std::ostream& costream = std::cerr,
+            std::ostream &costream = std::cerr,
             object pyostream = module::import("sys").attr("stderr"))
         : scoped_ostream_redirect(costream,pyostream) {}
-
-    scoped_estream_redirect(const scoped_estream_redirect &) = delete;
-    scoped_estream_redirect(scoped_estream_redirect &&other) = default;
-    scoped_estream_redirect &operator=(const scoped_estream_redirect &) = delete;
-    scoped_estream_redirect &operator=(scoped_estream_redirect &&) = delete;
 };
 
 
@@ -148,7 +145,6 @@ class OstreamRedirect {
     std::unique_ptr<scoped_estream_redirect> redirect_stderr;
 
 public:
-
     OstreamRedirect(bool do_stdout = true, bool do_stderr = true)
         : do_stdout_(do_stdout), do_stderr_(do_stderr) {}
 
@@ -168,8 +164,8 @@ public:
 NAMESPACE_END(detail)
 
 /** \rst
-    This is a helper function to add a C++ redirect context manager to Python instead of using a C++ guard.
-    To use it, add the following to your binding code:
+    This is a helper function to add a C++ redirect context manager to Python
+    instead of using a C++ guard. To use it, add the following to your binding code:
 
     .. code-block:: cpp
 
@@ -179,7 +175,7 @@ NAMESPACE_END(detail)
 
         py::add_ostream_redirect(m, "ostream_redirect");
 
-    You now have a python context manager that redirects your output:
+    You now have a Python context manager that redirects your output:
 
     .. code-block:: python
 
@@ -194,16 +190,11 @@ NAMESPACE_END(detail)
             m.noisy_function_with_error_printing()
 
  \endrst */
-
 inline class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::string name = "ostream_redirect") {
-    return class_<detail::OstreamRedirect>(m, name.c_str())
+    return class_<detail::OstreamRedirect>(m, name.c_str(), module_local())
         .def(init<bool,bool>(), arg("stdout")=true, arg("stderr")=true)
-        .def("__enter__", [](detail::OstreamRedirect &self) {
-            self.enter();
-        })
-        .def("__exit__", [](detail::OstreamRedirect &self, args) {
-            self.exit();
-        });
+        .def("__enter__", &detail::OstreamRedirect::enter)
+        .def("__exit__", [](detail::OstreamRedirect &self, args) { self.exit(); });
 }
 
 NAMESPACE_END(PYBIND11_NAMESPACE)
