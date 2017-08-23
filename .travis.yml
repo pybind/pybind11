@@ -65,7 +65,8 @@ matrix:
   # Documentation build:
   - os: linux
     language: docs
-    env: DOCS STYLE LINT
+    env: DOCS STYLE LINT PIP
+    cache: false
     install:
     - export PATH="~/.local/bin:$PATH"
     - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe flake8 pep8-naming
@@ -76,6 +77,12 @@ matrix:
     - $PY_CMD -m sphinx -W -b html docs docs/.build
     - tools/check-style.sh
     - flake8
+    - |
+      # Make sure setup.py distributes and installs all the headers
+      $PY_CMD setup.py sdist
+      $PY_CMD -m pip install --user -U ./dist/*
+      installed=$($PY_CMD -c "import pybind11; print(pybind11.get_include(True) + '/pybind11')")
+      diff -rq $installed ./include/pybind11
 cache:
   directories:
   - $HOME/.local/bin
