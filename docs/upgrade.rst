@@ -162,6 +162,39 @@ See :ref:`custom_constructors` for details.
         }));
 
 
+New syntax for pickling support
+-------------------------------
+
+Mirroring the custom constructor changes, ``py::pickle()`` is now the preferred
+way to get and set object state. See :ref:`pickling` for details.
+
+.. code-block:: cpp
+
+    // old -- deprecated
+    py::class<Foo>(m, "Foo")
+        ...
+        .def("__getstate__", [](const Foo &self) {
+            return py::make_tuple(self.value1(), self.value2(), ...);
+        })
+        .def("__setstate__", [](Foo &self, py::tuple t) {
+            new (&self) Foo(t[0].cast<std::string>(), ...);
+        });
+
+    // new
+    py::class<Foo>(m, "Foo")
+        ...
+        .def(py::pickle(
+            [](const Foo &self) { // __getstate__
+                return py::make_tuple(f.value1(), f.value2(), ...); // unchanged
+            },
+            [](py::tuple t) { // __setstate__, note: no `self` argument
+                return new Foo(t[0].cast<std::string>(), ...);
+                // or: return std::make_unique<Foo>(...); // return by holder
+                // or: return Foo(...); // return by value (move constructor)
+            }
+        ));
+
+
 Deprecation of some ``py::object`` APIs
 ---------------------------------------
 

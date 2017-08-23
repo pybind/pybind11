@@ -25,6 +25,12 @@ TEST_SUBMODULE(pickling, m) {
         int m_extra1 = 0;
         int m_extra2 = 0;
     };
+
+    class PickleableNew : public Pickleable {
+    public:
+        using Pickleable::Pickleable;
+    };
+
     py::class_<Pickleable>(m, "Pickleable")
         .def(py::init<std::string>())
         .def("value", &Pickleable::value)
@@ -49,6 +55,23 @@ TEST_SUBMODULE(pickling, m) {
             p.setExtra2(t[2].cast<int>());
         });
 
+    py::class_<PickleableNew, Pickleable>(m, "PickleableNew")
+        .def(py::init<std::string>())
+        .def(py::pickle(
+            [](const PickleableNew &p) {
+                return py::make_tuple(p.value(), p.extra1(), p.extra2());
+            },
+            [](py::tuple t) {
+                if (t.size() != 3)
+                    throw std::runtime_error("Invalid state!");
+                auto p = PickleableNew(t[0].cast<std::string>());
+
+                p.setExtra1(t[1].cast<int>());
+                p.setExtra2(t[2].cast<int>());
+                return p;
+            }
+        ));
+
 #if !defined(PYPY_VERSION)
     // test_roundtrip_with_dict
     class PickleableWithDict {
@@ -58,6 +81,12 @@ TEST_SUBMODULE(pickling, m) {
         std::string value;
         int extra;
     };
+
+    class PickleableWithDictNew : public PickleableWithDict {
+    public:
+        using PickleableWithDict::PickleableWithDict;
+    };
+
     py::class_<PickleableWithDict>(m, "PickleableWithDict", py::dynamic_attr())
         .def(py::init<std::string>())
         .def_readwrite("value", &PickleableWithDict::value)
@@ -79,5 +108,23 @@ TEST_SUBMODULE(pickling, m) {
             /* Assign Python state */
             self.attr("__dict__") = t[2];
         });
+
+    py::class_<PickleableWithDictNew, PickleableWithDict>(m, "PickleableWithDictNew")
+        .def(py::init<std::string>())
+        .def(py::pickle(
+            [](py::object self) {
+                return py::make_tuple(self.attr("value"), self.attr("extra"), self.attr("__dict__"));
+            },
+            [](py::tuple t) {
+                if (t.size() != 3)
+                    throw std::runtime_error("Invalid state!");
+
+                auto cpp_state = PickleableWithDictNew(t[0].cast<std::string>());
+                cpp_state.extra = t[1].cast<int>();
+
+                auto py_state = t[2].cast<py::dict>();
+                return std::make_pair(cpp_state, py_state);
+            }
+        ));
 #endif
 }

@@ -91,6 +91,11 @@ v2.2.0 (Not yet released)
               return std::make_unique<Example>(std::to_string(n));
           }));
 
+* Similarly to custom constructors, pickling support functions are now bound
+  using the ``py::pickle()`` adaptor which improves type safety. See the
+  :doc:`upgrade` and :ref:`pickling` for details.
+  `#1038 <https://github.com/pybind/pybind11/pull/1038>`_.
+
 * Builtin support for converting C++17 standard library types and general
   conversion improvements:
 
