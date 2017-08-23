@@ -77,7 +77,7 @@ v2.2.0 (Not yet released)
   functions which return a class instance by value, pointer or holder. This
   supersedes the old placement-new ``__init__`` technique.
   See :ref:`custom_constructors` for details.
-  `#805 <https://github.com/pybind/pybind11/pull/997>`_.
+  `#805 <https://github.com/pybind/pybind11/pull/805>`_.
 
   .. code-block:: cpp
 
