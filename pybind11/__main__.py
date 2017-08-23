@@ -8,12 +8,18 @@ from . import get_include
 
 
 def print_includes():
-    dirs = [sysconfig.get_path('include')]
-    if sysconfig.get_path('platinclude') not in dirs:
-        dirs.append(sysconfig.get_path('platinclude'))
-    if get_include() not in dirs:
-        dirs.append(get_include())
-    print(' '.join('-I' + d for d in dirs))
+    dirs = [sysconfig.get_path('include'),
+            sysconfig.get_path('platinclude'),
+            get_include(),
+            get_include(True)]
+
+    # Make unique but preserve order
+    unique_dirs = []
+    for d in dirs:
+        if d not in unique_dirs:
+            unique_dirs.append(d)
+
+    print(' '.join('-I' + d for d in unique_dirs))
 
 
 def main():
