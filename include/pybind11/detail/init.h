@@ -271,6 +271,55 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
     }
 };
 
+/// Set just the C++ state. Same as `__init__`.
+template <typename Class, typename T>
+void setstate(value_and_holder &v_h, T &&result, bool need_alias) {
+    construct<Class>(v_h, std::forward<T>(result), need_alias);
+}
+
+/// Set both the C++ and Python states
+template <typename Class, typename T, typename O,
+          enable_if_t<std::is_convertible<O, handle>::value, int> = 0>
+void setstate(value_and_holder &v_h, std::pair<T, O> &&result, bool need_alias) {
+    construct<Class>(v_h, std::move(result.first), need_alias);
+    setattr((PyObject *) v_h.inst, "__dict__", result.second);
+}
+
+/// Implementation for py::pickle(GetState, SetState)
+template <typename Get, typename Set,
+          typename = function_signature_t<Get>, typename = function_signature_t<Set>>
+struct pickle_factory;
+
+template <typename Get, typename Set,
+          typename RetState, typename Self, typename NewInstance, typename ArgState>
+struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
+    static_assert(std::is_same<RetState, ArgState>::value,
+                  "The type returned by `__getstate__` must be the same "
+                  "as the argument accepted by `__setstate__`");
+
+    remove_reference_t<Get> get;
+    remove_reference_t<Set> set;
+
+    pickle_factory(Get get, Set set)
+        : get(std::forward<Get>(get)), set(std::forward<Set>(set)) { }
+
+    template <typename Class, typename... Extra>
+    void execute(Class &cl, const Extra &...extra) && {
+        cl.def("__getstate__", std::move(get));
+
+#if defined(PYBIND11_CPP14)
+        cl.def("__setstate__", [func = std::move(set)]
+#else
+        auto &func = set;
+        cl.def("__setstate__", [func]
+#endif
+        (value_and_holder &v_h, ArgState state) {
+            setstate<Class>(v_h, func(std::forward<ArgState>(state)),
+                            Py_TYPE(v_h.inst) != v_h.type->type);
+        }, is_new_style_constructor(), extra...);
+    }
+};
+
 NAMESPACE_END(initimpl)
 NAMESPACE_END(detail)
 NAMESPACE_END(pybind11)

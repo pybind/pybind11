@@ -1095,6 +1095,12 @@ public:
         return *this;
     }
 
+    template <typename... Args, typename... Extra>
+    class_ &def(detail::initimpl::pickle_factory<Args...> &&pf, const Extra &...extra) {
+        std::move(pf).execute(*this, extra...);
+        return *this;
+    }
+
     template <typename Func> class_& def_buffer(Func &&func) {
         struct capture { Func func; };
         capture *ptr = new capture { std::forward<Func>(func) };
@@ -1398,6 +1404,13 @@ template <typename CFunc, typename AFunc, typename Ret = detail::initimpl::facto
 Ret init(CFunc &&c, AFunc &&a) {
     return {std::forward<CFunc>(c), std::forward<AFunc>(a)};
 }
+
+/// Binds pickling functions `__getstate__` and `__setstate__` and ensures that the type
+/// returned by `__getstate__` is the same as the argument accepted by `__setstate__`.
+template <typename GetState, typename SetState>
+detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetState &&s) {
+    return {std::forward<GetState>(g), std::forward<SetState>(s)};
+};
 
 NAMESPACE_BEGIN(detail)
 

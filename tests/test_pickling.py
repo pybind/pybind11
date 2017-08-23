@@ -7,8 +7,10 @@ except ImportError:
     import pickle
 
 
-def test_roundtrip():
-    p = m.Pickleable("test_value")
+@pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
+def test_roundtrip(cls_name):
+    cls = getattr(m, cls_name)
+    p = cls("test_value")
     p.setExtra1(15)
     p.setExtra2(48)
 
@@ -20,8 +22,10 @@ def test_roundtrip():
 
 
 @pytest.unsupported_on_pypy
-def test_roundtrip_with_dict():
-    p = m.PickleableWithDict("test_value")
+@pytest.mark.parametrize("cls_name", ["PickleableWithDict", "PickleableWithDictNew"])
+def test_roundtrip_with_dict(cls_name):
+    cls = getattr(m, cls_name)
+    p = cls("test_value")
     p.extra = 15
     p.dynamic = "Attribute"
 

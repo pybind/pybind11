@@ -687,13 +687,15 @@ throwing a type error.
     complete example that demonstrates how to work with overloaded operators in
     more detail.
 
+.. _pickling:
+
 Pickling support
 ================
 
 Python's ``pickle`` module provides a powerful facility to serialize and
 de-serialize a Python object graph into a binary data stream. To pickle and
-unpickle C++ classes using pybind11, two additional functions must be provided.
-Suppose the class in question has the following signature:
+unpickle C++ classes using pybind11, a ``py::pickle()`` definition must be
+provided. Suppose the class in question has the following signature:
 
 .. code-block:: cpp
 
@@ -709,8 +711,9 @@ Suppose the class in question has the following signature:
         int m_extra = 0;
     };
 
-The binding code including the requisite ``__setstate__`` and ``__getstate__`` methods [#f3]_
-looks as follows:
+Pickling support in Python is enable by defining the ``__setstate__`` and
+``__getstate__`` methods [#f3]_. For pybind11 classes, use ``py::pickle()``
+to bind these two functions:
 
 .. code-block:: cpp
 
@@ -719,21 +722,28 @@ looks as follows:
         .def("value", &Pickleable::value)
         .def("extra", &Pickleable::extra)
         .def("setExtra", &Pickleable::setExtra)
-        .def("__getstate__", [](const Pickleable &p) {
-            /* Return a tuple that fully encodes the state of the object */
-            return py::make_tuple(p.value(), p.extra());
-        })
-        .def("__setstate__", [](Pickleable &p, py::tuple t) {
-            if (t.size() != 2)
-                throw std::runtime_error("Invalid state!");
+        .def(py::pickle(
+            [](const Pickleable &p) { // __getstate__
+                /* Return a tuple that fully encodes the state of the object */
+                return py::make_tuple(p.value(), p.extra());
+            },
+            [](py::tuple t) { // __setstate__
+                if (t.size() != 2)
+                    throw std::runtime_error("Invalid state!");
 
-            /* Invoke the in-place constructor. Note that this is needed even
-               when the object just has a trivial default constructor */
-            new (&p) Pickleable(t[0].cast<std::string>());
+                /* Create a new C++ instance */
+                Pickleable p(t[0].cast<std::string>());
 
-            /* Assign any additional state */
-            p.setExtra(t[1].cast<int>());
-        });
+                /* Assign any additional state */
+                p.setExtra(t[1].cast<int>());
+
+                return p;
+            }
+        ));
+
+The ``__setstate__`` part of the ``py::picke()`` definition follows the same
+rules as the single-argument version of ``py::init()``. The return type can be
+a value, pointer or holder type. See :ref:`custom_constructors` for details.
 
 An instance can now be pickled as follows:
 
