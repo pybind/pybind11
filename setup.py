@@ -3,6 +3,7 @@
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 
 from setuptools import setup
+from distutils.command.install_headers import install_headers
 from pybind11 import __version__
 import os
 
@@ -17,7 +18,7 @@ else:
         'include/pybind11/detail/descr.h',
         'include/pybind11/detail/init.h',
         'include/pybind11/detail/internals.h',
-        'include/pybind11/detail/typeid.h'
+        'include/pybind11/detail/typeid.h',
         'include/pybind11/attr.h',
         'include/pybind11/buffer_info.h',
         'include/pybind11/cast.h',
@@ -36,6 +37,22 @@ else:
         'include/pybind11/stl_bind.h',
     ]
 
+
+class InstallHeaders(install_headers):
+    """Use custom header installer because the default one flattens subdirectories"""
+    def run(self):
+        if not self.distribution.headers:
+            return
+
+        for header in self.distribution.headers:
+            subdir = os.path.dirname(os.path.relpath(header, 'include/pybind11'))
+            install_dir = os.path.join(self.install_dir, subdir)
+            self.mkpath(install_dir)
+
+            (out, _) = self.copy_file(header, install_dir)
+            self.outfiles.append(out)
+
+
 setup(
     name='pybind11',
     version=__version__,
@@ -47,6 +64,7 @@ setup(
     packages=['pybind11'],
     license='BSD',
     headers=headers,
+    cmdclass=dict(install_headers=InstallHeaders),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
