@@ -1389,12 +1389,12 @@ template <typename... Args> detail::initimpl::constructor<Args...> init() { retu
 template <typename... Args> detail::initimpl::alias_constructor<Args...> init_alias() { return {}; }
 
 /// Binds a factory function as a constructor
-template <typename Func, typename Ret = detail::initimpl::factory_t<Func>>
+template <typename Func, typename Ret = detail::initimpl::factory<Func>>
 Ret init(Func &&f) { return {std::forward<Func>(f)}; }
 
 /// Dual-argument factory function: the first function is called when no alias is needed, the second
 /// when an alias is needed (i.e. due to python-side inheritance).  Arguments must be identical.
-template <typename CFunc, typename AFunc, typename Ret = detail::initimpl::factory_t<CFunc, AFunc>>
+template <typename CFunc, typename AFunc, typename Ret = detail::initimpl::factory<CFunc, AFunc>>
 Ret init(CFunc &&c, AFunc &&a) {
     return {std::forward<CFunc>(c), std::forward<AFunc>(a)};
 }
