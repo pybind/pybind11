@@ -12,23 +12,40 @@
 #include "pybind11_tests.h"
 #include <iostream>
 
+
 TEST_SUBMODULE(iostream, m) {
+
+    add_ostream_redirect(m);
+
     // test_evals
 
-    m.def("captured_output", [](std::string msg) {
-        py::scoped_output_redirect redir(std::cout, py::module::import("sys").attr("stdout"));
+    m.def("captured_output_default", [](std::string msg) {
+        py::scoped_ostream_redirect redir;
         std::cout << msg << std::flush;
+    });
+
+    m.def("captured_output", [](std::string msg) {
+        py::scoped_ostream_redirect redir(std::cout, py::module::import("sys").attr("stdout"));
+        std::cout << msg << std::flush;
+    });
+
+    m.def("captured_err", [](std::string msg) {
+        py::scoped_ostream_redirect redir(std::cerr, py::module::import("sys").attr("stderr"));
+        std::cerr << msg << std::flush;
     });
 
     m.def("raw_output", [](std::string msg) {
         std::cout << msg << std::flush;
     });
 
+    m.def("raw_err", [](std::string msg) {
+        std::cerr << msg << std::flush;
+    });
+
     m.def("captured_dual", [](std::string msg, std::string emsg) {
-        py::scoped_output_redirect redirout(std::cout, py::module::import("sys").attr("stdout"));
-        py::scoped_output_redirect redirerr(std::cerr, py::module::import("sys").attr("stderr"));
+        py::scoped_ostream_redirect redirout(std::cout, py::module::import("sys").attr("stdout"));
+        py::scoped_ostream_redirect redirerr(std::cerr, py::module::import("sys").attr("stderr"));
         std::cout << msg << std::flush;
         std::cerr << emsg << std::flush;
     });
-
 }

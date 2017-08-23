@@ -1,17 +1,57 @@
-import pytest
 from pybind11_tests import iostream as m
+import sys
+
+from contextlib import contextmanager
+
+try:
+    # Python 3
+    from io import StringIO
+except ImportError:
+    # Python 2
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
+
+try:
+    # Python 3.4
+    from contextlib import redirect_stdout
+except ImportError:
+    @contextmanager
+    def redirect_stdout(target):
+        original = sys.stdout
+        sys.stdout = target
+        yield
+        sys.stdout = original
+
+try:
+    # Python 3.5
+    from contextlib import redirect_stderr
+except ImportError:
+    @contextmanager
+    def redirect_stderr(target):
+        original = sys.stderr
+        sys.stderr = target
+        yield
+        sys.stderr = original
 
 
-def test_captured(capture):
-    with capture:
-        m.captured_output("I've been redirected to Python, I hope!")
-    assert capture == "I've been redirected to Python, I hope!"
+def test_captured(capsys):
+    msg = "I've been redirected to Python, I hope!"
+    m.captured_output(msg)
+    stdout, stderr = capsys.readouterr()
+    assert stdout == msg
+    assert stderr == ''
 
+    m.captured_output_default(msg)
+    stdout, stderr = capsys.readouterr()
+    assert stdout == msg
+    assert stderr == ''
 
-def test_not_captured(capture):
-    with capture:
-        m.raw_output(" <OK> ")
-    assert capture == ""
+    m.captured_err(msg)
+    stdout, stderr = capsys.readouterr()
+    assert stdout == ''
+    assert stderr == msg
 
 
 def test_series_captured(capture):
@@ -21,20 +61,54 @@ def test_series_captured(capture):
     assert capture == "ab"
 
 
-def test_multi_captured(capture):
-    with capture:
-        m.captured_output("a")
-        m.raw_output(" <OK> ")
-        m.captured_output("b")
-    assert capture == "ab"
-
-
-# capfd seems to be unstable on pypy
-@pytest.unsupported_on_pypy
-def test_successful(capfd):
-    m.raw_output("I've been output to cout, I hope!")
+def test_not_captured(capfd):
+    msg = "Something that should not show up in log"
+    stream = StringIO()
+    with redirect_stdout(stream):
+        m.raw_output(msg)
     stdout, stderr = capfd.readouterr()
-    assert stdout == "I've been output to cout, I hope!"
+    assert stdout == msg
+    assert stderr == ''
+    assert stream.getvalue() == ''
+
+    stream = StringIO()
+    with redirect_stdout(stream):
+        m.captured_output(msg)
+    stdout, stderr = capfd.readouterr()
+    assert stdout == ''
+    assert stderr == ''
+    assert stream.getvalue() == msg
+
+
+def test_err(capfd):
+    msg = "Something that should not show up in log"
+    stream = StringIO()
+    with redirect_stderr(stream):
+        m.raw_err(msg)
+    stdout, stderr = capfd.readouterr()
+    assert stdout == ''
+    assert stderr == msg
+    assert stream.getvalue() == ''
+
+    stream = StringIO()
+    with redirect_stderr(stream):
+        m.captured_err(msg)
+    stdout, stderr = capfd.readouterr()
+    assert stdout == ''
+    assert stderr == ''
+    assert stream.getvalue() == msg
+
+
+def test_multi_captured(capfd):
+    stream = StringIO()
+    with redirect_stdout(stream):
+        m.captured_output("a")
+        m.raw_output("b")
+        m.captured_output("c")
+        m.raw_output("d")
+    stdout, stderr = capfd.readouterr()
+    assert stdout == 'bd'
+    assert stream.getvalue() == 'ac'
 
 
 def test_dual(capsys):
@@ -42,3 +116,61 @@ def test_dual(capsys):
     stdout, stderr = capsys.readouterr()
     assert stdout == "a"
     assert stderr == "b"
+
+
+def test_redirect(capfd):
+    msg = "Should not be in log!"
+    stream = StringIO()
+    with redirect_stdout(stream):
+        m.raw_output(msg)
+    stdout, stderr = capfd.readouterr()
+    assert stdout == msg
+    assert stream.getvalue() == ''
+
+    stream = StringIO()
+    with redirect_stdout(stream):
+        with m.ostream_redirect():
+            m.raw_output(msg)
+    stdout, stderr = capfd.readouterr()
+    assert stdout == ''
+    assert stream.getvalue() == msg
+
+    stream = StringIO()
+    with redirect_stdout(stream):
+        m.raw_output(msg)
+    stdout, stderr = capfd.readouterr()
+    assert stdout == msg
+    assert stream.getvalue() == ''
+
+
+def test_redirect_err(capfd):
+    msg = "StdOut"
+    msg2 = "StdErr"
+
+    stream = StringIO()
+    with redirect_stderr(stream):
+        with m.ostream_redirect(stderr=True):
+            m.raw_output(msg)
+            m.raw_err(msg2)
+    stdout, stderr = capfd.readouterr()
+    assert stdout == msg
+    assert stderr == ''
+    assert stream.getvalue() == msg2
+
+
+def test_redirect_both(capfd):
+    msg = "StdOut"
+    msg2 = "StdErr"
+
+    stream = StringIO()
+    stream2 = StringIO()
+    with redirect_stdout(stream):
+        with redirect_stderr(stream2):
+            with m.ostream_redirect(stdout=True, stderr=True):
+                m.raw_output(msg)
+                m.raw_err(msg2)
+    stdout, stderr = capfd.readouterr()
+    assert stdout == ''
+    assert stderr == ''
+    assert stream.getvalue() == msg
+    assert stream2.getvalue() == msg2

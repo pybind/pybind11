@@ -21,12 +21,12 @@ expected in Python:
     auto args = py::make_tuple("unpacked", true);
     py::print("->", *args, "end"_a="<-"); // -> unpacked True <-
 
-.. _eval:
+.. _ostream_redirect:
 
-Capturing ``std::cout`` and ``std::cerr`` usage
-===============================================
+Capturing standard output from ostream
+======================================
 
-Often, a library may use ``std::cout`` and ``std::cerr`` to print, but this does
+Often, a library may use the streams ``std::cout`` and ``std::cerr`` to print, but this does
 not play well with Python's standard ``sys.stdout`` and ``sys.stderr`` redirection.
 This can be fixed using a guard around the library function that has output:
 
@@ -39,7 +39,7 @@ This can be fixed using a guard around the library function that has output:
 
     // Add a scoped redirect for your noisy function
     m.def("noisy_func", []() {
-        py::scoped_output_redirect redir(
+        py::scoped_ostream_redirect stream(
             std::cout,                               // std::ostream&
             py::module::import("sys").attr("stdout") // Python descriptor to output to
         );
@@ -47,14 +47,30 @@ This can be fixed using a guard around the library function that has output:
     });
 
 This method respects flushes on the output streams. This allows the output to be redirected
-in realtime, such as to a Jupyter notebook.
+in realtime, such as to a Jupyter notebook. The two arguments, the C++ stream and the Python
+output, are optional, and default to standard output if not given.
 
-A global method to redirect for the lifetime of the module:
+The redirection can also be done in python with the addition of a context manager, using the `py::add_ostream_redirect()` function:
 
 .. code-block:: cpp
 
-    m.attr("redirect_output") = py::capsule(new py::scoped_output_redirect(...),
-    [](void *sor) { delete static_cast<py::scoped_output_redirect *>(sor); });
+    py::add_ostream_redirect(m, "ostream_redirect");
+
+The name in Python defaults to ``ostream_redirect`` if no name is passed.  This creates the following context manager in Python:
+
+.. code-block:: python
+
+    with ostream_redirect(stdout=True, stderr=True):
+        noisy_function()
+
+This defaults redirecting ``stdout`` if neither keyword argument is given.
+
+.. note:
+
+    The above methods will not redirect direct output to file descriptors, such as ``fprintf``. For those cases, you'll need to
+    redirect the file descriptors either directly in C or with Python's `os.dup2` function in an operating-system dependent way.
+
+.. _eval:
 
 Evaluating Python expressions from strings and files
 ====================================================

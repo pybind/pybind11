@@ -128,8 +128,10 @@ v2.2.0 (Not yet released)
   See :ref:`call_policies` for details.
   `#740 <https://github.com/pybind/pybind11/pull/740>`_.
 
-* Utility for redirecting `std::cout` and `std::cerr` added. See
-  `#1005 <https://github.com/pybind/pybind11/issues/1005>`_.
+* Utility for redirecting `std::cout` and `std::cerr` added,
+  `py::scoped_stl_redirect`, RAII in C++;
+  and a context manager in python. See :ref:`ostream_redirect` or
+  `#1005 <https://github.com/pybind/pybind11/pull/1009>`_.
 
 * Improved handling of types and exceptions across module boundaries.
   `#915 <https://github.com/pybind/pybind11/pull/915>`_,
