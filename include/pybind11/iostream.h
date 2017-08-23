@@ -31,21 +31,21 @@ private:
 
     int overflow(int c) {
         if (!traits_type::eq_int_type(c, traits_type::eof())) {
-            *this->pptr() = traits_type::to_char_type(c);
-            this->pbump(1);
+            *pptr() = traits_type::to_char_type(c);
+            pbump(1);
         }
-        return this->sync() ? traits_type::not_eof(c) : traits_type::eof();
+        return sync() ? traits_type::not_eof(c) : traits_type::eof();
     }
 
     int sync() {
-        if (this->pbase() != this->pptr()) {
+        if (pbase() != pptr()) {
             // This subtraction cannot be negative, so dropping the sign
-            str line(this->pbase(), static_cast<size_t>(this->pptr() - this->pbase()));
+            str line(pbase(), static_cast<size_t>(pptr() - pbase()));
 
             pywrite(line);
             pyflush();
 
-            this->setp(this->pbase(), this->epptr());
+            setp(pbase(), epptr());
         }
         return 0;
     }
@@ -53,7 +53,11 @@ public:
     pythonbuf(object pyostream)
         : pywrite(pyostream.attr("write")),
           pyflush(pyostream.attr("flush")) {
-        this->setp(this->d_buffer, this->d_buffer + sizeof(this->d_buffer) - 1);
+        setp(d_buffer, d_buffer + sizeof(d_buffer) - 1);
+    }
+    /// Sync before destroy
+    ~pythonbuf() {
+        sync();
     }
 };
 
@@ -83,21 +87,22 @@ NAMESPACE_END(detail)
  \endrst */
 
 class scoped_ostream_redirect {
-    std::streambuf * old {nullptr};
+protected:
+    std::streambuf * old;
     std::ostream& costream;
     detail::pythonbuf buffer;
 
 public:
+
     scoped_ostream_redirect(
             std::ostream& costream = std::cout,
-            object pyostream = module::import("sys").attr("stdout") )
+            object pyostream = module::import("sys").attr("stdout"))
         : costream(costream), buffer(pyostream) {
         old = costream.rdbuf(&buffer);
     }
 
     ~scoped_ostream_redirect() {
         costream.rdbuf(old);
-        
     }
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
@@ -106,6 +111,33 @@ public:
     scoped_ostream_redirect &operator=(scoped_ostream_redirect &&) = delete;
 };
 
+
+/** \rst
+    Scoped ostream output redirect with cerr defaults
+
+    This class is provided primary to make call_guards easier to make.
+
+    .. code_block:: cpp
+
+     m.def("noisy_func", &noisy_func,
+           py::call_guard<scoped_ostream_redirect,
+                          scoped_estream_redirect>());
+
+\endrst */
+class scoped_estream_redirect : public scoped_ostream_redirect {
+public:
+    scoped_estream_redirect(
+            std::ostream& costream = std::cerr,
+            object pyostream = module::import("sys").attr("stderr"))
+        : scoped_ostream_redirect(costream,pyostream) {}
+
+    scoped_estream_redirect(const scoped_estream_redirect &) = delete;
+    scoped_estream_redirect(scoped_estream_redirect &&other) = default;
+    scoped_estream_redirect &operator=(const scoped_estream_redirect &) = delete;
+    scoped_estream_redirect &operator=(scoped_estream_redirect &&) = delete;
+};
+
+
 NAMESPACE_BEGIN(detail)
 
 // Class to redirect output as a context manager. C++ backend.
@@ -113,32 +145,18 @@ class OstreamRedirect {
     bool do_stdout_;
     bool do_stderr_;
     std::unique_ptr<scoped_ostream_redirect> redirect_stdout;
-    std::unique_ptr<scoped_ostream_redirect> redirect_stderr;
+    std::unique_ptr<scoped_estream_redirect> redirect_stderr;
 
 public:
 
-    OstreamRedirect(bool do_stdout = false, bool do_stderr = false)
+    OstreamRedirect(bool do_stdout = true, bool do_stderr = true)
         : do_stdout_(do_stdout), do_stderr_(do_stderr) {}
 
     void enter() {
-        // If stdout is true, or if both are false
-        if (do_stdout_ || (!do_stdout_ && !do_stderr_)) {
-            redirect_stdout.reset(
-                new scoped_ostream_redirect(
-                    std::cout,
-                    module::import("sys").attr("stdout")
-                )
-            );
-        }
-
-        if (do_stderr_) {
-            redirect_stderr.reset(
-                new scoped_ostream_redirect(
-                    std::cerr,
-                    module::import("sys").attr("stderr")
-                )
-            );
-        }
+        if (do_stdout_)
+            redirect_stdout.reset(new scoped_ostream_redirect());
+        if (do_stderr_)
+            redirect_stderr.reset(new scoped_estream_redirect());
     }
 
     void exit() {
@@ -177,9 +195,9 @@ NAMESPACE_END(detail)
 
  \endrst */
 
-class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::string name = "ostream_redirect") {
+inline class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::string name = "ostream_redirect") {
     return class_<detail::OstreamRedirect>(m, name.c_str())
-        .def(init<bool,bool>(), arg("stdout")=false, arg("stderr")=false)
+        .def(init<bool,bool>(), arg("stdout")=true, arg("stderr")=true)
         .def("__enter__", [](detail::OstreamRedirect &self) {
             self.enter();
         })

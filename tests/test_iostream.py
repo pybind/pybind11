@@ -54,11 +54,38 @@ def test_captured(capsys):
     assert stderr == msg
 
 
+def test_guard_capture(capsys):
+    msg = "I've been redirected to Python, I hope!"
+    m.guard_output(msg)
+    stdout, stderr = capsys.readouterr()
+    assert stdout == msg
+    assert stderr == ''
+
+
 def test_series_captured(capture):
     with capture:
         m.captured_output("a")
         m.captured_output("b")
     assert capture == "ab"
+
+
+def test_flush(capfd):
+    msg = "(not flushed)"
+    msg2 = "(flushed)"
+
+    with m.ostream_redirect():
+        m.noisy_function(msg, flush=False)
+        stdout, stderr = capfd.readouterr()
+        assert stdout == ''
+
+        m.noisy_function(msg2, flush=True)
+        stdout, stderr = capfd.readouterr()
+        assert stdout == msg + msg2
+
+        m.noisy_function(msg, flush=False)
+
+    stdout, stderr = capfd.readouterr()
+    assert stdout == msg
 
 
 def test_not_captured(capfd):
@@ -149,7 +176,7 @@ def test_redirect_err(capfd):
 
     stream = StringIO()
     with redirect_stderr(stream):
-        with m.ostream_redirect(stderr=True):
+        with m.ostream_redirect(stdout=False):
             m.raw_output(msg)
             m.raw_err(msg2)
     stdout, stderr = capfd.readouterr()
@@ -166,7 +193,7 @@ def test_redirect_both(capfd):
     stream2 = StringIO()
     with redirect_stdout(stream):
         with redirect_stderr(stream2):
-            with m.ostream_redirect(stdout=True, stderr=True):
+            with m.ostream_redirect():
                 m.raw_output(msg)
                 m.raw_err(msg2)
     stdout, stderr = capfd.readouterr()

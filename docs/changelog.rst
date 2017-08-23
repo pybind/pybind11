@@ -9,7 +9,6 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.2.0 (Not yet released)
 -----------------------------------------------------
 
-<<<<<<< HEAD
 * Support for embedding the Python interpreter. See the
   :doc:`documentation page </advanced/embedding>` for a
   full overview of the new features.
@@ -128,8 +127,8 @@ v2.2.0 (Not yet released)
   See :ref:`call_policies` for details.
   `#740 <https://github.com/pybind/pybind11/pull/740>`_.
 
-* Utility for redirecting `std::cout` and `std::cerr` added,
-  `py::scoped_stl_redirect`, RAII in C++;
+* Utility for redirecting C++ streams like `std::cout`,
+  `py::scoped_ostream_redirect`, RAII in C++;
   and a context manager in python. See :ref:`ostream_redirect` or
   `#1005 <https://github.com/pybind/pybind11/pull/1009>`_.
 
@@ -303,7 +302,6 @@ v2.2.0 (Not yet released)
   `#921 <https://github.com/pybind/pybind11/pull/921>`_,
   `#923 <https://github.com/pybind/pybind11/pull/923>`_,
   `#963 <https://github.com/pybind/pybind11/pull/963>`_.
-
 
 v2.1.1 (April 7, 2017)
 -----------------------------------------------------
