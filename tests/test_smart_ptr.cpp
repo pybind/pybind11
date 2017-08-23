@@ -8,6 +8,10 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#if defined(_MSC_VER) && _MSC_VER < 1910
+#  pragma warning(disable: 4702) // unreachable code in system header
+#endif
+
 #include "pybind11_tests.h"
 #include "object.h"
 
