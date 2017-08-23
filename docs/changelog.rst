@@ -9,6 +9,7 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.2.0 (Not yet released)
 -----------------------------------------------------
 
+<<<<<<< HEAD
 * Support for embedding the Python interpreter. See the
   :doc:`documentation page </advanced/embedding>` for a
   full overview of the new features.
@@ -126,6 +127,9 @@ v2.2.0 (Not yet released)
 * Scope guard call policy for RAII types, e.g. ``py::call_guard<py::gil_scoped_release>()``.
   See :ref:`call_policies` for details.
   `#740 <https://github.com/pybind/pybind11/pull/740>`_.
+
+* Utility for redirecting `std::cout` and `std::cerr` added. See
+  `#1005 <https://github.com/pybind/pybind11/issues/1005>`_.
 
 * Improved handling of types and exceptions across module boundaries.
   `#915 <https://github.com/pybind/pybind11/pull/915>`_,

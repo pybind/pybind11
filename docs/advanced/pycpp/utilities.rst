@@ -23,6 +23,39 @@ expected in Python:
 
 .. _eval:
 
+Capturing ``std::cout`` and ``std::cerr`` usage
+===============================================
+
+Often, a library may use ``std::cout`` and ``std::cerr`` to print, but this does
+not play well with Python's standard ``sys.stdout`` and ``sys.stderr`` redirection.
+This can be fixed using a guard around the library function that has output:
+
+.. code-block:: cpp
+
+    // At beginning of file
+    #include <pybind11/iostream.h>
+
+    ...
+
+    // Add a scoped redirect for your noisy function
+    m.def("noisy_func", []() {
+        py::scoped_output_redirect redir(
+            std::cout,                               // std::ostream&
+            py::module::import("sys").attr("stdout") // Python descriptor to output to
+        );
+        call_noisy_func();
+    });
+
+This method respects flushes on the output streams. This allows the output to be redirected
+in realtime, such as to a Jupyter notebook.
+
+A global method to redirect for the lifetime of the module:
+
+.. code-block:: cpp
+
+    m.attr("redirect_output") = py::capsule(new py::scoped_output_redirect(...),
+    [](void *sor) { delete static_cast<py::scoped_output_redirect *>(sor); });
+
 Evaluating Python expressions from strings and files
 ====================================================
 

@@ -40,6 +40,8 @@ set(PYBIND11_TEST_FILES
   test_eval.cpp
   test_exceptions.cpp
   test_factory_constructors.cpp
+  test_globaliostream.cpp
+  test_iostream.cpp
   test_kwargs_and_defaults.cpp
   test_local_bindings.cpp
   test_methods_and_attributes.cpp
