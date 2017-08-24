@@ -12,7 +12,12 @@ if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif()
 
-project(pybind11)
+# CMake versions < 3.4.0 do not support try_compile/pthread checks without C as active language.
+if(CMAKE_VERSION VERSION_LESS 3.4.0)
+  project(pybind11)
+else()
+  project(pybind11 CXX)
+endif()
 
 # Check if pybind11 is being used directly or via add_subdirectory
 set(PYBIND11_MASTER_PROJECT OFF)

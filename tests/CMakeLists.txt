@@ -12,7 +12,7 @@ option(PYBIND11_WERROR  "Report all warnings as errors"  OFF)
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # We're being loaded directly, i.e. not via add_subdirectory, so make this
     # work as its own project and load the pybind11Config to get the tools we need
-    project(pybind11_tests)
+    project(pybind11_tests CXX)
 
     find_package(pybind11 REQUIRED CONFIG)
 endif()
