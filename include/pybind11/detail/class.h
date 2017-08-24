@@ -334,7 +334,9 @@ inline void clear_instance(PyObject *self) {
 /// to destroy the C++ object itself, while the rest is Python bookkeeping.
 extern "C" inline void pybind11_object_dealloc(PyObject *self) {
     clear_instance(self);
-    Py_TYPE(self)->tp_free(self);
+    auto type = Py_TYPE(self);
+    type->tp_free(self);
+    Py_DECREF(type);
 }
 
 /** Create the type which can be used as a common base for all classes.  This is

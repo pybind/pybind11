@@ -202,3 +202,21 @@ def test_brace_initialization():
     a = m.BraceInitialization(123, "test")
     assert a.field1 == 123
     assert a.field2 == "test"
+
+
+def test_class_refcount():
+    """
+    Tests that instances correctly increase/decrease the reference count of
+    their types (#1029)
+    """
+    from sys import getrefcount
+    class_ref = m.Dog
+    refcount_1 = getrefcount(class_ref)
+    molly = m.Dog('Molly')
+    refcount_2 = getrefcount(class_ref)
+    del molly
+    pytest.gc_collect()
+    refcount_3 = getrefcount(class_ref)
+
+    assert refcount_1 == refcount_3
+    assert refcount_2 > refcount_1
