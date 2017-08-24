@@ -37,6 +37,72 @@ The old macro emits a compile-time deprecation warning.
     }
 
 
+New API for defining custom constructors and pickling functions
+---------------------------------------------------------------
+
+The old placement-new custom constructors have been deprecated. The new approach
+uses ``py::init()`` and factory functions to greatly improve type safety.
+
+Placement-new can be called accidentally with an incompatible type (without any
+compiler errors or warnings), or it can initialize the same object multiple times
+if not careful with the Python-side ``__init__`` calls. The new-style custom
+constructors prevent such mistakes. See :ref:`custom_constructors` for details.
+
+.. code-block:: cpp
+
+    // old -- deprecated (runtime warning shown only in debug mode)
+    py::class<Foo>(m, "Foo")
+        .def("__init__", [](Foo &self, ...) {
+            new (&self) Foo(...); // uses placement-new
+        });
+
+    // new
+    py::class<Foo>(m, "Foo")
+        .def(py::init([](...) { // Note: no `self` argument
+            return new Foo(...); // return by raw pointer
+            // or: return std::make_unique<Foo>(...); // return by holder
+            // or: return Foo(...); // return by value (move constructor)
+        }));
+
+Mirroring the custom constructor changes, ``py::pickle()`` is now the preferred
+way to get and set object state. See :ref:`pickling` for details.
+
+.. code-block:: cpp
+
+    // old -- deprecated (runtime warning shown only in debug mode)
+    py::class<Foo>(m, "Foo")
+        ...
+        .def("__getstate__", [](const Foo &self) {
+            return py::make_tuple(self.value1(), self.value2(), ...);
+        })
+        .def("__setstate__", [](Foo &self, py::tuple t) {
+            new (&self) Foo(t[0].cast<std::string>(), ...);
+        });
+
+    // new
+    py::class<Foo>(m, "Foo")
+        ...
+        .def(py::pickle(
+            [](const Foo &self) { // __getstate__
+                return py::make_tuple(f.value1(), f.value2(), ...); // unchanged
+            },
+            [](py::tuple t) { // __setstate__, note: no `self` argument
+                return new Foo(t[0].cast<std::string>(), ...);
+                // or: return std::make_unique<Foo>(...); // return by holder
+                // or: return Foo(...); // return by value (move constructor)
+            }
+        ));
+
+For both the constructors and pickling, warnings are shown at module
+initialization time (on import, not when the functions are called).
+They're only visible when compiled in debug mode. Sample warning:
+
+.. code-block:: none
+
+    pybind11-bound class 'mymodule.Foo' is using an old-style placement-new '__init__'
+    which has been deprecated. See the upgrade guide in pybind11's docs.
+
+
 Stricter enforcement of hidden symbol visibility for pybind11 modules
 ---------------------------------------------------------------------
 
@@ -133,66 +199,6 @@ multiple modules, you'll need to either:
 The latter is an easy workaround, but in the long run it would be best to
 localize all common type bindings in order to avoid conflicts with
 third-party modules.
-
-
-New syntax for custom constructors
-----------------------------------
-
-The old placement-new custom constructors are still valid, but the new approach
-greatly improves type safety. Placement-new can be called accidentally with an
-incompatible type (without any compiler errors or warnings), or it can initialize
-the same object multiple times if not careful with the Python-side ``__init__``
-calls. The new-style ``py::init()`` custom constructors prevent such mistakes.
-See :ref:`custom_constructors` for details.
-
-.. code-block:: cpp
-
-    // old
-    py::class<Foo>(m, "Foo")
-        .def("__init__", [](Foo &self, ...) {
-            new (&self) Foo(...); // uses placement-new
-        });
-
-    // new
-    py::class<Foo>(m, "Foo")
-        .def(py::init([](...) { // Note: no `self` argument
-            return new Foo(...); // return by raw pointer
-            // or: return std::make_unique<Foo>(...); // return by holder
-            // or: return Foo(...); // return by value (move constructor)
-        }));
-
-
-New syntax for pickling support
--------------------------------
-
-Mirroring the custom constructor changes, ``py::pickle()`` is now the preferred
-way to get and set object state. See :ref:`pickling` for details.
-
-.. code-block:: cpp
-
-    // old -- deprecated
-    py::class<Foo>(m, "Foo")
-        ...
-        .def("__getstate__", [](const Foo &self) {
-            return py::make_tuple(self.value1(), self.value2(), ...);
-        })
-        .def("__setstate__", [](Foo &self, py::tuple t) {
-            new (&self) Foo(t[0].cast<std::string>(), ...);
-        });
-
-    // new
-    py::class<Foo>(m, "Foo")
-        ...
-        .def(py::pickle(
-            [](const Foo &self) { // __getstate__
-                return py::make_tuple(f.value1(), f.value2(), ...); // unchanged
-            },
-            [](py::tuple t) { // __setstate__, note: no `self` argument
-                return new Foo(t[0].cast<std::string>(), ...);
-                // or: return std::make_unique<Foo>(...); // return by holder
-                // or: return Foo(...); // return by value (move constructor)
-            }
-        ));
 
 
 Deprecation of some ``py::object`` APIs

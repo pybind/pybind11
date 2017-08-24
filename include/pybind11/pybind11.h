@@ -201,6 +201,20 @@ protected:
 
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
 
+#if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
+        if (rec->is_constructor && !rec->is_new_style_constructor) {
+            const auto class_name = std::string(((PyTypeObject *) rec->scope.ptr())->tp_name);
+            const auto func_name = std::string(rec->name);
+            PyErr_WarnEx(
+                PyExc_FutureWarning,
+                ("pybind11-bound class '" + class_name + "' is using an old-style "
+                 "placement-new '" + func_name + "' which has been deprecated. See "
+                 "the upgrade guide in pybind11's docs. This message is only visible "
+                 "when compiled in debug mode.").c_str(), 0
+            );
+        }
+#endif
+
         /* Generate a proper function signature */
         std::string signature;
         size_t type_depth = 0, char_index = 0, type_index = 0, arg_index = 0;
