@@ -123,9 +123,14 @@ v2.2.0 (Not yet released)
   7. Fixed lifetime of temporary C++ objects created in Python-to-C++ conversions.
      `#924 <https://github.com/pybind/pybind11/pull/924>`_.
 
-* Scope guard call policy for RAII types, e.g. ``py::call_guard<py::gil_scoped_release>()``.
-  See :ref:`call_policies` for details.
+* Scope guard call policy for RAII types, e.g. ``py::call_guard<py::gil_scoped_release>()``,
+  ``py::call_guard<py::scoped_ostream_redirect>()``. See :ref:`call_policies` for details.
   `#740 <https://github.com/pybind/pybind11/pull/740>`_.
+
+* Utility for redirecting C++ streams to Python (e.g. ``std::cout`` ->
+  ``sys.stdout``). Scope guard ``py::scoped_ostream_redirect`` in C++ and
+  a context manager in Python. See :ref:`ostream_redirect`.
+  `#1009 <https://github.com/pybind/pybind11/pull/1009>`_.
 
 * Improved handling of types and exceptions across module boundaries.
   `#915 <https://github.com/pybind/pybind11/pull/915>`_,
@@ -297,7 +302,6 @@ v2.2.0 (Not yet released)
   `#921 <https://github.com/pybind/pybind11/pull/921>`_,
   `#923 <https://github.com/pybind/pybind11/pull/923>`_,
   `#963 <https://github.com/pybind/pybind11/pull/963>`_.
-
 
 v2.1.1 (April 7, 2017)
 -----------------------------------------------------
