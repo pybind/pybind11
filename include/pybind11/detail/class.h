@@ -334,7 +334,17 @@ inline void clear_instance(PyObject *self) {
 /// to destroy the C++ object itself, while the rest is Python bookkeeping.
 extern "C" inline void pybind11_object_dealloc(PyObject *self) {
     clear_instance(self);
-    Py_TYPE(self)->tp_free(self);
+
+    auto type = Py_TYPE(self);
+    type->tp_free(self);
+
+    // `type->tp_dealloc != pybind11_object_dealloc` means that we're being called
+    // as part of a derived type's dealloc, in which case we're not allowed to decref
+    // the type here. For cross-module compatibility, we shouldn't compare directly
+    // with `pybind11_object_dealloc`, but with the common one stashed in internals.
+    auto pybind11_object_type = (PyTypeObject *) get_internals().instance_base;
+    if (type->tp_dealloc == pybind11_object_type->tp_dealloc)
+        Py_DECREF(type);
 }
 
 /** Create the type which can be used as a common base for all classes.  This is
@@ -583,6 +593,8 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     /* Register type with the parent scope */
     if (rec.scope)
         setattr(rec.scope, rec.name, (PyObject *) type);
+    else
+        Py_INCREF(type); // Keep it alive forever (reference leak)
 
     if (module) // Needed by pydoc
         setattr((PyObject *) type, "__module__", module);
