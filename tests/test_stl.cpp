@@ -13,7 +13,7 @@
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if PYBIND11_HAS_VARIANT
 using std::variant;
-#elif PYBIND11_TEST_BOOST
+#elif defined(PYBIND11_TEST_BOOST) && (!defined(_MSC_VER) || _MSC_VER >= 1910)
 #  include <boost/variant.hpp>
 #  define PYBIND11_HAS_VARIANT 1
 using boost::variant;
