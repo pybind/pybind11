@@ -173,7 +173,8 @@ Module Destructors
 
 pybind11 does not provide an explicit mechanism to invoke cleanup code at
 module destruction time. In rare cases where such functionality is required, it
-is possible to emulate it using Python capsules with a destruction callback.
+is possible to emulate it using Python capsules or weak references with a
+destruction callback.
 
 .. code-block:: cpp
 
@@ -182,6 +183,39 @@ is possible to emulate it using Python capsules with a destruction callback.
     };
 
     m.add_object("_cleanup", py::capsule(cleanup_callback));
+
+This approach has the potential downside that instances of classes exposed
+within the module may still be alive when the cleanup callback is invoked
+(whether this is acceptable will generally depend on the application).
+
+Alternatively, the capsule may also be stashed within a type object, which
+ensures that it not called before all instances of that type have been
+collected:
+
+.. code-block:: cpp
+
+    auto cleanup_callback = []() { /* ... */ };
+    m.attr("BaseClass").attr("_cleanup") = py::capsule(cleanup_callback);
+
+Both approaches also expose a potentially dangerous ``_cleanup`` attribute in
+Python, which may be undesirable from an API standpoint (a premature explicit
+call from Python might lead to undefined behavior). Yet another approach that 
+avoids this issue involves weak reference with a cleanup callback:
+
+.. code-block:: cpp
+
+    // Register a callback function that is invoked when the BaseClass object is colelcted
+    py::cpp_function cleanup_callback(
+        [](py::handle weakref) {
+            // perform cleanup here -- this function is called with the GIL held
+
+            weakref.dec_ref(); // release weak reference
+        }
+    );
+
+    // Create a weak reference with a cleanup callback and initially leak it
+    (void) py::weakref(m.attr("BaseClass"), cleanup_callback).release();
+
 
 Generating documentation using Sphinx
 =====================================
