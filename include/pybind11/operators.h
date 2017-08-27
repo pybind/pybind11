@@ -28,7 +28,7 @@ enum op_id : int {
     op_int, op_long, op_float, op_str, op_cmp, op_gt, op_ge, op_lt, op_le,
     op_eq, op_ne, op_iadd, op_isub, op_imul, op_idiv, op_imod, op_ilshift,
     op_irshift, op_iand, op_ixor, op_ior, op_complex, op_bool, op_nonzero,
-    op_repr, op_truediv, op_itruediv
+    op_repr, op_truediv, op_itruediv, op_hash
 };
 
 enum op_type : int {
@@ -148,6 +148,7 @@ PYBIND11_INPLACE_OPERATOR(ior,      operator|=,   l |= r)
 PYBIND11_UNARY_OPERATOR(neg,        operator-,    -l)
 PYBIND11_UNARY_OPERATOR(pos,        operator+,    +l)
 PYBIND11_UNARY_OPERATOR(abs,        abs,          std::abs(l))
+PYBIND11_UNARY_OPERATOR(hash,       hash,         std::hash<L>()(l))
 PYBIND11_UNARY_OPERATOR(invert,     operator~,    (~l))
 PYBIND11_UNARY_OPERATOR(bool,       operator!,    !!l)
 PYBIND11_UNARY_OPERATOR(int,        int_,         (int) l)

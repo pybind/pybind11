@@ -10,6 +10,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/operators.h>
+#include <functional>
 
 class Vector2 {
 public:
@@ -53,6 +54,14 @@ int operator+(const C2 &, const C2 &) { return 22; }
 int operator+(const C2 &, const C1 &) { return 21; }
 int operator+(const C1 &, const C2 &) { return 12; }
 
+namespace std {
+    template<>
+    struct hash<Vector2> {
+        // Not a good hash function, but easy to test
+        size_t operator()(const Vector2 &) { return 4; }
+    };
+}
+
 TEST_SUBMODULE(operators, m) {
 
     // test_operator_overloading
@@ -77,6 +86,7 @@ TEST_SUBMODULE(operators, m) {
         .def(float() * py::self)
         .def(float() / py::self)
         .def("__str__", &Vector2::toString)
+        .def(hash(py::self))
         ;
 
     m.attr("Vector") = m.attr("Vector2");
