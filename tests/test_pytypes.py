@@ -5,18 +5,6 @@ from pybind11_tests import pytypes as m
 from pybind11_tests import debug_enabled
 
 
-class Hashable(object):
-    def __init__(self, value):
-        self.value = value
-
-    def __hash__(self):
-        return self.value
-
-
-class Unhashable(object):
-    __hash__ = None
-
-
 def test_list(capture, doc):
     with capture:
         l = m.get_list()
@@ -235,6 +223,16 @@ def test_print(capture):
 
 
 def test_hash():
+    class Hashable(object):
+        def __init__(self, value):
+            self.value = value
+
+        def __hash__(self):
+            return self.value
+
+    class Unhashable(object):
+        __hash__ = None
+
     assert m.hash_function(Hashable(42)) == 42
     with pytest.raises(TypeError):
         m.hash_function(Unhashable())
