@@ -292,7 +292,8 @@ v2.2.0 (Not yet released)
   `#970 <https://github.com/pybind/pybind11/pull/970>`_,
   `#979 <https://github.com/pybind/pybind11/pull/979>`_,
   `#978 <https://github.com/pybind/pybind11/pull/978>`_,
-  `#986 <https://github.com/pybind/pybind11/pull/986>`_.
+  `#986 <https://github.com/pybind/pybind11/pull/986>`_,
+  `#1037 <https://github.com/pybind/pybind11/pull/1037>`_.
 
 * Testing improvements.
   `#798 <https://github.com/pybind/pybind11/pull/798>`_,
