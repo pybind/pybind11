@@ -334,7 +334,7 @@ PYBIND11_NOINLINE inline value_and_holder instance::get_value_and_holder(const t
 #if defined(NDEBUG)
     pybind11_fail("pybind11::detail::instance::get_value_and_holder: "
             "type is not a pybind11 base of the given instance "
-            "(compile in debug mode for type details)");
+            "(compile in debug mode (#undef NDEBUG) for type details)");
 #else
     pybind11_fail("pybind11::detail::instance::get_value_and_holder: `" +
             std::string(find_type->type->tp_name) + "' is not a pybind11 base of the given `" +
@@ -1418,7 +1418,7 @@ protected:
         } else {
             throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
 #if defined(NDEBUG)
-                             "(compile in debug mode for type information)");
+                             "(compile in debug mode (#undef NDEBUG) for type information)");
 #else
                              "of type '" + type_id<holder_type>() + "''");
 #endif
@@ -1570,7 +1570,8 @@ template <typename Return, typename SFINAE = void> struct return_value_policy_ov
 template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
     if (!conv.load(handle, true)) {
 #if defined(NDEBUG)
-        throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
+        throw cast_error("Unable to cast Python instance to C++ type"
+                         "(compile in debug mode (#undef NDEBUG) for details)");
 #else
         throw cast_error("Unable to cast Python instance of type " +
             (std::string) str(handle.get_type()) + " to C++ type '" + type_id<T>() + "''");
@@ -1619,7 +1620,7 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     if (obj.ref_count() > 1)
 #if defined(NDEBUG)
         throw cast_error("Unable to cast Python instance to C++ rvalue: instance has multiple references"
-            " (compile in debug mode for details)");
+            " (compile in debug mode (#undef NDEBUG) for details)");
 #else
         throw cast_error("Unable to move from Python " + (std::string) str(obj.get_type()) +
                 " instance to C++ " + type_id<T>() + " instance: instance has multiple references");
@@ -1692,7 +1693,8 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     for (size_t i = 0; i < args.size(); i++) {
         if (!args[i]) {
 #if defined(NDEBUG)
-            throw cast_error("make_tuple(): unable to convert arguments to Python object (compile in debug mode for details)");
+            throw cast_error("make_tuple(): unable to convert arguments to Python object "
+                             "(compile in debug mode (#undef NDEBUG) for details)");
 #else
             std::array<std::string, size> argtypes { {type_id<Args>()...} };
             throw cast_error("make_tuple(): unable to convert argument of type '" +
@@ -1976,7 +1978,7 @@ private:
     [[noreturn]] static void nameless_argument_error() {
         throw type_error("Got kwargs without a name; only named arguments "
                          "may be passed via py::arg() to a python function call. "
-                         "(compile in debug mode for details)");
+                         "(compile in debug mode (#undef NDEBUG) for details)");
     }
     [[noreturn]] static void nameless_argument_error(std::string type) {
         throw type_error("Got kwargs without a name of type '" + type + "'; only named "
@@ -1984,7 +1986,7 @@ private:
     }
     [[noreturn]] static void multiple_values_error() {
         throw type_error("Got multiple values for keyword argument "
-                         "(compile in debug mode for details)");
+                         "(compile in debug mode (#undef NDEBUG) for details)");
     }
 
     [[noreturn]] static void multiple_values_error(std::string name) {
@@ -1993,7 +1995,7 @@ private:
 
     [[noreturn]] static void argument_cast_error() {
         throw cast_error("Unable to convert call argument to Python object "
-                         "(compile in debug mode for details)");
+                         "(compile in debug mode (#undef NDEBUG) for details)");
     }
 
     [[noreturn]] static void argument_cast_error(std::string name, std::string type) {

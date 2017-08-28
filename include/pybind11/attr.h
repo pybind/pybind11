@@ -382,7 +382,7 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 #else
             pybind11_fail("arg(): could not convert default argument "
                           "into a Python object (type not registered yet?). "
-                          "Compile in debug mode for more information.");
+                          "Compile in debug mode (#undef NDEBUG) for more information.");
 #endif
         }
         r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none);

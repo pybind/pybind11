@@ -218,5 +218,5 @@ def test_print(capture):
     assert str(excinfo.value) == "make_tuple(): unable to convert " + (
         "argument of type 'UnregisteredType' to Python object"
         if debug_enabled else
-        "arguments to Python object (compile in debug mode for details)"
+        "arguments to Python object (compile in debug mode (#undef NDEBUG) for details)"
     )
