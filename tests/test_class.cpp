@@ -291,6 +291,17 @@ TEST_SUBMODULE(class_, m) {
         .def(py::init<int, const std::string &>())
         .def_readwrite("field1", &BraceInitialization::field1)
         .def_readwrite("field2", &BraceInitialization::field2);
+
+    // test_reentrant_implicit_conversion_failure
+    // #1035: issue with runaway reentrant implicit conversion
+    struct BogusImplicitConversion {
+        BogusImplicitConversion(const BogusImplicitConversion &) { }
+    };
+
+    py::class_<BogusImplicitConversion>(m, "BogusImplicitConversion")
+        .def(py::init<const BogusImplicitConversion &>());
+
+    py::implicitly_convertible<int, BogusImplicitConversion>();
 }
 
 template <int N> class BreaksBase { public: virtual ~BreaksBase() = default; };
