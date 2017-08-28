@@ -585,6 +585,10 @@ Python side:
     Implicit conversions from ``A`` to ``B`` only work when ``B`` is a custom
     data type that is exposed to Python via pybind11.
 
+    To prevent runaway recursion, implicit conversions are non-reentrant: an
+    implicit conversion invoked as part of another implicit conversion of the
+    same type (i.e. from ``A`` to ``B``) will fail.
+
 .. _static_properties:
 
 Static properties
