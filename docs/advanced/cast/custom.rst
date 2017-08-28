@@ -78,6 +78,12 @@ type is explicitly allowed.
         };
     }} // namespace pybind11::detail
 
+.. note::
+
+    A ``type_caster<T>`` defined with ``PYBIND11_TYPE_CASTER(T, ...)`` requires
+    that ``T`` is default-constructible (``value`` is first default constructed
+    and then ``load()`` assigns to it).
+
 .. warning::
 
     When using custom type casters, it's important to declare them consistently
