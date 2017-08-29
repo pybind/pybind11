@@ -262,6 +262,11 @@ v2.2.0 (Not yet released)
   Use ``py::object::borrowed_t{}``/``py::object::stolen_t{}`` instead.
   `#771 <https://github.com/pybind/pybind11/pull/771>`_.
 
+* Added ``py::hash`` to fetch the hash value of Python objects, and
+  ``.def(hash(py::self))`` to provide the C++ ``std::hash`` as the Python
+  ``__hash__`` method.
+  `#1034 <https://github.com/pybind/pybind11/pull/1034>`_.
+
 * Additional compile-time and run-time error checking and more informative messages.
   `#786 <https://github.com/pybind/pybind11/pull/786>`_,
   `#794 <https://github.com/pybind/pybind11/pull/794>`_,
