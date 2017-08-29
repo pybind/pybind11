@@ -391,8 +391,10 @@ inline void setattr(handle obj, const char *name, handle value) {
     if (PyObject_SetAttrString(obj.ptr(), name, value.ptr()) != 0) { throw error_already_set(); }
 }
 
-inline auto hash(handle obj) -> decltype(PyObject_Hash(obj.ptr())) {
-    auto h = PyObject_Hash(obj.ptr());
+inline Py_ssize_t hash(handle obj) {
+    static_assert(sizeof(long) <= sizeof(Py_ssize_t),
+                  "long is wider than Py_ssize_t - return type needs to be adjusted");
+    Py_ssize_t h = PyObject_Hash(obj.ptr());
     if (h == -1) { throw error_already_set(); }
     return h;
 }
