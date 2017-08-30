@@ -12,6 +12,16 @@
 #include <pybind11/functional.h>
 #include <thread>
 
+struct TestNotCopyable{
+    TestNotCopyable() {};
+    TestNotCopyable(const TestNotCopyable &obj) = delete;
+};
+
+TestNotCopyable* full_func_return_ptr() {
+    return new TestNotCopyable();
+}
+
+std::function<TestNotCopyable*(void)> func_return_ptr = &full_func_return_ptr;
 
 int dummy_function(int i) { return i + 1; }
 
@@ -185,4 +195,9 @@ TEST_SUBMODULE(callbacks, m) {
             f();
         }
     });
+
+    // Testing returning pointers to non-copyable objects
+    m.attr("full_func_return_ptr") = py::cpp_function(full_func_return_ptr);
+    m.attr("func_return_ptr") = func_return_ptr;
+    py::class_<TestNotCopyable>(m, "TestNotCopyable");
 }
