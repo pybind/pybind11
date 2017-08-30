@@ -14,7 +14,14 @@ On Linux, you can compile an example such as the ones given in
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+
+Here, the ``python3 -m pybind11 --includes`` fetches the include paths for
+Python and pybind11 headers. It assumes that you're using Python 3 and have
+the pybind11 module installed. If you're using Python 2, just change the
+executable appropriately. If the pybind11 module isn't available, you can
+replace this command with manually specified include paths:
+``-I <path-to-python-includes>`` and  ``-I <path-to-pybind11>/include``.
 
 Note that Python 2.7 modules don't use a special suffix, so you should simply
 use ``example.so`` instead of ``example`python3-config --extension-suffix```.
@@ -28,7 +35,7 @@ building the module:
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section
