@@ -73,6 +73,8 @@ For brevity, all code examples assume that the following two lines are present:
 
 Some features may require additional headers, but those will be specified as needed.
 
+.. _simple_example:
+
 Creating bindings for a simple function
 =======================================
 
@@ -120,23 +122,31 @@ generates binding code that exposes the ``add()`` function to Python.
     approach and the used syntax are borrowed from Boost.Python, though the
     underlying implementation is very different.
 
-pybind11 is a header-only-library, hence it is not necessary to link against
-any special libraries (other than Python itself). On Windows, use the CMake
-build file discussed in section :ref:`cmake`. On Linux and Mac OS, the above
-example can be compiled using the following command
+pybind11 is a header-only library, hence it is not necessary to link against
+any special libraries and there are no intermediate (magic) translation steps.
+On Linux, the above example can be compiled using the following command:
 
 .. code-block:: bash
 
-    $ c++ -O3 -shared -std=c++11 -I <path-to-pybind11>/include `python-config --cflags --ldflags` example.cpp -o example.so
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
 
-In general, it is advisable to include several additional build parameters
-that can considerably reduce the size of the created binary. Refer to section
-:ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
-build system.
+For more details on the required compiler flags on Linux and MacOS, see
+:ref:`building_manually`. For complete cross-platform compilation instructions,
+refer to the :ref:`compiling` page.
 
-Assuming that the created file :file:`example.so` (:file:`example.pyd` on Windows)
-is located in the current directory, the following interactive Python session
-shows how to load and execute the example.
+The `python_example`_ and `cmake_example`_ repositories are also a good place
+to start. They are both complete project examples with cross-platform build
+systems. The only difference between the two is that `python_example`_ uses
+Python's ``setuptools`` to build the module, while `cmake_example`_ uses CMake
+(which may be preferable for existing C++ projects).
+
+.. _python_example: https://github.com/pybind/python_example
+.. _cmake_example: https://github.com/pybind/cmake_example
+
+Building the above C++ code will produce a binary module file that can be
+imported to Python. Assuming that the compiled module is located in the
+current directory, the following interactive Python session shows how to
+load and execute the example:
 
 .. code-block:: pycon
 

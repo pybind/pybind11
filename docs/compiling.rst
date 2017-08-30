@@ -1,3 +1,5 @@
+.. _compiling:
+
 Build systems
 #############
 
@@ -207,6 +209,59 @@ information about usage in C++, see :doc:`/advanced/embedding`.
     add_executable(example main.cpp)
     target_link_libraries(example PRIVATE pybind11::embed)
 
+.. _building_manually:
+
+Building manually
+=================
+
+pybind11 is a header-only library, hence it is not necessary to link against
+any special libraries and there are no intermediate (magic) translation steps.
+
+On Linux, you can compile an example such as the one given in
+:ref:`simple_example` using the following command:
+
+.. code-block:: bash
+
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+
+The flags given here assume that you're using Python 3. For Python 2, just
+change the executable appropriately (to ``python`` or ``python2``).
+
+The ``python3 -m pybind11 --includes`` command fetches the include paths for
+both pybind11 and Python headers. This assumes that pybind11 has been installed
+using ``pip`` or ``conda``. If it hasn't, you can also manually specify
+``-I <path-to-pybind11>/include`` together with the Python includes path
+``python3-config --includes``.
+
+Note that Python 2.7 modules don't use a special suffix, so you should simply
+use ``example.so`` instead of ``example`python3-config --extension-suffix```.
+Besides, the ``--extension-suffix`` option may or may not be available, depending
+on the distribution; in the latter case, the module extension can be manually
+set to ``.so``.
+
+On Mac OS: the build command is almost the same but it also requires passing
+the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
+building the module:
+
+.. code-block:: bash
+
+    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+
+In general, it is advisable to include several additional build parameters
+that can considerably reduce the size of the created binary. Refer to section
+:ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
+build system that works on all platforms including Windows.
+
+.. note::
+
+    On Linux and macOS, it's better to (intentionally) not link against
+    ``libpython``. The symbols will be resolved when the extension library
+    is loaded into a Python binary. This is preferable because you might
+    have several different installations of a given Python version (e.g. the
+    system-provided Python, and one that ships with a piece of commercial
+    software). In this way, the plugin will work with both versions, instead
+    of possibly importing a second Python library into a process that already
+    contains one (which will lead to a segfault).
 
 Generating binding code automatically
 =====================================
