@@ -246,3 +246,12 @@ def test_boost_histogram_apply_custom_transform():
     assert apply(lambda value: value, 9) == -200
     assert apply({}, 0) == -100
     assert apply("", 0) == -100
+
+
+def test_full_func_return_ptr():
+    m.full_func_return_ptr()
+
+
+@pytest.mark.xfail(reason="Currently auto policy is not inherited")
+def test_full_func_return_ptr_inherit():
+    m.func_return_ptr()
