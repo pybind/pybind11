@@ -261,4 +261,6 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     m.def("print_failure", []() { py::print(42, UnregisteredType()); });
+
+    m.def("hash_function", [](py::object obj) { return py::hash(obj); });
 }

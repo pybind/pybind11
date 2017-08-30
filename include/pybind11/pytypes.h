@@ -390,6 +390,13 @@ inline void setattr(handle obj, handle name, handle value) {
 inline void setattr(handle obj, const char *name, handle value) {
     if (PyObject_SetAttrString(obj.ptr(), name, value.ptr()) != 0) { throw error_already_set(); }
 }
+
+inline ssize_t hash(handle obj) {
+    auto h = PyObject_Hash(obj.ptr());
+    if (h == -1) { throw error_already_set(); }
+    return h;
+}
+
 /// @} python_builtins
 
 NAMESPACE_BEGIN(detail)

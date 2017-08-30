@@ -35,6 +35,8 @@ def test_operator_overloading():
     v2 /= v1
     assert str(v2) == "[2.000000, 8.000000]"
 
+    assert hash(v1) == 4
+
     cstats = ConstructorStats.get(m.Vector2)
     assert cstats.alive() == 2
     del v1

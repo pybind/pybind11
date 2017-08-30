@@ -243,6 +243,11 @@ v2.2.0 (Not yet released)
 * Fixed implicit conversion of `py::enum_` to integer types on Python 2.7.
   `#821 <https://github.com/pybind/pybind11/pull/821>`_.
 
+* Added ``py::hash`` to fetch the hash value of Python objects, and
+  ``.def(hash(py::self))`` to provide the C++ ``std::hash`` as the Python
+  ``__hash__`` method.
+  `#1034 <https://github.com/pybind/pybind11/pull/1034>`_.
+
 * Fixed ``__truediv__`` on Python 2 and ``__itruediv__`` on Python 3.
   `#867 <https://github.com/pybind/pybind11/pull/867>`_.
 
