@@ -3,45 +3,6 @@
 Build systems
 #############
 
-Building manually
-=================
-
-pybind11 is a header-only-library, hence it is not necessary to link against
-any special libraries (other than Python itself).
-
-On Linux, you can compile an example such as the ones given in
-:ref:`simple_example` using the following command:
-
-.. code-block:: bash
-
-    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
-
-Here, the ``python3 -m pybind11 --includes`` fetches the include paths for
-Python and pybind11 headers. It assumes that you're using Python 3 and have
-the pybind11 module installed. If you're using Python 2, just change the
-executable appropriately. If the pybind11 module isn't available, you can
-replace this command with manually specified include paths:
-``-I <path-to-python-includes>`` and  ``-I <path-to-pybind11>/include``.
-
-Note that Python 2.7 modules don't use a special suffix, so you should simply
-use ``example.so`` instead of ``example`python3-config --extension-suffix```.
-Besides, ``--extension-suffix`` option may or may not be available, depending
-on the distribution; in the latter case, the module extension can be manually
-set to ``.so``.
-
-On Mac OS: the build command is almost the same but it also requires passing
-the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
-building the module:
-
-.. code-block:: bash
-
-    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
-
-In general, it is advisable to include several additional build parameters
-that can considerably reduce the size of the created binary. Refer to section
-:ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
-build system that works on all platforms including Windows.
-
 Building with setuptools
 ========================
 
@@ -247,6 +208,46 @@ information about usage in C++, see :doc:`/advanced/embedding`.
     add_executable(example main.cpp)
     target_link_libraries(example PRIVATE pybind11::embed)
 
+.. _building_manually:
+
+Building manually
+=================
+
+pybind11 is a header-only-library, hence it is not necessary to link against
+any special libraries (other than Python itself).
+
+On Linux, you can compile an example such as the one given in
+:ref:`simple_example` using the following command:
+
+.. code-block:: bash
+
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+
+Here, the ``python3 -m pybind11 --includes`` fetches the include paths for
+Python and pybind11 headers. It assumes that you're using Python 3 and have
+the pybind11 module installed. If you're using Python 2, just change the
+executable appropriately. If the pybind11 module isn't available, you can
+replace this command with manually specified include paths:
+``-I <path-to-python-includes>`` and  ``-I <path-to-pybind11>/include``.
+
+Note that Python 2.7 modules don't use a special suffix, so you should simply
+use ``example.so`` instead of ``example`python3-config --extension-suffix```.
+Besides, ``--extension-suffix`` option may or may not be available, depending
+on the distribution; in the latter case, the module extension can be manually
+set to ``.so``.
+
+On Mac OS: the build command is almost the same but it also requires passing
+the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
+building the module:
+
+.. code-block:: bash
+
+    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+
+In general, it is advisable to include several additional build parameters
+that can considerably reduce the size of the created binary. Refer to section
+:ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
+build system that works on all platforms including Windows.
 
 Generating binding code automatically
 =====================================
