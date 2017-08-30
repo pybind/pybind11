@@ -120,17 +120,13 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
            arg("x"),
            "Add an item to the end of the list");
 
-    cl.def("__init__", [](Vector &v, iterable it) {
-        new (&v) Vector();
-        try {
-            v.reserve(len(it));
-            for (handle h : it)
-               v.push_back(h.cast<T>());
-        } catch (...) {
-            v.~Vector();
-            throw;
-        }
-    });
+    cl.def(init([](iterable it) {
+        auto v = std::unique_ptr<Vector>(new Vector());
+        v->reserve(len(it));
+        for (handle h : it)
+           v->push_back(h.cast<T>());
+        return v.release();
+    }));
 
     cl.def("extend",
        [](Vector &v, const Vector &src) {
@@ -346,20 +342,22 @@ vector_buffer(Class_& cl) {
         return buffer_info(v.data(), static_cast<ssize_t>(sizeof(T)), format_descriptor<T>::format(), 1, {v.size()}, {sizeof(T)});
     });
 
-    cl.def("__init__", [](Vector& vec, buffer buf) {
+    cl.def(init([](buffer buf) {
         auto info = buf.request();
         if (info.ndim != 1 || info.strides[0] % static_cast<ssize_t>(sizeof(T)))
             throw type_error("Only valid 1D buffers can be copied to a vector");
         if (!detail::compare_buffer_info<T>::compare(info) || (ssize_t) sizeof(T) != info.itemsize)
             throw type_error("Format mismatch (Python: " + info.format + " C++: " + format_descriptor<T>::format() + ")");
-        new (&vec) Vector();
-        vec.reserve((size_t) info.shape[0]);
+
+        auto vec = std::unique_ptr<Vector>(new Vector());
+        vec->reserve((size_t) info.shape[0]);
         T *p = static_cast<T*>(info.ptr);
         ssize_t step = info.strides[0] / static_cast<ssize_t>(sizeof(T));
         T *end = p + info.shape[0] * step;
         for (; p != end; p += step)
-            vec.push_back(*p);
-    });
+            vec->push_back(*p);
+        return vec.release();
+    }));
 
     return;
 }

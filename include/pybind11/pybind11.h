@@ -1313,6 +1313,30 @@ private:
     }
 };
 
+/// Binds an existing constructor taking arguments Args...
+template <typename... Args> detail::initimpl::constructor<Args...> init() { return {}; }
+/// Like `init<Args...>()`, but the instance is always constructed through the alias class (even
+/// when not inheriting on the Python side).
+template <typename... Args> detail::initimpl::alias_constructor<Args...> init_alias() { return {}; }
+
+/// Binds a factory function as a constructor
+template <typename Func, typename Ret = detail::initimpl::factory<Func>>
+Ret init(Func &&f) { return {std::forward<Func>(f)}; }
+
+/// Dual-argument factory function: the first function is called when no alias is needed, the second
+/// when an alias is needed (i.e. due to python-side inheritance).  Arguments must be identical.
+template <typename CFunc, typename AFunc, typename Ret = detail::initimpl::factory<CFunc, AFunc>>
+Ret init(CFunc &&c, AFunc &&a) {
+    return {std::forward<CFunc>(c), std::forward<AFunc>(a)};
+}
+
+/// Binds pickling functions `__getstate__` and `__setstate__` and ensures that the type
+/// returned by `__getstate__` is the same as the argument accepted by `__setstate__`.
+template <typename GetState, typename SetState>
+detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetState &&s) {
+    return {std::forward<GetState>(g), std::forward<SetState>(s)};
+};
+
 /// Binds C++ enumerations and enumeration classes to Python
 template <typename Type> class enum_ : public class_<Type> {
 public:
@@ -1340,7 +1364,7 @@ public:
                 m[kv.first] = kv.second;
             return m;
         }, return_value_policy::copy);
-        def("__init__", [](Type& value, Scalar i) { value = (Type)i; });
+        def(init([](Scalar i) { return static_cast<Type>(i); }));
         def("__int__", [](Type value) { return (Scalar) value; });
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
@@ -1378,8 +1402,8 @@ public:
         }
         def("__hash__", [](const Type &value) { return (Scalar) value; });
         // Pickling and unpickling -- needed for use with the 'multiprocessing' module
-        def("__getstate__", [](const Type &value) { return pybind11::make_tuple((Scalar) value); });
-        def("__setstate__", [](Type &p, tuple t) { new (&p) Type((Type) t[0].cast<Scalar>()); });
+        def(pickle([](const Type &value) { return pybind11::make_tuple((Scalar) value); },
+                   [](tuple t) { return static_cast<Type>(t[0].cast<Scalar>()); }));
     }
 
     /// Export enumeration entries into the parent scope
@@ -1400,30 +1424,6 @@ public:
 private:
     dict m_entries;
     handle m_parent;
-};
-
-/// Binds an existing constructor taking arguments Args...
-template <typename... Args> detail::initimpl::constructor<Args...> init() { return {}; }
-/// Like `init<Args...>()`, but the instance is always constructed through the alias class (even
-/// when not inheriting on the Python side).
-template <typename... Args> detail::initimpl::alias_constructor<Args...> init_alias() { return {}; }
-
-/// Binds a factory function as a constructor
-template <typename Func, typename Ret = detail::initimpl::factory<Func>>
-Ret init(Func &&f) { return {std::forward<Func>(f)}; }
-
-/// Dual-argument factory function: the first function is called when no alias is needed, the second
-/// when an alias is needed (i.e. due to python-side inheritance).  Arguments must be identical.
-template <typename CFunc, typename AFunc, typename Ret = detail::initimpl::factory<CFunc, AFunc>>
-Ret init(CFunc &&c, AFunc &&a) {
-    return {std::forward<CFunc>(c), std::forward<AFunc>(a)};
-}
-
-/// Binds pickling functions `__getstate__` and `__setstate__` and ensures that the type
-/// returned by `__getstate__` is the same as the argument accepted by `__setstate__`.
-template <typename GetState, typename SetState>
-detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetState &&s) {
-    return {std::forward<GetState>(g), std::forward<SetState>(s)};
 };
 
 NAMESPACE_BEGIN(detail)
