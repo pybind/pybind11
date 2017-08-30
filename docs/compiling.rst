@@ -213,8 +213,8 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 Building manually
 =================
 
-pybind11 is a header-only-library, hence it is not necessary to link against
-any special libraries (other than Python itself).
+pybind11 is a header-only library, hence it is not necessary to link against
+any special libraries and there are no intermediate (magic) translation steps.
 
 On Linux, you can compile an example such as the one given in
 :ref:`simple_example` using the following command:
