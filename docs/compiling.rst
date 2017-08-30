@@ -223,16 +223,18 @@ On Linux, you can compile an example such as the one given in
 
     $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
 
-Here, the ``python3 -m pybind11 --includes`` fetches the include paths for
-Python and pybind11 headers. It assumes that you're using Python 3 and have
-the pybind11 module installed. If you're using Python 2, just change the
-executable appropriately. If the pybind11 module isn't available, you can
-replace this command with manually specified include paths:
-``-I <path-to-python-includes>`` and  ``-I <path-to-pybind11>/include``.
+The flags given here assume that you're using Python 3. For Python 2, just
+change the executable appropriately (to ``python`` or ``python2``).
+
+The ``python3 -m pybind11 --includes`` command fetches the include paths for
+both pybind11 and Python headers. This assumes that pybind11 has been installed
+using ``pip`` or ``conda``. If it hasn't, you can also manually specify
+``-I <path-to-pybind11>/include`` together with the Python includes path
+``python3-config --includes``.
 
 Note that Python 2.7 modules don't use a special suffix, so you should simply
 use ``example.so`` instead of ``example`python3-config --extension-suffix```.
-Besides, ``--extension-suffix`` option may or may not be available, depending
+Besides, the ``--extension-suffix`` option may or may not be available, depending
 on the distribution; in the latter case, the module extension can be manually
 set to ``.so``.
 
