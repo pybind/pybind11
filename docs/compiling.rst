@@ -249,6 +249,17 @@ that can considerably reduce the size of the created binary. Refer to section
 :ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
 build system that works on all platforms including Windows.
 
+.. note::
+
+    On Linux and macOS, it's better to (intentionally) not link against
+    ``libpython``. The symbols will be resolved when the extension library
+    is loaded into a Python binary. This is preferable because you might
+    have several different installations of a given Python version (e.g. the
+    system-provided Python, and one that ships with a piece of commercial
+    software). In this way, the plugin will work with both versions, instead
+    of possibly importing a second Python library into a process that already
+    contains one (which will lead to a segfault).
+
 Generating binding code automatically
 =====================================
 
