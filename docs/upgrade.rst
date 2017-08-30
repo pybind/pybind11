@@ -201,6 +201,15 @@ localize all common type bindings in order to avoid conflicts with
 third-party modules.
 
 
+Negative strides for Python buffer objects and numpy arrays
+-----------------------------------------------------------
+
+Support for negative strides required changing the integer type from unsigned
+to signed in the interfaces of ``py::buffer_info`` and ``py::array``. If you
+have compiler warnings enabled, you may notice some new conversion warnings
+after upgrading. These can be resolved using ``static_cast``.
+
+
 Deprecation of some ``py::object`` APIs
 ---------------------------------------
 

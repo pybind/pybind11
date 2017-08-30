@@ -77,7 +77,8 @@ v2.2.0 (Not yet released)
   functions which return a class instance by value, pointer or holder. This
   supersedes the old placement-new ``__init__`` technique.
   See :ref:`custom_constructors` for details.
-  `#805 <https://github.com/pybind/pybind11/pull/805>`_.
+  `#805 <https://github.com/pybind/pybind11/pull/805>`_,
+  `#1014 <https://github.com/pybind/pybind11/pull/1014>`_.
 
   .. code-block:: cpp
 
@@ -193,8 +194,8 @@ v2.2.0 (Not yet released)
 * Fixed overriding static properties in derived classes.
   `#784 <https://github.com/pybind/pybind11/pull/784>`_.
 
-* Improved deduction of member function of derived class when the bases
-  isn't registered with pybind11.
+* Improved deduction of member functions of a derived class when its bases
+  aren't registered with pybind11.
   `#855 <https://github.com/pybind/pybind11/pull/855>`_.
 
   .. code-block:: cpp
@@ -227,6 +228,9 @@ v2.2.0 (Not yet released)
   `#812 <https://github.com/pybind/pybind11/pull/812>`_,
   `#866 <https://github.com/pybind/pybind11/pull/866>`_,
   `#960 <https://github.com/pybind/pybind11/pull/960>`_.
+
+* Fixed reference leak of type objects.
+  `#1030 <https://github.com/pybind/pybind11/pull/1030>`_.
 
 * Improved support for the ``/std:c++14`` and ``/std:c++latest`` modes
   on MSVC 2017.
@@ -272,6 +276,10 @@ v2.2.0 (Not yet released)
   Use ``py::object::borrowed_t{}``/``py::object::stolen_t{}`` instead.
   `#771 <https://github.com/pybind/pybind11/pull/771>`_.
 
+* Changed internal data structure versioning to avoid conflicts between
+  modules compiled with different revisions of pybind11.
+  `#1012 <https://github.com/pybind/pybind11/pull/1012>`_.
+
 * Additional compile-time and run-time error checking and more informative messages.
   `#786 <https://github.com/pybind/pybind11/pull/786>`_,
   `#794 <https://github.com/pybind/pybind11/pull/794>`_,
@@ -300,9 +308,11 @@ v2.2.0 (Not yet released)
   `#962 <https://github.com/pybind/pybind11/pull/962>`_,
   `#965 <https://github.com/pybind/pybind11/pull/965>`_,
   `#970 <https://github.com/pybind/pybind11/pull/970>`_,
-  `#979 <https://github.com/pybind/pybind11/pull/979>`_,
   `#978 <https://github.com/pybind/pybind11/pull/978>`_,
+  `#979 <https://github.com/pybind/pybind11/pull/979>`_,
   `#986 <https://github.com/pybind/pybind11/pull/986>`_,
+  `#1020 <https://github.com/pybind/pybind11/pull/1020>`_,
+  `#1027 <https://github.com/pybind/pybind11/pull/1027>`_,
   `#1037 <https://github.com/pybind/pybind11/pull/1037>`_.
 
 * Testing improvements.
