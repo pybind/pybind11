@@ -73,6 +73,8 @@ For brevity, all code examples assume that the following two lines are present:
 
 Some features may require additional headers, but those will be specified as needed.
 
+.. _simple_example:
+
 Creating bindings for a simple function
 =======================================
 

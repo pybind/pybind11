@@ -9,16 +9,18 @@ Building manually
 pybind11 is a header-only-library, hence it is not necessary to link against
 any special libraries (other than Python itself).
 
-On Linux, the above example can be compiled using the following command:
+On Linux, you can compile an example such as the ones given in
+:ref:`simple_example` using the following command:
 
 .. code-block:: bash
 
     $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
 
-Note that on Python 2.7.x ``python-config`` has to be used instead of
-``python3-config`` in the command above. Besides, ``--extension-suffix``
-option may or may not be available, depending on the distribution; in the latter
-case, the module extension can be manually set to ``.so``.
+Note that Python 2.7 modules don't use a special suffix, so you should simply
+use ``example.so`` instead of ``example`python3-config --extension-suffix```.
+Besides, ``--extension-suffix`` option may or may not be available, depending
+on the distribution; in the latter case, the module extension can be manually
+set to ``.so``.
 
 On Mac OS: the build command is almost the same but it also requires passing
 the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
