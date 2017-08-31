@@ -185,7 +185,7 @@ template <typename Type_> struct EigenProps {
     static constexpr bool show_c_contiguous = show_order && requires_row_major;
     static constexpr bool show_f_contiguous = !show_c_contiguous && show_order && requires_col_major;
 
-    static constexpr auto descriptor = type_descr(
+    static constexpr auto descriptor =
         _("numpy.ndarray[") + npy_format_descriptor<Scalar>::name +
         _("[")  + _<fixed_rows>(_<(size_t) rows>(), _("m")) +
         _(", ") + _<fixed_cols>(_<(size_t) cols>(), _("n")) +
@@ -199,8 +199,7 @@ template <typename Type_> struct EigenProps {
         _<show_writeable>(", flags.writeable", "") +
         _<show_c_contiguous>(", flags.c_contiguous", "") +
         _<show_f_contiguous>(", flags.f_contiguous", "") +
-        _("]")
-    );
+        _("]");
 };
 
 // Casts an Eigen type to numpy array.  If given a base, the numpy array references the src data,

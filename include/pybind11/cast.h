@@ -778,7 +778,7 @@ template <typename T1, typename T2> struct is_copy_constructible<std::pair<T1, T
 template <typename type> class type_caster_base : public type_caster_generic {
     using itype = intrinsic_t<type>;
 public:
-    static constexpr auto name = type_descr(_<type>());
+    static constexpr auto name = _<type>();
 
     type_caster_base() : type_caster_base(typeid(type)) { }
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) { }
@@ -900,7 +900,7 @@ public:
     protected: \
         type value; \
     public: \
-        static constexpr auto name = type_descr(py_name); \
+        static constexpr auto name = py_name; \
         template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0> \
         static handle cast(T_ *src, return_value_policy policy, handle parent) { \
             if (!src) return none().release(); \
@@ -1049,7 +1049,7 @@ public:
 
     template <typename T> using cast_op_type = void*&;
     operator void *&() { return value; }
-    static constexpr auto name = type_descr(_("capsule"));
+    static constexpr auto name = _("capsule");
 private:
     void *value = nullptr;
 };
@@ -1289,7 +1289,7 @@ public:
         return value[0];
     }
 
-    static constexpr auto name = type_descr(_(PYBIND11_STRING_NAME));
+    static constexpr auto name = _(PYBIND11_STRING_NAME);
     template <typename _T> using cast_op_type = remove_reference_t<pybind11::detail::cast_op_type<_T>>;
 };
 
@@ -1314,9 +1314,7 @@ public:
         return cast_impl(std::forward<T>(src), policy, parent, indices{});
     }
 
-    static constexpr auto name = type_descr(
-        _("Tuple[") + detail::concat(make_caster<Ts>::name...) + _("]")
-    );
+    static constexpr auto name = _("Tuple[") + concat(make_caster<Ts>::name...) + _("]");
 
     template <typename T> using cast_op_type = type;
 
@@ -1826,7 +1824,7 @@ public:
     static constexpr bool has_kwargs = kwargs_pos < 0;
     static constexpr bool has_args = args_pos < 0;
 
-    static constexpr auto arg_names = detail::concat(make_caster<Args>::name...);
+    static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 
     bool load_args(function_call &call) {
         return load_impl_sequence(call, indices{});
