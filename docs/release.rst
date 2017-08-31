@@ -14,8 +14,9 @@ To release a new version of pybind11:
     - ``python setup.py sdist upload``.
     - ``python setup.py bdist_wheel upload``.
 - Update conda-forge (https://github.com/conda-forge/pybind11-feedstock) via PR
-    - change version number in ``recipe/meta.yml``
-    - update checksum to match the one computed by pypi
+    - download release package from Github: ``wget https://github.com/pybind/pybind11/archive/vX.Y.Z.tar.gz``
+    - compute checksum: ``shasum -a 256  vX.Y.Z.tar.gz``
+    - change version number and checksum in ``recipe/meta.yml``
 - Get back to work
     - Update ``_version.py`` (add 'dev' and increment minor).
     - Update version in ``docs/conf.py``
