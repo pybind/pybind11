@@ -75,7 +75,7 @@ public:
             return cpp_function(std::forward<Func>(f_), policy).release();
     }
 
-    PYBIND11_TYPE_CASTER(type, _("Callable[[") + argument_loader<Args...>::arg_names + _("], ")
+    PYBIND11_TYPE_CASTER(type, _("Callable[[") + concat(make_caster<Args>::name...) + _("], ")
                                + make_caster<retval_type>::name + _("]"));
 };
 
