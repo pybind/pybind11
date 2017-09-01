@@ -76,6 +76,7 @@ string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 set(PYBIND11_CROSS_MODULE_TESTS
   test_exceptions.py
   test_local_bindings.py
+  test_stl_binders.py
 )
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
