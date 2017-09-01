@@ -177,9 +177,10 @@ indices start at one, while zero refers to the return value. For methods, index
 index ``2``. Arbitrarily many call policies can be specified. When a ``Nurse``
 with value ``None`` is detected at runtime, the call policy does nothing.
 
-This feature internally relies on the ability to create a *weak reference* to
-the nurse object, which is permitted by all classes exposed via pybind11. When
-the nurse object does not support weak references, an exception will be thrown.
+When the nurse is not a pybind11-registered type, the implementation internally
+relies on the ability to create a *weak reference* to the nurse object. When
+the nurse object is not a pybind11-registered type and does not support weak
+references, an exception will be thrown.
 
 Consider the following example: here, the binding code for a list append
 operation ties the lifetime of the newly added element to the underlying
