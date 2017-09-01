@@ -104,4 +104,10 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("get_gl_value", [](MixGL &o) { return o.i + 100; });
 
     py::class_<MixGL2>(m, "MixGL2", py::module_local()).def(py::init<int>());
+
+    // test_vector_bool
+    // We can't test both stl.h and stl_bind.h conversions of `std::vector<bool>` within
+    // the same module (it would be an ODR violation). Therefore `bind_vector` of `bool`
+    // is defined here and tested in `test_stl_binders.py`.
+    py::bind_vector<std::vector<bool>>(m, "VectorBool");
 }

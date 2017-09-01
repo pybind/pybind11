@@ -55,12 +55,8 @@ template <class Map> Map *times_ten(int n) {
 }
 
 TEST_SUBMODULE(stl_binders, m) {
-
     // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
-
-    // test_vector_bool
-    py::bind_vector<std::vector<bool>>(m, "VectorBool");
 
     // test_vector_custom
     py::class_<El>(m, "El")
