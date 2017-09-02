@@ -16,7 +16,7 @@ matrix:
         packages: [python3.6-dev python3.6-venv, cmake=2.\*, cmake-data=2.\*]
   - sudo: true
     services: docker
-    env: PYTHON=2.7 CPP=14 GCC=6
+    env: PYTHON=2.7 CPP=14 GCC=6 CMAKE=1
   - sudo: true
     services: docker
     env: PYTHON=3.5 CPP=14 GCC=6 DEBUG=1
@@ -31,7 +31,7 @@ matrix:
         packages: [python3.6-dev python3.6-venv clang-5.0 llvm-5.0-dev, lld-5.0]
   - os: osx
     osx_image: xcode7.3
-    env: PYTHON=2.7 CPP=14 CLANG
+    env: PYTHON=2.7 CPP=14 CLANG CMAKE=1
   - os: osx
     osx_image: xcode8.3
     env: PYTHON=3.6 CPP=14 CLANG DEBUG=1
@@ -169,9 +169,9 @@ install:
         git clone https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi -b release_50
         mkdir llvm-build && cd llvm-build
         # Building llvm requires a newer cmake than is provided by the trusty container:
-        CMAKE=cmake-3.8.0-Linux-x86_64
-        curl https://cmake.org/files/v3.8/$CMAKE.tar.gz | tar xz
-        ./$CMAKE/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/.local ../llvm-source
+        CMAKE_VER=cmake-3.8.0-Linux-x86_64
+        curl https://cmake.org/files/v3.8/$CMAKE_VER.tar.gz | tar xz
+        ./$CMAKE_VER/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/.local ../llvm-source
         make -j2 install-cxxabi install-cxx
         cp -a include/c++/v1/*cxxabi*.h ~/.local/include/c++/v1
         cd ..
@@ -201,7 +201,7 @@ script:
     -DDOWNLOAD_CATCH=ON
 - $SCRIPT_RUN_PREFIX make pytest -j 2
 - $SCRIPT_RUN_PREFIX make cpptest -j 2
-- $SCRIPT_RUN_PREFIX make test_cmake_build
+- if [ -n "$CMAKE" ]; then $SCRIPT_RUN_PREFIX make test_cmake_build; fi
 after_failure: cat tests/test_cmake_build/*.log*
 after_script:
 - if [ -n "$DOCKER" ]; then docker stop "$containerid"; docker rm "$containerid"; fi
