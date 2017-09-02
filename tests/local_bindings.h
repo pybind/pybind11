@@ -8,9 +8,9 @@ public:
     int i = -1;
 };
 
-/// Registered with py::local in both main and secondary modules:
+/// Registered with py::module_local in both main and secondary modules:
 using LocalType = LocalBase<0>;
-/// Registered without py::local in both modules:
+/// Registered without py::module_local in both modules:
 using NonLocalType = LocalBase<1>;
 /// A second non-local type (for stl_bind tests):
 using NonLocal2 = LocalBase<2>;
@@ -20,6 +20,10 @@ using LocalExternal = LocalBase<3>;
 using MixedLocalGlobal = LocalBase<4>;
 /// Mixed: global first, then local
 using MixedGlobalLocal = LocalBase<5>;
+
+/// Registered with py::module_local only in the secondary module:
+using ExternalType1 = LocalBase<6>;
+using ExternalType2 = LocalBase<7>;
 
 using LocalVec = std::vector<LocalType>;
 using LocalVec2 = std::vector<NonLocal2>;
@@ -39,7 +43,7 @@ PYBIND11_MAKE_OPAQUE(NonLocalMap2);
 
 
 // Simple bindings (used with the above):
-template <typename T, int Adjust, typename... Args>
+template <typename T, int Adjust = 0, typename... Args>
 py::class_<T> bind_local(Args && ...args) {
     return py::class_<T>(std::forward<Args>(args)...)
         .def(py::init<int>())
