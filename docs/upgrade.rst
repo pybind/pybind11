@@ -225,6 +225,33 @@ should be used directly instead: ``borrowed_t{}`` and ``stolen_t{}``
 (`#771 <https://github.com/pybind/pybind11/pull/771>`_).
 
 
+Stricter compile-time error checking
+------------------------------------
+
+Some error checks have been moved from run time to compile time. Notably,
+automatic conversion of ``std::shared_ptr<T>`` is not possible when ``T`` is
+not directly registered with ``py::class_<T>`` (e.g. ``std::shared_ptr<int>``
+or ``std::shared_ptr<std::vector<T>>`` are not automatically convertible).
+Attempting to bind a function with such arguments now results in a compile-time
+error instead of waiting to fail at run time.
+
+``py::init<...>()`` constructor definitions are also stricter and now prevent
+bindings which could cause unexpected behavior:
+
+.. code-block:: cpp
+
+    struct Example {
+        Example(int &);
+    };
+
+    py::class_<Example>(m, "Example")
+        .def(py::init<int &>()); // OK, exact match
+        // .def(py::init<int>()); // compile-time error, mismatch
+
+A non-``const`` lvalue reference is not allowed to bind to an rvalue. However,
+note that a constructor taking ``const T &`` can still be registered using
+``py::init<T>()`` because a ``const`` lvalue reference can bind to an rvalue.
+
 v2.1
 ====
 
