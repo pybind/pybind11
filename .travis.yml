@@ -34,7 +34,7 @@ matrix:
     env: PYTHON=2.7 CPP=14 CLANG
   - os: osx
     osx_image: xcode8.3
-    env: PYTHON=3.6 CPP=14 CLANG
+    env: PYTHON=3.6 CPP=14 CLANG DEBUG=1
   # Test a PyPy 2.7 build
   - os: linux
     env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
