@@ -28,6 +28,10 @@ v2.2.1 (Not yet released)
 * Relax overly strict ``py::picke()`` check for matching get and set types.
   `#1064 <https://github.com/pybind/pybind11/pull/1064>`_.
 
+* Fixed a nullptr dereference when loading a ``py::module_local`` type
+  that's only registered in an external module.
+  `#1058 <https://github.com/pybind/pybind11/pull/1058>`_.
+
 v2.2.0 (August 31, 2017)
 -----------------------------------------------------
 

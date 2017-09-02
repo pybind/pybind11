@@ -15,6 +15,10 @@
 #include <numeric>
 
 TEST_SUBMODULE(local_bindings, m) {
+    // test_load_external
+    m.def("load_external1", [](ExternalType1 &e) { return e.i; });
+    m.def("load_external2", [](ExternalType2 &e) { return e.i; });
+
     // test_local_bindings
     // Register a class with py::module_local:
     bind_local<LocalType, -1>(m, "LocalType", py::module_local())

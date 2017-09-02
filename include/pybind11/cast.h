@@ -482,9 +482,10 @@ inline PyObject *make_new_instance(PyTypeObject *type);
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
-     : typeinfo(get_type_info(type_info)) { }
+        : typeinfo(get_type_info(type_info)), cpptype(&type_info) { }
 
-    type_caster_generic(const type_info *typeinfo) : typeinfo(typeinfo) { }
+    type_caster_generic(const type_info *typeinfo)
+        : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) { }
 
     bool load(handle src, bool convert) {
         return load_impl<type_caster_generic>(src, convert);
@@ -610,7 +611,7 @@ public:
         type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
         // Only consider this foreign loader if actually foreign and is a loader of the correct cpp type
         if (foreign_typeinfo->module_local_load == &local_load
-                || !same_type(*typeinfo->cpptype, *foreign_typeinfo->cpptype))
+            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype)))
             return false;
 
         if (auto result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
@@ -722,6 +723,7 @@ public:
     }
 
     const type_info *typeinfo = nullptr;
+    const std::type_info *cpptype = nullptr;
     void *value = nullptr;
 };
 

@@ -20,6 +20,10 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     // Definitions here are tested by importing both this module and the
     // relevant pybind11_tests submodule from a test_whatever.py
 
+    // test_load_external
+    bind_local<ExternalType1>(m, "ExternalType1", py::module_local());
+    bind_local<ExternalType2>(m, "ExternalType2", py::module_local());
+
     // test_exceptions.py
     m.def("raise_runtime_error", []() { PyErr_SetString(PyExc_RuntimeError, "My runtime error"); throw py::error_already_set(); });
     m.def("raise_value_error", []() { PyErr_SetString(PyExc_ValueError, "My value error"); throw py::error_already_set(); });
