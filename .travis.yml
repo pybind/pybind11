@@ -41,13 +41,10 @@ matrix:
     addons:
       apt:
         packages: [libblas-dev, liblapack-dev, gfortran]
+  # Build in 32-bit mode and tests against the CMake-installed version
   - sudo: true
     services: docker
-    env: ARCH=i386 PYTHON=3.5 CPP=14 GCC=6
-  # This next one does a make install *before* testing, then builds the tests against the installed version:
-  - sudo: true
-    services: docker
-    env: PYTHON=3.5 CPP=14 CLANG=3.9 INSTALL=1
+    env: ARCH=i386 PYTHON=3.5 CPP=14 GCC=6 INSTALL=1
     script:
       - |
         $SCRIPT_RUN_PREFIX sh -c "set -e
@@ -106,7 +103,7 @@ before_install:
       fi
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
-    if [ "$GCC" = "6" ] || [ "$CLANG" = "3.9" ]; then DOCKER=${ARCH:+$ARCH/}debian:stretch
+    if [ "$GCC" = "6" ]; then DOCKER=${ARCH:+$ARCH/}debian:stretch
     elif [ "$GCC" = "7" ]; then DOCKER=debian:buster
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
