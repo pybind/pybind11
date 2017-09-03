@@ -2,6 +2,9 @@
 #include <catch.hpp>
 
 #include <thread>
+#include <fstream>
+#include <cstdio>
+#include <chrono>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -215,4 +218,44 @@ TEST_CASE("Threads") {
     }
 
     REQUIRE(locals["count"].cast<int>() == num_threads);
+}
+
+// Utility class for deleting a file on scope exit
+class DeleteOnExit {
+public:
+    DeleteOnExit(std::string filename) : m_filename(filename) {}
+    ~DeleteOnExit() { std::remove(m_filename.c_str()); }
+private:
+    std::string m_filename;
+};
+
+TEST_CASE("Reload module from file") {
+    std::string module_name = "test_module_reload";
+    std::string module_file = module_name + ".py";
+
+    // Create the module .py file
+    std::ofstream test_module(module_file);
+    test_module << "def test():\n";
+    test_module << "    return 1\n";
+    test_module.close();
+    DeleteOnExit delete_on_exit(module_file);
+
+    // Import the module from file
+    auto module = py::module::import(module_name.c_str());
+    int result = module.attr("test")().cast<int>();
+    REQUIRE(result == 1);
+
+    // We need to sleep before changing the module .py file, otherwise Python
+    // might pick up a binary version from the cache which contains the old module
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    // Update the module .py file with a small change
+    test_module.open(module_file);
+    test_module << "def test():\n";
+    test_module << "    return 2\n";
+    test_module.close();
+
+    // Reload the module
+    module.reload();
+    result = module.attr("test")().cast<int>();
+    REQUIRE(result == 2);
 }
