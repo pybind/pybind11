@@ -190,7 +190,7 @@ naturally:
     namespace py = pybind11;
 
     PYBIND11_EMBEDDED_MODULE(cpp_module, m) {
-        m.attr("a") = 1
+        m.attr("a") = 1;
     }
 
     int main() {
