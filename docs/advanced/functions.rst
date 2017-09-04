@@ -191,6 +191,17 @@ container:
     py::class_<List>(m, "List")
         .def("append", &List::append, py::keep_alive<1, 2>());
 
+For consistency, the argument indexing is identical for constructors. Index
+``1`` still refers to the implicit ``this`` pointer, i.e. the object which is
+being constructed. Index ``0`` refers to the return type which is presumed to
+be ``void`` when a constructor is viewed like a function. The following example
+ties the lifetime of the constructor element to the constructed object:
+
+.. code-block:: cpp
+
+    py::class_<Nurse>(m, "Nurse")
+        .def(py::init<Patient &>(), py::keep_alive<1, 2>());
+
 .. note::
 
     ``keep_alive`` is analogous to the ``with_custodian_and_ward`` (if Nurse,

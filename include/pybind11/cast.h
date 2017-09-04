@@ -1800,6 +1800,9 @@ struct function_call {
 
     /// The parent, if any
     handle parent;
+
+    /// If this is a call to an initializer, this argument contains `self`
+    handle init_self;
 };
 
 

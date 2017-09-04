@@ -511,6 +511,7 @@ protected:
                     if (self_value_and_holder)
                         self_value_and_holder.type->dealloc(self_value_and_holder);
 
+                    call.init_self = PyTuple_GET_ITEM(args_in, 0);
                     call.args.push_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
                     call.args_convert.push_back(false);
                     ++args_copied;
@@ -1457,10 +1458,17 @@ inline void keep_alive_impl(handle nurse, handle patient) {
 }
 
 PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
-    keep_alive_impl(
-        Nurse   == 0 ? ret : Nurse   <= call.args.size() ? call.args[Nurse   - 1] : handle(),
-        Patient == 0 ? ret : Patient <= call.args.size() ? call.args[Patient - 1] : handle()
-    );
+    auto get_arg = [&](size_t n) {
+        if (n == 0)
+            return ret;
+        else if (n == 1 && call.init_self)
+            return call.init_self;
+        else if (n <= call.args.size())
+            return call.args[n - 1];
+        return handle();
+    };
+
+    keep_alive_impl(get_arg(Nurse), get_arg(Patient));
 }
 
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_type_info_get_cache(PyTypeObject *type) {
