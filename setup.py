@@ -23,6 +23,7 @@ else:
         'include/pybind11/buffer_info.h',
         'include/pybind11/cast.h',
         'include/pybind11/chrono.h',
+        'include/pybind11/common.h',
         'include/pybind11/complex.h',
         'include/pybind11/eigen.h',
         'include/pybind11/embed.h',
