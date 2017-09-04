@@ -1335,7 +1335,7 @@ Ret init(CFunc &&c, AFunc &&a) {
 template <typename GetState, typename SetState>
 detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetState &&s) {
     return {std::forward<GetState>(g), std::forward<SetState>(s)};
-};
+}
 
 /// Binds C++ enumerations and enumeration classes to Python
 template <typename Type> class enum_ : public class_<Type> {
