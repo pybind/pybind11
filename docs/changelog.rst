@@ -14,6 +14,9 @@ v2.3.0 (Not yet released)
 v2.2.1 (Not yet released)
 -----------------------------------------------------
 
+* Fixed compilation with Clang on host GCC < 5 (old libstdc++ which isn't fully
+  C++11 compliant). `#1062 <https://github.com/pybind/pybind11/pull/1062>`_.
+
 * Fixed a regression where the ``py::keep_alive`` policy could not be applied
   to constructors. `#1065 <https://github.com/pybind/pybind11/pull/1065>`_.
 
