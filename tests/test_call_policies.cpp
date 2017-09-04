@@ -32,7 +32,7 @@ bool DependentGuard::enabled = false;
 TEST_SUBMODULE(call_policies, m) {
     // Parent/Child are used in:
     // test_keep_alive_argument, test_keep_alive_return_value, test_alive_gc_derived,
-    // test_alive_gc_multi_derived, test_return_none
+    // test_alive_gc_multi_derived, test_return_none, test_keep_alive_constructor
     class Child {
     public:
         Child() { py::print("Allocating child."); }
@@ -51,6 +51,7 @@ TEST_SUBMODULE(call_policies, m) {
     };
     py::class_<Parent>(m, "Parent")
         .def(py::init<>())
+        .def(py::init([](Child *) { return new Parent(); }), py::keep_alive<1, 2>())
         .def("addChild", &Parent::addChild)
         .def("addChildKeepAlive", &Parent::addChild, py::keep_alive<1, 2>())
         .def("returnChild", &Parent::returnChild)

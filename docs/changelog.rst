@@ -11,6 +11,12 @@ v2.3.0 (Not yet released)
 
 * TBD
 
+v2.2.1 (Not yet released)
+-----------------------------------------------------
+
+* Fixed a regression where the ``py::keep_alive`` policy could not be applied
+  to constructors. `#1065 <https://github.com/pybind/pybind11/pull/1065>`_.
+
 v2.2.0 (August 31, 2017)
 -----------------------------------------------------
 
