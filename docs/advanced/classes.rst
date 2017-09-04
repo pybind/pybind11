@@ -711,7 +711,7 @@ provided. Suppose the class in question has the following signature:
         int m_extra = 0;
     };
 
-Pickling support in Python is enable by defining the ``__setstate__`` and
+Pickling support in Python is enabled by defining the ``__setstate__`` and
 ``__getstate__`` methods [#f3]_. For pybind11 classes, use ``py::pickle()``
 to bind these two functions:
 
