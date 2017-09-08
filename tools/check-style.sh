@@ -19,7 +19,7 @@ check_style_errors=0
 IFS=$'\n'
 
 found="$( GREP_COLORS='mt=41' GREP_COLOR='41' grep $'\t' include tests/*.{cpp,py,h} docs/*.rst -rn --color=always )"
-if [ ! -z "$found" ]; then
+if [ -n "$found" ]; then
     # The mt=41 sets a red background for matched tabs:
     echo -e '\033[31m\033[01mError: found CRLF characters in the following files:\033[0m'
     check_style_errors=1
@@ -30,7 +30,7 @@ fi
 
 
 found="$( grep -IUlr $'\r' include tests/*.{cpp,py,h} docs/*.rst --color=always )"
-if [ ! -z "$found" ]; then
+if [ -n "$found" ]; then
     echo -e '\033[31m\033[01mError: found CRLF characters in the following files:\033[0m'
     check_style_errors=1
     echo "$found" | while read line; do
@@ -39,7 +39,7 @@ if [ ! -z "$found" ]; then
 fi
 
 found="$(GREP_COLORS='mt=41' GREP_COLOR='41' grep '[[:blank:]]\+$' include tests/*.{cpp,py,h} docs/*.rst -rn --color=always )"
-if [ ! -z "$found" ]; then
+if [ -n "$found" ]; then
     # The mt=41 sets a red background for matched trailing spaces
     echo -e '\033[31m\033[01mError: found trailing spaces in the following files:\033[0m'
     check_style_errors=1
@@ -49,7 +49,7 @@ if [ ! -z "$found" ]; then
 fi
 
 found="$(grep '\<\(if\|for\|while\|catch\)(\|){' include tests/*.{cpp,py,h} -rn --color=always)"
-if [ ! -z "$found" ]; then
+if [ -n "$found" ]; then
     echo -e '\033[31m\033[01mError: found the following coding style problems:\033[0m'
     check_style_errors=1
 
@@ -59,7 +59,7 @@ if [ ! -z "$found" ]; then
 fi
 
 found="$(GREP_COLORS='mt=41' GREP_COLOR='41' grep '^\s*{\s*$' include docs/*.rst -rn --color=always)"
-if [ ! -z "$found" ] ; then
+if [ -n "$found" ] ; then
     check_style_errors=1
     echo -e '\033[31m\033[01mError: braces should occur on the same line as the if/while/.. statement. Found issues in the following files: \033[0m'
     echo "$found" | while read line; do
