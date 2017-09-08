@@ -75,7 +75,7 @@ NAMESPACE_END(detail)
 
         ...
 
-        {   // Block
+        {
             py::scoped_ostream_redirect output;
             std::cout << "Hello, World!"; // Python stdout
         } // <-- return std::cout to normal
@@ -85,7 +85,7 @@ NAMESPACE_END(detail)
 
     .. code-block:: cpp
 
-        {   // Block
+        {
             py::scoped_ostream_redirect output{std::cerr, py::module::import("sys").attr("stderr")};
             std::cerr << "Hello, World!";
         }
