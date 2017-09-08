@@ -3,6 +3,40 @@ dist: trusty
 sudo: false
 matrix:
   include:
+  # This config does a few things:
+  # - Checks C++ and Python code styles (check-style.sh and flake8).
+  # - Makes sure sphinx can build the docs without any errors or warnings.
+  # - Tests setup.py sdist and install (all header files should be present).
+  # - Makes sure that everything still works without optional deps (numpy/scipy/eigen) and
+  #   also tests the automatic discovery functions in CMake (Python version, C++ standard).
+  - os: linux
+    env: STYLE DOCS PIP
+    cache: false
+    before_install:
+    - pyenv global system 2.7 3.6
+    - PY_CMD=python3.6
+    - $PY_CMD -m pip install --user --upgrade pip wheel
+    install:
+    - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe flake8 pep8-naming pytest
+    - curl -fsSL ftp://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.12.linux.bin.tar.gz | tar xz
+    - export PATH="$PWD/doxygen-1.8.12/bin:$PATH"
+    script:
+    - tools/check-style.sh
+    - flake8
+    - $PY_CMD -m sphinx -W -b html docs docs/.build
+    - |
+      # Make sure setup.py distributes and installs all the headers
+      $PY_CMD setup.py sdist
+      $PY_CMD -m pip install --user -U ./dist/*
+      installed=$($PY_CMD -c "import pybind11; print(pybind11.get_include(True) + '/pybind11')")
+      diff -rq $installed ./include/pybind11
+    - |
+      # Barebones build
+      cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+      make pytest -j 2
+      make cpptest -j 2
+  # The following are regular test configurations, including optional dependencies.
+  # With regard to each other they differ in Python version, C++ standard and compiler.
   - os: linux
     env: PYTHON=2.7 CPP=11 GCC=4.8
     addons:
@@ -54,36 +88,6 @@ matrix:
         mkdir /build-tests && cd /build-tests
         cmake ../pybind11-tests ${CMAKE_EXTRA_ARGS} -DPYBIND11_WERROR=ON
         make pytest -j 2"
-  # This config does a few things:
-  # - Checks C++ and Python code styles (check-style.sh and flake8).
-  # - Makes sure sphinx can build the docs without any errors or warnings.
-  # - Tests setup.py sdist and install (all header files should be present).
-  # - Makes sure that everything still works without optional deps (numpy/scipy/eigen) and
-  #   also tests the automatic discovery functions in CMake (Python version, C++ standard).
-  - os: linux
-    env: STYLE DOCS PIP PYTHON=3.5
-    cache: false
-    install:
-    - export PATH="~/.local/bin:$PATH"
-    - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe flake8 pep8-naming pytest
-    - |
-      curl -fsSL ftp://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.12.linux.bin.tar.gz | tar xz
-      export PATH="$PWD/doxygen-1.8.12/bin:$PATH"
-    script:
-    - tools/check-style.sh
-    - flake8
-    - $PY_CMD -m sphinx -W -b html docs docs/.build
-    - |
-      # Make sure setup.py distributes and installs all the headers
-      $PY_CMD setup.py sdist
-      $PY_CMD -m pip install --user -U ./dist/*
-      installed=$($PY_CMD -c "import pybind11; print(pybind11.get_include(True) + '/pybind11')")
-      diff -rq $installed ./include/pybind11
-    - |
-      # Barebones build
-      cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
-      make pytest -j 2
-      make cpptest -j 2
 cache:
   directories:
   - $HOME/.local/bin
