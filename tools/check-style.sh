@@ -64,7 +64,7 @@ last && /^\s*{/ {
 if [ -n "$found" ]; then
     check_style_errors=1
     echo -e '\033[31;01mError: braces should occur on the same line as the if/while/.. statement. Found issues in the following files:\033[0m'
-    echo "$found" | sed -e 's/^/    /'
+    echo "$found"
 fi
 
 exit $check_style_errors
