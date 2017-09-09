@@ -32,6 +32,10 @@ v2.2.1 (Not yet released)
   that's only registered in an external module.
   `#1058 <https://github.com/pybind/pybind11/pull/1058>`_.
 
+* Conversion errors now try to be more informative when it's likely that
+  a missing header is the cause (e.g. forgetting ``<pybind11/stl.h>``).
+  `#1077 <https://github.com/pybind/pybind11/pull/1077>`_.
+
 v2.2.0 (August 31, 2017)
 -----------------------------------------------------
 

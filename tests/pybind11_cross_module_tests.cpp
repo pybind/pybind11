@@ -114,4 +114,10 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     // the same module (it would be an ODR violation). Therefore `bind_vector` of `bool`
     // is defined here and tested in `test_stl_binders.py`.
     py::bind_vector<std::vector<bool>>(m, "VectorBool");
+
+    // test_missing_header_message
+    // The main module already includes stl.h, but we need to test the error message
+    // which appears when this header is missing.
+    m.def("missing_header_arg", [](std::vector<float>) { });
+    m.def("missing_header_return", []() { return std::vector<float>(); });
 }

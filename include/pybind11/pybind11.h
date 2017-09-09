@@ -694,6 +694,16 @@ protected:
             return nullptr;
         }
 
+        auto append_note_if_missing_header_is_suspected = [](std::string &msg) {
+            if (msg.find("std::") != std::string::npos) {
+                msg += "\n\n"
+                       "Did you forget to `#include <pybind11/stl.h>`? Or <pybind11/complex.h>,\n"
+                       "<pybind11/functional.h>, <pybind11/chrono.h>, etc. Some automatic\n"
+                       "conversions are optional and require extra headers to be included\n"
+                       "when compiling your pybind11 module.";
+            }
+        };
+
         if (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
             if (overloads->is_operator)
                 return handle(Py_NotImplemented).inc_ref().ptr();
@@ -751,12 +761,14 @@ protected:
                 }
             }
 
+            append_note_if_missing_header_is_suspected(msg);
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         } else if (!result) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
             msg += it->signature;
+            append_note_if_missing_header_is_suspected(msg);
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         } else {
