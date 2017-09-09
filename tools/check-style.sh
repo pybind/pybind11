@@ -37,7 +37,7 @@ fi
 found="$(GREP_COLORS='mt=41' GREP_COLOR='41' grep '[[:blank:]]\+$' include tests/*.{cpp,py,h} docs/*.rst -rn --color=always )"
 if [ -n "$found" ]; then
     # The mt=41 sets a red background for matched trailing spaces
-    echo -e '\033[31,01mError: found trailing spaces in the following files:\033[0m'
+    echo -e '\033[31;01mError: found trailing spaces in the following files:\033[0m'
     check_style_errors=1
     echo "$found" | sed -e 's/^/    /'
 fi
