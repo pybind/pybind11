@@ -144,6 +144,8 @@ def test_accessors():
     assert d["is_none"] is False
     assert d["operator()"] == 2
     assert d["operator*"] == 7
+    assert d["implicit_list"] == [1, 2, 3]
+    assert all(x in TestObject.__dict__ for x in d["implicit_dict"])
 
     assert m.tuple_accessor(tuple()) == (0, 1, 2)
 

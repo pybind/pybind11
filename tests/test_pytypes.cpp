@@ -128,6 +128,12 @@ TEST_SUBMODULE(pytypes, m) {
         d["operator()"] = o.attr("func")(1);
         d["operator*"] = o.attr("func")(*o.attr("begin_end"));
 
+        // Test implicit conversion
+        py::list implicit_list = o.attr("begin_end");
+        d["implicit_list"] = implicit_list;
+        py::dict implicit_dict = o.attr("__dict__");
+        d["implicit_dict"] = implicit_dict;
+
         return d;
     });
 
