@@ -3,8 +3,6 @@
 
 #include <thread>
 #include <fstream>
-#include <cstdio>
-#include <chrono>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -220,16 +218,25 @@ TEST_CASE("Threads") {
     REQUIRE(locals["count"].cast<int>() == num_threads);
 }
 
-// Utility class for deleting a file on scope exit
-class DeleteOnExit {
-public:
-    DeleteOnExit(std::string filename) : m_filename(filename) {}
-    ~DeleteOnExit() { std::remove(m_filename.c_str()); }
-private:
-    std::string m_filename;
+// Scope exit utility https://stackoverflow.com/a/36644501/7255855
+struct scope_exit {
+    std::function<void()> f_;
+    explicit scope_exit(std::function<void()> f) noexcept : f_(std::move(f)) {}
+    ~scope_exit() { if (f_) f_(); }
 };
 
 TEST_CASE("Reload module from file") {
+    // Disable generation of cached bytecode (.pyc files) for this test, otherwise
+    // Python might pick up an old version from the cache instead of the new versions
+    // of the .py files generated below
+    auto sys = py::module::import("sys");
+    bool dont_write_bytecode = sys.attr("dont_write_bytecode").cast<bool>();
+    sys.attr("dont_write_bytecode") = true;
+    // Reset the value at scope exit
+    scope_exit reset_dont_write_bytecode([&]() {
+        sys.attr("dont_write_bytecode") = dont_write_bytecode;
+    });
+
     std::string module_name = "test_module_reload";
     std::string module_file = module_name + ".py";
 
@@ -238,16 +245,16 @@ TEST_CASE("Reload module from file") {
     test_module << "def test():\n";
     test_module << "    return 1\n";
     test_module.close();
-    DeleteOnExit delete_on_exit(module_file);
+    // Delete the file at scope exit
+    scope_exit delete_module_file([&]() {
+        std::remove(module_file.c_str());
+    });
 
     // Import the module from file
     auto module = py::module::import(module_name.c_str());
     int result = module.attr("test")().cast<int>();
     REQUIRE(result == 1);
 
-    // We need to sleep before changing the module .py file, otherwise Python
-    // might pick up a binary version from the cache which contains the old module
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     // Update the module .py file with a small change
     test_module.open(module_file);
     test_module << "def test():\n";
