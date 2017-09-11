@@ -3,6 +3,7 @@
 
 #include <thread>
 #include <fstream>
+#include <functional>
 
 namespace py = pybind11;
 using namespace py::literals;
