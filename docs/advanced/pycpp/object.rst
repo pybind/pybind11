@@ -33,18 +33,90 @@ The reverse direction uses the following syntax:
 
 When conversion fails, both directions throw the exception :class:`cast_error`.
 
+.. _python_libs:
+
+Accessing Python libraries from C++
+===================================
+
+It is also possible to import types and classes defined in the Python standard
+library or available in the current Python environment (``sys.path``) and work
+with these in C++.
+
+This example obtains a reference to the Python ``Decimal`` class.
+
+.. code-block:: cpp
+
+    // Equivalent to "from decimal import Decimal"
+    py::object Decimal = py::module::import("decimal").attr("Decimal");
+
+.. code-block:: cpp
+
+    // Try to import scipy
+    py::object scipy = py::module::import("scipy");
+    return scipy.attr("__version__");
+
 .. _calling_python_functions:
 
 Calling Python functions
 ========================
 
-It is also possible to call python functions via ``operator()``.
+It is also possible to call Python, classes, functions and methods 
+via ``operator()``.
+
+.. code-block:: cpp
+
+    // Construct a Python object of class Decimal
+    py::object pi = Decimal("3.14159");
+
+.. code-block:: cpp
+
+    // Use Python to make our directories
+    py::object os = py::module::import("os");
+    py::object makedirs = os.attr("makedirs");
+    makedirs("/tmp/path/to/somewhere");
+
+One can convert the result obtained from Python to a pure C++ version 
+if a ``py::class_`` or type conversion is defined.
 
 .. code-block:: cpp
 
     py::function f = <...>;
     py::object result_py = f(1234, "hello", some_instance);
     MyClass &result = result_py.cast<MyClass>();
+
+.. _calling_python_methods:
+
+Calling Python methods
+========================
+
+To call a object's method, one can again use ``.attr`` to obtain access to the
+Python method.
+
+.. code-block:: cpp
+
+    // Calculate e^π in decimal
+    py::object pi_squared = pi.attr("exp")();
+    std::cout << py::str(pi_squared);
+
+In the example above ``pi.attr("exp")`` is a *bound method*: it will always call
+for the method for that same instance of the class. (The first argument of the
+method, by convention ``self``, is bound to ``pi``, even if called for other
+arguments.)
+
+Alternately one can create an *unbound method* via the Python class (instead of
+instance) and pass the ``self`` object explicitly, followed by other arguments.
+
+.. code-block:: cpp
+
+    py::object decimal_exp = Decimal.attr("exp");
+
+    // Compute the e^n for n=0..4
+    for (int n = 0; n < 5; n++) {
+        std::cout << decimal_exp(Decimal(n)) << std::endl;
+    }
+
+Keyword arguments
+=================
 
 Keyword arguments are also supported. In Python, there is the usual call syntax:
 
@@ -61,6 +133,9 @@ In C++, the same call can be made using:
 
     using namespace pybind11::literals; // to bring in the `_a` literal
     f(1234, "say"_a="hello", "to"_a=some_instance); // keyword call in C++
+
+Return value unpacking
+======================
 
 Unpacking of ``*args`` and ``**kwargs`` is also possible and can be mixed with
 other arguments:
