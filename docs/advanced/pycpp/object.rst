@@ -38,7 +38,7 @@ When conversion fails, both directions throw the exception :class:`cast_error`.
 Accessing Python libraries from C++
 ===================================
 
-It is also possible to import types and classes defined in the Python standard
+It is also possible to import objects defined in the Python standard
 library or available in the current Python environment (``sys.path``) and work
 with these in C++.
 
@@ -60,7 +60,7 @@ This example obtains a reference to the Python ``Decimal`` class.
 Calling Python functions
 ========================
 
-It is also possible to call Python, classes, functions and methods 
+It is also possible to call Python classes, functions and methods 
 via ``operator()``.
 
 .. code-block:: cpp
@@ -89,22 +89,19 @@ if a ``py::class_`` or type conversion is defined.
 Calling Python methods
 ========================
 
-To call a object's method, one can again use ``.attr`` to obtain access to the
+To call an object's method, one can again use ``.attr`` to obtain access to the
 Python method.
 
 .. code-block:: cpp
 
     // Calculate e^π in decimal
-    py::object pi_squared = pi.attr("exp")();
-    std::cout << py::str(pi_squared);
+    py::object exp_pi = pi.attr("exp")();
+    py::print(py::str(exp_pi));
 
 In the example above ``pi.attr("exp")`` is a *bound method*: it will always call
-for the method for that same instance of the class. (The first argument of the
-method, by convention ``self``, is bound to ``pi``, even if called for other
-arguments.)
-
-Alternately one can create an *unbound method* via the Python class (instead of
-instance) and pass the ``self`` object explicitly, followed by other arguments.
+the method for that same instance of the class. Alternately one can create an 
+*unbound method* via the Python class (instead of instance) and pass the ``self`` 
+object explicitly, followed by other arguments.
 
 .. code-block:: cpp
 
@@ -112,7 +109,7 @@ instance) and pass the ``self`` object explicitly, followed by other arguments.
 
     // Compute the e^n for n=0..4
     for (int n = 0; n < 5; n++) {
-        std::cout << decimal_exp(Decimal(n)) << std::endl;
+        py::print(decimal_exp(Decimal(n));
     }
 
 Keyword arguments
@@ -134,8 +131,8 @@ In C++, the same call can be made using:
     using namespace pybind11::literals; // to bring in the `_a` literal
     f(1234, "say"_a="hello", "to"_a=some_instance); // keyword call in C++
 
-Return value unpacking
-======================
+Unpacking arguments
+===================
 
 Unpacking of ``*args`` and ``**kwargs`` is also possible and can be mixed with
 other arguments:
