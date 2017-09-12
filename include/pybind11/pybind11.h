@@ -898,6 +898,7 @@ protected:
         tinfo->dealloc = rec.dealloc;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
+        tinfo->polymorphic = rec.polymorphic;
         tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
 
@@ -916,7 +917,12 @@ protected:
         }
         else if (rec.bases.size() == 1) {
             auto parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
-            tinfo->simple_ancestors = parent_tinfo->simple_ancestors;
+            if (tinfo->polymorphic == parent_tinfo->polymorphic) {
+                tinfo->simple_ancestors = parent_tinfo->simple_ancestors;
+            } else {
+                mark_parents_nonsimple(tinfo->type);
+                tinfo->simple_ancestors = false;
+            }
         }
 
         if (rec.module_local) {
@@ -927,6 +933,7 @@ protected:
     }
 
     /// Helper function which tags all parents of a type using mult. inheritance
+    /// or a polymorphic type which inherits from a non-polymorphic base
     void mark_parents_nonsimple(PyTypeObject *value) {
         auto t = reinterpret_borrow<tuple>(value->tp_bases);
         for (handle h : t) {
@@ -1045,6 +1052,7 @@ public:
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
+        record.polymorphic = std::is_polymorphic<type>::value;
         record.default_holder = std::is_same<holder_type, std::unique_ptr<type>>::value;
 
         set_operator_new<type>(&record);

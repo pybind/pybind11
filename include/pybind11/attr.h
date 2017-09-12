@@ -200,7 +200,8 @@ struct function_record {
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
     PYBIND11_NOINLINE type_record()
-        : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false), module_local(false) { }
+        : multiple_inheritance(false), polymorphic(false), dynamic_attr(false),
+          buffer_protocol(false), module_local(false) { }
 
     /// Handle to the parent scope
     handle scope;
@@ -238,6 +239,9 @@ struct type_record {
     /// Multiple inheritance marker
     bool multiple_inheritance : 1;
 
+    /// Type is polymorphic in C++
+    bool polymorphic : 1;
+
     /// Does the class manage a __dict__?
     bool dynamic_attr : 1;
 
@@ -250,6 +254,7 @@ struct type_record {
     /// Is the class definition local to the module shared object?
     bool module_local : 1;
 
+    /// Add a base as a template argument -- allows casting to base for non-simple types
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(base, false);
         if (!base_info) {
@@ -275,6 +280,24 @@ struct type_record {
 
         if (caster)
             base_info->implicit_casts.emplace_back(type, caster);
+    }
+
+    /// Add a base as a runtime argument -- only for simple types
+    PYBIND11_NOINLINE void add_base(handle base) {
+        if (!base || !PyType_Check(base.ptr()))
+            pybind11_fail("generic_type: type \"" + std::string(name) + "\" "
+                          "is trying to register a non-type object as a base");
+
+        auto base_ptr = (PyTypeObject *) base.ptr();
+        auto base_info = detail::get_type_info(base_ptr);
+        if (polymorphic != base_info->polymorphic) {
+            pybind11_fail("generic_type: type \"" + std::string(name) + "\" is polymorphic, "
+                          "but its base \"" + std::string(base_ptr->tp_name) + "\" is not. "
+                          "In this case, the base must be specified as a template argument: "
+                          "py::class_<T, Base>(...) instead of py::class_<T>(..., base).");
+        }
+
+        bases.append(base);
     }
 };
 
@@ -392,7 +415,7 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 /// Process a parent class attribute.  Single inheritance only (class_ itself already guarantees that)
 template <typename T>
 struct process_attribute<T, enable_if_t<is_pyobject<T>::value>> : process_attribute_default<handle> {
-    static void init(const handle &h, type_record *r) { r->bases.append(h); }
+    static void init(const handle &h, type_record *r) { r->add_base(h); }
 };
 
 /// Process a parent class attribute (deprecated, does not support multiple inheritance)
