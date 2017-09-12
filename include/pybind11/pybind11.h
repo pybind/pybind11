@@ -836,6 +836,14 @@ public:
         return reinterpret_steal<module>(obj);
     }
 
+    /// Reload the module or throws `error_already_set`.
+    void reload() {
+        PyObject *obj = PyImport_ReloadModule(ptr());
+        if (!obj)
+            throw error_already_set();
+        *this = reinterpret_steal<module>(obj);
+    }
+
     // Adds an object to the module using the given name.  Throws if an object with the given name
     // already exists.
     //

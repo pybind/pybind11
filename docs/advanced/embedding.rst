@@ -133,6 +133,11 @@ embedding the interpreter. This makes it easy to import local Python files:
     int n = result.cast<int>();
     assert(n == 3);
 
+Modules can be reloaded using `module::reload()` if the source is modified e.g.
+by an external process. This can be useful in scenarios where the application
+imports a user defined data processing script which needs to be updated after
+changes by the user. Note that this function does not reload modules recursively.
+
 .. _embedding_modules:
 
 Adding embedded modules
@@ -185,7 +190,7 @@ naturally:
     namespace py = pybind11;
 
     PYBIND11_EMBEDDED_MODULE(cpp_module, m) {
-        m.attr("a") = 1
+        m.attr("a") = 1;
     }
 
     int main() {
