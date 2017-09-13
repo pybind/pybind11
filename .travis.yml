@@ -13,8 +13,8 @@ matrix:
     env: STYLE DOCS PIP
     cache: false
     before_install:
-    - pyenv global system 2.7 3.6
-    - PY_CMD=python3.6
+    - pyenv global $(pyenv whence 2to3)  # activate all python versions
+    - PY_CMD=python3
     - $PY_CMD -m pip install --user --upgrade pip wheel
     install:
     - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe flake8 pep8-naming pytest
