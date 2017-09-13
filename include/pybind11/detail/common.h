@@ -205,6 +205,7 @@ extern "C" {
 #define PYBIND11_TRY_NEXT_OVERLOAD ((PyObject *) 1) // special failure return code
 #define PYBIND11_STRINGIFY(x) #x
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
+#define PYBIND11_CONCAT(first, second) first##second
 
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***
@@ -267,7 +268,7 @@ extern "C" {
         }
 \endrst */
 #define PYBIND11_MODULE(name, variable)                                        \
-    static void pybind11_init_##name(pybind11::module &);                      \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         int major, minor;                                                      \
         if (sscanf(Py_GetVersion(), "%i.%i", &major, &minor) != 2) {           \
@@ -281,9 +282,9 @@ extern "C" {
                          major, minor);                                        \
             return nullptr;                                                    \
         }                                                                      \
-        auto m = pybind11::module(#name);                                      \
+        auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
         try {                                                                  \
-            pybind11_init_##name(m);                                           \
+            PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
             return m.ptr();                                                    \
         } catch (pybind11::error_already_set &e) {                             \
             PyErr_SetString(PyExc_ImportError, e.what());                      \
@@ -293,7 +294,7 @@ extern "C" {
             return nullptr;                                                    \
         }                                                                      \
     }                                                                          \
-    void pybind11_init_##name(pybind11::module &variable)
+    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
 
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
