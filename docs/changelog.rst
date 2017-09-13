@@ -14,11 +14,14 @@ v2.3.0 (Not yet released)
 v2.2.1 (Not yet released)
 -----------------------------------------------------
 
-* Fixed compilation with Clang on host GCC < 5 (old libstdc++ which isn't fully
-  C++11 compliant). `#1062 <https://github.com/pybind/pybind11/pull/1062>`_.
+* Added ``py::module::reload()`` member function for reloading a module.
+  `#1040 <https://github.com/pybind/pybind11/pull/1040>`_.
 
 * Fixed a reference leak in the number converter.
   `#1078 <https://github.com/pybind/pybind11/pull/1078>`_.
+
+* Fixed compilation with Clang on host GCC < 5 (old libstdc++ which isn't fully
+  C++11 compliant). `#1062 <https://github.com/pybind/pybind11/pull/1062>`_.
 
 * Fixed a regression where the automatic ``std::vector<bool>`` caster would
   fail to compile. The same fix also applies to any container which returns
@@ -28,12 +31,18 @@ v2.2.1 (Not yet released)
 * Fixed a regression where the ``py::keep_alive`` policy could not be applied
   to constructors. `#1065 <https://github.com/pybind/pybind11/pull/1065>`_.
 
-* Relax overly strict ``py::picke()`` check for matching get and set types.
-  `#1064 <https://github.com/pybind/pybind11/pull/1064>`_.
-
 * Fixed a nullptr dereference when loading a ``py::module_local`` type
   that's only registered in an external module.
   `#1058 <https://github.com/pybind/pybind11/pull/1058>`_.
+
+* Fixed implicit conversion of accessors to types derived from ``py::object``.
+  `#1076 <https://github.com/pybind/pybind11/pull/1076>`_.
+
+* The ``name`` in ``PYBIND11_MODULE(name, variable)`` can now be a macro.
+  `#1082 <https://github.com/pybind/pybind11/pull/1082>`_.
+
+* Relaxed overly strict ``py::pickle()`` check for matching get and set types.
+  `#1064 <https://github.com/pybind/pybind11/pull/1064>`_.
 
 * Conversion errors now try to be more informative when it's likely that
   a missing header is the cause (e.g. forgetting ``<pybind11/stl.h>``).
