@@ -11,7 +11,7 @@ v2.3.0 (Not yet released)
 
 * TBD
 
-v2.2.1 (Not yet released)
+v2.2.1 (September 14, 2017)
 -----------------------------------------------------
 
 * Added ``py::module::reload()`` member function for reloading a module.
