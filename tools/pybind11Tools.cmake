@@ -173,7 +173,12 @@ function(pybind11_add_module target_name)
   endif()
 
   # Make sure C++11/14 are enabled
-  target_compile_options(${target_name} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
+  if(CMAKE_VERSION VERSION_LESS 3.3.0)
+    target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
+  else()
+    # use generator expression to make sure the flag only applies to CXX
+    target_compile_options(${target_name} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
+  endif()
 
   if(ARG_NO_EXTRAS)
     return()
