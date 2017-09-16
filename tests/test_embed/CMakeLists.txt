@@ -29,6 +29,17 @@ endif()
 find_package(Threads REQUIRED)
 target_link_libraries(test_embed PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 
-add_custom_target(cpptest COMMAND $<TARGET_FILE:test_embed>
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+if (WIN32)
+    set(pathsep ";")
+else()
+    set(pathsep ":")
+endif()
+
+add_custom_target(cpptest COMMAND ${CMAKE_COMMAND} -E env
+                    "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}${pathsep}${CMAKE_CURRENT_SOURCE_DIR}"
+                    $<TARGET_FILE:test_embed>)
+
+pybind11_add_module(external_module THIN_LTO external_module.cpp)
+add_dependencies(cpptest external_module)
+
 add_dependencies(check cpptest)
