@@ -245,7 +245,7 @@ to make these types of mistakes.
 Inconsistent detection of Python version in CMake and pybind11
 ==============================================================
 
-The functions ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` provided by CMake 
+The functions ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` provided by CMake
 are not consistent with detection of Python version in pybind11. If several versions of Python are installed
 in the Linux system (i.e. 2.7 and 3.5) the pybind11 defaults to 3.5, while CMake usually defaults to 2.7.
 The reason for this design decision is unreliable and buggy behavior of ``find_package(PythonInterp)`` and ``find_package(PythonLibs)``
@@ -269,8 +269,8 @@ In contrast this code
     find_package(pybind11)
     find_package(PythonInterp)
     find_package(PythonLibs)
-    
+
 will detect Python 3.5 for pybind11 and may crash on ``find_package(PythonLibs)`` afterwards.
 
-It is advised to avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` from CMake and rely 
+It is advised to avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` from CMake and rely
 on pybind11 in detecting Python version. if this is not possible CMake machinery should be called *before* including pybind11.
