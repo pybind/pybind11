@@ -241,3 +241,36 @@ Common gotchas to watch out for involve not ``free()``-ing memory region
 that that were ``malloc()``-ed in another shared library, using data
 structures with incompatible ABIs, and so on. pybind11 is very careful not
 to make these types of mistakes.
+
+Inconsistent detection of Python version in CMake and pybind11
+==============================================================
+
+The functions ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` provided by CMake 
+are not consistent with detection of Python version in pybind11. If several versions of Python are installed
+in the Linux system (i.e. 2.7 and 3.5) the pybind11 defaults to 3.5, while CMake usually defaults to 2.7.
+The reason for this design decision is unreliable and buggy behavior of ``find_package(PythonInterp)`` and ``find_package(PythonLibs)``
+which are among the worst-designed parts of CMake. We don't want to mimick this behavior in pybind11 in any way.
+
+This difference may cause inconsistencies and errors if *both* mechanisms are used in the same project. Consider the following
+Cmake code:
+
+.. code-block:: cmake
+
+    find_package(PythonInterp)
+    find_package(PythonLibs)
+    find_package(pybind11)
+
+It will detect Python 2.7 and pybind11 will peek it as well.
+
+In contrast this code
+
+.. code-block:: cmake
+
+    find_package(pybind11)
+    find_package(PythonInterp)
+    find_package(PythonLibs)
+    
+will detect Python 3.5 for pybind11 and may crash on ``find_package(PythonLibs)`` afterwards.
+
+It is advised to avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` from CMake and rely 
+on pybind11 in detecting Python version. if this is not possible CMake machinery should be called *before* including pybind11.
