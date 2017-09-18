@@ -100,12 +100,32 @@ regular LTO if ``-flto=thin`` is not available.
 Configuration variables
 -----------------------
 
-By default, pybind11 will compile modules with the C++14 standard, if available
-on the target compiler, falling back to C++11 if C++14 support is not
-available.  Note, however, that this default is subject to change: future
-pybind11 releases are expected to migrate to newer C++ standards as they become
-available.  To override this, the standard flag can be given explicitly in
-``PYBIND11_CPP_STANDARD``:
+By default, pybind11 will compile modules with the highest C++ standard available
+on the target compiler, from the set C++17, C++14, and C++11. With CMake 3.8+, this
+uses CMake's compile features mechinism and meta-features to detect your compiler's
+abilities. Older CMake versions fall back to manually trying to compile a mini-program
+with each flag.
+
+If you want to override this behavior, you have three options:
+
+CMake 3.1+: If you set ``CMAKE_CXX_STANDARD`` before including pybind11, it will be respected and no
+futher action will be taken by pybind11.
+
+CMake 3.1+: If you explicitly set a list of compile features in ``PYBIND11_CXX_FEATURES``, that will be used.
+See `CMAKE_CXX_KNOWN_FEATURES <https://cmake.org/cmake/help/latest/prop_gbl/CMAKE_CXX_KNOWN_FEATURES.html>`_
+for your CMake version.
+
+.. code-block:: cmake
+
+    # These meta-features were added in CMake 3.8:
+    set(PYBIND11_CXX_FEATURES cxx_std_11)
+    set(PYBIND11_CXX_FEATURES cxx_std_14)
+    set(PYBIND11_CXX_FEATURES cxx_std_17) # Experimental C++17 support
+
+    add_subdirectory(pybind11)  # or find_package(pybind11)
+
+CMake 2.8+: If neither of the above is set and you want to explicitly control the flag,
+the standard flag can be given as ``PYBIND11_CPP_STANDARD``:
 
 .. code-block:: cmake
 
@@ -120,9 +140,13 @@ available.  To override this, the standard flag can be given explicitly in
 
     add_subdirectory(pybind11)  # or find_package(pybind11)
 
-Note that this and all other configuration variables must be set **before** the
+Note that these and all other configuration variables must be set **before** the
 call to ``add_subdirectory`` or ``find_package``. The variables can also be set
 when calling CMake from the command line using the ``-D<variable>=<value>`` flag.
+
+Mixed C and C++ projects should use the ``PYBIND11_CXX_FEATURES`` mechanism to avoid
+adding flags to the C compiler. If you need the latest version of CMake, it is trivial
+to install; try ``pip install cmake`` or ``pip install --user cmake``.
 
 The target Python version can be selected by setting ``PYBIND11_PYTHON_VERSION``
 or an exact Python installation can be specified with ``PYTHON_EXECUTABLE``.

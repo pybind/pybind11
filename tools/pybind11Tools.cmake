@@ -18,27 +18,116 @@ find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 include(CheckCXXCompilerFlag)
 include(CMakeParseArguments)
 
-if(NOT PYBIND11_CPP_STANDARD AND NOT CMAKE_CXX_STANDARD)
-  if(NOT MSVC)
-    check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
+# The following options start out empty and cached; if empty they support "auto" behavior
 
-    if (HAS_CPP14_FLAG)
-      set(PYBIND11_CPP_STANDARD -std=c++14)
-    else()
-      check_cxx_compiler_flag("-std=c++11" HAS_CPP11_FLAG)
-      if (HAS_CPP11_FLAG)
-        set(PYBIND11_CPP_STANDARD -std=c++11)
+## Don't do anything if CMAKE_CXX_STANDARD is set
+if(NOT CMAKE_CXX_STANDARD)
+  # While complile features were introduced in 3.1, only 3.8+ have meta-features
+  # (And C++17 seems to be mostly supported through the meta-feature)
+
+  if(CMAKE_VERSION VERSION_LESS 3.8 AND NOT PYBIND11_CXX_FEATURES)
+    if(NOT PYBIND_CPP_STANDARD)
+      # Only try to get the standard manually if CMake doesn't support compiler features
+      if(MSVC)
+        set(PYBIND11_CPP_STANDARD "/std:c++14")
+        message(STATUS "pybind11 selected C++14 flag, MSVC")
       else()
-        message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
+        check_cxx_compiler_flag("-std=c++17" HAS_CPP17_FLAG)
+        check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
+        check_cxx_compiler_flag("-std=c++11" HAS_CPP11_FLAG)
+
+        if(HAS_CPP17_FLAG)
+          set(PYBIND11_CPP_STANDARD "-std=c++17")
+          message(STATUS "pybind11 selected C++17 flag")
+        elseif(HAS_CPP14_FLAG)
+          set(PYBIND11_CPP_STANDARD "-std=c++14")
+          message(STATUS "pybind11 selected C++14 flag")
+        elseif(HAS_CPP11_FLAG)
+          set(PYBIND11_CPP_STANDARD "-std=c++11")
+          message(STATUS "pybind11 selected C++11 flag")
+        else()
+          message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
+        endif()
       endif()
     endif()
-  elseif(MSVC)
-    set(PYBIND11_CPP_STANDARD /std:c++14)
-  endif()
 
-  set(PYBIND11_CPP_STANDARD ${PYBIND11_CPP_STANDARD} CACHE STRING
-      "C++ standard flag, e.g. -std=c++11, -std=c++14, /std:c++14.  Defaults to C++14 mode." FORCE)
+  # Auto add if CMake >= 3.8 and CXX_FEATURES is not set
+  elseif(NOT PYBIND11_CXX_FEATURES)
+    # IN_LIST introduced in CMAKE 3.3
+    # Safe because this will only activate if CMake >= 3.8
+    cmake_policy(SET CMP0057 NEW)
+
+    # The following only print if running the first time,
+    # and no C++ mode selected
+    if(cxx_std_17 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+      set(PYBIND11_CXX_FEATURES cxx_std_17)
+      message(STATUS "pybind11 selected C++17 mode, compiler feature")
+    elseif(cxx_std_14 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+      message(STATUS "pybind11 selected C++14 mode, compiler feature")
+      set(PYBIND11_CXX_FEATURES cxx_std_14)
+    elseif(cxx_std_11 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+      message(STATUS "pybind11 selected C++11 mode, compiler feature")
+      set(PYBIND11_CXX_FEATURES cxx_std_11)
+    else()
+      message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
+    endif()
+  endif()
 endif()
+
+# Allow the user to override by setting the cache value after the auto-discovery
+# Empty values get filled on first run (PYBIND11_CPP_STANDARD for CMake < 3.8,
+# otherwise PYBIND11_CXX_FEATURES), and then at this point are promoted to the CACHE.
+
+set(PYBIND11_CPP_STANDARD ${PYBIND11_CPP_STANDARD} CACHE STRING
+  "C++ standard flag, e.g. -std=c++11, -std=c++14, /std:c++14.  Defaults to highest supported for CMake 2.8-3.7")
+
+if(NOT CMAKE_VERSION VERSION_LESS 3.1)
+  #Only provide the option if CMake >= 3.1
+  set(PYBIND11_CXX_FEATURES ${PYBIND11_CXX_FEATURES} CACHE STRING
+    "List of compile features for PyBind, will use highest detected C++ version in CMake 3.8+")
+elseif(PYBIND11_CXX_FEATURES)
+  message(FATAL_ERROR "PYBIND11_CXX_FEATURES is not supported for CMake < 3.1")
+endif()
+
+function(_pybind11_target_cxx_std target_name)
+
+  # Do not do any overriding if global CMAKE_CXX_STANDARD is set
+  if(NOT CMAKE_CXX_STANDARD)
+    # See if this is an interface or regular target
+    get_target_property(PYTYPE ${target_name} TYPE)
+    get_target_property(PYIMPORTED ${target_name} IMPORTED)
+
+    # Allow manual settings (Needed for older CMakes)
+    # Will always be set for old CMake
+    if(PYBIND11_CPP_STANDARD) 
+      if(PYTYPE STREQUAL "INTERFACE_LIBRARY")
+        if(PYIMPORTED)
+          set_property(TARGET ${target_name} APPEND PROPERTY
+                       INTERFACE_COMPILE_OPTIONS ${PYBIND11_CPP_STANDARD})
+        else()
+          target_compile_options(${target_name} INTERFACE ${PYBIND11_CPP_STANDARD})
+        endif()
+      else()
+        target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
+      endif()
+
+    # A user of CMake 3.1 can override this, or 3.8 will default to using it
+    elseif(PYBIND11_CXX_FEATURES)
+      if(PYTYPE STREQUAL "INTERFACE_LIBRARY")
+        if(PYIMPORTED)
+          set_property(TARGET ${target_name} APPEND PROPERTY
+                       INTERFACE_COMPILE_FEATURES ${PYBIND11_CXX_FEATURES})
+        else()
+          target_compile_features(${target_name} INTERFACE ${PYBIND11_CXX_FEATURES})
+        endif()
+      else()
+        target_compile_features(${target_name} PUBLIC ${PYBIND11_CXX_FEATURES})
+        set_target_properties(${target_name} PROPERTIES CXX_EXTENSIONS OFF)
+      endif()
+    endif()
+  endif()
+endfunction()
+
 
 # Checks whether the given CXX/linker flags can compile and link a cxx file.  cxxflags and
 # linkerflags are lists of flags to use.  The result variable is a unique variable name for each set
@@ -185,7 +274,7 @@ function(pybind11_add_module target_name)
   endif()
 
   # Make sure C++11/14 are enabled
-  target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
+  _pybind11_target_cxx_std(${target_name})
 
   if(ARG_NO_EXTRAS)
     return()

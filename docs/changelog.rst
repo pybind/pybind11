@@ -113,6 +113,10 @@ v2.2.3 (April 29, 2018)
 * Fixed an endianness-related fault in the test suite.
   `#1287 <https://github.com/pybind/pybind11/pull/1287>`_.
 
+* Improved CMake C++ standard discovery for CMake 3.8+, and allow compiler features
+  to be used on CMake 3.1+. Added C++17 standard check.
+  `#1098 <https://github.com/pybind/pybind11/pull/1098>`_.
+
 v2.2.2 (February 7, 2018)
 -----------------------------------------------------
 
