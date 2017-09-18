@@ -14,6 +14,10 @@
 #include <utility>
 #include <type_traits>
 
+#if defined(PYBIND11_HAS_OPTIONAL)
+#  include <optional>
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* A few forward declarations */
@@ -1345,11 +1349,20 @@ private:
 class slice : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
-    slice(ssize_t start_, ssize_t stop_, ssize_t step_) {
-        int_ start(start_), stop(stop_), step(step_);
+    slice(handle start, handle stop, handle step) {
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
-        if (!m_ptr) pybind11_fail("Could not allocate slice object!");
+        if (!m_ptr)
+            pybind11_fail("Could not allocate slice object!");
     }
+
+#ifdef PYBIND11_HAS_OPTIONAL
+    slice(std::optional<ssize_t> start, std::optional<ssize_t> stop, std::optional<ssize_t> step)
+        : slice(indexToObject(start), indexToObject(stop), indexToObject(step)) {}
+#else
+    slice(ssize_t start_, ssize_t stop_, ssize_t step_)
+        : slice(int_(start_), int_(stop_), int_(step_)) {}
+#endif
+
     bool compute(size_t length, size_t *start, size_t *stop, size_t *step,
                  size_t *slicelength) const {
         return PySlice_GetIndicesEx((PYBIND11_SLICE_OBJECT *) m_ptr,
@@ -1363,6 +1376,12 @@ public:
           length, start,
           stop, step,
           slicelength) == 0;
+    }
+
+private:
+    template <typename T>
+    static object indexToObject(T index) {
+        return index ? object(int_(*index)) : object(none());
     }
 };
 

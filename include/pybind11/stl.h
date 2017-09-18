@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "detail/common.h"
 #include "pybind11.h"
 #include <set>
 #include <unordered_set>
@@ -19,28 +20,20 @@
 #include <deque>
 #include <valarray>
 
-#ifdef __has_include
-// std::optional (but including it in c++14 mode isn't allowed)
-#  if defined(PYBIND11_CPP17) && __has_include(<optional>)
-#    include <optional>
-#    define PYBIND11_HAS_OPTIONAL 1
-#  endif
-// std::experimental::optional (but not allowed in c++11 mode)
-#  if defined(PYBIND11_CPP14) && (__has_include(<experimental/optional>) && \
-                                 !__has_include(<optional>))
-#    include <experimental/optional>
-#    define PYBIND11_HAS_EXP_OPTIONAL 1
-#  endif
-// std::variant
-#  if defined(PYBIND11_CPP17) && __has_include(<variant>)
-#    include <variant>
-#    define PYBIND11_HAS_VARIANT 1
-#  endif
-#elif defined(_MSC_VER) && defined(PYBIND11_CPP17)
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+#endif
+
+// See `detail/common.h` for implementation of these guards.
+#if defined(PYBIND11_HAS_OPTIONAL)
 #  include <optional>
+#elif defined(PYBIND11_HAS_EXP_OPTIONAL)
+#  include <experimental/optional>
+#endif
+
+#if defined(PYBIND11_HAS_VARIANT)
 #  include <variant>
-#  define PYBIND11_HAS_OPTIONAL 1
-#  define PYBIND11_HAS_VARIANT 1
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)

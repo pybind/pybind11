@@ -15,6 +15,9 @@
 
 #include <algorithm>
 #include <utility>
+#ifdef PYBIND11_HAS_OPTIONAL
+#include <optional>
+#endif  // PYBIND11_HAS_OPTIONAL
 
 template<typename T>
 class NonZeroIterator {
@@ -92,6 +95,18 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
             int istep  = static_cast<int>(step);
             return std::make_tuple(istart, istop, istep);
         });
+
+    m.def("make_forward_slice_size_t", []() { return py::slice(0, -1, 1); });
+    m.def("make_reversed_slice_object", []() { return py::slice(py::none(), py::none(), py::int_(-1)); });
+#ifdef PYBIND11_HAS_OPTIONAL
+    m.attr("has_optional") = true;
+    m.def("make_reversed_slice_size_t_optional_verbose", []() { return py::slice(std::nullopt, std::nullopt, -1); });
+    // Warning: The following spelling may still compile if optional<> is not present and give wrong answers.
+    // Please use with caution.
+    m.def("make_reversed_slice_size_t_optional", []() { return py::slice({}, {}, -1); });
+#else
+    m.attr("has_optional") = false;
+#endif
 
     // test_sequence
     class Sequence {
