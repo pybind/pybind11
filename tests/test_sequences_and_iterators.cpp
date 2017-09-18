@@ -72,6 +72,30 @@ py::list test_random_access_iterator(PythonType x) {
     return checks;
 }
 
+// Tuple creation from #1095
+class Thing {
+    std::vector<int> data {{1,2,3,4}};
+
+public:
+    Thing() {}
+    int& getItem(size_t i) {return data.at(i);}
+    const int& getItem(size_t i) const {return data.at(i);}
+    size_t size() const {return data.size();}
+};
+
+py::list getItemList(Thing &t, py::slice slice) {
+     size_t start, stop, step, slicelength;
+     if (!slice.compute(t.size(), &start, &stop, &step, &slicelength))
+        throw py::error_already_set();
+     py::list result;
+     for (size_t i = 0; i < slicelength; ++i) {
+        int item = t.getItem(start);
+        result.append(item);
+        start += step;
+     }
+     return result;
+}
+
 TEST_SUBMODULE(sequences_and_iterators, m) {
     // test_sliceable
     class Sliceable{
@@ -91,6 +115,23 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
           int istep =  static_cast<int>(step);
           return std::make_tuple(istart,istop,istep);
         })
+        ;
+
+    py::class_<Thing>(m, "Thing")
+        .def(py::init<>())
+        .def("__getitem__",
+                [](Thing &t, py::slice slice) -> py::list {
+                    return getItemList(t, slice);
+                }
+        )
+        .def("reverse",
+                [](Thing &t) -> py::list {
+                    py::slice ordinary_indices(0, static_cast<ssize_t>(t.size()), 1);
+                    py::slice reversed_slice(py::none(), py::none(), -1);
+                    py::list reversed = getItemList(t, reversed_slice);
+                    return reversed;
+                }
+        )
         ;
 
     // test_sequence
