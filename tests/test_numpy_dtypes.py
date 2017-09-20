@@ -306,6 +306,5 @@ def test_str_leak():
     assert getrefcount(fmt) == start
 
 
-@pytest.requires_numpy
 def test_compare_buffer_info():
     assert all(m.compare_buffer_info())
