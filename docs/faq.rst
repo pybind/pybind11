@@ -246,13 +246,13 @@ Inconsistent detection of Python version in CMake and pybind11
 ==============================================================
 
 The functions ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` provided by CMake
-are not consistent with detection of Python version in pybind11. If several versions of Python are installed
-in the Linux system (i.e. 2.7 and 3.5) the pybind11 defaults to 3.5, while CMake usually defaults to 2.7.
-The reason for this design decision is unreliable and buggy behavior of ``find_package(PythonInterp)`` and ``find_package(PythonLibs)``
-which are among the worst-designed parts of CMake. We don't want to mimick this behavior in pybind11 in any way.
+for Python version detection are not used by pybind11 due to unreliability and limitations that make
+them unsuitable for pybind11's needs. Instead pybind provides its own, more reliable Python detection
+CMake code. Conflicts can arise, however, when using pybind11 in a project that *also* uses the CMake
+Python detection in a system with several Python versions installed.
 
 This difference may cause inconsistencies and errors if *both* mechanisms are used in the same project. Consider the following
-Cmake code:
+Cmake code executed in a system with Python 2.7 and 3.x installed:
 
 .. code-block:: cmake
 
@@ -260,9 +260,9 @@ Cmake code:
     find_package(PythonLibs)
     find_package(pybind11)
 
-It will detect Python 2.7 and pybind11 will peek it as well.
+It will detect Python 2.7 and pybind11 will pick it as well.
 
-In contrast this code
+In contrast this code:
 
 .. code-block:: cmake
 
@@ -270,7 +270,7 @@ In contrast this code
     find_package(PythonInterp)
     find_package(PythonLibs)
 
-will detect Python 3.5 for pybind11 and may crash on ``find_package(PythonLibs)`` afterwards.
+will detect Python 3.x for pybind11 and may crash on ``find_package(PythonLibs)`` afterwards.
 
 It is advised to avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` from CMake and rely
-on pybind11 in detecting Python version. if this is not possible CMake machinery should be called *before* including pybind11.
+on pybind11 in detecting Python version. If this is not possible CMake machinery should be called *before* including pybind11.
