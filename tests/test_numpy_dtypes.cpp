@@ -448,4 +448,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     // test_register_dtype
     m.def("register_dtype", []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_); });
+
+    // test_str_leak
+    m.def("dtype_wrapper", [](py::object d) { return py::dtype::from_args(std::move(d)); });
 }
