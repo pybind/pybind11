@@ -107,7 +107,7 @@ TEST_SUBMODULE(buffers, m) {
             return py::buffer_info(
                 m.data(),                               /* Pointer to buffer */
                 { m.rows(), m.cols() },                 /* Buffer dimensions */
-                { sizeof(float) * size_t(m.rows()),     /* Strides (in bytes) for each index */
+                { sizeof(float) * size_t(m.cols()),     /* Strides (in bytes) for each index */
                   sizeof(float) }
             );
         })
