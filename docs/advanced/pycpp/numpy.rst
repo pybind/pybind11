@@ -41,7 +41,7 @@ completely avoid copy operations with Python expressions like
                 py::format_descriptor<float>::format(), /* Python struct-style format descriptor */
                 2,                                      /* Number of dimensions */
                 { m.rows(), m.cols() },                 /* Buffer dimensions */
-                { sizeof(float) * m.rows(),             /* Strides (in bytes) for each index */
+                { sizeof(float) * m.cols(),             /* Strides (in bytes) for each index */
                   sizeof(float) }
             );
         });
