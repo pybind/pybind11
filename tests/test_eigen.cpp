@@ -288,6 +288,13 @@ TEST_SUBMODULE(eigen, m) {
     m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg().noconvert());
     m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg().noconvert());
 
+    // test_issue1105
+    // Issue #1105: when converting from a numpy two-dimensional (Nx1) or (1xN) value into a dense
+    // eigen Vector or RowVector, the argument would fail to load because the numpy copy would fail:
+    // numpy won't broadcast a Nx1 into a 1-dimensional vector.
+    m.def("iss1105_col", [](Eigen::VectorXd) { return true; });
+    m.def("iss1105_row", [](Eigen::RowVectorXd) { return true; });
+
     // test_named_arguments
     // Make sure named arguments are working properly:
     m.def("matrix_multiply", [](const py::EigenDRef<const Eigen::MatrixXd> A, const py::EigenDRef<const Eigen::MatrixXd> B)
