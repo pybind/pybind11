@@ -272,6 +272,7 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
         value = Type(fits.rows, fits.cols);
         auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
         if (dims == 1) ref = ref.squeeze();
+        else if (ref.ndim() == 1) buf = buf.squeeze();
 
         int result = detail::npy_api::get().PyArray_CopyInto_(ref.ptr(), buf.ptr());
 
