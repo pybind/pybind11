@@ -54,6 +54,7 @@ Members:
 
     assert int(m.UnscopedEnum.ETwo) == 2
     assert str(m.UnscopedEnum(2)) == "UnscopedEnum.ETwo"
+    assert str(m.UnscopedEnum("ETwo")) == "UnscopedEnum.ETwo"
 
     # order
     assert m.UnscopedEnum.EOne < m.UnscopedEnum.ETwo
@@ -70,8 +71,28 @@ Members:
     assert not (2 < m.UnscopedEnum.EOne)
 
 
+def test_converstion_enum():
+    assert m.test_conversion_enum(m.ConversionEnum.Convert1) == "ConversionEnum::Convert1"
+    assert m.test_conversion_enum(m.ConversionEnum("Convert1")) == "ConversionEnum::Convert1"
+    assert m.test_conversion_enum("Convert1") == "ConversionEnum::Convert1"
+
+
+def test_conversion_enum_raises():
+    with pytest.raises(ValueError) as excinfo:
+        m.ConversionEnum("Convert0")
+    assert str(excinfo.value) == "\"Convert0\" is not a valid value for enum type ConversionEnum"
+
+
+def test_conversion_enum_raises_implicit():
+    with pytest.raises(ValueError) as excinfo:
+        m.test_conversion_enum("Convert0")
+    assert str(excinfo.value) == "\"Convert0\" is not a valid value for enum type ConversionEnum"
+
+
 def test_scoped_enum():
     assert m.test_scoped_enum(m.ScopedEnum.Three) == "ScopedEnum::Three"
+    with pytest.raises(TypeError):
+        m.test_scoped_enum("Three")
     z = m.ScopedEnum.Two
     assert m.test_scoped_enum(z) == "ScopedEnum::Two"
 

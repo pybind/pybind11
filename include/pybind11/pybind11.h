@@ -1411,6 +1411,14 @@ public:
             return m;
         }, return_value_policy::copy);
         def(init([](Scalar i) { return static_cast<Type>(i); }));
+        def(init([name, m_entries_ptr](std::string value) -> Type {
+            pybind11::dict values = reinterpret_borrow<pybind11::dict>(m_entries_ptr);
+            pybind11::str key = pybind11::str(value);
+            if (values.contains(key))
+                return pybind11::cast<Type>(values[key]);
+            else
+                throw value_error("\"" + value + "\" is not a valid value for enum type " + name);
+        }));
         def("__int__", [](Type value) { return (Scalar) value; });
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
