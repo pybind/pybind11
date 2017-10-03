@@ -581,6 +581,11 @@ template <typename T, typename... Us> using deferred_t = typename deferred_type<
 template <typename Base, typename Derived> using is_strict_base_of = bool_constant<
     std::is_base_of<Base, Derived>::value && !std::is_same<Base, Derived>::value>;
 
+/// Like is_base_of, but also requires that the base type is accessible (i.e. that a Derived pointer
+/// can be converted to a Base pointer)
+template <typename Base, typename Derived> using is_accessible_base_of = bool_constant<
+    std::is_base_of<Base, Derived>::value && std::is_convertible<Derived *, Base *>::value>;
+
 template <template<typename...> class Base>
 struct is_template_base_of_impl {
     template <typename... Us> static std::true_type check(Base<Us...> *);
