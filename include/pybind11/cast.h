@@ -1216,6 +1216,7 @@ template <typename CharT> struct type_caster<CharT, enable_if_t<is_std_char_type
     using StringCaster = type_caster<StringType>;
     StringCaster str_caster;
     bool none = false;
+    CharT one_char = 0;
 public:
     bool load(handle src, bool convert) {
         if (!src) return false;
@@ -1243,7 +1244,7 @@ public:
     }
 
     operator CharT*() { return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str()); }
-    operator CharT() {
+    operator CharT&() {
         if (none)
             throw value_error("Cannot convert None to a character");
 
@@ -1267,7 +1268,8 @@ public:
             if (char0_bytes == str_len) {
                 // If we have a 128-255 value, we can decode it into a single char:
                 if (char0_bytes == 2 && (v0 & 0xFC) == 0xC0) { // 0x110000xx 0x10xxxxxx
-                    return static_cast<CharT>(((v0 & 3) << 6) + (static_cast<unsigned char>(value[1]) & 0x3F));
+                    one_char = static_cast<CharT>(((v0 & 3) << 6) + (static_cast<unsigned char>(value[1]) & 0x3F));
+                    return one_char;
                 }
                 // Otherwise we have a single character, but it's > U+00FF
                 throw value_error("Character code point not in range(0x100)");
@@ -1278,19 +1280,20 @@ public:
         // surrogate pair with total length 2 instantly indicates a range error (but not a "your
         // string was too long" error).
         else if (StringCaster::UTF_N == 16 && str_len == 2) {
-            char16_t v0 = static_cast<char16_t>(value[0]);
-            if (v0 >= 0xD800 && v0 < 0xE000)
+            one_char = static_cast<CharT>(value[0]);
+            if (one_char >= 0xD800 && one_char < 0xE000)
                 throw value_error("Character code point not in range(0x10000)");
         }
 
         if (str_len != 1)
             throw value_error("Expected a character, but multi-character string found");
 
-        return value[0];
+        one_char = value[0];
+        return one_char;
     }
 
     static constexpr auto name = _(PYBIND11_STRING_NAME);
-    template <typename _T> using cast_op_type = remove_reference_t<pybind11::detail::cast_op_type<_T>>;
+    template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
 
 // Base implementation for std::tuple and std::pair

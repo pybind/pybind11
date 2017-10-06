@@ -50,7 +50,9 @@ TEST_SUBMODULE(builtin_casters, m) {
     // test_single_char_arguments
     m.attr("wchar_size") = py::cast(sizeof(wchar_t));
     m.def("ord_char", [](char c) -> int { return static_cast<unsigned char>(c); });
+    m.def("ord_char_lv", [](char &c) -> int { return static_cast<unsigned char>(c); });
     m.def("ord_char16", [](char16_t c) -> uint16_t { return c; });
+    m.def("ord_char16_lv", [](char16_t &c) -> uint16_t { return c; });
     m.def("ord_char32", [](char32_t c) -> uint32_t { return c; });
     m.def("ord_wchar", [](wchar_t c) -> int { return c; });
 
