@@ -44,6 +44,7 @@ def test_single_char_arguments():
     toolong_message = "Expected a character, but multi-character string found"
 
     assert m.ord_char(u'a') == 0x61  # simple ASCII
+    assert m.ord_char_lv(u'b') == 0x62
     assert m.ord_char(u'é') == 0xE9  # requires 2 bytes in utf-8, but can be stuffed in a char
     with pytest.raises(ValueError) as excinfo:
         assert m.ord_char(u'Ā') == 0x100  # requires 2 bytes, doesn't fit in a char
@@ -54,9 +55,11 @@ def test_single_char_arguments():
 
     assert m.ord_char16(u'a') == 0x61
     assert m.ord_char16(u'é') == 0xE9
+    assert m.ord_char16_lv(u'ê') == 0xEA
     assert m.ord_char16(u'Ā') == 0x100
     assert m.ord_char16(u'‽') == 0x203d
     assert m.ord_char16(u'♥') == 0x2665
+    assert m.ord_char16_lv(u'♡') == 0x2661
     with pytest.raises(ValueError) as excinfo:
         assert m.ord_char16(u'🎂') == 0x1F382  # requires surrogate pair
     assert str(excinfo.value) == toobig_message(0x10000)
