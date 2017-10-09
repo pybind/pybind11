@@ -1235,6 +1235,12 @@ public:
         return result;
     }
 
+    // Replaces a capsule's pointer *without* calling the destructor on the existing one.
+    void set_pointer(const void *value) {
+        if (PyCapsule_SetPointer(m_ptr, const_cast<void *>(value)) != 0)
+            pybind11_fail("Could not set capsule pointer");
+    }
+
     const char *name() const { return PyCapsule_GetName(m_ptr); }
 };
 

@@ -284,6 +284,12 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
         .def_property_readonly_static("readonly", [](py::object) { return 1; });
 
+    // test_overload_ordering
+    m.def("overload_order", [](std::string) { return 1; });
+    m.def("overload_order", [](std::string) { return 2; });
+    m.def("overload_order", [](int) { return 3; });
+    m.def("overload_order", [](int) { return 4; }, py::prepend{});
+
 #if !defined(PYPY_VERSION)
     // test_dynamic_attributes
     class DynamicClass {

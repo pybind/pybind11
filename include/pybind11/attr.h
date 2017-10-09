@@ -74,6 +74,9 @@ struct module_local { const bool value; constexpr module_local(bool v = true) : 
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
 
+/// Mark a function for addition at the beginning of the existing overload chain instead of the end
+struct prepend { };
+
 /** \rst
     A call policy which places one or more guard variables (``Ts...``) around the function call.
 
@@ -138,8 +141,8 @@ struct argument_record {
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
-          is_operator(false), is_method(false),
-          has_args(false), has_kwargs(false), has_kw_only_args(false) { }
+          is_operator(false), is_method(false), has_args(false), 
+          has_kwargs(false), has_kw_only_args(false), is_prepended(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -188,6 +191,9 @@ struct function_record {
 
     /// True once a 'py::kw_only' is encountered (any following args are keyword-only)
     bool has_kw_only_args : 1;
+
+    /// True if this function is to be inserted at the beginning of the overload resolution chain
+    bool is_prepended : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
@@ -475,6 +481,11 @@ struct process_attribute<metaclass> : process_attribute_default<metaclass> {
 template <>
 struct process_attribute<module_local> : process_attribute_default<module_local> {
     static void init(const module_local &l, type_record *r) { r->module_local = l.value; }
+};
+
+/// Process an 'prepend' attribute, putting this at the top of the overload chain
+template <> struct process_attribute<prepend> : process_attribute_default<prepend> {
+    static void init(const prepend &, function_record *r) { r->is_prepended = true; }
 };
 
 /// Process an 'arithmetic' attribute for enums (does nothing here)

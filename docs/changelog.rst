@@ -32,6 +32,9 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   ``py::type::of(h)``.
   `#2364 <https://github.com/pybind/pybind11/pull/2364>`_
 
+* Added ``py::prepend()``, allowing a function to be placed at the beginning of
+  the overload chain.
+  `#1131 <https://github.com/pybind/pybind11/pull/1131>`_
 
 * Perfect forwarding support for methods.
   `#2048 <https://github.com/pybind/pybind11/pull/2048>`_
