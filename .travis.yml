@@ -67,7 +67,7 @@ matrix:
     osx_image: xcode7.3
     env: PYTHON=2.7 CPP=14 CLANG CMAKE=1
   - os: osx
-    osx_image: xcode8.3
+    osx_image: xcode9
     env: PYTHON=3.6 CPP=14 CLANG DEBUG=1
   # Test a PyPy 2.7 build
   - os: linux
@@ -138,7 +138,7 @@ before_install:
       PY_CMD=python$PYTHON
       if [ "$TRAVIS_OS_NAME" = "osx" ]; then
         if [ "$PY" = "3" ]; then
-          brew install python$PY;
+          brew update && brew install python$PY;
         else
           curl -fsSL https://bootstrap.pypa.io/get-pip.py | $PY_CMD - --user
         fi
