@@ -51,6 +51,7 @@ NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class cpp_function : public function {
 public:
     cpp_function() { }
+    cpp_function(std::nullptr_t) { }
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
@@ -954,18 +955,18 @@ protected:
         tinfo->get_buffer_data = get_buffer_data;
     }
 
+    // rec_func must be set for either fget or fset.
     void def_property_static_impl(const char *name,
                                   handle fget, handle fset,
-                                  detail::function_record *rec_fget) {
-        const auto is_static = !(rec_fget->is_method && rec_fget->scope);
-        const auto has_doc = rec_fget->doc && pybind11::options::show_user_defined_docstrings();
-
+                                  detail::function_record *rec_func) {
+        const auto is_static = !(rec_func->is_method && rec_func->scope);
+        const auto has_doc = rec_func->doc && pybind11::options::show_user_defined_docstrings();
         auto property = handle((PyObject *) (is_static ? get_internals().static_property_type
                                                        : &PyProperty_Type));
         attr(name) = property(fget.ptr() ? fget : none(),
                               fset.ptr() ? fset : none(),
                               /*deleter*/none(),
-                              pybind11::str(has_doc ? rec_fget->doc : ""));
+                              pybind11::str(has_doc ? rec_func->doc : ""));
     }
 };
 
@@ -1241,21 +1242,25 @@ public:
     template <typename... Extra>
     class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
-        char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific documentation string */
-        detail::process_attributes<Extra...>::init(extra..., rec_fget);
-        if (rec_fget->doc && rec_fget->doc != doc_prev) {
-            free(doc_prev);
-            rec_fget->doc = strdup(rec_fget->doc);
+        auto rec_active = rec_fget;
+        if (rec_fget) {
+           char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific documentation string */
+           detail::process_attributes<Extra...>::init(extra..., rec_fget);
+           if (rec_fget->doc && rec_fget->doc != doc_prev) {
+              free(doc_prev);
+              rec_fget->doc = strdup(rec_fget->doc);
+           }
         }
         if (rec_fset) {
-            doc_prev = rec_fset->doc;
+            char *doc_prev = rec_fset->doc;
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
                 free(doc_prev);
                 rec_fset->doc = strdup(rec_fset->doc);
             }
+            if (! rec_active) rec_active = rec_fset;
         }
-        def_property_static_impl(name, fget, fset, rec_fget);
+        def_property_static_impl(name, fget, fset, rec_active);
         return *this;
     }
 
