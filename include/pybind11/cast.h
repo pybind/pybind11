@@ -1415,7 +1415,7 @@ protected:
     bool load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
-            holder = v_h.holder<holder_type>();
+            holder = v_h.template holder<holder_type>();
             return true;
         } else {
             throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
