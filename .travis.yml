@@ -100,22 +100,22 @@ before_install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -n "$CLANG" ]; then
       export CXX=clang++-$CLANG CC=clang-$CLANG
-      COMPILER_PACKAGES="clang-$CLANG llvm-$CLANG-dev"
+      EXTRA_PACKAGES+=" clang-$CLANG llvm-$CLANG-dev"
     else
       if [ -z "$GCC" ]; then GCC=4.8
-      else COMPILER_PACKAGES=g++-$GCC
+      else EXTRA_PACKAGES+=" g++-$GCC"
       fi
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
     if [ "$GCC" = "6" ]; then DOCKER=${ARCH:+$ARCH/}debian:stretch
-    elif [ "$GCC" = "7" ]; then DOCKER=debian:buster
+    elif [ "$GCC" = "7" ]; then DOCKER=debian:buster EXTRA_PACKAGES+=" catch" DOWNLOAD_CATCH=OFF
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export CXX=clang++ CC=clang;
   fi
   if [ -n "$CPP" ]; then CPP=-std=c++$CPP; fi
   if [ "${PYTHON:0:1}" = "3" ]; then PY=3; fi
-  if [ -n "$DEBUG" ]; then CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DCMAKE_BUILD_TYPE=Debug"; fi
+  if [ -n "$DEBUG" ]; then CMAKE_EXTRA_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"; fi
 - |
   # Initialize environment
   set -e
@@ -133,7 +133,7 @@ before_install:
     if [ "$PYPY" = "5.8" ]; then
       curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.8.0-linux64.tar.bz2 | tar xj
       PY_CMD=$(echo `pwd`/pypy2-v5.8.0-linux64/bin/pypy)
-      CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
+      CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
     else
       PY_CMD=python$PYTHON
       if [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -157,12 +157,12 @@ install:
   if [ -n "$DOCKER" ]; then
     if [ -n "$DEBUG" ]; then
       PY_DEBUG="python$PYTHON-dbg python$PY-scipy-dbg"
-      CMAKE_EXTRA_ARGS="${CMAKE_EXTRA_ARGS} -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
+      CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
     fi
     $SCRIPT_RUN_PREFIX sh -c "for s in 0 15; do sleep \$s; \
       apt-get -qy --no-install-recommends install \
         $PY_DEBUG python$PYTHON-dev python$PY-pytest python$PY-scipy \
-        libeigen3-dev libboost-dev cmake make ${COMPILER_PACKAGES} && break; done"
+        libeigen3-dev libboost-dev cmake make ${EXTRA_PACKAGES} && break; done"
   else
 
     if [ "$CLANG" = "5.0" ]; then
@@ -195,7 +195,7 @@ install:
 
     wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.3.3.tar.gz
     tar xzf eigen.tar.gz
-    export CMAKE_INCLUDE_PATH="${CMAKE_INCLUDE_PATH:+:}$PWD/eigen-eigen-67e894c6cd8f"
+    export CMAKE_INCLUDE_PATH="${CMAKE_INCLUDE_PATH:+$CMAKE_INCLUDE_PATH:}$PWD/eigen-eigen-67e894c6cd8f"
   fi
   set +e
 script:
@@ -203,7 +203,7 @@ script:
     -DPYBIND11_PYTHON_VERSION=$PYTHON
     -DPYBIND11_CPP_STANDARD=$CPP
     -DPYBIND11_WERROR=${WERROR:-ON}
-    -DDOWNLOAD_CATCH=ON
+    -DDOWNLOAD_CATCH=${DOWNLOAD_CATCH:-ON}
 - $SCRIPT_RUN_PREFIX make pytest -j 2
 - $SCRIPT_RUN_PREFIX make cpptest -j 2
 - if [ -n "$CMAKE" ]; then $SCRIPT_RUN_PREFIX make test_cmake_build; fi
