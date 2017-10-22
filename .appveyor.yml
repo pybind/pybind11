@@ -34,6 +34,7 @@ install:
     if ($env:APPVEYOR_JOB_NAME -like "*Visual Studio 2017*") {
       $env:CMAKE_GENERATOR = "Visual Studio 15 2017"
       $env:CMAKE_INCLUDE_PATH = "C:\Libraries\boost_1_64_0"
+      $env:CXXFLAGS = "-permissive-"
     } else {
       $env:CMAKE_GENERATOR = "Visual Studio 14 2015"
     }
