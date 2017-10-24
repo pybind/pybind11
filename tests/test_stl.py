@@ -6,11 +6,11 @@ from pybind11_tests import UserType
 
 def test_vector(doc):
     """std::vector <-> list"""
-    l = m.cast_vector()
-    assert l == [1]
-    l.append(2)
-    assert m.load_vector(l)
-    assert m.load_vector(tuple(l))
+    lst = m.cast_vector()
+    assert lst == [1]
+    lst.append(2)
+    assert m.load_vector(lst)
+    assert m.load_vector(tuple(lst))
 
     assert m.cast_bool_vector() == [True, False]
     assert m.load_bool_vector([True, False])
@@ -24,9 +24,9 @@ def test_vector(doc):
 
 def test_array(doc):
     """std::array <-> list"""
-    l = m.cast_array()
-    assert l == [1, 2]
-    assert m.load_array(l)
+    lst = m.cast_array()
+    assert lst == [1, 2]
+    assert m.load_array(lst)
 
     assert doc(m.cast_array) == "cast_array() -> List[int[2]]"
     assert doc(m.load_array) == "load_array(arg0: List[int[2]]) -> bool"
@@ -34,9 +34,9 @@ def test_array(doc):
 
 def test_valarray(doc):
     """std::valarray <-> list"""
-    l = m.cast_valarray()
-    assert l == [1, 4, 9]
-    assert m.load_valarray(l)
+    lst = m.cast_valarray()
+    assert lst == [1, 4, 9]
+    assert m.load_valarray(lst)
 
     assert doc(m.cast_valarray) == "cast_valarray() -> List[int]"
     assert doc(m.load_valarray) == "load_valarray(arg0: List[int]) -> bool"
