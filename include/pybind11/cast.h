@@ -835,7 +835,7 @@ public:
             nullptr, nullptr, holder);
     }
 
-    template <typename T> using cast_op_type = cast_op_type<T>;
+    template <typename T> using cast_op_type = detail::cast_op_type<T>;
 
     operator itype*() { return (type *) value; }
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
