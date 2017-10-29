@@ -1373,15 +1373,30 @@ public:
         auto m_entries_ptr = m_entries.inc_ref().ptr();
         def("__repr__", [name, m_entries_ptr](Type value) -> pybind11::str {
             for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr)) {
-                if (pybind11::cast<Type>(kv.second) == value)
+                if (pybind11::cast<Type>(kv.second[int_(0)]) == value)
                     return pybind11::str("{}.{}").format(name, kv.first);
             }
             return pybind11::str("{}.???").format(name);
         });
-        def_property_readonly_static("__members__", [m_entries_ptr](object /* self */) {
+        def_property_readonly_static("__doc__", [m_entries_ptr](handle self) {
+            std::string docstring;
+            const char *tp_doc = ((PyTypeObject *) self.ptr())->tp_doc;
+            if (tp_doc)
+                docstring += std::string(tp_doc) + "\n\n";
+            docstring += "Members:";
+            for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr)) {
+                auto key = std::string(pybind11::str(kv.first));
+                auto comment = kv.second[int_(1)];
+                docstring += "\n\n  " + key;
+                if (!comment.is_none())
+                    docstring += " : " + (std::string) pybind11::str(comment);
+            }
+            return docstring;
+        });
+        def_property_readonly_static("__members__", [m_entries_ptr](handle /* self */) {
             dict m;
             for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr))
-                m[kv.first] = kv.second;
+                m[kv.first] = kv.second[int_(0)];
             return m;
         }, return_value_policy::copy);
         def(init([](Scalar i) { return static_cast<Type>(i); }));
@@ -1429,15 +1444,15 @@ public:
     /// Export enumeration entries into the parent scope
     enum_& export_values() {
         for (const auto &kv : m_entries)
-            m_parent.attr(kv.first) = kv.second;
+            m_parent.attr(kv.first) = kv.second[int_(0)];
         return *this;
     }
 
     /// Add an enumeration entry
-    enum_& value(char const* name, Type value) {
+    enum_& value(char const* name, Type value, const char *doc = nullptr) {
         auto v = pybind11::cast(value, return_value_policy::copy);
         this->attr(name) = v;
-        m_entries[pybind11::str(name)] = v;
+        m_entries[pybind11::str(name)] = std::make_pair(v, doc);
         return *this;
     }
 
