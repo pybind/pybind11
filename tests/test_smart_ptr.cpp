@@ -367,4 +367,19 @@ TEST_SUBMODULE(smart_ptr, m) {
                 list.append(py::cast(e));
             return list;
         });
+
+    // test_holder_mismatch
+    // Tests the detection of trying to use mismatched holder types around the same instance type
+    struct HeldByShared {};
+    struct HeldByUnique {};
+    py::class_<HeldByShared, std::shared_ptr<HeldByShared>>(m, "HeldByShared");
+    m.def("register_mismatch_return", [](py::module m) {
+        // Fails: the class was already registered with a shared_ptr holder
+        m.def("bad1", []() { return std::unique_ptr<HeldByShared>(new HeldByShared()); });
+    });
+    m.def("return_shared", []() { return std::make_shared<HeldByUnique>(); });
+    m.def("register_mismatch_class", [](py::module m) {
+        // Fails: `return_shared' already returned this via shared_ptr holder
+        py::class_<HeldByUnique>(m, "HeldByUnique");
+    });
 }
