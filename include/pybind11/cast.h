@@ -1493,6 +1493,33 @@ template <typename base, typename holder> struct is_holder_type :
 template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
     std::true_type {};
 
+template <typename holder> using is_holder = any_of<
+    is_template_base_of<move_only_holder_caster, make_caster<holder>>,
+    is_template_base_of<copyable_holder_caster, make_caster<holder>>>;
+
+template <typename holder>
+void check_for_holder_mismatch(enable_if_t<!is_holder<holder>::value, int> = 0) {}
+template <typename holder>
+void check_for_holder_mismatch(enable_if_t<is_holder<holder>::value, int> = 0) {
+    using iholder = intrinsic_t<holder>;
+    using base_type = decltype(*holder_helper<iholder>::get(std::declval<iholder>()));
+    auto &holder_typeinfo = typeid(iholder);
+    auto ins = get_internals().holders_seen.emplace(typeid(base_type), &holder_typeinfo);
+
+    auto debug = type_id<base_type>();
+    if (!ins.second && !same_type(*ins.first->second, holder_typeinfo)) {
+#ifdef NDEBUG
+        pybind11_fail("Mismatched holders detected (compile in debug mode for details)");
+#else
+        std::string seen_holder_name(ins.first->second->name());
+        detail::clean_type_id(seen_holder_name);
+        pybind11_fail("Mismatched holders detected: "
+                " attempting to use holder type " + type_id<iholder>() + ", but " + type_id<base_type>() +
+                " was already seen using holder type " + seen_holder_name);
+#endif
+    }
+}
+
 template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
 template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };
 template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
