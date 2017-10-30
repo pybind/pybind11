@@ -85,6 +85,7 @@ print(struct.calcsize('@P'));
 print(s.get_config_var('LDVERSION') or s.get_config_var('VERSION'));
 print(s.get_config_var('LIBDIR') or '');
 print(s.get_config_var('MULTIARCH') or '');
+print(s.get_config_var('LDLIBRARY'));
 "
     RESULT_VARIABLE _PYTHON_SUCCESS
     OUTPUT_VARIABLE _PYTHON_VALUES
@@ -112,6 +113,7 @@ list(GET _PYTHON_VALUES 6 PYTHON_SIZEOF_VOID_P)
 list(GET _PYTHON_VALUES 7 PYTHON_LIBRARY_SUFFIX)
 list(GET _PYTHON_VALUES 8 PYTHON_LIBDIR)
 list(GET _PYTHON_VALUES 9 PYTHON_MULTIARCH)
+list(GET _PYTHON_VALUES 10 _PYTHON_LIBRARY_NAME)
 
 # Make sure the Python has the same pointer-size as the chosen compiler
 # Skip if CMAKE_SIZEOF_VOID_P is not defined
@@ -165,7 +167,7 @@ else()
     # Probably this needs to be more involved. It would be nice if the config
     # information the python interpreter itself gave us were more complete.
     find_library(PYTHON_LIBRARY
-        NAMES "python${PYTHON_LIBRARY_SUFFIX}"
+        NAMES ${_PYTHON_LIBRARY_NAME}
         PATHS ${_PYTHON_LIBS_SEARCH}
         NO_DEFAULT_PATH)
 
