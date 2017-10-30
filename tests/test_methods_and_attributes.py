@@ -98,10 +98,20 @@ def test_properties():
     instance.def_property = 3
     assert instance.def_property == 3
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(AttributeError) as excinfo:
         dummy = instance.def_property_writeonly  # noqa: F841 unused var
+    assert "unreadable attribute" in str(excinfo)
+
     instance.def_property_writeonly = 4
     assert instance.def_property_readonly == 4
+
+    with pytest.raises(AttributeError) as excinfo:
+        dummy = instance.def_property_impossible  # noqa: F841 unused var
+    assert "unreadable attribute" in str(excinfo)
+
+    with pytest.raises(AttributeError) as excinfo:
+        instance.def_property_impossible = 5
+    assert "can't set attribute" in str(excinfo)
 
 
 def test_static_properties():
