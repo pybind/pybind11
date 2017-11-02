@@ -5,7 +5,8 @@
 #
 #  PYTHONLIBS_FOUND           - have the Python libs been found
 #  PYTHON_PREFIX              - path to the Python installation
-#  PYTHON_LIBRARIES           - path to the python library
+#  PYTHON_LIBRARIES           - path to the python library (could be static)
+#  PYTHON_SHARED_LIBRARY      - path to the python shared library, if found
 #  PYTHON_INCLUDE_DIRS        - path to where Python.h is found
 #  PYTHON_MODULE_EXTENSION    - lib extension, e.g. '.so' or '.pyd'
 #  PYTHON_MODULE_PREFIX       - lib name prefix: usually an empty string
@@ -161,13 +162,27 @@ else()
     else()
         set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}")
     endif()
-    #message(STATUS "Searching for Python libs in ${_PYTHON_LIBS_SEARCH}")
+
+    # Override the library suffix to only look for shared libraries first:
+    set(_PYTHON_SAVE_CFLS "${CMAKE_FIND_LIBRARY_SUFFIXES}")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_SHARED_LIBRARY_SUFFIX} ${CMAKE_SHARED_MODULE_SUFFIX})
     # Probably this needs to be more involved. It would be nice if the config
     # information the python interpreter itself gave us were more complete.
-    find_library(PYTHON_LIBRARY
+    find_library(PYTHON_LIB_SHARED
         NAMES "python${PYTHON_LIBRARY_SUFFIX}"
         PATHS ${_PYTHON_LIBS_SEARCH}
         NO_DEFAULT_PATH)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES "${_PYTHON_SAVE_CFLS}")  # Restore original
+
+    if (PYTHON_LIB_SHARED)
+        set(PYTHON_LIBRARY "${PYTHON_LIB_SHARED}")
+    else()
+        # If that didn't work, try again, this time allowing a static lib
+        find_library(PYTHON_LIBRARY
+            NAMES "python${PYTHON_LIBRARY_SUFFIX}"
+            PATHS ${_PYTHON_LIBS_SEARCH}
+            NO_DEFAULT_PATH)
+    endif()
 
     # If all else fails, just set the name/version and let the linker figure out the path.
     if(NOT PYTHON_LIBRARY)
@@ -177,6 +192,7 @@ endif()
 
 MARK_AS_ADVANCED(
   PYTHON_LIBRARY
+  PYTHON_LIB_SHARED
   PYTHON_INCLUDE_DIR
 )
 
@@ -186,6 +202,7 @@ MARK_AS_ADVANCED(
 # module.
 SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
 SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
+SET(PYTHON_LIBRARY_SHARED "${PYTHON_LIB_SHARED}")
 SET(PYTHON_DEBUG_LIBRARIES "${PYTHON_DEBUG_LIBRARY}")
 
 find_package_message(PYTHON
