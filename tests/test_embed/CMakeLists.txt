@@ -4,6 +4,12 @@ if(${PYTHON_MODULE_EXTENSION} MATCHES "pypy")
   return()
 endif()
 
+
+if(NOT PYTHON_LIBRARY_SHARED)
+  message(STATUS "Python shared library not found; skipping interpreter tests")
+  return()
+endif()
+
 find_package(Catch 1.9.3)
 if(CATCH_FOUND)
   message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
