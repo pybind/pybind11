@@ -473,7 +473,7 @@ Overload resolution order
 When a function or method with multiple overloads is called from Python,
 pybind11 determines which overload to call in two passes.  The first pass
 attempts to call each overload without allowing argument conversion (as if
-every argument had been specified as ``py::arg().noconvert()`` as decribed
+every argument had been specified as ``py::arg().noconvert()`` as described
 above).
 
 If no overload succeeds in the no-conversion first pass, a second pass is
