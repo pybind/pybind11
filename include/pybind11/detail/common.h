@@ -471,7 +471,7 @@ template <size_t... IPrev, size_t I, bool B, bool... Bs> struct select_indices_i
     : select_indices_impl<conditional_t<B, index_sequence<IPrev..., I>, index_sequence<IPrev...>>, I + 1, Bs...> {};
 template <bool... Bs> using select_indices = typename select_indices_impl<index_sequence<>, 0, Bs...>::type;
 
-/// Backports of std::bool_constant and std::negation to accomodate older compilers
+/// Backports of std::bool_constant and std::negation to accommodate older compilers
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T> struct negation : bool_constant<!T::value> { };
 
