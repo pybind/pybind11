@@ -227,7 +227,7 @@ def test_dispatch_issue(msg):
 
 
 def test_override_ref():
-    """#392/397: overridding reference-returning functions"""
+    """#392/397: overriding reference-returning functions"""
     o = m.OverrideTest("asdf")
 
     # Not allowed (see associated .cpp comment)
