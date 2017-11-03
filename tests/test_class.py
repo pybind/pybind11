@@ -76,6 +76,30 @@ def test_inheritance(msg):
     assert "No constructor defined!" in str(excinfo.value)
 
 
+def test_mixed_polymorphic_inheritance():
+    """A polymorphic class can inherit members from a non-polymorphic base"""
+    import re
+
+    class PolymorphicDerived(m.PolymorphicDerived):
+        def __init__(self):
+            m.PolymorphicDerived.__init__(self)
+
+    for x in m.PolymorphicDerived(), PolymorphicDerived():
+        assert (x.a, x.b) == (1, 2)
+        x.a = 11
+        x.b = 22
+        assert (x.a, x.b) == (11, 22)
+        assert m.call_with_nonpolymorphic_base(x) == 22
+        assert m.call_with_polymorphic_derived(x) == 22
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_mixed_polymorphic_base_at_runtime()
+    assert re.match('generic_type: type ".*LocalPolymorphicDerived" is polymorphic, '
+                    'but its base ".*NonPolymorphicBase" is not', str(excinfo.value))
+    assert ('In this case, the base must be specified as a template argument: '
+            'py::class_<T, Base>(...) instead of py::class_<T>(..., base).') in str(excinfo.value)
+
+
 def test_automatic_upcasting():
     assert type(m.return_class_1()).__name__ == "DerivedClass1"
     assert type(m.return_class_2()).__name__ == "DerivedClass2"

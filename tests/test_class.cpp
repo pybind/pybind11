@@ -11,6 +11,20 @@
 #include "constructor_stats.h"
 #include "local_bindings.h"
 
+// test_mixed_polymorphic_inheritance (MSVC can't link this if defined at function scope)
+struct NonPolymorphicBase {
+    std::int64_t a, b;
+};
+
+struct PolymorphicDerived : NonPolymorphicBase {
+    PolymorphicDerived() : NonPolymorphicBase{1, 2} { }
+    virtual ~PolymorphicDerived() { }
+};
+
+struct LocalPolymorphicDerived : NonPolymorphicBase {
+    virtual ~LocalPolymorphicDerived() = default;
+};
+
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
@@ -80,6 +94,24 @@ TEST_SUBMODULE(class_, m) {
 
     m.def("pet_name_species", [](const Pet &pet) { return pet.name() + " is a " + pet.species(); });
     m.def("dog_bark", [](const Dog &dog) { return dog.bark(); });
+
+    // test_mixed_polymorphic_inheritance
+    py::class_<NonPolymorphicBase>(m, "NonPolymorphicBase")
+        .def_readwrite("a", &NonPolymorphicBase::a)
+        .def_readwrite("b", &NonPolymorphicBase::b);
+
+    py::class_<PolymorphicDerived, NonPolymorphicBase>(m, "PolymorphicDerived")
+        .def(py::init<>());
+
+    m.def("call_with_nonpolymorphic_base", [](const NonPolymorphicBase &x) { return x.b; });
+    m.def("call_with_polymorphic_derived", [](const PolymorphicDerived &x) { return x.b; });
+
+    m.def("register_mixed_polymorphic_base_at_runtime", []() {
+        auto module = py::module::import("pybind11_tests").attr("class_");
+        auto base = module.attr("NonPolymorphicBase");
+        // Expected to throw
+        py::class_<LocalPolymorphicDerived>(module, "LocalPolymorphicDerived", base);
+    });
 
     // test_automatic_upcasting
     struct BaseClass { virtual ~BaseClass() {} };

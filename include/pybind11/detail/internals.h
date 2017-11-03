@@ -104,6 +104,8 @@ struct type_info {
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
     bool simple_ancestors : 1;
+    /* Type is polymorphic in C++ */
+    bool polymorphic : 1;
     /* for base vs derived holder_type checks */
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
@@ -111,7 +113,7 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 1
+#define PYBIND11_INTERNALS_VERSION 2
 
 #if defined(WITH_THREAD)
 #  define PYBIND11_INTERNALS_KIND ""
