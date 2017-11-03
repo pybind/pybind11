@@ -119,7 +119,7 @@ Jason Rhinelander,
 Boris Schäling,
 Pim Schellart,
 Ivan Smirnov, and
-Patrick Stewart.
+cpt. Jean-Luc Picard.
 
 ### License
 
