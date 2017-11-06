@@ -172,9 +172,19 @@ Module Destructors
 ==================
 
 pybind11 does not provide an explicit mechanism to invoke cleanup code at
-module destruction time. In rare cases where such functionality is required, it
-is possible to emulate it using Python capsules or weak references with a
-destruction callback.
+module destruction time. The Python :py:mod:`atexit` module [#f7]_ can be used
+to register functions to be called at shutdown.
+
+.. code-block:: cpp
+
+    auto atexit = py::module::import("atexit");
+    atexit.attr("register")(py::cpp_function([]() {
+        // perform cleanup here -- this function is called with the GIL held
+    }));
+
+In rare cases where such functionality is required and :py:mod:`atexit` is
+insufficient, it is possible to emulate it using Python capsules or weak
+references with a destruction callback.
 
 .. code-block:: cpp
 
@@ -215,6 +225,13 @@ avoids this issue involves weak reference with a cleanup callback:
 
     // Create a weak reference with a cleanup callback and initially leak it
     (void) py::weakref(m.attr("BaseClass"), cleanup_callback).release();
+
+.. note::
+
+    Only the :py:mod:`atexit` approach works on PyPy. The other approaches rely
+    on implementation details of CPython's garbage collection.
+
+.. [#f7] https://docs.python.org/3/library/atexit.html
 
 
 Generating documentation using Sphinx
