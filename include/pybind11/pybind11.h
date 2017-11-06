@@ -246,19 +246,16 @@ protected:
                 if (!t)
                     pybind11_fail("Internal error while parsing type signature (1)");
                 if (auto tinfo = detail::get_type_info(*t)) {
-#if defined(PYPY_VERSION)
-                    signature += handle((PyObject *) tinfo->type)
-                                     .attr("__module__")
-                                     .cast<std::string>() + ".";
-#endif
-                    signature += tinfo->type->tp_name;
+                    handle t((PyObject *) tinfo->type);
+                    signature +=
+                        t.attr("__module__").cast<std::string>() + "." +
+                        t.attr("__qualname__").cast<std::string>(); // Python 3.3+, but we backport it to earlier versions
                 } else if (rec->is_new_style_constructor && arg_index == 0) {
                     // A new-style `__init__` takes `self` as `value_and_holder`.
                     // Rewrite it to the proper class type.
-#if defined(PYPY_VERSION)
-                    signature += rec->scope.attr("__module__").cast<std::string>() + ".";
-#endif
-                    signature += ((PyTypeObject *) rec->scope.ptr())->tp_name;
+                    signature +=
+                        rec->scope.attr("__module__").cast<std::string>() + "." +
+                        rec->scope.attr("__qualname__").cast<std::string>();
                 } else {
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
