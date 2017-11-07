@@ -15,6 +15,9 @@ v2.3.0 (Not yet released)
   for non-MSVC compilers).
   `#934 <https://github.com/pybind/pybind11/pull/934>`_.
 
+* Added support for write only properties.
+  `#1144 <https://github.com/pybind/pybind11/pull/1144>`_.
+
 v2.2.1 (September 14, 2017)
 -----------------------------------------------------
 
