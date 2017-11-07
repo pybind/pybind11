@@ -14,6 +14,15 @@
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)
 
+#if PY_VERSION_HEX >= 0x03030000
+#  define PYBIND11_BUILTIN_QUALNAME
+#  define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj)
+#else
+// In pre-3.3 Python, we still set __qualname__ so that we can produce reliable function type
+// signatures; in 3.3+ this macro expands to nothing:
+#  define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj) setattr((PyObject *) obj, "__qualname__", nameobj)
+#endif
+
 inline PyTypeObject *type_incref(PyTypeObject *type) {
     Py_INCREF(type);
     return type;
@@ -48,7 +57,7 @@ inline PyTypeObject *make_static_property_type() {
         pybind11_fail("make_static_property_type(): error allocating type!");
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+#ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
 #endif
 
@@ -63,6 +72,7 @@ inline PyTypeObject *make_static_property_type() {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     return type;
 }
@@ -161,7 +171,7 @@ inline PyTypeObject* make_default_metaclass() {
         pybind11_fail("make_default_metaclass(): error allocating metaclass!");
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+#ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
 #endif
 
@@ -179,6 +189,7 @@ inline PyTypeObject* make_default_metaclass() {
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     return type;
 }
@@ -363,7 +374,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
         pybind11_fail("make_object_base_type(): error allocating type!");
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
+#ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
 #endif
 
@@ -384,6 +395,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
         pybind11_fail("PyType_Ready failed in make_object_base_type():" + error_string());
 
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
     return (PyObject *) heap_type;
@@ -504,13 +516,15 @@ inline void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
 inline PyObject* make_new_python_type(const type_record &rec) {
     auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec.name));
 
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-    auto ht_qualname = name;
-    if (rec.scope && hasattr(rec.scope, "__qualname__")) {
-        ht_qualname = reinterpret_steal<object>(
+    auto qualname = name;
+    if (rec.scope && !PyModule_Check(rec.scope.ptr()) && hasattr(rec.scope, "__qualname__")) {
+#if PY_MAJOR_VERSION >= 3
+        qualname = reinterpret_steal<object>(
             PyUnicode_FromFormat("%U.%U", rec.scope.attr("__qualname__").ptr(), name.ptr()));
-    }
+#else
+        qualname = str(rec.scope.attr("__qualname__").cast<std::string>() + "." + rec.name);
 #endif
+    }
 
     object module;
     if (rec.scope) {
@@ -552,8 +566,8 @@ inline PyObject* make_new_python_type(const type_record &rec) {
         pybind11_fail(std::string(rec.name) + ": Unable to create type object!");
 
     heap_type->ht_name = name.release().ptr();
-#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 3
-    heap_type->ht_qualname = ht_qualname.release().ptr();
+#ifdef PYBIND11_BUILTIN_QUALNAME
+    heap_type->ht_qualname = qualname.inc_ref().ptr();
 #endif
 
     auto type = &heap_type->ht_type;
@@ -598,6 +612,8 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     if (module) // Needed by pydoc
         setattr((PyObject *) type, "__module__", module);
+
+    PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
 
     return (PyObject *) type;
 }
