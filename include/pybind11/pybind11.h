@@ -1262,6 +1262,24 @@ public:
     }
 
 private:
+    template <typename T = type, detail::enable_if_t<std::is_destructible<T>::value, int> = 0>
+    static void init_shared_holder_from_pointer(detail::value_and_holder &v_h) {
+        new (&v_h.holder<holder_type>()) holder_type(v_h.value_ptr<type>());
+        v_h.set_holder_constructed();
+    }
+
+    template <typename T = type, detail::enable_if_t<!std::is_destructible<T>::value, int> = 0>
+    static void init_shared_holder_from_pointer(detail::value_and_holder &) {
+        pybind11_fail("Unable to construct C++ holder"
+#if defined(NDEBUG)
+            " (compile in debug mode for type details)"
+#else
+            ": cannot construct a `" + type_id<holder_type>() + "' holder around a non-destructible `" +
+            type_id<type>() + "' pointer"
+#endif
+        );
+    }
+
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
@@ -1276,8 +1294,7 @@ private:
         } catch (const std::bad_weak_ptr &) {}
 
         if (!v_h.holder_constructed() && inst->owned) {
-            new (&v_h.holder<holder_type>()) holder_type(v_h.value_ptr<type>());
-            v_h.set_holder_constructed();
+            init_shared_holder_from_pointer(v_h);
         }
     }
 
