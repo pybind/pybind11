@@ -109,7 +109,7 @@ if(NOT (CMAKE_VERSION VERSION_LESS 3.0))  # CMake >= 3.0
   if(WIN32 OR CYGWIN)
     target_link_libraries(module INTERFACE $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
   elseif(APPLE)
-    target_link_libraries(module INTERFACE "-undefined dynamic_lookup")
+    target_link_libraries(module INTERFACE "-flat_namespace" ${PYTHON_LIBRARIES})
   endif()
 
   add_library(embed INTERFACE)
