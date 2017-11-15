@@ -151,6 +151,59 @@ def test_nonunit_stride_from_python():
     np.testing.assert_array_equal(counting_mat, [[0., 2, 2], [6, 16, 10], [6, 14, 8]])
 
 
+def conv_double_to_adscalar(arr, vice_versa=False):
+    flat_arr = arr.flatten()
+    new_arr = np.zeros(flat_arr.shape, dtype=object)
+
+    for i in range(0, flat_arr.shape[0]):
+        if vice_versa:
+            new_arr[i] = flat_arr[i].value()
+        else:
+            new_arr[i] = m.AutoDiffXd(flat_arr[i], np.ones(1))
+
+    return new_arr.reshape(arr.shape)
+
+
+def test_eigen_passing_adscalar():
+    adscalar_mat = conv_double_to_adscalar(ref)
+    adscalar_vec_col = adscalar_mat[:, 0]
+    adscalar_vec_row = adscalar_mat[0, :]
+
+    # Checking if a Python vector is getting doubled, when passed into a dynamic
+    # row or col vector in Eigen.
+    adscalar_double_col = m.double_adscalar_col(adscalar_vec_col)
+    adscalar_double_row = m.double_adscalar_row(adscalar_vec_row)
+    np.testing.assert_array_equal(conv_double_to_adscalar(adscalar_double_col, vice_versa=True),
+                                  2 * ref[:, 0])
+    np.testing.assert_array_equal(conv_double_to_adscalar(adscalar_double_row, vice_versa=True),
+                                  2 * ref[0, :])
+
+    # Adding 7 to the a dynamic matrix using reference.
+    incremented_adscalar_mat = conv_double_to_adscalar(m.incr_adscalar_matrix(adscalar_mat, 7.),
+                                                       vice_versa=True)
+    np.testing.assert_array_equal(incremented_adscalar_mat, ref + 7)
+    # The original adscalar_mat remains unchanged in spite of passing by reference.
+    np.testing.assert_array_equal(conv_double_to_adscalar(adscalar_mat, vice_versa=True), ref)
+
+    # Changes in Python are not reflected in C++ when internal_reference is returned
+    return_tester = m.ReturnTester()
+    a = return_tester.get_ADScalarMat()
+    a[1, 1] = m.AutoDiffXd(4, np.ones(1))
+    b = return_tester.get_ADScalarMat()
+    assert(np.isclose(b[1, 1].value(), 7.))
+
+    # Checking Issue 1105
+    assert m.iss1105_col_obj(adscalar_vec_col[:, None])
+    assert m.iss1105_row_obj(adscalar_vec_row[None, :])
+
+    with pytest.raises(TypeError) as excinfo:
+        m.iss1105_row_obj(adscalar_vec_col[:, None])
+    assert "incompatible function arguments" in str(excinfo)
+    with pytest.raises(TypeError) as excinfo:
+        m.iss1105_col_obj(adscalar_vec_row[None, :])
+    assert "incompatible function arguments" in str(excinfo)
+
+
 def test_negative_stride_from_python(msg):
     """Eigen doesn't support (as of yet) negative strides. When a function takes an Eigen matrix by
     copy or const reference, we can pass a numpy array that has negative strides.  Otherwise, an

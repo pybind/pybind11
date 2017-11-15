@@ -12,10 +12,14 @@
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 #include <Eigen/Cholesky>
+#include <unsupported/Eigen/AutoDiff>
+#include "Eigen/src/Core/util/DisableStupidWarnings.h"
 
 using MatrixXdR = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-
-
+typedef Eigen::AutoDiffScalar<Eigen::VectorXd> ADScalar;
+typedef Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> VectorXADScalar;
+typedef Eigen::Matrix<ADScalar, 1, Eigen::Dynamic> VectorXADScalarR;
+PYBIND11_NUMPY_OBJECT_DTYPE(ADScalar);
 
 // Sets/resets a testing reference matrix to have values of 10*r + c, where r and c are the
 // (1-based) row/column number.
@@ -74,7 +78,9 @@ TEST_SUBMODULE(eigen, m) {
     using FixedMatrixR = Eigen::Matrix<float, 5, 6, Eigen::RowMajor>;
     using FixedMatrixC = Eigen::Matrix<float, 5, 6>;
     using DenseMatrixR = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+    using DenseADScalarMatrixR = Eigen::Matrix<ADScalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
     using DenseMatrixC = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
+    using DenseADScalarMatrixC = Eigen::Matrix<ADScalar, Eigen::Dynamic, Eigen::Dynamic>;
     using FourRowMatrixC = Eigen::Matrix<float, 4, Eigen::Dynamic>;
     using FourColMatrixC = Eigen::Matrix<float, Eigen::Dynamic, 4>;
     using FourRowMatrixR = Eigen::Matrix<float, 4, Eigen::Dynamic>;
@@ -86,10 +92,14 @@ TEST_SUBMODULE(eigen, m) {
 
     // various tests
     m.def("double_col", [](const Eigen::VectorXf &x) -> Eigen::VectorXf { return 2.0f * x; });
+    m.def("double_adscalar_col", [](const VectorXADScalar &x) -> VectorXADScalar { return 2.0f * x; });
     m.def("double_row", [](const Eigen::RowVectorXf &x) -> Eigen::RowVectorXf { return 2.0f * x; });
+    m.def("double_adscalar_row", [](const VectorXADScalarR &x) -> VectorXADScalarR { return 2.0f * x; });
     m.def("double_complex", [](const Eigen::VectorXcf &x) -> Eigen::VectorXcf { return 2.0f * x; });
     m.def("double_threec", [](py::EigenDRef<Eigen::Vector3f> x) { x *= 2; });
+    m.def("double_adscalarc", [](py::EigenDRef<VectorXADScalar> x) { x *= 2; });
     m.def("double_threer", [](py::EigenDRef<Eigen::RowVector3f> x) { x *= 2; });
+    m.def("double_adscalarr", [](py::EigenDRef<VectorXADScalarR> x) { x *= 2; });
     m.def("double_mat_cm", [](Eigen::MatrixXf x) -> Eigen::MatrixXf { return 2.0f * x; });
     m.def("double_mat_rm", [](DenseMatrixR x) -> DenseMatrixR { return 2.0f * x; });
 
@@ -134,6 +144,12 @@ TEST_SUBMODULE(eigen, m) {
         return m;
     }, py::return_value_policy::reference);
 
+    // Increments ADScalar Matrix
+    m.def("incr_adscalar_matrix", [](Eigen::Ref<DenseADScalarMatrixC> m, double v) {
+      m += DenseADScalarMatrixC::Constant(m.rows(), m.cols(), v);
+      return m;
+    }, py::return_value_policy::reference);
+
     // Same, but accepts a matrix of any strides
     m.def("incr_matrix_any", [](py::EigenDRef<Eigen::MatrixXd> m, double v) {
         m += Eigen::MatrixXd::Constant(m.rows(), m.cols(), v);
@@ -168,12 +184,16 @@ TEST_SUBMODULE(eigen, m) {
     // return value referencing/copying tests:
     class ReturnTester {
         Eigen::MatrixXd mat = create();
+        DenseADScalarMatrixR ad_mat = create_ADScalar_mat();
     public:
         ReturnTester() { print_created(this); }
         ~ReturnTester() { print_destroyed(this); }
-        static Eigen::MatrixXd create() { return Eigen::MatrixXd::Ones(10, 10); }
+        static Eigen::MatrixXd create() {  return Eigen::MatrixXd::Ones(10, 10); }
+        static DenseADScalarMatrixR create_ADScalar_mat() { DenseADScalarMatrixR ad_mat(2, 2);
+            ad_mat << 1, 2, 3, 7; return ad_mat; }
         static const Eigen::MatrixXd createConst() { return Eigen::MatrixXd::Ones(10, 10); }
         Eigen::MatrixXd &get() { return mat; }
+        DenseADScalarMatrixR& get_ADScalarMat() {return ad_mat;}
         Eigen::MatrixXd *getPtr() { return &mat; }
         const Eigen::MatrixXd &view() { return mat; }
         const Eigen::MatrixXd *viewPtr() { return &mat; }
@@ -192,6 +212,7 @@ TEST_SUBMODULE(eigen, m) {
         .def_static("create", &ReturnTester::create)
         .def_static("create_const", &ReturnTester::createConst)
         .def("get", &ReturnTester::get, rvp::reference_internal)
+        .def("get_ADScalarMat", &ReturnTester::get_ADScalarMat, rvp::reference_internal)
         .def("get_ptr", &ReturnTester::getPtr, rvp::reference_internal)
         .def("view", &ReturnTester::view, rvp::reference_internal)
         .def("view_ptr", &ReturnTester::view, rvp::reference_internal)
@@ -209,6 +230,18 @@ TEST_SUBMODULE(eigen, m) {
         .def("copy_block", &ReturnTester::block, rvp::copy)
         .def("corners", &ReturnTester::corners, rvp::reference_internal)
         .def("corners_const", &ReturnTester::cornersConst, rvp::reference_internal)
+        ;
+
+    py::class_<ADScalar>(m, "AutoDiffXd")
+        .def("__init__",
+             [](ADScalar & self,
+                double value,
+                const Eigen::VectorXd& derivatives) {
+               new (&self) ADScalar(value, derivatives);
+             })
+        .def("value", [](const ADScalar & self) {
+          return self.value();
+        })
         ;
 
     // test_special_matrix_objects
@@ -294,6 +327,9 @@ TEST_SUBMODULE(eigen, m) {
     // numpy won't broadcast a Nx1 into a 1-dimensional vector.
     m.def("iss1105_col", [](Eigen::VectorXd) { return true; });
     m.def("iss1105_row", [](Eigen::RowVectorXd) { return true; });
+
+    m.def("iss1105_col_obj", [](VectorXADScalar) { return true; });
+    m.def("iss1105_row_obj", [](VectorXADScalarR) { return true; });
 
     // test_named_arguments
     // Make sure named arguments are working properly:

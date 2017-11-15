@@ -1227,6 +1227,21 @@ private:
     ::pybind11::detail::npy_format_descriptor<Type>::register_dtype \
         ({PYBIND11_MAP2_LIST (PYBIND11_FIELD_DESCRIPTOR_EX, Type, __VA_ARGS__)})
 
+#define PYBIND11_NUMPY_OBJECT_DTYPE(Type) \
+    namespace pybind11 { namespace detail { \
+        template <> struct npy_format_descriptor<Type> { \
+        public: \
+            enum { value = npy_api::NPY_OBJECT_ }; \
+            static pybind11::dtype dtype() { \
+                if (auto ptr = npy_api::get().PyArray_DescrFromType_(value)) { \
+                    return reinterpret_borrow<pybind11::dtype>(ptr); \
+                } \
+                pybind11_fail("Unsupported buffer format!"); \
+            } \
+            static constexpr auto name = _("object"); \
+        }; \
+    }}
+
 #endif // __CLION_IDE__
 
 template  <class T>
