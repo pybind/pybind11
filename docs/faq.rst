@@ -241,3 +241,19 @@ Common gotchas to watch out for involve not ``free()``-ing memory region
 that that were ``malloc()``-ed in another shared library, using data
 structures with incompatible ABIs, and so on. pybind11 is very careful not
 to make these types of mistakes.
+
+How to cite this project?
+=========================
+
+We suggest the following BibTeX template to cite pybind11 in scientific
+discourse:
+
+.. code-block:: bash
+
+    @misc{pybind11,
+       author = {Wenzel Jakob and Jason Rhinelander and Dean Moldovan},
+       year = {2017},
+       note = {https://github.com/pybind/pybind11},
+       title = {pybind11 -- Seamless operability between C++11 and Python}
+    }
+
