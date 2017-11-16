@@ -323,3 +323,12 @@ def test_numpy_bool():
     assert convert(np.bool_(False)) is False
     assert noconvert(np.bool_(True)) is True
     assert noconvert(np.bool_(False)) is False
+
+
+def test_int_long():
+    """In Python 2, a C++ int should return a Python int if possible, not long."""
+    import sys
+    must_be_long = type(getattr(sys, 'maxint', 1) + 1)
+    isinstance(m.int_cast(), int)
+    isinstance(m.long_cast(), int)
+    isinstance(m.longlong_cast(), must_be_long)
