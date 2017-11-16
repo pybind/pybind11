@@ -18,6 +18,9 @@ v2.3.0 (Not yet released)
 * Added support for write only properties.
   `#1144 <https://github.com/pybind/pybind11/pull/1144>`_.
 
+* The ``value()``  method of ``py::enum_`` now accepts an optional docstring
+  that will be shown in the documentation of the associated enumeration.
+
 v2.2.1 (September 14, 2017)
 -----------------------------------------------------
 
