@@ -279,12 +279,20 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def(py::init<>())
         .def_readonly("def_readonly", &TestProperties::value)
         .def_readwrite("def_readwrite", &TestProperties::value)
+        .def_property("def_writeonly", nullptr,
+                      [](TestProperties& s,int v) { s.value = v; } )
+        .def_property("def_property_writeonly", nullptr, &TestProperties::set)
         .def_property_readonly("def_property_readonly", &TestProperties::get)
         .def_property("def_property", &TestProperties::get, &TestProperties::set)
+        .def_property("def_property_impossible", nullptr, nullptr)
         .def_readonly_static("def_readonly_static", &TestProperties::static_value)
         .def_readwrite_static("def_readwrite_static", &TestProperties::static_value)
+        .def_property_static("def_writeonly_static", nullptr,
+                             [](py::object, int v) { TestProperties::static_value = v; })
         .def_property_readonly_static("def_property_readonly_static",
                                       [](py::object) { return TestProperties::static_get(); })
+        .def_property_static("def_property_writeonly_static", nullptr,
+                             [](py::object, int v) { return TestProperties::static_set(v); })
         .def_property_static("def_property_static",
                              [](py::object) { return TestProperties::static_get(); },
                              [](py::object, int v) { TestProperties::static_set(v); })

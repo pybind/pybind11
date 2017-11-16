@@ -13,7 +13,7 @@
 #include <cmath>
 
 // Classes for testing python construction via C++ factory function:
-// Not publically constructible, copyable, or movable:
+// Not publicly constructible, copyable, or movable:
 class TestFactory1 {
     friend class TestFactoryHelper;
     TestFactory1() : value("(empty)") { print_default_created(this); }

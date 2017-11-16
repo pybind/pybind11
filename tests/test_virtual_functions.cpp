@@ -249,7 +249,7 @@ TEST_SUBMODULE(virtual_functions, m) {
     m.def("dispatch_issue_go", [](const Base * b) { return b->dispatch(); });
 
     // test_override_ref
-    // #392/397: overridding reference-returning functions
+    // #392/397: overriding reference-returning functions
     class OverrideTest {
     public:
         struct A { std::string value = "hi"; };
