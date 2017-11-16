@@ -159,5 +159,5 @@ TEST_SUBMODULE(builtin_casters, m) {
     // test int vs. long (Python 2)
     m.def("int_cast", []() {return (int) 42;});
     m.def("long_cast", []() {return (long) 42;});
-    m.def("longlong_cast", []() {return (long long) 42;});
+    m.def("longlong_cast", []() {return  ULLONG_MAX;});
 }

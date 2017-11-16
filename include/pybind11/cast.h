@@ -981,18 +981,11 @@ public:
         if (std::is_floating_point<T>::value) {
             return PyFloat_FromDouble((double) src);
         } else if (sizeof(T) <= sizeof(ssize_t)) {
-#if PY_VERSION_HEX < 0x03000000
             // This returns a long automatically if needed
             if (std::is_signed<T>::value)
-                return PyInt_FromSsize_t((ssize_t) src);
+                return PYBIND11_LONG_FROM_SIGNED(src);
             else
-                return PyInt_FromSize_t((size_t) src);
-#else
-            if (std::is_signed<T>::value)
-                return PyLong_FromSsize_t((ssize_t) src);
-            else
-                return PyLong_FromSize_t((size_t) src);
-#endif
+                return PYBIND11_LONG_FROM_UNSIGNED(src);
         } else {
             if (std::is_signed<T>::value)
                 return PyLong_FromLongLong((long long) src);
