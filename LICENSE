@@ -25,12 +25,5 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-You are under no obligation whatsoever to provide any bug fixes, patches, or
-upgrades to the features, functionality or performance of the source code
-("Enhancements") to anyone; however, if you choose to make your Enhancements
-available either publicly, or directly to the author of this software, without
-imposing a separate written license agreement for such Enhancements, then you
-hereby grant the following license: a non-exclusive, royalty-free perpetual
-license to install, use, modify, prepare derivative works, incorporate into
-other computer software, distribute, and sublicense such enhancements or
-derivative works thereof, in binary and source code form.
+Please also refer to the file CONTRIBUTING.md, which clarifies licensing of
+external contributions to this project including patches, pull requests, etc.
