@@ -14,6 +14,9 @@
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
+        NoConstructor() = default;
+        NoConstructor(const NoConstructor &) = default;
+        NoConstructor(NoConstructor &&) = default;
         static NoConstructor *new_instance() {
             auto *ptr = new NoConstructor();
             print_created(ptr, "via new_instance");
@@ -82,7 +85,12 @@ TEST_SUBMODULE(class_, m) {
     m.def("dog_bark", [](const Dog &dog) { return dog.bark(); });
 
     // test_automatic_upcasting
-    struct BaseClass { virtual ~BaseClass() {} };
+    struct BaseClass {
+        BaseClass() = default;
+        BaseClass(const BaseClass &) = default;
+        BaseClass(BaseClass &&) = default;
+        virtual ~BaseClass() {}
+    };
     struct DerivedClass1 : BaseClass { };
     struct DerivedClass2 : BaseClass { };
 

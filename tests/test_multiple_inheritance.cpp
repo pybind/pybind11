@@ -130,8 +130,8 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     // test_mi_unaligned_base
     // test_mi_base_return
     // Issue #801: invalid casting to derived type with MI bases
-    struct I801B1 { int a = 1; virtual ~I801B1() = default; };
-    struct I801B2 { int b = 2; virtual ~I801B2() = default; };
+    struct I801B1 { int a = 1; I801B1() = default; I801B1(const I801B1 &) = default; virtual ~I801B1() = default; };
+    struct I801B2 { int b = 2; I801B2() = default; I801B2(const I801B2 &) = default; virtual ~I801B2() = default; };
     struct I801C : I801B1, I801B2 {};
     struct I801D : I801C {}; // Indirect MI
     // Unregistered classes:
@@ -205,7 +205,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     // test_diamond_inheritance
     // Issue #959: segfault when constructing diamond inheritance instance
     // All of these have int members so that there will be various unequal pointers involved.
-    struct B { int b; virtual ~B() = default; };
+    struct B { int b; B() = default; B(const B&) = default; virtual ~B() = default; };
     struct C0 : public virtual B { int c0; };
     struct C1 : public virtual B { int c1; };
     struct D : public C0, public C1 { int d; };

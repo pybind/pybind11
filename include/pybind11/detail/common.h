@@ -704,8 +704,12 @@ template <typename T> struct format_descriptor<T, detail::enable_if_t<std::is_ar
     static std::string format() { return std::string(1, c); }
 };
 
+#if !defined(PYBIND11_CPP17)
+
 template <typename T> constexpr const char format_descriptor<
     T, detail::enable_if_t<std::is_arithmetic<T>::value>>::value[2];
+
+#endif
 
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {
