@@ -89,7 +89,7 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements, but also
   # produces a fatal error if loaded from a pre-3.0 cmake.
   if (NOT CMAKE_VERSION VERSION_LESS 3.0)
-    find_package(Eigen3 QUIET CONFIG)
+    find_package(Eigen3 3.2.7 QUIET CONFIG)
     if (EIGEN3_FOUND)
       if (EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1)
         set(PYBIND11_EIGEN_VIA_TARGET 1)
@@ -99,7 +99,7 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   if (NOT EIGEN3_FOUND)
     # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
     # tools/FindEigen3.cmake
-    find_package(Eigen3 QUIET)
+    find_package(Eigen3 3.2.7 QUIET)
   endif()
 
   if(EIGEN3_FOUND)

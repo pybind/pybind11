@@ -293,6 +293,18 @@ def test_register_dtype():
     assert 'dtype is already registered' in str(excinfo.value)
 
 
-@pytest.requires_numpy
+@pytest.unsupported_on_pypy
+def test_str_leak():
+    from sys import getrefcount
+    fmt = "f4"
+    pytest.gc_collect()
+    start = getrefcount(fmt)
+    d = m.dtype_wrapper(fmt)
+    assert d is np.dtype("f4")
+    del d
+    pytest.gc_collect()
+    assert getrefcount(fmt) == start
+
+
 def test_compare_buffer_info():
     assert all(m.compare_buffer_info())

@@ -18,6 +18,22 @@ def test_unscoped_enum():
     assert m.UnscopedEnum.__members__ == \
         {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo}
 
+    assert m.UnscopedEnum.__doc__ == \
+        '''An unscoped enumeration
+
+Members:
+
+  EOne : Docstring for EOne
+
+  ETwo : Docstring for ETwo''' or m.UnscopedEnum.__doc__ == \
+        '''An unscoped enumeration
+
+Members:
+
+  ETwo : Docstring for ETwo
+
+  EOne : Docstring for EOne'''
+
     # no TypeError exception for unscoped enum ==/!= int comparisons
     y = m.UnscopedEnum.ETwo
     assert y == 2

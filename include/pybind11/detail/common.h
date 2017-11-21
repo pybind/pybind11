@@ -388,7 +388,7 @@ struct instance {
             uint8_t *status;
         } nonsimple;
     };
-    /// Weak references (needed for keep alive):
+    /// Weak references
     PyObject *weakrefs;
     /// If true, the pointer is owned which means we're free to manage it with a holder.
     bool owned : 1;
@@ -405,10 +405,10 @@ struct instance {
      * (which is typically the size of two pointers), or when multiple inheritance is used on the
      * python side.  Non-simple layout allocates the required amount of memory to have multiple
      * bound C++ classes as parents.  Under this layout, `nonsimple.values_and_holders` is set to a
-     * pointer to allocated space of the required space to hold a a sequence of value pointers and
+     * pointer to allocated space of the required space to hold a sequence of value pointers and
      * holders followed `status`, a set of bit flags (1 byte each), i.e.
      * [val1*][holder1][val2*][holder2]...[bb...]  where each [block] is rounded up to a multiple of
-     * `sizeof(void *)`.  `nonsimple.holder_constructed` is, for convenience, a pointer to the
+     * `sizeof(void *)`.  `nonsimple.status` is, for convenience, a pointer to the
      * beginning of the [bb...] block (but not independently allocated).
      *
      * Status bits indicate whether the associated holder is constructed (&
@@ -471,7 +471,7 @@ template <size_t... IPrev, size_t I, bool B, bool... Bs> struct select_indices_i
     : select_indices_impl<conditional_t<B, index_sequence<IPrev..., I>, index_sequence<IPrev...>>, I + 1, Bs...> {};
 template <bool... Bs> using select_indices = typename select_indices_impl<index_sequence<>, 0, Bs...>::type;
 
-/// Backports of std::bool_constant and std::negation to accomodate older compilers
+/// Backports of std::bool_constant and std::negation to accommodate older compilers
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T> struct negation : bool_constant<!T::value> { };
 
@@ -580,6 +580,11 @@ template <typename T, typename... Us> using deferred_t = typename deferred_type<
 /// unlike `std::is_base_of`)
 template <typename Base, typename Derived> using is_strict_base_of = bool_constant<
     std::is_base_of<Base, Derived>::value && !std::is_same<Base, Derived>::value>;
+
+/// Like is_base_of, but also requires that the base type is accessible (i.e. that a Derived pointer
+/// can be converted to a Base pointer)
+template <typename Base, typename Derived> using is_accessible_base_of = bool_constant<
+    std::is_base_of<Base, Derived>::value && std::is_convertible<Derived *, Base *>::value>;
 
 template <template<typename...> class Base>
 struct is_template_base_of_impl {

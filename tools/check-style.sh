@@ -10,7 +10,7 @@
 # 4. missing space between keyword and parenthesis, e.g.: for(, if(, while(
 # 5. Missing space between right parenthesis and brace, e.g. 'for (...){'
 # 6. opening brace on its own line. It should always be on the same line as the
-#    if/while/for/do statment.
+#    if/while/for/do statement.
 #
 # Invoke as: tools/check-style.sh
 #

@@ -51,6 +51,7 @@ NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class cpp_function : public function {
 public:
     cpp_function() { }
+    cpp_function(std::nullptr_t) { }
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
@@ -246,19 +247,16 @@ protected:
                 if (!t)
                     pybind11_fail("Internal error while parsing type signature (1)");
                 if (auto tinfo = detail::get_type_info(*t)) {
-#if defined(PYPY_VERSION)
-                    signature += handle((PyObject *) tinfo->type)
-                                     .attr("__module__")
-                                     .cast<std::string>() + ".";
-#endif
-                    signature += tinfo->type->tp_name;
+                    handle th((PyObject *) tinfo->type);
+                    signature +=
+                        th.attr("__module__").cast<std::string>() + "." +
+                        th.attr("__qualname__").cast<std::string>(); // Python 3.3+, but we backport it to earlier versions
                 } else if (rec->is_new_style_constructor && arg_index == 0) {
                     // A new-style `__init__` takes `self` as `value_and_holder`.
                     // Rewrite it to the proper class type.
-#if defined(PYPY_VERSION)
-                    signature += rec->scope.attr("__module__").cast<std::string>() + ".";
-#endif
-                    signature += ((PyTypeObject *) rec->scope.ptr())->tp_name;
+                    signature +=
+                        rec->scope.attr("__module__").cast<std::string>() + "." +
+                        rec->scope.attr("__qualname__").cast<std::string>();
                 } else {
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
@@ -954,18 +952,18 @@ protected:
         tinfo->get_buffer_data = get_buffer_data;
     }
 
+    // rec_func must be set for either fget or fset.
     void def_property_static_impl(const char *name,
                                   handle fget, handle fset,
-                                  detail::function_record *rec_fget) {
-        const auto is_static = !(rec_fget->is_method && rec_fget->scope);
-        const auto has_doc = rec_fget->doc && pybind11::options::show_user_defined_docstrings();
-
+                                  detail::function_record *rec_func) {
+        const auto is_static = rec_func && !(rec_func->is_method && rec_func->scope);
+        const auto has_doc = rec_func && rec_func->doc && pybind11::options::show_user_defined_docstrings();
         auto property = handle((PyObject *) (is_static ? get_internals().static_property_type
                                                        : &PyProperty_Type));
         attr(name) = property(fget.ptr() ? fget : none(),
                               fset.ptr() ? fset : none(),
                               /*deleter*/none(),
-                              pybind11::str(has_doc ? rec_fget->doc : ""));
+                              pybind11::str(has_doc ? rec_func->doc : ""));
     }
 };
 
@@ -997,10 +995,18 @@ template <typename /*Derived*/, typename F>
 auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) { return std::forward<F>(f); }
 
 template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...)) -> Return (Derived::*)(Args...) { return pmf; }
+auto method_adaptor(Return (Class::*pmf)(Args...)) -> Return (Derived::*)(Args...) {
+    static_assert(detail::is_accessible_base_of<Class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
 
 template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(Args...) const { return pmf; }
+auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(Args...) const {
+    static_assert(detail::is_accessible_base_of<Class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
 
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
@@ -1191,7 +1197,7 @@ public:
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
     class_ &def_property_readonly(const char *name, const cpp_function &fget, const Extra& ...extra) {
-        return def_property(name, fget, cpp_function(), extra...);
+        return def_property(name, fget, nullptr, extra...);
     }
 
     /// Uses return_value_policy::reference by default
@@ -1203,7 +1209,7 @@ public:
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
     class_ &def_property_readonly_static(const char *name, const cpp_function &fget, const Extra& ...extra) {
-        return def_property_static(name, fget, cpp_function(), extra...);
+        return def_property_static(name, fget, nullptr, extra...);
     }
 
     /// Uses return_value_policy::reference_internal by default
@@ -1233,21 +1239,25 @@ public:
     template <typename... Extra>
     class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
-        char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific documentation string */
-        detail::process_attributes<Extra...>::init(extra..., rec_fget);
-        if (rec_fget->doc && rec_fget->doc != doc_prev) {
-            free(doc_prev);
-            rec_fget->doc = strdup(rec_fget->doc);
+        auto *rec_active = rec_fget;
+        if (rec_fget) {
+           char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific documentation string */
+           detail::process_attributes<Extra...>::init(extra..., rec_fget);
+           if (rec_fget->doc && rec_fget->doc != doc_prev) {
+              free(doc_prev);
+              rec_fget->doc = strdup(rec_fget->doc);
+           }
         }
         if (rec_fset) {
-            doc_prev = rec_fset->doc;
+            char *doc_prev = rec_fset->doc;
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
                 free(doc_prev);
                 rec_fset->doc = strdup(rec_fset->doc);
             }
+            if (! rec_active) rec_active = rec_fset;
         }
-        def_property_static_impl(name, fget, fset, rec_fget);
+        def_property_static_impl(name, fget, fset, rec_active);
         return *this;
     }
 
@@ -1365,15 +1375,30 @@ public:
         auto m_entries_ptr = m_entries.inc_ref().ptr();
         def("__repr__", [name, m_entries_ptr](Type value) -> pybind11::str {
             for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr)) {
-                if (pybind11::cast<Type>(kv.second) == value)
+                if (pybind11::cast<Type>(kv.second[int_(0)]) == value)
                     return pybind11::str("{}.{}").format(name, kv.first);
             }
             return pybind11::str("{}.???").format(name);
         });
-        def_property_readonly_static("__members__", [m_entries_ptr](object /* self */) {
+        def_property_readonly_static("__doc__", [m_entries_ptr](handle self) {
+            std::string docstring;
+            const char *tp_doc = ((PyTypeObject *) self.ptr())->tp_doc;
+            if (tp_doc)
+                docstring += std::string(tp_doc) + "\n\n";
+            docstring += "Members:";
+            for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr)) {
+                auto key = std::string(pybind11::str(kv.first));
+                auto comment = kv.second[int_(1)];
+                docstring += "\n\n  " + key;
+                if (!comment.is_none())
+                    docstring += " : " + (std::string) pybind11::str(comment);
+            }
+            return docstring;
+        });
+        def_property_readonly_static("__members__", [m_entries_ptr](handle /* self */) {
             dict m;
             for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr))
-                m[kv.first] = kv.second;
+                m[kv.first] = kv.second[int_(0)];
             return m;
         }, return_value_policy::copy);
         def(init([](Scalar i) { return static_cast<Type>(i); }));
@@ -1421,15 +1446,15 @@ public:
     /// Export enumeration entries into the parent scope
     enum_& export_values() {
         for (const auto &kv : m_entries)
-            m_parent.attr(kv.first) = kv.second;
+            m_parent.attr(kv.first) = kv.second[int_(0)];
         return *this;
     }
 
     /// Add an enumeration entry
-    enum_& value(char const* name, Type value) {
+    enum_& value(char const* name, Type value, const char *doc = nullptr) {
         auto v = pybind11::cast(value, return_value_policy::copy);
         this->attr(name) = v;
-        m_entries[pybind11::str(name)] = v;
+        m_entries[pybind11::str(name)] = std::make_pair(v, doc);
         return *this;
     }
 

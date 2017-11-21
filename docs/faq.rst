@@ -274,3 +274,18 @@ will detect Python 3.x for pybind11 and may crash on ``find_package(PythonLibs)`
 
 It is advised to avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` from CMake and rely
 on pybind11 in detecting Python version. If this is not possible CMake machinery should be called *before* including pybind11.
+
+How to cite this project?
+=========================
+
+We suggest the following BibTeX template to cite pybind11 in scientific
+discourse:
+
+.. code-block:: bash
+
+    @misc{pybind11,
+       author = {Wenzel Jakob and Jason Rhinelander and Dean Moldovan},
+       year = {2017},
+       note = {https://github.com/pybind/pybind11},
+       title = {pybind11 -- Seamless operability between C++11 and Python}
+    }

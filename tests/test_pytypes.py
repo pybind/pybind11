@@ -7,11 +7,11 @@ from pybind11_tests import debug_enabled
 
 def test_list(capture, doc):
     with capture:
-        l = m.get_list()
-        assert l == ["overwritten"]
+        lst = m.get_list()
+        assert lst == ["overwritten"]
 
-        l.append("value2")
-        m.print_list(l)
+        lst.append("value2")
+        m.print_list(lst)
     assert capture.unordered == """
         Entry at position 0: value
         list item 0: overwritten
