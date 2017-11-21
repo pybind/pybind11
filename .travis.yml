@@ -193,9 +193,9 @@ install:
         ${PYPY:+--extra-index-url https://imaginary.ca/trusty-pypi}
     echo "done."
 
-    wget -q -O eigen.tar.gz https://bitbucket.org/eigen/eigen/get/3.3.3.tar.gz
-    tar xzf eigen.tar.gz
-    export CMAKE_INCLUDE_PATH="${CMAKE_INCLUDE_PATH:+$CMAKE_INCLUDE_PATH:}$PWD/eigen-eigen-67e894c6cd8f"
+    curl -fsSL https://bitbucket.org/eigen/eigen/get/3.3.4.tar.bz2 | \
+        tar --extract -j --one-top-level=eigen --strip-components=1
+    export CMAKE_INCLUDE_PATH="${CMAKE_INCLUDE_PATH:+$CMAKE_INCLUDE_PATH:}$PWD/eigen"
   fi
   set +e
 script:
