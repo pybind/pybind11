@@ -98,6 +98,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     // Object managed by a std::shared_ptr<>
     class MyObject2 {
     public:
+        MyObject2(const MyObject2 &) = default;
         MyObject2(int value) : value(value) { print_created(this, toString()); }
         std::string toString() const { return "MyObject2[" + std::to_string(value) + "]"; }
         virtual ~MyObject2() { print_destroyed(this); }
@@ -116,6 +117,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     // Object managed by a std::shared_ptr<>, additionally derives from std::enable_shared_from_this<>
     class MyObject3 : public std::enable_shared_from_this<MyObject3> {
     public:
+        MyObject3(const MyObject3 &) = default;
         MyObject3(int value) : value(value) { print_created(this, toString()); }
         std::string toString() const { return "MyObject3[" + std::to_string(value) + "]"; }
         virtual ~MyObject3() { print_destroyed(this); }
@@ -219,6 +221,8 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     // Issue #865: shared_from_this doesn't work with virtual inheritance
     struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
+        SharedFromThisVBase() = default;
+        SharedFromThisVBase(const SharedFromThisVBase &) = default;
         virtual ~SharedFromThisVBase() = default;
     };
     struct SharedFromThisVirt : virtual SharedFromThisVBase {};
