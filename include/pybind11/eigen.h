@@ -17,9 +17,9 @@
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion"
 #  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#  if defined(PYBIND11_CPP17) && defined(__clang__)
+#  ifdef __clang__
 //   Eigen generates a bunch of implicit-copy-constructor-is-deprecated warnings with -Wdeprecated
-//   under Clang in C++17 mode, so disable that warning here:
+//   under Clang, so disable that warning here:
 #    pragma GCC diagnostic ignored "-Wdeprecated"
 #  endif
 #  if __GNUC__ >= 7
