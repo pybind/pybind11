@@ -1696,11 +1696,13 @@ template <> inline void cast_safe<void>(object &&) {}
 
 // Pre-declared above
 template <typename itype, typename T> handle cast_shared_from_this(const std::enable_shared_from_this<T> *src) {
-    try {
-        auto sh = std::dynamic_pointer_cast<const itype>(src->shared_from_this());
-        if (sh)
-            return cast(sh).release();
-    } catch (const std::bad_weak_ptr &) {}
+    if (src) {
+        try {
+            auto sh = std::dynamic_pointer_cast<const itype>(src->shared_from_this());
+            if (sh)
+                return cast(sh).release();
+        } catch (const std::bad_weak_ptr &) {}
+    }
     return {};
 };
 
