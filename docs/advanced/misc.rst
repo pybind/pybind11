@@ -216,6 +216,21 @@ avoids this issue involves weak reference with a cleanup callback:
     // Create a weak reference with a cleanup callback and initially leak it
     (void) py::weakref(m.attr("BaseClass"), cleanup_callback).release();
 
+.. note::
+
+    PyPy (at least version 5.9) does not garbage collect objects when the
+    interpreter exits. An alternative approach (which also works on CPython) is to use
+    the :py:mod:`atexit` module [#f7]_, for example:
+
+    .. code-block:: cpp
+
+        auto atexit = py::module::import("atexit");
+        atexit.attr("register")(py::cpp_function([]() {
+            // perform cleanup here -- this function is called with the GIL held
+        }));
+
+    .. [#f7] https://docs.python.org/3/library/atexit.html
+
 
 Generating documentation using Sphinx
 =====================================
