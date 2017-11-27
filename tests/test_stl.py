@@ -164,7 +164,7 @@ def test_stl_pass_by_pointer(msg):
         m.stl_pass_by_pointer()  # default value is `nullptr`
     assert msg(excinfo.value) == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: List[int]=None) -> List[int]
+            1. (v: List[int] = None) -> List[int]
 
         Invoked with:
     """  # noqa: E501 line too long
@@ -173,7 +173,7 @@ def test_stl_pass_by_pointer(msg):
         m.stl_pass_by_pointer(None)
     assert msg(excinfo.value) == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: List[int]=None) -> List[int]
+            1. (v: List[int] = None) -> List[int]
 
         Invoked with: None
     """  # noqa: E501 line too long
