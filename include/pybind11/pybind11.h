@@ -238,7 +238,7 @@ protected:
             } else if (c == '}') {
                 // Write default value if available.
                 if (arg_index < rec->args.size() && rec->args[arg_index].descr) {
-                    signature += "=";
+                    signature += " = ";
                     signature += rec->args[arg_index].descr;
                 }
                 arg_index++;
