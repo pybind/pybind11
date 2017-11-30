@@ -323,3 +323,16 @@ def test_numpy_bool():
     assert convert(np.bool_(False)) is False
     assert noconvert(np.bool_(True)) is True
     assert noconvert(np.bool_(False)) is False
+
+
+def test_int_long():
+    """In Python 2, a C++ int should return a Python int rather than long
+    if possible: longs are not always accepted where ints are used (such
+    as the argument to sys.exit()). A C++ long long is always a Python
+    long."""
+
+    import sys
+    must_be_long = type(getattr(sys, 'maxint', 1) + 1)
+    assert isinstance(m.int_cast(), int)
+    assert isinstance(m.long_cast(), int)
+    assert isinstance(m.longlong_cast(), must_be_long)

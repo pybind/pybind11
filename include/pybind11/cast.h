@@ -980,11 +980,12 @@ public:
     static handle cast(T src, return_value_policy /* policy */, handle /* parent */) {
         if (std::is_floating_point<T>::value) {
             return PyFloat_FromDouble((double) src);
-        } else if (sizeof(T) <= sizeof(long)) {
+        } else if (sizeof(T) <= sizeof(ssize_t)) {
+            // This returns a long automatically if needed
             if (std::is_signed<T>::value)
-                return PyLong_FromLong((long) src);
+                return PYBIND11_LONG_FROM_SIGNED(src);
             else
-                return PyLong_FromUnsignedLong((unsigned long) src);
+                return PYBIND11_LONG_FROM_UNSIGNED(src);
         } else {
             if (std::is_signed<T>::value)
                 return PyLong_FromLongLong((long long) src);
