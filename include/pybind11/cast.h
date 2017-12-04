@@ -1576,7 +1576,7 @@ template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_ca
         throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
 #else
         throw cast_error("Unable to cast Python instance of type " +
-            (std::string) str(handle.get_type()) + " to C++ type '" + type_id<T>() + "''");
+            (std::string) str(handle.get_type()) + " to C++ type '" + type_id<T>() + "'");
 #endif
     }
     return conv;
