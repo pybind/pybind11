@@ -662,7 +662,7 @@ protected:
             e.restore();
             return nullptr;
 #if defined(__GNUG__) && !defined(__clang__)
-        } catch( abi::__forced_unwind& ) {
+        } catch ( abi::__forced_unwind& ) {
             throw;
 #endif
         } catch (...) {
