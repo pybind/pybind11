@@ -687,9 +687,9 @@ protected:
             if (msg.find("std::") != std::string::npos) {
                 msg += "\n\n"
                        "Did you forget to `#include <pybind11/stl.h>`? Or <pybind11/complex.h>,\n"
-                       "<pybind11/functional.h>, <pybind11/chrono.h>, etc. Some automatic\n"
-                       "conversions are optional and require extra headers to be included\n"
-                       "when compiling your pybind11 module.";
+                       "<pybind11/functional.h>, <pybind11/chrono.h>, <pybind11/utility.h>, etc.\n"
+                       "Some automatic conversions are optional and require extra headers to be\n"
+                       "included when compiling your pybind11 module.";
             }
         };
 

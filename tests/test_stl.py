@@ -93,65 +93,6 @@ def test_move_out_container():
     assert [x.value for x in moved_out_list] == [0, 1, 2]
 
 
-@pytest.mark.skipif(not hasattr(m, "has_optional"), reason='no <optional>')
-def test_optional():
-    assert m.double_or_zero(None) == 0
-    assert m.double_or_zero(42) == 84
-    pytest.raises(TypeError, m.double_or_zero, 'foo')
-
-    assert m.half_or_none(0) is None
-    assert m.half_or_none(42) == 21
-    pytest.raises(TypeError, m.half_or_none, 'foo')
-
-    assert m.test_nullopt() == 42
-    assert m.test_nullopt(None) == 42
-    assert m.test_nullopt(42) == 42
-    assert m.test_nullopt(43) == 43
-
-    assert m.test_no_assign() == 42
-    assert m.test_no_assign(None) == 42
-    assert m.test_no_assign(m.NoAssign(43)) == 43
-    pytest.raises(TypeError, m.test_no_assign, 43)
-
-    assert m.nodefer_none_optional(None)
-
-
-@pytest.mark.skipif(not hasattr(m, "has_exp_optional"), reason='no <experimental/optional>')
-def test_exp_optional():
-    assert m.double_or_zero_exp(None) == 0
-    assert m.double_or_zero_exp(42) == 84
-    pytest.raises(TypeError, m.double_or_zero_exp, 'foo')
-
-    assert m.half_or_none_exp(0) is None
-    assert m.half_or_none_exp(42) == 21
-    pytest.raises(TypeError, m.half_or_none_exp, 'foo')
-
-    assert m.test_nullopt_exp() == 42
-    assert m.test_nullopt_exp(None) == 42
-    assert m.test_nullopt_exp(42) == 42
-    assert m.test_nullopt_exp(43) == 43
-
-    assert m.test_no_assign_exp() == 42
-    assert m.test_no_assign_exp(None) == 42
-    assert m.test_no_assign_exp(m.NoAssign(43)) == 43
-    pytest.raises(TypeError, m.test_no_assign_exp, 43)
-
-
-@pytest.mark.skipif(not hasattr(m, "load_variant"), reason='no <variant>')
-def test_variant(doc):
-    assert m.load_variant(1) == "int"
-    assert m.load_variant("1") == "std::string"
-    assert m.load_variant(1.0) == "double"
-    assert m.load_variant(None) == "std::nullptr_t"
-
-    assert m.load_variant_2pass(1) == "int"
-    assert m.load_variant_2pass(1.0) == "double"
-
-    assert m.cast_variant() == (5, "Hello")
-
-    assert doc(m.load_variant) == "load_variant(arg0: Union[int, str, float, None]) -> str"
-
-
 def test_vec_of_reference_wrapper():
     """#171: Can't return reference wrappers (or STL structures containing them)"""
     assert str(m.return_vec_of_reference_wrapper(UserType(4))) == \
@@ -187,9 +128,9 @@ def test_missing_header_message():
     import pybind11_cross_module_tests as cm
 
     expected_message = ("Did you forget to `#include <pybind11/stl.h>`? Or <pybind11/complex.h>,\n"
-                        "<pybind11/functional.h>, <pybind11/chrono.h>, etc. Some automatic\n"
-                        "conversions are optional and require extra headers to be included\n"
-                        "when compiling your pybind11 module.")
+                        "<pybind11/functional.h>, <pybind11/chrono.h>, <pybind11/utility.h>, etc.\n"
+                        "Some automatic conversions are optional and require extra headers to be\n"
+                        "included when compiling your pybind11 module.")
 
     with pytest.raises(TypeError) as excinfo:
         cm.missing_header_arg([1.0, 2.0, 3.0])

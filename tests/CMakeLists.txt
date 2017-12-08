@@ -58,6 +58,7 @@ set(PYBIND11_TEST_FILES
   test_stl.cpp
   test_stl_binders.cpp
   test_virtual_functions.cpp
+  test_utility.cpp
 )
 
 # Invoking cmake with something like:
@@ -78,6 +79,7 @@ set(PYBIND11_CROSS_MODULE_TESTS
   test_local_bindings.py
   test_stl.py
   test_stl_binders.py
+  test_utility.py
 )
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but

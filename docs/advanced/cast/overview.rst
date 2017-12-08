@@ -143,11 +143,11 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::unordered_set<T>``          | STL unordered set         | :file:`pybind11/stl.h`        |
 +------------------------------------+---------------------------+-------------------------------+
-| ``std::optional<T>``               | STL optional type (C++17) | :file:`pybind11/stl.h`        |
+| ``std::optional<T>``               | STL optional type (C++17) | :file:`pybind11/utility.h`    |
 +------------------------------------+---------------------------+-------------------------------+
-| ``std::experimental::optional<T>`` | STL optional type (exp.)  | :file:`pybind11/stl.h`        |
+| ``std::experimental::optional<T>`` | STL optional type (exp.)  | :file:`pybind11/utility.h`    |
 +------------------------------------+---------------------------+-------------------------------+
-| ``std::variant<...>``              | Type-safe union (C++17)   | :file:`pybind11/stl.h`        |
+| ``std::variant<...>``              | Type-safe union (C++17)   | :file:`pybind11/utility.h`    |
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::function<...>``             | STL polymorphic function  | :file:`pybind11/functional.h` |
 +------------------------------------+---------------------------+-------------------------------+

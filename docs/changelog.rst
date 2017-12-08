@@ -21,6 +21,11 @@ v2.3.0 (Not yet released)
 * The ``value()``  method of ``py::enum_`` now accepts an optional docstring
   that will be shown in the documentation of the associated enumeration.
 
+* Added `pybind11/utility.h`, which enables support for STL utility types
+  (`std::optional` and `std::variant`) separately from STL containers.
+  `pybind11/stl.h` enables both.
+  `#1207 <https://github.com/pybind/pybind11/issues/1207>`_.
+
 v2.2.1 (September 14, 2017)
 -----------------------------------------------------
 

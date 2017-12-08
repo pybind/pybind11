@@ -64,6 +64,7 @@ set(PYBIND11_HEADERS
   include/pybind11/pytypes.h
   include/pybind11/stl.h
   include/pybind11/stl_bind.h
+  include/pybind11/utility.h
 )
 string(REPLACE "include/" "${CMAKE_CURRENT_SOURCE_DIR}/include/"
        PYBIND11_HEADERS "${PYBIND11_HEADERS}")
