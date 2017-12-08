@@ -1,7 +1,6 @@
 import pytest
 
 from pybind11_tests import utility as m
-from pybind11_tests import UserType
 
 
 @pytest.mark.skipif(not hasattr(m, "has_optional"), reason='no <optional>')
@@ -61,4 +60,3 @@ def test_variant(doc):
     assert m.cast_variant() == (5, "Hello")
 
     assert doc(m.load_variant) == "load_variant(arg0: Union[int, str, float, None]) -> str"
-
