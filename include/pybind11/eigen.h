@@ -22,13 +22,14 @@
 #  endif
 #endif
 
-#include <Eigen/Core>
-#include <Eigen/SparseCore>
-
 #if defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+#  pragma warning(disable: 4996) // warning C4996: std::unary_negate is deprecated in C++17
 #endif
+
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
 
 // Eigen prior to 3.2.7 doesn't have proper move constructors--but worse, some classes get implicit
 // move constructors that break things.  We could detect this an explicitly copy, but an extra copy
