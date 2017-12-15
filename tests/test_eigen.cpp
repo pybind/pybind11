@@ -11,6 +11,11 @@
 #include "constructor_stats.h"
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
+
+#if defined(_MSC_VER)
+#  pragma warning(disable: 4996) // C4996: std::unary_negation is deprecated
+#endif
+
 #include <Eigen/Cholesky>
 
 using MatrixXdR = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
