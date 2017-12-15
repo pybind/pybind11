@@ -580,8 +580,7 @@ protected:
                         size_t args_size = n_args_in - args_copied;
                         extra_args = tuple(args_size);
                         for (size_t i = 0; i < args_size; ++i) {
-                            handle item = PyTuple_GET_ITEM(args_in, args_copied + i);
-                            extra_args[i] = reinterpret_borrow<object>(item);
+                            extra_args[i] = PyTuple_GET_ITEM(args_in, args_copied + i);
                         }
                     }
                     call.args.push_back(extra_args);
