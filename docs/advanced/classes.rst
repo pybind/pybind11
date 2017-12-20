@@ -65,10 +65,10 @@ helper class that is defined as follows:
 
 .. code-block:: cpp
 
-    class PyAnimal : public Animal {
+    class PyAnimal : public py::wrapper<Animal> {
     public:
         /* Inherit the constructors */
-        using Animal::Animal;
+        using py::wrapper<Animal>::wrapper;
 
         /* Trampoline (need one for each virtual function) */
         std::string go(int n_times) override {
@@ -89,6 +89,8 @@ take a string-valued name argument between the *Parent class* and *Name of the
 function* slots, which defines the name of function in Python. This is required
 when the C++ and Python versions of the
 function have different names, e.g.  ``operator()`` vs ``__call__``.
+
+The base class ``py::wrapper<>`` is optional, but is recommended as it allows us to attach the lifetime of Python objects directly to C++ objects, explained in :ref:`virtual_inheritance_lifetime`.
 
 The binding code also needs a few minor adaptations (highlighted):
 
@@ -157,7 +159,7 @@ Here is an example:
 
     class Dachschund(Dog):
         def __init__(self, name):
-            Dog.__init__(self) # Without this, undefind behavior may occur if the C++ portions are referenced.
+            Dog.__init__(self) # Without this, undefined behavior may occur if the C++ portions are referenced.
             self.name = name
         def bark(self):
             return "yap!"
@@ -232,15 +234,15 @@ override the ``name()`` method):
 
 .. code-block:: cpp
 
-    class PyAnimal : public Animal {
+    class PyAnimal : public py::wrapper<Animal> {
     public:
-        using Animal::Animal; // Inherit constructors
+        using py::wrapper<Animal>::wrapper; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, Animal, go, n_times); }
         std::string name() override { PYBIND11_OVERLOAD(std::string, Animal, name, ); }
     };
-    class PyDog : public Dog {
+    class PyDog : public py::wrapper<Dog> {
     public:
-        using Dog::Dog; // Inherit constructors
+        using py::wrapper<Dog>::wrapper; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, Dog, go, n_times); }
         std::string name() override { PYBIND11_OVERLOAD(std::string, Dog, name, ); }
         std::string bark() override { PYBIND11_OVERLOAD(std::string, Dog, bark, ); }
@@ -260,9 +262,9 @@ declare or override any virtual methods itself:
 .. code-block:: cpp
 
     class Husky : public Dog {};
-    class PyHusky : public Husky {
+    class PyHusky : public py::wrapper<Husky> {
     public:
-        using Husky::Husky; // Inherit constructors
+        using py::wrapper<Husky>::wrapper; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, Husky, go, n_times); }
         std::string name() override { PYBIND11_OVERLOAD(std::string, Husky, name, ); }
         std::string bark() override { PYBIND11_OVERLOAD(std::string, Husky, bark, ); }
@@ -270,14 +272,14 @@ declare or override any virtual methods itself:
 
 There is, however, a technique that can be used to avoid this duplication
 (which can be especially helpful for a base class with several virtual
-methods).  The technique involves using template trampoline classes, as
+methods).  The technique (the Curiously Recurring Template Pattern) involves using template trampoline classes, as
 follows:
 
 .. code-block:: cpp
 
-    template <class AnimalBase = Animal> class PyAnimal : public AnimalBase {
+    template <class AnimalBase = Animal> class PyAnimal : public py::wrapper<AnimalBase> {
     public:
-        using AnimalBase::AnimalBase; // Inherit constructors
+        using py::wrapper<AnimalBase>::wrapper; // Inherit constructors
         std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, AnimalBase, go, n_times); }
         std::string name() override { PYBIND11_OVERLOAD(std::string, AnimalBase, name, ); }
     };
@@ -997,5 +999,122 @@ described trampoline:
 
     MSVC 2015 has a compiler bug (fixed in version 2017) which
     requires a more explicit function binding in the form of
-    ``.def("foo", static_cast<int (A::*)() const>(&Publicist::foo));``
-    where ``int (A::*)() const`` is the type of ``A::foo``.
+..    ``.def("foo", static_cast<int (A::*)() const>(&Publicist::foo));``
+..    where ``int (A::*)() const`` is the type of ``A::foo``.
+
+.. _virtual_inheritance_lifetime:
+
+Virtual Inheritance and Lifetime
+================================
+
+When an instance of a Python subclass of a ``pybind11``-bound C++ class is instantiated, there are effectively two "portions": the C++ portion of the base class's alias instance, and the Python portion (``__dict__``) of the derived class instance.
+Generally, the lifetime of an instance of a Python subclass of a ``pybind11``-bound C++ class will not pose an issue as long as the instance is owned in Python - that is, you can call virtual methods from C++ or Python and have the correct behavior.
+
+However, if this Python-constructed instance is passed to C++ such that there are no other Python references, then C++ must keep the Python portion of the instance alive until either (a) the C++ reference is destroyed via ``delete`` or (b) the object is passed back to Python. ``pybind11`` supports both cases, but **only** when (i) the class inherits from :class:`py::wrapper`, (ii) there is only single-inheritance in the bound C++ classes, and (iii) the holder type for the class is either :class:`std::shared_ptr` (suggested) or :class:`std::unique_ptr` (default).
+
+.. seealso::
+
+    :ref:`holders` has more information regaring holders and how general ownership transfer should function.
+
+When ``pybind11`` detects case (a), it will store a reference to the Python object in :class:`py::wrapper` using :class:`py::object`, such that if the instance is deleted by C++, then it will also release the Python object (via :func:`py::wrapper::~wrapper()`). The wrapper will have a unique reference to the Python object (as any other circumstance would trigger case (b)), so the Python object should be destroyed immediately upon the instance's destruction.
+This will be a cyclic reference per Python's memory management, but this is not an issue as the memory is now managed via C++.
+
+For :class:`std::shared_ptr`, this case is detected by placing a shim :func:`__del__` method on the Python subclass when ``pybind11`` detects an instance being created. This shim will check for case (a), and if it holds, will "resurrect" since it created a new reference using :class:`py::object`.
+
+For :class:`std::unique_ptr`, this case is detected when calling `py::cast<unique_ptr<T>>`, which itself implies ownership transfer.
+
+.. seealso::
+
+    See :ref:`unique_ptr_ownership` for information about how ownership can be transferred via a cast or argument involving ``unique_ptr<Type>``.
+
+When ``pybind11`` detects case (b) (e.g. ``py::cast()`` is called to convert a C++ instance to `py::object`) and (a) has previously occurred, such that C++ manages the lifetime of the object, then :class:`py::wrapper` will release the Python reference to allow Python to manage the lifetime of the object.
+
+.. note::
+
+    This mechanism will be generally robust against reference cycles in Python as this couples the two "portions"; however, it does **not** protect against reference cycles with :class:`std::shared_ptr`. You should take care and use :class:`std::weak_ref` or raw pointers (with care) when needed.
+
+.. note::
+
+    There will a slight difference in destructor order if the complete instance is destroyed in C++ or in Python; however, this difference will only be a difference in ordering in when :func:`py::wrapper::~wrapper()` (and your alias destructor) is called in relation to :func:`__del__` for the subclass. For more information, see the documentation comments for :class:`py::wrapper`.
+
+For this example, we will build upon the above code for ``Animal`` with alias ``PyAnimal``, and the Python subclass ``Cat``, but will introduce a situation where C++ may have sole ownership: a container. In this case, it will be ``Cage``, which can contain or release an animal.
+
+.. note::
+
+    For lifetime, it is important to use a more Python-friendly holder, which in this case would be :class:`std::shared_ptr`, permitting an ease to share ownership.
+
+.. code-block:: cpp
+
+    class Animal {
+    public:
+        virtual ~Animal() { }
+        virtual std::string go(int n_times) = 0;
+    };
+
+    class PyAnimal : public py::wrapper<Animal> {
+    public:
+        /* Inherit the constructors */
+        using py::wrapper<Animal>::wrapper;
+        std::string go(int n_times) override {
+            PYBIND11_OVERLOAD_PURE(std::string, Animal, go, n_times);
+        }
+    };
+
+    class Cage {
+    public:
+        void add(std::shared_ptr<Animal> animal) {
+            animal_ = animal;
+        }
+        std::shared_ptr<Animal> release() {
+            return std::move(animal_);
+        }
+    private:
+        std::shared_ptr<Animal> animal_;
+    };
+
+And the following bindings:
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+        py::class_<Animal, PyAnimal, std::shared_ptr<Animal>> animal(m, "Animal");
+        animal
+            .def(py::init<>())
+            .def("go", &Animal::go);
+
+        py::class_<Cage, std::shared_ptr<Cage>> cage(m, "Cage")
+            .def(py::init<>())
+            .def("add", &Cage::add)
+            .def("release", &Cage::release);
+    }
+
+With the following Python preface:
+
+.. code-block:: pycon
+
+    >>> from examples import *
+    >>> class Cat(Animal):
+    ...     def go(self, n_times):
+    ...             return "meow! " * n_times
+    ...
+    >>> cage = Cage()
+
+Normally, if you keep the object alive in Python, then no additional instrumentation is necessary:
+
+.. code-block:: pycon
+
+    >>> cat = Cat()
+    >>> c.add(cat)  # This object lives in both Python and C++.
+    >>> c.release().go(2)
+    meow! meow! 
+
+However, if you pass an instance that Python later wishes to destroy, without :class:`py::wrapper`, we would get an error that ``go`` is not implented,
+as the `Cat` portion would have been destroyed and no longer visible for the trampoline. With the wrapper, ``pybind11`` will intercept this event and keep the Python portion alive:
+
+.. code-block:: pycon
+
+    >>> c.add(Cat())
+    >>> c.release().go(2)
+    meow! meow! 
+
+Note that both the C++ and Python portion of ``cat`` will be destroyed once ``cage`` is destroyed.

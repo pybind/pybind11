@@ -221,10 +221,13 @@ struct type_record {
     void *(*operator_new)(size_t) = ::operator new;
 
     /// Function pointer to class_<..>::init_instance
-    void (*init_instance)(instance *, const void *) = nullptr;
+    void (*init_instance)(instance *, holder_erased) = nullptr;
 
     /// Function pointer to class_<..>::dealloc
     void (*dealloc)(detail::value_and_holder &) = nullptr;
+
+    /// See `type_info::has_cpp_release`.
+    instance::type_release_info_t release_info;
 
     /// List of base classes of the newly created type
     list bases;

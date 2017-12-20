@@ -238,16 +238,26 @@ def test_class_refcount():
         pass
 
     for cls in m.Dog, PyDog:
-        refcount_1 = getrefcount(cls)
-        molly = [cls("Molly") for _ in range(10)]
-        refcount_2 = getrefcount(cls)
+        for i in range(5):
+            refcount_1 = getrefcount(cls)
+            molly = [cls("Molly") for _ in range(10)]
+            refcount_2 = getrefcount(cls)
 
-        del molly
-        pytest.gc_collect()
-        refcount_3 = getrefcount(cls)
+            del molly
+            pytest.gc_collect()
+            refcount_3 = getrefcount(cls)
 
-        assert refcount_1 == refcount_3
-        assert refcount_2 > refcount_1
+            if cls == PyDog and i == 0:
+                # If this is the first time the derived class is called, then
+                # creating the instance created the dtor hook, introducing one more reference.
+                # @note This changes to `refcount_1 == refcount_3` in Python3.
+                assert refcount_1 + 1 == refcount_3 or refcount_1 == refcount_3
+            else:
+                assert refcount_1 == refcount_3
+            assert refcount_2 > refcount_1
+
+    # @note Deleting `PyDog` does not return the refcount of `m.Dog` back to zero, due to the
+    # destructor shim.
 
 
 def test_reentrant_implicit_conversion_failure(msg):

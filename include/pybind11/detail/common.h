@@ -354,6 +354,8 @@ enum class return_value_policy : uint8_t {
     reference_internal
 };
 
+class object;
+
 NAMESPACE_BEGIN(detail)
 
 inline static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
@@ -372,6 +374,85 @@ constexpr size_t instance_simple_holder_in_ptrs() {
             "pybind assumes std::shared_ptrs are at least as big as std::unique_ptrs");
     return size_in_ptrs(sizeof(std::shared_ptr<int>));
 }
+
+enum class HolderTypeId {
+    Unknown,
+    UniquePtr,
+    SharedPtr,
+};
+template <typename holder_type, typename SFINAE = void>
+struct get_holder_type_id {
+    static constexpr HolderTypeId value = HolderTypeId::Unknown;
+};
+template <typename T>
+struct get_holder_type_id<std::shared_ptr<T>, void> {
+    static constexpr HolderTypeId value = HolderTypeId::SharedPtr;
+};
+template <typename T, typename Deleter>
+struct get_holder_type_id<std::unique_ptr<T, Deleter>, void> {
+    // TODO(eric.cousineau): Should this only specialize for `std::default_deleter`?
+    static constexpr HolderTypeId value = HolderTypeId::UniquePtr;
+};
+
+class holder_erased {
+ public:
+    holder_erased() = default;
+    holder_erased(const holder_erased&) = default;
+    holder_erased& operator=(const holder_erased&) = default;
+
+    template <typename holder_type>
+    holder_erased(const holder_type* holder)
+        : ptr_(const_cast<holder_type*>(holder)),
+          type_id_(get_holder_type_id<holder_type>::value),
+          is_const_(true) {}
+
+    template <typename holder_type>
+    holder_erased(holder_type* holder)
+        : holder_erased(static_cast<const holder_type*>(holder)) {
+          is_const_ = false;
+    }
+
+    holder_erased(const void* ptr, HolderTypeId type_id)
+        : ptr_(const_cast<void*>(ptr)),
+          type_id_(type_id),
+          is_const_(true) {}
+
+    holder_erased(void* ptr, HolderTypeId type_id)
+          : ptr_(ptr),
+            type_id_(type_id),
+            is_const_(false) {}
+
+    holder_erased(std::nullptr_t) {}
+
+    void* ptr() const { return ptr_; }
+    HolderTypeId type_id() const { return type_id_; }
+
+    template <typename holder_type>
+    holder_type& mutable_cast() const {
+        if (is_const_)
+            throw std::runtime_error("Trying to mutate const reference?");
+        return do_cast<holder_type>();
+    }
+
+    template <typename holder_type>
+    const holder_type& cast() const {
+        return do_cast<holder_type>();
+    }
+
+    operator bool() const { return ptr_; }
+ private:
+    template <typename holder_type>
+    holder_type& do_cast() const {
+        if (type_id_ != get_holder_type_id<holder_type>::value) {
+            throw std::runtime_error("Mismatch on holder type.");
+        }
+        return *reinterpret_cast<holder_type*>(ptr_);
+    }
+
+    void* ptr_{};
+    HolderTypeId type_id_{HolderTypeId::Unknown};
+    bool is_const_{true};
+};
 
 // Forward declarations
 struct type_info;
@@ -422,6 +503,26 @@ struct instance {
     bool simple_instance_registered : 1;
     /// If true, get_internals().patients has an entry for this object
     bool has_patients : 1;
+
+    typedef void (*release_to_cpp_t)(instance* inst, holder_erased external_holder, object&& obj);
+    typedef object (*reclaim_from_cpp_t)(instance* inst, holder_erased external_holder);
+
+    struct type_release_info_t {
+      // Release an instance to C++ for pure C++ instances or Python-derived classes.
+      release_to_cpp_t release_to_cpp = nullptr;
+
+      // For classes wrapped in `wrapper<>`. See `move_only_holder_caster` for more info.
+      // Pure / direct C++ objects do not need any fancy releasing mechanisms. They are simply
+      // unwrapped and passed back.
+      bool can_derive_from_wrapper = false;
+
+      // The holder that is contained by this class.
+      HolderTypeId holder_type_id = HolderTypeId::Unknown;
+    };
+    /// If the instance is a Python-derived type that is owned in C++, then this method
+    /// will permit the instance to be reclaimed back by Python.
+    // TODO(eric.cousineau): This may not be necessary. See note in `type_caster_generic::cast`.
+    reclaim_from_cpp_t reclaim_from_cpp = nullptr;
 
     /// Initializes all of the above type/values/holders data (but not the instance values themselves)
     void allocate_layout();

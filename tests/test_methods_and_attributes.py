@@ -4,10 +4,10 @@ from pybind11_tests import ConstructorStats
 
 
 def test_methods_and_attributes():
-    instance1 = m.ExampleMandA()
-    instance2 = m.ExampleMandA(32)
+    instance1 = m.ExampleMandA()  # 1 def.ctor
+    instance2 = m.ExampleMandA(32)  # 1 ctor
 
-    instance1.add1(instance2)
+    instance1.add1(instance2)  # 1 copy ctor + 1 move
     instance1.add2(instance2)
     instance1.add3(instance2)
     instance1.add4(instance2)
@@ -20,7 +20,7 @@ def test_methods_and_attributes():
 
     assert str(instance1) == "ExampleMandA[value=320]"
     assert str(instance2) == "ExampleMandA[value=32]"
-    assert str(instance1.self1()) == "ExampleMandA[value=320]"
+    assert str(instance1.self1()) == "ExampleMandA[value=320]"  # 1 copy ctor + 1 move
     assert str(instance1.self2()) == "ExampleMandA[value=320]"
     assert str(instance1.self3()) == "ExampleMandA[value=320]"
     assert str(instance1.self4()) == "ExampleMandA[value=320]"
@@ -58,8 +58,8 @@ def test_methods_and_attributes():
     assert cstats.alive() == 0
     assert cstats.values() == ["32"]
     assert cstats.default_constructions == 1
-    assert cstats.copy_constructions == 3
-    assert cstats.move_constructions >= 1
+    assert cstats.copy_constructions == 2
+    assert cstats.move_constructions == 2
     assert cstats.copy_assignments == 0
     assert cstats.move_assignments == 0
 
