@@ -11,6 +11,7 @@
 
 #include "detail/common.h"
 #include "buffer_info.h"
+#include <iostream>
 #include <utility>
 #include <type_traits>
 
@@ -1299,6 +1300,114 @@ inline iterator iter(handle obj) {
     return reinterpret_steal<iterator>(result);
 }
 /// @} python_builtins
+
+/// Trampoline class to permit attaching a derived Python object's data
+/// (namely __dict__) to an actual C++ class.
+/// If the object lives purely in C++, then there should only be one reference to
+/// this data.
+template <typename Base>
+class wrapper : public Base {
+ protected:
+    using Base::Base;
+
+ public:
+  // TODO(eric.cousineau): Complain if this is not virtual? (and remove `virtual` specifier in dtor?)
+
+  virtual ~wrapper() {
+      delete_py_if_in_cpp();
+  }
+
+  /// To be used by the holder casters, by means of `wrapper_interface<>`.
+  // TODO(eric.cousineau): Make this private to ensure contract?
+  void use_cpp_lifetime(object&& patient, detail::HolderTypeId holder_type_id) {
+      if (lives_in_cpp()) {
+          throw std::runtime_error("Instance already lives in C++");
+      }
+      holder_type_id_ = holder_type_id;
+      patient_ = std::move(patient);
+      // @note It would be nice to put `revive_python3` here, but this is called by
+      // `PyObject_CallFinalizer`, which will end up reversing its effect anyways.
+  }
+
+  /// To be used by `move_only_holder_caster`.
+  object release_cpp_lifetime() {
+      if (!lives_in_cpp()) {
+          throw std::runtime_error("Instance does not live in C++");
+      }
+      revive_python3();
+      // Remove existing reference.
+      object tmp = std::move(patient_);
+      assert(!patient_);
+      return tmp;
+  }
+
+ protected:
+    /// Call this if, for whatever reason, your C++ wrapper class `Base` has a non-trivial
+    /// destructor that needs to keep information available to the Python-extended class.
+    /// In this case, you want to delete the Python object *before* you do any work in your wrapper class.
+    ///
+    /// As an example, say you have `Base`, and `PyBase` is your wrapper class which extends `wrapper<Base>`.
+    /// By default, if the instance is owned in C++ and deleted, then the destructor order will be:
+    ///    ~PyBase()
+    ///       do_stuff()
+    ///    ~wrapper<Base>()
+    ///       delete_py_if_in_cpp()
+    ///           PyChild.__del__ - ERROR: Should have been called before `do_stuff()
+    ///    ~Base()
+    /// If you explicitly call `delete_py_if_in_cpp()`, then you will get the desired order:
+    ///    ~PyBase()
+    ///       delete_py_if_in_cpp()
+    ///           PyChild.__del__ - GOOD: Workzzz. Called before `do_stuff()`.
+    ///       do_stuff()
+    ///    ~wrapper<Base>()
+    ///       delete_py_if_in_cpp() - No-op. Python object has been released.
+    ///    ~Base()
+    // TODO(eric.cousineau): Verify this with an example workflow.
+  void delete_py_if_in_cpp() {
+      if (lives_in_cpp()) {
+          // Ensure that we still are the unique one, such that the Python classes
+          // destructor will be called.
+#ifdef PYBIND11_WARN_DANGLING_UNIQUE_PYREF
+          if (holder_type_id_ == detail::HolderTypeId::UniquePtr) {
+              if (patient_.ref_count() != 1) {
+                  // TODO(eric.cousineau): Add Python class name
+                  std::string class_name = patient_.get_type().str();
+                  std::cerr
+                      << "WARNING(pybind11): When destroying Python subclass (" << class_name << "), "
+                      << "of a pybind11 class using a unique_ptr holder in C++, "
+                      << "ref_count == " << patient_.ref_count() << " != 1, which may cause undefined behavior." << std::endl
+                      << "  Please consider reviewing your code to trim existing references, or use a move-compatible container." << std::endl;
+              }
+          }
+#endif  // PYBIND11_WARN_DANGLING_UNIQUE_HOLDER
+          // Release object.
+          release_cpp_lifetime();
+      }
+  }
+
+  // Python3 unfortunately will not implicitly call `__del__` multiple times,
+  // even if the object is resurrected. This is a dirty workaround.
+  // @see https://bugs.python.org/issue32377
+  inline void revive_python3() {
+#if PY_VERSION_HEX >= 0x03000000
+      // Reverse single-finalization constraint in Python3.
+      if (_PyGC_FINALIZED(patient_.ptr())) {
+        _PyGC_SET_FINALIZED(patient_.ptr(), 0);
+      }
+#endif  // PY_VERSION_HEX >= 0x03000000
+  }
+
+ private:
+  bool lives_in_cpp() const {
+      // NOTE: This is *false* if, for whatever reason, the wrapper class is
+      // constructed in C++... Meh. Not gonna worry about that situation.
+      return static_cast<bool>(patient_);
+  }
+
+  object patient_;
+  detail::HolderTypeId holder_type_id_{detail::HolderTypeId::Unknown};
+};
+
 
 NAMESPACE_BEGIN(detail)
 template <typename D> iterator object_api<D>::begin() const { return iter(derived()); }

@@ -119,6 +119,9 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 | ``std::string_view``,              | STL C++17 string views    | :file:`pybind11/pybind11.h`   |
 | ``std::u16string_view``, etc.      |                           |                               |
 +------------------------------------+---------------------------+-------------------------------+
+| ``std::unique_ptr<T>``,            | STL (or custom) smart     | :file:`pybind11/cast.h`       |
+| ``std::shared_ptr<T>``, etc.       | pointers.                 |                               |
++------------------------------------+---------------------------+-------------------------------+
 | ``std::pair<T1, T2>``              | Pair of two custom types  | :file:`pybind11/pybind11.h`   |
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::tuple<...>``                | Arbitrary tuple of types  | :file:`pybind11/pybind11.h`   |

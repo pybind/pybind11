@@ -91,7 +91,7 @@ struct type_info {
     const std::type_info *cpptype;
     size_t type_size, holder_size_in_ptrs;
     void *(*operator_new)(size_t);
-    void (*init_instance)(instance *, const void *);
+    void (*init_instance)(instance *, holder_erased);
     void (*dealloc)(value_and_holder &v_h);
     std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
     std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
@@ -108,6 +108,8 @@ struct type_info {
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
+
+    instance::type_release_info_t release_info;
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version

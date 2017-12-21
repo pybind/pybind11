@@ -347,3 +347,32 @@ def test_diamond_inheritance():
     assert d is d.c0().b()
     assert d is d.c1().b()
     assert d is d.c0().c1().b().c0().b()
+
+
+@pytest.unsupported_on_pypy
+def test_mi_ownership_constraint():
+    # See `test_ownership_transfer` for positive tests.
+
+    # unique_ptr
+    with pytest.raises(RuntimeError) as excinfo:
+        c = m.ContainerBase1(m.MIType(10, 100))
+    assert "multiple inheritance" in str(excinfo.value)
+
+    # shared_ptr
+    # Should not throw an error.
+    obj = m.Base12a(10, 100)
+    assert obj.bar() == 100
+    c = m.ContainerBase2a(obj)
+    # Use variable to avoid style violations.
+    assert c is not None
+
+    # TODO(eric.cousineau): This currently causes a segfault in both
+    # this branch and on `master` (a303c6f).
+    # Figure out if there is a way to fix this?
+
+    # assert c.get().bar() == 100
+
+    # # Should throw an error.
+    # c = m.ContainerBase2a(m.Bae12a(10, 100))
+    # assert c.get().foo() == 10
+    # assert c.get().bar() == 100

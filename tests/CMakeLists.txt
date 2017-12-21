@@ -51,6 +51,7 @@ set(PYBIND11_TEST_FILES
   test_numpy_vectorize.cpp
   test_opaque_types.cpp
   test_operator_overloading.cpp
+  test_ownership_transfer.cpp
   test_pickling.cpp
   test_pytypes.cpp
   test_sequences_and_iterators.cpp
