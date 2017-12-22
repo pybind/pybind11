@@ -59,7 +59,7 @@
 #     find_package(pybind11) when not REQUIRED, perhaps to force internal build
 
 @PACKAGE_INIT@
-
+cmake_minimum_required( VERSION 3.0 )
 set(PN pybind11)
 
 # location of pybind11/pybind11.h
