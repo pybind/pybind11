@@ -163,6 +163,14 @@ protected:
         /* Process any user-provided function attributes */
         detail::process_attributes<Extra...>::init(extra..., rec);
 
+        {
+            constexpr bool has_kw_only_args = any_of<std::is_same<args_kw_only, Extra>...>::value,
+                           has_args = any_of<std::is_same<args, Args>...>::value,
+                           has_arg_annotations = any_of<is_keyword<Extra>...>::value;
+            static_assert(has_arg_annotations || !has_kw_only_args, "py::args_kw_only requires the use of argument annotations");
+            static_assert(!(has_args && has_kw_only_args), "py::args_kw_only cannot be combined with a py::args argument");
+        }
+
         /* Generate a readable signature describing the function's arguments and return value types */
         static constexpr auto signature = _("(") + cast_in::arg_names + _(") -> ") + cast_out::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
@@ -478,15 +486,16 @@ protected:
                  */
 
                 function_record &func = *it;
-                size_t pos_args = func.nargs;    // Number of positional arguments that we need
-                if (func.has_args) --pos_args;   // (but don't count py::args
-                if (func.has_kwargs) --pos_args; //  or py::kwargs)
+                size_t num_args = func.nargs // Number of positional arguments that we need
+                    - func.has_args          // (but don't count py::args
+                    - func.has_kwargs;       //  or py::kwargs)
+                size_t pos_args = num_args - func.nargs_kwonly;
 
                 if (!func.has_args && n_args_in > pos_args)
-                    continue; // Too many arguments for this overload
+                    continue; // Too many positional arguments for this overload
 
                 if (n_args_in < pos_args && func.args.size() < pos_args)
-                    continue; // Not enough arguments given, and not enough defaults to fill in the blanks
+                    continue; // Not enough positional arguments given (either explicitly or via defaults)
 
                 function_call call(func, parent);
 
@@ -530,10 +539,10 @@ protected:
                 dict kwargs = reinterpret_borrow<dict>(kwargs_in);
 
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
-                if (args_copied < pos_args) {
+                if (args_copied < num_args) {
                     bool copied_kwargs = false;
 
-                    for (; args_copied < pos_args; ++args_copied) {
+                    for (; args_copied < num_args; ++args_copied) {
                         const auto &arg = func.args[args_copied];
 
                         handle value;
@@ -559,7 +568,7 @@ protected:
                             break;
                     }
 
-                    if (args_copied < pos_args)
+                    if (args_copied < num_args)
                         continue; // Not enough arguments, defaults, or kwargs to fill the positional arguments
                 }
 
