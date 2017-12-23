@@ -452,6 +452,7 @@ protected:
             // py::arg().noconvert()).  This lets us prefer calls without conversion, with
             // conversion as a fallback.
             std::vector<function_call> second_pass;
+            std::vector<object> args_kwargs_keepalive;
 
             // However, if there are no overloads, we can just skip the no-convert pass entirely
             const bool overloaded = it != nullptr && it->next != nullptr;
@@ -586,6 +587,7 @@ protected:
                     }
                     call.args.push_back(extra_args);
                     call.args_convert.push_back(false);
+                    args_kwargs_keepalive.push_back(extra_args);
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
@@ -594,6 +596,7 @@ protected:
                         kwargs = dict(); // If we didn't get one, send an empty one
                     call.args.push_back(kwargs);
                     call.args_convert.push_back(false);
+                    args_kwargs_keepalive.push_back(kwargs);
                 }
 
                 // 5. Put everything in a vector.  Not technically step 5, we've been building it
