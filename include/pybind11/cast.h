@@ -1801,6 +1801,10 @@ struct function_call {
     /// The `convert` value the arguments should be loaded with
     std::vector<bool> args_convert;
 
+    /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
+    /// present, are also in `args` but without a reference).
+    object args_ref, kwargs_ref;
+
     /// The parent, if any
     handle parent;
 

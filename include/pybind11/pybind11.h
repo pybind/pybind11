@@ -568,8 +568,8 @@ protected:
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
 
                 // 4a. If we have a py::args argument, create a new tuple with leftovers
-                tuple extra_args;
                 if (func.has_args) {
+                    tuple extra_args;
                     if (args_to_copy == 0) {
                         // We didn't copy out any position arguments from the args_in tuple, so we
                         // can reuse it directly without copying:
@@ -586,6 +586,7 @@ protected:
                     }
                     call.args.push_back(extra_args);
                     call.args_convert.push_back(false);
+                    call.args_ref = std::move(extra_args);
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
@@ -594,6 +595,7 @@ protected:
                         kwargs = dict(); // If we didn't get one, send an empty one
                     call.args.push_back(kwargs);
                     call.args_convert.push_back(false);
+                    call.kwargs_ref = std::move(kwargs);
                 }
 
                 // 5. Put everything in a vector.  Not technically step 5, we've been building it
