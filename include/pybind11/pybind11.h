@@ -1516,15 +1516,18 @@ inline void consume_impl(handle consumed) {
     if (consumed.is_none())
         return; /* Nothing to consume */
 
-    // auto tinfo = all_type_info(Py_TYPE(consumed.ptr())); // ???
-
-    //consumed.dec_ref(); ???
-
-    // del the name of consumed from the Python scope somehow ...
-
     auto inst = reinterpret_cast<detail::instance *>(consumed.ptr());
-    auto &holder = values_and_holders(inst).begin()->holder<  std::unique_ptr  <void*>  >(); // holder_type ???
-    holder.release();
+    auto value_and_holder = values_and_holders(inst).begin();
+
+
+
+    auto &holder = value_and_holder->holder< std::unique_ptr<void*> >(); // holder_type ???
+
+
+    holder_helper<std::unique_ptr<void*>>::release(holder);
+
+    value_and_holder->set_holder_constructed(false);
+    inst->owned = false;
 }
 
 PYBIND11_NOINLINE inline void consume_impl(size_t Consumed, function_call &call) {
