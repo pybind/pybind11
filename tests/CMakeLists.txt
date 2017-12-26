@@ -39,6 +39,7 @@ set(PYBIND11_TEST_FILES
   test_enum.cpp
   test_eval.cpp
   test_exceptions.cpp
+  test_disown.cpp
   test_factory_constructors.cpp
   test_iostream.cpp
   test_kwargs_and_defaults.cpp
