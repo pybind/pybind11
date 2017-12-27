@@ -244,6 +244,9 @@ py::list test_dtype_ctors() {
     return list;
 }
 
+struct A {};
+struct B {};
+
 TEST_SUBMODULE(numpy_dtypes, m) {
     try { py::module::import("numpy"); }
     catch (...) { return; }
@@ -270,6 +273,15 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // is not a POD type
 //    struct NotPOD { std::string v; NotPOD() : v("hi") {}; };
 //    PYBIND11_NUMPY_DTYPE(NotPOD, v);
+
+    // Check that dtypes can be registered programmatically, both from
+    // initializer lists of field descriptors and from other containers.
+    py::detail::npy_format_descriptor<A>::register_dtype(
+        {}
+    );
+    py::detail::npy_format_descriptor<B>::register_dtype(
+        std::vector<py::detail::field_descriptor>{}
+    );
 
     // test_recarray, test_scalar_conversion
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);
