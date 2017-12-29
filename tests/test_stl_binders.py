@@ -182,6 +182,7 @@ def test_noncopyable_containers():
 
     assert vsum == 150
 
+
 def test_map_delitem():
     mm = m.MapStringDouble()
     mm['a'] = 1
