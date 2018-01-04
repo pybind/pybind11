@@ -1714,6 +1714,10 @@ struct move_only_holder_caster : type_caster_base<type> {
     }
 
     bool load(handle src, bool /*convert*/) {
+        if (src.is(none())) {
+            holder.reset();
+            return true;
+        }
         // Allow loose reference management (if it's just a plain object) or require tighter reference
         // management if it's a move container.
         object obj = extract_obj(src);

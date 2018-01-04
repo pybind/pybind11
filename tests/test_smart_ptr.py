@@ -236,6 +236,9 @@ def test_unique_ptr_arg():
     m.unique_ptr_terminal(m.UniquePtrHeld(2))
     assert stats.alive() == 0
 
+    assert m.unique_ptr_pass_through(None) is None
+    m.unique_ptr_terminal(None)
+
 
 def test_unique_ptr_to_shared_ptr():
     obj = m.shared_ptr_held_in_unique_ptr()
