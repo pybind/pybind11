@@ -304,6 +304,33 @@ TEST_SUBMODULE(smart_ptr, m) {
             return nullptr;
         });
 
+    // Check traits in a concise manner.
+    static_assert(
+        py::detail::move_common<std::unique_ptr<UniquePtrHeld>>::value,
+        "This must be true.");
+
+    // Guarantee API works as expected.
+    m.def("unique_ptr_pass_through_cast_from_py",
+        [](py::object obj_py) {
+            auto obj =
+                py::cast<std::unique_ptr<UniquePtrHeld>>(std::move(obj_py));
+            return obj;
+        });
+    m.def("unique_ptr_pass_through_move_from_py",
+        [](py::object obj_py) {
+            return py::move<std::unique_ptr<UniquePtrHeld>>(std::move(obj_py));
+        });
+
+    m.def("unique_ptr_pass_through_move_to_py",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            return py::move(std::move(obj));
+        });
+
+    m.def("unique_ptr_pass_through_cast_to_py",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            return py::cast(std::move(obj));
+        });
+
     // Ensure class is non-empty, so it's easier to detect double-free
     // corruption. (If empty, this may be harder to see easily.)
     struct SharedPtrHeld { int value = 10; };
