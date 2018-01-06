@@ -1495,6 +1495,15 @@ struct move_only_holder_caster {
         auto *ptr = holder_helper<holder_type>::get(src);
         return type_caster_base<type>::cast_holder(ptr, &src);
     }
+
+    // Force rvalue.
+    template <typename T>
+    using cast_op_type = holder_type&&;
+
+    operator holder_type&&() {
+        throw std::runtime_error("Currently unsupported");
+    }
+
     static constexpr auto name = type_caster_base<type>::name;
 };
 
@@ -1565,21 +1574,25 @@ class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caste
 template <typename T> using move_is_plain_type = satisfies_none_of<T,
     std::is_void, std::is_pointer, std::is_reference, std::is_const
 >;
+template <typename T, typename SFINAE = void> struct move_common : std::false_type {};
+template <typename T> struct move_common<T, enable_if_t<all_of<
+    move_is_plain_type<T>,
+    std::is_move_constructible<T>,
+    std::is_same<
+        intrinsic_t<typename make_caster<T>::template cast_op_type<T&>>,
+        T>
+>::value>> : std::true_type {};
 template <typename T, typename SFINAE = void> struct move_always : std::false_type {};
 template <typename T> struct move_always<T, enable_if_t<all_of<
-    move_is_plain_type<T>,
-    negation<is_copy_constructible<T>>,
-    std::is_move_constructible<T>,
-    std::is_same<decltype(std::declval<make_caster<T>>().operator T&()), T&>
+    move_common<T>,
+    negation<is_copy_constructible<T>>
 >::value>> : std::true_type {};
 template <typename T, typename SFINAE = void> struct move_if_unreferenced : std::false_type {};
 template <typename T> struct move_if_unreferenced<T, enable_if_t<all_of<
-    move_is_plain_type<T>,
-    negation<move_always<T>>,
-    std::is_move_constructible<T>,
-    std::is_same<decltype(std::declval<make_caster<T>>().operator T&()), T&>
+    move_common<T>,
+    is_copy_constructible<T>
 >::value>> : std::true_type {};
-template <typename T> using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
+template <typename T> using move_never = negation<move_common<T>>;
 
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
 // reference or pointer to a local variable of the type_caster.  Basically, only

@@ -271,4 +271,18 @@ TEST_SUBMODULE(smart_ptr, m) {
                 list.append(py::cast(e));
             return list;
         });
+
+    // At present, only used for trait checks below. In the future, will be exposed to pybind.
+    struct UniquePtrHeld {};
+
+    // Check traits in a concise manner.
+    static_assert(
+        py::detail::move_common<std::unique_ptr<UniquePtrHeld>>::value,
+        "This trait must be true.");
+    static_assert(
+        py::detail::move_always<std::unique_ptr<UniquePtrHeld>>::value,
+        "This trait must be true.");
+    static_assert(
+        !py::detail::move_if_unreferenced<std::unique_ptr<UniquePtrHeld>>::value,
+        "This trait must be false.");
 }
