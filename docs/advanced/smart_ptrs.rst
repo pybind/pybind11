@@ -1,5 +1,19 @@
-Smart pointers
-##############
+.. _holders:
+
+Smart pointers and holders
+##########################
+
+Holders
+=======
+
+The binding generator for classes, :class:`class_`, can be passed a template
+type that denotes a special *holder* type that is used to manage references to
+the object.  If no such holder type template argument is given, the default for
+a type named ``Type`` is ``std::unique_ptr<Type>``, which means that the object
+is deallocated when Python's reference count goes to zero. It is possible to
+switch to other types of reference counting wrappers or smart pointers, which
+is useful in codebases that rely on them, such as ``std::shared_ptr<Type>``, or
+even a custom type.
 
 std::unique_ptr
 ===============
@@ -31,15 +45,10 @@ instance, the object might be referenced elsewhere).
 std::shared_ptr
 ===============
 
-The binding generator for classes, :class:`class_`, can be passed a template
-type that denotes a special *holder* type that is used to manage references to
-the object.  If no such holder type template argument is given, the default for
-a type named ``Type`` is ``std::unique_ptr<Type>``, which means that the object
-is deallocated when Python's reference count goes to zero.
+If you have an existing code base with ``std::shared_ptr``, or you wish to enable
+reference counting in C++ as well, then you may use this type as a holder.
 
-It is possible to switch to other types of reference counting wrappers or smart
-pointers, which is useful in codebases that rely on them. For instance, the
-following snippet causes ``std::shared_ptr`` to be used instead.
+As an example, the following snippet causes ``std::shared_ptr`` to be used instead.
 
 .. code-block:: cpp
 
