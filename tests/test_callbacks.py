@@ -97,7 +97,6 @@ def test_cpp_function_roundtrip():
     assert any(s in str(excinfo.value) for s in ("missing 1 required positional argument",
                                                  "takes exactly 2 arguments"))
 
-
 def test_function_signatures(doc):
     assert doc(m.test_callback3) == "test_callback3(arg0: Callable[[int], int]) -> str"
     assert doc(m.test_callback4) == "test_callback4() -> Callable[[int], int]"
@@ -105,3 +104,22 @@ def test_function_signatures(doc):
 
 def test_movable_object():
     assert m.callback_with_movable(lambda _: None) is True
+
+
+def test_object_mutation():
+    # Issue #1200
+    def incr(obj):
+        obj.value += 1
+
+    obj = m.CppCopyable()
+    assert obj.value == 0
+
+    m.callback_mutate_copyable_py(incr, obj)
+    assert obj.value == 1
+
+    obj = m.callback_mutate_copyable_cpp_ref(incr, 10)
+    # WARNING: This this creates a COPY when passing to callback.
+    assert obj.value == 10
+
+    obj = m.callback_mutate_copyable_cpp_ptr(incr, 10)
+    assert obj.value == 11
