@@ -118,8 +118,6 @@ def test_object_mutation():
     assert obj.value == 1
 
     obj = m.callback_mutate_copyable_cpp_ref(incr, 10)
-    # WARNING: This this creates a COPY when passing to callback.
-    assert obj.value == 10
-
+    assert obj.value == 11
     obj = m.callback_mutate_copyable_cpp_ptr(incr, 10)
     assert obj.value == 11

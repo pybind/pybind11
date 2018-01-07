@@ -159,8 +159,7 @@ TEST_SUBMODULE(callbacks, m) {
         [](std::function<void(CppCopyable&)> f, CppCopyable& obj) {
             f(obj);
         });
-    // Does not work as expected, because pybind will copy the instance when
-    // binding.
+    // Works as expected, because pybind will not copy the instance.
     m.def(
         "callback_mutate_copyable_cpp_ref",
         [](std::function<void(CppCopyable&)> f, int value) {
