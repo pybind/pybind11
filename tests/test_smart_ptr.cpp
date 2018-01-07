@@ -323,7 +323,7 @@ TEST_SUBMODULE(smart_ptr, m) {
             : value_(value) {
             print_created(this, value);
         }
-        ~UniquePtrHeld() {
+        virtual ~UniquePtrHeld() {
             print_destroyed(this);
         }
         int value() const { return value_; }
@@ -382,4 +382,22 @@ TEST_SUBMODULE(smart_ptr, m) {
         m, "ContainerPlain");
     Container<UniquePtrHeld, KeepAliveType::KeepAlive>::def(
         m, "ContainerKeepAlive");
+
+    class UniquePtrDerived : public UniquePtrHeld {
+    public:
+        UniquePtrDerived(int value, std::string name)
+            : UniquePtrHeld(value), name_(name) {
+            print_created(this, name);
+        }
+        ~UniquePtrDerived() {
+            print_destroyed(this);
+        }
+        std::string name() const { return name_; }
+    private:
+        std::string name_{};
+    };
+
+    py::class_<UniquePtrDerived, UniquePtrHeld>(m, "UniquePtrDerived")
+        .def(py::init<int, std::string>())
+        .def("name", &UniquePtrDerived::name);
 }

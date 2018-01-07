@@ -314,3 +314,14 @@ def test_unique_ptr_keep_alive():
     del c_keep
     pytest.gc_collect()
     assert c_keep_stats.alive() == 0
+
+
+def test_unique_ptr_derived():
+    obj = m.UniquePtrDerived(1, "a")
+    c_plain = m.ContainerPlain(obj)
+    del obj
+    pytest.gc_collect()
+    obj = c_plain.release()
+    assert obj.value() == 1
+    assert obj.name() == "a"
+    del obj
