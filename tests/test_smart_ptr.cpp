@@ -56,6 +56,48 @@ public:
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
 
 
+enum class KeepAliveType : int {
+    Plain = 0,
+    KeepAlive,
+};
+
+template <
+    typename T,
+    KeepAliveType keep_alive_type>
+class Container {
+public:
+    using Ptr = std::unique_ptr<T>;
+    Container(Ptr ptr)
+        : ptr_(std::move(ptr)) {
+        print_created(this);
+    }
+    ~Container() {
+        print_destroyed(this);
+    }
+    T* get() const { return ptr_.get(); }
+    Ptr release() {
+        return std::move(ptr_);
+    }
+    void reset(Ptr ptr) {
+        ptr_ = std::move(ptr);
+    }
+
+    static void def(py::module &m, const std::string& name) {
+        py::class_<Container> cls(m, name.c_str());
+        if (keep_alive_type == KeepAliveType::KeepAlive) {
+            cls.def(py::init<Ptr>(), py::keep_alive<2, 1>());
+        } else {
+            cls.def(py::init<Ptr>());
+        }
+        // TODO: Figure out why reference_internal does not work???
+        cls.def("get", &Container::get, py::keep_alive<0, 1>()); //py::return_value_policy::reference_internal);
+        cls.def("release", &Container::release);
+        cls.def("reset", &Container::reset);
+    }
+private:
+    Ptr ptr_;
+};
+
 TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr
@@ -336,4 +378,9 @@ TEST_SUBMODULE(smart_ptr, m) {
         [](std::unique_ptr<UniquePtrHeld> obj) {
             return py::cast(std::move(obj));
         });
+
+    Container<UniquePtrHeld, KeepAliveType::Plain>::def(
+        m, "ContainerPlain");
+    Container<UniquePtrHeld, KeepAliveType::KeepAlive>::def(
+        m, "ContainerKeepAlive");
 }

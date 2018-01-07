@@ -55,6 +55,10 @@ calling. You *may* return ownership back to pybind by casting the object, as so:
 
 If this is done, then you may continue referencing the object in Python.
 
+When Pybind regains ownership of a Python object, it will detach any existing
+``keep_alive`` behavior, since this is commonly used for containers that
+must be kept alive because they would destroy the object that they owned.
+
 std::shared_ptr
 ===============
 

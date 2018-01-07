@@ -296,6 +296,8 @@ inline void add_patient(PyObject *nurse, PyObject *patient) {
 
 inline void clear_patients(PyObject *self) {
     auto instance = reinterpret_cast<detail::instance *>(self);
+    if (!instance->has_patients)
+        return;
     auto &internals = get_internals();
     auto pos = internals.patients.find(self);
     assert(pos != internals.patients.end());

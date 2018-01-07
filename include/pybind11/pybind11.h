@@ -1092,6 +1092,9 @@ public:
         new (&v_h.holder<holder_type>()) holder_type(std::move(external_holder));
         v_h.set_holder_constructed();
         v_h.inst->owned = true;
+        // If this instance is now owend by pybind, release any existing
+        // patients (owners for `reference_internal`).
+        detail::clear_patients((PyObject*)v_h.inst);
     }
 
     template <typename Base, detail::enable_if_t<is_base<Base>::value, int> = 0>
