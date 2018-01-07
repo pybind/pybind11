@@ -476,18 +476,50 @@ inline PyThreadState *get_thread_state_unchecked() {
 }
 
 // Forward declarations
+inline bool has_patient(PyObject *nurse, PyObject *patient);
 inline void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
 
-inline bool reclaim_existing_if_needed(
-        instance *inst, const detail::type_info *tinfo, const void *existing_holder) {
-    // Only reclaim if (a) we have an existing holder and (b) if it's a move-only holder.
-    // TODO: Remove `default_holder`, store more descriptive holder information.
-    if (existing_holder && tinfo->default_holder) {
-        // Requesting reclaim from C++.
-        value_and_holder v_h = inst->get_value_and_holder(tinfo);
-        // TODO(eric.cousineau): Add `holder_type_erased` to avoid need for `const_cast`.
-        tinfo->ownership_info.reclaim(v_h, const_cast<void*>(existing_holder));
+inline void reclaim_instance(
+        instance *inst, const detail::type_info *tinfo, const void *existing_holder = nullptr) {
+    value_and_holder v_h = inst->get_value_and_holder(tinfo);
+    // TODO(eric.cousineau): Add `holder_type_erased` to avoid need for `const_cast`.
+    tinfo->ownership_info.reclaim(v_h, const_cast<void*>(existing_holder));
+}
+
+inline bool reclaim_instance_if_needed(
+        instance *inst, const detail::type_info *tinfo, const void *existing_holder,
+        return_value_policy policy, handle parent) {
+    // TODO(eric.cousineau): Remove `default_holder`, store more descriptive holder information.
+    // Only handle reclaim if it's a move-only holder, and not currently owned.
+    // Let copyable holders do their own thing.
+    if (!tinfo->default_holder || inst->owned)
+        // TODO(eric.cousineau): For shared ptrs, there was a point where the holder was constructed,
+        // but the instance was not owned. What does that mean?
+        return false;
+    bool do_reclaim = false;
+    if (existing_holder) {
+        // This means that we're coming from a holder caster.
+        do_reclaim = true;
+    } else {
+        // Check existing policies.
+        switch (policy) {
+            case return_value_policy::reference_internal: {
+                handle h = handle((PyObject *) inst);
+                if (!has_patient(h.ptr(), parent.ptr()))
+                    keep_alive_impl(h, parent);
+                break;
+            }
+            case return_value_policy::take_ownership: {
+                do_reclaim = true;
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    if (do_reclaim) {
+        reclaim_instance(inst, tinfo, existing_holder);
         return true;
     }
     return false;
@@ -523,7 +555,7 @@ public:
                 if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
                     // Casting for an already registered type. Return existing reference.
                     instance *inst = it_i->second;
-                    reclaim_existing_if_needed(inst, tinfo, existing_holder);
+                    reclaim_instance_if_needed(inst, tinfo, existing_holder, policy, parent);
                     return handle((PyObject *) inst).inc_ref();
                 }
             }
