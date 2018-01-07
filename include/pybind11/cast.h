@@ -511,22 +511,22 @@ public:
             }
         }
 
-        auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        auto wrapper = reinterpret_cast<instance *>(inst.ptr());
-        wrapper->owned = false;
-        void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
+        auto obj = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        auto inst = reinterpret_cast<instance *>(obj.ptr());
+        inst->owned = false;
+        void *&valueptr = values_and_holders(inst).begin()->value_ptr();
 
         switch (policy) {
             case return_value_policy::automatic:
             case return_value_policy::take_ownership:
                 valueptr = src;
-                wrapper->owned = true;
+                inst->owned = true;
                 break;
 
             case return_value_policy::automatic_reference:
             case return_value_policy::reference:
                 valueptr = src;
-                wrapper->owned = false;
+                inst->owned = false;
                 break;
 
             case return_value_policy::copy:
@@ -535,7 +535,7 @@ public:
                 else
                     throw cast_error("return_value_policy = copy, but the "
                                      "object is non-copyable!");
-                wrapper->owned = true;
+                inst->owned = true;
                 break;
 
             case return_value_policy::move:
@@ -546,22 +546,22 @@ public:
                 else
                     throw cast_error("return_value_policy = move, but the "
                                      "object is neither movable nor copyable!");
-                wrapper->owned = true;
+                inst->owned = true;
                 break;
 
             case return_value_policy::reference_internal:
                 valueptr = src;
-                wrapper->owned = false;
-                keep_alive_impl(inst, parent);
+                inst->owned = false;
+                keep_alive_impl(obj, parent);
                 break;
 
             default:
                 throw cast_error("unhandled return_value_policy: should not happen!");
         }
 
-        tinfo->init_instance(wrapper, existing_holder);
+        tinfo->init_instance(inst, existing_holder);
 
-        return inst.release();
+        return obj.release();
     }
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
