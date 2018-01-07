@@ -479,6 +479,20 @@ inline PyThreadState *get_thread_state_unchecked() {
 inline void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
 
+inline bool reclaim_existing_if_needed(
+        instance *inst, const detail::type_info *tinfo, const void *existing_holder) {
+    // Only reclaim if (a) we have an existing holder and (b) if it's a move-only holder.
+    // TODO: Remove `default_holder`, store more descriptive holder information.
+    if (existing_holder && tinfo->default_holder) {
+        // Requesting reclaim from C++.
+        value_and_holder v_h = inst->get_value_and_holder(tinfo);
+        // TODO(eric.cousineau): Add `holder_type_erased` to avoid need for `const_cast`.
+        tinfo->ownership_info.reclaim(v_h, const_cast<void*>(existing_holder));
+        return true;
+    }
+    return false;
+}
+
 class type_caster_generic {
 public:
     PYBIND11_NOINLINE type_caster_generic(const std::type_info &type_info)
@@ -506,8 +520,12 @@ public:
         auto it_instances = get_internals().registered_instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
-                    return handle((PyObject *) it_i->second).inc_ref();
+                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
+                    // Casting for an already registered type. Return existing reference.
+                    instance *inst = it_i->second;
+                    reclaim_existing_if_needed(inst, tinfo, existing_holder);
+                    return handle((PyObject *) inst).inc_ref();
+                }
             }
         }
 
@@ -1405,6 +1423,16 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
+template <typename holder_type>
+cast_error cast_error_holder_unheld() {
+    return cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
+#if defined(NDEBUG)
+                     "(compile in debug mode for type information)");
+#else
+                     "of type '" + type_id<holder_type>() + "''");
+#endif
+}
+
 /// Type caster for holder types like std::shared_ptr, etc.
 template <typename type, typename holder_type>
 struct copyable_holder_caster : public type_caster_base<type> {
@@ -1451,12 +1479,7 @@ protected:
             holder = v_h.template holder<holder_type>();
             return true;
         } else {
-            throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
-#if defined(NDEBUG)
-                             "(compile in debug mode for type information)");
-#else
-                             "of type '" + type_id<holder_type>() + "''");
-#endif
+            throw cast_error_holder_unheld<holder_type>();
         }
     }
 
@@ -1478,7 +1501,7 @@ protected:
 
     static bool try_direct_conversions(handle) { return false; }
 
-
+private:
     holder_type holder;
 };
 
@@ -1487,13 +1510,17 @@ template <typename T>
 class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> { };
 
 template <typename type, typename holder_type>
-struct move_only_holder_caster {
-    static_assert(std::is_base_of<type_caster_base<type>, type_caster<type>>::value,
+struct move_only_holder_caster : type_caster_base<type> {
+    using base = type_caster_base<type>;
+    static_assert(std::is_base_of<base, type_caster<type>>::value,
             "Holder classes are only supported for custom types");
+    using base::base;
+    using base::cast;
+    using base::typeinfo;
+    using base::value;
 
-    static handle cast(holder_type &&src, return_value_policy, handle) {
-        auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, &src);
+    bool load(handle src, bool convert) {
+        return base::template load_impl<move_only_holder_caster<type, holder_type>>(src, convert);
     }
 
     // Force rvalue.
@@ -1501,10 +1528,38 @@ struct move_only_holder_caster {
     using cast_op_type = holder_type&&;
 
     operator holder_type&&() {
-        throw std::runtime_error("Currently unsupported");
+        return std::move(holder);
     }
 
-    static constexpr auto name = type_caster_base<type>::name;
+    static handle cast(holder_type &&src, return_value_policy, handle) {
+        auto *ptr = holder_helper<holder_type>::get(src);
+        handle h = type_caster_base<type>::cast_holder(ptr, &src);
+        assert(src.get() == nullptr);
+        return h;
+    }
+
+protected:
+    friend class type_caster_generic;
+    void check_holder_compat() {}
+
+    bool load_value(value_and_holder &&v_h) {
+        if (v_h.holder_constructed()) {
+            // Do NOT use `v_h.type`.
+            typeinfo->ownership_info.release(v_h, &holder);
+            assert(v_h.holder<holder_type>().get() == nullptr);
+            return true;
+        } else {
+            throw cast_error_holder_unheld<holder_type>();
+        }
+    }
+
+    // TODO(eric.cousineau): Resolve this.
+    bool try_implicit_casts(handle, bool) { return false; }
+
+    static bool try_direct_conversions(handle) { return false; }
+
+private:
+    holder_type holder;
 };
 
 template <typename type, typename deleter>
@@ -1663,6 +1718,25 @@ template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); 
 template <> inline void handle::cast() const { return; }
 
 template <typename T>
+detail::enable_if_t<
+        // TODO(eric.cousineau): Figure out how to prevent perfect-forwarding more elegantly.
+        std::is_rvalue_reference<T&&>::value && !detail::is_pyobject<detail::intrinsic_t<T>>::value, object>
+    move(T&& value) {
+    // TODO(eric.cousineau): Should the user be able to specify policies / parent?
+    handle no_parent;
+    return reinterpret_steal<object>(
+        detail::make_caster<T>::cast(std::move(value), return_value_policy::take_ownership, no_parent));
+}
+
+template <typename T>
+detail::enable_if_t<
+        std::is_rvalue_reference<T&&>::value && !detail::is_pyobject<detail::intrinsic_t<T>>::value, object>
+    cast(T&& value) {
+    // Have to use `pybind11::move` because some compilers might try to bind `move` to `std::move`...
+    return pybind11::move<T>(std::move(value));
+}
+
+template <typename T>
 detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     if (obj.ref_count() > 1)
 #if defined(NDEBUG)
@@ -1674,7 +1748,7 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
 #endif
 
     // Move into a temporary and return that, because the reference may be a local value of `conv`
-    T ret = std::move(detail::load_type<T>(obj).operator T&());
+    T ret = std::move(detail::cast_op<T>(detail::load_type<T>(obj)));
     return ret;
 }
 

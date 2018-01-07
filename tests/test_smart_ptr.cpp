@@ -272,8 +272,23 @@ TEST_SUBMODULE(smart_ptr, m) {
             return list;
         });
 
-    // At present, only used for trait checks below. In the future, will be exposed to pybind.
-    struct UniquePtrHeld {};
+    class UniquePtrHeld {
+    public:
+        UniquePtrHeld() = delete;
+        UniquePtrHeld(const UniquePtrHeld&) = delete;
+        UniquePtrHeld(UniquePtrHeld&&) = delete;
+
+        UniquePtrHeld(int value)
+            : value_(value) {
+            print_created(this, value);
+        }
+        ~UniquePtrHeld() {
+            print_destroyed(this);
+        }
+        int value() const { return value_; }
+    private:
+        int value_{};
+    };
 
     // Check traits in a concise manner.
     static_assert(
@@ -285,4 +300,40 @@ TEST_SUBMODULE(smart_ptr, m) {
     static_assert(
         !py::detail::move_if_unreferenced<std::unique_ptr<UniquePtrHeld>>::value,
         "This trait must be false.");
+
+    py::class_<UniquePtrHeld>(m, "UniquePtrHeld")
+        .def(py::init<int>())
+        .def("value", &UniquePtrHeld::value);
+
+    m.def("unique_ptr_pass_through",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            return obj;
+        });
+    m.def("unique_ptr_terminal",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            obj.reset();
+            return nullptr;
+        });
+
+    // Guarantee API works as expected.
+    m.def("unique_ptr_pass_through_cast_from_py",
+        [](py::object obj_py) {
+            auto obj =
+                py::cast<std::unique_ptr<UniquePtrHeld>>(std::move(obj_py));
+            return obj;
+        });
+    m.def("unique_ptr_pass_through_move_from_py",
+        [](py::object obj_py) {
+            return py::move<std::unique_ptr<UniquePtrHeld>>(std::move(obj_py));
+        });
+
+    m.def("unique_ptr_pass_through_move_to_py",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            return py::move(std::move(obj));
+        });
+
+    m.def("unique_ptr_pass_through_cast_to_py",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            return py::cast(std::move(obj));
+        });
 }

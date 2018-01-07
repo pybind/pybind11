@@ -218,3 +218,35 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
+
+
+def test_unique_ptr_arg():
+    stats = ConstructorStats.get(m.UniquePtrHeld)
+
+    pass_through_list = [
+        m.unique_ptr_pass_through,
+        m.unique_ptr_pass_through_cast_from_py,
+        m.unique_ptr_pass_through_move_from_py,
+        m.unique_ptr_pass_through_move_to_py,
+        m.unique_ptr_pass_through_cast_to_py,
+    ]
+    for pass_through in pass_through_list:
+        obj = m.UniquePtrHeld(1)
+        obj_ref = m.unique_ptr_pass_through(obj)
+        assert stats.alive() == 1
+        assert obj.value() == 1
+        assert obj == obj_ref
+        del obj
+        del obj_ref
+        pytest.gc_collect()
+        assert stats.alive() == 0
+
+    obj = m.UniquePtrHeld(1)
+    m.unique_ptr_terminal(obj)
+    assert stats.alive() == 0
+
+    m.unique_ptr_terminal(m.UniquePtrHeld(2))
+    assert stats.alive() == 0
+
+    assert m.unique_ptr_pass_through(None) is None
+    m.unique_ptr_terminal(None)
