@@ -98,7 +98,7 @@ def test_nested():
 
     del c
     pytest.gc_collect()
-    del a  # Should't delete while abase is still alive
+    del a  # Shouldn't delete while abase is still alive
     pytest.gc_collect()
 
     assert abase.value == 42

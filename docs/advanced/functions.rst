@@ -126,7 +126,7 @@ targeted arguments can be passed through the :class:`cpp_function` constructor:
 
 .. warning::
 
-    Code with invalid return value policies might access unitialized memory or
+    Code with invalid return value policies might access uninitialized memory or
     free data structures multiple times, which can lead to hard-to-debug
     non-determinism and segmentation faults, hence it is worth spending the
     time to understand all the different options in the table above.
