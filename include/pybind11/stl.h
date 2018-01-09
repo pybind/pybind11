@@ -49,6 +49,17 @@
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)
 
+template<typename Type>
+inline size_t get_size(const Type &t) {
+    const size_t s = t.size();
+#if !defined(NDEBUG)
+    if (static_cast<ssize_t>(s) == -1) {
+        pybind11_fail("STL container length is -1; did you forget to override __len__?");
+    }
+#endif
+    return s;
+}
+
 /// Extracts an const lvalue reference or rvalue reference for U based on the type of T (e.g. for
 /// forwarding a container element).  Typically used indirect via forwarded_type(), below.
 template <typename T, typename U>
@@ -151,13 +162,13 @@ template <typename Type, typename Value> struct list_caster {
 private:
     template <typename T = Type,
               enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
-    void reserve_maybe(sequence s, Type *) { value.reserve(s.size()); }
+    void reserve_maybe(sequence s, Type *) { value.reserve(get_size(s)); }
     void reserve_maybe(sequence, void *) { }
 
 public:
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
-        list l(src.size());
+        list l(get_size(src));
         size_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
@@ -183,7 +194,7 @@ template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0> s
 private:
     template <bool R = Resizable>
     bool require_size(enable_if_t<R, size_t> size) {
-        if (value.size() != size)
+        if (get_size(value) != size)
             value.resize(size);
         return true;
     }
@@ -197,7 +208,7 @@ public:
         if (!isinstance<list>(src))
             return false;
         auto l = reinterpret_borrow<list>(src);
-        if (!require_size(l.size()))
+        if (!require_size(get_size(l)))
             return false;
         size_t ctr = 0;
         for (auto it : l) {
@@ -211,7 +222,7 @@ public:
 
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
-        list l(src.size());
+        list l(get_size(src));
         size_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
