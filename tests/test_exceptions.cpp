@@ -9,7 +9,7 @@
 
 #include "pybind11_tests.h"
 
-// A type that should be raised as an exeption in Python
+// A type that should be raised as an exception in Python
 class MyException : public std::exception {
 public:
     explicit MyException(const char * m) : message{m} {}

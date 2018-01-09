@@ -138,5 +138,5 @@ section.
     error return without exception set``.
 
     Exceptions that you do not plan to handle should simply not be caught, or
-    may be explicity (re-)thrown to delegate it to the other,
+    may be explicitly (re-)thrown to delegate it to the other,
     previously-declared existing exception translators.
