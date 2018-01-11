@@ -137,6 +137,7 @@ def test_make_c_f_array():
 
 def test_wrap():
     def assert_references(a, b, base=None):
+        from distutils.version import LooseVersion
         if base is None:
             base = a
         assert a is not b
@@ -147,7 +148,10 @@ def test_wrap():
         assert a.flags.f_contiguous == b.flags.f_contiguous
         assert a.flags.writeable == b.flags.writeable
         assert a.flags.aligned == b.flags.aligned
-        assert a.flags.updateifcopy == b.flags.updateifcopy
+        if LooseVersion(np.__version__) >= LooseVersion("1.14.0"):
+            assert a.flags.writebackifcopy == b.flags.writebackifcopy
+        else:
+            assert a.flags.updateifcopy == b.flags.updateifcopy
         assert np.all(a == b)
         assert not b.flags.owndata
         assert b.base is base
@@ -282,17 +286,17 @@ def test_overload_resolution(msg):
             1. (arg0: numpy.ndarray[int32]) -> str
             2. (arg0: numpy.ndarray[float64]) -> str
 
-        Invoked with:"""
+        Invoked with: """
 
     with pytest.raises(TypeError) as excinfo:
         m.overloaded3(np.array([1], dtype='uintc'))
-    assert msg(excinfo.value) == expected_exc + " array([1], dtype=uint32)"
+    assert msg(excinfo.value) == expected_exc + repr(np.array([1], dtype='uint32'))
     with pytest.raises(TypeError) as excinfo:
         m.overloaded3(np.array([1], dtype='float32'))
-    assert msg(excinfo.value) == expected_exc + " array([ 1.], dtype=float32)"
+    assert msg(excinfo.value) == expected_exc + repr(np.array([1.], dtype='float32'))
     with pytest.raises(TypeError) as excinfo:
         m.overloaded3(np.array([1], dtype='complex'))
-    assert msg(excinfo.value) == expected_exc + " array([ 1.+0.j])"
+    assert msg(excinfo.value) == expected_exc + repr(np.array([1. + 0.j]))
 
     # Exact matches:
     assert m.overloaded4(np.array([1], dtype='double')) == 'double'
