@@ -38,6 +38,9 @@
 #  if __GNUC__ >= 7
 #    pragma GCC diagnostic ignored "-Wnoexcept-type"
 #  endif
+#elif defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wnested-anon-types"
 #endif
 
 #include "attr.h"
@@ -1979,4 +1982,6 @@ NAMESPACE_END(PYBIND11_NAMESPACE)
 /* Leave ignored warnings on */
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic pop
+#elif defined(__clang__)
+#  pragma clang diagnostic pop
 #endif
