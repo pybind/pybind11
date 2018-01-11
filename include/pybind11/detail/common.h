@@ -381,16 +381,18 @@ constexpr size_t instance_simple_holder_in_ptrs() {
 struct type_info;
 struct value_and_holder;
 
+struct nonsimple_values_and_holders {
+    void **values_and_holders;
+    uint8_t *status;
+};
+
 /// The 'instance' type which needs to be standard layout (need to be able to use 'offsetof')
 struct instance {
     PyObject_HEAD
     /// Storage for pointers and holder; see simple_layout, below, for a description
     union {
         void *simple_value_holder[1 + instance_simple_holder_in_ptrs()];
-        struct {
-            void **values_and_holders;
-            uint8_t *status;
-        } nonsimple;
+        nonsimple_values_and_holders nonsimple;
     };
     /// Weak references
     PyObject *weakrefs;
