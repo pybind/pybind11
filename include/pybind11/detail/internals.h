@@ -127,21 +127,21 @@ struct type_info {
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
-inline internals *&get_internals_ptr() {
-    static internals *internals_ptr = nullptr;
-    return internals_ptr;
+inline internals **&get_internals_pp() {
+    static internals **internals_pp = nullptr;
+    return internals_pp;
 }
 
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE inline internals &get_internals() {
-    auto *&internals_ptr = get_internals_ptr();
-    if (internals_ptr)
-        return *internals_ptr;
+    auto **&internals_pp = get_internals_pp();
+    if (internals_pp && *internals_pp)
+        return **internals_pp;
 
     constexpr auto *id = PYBIND11_INTERNALS_ID;
     auto builtins = handle(PyEval_GetBuiltins());
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
-        internals_ptr = *static_cast<internals **>(capsule(builtins[id]));
+        internals_pp = static_cast<internals **>(capsule(builtins[id]));
 
         // We loaded builtins through python's builtins, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
@@ -149,7 +149,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         //
         // libstdc++ doesn't require this (types there are identified only by name)
 #if !defined(__GLIBCXX__)
-        internals_ptr->registered_exception_translators.push_front(
+        (*internals_pp)->registered_exception_translators.push_front(
             [](std::exception_ptr p) -> void {
                 try {
                     if (p) std::rethrow_exception(p);
@@ -160,6 +160,8 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         );
 #endif
     } else {
+        if (!internals_pp) internals_pp = new internals*();
+        auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
 #if defined(WITH_THREAD)
         PyEval_InitThreads();
@@ -168,7 +170,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         PyThread_set_key_value(internals_ptr->tstate, tstate);
         internals_ptr->istate = tstate->interp;
 #endif
-        builtins[id] = capsule(&internals_ptr);
+        builtins[id] = capsule(internals_pp);
         internals_ptr->registered_exception_translators.push_front(
             [](std::exception_ptr p) -> void {
                 try {
@@ -192,7 +194,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         internals_ptr->default_metaclass = make_default_metaclass();
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
     }
-    return *internals_ptr;
+    return **internals_pp;
 }
 
 /// Works like `internals.registered_types_cpp`, but for module-local registered types:
