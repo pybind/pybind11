@@ -92,8 +92,9 @@ protected:
     /// Special internal constructor for functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Args, typename... Extra>
     void initialize(Func &&f, Return (*)(Args...), const Extra&... extra) {
+        using namespace detail;
 
-        struct capture { detail::remove_reference_t<Func> f; };
+        struct capture { remove_reference_t<Func> f; };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
         auto rec = make_function_record();
@@ -112,23 +113,23 @@ protected:
 #  pragma GCC diagnostic pop
 #endif
             if (!std::is_trivially_destructible<Func>::value)
-                rec->free_data = [](detail::function_record *r) { ((capture *) &r->data)->~capture(); };
+                rec->free_data = [](function_record *r) { ((capture *) &r->data)->~capture(); };
         } else {
             rec->data[0] = new capture { std::forward<Func>(f) };
-            rec->free_data = [](detail::function_record *r) { delete ((capture *) r->data[0]); };
+            rec->free_data = [](function_record *r) { delete ((capture *) r->data[0]); };
         }
 
         /* Type casters for the function arguments and return value */
-        using cast_in = detail::argument_loader<Args...>;
-        using cast_out = detail::make_caster<
-            detail::conditional_t<std::is_void<Return>::value, detail::void_type, Return>
+        using cast_in = argument_loader<Args...>;
+        using cast_out = make_caster<
+            conditional_t<std::is_void<Return>::value, void_type, Return>
         >;
 
-        static_assert(detail::expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
+        static_assert(expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
                       "The number of argument annotations does not match the number of function arguments");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](detail::function_call &call) -> handle {
+        rec->impl = [](function_call &call) -> handle {
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
@@ -136,7 +137,7 @@ protected:
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Invoke call policy pre-call hook */
-            detail::process_attributes<Extra...>::precall(call);
+            process_attributes<Extra...>::precall(call);
 
             /* Get a pointer to the capture object */
             auto data = (sizeof(capture) <= sizeof(call.func.data)
@@ -144,26 +145,25 @@ protected:
             capture *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            const auto policy = detail::return_value_policy_override<Return>::policy(call.func.policy);
+            const auto policy = return_value_policy_override<Return>::policy(call.func.policy);
 
             /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
-            using Guard = detail::extract_guard_t<Extra...>;
+            using Guard = extract_guard_t<Extra...>;
 
             /* Perform the function call */
             handle result = cast_out::cast(
                 std::move(args_converter).template call<Return, Guard>(cap->f), policy, call.parent);
 
             /* Invoke call policy post-call hook */
-            detail::process_attributes<Extra...>::postcall(call, result);
+            process_attributes<Extra...>::postcall(call, result);
 
             return result;
         };
 
         /* Process any user-provided function attributes */
-        detail::process_attributes<Extra...>::init(extra..., rec);
+        process_attributes<Extra...>::init(extra..., rec);
 
         /* Generate a readable signature describing the function's arguments and return value types */
-        using detail::descr; using detail::_;
         PYBIND11_DESCR signature = _("(") + cast_in::arg_names() + _(") -> ") + cast_out::name();
 
         /* Register the function with Python from generic (non-templated) code */
