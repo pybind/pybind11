@@ -6,10 +6,70 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
-v2.3.0 (Not yet released)
+v2.2.2 (Not yet released)
 -----------------------------------------------------
 
-* TBD
+* Fixed a segfault when combining embedded interpreter
+  shutdown/reinitialization with external loaded pybind11 modules.
+  `#1092 <https://github.com/pybind/pybind11/pull/1092>`_.
+
+* Eigen support: fixed a bug where Nx1/1xN numpy inputs couldn't be passed as
+  arguments to Eigen vectors (which for Eigen are simply compile-time fixed
+  Nx1/1xN matrices).
+  `#1106 <https://github.com/pybind/pybind11/pull/1106>`_.
+
+* Clarified to license by moving the licensing of contributions from
+  ``LICENSE`` into ``CONTRIBUTING.md``: the licensing of contributions is not
+  actually part of the software license as distributed.  This isn't meant to be
+  a substantial change in the licensing of the project, but addresses concerns
+  that the clause made the license non-standard.
+  `#1109 <https://github.com/pybind/pybind11/issues/1109>`_.
+
+* Fixed a regression introduced in 2.1 that broke binding functions with lvalue
+  character literal arguments.
+  `#1128 <https://github.com/pybind/pybind11/pull/1128>`_.
+
+* MSVC: fix for compilation failures under /permissive-, and added the flag to
+  the appveyor test suite.
+  `#1155 <https://github.com/pybind/pybind11/pull/1155>`_.
+
+* Fixed ``__qualname__`` generation, and in turn, fixes how class names
+  (especially nested class names) are shown in generated docstrings.
+  `#1171 <https://github.com/pybind/pybind11/pull/1171>`_.
+
+* Updated the FAQ with a suggested project citation reference.
+  `#1189 <https://github.com/pybind/pybind11/pull/1189>`_.
+
+* Added fixes for deprecation warnings when compiled under C++17 with
+  ``-Wdeprecated`` turned on, and add ``-Wdeprecated`` to the test suite
+  compilation flags.
+  `#1191 <https://github.com/pybind/pybind11/pull/1191>`_.
+
+* Fixed outdated PyPI URLs in ``setup.py``.
+  `#1213 <https://github.com/pybind/pybind11/pull/1213>`_.
+
+* Fixed a refcount leak for arguments that end up in a ``py::args`` argument
+  for functions with both fixed positional and ``py::args`` arguments.
+  `#1216 <https://github.com/pybind/pybind11/pull/1216>`_.
+
+* Fixed a potential segfault resulting from possible premature destruction of
+  ``py::args``/``py::kwargs`` arguments with overloaded functions.
+  `#1223 <https://github.com/pybind/pybind11/pull/1223>`_.
+
+* Fixed ``del map[item]`` for a ``stl_bind.h`` bound stl map.
+  `#1229 <https://github.com/pybind/pybind11/pull/1229>`_.
+
+* Fixed a regression from v2.1.x where the aggregate initialization could
+  unintentionally end up at a constructor taking a templated
+  ``std::initializer_list<T>`` argument.
+  `#1249 <https://github.com/pybind/pybind11/pull/1249>`_.
+
+* Fixed an issue where calling a function with a keep_alive policy on the same
+  nurse/patient pair would cause the internal patient storage to needlessly
+  grow (unboundedly, if the nurse is long-lived).
+  `#1251 <https://github.com/pybind/pybind11/issues/1251>`_.
+
+* Various other minor fixes.
 
 v2.2.1 (September 14, 2017)
 -----------------------------------------------------
