@@ -1,6 +1,6 @@
 import pytest
 from pybind11_tests import call_policies as m
-from pybind11_tests import ConstructorStats
+from pybind11_tests import ConstructorStats, UserType
 
 
 def test_keep_alive_argument(capture):
@@ -67,6 +67,35 @@ def test_keep_alive_return_value(capture):
         Releasing parent.
         Releasing child.
     """
+
+
+def test_keep_alive_single():
+    """Issue #1251 - patients are stored multiple times when given to the same nurse"""
+
+    nurse, p1, p2 = UserType(), UserType(), UserType()
+    b = m.refcount(nurse)
+    assert [m.refcount(nurse), m.refcount(p1), m.refcount(p2)] == [b, b, b]
+    m.add_patient(nurse, p1)
+    assert m.get_patients(nurse) == [p1, ]
+    assert [m.refcount(nurse), m.refcount(p1), m.refcount(p2)] == [b, b + 1, b]
+    m.add_patient(nurse, p1)
+    assert m.get_patients(nurse) == [p1, ]
+    assert [m.refcount(nurse), m.refcount(p1), m.refcount(p2)] == [b, b + 1, b]
+    m.add_patient(nurse, p1)
+    assert m.get_patients(nurse) == [p1, ]
+    assert [m.refcount(nurse), m.refcount(p1), m.refcount(p2)] == [b, b + 1, b]
+    m.add_patient(nurse, p2)
+    assert m.get_patients(nurse) == [p1, p2]
+    assert [m.refcount(nurse), m.refcount(p1), m.refcount(p2)] == [b, b + 1, b + 1]
+    m.add_patient(nurse, p2)
+    assert m.get_patients(nurse) == [p1, p2]
+    assert [m.refcount(nurse), m.refcount(p1), m.refcount(p2)] == [b, b + 1, b + 1]
+    m.add_patient(nurse, p2)
+    m.add_patient(nurse, p1)
+    assert m.get_patients(nurse) == [p1, p2]
+    assert [m.refcount(nurse), m.refcount(p1), m.refcount(p2)] == [b, b + 1, b + 1]
+    del nurse
+    assert [m.refcount(p1), m.refcount(p2)] == [b, b]
 
 
 # https://bitbucket.org/pypy/pypy/issues/2447
