@@ -290,8 +290,8 @@ inline void add_patient(PyObject *nurse, PyObject *patient) {
     auto &internals = get_internals();
     auto instance = reinterpret_cast<detail::instance *>(nurse);
     instance->has_patients = true;
-    Py_INCREF(patient);
-    internals.patients[nurse].push_back(patient);
+    auto it = internals.patients[nurse].insert(patient);
+    if (it.second) Py_INCREF(patient);
 }
 
 inline void clear_patients(PyObject *self) {
@@ -300,12 +300,12 @@ inline void clear_patients(PyObject *self) {
     auto pos = internals.patients.find(self);
     assert(pos != internals.patients.end());
     // Clearing the patients can cause more Python code to run, which
-    // can invalidate the iterator. Extract the vector of patients
+    // can invalidate the iterator. Extract the set of patients
     // from the unordered_map first.
     auto patients = std::move(pos->second);
     internals.patients.erase(pos);
     instance->has_patients = false;
-    for (PyObject *&patient : patients)
+    for (PyObject *patient : patients)
         Py_CLEAR(patient);
 }
 
