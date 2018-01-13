@@ -289,9 +289,13 @@ extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject 
 inline void add_patient(PyObject *nurse, PyObject *patient) {
     auto &internals = get_internals();
     auto instance = reinterpret_cast<detail::instance *>(nurse);
+    auto &current_patients = internals.patients[nurse];
     instance->has_patients = true;
+    for (auto &p : current_patients)
+        if (p == patient)
+            return;
     Py_INCREF(patient);
-    internals.patients[nurse].push_back(patient);
+    current_patients.push_back(patient);
 }
 
 inline void clear_patients(PyObject *self) {
