@@ -289,6 +289,53 @@ TEST_SUBMODULE(virtual_functions, m) {
 //      .def("str_ref", &OverrideTest::str_ref)
         .def("A_value", &OverrideTest::A_value)
         .def("A_ref", &OverrideTest::A_ref);
+
+    // test_virtual_inheritance:
+    // Interface class, not meant to be instantiated
+    class Interface1 {
+    public:
+        virtual ~Interface1() = default;
+        virtual int run(Interface1*) = 0;
+        virtual int number() = 0;
+    };
+    class Final: public virtual Interface1 {
+    public:
+        virtual int run(Interface1* ptr) { return ptr->number() + 1; }
+        virtual int number() { return 5; }
+    };
+
+    // Duplicate of the above (but we want a distinct type for the test)
+    class Interface2 {
+    public:
+        virtual ~Interface2() = default;
+        virtual int run(Interface2*) = 0;
+        virtual int number() = 0;
+    };
+
+    class B_Concrete : public virtual Interface2 {
+    public:
+        virtual int run(Interface2* ptr) { return ptr->number() + 2; }
+    };
+    class C_Concrete : public virtual Interface2 {
+    public:
+        virtual int number() { return 2; }
+    };
+
+    #if defined(_MSC_VER)
+    #  pragma warning(disable: 4250)  // warning C4250 'Derived' inherits 'Base::method' via dominance
+    #endif
+    class Diamond : public C_Concrete, public B_Concrete { };
+
+    py::class_<Interface1>(m, "Interface1").def("run", &Interface1::run);
+    py::class_<Final, Interface1>(m, "Final").def(py::init<>());
+
+    py::class_<Interface2>(m, "Interface2").def("run", &Interface2::run);
+    py::class_<B_Concrete, Interface2>(m, "B_Concrete");
+    py::class_<C_Concrete, Interface2>(m, "C_Concrete");
+    py::class_<Diamond, B_Concrete, C_Concrete>(m, "Diamond").def(py::init<>());
+
+    m.def("run_virtual_inheritance", []() { Diamond d; return d.run(&d); },
+        "Runs the diamond test in c++");
 }
 
 

@@ -44,6 +44,7 @@
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
+#include "detail/is_virtual_base_of.h"
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -1075,6 +1076,12 @@ public:
         rec.add_base(typeid(Base), [](void *src) -> void * {
             return static_cast<Base *>(reinterpret_cast<type *>(src));
         });
+
+        // If the specified base class is a virtual base class, flip on the multiple inheritance
+        // flag.  Even if, technically, multiple inheritance isn't actually involved, we still have
+        // to resort to the same non-simple casting to get to the base class.
+        if (detail::is_virtual_base_of<Base, type>::value)
+            rec.multiple_inheritance = true;
     }
 
     template <typename Base, detail::enable_if_t<!is_base<Base>::value, int> = 0>

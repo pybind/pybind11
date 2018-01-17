@@ -369,3 +369,17 @@ def test_inherited_virtuals():
     assert obj.unlucky_number() == -7
     assert obj.lucky_number() == -1.375
     assert obj.say_everything() == "BT -7"
+
+
+def test_virtual_inheritance():
+    """Issue #1256 - single inheritance from a virtual base class breaks upcasting"""
+    # This test only seems to fail (via segfault) under MSVC, but it's not an MSVC problem: we were
+    # previously erroneously treating a virtual base class as simple inheritance, but it is not.
+    final = m.Final()
+    assert final.run(final) == 6
+
+    # The diamond inheritance case here is similar, but wasn't actually an issue: pybind seeing the
+    # multiple inheritance already triggers the non-simple inheritance path:
+    diamond = m.Diamond()
+    assert diamond.run(diamond) == 4
+    assert m.run_virtual_inheritance() == 4
