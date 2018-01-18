@@ -31,9 +31,14 @@ next sections for more details and alternative approaches that avoid this.
 C++17 library containers
 ========================
 
-The :file:`pybind11/stl.h` header also includes support for ``std::optional<>``
+The :file:`pybind11/utility.h` header includes support for ``std::optional<>``
 and ``std::variant<>``. These require a C++17 compiler and standard library.
 In C++14 mode, ``std::experimental::optional<>`` is supported if available.
+
+.. note::
+
+    These features are also enabled by the header file :file:`pybind11/stl.h`
+    for backward compatibility.
 
 Various versions of these containers also exist for C++11 (e.g. in Boost).
 pybind11 provides an easy way to specialize the ``type_caster`` for such
