@@ -1676,6 +1676,12 @@ object cast(const T &value, return_value_policy policy = return_value_policy::au
     return reinterpret_steal<object>(detail::make_caster<T>::cast(value, policy, parent));
 }
 
+// C++ type -> py::object (move)
+template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0, detail::enable_if_t<!std::is_reference<T>::value, int> = 0>
+object cast(T &&value, return_value_policy policy = return_value_policy::move, handle parent = handle()) {
+    return reinterpret_steal<object>(detail::make_caster<T>::cast(std::move(value), policy, parent));
+}
+
 template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
 template <> inline void handle::cast() const { return; }
 
