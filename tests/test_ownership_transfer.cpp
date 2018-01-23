@@ -75,7 +75,17 @@ class DefineBaseUniqueContainer {
 };
 
 template <int label>
-class DefinePyBase : public py::wrapper<DefineBase<label>> {
+class DefinePyBase : public DefineBase<label> {
+ public:
+  using BaseT = DefineBase<label>;
+  using BaseT::BaseT;
+  int value() const override {
+    PYBIND11_OVERLOAD(int, BaseT, value);
+  }
+};
+
+template <int label>
+class DefinePyBaseWrapped : public py::wrapper<DefineBase<label>> {
  public:
   using BaseT = py::wrapper<DefineBase<label>>;
   using BaseT::BaseT;
@@ -89,7 +99,7 @@ typedef DefineBase<BaseBadLabel> BaseBad;
 typedef DefineBaseContainer<BaseBadLabel> BaseBadContainer;
 typedef Stats<ChildBadLabel> ChildBadStats;
 
-// Base - with wrapper alias.
+// Base - wrapper alias used in pybind definition.
 typedef DefineBase<BaseLabel> Base;
 typedef DefinePyBase<BaseLabel> PyBase;
 typedef DefineBaseContainer<BaseLabel> BaseContainer;
@@ -101,9 +111,9 @@ typedef DefineBase<BaseBadUniqueLabel> BaseBadUnique;
 typedef DefineBaseUniqueContainer<BaseBadUniqueLabel> BaseBadUniqueContainer;
 typedef Stats<ChildBadUniqueLabel> ChildBadUniqueStats;
 
-// Base - with wrapper alias.
+// Base - wrapper alias used directly.
 typedef DefineBase<BaseUniqueLabel> BaseUnique;
-typedef DefinePyBase<BaseUniqueLabel> PyBaseUnique;
+typedef DefinePyBaseWrapped<BaseUniqueLabel> PyBaseUnique;
 typedef DefineBaseUniqueContainer<BaseUniqueLabel> BaseUniqueContainer;
 typedef Stats<ChildUniqueLabel> ChildUniqueStats;
 
@@ -135,6 +145,7 @@ template <typename... Args>
 using class_unique_ = py::class_<Args...>;
 
 TEST_SUBMODULE(ownership_transfer, m) {
+  // No alias - will not have lifetime extended.
   class_shared_<BaseBad>(m, "BaseBad")
       .def(py::init<int>())
       .def("value", &BaseBad::value);
@@ -144,8 +155,11 @@ TEST_SUBMODULE(ownership_transfer, m) {
       .def("release", &BaseBadContainer::release);
   class_shared_<ChildBadStats>(m, "ChildBadStats");
 
-  class_shared_<Base, PyBase>(m, "Base")
+  // Has alias - will have lifetime extended.
+  class_shared_<Base, py::wrapper<PyBase>>(m, "Base")
       .def(py::init<int>())
+      // Factory method for alias.
+      .def(py::init([]() { return new py::wrapper<PyBase>(10); }))
       .def("value", &Base::value);
   class_shared_<BaseContainer>(m, "BaseContainer")
       .def(py::init<std::shared_ptr<Base>>())
@@ -164,6 +178,8 @@ TEST_SUBMODULE(ownership_transfer, m) {
 
   class_unique_<BaseUnique, PyBaseUnique>(m, "BaseUnique")
       .def(py::init<int>())
+      // Factory method.
+      .def(py::init([]() { return new PyBaseUnique(10); }))
       .def("value", &BaseUnique::value);
   class_unique_<BaseUniqueContainer>(m, "BaseUniqueContainer")
       .def(py::init<std::unique_ptr<BaseUnique>>())

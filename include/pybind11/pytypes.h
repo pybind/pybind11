@@ -1301,23 +1301,21 @@ inline iterator iter(handle obj) {
 }
 /// @} python_builtins
 
-/// Trampoline class to permit attaching a derived Python object's data
-/// (namely __dict__) to an actual C++ class.
-/// If the object lives purely in C++, then there should only be one reference to
-/// this data.
+/// Wrapper to permit lifetime of a Python instance which is derived from a C++
+/// pybind type to be managed by C++. Useful when adding virtual classes to
+/// containers, where Python instance being added may be collected by Python
+/// gc / refcounting.
+/// @note Do NOT use the methods in this class.
 template <typename Base>
 class wrapper : public Base {
- protected:
-    using Base::Base;
-
  public:
-  // TODO(eric.cousineau): Complain if this is not virtual? (and remove `virtual` specifier in dtor?)
+  using Base::Base;
 
   virtual ~wrapper() {
       delete_py_if_in_cpp();
   }
 
-  /// To be used by the holder casters, by means of `wrapper_interface<>`.
+  // To be used by the holder casters, by means of `wrapper_interface<>`.
   // TODO(eric.cousineau): Make this private to ensure contract?
   void use_cpp_lifetime(object&& patient, detail::HolderTypeId holder_type_id) {
       if (lives_in_cpp()) {
@@ -1342,26 +1340,6 @@ class wrapper : public Base {
   }
 
  protected:
-    /// Call this if, for whatever reason, your C++ wrapper class `Base` has a non-trivial
-    /// destructor that needs to keep information available to the Python-extended class.
-    /// In this case, you want to delete the Python object *before* you do any work in your wrapper class.
-    ///
-    /// As an example, say you have `Base`, and `PyBase` is your wrapper class which extends `wrapper<Base>`.
-    /// By default, if the instance is owned in C++ and deleted, then the destructor order will be:
-    ///    ~PyBase()
-    ///       do_stuff()
-    ///    ~wrapper<Base>()
-    ///       delete_py_if_in_cpp()
-    ///           PyChild.__del__ - ERROR: Should have been called before `do_stuff()
-    ///    ~Base()
-    /// If you explicitly call `delete_py_if_in_cpp()`, then you will get the desired order:
-    ///    ~PyBase()
-    ///       delete_py_if_in_cpp()
-    ///           PyChild.__del__ - GOOD: Workzzz. Called before `do_stuff()`.
-    ///       do_stuff()
-    ///    ~wrapper<Base>()
-    ///       delete_py_if_in_cpp() - No-op. Python object has been released.
-    ///    ~Base()
     // TODO(eric.cousineau): Verify this with an example workflow.
   void delete_py_if_in_cpp() {
       if (lives_in_cpp()) {
@@ -1398,7 +1376,7 @@ class wrapper : public Base {
   }
 
  private:
-  bool lives_in_cpp() const {
+  inline bool lives_in_cpp() const {
       // NOTE: This is *false* if, for whatever reason, the wrapper class is
       // constructed in C++... Meh. Not gonna worry about that situation.
       return static_cast<bool>(patient_);
@@ -1407,7 +1385,6 @@ class wrapper : public Base {
   object patient_;
   detail::HolderTypeId holder_type_id_{detail::HolderTypeId::Unknown};
 };
-
 
 NAMESPACE_BEGIN(detail)
 template <typename D> iterator object_api<D>::begin() const { return iter(derived()); }

@@ -1014,12 +1014,25 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
     return pmf;
 }
 
+namespace detail {
 
+template <template <typename...> class Tpl>
+struct is_base_template_of_impl {
+    // Use pointers for robustness.
+    template <typename ... Base>
+    static std::true_type check(const Tpl<Base...>*);
+    static std::false_type check(void*);
+};
 
-template <typename type, bool compatible>
+template <template <typename...> class Tpl, typename Derived>
+using is_base_template_of =
+    decltype(is_base_template_of_impl<Tpl>::check(
+        std::declval<Derived*>()));
+
+template <typename type, typename alias, bool compatible>
 struct wrapper_interface_impl {
     static void use_cpp_lifetime(type* cppobj, object&& obj, detail::HolderTypeId holder_type_id) {
-        auto* tr = dynamic_cast<wrapper<type>*>(cppobj);
+        auto* tr = dynamic_cast<alias*>(cppobj);
         if (tr == nullptr) {
             // This has been invoked at too high of a level; should use a
             // downcast class's `release_to_cpp` mechanism (if it supports it).
@@ -1034,7 +1047,7 @@ struct wrapper_interface_impl {
     }
 
     static object release_cpp_lifetime(type* cppobj) {
-        auto* tr = dynamic_cast<wrapper<type>*>(cppobj);
+        auto* tr = dynamic_cast<alias*>(cppobj);
         if (tr == nullptr) {
             // This shouldn't happen here...
             throw std::runtime_error("Internal error?");
@@ -1042,13 +1055,10 @@ struct wrapper_interface_impl {
         // Return newly created object.
         return tr->release_cpp_lifetime();
     }
-    static wrapper<type>* run(type*, std::false_type) {
-        return nullptr;
-    }
 };
 
-template <typename type>
-struct wrapper_interface_impl<type, false> {
+template <typename type, typename alias>
+struct wrapper_interface_impl<type, alias, false> {
     static void use_cpp_lifetime(type*, object&&, detail::HolderTypeId) {
         // This should be captured by runtime flag.
         // TODO(eric.cousineau): Runtime flag may not be necessary.
@@ -1157,6 +1167,8 @@ struct holder_check_impl<detail::HolderTypeId::UniquePtr> : public holder_check_
       }
 };
 
+}  // namespace detail
+
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T> using is_holder = detail::is_holder_type<type_, T>;
@@ -1170,7 +1182,8 @@ public:
     using type = type_;
     using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    constexpr static bool has_wrapper = std::is_base_of<wrapper<type>, type_alias>::value;
+    constexpr static bool has_wrapper =
+        detail::is_base_template_of<wrapper, type_alias>::value;
     using holder_type = detail::exactly_one_t<is_holder, std::unique_ptr<type>, options...>;
     constexpr static detail::HolderTypeId holder_type_id = detail::get_holder_type_id<holder_type>::value;
 
@@ -1231,8 +1244,8 @@ public:
         return detail::get_type_info(id);
     }
 
-    typedef wrapper_interface_impl<type, has_wrapper> wrapper_interface;
-    using holder_check = holder_check_impl<holder_type_id>;
+    using wrapper_interface = detail::wrapper_interface_impl<type, type_alias, has_wrapper>;
+    using holder_check = detail::holder_check_impl<holder_type_id>;
 
     static bool allow_destruct(detail::instance* inst, detail::holder_erased holder) {
         // TODO(eric.cousineau): There should not be a case where shared_ptr<> lives in

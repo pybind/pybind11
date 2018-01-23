@@ -10,8 +10,8 @@ def define_child(name, base_type, stats_type):
     # `stats_type` is meant to enable us to use `ConstructorStats` exclusively for a Python class.
 
     class ChildT(base_type):
-        def __init__(self, value):
-            base_type.__init__(self, value)
+        def __init__(self, *args):
+            base_type.__init__(self, *args)
             self.icstats = m.get_instance_cstats(ChildT.get_cstats(), self)
             self.icstats.track_created()
 
@@ -77,7 +77,7 @@ def test_shared_ptr_derived_slicing(capture):
     del obj
     assert cstats.alive() == 0
     # Use something more permanent.
-    obj = Child(10)
+    obj = Child()  # Use factory method.
     obj_weak = weakref.ref(obj)
     assert cstats.alive() == 1
     c = m.BaseContainer(obj)
@@ -137,8 +137,9 @@ def test_unique_ptr_derived_slicing(capture):
     del obj
     assert cstats.alive() == 0
 
-    # Ensure that we can pass between Python -> C++ -> Python.
-    obj = m.BaseUniqueContainer(ChildUnique(10)).release()
+    # Ensure that we can pass between Python -> C++ -> Python
+    # (using factory method).
+    obj = m.BaseUniqueContainer(ChildUnique()).release()
     obj = m.BaseUniqueContainer(obj).release()
     assert obj.value() == 100
     del obj
