@@ -1242,7 +1242,7 @@ public:
 
 class memoryview : public object {
 public:
-    explicit memoryview(const buffer_info& info) {
+    explicit memoryview(const buffer_info& info, bool readonly=false) {
         static Py_buffer buf { };
         // Py_buffer uses signed sizes, strides and shape!..
         static std::vector<Py_ssize_t> py_strides { };
@@ -1261,7 +1261,7 @@ public:
         buf.strides = py_strides.data();
         buf.shape = py_shape.data();
         buf.suboffsets = nullptr;
-        buf.readonly = false;
+        buf.readonly = readonly;
         buf.internal = nullptr;
 
         m_ptr = PyMemoryView_FromBuffer(&buf);
