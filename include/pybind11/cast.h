@@ -1686,6 +1686,9 @@ template <> inline void cast_safe<void>(object &&) {}
 
 NAMESPACE_END(detail)
 
+template <return_value_policy policy = return_value_policy::automatic_reference>
+tuple make_tuple() { return tuple(0); }
+
 template <return_value_policy policy = return_value_policy::automatic_reference,
           typename... Args> tuple make_tuple(Args&&... args_) {
     constexpr size_t size = sizeof...(Args);
