@@ -1755,7 +1755,7 @@ class gil_scoped_acquire {
 public:
     PYBIND11_NOINLINE gil_scoped_acquire() {
         auto const &internals = detail::get_internals();
-        tstate = (PyThreadState *) PyThread_get_key_value(internals.tstate);
+        tstate = PyGILState_GetThisThreadState();
 
         if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
@@ -1764,10 +1764,6 @@ public:
                     pybind11_fail("scoped_acquire: could not create thread state!");
             #endif
             tstate->gilstate_counter = 0;
-            #if PY_MAJOR_VERSION < 3
-                PyThread_delete_key_value(internals.tstate);
-            #endif
-            PyThread_set_key_value(internals.tstate, tstate);
         } else {
             release = detail::get_thread_state_unchecked() != tstate;
         }
@@ -1806,7 +1802,6 @@ public:
             #endif
             PyThreadState_Clear(tstate);
             PyThreadState_DeleteCurrent();
-            PyThread_delete_key_value(detail::get_internals().tstate);
             release = false;
         }
     }
@@ -1825,30 +1820,15 @@ class gil_scoped_release {
 public:
     explicit gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
         // `get_internals()` must be called here unconditionally in order to initialize
-        // `internals.tstate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
+        // `internals.istate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
         // initialization race could occur as multiple threads try `gil_scoped_acquire`.
-        const auto &internals = detail::get_internals();
+        detail::get_internals();
         tstate = PyEval_SaveThread();
-        if (disassoc) {
-            auto key = internals.tstate;
-            #if PY_MAJOR_VERSION < 3
-                PyThread_delete_key_value(key);
-            #else
-                PyThread_set_key_value(key, nullptr);
-            #endif
-        }
     }
     ~gil_scoped_release() {
         if (!tstate)
             return;
         PyEval_RestoreThread(tstate);
-        if (disassoc) {
-            auto key = detail::get_internals().tstate;
-            #if PY_MAJOR_VERSION < 3
-                PyThread_delete_key_value(key);
-            #endif
-            PyThread_set_key_value(key, tstate);
-        }
     }
 private:
     PyThreadState *tstate;

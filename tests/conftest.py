@@ -199,6 +199,10 @@ def pytest_namespace():
         from pybind11_tests.eigen import have_eigen
     except ImportError:
         have_eigen = False
+    try:
+        import threading
+    except ImportError:
+        threading = None
     pypy = platform.python_implementation() == "PyPy"
 
     skipif = pytest.mark.skipif
@@ -210,6 +214,7 @@ def pytest_namespace():
                                            reason="eigen and/or numpy are not installed"),
         'requires_eigen_and_scipy': skipif(not have_eigen or not scipy,
                                            reason="eigen and/or scipy are not installed"),
+        'requires_threading': skipif(not threading, reason="no threading"),
         'unsupported_on_pypy': skipif(pypy, reason="unsupported on PyPy"),
         'unsupported_on_py2': skipif(sys.version_info.major < 3,
                                      reason="unsupported on Python 2.x"),

@@ -79,7 +79,6 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
-    decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
     PyInterpreterState *istate = nullptr;
 #endif
 };
@@ -166,8 +165,6 @@ PYBIND11_NOINLINE inline internals &get_internals() {
 #if defined(WITH_THREAD)
         PyEval_InitThreads();
         PyThreadState *tstate = PyThreadState_Get();
-        internals_ptr->tstate = PyThread_create_key();
-        PyThread_set_key_value(internals_ptr->tstate, tstate);
         internals_ptr->istate = tstate->interp;
 #endif
         builtins[id] = capsule(internals_pp);
