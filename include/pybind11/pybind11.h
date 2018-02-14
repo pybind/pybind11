@@ -189,15 +189,15 @@ protected:
                             const std::type_info *const *types, size_t args) {
 
         /* Create copies of all referenced C-style strings */
-        rec->name = strdup(rec->name ? rec->name : "");
-        if (rec->doc) rec->doc = strdup(rec->doc);
+        rec->name = _strdup(rec->name ? rec->name : "");
+        if (rec->doc) rec->doc = _strdup(rec->doc);
         for (auto &a: rec->args) {
             if (a.name)
-                a.name = strdup(a.name);
+                a.name = _strdup(a.name);
             if (a.descr)
-                a.descr = strdup(a.descr);
+                a.descr = _strdup(a.descr);
             else if (a.value)
-                a.descr = strdup(a.value.attr("__repr__")().cast<std::string>().c_str());
+                a.descr = _strdup(a.value.attr("__repr__")().cast<std::string>().c_str());
         }
 
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
@@ -272,13 +272,13 @@ protected:
 #if PY_MAJOR_VERSION < 3
         if (strcmp(rec->name, "__next__") == 0) {
             std::free(rec->name);
-            rec->name = strdup("next");
+            rec->name = _strdup("next");
         } else if (strcmp(rec->name, "__bool__") == 0) {
             std::free(rec->name);
-            rec->name = strdup("__nonzero__");
+            rec->name = _strdup("__nonzero__");
         }
 #endif
-        rec->signature = strdup(signature.c_str());
+        rec->signature = _strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->nargs = (std::uint16_t) args;
 
@@ -382,7 +382,7 @@ protected:
         PyCFunctionObject *func = (PyCFunctionObject *) m_ptr;
         if (func->m_ml->ml_doc)
             std::free(const_cast<char *>(func->m_ml->ml_doc));
-        func->m_ml->ml_doc = strdup(signatures.c_str());
+        func->m_ml->ml_doc = _strdup(signatures.c_str());
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
@@ -1246,7 +1246,7 @@ public:
            detail::process_attributes<Extra...>::init(extra..., rec_fget);
            if (rec_fget->doc && rec_fget->doc != doc_prev) {
               free(doc_prev);
-              rec_fget->doc = strdup(rec_fget->doc);
+              rec_fget->doc = _strdup(rec_fget->doc);
            }
         }
         if (rec_fset) {
@@ -1254,7 +1254,7 @@ public:
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
                 free(doc_prev);
-                rec_fset->doc = strdup(rec_fset->doc);
+                rec_fset->doc = _strdup(rec_fset->doc);
             }
             if (! rec_active) rec_active = rec_fset;
         }
