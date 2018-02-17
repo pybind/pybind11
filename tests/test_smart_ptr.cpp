@@ -294,6 +294,10 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def(py::init<int>())
         .def("value", &UniquePtrHeld::value);
 
+    class UniquePtrOther {};
+    py::class_<UniquePtrOther>(m, "UniquePtrOther")
+        .def(py::init<>());
+
     m.def("unique_ptr_pass_through",
         [](std::unique_ptr<UniquePtrHeld> obj) {
             return obj;

@@ -1685,49 +1685,8 @@ struct move_only_holder_caster : type_caster_base<type> {
 
   explicit operator holder_type&&() { return std::move(holder); }
 
-    object extract_obj(handle src) {
-        // See if this is a supported `move` container.
-        bool is_move_container = false;
-        object obj = none();
-        // TODO(eric.cousineau): See if we might need to safeguard against objects that are
-        // implicitly convertible from `list`.
-        // Can try to cast to T* first, and if that fails, assume it's a move container.
-        if (isinstance(src, (PyObject*)&PyList_Type) && PyList_Size(src.ptr()) == 1) {
-            // Extract the object from a single-item list, and remove the existing reference so we have exclusive control.
-            // @note This will break implicit casting when constructing from vectors, but eh, who cares.
-            // Swap.
-            list li = src.cast<list>();
-            obj = li[0];
-            li[0] = none();
-            is_move_container = true;
-        } else if (hasattr(src, "_is_move_container")) {
-            // Try to extract the value with `release()`.
-            obj = src.attr("release")();
-            is_move_container = true;
-        } else {
-            obj = reinterpret_borrow<object>(src);
-        }
-        if (is_move_container && obj.ref_count() != 1) {
-            throw std::runtime_error("Non-unique reference from a move-container, cannot cast to unique_ptr.");
-        }
-        return obj;
-    }
-
-    bool load(handle src, bool /*convert*/) {
-        if (src.is(none())) {
-            holder.reset();
-            return true;
-        }
-        // Allow loose reference management (if it's just a plain object) or require tighter reference
-        // management if it's a move container.
-        object obj = extract_obj(src);
-        // Do not use `load_impl`, as it's not structured conveniently for `unique_ptr`.
-        // Specifically, trying to delegate to resolving to conversion.
-        // return base::template load_impl<move_only_holder_caster<type, holder_type>>(src, convert);
-        check_holder_compat();
-        auto v_h = reinterpret_cast<instance*>(obj.ptr())->get_value_and_holder();
-        LoadType load_type = determine_load_type(obj, typeinfo);
-        return load_value(std::move(obj), std::move(v_h), load_type);
+    bool load(handle src, bool convert) {
+        return base::template load_impl<move_only_holder_caster>(src, convert);
     }
 
     static constexpr auto name = type_caster_base<type>::name;
@@ -1739,7 +1698,7 @@ protected:
             throw cast_error("Unable to load a non-default holder type (unique_ptr)");
     }
 
-    bool load_value(object obj_exclusive, value_and_holder &&v_h, LoadType load_type) {
+    bool load_value(value_and_holder &&v_h, LoadType load_type) {
         // TODO(eric.cousineau): This should try and find the downcast-lowest
         // level (closest to child) `release_to_cpp` method that is derived-releasable
         // (which derives from `wrapper<type>`).
@@ -1752,7 +1711,8 @@ protected:
         //   NOT try to release using `PyBase`s mechanism.
         //   Additionally, if `Child` does not have a wrapper (for whatever reason) and is extended,
         //   then we still can NOT use `PyBase` since it's not part of the hierachy.
-
+        handle src = (PyObject*)v_h.inst;
+        object obj = reinterpret_borrow<object>(src);
         // Try to get the lowest-hierarchy level of the type.
         // This requires that we are single-inheritance at most.
         const detail::type_info* lowest_type = nullptr;
@@ -1770,7 +1730,7 @@ protected:
             case LoadType::ConversionNeeded: {
                     // Try to get the lowest-hierarchy (closets to child class) of the type.
                 // The usage of `get_type_info` implicitly requires single inheritance.
-                auto* py_type = (PyTypeObject*)obj_exclusive.get_type().ptr();
+                auto* py_type = (PyTypeObject*)obj.get_type().ptr();
                 lowest_type = detail::get_type_info(py_type);
                 break;
             }
@@ -1788,7 +1748,7 @@ protected:
         auto& release_info = lowest_type->release_info;
         if (!release_info.release_to_cpp)
             throw std::runtime_error("No release mechanism in lowest type?");
-        release_info.release_to_cpp(v_h.inst, &holder, std::move(obj_exclusive));
+        release_info.release_to_cpp(v_h.inst, &holder, std::move(obj));
         return true;
     }
 

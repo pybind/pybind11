@@ -354,9 +354,8 @@ def test_mi_ownership_constraint():
     # See `test_ownership_transfer` for positive tests.
 
     # unique_ptr
-    with pytest.raises(RuntimeError) as excinfo:
-        c = m.ContainerBase1(m.MIType(10, 100))
-    assert "multiple inheritance" in str(excinfo.value)
+    c = m.ContainerBase1(m.MIType(10, 100))
+    assert c is not None
 
     # shared_ptr
     # Should not throw an error.
