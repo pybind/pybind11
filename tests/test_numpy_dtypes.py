@@ -103,7 +103,7 @@ def test_dtype(simple_dtype):
         partial_nested_fmt(),
         "[('a', 'S3'), ('b', 'S3')]",
         ("{{'names':['a','b','c','d'], " +
-         "'formats':[('S4', (3,)),('<i4', (2,)),('u1', (3,)),('<f4', (4, 2))], " +
+         "'formats':[('S4', (3,)),('" + e + "i4', (2,)),('u1', (3,)),('" + e + "f4', (4, 2))], " +
          "'offsets':[0,12,20,24], 'itemsize':56}}").format(e=e),
         "[('e1', '" + e + "i8'), ('e2', 'u1')]",
         "[('x', 'i1'), ('y', '" + e + "u8')]",
@@ -215,7 +215,7 @@ def test_array_array():
     arr = m.create_array_array(3)
     assert str(arr.dtype) == (
         "{{'names':['a','b','c','d'], " +
-        "'formats':[('S4', (3,)),('<i4', (2,)),('u1', (3,)),('{e}f4', (4, 2))], " +
+        "'formats':[('S4', (3,)),('" + e + "i4', (2,)),('u1', (3,)),('{e}f4', (4, 2))], " +
         "'offsets':[0,12,20,24], 'itemsize':56}}").format(e=e)
     assert m.print_array_array(arr) == [
         "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1}," +
