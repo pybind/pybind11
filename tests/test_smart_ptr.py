@@ -258,3 +258,14 @@ def test_unique_ptr_arg():
 def test_unique_ptr_to_shared_ptr():
     obj = m.shared_ptr_held_in_unique_ptr()
     assert m.shared_ptr_held_func(obj)
+
+
+def test_unique_ptr_overload_fail():
+    obj = m.UniquePtrHeld(1)
+    # These overloads pass ownership back to Python.
+    out = m.unique_ptr_overload(obj, m.FirstT())
+    assert out["obj"] is obj
+    assert out["overload"] == 1
+    out = m.unique_ptr_overload(obj, m.SecondT())
+    assert out["obj"] is obj
+    assert out["overload"] == 2

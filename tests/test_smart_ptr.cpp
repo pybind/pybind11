@@ -335,6 +335,28 @@ TEST_SUBMODULE(smart_ptr, m) {
             return py::cast(std::move(obj));
         });
 
+    class FirstT {};
+    py::class_<FirstT>(m, "FirstT")
+        .def(py::init());
+    class SecondT {};
+    py::class_<SecondT>(m, "SecondT")
+        .def(py::init());
+
+    m.def("unique_ptr_overload",
+        [](std::unique_ptr<UniquePtrHeld> obj, FirstT) {
+            py::dict out;
+            out["obj"] = py::cast(std::move(obj));
+            out["overload"] = 1;
+            return out;
+        });
+    m.def("unique_ptr_overload",
+        [](std::unique_ptr<UniquePtrHeld> obj, SecondT) {
+            py::dict out;
+            out["obj"] = py::cast(std::move(obj));
+            out["overload"] = 2;
+            return out;
+        });
+
     // Ensure class is non-empty, so it's easier to detect double-free
     // corruption. (If empty, this may be harder to see easily.)
     struct SharedPtrHeld { int value = 10; };
