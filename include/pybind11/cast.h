@@ -1662,6 +1662,22 @@ struct move_only_holder_caster : type_caster_base<type> {
     using base::typeinfo;
     using base::value;
 
+    // We must explicitly define the default constructor(s) since we define a
+    // destructor; otherwise, the compiler will incorrectly use the copy
+    // constructor.
+    move_only_holder_caster() = default;
+    move_only_holder_caster(move_only_holder_caster&&) = default;
+    move_only_holder_caster(const move_only_holder_caster&) = delete;
+    ~move_only_holder_caster() {
+        if (holder) {
+            // If the argument was loaded into C++, but not transferred out,
+            // then this was most likely part of a failed overload in
+            // `argument_loader`. Transfer ownership back to Python.
+            move_only_holder_caster::cast(
+                std::move(holder), return_value_policy{}, handle{});
+        }
+    }
+
     static_assert(std::is_base_of<type_caster_base<type>, type_caster<type>>::value,
             "Holder classes are only supported for custom types");
 
