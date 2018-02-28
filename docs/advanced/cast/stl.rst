@@ -175,9 +175,6 @@ in Python, and to define a set of available operations, e.g.:
         }, py::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */
         // ....
 
-Please take a look at the :ref:`macro_notes` before using the
-``PYBIND11_MAKE_OPAQUE`` macro.
-
 .. seealso::
 
     The file :file:`tests/test_opaque_types.cpp` contains a complete

@@ -7,13 +7,32 @@ General notes regarding convenience macros
 ==========================================
 
 pybind11 provides a few convenience macros such as
-:func:`PYBIND11_MAKE_OPAQUE` and :func:`PYBIND11_DECLARE_HOLDER_TYPE`, and
-``PYBIND11_OVERLOAD_*``. Since these are "just" macros that are evaluated
-in the preprocessor (which has no concept of types), they *will* get confused
-by commas in a template argument such as ``PYBIND11_OVERLOAD(MyReturnValue<T1,
-T2>, myFunc)``. In this case, the preprocessor assumes that the comma indicates
-the beginning of the next parameter. Use a ``typedef`` to bind the template to
-another name and use it in the macro to avoid this problem.
+:func:`PYBIND11_DECLARE_HOLDER_TYPE` and ``PYBIND11_OVERLOAD_*``. Since these
+are "just" macros that are evaluated in the preprocessor (which has no concept
+of types), they *will* get confused by commas in a template argument; for
+example, consider:
+
+.. code-block:: cpp
+
+    PYBIND11_OVERLOAD(MyReturnType<T1, T2>, Class<T3, T4>, func)
+
+The limitation of the C preprocessor interprets this as five arguments (with new
+arguments beginning after each comma) rather than three.  To get around this,
+there are two alternatives: you can use a type alias, or you can wrap the type
+using the ``PYBIND11_TYPE`` macro:
+
+.. code-block:: cpp
+
+    // Version 1: using a type alias
+    using ReturnType = MyReturnType<T1, T2>;
+    using ClassType = Class<T3, T4>;
+    PYBIND11_OVERLOAD(ReturnType, ClassType, func);
+
+    // Version 2: using the PYBIND11_TYPE macro:
+    PYBIND11_OVERLOAD(PYBIND11_TYPE(MyReturnType<T1, T2>),
+                      PYBIND11_TYPE(Class<T3, T4>), func)
+
+The ``PYBIND11_MAKE_OPAQUE`` macro does *not* require the above workarounds.
 
 .. _gil:
 
