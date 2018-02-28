@@ -11,10 +11,14 @@
 #include <pybind11/stl.h>
 #include <vector>
 
-using StringList = std::vector<std::string>;
+// IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures
+//
+// This also deliberately doesn't use the below StringList type alias to test
+// that MAKE_OPAQUE can handle a type containing a `,`.  (The `std::allocator`
+// bit is just the default `std::vector` allocator).
+PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
 
-/* IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures */
-PYBIND11_MAKE_OPAQUE(StringList);
+using StringList = std::vector<std::string, std::allocator<std::string>>;
 
 TEST_SUBMODULE(opaque_types, m) {
     // test_string_list
