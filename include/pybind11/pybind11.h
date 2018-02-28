@@ -1963,7 +1963,7 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
 
 #define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
-    pybind11::pybind11_fail("Tried to call pure virtual function \"" #cname "::" name "\"");
+    pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\"");
 
 #define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
     PYBIND11_OVERLOAD_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
