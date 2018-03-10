@@ -138,7 +138,7 @@ before_install:
       PY_CMD=python$PYTHON
       if [ "$TRAVIS_OS_NAME" = "osx" ]; then
         if [ "$PY" = "3" ]; then
-          brew update && brew install python$PY;
+          brew update && brew upgrade python
         else
           curl -fsSL https://bootstrap.pypa.io/get-pip.py | $PY_CMD - --user
         fi
