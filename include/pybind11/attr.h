@@ -124,10 +124,11 @@ struct argument_record {
     const char *descr; ///< Human-readable version of the argument value
     handle value;      ///< Associated Python object
     bool convert : 1;  ///< True if the argument is allowed to convert when loading
+    bool disown : 1;   ///< TODO docs
     bool none : 1;     ///< True if None is allowed when loading
 
-    argument_record(const char *name, const char *descr, handle value, bool convert, bool none)
-        : name(name), descr(descr), value(value), convert(convert), none(none) { }
+    argument_record(const char *name, const char *descr, handle value, bool convert, bool disown, bool none)
+        : name(name), descr(descr), value(value), convert(convert), disown(disown), none(none) { }
 };
 
 /// Internal data structure which holds metadata about a bound function (signature, overloads, etc.)
@@ -353,8 +354,8 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
 template <> struct process_attribute<arg> : process_attribute_default<arg> {
     static void init(const arg &a, function_record *r) {
         if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr, handle(), true /*convert*/, false /*none not allowed*/);
-        r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert, a.flag_none);
+            r->args.emplace_back("self", nullptr, handle(), true /*convert*/, false /*disown*/, false /*none not allowed*/);
+        r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert, a.flag_disown, a.flag_none);
     }
 };
 
@@ -362,7 +363,7 @@ template <> struct process_attribute<arg> : process_attribute_default<arg> {
 template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
     static void init(const arg_v &a, function_record *r) {
         if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr /*descr*/, handle() /*parent*/, true /*convert*/, false /*none not allowed*/);
+            r->args.emplace_back("self", nullptr /*descr*/, handle() /*parent*/, true /*convert*/, false /*disown*/, false /*none not allowed*/);
 
         if (!a.value) {
 #if !defined(NDEBUG)
@@ -385,7 +386,7 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
                           "Compile in debug mode for more information.");
 #endif
         }
-        r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none);
+        r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_disown, a.flag_none);
     }
 };
 

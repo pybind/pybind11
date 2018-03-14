@@ -613,6 +613,39 @@ protected:
                     call.args_convert.swap(second_pass_convert);
                 }
 
+
+                //printf("calling %s %s, args %d %lu\n", func.name, func.signature, func.nargs, func.args.size());
+                for (size_t i = 0; i < func.args.size(); ++i) {
+                    if (!func.args[i].disown) {
+                        //printf("NOT disowning arg %lu\n", i);
+                        continue;
+                    } else {
+                        //printf("DISOWNING arg %lu\n", i);
+                    }
+
+                    auto &arg = call.args[i];
+                    if (!arg)
+                        pybind11_fail("nothing to disown?!");
+
+                    if (arg.is_none())
+                        continue; /* Nothing to disown */
+
+                    auto inst = reinterpret_cast<detail::instance *>(arg.ptr());
+                    auto value_and_holder = values_and_holders(inst).begin();
+
+
+                    using holder_type = std::unique_ptr<void*>; // how do I get the proper one?
+
+                    auto &holder = value_and_holder->holder< holder_type  >();
+
+
+                    holder_helper<holder_type>::release(holder);
+
+                    value_and_holder->set_holder_constructed(false);
+                    inst->owned = false;
+                    holder.~holder_type();
+                }
+
                 // 6. Call the function.
                 try {
                     loader_life_support guard{};
