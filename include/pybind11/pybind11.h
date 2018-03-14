@@ -41,6 +41,7 @@
 #endif
 
 #include "attr.h"
+#include "gil.h"
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"

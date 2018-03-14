@@ -44,6 +44,7 @@ set(PYBIND11_HEADERS
   include/pybind11/detail/class.h
   include/pybind11/detail/common.h
   include/pybind11/detail/descr.h
+  include/pybind11/detail/gil_internals.h
   include/pybind11/detail/init.h
   include/pybind11/detail/internals.h
   include/pybind11/detail/typeid.h
@@ -58,6 +59,7 @@ set(PYBIND11_HEADERS
   include/pybind11/embed.h
   include/pybind11/eval.h
   include/pybind11/functional.h
+  include/pybind11/gil.h
   include/pybind11/numpy.h
   include/pybind11/operators.h
   include/pybind11/pybind11.h
