@@ -49,6 +49,27 @@ public:
     }*/
 };
 
+/* The functions below essentially reproduce the PyGILState_* API using a RAII
+ * pattern, but there are a few important differences:
+ *
+ * 1. When acquiring the GIL from an non-main thread during the finalization
+ *    phase, the GILState API blindly terminates the calling thread, which
+ *    is often not what is wanted. This API does not do this.
+ *
+ * 2. The advanced_gil_impl::release function can optionally cut the
+ *    relationship of a PyThreadState and its associated thread, which allows
+ *    moving it to another thread (this is a fairly rare/advanced use case).
+ *
+ * 3. The reference count of an acquired thread state can be controlled. This
+ *    can be handy to prevent cases where callbacks issued from an external
+ *    thread would otherwise constantly construct and destroy thread state data
+ *    structures.
+ *
+ * See the Python bindings of NanoGUI (http://github.com/wjakob/nanogui) for an
+ * example which uses features 2 and 3 to migrate the Python thread of
+ * execution to another thread (to run the event loop on the original thread,
+ * in this case).
+ */
 class advanced_gil_impl {
 public:
     class acquire {
