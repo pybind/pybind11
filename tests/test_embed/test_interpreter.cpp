@@ -309,29 +309,18 @@ PYBIND11_EMBEDDED_MODULE(test_memory_leak, m) {
 }
 
 TEST_CASE("Test that C++ objects are properly deconstructed.") {
+    {
+    auto local = py::dict();
+    local['__builtins__'] = py::globals()['__builtins__'];
     py::exec(R"(
 from test_memory_leak import TestObject
 
 guard = TestObject(lambda: None)
-)", py::globals(), py::globals());
+)", local, local);
     REQUIRE(1 == TestObject::_count);
-// Explicitly remove reference to the object from the global dictionary. This
-// allows the object to be garbage collected
-    py::globals()["guard"] = py::none();
+    }
 
     py::finalize_interpreter();
-    py::initialize_interpreter();
-
     REQUIRE(0 == TestObject::_count);
-    py::exec(R"(
-from test_memory_leak import TestObject
-
-guard = TestObject(lambda: None)
-)", py::globals(), py::globals());
-    REQUIRE(1 == TestObject::_count);
-
-    py::finalize_interpreter();
     py::initialize_interpreter();
-
-    REQUIRE(0 == TestObject::_count);
 }
