@@ -311,7 +311,7 @@ PYBIND11_EMBEDDED_MODULE(test_memory_leak, m) {
 TEST_CASE("Test that C++ objects are properly deconstructed.") {
     {
     auto local = py::dict();
-    local['__builtins__'] = py::globals()['__builtins__'];
+    local["__builtins__"] = py::globals()["__builtins__"];
     py::exec(R"(
 from test_memory_leak import TestObject
 
