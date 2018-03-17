@@ -92,15 +92,17 @@ The following table provides an overview of available policies:
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::automatic`           | **Default policy.** This policy falls back to the policy                   |
 |                                                  | :enum:`return_value_policy::take_ownership` when the return value is a     |
-|                                                  | pointer. Otherwise, it uses :enum:`return_value_policy::move` or           |
-|                                                  | :enum:`return_value_policy::copy` for rvalue and lvalue references,        |
-|                                                  | respectively. See above for a description of what all of these different   |
-|                                                  | policies do.                                                               |
+|                                                  | pointer or :enum:`return_value_policy:reference` when the return value is  |
+|                                                  | a mutable lvalue reference. Otherwise, it uses                             |
+|                                                  | :enum:`return_value_policy::move` or :enum:`return_value_policy::copy` for |
+|                                                  | rvalue and const lvalue references, respectively. See above for a          |
+|                                                  | description of what all of these different policies do.                    |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 | :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
-|                                                  | return value is a pointer. This is the default conversion policy for       |
-|                                                  | function arguments when calling Python functions manually from C++ code    |
-|                                                  | (i.e. via handle::operator()). You probably won't need to use this.        |
+|                                                  | return value is a pointer or mutable lvalue reference. This is the default |
+|                                                  | conversion policy for function arguments when calling Python functions     |
+|                                                  | manually from C++ code (i.e. via handle::operator()). You probably won't   |
+|                                                  | need to use this.                                                          |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
 Return value policies can also be applied to properties:

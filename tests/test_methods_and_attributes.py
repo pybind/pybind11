@@ -510,3 +510,60 @@ def test_custom_caster_destruction():
 
     # Make sure we still only have the original object (from ..._no_destroy()) alive:
     assert cstats.alive() == 1
+
+
+def test_lvalue_reference_policies():
+    cstats = ConstructorStats.get(m.Item)
+
+    c = m.Container()
+    assert cstats.alive() == 1
+    # Try new.
+    obj = c.new_ptr()
+    assert cstats.alive() == 2
+    del obj
+    pytest.gc_collect()
+    assert cstats.alive() == 1
+
+    # Try references (unsafe).
+    obj = c.get_ptr_unsafe()
+    obj.value = 100
+    assert cstats.alive() == 1
+    obj = c.get_ref_unsafe()
+    assert cstats.alive() == 1
+    del obj
+
+    # Try references (safe).
+    obj = c.get_ptr()
+    assert cstats.alive() == 1
+    obj = c.get_ref()
+    assert cstats.alive() == 1
+
+    # Check casting behavior.
+    obj = c.cast_copy(10)
+    assert cstats.alive() == 2
+    assert obj.value == 10
+    del obj
+    pytest.gc_collect()
+    assert cstats.alive() == 1
+
+    obj = c.cast_ptr()
+    assert cstats.alive() == 1
+    assert obj is c.get_ptr()
+    obj = c.cast_ref_registered()
+    assert obj is c.get_ptr()
+    assert cstats.alive() == 1
+    # Check reference casting for an object previously unseen by pybind.
+    obj = c.cast_ref_unregistered()
+    assert cstats.alive() == 2
+    assert obj.value == 20
+    del obj
+    pytest.gc_collect()
+    # Object is owned by `c` internally.
+    assert cstats.alive() == 2
+
+    # Ensure we have our original value.
+    assert c.get_ref().value == 100
+
+    del c
+    pytest.gc_collect()
+    assert cstats.alive() == 0

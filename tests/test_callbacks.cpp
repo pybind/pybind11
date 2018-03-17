@@ -146,4 +146,33 @@ TEST_SUBMODULE(callbacks, m) {
     py::class_<CppBoundMethodTest>(m, "CppBoundMethodTest")
         .def(py::init<>())
         .def("triple", [](CppBoundMethodTest &, int val) { return 3 * val; });
+
+    struct CppCopyable {
+        int value{};
+    };
+    py::class_<CppCopyable>(m, "CppCopyable")
+        .def(py::init<>())
+        .def_readwrite("value", &CppCopyable::value);
+    // Works fine, as pybind is aware of the existing instance.
+    m.def(
+        "callback_mutate_copyable_py",
+        [](std::function<void(CppCopyable&)> f, CppCopyable& obj) {
+            f(obj);
+        });
+    // Works as expected, because pybind will not copy the instance.
+    m.def(
+        "callback_mutate_copyable_cpp_ref",
+        [](std::function<void(CppCopyable&)> f, int value) {
+            CppCopyable obj{value};
+            f(obj);
+            return obj;
+        });
+    // Works as expected, because pybind will not copy the instance.
+    m.def(
+        "callback_mutate_copyable_cpp_ptr",
+        [](std::function<void(CppCopyable*)> f, int value) {
+            CppCopyable obj{value};
+            f(&obj);
+            return obj;
+        });
 }

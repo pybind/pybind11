@@ -451,4 +451,60 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.def("custom_caster_destroy_const", []() -> const DestructionTester * { return new DestructionTester(); },
             py::return_value_policy::take_ownership); // Likewise (const doesn't inhibit destruction)
     m.def("destruction_tester_cstats", &ConstructorStats::get<DestructionTester>, py::return_value_policy::reference);
+
+    // Test mutable lvalue references for return policies and `cast<>()` (#1200).
+    struct Item {
+        Item(int value_in) : value(value_in) { print_created(this, value); }
+        Item(const Item& other) : value(other.value) {
+             print_copy_created(this, value);
+         }
+        ~Item() { print_destroyed(this); }
+        int value{};
+    };
+    py::class_<Item>(m, "Item")
+        .def(py::init<int>())
+        .def_readwrite("value", &Item::value);
+
+    struct Container {
+        Item* new_ptr() { return new Item{100}; }
+        Item* get_ptr() { return &item; }
+        Item& get_ref() { return item; }
+
+        // Test casting behavior.
+        py::object cast_copy(int value) {
+            Item item{value};
+            return py::cast(item);
+        }
+        py::object cast_ptr() { return py::cast(&item); }
+        py::object cast_ref_registered() { return py::cast(item); }
+        py::object cast_ref_unregistered() {
+            // This is different from above in that we have not exposed `item_cast_ref` prior to this.
+            // NB. Writing `py::cast<Item&>(get_cast_ref())` will simply bind to the same overload as
+            // `py::cast(get_cast_ref())`, which is `object cast(const Item&, ...)`.
+            // Unfortunately, there is no way to overload `cast` to return references without danger of
+            // returning references to temporaries (see `cast_copy`).
+            return py::cast(get_cast_ref(), py::return_value_policy::reference);
+        }
+
+    private:
+        Item& get_cast_ref() {
+            // Ensure that we return something that pybind has not seen yet.
+            item_cast_ref_ptr.reset(new Item(20));
+            return *item_cast_ref_ptr;
+        }
+
+        Item item{10};
+        std::unique_ptr<Item> item_cast_ref_ptr;
+    };
+    py::class_<Container>(m, "Container")
+        .def(py::init<>())
+        .def("new_ptr", &Container::new_ptr)
+        .def("get_ptr_unsafe", &Container::get_ptr, py::return_value_policy::automatic_reference)
+        .def("get_ref_unsafe", &Container::get_ref)
+        .def("get_ptr", &Container::get_ptr, py::return_value_policy::reference_internal)
+        .def("get_ref", &Container::get_ref, py::return_value_policy::reference_internal)
+        .def("cast_copy", &Container::cast_copy)
+        .def("cast_ptr", &Container::cast_ptr)
+        .def("cast_ref_registered", &Container::cast_ref_registered)
+        .def("cast_ref_unregistered", &Container::cast_ref_unregistered);
 }
