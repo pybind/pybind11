@@ -774,9 +774,46 @@ template <typename T1, typename T2> struct is_copy_constructible<std::pair<T1, T
     : all_of<is_copy_constructible<T1>, is_copy_constructible<T2>> {};
 #endif
 
+// polymorphic_type_hook<itype>::get(foo) returns a pointer to the std::type_info
+// representing the dynamic type of *foo, or returns nullptr if no RTTI is available
+// for this type (behaves like returning &typeid(itype) but admits better optimizations).
+//
+// The default polymorphic_type_hook returns nullptr. A specialization for polymorphic
+// types returns the runtime type of the passed object, and is paired with logic in
+// type_caster_base to adjust the this-pointer appropriately via dynamic_cast<void*>.
+// This is what enables a C++ Animal* to appear to Python as a Dog (if Dog inherits
+// from Animal, Animal is polymorphic, Dog is registered with pybind11, and this Animal
+// is in fact a Dog).
+//
+// You may specialize polymorphic_type_hook yourself for types that want to appear
+// polymorphic to Python but do not use C++ RTTI. (This is a not uncommon pattern
+// in performance-sensitive applications, used most notably in LLVM.) Any such
+// specializations must return either null or a type_info that describes some type
+// T of which itype is a primary base (no this-pointer adjustment required to convert
+// from itype* to T*). That is, with itype *obj, we must have static_cast<X*>(obj) ==
+// reinterpret_cast<X*>(obj). Note that under common ABIs, non-polymorphic itype with
+// polymorphic T frequently will _not_ satisfy this rule (the vpointer goes before the
+// itype subobject).
+template <typename itype, typename SFINAE = void>
+struct polymorphic_type_hook
+{
+    static const std::type_info *get(const itype*) { return nullptr; }
+};
+template <typename itype>
+struct polymorphic_type_hook<itype, enable_if_t<std::is_polymorphic<itype>::value>>
+{
+    static const std::type_info *get(const itype *src) { return src ? &typeid(*src) : nullptr; }
+};
+
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
     using itype = intrinsic_t<type>;
+
+    template <typename T = itype, enable_if_t<std::is_polymorphic<T>::value, int> = 0>
+    static const void *cast_to_derived(const itype *src) { return dynamic_cast<const void *>(src); }
+    template <typename T = itype, enable_if_t<!std::is_polymorphic<T>::value, int> = 0>
+    static const void *cast_to_derived(const itype *src) { return static_cast<const void *>(src); }
+
 public:
     static constexpr auto name = _<type>();
 
@@ -795,30 +832,25 @@ public:
 
     // Returns a (pointer, type_info) pair taking care of necessary RTTI type lookup for a
     // polymorphic type.  If the instance isn't derived, returns the non-RTTI base version.
-    template <typename T = itype, enable_if_t<std::is_polymorphic<T>::value, int> = 0>
     static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
         const void *vsrc = src;
         auto &cast_type = typeid(itype);
-        const std::type_info *instance_type = nullptr;
-        if (vsrc) {
-            instance_type = &typeid(*src);
-            if (!same_type(cast_type, *instance_type)) {
-                // This is a base pointer to a derived type; if it is a pybind11-registered type, we
-                // can get the correct derived pointer (which may be != base pointer) by a
-                // dynamic_cast to most derived type:
-                if (auto *tpi = get_type_info(*instance_type))
-                    return {dynamic_cast<const void *>(src), const_cast<const type_info *>(tpi)};
-            }
+        const std::type_info *instance_type = polymorphic_type_hook<itype>::get(src);
+        if (instance_type && !same_type(cast_type, *instance_type)) {
+            // This is a base pointer to a derived type. If the derived type is registered
+            // with pybind11, we want to make the full derived object available.
+            // In the typical case where itype is polymorphic, we get the correct
+            // derived pointer (which may be != base pointer) by a dynamic_cast to
+            // most derived type. If itype is not polymorphic, we won't get here
+            // except via a user-provided specialization of polymorphic_type_hook,
+            // and the user has promised that no this-pointer adjustment is
+            // required in that case, so it's OK to use static_cast.
+            if (const auto *tpi = get_type_info(*instance_type))
+                return {cast_to_derived(src), tpi};
         }
         // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer, so
         // don't do a cast
         return type_caster_generic::src_and_type(vsrc, cast_type, instance_type);
-    }
-
-    // Non-polymorphic type, so no dynamic casting; just call the generic version directly
-    template <typename T = itype, enable_if_t<!std::is_polymorphic<T>::value, int> = 0>
-    static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        return type_caster_generic::src_and_type(src, typeid(itype));
     }
 
     static handle cast(const itype *src, return_value_policy policy, handle parent) {
