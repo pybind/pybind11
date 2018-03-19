@@ -1,6 +1,5 @@
-import pytest
-
 from pybind11_tests import tagbased_polymorphic as m
+
 
 def test_downcast():
     zoo = m.create_zoo()
