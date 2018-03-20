@@ -351,7 +351,7 @@ TEST_SUBMODULE(class_, m) {
     // remember which overload was used, and would crash trying to
     // generate a useful error message
 
-    m.def("test_error_after_conversions", [](int){});
+    m.def("test_error_after_conversions", [](int) {});
     m.def("test_error_after_conversions", test_error_after_conversions);
     py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
     py::implicitly_convertible<std::string, StringWrapper>();
