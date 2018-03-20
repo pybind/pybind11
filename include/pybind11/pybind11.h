@@ -650,8 +650,15 @@ protected:
                         result = PYBIND11_TRY_NEXT_OVERLOAD;
                     }
 
-                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
+                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
+                        if (!result) {
+                            // The error reporting logic below expects 'it' to be valid, as it would be
+                            // if we'd encountered this failure in the first-pass loop.
+                            for (it = overloads; it != &call.func; it = it->next)
+                                ;
+                        }
                         break;
+                    }
                 }
             }
         } catch (error_already_set &e) {
