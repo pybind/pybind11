@@ -21,10 +21,6 @@ struct NoBraceInitialization {
     std::vector<int> vec;
 };
 
-struct NotRegistered {};
-struct StringWrapper { std::string str; };
-NotRegistered test_error_after_conversions(StringWrapper) { return {}; }
-
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
@@ -351,8 +347,11 @@ TEST_SUBMODULE(class_, m) {
     // remember which overload was used, and would crash trying to
     // generate a useful error message
 
+    struct NotRegistered {};
+    struct StringWrapper { std::string str; };
     m.def("test_error_after_conversions", [](int) {});
-    m.def("test_error_after_conversions", test_error_after_conversions);
+    m.def("test_error_after_conversions",
+          [](StringWrapper) -> NotRegistered { return {}; });
     py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
     py::implicitly_convertible<std::string, StringWrapper>();
 }
