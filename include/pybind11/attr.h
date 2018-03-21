@@ -278,7 +278,7 @@ struct type_record {
     }
 };
 
-inline function_call::function_call(function_record &f, handle p) :
+inline function_call::function_call(const function_record &f, handle p) :
         func(f), parent(p) {
     args.reserve(f.nargs);
     args_convert.reserve(f.nargs);

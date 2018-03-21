@@ -1793,7 +1793,7 @@ struct function_record;
 
 /// Internal data associated with a single function call
 struct function_call {
-    function_call(function_record &f, handle p); // Implementation in attr.h
+    function_call(const function_record &f, handle p); // Implementation in attr.h
 
     /// The function data:
     const function_record &func;
