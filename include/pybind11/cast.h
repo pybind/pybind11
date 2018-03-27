@@ -1371,6 +1371,7 @@ template <typename... Ts> class type_caster<std::tuple<Ts...>>
 template <typename T>
 struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
+    static void release(T &p) { p.release(); }
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.

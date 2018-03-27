@@ -44,6 +44,9 @@ template <typename T> struct base {
 /// Keep patient alive while nurse lives
 template <size_t Nurse, size_t Patient> struct keep_alive { };
 
+/// Give ownership of parameter to the called function
+template <size_t Consumed> struct consume { };
+
 /// Annotation indicating that a class is involved in a multiple inheritance relationship
 struct multiple_inheritance { };
 
@@ -117,6 +120,7 @@ enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+inline void consume_impl(size_t Consumed, function_call &call);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -448,6 +452,13 @@ template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurs
     static void precall(function_call &) { }
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void postcall(function_call &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
+};
+
+template <size_t Consumed> struct process_attribute<consume<Consumed>> : public process_attribute_default<consume<Consumed>> {
+    template <size_t C = Consumed, enable_if_t<C != 0, int> = 0>
+    static void precall(function_call &call) {
+        consume_impl(Consumed, call);
+    }
 };
 
 /// Recursively iterate over variadic template arguments

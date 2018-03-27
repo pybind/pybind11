@@ -29,6 +29,7 @@ set(PYBIND11_TEST_FILES
   test_buffers.cpp
   test_builtin_casters.cpp
   test_call_policies.cpp
+  test_consume.cpp
   test_callbacks.cpp
   test_chrono.cpp
   test_class.cpp

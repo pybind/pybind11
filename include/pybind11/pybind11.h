@@ -1508,6 +1508,34 @@ PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, func
     keep_alive_impl(get_arg(Nurse), get_arg(Patient));
 }
 
+// template<typename holder_type> // ???
+inline void consume_impl(handle consumed) {
+    if (!consumed)
+        pybind11_fail("Could not activate consume!");
+
+    if (consumed.is_none())
+        return; /* Nothing to consume */
+
+    auto inst = reinterpret_cast<detail::instance *>(consumed.ptr());
+    auto value_and_holder = values_and_holders(inst).begin();
+
+
+
+    auto &holder = value_and_holder->holder< std::unique_ptr<void*> >(); // holder_type ???
+
+
+    holder_helper<std::unique_ptr<void*>>::release(holder);
+
+    value_and_holder->set_holder_constructed(false);
+    inst->owned = false;
+}
+
+PYBIND11_NOINLINE inline void consume_impl(size_t Consumed, function_call &call) {
+    consume_impl(
+        Consumed == 0 ? handle() : Consumed <= call.args.size() ? call.args[Consumed - 1] : handle()
+    );
+}
+
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_type_info_get_cache(PyTypeObject *type) {
     auto res = get_internals().registered_types_py
 #ifdef __cpp_lib_unordered_map_try_emplace
