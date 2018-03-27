@@ -999,3 +999,94 @@ described trampoline:
     requires a more explicit function binding in the form of
     ``.def("foo", static_cast<int (A::*)() const>(&Publicist::foo));``
     where ``int (A::*)() const`` is the type of ``A::foo``.
+
+Custom automatic downcasters
+============================
+
+As explained in :ref:`inheritance`, pybind11 comes with built-in
+understanding of the dynamic type of polymorphic objects in C++; that
+is, returning a Pet to Python produces a Python object that knows it's
+wrapping a Dog, if Pet has virtual methods and pybind11 knows about
+Dog and this Pet is in fact a Dog. Sometimes, you might want to
+provide this automatic downcasting behavior when creating bindings for
+a class hierarchy that does not use standard C++ polymorphism, such as
+LLVM [#f4]_. As long as there's some way to determine at runtime
+whether a downcast is safe, you can proceed by specializing the
+``pybind11::detail::polymorphic_type_hook`` template:
+
+.. code-block:: cpp
+
+    enum class PetKind { Cat, Dog, Zebra };
+    struct Pet {
+        const PetKind kind;
+        int age = 0;
+      protected:
+        Pet(PetKind _kind) : kind(_kind) {}
+    };
+    struct Dog : Pet {
+        Dog() : Pet(PetKind::Dog) {}
+        std::string sound = "woof!";
+        std::string bark() const { return sound; }
+    };
+
+    namespace pybind11 { namespace detail {
+        template<> struct polymorphic_type_hook<Pet> {
+            static const void *get(const Pet *src, const std::type_info*& type) {
+                // note that src may be nullptr
+                if (src && src->kind == PetKind::Dog) {
+                    type = &typeid(Dog);
+                    return static_cast<const Dog*>(src);
+                }
+                return src;
+            }
+        };
+    }} // namespace pybind11::detail
+
+When pybind11 wants to convert a C++ pointer of type ``Base*`` to a
+Python object, it calls ``polymorphic_type_hook<Base>::get()`` to
+determine if a downcast is possible. The ``get()`` function should use
+whatever runtime information is available to determine if its ``src``
+parameter is in fact an instance of some class ``Derived`` that
+inherits from ``Base``. If it finds such a ``Derived``, it sets ``type
+= &typeid(Derived)`` and returns ``static_cast<const Derived*>(src)``.
+Otherwise, it just returns ``src``, leaving ``type`` at its default
+value of nullptr. It's OK to return a type that pybind11 doesn't know
+about; in that case, no downcasting will occur, and the original
+``src`` pointer will be used with its static type ``Base*``.
+
+It is critical that the return value and ``type`` argument of
+``get()`` agree with each other: if ``type`` is set to something
+non-null, the returned pointer must point to the start of an object
+whose type is ``type``. If the hierarchy being exposed uses only
+single inheritance, a simple ``return src;`` will achieve this just
+fine, but in the general case, you must cast ``src`` to the
+appropriate derived-class pointer before allowing it to be cast to
+``void*``.
+
+pybind11's standard support for downcasting objects whose types
+have virtual methods is implemented using ``polymorphic_type_hook`` too:
+
+.. code-block:: cpp
+
+    template <typename itype>
+    struct polymorphic_type_hook<itype, enable_if_t<std::is_polymorphic<itype>::value>>
+    {
+        static const void *get(const itype *src, const std::type_info*& type) {
+            type = src ? &typeid(*src) : nullptr;
+            return dynamic_cast<const void*>(src);
+        }
+    };
+
+This uses the standard C++ ability to determine the most-derived type
+of a polymorphic object using ``typeid()`` and to cast a base pointer
+to that most-derived type (even if you don't know what it is) using
+``dynamic_cast<void*>``.
+
+.. [#f4] https://llvm.org/docs/HowToSetUpLLVMStyleRTTI.html
+
+.. seealso::
+
+    The file :file:`tests/test_tagbased_polymorphic.cpp` contains a
+    more complete example, including a demonstration of how to provide
+    automatic downcasting for an entire class hierarchy without
+    writing one get() function for each class.
