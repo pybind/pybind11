@@ -109,8 +109,8 @@ namespace detail {
     template <typename itype>
     struct polymorphic_type_hook<itype, enable_if_t<std::is_base_of<Animal, itype>::value>>
     {
-        static const std::type_info *get(const itype *src)
-        { return Animal::type_of_kind(src->kind); }
+        static const void *get(const itype *src, const std::type_info*& type)
+        { type = src ? Animal::type_of_kind(src->kind) : nullptr; return src; }
     };
 }
 }
