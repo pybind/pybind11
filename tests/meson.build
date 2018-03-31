@@ -60,9 +60,11 @@ pybind11_cross_module_tests = py3_mod.extension_module('pybind11_cross_module_te
 	sources: 'pybind11_cross_module_tests.cpp',
 	dependencies: pybind11_dep)
 
-test(test_name, py3_exe,
-	args:['-m','pytest', pybind11_tests_pysources],
-	env:'PYTHONPATH='+meson.current_build_dir(),
-  	workdir:meson.current_source_dir()
-  	)
+foreach test_name : pybind11_tests
+	test(test_name, py3_exe,
+		args:['-m','pytest', test_name+'.py'],
+		env:'PYTHONPATH='+meson.current_build_dir(),
+	  	workdir:meson.current_source_dir()
+	  	)
+endforeach
 
