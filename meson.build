@@ -1,4 +1,4 @@
-project('pybind11', 'cpp', default_options : ['cpp_std=c++14'], license : 'GPL3+')
+project('pybind11', 'cpp', default_options : ['cpp_std=c++14'], license : 'BSD-style')
 
 py3_mod = import('python3')
 py3_dep = dependency('python3')
