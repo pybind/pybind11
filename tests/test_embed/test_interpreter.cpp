@@ -6,7 +6,7 @@
 #  pragma warning(disable: 4996)
 #endif
 
-#include <catch.hpp>
+#include <catch/catch.hpp>
 
 #include <thread>
 #include <fstream>

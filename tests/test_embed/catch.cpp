@@ -10,7 +10,7 @@
 #endif
 
 #define CATCH_CONFIG_RUNNER
-#include <catch.hpp>
+#include <catch/catch.hpp>
 
 namespace py = pybind11;
 

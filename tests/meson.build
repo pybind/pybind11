@@ -68,3 +68,4 @@ foreach test_name : pybind11_tests
 	  	)
 endforeach
 
+subdir('test_embed')
