@@ -1364,6 +1364,7 @@ detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetSta
 template <typename Type> class enum_ : public class_<Type> {
 public:
     using class_<Type>::def;
+    using class_<Type>::def_property_readonly;
     using class_<Type>::def_property_readonly_static;
     using Scalar = typename std::underlying_type<Type>::type;
 
@@ -1380,6 +1381,13 @@ public:
                     return pybind11::str("{}.{}").format(name, kv.first);
             }
             return pybind11::str("{}.???").format(name);
+        });
+        def_property_readonly("name", [m_entries_ptr](Type value) -> pybind11::str {
+            for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr)) {
+                if (pybind11::cast<Type>(kv.second[int_(0)]) == value)
+                    return pybind11::str(kv.first);
+            }
+            return pybind11::str("???");
         });
         def_property_readonly_static("__doc__", [m_entries_ptr](handle self) {
             std::string docstring;
