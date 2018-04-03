@@ -48,6 +48,7 @@ install:
       if ($env:PLATFORM -eq "x64") { $env:CONDA = "$env:CONDA-x64" }
       $env:PATH = "C:\Miniconda$env:CONDA\;C:\Miniconda$env:CONDA\Scripts\;$env:PATH"
       $env:PYTHONHOME = "C:\Miniconda$env:CONDA"
+      conda update -y -n base conda
       conda install -y -q pytest numpy scipy
     }
 - ps: |
