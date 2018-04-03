@@ -27,15 +27,16 @@
 #  endif
 #endif
 
-#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#if !(defined(_MSC_VER) && __cplusplus == 199711L) && !defined(__INTEL_COMPILER)
 #  if __cplusplus >= 201402L
 #    define PYBIND11_CPP14
-#    if __cplusplus > 201402L /* Temporary: should be updated to >= the final C++17 value once known */
+#    if __cplusplus >= 201703L
 #      define PYBIND11_CPP17
 #    endif
 #  endif
-#elif defined(_MSC_VER)
+#elif defined(_MSC_VER) && __cplusplus == 199711L
 // MSVC sets _MSVC_LANG rather than __cplusplus (supposedly until the standard is fully implemented)
+// Unless you use the /Zc:__cplusplus flag on Visual Studio 2017 15.7 Preview 3 or newer
 #  if _MSVC_LANG >= 201402L
 #    define PYBIND11_CPP14
 #    if _MSVC_LANG > 201402L && _MSC_VER >= 1910
