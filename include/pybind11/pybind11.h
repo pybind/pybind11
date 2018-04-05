@@ -1650,6 +1650,7 @@ void register_exception_translator(ExceptionTranslator&& translator) {
 template <typename type>
 class exception : public object {
 public:
+    exception() = default;
     exception(handle scope, const char *name, PyObject *base = PyExc_Exception) {
         std::string full_name = scope.attr("__name__").cast<std::string>() +
                                 std::string(".") + name;
@@ -1666,6 +1667,14 @@ public:
     }
 };
 
+NAMESPACE_BEGIN(detail)
+// Returns a reference to a function-local static exception object used in the simple
+// register_exception approach below.  (It would be simpler to have the static local variable
+// directly in register_exception, but that makes clang <3.5 segfault - issue #1349).
+template <typename CppException>
+exception<CppException> &get_exception_object() { static exception<CppException> ex; return ex; }
+NAMESPACE_END(detail)
+
 /**
  * Registers a Python exception in `m` of the given `name` and installs an exception translator to
  * translate the C++ exception to the created Python exception using the exceptions what() method.
@@ -1676,13 +1685,15 @@ template <typename CppException>
 exception<CppException> &register_exception(handle scope,
                                             const char *name,
                                             PyObject *base = PyExc_Exception) {
-    static exception<CppException> ex(scope, name, base);
+    auto &ex = detail::get_exception_object<CppException>();
+    if (!ex) ex = exception<CppException>(scope, name, base);
+
     register_exception_translator([](std::exception_ptr p) {
         if (!p) return;
         try {
             std::rethrow_exception(p);
         } catch (const CppException &e) {
-            ex(e.what());
+            detail::get_exception_object<CppException>()(e.what());
         }
     });
     return ex;
