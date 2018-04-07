@@ -11,6 +11,7 @@
 #pragma once
 
 #if defined(_MSC_VER)
+#  define strdup _strdup
 #  pragma warning(push)
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
