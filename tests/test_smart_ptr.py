@@ -115,6 +115,27 @@ def test_unique_nodelete():
     assert cstats.alive() == 1  # Leak, but that's intentional
 
 
+def test_unique_nodelete4a():
+    o = m.MyObject4a(23)
+    assert o.value == 23
+    cstats = ConstructorStats.get(m.MyObject4a)
+    assert cstats.alive() == 1
+    del o
+    assert cstats.alive() == 1  # Leak, but that's intentional
+
+
+def test_unique_deleter():
+    o = m.MyObject4b(23)
+    assert o.value == 23
+    cstats4a = ConstructorStats.get(m.MyObject4a)
+    assert cstats4a.alive() == 2  # Two becaue of previous test
+    cstats4b = ConstructorStats.get(m.MyObject4b)
+    assert cstats4b.alive() == 1
+    del o
+    assert cstats4a.alive() == 1  # Should now only be one leftover from previous test
+    assert cstats4b.alive() == 0  # Should be deleted
+
+
 def test_large_holder():
     o = m.MyObject5(5)
     assert o.value == 5
