@@ -1768,42 +1768,53 @@ void print(Args &&...args) {
  * example which uses features 2 and 3 to migrate the Python thread of
  * execution to another thread (to run the event loop on the original thread,
  * in this case).
+ *
+ * Due to the fact that gil_scoped_acquire creates its own internal thread
+ * state, this can get out of sync with the PyGILState_* API's thread state,
+ * causing GIL deadlocks in complicated setups with third party code that
+ * calls the PyGILState_* functions. To force gil_scoped_acquire to use the
+ * PyGILState_* API, create a pybind11::options object and call
+ * options::enable_use_gilstate().
  */
 
 class gil_scoped_acquire {
 public:
     PYBIND11_NOINLINE gil_scoped_acquire() {
-        auto const &internals = detail::get_internals();
-        tstate = (PyThreadState *) PyThread_get_key_value(internals.tstate);
-
-        if (!tstate) {
-            tstate = PyThreadState_New(internals.istate);
-            #if !defined(NDEBUG)
-                if (!tstate)
-                    pybind11_fail("scoped_acquire: could not create thread state!");
-            #endif
-            tstate->gilstate_counter = 0;
-            #if PY_MAJOR_VERSION < 3
-                PyThread_delete_key_value(internals.tstate);
-            #endif
-            PyThread_set_key_value(internals.tstate, tstate);
+        if (options::use_gilstate()) {
+            state = PyGILState_Ensure();
         } else {
-            release = detail::get_thread_state_unchecked() != tstate;
-        }
+            auto const &internals = detail::get_internals();
+            tstate = (PyThreadState *) PyThread_get_key_value(internals.tstate);
 
-        if (release) {
-            /* Work around an annoying assertion in PyThreadState_Swap */
-            #if defined(Py_DEBUG)
-                PyInterpreterState *interp = tstate->interp;
-                tstate->interp = nullptr;
-            #endif
-            PyEval_AcquireThread(tstate);
-            #if defined(Py_DEBUG)
-                tstate->interp = interp;
-            #endif
-        }
+            if (!tstate) {
+                tstate = PyThreadState_New(internals.istate);
+                #if !defined(NDEBUG)
+                    if (!tstate)
+                        pybind11_fail("scoped_acquire: could not create thread state!");
+                #endif
+                tstate->gilstate_counter = 0;
+                #if PY_MAJOR_VERSION < 3
+                    PyThread_delete_key_value(internals.tstate);
+                #endif
+                PyThread_set_key_value(internals.tstate, tstate);
+            } else {
+                release = detail::get_thread_state_unchecked() != tstate;
+            }
 
-        inc_ref();
+            if (release) {
+                /* Work around an annoying assertion in PyThreadState_Swap */
+                #if defined(Py_DEBUG)
+                    PyInterpreterState *interp = tstate->interp;
+                    tstate->interp = nullptr;
+                #endif
+                PyEval_AcquireThread(tstate);
+                #if defined(Py_DEBUG)
+                    tstate->interp = interp;
+                #endif
+            }
+
+            inc_ref();
+        }
     }
 
     void inc_ref() {
@@ -1831,12 +1842,17 @@ public:
     }
 
     PYBIND11_NOINLINE ~gil_scoped_acquire() {
-        dec_ref();
-        if (release)
-           PyEval_SaveThread();
+        if (options::use_gilstate()) {
+            PyGILState_Release(state);
+        } else {
+            dec_ref();
+            if (release)
+               PyEval_SaveThread();
+        }
     }
 private:
     PyThreadState *tstate = nullptr;
+    PyGILState_STATE state;
     bool release = true;
 };
 
