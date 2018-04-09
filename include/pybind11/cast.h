@@ -774,6 +774,8 @@ template <typename T1, typename T2> struct is_copy_constructible<std::pair<T1, T
     : all_of<is_copy_constructible<T1>, is_copy_constructible<T2>> {};
 #endif
 
+NAMESPACE_END(detail)
+
 // polymorphic_type_hook<itype>::get(src, tinfo) determines whether the object pointed
 // to by `src` actually is an instance of some class derived from `itype`.
 // If so, it sets `tinfo` to point to the std::type_info representing that derived
@@ -797,13 +799,15 @@ struct polymorphic_type_hook
     static const void *get(const itype *src, const std::type_info*&) { return src; }
 };
 template <typename itype>
-struct polymorphic_type_hook<itype, enable_if_t<std::is_polymorphic<itype>::value>>
+struct polymorphic_type_hook<itype, detail::enable_if_t<std::is_polymorphic<itype>::value>>
 {
     static const void *get(const itype *src, const std::type_info*& type) {
         type = src ? &typeid(*src) : nullptr;
         return dynamic_cast<const void*>(src);
     }
 };
+
+NAMESPACE_BEGIN(detail)
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
@@ -825,8 +829,9 @@ public:
         return cast(&src, return_value_policy::move, parent);
     }
 
-    // Returns a (pointer, type_info) pair taking care of necessary RTTI type lookup for a
-    // polymorphic type.  If the instance isn't derived, returns the non-RTTI base version.
+    // Returns a (pointer, type_info) pair taking care of necessary type lookup for a
+    // polymorphic type (using RTTI by default, but can be overridden by specializing
+    // polymorphic_type_hook). If the instance isn't derived, returns the base version.
     static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
         auto &cast_type = typeid(itype);
         const std::type_info *instance_type = nullptr;

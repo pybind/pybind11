@@ -1,5 +1,5 @@
 /*
-    tests/test_tagbased_polymorphic.cpp -- test of detail::polymorphic_type_hook
+    tests/test_tagbased_polymorphic.cpp -- test of polymorphic_type_hook
 
     Copyright (c) 2018 Hudson River Trading LLC <opensource@hudson-trading.com>
 
@@ -105,14 +105,12 @@ std::string Animal::name_of_kind(Kind kind)
 }
 
 namespace pybind11 {
-namespace detail {
     template <typename itype>
-    struct polymorphic_type_hook<itype, enable_if_t<std::is_base_of<Animal, itype>::value>>
+    struct polymorphic_type_hook<itype, detail::enable_if_t<std::is_base_of<Animal, itype>::value>>
     {
         static const void *get(const itype *src, const std::type_info*& type)
         { type = src ? Animal::type_of_kind(src->kind) : nullptr; return src; }
     };
-}
 }
 
 TEST_SUBMODULE(tagbased_polymorphic, m) {
