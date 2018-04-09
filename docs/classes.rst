@@ -488,6 +488,24 @@ The entries defined by the enumeration type are exposed in the ``__members__`` p
     >>> Pet.Kind.__members__
     {'Dog': Kind.Dog, 'Cat': Kind.Cat}
 
+The ``name`` property returns the name of the enum value as a unicode string.
+
+.. note::
+
+    It is also possible to use ``str(enum)``, however these accomplish different
+    goals. The following shows how these two approaches differ.
+
+    .. code-block:: pycon
+
+        >>> p = Pet( "Lucy", Pet.Cat )
+        >>> pet_type = p.type
+        >>> pet_type
+        Pet.Cat
+        >>> str(pet_type)
+        'Pet.Cat'
+        >>> pet_type.name
+        'Cat'
+
 .. note::
 
     When the special tag ``py::arithmetic()`` is specified to the ``enum_``

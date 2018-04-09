@@ -11,45 +11,45 @@ exceptions:
 
 .. tabularcolumns:: |p{0.5\textwidth}|p{0.45\textwidth}|
 
-+--------------------------------------+------------------------------+
-|  C++ exception type                  |  Python exception type       |
-+======================================+==============================+
-| :class:`std::exception`              | ``RuntimeError``             |
-+--------------------------------------+------------------------------+
-| :class:`std::bad_alloc`              | ``MemoryError``              |
-+--------------------------------------+------------------------------+
-| :class:`std::domain_error`           | ``ValueError``               |
-+--------------------------------------+------------------------------+
-| :class:`std::invalid_argument`       | ``ValueError``               |
-+--------------------------------------+------------------------------+
-| :class:`std::length_error`           | ``ValueError``               |
-+--------------------------------------+------------------------------+
-| :class:`std::out_of_range`           | ``ValueError``               |
-+--------------------------------------+------------------------------+
-| :class:`std::range_error`            | ``ValueError``               |
-+--------------------------------------+------------------------------+
-| :class:`pybind11::stop_iteration`    | ``StopIteration`` (used to   |
-|                                      | implement custom iterators)  |
-+--------------------------------------+------------------------------+
-| :class:`pybind11::index_error`       | ``IndexError`` (used to      |
-|                                      | indicate out of bounds       |
-|                                      | accesses in ``__getitem__``, |
-|                                      | ``__setitem__``, etc.)       |
-+--------------------------------------+------------------------------+
-| :class:`pybind11::value_error`       | ``ValueError`` (used to      |
-|                                      | indicate wrong value passed  |
-|                                      | in ``container.remove(...)`` |
-+--------------------------------------+------------------------------+
-| :class:`pybind11::key_error`         | ``KeyError`` (used to        |
-|                                      | indicate out of bounds       |
-|                                      | accesses in ``__getitem__``, |
-|                                      | ``__setitem__`` in dict-like |
-|                                      | objects, etc.)               |
-+--------------------------------------+------------------------------+
-| :class:`pybind11::error_already_set` | Indicates that the Python    |
-|                                      | exception flag has already   |
-|                                      | been initialized             |
-+--------------------------------------+------------------------------+
++--------------------------------------+--------------------------------------+
+|  C++ exception type                  |  Python exception type               |
++======================================+======================================+
+| :class:`std::exception`              | ``RuntimeError``                     |
++--------------------------------------+--------------------------------------+
+| :class:`std::bad_alloc`              | ``MemoryError``                      |
++--------------------------------------+--------------------------------------+
+| :class:`std::domain_error`           | ``ValueError``                       |
++--------------------------------------+--------------------------------------+
+| :class:`std::invalid_argument`       | ``ValueError``                       |
++--------------------------------------+--------------------------------------+
+| :class:`std::length_error`           | ``ValueError``                       |
++--------------------------------------+--------------------------------------+
+| :class:`std::out_of_range`           | ``ValueError``                       |
++--------------------------------------+--------------------------------------+
+| :class:`std::range_error`            | ``ValueError``                       |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::stop_iteration`    | ``StopIteration`` (used to implement |
+|                                      | custom iterators)                    |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::index_error`       | ``IndexError`` (used to indicate out |
+|                                      | of bounds access in ``__getitem__``, |
+|                                      | ``__setitem__``, etc.)               |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::value_error`       | ``ValueError`` (used to indicate     |
+|                                      | wrong value passed in                |
+|                                      | ``container.remove(...)``)           |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::key_error`         | ``KeyError`` (used to indicate out   |
+|                                      | of bounds access in ``__getitem__``, |
+|                                      | ``__setitem__`` in dict-like         |
+|                                      | objects, etc.)                       |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::error_already_set` | Indicates that the Python exception  |
+|                                      | flag has already been set via Python |
+|                                      | API calls from C++ code; this C++    |
+|                                      | exception is used to propagate such  |
+|                                      | a Python exception back to Python.   |
++--------------------------------------+--------------------------------------+
 
 When a Python function invoked from C++ throws an exception, it is converted
 into a C++ exception of type :class:`error_already_set` whose string payload

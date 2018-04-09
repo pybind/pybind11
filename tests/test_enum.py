@@ -6,6 +6,19 @@ def test_unscoped_enum():
     assert str(m.UnscopedEnum.EOne) == "UnscopedEnum.EOne"
     assert str(m.UnscopedEnum.ETwo) == "UnscopedEnum.ETwo"
     assert str(m.EOne) == "UnscopedEnum.EOne"
+
+    # name property
+    assert m.UnscopedEnum.EOne.name == "EOne"
+    assert m.UnscopedEnum.ETwo.name == "ETwo"
+    assert m.EOne.name == "EOne"
+    # name readonly
+    with pytest.raises(AttributeError):
+        m.UnscopedEnum.EOne.name = ""
+    # name returns a copy
+    foo = m.UnscopedEnum.EOne.name
+    foo = "bar"
+    assert m.UnscopedEnum.EOne.name == "EOne"
+
     # __members__ property
     assert m.UnscopedEnum.__members__ == \
         {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo}

@@ -156,7 +156,7 @@ Naturally, both methods will fail when there are cyclic dependencies.
 
 Note that pybind11 code compiled with hidden-by-default symbol visibility (e.g.
 via the command line flag ``-fvisibility=hidden`` on GCC/Clang), which is
-required proper pybind11 functionality, can interfere with the ability to
+required for proper pybind11 functionality, can interfere with the ability to
 access types defined in another extension module.  Working around this requires
 manually exporting types that are accessed by multiple extension modules;
 pybind11 provides a macro to do just this:
