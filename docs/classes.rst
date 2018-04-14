@@ -228,8 +228,8 @@ just brings them on par.
 
 .. _inheritance:
 
-Inheritance and automatic upcasting
-===================================
+Inheritance and automatic downcasting
+=====================================
 
 Suppose now that the example consists of two data structures with an
 inheritance relationship:
@@ -298,7 +298,7 @@ inheritance relationship. This is reflected in Python:
 
     >>> p = example.pet_store()
     >>> type(p)  # `Dog` instance behind `Pet` pointer
-    Pet          # no pointer upcasting for regular non-polymorphic types
+    Pet          # no pointer downcasting for regular non-polymorphic types
     >>> p.bark()
     AttributeError: 'Pet' object has no attribute 'bark'
 
@@ -330,11 +330,11 @@ will automatically recognize this:
 
     >>> p = example.pet_store2()
     >>> type(p)
-    PolymorphicDog  # automatically upcast
+    PolymorphicDog  # automatically downcast
     >>> p.bark()
     u'woof!'
 
-Given a pointer to a polymorphic base, pybind11 performs automatic upcasting
+Given a pointer to a polymorphic base, pybind11 performs automatic downcasting
 to the actual derived type. Note that this goes beyond the usual situation in
 C++: we don't just get access to the virtual functions of the base, we get the
 concrete derived type including functions and attributes that the base type may
