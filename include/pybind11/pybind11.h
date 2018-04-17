@@ -1867,6 +1867,7 @@ class gil_scoped_release { };
 
 error_already_set::~error_already_set() {
     if (type) {
+        error_scope scope;
         gil_scoped_acquire gil;
         type.release().dec_ref();
         value.release().dec_ref();
