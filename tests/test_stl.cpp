@@ -11,6 +11,9 @@
 #include "constructor_stats.h"
 #include <pybind11/stl.h>
 
+#include <vector>
+#include <string>
+
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if PYBIND11_HAS_VARIANT
 using std::variant;
@@ -32,6 +35,8 @@ struct visit_helper<boost::variant> {
 };
 }} // namespace pybind11::detail
 #endif
+
+PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
@@ -236,6 +241,11 @@ TEST_SUBMODULE(stl, m) {
 
     // test_stl_pass_by_pointer
     m.def("stl_pass_by_pointer", [](std::vector<int>* v) { return *v; }, "v"_a=nullptr);
+
+    // #1258: pybind11/stl.h converts string to vector<string>
+    m.def("func_with_string_or_vector_string_arg_overload", [](std::vector<std::string>) { return 1; });
+    m.def("func_with_string_or_vector_string_arg_overload", [](std::list<std::string>) { return 2; });
+    m.def("func_with_string_or_vector_string_arg_overload", [](std::string) { return 3; });
 
     class Placeholder {
     public:
