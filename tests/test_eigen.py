@@ -204,6 +204,18 @@ def test_eigen_passing_adscalar():
     assert "incompatible function arguments" in str(excinfo)
 
 
+def test_eigen_obj_shape():
+    # Ensure that matrices are of the same shape for dtype=object when given a 1D NumPy array.
+    # RobotLocomotion/drake#8620
+    x_f = np.array([1, -1], dtype=float)
+    shape_f = m.cpp_matrix_shape(x_f)
+    x_ad = np.array([m.AutoDiffXd(0, []), m.AutoDiffXd(0, [])], dtype=object)
+    shape_ad = m.cpp_matrix_shape(x_ad)
+    shape_ad_ref = m.cpp_matrix_shape_ref(x_ad)
+    assert shape_f == shape_ad
+    assert shape_f == shape_ad_ref
+
+
 def test_negative_stride_from_python(msg):
     """Eigen doesn't support (as of yet) negative strides. When a function takes an Eigen matrix by
     copy or const reference, we can pass a numpy array that has negative strides.  Otherwise, an
