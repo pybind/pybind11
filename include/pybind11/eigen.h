@@ -336,7 +336,7 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
             if (dims == 1) {
                 if (Type::RowsAtCompileTime == Eigen::Dynamic)
                     value.resize(buf.shape(0), 1);
-                if (Type::ColsAtCompileTime == Eigen::Dynamic)
+                else if (Type::ColsAtCompileTime == Eigen::Dynamic)
                     value.resize(1, buf.shape(0));
 
                 for (ssize_t i = 0; i < buf.shape(0); ++i) {
