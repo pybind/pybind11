@@ -223,9 +223,9 @@ template <typename props> handle eigen_array_cast(typename props::Type const &sr
     constexpr ssize_t elem_size = sizeof(typename props::Scalar);
     array a;
     using Scalar = typename props::Type::Scalar;
-    bool is_pyoject = static_cast<pybind11::detail::npy_api::constants>(npy_format_descriptor<Scalar>::value) == npy_api::NPY_OBJECT_;
+    bool is_pyobject = static_cast<pybind11::detail::npy_api::constants>(npy_format_descriptor<Scalar>::value) == npy_api::NPY_OBJECT_;
 
-    if (!is_pyoject) {
+    if (!is_pyobject) {
         if (props::vector)
             a = array({ src.size() }, { elem_size * src.innerStride() }, src.data(), base);
         else
