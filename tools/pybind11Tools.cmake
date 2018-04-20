@@ -130,50 +130,58 @@ function(pybind11_add_module target_name)
 
   add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
-  target_include_directories(${target_name}
-    PRIVATE ${PYBIND11_INCLUDE_DIR}  # from project CMakeLists.txt
-    PRIVATE ${pybind11_INCLUDE_DIR}  # from pybind11Config
-    PRIVATE ${PYTHON_INCLUDE_DIRS})
+  if(TARGET pybind11::module)
+    # Use interface target library.
+    target_link_libraries(${target_name} PRIVATE pybind11::module)
+  else()
+    target_include_directories(${target_name}
+      PRIVATE ${PYBIND11_INCLUDE_DIR}  # from project CMakeLists.txt
+      PRIVATE ${pybind11_INCLUDE_DIR}  # from pybind11Config
+      PRIVATE ${PYTHON_INCLUDE_DIRS})
+
+    # -fvisibility=hidden is required to allow multiple modules compiled against
+    # different pybind versions to work properly, and for some features (e.g.
+    # py::module_local).  We force it on everything inside the `pybind11`
+    # namespace; also turning it on for a pybind module compilation here avoids
+    # potential warnings or issues from having mixed hidden/non-hidden types.
+    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+
+    if(WIN32 OR CYGWIN)
+      # Link against the Python shared library on Windows
+      target_link_libraries(${target_name} PRIVATE ${PYTHON_LIBRARIES})
+    endif()
+
+    # Make sure C++11/14 are enabled
+    target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
+
+    if(APPLE)
+      # It's quite common to have multiple copies of the same Python version
+      # installed on one's system. E.g.: one copy from the OS and another copy
+      # that's statically linked into an application like Blender or Maya.
+      # If we link our plugin library against the OS Python here and import it
+      # into Blender or Maya later on, this will cause segfaults when multiple
+      # conflicting Python instances are active at the same time (even when they
+      # are of the same version).
+
+      # Windows is not affected by this issue since it handles DLL imports
+      # differently. The solution for Linux and Mac OS is simple: we just don't
+      # link against the Python library. The resulting shared library will have
+      # missing symbols, but that's perfectly fine -- they will be resolved at
+      # import time.
+
+      target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
+
+      if(ARG_SHARED)
+        # Suppress CMake >= 3.0 warning for shared libraries
+        set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
+      endif()
+    endif()
+
+  endif()
 
   # The prefix and extension are provided by FindPythonLibsNew.cmake
   set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
   set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_MODULE_EXTENSION}")
-
-  # -fvisibility=hidden is required to allow multiple modules compiled against
-  # different pybind versions to work properly, and for some features (e.g.
-  # py::module_local).  We force it on everything inside the `pybind11`
-  # namespace; also turning it on for a pybind module compilation here avoids
-  # potential warnings or issues from having mixed hidden/non-hidden types.
-  set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-
-  if(WIN32 OR CYGWIN)
-    # Link against the Python shared library on Windows
-    target_link_libraries(${target_name} PRIVATE ${PYTHON_LIBRARIES})
-  elseif(APPLE)
-    # It's quite common to have multiple copies of the same Python version
-    # installed on one's system. E.g.: one copy from the OS and another copy
-    # that's statically linked into an application like Blender or Maya.
-    # If we link our plugin library against the OS Python here and import it
-    # into Blender or Maya later on, this will cause segfaults when multiple
-    # conflicting Python instances are active at the same time (even when they
-    # are of the same version).
-
-    # Windows is not affected by this issue since it handles DLL imports
-    # differently. The solution for Linux and Mac OS is simple: we just don't
-    # link against the Python library. The resulting shared library will have
-    # missing symbols, but that's perfectly fine -- they will be resolved at
-    # import time.
-
-    target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
-
-    if(ARG_SHARED)
-      # Suppress CMake >= 3.0 warning for shared libraries
-      set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
-    endif()
-  endif()
-
-  # Make sure C++11/14 are enabled
-  target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
 
   if(ARG_NO_EXTRAS)
     return()
