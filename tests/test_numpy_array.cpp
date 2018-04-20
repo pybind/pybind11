@@ -102,6 +102,9 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("make_f_array", [] { return py::array_t<float>({ 2, 2 }, { 4, 8 }); });
     sm.def("make_c_array", [] { return py::array_t<float>({ 2, 2 }, { 8, 4 }); });
 
+    // test_empty_shaped_array
+    sm.def("make_empty_shaped_array", [] { return py::array(py::dtype("f"), {}, {}); });
+
     // test_wrap
     sm.def("wrap", [](py::array a) {
         return py::array(
