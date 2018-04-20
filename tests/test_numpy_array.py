@@ -136,7 +136,7 @@ def test_make_c_f_array():
 
 
 def test_make_empty_shaped_array():
-    assert m.make_empty_shaped_array()
+    m.make_empty_shaped_array()
 
 
 def test_wrap():
