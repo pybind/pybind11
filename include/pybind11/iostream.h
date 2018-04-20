@@ -42,8 +42,11 @@ private:
             // This subtraction cannot be negative, so dropping the sign
             str line(pbase(), static_cast<size_t>(pptr() - pbase()));
 
-            pywrite(line);
-            pyflush();
+            {
+                gil_scoped_acquire tmp;
+                pywrite(line);
+                pyflush();
+            }
 
             setp(pbase(), epptr());
         }
