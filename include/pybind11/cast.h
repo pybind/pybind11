@@ -1403,6 +1403,12 @@ template <typename... Ts> class type_caster<std::tuple<Ts...>>
 template <typename T>
 struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
+
+    // Specialize move-only holder semantics to address #1138.
+    template <typename U = T>
+    static auto get(T &&p, enable_if_t<!is_copy_constructible<U>::value>* = nullptr) -> decltype(p.get()) {
+      return p.release();
+    }
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
@@ -1492,8 +1498,11 @@ struct move_only_holder_caster {
             "Holder classes are only supported for custom types");
 
     static handle cast(holder_type &&src, return_value_policy, handle) {
-        auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, &src);
+        // Move `src` so that `holder_helper<>::get()` can call `release` if need be.
+        // That way, if we mix `holder_type`s, we don't have to worry about `existing_holder`
+        // from being mistakenly reinterpret_cast'd to `shared_ptr<type>` (#1138).
+        auto *ptr = holder_helper<holder_type>::get(std::move(src));
+        return type_caster_base<type>::cast_holder(ptr, nullptr);
     }
     static constexpr auto name = type_caster_base<type>::name;
 };

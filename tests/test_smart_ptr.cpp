@@ -40,7 +40,8 @@ template <typename T> class huge_unique_ptr {
     uint64_t padding[10];
 public:
     huge_unique_ptr(T *p) : ptr(p) {};
-    T *get() { return ptr.get(); }
+    T *get() const { return ptr.get(); }
+    T* release() { return ptr.release(); }
 };
 PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>);
 
@@ -51,7 +52,7 @@ class custom_unique_ptr {
 public:
     custom_unique_ptr(T* p) : impl(p) { }
     T* get() const { return impl.get(); }
-    T* release_ptr() { return impl.release(); }
+    T* release() { return impl.release(); }
 };
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
 
