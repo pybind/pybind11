@@ -328,3 +328,14 @@ def test_unique_ptr_derived():
     assert obj.value() == 1
     assert obj.name() == "a"
     del obj
+
+
+def test_unique_ptr_overload_fail():
+    obj = m.UniquePtrHeld(1)
+    # These overloads pass ownership back to Python.
+    out = m.unique_ptr_overload(obj, m.FirstT())
+    assert out["obj"] is obj
+    assert out["overload"] == 1
+    out = m.unique_ptr_overload(obj, m.SecondT())
+    assert out["obj"] is obj
+    assert out["overload"] == 2

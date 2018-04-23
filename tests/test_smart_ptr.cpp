@@ -404,4 +404,26 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<UniquePtrDerived, UniquePtrHeld>(m, "UniquePtrDerived")
         .def(py::init<int, std::string>())
         .def("name", &UniquePtrDerived::name);
+
+    class FirstT {};
+    py::class_<FirstT>(m, "FirstT")
+        .def(py::init());
+    class SecondT {};
+    py::class_<SecondT>(m, "SecondT")
+        .def(py::init());
+
+    m.def("unique_ptr_overload",
+        [](std::unique_ptr<UniquePtrHeld> obj, FirstT) {
+            py::dict out;
+            out["obj"] = py::cast(std::move(obj));
+            out["overload"] = 1;
+            return out;
+        });
+    m.def("unique_ptr_overload",
+        [](std::unique_ptr<UniquePtrHeld> obj, SecondT) {
+            py::dict out;
+            out["obj"] = py::cast(std::move(obj));
+            out["overload"] = 2;
+            return out;
+        });
 }
