@@ -252,6 +252,9 @@ def test_unique_ptr_arg():
     assert m.unique_ptr_pass_through(None) is None
     m.unique_ptr_terminal(None)
 
+    with pytest.raises(TypeError):
+        m.unique_ptr_terminal(m.UniquePtrOther())
+
 
 def test_unique_ptr_keep_alive():
     obj_stats = ConstructorStats.get(m.UniquePtrHeld)
