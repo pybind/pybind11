@@ -116,7 +116,7 @@ following example:
 
 .. code-block:: cpp
 
-    void init_ex1(py::module &m) {
+    void init_ex2(py::module &m) {
         m.def("sub", [](int a, int b) { return a - b; });
     }
 
