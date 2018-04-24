@@ -113,9 +113,8 @@ struct eigen_extract_stride<Eigen::Map<PlainObjectType, MapOptions, StrideType>>
 template <typename PlainObjectType, int Options, typename StrideType>
 struct eigen_extract_stride<Eigen::Ref<PlainObjectType, Options, StrideType>> { using type = StrideType; };
 
-template <typename Scalar> bool is_pyobject_() {
-    return static_cast<pybind11::detail::npy_api::constants>(npy_format_descriptor<Scalar>::value) == npy_api::NPY_OBJECT_;
-}
+template <typename Scalar>
+using is_pyobject_dtype = std::is_base_of<npy_format_descriptor_object, npy_format_descriptor<Scalar>>;
 
 // Helper struct for extracting information from an Eigen type
 template <typename Type_> struct EigenProps {
@@ -149,9 +148,7 @@ template <typename Type_> struct EigenProps {
         const auto dims = a.ndim();
         if (dims < 1 || dims > 2)
             return false;
-        bool is_pyobject = false;
-        if (is_pyobject_<Scalar>())
-            is_pyobject = true;
+        constexpr bool is_pyobject = is_pyobject_dtype<Scalar>::value;
         ssize_t scalar_size = (is_pyobject ? static_cast<ssize_t>(sizeof(PyObject*)) :
                                static_cast<ssize_t>(sizeof(Scalar)));
         if (dims == 2) { // Matrix type: require exact match (or dynamic)
@@ -233,17 +230,27 @@ template <typename props> handle eigen_array_cast(typename props::Type const &sr
                       src.data(), base);
     }
     else {
+        if (base) {
+            // Should be disabled by upstream calls to this method.
+            // TODO(eric.cousineau): Write tests to ensure that this is not
+            // reachable.
+            throw cast_error(
+                "dtype=object does not permit array referencing. "
+                "(NOTE: this generally not be reachable, as upstream APIs "
+                "should fail before this.");
+        }
+        handle empty_base{};
+        auto policy = return_value_policy::copy;
         if (props::vector) {
             a = array(
                 npy_format_descriptor<Scalar>::dtype(),
                 { (size_t) src.size() },
                 nullptr,
-                base
+                empty_base
             );
-            auto policy = base ? return_value_policy::automatic_reference : return_value_policy::copy;
             for (ssize_t i = 0; i < src.size(); ++i) {
                 const Scalar src_val = props::fixed_rows ? src(0, i) : src(i, 0);
-                auto value_ = reinterpret_steal<object>(make_caster<Scalar>::cast(src_val, policy, base));
+                auto value_ = reinterpret_steal<object>(make_caster<Scalar>::cast(src_val, policy, empty_base));
                 if (!value_)
                     return handle();
                 a.attr("itemset")(i, value_);
@@ -254,12 +261,11 @@ template <typename props> handle eigen_array_cast(typename props::Type const &sr
                 npy_format_descriptor<Scalar>::dtype(),
                 {(size_t) src.rows(), (size_t) src.cols()},
                 nullptr,
-                base
+                empty_base
             );
-            auto policy = base ? return_value_policy::automatic_reference : return_value_policy::copy;
             for (ssize_t i = 0; i < src.rows(); ++i) {
                 for (ssize_t j = 0; j < src.cols(); ++j) {
-                    auto value_ = reinterpret_steal<object>(make_caster<Scalar>::cast(src(i, j), policy, base));
+                    auto value_ = reinterpret_steal<object>(make_caster<Scalar>::cast(src(i, j), policy, empty_base));
                     if (!value_)
                         return handle();
                     a.attr("itemset")(i, j, value_);
@@ -323,7 +329,7 @@ struct type_caster<Type, enable_if_t<is_eigen_dense_plain<Type>::value>> {
         int result = 0;
         // Allocate the new type, then build a numpy reference into it
         value = Type(fits.rows, fits.cols);
-        bool is_pyobject = is_pyobject_<Scalar>();
+        constexpr bool is_pyobject = is_pyobject_dtype<Scalar>::value;
 
         if (!is_pyobject) {
             auto ref = reinterpret_steal<array>(eigen_ref_array<props>(value));
@@ -374,22 +380,40 @@ private:
     // Cast implementation
     template <typename CType>
     static handle cast_impl(CType *src, return_value_policy policy, handle parent) {
-        switch (policy) {
-            case return_value_policy::take_ownership:
-            case return_value_policy::automatic:
-                return eigen_encapsulate<props>(src);
-            case return_value_policy::move:
-                return eigen_encapsulate<props>(new CType(std::move(*src)));
-            case return_value_policy::copy:
-                return eigen_array_cast<props>(*src);
-            case return_value_policy::reference:
-            case return_value_policy::automatic_reference:
-                return eigen_ref_array<props>(*src);
-            case return_value_policy::reference_internal:
-                return eigen_ref_array<props>(*src, parent);
-            default:
-                throw cast_error("unhandled return_value_policy: should not happen!");
-        };
+        constexpr bool is_pyobject = is_pyobject_dtype<Scalar>::value;
+        if (!is_pyobject) {
+            switch (policy) {
+                case return_value_policy::take_ownership:
+                case return_value_policy::automatic:
+                    return eigen_encapsulate<props>(src);
+                case return_value_policy::move:
+                    return eigen_encapsulate<props>(new CType(std::move(*src)));
+                case return_value_policy::copy:
+                    return eigen_array_cast<props>(*src);
+                case return_value_policy::reference:
+                case return_value_policy::automatic_reference:
+                    return eigen_ref_array<props>(*src);
+                case return_value_policy::reference_internal:
+                    return eigen_ref_array<props>(*src, parent);
+                default:
+                    throw cast_error("unhandled return_value_policy: should not happen!");
+            };
+        } else {
+            // For arrays of `dtype=object`, referencing is invalid, so we should squash that as soon as possible.
+            switch (policy) {
+                case return_value_policy::automatic:
+                case return_value_policy::move:
+                case return_value_policy::copy:
+                case return_value_policy::automatic_reference:
+                    return eigen_array_cast<props>(*src);
+                case return_value_policy::take_ownership:
+                case return_value_policy::reference:
+                case return_value_policy::reference_internal:
+                    throw cast_error("dtype=object arrays must be copied, and cannot be referenced");
+                default:
+                    throw cast_error("unhandled return_value_policy: should not happen!");
+            };
+        }
     }
 
 public:
@@ -446,6 +470,7 @@ struct return_value_policy_override<Return, enable_if_t<is_eigen_dense_map<Retur
 template <typename MapType> struct eigen_map_caster {
 private:
     using props = EigenProps<MapType>;
+    using Scalar = typename props::Scalar;
 
 public:
 
@@ -456,18 +481,33 @@ public:
     // that this means you need to ensure you don't destroy the object in some other way (e.g. with
     // an appropriate keep_alive, or with a reference to a statically allocated matrix).
     static handle cast(const MapType &src, return_value_policy policy, handle parent) {
-        switch (policy) {
-            case return_value_policy::copy:
-                return eigen_array_cast<props>(src);
-            case return_value_policy::reference_internal:
-                return eigen_array_cast<props>(src, parent, is_eigen_mutable_map<MapType>::value);
-            case return_value_policy::reference:
-            case return_value_policy::automatic:
-            case return_value_policy::automatic_reference:
-                return eigen_array_cast<props>(src, none(), is_eigen_mutable_map<MapType>::value);
-            default:
-                // move, take_ownership don't make any sense for a ref/map:
-                pybind11_fail("Invalid return_value_policy for Eigen Map/Ref/Block type");
+        if (!is_pyobject_dtype<Scalar>::value) {
+            switch (policy) {
+                case return_value_policy::copy:
+                    return eigen_array_cast<props>(src);
+                case return_value_policy::reference_internal:
+                    return eigen_array_cast<props>(src, parent, is_eigen_mutable_map<MapType>::value);
+                case return_value_policy::reference:
+                case return_value_policy::automatic:
+                case return_value_policy::automatic_reference:
+                    return eigen_array_cast<props>(src, none(), is_eigen_mutable_map<MapType>::value);
+                default:
+                    // move, take_ownership don't make any sense for a ref/map:
+                    pybind11_fail("Invalid return_value_policy for Eigen Map/Ref/Block type");
+            }
+        } else {
+            switch (policy) {
+                case return_value_policy::copy:
+                    return eigen_array_cast<props>(src);
+                case return_value_policy::reference_internal:
+                case return_value_policy::reference:
+                case return_value_policy::automatic:
+                case return_value_policy::automatic_reference:
+                    throw cast_error("dtype=object arrays must be copied, and cannot be referenced");
+                default:
+                    // move, take_ownership don't make any sense for a ref/map:
+                    pybind11_fail("Invalid return_value_policy for Eigen Map/Ref/Block type");
+            }
         }
     }
 
@@ -519,9 +559,14 @@ public:
         bool need_copy = !isinstance<Array>(src);
 
         EigenConformable<props::row_major> fits;
-        bool is_pyobject = false;
-        if (is_pyobject_<Scalar>()) {
-            is_pyobject = true;
+        constexpr bool is_pyobject = is_pyobject_dtype<Scalar>::value;
+        // TODO(eric.cousineau): Make this compile-time once Drake does not use this in any code
+        // for scalar types.
+        //static_assert(!(is_pyobject && need_writeable), "dtype=object cannot provide writeable references");
+        if (is_pyobject && need_writeable) {
+            throw cast_error("dtype=object cannot provide writeable references");
+        }
+        if (is_pyobject) {
             need_copy = true;
         }
         if (!need_copy) {

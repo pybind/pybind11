@@ -182,15 +182,31 @@ def test_eigen_passing_adscalar():
     incremented_adscalar_mat = conv_double_to_adscalar(m.incr_adscalar_matrix(adscalar_mat, 7.),
                                                        vice_versa=True)
     np.testing.assert_array_equal(incremented_adscalar_mat, ref + 7)
-    # The original adscalar_mat remains unchanged in spite of passing by reference.
+    # The original adscalar_mat remains unchanged in spite of passing by reference, since
+    # `Eigen::Ref<const CType>` permits copying, and copying is the only valid operation for
+    # `dtype=object`.
     np.testing.assert_array_equal(conv_double_to_adscalar(adscalar_mat, vice_versa=True), ref)
 
-    # Changes in Python are not reflected in C++ when internal_reference is returned
+    # Changes in Python are not reflected in C++ when internal_reference is returned.
+    # These conversions should be disabled at runtime.
+
+    def expect_ref_error(func):
+        with pytest.raises(RuntimeError) as excinfo:
+            func()
+        assert "dtype=object" in str(excinfo)
+        assert "reachable" not in str(excinfo)
+
+    # - Return arguments.
+    expect_ref_error(lambda: m.get_cm_ref_adscalar())
+    expect_ref_error(lambda: m.get_rm_ref_adscalar())
+    expect_ref_error(lambda: m.get_cm_const_ref_adscalar())
+    expect_ref_error(lambda: m.get_rm_const_ref_adscalar())
+    # - - Mutable lvalues referenced via `reference_internal`.
     return_tester = m.ReturnTester()
-    a = return_tester.get_ADScalarMat()
-    a[1, 1] = m.AutoDiffXd(4, np.ones(1))
-    b = return_tester.get_ADScalarMat()
-    assert(np.isclose(b[1, 1].value(), 7.))
+    expect_ref_error(lambda: return_tester.get_ADScalarMat())
+    # - Input arguments, writeable `Ref<>`s.
+    expect_ref_error(lambda: m.add_cm_adscalar(adscalar_vec_col))
+    expect_ref_error(lambda: m.add_rm_adscalar(adscalar_vec_row))
 
     # Checking Issue 1105
     assert m.iss1105_col_obj(adscalar_vec_col[:, None])

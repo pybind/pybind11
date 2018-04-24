@@ -61,6 +61,16 @@ void reset_refs() {
     reset_ref(get_rm());
 }
 
+VectorXADScalar& get_cm_adscalar() {
+    static VectorXADScalar value(1);
+    return value;
+};
+VectorXADScalarR& get_rm_adscalar() {
+    static VectorXADScalarR value(1);
+    return value;
+};
+
+
 // Returns element 2,1 from a matrix (used to test copy/nocopy)
 double get_elem(Eigen::Ref<const Eigen::MatrixXd> m) { return m(2, 1); };
 
@@ -106,9 +116,7 @@ TEST_SUBMODULE(eigen, m) {
     m.def("double_adscalar_row", [](const VectorXADScalarR &x) -> VectorXADScalarR { return 2.0f * x; });
     m.def("double_complex", [](const Eigen::VectorXcf &x) -> Eigen::VectorXcf { return 2.0f * x; });
     m.def("double_threec", [](py::EigenDRef<Eigen::Vector3f> x) { x *= 2; });
-    m.def("double_adscalarc", [](py::EigenDRef<VectorXADScalar> x) { x *= 2; });
     m.def("double_threer", [](py::EigenDRef<Eigen::RowVector3f> x) { x *= 2; });
-    m.def("double_adscalarr", [](py::EigenDRef<VectorXADScalarR> x) { x *= 2; });
     m.def("double_mat_cm", [](Eigen::MatrixXf x) -> Eigen::MatrixXf { return 2.0f * x; });
     m.def("double_mat_rm", [](DenseMatrixR x) -> DenseMatrixR { return 2.0f * x; });
 
@@ -130,6 +138,8 @@ TEST_SUBMODULE(eigen, m) {
     // Mutators (Eigen maps into numpy variables):
     m.def("add_rm", add_rm); // Only takes row-contiguous
     m.def("add_cm", add_cm); // Only takes column-contiguous
+    m.def("add_rm_adscalar", [](py::EigenDRef<VectorXADScalarR> x) { x.array() += 2; });
+    m.def("add_cm_adscalar", [](py::EigenDRef<VectorXADScalar> x) { x.array() += 2; });
     // Overloaded versions that will accept either row or column contiguous:
     m.def("add1", add_rm);
     m.def("add1", add_cm);
@@ -141,9 +151,17 @@ TEST_SUBMODULE(eigen, m) {
     // Return mutable references (numpy maps into eigen variables)
     m.def("get_cm_ref", []() { return Eigen::Ref<Eigen::MatrixXd>(get_cm()); });
     m.def("get_rm_ref", []() { return Eigen::Ref<MatrixXdR>(get_rm()); });
+    m.def("get_cm_ref_adscalar", []() {
+        return py::EigenDRef<VectorXADScalar>(get_cm_adscalar());
+    });
+    m.def("get_rm_ref_adscalar", []() {
+        return py::EigenDRef<VectorXADScalarR>(get_rm_adscalar());
+    });
     // The same references, but non-mutable (numpy maps into eigen variables, but is !writeable)
     m.def("get_cm_const_ref", []() { return Eigen::Ref<const Eigen::MatrixXd>(get_cm()); });
     m.def("get_rm_const_ref", []() { return Eigen::Ref<const MatrixXdR>(get_rm()); });
+    m.def("get_cm_const_ref_adscalar", []() { return Eigen::Ref<const VectorXADScalar>(get_cm_adscalar()); });
+    m.def("get_rm_const_ref_adscalar", []() { return Eigen::Ref<const VectorXADScalarR>(get_rm_adscalar()); });
 
     m.def("reset_refs", reset_refs); // Restores get_{cm,rm}_ref to original values
 
@@ -153,11 +171,12 @@ TEST_SUBMODULE(eigen, m) {
         return m;
     }, py::return_value_policy::reference);
 
-    // Increments ADScalar Matrix
-    m.def("incr_adscalar_matrix", [](Eigen::Ref<DenseADScalarMatrixC> m, double v) {
-      m += DenseADScalarMatrixC::Constant(m.rows(), m.cols(), v);
-      return m;
-    }, py::return_value_policy::reference);
+    // Increments ADScalar Matrix, returns a copy.
+    m.def("incr_adscalar_matrix", [](const Eigen::Ref<const DenseADScalarMatrixC>& m, double v) {
+      DenseADScalarMatrixC out = m;
+      out.array() += v;
+      return out;
+    });
 
     // Same, but accepts a matrix of any strides
     m.def("incr_matrix_any", [](py::EigenDRef<Eigen::MatrixXd> m, double v) {
@@ -347,10 +366,7 @@ TEST_SUBMODULE(eigen, m) {
     m.def("cpp_matrix_shape", [](const MatrixX<ADScalar>& A) {
         return py::make_tuple(A.rows(), A.cols());
     });
-    // TODO(eric.cousineau): Unless `dtype=ADScalar` (user-defined) and not
-    // `dtype=object`, we should kill any usages of `Eigen::Ref<>` or any
-    // const-references.
-    m.def("cpp_matrix_shape_ref", [](const Eigen::Ref<MatrixX<ADScalar>>& A) {
+    m.def("cpp_matrix_shape_ref", [](const Eigen::Ref<const MatrixX<ADScalar>>& A) {
         return py::make_tuple(A.rows(), A.cols());
     });
 
