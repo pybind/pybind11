@@ -6,6 +6,13 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+v2.2.3 (April 29, 2018)
+-----------------------------------------------------
+
+* The minimal supported version of the Intel compiler was >= 17.0 since
+  pybind11 v2.1. This check is now explicit, and a compile-time error is raised
+  if the compiler does not meet the requirements.
+
 v2.2.2 (February 7, 2018)
 -----------------------------------------------------
 
