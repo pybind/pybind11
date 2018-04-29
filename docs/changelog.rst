@@ -21,6 +21,10 @@ v2.3.0 (Not yet released)
 * The ``value()``  method of ``py::enum_`` now accepts an optional docstring
   that will be shown in the documentation of the associated enumeration.
 
+* Intel compilers have needed to be >= 17.0 since v2.1. Now the check
+  is explicit and a compile-time error is raised if the compiler does
+  not meet the requirements.
+
 v2.2.2 (February 7, 2018)
 -----------------------------------------------------
 
