@@ -9,9 +9,21 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.2.3 (April 29, 2018)
 -----------------------------------------------------
 
+* The pybind11 header location detection was replaced by a new implementation
+  that no longer depends on ``pip`` internals (the recently released ``pip``
+  10 has restricted access to this API).
+  `#1190 <https://github.com/pybind/pybind11/pull/1190>`_.
+
+* Small adjustment to an implementation detail to work around a compiler segmentation fault in Clang 3.3/3.4.
+  `#1350 <https://github.com/pybind/pybind11/pull/1350>`_.
+
 * The minimal supported version of the Intel compiler was >= 17.0 since
   pybind11 v2.1. This check is now explicit, and a compile-time error is raised
-  if the compiler does not meet the requirements.
+  if the compiler meet the requirement. 
+  `#1363 <https://github.com/pybind/pybind11/pull/1363>`_.
+
+* Fixed an endianness-related fault in the test suite.
+  `#1287 <https://github.com/pybind/pybind11/pull/1287>`_.
 
 v2.2.2 (February 7, 2018)
 -----------------------------------------------------
