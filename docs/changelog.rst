@@ -25,6 +25,10 @@ v2.2.3 (April 29, 2018)
 * Fixed an endianness-related fault in the test suite.
   `#1287 <https://github.com/pybind/pybind11/pull/1287>`_.
 
+* Intel compilers have needed to be >= 17.0 since v2.1. Now the check
+  is explicit and a compile-time error is raised if the compiler does
+  not meet the requirements.
+
 v2.2.2 (February 7, 2018)
 -----------------------------------------------------
 
