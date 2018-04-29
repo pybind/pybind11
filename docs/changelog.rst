@@ -19,7 +19,7 @@ v2.2.3 (April 29, 2018)
 
 * The minimal supported version of the Intel compiler was >= 17.0 since
   pybind11 v2.1. This check is now explicit, and a compile-time error is raised
-  if the compiler meet the requirement. 
+  if the compiler meet the requirement.
   `#1363 <https://github.com/pybind/pybind11/pull/1363>`_.
 
 * Fixed an endianness-related fault in the test suite.
