@@ -1394,9 +1394,9 @@ public:
             }
             return pybind11::str("???");
         });
-        def_property_readonly_static("__doc__", [m_entries_ptr](handle self) {
+        def_property_readonly_static("__doc__", [m_entries_ptr](handle self_) {
             std::string docstring;
-            const char *tp_doc = ((PyTypeObject *) self.ptr())->tp_doc;
+            const char *tp_doc = ((PyTypeObject *) self_.ptr())->tp_doc;
             if (tp_doc)
                 docstring += std::string(tp_doc) + "\n\n";
             docstring += "Members:";
@@ -1409,7 +1409,7 @@ public:
             }
             return docstring;
         });
-        def_property_readonly_static("__members__", [m_entries_ptr](handle /* self */) {
+        def_property_readonly_static("__members__", [m_entries_ptr](handle /* self_ */) {
             dict m;
             for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr))
                 m[kv.first] = kv.second[int_(0)];
