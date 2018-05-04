@@ -46,11 +46,10 @@ Normally, the binding code for these classes would look as follows:
 .. code-block:: cpp
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal> animal(m, "Animal");
-        animal
+        py::class_<Animal>(m, "Animal");
             .def("go", &Animal::go);
 
-        py::class_<Dog>(m, "Dog", animal)
+        py::class_<Dog, Animal>(m, "Dog")
             .def(py::init<>());
 
         m.def("call_go", &call_go);
@@ -93,15 +92,14 @@ function have different names, e.g.  ``operator()`` vs ``__call__``.
 The binding code also needs a few minor adaptations (highlighted):
 
 .. code-block:: cpp
-    :emphasize-lines: 2,4,5
+    :emphasize-lines: 2,3
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
-        animal
+        py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal");
             .def(py::init<>())
             .def("go", &Animal::go);
 
-        py::class_<Dog>(m, "Dog", animal)
+        py::class_<Dog, Animal>(m, "Dog")
             .def(py::init<>());
 
         m.def("call_go", &call_go);
@@ -116,11 +114,11 @@ define a constructor as usual.
 Bindings should be made against the actual class, not the trampoline helper class.
 
 .. code-block:: cpp
+    :emphasize-lines: 3
 
-    py::class_<Animal, PyAnimal /* <--- trampoline*/> animal(m, "Animal");
-        animal
-            .def(py::init<>())
-            .def("go", &PyAnimal::go); /* <--- THIS IS WRONG, use &Animal::go */
+    py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal");
+        .def(py::init<>())
+        .def("go", &PyAnimal::go); /* <--- THIS IS WRONG, use &Animal::go */
 
 Note, however, that the above is sufficient for allowing python classes to
 extend ``Animal``, but not ``Dog``: see :ref:`virtual_and_inheritance` for the
@@ -157,7 +155,7 @@ Here is an example:
 
     class Dachschund(Dog):
         def __init__(self, name):
-            Dog.__init__(self) # Without this, undefind behavior may occur if the C++ portions are referenced.
+            Dog.__init__(self) # Without this, undefined behavior may occur if the C++ portions are referenced.
             self.name = name
         def bark(self):
             return "yap!"
@@ -760,7 +758,7 @@ document)---pybind11 will automatically find out which is which. The only
 requirement is that the first template argument is the type to be declared.
 
 It is also permitted to inherit multiply from exported C++ classes in Python,
-as well as inheriting from multiple Python and/or pybind-exported classes.
+as well as inheriting from multiple Python and/or pybind11-exported classes.
 
 There is one caveat regarding the implementation of this feature:
 
@@ -781,7 +779,7 @@ are listed.
 Module-local class bindings
 ===========================
 
-When creating a binding for a class, pybind by default makes that binding
+When creating a binding for a class, pybind11 by default makes that binding
 "global" across modules.  What this means is that a type defined in one module
 can be returned from any module resulting in the same Python type.  For
 example, this allows the following:
