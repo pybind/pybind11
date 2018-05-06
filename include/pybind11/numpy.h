@@ -758,8 +758,9 @@ protected:
     static std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
         auto ndim = shape.size();
         std::vector<ssize_t> strides(ndim, itemsize);
-        for (size_t i = ndim - 1; i > 0; --i)
-            strides[i - 1] = strides[i] * shape[i];
+        if (ndim > 0)
+            for (size_t i = ndim - 1; i > 0; --i)
+                strides[i - 1] = strides[i] * shape[i];
         return strides;
     }
 
