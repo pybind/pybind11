@@ -586,7 +586,7 @@ Happy Christmas!
   being (notably dynamic attributes in custom types).
   `#527 <https://github.com/pybind/pybind11/pull/527>`_.
 
-* Significant work on the documentation -- in particular, the monolitic
+* Significant work on the documentation -- in particular, the monolithic
   ``advanced.rst`` file was restructured into a easier to read hierarchical
   organization. `#448 <https://github.com/pybind/pybind11/pull/448>`_.
 
@@ -654,8 +654,8 @@ Happy Christmas!
        <https://github.com/pybind/pybind11/pull/527>`_.
 
 
-    3. This version of pybind11 uses a redesigned mechnism for instantiating
-       trempoline classes that are used to override virtual methods from within
+    3. This version of pybind11 uses a redesigned mechanism for instantiating
+       trampoline classes that are used to override virtual methods from within
        Python. This led to the following user-visible syntax change: instead of
 
        .. code-block:: cpp

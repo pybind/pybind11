@@ -19,7 +19,7 @@
 
 // ref<T> is a wrapper for 'Object' which uses intrusive reference counting
 // It is always possible to construct a ref<T> from an Object* pointer without
-// possible incosistencies, hence the 'true' argument at the end.
+// possible inconsistencies, hence the 'true' argument at the end.
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
 // Make pybind11 aware of the non-standard getter member function
 namespace pybind11 { namespace detail {
