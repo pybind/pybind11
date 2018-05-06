@@ -135,6 +135,10 @@ def test_make_c_f_array():
     assert not m.make_f_array().flags.c_contiguous
 
 
+def test_make_empty_shaped_array():
+    m.make_empty_shaped_array()
+
+
 def test_wrap():
     def assert_references(a, b, base=None):
         from distutils.version import LooseVersion
