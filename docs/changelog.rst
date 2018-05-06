@@ -651,7 +651,7 @@ Happy Christmas!
 
 
     3. This version of pybind11 uses a redesigned mechanism for instantiating
-       trempoline classes that are used to override virtual methods from within
+       trampoline classes that are used to override virtual methods from within
        Python. This led to the following user-visible syntax change: instead of
 
        .. code-block:: cpp
