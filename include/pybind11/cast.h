@@ -1204,7 +1204,7 @@ private:
 #else
         // PyPy seems to have multiple problems related to PyUnicode_UTF*: the UTF8 version
         // sometimes segfaults for unknown reasons, while the UTF16 and 32 versions require a
-        // non-const char * arguments, which is also a nuissance, so bypass the whole thing by just
+        // non-const char * arguments, which is also a nuisance, so bypass the whole thing by just
         // passing the encoding as a string value, which works properly:
         return PyUnicode_Decode(buffer, nbytes, UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr);
 #endif
