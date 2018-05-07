@@ -95,7 +95,7 @@ The binding code also needs a few minor adaptations (highlighted):
     :emphasize-lines: 2,3
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal");
+        py::class_<Animal, PyAnimal /* <--- trampoline*/>(m, "Animal")
             .def(py::init<>())
             .def("go", &Animal::go);
 
