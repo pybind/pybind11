@@ -46,7 +46,7 @@ Normally, the binding code for these classes would look as follows:
 .. code-block:: cpp
 
     PYBIND11_MODULE(example, m) {
-        py::class_<Animal>(m, "Animal");
+        py::class_<Animal>(m, "Animal")
             .def("go", &Animal::go);
 
         py::class_<Dog, Animal>(m, "Dog")
