@@ -408,3 +408,9 @@ def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
     assert(a.size == 4)
     assert(np.all(a == 42.))
+
+
+def test_overload_scalar():
+    assert m.overload_scalar(0) == "Int"
+    assert m.overload_scalar([0]) == "Vector"
+    assert m.overload_scalar(np.array([0.])) == "Int"  # What???

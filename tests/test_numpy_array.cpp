@@ -295,4 +295,8 @@ TEST_SUBMODULE(numpy_array, sm) {
         std::fill(a.mutable_data(), a.mutable_data() + a.size(), 42.);
         return a;
     });
+
+    // Test overloads between arrays and scalars that may be implicitly convertible.
+    sm.def("overload_scalar", [](py::array_t<float>) { return "Vector"; });
+    sm.def("overload_scalar", [](int) { return "Int"; });
 }
