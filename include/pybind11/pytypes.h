@@ -1133,6 +1133,13 @@ public:
                                     (ssize_t *) stop, (ssize_t *) step,
                                     (ssize_t *) slicelength) == 0;
     }
+    bool compute(ssize_t length, ssize_t *start, ssize_t *stop, ssize_t *step,
+      ssize_t *slicelength) const {
+      return PySlice_GetIndicesEx((PYBIND11_SLICE_OBJECT *) m_ptr,
+          length, start,
+          stop, step,
+          slicelength) == 0;
+    }
 };
 
 class capsule : public object {
