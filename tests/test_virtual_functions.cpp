@@ -17,7 +17,7 @@ public:
     ExampleVirt(int state) : state(state) { print_created(this, state); }
     ExampleVirt(const ExampleVirt &e) : state(e.state) { print_copy_created(this); }
     ExampleVirt(ExampleVirt &&e) : state(e.state) { print_move_created(this); e.state = 0; }
-    ~ExampleVirt() { print_destroyed(this); }
+    virtual ~ExampleVirt() { print_destroyed(this); }
 
     virtual int run(int value) {
         py::print("Original implementation of "
