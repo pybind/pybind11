@@ -138,7 +138,22 @@ string(REGEX REPLACE "\\\\" "/" PYTHON_PREFIX ${PYTHON_PREFIX})
 string(REGEX REPLACE "\\\\" "/" PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIR})
 string(REGEX REPLACE "\\\\" "/" PYTHON_SITE_PACKAGES ${PYTHON_SITE_PACKAGES})
 
-if(CMAKE_HOST_WIN32)
+
+if(PYTHON_MULTIARCH)
+    set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}/${PYTHON_MULTIARCH}" "${PYTHON_LIBDIR}")
+else()
+    set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}")
+endif()
+#message(STATUS "Searching for Python libs in ${_PYTHON_LIBS_SEARCH}")
+# Probably this needs to be more involved. It would be nice if the config
+# information the python interpreter itself gave us were more complete.
+find_library(PYTHON_LIBRARY
+    NAMES "python${PYTHON_LIBRARY_SUFFIX}"
+    PATHS ${_PYTHON_LIBS_SEARCH}
+    NO_DEFAULT_PATH)
+
+# If all else fails, just set the name/version and let the linker figure out the path.
+if(NOT PYTHON_LIBRARY AND CMAKE_HOST_WIN32)
     set(PYTHON_LIBRARY
         "${PYTHON_PREFIX}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
 
@@ -154,25 +169,8 @@ if(CMAKE_HOST_WIN32)
     if(NOT EXISTS "${PYTHON_LIBRARY}")
         message(FATAL_ERROR "Python libraries not found")
     endif()
-
 else()
-    if(PYTHON_MULTIARCH)
-        set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}/${PYTHON_MULTIARCH}" "${PYTHON_LIBDIR}")
-    else()
-        set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}")
-    endif()
-    #message(STATUS "Searching for Python libs in ${_PYTHON_LIBS_SEARCH}")
-    # Probably this needs to be more involved. It would be nice if the config
-    # information the python interpreter itself gave us were more complete.
-    find_library(PYTHON_LIBRARY
-        NAMES "python${PYTHON_LIBRARY_SUFFIX}"
-        PATHS ${_PYTHON_LIBS_SEARCH}
-        NO_DEFAULT_PATH)
-
-    # If all else fails, just set the name/version and let the linker figure out the path.
-    if(NOT PYTHON_LIBRARY)
-        set(PYTHON_LIBRARY python${PYTHON_LIBRARY_SUFFIX})
-    endif()
+    set(PYTHON_LIBRARY python${PYTHON_LIBRARY_SUFFIX})
 endif()
 
 MARK_AS_ADVANCED(
