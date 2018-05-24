@@ -64,6 +64,7 @@ endif()
 
 if(NOT PYTHONINTERP_FOUND)
     set(PYTHONLIBS_FOUND FALSE)
+    set(PythonLibsNew_FOUND FALSE)
     return()
 endif()
 
@@ -96,6 +97,7 @@ if(NOT _PYTHON_SUCCESS MATCHES 0)
             "Python config failure:\n${_PYTHON_ERROR_VALUE}")
     endif()
     set(PYTHONLIBS_FOUND FALSE)
+    set(PythonLibsNew_FOUND FALSE)
     return()
 endif()
 
@@ -124,6 +126,7 @@ if(CMAKE_SIZEOF_VOID_P AND (NOT "${PYTHON_SIZEOF_VOID_P}" STREQUAL "${CMAKE_SIZE
             "chosen compiler is  ${_CMAKE_BITS}-bit")
     endif()
     set(PYTHONLIBS_FOUND FALSE)
+    set(PythonLibsNew_FOUND FALSE)
     return()
 endif()
 
@@ -193,3 +196,4 @@ find_package_message(PYTHON
     "${PYTHON_EXECUTABLE}${PYTHON_VERSION}")
 
 set(PYTHONLIBS_FOUND TRUE)
+set(PythonLibsNew_FOUND TRUE)

@@ -189,6 +189,11 @@ to an independently constructed (through ``add_library``, not
     Studio (``/bigobj``).  The :ref:`FAQ <faq:symhidden>` contains an
     explanation on why these are needed.
 
+.. note::
+
+    ``pybind11_add_module`` will use this interface library target in addition
+    to the above compiler flags if using a version of CMake greater than 3.0.
+
 Embedding the Python interpreter
 --------------------------------
 
