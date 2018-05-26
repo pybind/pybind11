@@ -43,14 +43,17 @@ public:
            captured variables), in which case the roundtrip can be avoided.
          */
         if (auto cfunc = func.cpp_function()) {
-            auto c = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
-            auto rec = (function_record *) c;
+            auto cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
+            if (isinstance<capsule>(cfunc_self)) {
+                auto c = reinterpret_borrow<capsule>(cfunc_self);
+                auto rec = (function_record *) c;
 
-            if (rec && rec->is_stateless &&
-                    same_type(typeid(function_type), *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
-                struct capture { function_type f; };
-                value = ((capture *) &rec->data)->f;
-                return true;
+                if (rec && rec->is_stateless &&
+                        same_type(typeid(function_type), *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
+                    struct capture { function_type f; };
+                    value = ((capture *) &rec->data)->f;
+                    return true;
+                }
             }
         }
 
