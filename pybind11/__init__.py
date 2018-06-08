@@ -5,6 +5,7 @@ def get_include(user=False):
     from distutils.dist import Distribution
     import os
     import sys
+    from os.path import abspath, dirname, join
 
     # Are we running in a virtual environment?
     virtualenv = hasattr(sys, 'real_prefix') or \
@@ -25,4 +26,7 @@ def get_include(user=False):
             dist_cobj.prefix = ""
         dist_cobj.finalize_options()
 
-        return os.path.dirname(dist_cobj.install_headers)
+        libbase_suffix = dist_cobj.install_libbase.replace(dist_cobj.install_base, '').lstrip(os.path.sep)
+        install_prefix = abspath(join(dirname(__file__), os.pardir).replace(libbase_suffix, ''))
+        header_suffix = dirname(dist_cobj.install_headers).replace(dist_cobj.install_base, '').lstrip(os.path.sep)
+        return join(install_prefix, header_suffix)
