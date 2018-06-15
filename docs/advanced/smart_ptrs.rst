@@ -1,5 +1,19 @@
-Smart pointers
-##############
+.. _holders:
+
+Smart pointers and holders
+##########################
+
+Holders
+=======
+
+The binding generator for classes, :class:`class_`, can be passed a template
+type that denotes a special *holder* type that is used to manage references to
+the object.  If no such holder type template argument is given, the default for
+a type named ``Type`` is ``std::unique_ptr<Type>``, which means that the object
+is deallocated when Python's reference count goes to zero. It is possible to
+switch to other types of reference counting wrappers or smart pointers, which
+is useful in codebases that rely on them, such as ``std::shared_ptr<Type>``, or
+even a custom type.
 
 std::unique_ptr
 ===============
@@ -15,31 +29,43 @@ instances wrapped in C++11 unique pointers, like so
 
     m.def("create_example", &create_example);
 
-In other words, there is nothing special that needs to be done. While returning
-unique pointers in this way is allowed, it is *illegal* to use them as function
-arguments. For instance, the following function signature cannot be processed
-by pybind11.
+In other words, there is nothing special that needs to be done. Also note that
+you may use ``std::unique_ptr`` as an argument to a function (or as a type in
+``py::move`` / ``py::cast``):
 
 .. code-block:: cpp
 
     void do_something_with_example(std::unique_ptr<Example> ex) { ... }
 
-The above signature would imply that Python needs to give up ownership of an
-object that is passed to this function, which is generally not possible (for
-instance, the object might be referenced elsewhere).
+When a pybind object is passed to this function signature, please note that
+pybind will no longer have ownership of this object (meaning C++ may destroy
+the object while there are still existing Python references). Care must be
+taken, the same as what is done for bare pointers.
+
+In the above function, note that the lifetime of this object is *terminal*,
+meaning that Python should *not* refer to the object after the function is done
+calling. You *may* return ownership back to pybind by casting the object, as so:
+
+.. code-block:: cpp
+
+    void do_something_with_example(std::unique_ptr<Example> ex) {
+        // ... operations...
+        py::cast(std::move(ex));  // This gives pybind back ownership.
+    }
+
+If this is done, then you may continue referencing the object in Python.
+
+When Pybind regains ownership of a Python object, it will detach any existing
+``keep_alive`` behavior, since this is commonly used for containers that
+must be kept alive because they would destroy the object that they owned.
 
 std::shared_ptr
 ===============
 
-The binding generator for classes, :class:`class_`, can be passed a template
-type that denotes a special *holder* type that is used to manage references to
-the object.  If no such holder type template argument is given, the default for
-a type named ``Type`` is ``std::unique_ptr<Type>``, which means that the object
-is deallocated when Python's reference count goes to zero.
+If you have an existing code base with ``std::shared_ptr``, or you wish to enable
+reference counting in C++ as well, then you may use this type as a holder.
 
-It is possible to switch to other types of reference counting wrappers or smart
-pointers, which is useful in codebases that rely on them. For instance, the
-following snippet causes ``std::shared_ptr`` to be used instead.
+As an example, the following snippet causes ``std::shared_ptr`` to be used instead.
 
 .. code-block:: cpp
 

@@ -56,6 +56,47 @@ public:
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
 
 
+enum class KeepAliveType : int {
+    Plain = 0,
+    KeepAlive,
+};
+
+template <
+    typename T,
+    KeepAliveType keep_alive_type>
+class Container {
+public:
+    using Ptr = std::unique_ptr<T>;
+    Container(Ptr ptr)
+        : ptr_(std::move(ptr)) {
+        print_created(this);
+    }
+    ~Container() {
+        print_destroyed(this);
+    }
+    T* get() const { return ptr_.get(); }
+    Ptr release() {
+        return std::move(ptr_);
+    }
+    void reset(Ptr ptr) {
+        ptr_ = std::move(ptr);
+    }
+
+    static void def(py::module &m, const std::string& name) {
+        py::class_<Container> cls(m, name.c_str());
+        if (keep_alive_type == KeepAliveType::KeepAlive) {
+            cls.def(py::init<Ptr>(), py::keep_alive<2, 1>());
+        } else {
+            cls.def(py::init<Ptr>());
+        }
+        cls.def("get", &Container::get, py::return_value_policy::reference_internal);
+        cls.def("release", &Container::release);
+        cls.def("reset", &Container::reset);
+    }
+private:
+    Ptr ptr_;
+};
+
 TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr
@@ -270,5 +311,119 @@ TEST_SUBMODULE(smart_ptr, m) {
             for (auto &e : el.l)
                 list.append(py::cast(e));
             return list;
+        });
+
+    class UniquePtrHeld {
+    public:
+        UniquePtrHeld() = delete;
+        UniquePtrHeld(const UniquePtrHeld&) = delete;
+        UniquePtrHeld(UniquePtrHeld&&) = delete;
+
+        UniquePtrHeld(int value)
+            : value_(value) {
+            print_created(this, value);
+        }
+        virtual ~UniquePtrHeld() {
+            print_destroyed(this);
+        }
+        int value() const { return value_; }
+    private:
+        int value_{};
+    };
+
+    // Check traits in a concise manner.
+    static_assert(
+        py::detail::move_common<std::unique_ptr<UniquePtrHeld>>::value,
+        "This trait must be true.");
+    static_assert(
+        py::detail::move_always<std::unique_ptr<UniquePtrHeld>>::value,
+        "This trait must be true.");
+    static_assert(
+        !py::detail::move_if_unreferenced<std::unique_ptr<UniquePtrHeld>>::value,
+        "This trait must be false.");
+
+    py::class_<UniquePtrHeld>(m, "UniquePtrHeld")
+        .def(py::init<int>())
+        .def("value", &UniquePtrHeld::value);
+
+    class UniquePtrOther {};
+    py::class_<UniquePtrOther>(m, "UniquePtrOther")
+        .def(py::init<>());
+
+    m.def("unique_ptr_pass_through",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            return obj;
+        });
+    m.def("unique_ptr_terminal",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            obj.reset();
+            return nullptr;
+        });
+
+    // Guarantee API works as expected.
+    m.def("unique_ptr_pass_through_cast_from_py",
+        [](py::object obj_py) {
+            auto obj =
+                py::cast<std::unique_ptr<UniquePtrHeld>>(std::move(obj_py));
+            return obj;
+        });
+    m.def("unique_ptr_pass_through_move_from_py",
+        [](py::object obj_py) {
+            return py::move<std::unique_ptr<UniquePtrHeld>>(std::move(obj_py));
+        });
+
+    m.def("unique_ptr_pass_through_move_to_py",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            return py::move(std::move(obj));
+        });
+
+    m.def("unique_ptr_pass_through_cast_to_py",
+        [](std::unique_ptr<UniquePtrHeld> obj) {
+            return py::cast(std::move(obj));
+        });
+
+    Container<UniquePtrHeld, KeepAliveType::Plain>::def(
+        m, "ContainerPlain");
+    Container<UniquePtrHeld, KeepAliveType::KeepAlive>::def(
+        m, "ContainerKeepAlive");
+
+    class UniquePtrDerived : public UniquePtrHeld {
+    public:
+        UniquePtrDerived(int value, std::string name)
+            : UniquePtrHeld(value), name_(name) {
+            print_created(this, name);
+        }
+        ~UniquePtrDerived() {
+            print_destroyed(this);
+        }
+        std::string name() const { return name_; }
+    private:
+        std::string name_{};
+    };
+
+    py::class_<UniquePtrDerived, UniquePtrHeld>(m, "UniquePtrDerived")
+        .def(py::init<int, std::string>())
+        .def("name", &UniquePtrDerived::name);
+
+    class FirstT {};
+    py::class_<FirstT>(m, "FirstT")
+        .def(py::init());
+    class SecondT {};
+    py::class_<SecondT>(m, "SecondT")
+        .def(py::init());
+
+    m.def("unique_ptr_overload",
+        [](std::unique_ptr<UniquePtrHeld> obj, FirstT) {
+            py::dict out;
+            out["obj"] = py::cast(std::move(obj));
+            out["overload"] = 1;
+            return out;
+        });
+    m.def("unique_ptr_overload",
+        [](std::unique_ptr<UniquePtrHeld> obj, SecondT) {
+            py::dict out;
+            out["obj"] = py::cast(std::move(obj));
+            out["overload"] = 2;
+            return out;
         });
 }

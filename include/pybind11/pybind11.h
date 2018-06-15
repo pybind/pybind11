@@ -70,14 +70,14 @@ public:
     /// Construct a cpp_function from a class method (non-const)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     cpp_function(Return (Class::*f)(Arg...), const Extra&... extra) {
-        initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(args...); },
+        initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return (*) (Class *, Arg...)) nullptr, extra...);
     }
 
     /// Construct a cpp_function from a class method (const)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     cpp_function(Return (Class::*f)(Arg...) const, const Extra&... extra) {
-        initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(args...); },
+        initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return (*)(const Class *, Arg ...)) nullptr, extra...);
     }
 
@@ -899,6 +899,7 @@ protected:
         tinfo->simple_ancestors = true;
         tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
+        tinfo->ownership_info = rec.ownership_info;
 
         auto &internals = get_internals();
         auto tindex = std::type_index(*rec.type);
@@ -1053,7 +1054,8 @@ public:
         record.init_instance = init_instance;
         record.dealloc = dealloc;
         record.default_holder = std::is_same<holder_type, std::unique_ptr<type>>::value;
-
+        record.ownership_info.release = holder_release;
+        record.ownership_info.reclaim = holder_reclaim;
         set_operator_new<type>(&record);
 
         /* Register base classes specified via template arguments to class_, if any */
@@ -1068,6 +1070,37 @@ public:
             auto &instances = record.module_local ? registered_local_types_cpp() : get_internals().registered_types_cpp;
             instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
         }
+    }
+
+    static void holder_release(detail::value_and_holder& v_h, void* external_holder_raw) {
+        // Release from `v_h.holder<...>()` into `external_holder`.
+        assert(v_h.inst->owned && v_h.holder_constructed() && "Internal error: Object must be owned");
+        assert(external_holder_raw && "Internal error: External holder must not be null");
+        holder_type& holder = v_h.holder<holder_type>();
+        holder_type& external_holder = *reinterpret_cast<holder_type*>(external_holder_raw);
+        external_holder = std::move(holder);
+        holder.~holder_type();
+        v_h.set_holder_constructed(false);
+        v_h.inst->owned = false;
+    }
+
+    static void holder_reclaim(detail::value_and_holder& v_h, void* external_holder_raw) {
+        // Reclaim from `external_holder` into `v_h.holder<...>()`.
+        assert(!v_h.inst->owned && !v_h.holder_constructed() && "Internal error: Object must not be owned");
+        holder_type& holder = v_h.holder<holder_type>();
+        if (external_holder_raw) {
+            // Take from external holder.
+            holder_type& external_holder = *reinterpret_cast<holder_type*>(external_holder_raw);
+            new (&holder) holder_type(std::move(external_holder));
+        } else {
+            // Construct new holder, using existing value.
+            new (&holder) holder_type(v_h.value_ptr<type>());
+        }
+        v_h.set_holder_constructed();
+        v_h.inst->owned = true;
+        // If this instance is now owend by pybind, release any existing
+        // patients (owners for `reference_internal`).
+        detail::clear_patients((PyObject*)v_h.inst);
     }
 
     template <typename Base, detail::enable_if_t<is_base<Base>::value, int> = 0>

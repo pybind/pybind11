@@ -108,6 +108,15 @@ struct type_info {
     bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
+    /* Holder information. */
+    struct ownership_info_t {
+        typedef void (*transfer_t)(detail::value_and_holder& v_h, void* existing_holder_raw);
+        // Release an instance to C++.
+        transfer_t release = nullptr;
+        // Reclaim an instance from C++.
+        transfer_t reclaim = nullptr;
+    };
+    ownership_info_t ownership_info;
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version

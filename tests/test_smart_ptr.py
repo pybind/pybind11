@@ -1,4 +1,5 @@
 import pytest
+import weakref
 from pybind11_tests import smart_ptr as m
 from pybind11_tests import ConstructorStats
 
@@ -218,3 +219,123 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
+
+
+def test_unique_ptr_arg():
+    stats = ConstructorStats.get(m.UniquePtrHeld)
+
+    pass_through_list = [
+        m.unique_ptr_pass_through,
+        m.unique_ptr_pass_through_cast_from_py,
+        m.unique_ptr_pass_through_move_from_py,
+        m.unique_ptr_pass_through_move_to_py,
+        m.unique_ptr_pass_through_cast_to_py,
+    ]
+    for pass_through in pass_through_list:
+        obj = m.UniquePtrHeld(1)
+        obj_ref = m.unique_ptr_pass_through(obj)
+        assert stats.alive() == 1
+        assert obj.value() == 1
+        assert obj == obj_ref
+        del obj
+        del obj_ref
+        pytest.gc_collect()
+        assert stats.alive() == 0
+
+    obj = m.UniquePtrHeld(1)
+    m.unique_ptr_terminal(obj)
+    assert stats.alive() == 0
+
+    m.unique_ptr_terminal(m.UniquePtrHeld(2))
+    assert stats.alive() == 0
+
+    assert m.unique_ptr_pass_through(None) is None
+    m.unique_ptr_terminal(None)
+
+    with pytest.raises(TypeError):
+        m.unique_ptr_terminal(m.UniquePtrOther())
+
+
+def test_unique_ptr_keep_alive():
+    obj_stats = ConstructorStats.get(m.UniquePtrHeld)
+    c_plain_stats = ConstructorStats.get(m.ContainerPlain)
+    c_keep_stats = ConstructorStats.get(m.ContainerKeepAlive)
+
+    # Try with plain container.
+    obj = m.UniquePtrHeld(1)
+    c_plain = m.ContainerPlain(obj)
+    c_plain_wref = weakref.ref(c_plain)
+    assert obj_stats.alive() == 1
+    assert c_plain_stats.alive() == 1
+    del c_plain
+    pytest.gc_collect()
+    # Everything should have died.
+    assert c_plain_wref() is None
+    assert c_plain_stats.alive() == 0
+    assert obj_stats.alive() == 0
+    del obj
+
+    # Ensure keep_alive via `reference_internal` still works.
+    obj = m.UniquePtrHeld(2)
+    c_plain = m.ContainerPlain(obj)
+    assert c_plain.get() is obj  # Trigger keep_alive
+    assert obj_stats.alive() == 1
+    assert c_plain_stats.alive() == 1
+    del c_plain
+    pytest.gc_collect()
+    assert obj_stats.alive() == 1
+    assert c_plain_stats.alive() == 1
+    del obj
+    pytest.gc_collect()
+    assert obj_stats.alive() == 0
+    assert c_plain_stats.alive() == 0
+
+    # Now try with keep-alive container.
+    # Primitive, very non-conservative.
+    obj = m.UniquePtrHeld(3)
+    c_keep = m.ContainerKeepAlive(obj)
+    c_keep_wref = weakref.ref(c_keep)
+    assert obj_stats.alive() == 1
+    assert c_keep_stats.alive() == 1
+    del c_keep
+    pytest.gc_collect()
+    # Everything should have stayed alive.
+    assert c_keep_wref() is not None
+    assert c_keep_stats.alive() == 1
+    assert obj_stats.alive() == 1
+    # Now release the object. This should have released the container as a patient.
+    c_keep_wref().release()
+    pytest.gc_collect()
+    assert obj_stats.alive() == 1
+    assert c_keep_stats.alive() == 0
+
+    # Check with nullptr.
+    c_keep = m.ContainerKeepAlive(None)
+    assert c_keep_stats.alive() == 1
+    obj = c_keep.get()
+    assert obj is None
+    del c_keep
+    pytest.gc_collect()
+    assert c_keep_stats.alive() == 0
+
+
+def test_unique_ptr_derived():
+    obj = m.UniquePtrDerived(1, "a")
+    c_plain = m.ContainerPlain(obj)
+    del obj
+    pytest.gc_collect()
+    obj = c_plain.release()
+    assert obj.value() == 1
+    assert obj.name() == "a"
+    del obj
+
+
+def test_unique_ptr_overload_fail():
+    obj = m.UniquePtrHeld(1)
+    # These overloads pass ownership back to Python.
+    out = m.unique_ptr_overload(obj, m.FirstT())
+    assert out["obj"] is obj
+    assert out["overload"] == 1
+    out = m.unique_ptr_overload(obj, m.SecondT())
+    assert out["obj"] is obj
+    assert out["overload"] == 2
