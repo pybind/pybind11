@@ -1423,7 +1423,7 @@ public:
 
     explicit operator type*() { return this->value; }
     explicit operator type&() { return *(this->value); }
-    explicit operator holder_type*() { return &holder; }
+    explicit operator holder_type*() { return std::addressof(holder); }
 
     // Workaround for Intel compiler bug
     // see pybind11 issue 94
@@ -1493,7 +1493,7 @@ struct move_only_holder_caster {
 
     static handle cast(holder_type &&src, return_value_policy, handle) {
         auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, &src);
+        return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
     }
     static constexpr auto name = type_caster_base<type>::name;
 };
