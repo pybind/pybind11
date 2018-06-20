@@ -57,6 +57,7 @@ matrix:
   - sudo: true
     services: docker
     env: PYTHON=3.6 CPP=17 GCC=7
+    # fails
   - os: linux
     env: PYTHON=3.6 CPP=17 CLANG=5.0
     addons:
