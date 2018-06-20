@@ -1267,25 +1267,25 @@ private:
             auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(
                     v_h.value_ptr<type>()->shared_from_this());
             if (sh) {
-                new (&v_h.holder<holder_type>()) holder_type(std::move(sh));
+                new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(sh));
                 v_h.set_holder_constructed();
             }
         } catch (const std::bad_weak_ptr &) {}
 
         if (!v_h.holder_constructed() && inst->owned) {
-            new (&v_h.holder<holder_type>()) holder_type(v_h.value_ptr<type>());
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
             v_h.set_holder_constructed();
         }
     }
 
     static void init_holder_from_existing(const detail::value_and_holder &v_h,
             const holder_type *holder_ptr, std::true_type /*is_copy_constructible*/) {
-        new (&v_h.holder<holder_type>()) holder_type(*reinterpret_cast<const holder_type *>(holder_ptr));
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(*reinterpret_cast<const holder_type *>(holder_ptr));
     }
 
     static void init_holder_from_existing(const detail::value_and_holder &v_h,
             const holder_type *holder_ptr, std::false_type /*is_copy_constructible*/) {
-        new (&v_h.holder<holder_type>()) holder_type(std::move(*const_cast<holder_type *>(holder_ptr)));
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*const_cast<holder_type *>(holder_ptr)));
     }
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
@@ -1295,7 +1295,7 @@ private:
             init_holder_from_existing(v_h, holder_ptr, std::is_copy_constructible<holder_type>());
             v_h.set_holder_constructed();
         } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
-            new (&v_h.holder<holder_type>()) holder_type(v_h.value_ptr<type>());
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
             v_h.set_holder_constructed();
         }
     }

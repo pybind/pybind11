@@ -55,6 +55,35 @@ public:
 };
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
 
+// Simple custom holder that works like shared_ptr and has operator& overload
+// To obtain address of an instance of this holder pybind should use std::addressof
+// Attempt to get address via operator& may leads to segmentation fault
+template <typename T>
+class shared_ptr_with_addressof_operator {
+    std::shared_ptr<T> impl;
+public:
+    shared_ptr_with_addressof_operator( ) = default;
+    shared_ptr_with_addressof_operator(T* p) : impl(p) { }
+    T* get() const { return impl.get(); }
+    T** operator&() { throw std::logic_error("Call of overloaded operator& is not expected"); }
+};
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>);
+
+// Simple custom holder that works like unique_ptr and has operator& overload
+// To obtain address of an instance of this holder pybind should use std::addressof
+// Attempt to get address via operator& may leads to segmentation fault
+template <typename T>
+class unique_ptr_with_addressof_operator {
+    std::unique_ptr<T> impl;
+public:
+    unique_ptr_with_addressof_operator() = default;
+    unique_ptr_with_addressof_operator(T* p) : impl(p) { }
+    T* get() const { return impl.get(); }
+    T* release_ptr() { return impl.release(); }
+    T** operator&() { throw std::logic_error("Call of overloaded operator& is not expected"); }
+};
+PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
+
 
 TEST_SUBMODULE(smart_ptr, m) {
 
@@ -233,6 +262,41 @@ TEST_SUBMODULE(smart_ptr, m) {
     };
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")
         .def_static("make", []() { return custom_unique_ptr<C>(new C); });
+
+    // test_holder_with_addressof_operator
+    struct TypeForHolderWithAddressOf {
+        TypeForHolderWithAddressOf() { print_created(this); }
+        TypeForHolderWithAddressOf(const TypeForHolderWithAddressOf &) { print_copy_created(this); }
+        TypeForHolderWithAddressOf(TypeForHolderWithAddressOf &&) { print_move_created(this); }
+        ~TypeForHolderWithAddressOf() { print_destroyed(this); }
+        std::string toString() const {
+            return "TypeForHolderWithAddressOf[" + std::to_string(value) + "]";
+        }
+        int value = 42;
+    };
+    using HolderWithAddressOf = shared_ptr_with_addressof_operator<TypeForHolderWithAddressOf>;
+    py::class_<TypeForHolderWithAddressOf, HolderWithAddressOf>(m, "TypeForHolderWithAddressOf")
+        .def_static("make", []() { return HolderWithAddressOf(new TypeForHolderWithAddressOf); })
+        .def("get", [](const HolderWithAddressOf &self) { return self.get(); })
+        .def("print_object_1", [](const TypeForHolderWithAddressOf *obj) { py::print(obj->toString()); })
+        .def("print_object_2", [](HolderWithAddressOf obj) { py::print(obj.get()->toString()); })
+        .def("print_object_3", [](const HolderWithAddressOf &obj) { py::print(obj.get()->toString()); })
+        .def("print_object_4", [](const HolderWithAddressOf *obj) { py::print((*obj).get()->toString()); });
+
+    // test_move_only_holder_with_addressof_operator
+    struct TypeForMoveOnlyHolderWithAddressOf {
+        TypeForMoveOnlyHolderWithAddressOf(int value) : value{value} { print_created(this); }
+        ~TypeForMoveOnlyHolderWithAddressOf() { print_destroyed(this); }
+        std::string toString() const {
+            return "MoveOnlyHolderWithAddressOf[" + std::to_string(value) + "]";
+        }
+        int value;
+    };
+    using MoveOnlyHolderWithAddressOf = unique_ptr_with_addressof_operator<TypeForMoveOnlyHolderWithAddressOf>;
+    py::class_<TypeForMoveOnlyHolderWithAddressOf, MoveOnlyHolderWithAddressOf>(m, "TypeForMoveOnlyHolderWithAddressOf")
+        .def_static("make", []() { return MoveOnlyHolderWithAddressOf(new TypeForMoveOnlyHolderWithAddressOf(0)); })
+        .def_readwrite("value", &TypeForMoveOnlyHolderWithAddressOf::value)
+        .def("print_object", [](const TypeForMoveOnlyHolderWithAddressOf *obj) { py::print(obj->toString()); });
 
     // test_smart_ptr_from_default
     struct HeldByDefaultHolder { };
