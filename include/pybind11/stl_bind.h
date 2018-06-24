@@ -593,6 +593,16 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
 
     cl.def("__len__", &Map::size);
 
+    // interactive ipython key completions, currently works with string keys
+    cl.def("_ipython_key_completions_",
+        [](Map &m) {
+            auto l = py::list();
+            for (const auto &p : m)
+                l.append(p.first);
+            return l;
+        }
+    );
+
     return cl;
 }
 

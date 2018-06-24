@@ -116,6 +116,7 @@ def test_map_string_double():
     assert list(mm) == ['a', 'b']
     assert list(mm.items()) == [('a', 1), ('b', 2.5)]
     assert str(mm) == "MapStringDouble{a: 1, b: 2.5}"
+    assert sorted(list(mm)) == sorted(mm._ipython_key_completions_())
 
     um = m.UnorderedMapStringDouble()
     um['ua'] = 1.1
@@ -124,6 +125,7 @@ def test_map_string_double():
     assert sorted(list(um)) == ['ua', 'ub']
     assert sorted(list(um.items())) == [('ua', 1.1), ('ub', 2.6)]
     assert "UnorderedMapStringDouble" in str(um)
+    assert sorted(list(um)) == sorted(um._ipython_key_completions_())
 
 
 def test_map_string_double_const():
