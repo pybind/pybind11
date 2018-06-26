@@ -583,6 +583,9 @@ template <typename Base, typename Derived> using is_strict_base_of = bool_consta
 template <typename Base, typename Derived> using is_accessible_base_of = bool_constant<
     std::is_base_of<Base, Derived>::value && std::is_convertible<Derived *, Base *>::value>;
 
+// Related to the above is also `is_virtual_base_of<Base, Derived>`; but it's provided in
+// `detail/is_virtual_base_of.h`
+
 template <template<typename...> class Base>
 struct is_template_base_of_impl {
     template <typename... Us> static std::true_type check(Base<Us...> *);
