@@ -1024,19 +1024,19 @@ public:
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, char>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromLong((long) src);
+        return PyLong_FromLong((char) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, short>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromLong((long) src);
+        return PyLong_FromLong((short) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, int>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromLong((long) src);
+        return PyLong_FromLong((int) src);
     }
 
     template<typename U = T>
@@ -1048,19 +1048,19 @@ public:
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned char>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromUnsignedLong((unsigned long) src);
+        return PyLong_FromUnsignedLong((unsigned char) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned short>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromUnsignedLong((unsigned long) src);
+        return PyLong_FromUnsignedLong((unsigned short) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned int>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromUnsignedLong((unsigned long) src);
+        return PyLong_FromUnsignedLong((unsigned int) src);
     }
 
     template<typename U = T>
