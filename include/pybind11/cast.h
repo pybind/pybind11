@@ -1010,10 +1010,6 @@ public:
         return true;
     }
 
-    template <class A, class B>
-    using is_explicitly_convertible = std::integral_constant<bool,
-        std::is_same<A, B>::value || (std::is_constructible<B, A>::value && !std::is_convertible<A, B>::value)>;
-
     template<typename U = T>
     static typename std::enable_if<std::is_floating_point<U>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
@@ -1021,61 +1017,25 @@ public:
     }
 
     template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, char>::value, handle>::type
-    cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PYBIND11_LONG_FROM_SIGNED((char) src);
-    }
-
-    template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, short>::value, handle>::type
-    cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PYBIND11_LONG_FROM_SIGNED((short) src);
-    }
-
-    template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, int>::value, handle>::type
-    cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PYBIND11_LONG_FROM_SIGNED((int) src);
-    }
-
-    template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, long>::value, handle>::type
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_signed<U>::value && (sizeof(U) <= sizeof(long)), handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PYBIND11_LONG_FROM_SIGNED((long) src);
     }
 
     template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned char>::value, handle>::type
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_unsigned<U>::value && (sizeof(U) <= sizeof(unsigned long)), handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PYBIND11_LONG_FROM_UNSIGNED((unsigned char) src);
+        return PYBIND11_LONG_FROM_UNSIGNED((unsigned long) src);
     }
 
     template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned short>::value, handle>::type
-    cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PYBIND11_LONG_FROM_UNSIGNED((unsigned short) src);
-    }
-
-    template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned int>::value, handle>::type
-    cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PYBIND11_LONG_FROM_UNSIGNED((unsigned int) src);
-    }
-
-    template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned long>::value, handle>::type
-    cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromUnsignedLong((unsigned long) src);
-    }
-
-    template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, long long>::value, handle>::type
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_signed<U>::value && (sizeof(U) > sizeof(long)), handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PyLong_FromLongLong((long long) src);
     }
 
     template<typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned long long>::value, handle>::type
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_unsigned<U>::value && (sizeof(U) > sizeof(unsigned long)), handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
