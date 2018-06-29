@@ -17,6 +17,7 @@
 #include <array>
 #include <limits>
 #include <tuple>
+#include <type_traits>
 
 #if defined(PYBIND11_CPP17)
 #  if defined(__has_include)
@@ -1010,10 +1011,8 @@ public:
     }
 
     template <class A, class B>
-    struct is_explicitly_convertible
-    {
-        enum {value = std::is_same<A, B>::value || (std::is_constructible<B, A>::value && !std::is_convertible<A, B>::value)};
-    };
+    using is_explicitly_convertible = std::integral_constant<bool,
+        std::is_same<A, B>::value || (std::is_constructible<B, A>::value && !std::is_convertible<A, B>::value)>;
 
     template<typename U = T>
     static typename std::enable_if<std::is_floating_point<U>::value, handle>::type
