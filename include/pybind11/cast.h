@@ -1028,6 +1028,12 @@ public:
     }
 
     template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, short>::value, handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PyLong_FromLong((long) src);
+    }
+
+    template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, int>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PyLong_FromLong((long) src);
@@ -1041,6 +1047,12 @@ public:
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned char>::value, handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PyLong_FromUnsignedLong((unsigned long) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned short>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PyLong_FromUnsignedLong((unsigned long) src);
     }
