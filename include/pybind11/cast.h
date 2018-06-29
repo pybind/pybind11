@@ -1024,43 +1024,43 @@ public:
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, char>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromLong((char) src);
+        return PYBIND11_LONG_FROM_SIGNED((char) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, short>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromLong((short) src);
+        return PYBIND11_LONG_FROM_SIGNED((short) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, int>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromLong((int) src);
+        return PYBIND11_LONG_FROM_SIGNED((int) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, long>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromLong((long) src);
+        return PYBIND11_LONG_FROM_SIGNED((long) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned char>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromUnsignedLong((unsigned char) src);
+        return PYBIND11_LONG_FROM_UNSIGNED((unsigned char) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned short>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromUnsignedLong((unsigned short) src);
+        return PYBIND11_LONG_FROM_UNSIGNED((unsigned short) src);
     }
 
     template<typename U = T>
     static typename std::enable_if<!std::is_floating_point<U>::value && is_explicitly_convertible<U, unsigned int>::value, handle>::type
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
-        return PyLong_FromUnsignedLong((unsigned int) src);
+        return PYBIND11_LONG_FROM_UNSIGNED((unsigned int) src);
     }
 
     template<typename U = T>
