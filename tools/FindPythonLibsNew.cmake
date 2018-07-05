@@ -90,6 +90,8 @@ print(s.get_config_var('MULTIARCH') or '');
     OUTPUT_VARIABLE _PYTHON_VALUES
     ERROR_VARIABLE _PYTHON_ERROR_VALUE)
 
+if(NOT CMAKE_CROSSCOMPILING)
+
 if(NOT _PYTHON_SUCCESS MATCHES 0)
     if(PythonLibsNew_FIND_REQUIRED)
         message(FATAL_ERROR
@@ -139,6 +141,7 @@ list(GET _PYTHON_VERSION_LIST 2 PYTHON_VERSION_PATCH)
 string(REGEX REPLACE "\\\\" "/" PYTHON_PREFIX ${PYTHON_PREFIX})
 string(REGEX REPLACE "\\\\" "/" PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIR})
 string(REGEX REPLACE "\\\\" "/" PYTHON_SITE_PACKAGES ${PYTHON_SITE_PACKAGES})
+endif(CMAKE_CROSSCOMPILING)
 
 if(CMAKE_HOST_WIN32)
     set(PYTHON_LIBRARY
@@ -156,7 +159,15 @@ if(CMAKE_HOST_WIN32)
     if(NOT EXISTS "${PYTHON_LIBRARY}")
         message(FATAL_ERROR "Python libraries not found")
     endif()
+elseif(CMAKE_CROSSCOMPILING)
+MESSAGE("************************PYTHONBINDINGS --- CROSS-COMPILING")
+    set(PYTHON_LIBRARY
+        "${PYTHON_PREFIX}/libpython2.7.so")
 
+    # raise an error if the python libs are still not found.
+    if(NOT EXISTS "${PYTHON_LIBRARY}")
+        message(FATAL_ERROR "Python libraries not found")
+    endif()
 else()
     if(PYTHON_MULTIARCH)
         set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}/${PYTHON_MULTIARCH}" "${PYTHON_LIBDIR}")
