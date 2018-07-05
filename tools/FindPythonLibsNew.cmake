@@ -115,6 +115,7 @@ list(GET _PYTHON_VALUES 9 PYTHON_MULTIARCH)
 
 # Make sure the Python has the same pointer-size as the chosen compiler
 # Skip if CMAKE_SIZEOF_VOID_P is not defined
+if(NOT CMAKE_CROSSCOMPILING)
 if(CMAKE_SIZEOF_VOID_P AND (NOT "${PYTHON_SIZEOF_VOID_P}" STREQUAL "${CMAKE_SIZEOF_VOID_P}"))
     if(PythonLibsNew_FIND_REQUIRED)
         math(EXPR _PYTHON_BITS "${PYTHON_SIZEOF_VOID_P} * 8")
@@ -126,6 +127,7 @@ if(CMAKE_SIZEOF_VOID_P AND (NOT "${PYTHON_SIZEOF_VOID_P}" STREQUAL "${CMAKE_SIZE
     set(PYTHONLIBS_FOUND FALSE)
     return()
 endif()
+endif(NOT CMAKE_CROSSCOMPILING)
 
 # The built-in FindPython didn't always give the version numbers
 string(REGEX REPLACE "\\." ";" _PYTHON_VERSION_LIST ${_PYTHON_VERSION_LIST})
