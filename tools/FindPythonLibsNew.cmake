@@ -160,7 +160,7 @@ if(CMAKE_HOST_WIN32)
         message(FATAL_ERROR "Python libraries not found")
     endif()
 elseif(CMAKE_CROSSCOMPILING)
-MESSAGE("************************PYTHONBINDINGS --- CROSS-COMPILING")
+MESSAGE("************************PYTHONBINDINGS --- CROSS-COMPILING: PYTHON_PREFX: ${PYTHON_PREFIX}")
     set(PYTHON_LIBRARY
         "${PYTHON_PREFIX}/libpython2.7.so")
 
