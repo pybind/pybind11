@@ -135,7 +135,7 @@ public:
     std::string print_movable(int a, int b) { return get_movable(a, b).get_value(); }
 };
 class NCVirtTrampoline : public NCVirt {
-#if !defined(__INTEL_COMPILER)
+#if !(defined(__INTEL_COMPILER) || defined(__PGIC__))
     NonCopyable get_noncopyable(int a, int b) override {
         PYBIND11_OVERLOAD(NonCopyable, NCVirt, get_noncopyable, a, b);
     }

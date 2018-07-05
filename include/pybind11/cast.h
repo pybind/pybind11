@@ -814,7 +814,7 @@ template <typename type> class type_caster_base : public type_caster_generic {
     using itype = intrinsic_t<type>;
 
 public:
-    static constexpr auto name = _<type>();
+    static constexpr auto name_ = _<type>();
 
     type_caster_base() : type_caster_base(typeid(type)) { }
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) { }
@@ -917,7 +917,7 @@ private:
             "std::reference_wrapper<T> caster requires T to have a caster with an `T &` operator");
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
-    static constexpr auto name = caster_t::name;
+    static constexpr auto name_ = caster_t::name_;
     static handle cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
         // It is definitely wrong to take ownership of this pointer, so mask that rvp
         if (policy == return_value_policy::take_ownership || policy == return_value_policy::automatic)
@@ -932,7 +932,7 @@ public:
     protected: \
         type value; \
     public: \
-        static constexpr auto name = py_name; \
+        static constexpr auto name_ = py_name; \
         template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0> \
         static handle cast(T_ *src, return_value_policy policy, handle parent) { \
             if (!src) return none().release(); \
@@ -1082,7 +1082,7 @@ public:
 
     template <typename T> using cast_op_type = void*&;
     operator void *&() { return value; }
-    static constexpr auto name = _("capsule");
+    static constexpr auto name_ = _("capsule");
 private:
     void *value = nullptr;
 };
@@ -1325,7 +1325,7 @@ public:
         return one_char;
     }
 
-    static constexpr auto name = _(PYBIND11_STRING_NAME);
+    static constexpr auto name_ = _(PYBIND11_STRING_NAME);
     template <typename _T> using cast_op_type = pybind11::detail::cast_op_type<_T>;
 };
 
@@ -1350,7 +1350,7 @@ public:
         return cast_impl(std::forward<T>(src), policy, parent, indices{});
     }
 
-    static constexpr auto name = _("Tuple[") + concat(make_caster<Ts>::name...) + _("]");
+    static constexpr auto name_ = _("Tuple[") + concat(make_caster<Ts>::name_...) + _("]");
 
     template <typename T> using cast_op_type = type;
 
@@ -1495,7 +1495,7 @@ struct move_only_holder_caster {
         auto *ptr = holder_helper<holder_type>::get(src);
         return type_caster_base<type>::cast_holder(ptr, &src);
     }
-    static constexpr auto name = type_caster_base<type>::name;
+    static constexpr auto name_ = type_caster_base<type>::name_;
 };
 
 template <typename type, typename deleter>
@@ -1526,10 +1526,10 @@ template <typename base, typename holder> struct is_holder_type :
 template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
     std::true_type {};
 
-template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
-template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };
-template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
-template <> struct handle_type_name<kwargs> { static constexpr auto name = _("**kwargs"); };
+template <typename T> struct handle_type_name { static constexpr auto name_ = _<T>(); };
+template <> struct handle_type_name<bytes> { static constexpr auto name_ = _(PYBIND11_BYTES_NAME); };
+template <> struct handle_type_name<args> { static constexpr auto name_ = _("*args"); };
+template <> struct handle_type_name<kwargs> { static constexpr auto name_ = _("**kwargs"); };
 
 template <typename type>
 struct pyobject_caster {
@@ -1547,7 +1547,7 @@ struct pyobject_caster {
     static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
         return src.inc_ref();
     }
-    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
+    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name_);
 };
 
 template <typename T>
@@ -1867,7 +1867,7 @@ public:
     static constexpr bool has_kwargs = kwargs_pos < 0;
     static constexpr bool has_args = args_pos < 0;
 
-    static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
+    static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name_)...);
 
     bool load_args(function_call &call) {
         return load_impl_sequence(call, indices{});

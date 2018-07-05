@@ -24,7 +24,7 @@ public:
 
     template <typename> using cast_op_type = value_and_holder &;
     operator value_and_holder &() { return *value; }
-    static constexpr auto name = _<value_and_holder>();
+    static constexpr auto name_ = _<value_and_holder>();
 
 private:
     value_and_holder *value = nullptr;

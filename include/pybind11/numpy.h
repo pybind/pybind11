@@ -483,12 +483,12 @@ private:
 
         for (auto field : attr("fields").attr("items")()) {
             auto spec = field.cast<tuple>();
-            auto name = spec[0].cast<pybind11::str>();
+            auto name_ = spec[0].cast<pybind11::str>();
             auto format = spec[1].cast<tuple>()[0].cast<dtype>();
             auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
-            if (!len(name) && format.kind() == 'V')
+            if (!len(name_) && format.kind() == 'V')
                 continue;
-            field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(format.itemsize()), offset});
+            field_descriptors.push_back({(PYBIND11_STR_TYPE) name_, format.strip_padding(format.itemsize()), offset});
         }
 
         std::sort(field_descriptors.begin(), field_descriptors.end(),
@@ -962,7 +962,7 @@ struct pyobject_caster<array_t<T, ExtraFlags>> {
     static handle cast(const handle &src, return_value_policy /* policy */, handle /* parent */) {
         return src.inc_ref();
     }
-    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name);
+    PYBIND11_TYPE_CASTER(type, handle_type_name<type>::name_);
 };
 
 template <typename T>
@@ -977,21 +977,21 @@ struct npy_format_descriptor_name;
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {
-    static constexpr auto name = _<std::is_same<T, bool>::value>(
+    static constexpr auto name_ = _<std::is_same<T, bool>::value>(
         _("bool"), _<std::is_signed<T>::value>("int", "uint") + _<sizeof(T)*8>()
     );
 };
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
-    static constexpr auto name = _<std::is_same<T, float>::value || std::is_same<T, double>::value>(
+    static constexpr auto name_ = _<std::is_same<T, float>::value || std::is_same<T, double>::value>(
         _("float") + _<sizeof(T)*8>(), _("longdouble")
     );
 };
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
-    static constexpr auto name = _<std::is_same<typename T::value_type, float>::value
+    static constexpr auto name_ = _<std::is_same<typename T::value_type, float>::value
                                    || std::is_same<typename T::value_type, double>::value>(
         _("complex") + _<sizeof(typename T::value_type)*16>(), _("longcomplex")
     );
@@ -1021,7 +1021,7 @@ public:
 };
 
 #define PYBIND11_DECL_CHAR_FMT \
-    static constexpr auto name = _("S") + _<N>(); \
+    static constexpr auto name_ = _("S") + _<N>(); \
     static pybind11::dtype dtype() { return pybind11::dtype(std::string("S") + std::to_string(N)); }
 template <size_t N> struct npy_format_descriptor<char[N]> { PYBIND11_DECL_CHAR_FMT };
 template <size_t N> struct npy_format_descriptor<std::array<char, N>> { PYBIND11_DECL_CHAR_FMT };
@@ -1033,7 +1033,7 @@ private:
 public:
     static_assert(!array_info<T>::is_empty, "Zero-sized arrays are not supported");
 
-    static constexpr auto name = _("(") + array_info<T>::extents + _(")") + base_descr::name;
+    static constexpr auto name_ = _("(") + array_info<T>::extents + _(")") + base_descr::name_;
     static pybind11::dtype dtype() {
         list shape;
         array_info<T>::append_extents(shape);
@@ -1045,7 +1045,7 @@ template<typename T> struct npy_format_descriptor<T, enable_if_t<std::is_enum<T>
 private:
     using base_descr = npy_format_descriptor<typename std::underlying_type<T>::type>;
 public:
-    static constexpr auto name = base_descr::name;
+    static constexpr auto name_ = base_descr::name_;
     static pybind11::dtype dtype() { return base_descr::dtype(); }
 };
 
@@ -1120,7 +1120,7 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
 template <typename T, typename SFINAE> struct npy_format_descriptor {
     static_assert(is_pod_struct<T>::value, "Attempt to use a non-POD or unimplemented POD type as a numpy dtype");
 
-    static constexpr auto name = make_caster<T>::name;
+    static constexpr auto name_ = make_caster<T>::name_;
 
     static pybind11::dtype dtype() {
         return reinterpret_borrow<pybind11::dtype>(dtype_ptr());
@@ -1146,8 +1146,8 @@ private:
         auto& api = npy_api::get();
         if (!PyObject_TypeCheck(obj, api.PyVoidArrType_Type_))
             return false;
-        if (auto descr = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(obj))) {
-            if (api.PyArray_EquivTypes_(dtype_ptr(), descr.ptr())) {
+        if (auto descr_ = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(obj))) {
+            if (api.PyArray_EquivTypes_(dtype_ptr(), descr_.ptr())) {
                 value = ((PyVoidScalarObject_Proxy *) obj)->obval;
                 return true;
             }
@@ -1567,7 +1567,7 @@ vectorize_extractor(const Func &f, Return (*) (Args ...)) {
 }
 
 template <typename T, int Flags> struct handle_type_name<array_t<T, Flags>> {
-    static constexpr auto name = _("numpy.ndarray[") + npy_format_descriptor<T>::name + _("]");
+    static constexpr auto name_ = _("numpy.ndarray[") + npy_format_descriptor<T>::name_ + _("]");
 };
 
 NAMESPACE_END(detail)

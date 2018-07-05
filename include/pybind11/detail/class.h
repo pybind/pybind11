@@ -288,14 +288,12 @@ extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject 
 
 inline void add_patient(PyObject *nurse, PyObject *patient) {
     auto &internals = get_internals();
-    auto instance = reinterpret_cast<detail::instance *>(nurse);
-    instance->has_patients = true;
+    reinterpret_cast<detail::instance *>(nurse)->has_patients = true;
     Py_INCREF(patient);
     internals.patients[nurse].push_back(patient);
 }
 
 inline void clear_patients(PyObject *self) {
-    auto instance = reinterpret_cast<detail::instance *>(self);
     auto &internals = get_internals();
     auto pos = internals.patients.find(self);
     assert(pos != internals.patients.end());
@@ -304,7 +302,7 @@ inline void clear_patients(PyObject *self) {
     // from the unordered_map first.
     auto patients = std::move(pos->second);
     internals.patients.erase(pos);
-    instance->has_patients = false;
+    reinterpret_cast<detail::instance *>(self)->has_patients = false;
     for (PyObject *&patient : patients)
         Py_CLEAR(patient);
 }
@@ -312,32 +310,32 @@ inline void clear_patients(PyObject *self) {
 /// Clears all internal data from the instance and removes it from registered instances in
 /// preparation for deallocation.
 inline void clear_instance(PyObject *self) {
-    auto instance = reinterpret_cast<detail::instance *>(self);
+    auto local_instance = reinterpret_cast<detail::instance *>(self);
 
     // Deallocate any values/holders, if present:
-    for (auto &v_h : values_and_holders(instance)) {
+    for (auto &v_h : values_and_holders(local_instance)) {
         if (v_h) {
 
             // We have to deregister before we call dealloc because, for virtual MI types, we still
             // need to be able to get the parent pointers.
-            if (v_h.instance_registered() && !deregister_instance(instance, v_h.value_ptr(), v_h.type))
+            if (v_h.instance_registered() && !deregister_instance(local_instance, v_h.value_ptr(), v_h.type))
                 pybind11_fail("pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
 
-            if (instance->owned || v_h.holder_constructed())
+            if (local_instance->owned || v_h.holder_constructed())
                 v_h.type->dealloc(v_h);
         }
     }
     // Deallocate the value/holder layout internals:
-    instance->deallocate_layout();
+    local_instance->deallocate_layout();
 
-    if (instance->weakrefs)
+    if (local_instance->weakrefs)
         PyObject_ClearWeakRefs(self);
 
     PyObject **dict_ptr = _PyObject_GetDictPtr(self);
     if (dict_ptr)
         Py_CLEAR(*dict_ptr);
 
-    if (instance->has_patients)
+    if (local_instance->has_patients)
         clear_patients(self);
 }
 
@@ -514,13 +512,13 @@ inline void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
 /** Create a brand new Python type according to the `type_record` specification.
     Return value: New reference. */
 inline PyObject* make_new_python_type(const type_record &rec) {
-    auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec.name));
+    auto py_name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec.name));
 
-    auto qualname = name;
+    auto qualname = py_name;
     if (rec.scope && !PyModule_Check(rec.scope.ptr()) && hasattr(rec.scope, "__qualname__")) {
 #if PY_MAJOR_VERSION >= 3
         qualname = reinterpret_steal<object>(
-            PyUnicode_FromFormat("%U.%U", rec.scope.attr("__qualname__").ptr(), name.ptr()));
+            PyUnicode_FromFormat("%U.%U", rec.scope.attr("__qualname__").ptr(), py_name.ptr()));
 #else
         qualname = str(rec.scope.attr("__qualname__").cast<std::string>() + "." + rec.name);
 #endif
@@ -551,21 +549,22 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     auto &internals = get_internals();
     auto bases = tuple(rec.bases);
-    auto base = (bases.size() == 0) ? internals.instance_base
-                                    : bases[0].ptr();
+    auto base_ptr = (bases.size() == 0) ? internals.instance_base
+                                        : bases[0].ptr();
 
     /* Danger zone: from now (and until PyType_Ready), make sure to
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto metaclass = rec.metaclass.ptr() ? (PyTypeObject *) rec.metaclass.ptr()
-                                         : internals.default_metaclass;
+    auto metaclass_ptr = rec.metaclass.ptr()
+        ? (PyTypeObject *) rec.metaclass.ptr()
+        : internals.default_metaclass;
 
-    auto heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
+    auto heap_type = (PyHeapTypeObject *) metaclass_ptr->tp_alloc(metaclass_ptr, 0);
     if (!heap_type)
         pybind11_fail(std::string(rec.name) + ": Unable to create type object!");
 
-    heap_type->ht_name = name.release().ptr();
+    heap_type->ht_name = py_name.release().ptr();
 #ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = qualname.inc_ref().ptr();
 #endif
@@ -573,7 +572,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     auto type = &heap_type->ht_type;
     type->tp_name = full_name;
     type->tp_doc = tp_doc;
-    type->tp_base = type_incref((PyTypeObject *)base);
+    type->tp_base = type_incref((PyTypeObject *)base_ptr);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
     if (bases.size() > 0)
         type->tp_bases = bases.release().ptr();

@@ -164,7 +164,7 @@ protected:
         process_attributes<Extra...>::init(extra..., rec);
 
         /* Generate a readable signature describing the function's arguments and return value types */
-        static constexpr auto signature = _("(") + cast_in::arg_names + _(") -> ") + cast_out::name;
+        static constexpr auto signature = _("(") + cast_in::arg_names + _(") -> ") + cast_out::name_;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */
@@ -738,12 +738,12 @@ protected:
                 msg += pybind11::repr(args_[ti]);
             }
             if (kwargs_in) {
-                auto kwargs = reinterpret_borrow<dict>(kwargs_in);
-                if (kwargs.size() > 0) {
+                auto kwargs_ = reinterpret_borrow<dict>(kwargs_in);
+                if (kwargs_.size() > 0) {
                     if (some_args) msg += "; ";
                     msg += "kwargs: ";
                     bool first = true;
-                    for (auto kwarg : kwargs) {
+                    for (auto kwarg : kwargs_) {
                         if (first) first = false;
                         else msg += ", ";
                         msg += pybind11::str("{}={!r}").format(kwarg.first, kwarg.second);
