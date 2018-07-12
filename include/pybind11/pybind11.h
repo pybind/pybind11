@@ -1463,7 +1463,10 @@ public:
     enum_& value(char const* name, Type value, const char *doc = nullptr) {
         auto v = pybind11::cast(value, return_value_policy::copy);
         this->attr(name) = v;
-        m_entries[pybind11::str(name)] = std::make_pair(v, doc);
+		auto name_converted = pybind11::str(name);
+		if (m_entries.contains(name_converted))
+			throw value_error("Enum error - element with provided name already exist");
+        m_entries[name_converted] = std::make_pair(v, doc);
         return *this;
     }
 
