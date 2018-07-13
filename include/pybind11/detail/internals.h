@@ -79,7 +79,11 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
-    decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
+    #if PY_VERSION_HEX >= 0x03070000
+        Py_tss_t *tstate = nullptr;
+    #else
+        decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
+    #endif
     PyInterpreterState *istate = nullptr;
 #endif
 };
@@ -111,7 +115,7 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 1
+#define PYBIND11_INTERNALS_VERSION 2
 
 #if defined(WITH_THREAD)
 #  define PYBIND11_INTERNALS_KIND ""
@@ -166,8 +170,15 @@ PYBIND11_NOINLINE inline internals &get_internals() {
 #if defined(WITH_THREAD)
         PyEval_InitThreads();
         PyThreadState *tstate = PyThreadState_Get();
-        internals_ptr->tstate = PyThread_create_key();
-        PyThread_set_key_value(internals_ptr->tstate, tstate);
+        #if PY_VERSION_HEX >= 0x03070000
+            internals_ptr->tstate = PyThread_tss_alloc();
+            if (!internals_ptr->tstate || PyThread_tss_create(internals_ptr->tstate))
+                pybind11_fail("get_internals: could not successfully initialize the TSS key!");
+            PyThread_tss_set(internals_ptr->tstate, tstate);
+        #else
+            internals_ptr->tstate = PyThread_create_key();
+            PyThread_set_key_value(internals_ptr->tstate, tstate);
+        #endif
         internals_ptr->istate = tstate->interp;
 #endif
         builtins[id] = capsule(internals_pp);

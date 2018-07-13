@@ -1774,7 +1774,11 @@ class gil_scoped_acquire {
 public:
     PYBIND11_NOINLINE gil_scoped_acquire() {
         auto const &internals = detail::get_internals();
-        tstate = (PyThreadState *) PyThread_get_key_value(internals.tstate);
+        #if PY_VERSION_HEX >= 0x03070000
+            tstate = (PyThreadState *) PyThread_tss_get(internals.tstate);
+        #else
+            tstate = (PyThreadState *) PyThread_get_key_value(internals.tstate);
+        #endif
 
         if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
@@ -1786,7 +1790,11 @@ public:
             #if PY_MAJOR_VERSION < 3
                 PyThread_delete_key_value(internals.tstate);
             #endif
-            PyThread_set_key_value(internals.tstate, tstate);
+            #if PY_VERSION_HEX >= 0x03070000
+                PyThread_tss_set(internals.tstate, tstate);
+            #else
+                PyThread_set_key_value(internals.tstate, tstate);
+            #endif
         } else {
             release = detail::get_thread_state_unchecked() != tstate;
         }
@@ -1825,7 +1833,11 @@ public:
             #endif
             PyThreadState_Clear(tstate);
             PyThreadState_DeleteCurrent();
-            PyThread_delete_key_value(detail::get_internals().tstate);
+            #if PY_VERSION_HEX >= 0x03070000
+                PyThread_tss_set(detail::get_internals().tstate, nullptr);
+            #else
+                PyThread_delete_key_value(detail::get_internals().tstate);
+            #endif
             release = false;
         }
     }
@@ -1852,6 +1864,8 @@ public:
             auto key = internals.tstate;
             #if PY_MAJOR_VERSION < 3
                 PyThread_delete_key_value(key);
+            #elif PY_VERSION_HEX >= 0x03070000
+                PyThread_tss_set(key, nullptr);
             #else
                 PyThread_set_key_value(key, nullptr);
             #endif
@@ -1866,7 +1880,11 @@ public:
             #if PY_MAJOR_VERSION < 3
                 PyThread_delete_key_value(key);
             #endif
-            PyThread_set_key_value(key, tstate);
+            #if PY_VERSION_HEX >= 0x03070000
+                PyThread_tss_set(key, tstate);
+            #else
+                PyThread_set_key_value(key, tstate);
+            #endif
         }
     }
 private:
