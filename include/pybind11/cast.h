@@ -1592,9 +1592,13 @@ template <typename type> using cast_is_temporary_value_reference = bool_constant
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
 // force `policy = move`, regardless of the return value policy the function/method was declared
-// with.  Some classes (most notably Eigen::Ref and related) need to avoid this, and so can do so by
-// specializing this struct.
+// with.
 template <typename Return, typename SFINAE = void> struct return_value_policy_override {
+    static return_value_policy policy(return_value_policy p) { return p; }
+};
+
+template <typename Return> struct return_value_policy_override<Return,
+        detail::enable_if_t<std::is_base_of<type_caster_generic, make_caster<Return>>::value, void>> {
     static return_value_policy policy(return_value_policy p) {
         return !std::is_lvalue_reference<Return>::value && !std::is_pointer<Return>::value
             ? return_value_policy::move : p;

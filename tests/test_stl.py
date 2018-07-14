@@ -2,6 +2,7 @@ import pytest
 
 from pybind11_tests import stl as m
 from pybind11_tests import UserType
+from pybind11_tests import ConstructorStats
 
 
 def test_vector(doc):
@@ -198,3 +199,12 @@ def test_missing_header_message():
     with pytest.raises(TypeError) as excinfo:
         cm.missing_header_return()
     assert expected_message in str(excinfo.value)
+
+
+def test_stl_ownership():
+    cstats = ConstructorStats.get(m.Placeholder)
+    assert cstats.alive() == 0
+    r = m.test_stl_ownership()
+    assert len(r) == 1
+    del r
+    assert cstats.alive() == 0
