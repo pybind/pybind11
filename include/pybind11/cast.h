@@ -17,6 +17,7 @@
 #include <array>
 #include <limits>
 #include <tuple>
+#include <type_traits>
 
 #if defined(PYBIND11_CPP17)
 #  if defined(__has_include)
@@ -1009,21 +1010,34 @@ public:
         return true;
     }
 
-    static handle cast(T src, return_value_policy /* policy */, handle /* parent */) {
-        if (std::is_floating_point<T>::value) {
-            return PyFloat_FromDouble((double) src);
-        } else if (sizeof(T) <= sizeof(ssize_t)) {
-            // This returns a long automatically if needed
-            if (std::is_signed<T>::value)
-                return PYBIND11_LONG_FROM_SIGNED(src);
-            else
-                return PYBIND11_LONG_FROM_UNSIGNED(src);
-        } else {
-            if (std::is_signed<T>::value)
-                return PyLong_FromLongLong((long long) src);
-            else
-                return PyLong_FromUnsignedLongLong((unsigned long long) src);
-        }
+    template<typename U = T>
+    static typename std::enable_if<std::is_floating_point<U>::value, handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PyFloat_FromDouble((double) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_signed<U>::value && (sizeof(U) <= sizeof(long)), handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PYBIND11_LONG_FROM_SIGNED((long) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_unsigned<U>::value && (sizeof(U) <= sizeof(unsigned long)), handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PYBIND11_LONG_FROM_UNSIGNED((unsigned long) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_signed<U>::value && (sizeof(U) > sizeof(long)), handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PyLong_FromLongLong((long long) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_unsigned<U>::value && (sizeof(U) > sizeof(unsigned long)), handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
     PYBIND11_TYPE_CASTER(T, _<std::is_integral<T>::value>("int", "float"));
