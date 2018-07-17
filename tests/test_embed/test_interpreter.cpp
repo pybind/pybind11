@@ -298,5 +298,5 @@ void exportBadEnum(pybind11::module &m)
 TEST_CASE("Defining enum with mutiple identical values should cause an error")
 {
     pybind11::module m("tempModule");
-    REQUIRE_THROWS_WITH(exportBadEnum(m), "Enum error - element with provided name already exist");
+    REQUIRE_THROWS_WITH(exportBadEnum(m), "Enum error - element with name: ONE already exists");
 }

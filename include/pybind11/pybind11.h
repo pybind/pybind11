@@ -1465,7 +1465,7 @@ public:
         this->attr(name) = v;
         auto name_converted = pybind11::str(name);
         if (m_entries.contains(name_converted))
-            throw value_error("Enum error - element with provided name already exist");
+            throw value_error("Enum error - element with name: " + std::string(name) + " already exists");
         m_entries[name_converted] = std::make_pair(v, doc);
         return *this;
     }
