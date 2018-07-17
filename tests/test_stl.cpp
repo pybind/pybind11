@@ -240,7 +240,7 @@ TEST_SUBMODULE(stl, m) {
     class Placeholder {
     public:
         Placeholder() { print_created(this); }
-        Placeholder(const Placeholder &) = delete;//{ print_created(this); }
+        Placeholder(const Placeholder &) = delete;
         ~Placeholder() { print_destroyed(this); }
     };
     py::class_<Placeholder>(m, "Placeholder");
