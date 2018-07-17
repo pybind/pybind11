@@ -21,15 +21,13 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
 #if PY_VERSION_HEX >= 0x03070000
-    #define PYBIND11_TLS_KEY_TYPE Py_tss_t *
-    #define PYBIND11_TLS_KEY_NULL_VALUE nullptr
+    #define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr
     #define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
     #define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (tstate))
     #define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
 #else
     // Usually an int but a long on Cygwin64 with Python 3.x
-    #define PYBIND11_TLS_KEY_TYPE decltype(PyThread_create_key())
-    #define PYBIND11_TLS_KEY_NULL_VALUE 0
+    #define PYBIND11_TLS_KEY_INIT(var) decltype(PyThread_create_key()) var = 0
     #define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
     #if PY_MAJOR_VERSION < 3
         #define PYBIND11_TLS_REPLACE_VALUE(key, value) do { PyThread_delete_key_value((key)); PyThread_set_key_value((key), (value)); } while (false)
@@ -100,7 +98,7 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
-    PYBIND11_TLS_KEY_TYPE tstate = PYBIND11_TLS_KEY_NULL_VALUE;
+    PYBIND11_TLS_KEY_INIT(tstate);
     PyInterpreterState *istate = nullptr;
 #endif
 };
