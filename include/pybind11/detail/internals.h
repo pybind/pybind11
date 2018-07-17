@@ -18,6 +18,27 @@ inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
 inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 
+// The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
+// Thread Specific Storage (TSS) API.
+#if PY_VERSION_HEX >= 0x03070000
+    #define PYBIND11_TLS_KEY_TYPE Py_tss_t *
+    #define PYBIND11_TLS_KEY_NULL_VALUE nullptr
+    #define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
+    #define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (tstate))
+    #define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#else
+    // Usually an int but a long on Cygwin64 with Python 3.x
+    #define PYBIND11_TLS_KEY_TYPE decltype(PyThread_create_key())
+    #define PYBIND11_TLS_KEY_NULL_VALUE 0
+    #define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
+    #if PY_MAJOR_VERSION < 3
+        #define PYBIND11_TLS_REPLACE_VALUE(key, value) do { PyThread_delete_key_value((key)); PyThread_set_key_value((key), (value)); } while (false)
+    #else
+        #define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_set_key_value((key), (value))
+    #endif
+    #define PYBIND11_TLS_DELETE_VALUE(key) PyThread_set_key_value((key), nullptr)
+#endif
+
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
 // other STLs, this means `typeid(A)` from one module won't equal `typeid(A)` from another module
 // even when `A` is the same, non-hidden-visibility type (e.g. from a common include).  Under
@@ -79,11 +100,7 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
-    #if PY_VERSION_HEX >= 0x03070000
-        Py_tss_t *tstate = nullptr;
-    #else
-        decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
-    #endif
+    PYBIND11_TLS_KEY_TYPE tstate = PYBIND11_TLS_KEY_NULL_VALUE;
     PyInterpreterState *istate = nullptr;
 #endif
 };
@@ -177,6 +194,8 @@ PYBIND11_NOINLINE inline internals &get_internals() {
             PyThread_tss_set(internals_ptr->tstate, tstate);
         #else
             internals_ptr->tstate = PyThread_create_key();
+            if (internals_ptr->tstate == -1)
+                pybind11_fail("get_internals: could not successfully initialize the TLS key!");
             PyThread_set_key_value(internals_ptr->tstate, tstate);
         #endif
         internals_ptr->istate = tstate->interp;
