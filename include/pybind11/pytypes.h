@@ -895,6 +895,9 @@ private:
 };
 /// @} pytypes
 
+// str::check_ is too permissive for `isinstance` (in particular it allows a `bytes` object)
+template <> inline bool isinstance<str>(handle obj) { return PyUnicode_Check(obj.ptr()); }
+
 inline namespace literals {
 /** \rst
     String literal version of `str`

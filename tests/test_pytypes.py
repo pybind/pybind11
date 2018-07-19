@@ -238,3 +238,8 @@ def test_hash():
     assert m.hash_function(Hashable(42)) == 42
     with pytest.raises(TypeError):
         m.hash_function(Unhashable())
+
+
+def test_str_isinstance():
+    assert m.is_str_instance(u"abc")
+    assert not m.is_str_instance(b"abc")
