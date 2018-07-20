@@ -148,3 +148,9 @@ def test_enum_to_int():
     m.test_enum_to_uint(m.ClassWithUnscopedEnum.EMode.EFirstMode)
     m.test_enum_to_long_long(m.Flags.Read)
     m.test_enum_to_long_long(m.ClassWithUnscopedEnum.EMode.EFirstMode)
+
+
+def test_duplicate_enum_name():
+    with pytest.raises(ValueError) as excinfo:
+        m.register_bad_enum()
+    assert str(excinfo.value) == "Enum error - element with name: ONE already exists"

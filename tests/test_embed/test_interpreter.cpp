@@ -282,21 +282,3 @@ TEST_CASE("Reload module from file") {
     result = module.attr("test")().cast<int>();
     REQUIRE(result == 2);
 }
-
-void exportBadEnum(pybind11::module &m)
-{
-    enum SimpleEnum
-    {
-        ONE, TWO, THREE
-    };
-    py::enum_<SimpleEnum>(m, "SimpleEnum")
-        .value("ONE", SimpleEnum::ONE)          //NOTE: all value function calls are called with the same first parameter value
-        .value("ONE", SimpleEnum::TWO)
-        .value("ONE", SimpleEnum::THREE)
-        .export_values();
-}
-TEST_CASE("Defining enum with mutiple identical values should cause an error")
-{
-    pybind11::module m("tempModule");
-    REQUIRE_THROWS_WITH(exportBadEnum(m), "Enum error - element with name: ONE already exists");
-}

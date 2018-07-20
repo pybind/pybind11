@@ -68,4 +68,18 @@ TEST_SUBMODULE(enums, m) {
     m.def("test_enum_to_int", [](int) { });
     m.def("test_enum_to_uint", [](uint32_t) { });
     m.def("test_enum_to_long_long", [](long long) { });
+
+    // test_duplicate_enum_name
+    enum SimpleEnum
+    {
+        ONE, TWO, THREE
+    };
+
+    m.def("register_bad_enum", [m]() {
+        py::enum_<SimpleEnum>(m, "SimpleEnum")
+            .value("ONE", SimpleEnum::ONE)          //NOTE: all value function calls are called with the same first parameter value
+            .value("ONE", SimpleEnum::TWO)
+            .value("ONE", SimpleEnum::THREE)
+            .export_values();
+    });
 }
