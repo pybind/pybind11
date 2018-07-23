@@ -166,4 +166,30 @@ TEST_SUBMODULE(buffers, m) {
         .def_readwrite("value", (int32_t DerivedBuffer::*) &DerivedBuffer::value)
         .def_buffer(&DerivedBuffer::get_buffer_info);
 
+    struct BufferReadOnly {
+        const uint8_t value = 0;
+        BufferReadOnly(uint8_t value): value(value) {}
+
+        py::buffer_info get_buffer_info() {
+            return py::buffer_info(&value, 1);
+        }
+    };
+    py::class_<BufferReadOnly>(m, "BufferReadOnly", py::buffer_protocol())
+        .def(py::init<uint8_t>())
+        .def_buffer(&BufferReadOnly::get_buffer_info);
+
+    struct BufferReadOnlySelect {
+        uint8_t value = 0;
+        bool readonly = false;
+
+        py::buffer_info get_buffer_info() {
+            return py::buffer_info(&value, 1, readonly);
+        }
+    };
+    py::class_<BufferReadOnlySelect>(m, "BufferReadOnlySelect", py::buffer_protocol())
+        .def(py::init<>())
+        .def_readwrite("value", &BufferReadOnlySelect::value)
+        .def_readwrite("readonly", &BufferReadOnlySelect::readonly)
+        .def_buffer(&BufferReadOnlySelect::get_buffer_info);
+
 }
