@@ -408,3 +408,18 @@ def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
     assert(a.size == 4)
     assert(np.all(a == 42.))
+
+
+def test_overload_scalar():
+    assert m.overload_scalar(0) == "Int"
+    assert m.overload_scalar([0]) == "Vector"
+    assert m.overload_scalar(np.array([0.])) == "Int"  # Not desirable.
+    # Try workaround.
+    assert m.overload_scalar_workaround(0) == "Int"
+    assert m.overload_scalar_workaround([0]) == "Vector"
+    assert m.overload_scalar_workaround(np.array([0.])) == "Vector"  # Desirable.
+    # Ensure we exclude bad values.
+    with pytest.raises(TypeError) as excinfo:
+        assert m.overload_scalar("hello") == "Vector"
+    assert "arg0: numpy.ndarray[float32]" in str(excinfo.value)
+    assert "arg0: int" in str(excinfo.value)

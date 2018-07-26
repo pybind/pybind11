@@ -68,6 +68,39 @@ template <typename T, typename T2> py::handle auxiliaries(T &&r, T2 &&r2) {
     return l.release();
 }
 
+// Provides a mechanism to have an argument immediately attempt conversion,
+// even during the "no converion" pass during function dispatch, with an additional check to prevent it from being *too* greedy.
+
+struct greedy_arg_no_check {
+    static bool run(py::handle) { return true; }
+};
+
+template <typename T, typename Check = greedy_arg_no_check>
+class greedy_arg {
+public:
+    greedy_arg(T&& value) : value_(std::move(value)) {}
+    // TODO(eric.cousineau): Figure out how to handle referencing properly.
+    T&& operator*() const {
+        return std::move(value_);
+    }
+private:
+    T value_;
+};
+
+namespace pybind11 { namespace detail {
+template <typename T, typename Check>
+struct type_caster<greedy_arg<T, Check>> : type_caster<T> {
+    using base = type_caster<T>;
+    bool load(handle src, bool /*convert*/) {
+        if (!Check::run(src))
+            return false;
+        return base::load(src, true);
+    }
+    template <typename>
+    using cast_op_type = T&&;
+};
+} }  // namespace pybind11::detail
+
 TEST_SUBMODULE(numpy_array, sm) {
     try { py::module::import("numpy"); }
     catch (...) { return; }
@@ -295,4 +328,19 @@ TEST_SUBMODULE(numpy_array, sm) {
         std::fill(a.mutable_data(), a.mutable_data() + a.size(), 42.);
         return a;
     });
+
+    // Test overloads between arrays and scalars that may be implicitly convertible.
+    sm.def("overload_scalar", [](py::array_t<float>) { return "Vector"; });
+    sm.def("overload_scalar", [](int) { return "Int"; });
+    // N.B. Without `greedy_arg`, then `overload_scalar(np.array([0]))` will skip over the array overload (since it requires conversion),
+    // but will bind to the int overload (since NumPy permits it, and does not require conversion).
+    // See #1392.
+    // Also: If we were using Eigen, `require_list_or_array` should not be necessary for this workaround.
+    struct require_list_or_array {
+        static bool run(py::handle src) {
+            return (py::isinstance<py::list>(src) || py::isinstance<py::array>(src));
+        }
+    };
+    sm.def("overload_scalar_workaround", [](greedy_arg<py::array_t<float>, require_list_or_array>) { return "Vector"; });
+    sm.def("overload_scalar_workaround", [](int) { return "Int"; });
 }
