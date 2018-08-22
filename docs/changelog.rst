@@ -21,6 +21,11 @@ v2.3.0 (Not yet released)
 * The ``value()``  method of ``py::enum_`` now accepts an optional docstring
   that will be shown in the documentation of the associated enumeration.
 
+* Vectors now support construction from generators, as well as ``extend()`` from a
+  list or generator.
+  `#1496 <https://github.com/pybind/pybind11/pull/1496>`_.
+
+
 v2.2.3 (April 29, 2018)
 -----------------------------------------------------
 

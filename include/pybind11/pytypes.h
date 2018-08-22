@@ -1293,6 +1293,21 @@ inline size_t len(handle h) {
     return (size_t) result;
 }
 
+inline size_t len_hint(handle h) {
+#if PY_VERSION_HEX >= 0x03040000
+    ssize_t result = PyObject_LengthHint(h.ptr(), 0);
+#else
+    ssize_t result = PyObject_Length(h.ptr());
+#endif
+    if (result < 0) {
+        // Sometimes a length can't be determined at all (eg generators)
+        // In which case simply return 0
+        PyErr_Clear();
+        return 0;
+    }
+    return (size_t) result;
+}
+
 inline str repr(handle h) {
     PyObject *str_value = PyObject_Repr(h.ptr());
     if (!str_value) throw error_already_set();
