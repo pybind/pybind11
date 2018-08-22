@@ -94,6 +94,11 @@ v2.2.4 (September 11, 2018)
 * A few minor typo fixes and improvements to the test suite, and
   patches that silence compiler warnings.
 
+* Vectors now support construction from generators, as well as ``extend()`` from a
+  list or generator.
+  `#1496 <https://github.com/pybind/pybind11/pull/1496>`_.
+
+
 v2.2.3 (April 29, 2018)
 -----------------------------------------------------
 
