@@ -295,4 +295,10 @@ TEST_SUBMODULE(numpy_array, sm) {
         std::fill(a.mutable_data(), a.mutable_data() + a.size(), 42.);
         return a;
     });
+
+#if PY_MAJOR_VERSION >= 3
+        sm.def("index_using_ellipsis", [](py::array a) {
+            return a[py::make_tuple(0, py::ellipsis(), 0)];
+        });
+#endif
 }

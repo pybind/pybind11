@@ -693,6 +693,9 @@ inline bool PyIterable_Check(PyObject *obj) {
 }
 
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
+#if PY_MAJOR_VERSION >= 3
+inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
+#endif
 
 inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
 
@@ -966,6 +969,14 @@ public:
     PYBIND11_OBJECT(none, object, detail::PyNone_Check)
     none() : object(Py_None, borrowed_t{}) { }
 };
+
+#if PY_MAJOR_VERSION >= 3
+class ellipsis : public object {
+public:
+    PYBIND11_OBJECT(ellipsis, object, detail::PyEllipsis_Check)
+    ellipsis() : object(Py_Ellipsis, borrowed_t{}) { }
+};
+#endif
 
 class bool_ : public object {
 public:
