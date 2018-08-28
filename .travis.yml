@@ -69,9 +69,15 @@ matrix:
   - os: osx
     osx_image: xcode9
     env: PYTHON=3.7 CPP=14 CLANG DEBUG=1
-  # Test a PyPy 2.7 build
+  # Test a PyPy 2.7 v5.8 build
   - os: linux
     env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
+    addons:
+      apt:
+        packages: [libblas-dev, liblapack-dev, gfortran]
+  # Test a PyPy 2.7 v6.0 build
+  - os: linux
+    env: PYPY=6.0 PYTHON=2.7 CPP=11 GCC=4.8
     addons:
       apt:
         packages: [libblas-dev, liblapack-dev, gfortran]
@@ -133,6 +139,10 @@ before_install:
     if [ "$PYPY" = "5.8" ]; then
       curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.8.0-linux64.tar.bz2 | tar xj
       PY_CMD=$(echo `pwd`/pypy2-v5.8.0-linux64/bin/pypy)
+      CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
+    elif [ "$PYPY" = "6.0" ]; then
+      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v6.0.0-linux64.tar.bz2 | tar xj
+      PY_CMD=$(echo `pwd`/pypy2-v6.0.0-linux64/bin/pypy)
       CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
     else
       PY_CMD=python$PYTHON
