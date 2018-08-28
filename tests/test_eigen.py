@@ -19,7 +19,7 @@ def assert_equal_ref(mat):
 
 
 def assert_sparse_equal_ref(sparse_mat):
-    assert_equal_ref(sparse_mat.todense())
+    assert_equal_ref(sparse_mat.toarray())
 
 
 def test_fixed():
