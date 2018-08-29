@@ -135,6 +135,13 @@ function(pybind11_add_module target_name)
     PRIVATE ${pybind11_INCLUDE_DIR}  # from pybind11Config
     PRIVATE ${PYTHON_INCLUDE_DIRS})
 
+  # Python debug libraries expose slightly different objects
+  # https://docs.python.org/3.6/c-api/intro.html#debugging-builds
+  # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
+  if(PYTHON_IS_DEBUG)
+    target_compile_definitions(${target_name} PRIVATE Py_DEBUG)
+  endif()
+
   # The prefix and extension are provided by FindPythonLibsNew.cmake
   set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
   set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_MODULE_EXTENSION}")
