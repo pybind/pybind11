@@ -34,7 +34,7 @@ private:
             *pptr() = traits_type::to_char_type(c);
             pbump(1);
         }
-        return sync() ? traits_type::not_eof(c) : traits_type::eof();
+        return sync() == 0 ? traits_type::not_eof(c) : traits_type::eof();
     }
 
     int sync() {
