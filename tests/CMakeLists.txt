@@ -27,6 +27,7 @@ endif()
 # Full set of test files (you can override these; see below)
 set(PYBIND11_TEST_FILES
   test_buffers.cpp
+  test_builtins.cpp
   test_builtin_casters.cpp
   test_call_policies.cpp
   test_callbacks.cpp

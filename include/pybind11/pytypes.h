@@ -378,6 +378,12 @@ inline bool isinstance(handle obj, handle type) {
     return result != 0;
 }
 
+/// \ingroup python_builtins
+/// Return true if ``obj`` is callable, i.e. a ``function`` or ``class``.
+inline bool callable(handle obj) {
+    return PyCallable_Check(obj.ptr()) != 0;
+}
+
 /// \addtogroup python_builtins
 /// @{
 inline bool hasattr(handle obj, handle name) {
