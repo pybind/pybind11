@@ -114,6 +114,35 @@ public:
     bool is(object_api const& other) const { return derived().ptr() == other.derived().ptr(); }
     /// Equivalent to ``obj is None`` in Python.
     bool is_none() const { return derived().ptr() == Py_None; }
+    /// Equivalent to obj == other in Python
+    bool equal(object_api const &other) const      { return rich_compare(other, Py_EQ); }
+    bool not_equal(object_api const &other) const  { return rich_compare(other, Py_NE); }
+    bool operator<(object_api const &other) const  { return rich_compare(other, Py_LT); }
+    bool operator<=(object_api const &other) const { return rich_compare(other, Py_LE); }
+    bool operator>(object_api const &other) const  { return rich_compare(other, Py_GT); }
+    bool operator>=(object_api const &other) const { return rich_compare(other, Py_GE); }
+
+    object operator-() const;
+    object operator~() const;
+    object operator+(object_api const &other) const;
+    object operator+=(object_api const &other) const;
+    object operator-(object_api const &other) const;
+    object operator-=(object_api const &other) const;
+    object operator*(object_api const &other) const;
+    object operator*=(object_api const &other) const;
+    object operator/(object_api const &other) const;
+    object operator/=(object_api const &other) const;
+    object operator|(object_api const &other) const;
+    object operator|=(object_api const &other) const;
+    object operator&(object_api const &other) const;
+    object operator&=(object_api const &other) const;
+    object operator^(object_api const &other) const;
+    object operator^=(object_api const &other) const;
+    object operator<<(object_api const &other) const;
+    object operator<<=(object_api const &other) const;
+    object operator>>(object_api const &other) const;
+    object operator>>=(object_api const &other) const;
+
     PYBIND11_DEPRECATED("Use py::str(obj) instead")
     pybind11::str str() const;
 
@@ -124,6 +153,9 @@ public:
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
     /// Return a handle to the Python type object underlying the instance
     handle get_type() const;
+
+private:
+    bool rich_compare(object_api const &other, int value) const;
 };
 
 NAMESPACE_END(detail)
@@ -1341,6 +1373,56 @@ str_attr_accessor object_api<D>::doc() const { return attr("__doc__"); }
 
 template <typename D>
 handle object_api<D>::get_type() const { return (PyObject *) Py_TYPE(derived().ptr()); }
+
+template <typename D>
+bool object_api<D>::rich_compare(object_api const &other, int value) const {
+    int rv = PyObject_RichCompareBool(derived().ptr(), other.derived().ptr(), value);
+    if (rv == -1)
+        throw error_already_set();
+    return rv == 1;
+}
+
+#define PYBIND11_MATH_OPERATOR_UNARY(op, fn)                                   \
+    template <typename D> object object_api<D>::op() const {                   \
+        object result = reinterpret_steal<object>(fn(derived().ptr()));        \
+        if (!result.ptr())                                                     \
+            throw error_already_set();                                         \
+        return result;                                                         \
+    }
+
+#define PYBIND11_MATH_OPERATOR_BINARY(op, fn)                                  \
+    template <typename D>                                                      \
+    object object_api<D>::op(object_api const &other) const {                  \
+        object result = reinterpret_steal<object>(                             \
+            fn(derived().ptr(), other.derived().ptr()));                       \
+        if (!result.ptr())                                                     \
+            throw error_already_set();                                         \
+        return result;                                                         \
+    }
+
+PYBIND11_MATH_OPERATOR_UNARY (operator~,   PyNumber_Invert)
+PYBIND11_MATH_OPERATOR_UNARY (operator-,   PyNumber_Negative)
+PYBIND11_MATH_OPERATOR_BINARY(operator+,   PyNumber_Add)
+PYBIND11_MATH_OPERATOR_BINARY(operator+=,  PyNumber_InPlaceAdd)
+PYBIND11_MATH_OPERATOR_BINARY(operator-,   PyNumber_Subtract)
+PYBIND11_MATH_OPERATOR_BINARY(operator-=,  PyNumber_InPlaceSubtract)
+PYBIND11_MATH_OPERATOR_BINARY(operator*,   PyNumber_Multiply)
+PYBIND11_MATH_OPERATOR_BINARY(operator*=,  PyNumber_InPlaceMultiply)
+PYBIND11_MATH_OPERATOR_BINARY(operator/,   PyNumber_TrueDivide)
+PYBIND11_MATH_OPERATOR_BINARY(operator/=,  PyNumber_InPlaceTrueDivide)
+PYBIND11_MATH_OPERATOR_BINARY(operator|,   PyNumber_Or)
+PYBIND11_MATH_OPERATOR_BINARY(operator|=,  PyNumber_InPlaceOr)
+PYBIND11_MATH_OPERATOR_BINARY(operator&,   PyNumber_And)
+PYBIND11_MATH_OPERATOR_BINARY(operator&=,  PyNumber_InPlaceAnd)
+PYBIND11_MATH_OPERATOR_BINARY(operator^,   PyNumber_Xor)
+PYBIND11_MATH_OPERATOR_BINARY(operator^=,  PyNumber_InPlaceXor)
+PYBIND11_MATH_OPERATOR_BINARY(operator<<,  PyNumber_Lshift)
+PYBIND11_MATH_OPERATOR_BINARY(operator<<=, PyNumber_InPlaceLshift)
+PYBIND11_MATH_OPERATOR_BINARY(operator>>,  PyNumber_Rshift)
+PYBIND11_MATH_OPERATOR_BINARY(operator>>=, PyNumber_InPlaceRshift)
+
+#undef PYBIND11_MATH_OPERATOR_UNARY
+#undef PYBIND11_MATH_OPERATOR_BINARY
 
 NAMESPACE_END(detail)
 NAMESPACE_END(PYBIND11_NAMESPACE)
