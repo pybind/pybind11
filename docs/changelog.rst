@@ -22,6 +22,11 @@ v2.3.0 (Not yet released)
 * Added support for write only properties.
   `#1144 <https://github.com/pybind/pybind11/pull/1144>`_.
 
+* Python type wrappers (``py::handle``, ``py::object``, etc.)
+  now support map Python's number protocol onto C++ arithmetic
+  operators such as ``operator+``, ``operator/=``, etc.
+  `#1511 <https://github.com/pybind/pybind11/pull/1511>`_.
+
 * A number of improvements related to enumerations:
 
    1. The ``enum_`` implementation was rewritten from scratch to reduce

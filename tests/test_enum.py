@@ -153,4 +153,4 @@ def test_enum_to_int():
 def test_duplicate_enum_name():
     with pytest.raises(ValueError) as excinfo:
         m.register_bad_enum()
-    assert str(excinfo.value) == "Enum error - element with name: ONE already exists"
+    assert str(excinfo.value) == 'SimpleEnum: element "ONE" already exists!'
