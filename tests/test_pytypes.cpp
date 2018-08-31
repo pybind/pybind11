@@ -289,4 +289,8 @@ TEST_SUBMODULE(pytypes, m) {
         l.append(a << b);
         return l;
     });
+
+    m.def("test_list_slicing", [](py::list a) {
+        return a[py::slice(0, -1, 2)];
+    });
 }
