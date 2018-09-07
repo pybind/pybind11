@@ -233,7 +233,7 @@ class ExtractionThread(Thread):
             job_semaphore.release()
 
 if __name__ == '__main__':
-    parameters = ['-x', 'c++', '-std=c++11']
+    parameters = ['-x', 'c++']
     filenames = []
 
     if platform.system() == 'Darwin':
@@ -250,11 +250,17 @@ if __name__ == '__main__':
             parameters.append('-isysroot')
             parameters.append(sysroot_dir)
 
+    std = '-std=c++11'
+
     for item in sys.argv[1:]:
-        if item.startswith('-'):
+        if item.startswith('-std='):
+            std = item
+        elif item.startswith('-'):
             parameters.append(item)
         else:
             filenames.append(item)
+
+    parameters.append(std)
 
     if len(filenames) == 0:
         print('Syntax: %s [.. a list of header files ..]' % sys.argv[0])
