@@ -102,15 +102,15 @@ def process_comment(comment):
     param_group = '([\[\w:\]]+)'
 
     s = result
-    s = re.sub(r'\\c\s+%s' % cpp_group, r'``\1``', s)
-    s = re.sub(r'\\a\s+%s' % cpp_group, r'*\1*', s)
-    s = re.sub(r'\\e\s+%s' % cpp_group, r'*\1*', s)
-    s = re.sub(r'\\em\s+%s' % cpp_group, r'*\1*', s)
-    s = re.sub(r'\\b\s+%s' % cpp_group, r'**\1**', s)
-    s = re.sub(r'\\ingroup\s+%s' % cpp_group, r'', s)
-    s = re.sub(r'\\param%s?\s+%s' % (param_group, cpp_group),
+    s = re.sub(r'[@\\]c\s+%s' % cpp_group, r'``\1``', s)
+    s = re.sub(r'[@\\]a\s+%s' % cpp_group, r'*\1*', s)
+    s = re.sub(r'[@\\]e\s+%s' % cpp_group, r'*\1*', s)
+    s = re.sub(r'[@\\]em\s+%s' % cpp_group, r'*\1*', s)
+    s = re.sub(r'[@\\]b\s+%s' % cpp_group, r'**\1**', s)
+    s = re.sub(r'[@\\]ingroup\s+%s' % cpp_group, r'', s)
+    s = re.sub(r'[@\\]param%s?\s+%s' % (param_group, cpp_group),
                r'\n\n$Parameter ``\2``:\n\n', s)
-    s = re.sub(r'\\tparam%s?\s+%s' % (param_group, cpp_group),
+    s = re.sub(r'[@\\]tparam%s?\s+%s' % (param_group, cpp_group),
                r'\n\n$Template parameter ``\2``:\n\n', s)
 
     for in_, out_ in {
@@ -126,14 +126,13 @@ def process_comment(comment):
         'throw': 'Throws',
         'throws': 'Throws'
     }.items():
-        s = re.sub(r'\\%s\s*' % in_, r'\n\n$%s:\n\n' % out_, s)
+        s = re.sub(r'[@\\]%s\s*' % in_, r'\n\n$%s:\n\n' % out_, s)
 
-    s = re.sub(r'\\details\s*', r'\n\n', s)
-    s = re.sub(r'\\brief\s*', r'', s)
-    s = re.sub(r'\\short\s*', r'', s)
-    s = re.sub(r'\\ref\s*', r'', s)
+    s = re.sub(r'[@\\]brief\s*', r'', s)
+    s = re.sub(r'[@\\]short\s*', r'', s)
+    s = re.sub(r'[@\\]ref\s*', r'', s)
 
-    s = re.sub(r'\\code\s?(.*?)\s?\\endcode',
+    s = re.sub(r'[@\\]code\s?(.*?)\s?[@\\]endcode',
                r"```\n\1\n```\n", s, flags=re.DOTALL)
 
     # HTML/TeX tags
@@ -141,7 +140,7 @@ def process_comment(comment):
     s = re.sub(r'<pre>(.*?)</pre>', r"```\n\1\n```\n", s, flags=re.DOTALL)
     s = re.sub(r'<em>(.*?)</em>', r'*\1*', s, flags=re.DOTALL)
     s = re.sub(r'<b>(.*?)</b>', r'**\1**', s, flags=re.DOTALL)
-    s = re.sub(r'\\f\$(.*?)\\f\$', r'$\1$', s, flags=re.DOTALL)
+    s = re.sub(r'[@\\]f\$(.*?)[@\\]f\$', r'$\1$', s, flags=re.DOTALL)
     s = re.sub(r'<li>', r'\n\n* ', s)
     s = re.sub(r'</?ul>', r'', s)
     s = re.sub(r'</li>', r'\n\n', s)
