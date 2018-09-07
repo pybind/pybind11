@@ -103,6 +103,7 @@ def process_comment(comment):
 
     s = result
     s = re.sub(r'[@\\]c\s+%s' % cpp_group, r'``\1``', s)
+    s = re.sub(r'[@\\]p\s+%s' % cpp_group, r'``\1``', s)
     s = re.sub(r'[@\\]a\s+%s' % cpp_group, r'*\1*', s)
     s = re.sub(r'[@\\]e\s+%s' % cpp_group, r'*\1*', s)
     s = re.sub(r'[@\\]em\s+%s' % cpp_group, r'*\1*', s)
@@ -112,22 +113,29 @@ def process_comment(comment):
                r'\n\n$Parameter ``\2``:\n\n', s)
     s = re.sub(r'[@\\]tparam%s?\s+%s' % (param_group, cpp_group),
                r'\n\n$Template parameter ``\2``:\n\n', s)
+    s = re.sub(r'[@\\]retval\s+%s' % cpp_group,
+               r'\n\n$Returns ``\1``:\n\n', s)
 
     for in_, out_ in {
+        'result': 'Returns',
+        'returns': 'Returns',
         'return': 'Returns',
-        'author': 'Author',
         'authors': 'Authors',
+        'author': 'Authors',
         'copyright': 'Copyright',
         'date': 'Date',
+        'note': 'Note',
+        'remarks': 'Remark',
         'remark': 'Remark',
         'sa': 'See also',
         'see': 'See also',
         'extends': 'Extends',
-        'throw': 'Throws',
-        'throws': 'Throws'
+        'throws': 'Throws',
+        'throw': 'Throws'
     }.items():
         s = re.sub(r'[@\\]%s\s*' % in_, r'\n\n$%s:\n\n' % out_, s)
 
+    s = re.sub(r'[@\\]details\s*', r'\n\n', s)
     s = re.sub(r'[@\\]brief\s*', r'', s)
     s = re.sub(r'[@\\]short\s*', r'', s)
     s = re.sub(r'[@\\]ref\s*', r'', s)
