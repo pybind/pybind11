@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 #
 #  Syntax: mkdoc.py [-I<path> ..] [.. a list of header files ..]
 #
@@ -102,46 +103,55 @@ def process_comment(comment):
     param_group = '([\[\w:\]]+)'
 
     s = result
-    s = re.sub(r'\\c\s+%s' % cpp_group, r'``\1``', s)
-    s = re.sub(r'\\a\s+%s' % cpp_group, r'*\1*', s)
-    s = re.sub(r'\\e\s+%s' % cpp_group, r'*\1*', s)
-    s = re.sub(r'\\em\s+%s' % cpp_group, r'*\1*', s)
-    s = re.sub(r'\\b\s+%s' % cpp_group, r'**\1**', s)
-    s = re.sub(r'\\ingroup\s+%s' % cpp_group, r'', s)
-    s = re.sub(r'\\param%s?\s+%s' % (param_group, cpp_group),
+    s = re.sub(r'[@\\]c\s+%s' % cpp_group, r'``\1``', s)
+    s = re.sub(r'[@\\]p\s+%s' % cpp_group, r'``\1``', s)
+    s = re.sub(r'[@\\]a\s+%s' % cpp_group, r'*\1*', s)
+    s = re.sub(r'[@\\]e\s+%s' % cpp_group, r'*\1*', s)
+    s = re.sub(r'[@\\]em\s+%s' % cpp_group, r'*\1*', s)
+    s = re.sub(r'[@\\]b\s+%s' % cpp_group, r'**\1**', s)
+    s = re.sub(r'[@\\]ingroup\s+%s' % cpp_group, r'', s)
+    s = re.sub(r'[@\\]param%s?\s+%s' % (param_group, cpp_group),
                r'\n\n$Parameter ``\2``:\n\n', s)
-    s = re.sub(r'\\tparam%s?\s+%s' % (param_group, cpp_group),
+    s = re.sub(r'[@\\]tparam%s?\s+%s' % (param_group, cpp_group),
                r'\n\n$Template parameter ``\2``:\n\n', s)
+    s = re.sub(r'[@\\]retval\s+%s' % cpp_group,
+               r'\n\n$Returns ``\1``:\n\n', s)
 
     for in_, out_ in {
+        'result': 'Returns',
+        'returns': 'Returns',
         'return': 'Returns',
-        'author': 'Author',
         'authors': 'Authors',
+        'author': 'Authors',
         'copyright': 'Copyright',
         'date': 'Date',
+        'note': 'Note',
+        'remarks': 'Remark',
         'remark': 'Remark',
         'sa': 'See also',
         'see': 'See also',
         'extends': 'Extends',
-        'throw': 'Throws',
-        'throws': 'Throws'
+        'throws': 'Throws',
+        'throw': 'Throws'
     }.items():
-        s = re.sub(r'\\%s\s*' % in_, r'\n\n$%s:\n\n' % out_, s)
+        s = re.sub(r'[@\\]%s\s*' % in_, r'\n\n$%s:\n\n' % out_, s)
 
-    s = re.sub(r'\\details\s*', r'\n\n', s)
-    s = re.sub(r'\\brief\s*', r'', s)
-    s = re.sub(r'\\short\s*', r'', s)
-    s = re.sub(r'\\ref\s*', r'', s)
+    s = re.sub(r'[@\\]details\s*', r'\n\n', s)
+    s = re.sub(r'[@\\]brief\s*', r'', s)
+    s = re.sub(r'[@\\]short\s*', r'', s)
+    s = re.sub(r'[@\\]ref\s*', r'', s)
 
-    s = re.sub(r'\\code\s?(.*?)\s?\\endcode',
+    s = re.sub(r'[@\\]code\s?(.*?)\s?[@\\]endcode',
                r"```\n\1\n```\n", s, flags=re.DOTALL)
+
+    s = re.sub(r'%(\S+)', r'\1', s)
 
     # HTML/TeX tags
     s = re.sub(r'<tt>(.*?)</tt>', r'``\1``', s, flags=re.DOTALL)
     s = re.sub(r'<pre>(.*?)</pre>', r"```\n\1\n```\n", s, flags=re.DOTALL)
     s = re.sub(r'<em>(.*?)</em>', r'*\1*', s, flags=re.DOTALL)
     s = re.sub(r'<b>(.*?)</b>', r'**\1**', s, flags=re.DOTALL)
-    s = re.sub(r'\\f\$(.*?)\\f\$', r'$\1$', s, flags=re.DOTALL)
+    s = re.sub(r'[@\\]f\$(.*?)[@\\]f\$', r'$\1$', s, flags=re.DOTALL)
     s = re.sub(r'<li>', r'\n\n* ', s)
     s = re.sub(r'</?ul>', r'', s)
     s = re.sub(r'</li>', r'\n\n', s)
@@ -224,7 +234,7 @@ class ExtractionThread(Thread):
             job_semaphore.release()
 
 if __name__ == '__main__':
-    parameters = ['-x', 'c++', '-std=c++11']
+    parameters = ['-x', 'c++']
     filenames = []
 
     if platform.system() == 'Darwin':
@@ -241,11 +251,17 @@ if __name__ == '__main__':
             parameters.append('-isysroot')
             parameters.append(sysroot_dir)
 
+    std = '-std=c++11'
+
     for item in sys.argv[1:]:
-        if item.startswith('-'):
+        if item.startswith('-std='):
+            std = item
+        elif item.startswith('-'):
             parameters.append(item)
         else:
             filenames.append(item)
+
+    parameters.append(std)
 
     if len(filenames) == 0:
         print('Syntax: %s [.. a list of header files ..]' % sys.argv[0])
