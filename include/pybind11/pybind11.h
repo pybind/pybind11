@@ -333,7 +333,7 @@ protected:
             if (chain->is_method != rec->is_method)
                 pybind11_fail("overloading a method with both static and instance methods is not supported; "
                     #if defined(NDEBUG)
-                        "compile in debug mode for more details"
+                        "compile in debug mode (#undef NDEBUG) for more details"
                     #else
                         "error while attempting to bind " + std::string(rec->is_method ? "instance" : "static") + " method " +
                         std::string(pybind11::str(rec->scope.attr("__name__"))) + "." + std::string(rec->name) + signature
