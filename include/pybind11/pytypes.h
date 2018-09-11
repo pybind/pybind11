@@ -176,7 +176,9 @@ public:
     /// The default constructor creates a handle with a ``nullptr``-valued pointer
     handle() = default;
     /// Creates a ``handle`` from the given raw Python object pointer
+    handle(std::nullptr_t ptr) : m_ptr(ptr) { } // Needed to avoid ambiguous conversion below
     handle(PyObject *ptr) : m_ptr(ptr) { } // Allow implicit conversion from PyObject*
+    handle(PyTypeObject *ptr) : m_ptr((PyObject*)ptr) { } // Allow implicit conversion from PyTypeObject*
 
     /// Return the underlying ``PyObject *`` pointer
     PyObject *ptr() const { return m_ptr; }
