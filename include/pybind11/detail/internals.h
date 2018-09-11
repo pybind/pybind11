@@ -21,20 +21,28 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
 #if PY_VERSION_HEX >= 0x03070000
-    #define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr
-    #define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
-    #define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (tstate))
-    #define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (tstate))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
 #else
     // Usually an int but a long on Cygwin64 with Python 3.x
-    #define PYBIND11_TLS_KEY_INIT(var) decltype(PyThread_create_key()) var = 0
-    #define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
-    #if PY_MAJOR_VERSION < 3
-        #define PYBIND11_TLS_REPLACE_VALUE(key, value) do { PyThread_delete_key_value((key)); PyThread_set_key_value((key), (value)); } while (false)
-    #else
-        #define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_set_key_value((key), (value))
-    #endif
-    #define PYBIND11_TLS_DELETE_VALUE(key) PyThread_set_key_value((key), nullptr)
+#    define PYBIND11_TLS_KEY_INIT(var) decltype(PyThread_create_key()) var = 0
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
+#    if PY_MAJOR_VERSION < 3
+#        define PYBIND11_TLS_DELETE_VALUE(key)                               \
+             PyThread_delete_key_value(key)
+#        define PYBIND11_TLS_REPLACE_VALUE(key, value)                       \
+             do {                                                            \
+                 PyThread_delete_key_value((key));                           \
+                 PyThread_set_key_value((key), (value));                     \
+             } while (false)
+#    else
+#        define PYBIND11_TLS_DELETE_VALUE(key)                               \
+             PyThread_set_key_value((key), nullptr)
+#        define PYBIND11_TLS_REPLACE_VALUE(key, value)                       \
+             PyThread_set_key_value((key), (value))
+#    endif
 #endif
 
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
