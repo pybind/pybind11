@@ -242,6 +242,39 @@ that that were ``malloc()``-ed in another shared library, using data
 structures with incompatible ABIs, and so on. pybind11 is very careful not
 to make these types of mistakes.
 
+Inconsistent detection of Python version in CMake and pybind11
+==============================================================
+
+The functions ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` provided by CMake
+for Python version detection are not used by pybind11 due to unreliability and limitations that make
+them unsuitable for pybind11's needs. Instead pybind provides its own, more reliable Python detection
+CMake code. Conflicts can arise, however, when using pybind11 in a project that *also* uses the CMake
+Python detection in a system with several Python versions installed.
+
+This difference may cause inconsistencies and errors if *both* mechanisms are used in the same project. Consider the following
+Cmake code executed in a system with Python 2.7 and 3.x installed:
+
+.. code-block:: cmake
+
+    find_package(PythonInterp)
+    find_package(PythonLibs)
+    find_package(pybind11)
+
+It will detect Python 2.7 and pybind11 will pick it as well.
+
+In contrast this code:
+
+.. code-block:: cmake
+
+    find_package(pybind11)
+    find_package(PythonInterp)
+    find_package(PythonLibs)
+
+will detect Python 3.x for pybind11 and may crash on ``find_package(PythonLibs)`` afterwards.
+
+It is advised to avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)`` from CMake and rely
+on pybind11 in detecting Python version. If this is not possible CMake machinery should be called *before* including pybind11.
+
 How to cite this project?
 =========================
 
@@ -256,4 +289,3 @@ discourse:
        note = {https://github.com/pybind/pybind11},
        title = {pybind11 -- Seamless operability between C++11 and Python}
     }
-
