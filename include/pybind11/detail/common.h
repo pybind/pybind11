@@ -94,7 +94,7 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 2
-#define PYBIND11_VERSION_PATCH 3
+#define PYBIND11_VERSION_PATCH 4
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
