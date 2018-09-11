@@ -38,11 +38,13 @@ public:
 
     options& enable_function_signatures() & { global_state().show_function_signatures = true; return *this; }
 
+
     // Getter methods (return the global state):
 
     static bool show_user_defined_docstrings() { return global_state().show_user_defined_docstrings; }
 
     static bool show_function_signatures() { return global_state().show_function_signatures; }
+
 
     // This type is not meant to be allocated on the heap.
     void* operator new(size_t) = delete;
@@ -52,6 +54,8 @@ private:
     struct state {
         bool show_user_defined_docstrings = true;  //< Include user-supplied texts in docstrings.
         bool show_function_signatures = true;      //< Include auto-generated function signatures in docstrings.
+        bool type_error_print_repr = true;         //< If true, if args mismatch __repr__ of argument is shown if true, 
+                                                   //< else __str__ is used
     };
 
     static state &global_state() {
