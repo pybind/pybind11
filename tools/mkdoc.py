@@ -159,6 +159,15 @@ def process_comment(comment):
     s = s.replace('``true``', '``True``')
     s = s.replace('``false``', '``False``')
 
+    # Exceptions
+    s = s.replace('std::bad_alloc', 'MemoryError')
+    s = s.replace('std::domain_error', 'ValueError')
+    s = s.replace('std::exception', 'RuntimeError')
+    s = s.replace('std::invalid_argument', 'ValueError')
+    s = s.replace('std::length_error', 'ValueError')
+    s = s.replace('std::out_of_range', 'ValueError')
+    s = s.replace('std::range_error', 'ValueError')
+
     # Re-flow text
     wrapper = textwrap.TextWrapper()
     wrapper.expand_tabs = True
