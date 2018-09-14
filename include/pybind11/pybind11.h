@@ -1503,9 +1503,11 @@ NAMESPACE_END(detail)
 /// Binds C++ enumerations and enumeration classes to Python
 template <typename Type> class enum_ : public class_<Type> {
 public:
-    using class_<Type>::def;
-    using class_<Type>::def_property_readonly;
-    using class_<Type>::def_property_readonly_static;
+    using Base = class_<Type>;
+    using Base::def;
+    using Base::attr;
+    using Base::def_property_readonly;
+    using Base::def_property_readonly_static;
     using Scalar = typename std::underlying_type<Type>::type;
 
     template <typename... Extra>
@@ -1520,7 +1522,10 @@ public:
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
         #endif
-        def("__setstate__", [](Type &value, Scalar arg) { value = static_cast<Type>(arg); });
+        cpp_function setstate(
+            [](Type &value, Scalar arg) { value = static_cast<Type>(arg); },
+            is_method(*this));
+        attr("__setstate__") = setstate;
     }
 
     /// Export enumeration entries into the parent scope
