@@ -138,6 +138,11 @@ def test_make_c_f_array():
 def test_make_empty_shaped_array():
     m.make_empty_shaped_array()
 
+    # empty shape means numpy scalar, PEP 3118
+    assert m.scalar_int().ndim == 0
+    assert m.scalar_int().shape == ()
+    assert m.scalar_int() == 42
+
 
 def test_wrap():
     def assert_references(a, b, base=None):
