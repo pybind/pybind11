@@ -282,10 +282,11 @@ if __name__ == '__main__':
               file=sys.stderr)
         exit(-1)
 
-    print('''/*
-  This file contains docstrings for the Python bindings.
-  Do not edit! These were automatically extracted by mkdoc.py
- */
+    print('''#pragma once
+
+// GENERATED FILE DO NOT EDIT    
+// This file contains docstrings for the Python bindings that were
+// automatically extracted by mkdoc.py from pybind11.
 
 #define __EXPAND(x)                                      x
 #define __COUNT(_1, _2, _3, _4, _5, _6, _7, COUNT, ...)  COUNT
