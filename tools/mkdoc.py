@@ -245,7 +245,7 @@ class ExtractionThread(Thread):
             job_semaphore.release()
 
 if __name__ == '__main__':
-    parameters = ['-x', 'c++']
+    parameters = ['-x', 'c++', '-D__MKDOC_PY__']
     filenames = []
 
     if platform.system() == 'Darwin':
