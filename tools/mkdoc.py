@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 #
-#  Syntax: mkdoc.py [-I<path> ..] [.. a list of header files ..]
+#  Syntax: mkdoc.py [-I<path> ..] [-quiet] [.. a list of header files ..]
 #
 #  Extract documentation from C++ header files to use it in Python bindings
 #
@@ -226,14 +226,16 @@ def extract(filename, node, prefix):
 
 
 class ExtractionThread(Thread):
-    def __init__(self, filename, parameters):
+    def __init__(self, filename, parameters, quiet):
         Thread.__init__(self)
         self.filename = filename
         self.parameters = parameters
+        self.quiet = quiet
         job_semaphore.acquire()
 
     def run(self):
-        print('Processing "%s" ..' % self.filename, file=sys.stderr)
+        if not self.quiet:
+            print('Processing "%s" ..' % self.filename, file=sys.stderr)
         try:
             index = cindex.Index(
                 cindex.conf.lib.clang_createIndex(False, True))
@@ -243,7 +245,7 @@ class ExtractionThread(Thread):
             job_semaphore.release()
 
 if __name__ == '__main__':
-    parameters = ['-x', 'c++']
+    parameters = ['-x', 'c++', '-D__MKDOC_PY__']
     filenames = []
 
     if platform.system() == 'Darwin':
@@ -260,10 +262,13 @@ if __name__ == '__main__':
             parameters.append('-isysroot')
             parameters.append(sysroot_dir)
 
+    quiet = False
     std = '-std=c++11'
 
     for item in sys.argv[1:]:
-        if item.startswith('-std='):
+        if item == '-quiet':
+            quiet = True        
+        elif item.startswith('-std='):
             std = item
         elif item.startswith('-'):
             parameters.append(item)
@@ -273,13 +278,15 @@ if __name__ == '__main__':
     parameters.append(std)
 
     if len(filenames) == 0:
-        print('Syntax: %s [.. a list of header files ..]' % sys.argv[0])
+        print('Syntax: %s [.. a list of header files ..]' % sys.argv[0],
+              file=sys.stderr)
         exit(-1)
 
-    print('''/*
-  This file contains docstrings for the Python bindings.
-  Do not edit! These were automatically extracted by mkdoc.py
- */
+    print('''#pragma once
+
+// GENERATED FILE DO NOT EDIT    
+// This file contains docstrings for the Python bindings that were
+// automatically extracted by mkdoc.py from pybind11.
 
 #define __EXPAND(x)                                      x
 #define __COUNT(_1, _2, _3, _4, _5, _6, _7, COUNT, ...)  COUNT
@@ -303,10 +310,11 @@ if __name__ == '__main__':
 
     output.clear()
     for filename in filenames:
-        thr = ExtractionThread(filename, parameters)
+        thr = ExtractionThread(filename, parameters, quiet)
         thr.start()
 
-    print('Waiting for jobs to finish ..', file=sys.stderr)
+    if not quiet:
+        print('Waiting for jobs to finish ..', file=sys.stderr)
     for i in range(job_count):
         job_semaphore.acquire()
 
