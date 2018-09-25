@@ -267,7 +267,7 @@ if __name__ == '__main__':
 
     for item in sys.argv[1:]:
         if item == '-quiet':
-            quiet = True        
+            quiet = True
         elif item.startswith('-std='):
             std = item
         elif item.startswith('-'):
@@ -284,7 +284,7 @@ if __name__ == '__main__':
 
     print('''#pragma once
 
-// GENERATED FILE DO NOT EDIT    
+// GENERATED FILE DO NOT EDIT
 // This file contains docstrings for the Python bindings that were
 // automatically extracted by mkdoc.py from pybind11.
 
