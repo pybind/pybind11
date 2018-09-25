@@ -420,8 +420,8 @@ protected:
         using namespace detail;
 
         /* Iterator over the list of potentially admissible overloads */
-        function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
-                        *it = overloads;
+        const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
+                              *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
         const size_t n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
@@ -477,7 +477,7 @@ protected:
                    result other than PYBIND11_TRY_NEXT_OVERLOAD.
                  */
 
-                function_record &func = *it;
+                const function_record &func = *it;
                 size_t pos_args = func.nargs;    // Number of positional arguments that we need
                 if (func.has_args) --pos_args;   // (but don't count py::args
                 if (func.has_kwargs) --pos_args; //  or py::kwargs)
@@ -509,7 +509,7 @@ protected:
                 // 1. Copy any position arguments given.
                 bool bad_arg = false;
                 for (; args_copied < args_to_copy; ++args_copied) {
-                    argument_record *arg_rec = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
+                    const argument_record *arg_rec = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
                     if (kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(kwargs_in, arg_rec->name)) {
                         bad_arg = true;
                         break;
@@ -650,8 +650,13 @@ protected:
                         result = PYBIND11_TRY_NEXT_OVERLOAD;
                     }
 
-                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
+                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
+                        // The error reporting logic below expects 'it' to be valid, as it would be
+                        // if we'd encountered this failure in the first-pass loop.
+                        if (!result)
+                            it = &call.func;
                         break;
+                    }
                 }
             }
         } catch (error_already_set &e) {
@@ -703,7 +708,7 @@ protected:
                 " arguments. The following argument types are supported:\n";
 
             int ctr = 0;
-            for (function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
+            for (const function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
 
                 bool wrote_sig = false;

@@ -341,6 +341,19 @@ TEST_SUBMODULE(class_, m) {
                 "a"_a, "b"_a, "c"_a);
     base.def("g", [](NestBase &, Nested &) {});
     base.def("h", []() { return NestBase(); });
+
+    // test_error_after_conversion
+    // The second-pass path through dispatcher() previously didn't
+    // remember which overload was used, and would crash trying to
+    // generate a useful error message
+
+    struct NotRegistered {};
+    struct StringWrapper { std::string str; };
+    m.def("test_error_after_conversions", [](int) {});
+    m.def("test_error_after_conversions",
+          [](StringWrapper) -> NotRegistered { return {}; });
+    py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
+    py::implicitly_convertible<std::string, StringWrapper>();
 }
 
 template <int N> class BreaksBase { public: virtual ~BreaksBase() = default; };
