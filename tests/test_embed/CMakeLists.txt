@@ -36,6 +36,11 @@ add_custom_target(cpptest COMMAND $<TARGET_FILE:test_embed>
 
 pybind11_add_module(external_module THIN_LTO external_module.cpp)
 set_target_properties(external_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+foreach(config ${CMAKE_CONFIGURATION_TYPES})
+    string(TOUPPER ${config} config)
+    set_target_properties(external_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config} ${CMAKE_CURRENT_SOURCE_DIR})
+endforeach()
+
 add_dependencies(cpptest external_module)
 
 add_dependencies(check cpptest)
