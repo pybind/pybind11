@@ -29,6 +29,12 @@ After installing the prerequisites, run
 
 The last line will both compile and run the tests.
 
+P.S : You will also need to install the pybind11 python library 
+
+..code-block:: bash
+
+   pip3 install pybind11
+
 Windows
 -------
 
