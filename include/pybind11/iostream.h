@@ -194,7 +194,7 @@ inline class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::strin
     return class_<detail::OstreamRedirect>(m, name.c_str(), module_local())
         .def(init<bool,bool>(), arg("stdout")=true, arg("stderr")=true)
         .def("__enter__", &detail::OstreamRedirect::enter)
-        .def("__exit__", [](detail::OstreamRedirect &self_, args) { self_.exit(); }); //self_ to avoid conflicts with exposed pybind11::self (operators.h)
+        .def("__exit__", [](detail::OstreamRedirect &self_, args) { self_.exit(); });
 }
 
 NAMESPACE_END(PYBIND11_NAMESPACE)
