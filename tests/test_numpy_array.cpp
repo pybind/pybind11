@@ -186,6 +186,30 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("overloaded5", [](py::array_t<unsigned int>) { return "unsigned int"; });
     sm.def("overloaded5", [](py::array_t<double>) { return "double"; });
 
+    // Test numpy scalar matching with different order
+    sm.def("overloaded6", [](py::array_t<int>) { return "int"; });
+    sm.def("overloaded6", [](py::array_t<float>) { return "float"; });
+    sm.def("overloaded6", [](py::array_t<double>) { return "double"; });
+    sm.def("overloaded6", [](float) { return "float POD"; });
+    sm.def("overloaded6", [](double) { return "double POD"; });
+    sm.def("overloaded6", [](py::array) { return "array"; });
+    sm.def("overloaded6", [](py::buffer) { return "buffer"; });
+
+    sm.def("overloaded7", [](double) { return "double POD"; });
+    sm.def("overloaded7", [](py::array_t<double>) { return "double"; });
+    sm.def("overloaded7", [](py::buffer) { return "buffer"; });
+    sm.def("overloaded7", [](py::array) { return "array"; });
+
+    sm.def("overloaded8", [](py::buffer) { return "buffer"; });
+    sm.def("overloaded8", [](py::array_t<double>) { return "double"; });
+    sm.def("overloaded8", [](double) { return "double POD"; });
+    sm.def("overloaded8", [](py::array) { return "array"; });
+    
+    sm.def("overloaded9", [](py::array) { return "array"; });
+    sm.def("overloaded9", [](py::array_t<double>) { return "double"; });
+    sm.def("overloaded9", [](py::buffer) { return "buffer"; });
+    sm.def("overloaded9", [](double) { return "double POD"; });
+
     // test_greedy_string_overload
     // Issue 685: ndarray shouldn't go to std::string overload
     sm.def("issue685", [](std::string) { return "string"; });
