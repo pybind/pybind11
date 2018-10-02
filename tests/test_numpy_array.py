@@ -315,6 +315,31 @@ def test_overload_resolution(msg):
     assert m.overloaded5(np.array([1], dtype='uintc')) == 'unsigned int'
     assert m.overloaded5(np.array([1], dtype='float32')) == 'unsigned int'
 
+def test_scalar_overload_resolution():
+    # Exact overload matches:
+    assert m.overloaded(np.float64(1)) == 'double'
+    assert m.overloaded(np.float32(1)) == 'float'
+    assert m.overloaded(np.ushort(1)) == 'unsigned short'
+    assert m.overloaded(np.intc(1)) == 'int'
+    assert m.overloaded(np.longlong(1)) == 'long long'
+    assert m.overloaded(np.complex(1)) == 'double complex'
+    assert m.overloaded(np.csingle(1)) == 'float complex'
+
+    # binding order changes overload match
+    assert m.overloaded6(np.float64(1)) == 'double'
+    assert m.overloaded7(np.float64(1)) == 'double POD'
+    assert m.overloaded8(np.float64(1)) == 'buffer'
+    assert m.overloaded9(np.float64(1)) == 'array'
+
+    # scalars without array_t match fall through to array
+    assert m.overloaded6(np.int16(1)) == 'array'
+
+    # generic pep 3118 scalar overload not currently supported, falls through to py::buffer
+    from ctypes import c_double
+    assert m.overloaded6(c_double(1)) == 'buffer'
+
+    # python POD fall though to C++ POD
+    assert m.overloaded9(1.0) == 'double POD'
 
 def test_greedy_string_overload():
     """Tests fix for #685 - ndarray shouldn't go to std::string overload"""
