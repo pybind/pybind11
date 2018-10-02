@@ -259,6 +259,15 @@ def test_overload_resolution(msg):
     assert m.overloaded(np.array([1], dtype='complex')) == 'double complex'
     assert m.overloaded(np.array([1], dtype='csingle')) == 'float complex'
 
+    # Scalar arrays:
+    assert m.overloaded(np.float64(1)) == 'double'
+    assert m.overloaded(np.float32(1)) == 'float'
+    assert m.overloaded(np.ushort(1)) == 'unsigned short'
+    assert m.overloaded(np.intc(1)) == 'int'
+    assert m.overloaded(np.longlong(1)) == 'long long'
+    assert m.overloaded(np.complex(1)) == 'double complex'
+    assert m.overloaded(np.csingle(1)) == 'float complex'
+
     # No exact match, should call first convertible version:
     assert m.overloaded(np.array([1], dtype='uint8')) == 'double'
 
