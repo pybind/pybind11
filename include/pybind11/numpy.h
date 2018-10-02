@@ -145,6 +145,9 @@ struct npy_api {
     bool PyArrayDescr_Check_(PyObject *obj) const {
         return (bool) PyObject_TypeCheck(obj, PyArrayDescr_Type_);
     }
+    bool PyArray_IsScalar_(PyObject *obj) const {
+        return (bool) PyObject_TypeCheck(obj, PyGenericArrType_Type_);
+    }
 
     unsigned int (*PyArray_GetNDArrayCFeatureVersion_)();
     PyObject *(*PyArray_DescrFromType_)(int);
@@ -157,6 +160,7 @@ struct npy_api {
     PyTypeObject *PyArray_Type_;
     PyTypeObject *PyVoidArrType_Type_;
     PyTypeObject *PyArrayDescr_Type_;
+    PyTypeObject *PyGenericArrType_Type_;
     PyObject *(*PyArray_DescrFromScalar_)(PyObject *);
     PyObject *(*PyArray_FromAny_) (PyObject *, PyObject *, int, int, int, PyObject *);
     int (*PyArray_DescrConverter_) (PyObject *, PyObject **);
@@ -171,6 +175,7 @@ private:
         API_PyArray_GetNDArrayCFeatureVersion = 211,
         API_PyArray_Type = 2,
         API_PyArrayDescr_Type = 3,
+        API_PyGenericArrType_Type = 10,
         API_PyVoidArrType_Type = 39,
         API_PyArray_DescrFromType = 45,
         API_PyArray_DescrFromScalar = 57,
@@ -201,6 +206,7 @@ private:
         if (api.PyArray_GetNDArrayCFeatureVersion_() < 0x7)
             pybind11_fail("pybind11 numpy support requires numpy >= 1.7.0");
         DECL_NPY_API(PyArray_Type);
+        DECL_NPY_API(PyGenericArrType_Type);
         DECL_NPY_API(PyVoidArrType_Type);
         DECL_NPY_API(PyArrayDescr_Type);
         DECL_NPY_API(PyArray_DescrFromType);
@@ -508,7 +514,7 @@ private:
 
 class array : public buffer {
 public:
-    PYBIND11_OBJECT_CVT(array, buffer, detail::npy_api::get().PyArray_Check_, raw_array)
+    PYBIND11_OBJECT_CVT(array, buffer, PyBind11_Array_Check, raw_array)
 
     enum {
         c_style = detail::npy_api::NPY_ARRAY_C_CONTIGUOUS_,
@@ -788,6 +794,11 @@ protected:
         check_dimensions_impl(axis + 1, shape + 1, index...);
     }
 
+    static bool PyBind11_Array_Check(PyObject *ptr) {
+        const auto &api = detail::npy_api::get();
+        return api.PyArray_Check_(ptr) || api.PyArray_IsScalar_(ptr);
+    }
+
     /// Create array from any object -- always returns a new reference
     static PyObject *raw_array(PyObject *ptr, int ExtraFlags = 0) {
         if (ptr == nullptr) {
@@ -898,9 +909,16 @@ public:
     }
 
     static bool check_(handle h) {
+        bool result = false;
         const auto &api = detail::npy_api::get();
-        return api.PyArray_Check_(h.ptr())
-               && api.PyArray_EquivTypes_(detail::array_proxy(h.ptr())->descr, dtype::of<T>().ptr());
+        if(api.PyArray_Check_(h.ptr())) {
+            result = api.PyArray_EquivTypes_(detail::array_proxy(h.ptr())->descr, dtype::of<T>().ptr());
+        }
+        else if (api.PyArray_IsScalar_(h.ptr())) {
+            auto descr = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(h.ptr()));
+            result = api.PyArray_EquivTypes_(descr.ptr(), dtype::of<T>().ptr());;
+        }
+        return result;
     }
 
 protected:
