@@ -141,7 +141,7 @@ struct type_info {
 #define PYBIND11_INTERNALS_VERSION 2
 
 #if defined(_DEBUG)
-#   define PYBIND11_BUILD_TYPE "debug"
+#   define PYBIND11_BUILD_TYPE "_debug"
 #else
 #   define PYBIND11_BUILD_TYPE ""
 #endif
