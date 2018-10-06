@@ -1854,16 +1854,30 @@ public:
         tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
 
         if (!tstate) {
-            tstate = PyThreadState_New(internals.istate);
-            #if !defined(NDEBUG)
-                if (!tstate)
-                    pybind11_fail("scoped_acquire: could not create thread state!");
-            #endif
-            tstate->gilstate_counter = 0;
+            // pybind11 has no internals.tstate on this thread yet,
+            // however a thread state may exist in the underlying Python GIL API.
+            //
+            // This, for example, will happen between the point where a Python
+            // thread is created and gil_scoped_acquire is called in that thread
+            // for the first time.
+            tstate = PyGILState_GetThisThreadState();
+
+            if (!tstate) {
+                // no thread state - create new one
+                tstate = PyThreadState_New(internals.istate);
+                #if !defined(NDEBUG)
+                    if (!tstate)
+                        pybind11_fail("scoped_acquire: could not create thread state!");
+                #endif
+                tstate->gilstate_counter = 0;
+            }
+
             PYBIND11_TLS_REPLACE_VALUE(internals.tstate, tstate);
-        } else {
-            release = detail::get_thread_state_unchecked() != tstate;
         }
+
+        // Check if the current Python thread state in the underlying API
+        // is equal to this thread's state stored in internals
+        release = detail::get_thread_state_unchecked() != tstate;
 
         if (release) {
             /* Work around an annoying assertion in PyThreadState_Swap */
@@ -1916,17 +1930,50 @@ private:
 
 class gil_scoped_release {
 public:
-    explicit gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
+    explicit gil_scoped_release() : disassoc(false) {
         // `get_internals()` must be called here unconditionally in order to initialize
         // `internals.tstate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
         // initialization race could occur as multiple threads try `gil_scoped_acquire`.
-        const auto &internals = detail::get_internals();
+        detail::get_internals();
         tstate = PyEval_SaveThread();
-        if (disassoc) {
-            auto key = internals.tstate;
-            PYBIND11_TLS_DELETE_VALUE(key);
+
+    }
+
+    // Disassociate the current c++ thread from its Python thread.
+    //
+    // If create_new_tstate is set to true, a new Python thread context is created
+    // which will be used by future gil_scoped_acquire guards.
+    //
+    // If create_new_tstate is set to false, a future gil_scoped_acquire will detect
+    // the original Python thread's existence and reassociate the c++ thread.
+    //
+    // This is designed for advanced usage potentially transferring Python thread
+    // contexts between threads.
+    //
+    // When this gil_scoped_release guard falls out of scope, then the Python and
+    // C++ threads will be reassociated.
+    void detach(bool create_new_tstate) {
+        if (disassoc)
+            pybind11_fail("scoped_release: already detached!");
+
+        disassoc = true;
+
+        const auto &internals = detail::get_internals();
+        auto key = internals.tstate;
+        PYBIND11_TLS_DELETE_VALUE(key);
+
+        if (create_new_tstate) {
+            const auto new_tstate = PyThreadState_New(internals.istate);
+            #if !defined(NDEBUG)
+            if (!new_tstate)
+                pybind11_fail("scoped_release: could not create thread state!");
+            #endif
+            new_tstate->gilstate_counter = 0;
+
+            PYBIND11_TLS_REPLACE_VALUE(key, new_tstate);
         }
     }
+
     ~gil_scoped_release() {
         if (!tstate)
             return;

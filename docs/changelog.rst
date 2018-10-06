@@ -47,6 +47,13 @@ v2.3.0 (Not yet released)
 * ``pybind11_add_module()``: allow including Python as a ``SYSTEM`` include path.
   `#1416 <https://github.com/pybind/pybind11/pull/1416>`_.
 
+* Resolved an issue where std::function arguments to functions could create a deadlock
+  when called from threads other than the main thread.
+
+* py::gil_scoped_release no longer takes a boolean flag disassoc on construction,
+  a new method .detach() will provide this behaviour. The detach method can optionally
+  create a new thread context.
+
 v2.2.4 (September 11, 2018)
 -----------------------------------------------------
 

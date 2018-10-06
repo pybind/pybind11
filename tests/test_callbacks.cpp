@@ -146,4 +146,7 @@ TEST_SUBMODULE(callbacks, m) {
     py::class_<CppBoundMethodTest>(m, "CppBoundMethodTest")
         .def(py::init<>())
         .def("triple", [](CppBoundMethodTest &, int val) { return 3 * val; });
+
+    // test_deadlock one-callback function
+    m.def("callback_void_std_function", [](std::function<void()> f) { f(); });
 }

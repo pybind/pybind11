@@ -105,3 +105,21 @@ def test_function_signatures(doc):
 
 def test_movable_object():
     assert m.callback_with_movable(lambda _: None) is True
+
+
+def test_no_deadlock():
+    # This code would deadlock - see issue 1525
+
+    def f():
+        pass
+
+    import threading
+
+    thread1 = threading.Thread(target=m.callback_void_std_function, args=(f,))
+    thread1.start()
+
+    thread2 = threading.Thread(target=m.callback_void_std_function, args=(f,))
+    thread2.start()
+
+    thread1.join()
+    thread2.join()
