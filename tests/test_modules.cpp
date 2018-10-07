@@ -95,4 +95,9 @@ TEST_SUBMODULE(modules, m) {
 
         return failures;
     });
+
+    // Try re-import.
+    // If this fails, then it will fail at duplicate registration.
+    py::str name = m.attr("__name__");
+    m.attr("self_import_at_construction_time") = py::module::import(std::string(name).c_str());
 }

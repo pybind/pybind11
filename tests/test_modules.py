@@ -70,3 +70,8 @@ def test_duplicate_registration():
     """Registering two things with the same name"""
 
     assert m.duplicate_registration() == []
+
+
+def test_self_import_at_construction_time():
+    """Ensures that a pybind11 module can import itself at construction time."""
+    assert m.self_import_at_construction_time is m
