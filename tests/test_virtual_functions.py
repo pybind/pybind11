@@ -375,3 +375,18 @@ def test_issue_1454():
     # Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.test_gil()
     m.test_gil_from_thread()
+
+def test_issue_1546():
+    # Fix issue #1546 (Python object not kept alive by shared_ptr)
+    somelist = []
+    class Derived(m.SharedPtrBase):
+        def __init__(self):
+            super(Derived, self).__init__()
+
+        def f(self, value):
+            somelist.append (value)
+            print("Right one", 42)
+
+    holder = m.SharedPtrHolder(Derived())
+    holder.run(42);
+    assert somelist == [42]

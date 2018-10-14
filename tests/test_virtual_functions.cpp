@@ -475,4 +475,46 @@ void initialize_inherited_virtuals(py::module &m) {
     // Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.def("test_gil", &test_gil);
     m.def("test_gil_from_thread", &test_gil_from_thread);
-};
+
+    // Fix issue #1546 (Python object not kept alive by shared_ptr)
+    struct SharedPtrBase
+    {
+        virtual void f (int i) const = 0;
+        virtual ~SharedPtrBase () { };
+    };
+
+    struct Trampoline : SharedPtrBase
+    {
+        void f (int i) const override
+        {
+            PYBIND11_OVERLOAD_PURE_NAME (
+            void,
+            SharedPtrBase,
+            "f",
+            impl,
+            /* args */
+            i);
+        }
+    };
+
+    struct SharedPtrHolder
+    {
+        SharedPtrHolder (std::shared_ptr<SharedPtrBase> ptr)
+        : ptr (std::move (ptr))
+        { }
+
+        void run (int i)
+        {
+            ptr->f (i);
+        }
+
+        std::shared_ptr<SharedPtrBase> ptr;
+    };
+
+    py::class_<SharedPtrBase, Trampoline, std::shared_ptr<SharedPtrBase>> (m, "SharedPtrBase")
+        .def (py::init<> ());
+
+    py::class_<SharedPtrHolder> (m, "SharedPtrHolder")
+        .def (py::init<std::shared_ptr<SharedPtrBase>> ())
+        .def ("run", &SharedPtrHolder::run);
+}
