@@ -50,6 +50,9 @@ v2.3.0 (Not yet released)
 * ``pybind11/stl.h`` does not convert strings to ``vector<string>`` anymore.
   `#1258 <https://github.com/pybind/pybind11/issues/1258>`_.
 
+* fixed shared_ptrs to Python-derived instances outliving the associated Python object
+  `#1546 <https://github.com/pybind/pybind11/issues/1546>`_.
+
 v2.2.4 (September 11, 2018)
 -----------------------------------------------------
 

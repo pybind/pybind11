@@ -388,5 +388,7 @@ def test_issue_1546():
             print("Right one", 42)
 
     holder = m.SharedPtrHolder(Derived())
+    # At this point, our 'Derived' instance has gone out of scope in Python but
+    # is being kept alive by a shared_ptr inside 'holder'.
     holder.run(42);
     assert somelist == [42]

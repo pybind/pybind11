@@ -1496,9 +1496,46 @@ protected:
     holder_type holder;
 };
 
-/// Specialize for the common std::shared_ptr, so users don't need to
+/// Specialize type_caster for std::shared_ptr<T>.
+/// This is the same as copyable_holder_caster, except that when casting to C++
+/// we keep the Python object alive through the shared_ptr as e.g. virtual
+/// functions and derived state might be defined there.
 template <typename T>
-class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> { };
+class type_caster<std::shared_ptr<T>>
+{
+    PYBIND11_TYPE_CASTER (std::shared_ptr<T>, _(PYBIND11_STRING_NAME));
+
+    // Re-use copyable_holder_caster
+    using BaseCaster = copyable_holder_caster<T, std::shared_ptr<T>>;
+
+    bool load (pybind11::handle src, bool b)
+    {
+        BaseCaster bc;
+        bool success = bc.load (src, b);
+        if (!success)
+        {
+            return false;
+        }
+
+        // * Get src as a py::object
+        // * Construct a shared_ptr to the py::object
+        auto py_obj = reinterpret_borrow<object> (src);
+        auto py_obj_ptr = std::make_shared<object> (py_obj);
+
+        // * Use BaseCaster to get it as the shared_ptr<T>
+        // * Use this to make an aliased shared_ptr<T> that keeps the py::object alive
+        auto base_ptr = static_cast<std::shared_ptr<T>> (bc);
+        value = std::shared_ptr<T> (py_obj_ptr, base_ptr.get ());
+        return true;
+    }
+
+    static handle cast (std::shared_ptr<T> sp,
+                        return_value_policy rvp,
+                        handle h)
+    {
+        return BaseCaster::cast (sp, rvp, h);
+    }
+};
 
 template <typename type, typename holder_type>
 struct move_only_holder_caster {
@@ -1539,6 +1576,9 @@ template <typename base, typename holder> struct is_holder_type :
 // Specialization for always-supported unique_ptr holders:
 template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
     std::true_type {};
+
+template <typename T>
+struct is_holder_type<T, std::shared_ptr<T>> : std::true_type {};
 
 template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
 template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };
