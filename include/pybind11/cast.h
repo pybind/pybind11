@@ -1503,37 +1503,36 @@ protected:
 template <typename T>
 class type_caster<std::shared_ptr<T>>
 {
-    PYBIND11_TYPE_CASTER (std::shared_ptr<T>, _(PYBIND11_STRING_NAME));
+    PYBIND11_TYPE_CASTER(std::shared_ptr<T>, _(PYBIND11_STRING_NAME));
 
     // Re-use copyable_holder_caster
     using BaseCaster = copyable_holder_caster<T, std::shared_ptr<T>>;
 
-    bool load (pybind11::handle src, bool b)
+    bool load(pybind11::handle src, bool b)
     {
         BaseCaster bc;
-        bool success = bc.load (src, b);
-        if (!success)
-        {
+        bool success = bc.load(src, b);
+        if (!success) {
             return false;
         }
 
         // * Get src as a py::object
         // * Construct a shared_ptr to the py::object
-        auto py_obj = reinterpret_borrow<object> (src);
-        auto py_obj_ptr = std::make_shared<object> (py_obj);
+        auto py_obj = reinterpret_borrow<object>(src);
+        auto py_obj_ptr = std::make_shared<object>(py_obj);
 
         // * Use BaseCaster to get it as the shared_ptr<T>
         // * Use this to make an aliased shared_ptr<T> that keeps the py::object alive
-        auto base_ptr = static_cast<std::shared_ptr<T>> (bc);
-        value = std::shared_ptr<T> (py_obj_ptr, base_ptr.get ());
+        auto base_ptr = static_cast<std::shared_ptr<T>>(bc);
+        value = std::shared_ptr<T>(py_obj_ptr, base_ptr.get());
         return true;
     }
 
-    static handle cast (std::shared_ptr<T> sp,
-                        return_value_policy rvp,
-                        handle h)
+    static handle cast(std::shared_ptr<T> sp,
+                       return_value_policy rvp,
+                       handle h)
     {
-        return BaseCaster::cast (sp, rvp, h);
+        return BaseCaster::cast(sp, rvp, h);
     }
 };
 

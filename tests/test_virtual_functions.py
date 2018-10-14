@@ -376,19 +376,21 @@ def test_issue_1454():
     m.test_gil()
     m.test_gil_from_thread()
 
+
 def test_issue_1546():
     # Fix issue #1546 (Python object not kept alive by shared_ptr)
     somelist = []
+
     class Derived(m.SharedPtrBase):
         def __init__(self):
             super(Derived, self).__init__()
 
         def f(self, value):
-            somelist.append (value)
+            somelist.append(value)
             print("Right one", 42)
 
     holder = m.SharedPtrHolder(Derived())
     # At this point, our 'Derived' instance has gone out of scope in Python but
     # is being kept alive by a shared_ptr inside 'holder'.
-    holder.run(42);
+    holder.run(42)
     assert somelist == [42]
