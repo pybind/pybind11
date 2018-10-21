@@ -1172,7 +1172,6 @@ class slice : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
     slice(object start_, object stop_, object step_) {
-
         m_ptr = PySlice_New(start_.ptr(),
                             stop_.ptr(),
                             step_.ptr());
