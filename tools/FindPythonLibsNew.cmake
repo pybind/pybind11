@@ -100,6 +100,9 @@ if(NOT _PYTHON_SUCCESS MATCHES 0)
 endif()
 
 # Convert the process output into a list
+if(WIN32)
+    string(REGEX REPLACE "\\\\" "/" _PYTHON_VALUES ${_PYTHON_VALUES})
+endif()
 string(REGEX REPLACE ";" "\\\\;" _PYTHON_VALUES ${_PYTHON_VALUES})
 string(REGEX REPLACE "\n" ";" _PYTHON_VALUES ${_PYTHON_VALUES})
 list(GET _PYTHON_VALUES 0 _PYTHON_VERSION_LIST)
