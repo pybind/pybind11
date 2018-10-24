@@ -1426,11 +1426,11 @@ struct enum_base {
             }), none(), none(), ""
         );
 
-        #define PYBIND11_ENUM_OP_STRICT(op, expr)                                      \
+        #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                     \
             m_base.attr(op) = cpp_function(                                            \
                 [](object a, object b) {                                               \
                     if (!a.get_type().is(b.get_type()))                                \
-                        throw type_error("Expected an enumeration of matching type!"); \
+                        strict_behavior;                                               \
                     return expr;                                                       \
                 },                                                                     \
                 is_method(m_base))
@@ -1460,14 +1460,16 @@ struct enum_base {
                 PYBIND11_ENUM_OP_CONV("__rxor__", a ^  b);
             }
         } else {
-            PYBIND11_ENUM_OP_STRICT("__eq__",  int_(a).equal(int_(b)));
-            PYBIND11_ENUM_OP_STRICT("__ne__", !int_(a).equal(int_(b)));
+            PYBIND11_ENUM_OP_STRICT("__eq__",  int_(a).equal(int_(b)), return false);
+            PYBIND11_ENUM_OP_STRICT("__ne__", !int_(a).equal(int_(b)), return true);
 
             if (is_arithmetic) {
-                PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) <  int_(b));
-                PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) >  int_(b));
-                PYBIND11_ENUM_OP_STRICT("__le__", int_(a) <= int_(b));
-                PYBIND11_ENUM_OP_STRICT("__ge__", int_(a) >= int_(b));
+                #define THROW throw type_error("Expected an enumeration of matching type!");
+                PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) <  int_(b), THROW);
+                PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) >  int_(b), THROW);
+                PYBIND11_ENUM_OP_STRICT("__le__", int_(a) <= int_(b), THROW);
+                PYBIND11_ENUM_OP_STRICT("__ge__", int_(a) >= int_(b), THROW);
+                #undef THROW
             }
         }
 
