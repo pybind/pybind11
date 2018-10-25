@@ -45,6 +45,10 @@
 #  endif
 #endif
 
+#if defined(PYBIND11_CPP17) && !defined(PYBIND11_CPP14)
+#  define PYBIND11_CPP14
+#endif
+
 // Compiler version assertions
 #if defined(__INTEL_COMPILER)
 #  if __INTEL_COMPILER < 1700
