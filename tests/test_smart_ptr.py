@@ -262,3 +262,14 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
+
+
+def test_holder_mismatch():
+    """#1138: segfault if mixing holder types"""
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_mismatch_return(m)
+    assert "Mismatched holders detected" in str(excinfo)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_mismatch_class(m)
+    assert "Mismatched holders detected" in str(excinfo)
