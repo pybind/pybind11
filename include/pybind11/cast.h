@@ -571,7 +571,16 @@ public:
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
             auto *type = v_h.type ? v_h.type : typeinfo;
-            vptr = type->operator_new(type->type_size);
+            if (type->operator_new) {
+                vptr = type->operator_new(type->type_size);
+            } else {
+                #if !defined(PYBIND11_CPP17)
+                    vptr = ::operator new(type->type_size);
+                #else
+                    vptr = ::operator new(type->type_size,
+                                          (std::align_val_t) type->type_align);
+                #endif
+            }
         }
         value = vptr;
     }

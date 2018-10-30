@@ -896,6 +896,7 @@ protected:
         tinfo->type = (PyTypeObject *) m_ptr;
         tinfo->cpptype = rec.type;
         tinfo->type_size = rec.type_size;
+        tinfo->type_align = rec.type_align;
         tinfo->operator_new = rec.operator_new;
         tinfo->holder_size_in_ptrs = size_in_ptrs(rec.holder_size);
         tinfo->init_instance = rec.init_instance;
@@ -1054,6 +1055,7 @@ public:
         record.name = name;
         record.type = &typeid(type);
         record.type_size = sizeof(conditional_t<has_alias, type_alias, type>);
+        record.type_align = alignof(conditional_t<has_alias, type_alias, type>);
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;

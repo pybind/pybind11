@@ -354,6 +354,15 @@ TEST_SUBMODULE(class_, m) {
           [](StringWrapper) -> NotRegistered { return {}; });
     py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
     py::implicitly_convertible<std::string, StringWrapper>();
+
+    #if defined(PYBIND11_CPP17)
+        struct alignas(1024) Aligned {
+            std::uintptr_t ptr() const { return (uintptr_t) this; }
+        };
+        py::class_<Aligned>(m, "Aligned")
+            .def(py::init<>())
+            .def("ptr", &Aligned::ptr);
+    #endif
 }
 
 template <int N> class BreaksBase { public: virtual ~BreaksBase() = default; };
