@@ -719,10 +719,6 @@ struct error_scope {
 /// Dummy destructor wrapper that can be used to expose classes with a private destructor
 struct nodelete { template <typename T> void operator()(T*) { } };
 
-// overload_cast requires variable templates: C++14
-#if defined(PYBIND11_CPP14)
-#define PYBIND11_OVERLOAD_CAST 1
-
 NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
@@ -742,19 +738,23 @@ struct overload_cast_impl {
 };
 NAMESPACE_END(detail)
 
+// overload_cast requires variable templates: C++14
+#if defined(PYBIND11_CPP14)
+#define PYBIND11_OVERLOAD_CAST 1
 /// Syntax sugar for resolving overloaded function pointers:
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
 ///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
 template <typename... Args>
 static constexpr detail::overload_cast_impl<Args...> overload_cast = {};
 // MSVC 2015 only accepts this particular initialization syntax for this variable template.
+#endif
 
 /// Const member function selector for overload_cast
 ///  - regular: static_cast<Return (Class::*)(Arg) const>(&Class::func)
 ///  - sweet:   overload_cast<Arg>(&Class::func, const_)
 static constexpr auto const_ = std::true_type{};
 
-#else // no overload_cast: providing something that static_assert-fails:
+#if !defined(PYBIND11_CPP14) // no overload_cast: providing something that static_assert-fails:
 template <typename... Args> struct overload_cast {
     static_assert(detail::deferred_t<std::false_type, Args...>::value,
                   "pybind11::overload_cast<...> requires compiling in C++14 mode");
