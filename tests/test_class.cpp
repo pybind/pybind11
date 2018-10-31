@@ -12,6 +12,10 @@
 #include "local_bindings.h"
 #include <pybind11/stl.h>
 
+#if defined(_MSC_VER)
+#  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
+#endif
+
 // test_brace_initialization
 struct NoBraceInitialization {
     NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
