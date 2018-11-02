@@ -1655,13 +1655,43 @@ T cast(const handle &handle) { return T(reinterpret_borrow<object>(handle)); }
 
 // C++ type -> py::object
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
-object cast(const T &value, return_value_policy policy = return_value_policy::automatic_reference,
+object cast(T &&value, return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
-    if (policy == return_value_policy::automatic)
-        policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
-    else if (policy == return_value_policy::automatic_reference)
-        policy = std::is_pointer<T>::value ? return_value_policy::reference : return_value_policy::copy;
-    return reinterpret_steal<object>(detail::make_caster<T>::cast(value, policy, parent));
+    if (policy == return_value_policy::automatic) {
+#if defined(PYBIND11_CPP17)
+        if constexpr (std::is_pointer<T>::value)
+            policy = return_value_policy::take_ownership;
+        else if constexpr (std::is_lvalue_reference<T>::value)
+            policy = return_value_policy::copy;
+        else
+            policy = return_value_policy::move;
+#else
+        if (std::is_pointer<T>::value)
+            policy = return_value_policy::take_ownership;
+        else if (std::is_lvalue_reference<T>::value)
+            policy = return_value_policy::copy;
+        else
+            policy = return_value_policy::move;
+#endif
+    }
+    else if (policy == return_value_policy::automatic_reference) {
+#if defined(PYBIND11_CPP17)
+        if constexpr (std::is_pointer<T>::value)
+            policy = return_value_policy::reference;
+        else if constexpr (std::is_lvalue_reference<T>::value)
+            policy = return_value_policy::copy;
+        else
+            policy = return_value_policy::move;
+#else
+        if (std::is_pointer<T>::value)
+            policy = return_value_policy::reference;
+        else if (std::is_lvalue_reference<T>::value)
+            policy = return_value_policy::copy;
+        else
+            policy = return_value_policy::move;
+#endif
+    }
+    return reinterpret_steal<object>(detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));
 }
 
 template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
