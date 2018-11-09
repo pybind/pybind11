@@ -265,4 +265,16 @@ TEST_SUBMODULE(stl, m) {
           py::return_value_policy::take_ownership);
 
     m.def("array_cast_sequence", [](std::array<int, 3> x) { return x; });
+
+    /// test_issue_1561
+    struct Issue1561Inner { std::string data; };
+    struct Issue1561Outer { std::vector<Issue1561Inner> list; };
+
+    py::class_<Issue1561Inner>(m, "Issue1561Inner")
+        .def(py::init<std::string>())
+        .def_readwrite("data", &Issue1561Inner::data);
+
+    py::class_<Issue1561Outer>(m, "Issue1561Outer")
+        .def(py::init<>())
+        .def_readwrite("list", &Issue1561Outer::list);
 }
