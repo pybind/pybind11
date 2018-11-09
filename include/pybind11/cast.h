@@ -574,12 +574,13 @@ public:
             if (type->operator_new) {
                 vptr = type->operator_new(type->type_size);
             } else {
-                #if !defined(PYBIND11_CPP17)
-                    vptr = ::operator new(type->type_size);
-                #else
-                    vptr = ::operator new(type->type_size,
-                                          (std::align_val_t) type->type_align);
+                #if defined(PYBIND11_CPP17)
+                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+                        vptr = ::operator new(type->type_size,
+                                              (std::align_val_t) type->type_align);
+                    else
                 #endif
+                vptr = ::operator new(type->type_size);
             }
         }
         value = vptr;

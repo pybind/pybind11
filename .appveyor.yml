@@ -3,6 +3,7 @@ image:
 - Visual Studio 2017
 - Visual Studio 2015
 test: off
+skip_branch_with_pr: true
 build:
   parallel: true
 platform:

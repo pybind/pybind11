@@ -988,11 +988,21 @@ template <typename T> struct has_operator_delete_size<T, void_t<decltype(static_
     : std::true_type { };
 /// Call class-specific delete if it exists or global otherwise. Can also be an overload set.
 template <typename T, enable_if_t<has_operator_delete<T>::value, int> = 0>
-void call_operator_delete(T *p, size_t) { T::operator delete(p); }
+void call_operator_delete(T *p, size_t, size_t) { T::operator delete(p); }
 template <typename T, enable_if_t<!has_operator_delete<T>::value && has_operator_delete_size<T>::value, int> = 0>
-void call_operator_delete(T *p, size_t s) { T::operator delete(p, s); }
+void call_operator_delete(T *p, size_t s, size_t) { T::operator delete(p, s); }
 
-inline void call_operator_delete(void *p, size_t) { ::operator delete(p); }
+inline void call_operator_delete(void *p, size_t s, size_t a) {
+    (void)s; (void)a;
+#if defined(PYBIND11_CPP17)
+    if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+        ::operator delete(p, s, std::align_val_t(a));
+    else
+        ::operator delete(p, s);
+#else
+    ::operator delete(p);
+#endif
+}
 
 NAMESPACE_END(detail)
 
@@ -1331,7 +1341,10 @@ private:
             v_h.set_holder_constructed(false);
         }
         else {
-            detail::call_operator_delete(v_h.value_ptr<type>(), v_h.type->type_size);
+            detail::call_operator_delete(v_h.value_ptr<type>(),
+                v_h.type->type_size,
+                v_h.type->type_align
+            );
         }
         v_h.value_ptr() = nullptr;
     }
