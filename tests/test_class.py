@@ -273,3 +273,9 @@ def test_error_after_conversions():
         m.test_error_after_conversions("hello")
     assert str(exc_info.value).startswith(
         "Unable to convert function return value to a Python type!")
+
+
+def test_aligned():
+    if hasattr(m, "Aligned"):
+        p = m.Aligned().ptr()
+        assert p % 1024 == 0

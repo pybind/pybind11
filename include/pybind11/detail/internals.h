@@ -116,7 +116,7 @@ struct internals {
 struct type_info {
     PyTypeObject *type;
     const std::type_info *cpptype;
-    size_t type_size, holder_size_in_ptrs;
+    size_t type_size, type_align, holder_size_in_ptrs;
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
     void (*dealloc)(value_and_holder &v_h);
@@ -138,7 +138,7 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 2
+#define PYBIND11_INTERNALS_VERSION 3
 
 #if defined(WITH_THREAD)
 #  define PYBIND11_INTERNALS_KIND ""
