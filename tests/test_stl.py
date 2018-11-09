@@ -220,3 +220,11 @@ def test_stl_ownership():
 
 def test_array_cast_sequence():
     assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
+
+
+def test_issue_1561():
+    """ check fix for issue #1561 """
+    bar = m.Issue1561Outer()
+    bar.list = [m.Issue1561Inner('bar')]
+    bar.list
+    assert bar.list[0].data == 'bar'
