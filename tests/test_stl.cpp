@@ -263,4 +263,6 @@ TEST_SUBMODULE(stl, m) {
               return result;
           },
           py::return_value_policy::take_ownership);
+
+    m.def("array_cast_sequence", [](std::array<int, 3> x) { return x; });
 }

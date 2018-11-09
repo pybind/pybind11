@@ -199,9 +199,9 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!isinstance<list>(src))
+        if (!isinstance<sequence>(src))
             return false;
-        auto l = reinterpret_borrow<list>(src);
+        auto l = reinterpret_borrow<sequence>(src);
         if (!require_size(l.size()))
             return false;
         size_t ctr = 0;
