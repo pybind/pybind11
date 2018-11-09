@@ -216,3 +216,7 @@ def test_stl_ownership():
     assert len(r) == 1
     del r
     assert cstats.alive() == 0
+
+
+def test_array_cast_sequence():
+    assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
