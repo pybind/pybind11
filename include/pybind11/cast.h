@@ -1611,7 +1611,8 @@ template <typename T> using move_never = none_of<move_always<T>, move_if_unrefer
 // everything else returns a reference/pointer to a local variable.
 template <typename type> using cast_is_temporary_value_reference = bool_constant<
     (std::is_reference<type>::value || std::is_pointer<type>::value) &&
-    !std::is_base_of<type_caster_generic, make_caster<type>>::value
+    !std::is_base_of<type_caster_generic, make_caster<type>>::value &&
+    !std::is_same<intrinsic_t<type>, void>::value
 >;
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
