@@ -7,9 +7,9 @@ Frequently asked questions
 1. Make sure that the name specified in PYBIND11_MODULE is identical to the
 filename of the extension library (without prefixes such as .so)
 
-2. If the above did not fix the issue, you are likely using an incompatible 
-version of Python (for instance, the extension library was compiled against 
-Python 2, while the interpreter is running on top of some version of Python 
+2. If the above did not fix the issue, you are likely using an incompatible
+version of Python (for instance, the extension library was compiled against
+Python 2, while the interpreter is running on top of some version of Python
 3, or vice versa).
 
 "Symbol not found: ``__Py_ZeroStruct`` / ``_PyInstanceMethod_Type``"
