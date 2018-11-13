@@ -4,7 +4,7 @@ Frequently asked questions
 "ImportError: dynamic module does not define init function"
 ===========================================================
 
-1. Make sure that the name specified in PYBIND11_MODULE is identical to the 
+1. Make sure that the name specified in PYBIND11_MODULE is identical to the
 filename of the extension library (without prefixes such as .so)
 
 2. If the above did not fix the issue, you are likely using an incompatible 
