@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <list>
+#include <deque>
 #include <valarray>
 
 #if defined(_MSC_VER)
@@ -184,6 +185,9 @@ public:
 
 template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>>
  : list_caster<std::vector<Type, Alloc>, Type> { };
+
+template <typename Type, typename Alloc> struct type_caster<std::deque<Type, Alloc>>
+ : list_caster<std::deque<Type, Alloc>, Type> { };
 
 template <typename Type, typename Alloc> struct type_caster<std::list<Type, Alloc>>
  : list_caster<std::list<Type, Alloc>, Type> { };

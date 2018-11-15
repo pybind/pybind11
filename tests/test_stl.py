@@ -23,6 +23,15 @@ def test_vector(doc):
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
 
 
+def test_deque(doc):
+    """std::deque <-> list"""
+    lst = m.cast_deque()
+    assert lst == [1]
+    lst.append(2)
+    assert m.load_deque(lst)
+    assert m.load_deque(tuple(lst))
+
+
 def test_array(doc):
     """std::array <-> list"""
     lst = m.cast_array()
