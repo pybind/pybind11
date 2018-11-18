@@ -1586,12 +1586,12 @@ public:
     // semantics without too much `const_cast<>` ooginess.
     static handle cast(holder_type &&src, return_value_policy, handle) {
         const auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, holder_erased(&src));
+        return type_caster_base<type>::cast_holder(ptr, holder_erased(std::addressof(src)));
     }
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
         const auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, holder_erased(&src));
+        return type_caster_base<type>::cast_holder(ptr, holder_erased(std::addressof(src)));
     }
 
   // TODO(eric.cousineau): Define cast_op_type???
