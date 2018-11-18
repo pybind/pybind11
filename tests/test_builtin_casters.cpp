@@ -160,4 +160,11 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("int_cast", []() {return (int) 42;});
     m.def("long_cast", []() {return (long) 42;});
     m.def("longlong_cast", []() {return  ULLONG_MAX;});
+
+    /// test void* cast operator
+    m.def("test_void_caster", []() -> bool {
+        void *v = (void *) 0xabcd;
+        py::object o = py::cast(v);
+        return py::cast<void *>(o) == v;
+    });
 }

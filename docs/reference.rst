@@ -80,7 +80,7 @@ Redirecting C++ streams
 
 .. doxygenfunction:: add_ostream_redirect
 
-Python build-in functions
+Python built-in functions
 =========================
 
 .. doxygengroup:: python_builtins

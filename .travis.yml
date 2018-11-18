@@ -68,7 +68,7 @@ matrix:
     env: PYTHON=2.7 CPP=14 CLANG CMAKE=1
   - os: osx
     osx_image: xcode9
-    env: PYTHON=3.6 CPP=14 CLANG DEBUG=1
+    env: PYTHON=3.7 CPP=14 CLANG DEBUG=1
   # Test a PyPy 2.7 build
   - os: linux
     env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
@@ -108,7 +108,7 @@ before_install:
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
     if [ "$GCC" = "6" ]; then DOCKER=${ARCH:+$ARCH/}debian:stretch
-    elif [ "$GCC" = "7" ]; then DOCKER=debian:buster EXTRA_PACKAGES+=" catch" DOWNLOAD_CATCH=OFF
+    elif [ "$GCC" = "7" ]; then DOCKER=debian:buster EXTRA_PACKAGES+=" catch python3-distutils" DOWNLOAD_CATCH=OFF
     fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export CXX=clang++ CC=clang;
