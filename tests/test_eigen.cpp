@@ -270,7 +270,19 @@ TEST_SUBMODULE(eigen, m) {
         .def("value", [](const ADScalar & self) {
           return self.value();
         })
+        .def("__repr__", [](const ADScalar& self) {
+          return py::str("<ADScalar {} deriv={}>").format(self.value(), self.derivatives());
+        })
         ;
+
+    m.def("equal_to", [](double a, double b) { return a == b; });
+    // AutDiff's operator== only compares the value; we should compare the full scalar.
+    m.def("equal_to", [](const ADScalar& a, const ADScalar& b) {
+      auto& a_d = a.derivatives();
+      auto& b_d = b.derivatives();
+      return a.value() == b.value() && a_d.size() == b_d.size() &&
+          (a_d.array() == b_d.array()).all();
+    });
 
     // test_special_matrix_objects
     // Returns a DiagonalMatrix with diagonal (1,2,3,...)

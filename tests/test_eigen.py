@@ -151,41 +151,50 @@ def test_nonunit_stride_from_python():
     np.testing.assert_array_equal(counting_mat, [[0., 2, 2], [6, 16, 10], [6, 14, 8]])
 
 
-def conv_double_to_adscalar(arr, vice_versa=False):
-    flat_arr = arr.flatten()
-    new_arr = np.zeros(flat_arr.shape, dtype=object)
+def float_to_adscalar(arr, deriv):
+    arr = np.asarray(arr)
+    assert arr.dtype == float
+    new_arr = [m.AutoDiffXd(x, deriv) for x in arr.flat]
+    return np.array(new_arr).reshape(arr.shape)
 
-    for i in range(0, flat_arr.shape[0]):
-        if vice_versa:
-            new_arr[i] = flat_arr[i].value()
-        else:
-            new_arr[i] = m.AutoDiffXd(flat_arr[i], np.ones(1))
 
-    return new_arr.reshape(arr.shape)
+def adscalar_to_float(arr):
+    arr = np.asarray(arr)
+    assert arr.dtype == object
+    new_arr = [x.value() for x in arr.flat]
+    return np.array(new_arr).reshape(arr.shape)
+
+
+def check_array(a, b):
+    a, b = (np.asarray(x) for x in (a, b))
+    assert a.shape == b.shape and a.dtype == b.dtype
+    for index, (ai, bi) in enumerate(zip(a.flat, b.flat)):
+        assert m.equal_to(ai, bi), index
 
 
 def test_eigen_passing_adscalar():
-    adscalar_mat = conv_double_to_adscalar(ref)
+    assert m.equal_to(1., 1.)
+    assert not m.equal_to(1., 1.1)
+    assert m.equal_to(m.AutoDiffXd(0, [1.]), m.AutoDiffXd(0, [1.]))
+    assert not m.equal_to(m.AutoDiffXd(0, [1.]), m.AutoDiffXd(0, [1.1]))
+
+    adscalar_mat = float_to_adscalar(ref, deriv=[1.])
     adscalar_vec_col = adscalar_mat[:, 0]
     adscalar_vec_row = adscalar_mat[0, :]
 
-    # Checking if a Python vector is getting doubled, when passed into a dynamic
+    # Checking if a Python vector is getting doubled, when passed into a dynamic or fixed
     # row or col vector in Eigen.
-    adscalar_double_col = m.double_adscalar_col(adscalar_vec_col)
-    adscalar_double_row = m.double_adscalar_row(adscalar_vec_row)
-    np.testing.assert_array_equal(conv_double_to_adscalar(adscalar_double_col, vice_versa=True),
-                                  2 * ref[:, 0])
-    np.testing.assert_array_equal(conv_double_to_adscalar(adscalar_double_row, vice_versa=True),
-                                  2 * ref[0, :])
+    double_adscalar_mat = float_to_adscalar(2 * ref, deriv=[2.])
+    check_array(m.double_adscalar_col(adscalar_vec_col), double_adscalar_mat[:, 0])
+    check_array(m.double_adscalar_row(adscalar_vec_row), double_adscalar_mat[0, :])
 
     # Adding 7 to the a dynamic matrix using reference.
-    incremented_adscalar_mat = conv_double_to_adscalar(m.incr_adscalar_matrix(adscalar_mat, 7.),
-                                                       vice_versa=True)
-    np.testing.assert_array_equal(incremented_adscalar_mat, ref + 7)
+    incr_adscalar_mat = float_to_adscalar(ref + 7, deriv=[1.])
+    check_array(m.incr_adscalar_matrix(adscalar_mat, 7.), incr_adscalar_mat)
     # The original adscalar_mat remains unchanged in spite of passing by reference, since
     # `Eigen::Ref<const CType>` permits copying, and copying is the only valid operation for
     # `dtype=object`.
-    np.testing.assert_array_equal(conv_double_to_adscalar(adscalar_mat, vice_versa=True), ref)
+    check_array(adscalar_to_float(adscalar_mat), ref)
 
     # Changes in Python are not reflected in C++ when internal_reference is returned.
     # These conversions should be disabled at runtime.
