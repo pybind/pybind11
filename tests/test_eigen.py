@@ -186,7 +186,9 @@ def test_eigen_passing_adscalar():
     # row or col vector in Eigen.
     double_adscalar_mat = float_to_adscalar(2 * ref, deriv=[2.])
     check_array(m.double_adscalar_col(adscalar_vec_col), double_adscalar_mat[:, 0])
+    check_array(m.double_adscalar_col5(adscalar_vec_col), double_adscalar_mat[:, 0])
     check_array(m.double_adscalar_row(adscalar_vec_row), double_adscalar_mat[0, :])
+    check_array(m.double_adscalar_row6(adscalar_vec_row), double_adscalar_mat[0, :])
 
     # Adding 7 to the a dynamic matrix using reference.
     incr_adscalar_mat = float_to_adscalar(ref + 7, deriv=[1.])
