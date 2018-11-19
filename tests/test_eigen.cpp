@@ -28,6 +28,8 @@ using MatrixX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
 
 typedef Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> VectorXADScalar;
 typedef Eigen::Matrix<ADScalar, 1, Eigen::Dynamic> VectorXADScalarR;
+typedef Eigen::Matrix<ADScalar, 5, 1> Vector5ADScalar;
+typedef Eigen::Matrix<ADScalar, 1, 6> Vector6ADScalarR;
 PYBIND11_NUMPY_OBJECT_DTYPE(ADScalar);
 
 // Sets/resets a testing reference matrix to have values of 10*r + c, where r and c are the
@@ -112,13 +114,16 @@ TEST_SUBMODULE(eigen, m) {
     // various tests
     m.def("double_col", [](const Eigen::VectorXf &x) -> Eigen::VectorXf { return 2.0f * x; });
     m.def("double_adscalar_col", [](const VectorXADScalar &x) -> VectorXADScalar { return 2.0f * x; });
+    m.def("double_adscalar_col5", [](const Vector5ADScalar &x) -> Vector5ADScalar { return 2.0f * x; });
     m.def("double_row", [](const Eigen::RowVectorXf &x) -> Eigen::RowVectorXf { return 2.0f * x; });
     m.def("double_adscalar_row", [](const VectorXADScalarR &x) -> VectorXADScalarR { return 2.0f * x; });
+    m.def("double_adscalar_row6", [](const Vector6ADScalarR &x) -> Vector6ADScalarR { return 2.0f * x; });
     m.def("double_complex", [](const Eigen::VectorXcf &x) -> Eigen::VectorXcf { return 2.0f * x; });
     m.def("double_threec", [](py::EigenDRef<Eigen::Vector3f> x) { x *= 2; });
     m.def("double_threer", [](py::EigenDRef<Eigen::RowVector3f> x) { x *= 2; });
     m.def("double_mat_cm", [](Eigen::MatrixXf x) -> Eigen::MatrixXf { return 2.0f * x; });
     m.def("double_mat_rm", [](DenseMatrixR x) -> DenseMatrixR { return 2.0f * x; });
+
 
     // test_eigen_ref_to_python
     // Different ways of passing via Eigen::Ref; the first and second are the Eigen-recommended
@@ -270,7 +275,19 @@ TEST_SUBMODULE(eigen, m) {
         .def("value", [](const ADScalar & self) {
           return self.value();
         })
+        .def("__repr__", [](const ADScalar& self) {
+          return py::str("<ADScalar {} deriv={}>").format(self.value(), self.derivatives());
+        })
         ;
+
+    m.def("equal_to", [](double a, double b) { return a == b; });
+    // AutDiff's operator== only compares the value; we should compare the full scalar.
+    m.def("equal_to", [](const ADScalar& a, const ADScalar& b) {
+      auto& a_d = a.derivatives();
+      auto& b_d = b.derivatives();
+      return a.value() == b.value() && a_d.size() == b_d.size() &&
+          (a_d.array() == b_d.array()).all();
+    });
 
     // test_special_matrix_objects
     // Returns a DiagonalMatrix with diagonal (1,2,3,...)

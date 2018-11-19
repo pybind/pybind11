@@ -248,8 +248,9 @@ template <typename props> handle eigen_array_cast(typename props::Type const &sr
                 nullptr,
                 empty_base
             );
+            constexpr bool is_row = props::fixed_rows && props::rows == 1;
             for (ssize_t i = 0; i < src.size(); ++i) {
-                const Scalar src_val = props::fixed_rows ? src(0, i) : src(i, 0);
+                const Scalar src_val = is_row ? src(0, i) : src(i, 0);
                 auto value_ = reinterpret_steal<object>(make_caster<Scalar>::cast(src_val, policy, empty_base));
                 if (!value_)
                     return handle();
