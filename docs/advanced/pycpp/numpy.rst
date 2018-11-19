@@ -261,7 +261,7 @@ simply using ``vectorize``).
     namespace py = pybind11;
 
     py::array_t<double> add_arrays(py::array_t<double> input1, py::array_t<double> input2) {
-        auto buf1 = input1.request(), buf2 = input2.request();
+        py::buffer_info buf1 = input1.request(), buf2 = input2.request();
 
         if (buf1.ndim != 1 || buf2.ndim != 1)
             throw std::runtime_error("Number of dimensions must be one");
@@ -272,7 +272,7 @@ simply using ``vectorize``).
         /* No pointer is passed, so NumPy will allocate the buffer */
         auto result = py::array_t<double>(buf1.size);
 
-        auto buf3 = result.request();
+        py::buffer_info buf3 = result.request();
 
         double *ptr1 = (double *) buf1.ptr,
                *ptr2 = (double *) buf2.ptr,
@@ -364,3 +364,23 @@ uses of ``py::array``:
 
     The file :file:`tests/test_numpy_array.cpp` contains additional examples
     demonstrating the use of this feature.
+
+Ellipsis
+========
+
+Python 3 provides a convenient ``...`` ellipsis notation that is often used to
+slice multidimensional arrays. For instance, the following snippet extracts the
+middle dimensions of a tensor with the first and last index set to zero.
+
+.. code-block:: python
+
+   a = # a NumPy array
+   b = a[0, ..., 0]
+
+The function ``py::ellipsis()`` function can be used to perform the same
+operation on the C++ side:
+
+.. code-block:: cpp
+
+   py::array a = /* A NumPy array */;
+   py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];

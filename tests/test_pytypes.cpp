@@ -269,4 +269,28 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("print_failure", []() { py::print(42, UnregisteredType()); });
 
     m.def("hash_function", [](py::object obj) { return py::hash(obj); });
+
+    m.def("test_number_protocol", [](py::object a, py::object b) {
+        py::list l;
+        l.append(a.equal(b));
+        l.append(a.not_equal(b));
+        l.append(a < b);
+        l.append(a <= b);
+        l.append(a > b);
+        l.append(a >= b);
+        l.append(a + b);
+        l.append(a - b);
+        l.append(a * b);
+        l.append(a / b);
+        l.append(a | b);
+        l.append(a & b);
+        l.append(a ^ b);
+        l.append(a >> b);
+        l.append(a << b);
+        return l;
+    });
+
+    m.def("test_list_slicing", [](py::list a) {
+        return a[py::slice(0, -1, 2)];
+    });
 }
