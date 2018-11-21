@@ -898,15 +898,9 @@ public:
     explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { }
 
     operator std::string() const {
-        object temp = *this;
-        if (PyUnicode_Check(m_ptr)) {
-            temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(m_ptr));
-            if (!temp)
-                pybind11_fail("Unable to extract string contents! (encoding issue)");
-        }
         char *buffer;
         ssize_t length;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
+        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp_str().ptr(), &buffer, &length))
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
     }
@@ -914,6 +908,14 @@ public:
     template <typename... Args>
     str format(Args &&...args) const {
         return attr("format")(std::forward<Args>(args)...);
+    }
+
+    const char* c_str() const {
+        return PYBIND11_BYTES_AS_STRING(temp_str().ptr());
+    }
+
+    std::size_t size() const {
+        return PYBIND11_BYTES_SIZE(temp_str().ptr());
     }
 
 private:
@@ -926,6 +928,16 @@ private:
         Py_XDECREF(str_value); str_value = unicode;
 #endif
         return str_value;
+    }
+
+    object temp_str() const {
+        object temp = *this;
+        if (PyUnicode_Check(m_ptr)) {
+            temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(m_ptr));
+            if (!temp)
+                pybind11_fail("Unable to extract string contents! (encoding issue)");
+        }
+        return temp;
     }
 };
 /// @} pytypes
@@ -965,6 +977,14 @@ public:
         if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, (size_t) length);
+    }
+
+    const char* c_str() const {
+        return PYBIND11_BYTES_AS_STRING(m_ptr);
+    }
+
+    std::size_t size() const {
+        return PYBIND11_BYTES_SIZE(m_ptr);
     }
 };
 
