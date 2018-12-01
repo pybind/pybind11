@@ -1872,6 +1872,15 @@ public:
         tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
 
         if (!tstate) {
+            /* Check if the GIL was acquired using the PyGILState_* API instead (e.g. if
+               calling from a Python thread). Since we use a different key, this ensures
+               we don't create a new thread state and deadlock in PyEval_AcquireThread
+               below. Note we don't save this state with internals.tstate, since we don't
+               create it we would fail to clear it (its reference count should be > 0). */
+            tstate = PyGILState_GetThisThreadState();
+        }
+
+        if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
             #if !defined(NDEBUG)
                 if (!tstate)
