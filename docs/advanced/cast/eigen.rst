@@ -289,13 +289,13 @@ will be passed as such a column vector.  If not, but the Eigen type constraints
 will accept a row vector, it will be passed as a row vector.  (The column
 vector takes precedence when both are supported, for example, when passing a
 1D numpy array to a MatrixXd argument).  Note that the type need not be
-expicitly a vector: it is permitted to pass a 1D numpy array of size 5 to an
+explicitly a vector: it is permitted to pass a 1D numpy array of size 5 to an
 Eigen ``Matrix<double, Dynamic, 5>``: you would end up with a 1x5 Eigen matrix.
 Passing the same to an ``Eigen::MatrixXd`` would result in a 5x1 Eigen matrix.
 
 When returning an Eigen vector to numpy, the conversion is ambiguous: a row
 vector of length 4 could be returned as either a 1D array of length 4, or as a
-2D array of size 1x4.  When encoutering such a situation, pybind11 compromises
+2D array of size 1x4.  When encountering such a situation, pybind11 compromises
 by considering the returned Eigen type: if it is a compile-time vector--that
 is, the type has either the number of rows or columns set to 1 at compile
 time--pybind11 converts to a 1D numpy array when returning the value.  For
