@@ -549,7 +549,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
             return false;
 
         auto obj = reinterpret_borrow<object>(src);
-        object sparse_module = module::import("scipy.sparse");
+        object sparse_module = module_::import("scipy.sparse");
         object matrix_type = sparse_module.attr(
             rowMajor ? "csr_matrix" : "csc_matrix");
 
@@ -580,7 +580,7 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     static handle cast(const Type &src, return_value_policy /* policy */, handle /* parent */) {
         const_cast<Type&>(src).makeCompressed();
 
-        object matrix_type = module::import("scipy.sparse").attr(
+        object matrix_type = module_::import("scipy.sparse").attr(
             rowMajor ? "csr_matrix" : "csc_matrix");
 
         array data(src.nonZeros(), src.valuePtr());

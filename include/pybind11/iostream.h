@@ -86,7 +86,7 @@ NAMESPACE_END(detail)
     .. code-block:: cpp
 
         {
-            py::scoped_ostream_redirect output{std::cerr, py::module::import("sys").attr("stderr")};
+            py::scoped_ostream_redirect output{std::cerr, py::module_::import("sys").attr("stderr")};
             std::cerr << "Hello, World!";
         }
  \endrst */
@@ -99,7 +99,7 @@ protected:
 public:
     scoped_ostream_redirect(
             std::ostream &costream = std::cout,
-            object pyostream = module::import("sys").attr("stdout"))
+            object pyostream = module_::import("sys").attr("stdout"))
         : costream(costream), buffer(pyostream) {
         old = costream.rdbuf(&buffer);
     }
@@ -130,7 +130,7 @@ class scoped_estream_redirect : public scoped_ostream_redirect {
 public:
     scoped_estream_redirect(
             std::ostream &costream = std::cerr,
-            object pyostream = module::import("sys").attr("stderr"))
+            object pyostream = module_::import("sys").attr("stderr"))
         : scoped_ostream_redirect(costream,pyostream) {}
 };
 
@@ -190,7 +190,7 @@ NAMESPACE_END(detail)
             m.noisy_function_with_error_printing()
 
  \endrst */
-inline class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::string name = "ostream_redirect") {
+inline class_<detail::OstreamRedirect> add_ostream_redirect(module_ m, std::string name = "ostream_redirect") {
     return class_<detail::OstreamRedirect>(m, name.c_str(), module_local())
         .def(init<bool,bool>(), arg("stdout")=true, arg("stderr")=true)
         .def("__enter__", &detail::OstreamRedirect::enter)

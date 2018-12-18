@@ -51,17 +51,17 @@ PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
 }
 
 TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
-    auto module = py::module::import("test_interpreter");
-    REQUIRE(py::hasattr(module, "DerivedWidget"));
+    auto module_ = py::module_::import("test_interpreter");
+    REQUIRE(py::hasattr(module_, "DerivedWidget"));
 
-    auto locals = py::dict("hello"_a="Hello, World!", "x"_a=5, **module.attr("__dict__"));
+    auto locals = py::dict("hello"_a="Hello, World!", "x"_a=5, **module_.attr("__dict__"));
     py::exec(R"(
         widget = DerivedWidget("{} - {}".format(hello, x))
         message = widget.the_message
     )", py::globals(), locals);
     REQUIRE(locals["message"].cast<std::string>() == "Hello, World! - 5");
 
-    auto py_widget = module.attr("DerivedWidget")("The question");
+    auto py_widget = module_.attr("DerivedWidget")("The question");
     auto message = py_widget.attr("the_message");
     REQUIRE(message.cast<std::string>() == "The question");
 
@@ -70,10 +70,10 @@ TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
 }
 
 TEST_CASE("Import error handling") {
-    REQUIRE_NOTHROW(py::module::import("widget_module"));
-    REQUIRE_THROWS_WITH(py::module::import("throw_exception"),
+    REQUIRE_NOTHROW(py::module_::import("widget_module"));
+    REQUIRE_THROWS_WITH(py::module_::import("throw_exception"),
                         "ImportError: C++ Error");
-    REQUIRE_THROWS_WITH(py::module::import("throw_error_already_set"),
+    REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
                         Catch::Contains("ImportError: KeyError"));
 }
 
@@ -107,14 +107,14 @@ bool has_pybind11_internals_static() {
 
 TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
-    REQUIRE(py::module::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
+    REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_pybind11_internals_builtin());
     REQUIRE(has_pybind11_internals_static());
-    REQUIRE(py::module::import("external_module").attr("A")(123).attr("value").cast<int>() == 123);
+    REQUIRE(py::module_::import("external_module").attr("A")(123).attr("value").cast<int>() == 123);
 
     // local and foreign module internals should point to the same internals:
     REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp()) ==
-            py::module::import("external_module").attr("internals_at")().cast<uintptr_t>());
+            py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Restart the interpreter.
     py::finalize_interpreter();
@@ -130,14 +130,14 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(has_pybind11_internals_builtin());
     REQUIRE(has_pybind11_internals_static());
     REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp()) ==
-            py::module::import("external_module").attr("internals_at")().cast<uintptr_t>());
+            py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Make sure that an interpreter with no get_internals() created until finalize still gets the
     // internals destroyed
     py::finalize_interpreter();
     py::initialize_interpreter();
     bool ran = false;
-    py::module::import("__main__").attr("internals_destroy_test") =
+    py::module_::import("__main__").attr("internals_destroy_test") =
         py::capsule(&ran, [](void *ran) { py::detail::get_internals(); *static_cast<bool *>(ran) = true; });
     REQUIRE_FALSE(has_pybind11_internals_builtin());
     REQUIRE_FALSE(has_pybind11_internals_static());
@@ -149,20 +149,20 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE_FALSE(has_pybind11_internals_static());
 
     // C++ modules can be reloaded.
-    auto cpp_module = py::module::import("widget_module");
+    auto cpp_module = py::module_::import("widget_module");
     REQUIRE(cpp_module.attr("add")(1, 2).cast<int>() == 3);
 
     // C++ type information is reloaded and can be used in python modules.
-    auto py_module = py::module::import("test_interpreter");
+    auto py_module = py::module_::import("test_interpreter");
     auto py_widget = py_module.attr("DerivedWidget")("Hello after restart");
     REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
 }
 
 TEST_CASE("Subinterpreter") {
     // Add tags to the modules in the main interpreter and test the basics.
-    py::module::import("__main__").attr("main_tag") = "main interpreter";
+    py::module_::import("__main__").attr("main_tag") = "main interpreter";
     {
-        auto m = py::module::import("widget_module");
+        auto m = py::module_::import("widget_module");
         m.attr("extension_module_tag") = "added to module in main interpreter";
 
         REQUIRE(m.attr("add")(1, 2).cast<int>() == 3);
@@ -181,9 +181,9 @@ TEST_CASE("Subinterpreter") {
     REQUIRE(has_pybind11_internals_static());
 
     // Modules tags should be gone.
-    REQUIRE_FALSE(py::hasattr(py::module::import("__main__"), "tag"));
+    REQUIRE_FALSE(py::hasattr(py::module_::import("__main__"), "tag"));
     {
-        auto m = py::module::import("widget_module");
+        auto m = py::module_::import("widget_module");
         REQUIRE_FALSE(py::hasattr(m, "extension_module_tag"));
 
         // Function bindings should still work.
@@ -194,8 +194,8 @@ TEST_CASE("Subinterpreter") {
     Py_EndInterpreter(sub_tstate);
     PyThreadState_Swap(main_tstate);
 
-    REQUIRE(py::hasattr(py::module::import("__main__"), "main_tag"));
-    REQUIRE(py::hasattr(py::module::import("widget_module"), "extension_module_tag"));
+    REQUIRE(py::hasattr(py::module_::import("__main__"), "main_tag"));
+    REQUIRE(py::hasattr(py::module_::import("widget_module"), "extension_module_tag"));
 }
 
 TEST_CASE("Execution frame") {
@@ -245,7 +245,7 @@ TEST_CASE("Reload module from file") {
     // Disable generation of cached bytecode (.pyc files) for this test, otherwise
     // Python might pick up an old version from the cache instead of the new versions
     // of the .py files generated below
-    auto sys = py::module::import("sys");
+    auto sys = py::module_::import("sys");
     bool dont_write_bytecode = sys.attr("dont_write_bytecode").cast<bool>();
     sys.attr("dont_write_bytecode") = true;
     // Reset the value at scope exit
@@ -267,8 +267,8 @@ TEST_CASE("Reload module from file") {
     });
 
     // Import the module from file
-    auto module = py::module::import(module_name.c_str());
-    int result = module.attr("test")().cast<int>();
+    auto module_ = py::module_::import(module_name.c_str());
+    int result = module_.attr("test")().cast<int>();
     REQUIRE(result == 1);
 
     // Update the module .py file with a small change
@@ -278,7 +278,7 @@ TEST_CASE("Reload module from file") {
     test_module.close();
 
     // Reload the module
-    module.reload();
-    result = module.attr("test")().cast<int>();
+    module_.reload();
+    result = module_.attr("test")().cast<int>();
     REQUIRE(result == 2);
 }

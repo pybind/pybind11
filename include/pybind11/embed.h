@@ -106,7 +106,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true) {
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 
     // Make .py files in the working directory available by default
-    module::import("sys").attr("path").cast<list>().append(".");
+    module_::import("sys").attr("path").cast<list>().append(".");
 }
 
 /** \rst

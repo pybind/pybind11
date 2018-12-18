@@ -52,7 +52,7 @@ object eval(str expr, object global = globals(), object local = object()) {
 template <eval_mode mode = eval_expr, size_t N>
 object eval(const char (&s)[N], object global = globals(), object local = object()) {
     /* Support raw string literals by removing common leading whitespace */
-    auto expr = (s[0] == '\n') ? str(module::import("textwrap").attr("dedent")(s))
+    auto expr = (s[0] == '\n') ? str(module_::import("textwrap").attr("dedent")(s))
                                : str(s);
     return eval<mode>(expr, global, local);
 }

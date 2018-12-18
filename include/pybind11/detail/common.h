@@ -241,13 +241,13 @@ extern "C" {
     ***Deprecated in favor of PYBIND11_MODULE***
 
     This macro creates the entry point that will be invoked when the Python interpreter
-    imports a plugin library. Please create a `module` in the function body and return
+    imports a plugin library. Please create a `module_` in the function body and return
     the pointer to its underlying Python object at the end.
 
     .. code-block:: cpp
 
         PYBIND11_PLUGIN(example) {
-            pybind11::module m("example", "pybind11 example plugin");
+            pybind11::module_ m("example", "pybind11 example plugin");
             /// Set up bindings here
             return m.ptr();
         }
@@ -267,7 +267,7 @@ extern "C" {
     This macro creates the entry point that will be invoked when the Python interpreter
     imports an extension module. The module name is given as the fist argument and it
     should not be in quotes. The second macro argument defines a variable of type
-    `py::module` which can be used to initialize the module.
+    `py::module_` which can be used to initialize the module.
 
     .. code-block:: cpp
 
@@ -281,16 +281,16 @@ extern "C" {
         }
 \endrst */
 #define PYBIND11_MODULE(name, variable)                                        \
-    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module_ &);     \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         PYBIND11_CHECK_PYTHON_VERSION                                          \
-        auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
+        auto m = pybind11::module_(PYBIND11_TOSTRING(name));                    \
         try {                                                                  \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
             return m.ptr();                                                    \
         } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
     }                                                                          \
-    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
+    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module_ &variable)
 
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)

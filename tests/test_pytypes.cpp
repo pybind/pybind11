@@ -258,7 +258,7 @@ TEST_SUBMODULE(pytypes, m) {
         py::print("no new line here", "end"_a=" -- ");
         py::print("next print");
 
-        auto py_stderr = py::module::import("sys").attr("stderr");
+        auto py_stderr = py::module_::import("sys").attr("stderr");
         py::print("this goes to stderr", "file"_a=py_stderr);
 
         py::print("flush", "flush"_a=true);

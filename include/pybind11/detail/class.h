@@ -526,17 +526,17 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 #endif
     }
 
-    object module;
+    object module_;
     if (rec.scope) {
         if (hasattr(rec.scope, "__module__"))
-            module = rec.scope.attr("__module__");
+            module_ = rec.scope.attr("__module__");
         else if (hasattr(rec.scope, "__name__"))
-            module = rec.scope.attr("__name__");
+            module_ = rec.scope.attr("__name__");
     }
 
     auto full_name = c_str(
 #if !defined(PYPY_VERSION)
-        module ? str(module).cast<std::string>() + "." + rec.name :
+        module_ ? str(module_).cast<std::string>() + "." + rec.name :
 #endif
         rec.name);
 
@@ -610,8 +610,8 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     else
         Py_INCREF(type); // Keep it alive forever (reference leak)
 
-    if (module) // Needed by pydoc
-        setattr((PyObject *) type, "__module__", module);
+    if (module_) // Needed by pydoc
+        setattr((PyObject *) type, "__module__", module_);
 
     PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
 

@@ -69,7 +69,7 @@ template <typename T, typename T2> py::handle auxiliaries(T &&r, T2 &&r2) {
 }
 
 TEST_SUBMODULE(numpy_array, sm) {
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_array_attributes
