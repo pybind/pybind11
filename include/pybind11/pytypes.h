@@ -1237,6 +1237,9 @@ public:
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
     detail::list_iterator begin() const { return {*this, 0}; }
     detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
+    template <typename T> void insert(T &&val, size_t index) const {
+        PyList_Insert(m_ptr, index, detail::object_or_cast(std::forward<T>(val)).ptr());
+    }
     template <typename T> void append(T &&val) const {
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
