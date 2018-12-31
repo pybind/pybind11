@@ -664,29 +664,10 @@ protected:
             e.restore();
             return nullptr;
         } catch (...) {
-            /* When an exception is caught, give each registered exception
-               translator a chance to translate it to a Python exception
-               in reverse order of registration.
-
-               A translator may choose to do one of the following:
-
-                - catch the exception and call PyErr_SetString or PyErr_SetObject
-                  to set a standard (or custom) Python exception, or
-                - do nothing and let the exception fall through to the next translator, or
-                - delegate translation to the next translator by throwing a new type of exception. */
-
-            auto last_exception = std::current_exception();
-            auto &registered_exception_translators = get_internals().registered_exception_translators;
-            for (auto& translator : registered_exception_translators) {
-                try {
-                    translator(last_exception);
-                } catch (...) {
-                    last_exception = std::current_exception();
-                    continue;
-                }
-                return nullptr;
-            }
-            PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
+            // When an exception is caught, try to translate it into Python exception.
+            auto untranslated = translate_exception(std::current_exception());
+            if (untranslated)
+                PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
             return nullptr;
         }
 
@@ -1839,6 +1820,112 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
 void print(Args &&...args) {
     auto c = detail::collect_arguments<policy>(std::forward<Args>(args)...);
     detail::print(c.args(), c.kwargs());
+}
+
+NAMESPACE_BEGIN(detail)
+
+template <typename T>
+struct dependent_false { static constexpr bool value = false; };
+
+template <typename Block, typename Signature = remove_cv_t<function_signature_t<Block>>, typename SFINAE = void>
+struct with_block_call_traits {
+    static void call(Block &&block, object &&) {
+        static_assert(dependent_false<Block>::value,
+                      "The inner block function passed to pybind11::with should either take no arguments, "
+                      "or a single argument convertible from a pybind11::object& or pybind11::object&&, "
+                      "and should return void.");
+    }
+};
+
+template <typename Block>
+struct with_block_call_traits<Block, void()> {
+public:
+    static void call(Block &&block, object &&) {
+        std::forward<Block>(block)();
+    }
+};
+
+template <typename Block, typename Arg>
+struct with_block_call_traits<Block, void(Arg),
+                            enable_if_t<std::is_convertible<object&, Arg>::value ||
+                                        std::is_convertible<object&&, Arg>::value>> {
+private:
+    static void call_impl(Block &&block, object &&obj, std::true_type) {
+        std::forward<Block>(block)(std::move(obj));
+    }
+
+    static void call_impl(Block &&block, object &&obj, std::false_type) {
+        std::forward<Block>(block)(obj);
+    }
+
+public:
+    static void call(Block &&block, object &&obj) {
+        call_impl(std::forward<Block>(block), std::move(obj), std::is_convertible<object&&, Arg>());
+    }
+};
+
+template<typename Block>
+void call_with_block(Block &&block, object &&obj) {
+    with_block_call_traits<Block>::call(std::forward<Block>(block), std::move(obj));
+}
+
+NAMESPACE_END(detail)
+
+enum class with_exception_policy {
+    cascade,
+    translate
+};
+
+// PEP 343 specification: https://www.python.org/dev/peps/pep-0343/#specification-the-with-statement
+template <typename Block>
+void with(const object &mgr, Block &&block, with_exception_policy policy = with_exception_policy::translate) {
+    object exit = mgr.attr("__exit__");
+    object value = mgr.attr("__enter__")();
+    bool exc = true;
+
+    std::exception_ptr original_exception = nullptr;
+    try {
+        try {
+            detail::call_with_block(std::forward<Block>(block), std::move(value));
+        }
+        catch (const error_already_set &) {
+            exc = false;
+            // If already a Python error, catch in the outer try-catch
+            original_exception = std::current_exception();
+            throw;
+        }
+        catch (...) {
+            exc = false;
+            // Else, try our best to translate the error into a Python error before calling mrg.__exit__
+            original_exception = std::current_exception();
+            if (policy == with_exception_policy::translate) {
+                auto untranslated = translate_exception(std::current_exception());
+                if (untranslated)
+                    std::rethrow_exception(untranslated);
+                else
+                    throw error_already_set();
+            }
+            else {
+                throw;
+            }
+        }
+    }
+    catch (const error_already_set &e) {
+        // A Python error
+        auto exit_result = exit(e.get_type() ? e.get_type() : none(),
+                                e.get_value() ? e.get_value() : none(),
+                                e.get_trace() ? e.get_trace() : none());
+        if (!bool_(std::move(exit_result)))
+            std::rethrow_exception(original_exception);
+    }
+    catch (...) {
+        // Not a Python error
+        exit(none(), none(), none());
+        std::rethrow_exception(original_exception);
+    }
+
+    if (exc)
+        exit(none(), none(), none());
 }
 
 #if defined(WITH_THREAD) && !defined(PYPY_VERSION)

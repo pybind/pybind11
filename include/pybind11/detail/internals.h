@@ -288,4 +288,32 @@ T &get_or_create_shared_data(const std::string &name) {
     return *ptr;
 }
 
+/// Translates a std::exception_ptr into a Python exception, using the registered translators.
+/// Returns nullptr if the exception was successfully translated, or the leftover untranslated
+/// C++ exception resulting from the potential partial translation.
+inline std::exception_ptr translate_exception(std::exception_ptr last_exception) {
+    /* Give each registered exception translator a chance to translate it
+       to a Python exception in reverse order of registration.
+
+       A translator may choose to do one of the following:
+
+       - catch the exception and call PyErr_SetString or PyErr_SetObject
+         to set a standard (or custom) Python exception, or
+       - do nothing and let the exception fall through to the next translator, or
+       - delegate translation to the next translator by throwing a new type of exception. */
+
+    auto &registered_exception_translators = detail::get_internals().registered_exception_translators;
+    for (auto& translator : registered_exception_translators) {
+        try {
+            translator(last_exception);
+        } catch (...) {
+            last_exception = std::current_exception();
+            continue;
+        }
+        return nullptr;
+    }
+    // Return the leftover exception that is not handled by any registered translator
+    return last_exception;
+}
+
 NAMESPACE_END(PYBIND11_NAMESPACE)
