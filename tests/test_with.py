@@ -131,14 +131,15 @@ def test_catch_cpp_exception(context_manager_cls, swallow_exceptions):
 
 
 def test_bad_context_managers():
-    with pytest.raises(AttributeError, match="object has no attribute '__exit__'"):
+    with pytest.raises(AttributeError, match="has no attribute '__exit__'"):
         m.lvalue_arg(NotAContextManager())
 
-    with pytest.raises(AttributeError, match="object has no attribute '__enter__'"):
+    with pytest.raises(AttributeError, match="has no attribute '__enter__'"):
         m.lvalue_arg(AlsoNotAContextManager())
 
     with pytest.raises(TypeError,
-                       match="__exit__\\(\\) takes 1 positional argument but 4 were given"):
+                       match="(:?__exit__\\(\\) takes 1 positional argument but 4 were given)|" +
+                       "(?:__exit__\\(\\) takes exactly 1 argument \\(4 given\\))"):  # Python 2
         m.lvalue_arg(AContextManagerWithAWrongExitSignature())
 
 
