@@ -1829,7 +1829,7 @@ struct dependent_false { static constexpr bool value = false; };
 
 template <typename Block, typename Signature = remove_cv_t<function_signature_t<Block>>, typename SFINAE = void>
 struct with_block_call_traits {
-    static void call(Block &&block, object &&) {
+    static void call(Block &&, object &&) {
         static_assert(dependent_false<Block>::value,
                       "The inner block function passed to pybind11::with should either take no arguments, "
                       "or a single argument convertible from a pybind11::object& or pybind11::object&&, "
