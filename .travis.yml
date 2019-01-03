@@ -10,16 +10,17 @@ matrix:
   # - Makes sure that everything still works without optional deps (numpy/scipy/eigen) and
   #   also tests the automatic discovery functions in CMake (Python version, C++ standard).
   - os: linux
+    dist: xenial # Necessary to run doxygen 1.8.15
     env: STYLE DOCS PIP
     cache: false
     before_install:
     - pyenv global $(pyenv whence 2to3)  # activate all python versions
     - PY_CMD=python3
-    - $PY_CMD -m pip install --user --upgrade pip wheel
+    - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
     install:
     - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe flake8 pep8-naming pytest
-    - curl -fsSL ftp://ftp.stack.nl/pub/users/dimitri/doxygen-1.8.12.linux.bin.tar.gz | tar xz
-    - export PATH="$PWD/doxygen-1.8.12/bin:$PATH"
+    - curl -fsSL https://sourceforge.net/projects/doxygen/files/rel-1.8.15/doxygen-1.8.15.linux.bin.tar.gz/download | tar xz
+    - export PATH="$PWD/doxygen-1.8.15/bin:$PATH"
     script:
     - tools/check-style.sh
     - flake8
@@ -32,7 +33,7 @@ matrix:
       diff -rq $installed ./include/pybind11
     - |
       # Barebones build
-      cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+      cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD)
       make pytest -j 2
       make cpptest -j 2
   # The following are regular test configurations, including optional dependencies.
