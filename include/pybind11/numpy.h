@@ -1466,7 +1466,10 @@ public:
 private:
     remove_reference_t<Func> f;
 
-    template <size_t Index> using param_n_t = typename pack_element<Index, typename vectorize_arg<Args>::call_type...>::type;
+    // Internal compiler error in MSVC 19.16.27025.1 (Visual Studio 2017 15.9.4), when compiling with "/permissive-" flag
+    // when arg_call_types is manually inlined.
+    using arg_call_types = std::tuple<typename vectorize_arg<Args>::call_type...>;
+    template <size_t Index> using param_n_t = typename std::tuple_element<Index, arg_call_types>::type;
 
     // Runs a vectorized function given arguments tuple and three index sequences:
     //     - Index is the full set of 0 ... (N-1) argument indices;
