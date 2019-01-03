@@ -25,11 +25,11 @@ Executing code in a Python `with` statement
 ===========================================
 
 Where in C++, the scope of local variables and their destructor is used to manage
-resources in the RAII idiom, Python has a `with` statement and context managers
-for such situations. At the start and end of the `with` statement, the context
-manager's `__enter__` and `__exit__` methods are called, respectively. To more
+resources in the RAII idiom, Python has a ``with`` statement and context managers
+for such situations. At the start and end of the ``with`` statement, the context
+manager's ``__enter__`` and ``__exit__`` methods are called, respectively. To more
 easily use context managers in a C++ context, pybind11 provides a utility function
-``py::with``, that matches the semantics of a Python `with`-statement (see
+`py::with <with>`, that matches the semantics of a Python ``with``-statement (see
 `PEP 343 <https://www.python.org/dev/peps/pep-0343/>`_):
 
 .. code-block:: cpp
@@ -53,13 +53,13 @@ This code snippet corresponds to the following in Python:
             f.write("\n")
 
 The `py::object` parameter of the lambda function can be omitted if the object resulting
-from the context manager (i.e., the `as VAR` part in the `with` statement) is not of use.
+from the context manager (i.e., the ``as VAR`` part in the ``with`` statement) is not of use.
 
-Optionally, an extra `py::with_exception_policy` argument can be passed to `py::with`.
-If the value `py::with_exception_policy::translate` is selected, pybind11 will try to
-translate any C++ exception inside the `with` statement and pass the Python exception
-as argument into the `__exit__` method of the context manager (cfr. PEP 343). If
-`py::with_exception_policy::translate` is passed and an exception gets thrown, pybind11
+Optionally, an extra `py::with_exception_policy <with_exception_policy>` argument can be
+passed to `py::with <with>`. If the value ``py::with_exception_policy::translate`` is selected,
+pybind11 will try to translate any C++ exception inside the ``with`` statement and pass the
+Python exception as argument into the ``__exit__`` method of the context manager (cfr. PEP 343).
+If ``py::with_exception_policy::translate`` is passed and an exception gets thrown, pybind11
 will not try to translate it, `__exit__` will be called as if no exception was thrown,
 and the original exception will be cascaded down to the caller.
 
