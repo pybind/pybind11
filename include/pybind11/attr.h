@@ -182,7 +182,7 @@ struct function_record {
     bool is_method : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
-    std::uint16_t nargs;
+    std::uint16_t nargs = 0u;
 
     /// Python method object
     PyMethodDef *def = nullptr;
