@@ -697,7 +697,7 @@ protected:
 
 private:
     handle obj;
-    PyObject *key, *value;
+    PyObject *key = nullptr, *value = nullptr;
     ssize_t pos = -1;
 };
 NAMESPACE_END(iterator_policies)
