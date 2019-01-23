@@ -10,7 +10,17 @@
 
 #pragma once
 
-#if defined(_MSC_VER)
+#if defined(__INTEL_COMPILER)
+#  pragma warning push
+#  pragma warning disable 68    // integer conversion resulted in a change of sign
+#  pragma warning disable 186   // pointless comparison of unsigned integer with zero
+#  pragma warning disable 878   // incompatible exception specifications
+#  pragma warning disable 1334  // the "template" keyword used for syntactic disambiguation may only be used within a template
+#  pragma warning disable 1682  // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
+#  pragma warning disable 1786  // function "strdup" was declared deprecated
+#  pragma warning disable 1875  // offsetof applied to non-POD (Plain Old Data) types is nonstandard
+#  pragma warning disable 2196  // warning #2196: routine is both "inline" and "noinline"
+#elif defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
@@ -19,15 +29,6 @@
 #  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
 #  pragma warning(disable: 4702) // warning C4702: unreachable code
 #  pragma warning(disable: 4522) // warning C4522: multiple assignment operators specified
-#elif defined(__INTEL_COMPILER)
-#  pragma warning(push)
-#  pragma warning(disable: 68)    // integer conversion resulted in a change of sign
-#  pragma warning(disable: 186)   // pointless comparison of unsigned integer with zero
-#  pragma warning(disable: 878)   // incompatible exception specifications
-#  pragma warning(disable: 1334)  // the "template" keyword used for syntactic disambiguation may only be used within a template
-#  pragma warning(disable: 1682)  // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
-#  pragma warning(disable: 1875)  // offsetof applied to non-POD (Plain Old Data) types is nonstandard
-#  pragma warning(disable: 2196)  // warning #2196: routine is both "inline" and "noinline"
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
@@ -2264,6 +2265,15 @@ public:
         tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
 
         if (!tstate) {
+            /* Check if the GIL was acquired using the PyGILState_* API instead (e.g. if
+               calling from a Python thread). Since we use a different key, this ensures
+               we don't create a new thread state and deadlock in PyEval_AcquireThread
+               below. Note we don't save this state with internals.tstate, since we don't
+               create it we would fail to clear it (its reference count should be > 0). */
+            tstate = PyGILState_GetThisThreadState();
+        }
+
+        if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
             #if !defined(NDEBUG)
                 if (!tstate)
@@ -2470,10 +2480,8 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
 
 NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(pop)
-#elif defined(__INTEL_COMPILER)
-/* Leave ignored warnings on */
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic pop
 #endif
