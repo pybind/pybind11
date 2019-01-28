@@ -2053,6 +2053,14 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     return overload;
 }
 
+/** \rst
+  Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
+
+  :this_ptr: The pointer to the object the overload should be retrieved for. This should be the first
+                   non-trampoline class encountered in the inheritance chain.
+  :name: The name of the overloaded Python method to retrieve.
+  :return: The Python method by this name from the object or an empty function wrapper.
+ \endrst */
 template <class T> function get_overload(const T *this_ptr, const char *name) {
     auto tinfo = detail::get_type_info(typeid(T));
     return tinfo ? get_type_overload(this_ptr, tinfo, name) : function();
@@ -2071,17 +2079,66 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
         } \
     }
 
+/** \rst
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
+    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
+    the appropriate type. See :ref:`overriding_virtuals` for more information. This macro should be used when the method
+    name in C is not the same as the method name in Python. For example with `__str__`.
+
+    .. code-block:: cpp
+
+      std::string toString() override {
+        PYBIND11_OVERLOAD_NAME(
+            std::string, // Return type (ret_type)
+            Animal,      // Parent class (cname)
+            toString,    // Name of function in C++ (name)
+            "__str__",   // Name of method in Python (fn)
+        );
+      }
+\endrst */
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
     return cname::fn(__VA_ARGS__)
 
+/** \rst
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD_NAME`, except that it
+    throws if no overload can be found.
+\endrst */
 #define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
     pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\"");
 
+/** \rst
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
+    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
+    the appropriate type. This macro should be used if the method name in C and in Python are identical.
+    See :ref:`overriding_virtuals` for more information.
+
+    .. code-block:: cpp
+
+      class PyAnimal : public Animal {
+      public:
+          // Inherit the constructors
+          using Animal::Animal;
+
+          // Trampoline (need one for each virtual function)
+          std::string go(int n_times) override {
+              PYBIND11_OVERLOAD_PURE(
+                  std::string, // Return type (ret_type)
+                  Animal,      // Parent class (cname)
+                  go,          // Name of function in C++ (must match Python name) (fn)
+                  n_times      // Argument(s) (...)
+              );
+          }
+      };
+\endrst */
 #define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
     PYBIND11_OVERLOAD_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
+/** \rst
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD`, except that it throws
+    if no overload can be found.
+\endrst */
 #define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
     PYBIND11_OVERLOAD_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
