@@ -23,7 +23,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #if PY_VERSION_HEX >= 0x03070000
 #    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr
 #    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
-#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (tstate))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
 #    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
 #else
     // Usually an int but a long on Cygwin64 with Python 3.x
