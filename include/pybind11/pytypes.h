@@ -388,6 +388,14 @@ inline bool hasattr(handle obj, const char *name) {
     return PyObject_HasAttrString(obj.ptr(), name) == 1;
 }
 
+inline void delattr(handle obj, handle name) {
+    if (PyObject_DelAttr(obj.ptr(), name.ptr()) != 0) { throw error_already_set(); }
+}
+
+inline void delattr(handle obj, const char *name) {
+    if (PyObject_DelAttrString(obj.ptr(), name) != 0) { throw error_already_set(); }
+}
+
 inline object getattr(handle obj, handle name) {
     PyObject *result = PyObject_GetAttr(obj.ptr(), name.ptr());
     if (!result) { throw error_already_set(); }
@@ -458,7 +466,6 @@ template <typename T, enable_if_t<!is_pyobject<T>::value, int> = 0>
 object object_or_cast(T &&o);
 // Match a PyObject*, which we want to convert directly to handle via its converting constructor
 inline handle object_or_cast(PyObject *ptr) { return ptr; }
-
 
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
