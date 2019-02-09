@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "pybind11.h"
 #include "pytypes.h"
 #include "detail/typeid.h"
 #include "detail/descr.h"
@@ -1516,10 +1517,20 @@ class type_caster<std::shared_ptr<T>>
             return false;
         }
 
-        // * Get src as a py::object
-        // * Construct a shared_ptr to the py::object
+        // Get src as a py::object
         auto py_obj = reinterpret_borrow<object>(src);
-        auto py_obj_ptr = std::make_shared<object>(py_obj);
+
+        // Construct a shared_ptr to the py::object
+        auto py_obj_ptr = std::shared_ptr<object>{
+            new object{py_obj},
+            [](auto py_object_ptr) {
+                // It's possible that when the shared_ptr dies we won't have the
+                // gil (if the last holder is in a non-Python thread), so we
+                // make sure to acquire it in the deleter.
+                gil_scoped_acquire gil;
+                delete py_object_ptr;
+           }
+        };
 
         // * Use BaseCaster to get it as the shared_ptr<T>
         // * Use this to make an aliased shared_ptr<T> that keeps the py::object alive

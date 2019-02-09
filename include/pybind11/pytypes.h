@@ -20,6 +20,8 @@ NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class handle; class object;
 class str; class iterator;
 struct arg; struct arg_v;
+class gil_scoped_acquire;
+class gil_scoped_release;
 
 NAMESPACE_BEGIN(detail)
 class args_proxy;
