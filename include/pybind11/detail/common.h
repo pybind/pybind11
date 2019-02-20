@@ -263,6 +263,36 @@ extern "C" {
     }                                                                          \
     PyObject *pybind11_init()
 
+bool Py_VersionCheckPassed() {
+  int major, minor;
+  if (sscanf(Py_GetVersion(), "%i.%i", &major, &minor) != 2) {
+    PyErr_SetString(PyExc_ImportError, "Can't parse Python version.");
+    return false;
+  }
+  if (major != PY_MAJOR_VERSION || minor != PY_MINOR_VERSION) {
+    PyErr_Format(PyExc_ImportError,
+                 "Python version mismatch: module was compiled for "
+                 "version %i.%i, while the interpreter is running "
+                 "version %i.%i.",
+                 PY_MAJOR_VERSION, PY_MINOR_VERSION, major, minor);
+    return false;
+  }
+  return true;
+}
+
+// Returns nullptr on an error.
+#define GET_PYBIND11_MODULE(pybind11_init_, name, module) \
+  try {                                                   \
+    PYBIND11_CONCAT(pybind11_init_, name)(module);        \
+    return module.ptr();                                  \
+  } catch (pybind11::error_already_set & e) {             \
+    PyErr_SetString(PyExc_ImportError, e.what());         \
+    return nullptr;                                       \
+  } catch (const std::exception &e) {                     \
+    PyErr_SetString(PyExc_ImportError, e.what());         \
+    return nullptr;                                       \
+  }
+
 /** \rst
     This macro creates the entry point that will be invoked when the Python interpreter
     imports an extension module. The module name is given as the fist argument and it
@@ -280,17 +310,31 @@ extern "C" {
             });
         }
 \endrst */
-#define PYBIND11_MODULE(name, variable)                                        \
-    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
-    PYBIND11_PLUGIN_IMPL(name) {                                               \
-        PYBIND11_CHECK_PYTHON_VERSION                                          \
-        auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
-        try {                                                                  \
-            PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
-            return m.ptr();                                                    \
-        } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
-    }                                                                          \
-    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
+
+#if defined(PYBIND11_NOEXCEPTIONS)
+#define PYBIND11_MODULE(name, variable)                                  \
+  static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &); \
+  PYBIND11_PLUGIN_IMPL(name) {                                           \
+    if (!Py_VersionCheckPassed()) {                                      \
+      return nullptr;                                                    \
+    }                                                                    \
+    auto m = pybind11::module(PYBIND11_TOSTRING(name));                  \
+    PYBIND11_CONCAT(pybind11_init_, name)(m);                            \
+    return m.ptr();                                                      \
+  }                                                                      \
+  void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module & variable)
+#else
+#define PYBIND11_MODULE(name, variable)                                  \
+  static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &); \
+  PYBIND11_PLUGIN_IMPL(name) {                                           \
+    if (!Py_VersionCheckPassed()) {                                      \
+      return nullptr;                                                    \
+    }                                                                    \
+    auto m = pybind11::module(PYBIND11_TOSTRING(name));                  \
+    GET_PYBIND11_MODULE(pybind11_init_, name, m);                        \
+  }                                                                      \
+  void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module & variable)
+#endif
 
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
