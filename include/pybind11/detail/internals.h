@@ -215,6 +215,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         builtins[id] = capsule(internals_pp);
         internals_ptr->registered_exception_translators.push_front(
             [](std::exception_ptr p) -> void {
+#if !defined(PYBIND11_NOEXCEPTIONS)
                 try {
                     if (p) std::rethrow_exception(p);
                 } catch (error_already_set &e)           { e.restore();                                    return;
@@ -230,6 +231,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
                     PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
                     return;
                 }
+#endif
             }
         );
         internals_ptr->static_property_type = make_static_property_type();

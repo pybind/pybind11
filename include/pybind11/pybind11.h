@@ -661,7 +661,9 @@ protected:
                 }
             }
         } catch (error_already_set &e) {
+#if !defined(PYBIND11_NOEXCEPTIONS)
             e.restore();
+#endif
             return nullptr;
         } catch (...) {
             /* When an exception is caught, give each registered exception
@@ -1784,6 +1786,7 @@ NAMESPACE_END(detail)
  * This is intended for simple exception translations; for more complex translation, register the
  * exception object and translator directly.
  */
+#if !defined(PYBIND11_NOEXCEPTIONS)
 template <typename CppException>
 exception<CppException> &register_exception(handle scope,
                                             const char *name,
@@ -1801,6 +1804,7 @@ exception<CppException> &register_exception(handle scope,
     });
     return ex;
 }
+#endif
 
 NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
