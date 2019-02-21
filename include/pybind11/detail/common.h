@@ -263,23 +263,6 @@ extern "C" {
     }                                                                          \
     PyObject *pybind11_init()
 
-bool Py_VersionCheckPassed() {
-  int major, minor;
-  if (sscanf(Py_GetVersion(), "%i.%i", &major, &minor) != 2) {
-    PyErr_SetString(PyExc_ImportError, "Can't parse Python version.");
-    return false;
-  }
-  if (major != PY_MAJOR_VERSION || minor != PY_MINOR_VERSION) {
-    PyErr_Format(PyExc_ImportError,
-                 "Python version mismatch: module was compiled for "
-                 "version %i.%i, while the interpreter is running "
-                 "version %i.%i.",
-                 PY_MAJOR_VERSION, PY_MINOR_VERSION, major, minor);
-    return false;
-  }
-  return true;
-}
-
 // Returns nullptr on an error.
 #define GET_PYBIND11_MODULE(pybind11_init_, name, module) \
   try {                                                   \
@@ -315,7 +298,7 @@ bool Py_VersionCheckPassed() {
 #define PYBIND11_MODULE(name, variable)                                  \
   static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &); \
   PYBIND11_PLUGIN_IMPL(name) {                                           \
-    if (!Py_VersionCheckPassed()) {                                      \
+    if (!pybind11::Py_VersionCheckPassed()) {                                      \
       return nullptr;                                                    \
     }                                                                    \
     auto m = pybind11::module(PYBIND11_TOSTRING(name));                  \
@@ -327,7 +310,7 @@ bool Py_VersionCheckPassed() {
 #define PYBIND11_MODULE(name, variable)                                  \
   static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &); \
   PYBIND11_PLUGIN_IMPL(name) {                                           \
-    if (!Py_VersionCheckPassed()) {                                      \
+    if (!pybind11::Py_VersionCheckPassed()) {                                      \
       return nullptr;                                                    \
     }                                                                    \
     auto m = pybind11::module(PYBIND11_TOSTRING(name));                  \
@@ -341,6 +324,23 @@ NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using ssize_t = Py_ssize_t;
 using size_t  = std::size_t;
+
+bool Py_VersionCheckPassed() {
+  int major, minor;
+  if (sscanf(Py_GetVersion(), "%i.%i", &major, &minor) != 2) {
+    PyErr_SetString(PyExc_ImportError, "Can't parse Python version.");
+    return false;
+  }
+  if (major != PY_MAJOR_VERSION || minor != PY_MINOR_VERSION) {
+    PyErr_Format(PyExc_ImportError,
+                 "Python version mismatch: module was compiled for "
+                 "version %i.%i, while the interpreter is running "
+                 "version %i.%i.",
+                 PY_MAJOR_VERSION, PY_MINOR_VERSION, major, minor);
+    return false;
+  }
+  return true;
+}
 
 /// Approach used to cast a previously unknown C++ instance into a Python object
 enum class return_value_policy : uint8_t {
