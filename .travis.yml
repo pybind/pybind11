@@ -76,6 +76,12 @@ matrix:
     addons:
       apt:
         packages: [libblas-dev, liblapack-dev, gfortran]
+  # Test a PyPy 3.6 build
+  - os: linux
+    env: PYPY=7.0 PYTHON=3.6 CPP=11 GCC=4.8
+    addons:
+      apt:
+        packages: [libblas-dev, liblapack-dev, gfortran]
   # Build in 32-bit mode and tests against the CMake-installed version
   - sudo: true
     services: docker
@@ -134,6 +140,10 @@ before_install:
     if [ "$PYPY" = "5.8" ]; then
       curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.8.0-linux64.tar.bz2 | tar xj
       PY_CMD=$(echo `pwd`/pypy2-v5.8.0-linux64/bin/pypy)
+      CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
+    elif [ "$PYPY" = "7.0" ] && [ "$PYTHON" = "3.6" ]; then
+      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy3.6-v7.0.0-linux64.tar.bz2 | tar xj
+      PY_CMD=$(echo `pwd`/pypy3.6-v7.0.0-linux64/bin/pypy3)
       CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
     else
       PY_CMD=python$PYTHON
