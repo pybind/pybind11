@@ -2,6 +2,8 @@
 
     .. image:: pybind11-logo.png
 
+.. _index:
+
 pybind11 --- Seamless operability between C++11 and Python
 ==========================================================
 
@@ -13,6 +15,7 @@ pybind11 --- Seamless operability between C++11 and Python
    :maxdepth: 1
 
    intro
+   help
    changelog
    upgrade
 
