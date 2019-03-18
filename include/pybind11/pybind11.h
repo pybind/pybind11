@@ -1112,7 +1112,7 @@ public:
                 "def_static(...) called with a non-static member function pointer");
         cpp_function cf(std::forward<Func>(f), name(name_), scope(*this),
                         sibling(getattr(*this, name_, none())), extra...);
-        attr(cf.name()) = cf;
+        attr(cf.name()) = staticmethod(cf);
         return *this;
     }
 
