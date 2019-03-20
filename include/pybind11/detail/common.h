@@ -258,7 +258,8 @@ extern "C" {
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         PYBIND11_CHECK_PYTHON_VERSION                                          \
         try {                                                                  \
-            return pybind11_init();                                            \
+            auto m = pybind11_init();                                          \
+            return PyErr_Occurred() ? nullptr : m;                             \
         } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
     }                                                                          \
     PyObject *pybind11_init()
@@ -287,7 +288,7 @@ extern "C" {
         auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
         try {                                                                  \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
-            return m.ptr();                                                    \
+            return PyErr_Occurred() ? nullptr : m.ptr();                       \
         } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
     }                                                                          \
     void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
