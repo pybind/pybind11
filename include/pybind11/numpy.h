@@ -1509,7 +1509,7 @@ private:
         if (trivial == broadcast_trivial::f_trivial) result = array_t<Return, array::f_style>(shape);
         else result = array_t<Return>(shape);
 
-        if (size == 0) return result;
+        if (size == 0) return std::move(result);
 
         /* Call the function */
         if (trivial == broadcast_trivial::non_trivial)
@@ -1517,7 +1517,7 @@ private:
         else
             apply_trivial(buffers, params, result.mutable_data(), size, i_seq, vi_seq, bi_seq);
 
-        return result;
+        return std::move(result);
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>
