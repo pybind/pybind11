@@ -129,6 +129,7 @@ private:
 
 class NCVirt {
 public:
+    virtual ~NCVirt() { }
     virtual NonCopyable get_noncopyable(int a, int b) { return NonCopyable(a, b); }
     virtual Movable get_movable(int a, int b) = 0;
 

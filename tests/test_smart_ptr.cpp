@@ -336,7 +336,9 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     // test_shared_ptr_gc
     // #187: issue involving std::shared_ptr<> return value policy & garbage collection
-    struct ElementBase { virtual void foo() { } /* Force creation of virtual table */ };
+    struct ElementBase {
+        virtual ~ElementBase() { } /* Force creation of virtual table */
+    };
     py::class_<ElementBase, std::shared_ptr<ElementBase>>(m, "ElementBase");
 
     struct ElementA : ElementBase {

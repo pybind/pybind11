@@ -1,5 +1,4 @@
 language: cpp
-dist: trusty
 matrix:
   include:
   # This config does a few things:
@@ -10,6 +9,7 @@ matrix:
   #   also tests the automatic discovery functions in CMake (Python version, C++ standard).
   - os: linux
     dist: xenial # Necessary to run doxygen 1.8.15
+    # TODO(eric.cousineau): These aren't actually used, they're only for naming. Use "name" field instead?
     env: STYLE DOCS PIP
     cache: false
     before_install:
@@ -38,44 +38,69 @@ matrix:
   # The following are regular test configurations, including optional dependencies.
   # With regard to each other they differ in Python version, C++ standard and compiler.
   - os: linux
+    dist: trusty
     env: PYTHON=2.7 CPP=11 GCC=4.8
     addons:
       apt:
-        packages: [cmake=2.\*, cmake-data=2.\*]
+        packages:
+          - cmake=2.\*
+          - cmake-data=2.\*
   - os: linux
+    dist: trusty
     env: PYTHON=3.6 CPP=11 GCC=4.8
     addons:
       apt:
-        sources: [deadsnakes]
-        packages: [python3.6-dev python3.6-venv, cmake=2.\*, cmake-data=2.\*]
-  - services: docker
+        sources:
+          - deadsnakes
+        packages:
+          - python3.6-dev
+          - python3.6-venv
+          - cmake=2.\*
+          - cmake-data=2.\*
+  - os: linux
+    dist: trusty
     env: PYTHON=2.7 CPP=14 GCC=6 CMAKE=1
-  - services: docker
-    env: PYTHON=3.5 CPP=14 GCC=6 DEBUG=1
-  - env: PYTHON=3.6 CPP=17 GCC=7
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-6
+  - os: linux
+    dist: trusty
+    # N.B. `ensurepip` could be installed transitively by `python3.5-venv`, but
+    # seems to have apt conflicts (at least for Trusty). Use Docker instead.
+    services: docker
+    env: DOCKER=debian:stretch PYTHON=3.5 CPP=14 GCC=6 DEBUG=1
+  - os: linux
+    dist: xenial
+    env: PYTHON=3.6 CPP=17 GCC=7
     addons:
       apt:
         sources:
           - deadsnakes
           - ubuntu-toolchain-r-test
         packages:
+          - g++-7
           - python3.6-dev
           - python3.6-venv
-          - g++-7
   - os: linux
+    dist: xenial
     env: PYTHON=3.6 CPP=17 CLANG=7
     addons:
       apt:
         sources:
           - deadsnakes
-          - llvm-toolchain-trusty-7
+          - llvm-toolchain-xenial-7
         packages:
           - python3.6-dev
           - python3.6-venv
           - clang-7
+          - libclang-7-dev
           - llvm-7-dev
           - lld-7
-          - libstdc++7
+          - libc++-7-dev
+          - libc++abi-7-dev  # Why is this necessary???
   - os: osx
     osx_image: xcode7.3
     env: PYTHON=2.7 CPP=14 CLANG CMAKE=1
@@ -84,22 +109,32 @@ matrix:
     env: PYTHON=3.7 CPP=14 CLANG DEBUG=1
   # Test a PyPy 2.7 build
   - os: linux
-    env: PYPY=7.1 PYTHON=2.7 CPP=11 GCC=4.8
+    dist: trusty
+    env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
     addons:
       apt:
-        packages: [libblas-dev, liblapack-dev, gfortran]
+        packages:
+          - libblas-dev
+          - liblapack-dev
+          - gfortran
   # Build in 32-bit mode and tests against the CMake-installed version
-  - services: docker
-    env: ARCH=i386 PYTHON=3.5 CPP=14 GCC=6 INSTALL=1
+  - os: linux
+    dist: trusty
+    services: docker
+    env: DOCKER=i386/debian:stretch PYTHON=3.5 CPP=14 GCC=6 INSTALL=1
     script:
       - |
-        $SCRIPT_RUN_PREFIX sh -c "set -e
-        cmake ${CMAKE_EXTRA_ARGS} -DPYBIND11_INSTALL=1 -DPYBIND11_TEST=0 .
-        make install
-        cp -a tests /pybind11-tests
-        mkdir /build-tests && cd /build-tests
-        cmake ../pybind11-tests ${CMAKE_EXTRA_ARGS} -DPYBIND11_WERROR=ON
-        make pytest -j 2"
+        # Consolidated 32-bit Docker Build + Install
+        set -ex
+        $SCRIPT_RUN_PREFIX sh -c "
+          set -ex
+          cmake ${CMAKE_EXTRA_ARGS} -DPYBIND11_INSTALL=1 -DPYBIND11_TEST=0 .
+          make install
+          cp -a tests /pybind11-tests
+          mkdir /build-tests && cd /build-tests
+          cmake ../pybind11-tests ${CMAKE_EXTRA_ARGS} -DPYBIND11_WERROR=ON
+          make pytest -j 2"
+        set +ex
 cache:
   directories:
   - $HOME/.local/bin
@@ -109,6 +144,7 @@ cache:
 before_install:
 - |
   # Configure build variables
+  set -ex
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -n "$CLANG" ]; then
       export CXX=clang++-$CLANG CC=clang-$CLANG
@@ -119,18 +155,16 @@ before_install:
       fi
       export CXX=g++-$GCC CC=gcc-$GCC
     fi
-    if [ "$GCC" = "6" ]; then DOCKER=${ARCH:+$ARCH/}debian:stretch
-    elif [ "$GCC" = "7" ]; then DOCKER=debian:buster EXTRA_PACKAGES+=" catch python3-distutils" DOWNLOAD_CATCH=OFF
-    fi
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export CXX=clang++ CC=clang;
   fi
   if [ -n "$CPP" ]; then CPP=-std=c++$CPP; fi
   if [ "${PYTHON:0:1}" = "3" ]; then PY=3; fi
   if [ -n "$DEBUG" ]; then CMAKE_EXTRA_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"; fi
+  set +ex
 - |
   # Initialize environment
-  set -e
+  set -ex
   if [ -n "$DOCKER" ]; then
     docker pull $DOCKER
 
@@ -142,9 +176,9 @@ before_install:
     SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
     $SCRIPT_RUN_PREFIX sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
   else
-    if [ "$PYPY" = "7.1" ]; then
-      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2.7-v7.1.0-linux64.tar.bz2 | tar xj
-      PY_CMD=$(echo `pwd`/pypy2.7-v7.1.0-linux64/bin/pypy)
+    if [ "$PYPY" = "5.8" ]; then
+      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.8.0-linux64.tar.bz2 | tar xj
+      PY_CMD=$(echo `pwd`/pypy2-v5.8.0-linux64/bin/pypy)
       CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
     else
       PY_CMD=python$PYTHON
@@ -162,12 +196,12 @@ before_install:
     $PY_CMD --version
     $PY_CMD -m pip install --user --upgrade pip wheel
   fi
-  set +e
+  set +ex
 install:
 - |
   # Install dependencies
+  set -ex
   cmake --version
-  set -e
   if [ -n "$DOCKER" ]; then
     if [ -n "$DEBUG" ]; then
       PY_DEBUG="python$PYTHON-dbg python$PY-scipy-dbg"
@@ -185,8 +219,15 @@ install:
 
     export NPY_NUM_BUILD_JOBS=2
     echo "Installing pytest, numpy, scipy..."
-    ${PYPY:+travis_wait 30} $PY_CMD -m pip install --user --upgrade pytest numpy scipy \
-        ${PYPY:+--extra-index-url https://imaginary.ca/trusty-pypi}
+    local PIP_CMD=""
+    if [ -n $PYPY ]; then
+      # For expediency, install only versions that are available on the extra index.
+      travis_wait 30 \
+        $PY_CMD -m pip install --user --upgrade --extra-index-url https://imaginary.ca/trusty-pypi \
+          pytest numpy==1.15.4 scipy==1.2.0
+    else
+      $PY_CMD -m pip install --user --upgrade pytest numpy scipy
+    fi
     echo "done."
 
     mkdir eigen
@@ -194,17 +235,37 @@ install:
         tar --extract -j --directory=eigen --strip-components=1
     export CMAKE_INCLUDE_PATH="${CMAKE_INCLUDE_PATH:+$CMAKE_INCLUDE_PATH:}$PWD/eigen"
   fi
-  set +e
+  set +ex
 script:
-- $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS}
-    -DPYBIND11_PYTHON_VERSION=$PYTHON
-    -DPYBIND11_CPP_STANDARD=$CPP
-    -DPYBIND11_WERROR=${WERROR:-ON}
-    -DDOWNLOAD_CATCH=${DOWNLOAD_CATCH:-ON}
+- |
+  # CMake Configuration
+  set -ex
+  $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS} \
+    -DPYBIND11_PYTHON_VERSION=$PYTHON \
+    -DPYBIND11_CPP_STANDARD=$CPP \
+    -DPYBIND11_WERROR=${WERROR:-ON} \
+    -DDOWNLOAD_CATCH=${DOWNLOAD_CATCH:-ON} \
     .
-- $SCRIPT_RUN_PREFIX make pytest -j 2
-- $SCRIPT_RUN_PREFIX make cpptest -j 2
-- if [ -n "$CMAKE" ]; then $SCRIPT_RUN_PREFIX make test_cmake_build; fi
+  set +ex
+- |
+  # pytest
+  set -ex
+  $SCRIPT_RUN_PREFIX make pytest -j 2 VERBOSE=1
+  set +ex
+- |
+  # cpptest
+  set -ex
+  $SCRIPT_RUN_PREFIX make cpptest -j 2
+  set +ex
+- |
+  # CMake Build Interface
+  set -ex
+  if [ -n "$CMAKE" ]; then $SCRIPT_RUN_PREFIX make test_cmake_build; fi
+  set +ex
 after_failure: cat tests/test_cmake_build/*.log*
 after_script:
-- if [ -n "$DOCKER" ]; then docker stop "$containerid"; docker rm "$containerid"; fi
+- |
+  # Cleanup (Docker)
+  set -ex
+  if [ -n "$DOCKER" ]; then docker stop "$containerid"; docker rm "$containerid"; fi
+  set +ex
