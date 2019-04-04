@@ -9,8 +9,7 @@ matrix:
   #   also tests the automatic discovery functions in CMake (Python version, C++ standard).
   - os: linux
     dist: xenial # Necessary to run doxygen 1.8.15
-    # TODO(eric.cousineau): These aren't actually used, they're only for naming. Use "name" field instead?
-    env: STYLE DOCS PIP
+    name: Style, docs, and pip
     cache: false
     before_install:
     - pyenv global $(pyenv whence 2to3)  # activate all python versions
@@ -39,6 +38,7 @@ matrix:
   # With regard to each other they differ in Python version, C++ standard and compiler.
   - os: linux
     dist: trusty
+    name: Python 2.7, c++11, gcc 4.8
     env: PYTHON=2.7 CPP=11 GCC=4.8
     addons:
       apt:
@@ -47,6 +47,7 @@ matrix:
           - cmake-data=2.\*
   - os: linux
     dist: trusty
+    name: Python 3.6, c++11, gcc 4.8
     env: PYTHON=3.6 CPP=11 GCC=4.8
     addons:
       apt:
@@ -60,6 +61,7 @@ matrix:
   - os: linux
     dist: trusty
     env: PYTHON=2.7 CPP=14 GCC=6 CMAKE=1
+    name: Python 2.7, c++14, gcc 4.8, CMake test
     addons:
       apt:
         sources:
@@ -68,6 +70,7 @@ matrix:
           - g++-6
   - os: linux
     dist: trusty
+    name: Python 3.5, c++14, gcc 6, Debug build
     # N.B. `ensurepip` could be installed transitively by `python3.5-venv`, but
     # seems to have apt conflicts (at least for Trusty). Use Docker instead.
     services: docker
@@ -75,6 +78,7 @@ matrix:
   - os: linux
     dist: xenial
     env: PYTHON=3.6 CPP=17 GCC=7
+    name: Python 3.6, c++17, gcc 7
     addons:
       apt:
         sources:
@@ -87,6 +91,7 @@ matrix:
   - os: linux
     dist: xenial
     env: PYTHON=3.6 CPP=17 CLANG=7
+    name: Python 3.6, c++17, Clang 7
     addons:
       apt:
         sources:
@@ -102,15 +107,18 @@ matrix:
           - libc++-7-dev
           - libc++abi-7-dev  # Why is this necessary???
   - os: osx
+    name: Python 2.7, c++14, AppleClang 7.3, CMake test
     osx_image: xcode7.3
     env: PYTHON=2.7 CPP=14 CLANG CMAKE=1
   - os: osx
+    name: Python 3.7, c++14, AppleClang 9, Debug build
     osx_image: xcode9
     env: PYTHON=3.7 CPP=14 CLANG DEBUG=1
   # Test a PyPy 2.7 build
   - os: linux
     dist: trusty
     env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
+    name: PyPy 5.8, Python 2.7, c++11, gcc 4.8
     addons:
       apt:
         packages:
@@ -122,6 +130,7 @@ matrix:
     dist: trusty
     services: docker
     env: DOCKER=i386/debian:stretch PYTHON=3.5 CPP=14 GCC=6 INSTALL=1
+    name: Python 3.4, c++14, gcc 6, 32-bit
     script:
       - |
         # Consolidated 32-bit Docker Build + Install
