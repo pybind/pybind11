@@ -467,6 +467,14 @@ dog)"``, while attempting to call ``meow(None)`` will raise a ``TypeError``:
 
 The default behaviour when the tag is unspecified is to allow ``None``.
 
+.. note::
+
+    Built-in types are not automatically casted from ``None`` to ``T *`` as well as stl
+    containers (such as ``std::vector<T>``) with ``pybind11/stl.h`` include.
+
+    To pass optional argument of such type consider using ``std::optional<T>``, or in case of stl containers
+    ``pybind11/stl_bind.h``
+
 Overload resolution order
 =========================
 
