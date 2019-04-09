@@ -469,11 +469,11 @@ The default behaviour when the tag is unspecified is to allow ``None``.
 
 .. note::
 
-    Built-in types are not automatically casted from ``None`` to ``T *`` as well as stl
-    containers (such as ``std::vector<T>``) with ``pybind11/stl.h`` include.
-
-    To pass optional argument of such type consider using ``std::optional<T>``, or in case of stl containers
-    ``pybind11/stl_bind.h``
+    Even when ``.none(true)`` is specified for an argument, ``None`` will be converted to a
+    ``nullptr`` *only* for custom types. Pointers to built-in types (``double *``, ``int *``, ...) and
+    STL types (``std::vector<T> *``, ...; if ``pybind11/stl.h`` is included) are copied when converted
+    to C++ (see :doc:`/advanced/cast/overview`) and will not allow ``None`` as argument.
+    To pass optional argument of these copied types consider using ``std::optional<T>``
 
 Overload resolution order
 =========================
