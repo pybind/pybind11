@@ -578,6 +578,15 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
         },
         return_value_policy::reference_internal // ref + keepalive
     );
+    
+    cl.def("__contains__",
+        [](Map &m, const KeyType &k) -> bool {
+            auto it = m.find(k);
+            if (it == m.end())
+              return false;
+           return true;
+        }
+    );
 
     // Assignment provided only if the type is copyable
     detail::map_assignment<Map, Class_>(cl);

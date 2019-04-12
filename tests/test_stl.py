@@ -56,7 +56,9 @@ def test_map(doc):
     """std::map <-> dict"""
     d = m.cast_map()
     assert d == {"key": "value"}
+    assert "key" in d
     d["key2"] = "value2"
+    assert "key2" in d
     assert m.load_map(d)
 
     assert doc(m.cast_map) == "cast_map() -> Dict[str, str]"
