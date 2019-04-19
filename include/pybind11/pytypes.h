@@ -319,6 +319,10 @@ NAMESPACE_END(detail)
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4275) // warning C4275: An exported class was derived from a class that wasn't exported
+#endif
 class PYBIND11_EXPORT error_already_set : public std::runtime_error {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
@@ -349,7 +353,9 @@ public:
 private:
     object type, value, trace;
 };
-
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 /** \defgroup python_builtins _
     Unless stated otherwise, the following C++ functions behave the same
     as their Python counterparts.

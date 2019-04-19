@@ -654,12 +654,20 @@ using expand_side_effects = bool[];
 NAMESPACE_END(detail)
 
 /// C++ bindings of builtin Python exceptions
+//
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4275) // warning C4275: An exported class was derived from a class that wasn't exported
+#endif
 class PYBIND11_EXPORT builtin_exception : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
     /// Set the error using the Python C API
     virtual void set_error() const = 0;
 };
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 #define PYBIND11_RUNTIME_EXCEPTION(name, type) \
     class PYBIND11_EXPORT name : public builtin_exception { public: \
