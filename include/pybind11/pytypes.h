@@ -81,7 +81,7 @@ public:
     \endrst */
     obj_attr_accessor attr(handle key) const;
     /// See above (the only difference is that they key is provided as a string literal)
-    str_attr_accessor attr(const char *key) const;
+    str_attr_accessor attr(const std::string& key) const;
 
     /** \rst
         Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
@@ -1365,8 +1365,8 @@ template <typename D> item_accessor object_api<D>::operator[](const char *key) c
 template <typename D> obj_attr_accessor object_api<D>::attr(handle key) const {
     return {derived(), reinterpret_borrow<object>(key)};
 }
-template <typename D> str_attr_accessor object_api<D>::attr(const char *key) const {
-    return {derived(), key};
+template <typename D> str_attr_accessor object_api<D>::attr(const std::string& key) const {
+    return {derived(), key.c_str()};
 }
 template <typename D> args_proxy object_api<D>::operator*() const {
     return args_proxy(derived().ptr());
