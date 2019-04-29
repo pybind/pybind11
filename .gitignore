@@ -36,3 +36,20 @@ MANIFEST
 sosize-*.txt
 pybind11Config*.cmake
 pybind11Targets.cmake
+
+
+# Steinwurf additions
+waf-*
+waf3-*
+.waf-*
+.waf3-*
+.lock-*
+build
+build_current
+resolve_symlinks
+resolved_dependencies
+
+*.bat
+*.suo
+*.user
+*.log

@@ -1,0 +1,41 @@
+#! /usr/bin/env python
+# encoding: utf-8
+
+print(bld.env['DEFINES_PYEXT'])
+print(bld.env['CFLAGS_PYEXT'])
+print(bld.env['CXXFLAGS_PYEXT'])
+
+# Remove NDEBUG which is added from conf.check_python_headers
+flag_to_remove = 'NDEBUG'
+defines = ['DEFINES_PYEMBED', 'DEFINES_PYEXT']
+for define in defines:
+    while (flag_to_remove in bld.env[define]):
+        bld.env[define].remove(flag_to_remove)
+
+# Override the PYEXT compiler flags that interfere with the waf-tools flags
+bld.env['CFLAGS_PYEXT'] = []
+bld.env['CXXFLAGS_PYEXT'] = []
+
+#CXX = bld.env.get_flat("CXX")
+# Matches both /usr/bin/g++ and /usr/bin/clang++
+#if 'g++' in CXX or 'clang' in CXX:
+#    bld.env.append_value('CXXFLAGS', '-fPIC')
+
+extra_linkflags = []
+
+#CXX = bld.env.get_flat("CXX")
+# Matches MSVC
+#if 'CL.exe' in CXX or 'cl.exe' in CXX:
+#   extra_linkflags = ['/EXPORT:initpybind11']
+
+bld(
+    features='cxx cxxshlib pyext',
+    source=['pybind11_tests.cpp', 'test_class.cpp'],
+    target='pybind11_tests',
+    name='pybind11_tests',
+    linkflags=extra_linkflags,
+    use=[
+        'STEINWURF_VERSION',
+        'pybind11_includes'
+    ]
+)
