@@ -19,7 +19,7 @@ def assert_equal_ref(mat):
 
 
 def assert_sparse_equal_ref(sparse_mat):
-    assert_equal_ref(sparse_mat.todense())
+    assert_equal_ref(sparse_mat.toarray())
 
 
 def test_fixed():
@@ -181,8 +181,7 @@ def test_negative_stride_from_python(msg):
         double_threer(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[float32[1, 3], flags.writeable]) -> None
 
-        Invoked with: array([ 5.,  4.,  3.], dtype=float32)
-    """  # noqa: E501 line too long
+        Invoked with: """ + repr(np.array([ 5.,  4.,  3.], dtype='float32'))  # noqa: E501 line too long
 
     with pytest.raises(TypeError) as excinfo:
         m.double_threec(second_col)
@@ -190,8 +189,7 @@ def test_negative_stride_from_python(msg):
         double_threec(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[float32[3, 1], flags.writeable]) -> None
 
-        Invoked with: array([ 7.,  4.,  1.], dtype=float32)
-    """  # noqa: E501 line too long
+        Invoked with: """ + repr(np.array([ 7.,  4.,  1.], dtype='float32'))  # noqa: E501 line too long
 
 
 def test_nonunit_stride_to_python():

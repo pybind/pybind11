@@ -17,6 +17,7 @@
 #include <array>
 #include <limits>
 #include <tuple>
+#include <type_traits>
 
 #if defined(PYBIND11_CPP17)
 #  if defined(__has_include)
@@ -570,7 +571,17 @@ public:
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
             auto *type = v_h.type ? v_h.type : typeinfo;
-            vptr = type->operator_new(type->type_size);
+            if (type->operator_new) {
+                vptr = type->operator_new(type->type_size);
+            } else {
+                #if defined(PYBIND11_CPP17)
+                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+                        vptr = ::operator new(type->type_size,
+                                              (std::align_val_t) type->type_align);
+                    else
+                #endif
+                vptr = ::operator new(type->type_size);
+            }
         }
         value = vptr;
     }
@@ -774,9 +785,45 @@ template <typename T1, typename T2> struct is_copy_constructible<std::pair<T1, T
     : all_of<is_copy_constructible<T1>, is_copy_constructible<T2>> {};
 #endif
 
+NAMESPACE_END(detail)
+
+// polymorphic_type_hook<itype>::get(src, tinfo) determines whether the object pointed
+// to by `src` actually is an instance of some class derived from `itype`.
+// If so, it sets `tinfo` to point to the std::type_info representing that derived
+// type, and returns a pointer to the start of the most-derived object of that type
+// (in which `src` is a subobject; this will be the same address as `src` in most
+// single inheritance cases). If not, or if `src` is nullptr, it simply returns `src`
+// and leaves `tinfo` at its default value of nullptr.
+//
+// The default polymorphic_type_hook just returns src. A specialization for polymorphic
+// types determines the runtime type of the passed object and adjusts the this-pointer
+// appropriately via dynamic_cast<void*>. This is what enables a C++ Animal* to appear
+// to Python as a Dog (if Dog inherits from Animal, Animal is polymorphic, Dog is
+// registered with pybind11, and this Animal is in fact a Dog).
+//
+// You may specialize polymorphic_type_hook yourself for types that want to appear
+// polymorphic to Python but do not use C++ RTTI. (This is a not uncommon pattern
+// in performance-sensitive applications, used most notably in LLVM.)
+template <typename itype, typename SFINAE = void>
+struct polymorphic_type_hook
+{
+    static const void *get(const itype *src, const std::type_info*&) { return src; }
+};
+template <typename itype>
+struct polymorphic_type_hook<itype, detail::enable_if_t<std::is_polymorphic<itype>::value>>
+{
+    static const void *get(const itype *src, const std::type_info*& type) {
+        type = src ? &typeid(*src) : nullptr;
+        return dynamic_cast<const void*>(src);
+    }
+};
+
+NAMESPACE_BEGIN(detail)
+
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
     using itype = intrinsic_t<type>;
+
 public:
     static constexpr auto name = _<type>();
 
@@ -793,32 +840,28 @@ public:
         return cast(&src, return_value_policy::move, parent);
     }
 
-    // Returns a (pointer, type_info) pair taking care of necessary RTTI type lookup for a
-    // polymorphic type.  If the instance isn't derived, returns the non-RTTI base version.
-    template <typename T = itype, enable_if_t<std::is_polymorphic<T>::value, int> = 0>
+    // Returns a (pointer, type_info) pair taking care of necessary type lookup for a
+    // polymorphic type (using RTTI by default, but can be overridden by specializing
+    // polymorphic_type_hook). If the instance isn't derived, returns the base version.
     static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        const void *vsrc = src;
         auto &cast_type = typeid(itype);
         const std::type_info *instance_type = nullptr;
-        if (vsrc) {
-            instance_type = &typeid(*src);
-            if (!same_type(cast_type, *instance_type)) {
-                // This is a base pointer to a derived type; if it is a pybind11-registered type, we
-                // can get the correct derived pointer (which may be != base pointer) by a
-                // dynamic_cast to most derived type:
-                if (auto *tpi = get_type_info(*instance_type))
-                    return {dynamic_cast<const void *>(src), const_cast<const type_info *>(tpi)};
-            }
+        const void *vsrc = polymorphic_type_hook<itype>::get(src, instance_type);
+        if (instance_type && !same_type(cast_type, *instance_type)) {
+            // This is a base pointer to a derived type. If the derived type is registered
+            // with pybind11, we want to make the full derived object available.
+            // In the typical case where itype is polymorphic, we get the correct
+            // derived pointer (which may be != base pointer) by a dynamic_cast to
+            // most derived type. If itype is not polymorphic, we won't get here
+            // except via a user-provided specialization of polymorphic_type_hook,
+            // and the user has promised that no this-pointer adjustment is
+            // required in that case, so it's OK to use static_cast.
+            if (const auto *tpi = get_type_info(*instance_type))
+                return {vsrc, tpi};
         }
         // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer, so
         // don't do a cast
-        return type_caster_generic::src_and_type(vsrc, cast_type, instance_type);
-    }
-
-    // Non-polymorphic type, so no dynamic casting; just call the generic version directly
-    template <typename T = itype, enable_if_t<!std::is_polymorphic<T>::value, int> = 0>
-    static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        return type_caster_generic::src_and_type(src, typeid(itype));
+        return type_caster_generic::src_and_type(src, cast_type, instance_type);
     }
 
     static handle cast(const itype *src, return_value_policy policy, handle parent) {
@@ -977,21 +1020,34 @@ public:
         return true;
     }
 
-    static handle cast(T src, return_value_policy /* policy */, handle /* parent */) {
-        if (std::is_floating_point<T>::value) {
-            return PyFloat_FromDouble((double) src);
-        } else if (sizeof(T) <= sizeof(ssize_t)) {
-            // This returns a long automatically if needed
-            if (std::is_signed<T>::value)
-                return PYBIND11_LONG_FROM_SIGNED(src);
-            else
-                return PYBIND11_LONG_FROM_UNSIGNED(src);
-        } else {
-            if (std::is_signed<T>::value)
-                return PyLong_FromLongLong((long long) src);
-            else
-                return PyLong_FromUnsignedLongLong((unsigned long long) src);
-        }
+    template<typename U = T>
+    static typename std::enable_if<std::is_floating_point<U>::value, handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PyFloat_FromDouble((double) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_signed<U>::value && (sizeof(U) <= sizeof(long)), handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PYBIND11_LONG_FROM_SIGNED((long) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_unsigned<U>::value && (sizeof(U) <= sizeof(unsigned long)), handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PYBIND11_LONG_FROM_UNSIGNED((unsigned long) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_signed<U>::value && (sizeof(U) > sizeof(long)), handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PyLong_FromLongLong((long long) src);
+    }
+
+    template<typename U = T>
+    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_unsigned<U>::value && (sizeof(U) > sizeof(unsigned long)), handle>::type
+    cast(U src, return_value_policy /* policy */, handle /* parent */) {
+        return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
     PYBIND11_TYPE_CASTER(T, _<std::is_integral<T>::value>("int", "float"));
@@ -1172,7 +1228,7 @@ private:
 #else
         // PyPy seems to have multiple problems related to PyUnicode_UTF*: the UTF8 version
         // sometimes segfaults for unknown reasons, while the UTF16 and 32 versions require a
-        // non-const char * arguments, which is also a nuissance, so bypass the whole thing by just
+        // non-const char * arguments, which is also a nuisance, so bypass the whole thing by just
         // passing the encoding as a string value, which works properly:
         return PyUnicode_Decode(buffer, nbytes, UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr);
 #endif
@@ -1391,7 +1447,7 @@ public:
 
     explicit operator type*() { return this->value; }
     explicit operator type&() { return *(this->value); }
-    explicit operator holder_type*() { return &holder; }
+    explicit operator holder_type*() { return std::addressof(holder); }
 
     // Workaround for Intel compiler bug
     // see pybind11 issue 94
@@ -1461,7 +1517,7 @@ struct move_only_holder_caster {
 
     static handle cast(holder_type &&src, return_value_policy, handle) {
         auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, &src);
+        return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
     }
     static constexpr auto name = type_caster_base<type>::name;
 };
@@ -1555,17 +1611,23 @@ template <typename T> using move_never = none_of<move_always<T>, move_if_unrefer
 // everything else returns a reference/pointer to a local variable.
 template <typename type> using cast_is_temporary_value_reference = bool_constant<
     (std::is_reference<type>::value || std::is_pointer<type>::value) &&
-    !std::is_base_of<type_caster_generic, make_caster<type>>::value
+    !std::is_base_of<type_caster_generic, make_caster<type>>::value &&
+    !std::is_same<intrinsic_t<type>, void>::value
 >;
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
 // force `policy = move`, regardless of the return value policy the function/method was declared
-// with.  Some classes (most notably Eigen::Ref and related) need to avoid this, and so can do so by
-// specializing this struct.
+// with.
 template <typename Return, typename SFINAE = void> struct return_value_policy_override {
+    static return_value_policy policy(return_value_policy p) { return p; }
+};
+
+template <typename Return> struct return_value_policy_override<Return,
+        detail::enable_if_t<std::is_base_of<type_caster_generic, make_caster<Return>>::value, void>> {
     static return_value_policy policy(return_value_policy p) {
-        return !std::is_lvalue_reference<Return>::value && !std::is_pointer<Return>::value
-            ? return_value_policy::move : p;
+        return !std::is_lvalue_reference<Return>::value &&
+               !std::is_pointer<Return>::value
+                   ? return_value_policy::move : p;
     }
 };
 
@@ -1685,6 +1747,9 @@ template <> inline void cast_safe<void>(object &&) {}
 
 NAMESPACE_END(detail)
 
+template <return_value_policy policy = return_value_policy::automatic_reference>
+tuple make_tuple() { return tuple(0); }
+
 template <return_value_policy policy = return_value_policy::automatic_reference,
           typename... Args> tuple make_tuple(Args&&... args_) {
     constexpr size_t size = sizeof...(Args);
@@ -1790,7 +1855,7 @@ struct function_record;
 
 /// Internal data associated with a single function call
 struct function_call {
-    function_call(function_record &f, handle p); // Implementation in attr.h
+    function_call(const function_record &f, handle p); // Implementation in attr.h
 
     /// The function data:
     const function_record &func;
@@ -2051,9 +2116,13 @@ object object_api<Derived>::call(Args &&...args) const {
 
 NAMESPACE_END(detail)
 
-#define PYBIND11_MAKE_OPAQUE(Type) \
+#define PYBIND11_MAKE_OPAQUE(...) \
     namespace pybind11 { namespace detail { \
-        template<> class type_caster<Type> : public type_caster_base<Type> { }; \
+        template<> class type_caster<__VA_ARGS__> : public type_caster_base<__VA_ARGS__> { }; \
     }}
+
+/// Lets you pass a type containing a `,` through a macro parameter without needing a separate
+/// typedef, e.g.: `PYBIND11_OVERLOAD(PYBIND11_TYPE(ReturnType<A, B>), PYBIND11_TYPE(Parent<C, D>), f, arg)`
+#define PYBIND11_TYPE(...) __VA_ARGS__
 
 NAMESPACE_END(PYBIND11_NAMESPACE)

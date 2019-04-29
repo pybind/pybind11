@@ -10,6 +10,20 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include "local_bindings.h"
+#include <pybind11/stl.h>
+
+#if defined(_MSC_VER)
+#  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
+#endif
+
+// test_brace_initialization
+struct NoBraceInitialization {
+    NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
+    template <typename T>
+    NoBraceInitialization(std::initializer_list<T> l) : vec(l) {}
+
+    std::vector<int> vec;
+};
 
 TEST_SUBMODULE(class_, m) {
     // test_instance
@@ -299,6 +313,12 @@ TEST_SUBMODULE(class_, m) {
         .def(py::init<int, const std::string &>())
         .def_readwrite("field1", &BraceInitialization::field1)
         .def_readwrite("field2", &BraceInitialization::field2);
+    // We *don't* want to construct using braces when the given constructor argument maps to a
+    // constructor, because brace initialization could go to the wrong place (in particular when
+    // there is also an `initializer_list<T>`-accept constructor):
+    py::class_<NoBraceInitialization>(m, "NoBraceInitialization")
+        .def(py::init<std::vector<int>>())
+        .def_readonly("vec", &NoBraceInitialization::vec);
 
     // test_reentrant_implicit_conversion_failure
     // #1035: issue with runaway reentrant implicit conversion
@@ -325,6 +345,28 @@ TEST_SUBMODULE(class_, m) {
                 "a"_a, "b"_a, "c"_a);
     base.def("g", [](NestBase &, Nested &) {});
     base.def("h", []() { return NestBase(); });
+
+    // test_error_after_conversion
+    // The second-pass path through dispatcher() previously didn't
+    // remember which overload was used, and would crash trying to
+    // generate a useful error message
+
+    struct NotRegistered {};
+    struct StringWrapper { std::string str; };
+    m.def("test_error_after_conversions", [](int) {});
+    m.def("test_error_after_conversions",
+          [](StringWrapper) -> NotRegistered { return {}; });
+    py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
+    py::implicitly_convertible<std::string, StringWrapper>();
+
+    #if defined(PYBIND11_CPP17)
+        struct alignas(1024) Aligned {
+            std::uintptr_t ptr() const { return (uintptr_t) this; }
+        };
+        py::class_<Aligned>(m, "Aligned")
+            .def(py::init<>())
+            .def("ptr", &Aligned::ptr);
+    #endif
 }
 
 template <int N> class BreaksBase { public: virtual ~BreaksBase() = default; };

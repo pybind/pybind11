@@ -8,7 +8,11 @@
 */
 
 #include "pybind11_tests.h"
+#include "constructor_stats.h"
 #include <pybind11/stl.h>
+
+#include <vector>
+#include <string>
 
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if PYBIND11_HAS_VARIANT
@@ -31,6 +35,8 @@ struct visit_helper<boost::variant> {
 };
 }} // namespace pybind11::detail
 #endif
+
+PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
@@ -56,6 +62,10 @@ TEST_SUBMODULE(stl, m) {
     // Unnumbered regression (caused by #936): pointers to stl containers aren't castable
     static std::vector<RValueCaster> lvv{2};
     m.def("cast_ptr_vector", []() { return &lvv; });
+
+    // test_deque
+    m.def("cast_deque", []() { return std::deque<int>{1}; });
+    m.def("load_deque", [](const std::deque<int> &v) { return v.at(0) == 1 && v.at(1) == 2; });
 
     // test_array
     m.def("cast_array", []() { return std::array<int, 2> {{1 , 2}}; });
@@ -235,4 +245,40 @@ TEST_SUBMODULE(stl, m) {
 
     // test_stl_pass_by_pointer
     m.def("stl_pass_by_pointer", [](std::vector<int>* v) { return *v; }, "v"_a=nullptr);
+
+    // #1258: pybind11/stl.h converts string to vector<string>
+    m.def("func_with_string_or_vector_string_arg_overload", [](std::vector<std::string>) { return 1; });
+    m.def("func_with_string_or_vector_string_arg_overload", [](std::list<std::string>) { return 2; });
+    m.def("func_with_string_or_vector_string_arg_overload", [](std::string) { return 3; });
+
+    class Placeholder {
+    public:
+        Placeholder() { print_created(this); }
+        Placeholder(const Placeholder &) = delete;
+        ~Placeholder() { print_destroyed(this); }
+    };
+    py::class_<Placeholder>(m, "Placeholder");
+
+    /// test_stl_vector_ownership
+    m.def("test_stl_ownership",
+          []() {
+              std::vector<Placeholder *> result;
+              result.push_back(new Placeholder());
+              return result;
+          },
+          py::return_value_policy::take_ownership);
+
+    m.def("array_cast_sequence", [](std::array<int, 3> x) { return x; });
+
+    /// test_issue_1561
+    struct Issue1561Inner { std::string data; };
+    struct Issue1561Outer { std::vector<Issue1561Inner> list; };
+
+    py::class_<Issue1561Inner>(m, "Issue1561Inner")
+        .def(py::init<std::string>())
+        .def_readwrite("data", &Issue1561Inner::data);
+
+    py::class_<Issue1561Outer>(m, "Issue1561Outer")
+        .def(py::init<>())
+        .def_readwrite("list", &Issue1561Outer::list);
 }

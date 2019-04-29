@@ -131,6 +131,8 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::vector<T>``                 | STL dynamic array         | :file:`pybind11/stl.h`        |
 +------------------------------------+---------------------------+-------------------------------+
+| ``std::deque<T>``                  | STL double-ended queue    | :file:`pybind11/stl.h`        |
++------------------------------------+---------------------------+-------------------------------+
 | ``std::valarray<T>``               | STL value array           | :file:`pybind11/stl.h`        |
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::list<T>``                   | STL linked list           | :file:`pybind11/stl.h`        |

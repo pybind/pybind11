@@ -40,6 +40,7 @@ set(PYBIND11_TEST_FILES
   test_eval.cpp
   test_exceptions.cpp
   test_factory_constructors.cpp
+  test_gil_scoped.cpp
   test_iostream.cpp
   test_kwargs_and_defaults.cpp
   test_local_bindings.cpp
@@ -57,6 +58,7 @@ set(PYBIND11_TEST_FILES
   test_smart_ptr.cpp
   test_stl.cpp
   test_stl_binders.cpp
+  test_tagbased_polymorphic.cpp
   test_virtual_functions.cpp
 )
 

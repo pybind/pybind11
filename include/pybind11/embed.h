@@ -90,8 +90,14 @@ NAMESPACE_END(detail)
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
     called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
     optional parameter can be used to skip the registration of signal handlers (see the
-    Python documentation for details). Calling this function again after the interpreter
+    `Python documentation`_ for details). Calling this function again after the interpreter
     has already been initialized is a fatal error.
+
+    If initializing the Python interpreter fails, then the program is terminated.  (This
+    is controlled by the CPython runtime and is an exception to pybind11's normal behavior
+    of throwing exceptions on errors.)
+
+    .. _Python documentation: https://docs.python.org/3/c-api/init.html#c.Py_InitializeEx
  \endrst */
 inline void initialize_interpreter(bool init_signal_handlers = true) {
     if (Py_IsInitialized())
@@ -145,7 +151,7 @@ inline void finalize_interpreter() {
     // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
     // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
     // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
-    detail::internals **internals_ptr_ptr = &detail::get_internals_ptr();
+    detail::internals **internals_ptr_ptr = detail::get_internals_pp();
     // It could also be stashed in builtins, so look there too:
     if (builtins.contains(id) && isinstance<capsule>(builtins[id]))
         internals_ptr_ptr = capsule(builtins[id]);
