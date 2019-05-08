@@ -855,14 +855,14 @@ public:
 
     // Reference to element at a given index
     template<typename... Ix> const T& at(Ix... index) const {
-        if (sizeof...(index) != ndim())
+        if ((ssize_t) sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         return *(static_cast<const T*>(array::data()) + byte_offset(ssize_t(index)...) / itemsize());
     }
 
     // Mutable reference to element at a given index
     template<typename... Ix> T& mutable_at(Ix... index) {
-        if (sizeof...(index) != ndim())
+        if ((ssize_t) sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(ssize_t(index)...) / itemsize());
     }
@@ -1527,7 +1527,7 @@ private:
         if (trivial == broadcast_trivial::f_trivial) result = array_t<Return, array::f_style>(shape);
         else result = array_t<Return>(shape);
 
-        if (size == 0) return result;
+        if (size == 0) return std::move(result);
 
         /* Call the function */
         if (trivial == broadcast_trivial::non_trivial)
@@ -1535,7 +1535,7 @@ private:
         else
             apply_trivial(buffers, params, result.mutable_data(), size, i_seq, vi_seq, bi_seq);
 
-        return result;
+        return std::move(result);
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>
