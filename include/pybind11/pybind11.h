@@ -2380,12 +2380,12 @@ class gil_scoped_release { };
 #endif
 
 error_already_set::~error_already_set() {
-    if (type) {
+    if (m_type) {
         error_scope scope;
         gil_scoped_acquire gil;
-        type.release().dec_ref();
-        value.release().dec_ref();
-        trace.release().dec_ref();
+        m_type.release().dec_ref();
+        m_value.release().dec_ref();
+        m_trace.release().dec_ref();
     }
 }
 

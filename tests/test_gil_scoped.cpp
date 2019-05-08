@@ -13,6 +13,7 @@
 
 class VirtClass  {
 public:
+    virtual ~VirtClass() {}
     virtual void virtual_func() {}
     virtual void pure_virtual_func() = 0;
 };

@@ -42,14 +42,14 @@ install:
     if ($env:PYTHON) {
       if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
       $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
-      python -m pip install --upgrade pip wheel
-      python -m pip install pytest numpy --no-warn-script-location
+      python -W ignore -m pip install --upgrade pip wheel
+      python -W ignore -m pip install pytest numpy --no-warn-script-location
     } elseif ($env:CONDA) {
       if ($env:CONDA -eq "27") { $env:CONDA = "" }
       if ($env:PLATFORM -eq "x64") { $env:CONDA = "$env:CONDA-x64" }
       $env:PATH = "C:\Miniconda$env:CONDA\;C:\Miniconda$env:CONDA\Scripts\;$env:PATH"
       $env:PYTHONHOME = "C:\Miniconda$env:CONDA"
-      conda update -y -n base conda
+      conda --version
       conda install -y -q pytest numpy scipy
     }
 - ps: |
@@ -62,6 +62,7 @@ build_script:
     -DPYBIND11_WERROR=ON
     -DDOWNLOAD_CATCH=ON
     -DCMAKE_SUPPRESS_REGENERATION=1
+    .
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 - cmake --build . --config %CONFIG% --target pytest -- /m /v:m /logger:%MSBuildLogger%
 - cmake --build . --config %CONFIG% --target cpptest -- /m /v:m /logger:%MSBuildLogger%

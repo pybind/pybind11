@@ -325,7 +325,7 @@ public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
     error_already_set() : std::runtime_error(detail::error_string()) {
-        PyErr_Fetch(&type.ptr(), &value.ptr(), &trace.ptr());
+        PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
     error_already_set(const error_already_set &) = default;
@@ -336,7 +336,7 @@ public:
     /// Give the currently-held error back to Python, if any.  If there is currently a Python error
     /// already set it is cleared first.  After this call, the current object no longer stores the
     /// error variables (but the `.what()` string is still available).
-    void restore() { PyErr_Restore(type.release().ptr(), value.release().ptr(), trace.release().ptr()); }
+    void restore() { PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr()); }
 
     // Does nothing; provided for backwards compatibility.
     PYBIND11_DEPRECATED("Use of error_already_set.clear() is deprecated")
@@ -345,10 +345,14 @@ public:
     /// Check if the currently trapped error type matches the given Python exception class (or a
     /// subclass thereof).  May also be passed a tuple to search for any exception class matches in
     /// the given tuple.
-    bool matches(handle ex) const { return PyErr_GivenExceptionMatches(ex.ptr(), type.ptr()); }
+    bool matches(handle ex) const { return PyErr_GivenExceptionMatches(ex.ptr(), m_type.ptr()); }
+
+    const object& type() const { return m_type; }
+    const object& value() const { return m_value; }
+    const object& trace() const { return m_trace; }
 
 private:
-    object type, value, trace;
+    object m_type, m_value, m_trace;
 };
 
 /** \defgroup python_builtins _
@@ -387,6 +391,14 @@ inline bool hasattr(handle obj, handle name) {
 
 inline bool hasattr(handle obj, const char *name) {
     return PyObject_HasAttrString(obj.ptr(), name) == 1;
+}
+
+inline void delattr(handle obj, handle name) {
+    if (PyObject_DelAttr(obj.ptr(), name.ptr()) != 0) { throw error_already_set(); }
+}
+
+inline void delattr(handle obj, const char *name) {
+    if (PyObject_DelAttrString(obj.ptr(), name) != 0) { throw error_already_set(); }
 }
 
 inline object getattr(handle obj, handle name) {
@@ -459,7 +471,6 @@ template <typename T, enable_if_t<!is_pyobject<T>::value, int> = 0>
 object object_or_cast(T &&o);
 // Match a PyObject*, which we want to convert directly to handle via its converting constructor
 inline handle object_or_cast(PyObject *ptr) { return ptr; }
-
 
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {

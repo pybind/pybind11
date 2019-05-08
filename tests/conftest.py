@@ -75,7 +75,7 @@ class Capture(object):
         self.capfd.readouterr()
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *args):
         self.out, self.err = self.capfd.readouterr()
 
     def __eq__(self, other):
