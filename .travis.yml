@@ -22,7 +22,8 @@ matrix:
     script:
     - tools/check-style.sh
     - flake8
-    - $PY_CMD -m sphinx -W -b html docs docs/.build
+    # TODO(eric.cousineau): Re-enable doc build at some point once `breathe` is unbroken.
+    # - $PY_CMD -m sphinx -W -b html docs docs/.build
     - |
       # Make sure setup.py distributes and installs all the headers
       $PY_CMD setup.py sdist
