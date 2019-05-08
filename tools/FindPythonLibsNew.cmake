@@ -57,12 +57,12 @@ endif()
 
 # Use the Python interpreter to find the libs.
 if(PythonLibsNew_FIND_REQUIRED)
-    find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} REQUIRED)
+    find_package(Python3 ${PythonLibsNew_FIND_VERSION} REQUIRED)
 else()
-    find_package(PythonInterp ${PythonLibsNew_FIND_VERSION})
+    find_package(Python3 ${PythonLibsNew_FIND_VERSION})
 endif()
 
-if(NOT PYTHONINTERP_FOUND)
+if(NOT Python3_FOUND)
     set(PYTHONLIBS_FOUND FALSE)
     return()
 endif()
@@ -73,7 +73,7 @@ endif()
 #
 # The library suffix is from the config var LDVERSION sometimes, otherwise
 # VERSION. VERSION will typically be like "2.7" on unix, and "27" on windows.
-execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
+execute_process(COMMAND "${Python3_EXECUTABLE}" "-c"
     "from distutils import sysconfig as s;import sys;import struct;
 print('.'.join(str(v) for v in sys.version_info));
 print(sys.prefix);
@@ -191,8 +191,8 @@ SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
 SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
 SET(PYTHON_DEBUG_LIBRARIES "${PYTHON_DEBUG_LIBRARY}")
 
-find_package_message(PYTHON
+find_package_message(Python3
     "Found PythonLibs: ${PYTHON_LIBRARY}"
-    "${PYTHON_EXECUTABLE}${PYTHON_VERSION}")
+    "${Python3_EXECUTABLE}${PYTHON_VERSION}")
 
 set(PYTHONLIBS_FOUND TRUE)
