@@ -1912,9 +1912,9 @@ void with(const object &mgr, Block &&block, with_exception_policy policy = with_
     }
     catch (const error_already_set &e) {
         // A Python error
-        auto exit_result = exit(e.get_type() ? e.get_type() : none(),
-                                e.get_value() ? e.get_value() : none(),
-                                e.get_trace() ? e.get_trace() : none());
+        auto exit_result = exit(e.type() ? e.type() : none(),
+                                e.value() ? e.value() : none(),
+                                e.trace() ? e.trace() : none());
         if (!bool_(std::move(exit_result)))
             std::rethrow_exception(original_exception);
     }
