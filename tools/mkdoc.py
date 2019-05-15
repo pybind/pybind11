@@ -59,7 +59,7 @@ job_semaphore = Semaphore(job_count)
 output = []
 
 def d(s):
-    return s.decode('utf8')
+    return s if isinstance(s, str) else s.decode('utf8')
 
 
 def sanitize_name(name):
