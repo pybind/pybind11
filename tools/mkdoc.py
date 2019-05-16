@@ -342,8 +342,17 @@ if __name__ == '__main__':
             break
     try:
         if out_path:
-            with open(out_path, 'w') as out_file:
-                mkdoc(args, out_file)
+            try:
+                with open(out_path, 'w') as out_file:
+                    mkdoc(args, out_file)
+            except:
+                # In the event of an error, don't leave a partially-written
+                # output file.
+                try:
+                    os.unlink(out_path)
+                except:
+                    pass
+                raise
         else:
             mkdoc(args)
     except NoFilenamesError:
