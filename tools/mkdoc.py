@@ -59,6 +59,11 @@ job_semaphore = Semaphore(job_count)
 
 output = []
 
+
+class NoFilenamesError(ValueError):
+    pass
+
+
 def d(s):
     return s if isinstance(s, str) else s.decode('utf8')
 
@@ -224,7 +229,8 @@ class ExtractionThread(Thread):
         finally:
             job_semaphore.release()
 
-if __name__ == '__main__':
+
+def mkdoc(args):
     parameters = []
     filenames = []
     if "-x" not in args:
@@ -260,15 +266,14 @@ if __name__ == '__main__':
         if clang_include_dir:
             parameters.extend(['-isystem', clang_include_dir])
 
-    for item in sys.argv[1:]:
+    for item in args:
         if item.startswith('-'):
             parameters.append(item)
         else:
             filenames.append(item)
 
     if len(filenames) == 0:
-        print('Syntax: %s [.. a list of header files ..]' % sys.argv[0])
-        exit(-1)
+        raise NoFilenamesError("args parameter did not contain any filenames")
 
     print('''/*
   This file contains docstrings for the Python bindings.
@@ -321,3 +326,11 @@ if __name__ == '__main__':
 #pragma GCC diagnostic pop
 #endif
 ''')
+
+
+if __name__ == '__main__':
+    try:
+        mkdoc(sys.argv[1:])
+    except NoFilenamesError:
+        print('Syntax: %s [.. a list of header files ..]' % sys.argv[0])
+        exit(-1)
