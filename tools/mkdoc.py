@@ -14,6 +14,7 @@ import textwrap
 from clang import cindex
 from clang.cindex import CursorKind
 from collections import OrderedDict
+from glob import glob
 from threading import Thread, Semaphore
 from multiprocessing import cpu_count
 
@@ -240,6 +241,20 @@ if __name__ == '__main__':
             sysroot_dir = os.path.join(sdk_dir, next(os.walk(sdk_dir))[1][0])
             parameters.append('-isysroot')
             parameters.append(sysroot_dir)
+    elif platform.system() == 'Linux':
+        # clang doesn't find its own base includes by default on Linux,
+        # but different distros install them in different paths.
+        # Try to autodetect, preferring the highest numbered version.
+        def clang_folder_version(d):
+            return [int(ver) for ver in re.findall(r'(?<!lib)(?<!\d)\d+', d)]
+        clang_include_dir = max((
+            path
+            for libdir in ['lib64', 'lib', 'lib32']
+            for path in glob('/usr/%s/clang/*/include' % libdir)
+            if os.path.isdir(path)
+        ), default=None, key=clang_folder_version)
+        if clang_include_dir:
+            parameters.extend(['-isystem', clang_include_dir])
 
     for item in sys.argv[1:]:
         if item.startswith('-'):
