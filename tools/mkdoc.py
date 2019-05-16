@@ -228,7 +228,7 @@ class ExtractionThread(Thread):
             job_semaphore.release()
 
 
-def mkdoc(args, out_file=sys.stdout):
+def extract_all(args):
     parameters = []
     filenames = []
     if "-x" not in args:
@@ -273,6 +273,19 @@ def mkdoc(args, out_file=sys.stdout):
     if len(filenames) == 0:
         raise NoFilenamesError("args parameter did not contain any filenames")
 
+    output = []
+    for filename in filenames:
+        thr = ExtractionThread(filename, parameters, output)
+        thr.start()
+
+    print('Waiting for jobs to finish ..', file=sys.stderr)
+    for i in range(job_count):
+        job_semaphore.acquire()
+
+    return output
+
+
+def write_header(comments, out_file=sys.stdout):
     print('''/*
   This file contains docstrings for the Python bindings.
   Do not edit! These were automatically extracted by mkdoc.py
@@ -298,18 +311,10 @@ def mkdoc(args, out_file=sys.stdout):
 #endif
 ''', file=out_file)
 
-    output = []
-    for filename in filenames:
-        thr = ExtractionThread(filename, parameters, output)
-        thr.start()
-
-    print('Waiting for jobs to finish ..', file=sys.stderr)
-    for i in range(job_count):
-        job_semaphore.acquire()
 
     name_ctr = 1
     name_prev = None
-    for name, _, comment in list(sorted(output, key=lambda x: (x[0], x[1]))):
+    for name, _, comment in list(sorted(comments, key=lambda x: (x[0], x[1]))):
         if name == name_prev:
             name_ctr += 1
             name = name + "_%i" % name_ctr
@@ -326,8 +331,8 @@ def mkdoc(args, out_file=sys.stdout):
 ''', file=out_file)
 
 
-if __name__ == '__main__':
-    args = sys.argv[1:]
+def mkdoc(args):
+    args = list(args)
     out_path = None
     for idx, arg in enumerate(args):
         if arg.startswith("-o"):
@@ -338,21 +343,28 @@ if __name__ == '__main__':
                 print("-o flag requires an argument")
                 exit(-1)
             break
-    try:
-        if out_path:
+
+    comments = extract_all(args)
+
+    if out_path:
+        try:
+            with open(out_path, 'w') as out_file:
+                write_header(comments, out_file)
+        except:
+            # In the event of an error, don't leave a partially-written
+            # output file.
             try:
-                with open(out_path, 'w') as out_file:
-                    mkdoc(args, out_file)
+                os.unlink(out_path)
             except:
-                # In the event of an error, don't leave a partially-written
-                # output file.
-                try:
-                    os.unlink(out_path)
-                except:
-                    pass
-                raise
-        else:
-            mkdoc(args)
+                pass
+            raise
+    else:
+        write_header(comments)
+
+
+if __name__ == '__main__':
+    try:
+        mkdoc(sys.argv[1:])
     except NoFilenamesError:
         print('Syntax: %s [.. a list of header files ..]' % sys.argv[0])
         exit(-1)
