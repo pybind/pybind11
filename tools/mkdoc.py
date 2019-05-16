@@ -230,7 +230,7 @@ class ExtractionThread(Thread):
             job_semaphore.release()
 
 
-def mkdoc(args):
+def mkdoc(args, out_file=sys.stdout):
     parameters = []
     filenames = []
     if "-x" not in args:
@@ -298,7 +298,7 @@ def mkdoc(args):
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
-''')
+''', file=out_file)
 
     output.clear()
     for filename in filenames:
@@ -319,18 +319,33 @@ def mkdoc(args):
             name_prev = name
             name_ctr = 1
         print('\nstatic const char *%s =%sR"doc(%s)doc";' %
-              (name, '\n' if '\n' in comment else ' ', comment))
+              (name, '\n' if '\n' in comment else ' ', comment), file=out_file)
 
     print('''
 #if defined(__GNUG__)
 #pragma GCC diagnostic pop
 #endif
-''')
+''', file=out_file)
 
 
 if __name__ == '__main__':
+    args = sys.argv[1:]
+    out_path = None
+    for idx, arg in enumerate(args):
+        if arg.startswith("-o"):
+            args.remove(arg)
+            try:
+                out_path = arg[2:] or args.pop(idx)
+            except IndexError:
+                print("-o flag requires an argument")
+                exit(-1)
+            break
     try:
-        mkdoc(sys.argv[1:])
+        if out_path:
+            with open(out_path, 'w') as out_file:
+                mkdoc(args, out_file)
+        else:
+            mkdoc(args)
     except NoFilenamesError:
         print('Syntax: %s [.. a list of header files ..]' % sys.argv[0])
         exit(-1)
