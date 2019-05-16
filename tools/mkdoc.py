@@ -41,6 +41,10 @@ PRINT_LIST = [
     CursorKind.FIELD_DECL
 ]
 
+PREFIX_BLACKLIST = [
+    CursorKind.TRANSLATION_UNIT
+]
+
 CPP_OPERATORS = {
     '<=': 'le', '>=': 'ge', '==': 'eq', '!=': 'ne', '[]': 'array',
     '+=': 'iadd', '-=': 'isub', '*=': 'imul', '/=': 'idiv', '%=':
@@ -192,7 +196,7 @@ def extract(filename, node, prefix, output):
         return 0
     if node.kind in RECURSE_LIST:
         sub_prefix = prefix
-        if node.kind != CursorKind.TRANSLATION_UNIT:
+        if node.kind not in PREFIX_BLACKLIST:
             if len(sub_prefix) > 0:
                 sub_prefix += '_'
             sub_prefix += d(node.spelling)
