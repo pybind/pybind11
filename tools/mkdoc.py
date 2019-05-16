@@ -57,8 +57,6 @@ CPP_OPERATORS = OrderedDict(
 job_count = cpu_count()
 job_semaphore = Semaphore(job_count)
 
-output = []
-
 
 class NoFilenamesError(ValueError):
     pass
@@ -188,7 +186,7 @@ def process_comment(comment):
     return result.rstrip().lstrip('\n')
 
 
-def extract(filename, node, prefix):
+def extract(filename, node, prefix, output):
     if not (node.location.file is None or
             os.path.samefile(d(node.location.file.name), filename)):
         return 0
@@ -199,7 +197,7 @@ def extract(filename, node, prefix):
                 sub_prefix += '_'
             sub_prefix += d(node.spelling)
         for i in node.get_children():
-            extract(filename, i, sub_prefix)
+            extract(filename, i, sub_prefix, output)
     if node.kind in PRINT_LIST:
         comment = d(node.raw_comment) if node.raw_comment is not None else ''
         comment = process_comment(comment)
@@ -208,15 +206,15 @@ def extract(filename, node, prefix):
             sub_prefix += '_'
         if len(node.spelling) > 0:
             name = sanitize_name(sub_prefix + d(node.spelling))
-            global output
             output.append((name, filename, comment))
 
 
 class ExtractionThread(Thread):
-    def __init__(self, filename, parameters):
+    def __init__(self, filename, parameters, output):
         Thread.__init__(self)
         self.filename = filename
         self.parameters = parameters
+        self.output = output
         job_semaphore.acquire()
 
     def run(self):
@@ -225,7 +223,7 @@ class ExtractionThread(Thread):
             index = cindex.Index(
                 cindex.conf.lib.clang_createIndex(False, True))
             tu = index.parse(self.filename, self.parameters)
-            extract(self.filename, tu.cursor, '')
+            extract(self.filename, tu.cursor, '', self.output)
         finally:
             job_semaphore.release()
 
@@ -300,9 +298,9 @@ def mkdoc(args, out_file=sys.stdout):
 #endif
 ''', file=out_file)
 
-    output.clear()
+    output = []
     for filename in filenames:
-        thr = ExtractionThread(filename, parameters)
+        thr = ExtractionThread(filename, parameters, output)
         thr.start()
 
     print('Waiting for jobs to finish ..', file=sys.stderr)
