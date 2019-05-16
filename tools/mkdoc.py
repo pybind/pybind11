@@ -225,8 +225,12 @@ class ExtractionThread(Thread):
             job_semaphore.release()
 
 if __name__ == '__main__':
-    parameters = ['-x', 'c++', '-std=c++11']
+    parameters = []
     filenames = []
+    if "-x" not in args:
+        parameters.extend(['-x', 'c++'])
+    if not any(it.startswith("-std=") for it in args):
+        parameters.append('-std=c++11')
 
     if platform.system() == 'Darwin':
         dev_path = '/Applications/Xcode.app/Contents/Developer/'
