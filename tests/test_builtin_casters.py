@@ -340,3 +340,7 @@ def test_int_long():
 
 def test_void_caster_2():
     assert m.test_void_caster()
+
+
+def test_pointer_caster():
+    assert m.test_pointer_caster()
