@@ -232,7 +232,7 @@ class ExtractionThread(Thread):
             job_semaphore.release()
 
 
-def extract_all(args):
+def read_args(args):
     parameters = []
     filenames = []
     if "-x" not in args:
@@ -277,6 +277,11 @@ def extract_all(args):
     if len(filenames) == 0:
         raise NoFilenamesError("args parameter did not contain any filenames")
 
+    return parameters, filenames
+
+
+def extract_all(args):
+    parameters, filenames = read_args(args)
     output = []
     for filename in filenames:
         thr = ExtractionThread(filename, parameters, output)
