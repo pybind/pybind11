@@ -167,4 +167,13 @@ TEST_SUBMODULE(builtin_casters, m) {
         py::object o = py::cast(v);
         return py::cast<void *>(o) == v;
     });
+
+    // For Drake issue: https://github.com/RobotLocomotion/drake/issues/9398
+    m.def("test_pointer_caster", []() -> bool {
+        UserType a;
+        UserType *a_ptr = &a;
+        py::object o = py::cast(&a); // Rvalue
+        py::object o1 = py::cast(a_ptr); // Non-rvalue
+        return (py::cast<UserType*>(o) == a_ptr && py::cast<UserType*>(o1) == a_ptr);
+    });
 }

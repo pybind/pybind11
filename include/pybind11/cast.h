@@ -1970,7 +1970,7 @@ detail::enable_if_t<
 
 template <typename T>
 detail::enable_if_t<
-        std::is_rvalue_reference<T&&>::value && !detail::is_pyobject<detail::intrinsic_t<T>>::value, object>
+        std::is_rvalue_reference<T&&>::value && !std::is_pointer<T>::value && !detail::is_pyobject<detail::intrinsic_t<T>>::value, object>
     cast(T&& value) {
     // Have to use `pybind11::move` because some compilers might try to bind `move` to `std::move`...
     return pybind11::move<T>(std::move(value));
