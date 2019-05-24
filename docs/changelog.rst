@@ -50,6 +50,10 @@ v2.3.0 (Not yet released)
 * ``pybind11/stl.h`` does not convert strings to ``vector<string>`` anymore.
   `#1258 <https://github.com/pybind/pybind11/issues/1258>`_.
 
+* ``py::details::overload_cast_impl`` is available in C++11 mode, can be used
+  like ``overload_cast`` with an additional set of parantheses.
+  `1581 <https://github.com/pybind/pybind11/pull/1581>`_.
+
 v2.2.4 (September 11, 2018)
 -----------------------------------------------------
 
