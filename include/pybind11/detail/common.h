@@ -274,19 +274,6 @@ extern "C" {
     PyObject *pybind11_init()
 #endif
 
-// Returns nullptr on an error.
-#define GET_PYBIND11_MODULE(pybind11_init_, name, module) \
-  try {                                                   \
-    PYBIND11_CONCAT(pybind11_init_, name)(module);        \
-    return module.ptr();                                  \
-  } catch (pybind11::error_already_set & e) {             \
-    PyErr_SetString(PyExc_ImportError, e.what());         \
-    return nullptr;                                       \
-  } catch (const std::exception &e) {                     \
-    PyErr_SetString(PyExc_ImportError, e.what());         \
-    return nullptr;                                       \
-  }
-
 /** \rst
     This macro creates the entry point that will be invoked when the Python interpreter
     imports an extension module. The module name is given as the fist argument and it
