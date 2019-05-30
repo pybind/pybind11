@@ -252,6 +252,16 @@ extern "C" {
             return m.ptr();
         }
 \endrst */
+#if defined(PYBIND11_NOEXCEPTIONS)
+#define PYBIND11_PLUGIN(name)                                                  \
+    PYBIND11_DEPRECATED("PYBIND11_PLUGIN is deprecated, use PYBIND11_MODULE")  \
+    static PyObject *pybind11_init();                                          \
+    PYBIND11_PLUGIN_IMPL(name) {                                               \
+        PYBIND11_CHECK_PYTHON_VERSION                                          \
+        return pybind11_init();                                                \
+    }                                                                          \
+    PyObject *pybind11_init()
+#else
 #define PYBIND11_PLUGIN(name)                                                  \
     PYBIND11_DEPRECATED("PYBIND11_PLUGIN is deprecated, use PYBIND11_MODULE")  \
     static PyObject *pybind11_init();                                          \
@@ -262,6 +272,7 @@ extern "C" {
         } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
     }                                                                          \
     PyObject *pybind11_init()
+#endif
 
 // Returns nullptr on an error.
 #define GET_PYBIND11_MODULE(pybind11_init_, name, module) \
@@ -293,30 +304,28 @@ extern "C" {
             });
         }
 \endrst */
-
 #if defined(PYBIND11_NOEXCEPTIONS)
-#define PYBIND11_MODULE(name, variable)                                  \
-  static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &); \
-  PYBIND11_PLUGIN_IMPL(name) {                                           \
-    if (!pybind11::detail::Py_VersionCheckPassed()) {                    \
-      return nullptr;                                                    \
-    }                                                                    \
-    auto m = pybind11::module(PYBIND11_TOSTRING(name));                  \
-    PYBIND11_CONCAT(pybind11_init_, name)(m);                            \
-    return m.ptr();                                                      \
-  }                                                                      \
-  void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module & variable)
+#define PYBIND11_MODULE(name, variable)                                        \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
+    PYBIND11_PLUGIN_IMPL(name) {                                               \
+        PYBIND11_CHECK_PYTHON_VERSION                                          \
+        auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
+        PYBIND11_CONCAT(pybind11_init_, name)(m);                              \
+        return m.ptr();                                                        \
+    }                                                                          \
+    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
 #else
-#define PYBIND11_MODULE(name, variable)                                  \
-  static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &); \
-  PYBIND11_PLUGIN_IMPL(name) {                                           \
-    if (!pybind11::detail::Py_VersionCheckPassed()) {                    \
-      return nullptr;                                                    \
-    }                                                                    \
-    auto m = pybind11::module(PYBIND11_TOSTRING(name));                  \
-    GET_PYBIND11_MODULE(pybind11_init_, name, m);                        \
-  }                                                                      \
-  void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module & variable)
+#define PYBIND11_MODULE(name, variable)                                        \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
+    PYBIND11_PLUGIN_IMPL(name) {                                               \
+        PYBIND11_CHECK_PYTHON_VERSION                                          \
+        auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
+        try {                                                                  \
+            PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
+            return m.ptr();                                                    \
+        } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
+    }                                                                          \
+    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
 #endif
 
 
@@ -394,23 +403,6 @@ constexpr size_t instance_simple_holder_in_ptrs() {
     static_assert(sizeof(std::shared_ptr<int>) >= sizeof(std::unique_ptr<int>),
             "pybind assumes std::shared_ptrs are at least as big as std::unique_ptrs");
     return size_in_ptrs(sizeof(std::shared_ptr<int>));
-}
-
-inline bool Py_VersionCheckPassed() {
-  int major, minor;
-  if (sscanf(Py_GetVersion(), "%i.%i", &major, &minor) != 2) {
-    PyErr_SetString(PyExc_ImportError, "Can't parse Python version.");
-    return false;
-  }
-  if (major != PY_MAJOR_VERSION || minor != PY_MINOR_VERSION) {
-    PyErr_Format(PyExc_ImportError,
-                 "Python version mismatch: module was compiled for "
-                 "version %i.%i, while the interpreter is running "
-                 "version %i.%i.",
-                 PY_MAJOR_VERSION, PY_MINOR_VERSION, major, minor);
-    return false;
-  }
-  return true;
 }
 
 // Forward declarations
