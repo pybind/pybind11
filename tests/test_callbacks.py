@@ -105,3 +105,12 @@ def test_function_signatures(doc):
 
 def test_movable_object():
     assert m.callback_with_movable(lambda _: None) is True
+
+
+def test_full_func_return_ptr():
+    m.full_func_return_ptr()
+
+
+@pytest.mark.xfail(reason="Currently auto policy is not inherited")
+def test_full_func_return_ptr_inherit():
+    m.func_return_ptr()

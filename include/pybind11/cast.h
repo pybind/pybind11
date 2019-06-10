@@ -1669,10 +1669,6 @@ T cast(const handle &handle) { return T(reinterpret_borrow<object>(handle)); }
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
 object cast(const T &value, return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
-    if (policy == return_value_policy::automatic)
-        policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
-    else if (policy == return_value_policy::automatic_reference)
-        policy = std::is_pointer<T>::value ? return_value_policy::reference : return_value_policy::copy;
     return reinterpret_steal<object>(detail::make_caster<T>::cast(value, policy, parent));
 }
 
