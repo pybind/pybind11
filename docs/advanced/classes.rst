@@ -239,7 +239,7 @@ override the ``name()`` method):
     class PyDog : public Dog {
     public:
         using Dog::Dog; // Inherit constructors
-        std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, Dog, go, n_times); }
+        std::string go(int n_times) override { PYBIND11_OVERLOAD(std::string, Dog, go, n_times); }
         std::string name() override { PYBIND11_OVERLOAD(std::string, Dog, name, ); }
         std::string bark() override { PYBIND11_OVERLOAD(std::string, Dog, bark, ); }
     };
