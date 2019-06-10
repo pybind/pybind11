@@ -153,7 +153,7 @@ Here is an example:
 
 .. code-block:: python
 
-    class Dachschund(Dog):
+    class Dachshund(Dog):
         def __init__(self, name):
             Dog.__init__(self) # Without this, undefined behavior may occur if the C++ portions are referenced.
             self.name = name
