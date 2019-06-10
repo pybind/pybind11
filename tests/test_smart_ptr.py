@@ -128,7 +128,7 @@ def test_unique_deleter():
     o = m.MyObject4b(23)
     assert o.value == 23
     cstats4a = ConstructorStats.get(m.MyObject4a)
-    assert cstats4a.alive() == 2  # Two becaue of previous test
+    assert cstats4a.alive() == 2  # Two because of previous test
     cstats4b = ConstructorStats.get(m.MyObject4b)
     assert cstats4b.alive() == 1
     del o
