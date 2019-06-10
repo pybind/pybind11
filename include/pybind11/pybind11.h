@@ -41,6 +41,11 @@
 #  endif
 #endif
 
+#if defined(__GNUG__) && !defined(__clang__)
+ #include <cxxabi.h>
+#endif
+
+
 #include "attr.h"
 #include "options.h"
 #include "detail/class.h"
@@ -663,6 +668,10 @@ protected:
         } catch (error_already_set &e) {
             e.restore();
             return nullptr;
+#if defined(__GNUG__) && !defined(__clang__)
+        } catch ( abi::__forced_unwind& ) {
+            throw;
+#endif
         } catch (...) {
             /* When an exception is caught, give each registered exception
                translator a chance to translate it to a Python exception
