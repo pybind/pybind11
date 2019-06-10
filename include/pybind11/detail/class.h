@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../attr.h"
+#include "../options.h"
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)
