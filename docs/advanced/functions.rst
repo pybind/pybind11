@@ -467,6 +467,15 @@ dog)"``, while attempting to call ``meow(None)`` will raise a ``TypeError``:
 
 The default behaviour when the tag is unspecified is to allow ``None``.
 
+.. note::
+
+    Even when ``.none(true)`` is specified for an argument, ``None`` will be converted to a
+    ``nullptr`` *only* for custom and :ref:`opaque <opaque>` types. Pointers to built-in types
+    (``double *``, ``int *``, ...) and STL types (``std::vector<T> *``, ...; if ``pybind11/stl.h``
+    is included) are copied when converted to C++ (see :doc:`/advanced/cast/overview`) and will
+    not allow ``None`` as argument.  To pass optional argument of these copied types consider
+    using ``std::optional<T>``
+
 Overload resolution order
 =========================
 
