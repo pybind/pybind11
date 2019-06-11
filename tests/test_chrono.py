@@ -99,3 +99,9 @@ def test_floating_point_duration():
     diff = m.test_chrono_float_diff(43.789012, 1.123456)
     assert diff.seconds == 42
     assert 665556 <= diff.microseconds <= 665557
+
+
+def test_nano_timepoint():
+    time = datetime.datetime.now()
+    time1 = m.test_nano_timepoint(time, datetime.timedelta(seconds=60))
+    assert(time1 == time + datetime.timedelta(seconds=60))
