@@ -59,6 +59,7 @@ set(PYBIND11_TEST_FILES
   test_stl.cpp
   test_stl_binders.cpp
   test_tagbased_polymorphic.cpp
+  test_union.cpp
   test_virtual_functions.cpp
 )
 
