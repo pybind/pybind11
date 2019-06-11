@@ -325,7 +325,7 @@ can now create a python class that inherits from ``Dog``:
 Extended trampoline class functionality
 =======================================
 
-.. _extended_class_functionality_forced_trampoline
+.. _extended_class_functionality_forced_trampoline:
 
 Forced trampoline class initialisation
 --------------------------------------
