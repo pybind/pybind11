@@ -742,6 +742,8 @@ inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
 inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
 
+inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }
+
 class kwargs_proxy : public handle {
 public:
     explicit kwargs_proxy(handle h) : handle(h) { }
@@ -1279,6 +1281,11 @@ public:
         return handle();
     }
     bool is_cpp_function() const { return (bool) cpp_function(); }
+};
+
+class staticmethod : public object {
+public:
+    PYBIND11_OBJECT_CVT(staticmethod, object, detail::PyStaticMethod_Check, PyStaticMethod_New)
 };
 
 class buffer : public object {
