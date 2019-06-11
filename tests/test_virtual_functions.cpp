@@ -10,6 +10,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/functional.h>
+#include <thread>
 
 /* This is an example class that we'll want to be able to extend from Python */
 class ExampleVirt  {
@@ -128,6 +129,7 @@ private:
 
 class NCVirt {
 public:
+    virtual ~NCVirt() { }
     virtual NonCopyable get_noncopyable(int a, int b) { return NonCopyable(a, b); }
     virtual Movable get_movable(int a, int b) = 0;
 
@@ -156,6 +158,28 @@ struct DispatchIssue : Base {
         PYBIND11_OVERLOAD_PURE(std::string, Base, dispatch, /* no arguments */);
     }
 };
+
+static void test_gil() {
+    {
+        py::gil_scoped_acquire lock;
+        py::print("1st lock acquired");
+
+    }
+
+    {
+        py::gil_scoped_acquire lock;
+        py::print("2nd lock acquired");
+    }
+
+}
+
+static void test_gil_from_thread() {
+    py::gil_scoped_release release;
+
+    std::thread t(test_gil);
+    t.join();
+}
+
 
 // Forward declaration (so that we can put the main tests here; the inherited virtual approaches are
 // rather long).
@@ -416,7 +440,6 @@ public:
 };
 */
 
-
 void initialize_inherited_virtuals(py::module &m) {
     // test_inherited_virtuals
 
@@ -449,4 +472,8 @@ void initialize_inherited_virtuals(py::module &m) {
     py::class_<D_Tpl, C_Tpl, PyB_Tpl<D_Tpl>>(m, "D_Tpl")
         .def(py::init<>());
 
+
+    // Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
+    m.def("test_gil", &test_gil);
+    m.def("test_gil_from_thread", &test_gil_from_thread);
 };

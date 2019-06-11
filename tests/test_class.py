@@ -266,3 +266,16 @@ def test_reentrant_implicit_conversion_failure(msg):
 
         Invoked with: 0
     '''
+
+
+def test_error_after_conversions():
+    with pytest.raises(TypeError) as exc_info:
+        m.test_error_after_conversions("hello")
+    assert str(exc_info.value).startswith(
+        "Unable to convert function return value to a Python type!")
+
+
+def test_aligned():
+    if hasattr(m, "Aligned"):
+        p = m.Aligned().ptr()
+        assert p % 1024 == 0

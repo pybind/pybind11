@@ -47,10 +47,12 @@ Members:
 
   EOne : Docstring for EOne'''
 
-    # no TypeError exception for unscoped enum ==/!= int comparisons
+    # Unscoped enums will accept ==/!= int comparisons
     y = m.UnscopedEnum.ETwo
     assert y == 2
+    assert 2 == y
     assert y != 3
+    assert 3 != y
 
     assert int(m.UnscopedEnum.ETwo) == 2
     assert str(m.UnscopedEnum(2)) == "UnscopedEnum.ETwo"
@@ -75,11 +77,20 @@ def test_scoped_enum():
     z = m.ScopedEnum.Two
     assert m.test_scoped_enum(z) == "ScopedEnum::Two"
 
-    # expected TypeError exceptions for scoped enum ==/!= int comparisons
+    # Scoped enums will *NOT* accept ==/!= int comparisons (Will always return False)
+    assert not z == 3
+    assert not 3 == z
+    assert z != 3
+    assert 3 != z
+    # Scoped enums will *NOT* accept >, <, >= and <= int comparisons (Will throw exceptions)
     with pytest.raises(TypeError):
-        assert z == 2
+        z > 3
     with pytest.raises(TypeError):
-        assert z != 3
+        z < 3
+    with pytest.raises(TypeError):
+        z >= 3
+    with pytest.raises(TypeError):
+        z <= 3
 
     # order
     assert m.ScopedEnum.Two < m.ScopedEnum.Three
@@ -148,3 +159,9 @@ def test_enum_to_int():
     m.test_enum_to_uint(m.ClassWithUnscopedEnum.EMode.EFirstMode)
     m.test_enum_to_long_long(m.Flags.Read)
     m.test_enum_to_long_long(m.ClassWithUnscopedEnum.EMode.EFirstMode)
+
+
+def test_duplicate_enum_name():
+    with pytest.raises(ValueError) as excinfo:
+        m.register_bad_enum()
+    assert str(excinfo.value) == 'SimpleEnum: element "ONE" already exists!'

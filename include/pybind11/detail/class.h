@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../attr.h"
+#include "../options.h"
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 NAMESPACE_BEGIN(detail)
@@ -468,7 +469,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
         if (tinfo && tinfo->get_buffer)
             break;
     }
-    if (view == nullptr || obj == nullptr || !tinfo || !tinfo->get_buffer) {
+    if (view == nullptr || !tinfo || !tinfo->get_buffer) {
         if (view)
             view->obj = nullptr;
         PyErr_SetString(PyExc_BufferError, "pybind11_getbuffer(): Internal error");

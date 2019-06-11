@@ -59,7 +59,7 @@ function with the following signature:
 .. code-block:: cmake
 
     pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
-                        [NO_EXTRAS] [THIN_LTO] source1 [source2 ...])
+                        [NO_EXTRAS] [SYSTEM] [THIN_LTO] source1 [source2 ...])
 
 This function behaves very much like CMake's builtin ``add_library`` (in fact,
 it's a wrapper function around that command). It will add a library target
@@ -85,6 +85,10 @@ enabling LTO (Link Time Optimization) and strip unneeded symbols. See the
 latter optimizations are never applied in ``Debug`` mode.  If ``NO_EXTRAS`` is
 given, they will always be disabled, even in ``Release`` mode. However, this
 will result in code bloat and is generally not recommended.
+
+By default, pybind11 and Python headers will be included with ``-I``. In order
+to include pybind11 as system library, e.g. to avoid warnings in downstream
+code with warn-levels outside of pybind11's scope, set the option ``SYSTEM``.
 
 As stated above, LTO is enabled by default. Some newer compilers also support
 different flavors of LTO such as `ThinLTO`_. Setting ``THIN_LTO`` will cause
@@ -144,6 +148,18 @@ See the `Config file`_ docstring for details of relevant CMake variables.
 
     find_package(pybind11 REQUIRED)
     pybind11_add_module(example example.cpp)
+
+Note that ``find_package(pybind11)`` will only work correctly if pybind11
+has been correctly installed on the system, e. g. after downloading or cloning
+the pybind11 repository  :
+
+.. code-block:: bash
+
+    cd pybind11
+    mkdir build
+    cd build
+    cmake ..
+    make install
 
 Once detected, the aforementioned ``pybind11_add_module`` can be employed as
 before. The function usage and configuration variables are identical no matter

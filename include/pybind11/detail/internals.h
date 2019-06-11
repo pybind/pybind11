@@ -21,20 +21,28 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
 #if PY_VERSION_HEX >= 0x03070000
-    #define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr
-    #define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
-    #define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (tstate))
-    #define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
 #else
     // Usually an int but a long on Cygwin64 with Python 3.x
-    #define PYBIND11_TLS_KEY_INIT(var) decltype(PyThread_create_key()) var = 0
-    #define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
-    #if PY_MAJOR_VERSION < 3
-        #define PYBIND11_TLS_REPLACE_VALUE(key, value) do { PyThread_delete_key_value((key)); PyThread_set_key_value((key), (value)); } while (false)
-    #else
-        #define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_set_key_value((key), (value))
-    #endif
-    #define PYBIND11_TLS_DELETE_VALUE(key) PyThread_set_key_value((key), nullptr)
+#    define PYBIND11_TLS_KEY_INIT(var) decltype(PyThread_create_key()) var = 0
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
+#    if PY_MAJOR_VERSION < 3
+#        define PYBIND11_TLS_DELETE_VALUE(key)                               \
+             PyThread_delete_key_value(key)
+#        define PYBIND11_TLS_REPLACE_VALUE(key, value)                       \
+             do {                                                            \
+                 PyThread_delete_key_value((key));                           \
+                 PyThread_set_key_value((key), (value));                     \
+             } while (false)
+#    else
+#        define PYBIND11_TLS_DELETE_VALUE(key)                               \
+             PyThread_set_key_value((key), nullptr)
+#        define PYBIND11_TLS_REPLACE_VALUE(key, value)                       \
+             PyThread_set_key_value((key), (value))
+#    endif
 #endif
 
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
@@ -108,7 +116,7 @@ struct internals {
 struct type_info {
     PyTypeObject *type;
     const std::type_info *cpptype;
-    size_t type_size, holder_size_in_ptrs;
+    size_t type_size, type_align, holder_size_in_ptrs;
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
     void (*dealloc)(value_and_holder &v_h);
@@ -130,7 +138,13 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 2
+#define PYBIND11_INTERNALS_VERSION 3
+
+#if defined(_DEBUG)
+#   define PYBIND11_BUILD_TYPE "_debug"
+#else
+#   define PYBIND11_BUILD_TYPE ""
+#endif
 
 #if defined(WITH_THREAD)
 #  define PYBIND11_INTERNALS_KIND ""
@@ -139,10 +153,10 @@ struct type_info {
 #endif
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_TYPE "__"
 
 #define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.

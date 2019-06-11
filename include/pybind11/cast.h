@@ -204,10 +204,10 @@ PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool t
 }
 
 struct value_and_holder {
-    instance *inst;
-    size_t index;
-    const detail::type_info *type;
-    void **vh;
+    instance *inst = nullptr;
+    size_t index = 0u;
+    const detail::type_info *type = nullptr;
+    void **vh = nullptr;
 
     // Main constructor for a found value/holder:
     value_and_holder(instance *i, const detail::type_info *type, size_t vpos, size_t index) :
@@ -216,7 +216,7 @@ struct value_and_holder {
     {}
 
     // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
-    value_and_holder() : inst{nullptr} {}
+    value_and_holder() {}
 
     // Used for past-the-end iterator
     value_and_holder(size_t index) : index{index} {}
@@ -270,8 +270,8 @@ public:
 
     struct iterator {
     private:
-        instance *inst;
-        const type_vec *types;
+        instance *inst = nullptr;
+        const type_vec *types = nullptr;
         value_and_holder curr;
         friend struct values_and_holders;
         iterator(instance *inst, const type_vec *tinfo)
@@ -571,7 +571,17 @@ public:
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
             auto *type = v_h.type ? v_h.type : typeinfo;
-            vptr = type->operator_new(type->type_size);
+            if (type->operator_new) {
+                vptr = type->operator_new(type->type_size);
+            } else {
+                #if defined(PYBIND11_CPP17)
+                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+                        vptr = ::operator new(type->type_size,
+                                              (std::align_val_t) type->type_align);
+                    else
+                #endif
+                vptr = ::operator new(type->type_size);
+            }
         }
         value = vptr;
     }
@@ -1601,7 +1611,8 @@ template <typename T> using move_never = none_of<move_always<T>, move_if_unrefer
 // everything else returns a reference/pointer to a local variable.
 template <typename type> using cast_is_temporary_value_reference = bool_constant<
     (std::is_reference<type>::value || std::is_pointer<type>::value) &&
-    !std::is_base_of<type_caster_generic, make_caster<type>>::value
+    !std::is_base_of<type_caster_generic, make_caster<type>>::value &&
+    !std::is_same<intrinsic_t<type>, void>::value
 >;
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
@@ -1614,8 +1625,9 @@ template <typename Return, typename SFINAE = void> struct return_value_policy_ov
 template <typename Return> struct return_value_policy_override<Return,
         detail::enable_if_t<std::is_base_of<type_caster_generic, make_caster<Return>>::value, void>> {
     static return_value_policy policy(return_value_policy p) {
-        return !std::is_lvalue_reference<Return>::value && !std::is_pointer<Return>::value
-            ? return_value_policy::move : p;
+        return !std::is_lvalue_reference<Return>::value &&
+               !std::is_pointer<Return>::value
+                   ? return_value_policy::move : p;
     }
 };
 
@@ -1843,7 +1855,7 @@ struct function_record;
 
 /// Internal data associated with a single function call
 struct function_call {
-    function_call(function_record &f, handle p); // Implementation in attr.h
+    function_call(const function_record &f, handle p); // Implementation in attr.h
 
     /// The function data:
     const function_record &func;

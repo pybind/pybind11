@@ -855,14 +855,14 @@ public:
 
     // Reference to element at a given index
     template<typename... Ix> const T& at(Ix... index) const {
-        if (sizeof...(index) != ndim())
+        if ((ssize_t) sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         return *(static_cast<const T*>(array::data()) + byte_offset(ssize_t(index)...) / itemsize());
     }
 
     // Mutable reference to element at a given index
     template<typename... Ix> T& mutable_at(Ix... index) {
-        if (sizeof...(index) != ndim())
+        if ((ssize_t) sizeof...(index) != ndim())
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         return *(static_cast<T*>(array::mutable_data()) + byte_offset(ssize_t(index)...) / itemsize());
     }
@@ -1466,7 +1466,10 @@ public:
 private:
     remove_reference_t<Func> f;
 
-    template <size_t Index> using param_n_t = typename pack_element<Index, typename vectorize_arg<Args>::call_type...>::type;
+    // Internal compiler error in MSVC 19.16.27025.1 (Visual Studio 2017 15.9.4), when compiling with "/permissive-" flag
+    // when arg_call_types is manually inlined.
+    using arg_call_types = std::tuple<typename vectorize_arg<Args>::call_type...>;
+    template <size_t Index> using param_n_t = typename std::tuple_element<Index, arg_call_types>::type;
 
     // Runs a vectorized function given arguments tuple and three index sequences:
     //     - Index is the full set of 0 ... (N-1) argument indices;
@@ -1506,7 +1509,7 @@ private:
         if (trivial == broadcast_trivial::f_trivial) result = array_t<Return, array::f_style>(shape);
         else result = array_t<Return>(shape);
 
-        if (size == 0) return result;
+        if (size == 0) return std::move(result);
 
         /* Call the function */
         if (trivial == broadcast_trivial::non_trivial)
@@ -1514,7 +1517,7 @@ private:
         else
             apply_trivial(buffers, params, result.mutable_data(), size, i_seq, vi_seq, bi_seq);
 
-        return result;
+        return std::move(result);
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>
@@ -1593,7 +1596,7 @@ Helper vectorize(Return (Class::*f)(Args...)) {
     return Helper(std::mem_fn(f));
 }
 
-// Vectorize a class method (non-const):
+// Vectorize a class method (const):
 template <typename Return, typename Class, typename... Args,
           typename Helper = detail::vectorize_helper<decltype(std::mem_fn(std::declval<Return (Class::*)(Args...) const>())), Return, const Class *, Args...>>
 Helper vectorize(Return (Class::*f)(Args...) const) {

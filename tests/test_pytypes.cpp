@@ -270,6 +270,31 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("hash_function", [](py::object obj) { return py::hash(obj); });
 
+
     // test_str_isinstance
     m.def("is_str_instance", [](py::object o) { return py::isinstance<py::str>(o); });
+
+    m.def("test_number_protocol", [](py::object a, py::object b) {
+        py::list l;
+        l.append(a.equal(b));
+        l.append(a.not_equal(b));
+        l.append(a < b);
+        l.append(a <= b);
+        l.append(a > b);
+        l.append(a >= b);
+        l.append(a + b);
+        l.append(a - b);
+        l.append(a * b);
+        l.append(a / b);
+        l.append(a | b);
+        l.append(a & b);
+        l.append(a ^ b);
+        l.append(a >> b);
+        l.append(a << b);
+        return l;
+    });
+
+    m.def("test_list_slicing", [](py::list a) {
+        return a[py::slice(0, -1, 2)];
+    });
 }

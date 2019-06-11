@@ -5,7 +5,7 @@ Automatic conversion
 ====================
 
 When including the additional header file :file:`pybind11/stl.h`, conversions
-between ``std::vector<>``/``std::list<>``/``std::array<>``,
+between ``std::vector<>``/``std::deque<>``/``std::list<>``/``std::array<>``,
 ``std::set<>``/``std::unordered_set<>``, and
 ``std::map<>``/``std::unordered_map<>`` and the Python ``list``, ``set`` and
 ``dict`` data structures are automatically enabled. The types ``std::pair<>``
