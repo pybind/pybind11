@@ -204,10 +204,10 @@ PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool t
 }
 
 struct value_and_holder {
-    instance *inst;
-    size_t index;
-    const detail::type_info *type;
-    void **vh;
+    instance *inst = nullptr;
+    size_t index = 0u;
+    const detail::type_info *type = nullptr;
+    void **vh = nullptr;
 
     // Main constructor for a found value/holder:
     value_and_holder(instance *i, const detail::type_info *type, size_t vpos, size_t index) :
@@ -216,7 +216,7 @@ struct value_and_holder {
     {}
 
     // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
-    value_and_holder() : inst{nullptr} {}
+    value_and_holder() {}
 
     // Used for past-the-end iterator
     value_and_holder(size_t index) : index{index} {}
@@ -270,8 +270,8 @@ public:
 
     struct iterator {
     private:
-        instance *inst;
-        const type_vec *types;
+        instance *inst = nullptr;
+        const type_vec *types = nullptr;
         value_and_holder curr;
         friend struct values_and_holders;
         iterator(instance *inst, const type_vec *tinfo)
