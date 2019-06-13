@@ -128,7 +128,7 @@ public:
         // Lazy initialise the PyDateTime import
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
-        std::time_t tt = system_clock::to_time_t(src);
+        std::time_t tt = system_clock::to_time_t(time_point_cast<system_clock::duration>(src));
         // this function uses static memory so it's best to copy it out asap just in case
         // otherwise other code that is using localtime may break this (not just python code)
         std::tm localtime = *std::localtime(&tt);
