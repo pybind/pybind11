@@ -41,15 +41,14 @@
 #  endif
 #endif
 
-#if defined(__GNUG__) && !defined(__clang__)
- #include <cxxabi.h>
-#endif
-
-
 #include "attr.h"
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
+
+#if defined(__GNUG__) && !defined(__clang__)
+#  include <cxxabi.h>
+#endif
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
