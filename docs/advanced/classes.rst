@@ -662,6 +662,7 @@ to Python.
             .def(py::self *= float())
             .def(float() * py::self)
             .def(py::self * float())
+            .def(-py::self)
             .def("__repr__", &Vector2::toString);
     }
 
