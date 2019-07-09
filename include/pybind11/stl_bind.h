@@ -431,10 +431,9 @@ class_<Vector, holder_type> bind_vector(handle scope, std::string const &name, A
         "Check whether the list is nonempty"
     );
 
-    cl.def("__len__", &Vector::size);
-
-
-
+    cl.def("__len__", [](const Vector &v) -> typename Vector::size_type {
+      return v.size();
+    });
 
 #if 0
     // C++ style functions deprecated, leaving it here as an example
