@@ -128,6 +128,13 @@ def test_vector_custom():
     assert str(vv_b) == "VectorEl[El{1}, El{2}]"
 
 
+@pytest.mark.skipif(not hasattr(m, "VectorBoost"), reason='no <boost>')
+def test_vector_boost():
+    v = m.VectorBoost([0, 0])
+    assert bool(v) is True
+    assert len(v) == 2
+
+
 def test_map_string_double():
     mm = m.MapStringDouble()
     mm['a'] = 1

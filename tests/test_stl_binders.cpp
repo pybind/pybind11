@@ -15,6 +15,11 @@
 #include <deque>
 #include <unordered_map>
 
+#ifdef PYBIND11_TEST_BOOST
+#include <boost/container/small_vector.hpp>
+PYBIND11_MAKE_OPAQUE(boost::container::small_vector<int, 4>)
+#endif
+
 class El {
 public:
     El() = delete;
@@ -63,6 +68,15 @@ TEST_SUBMODULE(stl_binders, m) {
         .def(py::init<int>());
     py::bind_vector<std::vector<El>>(m, "VectorEl");
     py::bind_vector<std::vector<std::vector<El>>>(m, "VectorVectorEl");
+
+#ifdef PYBIND11_TEST_BOOST
+    // test_vector_boost
+    // boost::container::small_vector defines certain methods in a base class,
+    // leading to a TypeError about incompatible function arguments since
+    // bind_vector does not support a base class argument. This is circumvented
+    // using a lambda instead of a pointer to the method.
+    py::bind_vector<boost::container::small_vector<int, 4>>(m, "VectorBoost");
+#endif
 
     // test_map_string_double
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
