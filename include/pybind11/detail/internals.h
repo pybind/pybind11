@@ -173,9 +173,9 @@ PYBIND11_NOINLINE inline internals &get_internals() {
 
     // Ensure that the GIL is held since we will need to make Python calls.
     // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
-    struct gil_scoped_acquire {
-        gil_scoped_acquire() : state (PyGILState_Ensure()) {}
-        ~gil_scoped_acquire() { PyGILState_Release(state); }
+    struct gil_scoped_acquire_local {
+        gil_scoped_acquire_local() : state (PyGILState_Ensure()) {}
+        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
         const PyGILState_STATE state;
     } gil;
 
