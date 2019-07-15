@@ -83,6 +83,10 @@ set(PYBIND11_CROSS_MODULE_TESTS
   test_stl_binders.py
 )
 
+set(PYBIND11_CROSS_MODULE_GIL_TESTS
+  test_gil_scoped.py
+)
+
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
 # skip message).
@@ -146,6 +150,14 @@ foreach(t ${PYBIND11_CROSS_MODULE_TESTS})
   list(FIND PYBIND11_PYTEST_FILES ${t} i)
   if (i GREATER -1)
     list(APPEND test_targets pybind11_cross_module_tests)
+    break()
+  endif()
+endforeach()
+
+foreach(t ${PYBIND11_CROSS_MODULE_GIL_TESTS})
+  list(FIND PYBIND11_PYTEST_FILES ${t} i)
+  if (i GREATER -1)
+    list(APPEND test_targets cross_module_gil_utils)
     break()
   endif()
 endforeach()

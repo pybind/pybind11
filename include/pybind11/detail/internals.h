@@ -171,6 +171,14 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     if (internals_pp && *internals_pp)
         return **internals_pp;
 
+    // Ensure that the GIL is held since we will need to make Python calls.
+    // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
+    struct gil_scoped_acquire {
+        gil_scoped_acquire() : state (PyGILState_Ensure()) {}
+        ~gil_scoped_acquire() { PyGILState_Release(state); }
+        const PyGILState_STATE state;
+    } gil;
+
     constexpr auto *id = PYBIND11_INTERNALS_ID;
     auto builtins = handle(PyEval_GetBuiltins());
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
