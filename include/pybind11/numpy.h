@@ -1066,8 +1066,14 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
     if (numpy_internals.get_type_info(tinfo, false))
         pybind11_fail("NumPy: dtype is already registered");
 
+    // Use ordered fields because order matters as of NumPy 1.14:
+    // https://docs.scipy.org/doc/numpy/release.html#multiple-field-indexing-assignment-of-structured-arrays
+    std::vector<field_descriptor> ordered_fields(std::move(fields));
+    std::sort(ordered_fields.begin(), ordered_fields.end(),
+        [](const field_descriptor &a, const field_descriptor &b) { return a.offset < b.offset; });
+
     list names, formats, offsets;
-    for (auto field : *fields) {
+    for (auto& field : ordered_fields) {
         if (!field.descr)
             pybind11_fail(std::string("NumPy: unsupported field dtype: `") +
                             field.name + "` @ " + tinfo.name());
@@ -1084,9 +1090,6 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
     // - https://github.com/numpy/numpy/pull/7798
     // Because of this, we won't use numpy's logic to generate buffer format
     // strings and will just do it ourselves.
-    std::vector<field_descriptor> ordered_fields(std::move(fields));
-    std::sort(ordered_fields.begin(), ordered_fields.end(),
-        [](const field_descriptor &a, const field_descriptor &b) { return a.offset < b.offset; });
     ssize_t offset = 0;
     std::ostringstream oss;
     // mark the structure as unaligned with '^', because numpy and C++ don't
