@@ -495,7 +495,7 @@ protected:
 
                 function_call call(func, parent);
 
-                size_t args_to_copy = (std::min)(pos_args, n_args_in);
+                size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
