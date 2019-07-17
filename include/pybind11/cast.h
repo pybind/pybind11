@@ -996,8 +996,8 @@ public:
 
         bool py_err = py_value == (py_type) -1 && PyErr_Occurred();
         if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) &&
-                       (py_value < (py_type) std::numeric_limits<T>::min() ||
-                        py_value > (py_type) std::numeric_limits<T>::max()))) {
+                       (py_value < (py_type) (std::numeric_limits<T>::min)() ||
+                        py_value > (py_type) (std::numeric_limits<T>::max)()))) {
             bool type_error = py_err && PyErr_ExceptionMatches(
 #if PY_VERSION_HEX < 0x03000000 && !defined(PYPY_VERSION)
                 PyExc_SystemError
