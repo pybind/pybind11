@@ -118,8 +118,7 @@ public:
 
             value = system_clock::from_time_t(std::mktime(&cal)) + microseconds(PyDateTime_DATE_GET_MICROSECOND(src.ptr()));
             return true;
-        }
-        else if (PyDate_Check(src.ptr())) {
+        } else if (PyDate_Check(src.ptr())) {
             std::tm cal;
             cal.tm_sec   = 0;
             cal.tm_min   = 0;
@@ -130,6 +129,18 @@ public:
             cal.tm_isdst = -1;
 
             value = system_clock::from_time_t(std::mktime(&cal));
+            return true;
+        } else if (PyTime_Check(src.ptr())) {
+            std::tm cal;
+            cal.tm_sec   = PyDateTime_TIME_GET_SECOND(src.ptr());
+            cal.tm_min   = PyDateTime_TIME_GET_MINUTE(src.ptr());
+            cal.tm_hour  = PyDateTime_TIME_GET_HOUR(src.ptr());
+            cal.tm_mday  = 1;   // This date (day, month, year) = (1, 0, 70)
+            cal.tm_mon   = 0;   // represents 1-Jan-1970, which is the first 
+            cal.tm_year  = 70;  // earliest available date for Python's datetime
+            cal.tm_isdst = -1;
+
+            value = system_clock::from_time_t(std::mktime(&cal)) + microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()));
             return true;
         }
         else return false;
