@@ -119,6 +119,19 @@ public:
             value = system_clock::from_time_t(std::mktime(&cal)) + microseconds(PyDateTime_DATE_GET_MICROSECOND(src.ptr()));
             return true;
         }
+        else if (PyDate_Check(src.ptr())) {
+            std::tm cal;
+            cal.tm_sec   = 0;
+            cal.tm_min   = 0;
+            cal.tm_hour  = 0;
+            cal.tm_mday  = PyDateTime_GET_DAY(src.ptr());
+            cal.tm_mon   = PyDateTime_GET_MONTH(src.ptr()) - 1;
+            cal.tm_year  = PyDateTime_GET_YEAR(src.ptr()) - 1900;
+            cal.tm_isdst = -1;
+
+            value = system_clock::from_time_t(std::mktime(&cal));
+            return true;
+        }
         else return false;
     }
 

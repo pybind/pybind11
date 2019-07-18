@@ -40,6 +40,37 @@ def test_chrono_system_clock_roundtrip():
     assert diff.microseconds == 0
 
 
+def test_chrono_system_clock_roundtrip_date():
+    date1 = datetime.date.today()
+    
+    # Roundtrip the time
+    datetime2 = m.test_chrono2(date1)
+    date2 = datetime2.date()
+    time2 = datetime2.time()
+
+    # The returned value should be a datetime
+    assert isinstance(datetime2, datetime.datetime)
+    assert isinstance(date2, datetime.date)
+    assert isinstance(time2, datetime.time)
+
+    # They should be identical (no information lost on roundtrip)
+    diff = abs(date1 - date2)
+    assert diff.days == 0
+    assert diff.seconds == 0
+    assert diff.microseconds == 0
+
+    # Year, Month & Day should be the same after the round trip
+    assert date1.year == date2.year
+    assert date1.month == date2.month
+    assert date1.day == date2.day
+
+    # There should be no time information
+    assert time2.hour == 0
+    assert time2.minute == 0
+    assert time2.second == 0
+    assert time2.microsecond == 0
+
+
 def test_chrono_duration_roundtrip():
 
     # Get the difference between two times (a timedelta)
@@ -61,6 +92,19 @@ def test_chrono_duration_subtraction_equivalence():
 
     date1 = datetime.datetime.today()
     date2 = datetime.datetime.today()
+
+    diff = date2 - date1
+    cpp_diff = m.test_chrono4(date2, date1)
+
+    assert cpp_diff.days == diff.days
+    assert cpp_diff.seconds == diff.seconds
+    assert cpp_diff.microseconds == diff.microseconds
+
+
+def test_chrono_duration_subtraction_equivalence_date():
+
+    date1 = datetime.date.today()
+    date2 = datetime.date.today()
 
     diff = date2 - date1
     cpp_diff = m.test_chrono4(date2, date1)
