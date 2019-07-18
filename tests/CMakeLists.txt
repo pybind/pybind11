@@ -26,6 +26,7 @@ endif()
 
 # Full set of test files (you can override these; see below)
 set(PYBIND11_TEST_FILES
+  test_async.cpp
   test_buffers.cpp
   test_builtin_casters.cpp
   test_call_policies.cpp
@@ -69,6 +70,13 @@ set(PYBIND11_TEST_FILES
 #     cmake -DPYBIND11_TEST_OVERRIDE= ..
 if (PYBIND11_TEST_OVERRIDE)
   set(PYBIND11_TEST_FILES ${PYBIND11_TEST_OVERRIDE})
+endif()
+
+# Skip test_async for Python < 3.5
+list(FIND PYBIND11_TEST_FILES test_async.cpp PYBIND11_TEST_FILES_ASYNC_I)
+if((PYBIND11_TEST_FILES_ASYNC_I GREATER -1) AND ("${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}" VERSION_LESS 3.5))
+  message(STATUS "Skipping test_async because Python version ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} < 3.5")
+  list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_ASYNC_I})
 endif()
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")

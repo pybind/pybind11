@@ -586,6 +586,9 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     type->tp_as_number = &heap_type->as_number;
     type->tp_as_sequence = &heap_type->as_sequence;
     type->tp_as_mapping = &heap_type->as_mapping;
+#if PY_VERSION_HEX >= 0x03050000
+    type->tp_as_async = &heap_type->as_async;
+#endif
 
     /* Flags */
     type->tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
