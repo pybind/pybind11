@@ -42,7 +42,7 @@ def test_chrono_system_clock_roundtrip():
 
 def test_chrono_system_clock_roundtrip_date():
     date1 = datetime.date.today()
-    
+
     # Roundtrip the time
     datetime2 = m.test_chrono2(date1)
     date2 = datetime2.date()
