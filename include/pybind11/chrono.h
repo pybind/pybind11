@@ -136,7 +136,7 @@ public:
             cal.tm_min   = PyDateTime_TIME_GET_MINUTE(src.ptr());
             cal.tm_hour  = PyDateTime_TIME_GET_HOUR(src.ptr());
             cal.tm_mday  = 1;   // This date (day, month, year) = (1, 0, 70)
-            cal.tm_mon   = 0;   // represents 1-Jan-1970, which is the first 
+            cal.tm_mon   = 0;   // represents 1-Jan-1970, which is the first
             cal.tm_year  = 70;  // earliest available date for Python's datetime
             cal.tm_isdst = -1;
 
