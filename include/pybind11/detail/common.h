@@ -113,10 +113,6 @@
 #include <frameobject.h>
 #include <pythread.h>
 
-#if defined(_WIN32) && (defined(min) || defined(max))
-#  error Macro clash with min and max -- define NOMINMAX when compiling your program on Windows
-#endif
-
 #if defined(isalnum)
 #  undef isalnum
 #  undef isalpha
