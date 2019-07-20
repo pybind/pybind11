@@ -75,6 +75,105 @@ struct PyVoidScalarObject_Proxy {
     PyObject *base;
 };
 
+// UFuncs.
+using npy_intp = Py_intptr_t;
+
+typedef void (*PyUFuncGenericFunction)(
+    char **args, npy_intp *dimensions, npy_intp *strides, void *innerloopdata);
+
+typedef void (PyArray_VectorUnaryFunc)(
+    void* from_, void* to_, npy_intp n, void* fromarr, void* toarr);
+
+typedef struct {
+      PyObject_HEAD
+      int nin;
+      int nout;
+      int nargs;
+      int identity;
+      PyUFuncGenericFunction *functions;
+      void **data;
+      int ntypes;
+      int reserved1;
+      const char *name;
+      char *types;
+      const char *doc;
+      void *ptr;
+      PyObject *obj;
+      PyObject *userloops;
+      uint32_t *op_flags;
+      uint32_t *iter_flags;
+} PyUFuncObject;
+
+// Manually defined :(
+constexpr int NPY_NTYPES_ABI_COMPATIBLE = 21;
+constexpr int NPY_NSORTS = 3;
+
+// TODO(eric.cousineau): Fill this out as needed for type safety.
+// TODO(eric.cousineau): Do not define these if NPY headers are present (for debugging).
+using PyArray_GetItemFunc = void;
+using PyArray_SetItemFunc = void;
+using PyArray_CopySwapNFunc = void;
+using PyArray_CopySwapFunc = void;
+using PyArray_CompareFunc = void;
+using PyArray_ArgFunc = void;
+using PyArray_DotFunc = void;
+using PyArray_ScanFunc = void;
+using PyArray_FromStrFunc = void;
+using PyArray_NonzeroFunc = void;
+using PyArray_FillFunc = void;
+using PyArray_FillWithScalarFunc = void;
+using PyArray_SortFunc = void;
+using PyArray_ArgSortFunc = void;
+using PyArray_ScalarKindFunc = void;
+using PyArray_FastClipFunc = void;
+using PyArray_FastPutmaskFunc = void;
+using PyArray_FastTakeFunc = void;
+using PyArray_ArgFunc = void;
+
+typedef struct {
+    PyArray_VectorUnaryFunc *cast[NPY_NTYPES_ABI_COMPATIBLE];
+    PyArray_GetItemFunc *getitem;
+    PyArray_SetItemFunc *setitem;
+    PyArray_CopySwapNFunc *copyswapn;
+    PyArray_CopySwapFunc *copyswap;
+    PyArray_CompareFunc *compare;
+    PyArray_ArgFunc *argmax;
+    PyArray_DotFunc *dotfunc;
+    PyArray_ScanFunc *scanfunc;
+    PyArray_FromStrFunc *fromstr;
+    PyArray_NonzeroFunc *nonzero;
+    PyArray_FillFunc *fill;
+    PyArray_FillWithScalarFunc *fillwithscalar;
+    PyArray_SortFunc *sort[NPY_NSORTS];
+    PyArray_ArgSortFunc *argsort[NPY_NSORTS];
+    PyObject *castdict;
+    PyArray_ScalarKindFunc *scalarkind;
+    int **cancastscalarkindto;
+    int *cancastto;
+    PyArray_FastClipFunc *fastclip;
+    PyArray_FastPutmaskFunc *fastputmask;
+    PyArray_FastTakeFunc *fasttake;
+    PyArray_ArgFunc *argmin;
+} PyArray_ArrFuncs;
+
+using PyArray_ArrayDescr = void;
+
+typedef struct {
+    PyObject_HEAD
+    PyTypeObject *typeobj;
+    char kind;
+    char type;
+    char byteorder;
+    char unused;
+    int flags;
+    int type_num;
+    int elsize;
+    int alignment;
+    PyArray_ArrayDescr *subarray;
+    PyObject *fields;
+    PyArray_ArrFuncs *f;
+} PyArray_Descr;
+
 struct numpy_type_info {
     PyObject* dtype_ptr;
     std::string format_str;
@@ -109,7 +208,8 @@ inline numpy_internals& get_numpy_internals() {
 }
 
 struct npy_api {
-    enum constants {
+    enum constants : int {
+        // Array properties
         NPY_ARRAY_C_CONTIGUOUS_ = 0x0001,
         NPY_ARRAY_F_CONTIGUOUS_ = 0x0002,
         NPY_ARRAY_OWNDATA_ = 0x0004,
@@ -117,6 +217,7 @@ struct npy_api {
         NPY_ARRAY_ENSUREARRAY_ = 0x0040,
         NPY_ARRAY_ALIGNED_ = 0x0100,
         NPY_ARRAY_WRITEABLE_ = 0x0400,
+        // Dtypes
         NPY_BOOL_ = 0,
         NPY_BYTE_, NPY_UBYTE_,
         NPY_SHORT_, NPY_USHORT_,
@@ -126,8 +227,26 @@ struct npy_api {
         NPY_FLOAT_, NPY_DOUBLE_, NPY_LONGDOUBLE_,
         NPY_CFLOAT_, NPY_CDOUBLE_, NPY_CLONGDOUBLE_,
         NPY_OBJECT_ = 17,
-        NPY_STRING_, NPY_UNICODE_, NPY_VOID_
+        NPY_STRING_, NPY_UNICODE_, NPY_VOID_,
+        NPY_USERDEF_ = 256,
+        // Descriptor flags
+        NPY_NEEDS_INIT_ = 0x08,
+        NPY_NEEDS_PYAPI_ = 0x10,
+        NPY_USE_GETITEM_ = 0x20,
+        NPY_USE_SETITEM_ = 0x40,
+        // UFunc
+        PyUFunc_None_ = -1,
     };
+
+    typedef enum {
+            NPY_NOSCALAR_ = -1,
+            NPY_BOOL_SCALAR_,
+            NPY_INTPOS_SCALAR_,
+            NPY_INTNEG_SCALAR_,
+            NPY_FLOAT_SCALAR_,
+            NPY_COMPLEX_SCALAR_,
+            NPY_OBJECT_SCALAR_
+    } NPY_SCALARKIND;
 
     typedef struct {
         Py_intptr_t *ptr;
@@ -146,6 +265,7 @@ struct npy_api {
         return (bool) PyObject_TypeCheck(obj, PyArrayDescr_Type_);
     }
 
+    // Multiarray.
     unsigned int (*PyArray_GetNDArrayCFeatureVersion_)();
     PyObject *(*PyArray_DescrFromType_)(int);
     PyObject *(*PyArray_NewFromDescr_)
@@ -166,8 +286,29 @@ struct npy_api {
     PyObject *(*PyArray_Squeeze_)(PyObject *);
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
     PyObject* (*PyArray_Resize_)(PyObject*, PyArray_Dims*, int, int);
+
+    // - Dtypes
+    PyTypeObject* PyGenericArrType_Type_;
+    int (*PyArray_RegisterDataType_)(PyArray_Descr* dtype);
+    int (*PyArray_RegisterCastFunc_)(PyArray_Descr* descr, int totype, PyArray_VectorUnaryFunc* castfunc);
+    int (*PyArray_RegisterCanCast_)(PyArray_Descr* descr, int totype, NPY_SCALARKIND scalar);
+    void (*PyArray_InitArrFuncs_)(PyArray_ArrFuncs *f);
+
+    // UFuncs.
+    PyObject* (*PyUFunc_FromFuncAndData_)(
+        PyUFuncGenericFunction* func, void** data, char* types, int ntypes,
+        int nin, int nout, int identity, char* name, char* doc, int unused);
+
+    int (*PyUFunc_RegisterLoopForType_)(
+        PyUFuncObject* ufunc, int usertype, PyUFuncGenericFunction function, int* arg_types, void* data);
+
+    int (*PyUFunc_ReplaceLoopBySignature_)(
+        PyUFuncObject *func, PyUFuncGenericFunction newfunc,
+        int *signature, PyUFuncGenericFunction *oldfunc);
 private:
+    // TODO(eric.cousineau): Rename to `items` or something, since this now applies to types.
     enum functions {
+        // multiarray
         API_PyArray_GetNDArrayCFeatureVersion = 211,
         API_PyArray_Type = 2,
         API_PyArrayDescr_Type = 3,
@@ -184,38 +325,68 @@ private:
         API_PyArray_EquivTypes = 182,
         API_PyArray_GetArrayParamsFromObject = 278,
         API_PyArray_Squeeze = 136,
-        API_PyArray_SetBaseObject = 282
+        API_PyArray_SetBaseObject = 282,
+        // - DTypes
+        API_PyGenericArrType_Type = 10,
+        API_PyArray_RegisterDataType = 192,
+        API_PyArray_RegisterCastFunc = 193,
+        API_PyArray_RegisterCanCast = 194,
+        API_PyArray_InitArrFuncs = 195,
+        // umath
+        API_PyUFunc_FromFuncAndData = 1,
+        API_PyUFunc_RegisterLoopForType = 2,
+        API_PyUFunc_ReplaceLoopBySignature = 30,
     };
 
-    static npy_api lookup() {
-        module m = module::import("numpy.core.multiarray");
-        auto c = m.attr("_ARRAY_API");
+    static void** get_api_ptr(object c) {
 #if PY_MAJOR_VERSION >= 3
-        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
+        return (void **) PyCapsule_GetPointer(c.ptr(), NULL);
 #else
-        void **api_ptr = (void **) PyCObject_AsVoidPtr(c.ptr());
+        return (void **) PyCObject_AsVoidPtr(c.ptr());
 #endif
+    }
+
+    static npy_api lookup() {
         npy_api api;
 #define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
-        DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
-        if (api.PyArray_GetNDArrayCFeatureVersion_() < 0x7)
-            pybind11_fail("pybind11 numpy support requires numpy >= 1.7.0");
-        DECL_NPY_API(PyArray_Type);
-        DECL_NPY_API(PyVoidArrType_Type);
-        DECL_NPY_API(PyArrayDescr_Type);
-        DECL_NPY_API(PyArray_DescrFromType);
-        DECL_NPY_API(PyArray_DescrFromScalar);
-        DECL_NPY_API(PyArray_FromAny);
-        DECL_NPY_API(PyArray_Resize);
-        DECL_NPY_API(PyArray_CopyInto);
-        DECL_NPY_API(PyArray_NewCopy);
-        DECL_NPY_API(PyArray_NewFromDescr);
-        DECL_NPY_API(PyArray_DescrNewFromType);
-        DECL_NPY_API(PyArray_DescrConverter);
-        DECL_NPY_API(PyArray_EquivTypes);
-        DECL_NPY_API(PyArray_GetArrayParamsFromObject);
-        DECL_NPY_API(PyArray_Squeeze);
-        DECL_NPY_API(PyArray_SetBaseObject);
+        // multiarray -> _ARRAY_API
+        {
+            module multiarray = module::import("numpy.core.multiarray");
+            auto api_ptr = get_api_ptr(multiarray.attr("_ARRAY_API"));
+            DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
+            if (api.PyArray_GetNDArrayCFeatureVersion_() < 0x7)
+                pybind11_fail("pybind11 numpy support requires numpy >= 1.7.0");
+            DECL_NPY_API(PyArray_Type);
+            DECL_NPY_API(PyVoidArrType_Type);
+            DECL_NPY_API(PyArrayDescr_Type);
+            DECL_NPY_API(PyArray_DescrFromType);
+            DECL_NPY_API(PyArray_DescrFromScalar);
+            DECL_NPY_API(PyArray_FromAny);
+            DECL_NPY_API(PyArray_Resize);
+            DECL_NPY_API(PyArray_CopyInto);
+            DECL_NPY_API(PyArray_NewCopy);
+            DECL_NPY_API(PyArray_NewFromDescr);
+            DECL_NPY_API(PyArray_DescrNewFromType);
+            DECL_NPY_API(PyArray_DescrConverter);
+            DECL_NPY_API(PyArray_EquivTypes);
+            DECL_NPY_API(PyArray_GetArrayParamsFromObject);
+            DECL_NPY_API(PyArray_Squeeze);
+            DECL_NPY_API(PyArray_SetBaseObject);
+            // - Dtypes
+            DECL_NPY_API(PyGenericArrType_Type);
+            DECL_NPY_API(PyArray_RegisterDataType);
+            DECL_NPY_API(PyArray_InitArrFuncs);
+            DECL_NPY_API(PyArray_RegisterCastFunc);
+            DECL_NPY_API(PyArray_RegisterCanCast);
+        }
+        // umath -> _UFUNC_API
+        {
+            module umath = module::import("numpy.core.umath");
+            auto api_ptr = get_api_ptr(umath.attr("_UFUNC_API"));
+            DECL_NPY_API(PyUFunc_FromFuncAndData);
+            DECL_NPY_API(PyUFunc_RegisterLoopForType);
+            DECL_NPY_API(PyUFunc_ReplaceLoopBySignature);
+        }
 #undef DECL_NPY_API
         return api;
     }
@@ -1047,6 +1218,26 @@ private:
 public:
     static constexpr auto name = base_descr::name;
     static pybind11::dtype dtype() { return base_descr::dtype(); }
+};
+
+template <>
+struct npy_format_descriptor<object> {
+    static pybind11::dtype dtype() {
+        if (auto ptr = npy_api::get().PyArray_DescrFromType_(npy_api::NPY_OBJECT_))
+            return reinterpret_borrow<pybind11::dtype>(ptr);
+        pybind11_fail("Unsupported buffer format!");
+    }
+};
+
+template <>
+struct npy_format_descriptor<void> {
+    static constexpr auto name = detail::_<void>();
+    static pybind11::dtype dtype() {
+        if (auto ptr = detail::npy_api::get().PyArray_DescrFromType_(
+              detail::npy_api::constants::NPY_VOID_))
+            return reinterpret_borrow<pybind11::dtype>(ptr);
+        pybind11_fail("Unsupported buffer format!");
+    }
 };
 
 struct field_descriptor {
