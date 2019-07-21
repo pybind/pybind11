@@ -769,11 +769,19 @@ protected:
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
         } else if (!result) {
-            std::string msg = "Unable to convert function return value to a "
-                              "Python type! The signature was\n\t";
-            msg += it->signature;
-            append_note_if_missing_header_is_suspected(msg);
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
+            /* Allow the user to raise a Python exception directly using
+               PyErr_SetString() together with returning a null py::object, as
+               that may be significantly faster than throwing a C++ exception
+               in critical code paths. In that case we arrive here with
+               non-null PyErr_Occurred(), so keep that exception instead of
+               overwriting it with another. */
+            if (!PyErr_Occurred()) {
+                std::string msg = "Unable to convert function return value to "
+                                  "a Python type! The signature was\n\t";
+                msg += it->signature;
+                append_note_if_missing_header_is_suspected(msg);
+                PyErr_SetString(PyExc_TypeError, msg.c_str());
+            }
             return nullptr;
         } else {
             if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {

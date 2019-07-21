@@ -171,6 +171,14 @@ TEST_SUBMODULE(exceptions, m) {
         throw py::error_already_set();
     });
 
+    m.def("raise_without_throw", [](bool return_null, bool set_error) {
+        if (set_error)
+            PyErr_SetString(PyExc_FutureWarning, "this is a robbery!");
+        if (return_null)
+            return py::object{};
+        return py::cast(5);
+    }, py::arg("return_null"), py::arg("set_error"));
+
     m.def("python_call_in_destructor", [](py::dict d) {
         try {
             PythonCallInDestructor set_dict_in_destructor(d);
