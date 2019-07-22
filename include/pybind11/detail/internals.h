@@ -140,7 +140,7 @@ struct type_info {
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
 #define PYBIND11_INTERNALS_VERSION 3
 
-#if defined(_DEBUG)
+#if defined(_MSC_VER) && defined(_DEBUG)
 #   define PYBIND11_BUILD_TYPE "_debug"
 #else
 #   define PYBIND11_BUILD_TYPE ""
