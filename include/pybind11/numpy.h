@@ -1044,7 +1044,7 @@ public:
 
     static pybind11::dtype dtype() {
         if (auto ptr = npy_api::get().PyArray_DescrFromType_(value))
-            return reinterpret_borrow<pybind11::dtype>(ptr);
+            return reinterpret_steal<pybind11::dtype>(ptr);
         pybind11_fail("Unsupported buffer format!");
     }
 };
