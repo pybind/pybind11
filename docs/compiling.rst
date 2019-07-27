@@ -287,3 +287,10 @@ code by introspecting existing C++ codebases using LLVM/Clang. See the
 [binder]_ documentation for details.
 
 .. [binder] http://cppbinder.readthedocs.io/en/latest/about.html
+
+The ``Scapix`` project is a tool for automatic generation of C++ bindings to
+other languages, directly from C++ headers. It generates Python (pybind11) bindings,
+along with bindings for Java, Objective C, Swift and JavaScript (Emscripten).
+See the [scapix]_ documentation for details.
+
+.. [scapix] https://www.scapix.com/
