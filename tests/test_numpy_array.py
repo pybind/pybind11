@@ -434,3 +434,14 @@ def test_array_create_and_resize(msg):
 def test_index_using_ellipsis():
     a = m.index_using_ellipsis(np.zeros((5, 6, 7)))
     assert a.shape == (6,)
+
+
+@pytest.unsupported_on_pypy
+def test_dtype_refcount_leak():
+    from sys import getrefcount
+    dtype = np.dtype(np.float_)
+    a = np.array([1], dtype=dtype)
+    before = getrefcount(dtype)
+    m.ndim(a)
+    after = getrefcount(dtype)
+    assert after == before
