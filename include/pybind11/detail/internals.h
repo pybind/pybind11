@@ -140,10 +140,18 @@ struct type_info {
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
 #define PYBIND11_INTERNALS_VERSION 3
 
-#if defined(_DEBUG)
+/// On MSVC, debug and release builds are not ABI-compatible!
+#if defined(_MSC_VER) && defined(_DEBUG)
 #   define PYBIND11_BUILD_TYPE "_debug"
 #else
 #   define PYBIND11_BUILD_TYPE ""
+#endif
+
+/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
+#if defined(__GXX_ABI_VERSION)
+#  define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
+#else
+#  define PYBIND11_BUILD_ABI ""
 #endif
 
 #if defined(WITH_THREAD)
@@ -153,10 +161,10 @@ struct type_info {
 #endif
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 #define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
