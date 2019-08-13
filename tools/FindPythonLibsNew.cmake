@@ -105,7 +105,7 @@ if(NOT _PYTHON_SUCCESS MATCHES 0)
     return()
 endif()
 
-# Convert extract the values from the list 
+# Extract the values from the list 
 if(WIN32)
     string(REGEX REPLACE "\\\\" "/" _PYTHON_VALUES ${_PYTHON_VALUES})
 endif()
