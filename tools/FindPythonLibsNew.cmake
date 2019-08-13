@@ -75,9 +75,9 @@ endif()
 # The library suffix is from the config var LDVERSION sometimes, otherwise
 # VERSION. VERSION will typically be like "2.7" on unix, and "27" on windows.
 execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
-    "from distutils import sysconfig as s;import sys;import struct;
+    "from distutils import sysconfig as s;import sys; import os;import struct;
 save_stdout = sys.stdout
-sys.stdout = open('trash', 'w')
+sys.stdout = open(os.devnull, 'w')
 values = ['.'.join(str(v) for v in sys.version_info),
               sys.prefix,
               s.get_python_inc(plat_specific=True),
