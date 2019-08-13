@@ -76,16 +76,20 @@ endif()
 # VERSION. VERSION will typically be like "2.7" on unix, and "27" on windows.
 execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
     "from distutils import sysconfig as s;import sys;import struct;
-print('.'.join(str(v) for v in sys.version_info));
-print(sys.prefix);
-print(s.get_python_inc(plat_specific=True));
-print(s.get_python_lib(plat_specific=True));
-print(s.get_config_var('SO'));
-print(hasattr(sys, 'gettotalrefcount')+0);
-print(struct.calcsize('@P'));
-print(s.get_config_var('LDVERSION') or s.get_config_var('VERSION'));
-print(s.get_config_var('LIBDIR') or '');
-print(s.get_config_var('MULTIARCH') or '');
+save_stdout = sys.stdout
+sys.stdout = open('trash', 'w')
+values = ['.'.join(str(v) for v in sys.version_info),
+              sys.prefix,
+              s.get_python_inc(plat_specific=True),
+              s.get_python_lib(plat_specific=True),
+              s.get_config_var('EXT_SUFFIX'),
+              hasattr(sys, 'gettotalrefcount')+0,
+              struct.calcsize('@P'),
+              s.get_config_var('LDVERSION') or s.get_config_var('VERSION'),
+              s.get_config_var('LIBDIR') or '',
+              s.get_config_var('MULTIARCH') or ''];
+sys.stdout = save_stdout
+print(';'.join([str(item) for item in values]))
 "
     RESULT_VARIABLE _PYTHON_SUCCESS
     OUTPUT_VARIABLE _PYTHON_VALUES
@@ -101,12 +105,10 @@ if(NOT _PYTHON_SUCCESS MATCHES 0)
     return()
 endif()
 
-# Convert the process output into a list
+# Convert extract the values from the list 
 if(WIN32)
     string(REGEX REPLACE "\\\\" "/" _PYTHON_VALUES ${_PYTHON_VALUES})
 endif()
-string(REGEX REPLACE ";" "\\\\;" _PYTHON_VALUES ${_PYTHON_VALUES})
-string(REGEX REPLACE "\n" ";" _PYTHON_VALUES ${_PYTHON_VALUES})
 list(GET _PYTHON_VALUES 0 _PYTHON_VERSION_LIST)
 list(GET _PYTHON_VALUES 1 PYTHON_PREFIX)
 list(GET _PYTHON_VALUES 2 PYTHON_INCLUDE_DIR)
