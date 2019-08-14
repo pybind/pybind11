@@ -1224,8 +1224,9 @@ public:
     detail::dict_iterator begin() const { return {*this, 0}; }
     detail::dict_iterator end() const { return {}; }
     void clear() const { PyDict_Clear(ptr()); }
-    bool contains(handle key) const { return PyDict_Contains(ptr(), key.ptr()) == 1; }
-    bool contains(const char *key) const { return PyDict_Contains(ptr(), pybind11::str(key).ptr()) == 1; }
+    template <typename T> bool contains(T &&key) const {
+        return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
+    }
 
 private:
     /// Call the `dict` Python type -- always returns a new reference
@@ -1276,6 +1277,9 @@ public:
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
     void clear() const { PySet_Clear(m_ptr); }
+    template <typename T> bool contains(T &&val) const {
+        return PySet_Contains(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 1;
+    }
 };
 
 class function : public object {

@@ -37,6 +37,10 @@ def test_set(capture, doc):
         key: key4
     """
 
+    assert not m.set_contains(set([]), 42)
+    assert m.set_contains({42}, 42)
+    assert m.set_contains({"foo"}, "foo")
+
     assert doc(m.get_list) == "get_list() -> list"
     assert doc(m.print_list) == "print_list(arg0: list) -> None"
 
@@ -52,6 +56,10 @@ def test_dict(capture, doc):
         key: key, value=value
         key: key2, value=value2
     """
+
+    assert not m.dict_contains({}, 42)
+    assert m.dict_contains({42: None}, 42)
+    assert m.dict_contains({"foo": None}, "foo")
 
     assert doc(m.get_dict) == "get_dict() -> dict"
     assert doc(m.print_dict) == "print_dict(arg0: dict) -> None"
