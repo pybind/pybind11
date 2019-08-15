@@ -9,7 +9,7 @@ def get_include(user=False):
     # Are we running in a virtual environment?
     virtualenv = hasattr(sys, 'real_prefix') or \
         sys.prefix != getattr(sys, "base_prefix", sys.prefix)
-    
+
     # Are we running in a conda environment?
     conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta'))
 
