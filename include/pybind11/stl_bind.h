@@ -118,7 +118,7 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     auto wrap_i = [](DiffType i, SizeType n) {
         if (i < 0)
             i += n;
-        if (i < 0)
+        if (i < 0 || (SizeType)i >= n)
             throw index_error();
         return i;
     };
@@ -167,9 +167,11 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     );
 
     cl.def("insert",
-        [wrap_i](Vector &v, DiffType i, const T &x) {
-            i = wrap_i(i, v.size());
-            if ((SizeType)i > v.size())
+        [](Vector &v, DiffType i, const T &x) {
+            // Can't use wrap_i; i == v.size() is OK
+            if (i < 0)
+                i += v.size();
+            if (i < 0 || (SizeType)i > v.size())
                 throw index_error();
             v.insert(v.begin() + i, x);
         },
@@ -191,8 +193,6 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     cl.def("pop",
         [wrap_i](Vector &v, DiffType i) {
             i = wrap_i(i, v.size());
-            if ((SizeType)i >= v.size())
-                throw index_error();
             T t = v[(SizeType) i];
             v.erase(v.begin() + i);
             return t;
@@ -204,8 +204,6 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     cl.def("__setitem__",
         [wrap_i](Vector &v, DiffType i, const T &t) {
             i = wrap_i(i, v.size());
-            if ((SizeType)i >= v.size())
-                throw index_error();
             v[(SizeType)i] = t;
         }
     );
@@ -251,8 +249,6 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     cl.def("__delitem__",
         [wrap_i](Vector &v, DiffType i) {
             i = wrap_i(i, v.size());
-            if ((SizeType)i >= v.size())
-                throw index_error();
             v.erase(v.begin() + i);
         },
         "Delete the list elements at index ``i``"
@@ -295,7 +291,7 @@ void vector_accessor(enable_if_t<!vector_needs_copy<Vector>::value, Class_> &cl)
     auto wrap_i = [](DiffType i, SizeType n) {
         if (i < 0)
             i += n;
-        if (i < 0)
+        if (i < 0 || (SizeType)i >= n)
             throw index_error();
         return i;
     };
@@ -303,8 +299,6 @@ void vector_accessor(enable_if_t<!vector_needs_copy<Vector>::value, Class_> &cl)
     cl.def("__getitem__",
         [wrap_i](Vector &v, DiffType i) -> T & {
             i = wrap_i(i, v.size());
-            if ((SizeType)i >= v.size())
-                throw index_error();
             return v[(SizeType)i];
         },
         return_value_policy::reference_internal // ref + keepalive
