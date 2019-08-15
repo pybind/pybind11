@@ -53,6 +53,16 @@ def test_vector_int():
     v_int2.extend(x for x in range(5))
     assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4])
 
+    # test negative indexing
+    assert v_int2[-1] == 4
+
+    # insert with negative index
+    v_int2.insert(-1, 88)
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 88, 4])
+
+    # delete negative index
+    del v_int2[-1]
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 88])
 
 # related to the PyPy's buffer protocol.
 @pytest.unsupported_on_pypy
