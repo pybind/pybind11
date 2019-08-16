@@ -49,6 +49,10 @@ TEST_SUBMODULE(pytypes, m) {
         auto d2 = py::dict("z"_a=3, **d1);
         return d2;
     });
+    m.def("dict_get_test", []() {
+        py::dict d("key"_a=1);
+        return py::make_tuple(d.get("key", 2), d.get("key2", 3));
+    });
 
     // test_str
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
