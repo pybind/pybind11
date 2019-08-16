@@ -1202,6 +1202,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
+    bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
     detail::tuple_iterator begin() const { return {*this, 0}; }
@@ -1221,6 +1222,7 @@ public:
     explicit dict(Args &&...args) : dict(collector(std::forward<Args>(args)...).kwargs()) { }
 
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
+    bool empty() const { return size() == 0; }
     detail::dict_iterator begin() const { return {*this, 0}; }
     detail::dict_iterator end() const { return {}; }
     void clear() const { PyDict_Clear(ptr()); }
@@ -1241,6 +1243,7 @@ class sequence : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(sequence, object, PySequence_Check)
     size_t size() const { return (size_t) PySequence_Size(m_ptr); }
+    bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
     detail::sequence_iterator begin() const { return {*this, 0}; }
@@ -1254,6 +1257,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
+    bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
     detail::list_iterator begin() const { return {*this, 0}; }
@@ -1273,6 +1277,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate set object!");
     }
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
+    bool empty() const { return size() == 0; }
     template <typename T> bool add(T &&val) const {
         return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
     }
