@@ -803,6 +803,15 @@ template <typename Container> struct is_copy_constructible<Container, enable_if_
 template <typename T1, typename T2> struct is_copy_constructible<std::pair<T1, T2>>
     : all_of<is_copy_constructible<T1>, is_copy_constructible<T2>> {};
 
+// The same problems arise with std::is_copy_assignable, so we use the same workaround.
+template <typename T, typename SFINAE = void> struct is_copy_assignable : std::is_copy_assignable<T> {};
+template <typename Container> struct is_copy_assignable<Container, enable_if_t<all_of<
+        std::is_copy_assignable<Container>,
+        std::is_same<typename Container::value_type &, typename Container::reference>
+    >::value>> : is_copy_assignable<typename Container::value_type> {};
+template <typename T1, typename T2> struct is_copy_assignable<std::pair<T1, T2>>
+    : all_of<is_copy_assignable<T1>, is_copy_assignable<T2>> {};
+
 NAMESPACE_END(detail)
 
 // polymorphic_type_hook<itype>::get(src, tinfo) determines whether the object pointed
