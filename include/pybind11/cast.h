@@ -797,12 +797,11 @@ template <typename Container> struct is_copy_constructible<Container, enable_if_
         negation<std::is_same<Container, typename Container::value_type>>
     >::value>> : is_copy_constructible<typename Container::value_type> {};
 
-#if !defined(PYBIND11_CPP17)
-// Likewise for std::pair before C++17 (which mandates that the copy constructor not exist when the
-// two types aren't themselves copy constructible).
+// Likewise for std::pair
+// (after C++17 it is mandatory that the copy constructor not exist when the two types aren't themselves
+// copy constructible, but this can not be relied upon when T1 or T2 are themselves containers).
 template <typename T1, typename T2> struct is_copy_constructible<std::pair<T1, T2>>
     : all_of<is_copy_constructible<T1>, is_copy_constructible<T2>> {};
-#endif
 
 NAMESPACE_END(detail)
 
