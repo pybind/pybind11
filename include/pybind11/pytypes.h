@@ -1265,6 +1265,9 @@ public:
     template <typename T> void append(T &&val) const {
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
+    template <typename T> void insert(size_t index, T &&val) const {
+        PyList_Insert(m_ptr, index, detail::object_or_cast(std::forward<T>(val)).ptr());
+    }
 };
 
 class args : public tuple { PYBIND11_OBJECT_DEFAULT(args, tuple, PyTuple_Check) };
