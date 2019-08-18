@@ -1266,7 +1266,8 @@ public:
         PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr());
     }
     template <typename T> void insert(size_t index, T &&val) const {
-        PyList_Insert(m_ptr, index, detail::object_or_cast(std::forward<T>(val)).ptr());
+        PyList_Insert(m_ptr, static_cast<ssize_t>(index),
+            detail::object_or_cast(std::forward<T>(val)).ptr());
     }
 };
 
