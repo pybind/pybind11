@@ -10,7 +10,17 @@
 
 #pragma once
 
-#if defined(_MSC_VER)
+#if defined(__INTEL_COMPILER)
+#  pragma warning push
+#  pragma warning disable 68    // integer conversion resulted in a change of sign
+#  pragma warning disable 186   // pointless comparison of unsigned integer with zero
+#  pragma warning disable 878   // incompatible exception specifications
+#  pragma warning disable 1334  // the "template" keyword used for syntactic disambiguation may only be used within a template
+#  pragma warning disable 1682  // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
+#  pragma warning disable 1786  // function "strdup" was declared deprecated
+#  pragma warning disable 1875  // offsetof applied to non-POD (Plain Old Data) types is nonstandard
+#  pragma warning disable 2196  // warning #2196: routine is both "inline" and "noinline"
+#elif defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
@@ -19,15 +29,6 @@
 #  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
 #  pragma warning(disable: 4702) // warning C4702: unreachable code
 #  pragma warning(disable: 4522) // warning C4522: multiple assignment operators specified
-#elif defined(__INTEL_COMPILER)
-#  pragma warning(push)
-#  pragma warning(disable: 68)    // integer conversion resulted in a change of sign
-#  pragma warning(disable: 186)   // pointless comparison of unsigned integer with zero
-#  pragma warning(disable: 878)   // incompatible exception specifications
-#  pragma warning(disable: 1334)  // the "template" keyword used for syntactic disambiguation may only be used within a template
-#  pragma warning(disable: 1682)  // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
-#  pragma warning(disable: 1875)  // offsetof applied to non-POD (Plain Old Data) types is nonstandard
-#  pragma warning(disable: 2196)  // warning #2196: routine is both "inline" and "noinline"
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
@@ -44,6 +45,10 @@
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
+
+#if defined(__GNUG__) && !defined(__clang__)
+#  include <cxxabi.h>
+#endif
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -490,7 +495,7 @@ protected:
 
                 function_call call(func, parent);
 
-                size_t args_to_copy = std::min(pos_args, n_args_in);
+                size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
@@ -662,6 +667,10 @@ protected:
         } catch (error_already_set &e) {
             e.restore();
             return nullptr;
+#if defined(__GNUG__) && !defined(__clang__)
+        } catch ( abi::__forced_unwind& ) {
+            throw;
+#endif
         } catch (...) {
             /* When an exception is caught, give each registered exception
                translator a chance to translate it to a Python exception
@@ -896,6 +905,7 @@ protected:
         tinfo->type = (PyTypeObject *) m_ptr;
         tinfo->cpptype = rec.type;
         tinfo->type_size = rec.type_size;
+        tinfo->type_align = rec.type_align;
         tinfo->operator_new = rec.operator_new;
         tinfo->holder_size_in_ptrs = size_in_ptrs(rec.holder_size);
         tinfo->init_instance = rec.init_instance;
@@ -987,11 +997,21 @@ template <typename T> struct has_operator_delete_size<T, void_t<decltype(static_
     : std::true_type { };
 /// Call class-specific delete if it exists or global otherwise. Can also be an overload set.
 template <typename T, enable_if_t<has_operator_delete<T>::value, int> = 0>
-void call_operator_delete(T *p, size_t) { T::operator delete(p); }
+void call_operator_delete(T *p, size_t, size_t) { T::operator delete(p); }
 template <typename T, enable_if_t<!has_operator_delete<T>::value && has_operator_delete_size<T>::value, int> = 0>
-void call_operator_delete(T *p, size_t s) { T::operator delete(p, s); }
+void call_operator_delete(T *p, size_t s, size_t) { T::operator delete(p, s); }
 
-inline void call_operator_delete(void *p, size_t) { ::operator delete(p); }
+inline void call_operator_delete(void *p, size_t s, size_t a) {
+    (void)s; (void)a;
+#if defined(PYBIND11_CPP17)
+    if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+        ::operator delete(p, s, std::align_val_t(a));
+    else
+        ::operator delete(p, s);
+#else
+    ::operator delete(p);
+#endif
+}
 
 NAMESPACE_END(detail)
 
@@ -1054,10 +1074,11 @@ public:
         record.name = name;
         record.type = &typeid(type);
         record.type_size = sizeof(conditional_t<has_alias, type_alias, type>);
+        record.type_align = alignof(conditional_t<has_alias, type_alias, type>&);
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-        record.default_holder = std::is_same<holder_type, std::unique_ptr<type>>::value;
+        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
         set_operator_new<type>(&record);
 
@@ -1099,7 +1120,7 @@ public:
                 "def_static(...) called with a non-static member function pointer");
         cpp_function cf(std::forward<Func>(f), name(name_), scope(*this),
                         sibling(getattr(*this, name_, none())), extra...);
-        attr(cf.name()) = cf;
+        attr(cf.name()) = staticmethod(cf);
         return *this;
     }
 
@@ -1163,7 +1184,7 @@ public:
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
-        static_assert(std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
+        static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this)),
                      fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
         def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
@@ -1172,7 +1193,7 @@ public:
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
-        static_assert(std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
+        static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this));
         def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
         return *this;
@@ -1244,6 +1265,8 @@ public:
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
     class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
+        static_assert( 0 == detail::constexpr_sum(std::is_base_of<arg, Extra>::value...),
+                      "Argument annotations are not allowed for properties");
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
         auto *rec_active = rec_fget;
         if (rec_fget) {
@@ -1329,7 +1352,10 @@ private:
             v_h.set_holder_constructed(false);
         }
         else {
-            detail::call_operator_delete(v_h.value_ptr<type>(), v_h.type->type_size);
+            detail::call_operator_delete(v_h.value_ptr<type>(),
+                v_h.type->type_size,
+                v_h.type->type_align
+            );
         }
         v_h.value_ptr() = nullptr;
     }
@@ -1464,12 +1490,12 @@ struct enum_base {
             PYBIND11_ENUM_OP_STRICT("__ne__", !int_(a).equal(int_(b)), return true);
 
             if (is_arithmetic) {
-                #define THROW throw type_error("Expected an enumeration of matching type!");
-                PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) <  int_(b), THROW);
-                PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) >  int_(b), THROW);
-                PYBIND11_ENUM_OP_STRICT("__le__", int_(a) <= int_(b), THROW);
-                PYBIND11_ENUM_OP_STRICT("__ge__", int_(a) >= int_(b), THROW);
-                #undef THROW
+                #define PYBIND11_THROW throw type_error("Expected an enumeration of matching type!");
+                PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) <  int_(b), PYBIND11_THROW);
+                PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) >  int_(b), PYBIND11_THROW);
+                PYBIND11_ENUM_OP_STRICT("__le__", int_(a) <= int_(b), PYBIND11_THROW);
+                PYBIND11_ENUM_OP_STRICT("__ge__", int_(a) >= int_(b), PYBIND11_THROW);
+                #undef PYBIND11_THROW
             }
         }
 
@@ -1856,6 +1882,15 @@ public:
         tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
 
         if (!tstate) {
+            /* Check if the GIL was acquired using the PyGILState_* API instead (e.g. if
+               calling from a Python thread). Since we use a different key, this ensures
+               we don't create a new thread state and deadlock in PyEval_AcquireThread
+               below. Note we don't save this state with internals.tstate, since we don't
+               create it we would fail to clear it (its reference count should be > 0). */
+            tstate = PyGILState_GetThisThreadState();
+        }
+
+        if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
             #if !defined(NDEBUG)
                 if (!tstate)
@@ -1962,12 +1997,12 @@ class gil_scoped_release { };
 #endif
 
 error_already_set::~error_already_set() {
-    if (type) {
-        error_scope scope;
+    if (m_type) {
         gil_scoped_acquire gil;
-        type.release().dec_ref();
-        value.release().dec_ref();
-        trace.release().dec_ref();
+        error_scope scope;
+        m_type.release().dec_ref();
+        m_value.release().dec_ref();
+        m_trace.release().dec_ref();
     }
 }
 
@@ -2028,6 +2063,14 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     return overload;
 }
 
+/** \rst
+  Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
+
+  :this_ptr: The pointer to the object the overload should be retrieved for. This should be the first
+                   non-trampoline class encountered in the inheritance chain.
+  :name: The name of the overloaded Python method to retrieve.
+  :return: The Python method by this name from the object or an empty function wrapper.
+ \endrst */
 template <class T> function get_overload(const T *this_ptr, const char *name) {
     auto tinfo = detail::get_type_info(typeid(T));
     return tinfo ? get_type_overload(this_ptr, tinfo, name) : function();
@@ -2046,26 +2089,73 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
         } \
     }
 
+/** \rst
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
+    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
+    the appropriate type. See :ref:`overriding_virtuals` for more information. This macro should be used when the method
+    name in C is not the same as the method name in Python. For example with `__str__`.
+
+    .. code-block:: cpp
+
+      std::string toString() override {
+        PYBIND11_OVERLOAD_NAME(
+            std::string, // Return type (ret_type)
+            Animal,      // Parent class (cname)
+            toString,    // Name of function in C++ (name)
+            "__str__",   // Name of method in Python (fn)
+        );
+      }
+\endrst */
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
     return cname::fn(__VA_ARGS__)
 
+/** \rst
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD_NAME`, except that it
+    throws if no overload can be found.
+\endrst */
 #define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
     pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\"");
 
+/** \rst
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
+    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
+    the appropriate type. This macro should be used if the method name in C and in Python are identical.
+    See :ref:`overriding_virtuals` for more information.
+
+    .. code-block:: cpp
+
+      class PyAnimal : public Animal {
+      public:
+          // Inherit the constructors
+          using Animal::Animal;
+
+          // Trampoline (need one for each virtual function)
+          std::string go(int n_times) override {
+              PYBIND11_OVERLOAD_PURE(
+                  std::string, // Return type (ret_type)
+                  Animal,      // Parent class (cname)
+                  go,          // Name of function in C++ (must match Python name) (fn)
+                  n_times      // Argument(s) (...)
+              );
+          }
+      };
+\endrst */
 #define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
     PYBIND11_OVERLOAD_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
+/** \rst
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD`, except that it throws
+    if no overload can be found.
+\endrst */
 #define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
     PYBIND11_OVERLOAD_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
 NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(pop)
-#elif defined(__INTEL_COMPILER)
-/* Leave ignored warnings on */
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic pop
 #endif

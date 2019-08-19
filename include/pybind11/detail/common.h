@@ -94,7 +94,7 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 3
-#define PYBIND11_VERSION_PATCH dev0
+#define PYBIND11_VERSION_PATCH dev1
 
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
@@ -112,10 +112,6 @@
 #include <Python.h>
 #include <frameobject.h>
 #include <pythread.h>
-
-#if defined(_WIN32) && (defined(min) || defined(max))
-#  error Macro clash with min and max -- define NOMINMAX when compiling your program on Windows
-#endif
 
 #if defined(isalnum)
 #  undef isalnum
@@ -168,7 +164,9 @@
 #define PYBIND11_STR_TYPE ::pybind11::str
 #define PYBIND11_BOOL_ATTR "__bool__"
 #define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
+// Providing a separate declaration to make Clang's -Wmissing-prototypes happy
 #define PYBIND11_PLUGIN_IMPL(name) \
+    extern "C" PYBIND11_EXPORT PyObject *PyInit_##name();   \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 
 #else
@@ -192,8 +190,10 @@
 #define PYBIND11_STR_TYPE ::pybind11::bytes
 #define PYBIND11_BOOL_ATTR "__nonzero__"
 #define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_nonzero)
+// Providing a separate PyInit decl to make Clang's -Wmissing-prototypes happy
 #define PYBIND11_PLUGIN_IMPL(name) \
     static PyObject *pybind11_init_wrapper();               \
+    extern "C" PYBIND11_EXPORT void init##name();           \
     extern "C" PYBIND11_EXPORT void init##name() {          \
         (void)pybind11_init_wrapper();                      \
     }                                                       \
@@ -673,6 +673,7 @@ PYBIND11_RUNTIME_EXCEPTION(index_error, PyExc_IndexError)
 PYBIND11_RUNTIME_EXCEPTION(key_error, PyExc_KeyError)
 PYBIND11_RUNTIME_EXCEPTION(value_error, PyExc_ValueError)
 PYBIND11_RUNTIME_EXCEPTION(type_error, PyExc_TypeError)
+PYBIND11_RUNTIME_EXCEPTION(buffer_error, PyExc_BufferError)
 PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 

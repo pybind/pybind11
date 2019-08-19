@@ -336,3 +336,7 @@ def test_int_long():
     assert isinstance(m.int_cast(), int)
     assert isinstance(m.long_cast(), int)
     assert isinstance(m.longlong_cast(), must_be_long)
+
+
+def test_void_caster_2():
+    assert m.test_void_caster()

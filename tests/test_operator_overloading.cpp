@@ -23,6 +23,7 @@ public:
 
     std::string toString() const { return "[" + std::to_string(x) + ", " + std::to_string(y) + "]"; }
 
+    Vector2 operator-() const { return Vector2(-x, -y); }
     Vector2 operator+(const Vector2 &v) const { return Vector2(x + v.x, y + v.y); }
     Vector2 operator-(const Vector2 &v) const { return Vector2(x - v.x, y - v.y); }
     Vector2 operator-(float value) const { return Vector2(x - value, y - value); }
@@ -62,6 +63,25 @@ namespace std {
     };
 }
 
+// MSVC warns about unknown pragmas, and warnings are errors.
+#ifndef _MSC_VER
+  #pragma GCC diagnostic push
+  // clang 7.0.0 and Apple LLVM 10.0.1 introduce `-Wself-assign-overloaded` to
+  // `-Wall`, which is used here for overloading (e.g. `py::self += py::self `).
+  // Here, we suppress the warning using `#pragma diagnostic`.
+  // Taken from: https://github.com/RobotLocomotion/drake/commit/aaf84b46
+  // TODO(eric): This could be resolved using a function / functor (e.g. `py::self()`).
+  #if (__APPLE__) && (__clang__)
+    #if (__clang_major__ >= 10) && (__clang_minor__ >= 0) && (__clang_patchlevel__ >= 1)
+      #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
+    #endif
+  #elif (__clang__)
+    #if (__clang_major__ >= 7)
+      #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
+    #endif
+  #endif
+#endif
+
 TEST_SUBMODULE(operators, m) {
 
     // test_operator_overloading
@@ -85,6 +105,7 @@ TEST_SUBMODULE(operators, m) {
         .def(float() - py::self)
         .def(float() * py::self)
         .def(float() / py::self)
+        .def(-py::self)
         .def("__str__", &Vector2::toString)
         .def(hash(py::self))
         ;
@@ -144,3 +165,7 @@ TEST_SUBMODULE(operators, m) {
         .def_readwrite("b", &NestC::b);
     m.def("get_NestC", [](const NestC &c) { return c.value; });
 }
+
+#ifndef _MSC_VER
+  #pragma GCC diagnostic pop
+#endif

@@ -186,6 +186,32 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def(py::init<int>())
         .def_readwrite("value", &MyObject4::value);
 
+    // test_unique_deleter
+    // Object with std::unique_ptr<T, D> where D is not matching the base class
+    // Object with a protected destructor
+    class MyObject4a {
+    public:
+        MyObject4a(int i) {
+            value = i;
+            print_created(this);
+        };
+        int value;
+    protected:
+        virtual ~MyObject4a() { print_destroyed(this); }
+    };
+    py::class_<MyObject4a, std::unique_ptr<MyObject4a, py::nodelete>>(m, "MyObject4a")
+        .def(py::init<int>())
+        .def_readwrite("value", &MyObject4a::value);
+
+    // Object derived but with public destructor and no Deleter in default holder
+    class MyObject4b : public MyObject4a {
+    public:
+        MyObject4b(int i) : MyObject4a(i) { print_created(this); }
+        ~MyObject4b() { print_destroyed(this); }
+    };
+    py::class_<MyObject4b, MyObject4a>(m, "MyObject4b")
+        .def(py::init<int>());
+
     // test_large_holder
     class MyObject5 { // managed by huge_unique_ptr
     public:
@@ -310,7 +336,9 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     // test_shared_ptr_gc
     // #187: issue involving std::shared_ptr<> return value policy & garbage collection
-    struct ElementBase { virtual void foo() { } /* Force creation of virtual table */ };
+    struct ElementBase {
+        virtual ~ElementBase() { } /* Force creation of virtual table */
+    };
     py::class_<ElementBase, std::shared_ptr<ElementBase>>(m, "ElementBase");
 
     struct ElementA : ElementBase {
