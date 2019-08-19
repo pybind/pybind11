@@ -10,7 +10,9 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.3.1 (Not yet released)
 -----------------------------------------------------
 
-* TBA
+* ``py::details::overload_cast_impl`` is available in C++11 mode, can be used
+  like ``overload_cast`` with an additional set of parantheses.
+  `1581 <https://github.com/pybind/pybind11/pull/1581>`_.
 
 v2.3.0 (June 11, 2019)
 -----------------------------------------------------
@@ -104,7 +106,6 @@ v2.3.0 (June 11, 2019)
   `#1757 <https://github.com/pybind/pybind11/pull/1757>`_,
   `#1744 <https://github.com/pybind/pybind11/pull/1744>`_,
   `#1670 <https://github.com/pybind/pybind11/pull/1670>`_.
-
 
 v2.2.4 (September 11, 2018)
 -----------------------------------------------------
