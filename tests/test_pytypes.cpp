@@ -17,6 +17,8 @@ TEST_SUBMODULE(pytypes, m) {
         list.append("value");
         py::print("Entry at position 0:", list[0]);
         list[0] = py::str("overwritten");
+        list.insert(0, "inserted-0");
+        list.insert(2, "inserted-2");
         return list;
     });
     m.def("print_list", [](py::list list) {
