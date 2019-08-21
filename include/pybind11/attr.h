@@ -200,7 +200,8 @@ struct function_record {
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
     PYBIND11_NOINLINE type_record()
-        : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false), module_local(false) { }
+        : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
+          default_holder(true), module_local(false) { }
 
     /// Handle to the parent scope
     handle scope;

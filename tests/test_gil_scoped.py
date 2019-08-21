@@ -78,3 +78,8 @@ def test_python_to_cpp_to_python_from_process():
     This test is for completion, but it was never an issue.
     """
     assert _run_in_process(_python_to_cpp_to_python) == 0
+
+
+def test_cross_module_gil():
+    """Makes sure that the GIL can be acquired by another module from a GIL-released state."""
+    m.test_cross_module_gil()  # Should not raise a SIGSEGV

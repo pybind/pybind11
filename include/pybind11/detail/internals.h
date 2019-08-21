@@ -23,7 +23,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #if PY_VERSION_HEX >= 0x03070000
 #    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr
 #    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
-#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (tstate))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
 #    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
 #else
     // Usually an int but a long on Cygwin64 with Python 3.x
@@ -142,10 +142,18 @@ struct type_info {
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
 #define PYBIND11_INTERNALS_VERSION 3
 
-#if defined(_DEBUG)
+/// On MSVC, debug and release builds are not ABI-compatible!
+#if defined(_MSC_VER) && defined(_DEBUG)
 #   define PYBIND11_BUILD_TYPE "_debug"
 #else
 #   define PYBIND11_BUILD_TYPE ""
+#endif
+
+/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
+#if defined(__GXX_ABI_VERSION)
+#  define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
+#else
+#  define PYBIND11_BUILD_ABI ""
 #endif
 
 #if defined(WITH_THREAD)
@@ -155,10 +163,10 @@ struct type_info {
 #endif
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 #define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -167,11 +175,47 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
+inline void translate_exception(std::exception_ptr p) {
+    try {
+        if (p) std::rethrow_exception(p);
+    } catch (error_already_set &e)           { e.restore();                                    return;
+    } catch (const builtin_exception &e)     { e.set_error();                                  return;
+    } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
+    } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return;
+    } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return;
+    } catch (...) {
+        PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
+        return;
+    }
+}
+
+#if !defined(__GLIBCXX__)
+inline void translate_local_exception(std::exception_ptr p) {
+    try {
+        if (p) std::rethrow_exception(p);
+    } catch (error_already_set &e)       { e.restore();   return;
+    } catch (const builtin_exception &e) { e.set_error(); return;
+    }
+}
+#endif
+
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE inline internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
     if (internals_pp && *internals_pp)
         return **internals_pp;
+
+    // Ensure that the GIL is held since we will need to make Python calls.
+    // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
+    struct gil_scoped_acquire_local {
+        gil_scoped_acquire_local() : state (PyGILState_Ensure()) {}
+        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
+        const PyGILState_STATE state;
+    } gil;
 
     constexpr auto *id = PYBIND11_INTERNALS_ID;
     auto builtins = handle(PyEval_GetBuiltins());
@@ -184,15 +228,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         //
         // libstdc++ doesn't require this (types there are identified only by name)
 #if !defined(__GLIBCXX__)
-        (*internals_pp)->registered_exception_translators.push_front(
-            [](std::exception_ptr p) -> void {
-                try {
-                    if (p) std::rethrow_exception(p);
-                } catch (error_already_set &e)       { e.restore();   return;
-                } catch (const builtin_exception &e) { e.set_error(); return;
-                }
-            }
-        );
+        (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
     } else {
         if (!internals_pp) internals_pp = new internals*();
@@ -215,25 +251,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         internals_ptr->istate = tstate->interp;
 #endif
         builtins[id] = capsule(internals_pp);
-        internals_ptr->registered_exception_translators.push_front(
-            [](std::exception_ptr p) -> void {
-                try {
-                    if (p) std::rethrow_exception(p);
-                } catch (error_already_set &e)           { e.restore();                                    return;
-                } catch (const builtin_exception &e)     { e.set_error();                                  return;
-                } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
-                } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return;
-                } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return;
-                } catch (...) {
-                    PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
-                    return;
-                }
-            }
-        );
+        internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);

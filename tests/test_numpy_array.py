@@ -7,6 +7,21 @@ with pytest.suppress(ImportError):
     import numpy as np
 
 
+def test_dtypes():
+    # See issue #1328.
+    # - Platform-dependent sizes.
+    for size_check in m.get_platform_dtype_size_checks():
+        print(size_check)
+        assert size_check.size_cpp == size_check.size_numpy, size_check
+    # - Concrete sizes.
+    for check in m.get_concrete_dtype_checks():
+        print(check)
+        assert check.numpy == check.pybind11, check
+        if check.numpy.num != check.pybind11.num:
+            print("NOTE: typenum mismatch for {}: {} != {}".format(
+                check, check.numpy.num, check.pybind11.num))
+
+
 @pytest.fixture(scope='function')
 def arr():
     return np.array([[1, 2, 3], [4, 5, 6]], '=u2')
@@ -137,6 +152,11 @@ def test_make_c_f_array():
 
 def test_make_empty_shaped_array():
     m.make_empty_shaped_array()
+
+    # empty shape means numpy scalar, PEP 3118
+    assert m.scalar_int().ndim == 0
+    assert m.scalar_int().shape == ()
+    assert m.scalar_int() == 42
 
 
 def test_wrap():
@@ -414,3 +434,14 @@ def test_array_create_and_resize(msg):
 def test_index_using_ellipsis():
     a = m.index_using_ellipsis(np.zeros((5, 6, 7)))
     assert a.shape == (6,)
+
+
+@pytest.unsupported_on_pypy
+def test_dtype_refcount_leak():
+    from sys import getrefcount
+    dtype = np.dtype(np.float_)
+    a = np.array([1], dtype=dtype)
+    before = getrefcount(dtype)
+    m.ndim(a)
+    after = getrefcount(dtype)
+    assert after == before

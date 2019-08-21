@@ -100,32 +100,32 @@ def test_properties():
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = instance.def_property_writeonly  # noqa: F841 unused var
-    assert "unreadable attribute" in str(excinfo)
+    assert "unreadable attribute" in str(excinfo.value)
 
     instance.def_property_writeonly = 4
     assert instance.def_property_readonly == 4
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = instance.def_property_impossible  # noqa: F841 unused var
-    assert "unreadable attribute" in str(excinfo)
+    assert "unreadable attribute" in str(excinfo.value)
 
     with pytest.raises(AttributeError) as excinfo:
         instance.def_property_impossible = 5
-    assert "can't set attribute" in str(excinfo)
+    assert "can't set attribute" in str(excinfo.value)
 
 
 def test_static_properties():
     assert m.TestProperties.def_readonly_static == 1
     with pytest.raises(AttributeError) as excinfo:
         m.TestProperties.def_readonly_static = 2
-    assert "can't set attribute" in str(excinfo)
+    assert "can't set attribute" in str(excinfo.value)
 
     m.TestProperties.def_readwrite_static = 2
     assert m.TestProperties.def_readwrite_static == 2
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = m.TestProperties.def_writeonly_static  # noqa: F841 unused var
-    assert "unreadable attribute" in str(excinfo)
+    assert "unreadable attribute" in str(excinfo.value)
 
     m.TestProperties.def_writeonly_static = 3
     assert m.TestProperties.def_readonly_static == 3
@@ -133,14 +133,14 @@ def test_static_properties():
     assert m.TestProperties.def_property_readonly_static == 3
     with pytest.raises(AttributeError) as excinfo:
         m.TestProperties.def_property_readonly_static = 99
-    assert "can't set attribute" in str(excinfo)
+    assert "can't set attribute" in str(excinfo.value)
 
     m.TestProperties.def_property_static = 4
     assert m.TestProperties.def_property_static == 4
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = m.TestProperties.def_property_writeonly_static
-    assert "unreadable attribute" in str(excinfo)
+    assert "unreadable attribute" in str(excinfo.value)
 
     m.TestProperties.def_property_writeonly_static = 5
     assert m.TestProperties.def_property_static == 5
@@ -158,7 +158,7 @@ def test_static_properties():
 
     with pytest.raises(AttributeError) as excinfo:
         dummy = instance.def_property_writeonly_static  # noqa: F841 unused var
-    assert "unreadable attribute" in str(excinfo)
+    assert "unreadable attribute" in str(excinfo.value)
 
     instance.def_property_writeonly_static = 4
     assert instance.def_property_static == 4

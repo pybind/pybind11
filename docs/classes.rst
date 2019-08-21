@@ -422,6 +422,17 @@ on constness, the ``py::const_`` tag should be used:
        .def("foo_mutable", py::overload_cast<int, float>(&Widget::foo))
        .def("foo_const",   py::overload_cast<int, float>(&Widget::foo, py::const_));
 
+If you prefer the ``py::overload_cast`` syntax but have a C++11 compatible compiler only,
+you can use ``py::detail::overload_cast_impl`` with an additional set of parentheses:
+
+.. code-block:: cpp
+
+    template <typename... Args>
+    using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
+
+    py::class_<Pet>(m, "Pet")
+        .def("set", overload_cast_<int>()(&Pet::set), "Set the pet's age")
+        .def("set", overload_cast_<const std::string &>()(&Pet::set), "Set the pet's name");
 
 .. [#cpp14] A compiler which supports the ``-std=c++14`` flag
             or Visual Studio 2015 Update 2 and newer.
