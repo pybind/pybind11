@@ -197,7 +197,7 @@ function(pybind11_add_module target_name)
 
   _pybind11_add_lto_flags(${target_name} ${ARG_THIN_LTO})
 
-  if (NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug)
+  if (NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
     # Strip unnecessary sections of the binary on Linux/Mac OS
     if(CMAKE_STRIP)
       if(APPLE)
