@@ -313,17 +313,18 @@ template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen_
 
 NAMESPACE_BEGIN(detail)
 inline std::string error_string();
+inline std::string error_string(PyObject*, PyObject*, PyObject*);
 NAMESPACE_END(detail)
 
 /// Fetch and hold an error which was already set in Python.  An instance of this is typically
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
-class error_already_set : public std::runtime_error {
+class error_already_set : public std::exception {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
-    error_already_set() : std::runtime_error(detail::error_string()) {
+    error_already_set() : std::exception() {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
@@ -332,10 +333,22 @@ public:
 
     inline ~error_already_set();
 
+    virtual const char* what() const noexcept {
+        if (m_lazy_what.empty()) {
+            PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+            m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+        }
+        return m_lazy_what.c_str();
+    }
+
     /// Give the currently-held error back to Python, if any.  If there is currently a Python error
     /// already set it is cleared first.  After this call, the current object no longer stores the
     /// error variables (but the `.what()` string is still available).
-    void restore() { PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr()); }
+    void restore() {
+        what();  // Force-build `.what()`.
+        if (m_type || m_value || m_trace)
+            PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
+    }
 
     // Does nothing; provided for backwards compatibility.
     PYBIND11_DEPRECATED("Use of error_already_set.clear() is deprecated")
@@ -351,7 +364,8 @@ public:
     const object& trace() const { return m_trace; }
 
 private:
-    object m_type, m_value, m_trace;
+    mutable std::string m_lazy_what;
+    mutable object m_type, m_value, m_trace;
 };
 
 /** \defgroup python_builtins _

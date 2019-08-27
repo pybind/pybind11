@@ -403,38 +403,36 @@ PYBIND11_NOINLINE inline bool isinstance_generic(handle obj, const std::type_inf
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE inline std::string error_string() {
-    if (!PyErr_Occurred()) {
+PYBIND11_NOINLINE inline std::string error_string(PyObject* type, PyObject* value, PyObject *trace) {
+    if (!type && !value && !trace) {
         PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
         return "Unknown internal error occurred";
     }
 
-    error_scope scope; // Preserve error state
-
+    // TODO(superbobry): is it safe to assume that exception has been
+    // normalized by the caller?
     std::string errorString;
-    if (scope.type) {
-        errorString += handle(scope.type).attr("__name__").cast<std::string>();
+    if (type) {
+        errorString += handle(type).attr("__name__").cast<std::string>();
         errorString += ": ";
     }
-    if (scope.value)
-        errorString += (std::string) str(scope.value);
-
-    PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
+    if (value)
+        errorString += str(value).cast<std::string>();
 
 #if PY_MAJOR_VERSION >= 3
-    if (scope.trace != nullptr)
-        PyException_SetTraceback(scope.value, scope.trace);
+    if (trace)
+        PyException_SetTraceback(value, trace);
 #endif
 
 #if !defined(PYPY_VERSION)
-    if (scope.trace) {
-        PyTracebackObject *trace = (PyTracebackObject *) scope.trace;
+    if (trace) {
+        PyTracebackObject *tb = (PyTracebackObject *) trace;
 
         /* Get the deepest trace possible */
-        while (trace->tb_next)
-            trace = trace->tb_next;
+        while (tb->tb_next)
+            tb = tb->tb_next;
 
-        PyFrameObject *frame = trace->tb_frame;
+        PyFrameObject *frame = tb->tb_frame;
         errorString += "\n\nAt:\n";
         while (frame) {
             int lineno = PyFrame_GetLineNumber(frame);
@@ -448,6 +446,12 @@ PYBIND11_NOINLINE inline std::string error_string() {
 #endif
 
     return errorString;
+}
+
+PYBIND11_NOINLINE inline std::string error_string() {
+    error_scope scope; // Preserve error state
+    PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
+    return error_string(scope.type, scope.value, scope.trace);
 }
 
 PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail::type_info *type ) {

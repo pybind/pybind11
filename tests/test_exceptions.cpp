@@ -157,7 +157,7 @@ TEST_SUBMODULE(exceptions, m) {
             PyErr_SetString(PyExc_ValueError, "foo");
         try {
             throw py::error_already_set();
-        } catch (const std::runtime_error& e) {
+        } catch (const py::error_already_set& e) {
             if ((err && e.what() != std::string("ValueError: foo")) ||
                 (!err && e.what() != std::string("Unknown internal error occurred")))
             {
