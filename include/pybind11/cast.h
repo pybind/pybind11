@@ -413,7 +413,7 @@ PYBIND11_NOINLINE inline std::string error_string(PyObject* type, PyObject* valu
     // normalized by the caller?
     std::string errorString;
     if (type) {
-        errorString += static_cast<const std::string>(reinterpret_cast<PyTypeObject*>(type)->tp_name);
+        errorString += handle(type).attr("__name__").cast<std::string>();
         errorString += ": ";
     }
     if (value)
