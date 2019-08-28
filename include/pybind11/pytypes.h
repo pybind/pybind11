@@ -320,11 +320,11 @@ NAMESPACE_END(detail)
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
-class error_already_set : public std::exception {
+class error_already_set : public std::runtime_error {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
-    error_already_set() : std::exception() {
+    error_already_set() : std::runtime_error("") {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
@@ -334,12 +334,16 @@ public:
     inline ~error_already_set();
 
     virtual const char* what() const noexcept {
-        if (m_lazy_what.empty()) {
-            if (m_type || m_value || m_trace)
-               PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-            m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+        try {
+            if (m_lazy_what.empty()) {
+                if (m_type || m_value || m_trace)
+                PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+                m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+            }
+            return m_lazy_what.c_str();
+        } catch (...) {
+            return "Unknown internal error occurred";
         }
-        return m_lazy_what.c_str();
     }
 
     /// Give the currently-held error back to Python, if any.  If there is currently a Python error
