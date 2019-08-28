@@ -335,7 +335,8 @@ public:
 
     virtual const char* what() const noexcept {
         if (m_lazy_what.empty()) {
-            PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+            if (m_type || m_value || m_trace)
+               PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
             m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
         }
         return m_lazy_what.c_str();
