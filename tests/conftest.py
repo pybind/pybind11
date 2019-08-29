@@ -17,6 +17,11 @@ _unicode_marker = re.compile(r'u(\'[^\']*\')')
 _long_marker = re.compile(r'([0-9])L')
 _hexadecimal = re.compile(r'0x[0-9a-fA-F]+')
 
+# test_async.py requires support for async and await
+collect_ignore = []
+if sys.version_info[:2] < (3, 5):
+    collect_ignore.append("test_async.py")
+
 
 def _strip_and_dedent(s):
     """For triple-quote strings"""

@@ -105,6 +105,7 @@ In addition to the core functionality, pybind11 provides some extra goodies:
 This project was created by [Wenzel Jakob](http://rgl.epfl.ch/people/wjakob).
 Significant features and/or improvements to the code were contributed by
 Jonas Adler,
+Lori A. Burns,
 Sylvain Corlay,
 Trent Houliston,
 Axel Huebl,
@@ -117,6 +118,7 @@ Ben Pritchard,
 Jason Rhinelander,
 Boris Schäling,
 Pim Schellart,
+Henry Schreiner,
 Ivan Smirnov, and
 Patrick Stewart.
 

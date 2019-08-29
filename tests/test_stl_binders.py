@@ -11,6 +11,10 @@ def test_vector_int():
     assert len(v_int) == 2
     assert bool(v_int) is True
 
+    # test construction from a generator
+    v_int1 = m.VectorInt(x for x in range(5))
+    assert v_int1 == m.VectorInt([0, 1, 2, 3, 4])
+
     v_int2 = m.VectorInt([0, 0])
     assert v_int == v_int2
     v_int2[1] = 1
@@ -33,6 +37,32 @@ def test_vector_int():
     del v_int2[0]
     assert v_int2 == m.VectorInt([0, 99, 2, 3])
 
+    v_int2.extend(m.VectorInt([4, 5]))
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5])
+
+    v_int2.extend([6, 7])
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7])
+
+    # test error handling, and that the vector is unchanged
+    with pytest.raises(RuntimeError):
+        v_int2.extend([8, 'a'])
+
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7])
+
+    # test extending from a generator
+    v_int2.extend(x for x in range(5))
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4])
+
+    # test negative indexing
+    assert v_int2[-1] == 4
+
+    # insert with negative index
+    v_int2.insert(-1, 88)
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 88, 4])
+
+    # delete negative index
+    del v_int2[-1]
+    assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 88])
 
 # related to the PyPy's buffer protocol.
 @pytest.unsupported_on_pypy

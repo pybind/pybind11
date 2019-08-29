@@ -220,7 +220,7 @@ def test_cross_module_calls():
     c, d = m.MixGL2(3), cm.MixGL2(4)
     with pytest.raises(TypeError) as excinfo:
         m.get_gl_value(c)
-    assert "incompatible function arguments" in str(excinfo)
+    assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_gl_value(d)
-    assert "incompatible function arguments" in str(excinfo)
+    assert "incompatible function arguments" in str(excinfo.value)

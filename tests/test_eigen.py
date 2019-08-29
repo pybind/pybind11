@@ -204,8 +204,8 @@ def test_eigen_passing_adscalar():
     def expect_ref_error(func):
         with pytest.raises(RuntimeError) as excinfo:
             func()
-        assert "dtype=object" in str(excinfo)
-        assert "reachable" not in str(excinfo)
+        assert "dtype=object" in str(excinfo.value)
+        assert "reachable" not in str(excinfo.value)
 
     # - Return arguments.
     expect_ref_error(lambda: m.get_cm_ref_adscalar())
@@ -225,10 +225,10 @@ def test_eigen_passing_adscalar():
 
     with pytest.raises(TypeError) as excinfo:
         m.iss1105_row_obj(adscalar_vec_col[:, None])
-    assert "incompatible function arguments" in str(excinfo)
+    assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.iss1105_col_obj(adscalar_vec_row[None, :])
-    assert "incompatible function arguments" in str(excinfo)
+    assert "incompatible function arguments" in str(excinfo.value)
 
 
 def test_eigen_obj_shape():
@@ -771,10 +771,10 @@ def test_issue1105():
     # These should still fail (incompatible dimensions):
     with pytest.raises(TypeError) as excinfo:
         m.iss1105_row(np.ones((7, 1)))
-    assert "incompatible function arguments" in str(excinfo)
+    assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.iss1105_col(np.ones((1, 7)))
-    assert "incompatible function arguments" in str(excinfo)
+    assert "incompatible function arguments" in str(excinfo.value)
 
 
 def test_custom_operator_new():
