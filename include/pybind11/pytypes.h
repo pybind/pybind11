@@ -326,6 +326,8 @@ public:
     /// Python error indicator will be cleared.
     error_already_set() : std::runtime_error("") {
         PyErr_Fetch(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+        if (m_type)
+            PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     }
 
     error_already_set(const error_already_set &) = default;
@@ -335,9 +337,6 @@ public:
 
     virtual const char* what() const noexcept override {
         if (m_lazy_what.empty()) {
-            if (m_type)
-                PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
-
             try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             } catch (...) {
