@@ -415,8 +415,8 @@ PYBIND11_NOINLINE inline std::string error_string(PyObject *type, PyObject *valu
     if (value)
         result += str(value).cast<std::string>();
 
-#if !defined(PYPY_VERSION)
     if (trace) {
+#if !defined(PYPY_VERSION)
         PyTracebackObject *tb = (PyTracebackObject *) trace;
 
         // Get the deepest trace possible.
@@ -433,8 +433,8 @@ PYBIND11_NOINLINE inline std::string error_string(PyObject *type, PyObject *valu
                 handle(frame->f_code->co_name).cast<std::string>() + "\n";
             frame = frame->f_back;
         }
-    }
 #endif
+    }
 
     return result;
 }

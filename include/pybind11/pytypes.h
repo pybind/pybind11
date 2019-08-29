@@ -335,8 +335,10 @@ public:
 
     virtual const char* what() const noexcept override {
         if (m_lazy_what.empty()) {
-            try {
+            if (m_type)
                 PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
+
+            try {
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
             } catch (...) {
                 return "Unknown internal error occurred";
