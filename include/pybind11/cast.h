@@ -403,40 +403,31 @@ PYBIND11_NOINLINE inline bool isinstance_generic(handle obj, const std::type_inf
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE inline std::string error_string(PyObject* type, PyObject* value, PyObject *trace) {
-    if (!type && !value && !trace) {
+PYBIND11_NOINLINE inline std::string error_string(PyObject *type, PyObject *value, PyObject *trace) {
+    if (!type) {
         PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
         return "Unknown internal error occurred";
     }
 
-    // TODO(superbobry): is it safe to assume that exception has been
-    // normalized by the caller?
-    std::string errorString;
-    if (type) {
-        errorString += handle(type).attr("__name__").cast<std::string>();
-        errorString += ": ";
-    }
-    if (value)
-        errorString += str(value).cast<std::string>();
+    std::string result = handle(type).attr("__name__").cast<std::string>();
+    result += ": ";
 
-#if PY_MAJOR_VERSION >= 3
-    if (trace)
-        PyException_SetTraceback(value, trace);
-#endif
+    if (value)
+        result += str(value).cast<std::string>();
 
 #if !defined(PYPY_VERSION)
     if (trace) {
         PyTracebackObject *tb = (PyTracebackObject *) trace;
 
-        /* Get the deepest trace possible */
+        // Get the deepest trace possible.
         while (tb->tb_next)
             tb = tb->tb_next;
 
         PyFrameObject *frame = tb->tb_frame;
-        errorString += "\n\nAt:\n";
+        result += "\n\nAt:\n";
         while (frame) {
             int lineno = PyFrame_GetLineNumber(frame);
-            errorString +=
+            result +=
                 "  " + handle(frame->f_code->co_filename).cast<std::string>() +
                 "(" + std::to_string(lineno) + "): " +
                 handle(frame->f_code->co_name).cast<std::string>() + "\n";
@@ -445,12 +436,13 @@ PYBIND11_NOINLINE inline std::string error_string(PyObject* type, PyObject* valu
     }
 #endif
 
-    return errorString;
+    return result;
 }
 
 PYBIND11_NOINLINE inline std::string error_string() {
-    error_scope scope; // Preserve error state
-    PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
+    error_scope scope;  // Preserve error state.
+    if (scope.type)
+        PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
     return error_string(scope.type, scope.value, scope.trace);
 }
 

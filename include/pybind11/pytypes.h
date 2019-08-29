@@ -333,17 +333,16 @@ public:
 
     inline ~error_already_set();
 
-    virtual const char* what() const noexcept {
-        try {
-            if (m_lazy_what.empty()) {
-                if (m_type || m_value || m_trace)
+    virtual const char* what() const noexcept override {
+        if (m_lazy_what.empty()) {
+            try {
                 PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
                 m_lazy_what = detail::error_string(m_type.ptr(), m_value.ptr(), m_trace.ptr());
+            } catch (...) {
+                return "Unknown internal error occurred";
             }
-            return m_lazy_what.c_str();
-        } catch (...) {
-            return "Unknown internal error occurred";
         }
+        return m_lazy_what.c_str();
     }
 
     /// Give the currently-held error back to Python, if any.  If there is currently a Python error
@@ -351,7 +350,7 @@ public:
     /// error variables (but the `.what()` string is still available).
     void restore() {
         what();  // Force-build `.what()`.
-        if (m_type || m_value || m_trace)
+        if (m_type)
             PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr());
     }
 
