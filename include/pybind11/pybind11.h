@@ -1484,6 +1484,8 @@ struct enum_base {
                 PYBIND11_ENUM_OP_CONV("__ror__",  a |  b);
                 PYBIND11_ENUM_OP_CONV("__xor__",  a ^  b);
                 PYBIND11_ENUM_OP_CONV("__rxor__", a ^  b);
+                m_base.attr("__invert__") = cpp_function(
+                    [](object arg) { return ~(int_(arg)); }, is_method(m_base));
             }
         } else {
             PYBIND11_ENUM_OP_STRICT("__eq__",  int_(a).equal(int_(b)), return false);

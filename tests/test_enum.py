@@ -140,6 +140,7 @@ def test_binary_operators():
     assert int(m.Flags.Read | m.Flags.Execute) == 5
     assert int(m.Flags.Write | m.Flags.Execute) == 3
     assert int(m.Flags.Write | 1) == 3
+    assert ~m.Flags.Write == -3
 
     state = m.Flags.Read | m.Flags.Write
     assert (state & m.Flags.Read) != 0
