@@ -749,7 +749,11 @@ protected:
             for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
                 if (!some_args) some_args = true;
                 else msg += ", ";
-                msg += pybind11::repr(args_[ti]);
+                try {
+                    msg += pybind11::repr(args_[ti]);
+                } catch (...) {
+                    msg += "<repr raised an exception>";
+                }
             }
             if (kwargs_in) {
                 auto kwargs = reinterpret_borrow<dict>(kwargs_in);

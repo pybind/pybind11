@@ -1,3 +1,4 @@
+import pytest
 from pybind11_tests import constants_and_functions as m
 
 
@@ -37,3 +38,13 @@ def test_exception_specifiers():
     assert m.f2(53) == 55
     assert m.f3(86) == 89
     assert m.f4(140) == 144
+
+
+def test_incompatible_args_and_repr_exception():
+    """Checks repr exceptions are handled gracefully by the dispatcher."""
+    class ReprRaises(object):
+        def __repr__(self):
+            raise ValueError("repr")
+    with pytest.raises(TypeError,
+                       match="Invoked with: <repr raised an exception>"):
+        m.test_function(ReprRaises())
