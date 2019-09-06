@@ -53,6 +53,12 @@ Members:
     assert 2 == y
     assert y != 3
     assert 3 != y
+    # Compare with None
+    assert (y != None)
+    assert not (y == None)
+    # Compare with an object
+    assert (y != object())
+    assert not (y == object())
 
     assert int(m.UnscopedEnum.ETwo) == 2
     assert str(m.UnscopedEnum(2)) == "UnscopedEnum.ETwo"
@@ -82,6 +88,12 @@ def test_scoped_enum():
     assert not 3 == z
     assert z != 3
     assert 3 != z
+    # Compare with None
+    assert (z != None)
+    assert not (z == None)
+    # Compare with an object
+    assert (z != object())
+    assert not (z == object())
     # Scoped enums will *NOT* accept >, <, >= and <= int comparisons (Will throw exceptions)
     with pytest.raises(TypeError):
         z > 3
