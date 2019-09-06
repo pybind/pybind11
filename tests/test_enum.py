@@ -59,6 +59,11 @@ Members:
     # Compare with an object
     assert (y != object())
     assert not (y == object())
+    # Compare with string
+    assert y != "2"
+    assert "2" != y
+    assert not ("2" == y)
+    assert not (y == "2")
 
     assert int(m.UnscopedEnum.ETwo) == 2
     assert str(m.UnscopedEnum(2)) == "UnscopedEnum.ETwo"
