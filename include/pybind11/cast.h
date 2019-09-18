@@ -11,6 +11,7 @@
 #pragma once
 
 #include "pytypes.h"
+#include "detail/common.h"
 #include "detail/typeid.h"
 #include "detail/descr.h"
 #include "detail/internals.h"
@@ -775,7 +776,9 @@ template <typename T, typename SFINAE = void> struct is_copy_constructible : std
 // so, copy constructability depends on whether the value_type is copy constructible.
 template <typename Container> struct is_copy_constructible<Container, enable_if_t<all_of<
         std::is_copy_constructible<Container>,
-        std::is_same<typename Container::value_type &, typename Container::reference>
+        std::is_same<typename Container::value_type &, typename Container::reference>,
+        // Avoid infinite recursion
+        negation<std::is_same<Container, typename Container::value_type>>
     >::value>> : is_copy_constructible<typename Container::value_type> {};
 
 #if !defined(PYBIND11_CPP17)
