@@ -21,7 +21,7 @@ def test_unscoped_enum():
 
     # __members__ property
     assert m.UnscopedEnum.__members__ == \
-        {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo}
+        {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo, "EThree": m.UnscopedEnum.EThree}
     # __members__ readonly
     with pytest.raises(AttributeError):
         m.UnscopedEnum.__members__ = {}
@@ -29,8 +29,7 @@ def test_unscoped_enum():
     foo = m.UnscopedEnum.__members__
     foo["bar"] = "baz"
     assert m.UnscopedEnum.__members__ == \
-        {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo}
-
+        {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo, "EThree": m.UnscopedEnum.EThree}
     assert m.UnscopedEnum.__doc__ == \
         '''An unscoped enumeration
 
@@ -38,14 +37,18 @@ Members:
 
   EOne : Docstring for EOne
 
-  ETwo : Docstring for ETwo''' or m.UnscopedEnum.__doc__ == \
+  ETwo : Docstring for ETwo
+
+  EThree : Docstring for EThree''' or m.UnscopedEnum.__doc__ == \
         '''An unscoped enumeration
 
 Members:
 
   ETwo : Docstring for ETwo
 
-  EOne : Docstring for EOne'''
+  EOne : Docstring for EOne
+
+  EThree : Docstring for EThree'''
 
     # Unscoped enums will accept ==/!= int comparisons
     y = m.UnscopedEnum.ETwo
@@ -65,6 +68,27 @@ Members:
     assert not ("2" == y)
     assert not (y == "2")
 
+    with pytest.raises(TypeError):
+        y < object()
+
+    with pytest.raises(TypeError):
+        y <= object()
+
+    with pytest.raises(TypeError):
+        y > object()
+
+    with pytest.raises(TypeError):
+        y >= object()
+
+    with pytest.raises(TypeError):
+        y | object()
+
+    with pytest.raises(TypeError):
+        y & object()
+
+    with pytest.raises(TypeError):
+        y ^ object()
+
     assert int(m.UnscopedEnum.ETwo) == 2
     assert str(m.UnscopedEnum(2)) == "UnscopedEnum.ETwo"
 
@@ -81,6 +105,11 @@ Members:
     assert m.UnscopedEnum.ETwo >= 1
     assert not (m.UnscopedEnum.ETwo < m.UnscopedEnum.EOne)
     assert not (2 < m.UnscopedEnum.EOne)
+
+    # arithmetic
+    assert m.UnscopedEnum.EOne & m.UnscopedEnum.EThree == m.UnscopedEnum.EOne
+    assert m.UnscopedEnum.EOne | m.UnscopedEnum.ETwo == m.UnscopedEnum.EThree
+    assert m.UnscopedEnum.EOne ^ m.UnscopedEnum.EThree == m.UnscopedEnum.ETwo
 
 
 def test_scoped_enum():
