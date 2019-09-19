@@ -30,8 +30,8 @@ def test_unscoped_enum():
     foo["bar"] = "baz"
     assert m.UnscopedEnum.__members__ == \
         {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo, "EThree": m.UnscopedEnum.EThree}
-    assert m.UnscopedEnum.__doc__ == \
-        '''An unscoped enumeration
+
+    for docstring_line in '''An unscoped enumeration
 
 Members:
 
@@ -39,16 +39,8 @@ Members:
 
   ETwo : Docstring for ETwo
 
-  EThree : Docstring for EThree''' or m.UnscopedEnum.__doc__ == \
-        '''An unscoped enumeration
-
-Members:
-
-  ETwo : Docstring for ETwo
-
-  EOne : Docstring for EOne
-
-  EThree : Docstring for EThree'''
+  EThree : Docstring for EThree'''.split('\n'):
+        assert docstring_line in m.UnscopedEnum.__doc__
 
     # Unscoped enums will accept ==/!= int comparisons
     y = m.UnscopedEnum.ETwo
