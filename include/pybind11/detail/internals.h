@@ -147,6 +147,33 @@ struct type_info {
 #   define PYBIND11_BUILD_TYPE ""
 #endif
 
+/// Let's assume that different compilers are ABI-incompatible.
+#if defined(_MSC_VER)
+#   define PYBIND11_COMPILER_TYPE "_msvc"
+#elif defined(__INTEL_COMPILER)
+#   define PYBIND11_COMPILER_TYPE "_icc"
+#elif defined(__clang__)
+#   define PYBIND11_COMPILER_TYPE "_clang"
+#elif defined(__PGI)
+#   define PYBIND11_COMPILER_TYPE "_pgi"
+#elif defined(__MINGW32__)
+#   define PYBIND11_COMPILER_TYPE "_mingw"
+#elif defined(__CYGWIN__)
+#   define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
+#elif defined(__GNUC__)
+#   define PYBIND11_COMPILER_TYPE "_gcc"
+#else
+#   define PYBIND11_COMPILER_TYPE "_unknown"
+#endif
+
+#if defined(_LIBCPP_VERSION)
+#  define PYBIND11_STDLIB "_libcpp"
+#elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
+#  define PYBIND11_STDLIB "_libstdcpp"
+#else
+#  define PYBIND11_STDLIB ""
+#endif
+
 /// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
 #if defined(__GXX_ABI_VERSION)
 #  define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
@@ -161,10 +188,10 @@ struct type_info {
 #endif
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 #define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
