@@ -1469,9 +1469,17 @@ struct enum_base {
                 },                                                                     \
                 is_method(m_base))
 
+        #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                    \
+            m_base.attr(op) = cpp_function(                                            \
+                [](object a_, object b) {                                              \
+                    int_ a(a_);                                                        \
+                    return expr;                                                       \
+                },                                                                     \
+                is_method(m_base))
+
         if (is_convertible) {
-            PYBIND11_ENUM_OP_CONV("__eq__", !b.is_none() &&  a.equal(b));
-            PYBIND11_ENUM_OP_CONV("__ne__",  b.is_none() || !a.equal(b));
+            PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() &&  a.equal(b));
+            PYBIND11_ENUM_OP_CONV_LHS("__ne__",  b.is_none() || !a.equal(b));
 
             if (is_arithmetic) {
                 PYBIND11_ENUM_OP_CONV("__lt__",   a <  b);
@@ -1501,6 +1509,7 @@ struct enum_base {
             }
         }
 
+        #undef PYBIND11_ENUM_OP_CONV_LHS
         #undef PYBIND11_ENUM_OP_CONV
         #undef PYBIND11_ENUM_OP_STRICT
 
