@@ -6,6 +6,12 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+v2.4.1 (Sep 20, 2019)
+-----------------------------------------------------
+
+* Fixed a problem involving implicit conversion from enumerations to integers
+  on Python 3.8. `1780 <https://github.com/pybind/pybind11/pull/1780>`_.
+
 v2.4.0 (Sep 19, 2019)
 -----------------------------------------------------
 
@@ -13,58 +19,58 @@ v2.4.0 (Sep 19, 2019)
   are potential ABI incompatibilities. Fixes crashes that occurred when loading
   multiple pybind11 extensions that were e.g. compiled by GCC (libstdc++)
   and Clang (libc++).
-  `1588 <https://github.com/pybind/pybind11/pull/1588>`_ and
+  `#1588 <https://github.com/pybind/pybind11/pull/1588>`_ and
   `c9f5a <https://github.com/pybind/pybind11/commit/c9f5a>`_.
 
 * Added support for ``__await__``, ``__aiter__``, and ``__anext__`` protocols.
-  `1842 <https://github.com/pybind/pybind11/pull/1842>`_.
+  `#1842 <https://github.com/pybind/pybind11/pull/1842>`_.
 
 * ``pybind11_add_module()``: don't strip symbols when compiling in
-  ``RelWithDebInfo`` mode. `1980
+  ``RelWithDebInfo`` mode. `#1980
   <https://github.com/pybind/pybind11/pull/1980>`_.
 
 * ``enum_``: Reproduce Python behavior when comparing against invalid values
   (e.g. ``None``, strings, etc.). Add back support for ``__invert__()``.
-  `1912 <https://github.com/pybind/pybind11/pull/1912>`_,
-  `1907 <https://github.com/pybind/pybind11/pull/1907>`_.
+  `#1912 <https://github.com/pybind/pybind11/pull/1912>`_,
+  `#1907 <https://github.com/pybind/pybind11/pull/1907>`_.
 
 * List insertion operation for ``py::list``.
   Added ``.empty()`` to all collection types.
   Added ``py::set::contains()`` and ``py::dict::contains()``.
-  `1887 <https://github.com/pybind/pybind11/pull/1887>`_,
-  `1884 <https://github.com/pybind/pybind11/pull/1884>`_,
-  `1888 <https://github.com/pybind/pybind11/pull/1888>`_.
+  `#1887 <https://github.com/pybind/pybind11/pull/1887>`_,
+  `#1884 <https://github.com/pybind/pybind11/pull/1884>`_,
+  `#1888 <https://github.com/pybind/pybind11/pull/1888>`_.
 
 * ``py::details::overload_cast_impl`` is available in C++11 mode, can be used
   like ``overload_cast`` with an additional set of parantheses.
-  `1581 <https://github.com/pybind/pybind11/pull/1581>`_.
+  `#1581 <https://github.com/pybind/pybind11/pull/1581>`_.
 
 * Fixed ``get_include()`` on Conda.
-  `1877 <https://github.com/pybind/pybind11/pull/1877>`_.
+  `#1877 <https://github.com/pybind/pybind11/pull/1877>`_.
 
 * ``stl_bind.h``: negative indexing support.
-  `1882 <https://github.com/pybind/pybind11/pull/1882>`_.
+  `#1882 <https://github.com/pybind/pybind11/pull/1882>`_.
 
 * Minor CMake fix to add MinGW compatibility.
-  `1851 <https://github.com/pybind/pybind11/pull/1851>`_.
+  `#1851 <https://github.com/pybind/pybind11/pull/1851>`_.
 
 * GIL-related fixes.
-  `1836 <https://github.com/pybind/pybind11/pull/1836>`_,
+  `#1836 <https://github.com/pybind/pybind11/pull/1836>`_,
   `8b90b <https://github.com/pybind/pybind11/commit/8b90b>`_.
 
 * Other very minor/subtle fixes and improvements.
-  `1329 <https://github.com/pybind/pybind11/pull/1329>`_,
-  `1910 <https://github.com/pybind/pybind11/pull/1910>`_,
-  `1863 <https://github.com/pybind/pybind11/pull/1863>`_,
-  `1847 <https://github.com/pybind/pybind11/pull/1847>`_,
-  `1890 <https://github.com/pybind/pybind11/pull/1890>`_,
-  `1860 <https://github.com/pybind/pybind11/pull/1860>`_,
-  `1848 <https://github.com/pybind/pybind11/pull/1848>`_,
-  `1821 <https://github.com/pybind/pybind11/pull/1821>`_,
-  `1837 <https://github.com/pybind/pybind11/pull/1837>`_,
-  `1833 <https://github.com/pybind/pybind11/pull/1833>`_,
-  `1748 <https://github.com/pybind/pybind11/pull/1748>`_,
-  `1852 <https://github.com/pybind/pybind11/pull/1852>`_.
+  `#1329 <https://github.com/pybind/pybind11/pull/1329>`_,
+  `#1910 <https://github.com/pybind/pybind11/pull/1910>`_,
+  `#1863 <https://github.com/pybind/pybind11/pull/1863>`_,
+  `#1847 <https://github.com/pybind/pybind11/pull/1847>`_,
+  `#1890 <https://github.com/pybind/pybind11/pull/1890>`_,
+  `#1860 <https://github.com/pybind/pybind11/pull/1860>`_,
+  `#1848 <https://github.com/pybind/pybind11/pull/1848>`_,
+  `#1821 <https://github.com/pybind/pybind11/pull/1821>`_,
+  `#1837 <https://github.com/pybind/pybind11/pull/1837>`_,
+  `#1833 <https://github.com/pybind/pybind11/pull/1833>`_,
+  `#1748 <https://github.com/pybind/pybind11/pull/1748>`_,
+  `#1852 <https://github.com/pybind/pybind11/pull/1852>`_.
 
 v2.3.0 (June 11, 2019)
 -----------------------------------------------------
