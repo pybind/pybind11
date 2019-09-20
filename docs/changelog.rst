@@ -39,9 +39,6 @@ v2.4.0 (Sep 19, 2019)
   like ``overload_cast`` with an additional set of parantheses.
   `1581 <https://github.com/pybind/pybind11/pull/1581>`_.
 
-* ``overload_cast_impl`` is now available in C++11.
-  `1581 <https://github.com/pybind/pybind11/pull/1581>`_.
-
 * Fixed ``get_include()`` on Conda.
   `1877 <https://github.com/pybind/pybind11/pull/1877>`_.
 
