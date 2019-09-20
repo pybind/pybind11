@@ -192,15 +192,12 @@ def test_binary_operators():
 
 
 def test_enum_to_int():
-    import sys
-    # Implicit conversion to integers is deprecated in Python >= 3.8
-    if sys.version_info < (3, 8):
-        m.test_enum_to_int(m.Flags.Read)
-        m.test_enum_to_int(m.ClassWithUnscopedEnum.EMode.EFirstMode)
-        m.test_enum_to_uint(m.Flags.Read)
-        m.test_enum_to_uint(m.ClassWithUnscopedEnum.EMode.EFirstMode)
-        m.test_enum_to_long_long(m.Flags.Read)
-        m.test_enum_to_long_long(m.ClassWithUnscopedEnum.EMode.EFirstMode)
+    m.test_enum_to_int(m.Flags.Read)
+    m.test_enum_to_int(m.ClassWithUnscopedEnum.EMode.EFirstMode)
+    m.test_enum_to_uint(m.Flags.Read)
+    m.test_enum_to_uint(m.ClassWithUnscopedEnum.EMode.EFirstMode)
+    m.test_enum_to_long_long(m.Flags.Read)
+    m.test_enum_to_long_long(m.ClassWithUnscopedEnum.EMode.EFirstMode)
 
 
 def test_duplicate_enum_name():
