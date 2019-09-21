@@ -6,11 +6,20 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+v2.4.2 (Sep 21, 2019)
+-----------------------------------------------------
+
+* Replaced usage of a C++14 only construct. `#1929
+  <https://github.com/pybind/pybind11/pull/1929>`_.
+
+* Made an ifdef future-proof for Python >= 4. `f3109d
+  <https://github.com/pybind/pybind11/commit/f3109d>`_.
+
 v2.4.1 (Sep 20, 2019)
 -----------------------------------------------------
 
 * Fixed a problem involving implicit conversion from enumerations to integers
-  on Python 3.8. `1780 <https://github.com/pybind/pybind11/pull/1780>`_.
+  on Python 3.8. `#1780 <https://github.com/pybind/pybind11/pull/1780>`_.
 
 v2.4.0 (Sep 19, 2019)
 -----------------------------------------------------
