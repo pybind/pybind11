@@ -113,12 +113,12 @@ template <typename T> struct same_size {
     template <typename U> using as = bool_constant<sizeof(T) == sizeof(U)>;
 };
 
+template <typename Concrete> constexpr int platform_lookup() { return -1; }
+
 // Lookup a type according to its size, and return a value corresponding to the NumPy typenum.
-template <typename Concrete, typename... Check, typename... Int>
-constexpr int platform_lookup(Int... codes) {
-    using code_index = std::integral_constant<int, constexpr_first<same_size<Concrete>::template as, Check...>()>;
-    static_assert(code_index::value != sizeof...(Check), "Unable to match type on this platform");
-    return std::get<code_index::value>(std::make_tuple(codes...));
+template <typename Concrete, typename T, typename... Ts, typename... Ints>
+constexpr int platform_lookup(int I, Ints... Is) {
+    return sizeof(Concrete) == sizeof(T) ? I : platform_lookup<Concrete, Ts...>(Is...);
 }
 
 struct npy_api {
