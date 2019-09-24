@@ -1949,8 +1949,8 @@ public:
                 if (!release)
                     pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             #endif
+            PyThreadState_Delete(tstate);
             PyThreadState_Clear(tstate);
-            PyThreadState_DeleteCurrent();
             PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
             release = false;
         }
