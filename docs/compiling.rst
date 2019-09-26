@@ -9,7 +9,7 @@ You can download and install pybind11 using the `vcpkg <https://github.com/Micro
 
 .. code-block:: bash
 
-    git clone https://github.com/microsoft/vcpkg.git
+    git clone https://github.com/Microsoft/vcpkg.git
     cd vcpkg
     ./bootstrap-vcpkg.sh
     ./vcpkg integrate install
