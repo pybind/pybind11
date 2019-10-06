@@ -61,7 +61,7 @@ matrix:
   - os: linux
     dist: trusty
     env: PYTHON=2.7 CPP=14 GCC=6 CMAKE=1
-    name: Python 2.7, c++14, gcc 4.8, CMake test
+    name: Python 2.7, c++14, gcc 6, CMake test
     addons:
       apt:
         sources:
@@ -130,7 +130,7 @@ matrix:
     dist: trusty
     services: docker
     env: DOCKER=i386/debian:stretch PYTHON=3.5 CPP=14 GCC=6 INSTALL=1
-    name: Python 3.4, c++14, gcc 6, 32-bit
+    name: Python 3.5, c++14, gcc 6, 32-bit
     script:
       - |
         # Consolidated 32-bit Docker Build + Install
