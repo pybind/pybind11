@@ -106,6 +106,33 @@ matrix:
           - lld-7
           - libc++-7-dev
           - libc++abi-7-dev  # Why is this necessary???
+  - os: linux
+    dist: xenial
+    env: PYTHON=3.8 CPP=17 GCC=7
+    name: Python 3.8, c++17, gcc 7 (w/o numpy/scipy) # TODO: update build name when the numpy/scipy wheels become available
+    addons:
+      apt:
+        sources:
+          - deadsnakes
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-7
+          - python3.8-dev
+          - python3.8-venv
+    # Currently there is no numpy/scipy wheels available for python3.8
+    # TODO: remove next before_install, install and script clause when the wheels become available
+    before_install:
+      - pyenv global $(pyenv whence 2to3)  # activate all python versions
+      - PY_CMD=python3
+      - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
+    install:
+      - $PY_CMD -m pip install --user --upgrade pytest
+    script:
+      - |
+        # Barebones build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
+        make pytest -j 2
+        make cpptest -j 2
   - os: osx
     name: Python 2.7, c++14, AppleClang 7.3, CMake test
     osx_image: xcode7.3
