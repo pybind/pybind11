@@ -1489,11 +1489,11 @@ public:
     explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) { }
 
     object operator()(typename vectorize_arg<Args>::type... args) {
-    return run(args...,
-               make_index_sequence<N>(),
-               select_indices<vectorize_arg<Args>::vectorize...>(),
-               make_index_sequence<NVectorized>());
-  }
+        return run(args...,
+                   make_index_sequence<N>(),
+                   select_indices<vectorize_arg<Args>::vectorize...>(),
+                   make_index_sequence<NVectorized>());
+    }
 
 private:
     remove_reference_t<Func> f;
@@ -1544,7 +1544,7 @@ private:
             return apply_trivial(buffers, params, trivial, shape, size, i_seq, vi_seq, bi_seq);
     }
 
-    array_t<Return> create_array(broadcast_trivial trivial, const std::vector<ssize_t>& shape){
+    array_t<Return> create_array(broadcast_trivial trivial, const std::vector<ssize_t>& shape) {
         if (trivial == broadcast_trivial::f_trivial)
             return array_t<Return, array::f_style>(shape);
         else
@@ -1553,13 +1553,13 @@ private:
 
     template <bool flag=!is_noreturn, typename std::enable_if<flag>::type* =nullptr,
               size_t... Index>
-    object apply_to_single_value(const std::array<void *, N> &params, const index_sequence<Index...>&){
+    object apply_to_single_value(const std::array<void *, N> &params, const index_sequence<Index...>&) {
         return cast(f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...));
     }
 
     template <bool flag=is_noreturn, typename std::enable_if<flag>::type* =nullptr,
               size_t... Index>
-    py::none apply_to_single_value(const std::array<void *, N> &params, const index_sequence<Index...>&){
+    py::none apply_to_single_value(const std::array<void *, N> &params, const index_sequence<Index...>&) {
         f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...);
         return py::none();
     }
@@ -1602,20 +1602,20 @@ private:
                            const std::vector<ssize_t>& shape,
                            size_t size,
                            index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
-      auto output_array = create_array(trivial, shape);
-      if (size == 0) return std::move(output_array);
-      buffer_info output = output_array.request();
-      multi_array_iterator<NVectorized> input_iter(buffers, output.shape);
+        auto output_array = create_array(trivial, shape);
+        if (size == 0) return std::move(output_array);
+        buffer_info output = output_array.request();
+        multi_array_iterator<NVectorized> input_iter(buffers, output.shape);
 
-      for (array_iterator<Return> iter = array_begin<Return>(output), end = array_end<Return>(output);
-           iter != end;
-           ++iter, ++input_iter) {
-        PYBIND11_EXPAND_SIDE_EFFECTS((
-            params[VIndex] = input_iter.template data<BIndex>()
-        ));
-        *iter = f(*reinterpret_cast<param_n_t<Index> *>(std::get<Index>(params))...);
-      }
-      return std::move(output_array);
+        for (array_iterator<Return> iter = array_begin<Return>(output), end = array_end<Return>(output);
+             iter != end;
+             ++iter, ++input_iter) {
+            PYBIND11_EXPAND_SIDE_EFFECTS((
+                params[VIndex] = input_iter.template data<BIndex>()
+            ));
+            *iter = f(*reinterpret_cast<param_n_t<Index> *>(std::get<Index>(params))...);
+        }
+        return std::move(output_array);
     }
 
     template<bool flag=is_noreturn, typename std::enable_if<flag>::type* =nullptr,
