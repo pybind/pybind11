@@ -50,7 +50,9 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         NonPODClass(int v) : value{v} {}
         int value;
     };
-    py::class_<NonPODClass>(m, "NonPODClass").def(py::init<int>());
+    py::class_<NonPODClass>(m, "NonPODClass")
+        .def(py::init<int>())
+        .def_readwrite("value", &NonPODClass::value);
     m.def("vec_passthrough", py::vectorize(
         [](double *a, double b, py::array_t<double> c, const int &d, int &e, NonPODClass f, const double g) {
             return *a + b + c.at(0) + d + e + f.value + g;
@@ -86,4 +88,6 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         std::array<py::buffer_info, 3> buffers {{ arg1.request(), arg2.request(), arg3.request() }};
         return py::detail::broadcast(buffers, ndim, shape);
     });
+
+    m.def("add_to", py::vectorize([](NonPODClass& x, int a) { x.value += a; }));
 }
