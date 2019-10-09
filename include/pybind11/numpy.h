@@ -1483,17 +1483,17 @@ private:
     static constexpr size_t NVectorized = constexpr_sum(vectorize_arg<Args>::vectorize...);
     static_assert(NVectorized >= 1,
             "pybind11::vectorize(...) requires a function with at least one vectorizable argument");
-
+    static constexpr bool is_noreturn = std::is_same<Return, void>::value;
 public:
     template <typename T>
     explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) { }
 
     object operator()(typename vectorize_arg<Args>::type... args) {
-        return run(args...,
-                   make_index_sequence<N>(),
-                   select_indices<vectorize_arg<Args>::vectorize...>(),
-                   make_index_sequence<NVectorized>());
-    }
+    return run(args...,
+               make_index_sequence<N>(),
+               select_indices<vectorize_arg<Args>::vectorize...>(),
+               make_index_sequence<NVectorized>());
+  }
 
 private:
     remove_reference_t<Func> f;
@@ -1534,30 +1534,48 @@ private:
         // not wrapped in an array).
         if (size == 1 && ndim == 0) {
             PYBIND11_EXPAND_SIDE_EFFECTS(params[VIndex] = buffers[BIndex].ptr);
-            return cast(f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...));
+            return apply_to_single_value(params, i_seq);
         }
-
-        array_t<Return> result;
-        if (trivial == broadcast_trivial::f_trivial) result = array_t<Return, array::f_style>(shape);
-        else result = array_t<Return>(shape);
-
-        if (size == 0) return std::move(result);
 
         /* Call the function */
         if (trivial == broadcast_trivial::non_trivial)
-            apply_broadcast(buffers, params, result, i_seq, vi_seq, bi_seq);
+            return apply_broadcast(buffers, params, trivial, shape, size, i_seq, vi_seq, bi_seq);
         else
-            apply_trivial(buffers, params, result.mutable_data(), size, i_seq, vi_seq, bi_seq);
-
-        return std::move(result);
+            return apply_trivial(buffers, params, trivial, shape, size, i_seq, vi_seq, bi_seq);
     }
 
-    template <size_t... Index, size_t... VIndex, size_t... BIndex>
-    void apply_trivial(std::array<buffer_info, NVectorized> &buffers,
+    array_t<Return> create_array(broadcast_trivial trivial, const std::vector<ssize_t>& shape){
+        if (trivial == broadcast_trivial::f_trivial)
+            return array_t<Return, array::f_style>(shape);
+        else
+            return array_t<Return>(shape);
+    }
+
+    template <bool flag=!is_noreturn, typename std::enable_if<flag>::type* =nullptr,
+              size_t... Index>
+    object apply_to_single_value(const std::array<void *, N> &params, const index_sequence<Index...>&){
+        return cast(f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...));
+    }
+
+    template <bool flag=is_noreturn, typename std::enable_if<flag>::type* =nullptr,
+              size_t... Index>
+    py::none apply_to_single_value(const std::array<void *, N> &params, const index_sequence<Index...>&){
+        f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...);
+        return py::none();
+    }
+
+    template <bool flag=!is_noreturn, typename std::enable_if<flag>::type* =nullptr,
+              size_t... Index, size_t... VIndex, size_t... BIndex>
+    object apply_trivial(std::array<buffer_info, NVectorized> &buffers,
                        std::array<void *, N> &params,
-                       Return *out,
+                       broadcast_trivial trivial,
+                       const std::vector<ssize_t>& shape,
                        size_t size,
                        index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
+
+        auto output_array = create_array(trivial, shape);
+        Return * out = output_array.mutable_data();
+        if (size == 0) return std::move(output_array);
 
         // Initialize an array of mutable byte references and sizes with references set to the
         // appropriate pointer in `params`; as we iterate, we'll increment each pointer by its size
@@ -1570,148 +1588,86 @@ private:
         }};
 
         for (size_t i = 0; i < size; ++i) {
-            out[i] = f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...);
-            for (auto &x : vecparams) x.first += x.second;
+          out[i] = f(*reinterpret_cast<param_n_t<Index> *>(params[Index])...);
+          for (auto &x : vecparams) x.first += x.second;
         }
+        return std::move(output_array);
     }
 
-    template <size_t... Index, size_t... VIndex, size_t... BIndex>
-    void apply_broadcast(std::array<buffer_info, NVectorized> &buffers,
-                         std::array<void *, N> &params,
-                         array_t<Return> &output_array,
+    template <bool flag=!is_noreturn, typename std::enable_if<flag>::type* =nullptr,
+              size_t... Index, size_t... VIndex, size_t... BIndex>
+    object apply_broadcast(std::array<buffer_info, NVectorized> &buffers,
+                           std::array<void *, N> &params,
+                           broadcast_trivial trivial,
+                           const std::vector<ssize_t>& shape,
+                           size_t size,
+                           index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
+      auto output_array = create_array(trivial, shape);
+      if (size == 0) return std::move(output_array);
+      buffer_info output = output_array.request();
+      multi_array_iterator<NVectorized> input_iter(buffers, output.shape);
+
+      for (array_iterator<Return> iter = array_begin<Return>(output), end = array_end<Return>(output);
+           iter != end;
+           ++iter, ++input_iter) {
+        PYBIND11_EXPAND_SIDE_EFFECTS((
+            params[VIndex] = input_iter.template data<BIndex>()
+        ));
+        *iter = f(*reinterpret_cast<param_n_t<Index> *>(std::get<Index>(params))...);
+      }
+      return std::move(output_array);
+    }
+
+    template<bool flag=is_noreturn, typename std::enable_if<flag>::type* =nullptr,
+             size_t... Index, size_t... VIndex, size_t... BIndex>
+    py::none apply_trivial(std::array<buffer_info, NVectorized>& buffers,
+                       std::array<void *, N> &params,
+                       broadcast_trivial,
+                       const std::vector<ssize_t>&,
+                       size_t size,
+                       index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
+
+        // Initialize an array of mutable byte references and sizes with references set to the
+        // appropriate pointer in `params`; as we iterate, we'll increment each pointer by its size
+        // (except for singletons, which get an increment of 0).
+        std::array<std::pair<unsigned char*&, const size_t>, NVectorized> vecparams{{
+            std::pair<unsigned char*&,
+                      const size_t>(
+                reinterpret_cast<unsigned char*&>(params[VIndex] = buffers[BIndex].ptr),
+                buffers[BIndex].size==1 ? 0
+                                        : sizeof(param_n_t<
+                    VIndex>)
+            )...
+        }};
+
+        for (size_t i = 0; i<size; ++i) {
+            f(*reinterpret_cast<param_n_t<Index>*>(params[Index])...);
+            for (auto& x : vecparams) x.first += x.second;
+        }
+        return py::none();
+    }
+
+    template<bool flag=is_noreturn, typename std::enable_if<flag>::type* =nullptr,
+             size_t... Index, size_t... VIndex, size_t... BIndex>
+    py::none apply_broadcast(std::array<buffer_info, NVectorized>& buffers,
+                         std::array<void*, N>& params,
+                         broadcast_trivial,
+                         const std::vector<ssize_t>& shape,
+                         size_t size,
                          index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
 
-        buffer_info output = output_array.request();
-        multi_array_iterator<NVectorized> input_iter(buffers, output.shape);
+        multi_array_iterator<NVectorized> input_iter(buffers, shape);
 
-        for (array_iterator<Return> iter = array_begin<Return>(output), end = array_end<Return>(output);
-             iter != end;
-             ++iter, ++input_iter) {
+        for (size_t i = 0;
+             i!=size;
+             ++i, ++input_iter) {
             PYBIND11_EXPAND_SIDE_EFFECTS((
                 params[VIndex] = input_iter.template data<BIndex>()
             ));
-            *iter = f(*reinterpret_cast<param_n_t<Index> *>(std::get<Index>(params))...);
+            f(*reinterpret_cast<param_n_t<Index>*>(std::get<Index>(params))...);
         }
+        return py::none();
     }
-};
-
-// Specialization for void return type
-template<typename Func, typename... Args>
-struct vectorize_helper<Func, void, Args...> {
-private:
-  static constexpr size_t N = sizeof...(Args);
-  static constexpr size_t NVectorized = constexpr_sum(vectorize_arg<Args>::vectorize...);
-  static_assert(NVectorized>=1,
-      "pybind11::vectorize(...) requires a function with at least one vectorizable argument");
-
-public:
-  template<typename T>
-  explicit vectorize_helper(T&& f)
-      : f(std::forward<T>(f)) { }
-
-  void operator()(typename vectorize_arg<Args>::type... args) {
-      run(args...,
-          make_index_sequence<N>(),
-          select_indices<vectorize_arg<Args>::vectorize...>(),
-          make_index_sequence<NVectorized>());
-  }
-
-private:
-  remove_reference_t<Func> f;
-
-  // Internal compiler error in MSVC 19.16.27025.1 (Visual Studio 2017 15.9.4), when compiling with "/permissive-" flag
-  // when arg_call_types is manually inlined.
-  using arg_call_types = std::tuple<typename vectorize_arg<Args>::call_type...>;
-  template<size_t Index> using param_n_t = typename std::tuple_element<Index, arg_call_types>::type;
-
-  // Runs a vectorized function given arguments tuple and three index sequences:
-  //     - Index is the full set of 0 ... (N-1) argument indices;
-  //     - VIndex is the subset of argument indices with vectorized parameters, letting us access
-  //       vectorized arguments (anything not in this sequence is passed through)
-  //     - BIndex is a incremental sequence (beginning at 0) of the same size as VIndex, so that
-  //       we can store vectorized buffer_infos in an array (argument VIndex has its buffer at
-  //       index BIndex in the array).
-  template<size_t... Index, size_t... VIndex, size_t... BIndex> void run(
-      typename vectorize_arg<Args>::type& ...args,
-      index_sequence<Index...> i_seq, index_sequence<VIndex...> vi_seq, index_sequence<BIndex...> bi_seq) {
-
-      // Pointers to values the function was called with; the vectorized ones set here will start
-      // out as array_t<T> pointers, but they will be changed them to T pointers before we make
-      // call the wrapped function.  Non-vectorized pointers are left as-is.
-      std::array<void*, N> params{{&args...}};
-
-      // The array of `buffer_info`s of vectorized arguments:
-      std::array<buffer_info, NVectorized> buffers{{reinterpret_cast<array*>(params[VIndex])->request()...}};
-
-      /* Determine dimensions parameters of output array */
-      ssize_t nd = 0;
-      std::vector<ssize_t> shape(0);
-      auto trivial = broadcast(buffers, nd, shape);
-      size_t ndim = (size_t) nd;
-
-      size_t size = std::accumulate(shape.begin(), shape.end(), (size_t) 1, std::multiplies<size_t>());
-
-      // If all arguments are 0-dimension arrays (i.e. single values) return a plain value (i.e.
-      // not wrapped in an array).
-      if (size==1 && ndim==0) {
-          PYBIND11_EXPAND_SIDE_EFFECTS(params[VIndex] = buffers[BIndex].ptr);
-          return f(*reinterpret_cast<param_n_t<Index>*>(params[Index])...);
-      }
-
-      if (size==0) return;
-
-      /* Call the function */
-      if (trivial==broadcast_trivial::non_trivial)
-          apply_broadcast(buffers, params, shape, size, i_seq, vi_seq, bi_seq);
-      else
-          apply_trivial(buffers, params, size, i_seq, vi_seq, bi_seq);
-
-  }
-
-  template<size_t... Index, size_t... VIndex, size_t... BIndex>
-  void apply_trivial(std::array<buffer_info, NVectorized>& buffers,
-      std::array<void*, N>& params,
-      size_t size,
-      index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
-
-      // Initialize an array of mutable byte references and sizes with references set to the
-      // appropriate pointer in `params`; as we iterate, we'll increment each pointer by its size
-      // (except for singletons, which get an increment of 0).
-      std::array<std::pair<unsigned char*&, const size_t>, NVectorized> vecparams{{
-          std::pair<unsigned char*&,
-                    const size_t>(
-              reinterpret_cast<unsigned char*&>(params[VIndex] = buffers[BIndex].ptr),
-              buffers[BIndex].size==1 ? 0
-                                      : sizeof(param_n_t<
-                  VIndex>)
-          )...
-      }};
-
-      for (size_t i = 0; i<size; ++i) {
-          f(*reinterpret_cast<param_n_t<Index>*>(params[Index])...);
-          for (auto& x : vecparams) x.first += x.second;
-      }
-  }
-
-  template<size_t... Index, size_t... VIndex, size_t... BIndex>
-  void apply_broadcast(std::array<buffer_info, NVectorized>& buffers,
-      std::array<void*, N>& params,
-      const std::vector<ssize_t>& shape,
-      size_t size,
-      index_sequence<Index...>, index_sequence<VIndex...>, index_sequence<BIndex...>) {
-
-      multi_array_iterator<NVectorized> input_iter(buffers, shape);
-
-      for (size_t i = 0;
-           i!=size;
-           ++i, ++input_iter) {
-          PYBIND11_EXPAND_SIDE_EFFECTS((
-              params[VIndex] = input_iter.template data<BIndex>()
-          ));
-          f(*reinterpret_cast<param_n_t<Index>*>(std::get<Index>(params))...);
-      }
-  }
-
 };
 
 template <typename Func, typename Return, typename... Args>
