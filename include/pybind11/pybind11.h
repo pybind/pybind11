@@ -1003,7 +1003,7 @@ void call_operator_delete(T *p, size_t s, size_t) { T::operator delete(p, s); }
 
 inline void call_operator_delete(void *p, size_t s, size_t a) {
     (void)s; (void)a;
-#if defined(PYBIND11_CPP17)
+#if defined(PYBIND11_CPP17) && !defined(PYBIND11_CPP17_NO_ALIGNED_DELETE)
     if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
         ::operator delete(p, s, std::align_val_t(a));
     else
