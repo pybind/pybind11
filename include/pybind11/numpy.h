@@ -1515,7 +1515,7 @@ struct vectorize_returned_array<Func, void, Args...> {
         return none();
     }
 
-    static void *mutable_data(Type &array) {
+    static void *mutable_data(Type &) {
         return nullptr;
     }
 
