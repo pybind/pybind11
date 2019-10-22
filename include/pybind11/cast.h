@@ -538,7 +538,7 @@ public:
                     std::string type_name(tinfo->cpptype->name());
                     detail::clean_type_id(type_name);
                     std::ostringstream os;
-                    os << "return_value_policy = copy, but object "
+                    os << "return_value_policy = copy, but type "
                        << type_name << " is non-copyable!";
                     throw cast_error(os.str());
                 }
@@ -554,7 +554,7 @@ public:
                     std::string type_name(tinfo->cpptype->name());
                     detail::clean_type_id(type_name);
                     std::ostringstream os;
-                    os << "return_value_policy = move, but object "
+                    os << "return_value_policy = move, but type "
                        << type_name << " is neither movable nor copyable!";
                     throw cast_error(os.str());
                 }
