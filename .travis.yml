@@ -32,8 +32,7 @@ matrix:
     - |
       # Barebones build
       cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
-      make pytest -j 2
-      make cpptest -j 2
+      make pytest -j 2 && make cpptest -j 2
   # The following are regular test configurations, including optional dependencies.
   # With regard to each other they differ in Python version, C++ standard and compiler.
   - os: linux
@@ -131,8 +130,7 @@ matrix:
       - |
         # Barebones build
         cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
-        make pytest -j 2
-        make cpptest -j 2
+        make pytest -j 2 && make cpptest -j 2
   - os: osx
     name: Python 2.7, c++14, AppleClang 7.3, CMake test
     osx_image: xcode7.3
