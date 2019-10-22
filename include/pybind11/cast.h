@@ -535,10 +535,11 @@ public:
                 if (copy_constructor)
                     valueptr = copy_constructor(src);
                 else {
+                    std::string type_name(tinfo->cpptype->name());
+                    detail::clean_type_id(type_name);
                     std::ostringstream os;
                     os << "return_value_policy = copy, but object "
-                       << detail::clean_type_id(tinfo->cpptype->name())
-                       << " is non-copyable!";
+                       << type_name << " is non-copyable!";
                     throw cast_error(os.str());
                 }
                 wrapper->owned = true;
@@ -550,10 +551,11 @@ public:
                 else if (copy_constructor)
                     valueptr = copy_constructor(src);
                 else {
+                    std::string type_name(tinfo->cpptype->name());
+                    detail::clean_type_id(type_name);
                     std::ostringstream os;
                     os << "return_value_policy = move, but object "
-                       << detail::clean_type_id(tinfo->cpptype->name())
-                       << " is neither movable nor copyable!";
+                       << type_name << " is neither movable nor copyable!";
                     throw cast_error(os.str());
                 }
                 wrapper->owned = true;
