@@ -17,7 +17,6 @@
 #include <array>
 #include <limits>
 #include <tuple>
-#include <sstream>
 #include <type_traits>
 
 #if defined(PYBIND11_CPP17)
@@ -535,12 +534,15 @@ public:
                 if (copy_constructor)
                     valueptr = copy_constructor(src);
                 else {
+#if defined(NDEBUG)
+                    throw cast_error("return_value_policy = copy, but type is "
+                                     "non-copyable! (compile in debug mode for details)");
+#else
                     std::string type_name(tinfo->cpptype->name());
                     detail::clean_type_id(type_name);
-                    std::ostringstream os;
-                    os << "return_value_policy = copy, but type "
-                       << type_name << " is non-copyable!";
-                    throw cast_error(os.str());
+                    throw cast_error("return_value_policy = copy, but type " +
+                                     type_name + " is non-copyable!");
+#endif
                 }
                 wrapper->owned = true;
                 break;
@@ -551,12 +553,16 @@ public:
                 else if (copy_constructor)
                     valueptr = copy_constructor(src);
                 else {
+#if defined(NDEBUG)
+                    throw cast_error("return_value_policy = move, but type is neither "
+                                     "movable nor copyable! "
+                                     "(compile in debug mode for details)");
+#else
                     std::string type_name(tinfo->cpptype->name());
                     detail::clean_type_id(type_name);
-                    std::ostringstream os;
-                    os << "return_value_policy = move, but type "
-                       << type_name << " is neither movable nor copyable!";
-                    throw cast_error(os.str());
+                    throw cast_error("return_value_policy = move, but type " +
+                                     type_name + " is neither movable nor copyable!");
+#endif
                 }
                 wrapper->owned = true;
                 break;
