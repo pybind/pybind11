@@ -533,9 +533,17 @@ public:
             case return_value_policy::copy:
                 if (copy_constructor)
                     valueptr = copy_constructor(src);
-                else
-                    throw cast_error("return_value_policy = copy, but the "
-                                     "object is non-copyable!");
+                else {
+#if defined(NDEBUG)
+                    throw cast_error("return_value_policy = copy, but type is "
+                                     "non-copyable! (compile in debug mode for details)");
+#else
+                    std::string type_name(tinfo->cpptype->name());
+                    detail::clean_type_id(type_name);
+                    throw cast_error("return_value_policy = copy, but type " +
+                                     type_name + " is non-copyable!");
+#endif
+                }
                 wrapper->owned = true;
                 break;
 
@@ -544,9 +552,18 @@ public:
                     valueptr = move_constructor(src);
                 else if (copy_constructor)
                     valueptr = copy_constructor(src);
-                else
-                    throw cast_error("return_value_policy = move, but the "
-                                     "object is neither movable nor copyable!");
+                else {
+#if defined(NDEBUG)
+                    throw cast_error("return_value_policy = move, but type is neither "
+                                     "movable nor copyable! "
+                                     "(compile in debug mode for details)");
+#else
+                    std::string type_name(tinfo->cpptype->name());
+                    detail::clean_type_id(type_name);
+                    throw cast_error("return_value_policy = move, but type " +
+                                     type_name + " is neither movable nor copyable!");
+#endif
+                }
                 wrapper->owned = true;
                 break;
 
