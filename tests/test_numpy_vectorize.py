@@ -203,4 +203,3 @@ def test_vectorized_noreturn():
     assert x.value == 11
     m.add_to(x, [[1, 1], [2, 3]])
     assert x.value == 18
-
