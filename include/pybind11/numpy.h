@@ -1602,7 +1602,7 @@ private:
 
         auto result = returned_array::create(trivial, shape);
 
-        if (size == 0) return result;
+        if (size == 0) return std::move(result);
 
         /* Call the function */
         auto mutable_data = returned_array::mutable_data(result);
@@ -1611,7 +1611,7 @@ private:
         else
             apply_trivial(buffers, params, mutable_data, size, i_seq, vi_seq, bi_seq);
 
-        return result;
+        return std::move(result);
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>
