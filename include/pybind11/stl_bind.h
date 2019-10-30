@@ -1,3 +1,4 @@
+
 /*
     pybind11/std_bind.h: Binding generators for STL data types
 
@@ -508,6 +509,7 @@ NAMESPACE_BEGIN(detail)
 
 /* Fallback functions */
 template <typename, typename, typename... Args> void map_if_insertion_operator(const Args &...) { }
+template <typename, typename, typename... Args> void map_if_equal_operator(const Args &...) { }
 template <typename, typename, typename... Args> void map_assignment(const Args &...) { }
 
 // Map assignment when copy-assignable: just copy the value
@@ -546,10 +548,12 @@ void map_assignment(enable_if_t<
            }
     );
 }
-
+template <typename T>
+std::string to_string(const T& val){ return pybind11::str(pybind11::object(pybind11::cast(val)));}
 
 template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &cl, std::string const &name)
--> decltype(std::declval<std::ostream&>() << std::declval<typename Map::key_type>() << std::declval<typename Map::mapped_type>(), void()) {
+-> decltype(std::declval<std::ostream&>() << to_string(std::declval<typename Map::key_type>())
+                                          << to_string(std::declval<typename Map::mapped_type>()), void()) {
 
     cl.def("__repr__",
            [name](Map &m) {
@@ -559,7 +563,7 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
             for (auto const &kv : m) {
                 if (f)
                     s << ", ";
-                s << kv.first << ": " << kv.second;
+                s << to_string(kv.first) << ": " << to_string(kv.second);
                 f = true;
             }
             s << '}';
@@ -569,6 +573,14 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
     );
 }
 
+template <typename Map, typename Class_> auto map_if_equal_operator ( Class_ &cl)
+-> decltype(std::declval<typename Map::key_type>() == std::declval<typename Map::key_type>() and
+  std::declval<typename Map::mapped_type>() == std::declval<typename Map::mapped_type>(), void()) {
+
+    cl.def("__eq__", [](const Map& lhs, const Map& rhs) {
+        return (lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(),rhs.begin()));
+    });
+}
 
 NAMESPACE_END(detail)
 
@@ -592,8 +604,26 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
 
     cl.def(init<>());
 
+    cl.def(init([](const Map& d){
+            auto m = std::unique_ptr<Map>(new Map());
+            for (auto const &kv : d) {
+              m->insert(std::make_pair(kv.first, kv.second));
+            }
+            return m.release();
+    }));
+
+    cl.def(init([](const iterable& it) {
+          auto m = std::unique_ptr<Map>(new Map());
+            for (auto const& kv : pybind11::dict(it))
+                  m->insert(std::make_pair(kv.first.cast<KeyType>(), kv.second.cast<MappedType>()));
+          return m.release();
+    }));
+
     // Register stream insertion operator (if possible)
     detail::map_if_insertion_operator<Map, Class_>(cl, name);
+    
+    // Register equal comparison operator (if possible)
+    detail::map_if_equal_operator<Map, Class_>(cl);
 
     cl.def("__bool__",
         [](const Map &m) -> bool { return !m.empty(); },
