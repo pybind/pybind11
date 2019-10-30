@@ -560,7 +560,7 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
             for (auto const &kv : m) {
                 if (f)
                     s << ", ";
-                s << to_string(kv.first) << ": " << to_string(kv.second);
+                s << kv.first << ": " << kv.second;
                 f = true;
             }
             s << '}';
