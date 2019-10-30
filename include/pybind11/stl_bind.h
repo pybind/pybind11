@@ -549,8 +549,7 @@ void map_assignment(enable_if_t<
 }
 
 template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &cl, std::string const &name)
--> decltype(std::declval<std::ostream&>() << std::declval<typename Map::key_type>()
-                                          << std::declval<typename Map::mapped_type>()), void() {
+-> decltype(std::declval<std::ostream&>() << std::declval<typename Map::key_type>() << std::declval<typename Map::mapped_type>(), void()) {
 
     cl.def("__repr__",
            [name](Map &m) {
@@ -602,21 +601,18 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     cl.def(init<>());
 
     cl.def(init([](const Map& d){
-            Map m;
-            for (auto const &kv : d) {
-              m.insert(std::make_pair(kv.first, kv.second));
-            }
-            return m;
-        }
-    ));
+        Map m;
+        for (auto const &kv : d) 
+            m.insert(std::make_pair(kv.first, kv.second));
+        return m;
+    }));
 
     cl.def(init([](const iterable& it) {
-          Map m;
-            for (auto const& kv : pybind11::dict(it))
-                  m.insert(std::make_pair(kv.first.cast<KeyType>(), kv.second.cast<MappedType>()));
-          return m;
-        }
-    ));
+        Map m;
+        for (auto const& kv : pybind11::dict(it))
+            m.insert(std::make_pair(kv.first.cast<KeyType>(), kv.second.cast<MappedType>()));
+        return m;
+    }));
 
     // Register stream insertion operator (if possible)
     detail::map_if_insertion_operator<Map, Class_>(cl, name);
