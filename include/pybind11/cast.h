@@ -1173,6 +1173,9 @@ public:
                 value = (bool) res;
                 return true;
             }
+            else {
+                PyErr_Clear();
+            }
         }
         return false;
     }
