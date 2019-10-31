@@ -600,9 +600,9 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
 
     cl.def(init<>());
 
-    cl.def(init([](const Map& d){
+    cl.def(init([](const Map& d) {
         Map m;
-        for (auto const &kv : d) 
+        for (auto const &kv : d)
             m.insert(std::make_pair(kv.first, kv.second));
         return m;
     }));
@@ -616,7 +616,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
 
     // Register stream insertion operator (if possible)
     detail::map_if_insertion_operator<Map, Class_>(cl, name);
-    
+
     // Register equal comparison operator (if possible)
     detail::map_if_equal_operator<Map, Class_>(cl);
 
