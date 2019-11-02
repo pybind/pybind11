@@ -16,6 +16,7 @@
 #include "detail/internals.h"
 #include <array>
 #include <limits>
+#include <new>
 #include <tuple>
 #include <type_traits>
 
@@ -591,7 +592,7 @@ public:
             if (type->operator_new) {
                 vptr = type->operator_new(type->type_size);
             } else {
-                #if (!defined(_MSC_VER) && defined(__cpp_aligned_new)) || _MSC_VER >= 1912
+                #if defined(__cpp_aligned_new)
                     if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
                         vptr = ::operator new(type->type_size,
                                               std::align_val_t(type->type_align));
