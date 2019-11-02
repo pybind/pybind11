@@ -574,7 +574,7 @@ template <typename Map, typename Class_> auto map_if_equal_operator ( Class_ &cl
   std::declval<typename Map::mapped_type>() == std::declval<typename Map::mapped_type>(), void()) {
 
     cl.def("__eq__", [](const Map& lhs, const Map& rhs) {
-        return (lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(),rhs.begin()));
+        return (lhs == rhs);
     });
 }
 
@@ -600,11 +600,8 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
 
     cl.def(init<>());
 
-    cl.def(init([](const Map& d) {
-        Map m;
-        for (auto const &kv : d)
-            m.insert(std::make_pair(kv.first, kv.second));
-        return m;
+    cl.def(init([](const Map& m) {
+        return Map(m);
     }));
 
     cl.def(init([](const iterable& it) {
