@@ -25,7 +25,7 @@ After installing the prerequisites, run
    mkdir build
    cd build
    cmake ..
-   make check -j 4
+   make check
 
 The last line will both compile and run the tests.
 
