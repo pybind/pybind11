@@ -16,6 +16,7 @@
 #include "detail/internals.h"
 #include <array>
 #include <limits>
+#include <memory>
 #include <tuple>
 #include <type_traits>
 
@@ -1453,9 +1454,11 @@ template <typename... Ts> class type_caster<std::tuple<Ts...>>
 
 /// Helper class which abstracts away certain actions. Users can provide specializations for
 /// custom holders, but it's only necessary if the type has a non-standard interface.
-template <typename T>
+template <typename type, typename holder_type>
 struct holder_helper {
-    static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
+    static auto get(const holder_type &p) -> decltype(p.get()) { return p.get(); }
+    static auto get(holder_type &p) -> decltype(p.get()) { return p.get(); }
+    static holder_type create(type && val) { return holder_type(new type(std::forward<type>(val))); }
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
@@ -1463,15 +1466,26 @@ template <typename type, typename holder_type>
 struct copyable_holder_caster : public type_caster_base<type> {
 public:
     using base = type_caster_base<type>;
-    static_assert(std::is_base_of<base, type_caster<type>>::value,
-            "Holder classes are only supported for custom types");
     using base::base;
     using base::cast;
     using base::typeinfo;
     using base::value;
 
+    template <typename T = type, detail::enable_if_t<std::is_base_of<type_caster_base<T>, type_caster<T>>::value, int> = 0>
     bool load(handle src, bool convert) {
         return base::template load_impl<copyable_holder_caster<type, holder_type>>(src, convert);
+    }
+
+    template <typename T = type, detail::enable_if_t<!std::is_base_of<type_caster_base<T>, type_caster<T>>::value, int> = 0>
+    bool load(handle src, bool convert) {
+        using value_conv = make_caster<type>;
+        value_conv caster;
+        if (!caster.load(src, convert))  {
+            return false;
+        }
+        holder = holder_helper<type, holder_type>::create(std::forward<type>(cast_op<type&&>(std::move(caster))));
+        value = reinterpret_cast<void*>(holder_helper<type, holder_type>::get(holder));
+        return true;
     }
 
     explicit operator type*() { return this->value; }
@@ -1486,9 +1500,17 @@ public:
     explicit operator holder_type&() { return holder; }
     #endif
 
+    template <typename T = type, detail::enable_if_t<std::is_base_of<type_caster_base<T>, type_caster<T>>::value, int> = 0>
     static handle cast(const holder_type &src, return_value_policy, handle) {
-        const auto *ptr = holder_helper<holder_type>::get(src);
+        const auto *ptr = holder_helper<type, holder_type>::get(src);
         return type_caster_base<type>::cast_holder(ptr, &src);
+    }
+
+    template <typename T = type, detail::enable_if_t<!std::is_base_of<type_caster_base<T>, type_caster<T>>::value, int> = 0>
+    static handle cast(const holder_type &src, return_value_policy policy, handle parent) {
+        using value_conv = make_caster<type>;
+        const auto *ptr = holder_helper<type, holder_type>::get(src);
+        return value_conv::cast(*ptr, policy, parent);
     }
 
 protected:
@@ -1545,7 +1567,7 @@ struct move_only_holder_caster {
             "Holder classes are only supported for custom types");
 
     static handle cast(holder_type &&src, return_value_policy, handle) {
-        auto *ptr = holder_helper<holder_type>::get(src);
+        auto *ptr = holder_helper<type, holder_type>::get(src);
         return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
     }
     static constexpr auto name = type_caster_base<type>::name;

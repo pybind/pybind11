@@ -24,8 +24,10 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
 // Make pybind11 aware of the non-standard getter member function
 namespace pybind11 { namespace detail {
     template <typename T>
-    struct holder_helper<ref<T>> {
+    struct holder_helper<T, ref<T>> {
         static const T *get(const ref<T> &p) { return p.get_ptr(); }
+        static T *get(ref<T> &p) { return p.get_ptr(); }
+        static ref<T> create(T && val) { return ref<T>(&val); }
     };
 }}
 

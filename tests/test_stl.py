@@ -13,6 +13,12 @@ def test_vector(doc):
     assert m.load_vector(lst)
     assert m.load_vector(tuple(lst))
 
+    lst = m.cast_vector_shared()
+    assert lst == [1]
+    lst.append(2)
+    assert m.load_vector_shared(lst)
+    assert m.load_vector_shared(tuple(lst))
+
     assert m.cast_bool_vector() == [True, False]
     assert m.load_bool_vector([True, False])
 

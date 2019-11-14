@@ -131,7 +131,7 @@ void construct(value_and_holder &v_h, Alias<Class> *alias_ptr, bool) {
 // derived type (through those holder's implicit conversion from derived class holder constructors).
 template <typename Class>
 void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
-    auto *ptr = holder_helper<Holder<Class>>::get(holder);
+    auto *ptr = holder_helper<Class, Holder<Class>>::get(holder);
     // If we need an alias, check that the held pointer is actually an alias instance
     if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
         throw type_error("pybind11::init(): construction failed: returned holder-wrapped instance "
