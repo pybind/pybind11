@@ -79,6 +79,10 @@ def test_custom(msg):
         m.throws_logic_error()
     assert msg(excinfo.value) == "this error should fall through to the standard handler"
 
+    # OverFlow error translation.
+    with pytest.raises(OverflowError) as excinfo:
+        m.throws_overflow_error()
+
     # Can we handle a helper-declared exception?
     with pytest.raises(m.MyException5) as excinfo:
         m.throws5()
