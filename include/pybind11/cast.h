@@ -1172,6 +1172,8 @@ public:
             if (res == 0 || res == 1) {
                 value = (bool) res;
                 return true;
+            } else {
+                PyErr_Clear();
             }
         }
         return false;
