@@ -90,6 +90,9 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
 TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr
+    m.def("cast_shared_int", []() { return std::make_shared<int>(1); });
+    m.def("cast_unique_int", []() { return std::make_unique<int>(1); });
+    m.def("load_shared_int", [](std::shared_ptr<int> x) { return *x == 1; });
 
     // Object implementation in `object.h`
     py::class_<Object, ref<Object>> obj(m, "Object");

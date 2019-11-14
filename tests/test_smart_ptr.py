@@ -102,6 +102,17 @@ def test_smart_ptr(capture):
     assert cstats.move_assignments == 0
 
 
+def test_shared_ptr():
+    v_int = m.cast_shared_int()
+    assert v_int == 1
+    assert m.load_shared_int(v_int)
+
+
+def test_unique_ptr():
+    v_int = m.cast_unique_int()
+    assert v_int == 1
+
+
 def test_smart_ptr_refcounting():
     assert m.test_object1_refcounting()
 

@@ -13,12 +13,6 @@ def test_vector(doc):
     assert m.load_vector(lst)
     assert m.load_vector(tuple(lst))
 
-    lst = m.cast_vector_shared()
-    assert lst == [1]
-    lst.append(2)
-    assert m.load_vector_shared(lst)
-    assert m.load_vector_shared(tuple(lst))
-
     assert m.cast_bool_vector() == [True, False]
     assert m.load_bool_vector([True, False])
 
@@ -27,6 +21,21 @@ def test_vector(doc):
 
     # Test regression caused by 936: pointers to stl containers weren't castable
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
+
+
+def test_vector_shared(doc):
+    """std::shared_ptr<std::vector> <-> list"""
+    lst = m.cast_vector_shared()
+    assert lst == [1]
+    lst.append(2)
+    assert m.load_vector_shared(lst)
+    assert m.load_vector_shared(tuple(lst))
+
+
+def test_vector_unique(doc):
+    """std::unique_ptr<std::vector> -> list"""
+    lst = m.cast_vector_unique()
+    assert lst == [1]
 
 
 def test_deque(doc):
