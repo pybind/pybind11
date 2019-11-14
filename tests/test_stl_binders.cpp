@@ -66,6 +66,9 @@ TEST_SUBMODULE(stl_binders, m) {
     // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
 
+    // test_vector_double_shared
+    py::bind_vector<std::vector<double>, std::shared_ptr<std::vector<double>>>(m, "VectorDoubleShared");
+
     // test_vector_custom
     py::class_<El>(m, "El")
         .def(py::init<int>());

@@ -211,6 +211,7 @@ TEST_SUBMODULE(stl, m) {
         result_type operator()(std::string) { return "std::string"; }
         result_type operator()(double) { return "double"; }
         result_type operator()(std::nullptr_t) { return "std::nullptr_t"; }
+        result_type operator()(std::shared_ptr<std::vector<int>>) { return "std::shared_ptr<std::vector<int>>"; }
     };
 
     // test_variant
@@ -223,6 +224,9 @@ TEST_SUBMODULE(stl, m) {
     m.def("cast_variant", []() {
         using V = variant<int, std::string>;
         return py::make_tuple(V(5), V("Hello"));
+    });
+    m.def("load_variant_with_shared", [](variant<int, std::shared_ptr<std::vector<int>>> v) {
+        return py::detail::visit_helper<variant>::call(visitor(), v);
     });
 #endif
 
