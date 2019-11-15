@@ -211,6 +211,7 @@ inline void translate_exception(std::exception_ptr p) {
     } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
     } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return;
     } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::overflow_error &e)   { PyErr_SetString(PyExc_OverflowError, e.what()); return;
     } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return;
     } catch (...) {
         PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");

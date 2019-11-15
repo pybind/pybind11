@@ -116,6 +116,7 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("throws5", []() { throw MyException5("this is a helper-defined translated exception"); });
     m.def("throws5_1", []() { throw MyException5_1("MyException5 subclass"); });
     m.def("throws_logic_error", []() { throw std::logic_error("this error should fall through to the standard handler"); });
+    m.def("throws_overflow_error", []() {throw std::overflow_error(""); });
     m.def("exception_matches", []() {
         py::dict foo;
         try {
