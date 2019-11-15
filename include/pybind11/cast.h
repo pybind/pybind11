@@ -591,7 +591,7 @@ public:
             if (type->operator_new) {
                 vptr = type->operator_new(type->type_size);
             } else {
-                #if (!defined(_MSC_VER) && defined(__cpp_aligned_new)) || (defined(_MSC_VER) && _MSC_VER >= 1912)
+                #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
                     if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
                         vptr = ::operator new(type->type_size,
                                               std::align_val_t(type->type_align));
