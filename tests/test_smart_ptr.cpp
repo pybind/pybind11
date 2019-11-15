@@ -14,6 +14,7 @@
 
 #include "pybind11_tests.h"
 #include "object.h"
+#include <memory>
 
 // Make pybind aware of the ref-counted wrapper type (s):
 
