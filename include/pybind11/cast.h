@@ -1693,8 +1693,8 @@ T cast(const handle &handle) {
 }
 
 // pytype -> pytype (calls converting constructor)
-template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
-T cast(const handle &handle) { return T(reinterpret_borrow<object>(handle)); }
+template <typename Py, detail::enable_if_t<detail::is_pyobject<Py>::value, int> = 0>
+Py cast(const handle &handle) { return Py(reinterpret_borrow<object>(handle)); }
 
 // C++ type -> py::object
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
@@ -1705,6 +1705,15 @@ object cast(const T &value, return_value_policy policy = return_value_policy::au
     else if (policy == return_value_policy::automatic_reference)
         policy = std::is_pointer<T>::value ? return_value_policy::reference : return_value_policy::copy;
     return reinterpret_steal<object>(detail::make_caster<T>::cast(value, policy, parent));
+}
+
+// C++ type -> pytype (calls borrowing constructor on intermediate object)
+template <typename Py, typename T,
+          detail::enable_if_t<detail::is_pyobject<Py>::value, int> = 0,
+          detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
+Py cast(T&& value, return_value_policy policy = return_value_policy::automatic_reference,
+       handle parent = handle()) {
+    return reinterpret_borrow<Py>(cast(std::forward<T>(value), policy, parent));
 }
 
 template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }

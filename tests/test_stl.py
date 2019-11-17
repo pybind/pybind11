@@ -239,3 +239,7 @@ def test_issue_1561():
     bar.list = [m.Issue1561Inner('bar')]
     bar.list
     assert bar.list[0].data == 'bar'
+
+
+def test_cast_vector_pytype():
+    assert m.cast_vector_pytype() == [1, 2, 3]
