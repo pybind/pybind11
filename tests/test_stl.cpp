@@ -68,7 +68,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_vector_shared", [](std::shared_ptr<std::vector<int>> v) { return v->at(0) == 1 && v->at(1) == 2; });
 
     // test_vector_unique
-    m.def("cast_vector_unique", []() { return std::make_unique<std::vector<int>>(std::vector<int>{1}); });
+    m.def("cast_vector_unique", []() { return std::unique_ptr<std::vector<int>>(new std::vector<int>{1}); });
 
     // test_deque
     m.def("cast_deque", []() { return std::deque<int>{1}; });
