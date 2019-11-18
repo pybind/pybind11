@@ -14,7 +14,6 @@
 
 #include "pybind11_tests.h"
 #include "object.h"
-#include <memory>
 
 // Make pybind aware of the ref-counted wrapper type (s):
 
@@ -92,7 +91,7 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr
     m.def("cast_shared_int", []() { return std::make_shared<int>(1); });
-    m.def("cast_unique_int", []() { return std::make_unique<int>(1); });
+    m.def("cast_unique_int", []() { return std::unique_ptr<int>(new int(1)); });
     m.def("load_shared_int", [](std::shared_ptr<int> x) { return *x == 1; });
 
     // Object implementation in `object.h`
