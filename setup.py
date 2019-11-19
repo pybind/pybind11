@@ -7,37 +7,39 @@ from distutils.command.install_headers import install_headers
 from pybind11 import __version__
 import os
 
+package_data = [
+    'include/pybind11/detail/class.h',
+    'include/pybind11/detail/common.h',
+    'include/pybind11/detail/descr.h',
+    'include/pybind11/detail/init.h',
+    'include/pybind11/detail/internals.h',
+    'include/pybind11/detail/typeid.h',
+    'include/pybind11/attr.h',
+    'include/pybind11/buffer_info.h',
+    'include/pybind11/cast.h',
+    'include/pybind11/chrono.h',
+    'include/pybind11/common.h',
+    'include/pybind11/complex.h',
+    'include/pybind11/eigen.h',
+    'include/pybind11/embed.h',
+    'include/pybind11/eval.h',
+    'include/pybind11/functional.h',
+    'include/pybind11/iostream.h',
+    'include/pybind11/numpy.h',
+    'include/pybind11/operators.h',
+    'include/pybind11/options.h',
+    'include/pybind11/pybind11.h',
+    'include/pybind11/pytypes.h',
+    'include/pybind11/stl.h',
+    'include/pybind11/stl_bind.h',
+]
+
 # Prevent installation of pybind11 headers by setting
 # PYBIND11_USE_CMAKE.
 if os.environ.get('PYBIND11_USE_CMAKE'):
     headers = []
 else:
-    headers = [
-        'include/pybind11/detail/class.h',
-        'include/pybind11/detail/common.h',
-        'include/pybind11/detail/descr.h',
-        'include/pybind11/detail/init.h',
-        'include/pybind11/detail/internals.h',
-        'include/pybind11/detail/typeid.h',
-        'include/pybind11/attr.h',
-        'include/pybind11/buffer_info.h',
-        'include/pybind11/cast.h',
-        'include/pybind11/chrono.h',
-        'include/pybind11/common.h',
-        'include/pybind11/complex.h',
-        'include/pybind11/eigen.h',
-        'include/pybind11/embed.h',
-        'include/pybind11/eval.h',
-        'include/pybind11/functional.h',
-        'include/pybind11/iostream.h',
-        'include/pybind11/numpy.h',
-        'include/pybind11/operators.h',
-        'include/pybind11/options.h',
-        'include/pybind11/pybind11.h',
-        'include/pybind11/pytypes.h',
-        'include/pybind11/stl.h',
-        'include/pybind11/stl_bind.h',
-    ]
+    headers = package_data
 
 
 class InstallHeaders(install_headers):
@@ -66,6 +68,7 @@ setup(
     packages=['pybind11'],
     license='BSD',
     headers=headers,
+    package_data={'pybind11': package_data},
     cmdclass=dict(install_headers=InstallHeaders),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
