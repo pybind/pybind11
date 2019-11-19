@@ -69,6 +69,7 @@ setup(
     license='BSD',
     headers=headers,
     package_data={'pybind11': package_data},
+    zip_safe=False,
     cmdclass=dict(install_headers=InstallHeaders),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
