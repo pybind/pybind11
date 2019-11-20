@@ -62,7 +62,7 @@ class InstallHeaders(install_headers):
 class BuildPy(build_py):
     def build_package_data(self):
         build_py.build_package_data(self)
-        for header in self.distribution.headers:
+        for header in package_data:
             target = os.path.join(self.build_lib, 'pybind11', header)
             self.mkpath(os.path.dirname(target))
             self.copy_file(header, target, preserve_mode=False)
