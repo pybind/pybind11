@@ -4,6 +4,7 @@
 
 from setuptools import setup
 from distutils.command.install_headers import install_headers
+from distutils.command.build_py import build_py
 from pybind11 import __version__
 import os
 
@@ -57,6 +58,15 @@ class InstallHeaders(install_headers):
             self.outfiles.append(out)
 
 
+# Install the headers inside the package as well
+class BuildPy(build_py):
+    def build_package_data(self):
+        build_py.build_package_data(self)
+        for header in self.distribution.headers:
+            target = os.path.join(self.build_lib, 'pybind11', header)
+            self.mkpath(os.path.dirname(target))
+            self.copy_file(header, target, preserve_mode=False)
+
 setup(
     name='pybind11',
     version=__version__,
@@ -68,9 +78,8 @@ setup(
     packages=['pybind11'],
     license='BSD',
     headers=headers,
-    package_data={'pybind11': package_data},
     zip_safe=False,
-    cmdclass=dict(install_headers=InstallHeaders),
+    cmdclass=dict(install_headers=InstallHeaders, build_py=BuildPy),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
