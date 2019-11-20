@@ -1353,6 +1353,17 @@ public:
             pybind11_fail("Unable to create memoryview from buffer descriptor");
     }
 
+    #if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 3)
+    explicit memoryview(const uint8_t* buffer, const Py_ssize_t len) {
+        m_ptr = PyMemoryView_FromMemory(
+            reinterpret_cast<char*>(const_cast<uint8_t*>(buffer)), len, PyBUF_READ);
+    }
+    explicit memoryview(uint8_t* buffer, const Py_ssize_t len) {
+        m_ptr = PyMemoryView_FromMemory(
+            reinterpret_cast<char*>(buffer), len, PyBUF_READ | PyBUF_WRITE);
+    }
+    #endif
+
     PYBIND11_OBJECT_CVT(memoryview, object, PyMemoryView_Check, PyMemoryView_FromObject)
 };
 /// @} pytypes
