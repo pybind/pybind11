@@ -266,8 +266,7 @@ throwing an exception that gets translated to KeyboardInterrupt
     {
         m.def("long running_func", []()
         {
-            for (;;)
-            {
+            for (;;) {
                 if (PyErr_CheckSignals() != 0)
                     throw interruption_error();
                 // Long running iteration
