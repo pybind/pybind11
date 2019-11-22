@@ -262,6 +262,13 @@ throwing an exception that gets translated to KeyboardInterrupt
 
 .. code-block:: cpp
 
+    class interruption_error: public std::exception {
+    public:
+        const char* what() const noexcept{
+            return "Interruption signal caught.";
+        }
+    };
+
     PYBIND11_MODULE(example, m)
     {
         m.def("long running_func", []()
