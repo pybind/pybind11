@@ -10,6 +10,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/functional.h>
+#include <thread>
 
 
 int dummy_function(int i) { return i + 1; }
@@ -146,4 +147,22 @@ TEST_SUBMODULE(callbacks, m) {
     py::class_<CppBoundMethodTest>(m, "CppBoundMethodTest")
         .def(py::init<>())
         .def("triple", [](CppBoundMethodTest &, int val) { return 3 * val; });
+
+    // test async Python callbacks
+    using callback_f = std::function<void(int)>;
+    m.def("test_async_callback", [](callback_f f, py::list work) {
+        // make detached thread that calls `f` with piece of work after a little delay
+        auto start_f = [f](int j) {
+            auto invoke_f = [f, j] {
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                f(j);
+            };
+            auto t = std::thread(std::move(invoke_f));
+            t.detach();
+        };
+
+        // spawn worker threads
+        for (auto i : work)
+            start_f(py::cast<int>(i));
+    });
 }

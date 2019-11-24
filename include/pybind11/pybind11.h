@@ -46,6 +46,10 @@
 #include "detail/class.h"
 #include "detail/init.h"
 
+#if defined(__GNUG__) && !defined(__clang__)
+#  include <cxxabi.h>
+#endif
+
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
@@ -491,7 +495,7 @@ protected:
 
                 function_call call(func, parent);
 
-                size_t args_to_copy = std::min(pos_args, n_args_in);
+                size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
@@ -663,6 +667,10 @@ protected:
         } catch (error_already_set &e) {
             e.restore();
             return nullptr;
+#if defined(__GNUG__) && !defined(__clang__)
+        } catch ( abi::__forced_unwind& ) {
+            throw;
+#endif
         } catch (...) {
             /* When an exception is caught, give each registered exception
                translator a chance to translate it to a Python exception
@@ -995,14 +1003,21 @@ void call_operator_delete(T *p, size_t s, size_t) { T::operator delete(p, s); }
 
 inline void call_operator_delete(void *p, size_t s, size_t a) {
     (void)s; (void)a;
-#if defined(PYBIND11_CPP17)
-    if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
-        ::operator delete(p, s, std::align_val_t(a));
-    else
+    #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+        if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+            #ifdef __cpp_sized_deallocation
+                ::operator delete(p, s, std::align_val_t(a));
+            #else
+                ::operator delete(p, std::align_val_t(a));
+            #endif
+            return;
+        }
+    #endif
+    #ifdef __cpp_sized_deallocation
         ::operator delete(p, s);
-#else
-    ::operator delete(p);
-#endif
+    #else
+        ::operator delete(p);
+    #endif
 }
 
 NAMESPACE_END(detail)
@@ -1112,7 +1127,7 @@ public:
                 "def_static(...) called with a non-static member function pointer");
         cpp_function cf(std::forward<Func>(f), name(name_), scope(*this),
                         sibling(getattr(*this, name_, none())), extra...);
-        attr(cf.name()) = cf;
+        attr(cf.name()) = staticmethod(cf);
         return *this;
     }
 
@@ -1176,7 +1191,7 @@ public:
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
-        static_assert(std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
+        static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this)),
                      fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
         def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
@@ -1185,7 +1200,7 @@ public:
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
-        static_assert(std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
+        static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this));
         def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
         return *this;
@@ -1257,6 +1272,8 @@ public:
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
     class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
+        static_assert( 0 == detail::constexpr_sum(std::is_base_of<arg, Extra>::value...),
+                      "Argument annotations are not allowed for properties");
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
         auto *rec_active = rec_fget;
         if (rec_fget) {
@@ -1459,9 +1476,17 @@ struct enum_base {
                 },                                                                     \
                 is_method(m_base))
 
+        #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                    \
+            m_base.attr(op) = cpp_function(                                            \
+                [](object a_, object b) {                                              \
+                    int_ a(a_);                                                        \
+                    return expr;                                                       \
+                },                                                                     \
+                is_method(m_base))
+
         if (is_convertible) {
-            PYBIND11_ENUM_OP_CONV("__eq__", !b.is_none() &&  a.equal(b));
-            PYBIND11_ENUM_OP_CONV("__ne__",  b.is_none() || !a.equal(b));
+            PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() &&  a.equal(b));
+            PYBIND11_ENUM_OP_CONV_LHS("__ne__",  b.is_none() || !a.equal(b));
 
             if (is_arithmetic) {
                 PYBIND11_ENUM_OP_CONV("__lt__",   a <  b);
@@ -1474,6 +1499,8 @@ struct enum_base {
                 PYBIND11_ENUM_OP_CONV("__ror__",  a |  b);
                 PYBIND11_ENUM_OP_CONV("__xor__",  a ^  b);
                 PYBIND11_ENUM_OP_CONV("__rxor__", a ^  b);
+                m_base.attr("__invert__") = cpp_function(
+                    [](object arg) { return ~(int_(arg)); }, is_method(m_base));
             }
         } else {
             PYBIND11_ENUM_OP_STRICT("__eq__",  int_(a).equal(int_(b)), return false);
@@ -1489,6 +1516,7 @@ struct enum_base {
             }
         }
 
+        #undef PYBIND11_ENUM_OP_CONV_LHS
         #undef PYBIND11_ENUM_OP_CONV
         #undef PYBIND11_ENUM_OP_STRICT
 
@@ -1545,6 +1573,10 @@ public:
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
         #endif
+        #if PY_MAJOR_VERSION > 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 8)
+            def("__index__", [](Type value) { return (Scalar) value; });
+        #endif
+
         cpp_function setstate(
             [](Type &value, Scalar arg) { value = static_cast<Type>(arg); },
             is_method(*this));
@@ -1872,6 +1904,15 @@ public:
         tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
 
         if (!tstate) {
+            /* Check if the GIL was acquired using the PyGILState_* API instead (e.g. if
+               calling from a Python thread). Since we use a different key, this ensures
+               we don't create a new thread state and deadlock in PyEval_AcquireThread
+               below. Note we don't save this state with internals.tstate, since we don't
+               create it we would fail to clear it (its reference count should be > 0). */
+            tstate = PyGILState_GetThisThreadState();
+        }
+
+        if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
             #if !defined(NDEBUG)
                 if (!tstate)
@@ -1978,12 +2019,12 @@ class gil_scoped_release { };
 #endif
 
 error_already_set::~error_already_set() {
-    if (type) {
-        error_scope scope;
+    if (m_type) {
         gil_scoped_acquire gil;
-        type.release().dec_ref();
-        value.release().dec_ref();
-        trace.release().dec_ref();
+        error_scope scope;
+        m_type.release().dec_ref();
+        m_value.release().dec_ref();
+        m_trace.release().dec_ref();
     }
 }
 
@@ -2044,6 +2085,14 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     return overload;
 }
 
+/** \rst
+  Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
+
+  :this_ptr: The pointer to the object the overload should be retrieved for. This should be the first
+                   non-trampoline class encountered in the inheritance chain.
+  :name: The name of the overloaded Python method to retrieve.
+  :return: The Python method by this name from the object or an empty function wrapper.
+ \endrst */
 template <class T> function get_overload(const T *this_ptr, const char *name) {
     auto tinfo = detail::get_type_info(typeid(T));
     return tinfo ? get_type_overload(this_ptr, tinfo, name) : function();
@@ -2062,17 +2111,66 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
         } \
     }
 
+/** \rst
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
+    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
+    the appropriate type. See :ref:`overriding_virtuals` for more information. This macro should be used when the method
+    name in C is not the same as the method name in Python. For example with `__str__`.
+
+    .. code-block:: cpp
+
+      std::string toString() override {
+        PYBIND11_OVERLOAD_NAME(
+            std::string, // Return type (ret_type)
+            Animal,      // Parent class (cname)
+            toString,    // Name of function in C++ (name)
+            "__str__",   // Name of method in Python (fn)
+        );
+      }
+\endrst */
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
     return cname::fn(__VA_ARGS__)
 
+/** \rst
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD_NAME`, except that it
+    throws if no overload can be found.
+\endrst */
 #define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
     pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\"");
 
+/** \rst
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
+    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
+    the appropriate type. This macro should be used if the method name in C and in Python are identical.
+    See :ref:`overriding_virtuals` for more information.
+
+    .. code-block:: cpp
+
+      class PyAnimal : public Animal {
+      public:
+          // Inherit the constructors
+          using Animal::Animal;
+
+          // Trampoline (need one for each virtual function)
+          std::string go(int n_times) override {
+              PYBIND11_OVERLOAD_PURE(
+                  std::string, // Return type (ret_type)
+                  Animal,      // Parent class (cname)
+                  go,          // Name of function in C++ (must match Python name) (fn)
+                  n_times      // Argument(s) (...)
+              );
+          }
+      };
+\endrst */
 #define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
     PYBIND11_OVERLOAD_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
+/** \rst
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD`, except that it throws
+    if no overload can be found.
+\endrst */
 #define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
     PYBIND11_OVERLOAD_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 

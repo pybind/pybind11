@@ -78,7 +78,7 @@ TEST_SUBMODULE(buffers, m) {
     py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
         .def(py::init<ssize_t, ssize_t>())
         /// Construct from a buffer
-        .def(py::init([](py::buffer b) {
+        .def(py::init([](py::buffer const b) {
             py::buffer_info info = b.request();
             if (info.format != py::format_descriptor<float>::format() || info.ndim != 2)
                 throw std::runtime_error("Incompatible buffer format!");

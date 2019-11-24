@@ -39,6 +39,8 @@ multiple versions of Python and it finds the wrong one, delete
 
     cmake -DPYTHON_EXECUTABLE:FILEPATH=<path-to-python-executable> .
 
+.. _faq_reference_arguments:
+
 Limitations involving reference arguments
 =========================================
 

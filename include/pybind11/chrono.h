@@ -106,8 +106,11 @@ public:
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
         if (!src) return false;
+
+        std::tm cal;
+        microseconds msecs;
+
         if (PyDateTime_Check(src.ptr())) {
-            std::tm cal;
             cal.tm_sec   = PyDateTime_DATE_GET_SECOND(src.ptr());
             cal.tm_min   = PyDateTime_DATE_GET_MINUTE(src.ptr());
             cal.tm_hour  = PyDateTime_DATE_GET_HOUR(src.ptr());
@@ -115,11 +118,30 @@ public:
             cal.tm_mon   = PyDateTime_GET_MONTH(src.ptr()) - 1;
             cal.tm_year  = PyDateTime_GET_YEAR(src.ptr()) - 1900;
             cal.tm_isdst = -1;
-
-            value = system_clock::from_time_t(std::mktime(&cal)) + microseconds(PyDateTime_DATE_GET_MICROSECOND(src.ptr()));
-            return true;
+            msecs        = microseconds(PyDateTime_DATE_GET_MICROSECOND(src.ptr()));
+        } else if (PyDate_Check(src.ptr())) {
+            cal.tm_sec   = 0;
+            cal.tm_min   = 0;
+            cal.tm_hour  = 0;
+            cal.tm_mday  = PyDateTime_GET_DAY(src.ptr());
+            cal.tm_mon   = PyDateTime_GET_MONTH(src.ptr()) - 1;
+            cal.tm_year  = PyDateTime_GET_YEAR(src.ptr()) - 1900;
+            cal.tm_isdst = -1;
+            msecs        = microseconds(0);
+        } else if (PyTime_Check(src.ptr())) {
+            cal.tm_sec   = PyDateTime_TIME_GET_SECOND(src.ptr());
+            cal.tm_min   = PyDateTime_TIME_GET_MINUTE(src.ptr());
+            cal.tm_hour  = PyDateTime_TIME_GET_HOUR(src.ptr());
+            cal.tm_mday  = 1;   // This date (day, month, year) = (1, 0, 70)
+            cal.tm_mon   = 0;   // represents 1-Jan-1970, which is the first
+            cal.tm_year  = 70;  // earliest available date for Python's datetime
+            cal.tm_isdst = -1;
+            msecs        = microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()));
         }
         else return false;
+
+        value = system_clock::from_time_t(std::mktime(&cal)) + msecs;
+        return true;
     }
 
     static handle cast(const std::chrono::time_point<std::chrono::system_clock, Duration> &src, return_value_policy /* policy */, handle /* parent */) {
@@ -128,7 +150,7 @@ public:
         // Lazy initialise the PyDateTime import
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
-        std::time_t tt = system_clock::to_time_t(src);
+        std::time_t tt = system_clock::to_time_t(time_point_cast<system_clock::duration>(src));
         // this function uses static memory so it's best to copy it out asap just in case
         // otherwise other code that is using localtime may break this (not just python code)
         std::tm localtime = *std::localtime(&tt);

@@ -149,6 +149,18 @@ See the `Config file`_ docstring for details of relevant CMake variables.
     find_package(pybind11 REQUIRED)
     pybind11_add_module(example example.cpp)
 
+Note that ``find_package(pybind11)`` will only work correctly if pybind11
+has been correctly installed on the system, e. g. after downloading or cloning
+the pybind11 repository  :
+
+.. code-block:: bash
+
+    cd pybind11
+    mkdir build
+    cd build
+    cmake ..
+    make install
+
 Once detected, the aforementioned ``pybind11_add_module`` can be employed as
 before. The function usage and configuration variables are identical no matter
 if pybind11 is added as a subdirectory or found as an installed package. You

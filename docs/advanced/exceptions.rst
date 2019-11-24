@@ -24,9 +24,11 @@ exceptions:
 +--------------------------------------+--------------------------------------+
 | :class:`std::length_error`           | ``ValueError``                       |
 +--------------------------------------+--------------------------------------+
-| :class:`std::out_of_range`           | ``ValueError``                       |
+| :class:`std::out_of_range`           | ``IndexError``                       |
 +--------------------------------------+--------------------------------------+
 | :class:`std::range_error`            | ``ValueError``                       |
++--------------------------------------+--------------------------------------+
+| :class:`std::overflow_error`         | ``OverflowError``                    |
 +--------------------------------------+--------------------------------------+
 | :class:`pybind11::stop_iteration`    | ``StopIteration`` (used to implement |
 |                                      | custom iterators)                    |

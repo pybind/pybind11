@@ -80,10 +80,10 @@ helper class that is defined as follows:
         }
     };
 
-The macro :func:`PYBIND11_OVERLOAD_PURE` should be used for pure virtual
-functions, and :func:`PYBIND11_OVERLOAD` should be used for functions which have
-a default implementation.  There are also two alternate macros
-:func:`PYBIND11_OVERLOAD_PURE_NAME` and :func:`PYBIND11_OVERLOAD_NAME` which
+The macro :c:macro:`PYBIND11_OVERLOAD_PURE` should be used for pure virtual
+functions, and :c:macro:`PYBIND11_OVERLOAD` should be used for functions which have
+a default implementation.  There are also two alternate macros 
+:c:macro:`PYBIND11_OVERLOAD_PURE_NAME` and :c:macro:`PYBIND11_OVERLOAD_NAME` which
 take a string-valued name argument between the *Parent class* and *Name of the
 function* slots, which defines the name of function in Python. This is required
 when the C++ and Python versions of the
@@ -153,7 +153,7 @@ Here is an example:
 
 .. code-block:: python
 
-    class Dachschund(Dog):
+    class Dachshund(Dog):
         def __init__(self, name):
             Dog.__init__(self) # Without this, undefined behavior may occur if the C++ portions are referenced.
             self.name = name
@@ -239,7 +239,7 @@ override the ``name()`` method):
     class PyDog : public Dog {
     public:
         using Dog::Dog; // Inherit constructors
-        std::string go(int n_times) override { PYBIND11_OVERLOAD_PURE(std::string, Dog, go, n_times); }
+        std::string go(int n_times) override { PYBIND11_OVERLOAD(std::string, Dog, go, n_times); }
         std::string name() override { PYBIND11_OVERLOAD(std::string, Dog, name, ); }
         std::string bark() override { PYBIND11_OVERLOAD(std::string, Dog, bark, ); }
     };
@@ -325,6 +325,10 @@ can now create a python class that inherits from ``Dog``:
 Extended trampoline class functionality
 =======================================
 
+.. _extended_class_functionality_forced_trampoline:
+
+Forced trampoline class initialisation
+--------------------------------------
 The trampoline classes described in the previous sections are, by default, only
 initialized when needed.  More specifically, they are initialized when a python
 class actually inherits from a registered type (instead of merely creating an
@@ -351,6 +355,45 @@ ensuring member initialization and (eventual) destruction.
 
     See the file :file:`tests/test_virtual_functions.cpp` for complete examples
     showing both normal and forced trampoline instantiation.
+
+Different method signatures
+---------------------------
+The macro's introduced in :ref:`overriding_virtuals` cover most of the standard
+use cases when exposing C++ classes to Python. Sometimes it is hard or unwieldy
+to create a direct one-on-one mapping between the arguments and method return
+type.
+
+An example would be when the C++ signature contains output arguments using
+references (See also :ref:`faq_reference_arguments`). Another way of solving
+this is to use the method body of the trampoline class to do conversions to the
+input and return of the Python method.
+
+The main building block to do so is the :func:`get_overload`, this function
+allows retrieving a method implemented in Python from within the trampoline's
+methods. Consider for example a C++ method which has the signature
+``bool myMethod(int32_t& value)``, where the return indicates whether
+something should be done with the ``value``. This can be made convenient on the
+Python side by allowing the Python function to return ``None`` or an ``int``:
+
+.. code-block:: cpp
+
+    bool MyClass::myMethod(int32_t& value)
+    {
+        pybind11::gil_scoped_acquire gil;  // Acquire the GIL while in this scope.
+        // Try to look up the overloaded method on the Python side.
+        pybind11::function overload = pybind11::get_overload(this, "myMethod");
+        if (overload) {  // method is found
+            auto obj = overload(value);  // Call the Python function.
+            if (py::isinstance<py::int_>(obj)) {  // check if it returned a Python integer type
+                value = obj.cast<int32_t>();  // Cast it and assign it to the value.
+                return true;  // Return true; value should be used.
+            } else {
+                return false;  // Python returned none, return false.
+            }
+        }
+        return false;  // Alternatively return MyClass::myMethod(value);
+    }
+
 
 .. _custom_constructors:
 
@@ -619,6 +662,7 @@ to Python.
             .def(py::self *= float())
             .def(float() * py::self)
             .def(py::self * float())
+            .def(-py::self)
             .def("__repr__", &Vector2::toString);
     }
 
