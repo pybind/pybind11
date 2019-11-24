@@ -1345,7 +1345,7 @@ public:
         buf.strides = py_strides.data();
         buf.shape = py_shape.data();
         buf.suboffsets = nullptr;
-        buf.readonly = false;
+        buf.readonly = info.readonly;
         buf.internal = nullptr;
 
         m_ptr = PyMemoryView_FromBuffer(&buf);
