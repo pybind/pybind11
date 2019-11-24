@@ -18,6 +18,7 @@
 #include <limits>
 #include <tuple>
 #include <type_traits>
+#include <bitset>
 
 #if defined(PYBIND11_CPP17)
 #  if defined(__has_include)
@@ -1881,21 +1882,16 @@ constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 
 NAMESPACE_BEGIN(detail)
 
-// forward declaration (definition in attr.h)
-struct function_record;
-
 /// Internal data associated with a single function call
+template<size_t NumArgs>
 struct function_call {
-    function_call(const function_record &f, handle p); // Implementation in attr.h
-
-    /// The function data:
-    const function_record &func;
+    function_call(handle p) : parent(p) {}
 
     /// Arguments passed to the function:
-    std::vector<handle> args;
+    std::array<handle, NumArgs> args;
 
     /// The `convert` value the arguments should be loaded with
-    std::vector<bool> args_convert;
+    std::bitset<NumArgs> args_convert;
 
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
     /// present, are also in `args` but without a reference).
@@ -1927,10 +1923,11 @@ class argument_loader {
 public:
     static constexpr bool has_kwargs = kwargs_pos < 0;
     static constexpr bool has_args = args_pos < 0;
+    static constexpr size_t num_args = sizeof...(Args);
 
     static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 
-    bool load_args(function_call &call) {
+    bool load_args(function_call<num_args> &call) {
         return load_impl_sequence(call, indices{});
     }
 
@@ -1947,10 +1944,10 @@ public:
 
 private:
 
-    static bool load_impl_sequence(function_call &, index_sequence<>) { return true; }
+    static bool load_impl_sequence(function_call<num_args>&, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
+    bool load_impl_sequence(function_call<num_args>&call, index_sequence<Is...>) {
         for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
             if (!r)
                 return false;
