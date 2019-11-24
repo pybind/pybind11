@@ -283,3 +283,11 @@ code by introspecting existing C++ codebases using LLVM/Clang. See the
 [binder]_ documentation for details.
 
 .. [binder] http://cppbinder.readthedocs.io/en/latest/about.html
+
+[AutoWIG]_ is a Python library that wraps automatically compiled libraries into
+high-level languages. It parses C++ code using LLVM/Clang technologies and
+generates the wrappers using the Mako templating engine. The approach is automatic,
+extensible, and applies to very complex C++ libraries, composed of thousands of
+classes or incorporating modern meta-programming constructs.
+
+.. [AutoWIG] https://github.com/StatisKit/AutoWIG
