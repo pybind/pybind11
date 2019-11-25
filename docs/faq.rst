@@ -257,18 +257,11 @@ is released, so a long-running function won't be interrupted.
 To interrupt from inside your function, you can use the ``PyErr_CheckSignals()``
 function, that will tell if a signal has been raised on the Python side.  This
 function merely checks a flag, so its impact is negligible. When a signal has
-been received, you can explicitely interrupt execution by throwing an exception
-that gets translated to KeyboardInterrupt (see :doc:`advanced/exceptions`
-section):
+been received, you must either explicitly interrupt execution by throwing
+``py::error_already_set`` (which will propagate the existing
+``KeyboardInterrupt``), or clear the error (which you usually will not want):
 
 .. code-block:: cpp
-
-    class interruption_error: public std::exception {
-    public:
-        const char* what() const noexcept {
-            return "Interruption signal caught.";
-        }
-    };
 
     PYBIND11_MODULE(example, m)
     {
@@ -276,11 +269,10 @@ section):
         {
             for (;;) {
                 if (PyErr_CheckSignals() != 0)
-                    throw interruption_error();
+                    throw py::error_already_set();
                 // Long running iteration
             }
         });
-        py::register_exception<interruption_error>(m, "KeyboardInterrupt");
     }
 
 Inconsistent detection of Python version in CMake and pybind11
