@@ -254,17 +254,18 @@ How can I properly handle Ctrl-C in long-running functions?
 Ctrl-C is received by the Python interpreter, and holds it until the GIL
 is released, so a long-running function won't be interrupted.
 
-To interrupt from inside your function, you can use the ``PyErr_CheckSignals()`` function,
-that will tell if a signal has been raised on the Python side.
-It's a flag check so its impact is negligible. If a signal is on, interrupt execution by
-throwing an exception that gets translated to KeyboardInterrupt
-(see :doc:`advanced/exceptions` section):
+To interrupt from inside your function, you can use the ``PyErr_CheckSignals()``
+function, that will tell if a signal has been raised on the Python side.  This
+function merely checks a flag, so its impact is negligible. When a signal has
+been received, you can explicitely interrupt execution by throwing an exception
+that gets translated to KeyboardInterrupt (see :doc:`advanced/exceptions`
+section):
 
 .. code-block:: cpp
 
     class interruption_error: public std::exception {
     public:
-        const char* what() const noexcept{
+        const char* what() const noexcept {
             return "Interruption signal caught.";
         }
     };
