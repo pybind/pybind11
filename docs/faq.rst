@@ -248,6 +248,41 @@ that that were ``malloc()``-ed in another shared library, using data
 structures with incompatible ABIs, and so on. pybind11 is very careful not
 to make these types of mistakes.
 
+How can I properly handle Ctrl-C in long-running functions?
+===========================================================
+
+Ctrl-C is received by the Python interpreter, and holds it until the GIL
+is released, so a long-running function won't be interrupted.
+
+To interrupt from inside your function, you can use the ``PyErr_CheckSignals()``
+function, that will tell if a signal has been raised on the Python side.  This
+function merely checks a flag, so its impact is negligible. When a signal has
+been received, you can explicitely interrupt execution by throwing an exception
+that gets translated to KeyboardInterrupt (see :doc:`advanced/exceptions`
+section):
+
+.. code-block:: cpp
+
+    class interruption_error: public std::exception {
+    public:
+        const char* what() const noexcept {
+            return "Interruption signal caught.";
+        }
+    };
+
+    PYBIND11_MODULE(example, m)
+    {
+        m.def("long running_func", []()
+        {
+            for (;;) {
+                if (PyErr_CheckSignals() != 0)
+                    throw interruption_error();
+                // Long running iteration
+            }
+        });
+        py::register_exception<interruption_error>(m, "KeyboardInterrupt");
+    }
+
 Inconsistent detection of Python version in CMake and pybind11
 ==============================================================
 
