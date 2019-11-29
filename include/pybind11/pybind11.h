@@ -117,8 +117,7 @@ protected:
             Extra...>(std::forward<Func>(f), extra...);
 
         /* Register the function with Python from generic (non-templated) code */
-        object obj = rec->initialize_generic(signature.text, types.data(), sizeof...(Args));
-        m_ptr = obj.release().ptr();
+        m_ptr = rec->initialize_generic(signature.text, types.data(), sizeof...(Args)).release().ptr();
     }
 
 };

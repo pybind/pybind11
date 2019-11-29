@@ -144,7 +144,7 @@ struct argument_record {
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false),
-          is_operator(false), has_args(false), has_kwargs(false), is_method(false) { }
+          is_operator(false), is_method(false) { }
 
     virtual ~function_record() {}
 
@@ -193,12 +193,6 @@ struct function_record {
 
     /// True if this is an operator (__add__), etc.
     bool is_operator : 1;
-
-    /// True if the function has a '*args' argument
-    bool has_args : 1;
-
-    /// True if the function has a '**kwargs' argument
-    bool has_kwargs : 1;
 
     /// True if this is a method
     bool is_method : 1;
@@ -416,8 +410,6 @@ struct function_record {
             python_function = reinterpret_steal<object>(PYBIND11_INSTANCE_METHOD_NEW(python_function.ptr(), scope.ptr()));
             if (!python_function)
                 pybind11_fail("cpp_function::cpp_function(): Could not allocate instance method object");
-
-            //Py_DECREF(func);
         }
 
         return python_function;
@@ -427,8 +419,6 @@ struct function_record {
     static void destruct(detail::function_record* rec) {
         while (rec) {
             detail::function_record* next = rec->next;
-            //if (rec->free_data)
-            //    rec->free_data(rec);
             std::free((char*)rec->name);
             std::free((char*)rec->doc);
             std::free((char*)rec->signature);
@@ -626,18 +616,17 @@ template<typename Func, typename FunctionType, typename Return, typename CastIn,
 struct function_record_impl : function_record
 {
     static constexpr size_t nargs = CastIn::num_args;
-    Func m_func;
+    static constexpr bool has_args = CastIn::has_args;
+    static constexpr bool has_kwargs = CastIn::has_kwargs;
+
+    typename std::remove_reference<Func>::type m_func;
 
     /// Special internal constructor for functors, lambda functions, etc.
     function_record_impl(Func&& f, const Extra&... extra) 
-        : function_record()
-        , m_func(std::forward<Func>(f))
+        : m_func(std::forward<Func>(f))
     {
         /* Process any user-provided function attributes */
         process_attributes<Extra...>::init(extra..., this);
-
-        if (CastIn::has_args) has_args = true;
-        if (CastIn::has_kwargs) has_kwargs = true;
     }
     
     template<typename F>
