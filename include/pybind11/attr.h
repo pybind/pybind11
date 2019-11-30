@@ -154,7 +154,7 @@ struct function_record {
 
     virtual ~function_record() {}
 
-    virtual const void* try_get_function_pointer(const std::type_info& function_pointer_type_info) const = 0;
+    virtual void* try_get_function_pointer(const std::type_info& function_pointer_type_info) = 0;
     virtual handle try_invoke(
         handle parent, 
         value_and_holder& self_value_and_holder, 
@@ -162,7 +162,7 @@ struct function_record {
         PyObject* args_in, 
         PyObject* kwargs_in,
         bool no_convert
-    ) const = 0;
+    ) = 0;
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -446,7 +446,7 @@ struct function_record {
     static PyObject* dispatcher(PyObject* self, PyObject* args_in, PyObject* kwargs_in) {
         using namespace detail;
 
-        const function_record* overloads = reinterpret_cast<function_record*>(PyCapsule_GetPointer(self, nullptr));
+        function_record* overloads = reinterpret_cast<function_record*>(PyCapsule_GetPointer(self, nullptr));
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
         const size_t n_args_in = (size_t)PyTuple_GET_SIZE(args_in);
@@ -482,12 +482,12 @@ struct function_record {
 
             if (overloaded)
             {
-                for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
+                for (function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
                     result = it->try_invoke(parent, self_value_and_holder, n_args_in, args_in, kwargs_in, true);
                 }
             }
 
-            for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
+            for (function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
                 result = it->try_invoke(parent, self_value_and_holder, n_args_in, args_in, kwargs_in, false);
             }
         }
@@ -644,15 +644,15 @@ struct function_record_impl : function_record
 
     template<typename F>
     static typename std::enable_if<!std::is_convertible<F, FunctionType>::value, const FunctionType>::type
-        try_extract_function_pointer(F& func)
+        try_extract_function_pointer(F&)
     {
         return nullptr;
     }
 
-    virtual const void* try_get_function_pointer(const std::type_info& function_pointer_type_info) const override
+    virtual void* try_get_function_pointer(const std::type_info& function_pointer_type_info) override
     {
         if (same_type(typeid(FunctionType), function_pointer_type_info))
-            return reinterpret_cast<const void*>(try_extract_function_pointer(m_func));
+            return reinterpret_cast<void*>(try_extract_function_pointer(m_func));
         else
             return nullptr;
     }
@@ -663,7 +663,7 @@ struct function_record_impl : function_record
         size_t n_args_in, 
         PyObject* args_in,
         PyObject* kwargs_in,
-        bool no_convert) const override
+        bool no_convert) override
     {
         /* For each overload:
            1. Copy all positional arguments we were given, also checking to make sure that
