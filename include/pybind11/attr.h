@@ -146,6 +146,12 @@ struct function_record {
         : is_constructor(false), is_new_style_constructor(false),
           is_operator(false), is_method(false) { }
 
+    function_record(const function_record&) = delete;
+    function_record(function_record&&) = delete;
+    
+    function_record & operator=(const function_record&) = delete;
+    function_record & operator=(function_record&&) = delete;
+
     virtual ~function_record() {}
 
     virtual const void* try_get_function_pointer(const std::type_info& function_pointer_type_info) const = 0;
@@ -304,12 +310,12 @@ struct function_record {
         if (sibling && PYBIND11_INSTANCE_METHOD_CHECK(sibling.ptr()))
             sibling = PYBIND11_INSTANCE_METHOD_GET_FUNCTION(sibling.ptr());
 
-        detail::function_record* chain = nullptr;
-        detail::function_record* chain_start = this;
+        function_record* chain = nullptr;
+        function_record* chain_start = this;
         if (sibling) {
             if (PyCFunction_Check(sibling.ptr())) {
                 auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(sibling.ptr()));
-                chain = (detail::function_record*) rec_capsule;
+                chain = (function_record*)(rec_capsule);
                 /* Never append a method to an overload chain of a parent class;
                    instead, hide the parent's overloads in this case */
                 if (!chain->scope.is(scope))
@@ -331,7 +337,7 @@ struct function_record {
             def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
             capsule rec_capsule(this, [](void* ptr) {
-                destruct((detail::function_record*) ptr);
+                destruct(reinterpret_cast<function_record*>(ptr));
             });
 
             object scope_module;
