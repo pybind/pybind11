@@ -118,6 +118,15 @@ enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 template <size_t NumArgs> void keep_alive_impl(size_t Nurse, size_t Patient, function_call<NumArgs> &call, handle ret);
+template <typename... Args> struct process_attributes;
+
+template <typename T>
+using is_call_guard = is_instantiation<call_guard, T>;
+
+/// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
+template <typename... Extra>
+using extract_guard_t = typename exactly_one_t<is_call_guard, call_guard<>, Extra...>::type;
+
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -139,7 +148,7 @@ struct function_record {
 
     virtual ~function_record() {}
 
-    virtual void* try_get_function_pointer(const std::type_info& function_pointer_type_info) const = 0;
+    virtual const void* try_get_function_pointer(const std::type_info& function_pointer_type_info) const = 0;
     virtual handle try_invoke(
         handle parent, 
         value_and_holder& self_value_and_holder, 
@@ -624,8 +633,6 @@ struct function_record_impl : function_record
         : function_record()
         , m_func(std::forward<Func>(f))
     {
-        using namespace detail;
-
         /* Process any user-provided function attributes */
         process_attributes<Extra...>::init(extra..., this);
 
@@ -634,23 +641,23 @@ struct function_record_impl : function_record
     }
     
     template<typename F>
-    static typename std::enable_if<std::is_convertible<F, FunctionType>::value, FunctionType>::type
+    static typename std::enable_if<std::is_convertible<F, FunctionType>::value, const FunctionType>::type
     try_extract_function_pointer(F& func)
     {
         return static_cast<FunctionType>(func);
     }
 
     template<typename F>
-    static typename std::enable_if<!std::is_convertible<F, FunctionType>::value, FunctionType>::type
+    static typename std::enable_if<!std::is_convertible<F, FunctionType>::value, const FunctionType>::type
         try_extract_function_pointer(F& func)
     {
         return nullptr;
     }
 
-    virtual void* try_get_function_pointer(const std::type_info& function_pointer_type_info) const override
+    virtual const void* try_get_function_pointer(const std::type_info& function_pointer_type_info) const override
     {
         if (same_type(typeid(FunctionType), function_pointer_type_info))
-            return try_extract_function_pointer(m_func);
+            return reinterpret_cast<const void*>(try_extract_function_pointer(m_func));
         else
             return nullptr;
     }
@@ -1110,22 +1117,15 @@ template <typename... Args> struct process_attributes {
     }
     template<size_t NumArgs>
     static void precall(function_call<NumArgs> &call) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall<NumArgs>(call), 0) ... };
+        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
         ignore_unused(unused);
     }
     template<size_t NumArgs>
     static void postcall(function_call<NumArgs> &call, handle fn_ret) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall<NumArgs>(call, fn_ret), 0) ... };
+        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
         ignore_unused(unused);
     }
 };
-
-template <typename T>
-using is_call_guard = is_instantiation<call_guard, T>;
-
-/// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
-template <typename... Extra>
-using extract_guard_t = typename exactly_one_t<is_call_guard, call_guard<>, Extra...>::type;
 
 /// Check the number of named arguments at compile time
 template <typename... Extra,
