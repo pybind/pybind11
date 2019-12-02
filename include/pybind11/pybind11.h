@@ -1821,7 +1821,25 @@ exception<CppException> &register_exception(handle scope,
                                             const char *name,
                                             PyObject *base = PyExc_Exception) {
     auto &ex = detail::get_exception_object<CppException>();
-    if (!ex) ex = exception<CppException>(scope, name, base);
+    if (!ex) {
+        /*
+         * This is the first time register_exception<>() is called:
+         * get_exception_object<>() returns a reference to a static,
+         * default-initialized (= empty) exception object. Perform
+         * initialization. Note that the exception is added to the module
+         * “scope” inside the constructor.
+         */
+        ex = exception<CppException>(scope, name, base);
+    } else {
+        /*
+         * register_exception<>() has already been called, i.e. the exception is
+         * initialized. Add the exception to the module “scope”
+         */
+        if (hasattr(scope, name))
+            pybind11_fail("Error during initialization: multiple incompatible "
+                          "definitions with name \"" + std::string(name) + "\"");
+        scope.attr(name) = ex;
+    }
 
     register_exception_translator([](std::exception_ptr p) {
         if (!p) return;
