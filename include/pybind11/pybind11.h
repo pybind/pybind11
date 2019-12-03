@@ -1574,9 +1574,9 @@ public:
     using Base::def_property_readonly_static;
     using Underlying = typename std::underlying_type<Type>::type;
     // Scalar is the integer representation of underlying type
-    using Scalar = detail::conditional_t<
-        detail::is_std_char_type<Underlying>::value,
-        detail::equivalent_integer_t<Underlying>, Underlying>;
+    using Scalar = detail::conditional_t<detail::any_of<
+        detail::is_std_char_type<Underlying>, std::is_same<Underlying, bool>
+    >::value, detail::equivalent_integer_t<Underlying>, Underlying>;
 
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
