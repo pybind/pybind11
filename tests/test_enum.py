@@ -194,13 +194,37 @@ def test_binary_operators():
 def test_enum_to_int():
     m.test_enum_to_int(m.Flags.Read)
     m.test_enum_to_int(m.ClassWithUnscopedEnum.EMode.EFirstMode)
+    m.test_enum_to_int(m.ScopedCharEnum.Positive)
     m.test_enum_to_uint(m.Flags.Read)
     m.test_enum_to_uint(m.ClassWithUnscopedEnum.EMode.EFirstMode)
+    m.test_enum_to_uint(m.ScopedCharEnum.Positive)
     m.test_enum_to_long_long(m.Flags.Read)
     m.test_enum_to_long_long(m.ClassWithUnscopedEnum.EMode.EFirstMode)
+    m.test_enum_to_long_long(m.ScopedCharEnum.Positive)
 
 
 def test_duplicate_enum_name():
     with pytest.raises(ValueError) as excinfo:
         m.register_bad_enum()
     assert str(excinfo.value) == 'SimpleEnum: element "ONE" already exists!'
+
+
+def test_char_underlying_enum():
+    assert type(m.ScopedCharEnum.Positive.__int__()) == int
+    assert m.ScopedCharEnum.Zero.__int__() == 0
+    assert m.ScopedChar32Enum.Positive.__getstate__() == 1
+    assert m.ScopedChar32Enum.Zero.__hash__() == 0
+    try:
+        int(m.ScopedChar16Enum.Positive)
+        hash(m.ScopedChar16Enum.Zero)
+    except TypeError:
+        assert False
+    try:
+        m.ScopedWCharEnum(1)
+    except TypeError:
+        assert False
+    try:
+        m.ScopedWCharEnum("0")
+        assert False
+    except TypeError:
+        assert True
