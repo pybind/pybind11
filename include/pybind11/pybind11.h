@@ -1549,6 +1549,19 @@ struct enum_base {
     handle m_parent;
 };
 
+template <bool is_signed, size_t length> struct equivalent_integer {};
+template <> struct equivalent_integer<true,  1> { using type = int8_t;   };
+template <> struct equivalent_integer<false, 1> { using type = uint8_t;  };
+template <> struct equivalent_integer<true,  2> { using type = int16_t;  };
+template <> struct equivalent_integer<false, 2> { using type = uint16_t; };
+template <> struct equivalent_integer<true,  4> { using type = int32_t;  };
+template <> struct equivalent_integer<false, 4> { using type = uint32_t; };
+template <> struct equivalent_integer<true,  8> { using type = int64_t;  };
+template <> struct equivalent_integer<false, 8> { using type = uint64_t; };
+
+template <typename IntLike>
+using equivalent_integer_t = typename equivalent_integer<std::is_signed<IntLike>::value, sizeof(IntLike)>::type;
+
 NAMESPACE_END(detail)
 
 /// Binds C++ enumerations and enumeration classes to Python
@@ -1559,13 +1572,17 @@ public:
     using Base::attr;
     using Base::def_property_readonly;
     using Base::def_property_readonly_static;
-    using Scalar = typename std::underlying_type<Type>::type;
+    using Underlying = typename std::underlying_type<Type>::type;
+    // Scalar is the integer representation of underlying type
+    using Scalar = detail::conditional_t<
+        detail::is_std_char_type<Underlying>::value,
+        detail::equivalent_integer_t<Underlying>, Underlying>;
 
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
       : class_<Type>(scope, name, extra...), m_base(*this, scope) {
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
-        constexpr bool is_convertible = std::is_convertible<Type, Scalar>::value;
+        constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);
 
         def(init([](Scalar i) { return static_cast<Type>(i); }));
