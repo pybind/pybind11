@@ -195,12 +195,15 @@ def test_enum_to_int():
     m.test_enum_to_int(m.Flags.Read)
     m.test_enum_to_int(m.ClassWithUnscopedEnum.EMode.EFirstMode)
     m.test_enum_to_int(m.ScopedCharEnum.Positive)
+    m.test_enum_to_int(m.ScopedBoolEnum.TRUE)
     m.test_enum_to_uint(m.Flags.Read)
     m.test_enum_to_uint(m.ClassWithUnscopedEnum.EMode.EFirstMode)
     m.test_enum_to_uint(m.ScopedCharEnum.Positive)
+    m.test_enum_to_uint(m.ScopedBoolEnum.TRUE)
     m.test_enum_to_long_long(m.Flags.Read)
     m.test_enum_to_long_long(m.ClassWithUnscopedEnum.EMode.EFirstMode)
     m.test_enum_to_long_long(m.ScopedCharEnum.Positive)
+    m.test_enum_to_long_long(m.ScopedBoolEnum.TRUE)
 
 
 def test_duplicate_enum_name():
@@ -228,3 +231,12 @@ def test_char_underlying_enum():
         assert False
     except TypeError:
         assert True
+
+
+def test_bool_underlying_enum():
+    assert type(m.ScopedBoolEnum.TRUE.__int__()) == int
+    assert m.ScopedBoolEnum.FALSE.__hash__() == 0
+    try:
+        m.ScopedBoolEnum(1)
+    except TypeError:
+        assert False

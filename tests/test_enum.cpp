@@ -135,4 +135,14 @@ TEST_SUBMODULE(enums, m) {
     py::enum_<ScopedChar16Enum>(m, "ScopedChar16Enum")
         .value("Zero", ScopedChar16Enum::Zero)
         .value("Positive", ScopedChar16Enum::Positive);
+
+    // test_bool_underlying_enum
+    enum class ScopedBoolEnum : bool { FALSE, TRUE };
+
+    // bool is unsigned (std::is_signed returns false) and 1-bit long, so represented with u8
+    static_assert(std::is_same<py::enum_<ScopedBoolEnum>::Scalar, std::uint8_t>::value, "");
+
+    py::enum_<ScopedBoolEnum>(m, "ScopedBoolEnum")
+        .value("FALSE", ScopedBoolEnum::FALSE)
+        .value("TRUE", ScopedBoolEnum::TRUE);
 }
