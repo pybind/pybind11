@@ -447,10 +447,10 @@ struct function_record {
         if (has_kwargs) --pos_args; //  or py::kwargs)
 
         if (!has_args && n_args_in > pos_args)
-            return PYBIND11_TRY_NEXT_OVERLOAD; // Too many arguments for this overload
+            return false; // Too many arguments for this overload
 
         if (n_args_in < pos_args && args.size() < pos_args)
-            return PYBIND11_TRY_NEXT_OVERLOAD; // Not enough arguments given, and not enough defaults to fill in the blanks
+            return false; // Not enough arguments given, and not enough defaults to fill in the blanks
 
         size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
         size_t args_copied = 0;
