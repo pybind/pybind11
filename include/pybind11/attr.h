@@ -434,7 +434,6 @@ struct function_record {
     /// with the next candidate
     PYBIND11_NOINLINE bool prepare_function_call(
         function_call& call,
-        handle parent,
         value_and_holder& self_value_and_holder,
         size_t n_args_in,
         PyObject* args_in,
@@ -830,7 +829,7 @@ struct function_record_impl : function_record
 
         function_call_impl<CastIn::num_args> call(parent);
 
-        if (!prepare_function_call(call, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, no_convert))
+        if (!prepare_function_call(call, self_value_and_holder, n_args_in, args_in, kwargs_in, no_convert))
             return PYBIND11_TRY_NEXT_OVERLOAD;
 
         // 6. Call the function.
