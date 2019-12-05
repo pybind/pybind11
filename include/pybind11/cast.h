@@ -1884,10 +1884,12 @@ NAMESPACE_BEGIN(detail)
 
 struct function_call
 {
-    function_call(handle p) : parent(p) {}
+    function_call(handle p, size_t n) : parent(p), num_args(n) {}
 
     virtual ~function_call() {}
     virtual void set_arg(size_t idx, handle h, bool convert) = 0;
+    virtual handle arg_at(size_t idx) const = 0;
+    virtual bool arg_convert_at(size_t idx) const = 0;
 
 public:
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
@@ -1899,17 +1901,30 @@ public:
 
     /// If this is a call to an initializer, this argument contains `self`
     handle init_self;
+
+    /// Number of arguments
+    size_t num_args;
 };
 
 /// Internal data associated with a single function call
 template<size_t NumArgs>
 struct function_call_impl : function_call {
-    using function_call::function_call;
+    function_call_impl(handle p) : function_call(p, NumArgs)  {}
 
-    PYBIND11_NOINLINE void set_arg(size_t idx, handle h, bool convert) override
+    void set_arg(size_t idx, handle h, bool convert) override
     {
         args[idx] = h;
         args_convert.set(idx, convert);
+    }
+
+    handle arg_at(size_t idx) const override
+    {
+        return args[idx];
+    }
+
+    bool arg_convert_at(size_t idx) const override
+    {
+        return args_convert[idx];
     }
 
 public:
@@ -1943,7 +1958,7 @@ public:
 
     static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 
-    bool load_args(function_call_impl<num_args> &call) {
+    bool load_args(function_call &call) {
         return load_impl_sequence(call, indices{});
     }
 
@@ -1960,11 +1975,11 @@ public:
 
 private:
 
-    static bool load_impl_sequence(function_call_impl<num_args>&, index_sequence<>) { return true; }
+    static bool load_impl_sequence(function_call&, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(function_call_impl<num_args>&call, index_sequence<Is...>) {
-        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
+    bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
+        for (bool r : {std::get<Is>(argcasters).load(call.arg_at(Is), call.arg_convert_at(Is))...})
             if (!r)
                 return false;
         return true;
