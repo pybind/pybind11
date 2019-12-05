@@ -117,7 +117,7 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+template <size_t NumArgs> void keep_alive_impl(size_t Nurse, size_t Patient, function_call_impl<NumArgs> &call, handle ret);
 template <typename... Args> struct process_attributes;
 
 template <typename T>
@@ -966,8 +966,8 @@ template <typename T> struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) { }
     static void init(const T &, type_record *) { }
-    static void precall(function_call &) { }
-    static void postcall(function_call &, handle) { }
+    template<size_t NumArgs> static void precall(function_call_impl<NumArgs> &) { }
+    template<size_t NumArgs> static void postcall(function_call_impl<NumArgs> &, handle) { }
 };
 
 /// Process an attribute specifying the function's name
@@ -1107,14 +1107,14 @@ struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_gua
  * otherwise
  */
 template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void precall(function_call &call) { keep_alive_impl(Nurse, Patient, call, handle()); }
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void postcall(function_call &, handle) { }
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void precall(function_call &) { }
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void postcall(function_call &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
+    template <size_t NumArgs, size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    static void precall(function_call_impl<NumArgs> &call) { keep_alive_impl(Nurse, Patient, call, handle()); }
+    template <size_t NumArgs, size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    static void postcall(function_call_impl<NumArgs> &, handle) { }
+    template <size_t NumArgs, size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    static void precall(function_call_impl<NumArgs> &) { }
+    template <size_t NumArgs, size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    static void postcall(function_call_impl<NumArgs> &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
 };
 
 /// Recursively iterate over variadic template arguments
@@ -1127,11 +1127,13 @@ template <typename... Args> struct process_attributes {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
         ignore_unused(unused);
     }
-    static void precall(function_call &call) {
+    template<size_t NumArgs>
+    static void precall(function_call_impl<NumArgs> &call) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
         ignore_unused(unused);
     }
-    static void postcall(function_call &call, handle fn_ret) {
+    template<size_t NumArgs>
+    static void postcall(function_call_impl<NumArgs> &call, handle fn_ret) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
         ignore_unused(unused);
     }

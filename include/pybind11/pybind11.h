@@ -966,14 +966,15 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     }
 }
 
-PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+template<size_t NumArgs>
+PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call_impl<NumArgs> &call, handle ret) {
     auto get_arg = [&](size_t n) {
         if (n == 0)
             return ret;
         else if (n == 1 && call.init_self)
             return call.init_self;
-        else if (n <= call.num_args)
-            return call.arg_at(n - 1);
+        else if (n <= call.args.size())
+            return call.args[n - 1];
         return handle();
     };
 
