@@ -967,7 +967,7 @@ inline void keep_alive_impl(handle nurse, handle patient) {
 }
 
 template<size_t NumArgs>
-PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call<NumArgs> &call, handle ret) {
+PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call_impl<NumArgs> &call, handle ret) {
     auto get_arg = [&](size_t n) {
         if (n == 0)
             return ret;

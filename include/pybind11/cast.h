@@ -1882,17 +1882,14 @@ constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 
 NAMESPACE_BEGIN(detail)
 
-/// Internal data associated with a single function call
-template<size_t NumArgs>
-struct function_call {
+struct function_call
+{
     function_call(handle p) : parent(p) {}
 
-    /// Arguments passed to the function:
-    std::array<handle, NumArgs> args;
+    virtual ~function_call() {}
+    virtual void set_arg(size_t idx, handle h, bool convert) = 0;
 
-    /// The `convert` value the arguments should be loaded with
-    std::bitset<NumArgs> args_convert;
-
+public:
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
     /// present, are also in `args` but without a reference).
     object args_ref, kwargs_ref;
@@ -1902,6 +1899,25 @@ struct function_call {
 
     /// If this is a call to an initializer, this argument contains `self`
     handle init_self;
+};
+
+/// Internal data associated with a single function call
+template<size_t NumArgs>
+struct function_call_impl : function_call {
+    using function_call::function_call;
+
+    PYBIND11_NOINLINE void set_arg(size_t idx, handle h, bool convert) override
+    {
+        args[idx] = h;
+        args_convert.set(idx, convert);
+    }
+
+public:
+    /// Arguments passed to the function:
+    std::array<handle, NumArgs> args;
+
+    /// The `convert` value the arguments should be loaded with
+    std::bitset<NumArgs> args_convert;
 };
 
 
@@ -1927,7 +1943,7 @@ public:
 
     static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 
-    bool load_args(function_call<num_args> &call) {
+    bool load_args(function_call_impl<num_args> &call) {
         return load_impl_sequence(call, indices{});
     }
 
@@ -1944,10 +1960,10 @@ public:
 
 private:
 
-    static bool load_impl_sequence(function_call<num_args>&, index_sequence<>) { return true; }
+    static bool load_impl_sequence(function_call_impl<num_args>&, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(function_call<num_args>&call, index_sequence<Is...>) {
+    bool load_impl_sequence(function_call_impl<num_args>&call, index_sequence<Is...>) {
         for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
             if (!r)
                 return false;
