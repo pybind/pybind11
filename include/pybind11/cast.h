@@ -1927,7 +1927,7 @@ template<>
 struct function_call_impl<0> : function_call {
     using function_call::function_call;
 
-    void set_arg(size_t idx, handle h, bool convert) override
+    void set_arg(size_t, handle, bool) override
     {
         assert(false);
     }
