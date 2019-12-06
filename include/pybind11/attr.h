@@ -770,12 +770,6 @@ struct function_record_impl : function_record
     function_record_impl(Func&& f, const Extra&... extra) 
         : m_func(std::forward<Func>(f))
     {
-        nargs = CastIn::num_args;
-        has_args = CastIn::has_args;
-        has_kwargs = CastIn::has_kwargs;
-
-        /* Process any user-provided function attributes */
-        process_attributes<Extra...>::init(extra..., this);
     }
     
     template<typename F>

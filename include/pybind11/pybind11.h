@@ -116,6 +116,13 @@ protected:
             cast_out, 
             Extra...>(std::forward<Func>(f), extra...);
 
+        rec->nargs = cast_in::num_args;
+        rec->has_args = cast_in::has_args;
+        rec->has_kwargs = cast_in::has_kwargs;
+
+        /* Process any user-provided function attributes */
+        process_attributes<Extra...>::init(extra..., rec);
+
         /* Register the function with Python from generic (non-templated) code */
         m_ptr = rec->initialize_generic(signature.text, types.data(), sizeof...(Args)).release().ptr();
     }
