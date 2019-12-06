@@ -165,7 +165,7 @@ protected:
             }
         };
 
-        rec->try_get_function_pointer = [f] (const std::type_info& function_pointer_type_info) -> void*
+        rec->try_get_function_pointer = [f] (const std::type_info& /*function_pointer_type_info*/) -> void*
         {
             /*
             template<typename F>
