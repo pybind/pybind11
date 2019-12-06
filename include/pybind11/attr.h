@@ -767,7 +767,7 @@ struct function_record_impl : function_record
     typename std::remove_reference<Func>::type m_func;
 
     /// Special internal constructor for functors, lambda functions, etc.
-    function_record_impl(Func&& f, const Extra&... extra) 
+    function_record_impl(Func&& f) 
         : m_func(std::forward<Func>(f))
     {
     }

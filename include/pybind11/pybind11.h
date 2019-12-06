@@ -114,7 +114,7 @@ protected:
             Return, 
             cast_in, 
             cast_out, 
-            Extra...>(std::forward<Func>(f), extra...);
+            Extra...>(std::forward<Func>(f));
 
         rec->nargs = cast_in::num_args;
         rec->has_args = cast_in::has_args;
