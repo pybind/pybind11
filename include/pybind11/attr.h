@@ -12,6 +12,7 @@
 
 #include "cast.h"
 #include "options.h"
+#include <functional>
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -152,18 +153,6 @@ struct function_record {
     function_record & operator=(const function_record&) = delete;
     function_record & operator=(function_record&&) = delete;
 
-    virtual ~function_record() {}
-
-    virtual void* try_get_function_pointer(const std::type_info& function_pointer_type_info) = 0;
-    virtual handle try_invoke(
-        handle parent, 
-        value_and_holder& self_value_and_holder, 
-        size_t n_args_in, 
-        PyObject* args_in, 
-        PyObject* kwargs_in,
-        bool no_convert
-    ) = 0;
-
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
 
@@ -187,6 +176,9 @@ struct function_record {
 
     /// Pointer to next overload
     function_record* next = nullptr;
+
+    std::function<handle(handle, value_and_holder&, size_t, PyObject*, PyObject*, bool)> try_invoke;
+    std::function<void*(const std::type_info& function_pointer_type_info)> try_get_function_pointer;
 
     /// Return value policy associated with this function
     return_value_policy policy = return_value_policy::automatic;
@@ -441,6 +433,25 @@ struct function_record {
         bool no_convert
         )
     {
+        /* For each overload:
+           1. Copy all positional arguments we were given, also checking to make sure that
+              named positional arguments weren't *also* specified via kwarg.
+           2. If we weren't given enough, try to make up the omitted ones by checking
+              whether they were provided by a kwarg matching the `py::arg("name")` name.  If
+              so, use it (and remove it from kwargs; if not, see if the function binding
+              provided a default that we can use.
+           3. Ensure that either all keyword arguments were "consumed", or that the function
+              takes a kwargs argument to accept unconsumed kwargs.
+           4. Any positional arguments still left get put into a tuple (for args), and any
+              leftover kwargs get put into a dict.
+           5. Pack everything into a vector; if we have py::args or py::kwargs, they are an
+              extra tuple or dict at the end of the positional arguments.
+           6. Call the function call dispatcher (function_record::impl)
+
+           If one of these fail, move on to the next overload and keep trying until we get a
+           result other than PYBIND11_TRY_NEXT_OVERLOAD.
+         */
+
         size_t pos_args = nargs;    // Number of positional arguments that we need
         if (has_args) --pos_args;   // (but don't count py::args
         if (has_kwargs) --pos_args; //  or py::kwargs)
@@ -759,105 +770,6 @@ struct function_record {
         }
     }
 
-};
-
-template<typename Func, typename FunctionType, typename Return, typename CastIn, typename CastOut, typename... Extra>
-struct function_record_impl : function_record
-{
-    typename std::remove_reference<Func>::type m_func;
-
-    /// Special internal constructor for functors, lambda functions, etc.
-    function_record_impl(Func&& f) 
-        : m_func(std::forward<Func>(f))
-    {
-    }
-    
-    template<typename F>
-    static typename std::enable_if<std::is_convertible<F, FunctionType>::value, const FunctionType>::type
-    try_extract_function_pointer(F& func)
-    {
-        return static_cast<FunctionType>(func);
-    }
-
-    template<typename F>
-    static typename std::enable_if<!std::is_convertible<F, FunctionType>::value, const FunctionType>::type
-        try_extract_function_pointer(F&)
-    {
-        return nullptr;
-    }
-
-    virtual void* try_get_function_pointer(const std::type_info& function_pointer_type_info) override
-    {
-        if (same_type(typeid(FunctionType), function_pointer_type_info))
-            return reinterpret_cast<void*>(try_extract_function_pointer(m_func));
-        else
-            return nullptr;
-    }
-
-    virtual handle try_invoke(
-        handle parent, 
-        value_and_holder& self_value_and_holder, 
-        size_t n_args_in, 
-        PyObject* args_in,
-        PyObject* kwargs_in,
-        bool no_convert) override
-    {
-        /* For each overload:
-           1. Copy all positional arguments we were given, also checking to make sure that
-              named positional arguments weren't *also* specified via kwarg.
-           2. If we weren't given enough, try to make up the omitted ones by checking
-              whether they were provided by a kwarg matching the `py::arg("name")` name.  If
-              so, use it (and remove it from kwargs; if not, see if the function binding
-              provided a default that we can use.
-           3. Ensure that either all keyword arguments were "consumed", or that the function
-              takes a kwargs argument to accept unconsumed kwargs.
-           4. Any positional arguments still left get put into a tuple (for args), and any
-              leftover kwargs get put into a dict.
-           5. Pack everything into a vector; if we have py::args or py::kwargs, they are an
-              extra tuple or dict at the end of the positional arguments.
-           6. Call the function call dispatcher (function_record::impl)
-
-           If one of these fail, move on to the next overload and keep trying until we get a
-           result other than PYBIND11_TRY_NEXT_OVERLOAD.
-         */
-
-        function_call_impl<CastIn::num_args> call(parent);
-
-        if (!prepare_function_call(call, self_value_and_holder, n_args_in, args_in, kwargs_in, no_convert))
-            return PYBIND11_TRY_NEXT_OVERLOAD;
-
-        // 6. Call the function.
-        try {
-            loader_life_support guard{};
-            /* Dispatch code which converts function arguments and performs the actual function call */
-            CastIn args_converter;
-
-            /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(call))
-                return PYBIND11_TRY_NEXT_OVERLOAD;
-
-            /* Invoke call policy pre-call hook */
-            process_attributes<Extra...>::precall(call);
-
-            /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            return_value_policy _policy = return_value_policy_override<Return>::policy(policy);
-
-            /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
-            using Guard = extract_guard_t<Extra...>;
-
-            /* Perform the function call */
-            handle result = CastOut::cast(
-                std::move(args_converter).template call<Return, Guard>(m_func), _policy, call.parent);
-
-            /* Invoke call policy post-call hook */
-            process_attributes<Extra...>::postcall(call, result);
-
-            return result;
-        }
-        catch (reference_cast_error&) {
-            return PYBIND11_TRY_NEXT_OVERLOAD;
-        }
-    }
 };
 
 /// Special data structure which (temporarily) holds metadata about a bound class

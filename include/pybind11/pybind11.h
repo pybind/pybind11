@@ -108,13 +108,7 @@ protected:
         static constexpr auto signature = _("(") + cast_in::arg_names + _(") -> ") + cast_out::name;
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
-        auto rec = new detail::function_record_impl<
-            Func, 
-            Return(*)(Args...), 
-            Return, 
-            cast_in, 
-            cast_out, 
-            Extra...>(std::forward<Func>(f));
+        auto rec = new detail::function_record();
 
         rec->nargs = cast_in::num_args;
         rec->has_args = cast_in::has_args;
@@ -122,6 +116,82 @@ protected:
 
         /* Process any user-provided function attributes */
         process_attributes<Extra...>::init(extra..., rec);
+
+        rec->try_invoke = [rec, f](
+            handle parent,
+            value_and_holder& self_value_and_holder,
+            size_t n_args_in,
+            PyObject* args_in,
+            PyObject* kwargs_in,
+            bool no_convert
+            ) -> handle
+        {
+            function_call_impl<cast_in::num_args> call(parent);
+
+            if (!rec->prepare_function_call(call, self_value_and_holder, n_args_in, args_in, kwargs_in, no_convert))
+                return PYBIND11_TRY_NEXT_OVERLOAD;
+
+            // 6. Call the function.
+            try {
+                loader_life_support guard{};
+                /* Dispatch code which converts function arguments and performs the actual function call */
+                cast_in args_converter;
+
+                /* Try to cast the function arguments into the C++ domain */
+                if (!args_converter.load_args(call))
+                    return PYBIND11_TRY_NEXT_OVERLOAD;
+
+                /* Invoke call policy pre-call hook */
+                process_attributes<Extra...>::precall(call);
+
+                /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
+                return_value_policy _policy = return_value_policy_override<Return>::policy(rec->policy);
+
+                /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
+                using Guard = extract_guard_t<Extra...>;
+
+                auto f_copy = f;
+                /* Perform the function call */
+                handle result = cast_out::cast(
+                    std::move(args_converter).template call<Return, Guard>(f_copy), _policy, call.parent);
+
+                /* Invoke call policy post-call hook */
+                process_attributes<Extra...>::postcall(call, result);
+
+                return result;
+            }
+            catch (reference_cast_error&) {
+                return PYBIND11_TRY_NEXT_OVERLOAD;
+            }
+        };
+
+        rec->try_get_function_pointer = [f] (const std::type_info& function_pointer_type_info) -> void*
+        {
+            /*
+            template<typename F>
+            static typename std::enable_if<std::is_convertible<F, FunctionType>::value, const FunctionType>::type
+                try_extract_function_pointer(F & func)
+            {
+                return static_cast<FunctionType>(func);
+            }
+
+            template<typename F>
+            static typename std::enable_if<!std::is_convertible<F, FunctionType>::value, const FunctionType>::type
+                try_extract_function_pointer(F&)
+            {
+                return nullptr;
+            }
+
+            virtual void* try_get_function_pointer(const std::type_info & function_pointer_type_info) override
+            {
+                if (same_type(typeid(FunctionType), function_pointer_type_info))
+                    return reinterpret_cast<void*>(try_extract_function_pointer(m_func));
+                else
+                    return nullptr;
+            }
+            */
+            return nullptr;
+        };
 
         /* Register the function with Python from generic (non-templated) code */
         m_ptr = rec->initialize_generic(signature.text, types.data(), sizeof...(Args)).release().ptr();
