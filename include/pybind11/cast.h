@@ -1885,6 +1885,8 @@ NAMESPACE_BEGIN(detail)
 struct function_call
 {
     function_call(handle p) : parent(p) {}
+    function_call(const function_call&) = delete;
+    function_call(function_call&&) = delete;
 
     virtual ~function_call() {}
     virtual void set_arg(size_t idx, handle h, bool convert) = 0;
@@ -1906,20 +1908,30 @@ template<size_t NumArgs>
 struct function_call_impl : function_call {
     using function_call::function_call;
 
-    PYBIND11_NOINLINE void set_arg(size_t idx, handle h, bool convert) override
+    void set_arg(size_t idx, handle h, bool convert) override
     {
         args[idx] = h;
-        args_convert.set(idx, convert);
+        args_convert[idx] = convert;
     }
 
 public:
     /// Arguments passed to the function:
-    std::array<handle, NumArgs> args;
+    handle args[NumArgs];
 
     /// The `convert` value the arguments should be loaded with
-    std::bitset<NumArgs> args_convert;
+    bool args_convert[NumArgs];
 };
 
+/// Internal data associated with a single function call
+template<>
+struct function_call_impl<0> : function_call {
+    using function_call::function_call;
+
+    void set_arg(size_t idx, handle h, bool convert) override
+    {
+        assert(false);
+    }
+};
 
 /// Helper class which loads arguments for C++ functions called from Python
 template <typename... Args>

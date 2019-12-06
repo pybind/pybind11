@@ -973,7 +973,7 @@ PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_ca
             return ret;
         else if (n == 1 && call.init_self)
             return call.init_self;
-        else if (n <= call.args.size())
+        else if (n <= NumArgs)
             return call.args[n - 1];
         return handle();
     };
