@@ -196,7 +196,7 @@ struct function_record {
     /// Pointer to next overload
     function_record *next = nullptr;
 
-    /// Fill in values in function_call, return true we can proceed with execution, false is we should continue 
+    /// Fill in values in function_call, return true we can proceed with execution, false is we should continue
     /// with the next candidate
     PYBIND11_NOINLINE bool prepare_function_call(
         function_call& call,

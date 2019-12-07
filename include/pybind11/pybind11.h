@@ -480,8 +480,7 @@ protected:
             // However, if there are no overloads, we can just skip the no-convert pass entirely
             const bool overloaded = overloads->next != nullptr;
 
-            if (overloaded)
-            {
+            if (overloaded) {
                 for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
                     result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, true);
                 }
