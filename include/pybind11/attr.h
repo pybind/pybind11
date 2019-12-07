@@ -11,8 +11,6 @@
 #pragma once
 
 #include "cast.h"
-#include "options.h"
-#include <functional>
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -118,16 +116,7 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-template <size_t NumArgs> void keep_alive_impl(size_t Nurse, size_t Patient, function_call_impl<NumArgs> &call, handle ret);
-template <typename... Args> struct process_attributes;
-
-template <typename T>
-using is_call_guard = is_instantiation<call_guard, T>;
-
-/// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
-template <typename... Extra>
-using extract_guard_t = typename exactly_one_t<is_call_guard, call_guard<>, Extra...>::type;
-
+inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -144,14 +133,8 @@ struct argument_record {
 /// Internal data structure which holds metadata about a bound function (signature, overloads, etc.)
 struct function_record {
     function_record()
-        : is_constructor(false), is_new_style_constructor(false),
-          is_operator(false), is_method(false) { }
-
-    function_record(const function_record&) = delete;
-    function_record(function_record&&) = delete;
-    
-    function_record & operator=(const function_record&) = delete;
-    function_record & operator=(function_record&&) = delete;
+        : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
+          is_operator(false), has_args(false), has_kwargs(false), is_method(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -165,8 +148,44 @@ struct function_record {
     /// List of registered keyword arguments
     std::vector<argument_record> args;
 
+    /// Pointer to lambda function which converts arguments and performs the actual call
+    handle(*try_invoke)(const function_record* ptr, handle parent, value_and_holder& self_value_and_holder, size_t n_args_in, PyObject* args_in, PyObject* kwargs_in, bool no_convert) = nullptr;
+
+    /// Storage for the wrapped function pointer and captured data, if any
+    void *data[3] = { };
+
+    /// Pointer to custom destructor for 'data' (if needed)
+    void (*free_data) (function_record *ptr) = nullptr;
+
+    /// Return value policy associated with this function
+    return_value_policy policy = return_value_policy::automatic;
+
+    /// True if name == '__init__'
+    bool is_constructor : 1;
+
+    /// True if this is a new-style `__init__` defined in `detail/init.h`
+    bool is_new_style_constructor : 1;
+
+    /// True if this is a stateless function pointer
+    bool is_stateless : 1;
+
+    /// True if this is an operator (__add__), etc.
+    bool is_operator : 1;
+
+    /// True if the function has a '*args' argument
+    bool has_args : 1;
+
+    /// True if the function has a '**kwargs' argument
+    bool has_kwargs : 1;
+
+    /// True if this is a method
+    bool is_method : 1;
+
+    /// Number of arguments (including py::args and/or py::kwargs, if present)
+    std::uint16_t nargs;
+
     /// Python method object
-    PyMethodDef* def = nullptr;
+    PyMethodDef *def = nullptr;
 
     /// Python handle to the parent scope (a class or a module)
     handle scope;
@@ -175,252 +194,7 @@ struct function_record {
     handle sibling;
 
     /// Pointer to next overload
-    function_record* next = nullptr;
-
-    std::function<handle(handle, value_and_holder&, size_t, PyObject*, PyObject*, bool)> try_invoke;
-    std::function<void*(const std::type_info& function_pointer_type_info)> try_get_function_pointer;
-
-    /// Return value policy associated with this function
-    return_value_policy policy = return_value_policy::automatic;
-
-    /// Set by function_record_impl
-    size_t nargs;
-
-    /// True if name == '__init__'
-    bool is_constructor : 1;
-
-    /// True if this is a new-style `__init__` defined in `detail/init.h`
-    bool is_new_style_constructor : 1;
-
-    /// True if this is an operator (__add__), etc.
-    bool is_operator : 1;
-
-    /// True if this is a method
-    bool is_method : 1;
-
-    /// Set by function_record_impl
-    bool has_args : 1;
-
-    /// Set by function_record_impl
-    bool has_kwargs : 1;
-
-    /// Register a function call with Python (generic non-templated code goes here)
-    object initialize_generic(const char* _text, const std::type_info* const* _types, size_t _args) 
-    {
-        /* Create copies of all referenced C-style strings */
-        name = strdup(name ? name : "");
-        if (doc) doc = strdup(doc);
-        for (auto& a : args) {
-            if (a.name)
-                a.name = strdup(a.name);
-            if (a.descr)
-                a.descr = strdup(a.descr);
-            else if (a.value)
-                a.descr = strdup(a.value.attr("__repr__")().cast<std::string>().c_str());
-        }
-
-        is_constructor = !strcmp(name, "__init__") || !strcmp(name, "__setstate__");
-
-#if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
-        if (is_constructor && !is_new_style_constructor) {
-            const auto class_name = std::string(((PyTypeObject*)scope.ptr())->tp_name);
-            const auto func_name = std::string(name);
-            PyErr_WarnEx(
-                PyExc_FutureWarning,
-                ("pybind11-bound class '" + class_name + "' is using an old-style "
-                    "placement-new '" + func_name + "' which has been deprecated. See "
-                    "the upgrade guide in pybind11's docs. This message is only visible "
-                    "when compiled in debug mode.").c_str(), 0
-            );
-        }
-#endif
-
-        /* Generate a proper function signature */
-        std::string _signature;
-        size_t type_index = 0, arg_index = 0;
-        for (auto* pc = _text; *pc != '\0'; ++pc) {
-            const auto c = *pc;
-
-            if (c == '{') {
-                // Write arg name for everything except *args and **kwargs.
-                if (*(pc + 1) == '*')
-                    continue;
-
-                if (arg_index < args.size() && args[arg_index].name) {
-                    _signature += args[arg_index].name;
-                }
-                else if (arg_index == 0 && is_method) {
-                    _signature += "self";
-                }
-                else {
-                    _signature += "arg" + std::to_string(arg_index - (is_method ? 1 : 0));
-                }
-                _signature += ": ";
-            }
-            else if (c == '}') {
-                // Write default value if available.
-                if (arg_index < args.size() && args[arg_index].descr) {
-                    _signature += " = ";
-                    _signature += args[arg_index].descr;
-                }
-                arg_index++;
-            }
-            else if (c == '%') {
-                const std::type_info* t = _types[type_index++];
-                if (!t)
-                    pybind11_fail("Internal error while parsing type signature (1)");
-                if (auto tinfo = detail::get_type_info(*t)) {
-                    handle th((PyObject*)tinfo->type);
-                    _signature +=
-                        th.attr("__module__").cast<std::string>() + "." +
-                        th.attr("__qualname__").cast<std::string>(); // Python 3.3+, but we backport it to earlier versions
-                }
-                else if (is_new_style_constructor && arg_index == 0) {
-                    // A new-style `__init__` takes `self` as `value_and_holder`.
-                    // Rewrite it to the proper class type.
-                    _signature +=
-                        scope.attr("__module__").cast<std::string>() + "." +
-                        scope.attr("__qualname__").cast<std::string>();
-                }
-                else {
-                    std::string tname(t->name());
-                    detail::clean_type_id(tname);
-                    _signature += tname;
-                }
-            }
-            else {
-                _signature += c;
-            }
-        }
-        if (arg_index != _args || _types[type_index] != nullptr)
-            pybind11_fail("Internal error while parsing type signature (2)");
-
-#if PY_MAJOR_VERSION < 3
-        if (strcmp(rec->name, "__next__") == 0) {
-            std::free(rec->name);
-            rec->name = strdup("next");
-        }
-        else if (strcmp(rec->name, "__bool__") == 0) {
-            std::free(rec->name);
-            rec->name = strdup("__nonzero__");
-        }
-#endif
-        signature = strdup(_signature.c_str());
-        args.shrink_to_fit();
-
-        if (sibling && PYBIND11_INSTANCE_METHOD_CHECK(sibling.ptr()))
-            sibling = PYBIND11_INSTANCE_METHOD_GET_FUNCTION(sibling.ptr());
-
-        function_record* chain = nullptr;
-        function_record* chain_start = this;
-        if (sibling) {
-            if (PyCFunction_Check(sibling.ptr())) {
-                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(sibling.ptr()));
-                chain = (function_record*)(rec_capsule);
-                /* Never append a method to an overload chain of a parent class;
-                   instead, hide the parent's overloads in this case */
-                if (!chain->scope.is(scope))
-                    chain = nullptr;
-            }
-            // Don't trigger for things like the default __init__, which are wrapper_descriptors that we are intentionally replacing
-            else if (!sibling.is_none() && name[0] != '_')
-                pybind11_fail("Cannot overload existing non-function object \"" + std::string(name) +
-                    "\" with a function of the same name");
-        }
-
-        object python_function;
-        if (!chain) {
-            /* No existing overload was found, create a new function object */
-            def = new PyMethodDef();
-            std::memset(def, 0, sizeof(PyMethodDef));
-            def->ml_name = name;
-            def->ml_meth = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*) (void)>(*dispatcher));
-            def->ml_flags = METH_VARARGS | METH_KEYWORDS;
-
-            capsule rec_capsule(this, [](void* ptr) {
-                destruct(reinterpret_cast<function_record*>(ptr));
-            });
-
-            object scope_module;
-            if (scope) {
-                if (hasattr(scope, "__module__")) {
-                    scope_module = scope.attr("__module__");
-                }
-                else if (hasattr(scope, "__name__")) {
-                    scope_module = scope.attr("__name__");
-                }
-            }
-
-            python_function = reinterpret_steal<object>(PyCFunction_NewEx(def, rec_capsule.ptr(), scope_module.ptr()));
-            if (!python_function)
-                pybind11_fail("cpp_function::cpp_function(): Could not allocate function object");
-        }
-        else {
-            /* Append at the end of the overload chain */
-            python_function = reinterpret_borrow<object>(sibling.ptr());
-            chain_start = chain;
-            if (chain->is_method != is_method)
-                pybind11_fail("overloading a method with both static and instance methods is not supported; "
-#if defined(NDEBUG)
-                    "compile in debug mode for more details"
-#else
-                    "error while attempting to bind " + std::string(is_method ? "instance" : "static") + " method " +
-                    std::string(pybind11::str(scope.attr("__name__"))) + "." + std::string(name) + signature
-#endif
-                );
-            while (chain->next)
-                chain = chain->next;
-            chain->next = this;
-        }
-
-        std::string signatures;
-        int index = 0;
-        /* Create a nice pydoc rec including all signatures and
-           docstrings of the functions in the overload chain */
-        if (chain && options::show_function_signatures()) {
-            // First a generic signature
-            signatures += name;
-            signatures += "(*args, **kwargs)\n";
-            signatures += "Overloaded function.\n\n";
-        }
-        // Then specific overload signatures
-        bool first_user_def = true;
-        for (auto it = chain_start; it != nullptr; it = it->next) {
-            if (options::show_function_signatures()) {
-                if (index > 0) signatures += "\n";
-                if (chain)
-                    signatures += std::to_string(++index) + ". ";
-                signatures += name;
-                signatures += it->signature;
-                signatures += "\n";
-            }
-            if (it->doc && strlen(it->doc) > 0 && options::show_user_defined_docstrings()) {
-                // If we're appending another docstring, and aren't printing function signatures, we
-                // need to append a newline first:
-                if (!options::show_function_signatures()) {
-                    if (first_user_def) first_user_def = false;
-                    else signatures += "\n";
-                }
-                if (options::show_function_signatures()) signatures += "\n";
-                signatures += it->doc;
-                if (options::show_function_signatures()) signatures += "\n";
-            }
-        }
-
-        /* Install docstring */
-        PyCFunctionObject* func = reinterpret_cast<PyCFunctionObject*>(python_function.ptr());
-        if (func->m_ml->ml_doc)
-            std::free(const_cast<char*>(func->m_ml->ml_doc));
-        func->m_ml->ml_doc = strdup(signatures.c_str());
-
-        if (is_method) {
-            python_function = reinterpret_steal<object>(PYBIND11_INSTANCE_METHOD_NEW(python_function.ptr(), scope.ptr()));
-            if (!python_function)
-                pybind11_fail("cpp_function::cpp_function(): Could not allocate instance method object");
-        }
-
-        return python_function;
-    }
+    function_record *next = nullptr;
 
     /// Fill in values in function_call, return true we can proceed with execution, false is we should continue 
     /// with the next candidate
@@ -431,7 +205,7 @@ struct function_record {
         PyObject* args_in,
         PyObject* kwargs_in,
         bool no_convert
-        )
+    ) const
     {
         /* For each overload:
            1. Copy all positional arguments we were given, also checking to make sure that
@@ -574,202 +348,6 @@ struct function_record {
 #endif
         return true;
     }
-
-    /// When a cpp_function is GCed, release any memory allocated by pybind11
-    static void destruct(detail::function_record* rec) {
-        while (rec) {
-            detail::function_record* next = rec->next;
-            std::free((char*)rec->name);
-            std::free((char*)rec->doc);
-            std::free((char*)rec->signature);
-            for (auto& arg : rec->args) {
-                std::free(const_cast<char*>(arg.name));
-                std::free(const_cast<char*>(arg.descr));
-                arg.value.dec_ref();
-            }
-            if (rec->def) {
-                std::free(const_cast<char*>(rec->def->ml_doc));
-                delete rec->def;
-            }
-            delete rec;
-            rec = next;
-        }
-    }
-
-    /// Main dispatch logic for calls to functions bound using pybind11
-    static PyObject* dispatcher(PyObject* self, PyObject* args_in, PyObject* kwargs_in) {
-        using namespace detail;
-
-        function_record* overloads = reinterpret_cast<function_record*>(PyCapsule_GetPointer(self, nullptr));
-
-        /* Need to know how many arguments + keyword arguments there are to pick the right overload */
-        const size_t n_args_in = (size_t)PyTuple_GET_SIZE(args_in);
-
-        handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr;
-        handle result = PYBIND11_TRY_NEXT_OVERLOAD;
-
-        value_and_holder self_value_and_holder;
-        if (overloads->is_constructor) {
-            const auto tinfo = get_type_info((PyTypeObject*)overloads->scope.ptr());
-            const auto pi = reinterpret_cast<instance*>(parent.ptr());
-            self_value_and_holder = pi->get_value_and_holder(tinfo, false);
-
-            if (!self_value_and_holder.type || !self_value_and_holder.inst) {
-                PyErr_SetString(PyExc_TypeError, "__init__(self, ...) called with invalid `self` argument");
-                return nullptr;
-            }
-
-            // If this value is already registered it must mean __init__ is invoked multiple times;
-            // we really can't support that in C++, so just ignore the second __init__.
-            if (self_value_and_holder.instance_registered())
-                return none().release().ptr();
-        }
-
-        try {
-            // We do this in two passes: in the first pass, we load arguments with `convert=false`;
-            // in the second, we allow conversion (except for arguments with an explicit
-            // py::arg().noconvert()).  This lets us prefer calls without conversion, with
-            // conversion as a fallback.
-
-            // However, if there are no overloads, we can just skip the no-convert pass entirely
-            const bool overloaded = overloads->next != nullptr;
-
-            if (overloaded)
-            {
-                for (function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
-                    result = it->try_invoke(parent, self_value_and_holder, n_args_in, args_in, kwargs_in, true);
-                }
-            }
-
-            for (function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
-                result = it->try_invoke(parent, self_value_and_holder, n_args_in, args_in, kwargs_in, false);
-            }
-        }
-        catch (error_already_set & e) {
-            e.restore();
-            return nullptr;
-#if defined(__GNUG__) && !defined(__clang__)
-        }
-        catch (abi::__forced_unwind&) {
-            throw;
-#endif
-        }
-        catch (...) {
-            /* When an exception is caught, give each registered exception
-               translator a chance to translate it to a Python exception
-               in reverse order of registration.
-
-               A translator may choose to do one of the following:
-
-                - catch the exception and call PyErr_SetString or PyErr_SetObject
-                  to set a standard (or custom) Python exception, or
-                - do nothing and let the exception fall through to the next translator, or
-                - delegate translation to the next translator by throwing a new type of exception. */
-
-            auto last_exception = std::current_exception();
-            auto& registered_exception_translators = get_internals().registered_exception_translators;
-            for (auto& translator : registered_exception_translators) {
-                try {
-                    translator(last_exception);
-                }
-                catch (...) {
-                    last_exception = std::current_exception();
-                    continue;
-                }
-                return nullptr;
-            }
-            PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
-            return nullptr;
-        }
-
-        auto append_note_if_missing_header_is_suspected = [](std::string& msg) {
-            if (msg.find("std::") != std::string::npos) {
-                msg += "\n\n"
-                    "Did you forget to `#include <pybind11/stl.h>`? Or <pybind11/complex.h>,\n"
-                    "<pybind11/functional.h>, <pybind11/chrono.h>, etc. Some automatic\n"
-                    "conversions are optional and require extra headers to be included\n"
-                    "when compiling your pybind11 module.";
-            }
-        };
-
-        if (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
-            if (overloads->is_operator)
-                return handle(Py_NotImplemented).inc_ref().ptr();
-
-            std::string msg = std::string(overloads->name) + "(): incompatible " +
-                std::string(overloads->is_constructor ? "constructor" : "function") +
-                " arguments. The following argument types are supported:\n";
-
-            int ctr = 0;
-            for (const function_record* it2 = overloads; it2 != nullptr; it2 = it2->next) {
-                msg += "    " + std::to_string(++ctr) + ". ";
-
-                bool wrote_sig = false;
-                if (overloads->is_constructor) {
-                    // For a constructor, rewrite `(self: Object, arg0, ...) -> NoneType` as `Object(arg0, ...)`
-                    std::string sig = it2->signature;
-                    size_t start = sig.find('(') + 7; // skip "(self: "
-                    if (start < sig.size()) {
-                        // End at the , for the next argument
-                        size_t end = sig.find(", "), next = end + 2;
-                        size_t ret = sig.rfind(" -> ");
-                        // Or the ), if there is no comma:
-                        if (end >= sig.size()) next = end = sig.find(')');
-                        if (start < end && next < sig.size()) {
-                            msg.append(sig, start, end - start);
-                            msg += '(';
-                            msg.append(sig, next, ret - next);
-                            wrote_sig = true;
-                        }
-                    }
-                }
-                if (!wrote_sig) msg += it2->signature;
-
-                msg += "\n";
-            }
-            msg += "\nInvoked with: ";
-            auto args_ = reinterpret_borrow<tuple>(args_in);
-            bool some_args = false;
-            for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
-                if (!some_args) some_args = true;
-                else msg += ", ";
-                msg += pybind11::repr(args_[ti]);
-            }
-            if (kwargs_in) {
-                auto kwargs = reinterpret_borrow<dict>(kwargs_in);
-                if (kwargs.size() > 0) {
-                    if (some_args) msg += "; ";
-                    msg += "kwargs: ";
-                    bool first = true;
-                    for (auto kwarg : kwargs) {
-                        if (first) first = false;
-                        else msg += ", ";
-                        msg += pybind11::str("{}={!r}").format(kwarg.first, kwarg.second);
-                    }
-                }
-            }
-
-            append_note_if_missing_header_is_suspected(msg);
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
-            return nullptr;
-        }
-        else if (!result) {
-            std::string msg = "Unable to convert function return value to a "
-                "Python type! The signature was\n\t";
-            msg += overloads->signature;
-            append_note_if_missing_header_is_suspected(msg);
-            PyErr_SetString(PyExc_TypeError, msg.c_str());
-            return nullptr;
-        }
-        else {
-            if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
-                auto* pi = reinterpret_cast<instance*>(parent.ptr());
-                self_value_and_holder.type->init_instance(pi, nullptr);
-            }
-            return result.ptr();
-        }
-    }
-
 };
 
 /// Special data structure which (temporarily) holds metadata about a bound class
@@ -872,8 +450,8 @@ template <typename T> struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) { }
     static void init(const T &, type_record *) { }
-    template<size_t NumArgs> static void precall(function_call_impl<NumArgs> &) { }
-    template<size_t NumArgs> static void postcall(function_call_impl<NumArgs> &, handle) { }
+    static void precall(function_call &) { }
+    static void postcall(function_call &, handle) { }
 };
 
 /// Process an attribute specifying the function's name
@@ -1044,6 +622,13 @@ template <typename... Args> struct process_attributes {
         ignore_unused(unused);
     }
 };
+
+template <typename T>
+using is_call_guard = is_instantiation<call_guard, T>;
+
+/// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
+template <typename... Extra>
+using extract_guard_t = typename exactly_one_t<is_call_guard, call_guard<>, Extra...>::type;
 
 /// Check the number of named arguments at compile time
 template <typename... Extra,

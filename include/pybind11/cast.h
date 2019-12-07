@@ -1882,13 +1882,16 @@ constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 
 NAMESPACE_BEGIN(detail)
 
+// forward declaration (definition in attr.h)
+struct function_record;
+
+/// Internal data associated with a single function call
 struct function_call
 {
     function_call(handle p) : parent(p) {}
     function_call(const function_call&) = delete;
     function_call(function_call&&) = delete;
 
-    virtual ~function_call() {}
     virtual void set_arg(size_t idx, handle h, bool convert) = 0;
 
 public:
@@ -1903,7 +1906,6 @@ public:
     handle init_self;
 };
 
-/// Internal data associated with a single function call
 template<size_t NumArgs>
 struct function_call_impl : function_call {
     using function_call::function_call;
@@ -1911,26 +1913,15 @@ struct function_call_impl : function_call {
     void set_arg(size_t idx, handle h, bool convert) override
     {
         args[idx] = h;
-        args_convert[idx] = convert;
+        args_convert.set(idx, convert);
     }
 
 public:
     /// Arguments passed to the function:
-    handle args[NumArgs];
+    std::array<handle, NumArgs> args;
 
     /// The `convert` value the arguments should be loaded with
-    bool args_convert[NumArgs];
-};
-
-/// Internal data associated with a single function call
-template<>
-struct function_call_impl<0> : function_call {
-    using function_call::function_call;
-
-    void set_arg(size_t, handle, bool) override
-    {
-        assert(false);
-    }
+    std::bitset<NumArgs> args_convert;
 };
 
 /// Helper class which loads arguments for C++ functions called from Python
@@ -1955,7 +1946,7 @@ public:
 
     static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 
-    bool load_args(function_call_impl<num_args> &call) {
+    bool load_args(function_call_impl<num_args>& call) {
         return load_impl_sequence(call, indices{});
     }
 
@@ -1975,7 +1966,7 @@ private:
     static bool load_impl_sequence(function_call_impl<num_args>&, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(function_call_impl<num_args>&call, index_sequence<Is...>) {
+    bool load_impl_sequence(function_call_impl<num_args>& call, index_sequence<Is...>) {
         for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
             if (!r)
                 return false;
@@ -2010,8 +2001,8 @@ public:
         if (!result)
             throw error_already_set();
         return reinterpret_steal<object>(result);
-    }
 
+    }
 private:
     tuple m_args;
 };
