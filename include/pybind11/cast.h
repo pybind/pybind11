@@ -41,12 +41,12 @@ NAMESPACE_BEGIN(detail)
 class loader_life_support {
 public:
     /// A new patient frame is created when a function is entered
-    PYBIND11_NOINLINE loader_life_support() {
+    loader_life_support() {
         get_internals().loader_patient_stack.push_back(nullptr);
     }
 
     /// ... and destroyed after it returns
-    PYBIND11_NOINLINE ~loader_life_support() {
+    ~loader_life_support() {
         auto &stack = get_internals().loader_patient_stack;
         if (stack.empty())
             pybind11_fail("loader_life_support: internal error");

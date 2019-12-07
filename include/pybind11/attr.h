@@ -333,7 +333,7 @@ struct function_record {
         }
 
 #if !defined(NDEBUG)
-        if (args_copied != nargs)
+        if (args_copied != NumArgs)
             pybind11_fail("Internal error: function call dispatcher inserted wrong number of arguments!");
 #endif
         return true;
