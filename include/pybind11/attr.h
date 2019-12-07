@@ -131,6 +131,17 @@ struct argument_record {
         : name(name), descr(descr), value(value), convert(convert), none(none) { }
 };
 
+struct invoke_params
+{
+    const function_record* ptr;
+    handle parent;
+    value_and_holder* self_value_and_holder;
+    size_t n_args_in;
+    PyObject* args_in;
+    PyObject* kwargs_in;
+    bool convert;
+};
+
 /// Internal data structure which holds metadata about a bound function (signature, overloads, etc.)
 struct function_record {
     function_record()
@@ -150,7 +161,7 @@ struct function_record {
     std::vector<argument_record> args;
 
     /// Pointer to lambda function which converts arguments and performs the actual call
-    handle(*try_invoke)(const function_record* ptr, handle parent, value_and_holder& self_value_and_holder, size_t n_args_in, PyObject* args_in, PyObject* kwargs_in, bool no_convert) = nullptr;
+    handle(*try_invoke)(const invoke_params&) = nullptr;
 
     /// Storage for the wrapped function pointer and captured data, if any
     void *data[3] = { };
@@ -191,14 +202,7 @@ struct function_record {
     /// Fill in function_call members, return true we can proceed with execution, false is we should continue
     /// with the next candidate
     template<bool HasArgs, bool HasKwargs, size_t NumArgs>
-    PYBIND11_NOINLINE bool prepare_function_call(
-        function_call<NumArgs>& call,
-        value_and_holder& self_value_and_holder,
-        size_t n_args_in,
-        PyObject* args_in,
-        PyObject* kwargs_in,
-        bool convert
-    ) const
+    PYBIND11_NOINLINE bool prepare_function_call(function_call<NumArgs>& call, const invoke_params& params) const
     {
         /* For each overload:
            0. Inject new-style `self` argument
@@ -218,24 +222,24 @@ struct function_record {
         if (HasArgs) --pos_args;   // (but don't count py::args
         if (HasKwargs) --pos_args; //  or py::kwargs)
 
-        if (!HasArgs && n_args_in > pos_args)
+        if (!HasArgs && params.n_args_in > pos_args)
             return false; // Too many arguments for this overload
 
-        if (n_args_in < pos_args && args.size() < pos_args)
+        if (params.n_args_in < pos_args && args.size() < pos_args)
             return false; // Not enough arguments given, and not enough defaults to fill in the blanks
 
-        size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
+        size_t args_to_copy = (std::min)(pos_args, params.n_args_in); // Protect std::min with parentheses
         size_t args_copied = 0;
 
         // 0. Inject new-style `self` argument
         if (is_new_style_constructor) {
             // The `value` may have been preallocated by an old-style `__init__`
             // if it was a preceding candidate for overload resolution.
-            if (self_value_and_holder)
-                self_value_and_holder.type->dealloc(self_value_and_holder);
+            if (*params.self_value_and_holder)
+                params.self_value_and_holder->type->dealloc(*params.self_value_and_holder);
 
-            call.init_self = PyTuple_GET_ITEM(args_in, 0);
-            call.args[args_copied] = reinterpret_cast<PyObject*>(&self_value_and_holder);
+            call.init_self = PyTuple_GET_ITEM(params.args_in, 0);
+            call.args[args_copied] = reinterpret_cast<PyObject*>(params.self_value_and_holder);
             call.args_convert.set(args_copied, false);
             ++args_copied;
         }
@@ -243,21 +247,21 @@ struct function_record {
         // 1. Copy any position arguments given.
         for (; args_copied < args_to_copy; ++args_copied) {
             const argument_record* arg_rec = args_copied < args.size() ? &args[args_copied] : nullptr;
-            if (kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(kwargs_in, arg_rec->name)) {
+            if (params.kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(params.kwargs_in, arg_rec->name)) {
                 return false; // Maybe it was meant for another overload (issue #688)
             }
 
-            handle arg(PyTuple_GET_ITEM(args_in, args_copied));
+            handle arg(PyTuple_GET_ITEM(params.args_in, args_copied));
 
             if (arg_rec && !arg_rec->none && arg.is_none()) {
                 return false; // Maybe it was meant for another overload (issue #688)
             }
             call.args[args_copied] = arg;
-            call.args_convert.set(args_copied, convert && (arg_rec ? arg_rec->convert : true));
+            call.args_convert.set(args_copied, params.convert && (arg_rec ? arg_rec->convert : true));
         }
 
         // We'll need to copy this if we steal some kwargs for defaults
-        dict kwargs = reinterpret_borrow<dict>(kwargs_in);
+        dict kwargs = reinterpret_borrow<dict>(params.kwargs_in);
 
         // 2. Check kwargs and, failing that, defaults that may help complete the list
         if (args_copied < pos_args) {
@@ -267,7 +271,7 @@ struct function_record {
                 const auto& arg = args[args_copied];
 
                 handle value;
-                if (kwargs_in && arg.name)
+                if (params.kwargs_in && arg.name)
                     value = PyDict_GetItemString(kwargs.ptr(), arg.name);
 
                 if (value) {
@@ -284,7 +288,7 @@ struct function_record {
 
                 if (value) {
                     call.args[args_copied] = value;
-                    call.args_convert.set(args_copied, convert && arg.convert);
+                    call.args_convert.set(args_copied, params.convert && arg.convert);
                 }
                 else
                     break;
@@ -304,16 +308,16 @@ struct function_record {
             if (args_to_copy == 0) {
                 // We didn't copy out any position arguments from the args_in tuple, so we
                 // can reuse it directly without copying:
-                extra_args = reinterpret_borrow<tuple>(args_in);
+                extra_args = reinterpret_borrow<tuple>(params.args_in);
             }
-            else if (args_copied >= n_args_in) {
+            else if (args_copied >= params.n_args_in) {
                 extra_args = tuple(0);
             }
             else {
-                size_t args_size = n_args_in - args_copied;
+                size_t args_size = params.n_args_in - args_copied;
                 extra_args = tuple(args_size);
                 for (size_t i = 0; i < args_size; ++i) {
-                    extra_args[i] = PyTuple_GET_ITEM(args_in, args_copied + i);
+                    extra_args[i] = PyTuple_GET_ITEM(params.args_in, args_copied + i);
                 }
             }
             call.args[args_copied] = extra_args;

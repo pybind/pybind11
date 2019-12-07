@@ -134,19 +134,11 @@ protected:
                       "The number of argument annotations does not match the number of function arguments");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->try_invoke = [](
-            const function_record* rec,
-            handle parent,
-            value_and_holder& self_value_and_holder,
-            size_t n_args_in,
-            PyObject* args_in,
-            PyObject* kwargs_in,
-            bool convert
-            ) -> handle
+        rec->try_invoke = [](const invoke_params& params) -> handle
         {
-            function_call<sizeof...(Args)> call(parent);
+            function_call<sizeof...(Args)> call(params.parent);
 
-            if (!rec->prepare_function_call<cast_in::has_args, cast_in::has_kwargs>(call, self_value_and_holder, n_args_in, args_in, kwargs_in, convert))
+            if (!params.ptr->prepare_function_call<cast_in::has_args, cast_in::has_kwargs>(call, params))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Dispatch code which converts function arguments and performs the actual function call */
@@ -160,11 +152,11 @@ protected:
             process_attributes<Extra...>::precall(call);
 
             /* Get a pointer to the capture object */
-            auto data = (sizeof(capture) <= sizeof(rec->data) ? &rec->data : rec->data[0]);
+            auto data = (sizeof(capture) <= sizeof(params.ptr->data) ? &params.ptr->data : params.ptr->data[0]);
             capture* cap = const_cast<capture*>(reinterpret_cast<const capture*>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            return_value_policy policy = return_value_policy_override<Return>::policy(rec->policy);
+            return_value_policy policy = return_value_policy_override<Return>::policy(params.ptr->policy);
 
             /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
             using Guard = extract_guard_t<Extra...>;
@@ -460,6 +452,8 @@ protected:
                 return none().release().ptr();
         }
 
+        invoke_params params = {nullptr, parent, &self_value_and_holder, n_args_in, args_in, kwargs_in, true};
+
         try {
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
             // in the second, we allow conversion (except for arguments with an explicit
@@ -475,9 +469,10 @@ protected:
 
             auto try_all_function_records = [&](bool convert)
             {
-                for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
+                params.convert = convert;
+                for (params.ptr = overloads; params.ptr != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; params.ptr = params.ptr->next) {
                     try {
-                        result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, convert);
+                        result = params.ptr->try_invoke(params);
                     }
                     catch (reference_cast_error&) {}
                 }
