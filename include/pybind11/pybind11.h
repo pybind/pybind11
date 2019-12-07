@@ -150,40 +150,35 @@ protected:
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             // 6. Call the function.
-            try {
-                loader_life_support guard{};
-                /* Dispatch code which converts function arguments and performs the actual function call */
-                cast_in args_converter;
+            loader_life_support guard{};
+            /* Dispatch code which converts function arguments and performs the actual function call */
+            cast_in args_converter;
 
-                /* Try to cast the function arguments into the C++ domain */
-                if (!args_converter.load_args(call))
-                    return PYBIND11_TRY_NEXT_OVERLOAD;
-
-                /* Invoke call policy pre-call hook */
-                process_attributes<Extra...>::precall(call);
-
-                /* Get a pointer to the capture object */
-                auto data = (sizeof(capture) <= sizeof(rec->data) ? &rec->data : rec->data[0]);
-                capture* cap = const_cast<capture*>(reinterpret_cast<const capture*>(data));
-
-                /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-                return_value_policy _policy = return_value_policy_override<Return>::policy(rec->policy);
-
-                /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
-                using Guard = extract_guard_t<Extra...>;
-
-                /* Perform the function call */
-                handle result = cast_out::cast(
-                    std::move(args_converter).template call<Return, Guard>(cap->f), _policy, call.parent);
-
-                /* Invoke call policy post-call hook */
-                process_attributes<Extra...>::postcall(call, result);
-
-                return result;
-            }
-            catch (reference_cast_error&) {
+            /* Try to cast the function arguments into the C++ domain */
+            if (!args_converter.load_args(call))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
-            }
+
+            /* Invoke call policy pre-call hook */
+            process_attributes<Extra...>::precall(call);
+
+            /* Get a pointer to the capture object */
+            auto data = (sizeof(capture) <= sizeof(rec->data) ? &rec->data : rec->data[0]);
+            capture* cap = const_cast<capture*>(reinterpret_cast<const capture*>(data));
+
+            /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
+            return_value_policy _policy = return_value_policy_override<Return>::policy(rec->policy);
+
+            /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
+            using Guard = extract_guard_t<Extra...>;
+
+            /* Perform the function call */
+            handle result = cast_out::cast(
+                std::move(args_converter).template call<Return, Guard>(cap->f), _policy, call.parent);
+
+            /* Invoke call policy post-call hook */
+            process_attributes<Extra...>::postcall(call, result);
+
+            return result;
         };
 
         /* Process any user-provided function attributes */
@@ -480,15 +475,21 @@ protected:
             // However, if there are no overloads, we can just skip the no-convert pass entirely
             const bool overloaded = overloads->next != nullptr;
 
-            if (overloaded) {
+            auto try_all_function_records = [&](bool no_convert)
+            {
                 for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
-                    result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, true);
+                    try {
+                        result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, no_convert);
+                    }
+                    catch (reference_cast_error&) {}
                 }
+            };
+
+            if (overloaded) {
+                try_all_function_records(true);
             }
 
-            for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
-                result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, false);
-            }
+            try_all_function_records(false);
         } catch (error_already_set &e) {
             e.restore();
             return nullptr;
