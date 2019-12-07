@@ -141,16 +141,16 @@ protected:
             size_t n_args_in,
             PyObject* args_in,
             PyObject* kwargs_in,
-            bool no_convert
+            bool convert
             ) -> handle
         {
-            function_call_impl<sizeof...(Args)> call(parent);
+            function_call<sizeof...(Args)> call(parent);
 
-            if (!rec->prepare_function_call(call, self_value_and_holder, n_args_in, args_in, kwargs_in, no_convert))
+            if (!rec->prepare_function_call(call, self_value_and_holder, n_args_in, args_in, kwargs_in, convert))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
-            // 6. Call the function.
             loader_life_support guard{};
+
             /* Dispatch code which converts function arguments and performs the actual function call */
             cast_in args_converter;
 
@@ -166,14 +166,14 @@ protected:
             capture* cap = const_cast<capture*>(reinterpret_cast<const capture*>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            return_value_policy _policy = return_value_policy_override<Return>::policy(rec->policy);
+            return_value_policy policy = return_value_policy_override<Return>::policy(rec->policy);
 
             /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
             using Guard = extract_guard_t<Extra...>;
 
             /* Perform the function call */
             handle result = cast_out::cast(
-                std::move(args_converter).template call<Return, Guard>(cap->f), _policy, call.parent);
+                std::move(args_converter).template call<Return, Guard>(cap->f), policy, call.parent);
 
             /* Invoke call policy post-call hook */
             process_attributes<Extra...>::postcall(call, result);
@@ -472,24 +472,28 @@ protected:
             // py::arg().noconvert()).  This lets us prefer calls without conversion, with
             // conversion as a fallback.
 
+
+            // If one of these fail, move on to the next overloadand keep trying until we get a
+            // result other than PYBIND11_TRY_NEXT_OVERLOAD.
+
             // However, if there are no overloads, we can just skip the no-convert pass entirely
             const bool overloaded = overloads->next != nullptr;
 
-            auto try_all_function_records = [&](bool no_convert)
+            auto try_all_function_records = [&](bool convert)
             {
                 for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
                     try {
-                        result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, no_convert);
+                        result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, convert);
                     }
                     catch (reference_cast_error&) {}
                 }
             };
 
             if (overloaded) {
-                try_all_function_records(true);
+                try_all_function_records(false);
             }
 
-            try_all_function_records(false);
+            try_all_function_records(true);
         } catch (error_already_set &e) {
             e.restore();
             return nullptr;
@@ -1456,7 +1460,7 @@ inline void keep_alive_impl(handle nurse, handle patient) {
 }
 
 template<size_t NumArgs>
-PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call_impl<NumArgs>& call, handle ret) {
+PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call<NumArgs>& call, handle ret) {
     auto get_arg = [&](size_t n) {
         if (n == 0)
             return ret;

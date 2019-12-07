@@ -1886,13 +1886,10 @@ NAMESPACE_BEGIN(detail)
 struct function_record;
 
 /// Internal data associated with a single function call
+template<size_t NumArgs>
 struct function_call
 {
     function_call(handle p) : parent(p) {}
-    function_call(const function_call&) = delete;
-    function_call(function_call&&) = delete;
-
-    virtual void set_arg(size_t idx, handle h, bool convert) = 0;
 
 public:
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
@@ -1904,19 +1901,7 @@ public:
 
     /// If this is a call to an initializer, this argument contains `self`
     handle init_self;
-};
 
-template<size_t NumArgs>
-struct function_call_impl : function_call {
-    using function_call::function_call;
-
-    void set_arg(size_t idx, handle h, bool convert) override
-    {
-        args[idx] = h;
-        args_convert.set(idx, convert);
-    }
-
-public:
     /// Arguments passed to the function:
     std::array<handle, NumArgs> args;
 
@@ -1946,7 +1931,7 @@ public:
 
     static constexpr auto arg_names = concat(type_descr(make_caster<Args>::name)...);
 
-    bool load_args(function_call_impl<num_args>& call) {
+    bool load_args(function_call<num_args>& call) {
         return load_impl_sequence(call, indices{});
     }
 
@@ -1963,10 +1948,10 @@ public:
 
 private:
 
-    static bool load_impl_sequence(function_call_impl<num_args>&, index_sequence<>) { return true; }
+    static bool load_impl_sequence(function_call<num_args>&, index_sequence<>) { return true; }
 
     template <size_t... Is>
-    bool load_impl_sequence(function_call_impl<num_args>& call, index_sequence<Is...>) {
+    bool load_impl_sequence(function_call<num_args>& call, index_sequence<Is...>) {
         for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
             if (!r)
                 return false;
@@ -2001,8 +1986,8 @@ public:
         if (!result)
             throw error_already_set();
         return reinterpret_steal<object>(result);
-
     }
+
 private:
     tuple m_args;
 };
