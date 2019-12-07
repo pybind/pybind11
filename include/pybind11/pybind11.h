@@ -447,7 +447,6 @@ protected:
 
         /* Iterator over the list of potentially admissible overloads */
         const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr);
-        const function_record *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
         const size_t n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
@@ -483,12 +482,12 @@ protected:
 
             if (overloaded)
             {
-                for (it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
+                for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
                     result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, true);
                 }
             }
 
-            for (it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
+            for (const function_record* it = overloads; it != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; it = it->next) {
                 result = it->try_invoke(it, parent, self_value_and_holder, n_args_in, args_in, kwargs_in, false);
             }
         } catch (error_already_set &e) {
@@ -598,7 +597,7 @@ protected:
         } else if (!result) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
-            msg += it->signature;
+            msg += overloads->signature;
             append_note_if_missing_header_is_suspected(msg);
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;

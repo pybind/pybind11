@@ -260,11 +260,12 @@ struct function_record {
             }
 
             handle arg(PyTuple_GET_ITEM(args_in, args_copied));
+
             if (arg_rec && !arg_rec->none && arg.is_none()) {
                 bad_arg = true;
                 break;
             }
-            call.set_arg(args_copied, arg, !no_convert && arg_rec && arg_rec->convert);
+            call.set_arg(args_copied, arg, !no_convert && (arg_rec ? arg_rec->convert : true));
         }
         if (bad_arg)
             return false; // Maybe it was meant for another overload (issue #688)
