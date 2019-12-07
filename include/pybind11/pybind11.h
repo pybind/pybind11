@@ -146,10 +146,8 @@ protected:
         {
             function_call<sizeof...(Args)> call(parent);
 
-            if (!rec->prepare_function_call(call, self_value_and_holder, n_args_in, args_in, kwargs_in, convert))
+            if (!rec->prepare_function_call<cast_in::has_args, cast_in::has_kwargs>(call, self_value_and_holder, n_args_in, args_in, kwargs_in, convert))
                 return PYBIND11_TRY_NEXT_OVERLOAD;
-
-            loader_life_support guard{};
 
             /* Dispatch code which converts function arguments and performs the actual function call */
             cast_in args_converter;
@@ -190,9 +188,6 @@ protected:
 
         /* Register the function with Python from generic (non-templated) code */
         initialize_generic(rec, signature.text, types.data(), sizeof...(Args));
-
-        if (cast_in::has_args) rec->has_args = true;
-        if (cast_in::has_kwargs) rec->has_kwargs = true;
 
         /* Stash some additional information used by an important optimization in 'functional.h' */
         using FunctionType = Return (*)(Args...);
@@ -488,6 +483,8 @@ protected:
                     catch (reference_cast_error&) {}
                 }
             };
+
+            loader_life_support guard{};
 
             if (overloaded) {
                 try_all_function_records(false);

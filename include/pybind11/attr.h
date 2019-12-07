@@ -135,7 +135,7 @@ struct argument_record {
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
-          is_operator(false), has_args(false), has_kwargs(false), is_method(false) { }
+          is_operator(false), is_method(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -188,18 +188,12 @@ struct function_record {
     /// True if this is an operator (__add__), etc.
     bool is_operator : 1;
 
-    /// True if the function has a '*args' argument
-    bool has_args : 1;
-
-    /// True if the function has a '**kwargs' argument
-    bool has_kwargs : 1;
-
     /// True if this is a method
     bool is_method : 1;
 
     /// Fill in function_call members, return true we can proceed with execution, false is we should continue
     /// with the next candidate
-    template<size_t NumArgs>
+    template<bool HasArgs, bool HasKwargs, size_t NumArgs>
     PYBIND11_NOINLINE bool prepare_function_call(
         function_call<NumArgs>& call,
         value_and_holder& self_value_and_holder,
@@ -224,10 +218,10 @@ struct function_record {
          */
 
         size_t pos_args = nargs;    // Number of positional arguments that we need
-        if (has_args) --pos_args;   // (but don't count py::args
-        if (has_kwargs) --pos_args; //  or py::kwargs)
+        if (HasArgs) --pos_args;   // (but don't count py::args
+        if (HasKwargs) --pos_args; //  or py::kwargs)
 
-        if (!has_args && n_args_in > pos_args)
+        if (!HasArgs && n_args_in > pos_args)
             return false; // Too many arguments for this overload
 
         if (n_args_in < pos_args && args.size() < pos_args)
@@ -245,7 +239,8 @@ struct function_record {
 
             call.init_self = PyTuple_GET_ITEM(args_in, 0);
             call.args[args_copied] = reinterpret_cast<PyObject*>(&self_value_and_holder);
-            call.args_convert.set(args_copied++, false);
+            call.args_convert.set(args_copied, false);
+            ++args_copied;
         }
 
         // 1. Copy any position arguments given.
@@ -308,11 +303,11 @@ struct function_record {
         }
 
         // 3. Check everything was consumed (unless we have a kwargs arg)
-        if (kwargs && kwargs.size() > 0 && !has_kwargs)
+        if (!HasKwargs && kwargs && kwargs.size() > 0)
             return false; // Unconsumed kwargs, but no py::kwargs argument to accept them
 
         // 4a. If we have a py::args argument, create a new tuple with leftovers
-        if (has_args) {
+        if (HasArgs) {
             tuple extra_args;
             if (args_to_copy == 0) {
                 // We didn't copy out any position arguments from the args_in tuple, so we
@@ -330,17 +325,19 @@ struct function_record {
                 }
             }
             call.args[args_copied] = extra_args;
-            call.args_convert.set(args_copied++, false);
+            call.args_convert.set(args_copied, false);
             call.args_ref = std::move(extra_args);
+            ++args_copied;
         }
 
         // 4b. If we have a py::kwargs, pass on any remaining kwargs
-        if (has_kwargs) {
+        if (HasKwargs) {
             if (!kwargs.ptr())
                 kwargs = dict(); // If we didn't get one, send an empty one
             call.args[args_copied] = kwargs;
-            call.args_convert.set(args_copied++, false);
+            call.args_convert.set(args_copied, false);
             call.kwargs_ref = std::move(kwargs);
+            ++args_copied;
         }
 
 #if !defined(NDEBUG)
