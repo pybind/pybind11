@@ -170,9 +170,6 @@ struct function_record {
     /// Pointer to next overload
     function_record *next = nullptr;
 
-    /// Number of arguments (including py::args and/or py::kwargs, if present)
-    std::uint16_t nargs;
-
     /// Return value policy associated with this function
     return_value_policy policy = return_value_policy::automatic;
 
@@ -217,7 +214,7 @@ struct function_record {
               leftover kwargs get put into a dict.
          */
 
-        size_t pos_args = nargs;    // Number of positional arguments that we need
+        size_t pos_args = NumArgs;    // Number of positional arguments that we need
         if (HasArgs) --pos_args;   // (but don't count py::args
         if (HasKwargs) --pos_args; //  or py::kwargs)
 
@@ -244,25 +241,20 @@ struct function_record {
         }
 
         // 1. Copy any position arguments given.
-        bool bad_arg = false;
         for (; args_copied < args_to_copy; ++args_copied) {
             const argument_record* arg_rec = args_copied < args.size() ? &args[args_copied] : nullptr;
             if (kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(kwargs_in, arg_rec->name)) {
-                bad_arg = true;
-                break;
+                return false; // Maybe it was meant for another overload (issue #688)
             }
 
             handle arg(PyTuple_GET_ITEM(args_in, args_copied));
 
             if (arg_rec && !arg_rec->none && arg.is_none()) {
-                bad_arg = true;
-                break;
+                return false; // Maybe it was meant for another overload (issue #688)
             }
             call.args[args_copied] = arg;
             call.args_convert.set(args_copied, convert && (arg_rec ? arg_rec->convert : true));
         }
-        if (bad_arg)
-            return false; // Maybe it was meant for another overload (issue #688)
 
         // We'll need to copy this if we steal some kwargs for defaults
         dict kwargs = reinterpret_borrow<dict>(kwargs_in);

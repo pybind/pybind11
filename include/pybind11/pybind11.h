@@ -296,7 +296,6 @@ protected:
 #endif
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();
-        rec->nargs = (std::uint16_t) args;
 
         if (rec->sibling && PYBIND11_INSTANCE_METHOD_CHECK(rec->sibling.ptr()))
             rec->sibling = PYBIND11_INSTANCE_METHOD_GET_FUNCTION(rec->sibling.ptr());
