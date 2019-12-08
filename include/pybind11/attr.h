@@ -131,7 +131,9 @@ struct argument_record {
         : name(name), descr(descr), value(value), convert(convert), none(none) { }
 };
 
-struct invoke_params
+/// Bundles together arguments for function_record::try_invoke
+/// Helps to reduce binary size produced by msvc
+struct try_invoke_args
 {
     const function_record* ptr;
     handle parent;
@@ -160,8 +162,8 @@ struct function_record {
     /// List of registered keyword arguments
     std::vector<argument_record> args;
 
-    /// Pointer to lambda function which converts arguments and performs the actual call
-    handle(*try_invoke)(const invoke_params&) = nullptr;
+    /// Pointer to lambda function which checks if python arguments satisfy C++ signature, converts them and performs the actual call
+    handle(*try_invoke)(const try_invoke_args& params) = nullptr;
 
     /// Storage for the wrapped function pointer and captured data, if any
     void *data[3] = { };
@@ -202,7 +204,7 @@ struct function_record {
     /// Fill in function_call members, return true we can proceed with execution, false is we should continue
     /// with the next candidate
     template<bool HasArgs, bool HasKwargs, size_t NumArgs>
-    PYBIND11_NOINLINE bool prepare_function_call(function_call<NumArgs>& call, const invoke_params& params) const
+    PYBIND11_NOINLINE bool prepare_function_call(function_call<NumArgs>& call, const try_invoke_args& params) const
     {
         /* For each overload:
            0. Inject new-style `self` argument

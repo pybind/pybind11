@@ -134,7 +134,7 @@ protected:
                       "The number of argument annotations does not match the number of function arguments");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->try_invoke = [](const invoke_params& params) -> handle
+        rec->try_invoke = [](const try_invoke_args& params) -> handle
         {
             function_call<sizeof...(Args)> call(params.parent);
 
@@ -452,14 +452,13 @@ protected:
                 return none().release().ptr();
         }
 
-        invoke_params params = {nullptr, parent, &self_value_and_holder, n_args_in, args_in, kwargs_in, true};
+        try_invoke_args params = {nullptr, parent, &self_value_and_holder, n_args_in, args_in, kwargs_in, true};
 
         try {
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
             // in the second, we allow conversion (except for arguments with an explicit
             // py::arg().noconvert()).  This lets us prefer calls without conversion, with
             // conversion as a fallback.
-
 
             // If one of these fail, move on to the next overloadand keep trying until we get a
             // result other than PYBIND11_TRY_NEXT_OVERLOAD.
