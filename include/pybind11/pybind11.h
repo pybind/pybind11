@@ -794,12 +794,14 @@ public:
     explicit module(const char *name, const char *doc = nullptr) {
         if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
-        PyModuleDef *def = new PyModuleDef();
+        static std::vector<PyModuleDef> m_defs;
+        m_defs.emplace_back();
+        PyModuleDef *def = &m_defs.back();
         std::memset(def, 0, sizeof(PyModuleDef));
+        def->m_base = PyModuleDef_HEAD_INIT;
         def->m_name = name;
         def->m_doc = doc;
         def->m_size = -1;
-        Py_INCREF(def);
         m_ptr = PyModule_Create(def);
 #else
         m_ptr = Py_InitModule3(name, nullptr, doc);
