@@ -16,7 +16,8 @@ matrix:
     - PY_CMD=python3
     - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
     install:
-    - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe flake8 pep8-naming pytest
+    # breathe 4.14 doesn't work with bit fields. See https://github.com/michaeljones/breathe/issues/462
+    - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe==4.13.1 flake8 pep8-naming pytest
     - curl -fsSL https://sourceforge.net/projects/doxygen/files/rel-1.8.15/doxygen-1.8.15.linux.bin.tar.gz/download | tar xz
     - export PATH="$PWD/doxygen-1.8.15/bin:$PATH"
     script:
