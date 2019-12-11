@@ -138,7 +138,7 @@ matrix:
     env: PYTHON=2.7 CPP=14 CLANG CMAKE=1
   - os: osx
     name: Python 3.7, c++14, AppleClang 9, Debug build
-    osx_image: xcode9
+    osx_image: xcode9.4
     env: PYTHON=3.7 CPP=14 CLANG DEBUG=1
   # Test a PyPy 2.7 build
   - os: linux
