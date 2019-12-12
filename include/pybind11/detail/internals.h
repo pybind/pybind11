@@ -25,6 +25,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
 #    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
 #    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
 #else
     // Usually an int but a long on Cygwin64 with Python 3.x
 #    define PYBIND11_TLS_KEY_INIT(var) decltype(PyThread_create_key()) var = 0
@@ -43,6 +44,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #        define PYBIND11_TLS_REPLACE_VALUE(key, value)                       \
              PyThread_set_key_value((key), (value))
 #    endif
+#    define PYBIND11_TLS_FREE(key) (void)key
 #endif
 
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
@@ -108,6 +110,16 @@ struct internals {
 #if defined(WITH_THREAD)
     PYBIND11_TLS_KEY_INIT(tstate);
     PyInterpreterState *istate = nullptr;
+    ~internals() {
+        // This destructor is called *after* Py_Finalize() in finalize_interpreter().
+        // That *SHOULD BE* fine. The following details what happens whe PyThread_tss_free is called.
+        // PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does nothing.
+        // PyThread_tss_free calls PyThread_tss_delete and PyMem_RawFree.
+        // PyThread_tss_delete just calls TlsFree (on Windows) or pthread_key_delete (on *NIX). Neither
+        // of those have anything to do with CPython internals.
+        // PyMem_RawFree *requires* that the `tstate` be allocated with the CPython allocator.
+        PYBIND11_TLS_FREE(tstate);
+    }
 #endif
 };
 
@@ -138,7 +150,7 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 3
+#define PYBIND11_INTERNALS_VERSION 4
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
