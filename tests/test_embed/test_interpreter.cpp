@@ -319,8 +319,8 @@ TEST_CASE("Re-run register_exception<>() after destroying interpreter")
     py::initialize_interpreter();
 }
 
-PYBIND11_EMBEDDED_MODULE(reg_excp_first, mod) { /* Nothing */ }
-PYBIND11_EMBEDDED_MODULE(reg_excp_second, mod) { /* Nothing */ }
+PYBIND11_EMBEDDED_MODULE(reg_excp_first, mod) { mod.doc() = ""; }
+PYBIND11_EMBEDDED_MODULE(reg_excp_second, mod) { mod.doc() = ""; }
 
 TEST_CASE("Add same exception to multiple modules using register_exception<>()")
 {
