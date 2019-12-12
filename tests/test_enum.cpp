@@ -106,7 +106,7 @@ TEST_SUBMODULE(enums, m) {
     // test the scalar of char type enums according to chapter 'Character types'
     // from https://en.cppreference.com/w/cpp/language/types
     static_assert(py::detail::any_of<
-        std::is_same<py::enum_<ScopedCharEnum>::Scalar, signed char>, // e.g.
+        std::is_same<py::enum_<ScopedCharEnum>::Scalar, signed char>, // e.g. gcc on x86
         std::is_same<py::enum_<ScopedCharEnum>::Scalar, unsigned char>  // e.g. arm linux
     >::value, "char should be cast to either signed char or unsigned char");
     static_assert(
