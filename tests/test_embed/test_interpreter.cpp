@@ -319,18 +319,18 @@ TEST_CASE("Re-run register_exception<>() after destroying interpreter")
     py::initialize_interpreter();
 }
 
-PYBIND11_EMBEDDED_MODULE(reg_excp_first, mod) { mod.doc() = ""; }
-PYBIND11_EMBEDDED_MODULE(reg_excp_second, mod) { mod.doc() = ""; }
+PYBIND11_EMBEDDED_MODULE(mod_reg_excp0, mod) { mod.doc() = ""; }
+PYBIND11_EMBEDDED_MODULE(mod_reg_excp1, mod) { mod.doc() = ""; }
 
 TEST_CASE("Add same exception to multiple modules using register_exception<>()")
 {
-    auto reg_excp_first = pybind11::module::import("reg_excp_first");
-    pybind11::register_exception<rerun_register_exception::SomeException>(reg_excp_first, "SomeException");
+    auto mod0 = pybind11::module::import("mod_reg_excp0");
+    pybind11::register_exception<rerun_register_exception::SomeException>(mod0, "SomeException");
 
-    auto reg_excp_second = pybind11::module::import("reg_excp_second");
-    pybind11::register_exception<rerun_register_exception::SomeException>(reg_excp_second, "SomeException");
+    auto mod1 = pybind11::module::import("mod_reg_excp1");
+    pybind11::register_exception<rerun_register_exception::SomeException>(mod1, "SomeException");
 
     auto d = py::dict();
-    REQUIRE_NOTHROW(d["reg_excp_first"] = reg_excp_first.attr("SomeException"));
-    REQUIRE_NOTHROW(d["reg_excp_second"] = reg_excp_second.attr("SomeException"));
+    REQUIRE_NOTHROW(d["excp0"] = mod0.attr("SomeException"));
+    REQUIRE_NOTHROW(d["excp1"] = mod1.attr("SomeException"));
 }
