@@ -451,7 +451,7 @@ protected:
                 return none().release().ptr();
         }
 
-        try {
+        auto local_dispatch = [&] {
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
             // in the second, we allow conversion (except for arguments with an explicit
             // py::arg().noconvert()).  This lets us prefer calls without conversion, with
@@ -664,38 +664,46 @@ protected:
                     }
                 }
             }
-        } catch (error_already_set &e) {
-            e.restore();
-            return nullptr;
+        };
+
+        if (getenv("PYBIND11_NOCATCH")) {
+            local_dispatch();
+        } else {
+            try {
+              local_dispatch();
+            } catch (error_already_set &e) {
+                e.restore();
+                return nullptr;
 #if defined(__GNUG__) && !defined(__clang__)
-        } catch ( abi::__forced_unwind& ) {
-            throw;
+            } catch ( abi::__forced_unwind& ) {
+                throw;
 #endif
-        } catch (...) {
-            /* When an exception is caught, give each registered exception
-               translator a chance to translate it to a Python exception
-               in reverse order of registration.
+            } catch (...) {
+                /* When an exception is caught, give each registered exception
+                   translator a chance to translate it to a Python exception
+                   in reverse order of registration.
 
-               A translator may choose to do one of the following:
+                   A translator may choose to do one of the following:
 
-                - catch the exception and call PyErr_SetString or PyErr_SetObject
-                  to set a standard (or custom) Python exception, or
-                - do nothing and let the exception fall through to the next translator, or
-                - delegate translation to the next translator by throwing a new type of exception. */
+                    - catch the exception and call PyErr_SetString or PyErr_SetObject
+                      to set a standard (or custom) Python exception, or
+                    - do nothing and let the exception fall through to the next translator, or
+                    - delegate translation to the next translator by throwing a new type of exception. */
 
-            auto last_exception = std::current_exception();
-            auto &registered_exception_translators = get_internals().registered_exception_translators;
-            for (auto& translator : registered_exception_translators) {
-                try {
-                    translator(last_exception);
-                } catch (...) {
-                    last_exception = std::current_exception();
-                    continue;
+                auto last_exception = std::current_exception();
+                auto &registered_exception_translators = get_internals().registered_exception_translators;
+                for (auto& translator : registered_exception_translators) {
+                    try {
+                        translator(last_exception);
+                    } catch (...) {
+                        last_exception = std::current_exception();
+                        continue;
+                    }
+                    return nullptr;
                 }
+                PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
                 return nullptr;
             }
-            PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
-            return nullptr;
         }
 
         auto append_note_if_missing_header_is_suspected = [](std::string &msg) {
