@@ -151,7 +151,7 @@ function(pybind11_enable_warnings target_name)
   endif()
 endfunction()
 
-set(test_targets pybind11_tests)
+set(test_targets pybind11_tests test_move_arg)
 
 # Build pybind11_cross_module_tests if any test_whatever.py are being built that require it
 foreach(t ${PYBIND11_CROSS_MODULE_TESTS})
