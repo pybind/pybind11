@@ -134,7 +134,14 @@ protected:
                       "The number of argument annotations does not match the number of function arguments");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](function_call &call) -> handle {
+        rec->try_invoke = [](const try_invoke_args& params) -> handle
+        {
+            function_call<sizeof...(Args)> call(params.parent);
+
+            if (!params.ptr->prepare_function_call<cast_in::has_args, cast_in::has_kwargs>(call, params))
+                return PYBIND11_TRY_NEXT_OVERLOAD;
+
+            /* Dispatch code which converts function arguments and performs the actual function call */
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
@@ -145,12 +152,11 @@ protected:
             process_attributes<Extra...>::precall(call);
 
             /* Get a pointer to the capture object */
-            auto data = (sizeof(capture) <= sizeof(call.func.data)
-                         ? &call.func.data : call.func.data[0]);
-            capture *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
+            auto data = (sizeof(capture) <= sizeof(params.ptr->data) ? &params.ptr->data : params.ptr->data[0]);
+            capture* cap = const_cast<capture*>(reinterpret_cast<const capture*>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            return_value_policy policy = return_value_policy_override<Return>::policy(call.func.policy);
+            return_value_policy policy = return_value_policy_override<Return>::policy(params.ptr->policy);
 
             /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
             using Guard = extract_guard_t<Extra...>;
@@ -174,9 +180,6 @@ protected:
 
         /* Register the function with Python from generic (non-templated) code */
         initialize_generic(rec, signature.text, types.data(), sizeof...(Args));
-
-        if (cast_in::has_args) rec->has_args = true;
-        if (cast_in::has_kwargs) rec->has_kwargs = true;
 
         /* Stash some additional information used by an important optimization in 'functional.h' */
         using FunctionType = Return (*)(Args...);
@@ -285,7 +288,6 @@ protected:
 #endif
         rec->signature = strdup(signature.c_str());
         rec->args.shrink_to_fit();
-        rec->nargs = (std::uint16_t) args;
 
         if (rec->sibling && PYBIND11_INSTANCE_METHOD_CHECK(rec->sibling.ptr()))
             rec->sibling = PYBIND11_INSTANCE_METHOD_GET_FUNCTION(rec->sibling.ptr());
@@ -425,8 +427,7 @@ protected:
         using namespace detail;
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
-                              *it = overloads;
+        const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr);
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
         const size_t n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
@@ -451,219 +452,38 @@ protected:
                 return none().release().ptr();
         }
 
+        try_invoke_args params = {nullptr, parent, &self_value_and_holder, n_args_in, args_in, kwargs_in, true};
+
         try {
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
             // in the second, we allow conversion (except for arguments with an explicit
             // py::arg().noconvert()).  This lets us prefer calls without conversion, with
             // conversion as a fallback.
-            std::vector<function_call> second_pass;
+
+            // If one of these fail, move on to the next overloadand keep trying until we get a
+            // result other than PYBIND11_TRY_NEXT_OVERLOAD.
 
             // However, if there are no overloads, we can just skip the no-convert pass entirely
-            const bool overloaded = it != nullptr && it->next != nullptr;
+            const bool overloaded = overloads->next != nullptr;
 
-            for (; it != nullptr; it = it->next) {
-
-                /* For each overload:
-                   1. Copy all positional arguments we were given, also checking to make sure that
-                      named positional arguments weren't *also* specified via kwarg.
-                   2. If we weren't given enough, try to make up the omitted ones by checking
-                      whether they were provided by a kwarg matching the `py::arg("name")` name.  If
-                      so, use it (and remove it from kwargs; if not, see if the function binding
-                      provided a default that we can use.
-                   3. Ensure that either all keyword arguments were "consumed", or that the function
-                      takes a kwargs argument to accept unconsumed kwargs.
-                   4. Any positional arguments still left get put into a tuple (for args), and any
-                      leftover kwargs get put into a dict.
-                   5. Pack everything into a vector; if we have py::args or py::kwargs, they are an
-                      extra tuple or dict at the end of the positional arguments.
-                   6. Call the function call dispatcher (function_record::impl)
-
-                   If one of these fail, move on to the next overload and keep trying until we get a
-                   result other than PYBIND11_TRY_NEXT_OVERLOAD.
-                 */
-
-                const function_record &func = *it;
-                size_t pos_args = func.nargs;    // Number of positional arguments that we need
-                if (func.has_args) --pos_args;   // (but don't count py::args
-                if (func.has_kwargs) --pos_args; //  or py::kwargs)
-
-                if (!func.has_args && n_args_in > pos_args)
-                    continue; // Too many arguments for this overload
-
-                if (n_args_in < pos_args && func.args.size() < pos_args)
-                    continue; // Not enough arguments given, and not enough defaults to fill in the blanks
-
-                function_call call(func, parent);
-
-                size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
-                size_t args_copied = 0;
-
-                // 0. Inject new-style `self` argument
-                if (func.is_new_style_constructor) {
-                    // The `value` may have been preallocated by an old-style `__init__`
-                    // if it was a preceding candidate for overload resolution.
-                    if (self_value_and_holder)
-                        self_value_and_holder.type->dealloc(self_value_and_holder);
-
-                    call.init_self = PyTuple_GET_ITEM(args_in, 0);
-                    call.args.push_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
-                    call.args_convert.push_back(false);
-                    ++args_copied;
-                }
-
-                // 1. Copy any position arguments given.
-                bool bad_arg = false;
-                for (; args_copied < args_to_copy; ++args_copied) {
-                    const argument_record *arg_rec = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
-                    if (kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(kwargs_in, arg_rec->name)) {
-                        bad_arg = true;
-                        break;
-                    }
-
-                    handle arg(PyTuple_GET_ITEM(args_in, args_copied));
-                    if (arg_rec && !arg_rec->none && arg.is_none()) {
-                        bad_arg = true;
-                        break;
-                    }
-                    call.args.push_back(arg);
-                    call.args_convert.push_back(arg_rec ? arg_rec->convert : true);
-                }
-                if (bad_arg)
-                    continue; // Maybe it was meant for another overload (issue #688)
-
-                // We'll need to copy this if we steal some kwargs for defaults
-                dict kwargs = reinterpret_borrow<dict>(kwargs_in);
-
-                // 2. Check kwargs and, failing that, defaults that may help complete the list
-                if (args_copied < pos_args) {
-                    bool copied_kwargs = false;
-
-                    for (; args_copied < pos_args; ++args_copied) {
-                        const auto &arg = func.args[args_copied];
-
-                        handle value;
-                        if (kwargs_in && arg.name)
-                            value = PyDict_GetItemString(kwargs.ptr(), arg.name);
-
-                        if (value) {
-                            // Consume a kwargs value
-                            if (!copied_kwargs) {
-                                kwargs = reinterpret_steal<dict>(PyDict_Copy(kwargs.ptr()));
-                                copied_kwargs = true;
-                            }
-                            PyDict_DelItemString(kwargs.ptr(), arg.name);
-                        } else if (arg.value) {
-                            value = arg.value;
-                        }
-
-                        if (value) {
-                            call.args.push_back(value);
-                            call.args_convert.push_back(arg.convert);
-                        }
-                        else
-                            break;
-                    }
-
-                    if (args_copied < pos_args)
-                        continue; // Not enough arguments, defaults, or kwargs to fill the positional arguments
-                }
-
-                // 3. Check everything was consumed (unless we have a kwargs arg)
-                if (kwargs && kwargs.size() > 0 && !func.has_kwargs)
-                    continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
-
-                // 4a. If we have a py::args argument, create a new tuple with leftovers
-                if (func.has_args) {
-                    tuple extra_args;
-                    if (args_to_copy == 0) {
-                        // We didn't copy out any position arguments from the args_in tuple, so we
-                        // can reuse it directly without copying:
-                        extra_args = reinterpret_borrow<tuple>(args_in);
-                    } else if (args_copied >= n_args_in) {
-                        extra_args = tuple(0);
-                    } else {
-                        size_t args_size = n_args_in - args_copied;
-                        extra_args = tuple(args_size);
-                        for (size_t i = 0; i < args_size; ++i) {
-                            extra_args[i] = PyTuple_GET_ITEM(args_in, args_copied + i);
-                        }
-                    }
-                    call.args.push_back(extra_args);
-                    call.args_convert.push_back(false);
-                    call.args_ref = std::move(extra_args);
-                }
-
-                // 4b. If we have a py::kwargs, pass on any remaining kwargs
-                if (func.has_kwargs) {
-                    if (!kwargs.ptr())
-                        kwargs = dict(); // If we didn't get one, send an empty one
-                    call.args.push_back(kwargs);
-                    call.args_convert.push_back(false);
-                    call.kwargs_ref = std::move(kwargs);
-                }
-
-                // 5. Put everything in a vector.  Not technically step 5, we've been building it
-                // in `call.args` all along.
-                #if !defined(NDEBUG)
-                if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs)
-                    pybind11_fail("Internal error: function call dispatcher inserted wrong number of arguments!");
-                #endif
-
-                std::vector<bool> second_pass_convert;
-                if (overloaded) {
-                    // We're in the first no-convert pass, so swap out the conversion flags for a
-                    // set of all-false flags.  If the call fails, we'll swap the flags back in for
-                    // the conversion-allowed call below.
-                    second_pass_convert.resize(func.nargs, false);
-                    call.args_convert.swap(second_pass_convert);
-                }
-
-                // 6. Call the function.
-                try {
-                    loader_life_support guard{};
-                    result = func.impl(call);
-                } catch (reference_cast_error &) {
-                    result = PYBIND11_TRY_NEXT_OVERLOAD;
-                }
-
-                if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
-                    break;
-
-                if (overloaded) {
-                    // The (overloaded) call failed; if the call has at least one argument that
-                    // permits conversion (i.e. it hasn't been explicitly specified `.noconvert()`)
-                    // then add this call to the list of second pass overloads to try.
-                    for (size_t i = func.is_method ? 1 : 0; i < pos_args; i++) {
-                        if (second_pass_convert[i]) {
-                            // Found one: swap the converting flags back in and store the call for
-                            // the second pass.
-                            call.args_convert.swap(second_pass_convert);
-                            second_pass.push_back(std::move(call));
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (overloaded && !second_pass.empty() && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
-                // The no-conversion pass finished without success, try again with conversion allowed
-                for (auto &call : second_pass) {
+            auto try_all_function_records = [&](bool convert)
+            {
+                params.convert = convert;
+                for (params.ptr = overloads; params.ptr != nullptr && result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD; params.ptr = params.ptr->next) {
                     try {
-                        loader_life_support guard{};
-                        result = call.func.impl(call);
-                    } catch (reference_cast_error &) {
-                        result = PYBIND11_TRY_NEXT_OVERLOAD;
+                        result = params.ptr->try_invoke(params);
                     }
-
-                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
-                        // The error reporting logic below expects 'it' to be valid, as it would be
-                        // if we'd encountered this failure in the first-pass loop.
-                        if (!result)
-                            it = &call.func;
-                        break;
-                    }
+                    catch (reference_cast_error&) {}
                 }
+            };
+
+            loader_life_support guard{};
+
+            if (overloaded) {
+                try_all_function_records(false);
             }
+
+            try_all_function_records(true);
         } catch (error_already_set &e) {
             e.restore();
             return nullptr;
@@ -771,7 +591,7 @@ protected:
         } else if (!result) {
             std::string msg = "Unable to convert function return value to a "
                               "Python type! The signature was\n\t";
-            msg += it->signature;
+            msg += overloads->signature;
             append_note_if_missing_header_is_suspected(msg);
             PyErr_SetString(PyExc_TypeError, msg.c_str());
             return nullptr;
@@ -1629,13 +1449,14 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     }
 }
 
-PYBIND11_NOINLINE inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+template<size_t NumArgs>
+PYBIND11_NOINLINE void keep_alive_impl(size_t Nurse, size_t Patient, function_call<NumArgs>& call, handle ret) {
     auto get_arg = [&](size_t n) {
         if (n == 0)
             return ret;
         else if (n == 1 && call.init_self)
             return call.init_self;
-        else if (n <= call.args.size())
+        else if (n <= NumArgs)
             return call.args[n - 1];
         return handle();
     };

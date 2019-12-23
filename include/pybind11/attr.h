@@ -116,7 +116,8 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+template<size_t NumArgs>
+void keep_alive_impl(size_t Nurse, size_t Patient, function_call<NumArgs> &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -130,11 +131,24 @@ struct argument_record {
         : name(name), descr(descr), value(value), convert(convert), none(none) { }
 };
 
+/// Bundles together arguments for function_record::try_invoke
+/// Helps to reduce binary size produced by msvc
+struct try_invoke_args
+{
+    const function_record* ptr;
+    handle parent;
+    value_and_holder* self_value_and_holder;
+    size_t n_args_in;
+    PyObject* args_in;
+    PyObject* kwargs_in;
+    bool convert;
+};
+
 /// Internal data structure which holds metadata about a bound function (signature, overloads, etc.)
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
-          is_operator(false), has_args(false), has_kwargs(false), is_method(false) { }
+          is_operator(false), is_method(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -148,14 +162,26 @@ struct function_record {
     /// List of registered keyword arguments
     std::vector<argument_record> args;
 
-    /// Pointer to lambda function which converts arguments and performs the actual call
-    handle (*impl) (function_call &) = nullptr;
+    /// Pointer to lambda function which checks if python arguments satisfy C++ signature, converts them and performs the actual call
+    handle(*try_invoke)(const try_invoke_args& params) = nullptr;
 
     /// Storage for the wrapped function pointer and captured data, if any
     void *data[3] = { };
 
     /// Pointer to custom destructor for 'data' (if needed)
     void (*free_data) (function_record *ptr) = nullptr;
+
+    /// Python method object
+    PyMethodDef *def = nullptr;
+
+    /// Python handle to the parent scope (a class or a module)
+    handle scope;
+
+    /// Python handle to the sibling function representing an overload chain
+    handle sibling;
+
+    /// Pointer to next overload
+    function_record *next = nullptr;
 
     /// Return value policy associated with this function
     return_value_policy policy = return_value_policy::automatic;
@@ -172,29 +198,152 @@ struct function_record {
     /// True if this is an operator (__add__), etc.
     bool is_operator : 1;
 
-    /// True if the function has a '*args' argument
-    bool has_args : 1;
-
-    /// True if the function has a '**kwargs' argument
-    bool has_kwargs : 1;
-
     /// True if this is a method
     bool is_method : 1;
 
-    /// Number of arguments (including py::args and/or py::kwargs, if present)
-    std::uint16_t nargs;
+    /// Fill in function_call members, return true we can proceed with execution, false is we should continue
+    /// with the next candidate
+    template<bool HasArgs, bool HasKwargs, size_t NumArgs>
+    PYBIND11_NOINLINE bool prepare_function_call(function_call<NumArgs>& call, const try_invoke_args& params) const
+    {
+        /* For each overload:
+           0. Inject new-style `self` argument
+           1. Copy all positional arguments we were given, also checking to make sure that
+              named positional arguments weren't *also* specified via kwarg.
+           2. If we weren't given enough, try to make up the omitted ones by checking
+              whether they were provided by a kwarg matching the `py::arg("name")` name.  If
+              so, use it (and remove it from kwargs; if not, see if the function binding
+              provided a default that we can use.
+           3. Ensure that either all keyword arguments were "consumed", or that the function
+              takes a kwargs argument to accept unconsumed kwargs.
+           4. Any positional arguments still left get put into a tuple (for args), and any
+              leftover kwargs get put into a dict.
+         */
 
-    /// Python method object
-    PyMethodDef *def = nullptr;
+        size_t pos_args = NumArgs;    // Number of positional arguments that we need
+        if (HasArgs) --pos_args;   // (but don't count py::args
+        if (HasKwargs) --pos_args; //  or py::kwargs)
 
-    /// Python handle to the parent scope (a class or a module)
-    handle scope;
+        if (!HasArgs && params.n_args_in > pos_args)
+            return false; // Too many arguments for this overload
 
-    /// Python handle to the sibling function representing an overload chain
-    handle sibling;
+        if (params.n_args_in < pos_args && args.size() < pos_args)
+            return false; // Not enough arguments given, and not enough defaults to fill in the blanks
 
-    /// Pointer to next overload
-    function_record *next = nullptr;
+        size_t args_to_copy = (std::min)(pos_args, params.n_args_in); // Protect std::min with parentheses
+        size_t args_copied = 0;
+
+        // 0. Inject new-style `self` argument
+        if (is_new_style_constructor) {
+            // The `value` may have been preallocated by an old-style `__init__`
+            // if it was a preceding candidate for overload resolution.
+            if (*params.self_value_and_holder)
+                params.self_value_and_holder->type->dealloc(*params.self_value_and_holder);
+
+            call.init_self = PyTuple_GET_ITEM(params.args_in, 0);
+            call.args[args_copied] = reinterpret_cast<PyObject*>(params.self_value_and_holder);
+            call.args_convert.set(args_copied, false);
+            ++args_copied;
+        }
+
+        // 1. Copy any position arguments given.
+        for (; args_copied < args_to_copy; ++args_copied) {
+            const argument_record* arg_rec = args_copied < args.size() ? &args[args_copied] : nullptr;
+            if (params.kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(params.kwargs_in, arg_rec->name)) {
+                return false; // Maybe it was meant for another overload (issue #688)
+            }
+
+            handle arg(PyTuple_GET_ITEM(params.args_in, args_copied));
+
+            if (arg_rec && !arg_rec->none && arg.is_none()) {
+                return false; // Maybe it was meant for another overload (issue #688)
+            }
+            call.args[args_copied] = arg;
+            call.args_convert.set(args_copied, params.convert && (arg_rec ? arg_rec->convert : true));
+        }
+
+        // We'll need to copy this if we steal some kwargs for defaults
+        dict kwargs = reinterpret_borrow<dict>(params.kwargs_in);
+
+        // 2. Check kwargs and, failing that, defaults that may help complete the list
+        if (args_copied < pos_args) {
+            bool copied_kwargs = false;
+
+            for (; args_copied < pos_args; ++args_copied) {
+                const auto& arg = args[args_copied];
+
+                handle value;
+                if (params.kwargs_in && arg.name)
+                    value = PyDict_GetItemString(kwargs.ptr(), arg.name);
+
+                if (value) {
+                    // Consume a kwargs value
+                    if (!copied_kwargs) {
+                        kwargs = reinterpret_steal<dict>(PyDict_Copy(kwargs.ptr()));
+                        copied_kwargs = true;
+                    }
+                    PyDict_DelItemString(kwargs.ptr(), arg.name);
+                }
+                else if (arg.value) {
+                    value = arg.value;
+                }
+
+                if (value) {
+                    call.args[args_copied] = value;
+                    call.args_convert.set(args_copied, params.convert && arg.convert);
+                }
+                else
+                    break;
+            }
+
+            if (args_copied < pos_args)
+                return false; // Not enough arguments, defaults, or kwargs to fill the positional arguments
+        }
+
+        // 3. Check everything was consumed (unless we have a kwargs arg)
+        if (!HasKwargs && kwargs && kwargs.size() > 0)
+            return false; // Unconsumed kwargs, but no py::kwargs argument to accept them
+
+        // 4a. If we have a py::args argument, create a new tuple with leftovers
+        if (HasArgs) {
+            tuple extra_args;
+            if (args_to_copy == 0) {
+                // We didn't copy out any position arguments from the args_in tuple, so we
+                // can reuse it directly without copying:
+                extra_args = reinterpret_borrow<tuple>(params.args_in);
+            }
+            else if (args_copied >= params.n_args_in) {
+                extra_args = tuple(0);
+            }
+            else {
+                size_t args_size = params.n_args_in - args_copied;
+                extra_args = tuple(args_size);
+                for (size_t i = 0; i < args_size; ++i) {
+                    extra_args[i] = PyTuple_GET_ITEM(params.args_in, args_copied + i);
+                }
+            }
+            call.args[args_copied] = extra_args;
+            call.args_convert.set(args_copied, false);
+            call.args_ref = std::move(extra_args);
+            ++args_copied;
+        }
+
+        // 4b. If we have a py::kwargs, pass on any remaining kwargs
+        if (HasKwargs) {
+            if (!kwargs.ptr())
+                kwargs = dict(); // If we didn't get one, send an empty one
+            call.args[args_copied] = kwargs;
+            call.args_convert.set(args_copied, false);
+            call.kwargs_ref = std::move(kwargs);
+            ++args_copied;
+        }
+
+#if !defined(NDEBUG)
+        if (args_copied != NumArgs)
+            pybind11_fail("Internal error: function call dispatcher inserted wrong number of arguments!");
+#endif
+        return true;
+    }
 };
 
 /// Special data structure which (temporarily) holds metadata about a bound class
@@ -282,12 +431,6 @@ struct type_record {
     }
 };
 
-inline function_call::function_call(const function_record &f, handle p) :
-        func(f), parent(p) {
-    args.reserve(f.nargs);
-    args_convert.reserve(f.nargs);
-}
-
 /// Tag for a new-style `__init__` defined in `detail/init.h`
 struct is_new_style_constructor { };
 
@@ -303,8 +446,8 @@ template <typename T> struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) { }
     static void init(const T &, type_record *) { }
-    static void precall(function_call &) { }
-    static void postcall(function_call &, handle) { }
+    template<size_t NumArgs> static void precall(function_call<NumArgs> &) { }
+    template<size_t NumArgs> static void postcall(function_call<NumArgs> &, handle) { }
 };
 
 /// Process an attribute specifying the function's name
@@ -444,14 +587,14 @@ struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_gua
  * otherwise
  */
 template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void precall(function_call &call) { keep_alive_impl(Nurse, Patient, call, handle()); }
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void postcall(function_call &, handle) { }
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void precall(function_call &) { }
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void postcall(function_call &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
+    template <size_t NumArgs, size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    static void precall(function_call<NumArgs> &call) { keep_alive_impl(Nurse, Patient, call, handle()); }
+    template <size_t NumArgs, size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
+    static void postcall(function_call<NumArgs> &, handle) { }
+    template <size_t NumArgs, size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    static void precall(function_call<NumArgs> &) { }
+    template <size_t NumArgs, size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
+    static void postcall(function_call<NumArgs> &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
 };
 
 /// Recursively iterate over variadic template arguments
@@ -464,11 +607,13 @@ template <typename... Args> struct process_attributes {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
         ignore_unused(unused);
     }
-    static void precall(function_call &call) {
+    template<size_t NumArgs>
+    static void precall(function_call<NumArgs> &call) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
         ignore_unused(unused);
     }
-    static void postcall(function_call &call, handle fn_ret) {
+    template<size_t NumArgs>
+    static void postcall(function_call<NumArgs> &call, handle fn_ret) {
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
         ignore_unused(unused);
     }
