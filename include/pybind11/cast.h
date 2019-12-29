@@ -1950,13 +1950,13 @@ public:
     }
 
     template <typename Return, typename Guard, typename Func>
-    enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) && {
-        return std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+    enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) {
+        return call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
     }
 
     template <typename Return, typename Guard, typename Func>
-    enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) && {
-        std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+    enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) {
+        call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
         return void_type();
     }
 
