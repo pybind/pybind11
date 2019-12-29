@@ -26,6 +26,11 @@ PYBIND11_MODULE(test_move_arg, m) {
 	}, py::call_guard<py::scoped_ostream_redirect>());
 #endif
 
-	m.def("working", [](int&& a) { std::cout << a << "\n"; },
-	      py::call_guard<py::scoped_ostream_redirect>());
+	m.def("consume", [](std::unique_ptr<Item>&& item) {
+		std::cout << "consume " << *item.get() << "\n";
+		std::unique_ptr<Item> sink(std::move(item));
+		std::cout << "  old: " << item.get() << "\n  new: " << *sink.get() << "\n";
+	}, py::call_guard<py::scoped_ostream_redirect>());
+
+	m.def("consume_str", [](std::string&& s) { std::string o(std::move(s)); });
 }
