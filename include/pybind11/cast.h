@@ -1527,9 +1527,8 @@ public:
 
     bool load(handle& src, bool convert) {
         bool success = base::template load_impl<move_only_holder_caster<type, holder_type>>(src, convert);
-        if (success) // if loading was successful, the instance needs to be withdrawn from src
-            // However, setting the src pointer to None is not sufficient.
-            src.ptr() = none().release().ptr();
+        if (success) // On success, remember src pointer to withdraw later
+            src_handle = std::addressof(src);
         return success;
     }
 
@@ -1537,16 +1536,18 @@ public:
 
     explicit operator type*() { return this->value; }
     explicit operator type&() { return *(this->value); }
-    explicit operator holder_type*() { return std::addressof(holder); }
 
     // Workaround for Intel compiler bug
     // see pybind11 issue 94
-    #if defined(__ICC) || defined(__INTEL_COMPILER)
-    operator holder_type&() { return holder; }
-    #else
-    explicit operator holder_type&() { return holder; }
+    #if !defined(__ICC) && !defined(__INTEL_COMPILER)
+    explicit
     #endif
-    explicit operator holder_type&&() { value = nullptr; return std::move(holder); }
+    operator holder_type&&() {
+        // TODO: release object instance in python
+        // clear_instance(src_handle->ptr()); ???
+
+        return std::move(*holder_ptr);
+    }
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
         const auto *ptr = holder_helper<holder_type>::get(src);
@@ -1562,8 +1563,8 @@ protected:
 
     bool load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
-            value = v_h.value_ptr();
-            holder = std::move(v_h.template holder<holder_type>());
+            holder_ptr = std::addressof(v_h.template holder<holder_type>());
+            value = const_cast<void*>(reinterpret_cast<const void*>(holder_helper<holder_type>::get(*holder_ptr)));
             return true;
         } else {
             throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
@@ -1579,22 +1580,13 @@ protected:
     bool try_implicit_casts(handle, bool) { return false; }
 
     template <typename T = holder_type, detail::enable_if_t<std::is_constructible<T, const T &, type*>::value, int> = 0>
-    bool try_implicit_casts(handle src, bool convert) {
-        for (auto &cast : typeinfo->implicit_casts) {
-            move_only_holder_caster sub_caster(*cast.first);
-            if (sub_caster.load(src, convert)) {
-                value = cast.second(sub_caster.value);
-                holder = holder_type(sub_caster.holder, (type *) value);
-                return true;
-            }
-        }
-        return false;
-    }
+    bool try_implicit_casts(handle, bool) { return false; }
 
     static bool try_direct_conversions(handle) { return false; }
 
 
-    holder_type holder;
+    holder_type* holder_ptr = nullptr;
+    handle* src_handle = nullptr;
 };
 
 template <typename type, typename deleter>
