@@ -1995,6 +1995,8 @@ private:
 
     template <size_t... Is>
     bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
+        // BUG: When loading the arguments, the actual argument type (pointer, lvalue reference, rvalue reference)
+        // is already lost (argcasters only know the intrinsic type), while the behaviour should differ for them, e.g. for rvalue references.
         for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
             if (!r)
                 return false;
