@@ -855,12 +855,6 @@ template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_ca
     }
     return conv;
 }
-// Wrapper around the above that also constructs and returns a type_caster
-template <typename T> make_caster<T> load_type(const handle &handle) {
-    make_caster<T> conv;
-    load_type(conv, handle);
-    return conv;
-}
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -870,7 +864,9 @@ T cast(const handle &handle) {
     using namespace detail;
     static_assert(!cast_is_temporary_value_reference<T>::value,
             "Unable to cast type to reference: value is local to type caster");
-    return cast_op<T>(load_type<T>(handle));
+    make_caster<T> conv;
+    load_type(conv, handle);
+    return cast_op<T>(conv);
 }
 
 // pytype -> pytype (calls converting constructor)
@@ -906,7 +902,9 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
 #endif
 
     // Move into a temporary and return that, because the reference may be a local value of `conv`
-    T ret = std::move(detail::load_type<T>(obj).operator T&());
+    detail::make_caster<T> conv;
+    load_type(conv, obj);
+    T ret = std::move(conv.operator T &());
     return ret;
 }
 
