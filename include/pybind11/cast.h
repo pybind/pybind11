@@ -1515,15 +1515,86 @@ template <typename T>
 class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> { };
 
 template <typename type, typename holder_type>
-struct move_only_holder_caster {
-    static_assert(std::is_base_of<type_caster_base<type>, type_caster<type>>::value,
+struct move_only_holder_caster : public type_caster_base<type> {
+public:
+    using base = type_caster_base<type>;
+    static_assert(std::is_base_of<base, type_caster<type>>::value,
             "Holder classes are only supported for custom types");
+    using base::base;
+    using base::cast;
+    using base::typeinfo;
+    using base::value;
 
-    static handle cast(holder_type &&src, return_value_policy, handle) {
-        auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
+    bool load(handle& src, bool convert) {
+        bool success = base::template load_impl<move_only_holder_caster<type, holder_type>>(src, convert);
+        if (success) // if loading was successful, the instance needs to be withdrawn from src
+            // However, setting the src pointer to None is not sufficient.
+            src.ptr() = none().release().ptr();
+        return success;
     }
-    static constexpr auto name = type_caster_base<type>::name;
+
+    template <typename T> using cast_op_type = detail::movable_cast_op_type<T>;
+
+    explicit operator type*() { return this->value; }
+    explicit operator type&() { return *(this->value); }
+    explicit operator holder_type*() { return std::addressof(holder); }
+
+    // Workaround for Intel compiler bug
+    // see pybind11 issue 94
+    #if defined(__ICC) || defined(__INTEL_COMPILER)
+    operator holder_type&() { return holder; }
+    #else
+    explicit operator holder_type&() { return holder; }
+    #endif
+    explicit operator holder_type&&() { value = nullptr; return std::move(holder); }
+
+    static handle cast(const holder_type &src, return_value_policy, handle) {
+        const auto *ptr = holder_helper<holder_type>::get(src);
+        return type_caster_base<type>::cast_holder(ptr, &src);
+    }
+
+protected:
+    friend class type_caster_generic;
+    void check_holder_compat() {
+//        if (typeinfo->default_holder)
+//            throw cast_error("Unable to load a custom holder type from a default-holder instance");
+    }
+
+    bool load_value(value_and_holder &&v_h) {
+        if (v_h.holder_constructed()) {
+            value = v_h.value_ptr();
+            holder = std::move(v_h.template holder<holder_type>());
+            return true;
+        } else {
+            throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
+#if defined(NDEBUG)
+                             "(compile in debug mode for type information)");
+#else
+                             "of type '" + type_id<holder_type>() + "''");
+#endif
+        }
+    }
+
+    template <typename T = holder_type, detail::enable_if_t<!std::is_constructible<T, const T &, type*>::value, int> = 0>
+    bool try_implicit_casts(handle, bool) { return false; }
+
+    template <typename T = holder_type, detail::enable_if_t<std::is_constructible<T, const T &, type*>::value, int> = 0>
+    bool try_implicit_casts(handle src, bool convert) {
+        for (auto &cast : typeinfo->implicit_casts) {
+            move_only_holder_caster sub_caster(*cast.first);
+            if (sub_caster.load(src, convert)) {
+                value = cast.second(sub_caster.value);
+                holder = holder_type(sub_caster.holder, (type *) value);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static bool try_direct_conversions(handle) { return false; }
+
+
+    holder_type holder;
 };
 
 template <typename type, typename deleter>
