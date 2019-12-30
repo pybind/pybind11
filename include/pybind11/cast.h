@@ -1534,9 +1534,6 @@ public:
 
     template <typename T> using cast_op_type = detail::movable_cast_op_type<T>;
 
-    explicit operator type*() { return this->value; }
-    explicit operator type&() { return *(this->value); }
-
     // Workaround for Intel compiler bug
     // see pybind11 issue 94
     #if !defined(__ICC) && !defined(__INTEL_COMPILER)
