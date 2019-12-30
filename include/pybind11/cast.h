@@ -644,6 +644,10 @@ public:
     // static_cast works around compiler error with MSVC 17 and CUDA 10.2
     // see issue #2180
     explicit operator type&() { return *(static_cast<type *>(this->value)); }
+
+    // holders only support copying, not moving
+    template <typename T> using cast_op_type = detail::cast_op_type<T>;
+
     explicit operator holder_type*() { return std::addressof(holder); }
     explicit operator holder_type&() { return holder; }
 

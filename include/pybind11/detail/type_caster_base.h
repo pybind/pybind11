@@ -912,10 +912,12 @@ public:
             nullptr, nullptr, holder);
     }
 
-    template <typename T> using cast_op_type = detail::cast_op_type<T>;
+    // allow moving of custom types
+    template <typename T> using cast_op_type = detail::movable_cast_op_type<T>;
 
     operator itype*() { return (type *) value; }
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
+    operator itype&&() && { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
 
 protected:
     using Constructor = void *(*)(const void *);
