@@ -5,8 +5,35 @@
 
 namespace py = pybind11;
 
+#if 1
+template <typename T>
+class my_ptr {
+public:
+	my_ptr(T* p = nullptr) : ptr_(p) {}
+	my_ptr(my_ptr<T>&& other) : ptr_(other.ptr_) { other.ptr_ = nullptr; }
+	~my_ptr() { delete ptr_; }
+	my_ptr<T>& operator=(my_ptr<T>&& other) { ptr_ = other.ptr_; other.ptr_ = nullptr; return *this; }
+	const T* get() const { return ptr_; }
+	const T* verbose_get() const {
+		std::cout << " [" << ptr_ << "] "; return ptr_;
+	}
+private:
+	T* ptr_;
+};
+PYBIND11_DECLARE_HOLDER_TYPE(T, my_ptr<T>)
+namespace pybind11 { namespace detail {
+    template <typename T>
+    struct holder_helper<my_ptr<T>> { // <-- specialization
+        static const T *get(const my_ptr<T> &p) { return p.verbose_get(); }
+    };
+}}
+#else
+template <typename T>
+using my_ptr = std::unique_ptr<T>;
+#endif
+
 PYBIND11_MODULE(test_move_arg, m) {
-	py::class_<Item>(m, "Item")
+	py::class_<Item, my_ptr<Item>>(m, "Item")
 		.def(py::init<int>(), py::call_guard<py::scoped_ostream_redirect>())
 		.def("__repr__", [](const Item& item) {
 			std::stringstream ss;
@@ -26,9 +53,9 @@ PYBIND11_MODULE(test_move_arg, m) {
 	}, py::call_guard<py::scoped_ostream_redirect>());
 #endif
 
-	m.def("consume", [](std::unique_ptr<Item>&& item) {
+	m.def("consume", [](my_ptr<Item>&& item) {
 		std::cout << "consume " << *item.get() << "\n";
-		std::unique_ptr<Item> sink(std::move(item));
+		my_ptr<Item> sink(std::move(item));
 		std::cout << "  old: " << item.get() << "\n  new: " << *sink.get() << "\n";
 	}, py::call_guard<py::scoped_ostream_redirect>());
 
