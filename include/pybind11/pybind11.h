@@ -156,8 +156,7 @@ protected:
             using Guard = extract_guard_t<Extra...>;
 
             /* Perform the function call */
-            handle result = cast_out::cast(
-                std::move(args_converter).template call<Return, Guard>(cap->f), policy, call.parent);
+            handle result = cast_out::cast(args_converter.template call<Return, Guard>(cap->f), policy, call.parent);
 
             /* Invoke call policy post-call hook */
             process_attributes<Extra...>::postcall(call, result);
