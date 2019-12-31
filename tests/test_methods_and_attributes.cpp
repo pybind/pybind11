@@ -21,6 +21,7 @@ public:
     ExampleMandA() { print_default_created(this); }
     ExampleMandA(int value) : value(value) { print_created(this, value); }
     ExampleMandA(const ExampleMandA &e) : value(e.value) { print_copy_created(this); }
+    ExampleMandA(std::string&&) {}
     ExampleMandA(ExampleMandA &&e) : value(e.value) { print_move_created(this); }
     ~ExampleMandA() { print_destroyed(this); }
 
@@ -42,6 +43,8 @@ public:
     void add8(const int &other) { value += other; }                 // passing by const reference
     void add9(int *other) { value += *other; }                      // passing by pointer
     void add10(const int *other) { value += *other; }               // passing by const pointer
+
+    void consume_str(std::string&&) {}
 
     ExampleMandA self1() { return *this; }                          // return by value
     ExampleMandA &self2() { return *this; }                         // return by reference
@@ -212,6 +215,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     py::class_<ExampleMandA> emna(m, "ExampleMandA");
     emna.def(py::init<>())
         .def(py::init<int>())
+        .def(py::init<std::string&&>())
         .def(py::init<const ExampleMandA&>())
         .def("add1", &ExampleMandA::add1)
         .def("add2", &ExampleMandA::add2)
@@ -223,6 +227,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def("add8", &ExampleMandA::add8)
         .def("add9", &ExampleMandA::add9)
         .def("add10", &ExampleMandA::add10)
+        .def("consume_str", &ExampleMandA::consume_str)
         .def("self1", &ExampleMandA::self1)
         .def("self2", &ExampleMandA::self2)
         .def("self3", &ExampleMandA::self3)
