@@ -59,5 +59,8 @@ PYBIND11_MODULE(test_move_arg, m) {
 		std::cout << "  old: " << item.get() << "\n  new: " << *sink.get() << "\n";
 	}, py::call_guard<py::scoped_ostream_redirect>());
 
+	m.def("consume_twice", [](my_ptr<Item>&& /*first*/, my_ptr<Item>&& /*second*/) {
+	}, py::call_guard<py::scoped_ostream_redirect>());
+
 	m.def("consume_str", [](std::string&& s) { std::string o(std::move(s)); });
 }

@@ -10,14 +10,17 @@ def test():
     del item
     print(other)
 
-def test_produce():
+def test_consume():
     item = Item(42)
-    access(item)
     consume(item)
-    access(item)
+    access(item)  # should raise, because item is accessed after consumption
+
+def test_consume_twice():
+    item = Item(42)
+    consume_twice(item, item) # should raise, because item is consumed twice
 
 def test_foo():
     foo()
 
 if __name__ == "__main__":
-    test_produce()
+    test_consume()

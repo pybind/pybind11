@@ -567,23 +567,9 @@ public:
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
-        auto *&vptr = v_h.value_ptr();
-        // Lazy allocation for unallocated values:
-        if (vptr == nullptr) {
-            auto *type = v_h.type ? v_h.type : typeinfo;
-            if (type->operator_new) {
-                vptr = type->operator_new(type->type_size);
-            } else {
-                #if defined(PYBIND11_CPP17)
-                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
-                        vptr = ::operator new(type->type_size,
-                                              (std::align_val_t) type->type_align);
-                    else
-                #endif
-                vptr = ::operator new(type->type_size);
-            }
-        }
-        value = vptr;
+        value = v_h.value_ptr();
+        if (value == nullptr)
+            throw cast_error("Invalid object instance");
     }
     bool try_implicit_casts(handle src, bool convert) {
         for (auto &cast : typeinfo->implicit_casts) {
@@ -1528,7 +1514,7 @@ public:
     bool load(handle& src, bool convert) {
         bool success = base::template load_impl<move_only_holder_caster<type, holder_type>>(src, convert);
         if (success) // On success, remember src pointer to withdraw later
-            src_handle = std::addressof(src);
+            this->v_h = reinterpret_cast<instance *>(src.ptr())->get_value_and_holder();
         return success;
     }
 
@@ -1540,6 +1526,10 @@ public:
     explicit
     #endif
     operator holder_type&&() {
+        // In load_value() value_ptr was still valid. If it's invalid now, another argument consumed the same value before.
+        if (!v_h.value_ptr())
+            throw cast_error("Multiple access to moved argument");
+        v_h.value_ptr() = nullptr;
         // TODO: release object instance in python
         // clear_instance(src_handle->ptr()); ???
 
@@ -1562,6 +1552,8 @@ protected:
         if (v_h.holder_constructed()) {
             holder_ptr = std::addressof(v_h.template holder<holder_type>());
             value = const_cast<void*>(reinterpret_cast<const void*>(holder_helper<holder_type>::get(*holder_ptr)));
+            if (!value)
+                throw cast_error("Invalid object instance");
             return true;
         } else {
             throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
@@ -1583,7 +1575,7 @@ protected:
 
 
     holder_type* holder_ptr = nullptr;
-    handle* src_handle = nullptr;
+    value_and_holder v_h;
 };
 
 template <typename type, typename deleter>
