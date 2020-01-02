@@ -218,6 +218,8 @@ extern "C" {
 #define PYBIND11_STRINGIFY(x) #x
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
+#define PYBIND11_ENSURE_INTERNALS_READY \
+    pybind11::detail::get_internals();
 
 #define PYBIND11_CHECK_PYTHON_VERSION \
     {                                                                          \
@@ -264,6 +266,7 @@ extern "C" {
     static PyObject *pybind11_init();                                          \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         PYBIND11_CHECK_PYTHON_VERSION                                          \
+        PYBIND11_ENSURE_INTERNALS_READY                                        \
         try {                                                                  \
             return pybind11_init();                                            \
         } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
@@ -291,6 +294,7 @@ extern "C" {
     static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         PYBIND11_CHECK_PYTHON_VERSION                                          \
+        PYBIND11_ENSURE_INTERNALS_READY                                        \
         auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
         try {                                                                  \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
