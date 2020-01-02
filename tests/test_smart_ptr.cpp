@@ -85,6 +85,17 @@ public:
 };
 PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
 
+// Simple custom holder that works like shared_ptr, but has a different memory layout
+template <typename T>
+class huge_shared_ptr {
+    uint64_t padding[10];
+    std::shared_ptr<T> impl;
+public:
+    huge_shared_ptr( ) = default;
+    huge_shared_ptr(T* p) : impl(p) { }
+    T* get() const { return impl.get(); }
+};
+PYBIND11_DECLARE_HOLDER_TYPE(T, huge_shared_ptr<T>);
 
 TEST_SUBMODULE(smart_ptr, m) {
 
@@ -143,6 +154,10 @@ TEST_SUBMODULE(smart_ptr, m) {
     m.def("print_myobject2_2", [](std::shared_ptr<MyObject2> obj) { py::print(obj->toString()); });
     m.def("print_myobject2_3", [](const std::shared_ptr<MyObject2> &obj) { py::print(obj->toString()); });
     m.def("print_myobject2_4", [](const std::shared_ptr<MyObject2> *obj) { py::print((*obj)->toString()); });
+    // Using wrong holder type should raise a cast_error at runtime
+    m.def("make_myobject2_3", []() { return huge_shared_ptr<MyObject2>(new MyObject2(9)); });
+    m.def("print_myobject2_5", [](const huge_shared_ptr<MyObject2> &obj) { py::print(obj.get()->toString()); });
+    m.def("print_myobject2_6", [](const huge_shared_ptr<MyObject2> *obj) { py::print(obj->get()->toString()); });
 
     // Object managed by a std::shared_ptr<>, additionally derives from std::enable_shared_from_this<>
     class MyObject3 : public std::enable_shared_from_this<MyObject3> {

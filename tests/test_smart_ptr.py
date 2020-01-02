@@ -59,6 +59,12 @@ def test_smart_ptr(capture):
             m.print_myobject2_3(o)
             m.print_myobject2_4(o)
         assert capture == "MyObject2[{i}]\n".format(i=i) * 4
+        with pytest.raises(RuntimeError):
+            m.print_myobject2_5(o)
+        with pytest.raises(RuntimeError):
+            m.print_myobject2_6(o)
+    with pytest.raises(RuntimeError):
+        m.make_myobject2_3()
 
     cstats = ConstructorStats.get(m.MyObject2)
     assert cstats.alive() == 1
