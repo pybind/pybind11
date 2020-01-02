@@ -231,6 +231,7 @@ struct type_record {
 
     // Pointer to RTTI type_info data structure
     const std::type_info *type = nullptr;
+    const std::type_info *holder_type = nullptr;
 
     /// How large is the underlying C++ type?
     size_t type_size = 0;

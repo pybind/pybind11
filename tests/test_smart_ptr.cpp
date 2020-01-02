@@ -120,7 +120,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::implicitly_convertible<py::int_, MyObject1>();
 
     m.def("make_object_1", []() -> Object * { return new MyObject1(1); });
-    m.def("make_object_2", []() -> ref<Object> { return new MyObject1(2); });
+    m.def("make_object_2", []() -> ref<MyObject1> { return new MyObject1(2); });
     m.def("make_myobject1_1", []() -> MyObject1 * { return new MyObject1(4); });
     m.def("make_myobject1_2", []() -> ref<MyObject1> { return new MyObject1(5); });
     m.def("print_object_1", [](const Object *obj) { py::print(obj->toString()); });

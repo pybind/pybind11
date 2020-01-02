@@ -1042,6 +1042,7 @@ protected:
         auto *tinfo = new detail::type_info();
         tinfo->type = (PyTypeObject *) m_ptr;
         tinfo->cpptype = rec.type;
+        tinfo->holder_type = rec.holder_type;
         tinfo->type_size = rec.type_size;
         tinfo->type_align = rec.type_align;
         tinfo->operator_new = rec.operator_new;
@@ -1225,6 +1226,7 @@ public:
         record.scope = scope;
         record.name = name;
         record.type = &typeid(type);
+        record.holder_type = &typeid(holder_type);
         record.type_size = sizeof(conditional_t<has_alias, type_alias, type>);
         record.type_align = alignof(conditional_t<has_alias, type_alias, type>&);
         record.holder_size = sizeof(holder_type);

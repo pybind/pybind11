@@ -70,7 +70,7 @@ def test_smart_ptr(capture):
     assert cstats.alive() == 1
     o = None
     assert cstats.alive() == 0
-    assert cstats.values() == ["MyObject2[8]", "MyObject2[6]", "MyObject2[7]"]
+    assert cstats.values() == ["MyObject2[8]", "MyObject2[6]", "MyObject2[7]", "MyObject2[9]"]
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
     # assert cstats.move_constructions >= 0 # Doesn't invoke any

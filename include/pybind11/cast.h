@@ -908,8 +908,10 @@ public:
             make_copy_constructor(src), make_move_constructor(src));
     }
 
-    static handle cast_holder(const itype *src, const void *holder) {
+    static handle cast_holder(const itype *src, const void *holder, const std::type_info &holder_type) {
         auto st = src_and_type(src);
+        if (!same_type(*st.second->holder_type, holder_type))
+            throw cast_error(std::string("Unexpected holder type: ") + holder_type.name() + ", expected: " + st.second->holder_type->name());
         return type_caster_generic::cast(
             st.first, return_value_policy::take_ownership, {}, st.second,
             nullptr, nullptr, holder);
@@ -1516,7 +1518,7 @@ public:
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
         const auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, &src);
+        return type_caster_base<type>::cast_holder(ptr, std::addressof(src), typeid(holder_type));
     }
 
 protected:
@@ -1528,6 +1530,8 @@ protected:
 
     bool load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
+            if (!same_type(*typeinfo->holder_type, typeid(holder_type)))
+                throw cast_error(std::string("Unexpected holder type: ") + typeid(holder_type).name() + ", expected: " + typeinfo->holder_type->name());
             value = v_h.value_ptr();
             holder = v_h.template holder<holder_type>();
             return true;
@@ -1574,7 +1578,7 @@ struct move_only_holder_caster {
 
     static handle cast(holder_type &&src, return_value_policy, handle) {
         auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
+        return type_caster_base<type>::cast_holder(ptr, std::addressof(src), typeid(holder_type));
     }
     static constexpr auto name = type_caster_base<type>::name;
 };
