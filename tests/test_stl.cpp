@@ -63,6 +63,13 @@ TEST_SUBMODULE(stl, m) {
     static std::vector<RValueCaster> lvv{2};
     m.def("cast_ptr_vector", []() { return &lvv; });
 
+    // test_vector_shared
+    m.def("cast_vector_shared", []() { return std::make_shared<std::vector<int>>(std::vector<int>{1}); });
+    m.def("load_vector_shared", [](std::shared_ptr<std::vector<int>> v) { return v->at(0) == 1 && v->at(1) == 2; });
+
+    // test_vector_unique
+    m.def("cast_vector_unique", []() { return std::unique_ptr<std::vector<int>>(new std::vector<int>{1}); });
+
     // test_deque
     m.def("cast_deque", []() { return std::deque<int>{1}; });
     m.def("load_deque", [](const std::deque<int> &v) { return v.at(0) == 1 && v.at(1) == 2; });
@@ -208,6 +215,7 @@ TEST_SUBMODULE(stl, m) {
         result_type operator()(std::string) { return "std::string"; }
         result_type operator()(double) { return "double"; }
         result_type operator()(std::nullptr_t) { return "std::nullptr_t"; }
+        result_type operator()(std::shared_ptr<std::vector<int>>) { return "std::shared_ptr<std::vector<int>>"; }
     };
 
     // test_variant
@@ -220,6 +228,9 @@ TEST_SUBMODULE(stl, m) {
     m.def("cast_variant", []() {
         using V = variant<int, std::string>;
         return py::make_tuple(V(5), V("Hello"));
+    });
+    m.def("load_variant_with_shared", [](variant<int, std::shared_ptr<std::vector<int>>> v) {
+        return py::detail::visit_helper<variant>::call(visitor(), v);
     });
 #endif
 

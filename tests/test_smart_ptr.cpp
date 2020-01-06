@@ -24,8 +24,10 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
 // Make pybind11 aware of the non-standard getter member function
 namespace pybind11 { namespace detail {
     template <typename T>
-    struct holder_helper<ref<T>> {
+    struct holder_helper<T, ref<T>> {
         static const T *get(const ref<T> &p) { return p.get_ptr(); }
+        static T *get(ref<T> &p) { return p.get_ptr(); }
+        static ref<T> create(T && val) { return ref<T>(&val); }
     };
 }}
 
@@ -88,6 +90,9 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
 TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr
+    m.def("cast_shared_int", []() { return std::make_shared<int>(1); });
+    m.def("cast_unique_int", []() { return std::unique_ptr<int>(new int(1)); });
+    m.def("load_shared_int", [](std::shared_ptr<int> x) { return *x == 1; });
 
     // Object implementation in `object.h`
     py::class_<Object, ref<Object>> obj(m, "Object");

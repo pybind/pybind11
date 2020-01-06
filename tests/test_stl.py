@@ -23,6 +23,21 @@ def test_vector(doc):
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
 
 
+def test_vector_shared(doc):
+    """std::shared_ptr<std::vector> <-> list"""
+    lst = m.cast_vector_shared()
+    assert lst == [1]
+    lst.append(2)
+    assert m.load_vector_shared(lst)
+    assert m.load_vector_shared(tuple(lst))
+
+
+def test_vector_unique(doc):
+    """std::unique_ptr<std::vector> -> list"""
+    lst = m.cast_vector_unique()
+    assert lst == [1]
+
+
 def test_deque(doc):
     """std::deque <-> list"""
     lst = m.cast_deque()
@@ -158,6 +173,9 @@ def test_variant(doc):
 
     assert m.load_variant_2pass(1) == "int"
     assert m.load_variant_2pass(1.0) == "double"
+
+    assert m.load_variant_with_shared(1) == "int"
+    assert m.load_variant_with_shared([1, 2]) == "std::shared_ptr<std::vector<int>>"
 
     assert m.cast_variant() == (5, "Hello")
 
