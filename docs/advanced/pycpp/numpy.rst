@@ -205,6 +205,35 @@ prevent many types of unsupported structures, it is still the user's
 responsibility to use only "plain" structures that can be safely manipulated as
 raw memory without violating invariants.
 
+Scalar types
+============
+
+In some cases we may want to accept or return NumPy scalar values such as
+``np.float32`` or ``np.uint16``. It is especially important in case of
+C-side single-precision floats which by default will be bound to Python's
+double-precision builtin floats, causing mismatch in float precision.
+
+Luckily, there's a helper type for this occasion - ``py::numpy_scalar``:
+
+.. code-block:: cpp
+
+    m.def("square_float", [](py::numpy_scalar<float> value) {
+        float v = value;
+        return py::make_scalar(v * v);
+    });
+
+This type is trivially convertible to and from the type it wraps; currently
+supported scalar types are NumPy arithmetic types: ``bool_``, ``int8``,
+``int8``, ``int16``, ``int32``, ``int64``, ``uint8``, ``uint16``, ``uint32``,
+``uint64``, ``float32``, ``float64``, all of them mapping to respective C++
+equivalents.
+
+.. note::
+
+    This is a strict type, it will only allow input arguments of the specified
+    NumPy type and nothing else (e.g., ``py::numpy_scalar<int64_t>`` will not
+    accept built-in ``int`` or any other type for that matter).
+
 Vectorizing functions
 =====================
 
