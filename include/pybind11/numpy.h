@@ -208,7 +208,7 @@ private:
         API_PyArray_CopyInto = 82,
         API_PyArray_NewCopy = 85,
         API_PyArray_NewFromDescr = 94,
-        API_PyArray_DescrNewFromType = 9,
+        API_PyArray_DescrNewFromType = 96,
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
         API_PyArray_GetArrayParamsFromObject = 278,
