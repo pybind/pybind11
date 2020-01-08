@@ -256,6 +256,31 @@ private:
     }
 };
 
+template<typename T> struct numpy_scalar_info {};
+
+#define DECL_NPY_SCALAR(ctype_, name_, typenum_) \
+    template<> struct numpy_scalar_info<ctype_> { \
+        static constexpr auto name = _(name_); \
+        static constexpr int typenum = npy_api::typenum_##_; \
+    }
+
+DECL_NPY_SCALAR(bool, "bool", NPY_BOOL);
+
+DECL_NPY_SCALAR(int8_t, "int8", NPY_INT8);
+DECL_NPY_SCALAR(int16_t, "int16", NPY_INT16);
+DECL_NPY_SCALAR(int32_t, "int32", NPY_INT32);
+DECL_NPY_SCALAR(int64_t, "int64", NPY_INT64);
+
+DECL_NPY_SCALAR(uint8_t, "uint8", NPY_UINT8);
+DECL_NPY_SCALAR(uint16_t, "uint16", NPY_UINT16);
+DECL_NPY_SCALAR(uint32_t, "uint32", NPY_UINT32);
+DECL_NPY_SCALAR(uint64_t, "uint64", NPY_UINT64);
+
+DECL_NPY_SCALAR(float, "float32", NPY_FLOAT);
+DECL_NPY_SCALAR(double, "float64", NPY_DOUBLE);
+
+#undef DECL_NPY_SCALAR
+
 inline PyArray_Proxy* array_proxy(void* ptr) {
     return reinterpret_cast<PyArray_Proxy*>(ptr);
 }
