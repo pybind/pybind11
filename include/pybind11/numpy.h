@@ -39,6 +39,8 @@ NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 class array; // Forward declaration
 
+template<typename> struct numpy_scalar; // Forward declaration
+
 NAMESPACE_BEGIN(detail)
 template <typename type, typename SFINAE = void> struct npy_format_descriptor;
 
@@ -471,6 +473,19 @@ template <typename T, ssize_t Dim>
 struct type_caster<unchecked_mutable_reference<T, Dim>> : type_caster<unchecked_reference<T, Dim>> {};
 
 NAMESPACE_END(detail)
+
+template<typename T>
+struct numpy_scalar {
+    using value_type = T;
+
+    value_type value;
+
+    numpy_scalar() = default;
+    numpy_scalar(value_type value) : value(value) {}
+
+    operator value_type() { return value; }
+    numpy_scalar& operator=(value_type value) { this->value = value; return *this; }
+};
 
 class dtype : public object {
 public:
