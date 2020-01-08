@@ -472,6 +472,38 @@ struct type_caster<unchecked_reference<T, Dim>> {
 template <typename T, ssize_t Dim>
 struct type_caster<unchecked_mutable_reference<T, Dim>> : type_caster<unchecked_reference<T, Dim>> {};
 
+template<typename T>
+struct type_caster<numpy_scalar<T>> {
+    using value_type = T;
+    using type_info = numpy_scalar_info<T>;
+
+    PYBIND11_TYPE_CASTER(numpy_scalar<T>, type_info::name);
+
+    static object target_dtype() {
+        auto& api = npy_api::get();
+        return reinterpret_steal<object>(api.PyArray_DescrFromType_(type_info::typenum));
+    }
+
+    bool load(handle src, bool) {
+        auto& api = npy_api::get();
+        auto target = target_dtype();
+        if (auto descr = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(src.ptr()))) {
+            if (api.PyArray_EquivTypes_(descr.ptr(), target.ptr())) {
+                api.PyArray_ScalarAsCtype_(src.ptr(), &value.value);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static handle cast(numpy_scalar<T> src, return_value_policy, handle) {
+        auto& api = npy_api::get();
+        auto target = target_dtype();
+        auto size = reinterpret_steal<object>(PyLong_FromLong(sizeof(value_type)));
+        return api.PyArray_Scalar_(&src.value, target.ptr(), size.ptr());
+    }
+};
+
 NAMESPACE_END(detail)
 
 template<typename T>
