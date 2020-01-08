@@ -519,6 +519,11 @@ struct numpy_scalar {
     numpy_scalar& operator=(value_type value) { this->value = value; return *this; }
 };
 
+template<typename T>
+numpy_scalar<T> make_scalar(T value) {
+    return numpy_scalar<T>(value);
+}
+
 class dtype : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
