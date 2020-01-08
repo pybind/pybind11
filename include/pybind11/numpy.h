@@ -179,6 +179,7 @@ struct npy_api {
 
     unsigned int (*PyArray_GetNDArrayCFeatureVersion_)();
     PyObject *(*PyArray_DescrFromType_)(int);
+    PyObject *(*PyArray_TypeObjectFromType_)(int);
     PyObject *(*PyArray_NewFromDescr_)
         (PyTypeObject *, PyObject *, int, Py_intptr_t *,
          Py_intptr_t *, void *, int, PyObject *);
@@ -206,6 +207,7 @@ private:
         API_PyArrayDescr_Type = 3,
         API_PyVoidArrType_Type = 39,
         API_PyArray_DescrFromType = 45,
+        API_PyArray_TypeObjectFromType = 46,
         API_PyArray_DescrFromScalar = 57,
         API_PyArray_Scalar = 60,
         API_PyArray_ScalarAsCtype = 62,
@@ -239,6 +241,7 @@ private:
         DECL_NPY_API(PyVoidArrType_Type);
         DECL_NPY_API(PyArrayDescr_Type);
         DECL_NPY_API(PyArray_DescrFromType);
+        DECL_NPY_API(PyArray_TypeObjectFromType);
         DECL_NPY_API(PyArray_DescrFromScalar);
         DECL_NPY_API(PyArray_Scalar);
         DECL_NPY_API(PyArray_ScalarAsCtype);
