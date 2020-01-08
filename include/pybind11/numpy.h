@@ -482,28 +482,26 @@ struct type_caster<numpy_scalar<T>> {
 
     PYBIND11_TYPE_CASTER(numpy_scalar<T>, type_info::name);
 
-    static object target_dtype() {
-        auto& api = npy_api::get();
-        return reinterpret_steal<object>(api.PyArray_DescrFromType_(type_info::typenum));
+    static handle& target_type() {
+        static handle tp = npy_api::get().PyArray_TypeObjectFromType_(type_info::typenum);
+        return tp;
+    }
+
+    static handle& target_dtype() {
+        static handle tp = npy_api::get().PyArray_DescrFromType_(type_info::typenum);
+        return tp;
     }
 
     bool load(handle src, bool) {
-        auto& api = npy_api::get();
-        auto target = target_dtype();
-        if (auto descr = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(src.ptr()))) {
-            if (api.PyArray_EquivTypes_(descr.ptr(), target.ptr())) {
-                api.PyArray_ScalarAsCtype_(src.ptr(), &value.value);
-                return true;
-            }
+        if (isinstance(src, target_type())) {
+            npy_api::get().PyArray_ScalarAsCtype_(src.ptr(), &value.value);
+            return true;
         }
         return false;
     }
 
     static handle cast(numpy_scalar<T> src, return_value_policy, handle) {
-        auto& api = npy_api::get();
-        auto target = target_dtype();
-        auto size = reinterpret_steal<object>(PyLong_FromLong(sizeof(value_type)));
-        return api.PyArray_Scalar_(&src.value, target.ptr(), size.ptr());
+        return npy_api::get().PyArray_Scalar_(&src.value, target_dtype().ptr(), nullptr);
     }
 };
 
