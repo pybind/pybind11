@@ -111,16 +111,12 @@ inline numpy_internals& get_numpy_internals() {
     return *ptr;
 }
 
-template <typename T> struct same_size {
-    template <typename U> using as = bool_constant<sizeof(T) == sizeof(U)>;
-};
-
-template <typename Concrete> constexpr int platform_lookup() { return -1; }
+template <std::size_t> constexpr int platform_lookup() { return -1; }
 
 // Lookup a type according to its size, and return a value corresponding to the NumPy typenum.
-template <typename Concrete, typename T, typename... Ts, typename... Ints>
+template <std::size_t size, typename T, typename... Ts, typename... Ints>
 constexpr int platform_lookup(int I, Ints... Is) {
-    return sizeof(Concrete) == sizeof(T) ? I : platform_lookup<Concrete, Ts...>(Is...);
+    return size == sizeof(T) ? I : platform_lookup<size, Ts...>(Is...);
 }
 
 struct npy_api {
@@ -150,14 +146,23 @@ struct npy_api {
         // `npy_common.h` defines the integer aliases. In order, it checks:
         // NPY_BITSOF_LONG, NPY_BITSOF_LONGLONG, NPY_BITSOF_INT, NPY_BITSOF_SHORT, NPY_BITSOF_CHAR
         // and assigns the alias to the first matching size, so we should check in this order.
-        NPY_INT32_ = platform_lookup<std::int32_t, long, int, short>(
+        NPY_INT32_ = platform_lookup<4, long, int, short>(
             NPY_LONG_, NPY_INT_, NPY_SHORT_),
-        NPY_UINT32_ = platform_lookup<std::uint32_t, unsigned long, unsigned int, unsigned short>(
+        NPY_UINT32_ = platform_lookup<4, unsigned long, unsigned int, unsigned short>(
             NPY_ULONG_, NPY_UINT_, NPY_USHORT_),
-        NPY_INT64_ = platform_lookup<std::int64_t, long, long long, int>(
+        NPY_INT64_ = platform_lookup<8, long, long long, int>(
             NPY_LONG_, NPY_LONGLONG_, NPY_INT_),
-        NPY_UINT64_ = platform_lookup<std::uint64_t, unsigned long, unsigned long long, unsigned int>(
+        NPY_UINT64_ = platform_lookup<8, unsigned long, unsigned long long, unsigned int>(
             NPY_ULONG_, NPY_ULONGLONG_, NPY_UINT_),
+        // The same type of lookups with floats; the order is: double, float, long double
+        NPY_FLOAT32_ = platform_lookup<4, double, float, long double>(
+            NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
+        NPY_FLOAT64_ = platform_lookup<8, double, float, long double>(
+            NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
+        NPY_COMPLEX64_ = platform_lookup<4, double, float, long double>(
+            NPY_CDOUBLE_, NPY_CFLOAT_, NPY_CLONGDOUBLE_),
+        NPY_COMPLEX128_ = platform_lookup<8, double, float, long double>(
+            NPY_CDOUBLE_, NPY_CFLOAT_, NPY_CLONGDOUBLE_),
     };
 
     typedef struct {
