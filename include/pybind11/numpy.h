@@ -266,28 +266,56 @@ private:
     }
 };
 
+template <typename T> struct is_complex : std::false_type { };
+template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
+
+template <typename T, typename = void>
+struct npy_format_descriptor_name;
+
+template <typename T>
+struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {
+    static constexpr auto name = _<std::is_same<T, bool>::value>(
+        _("bool"), _<std::is_signed<T>::value>("int", "uint") + _<sizeof(T)*8>()
+    );
+};
+
+template <typename T>
+struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
+    static constexpr auto name = _<std::is_same<T, float>::value || std::is_same<T, double>::value>(
+        _("float") + _<sizeof(T)*8>(), _("longdouble")
+    );
+};
+
+template <typename T>
+struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
+    static constexpr auto name = _<std::is_same<typename T::value_type, float>::value
+                                   || std::is_same<typename T::value_type, double>::value>(
+        _("complex") + _<sizeof(typename T::value_type)*16>(), _("longcomplex")
+    );
+};
+
 template<typename T> struct numpy_scalar_info {};
 
-#define DECL_NPY_SCALAR(ctype_, name_, typenum_) \
+#define DECL_NPY_SCALAR(ctype_, typenum_) \
     template<> struct numpy_scalar_info<ctype_> { \
-        static constexpr auto name = _(name_); \
+        static constexpr auto name = npy_format_descriptor_name<ctype_>::name; \
         static constexpr int typenum = npy_api::typenum_##_; \
     }
 
-DECL_NPY_SCALAR(bool, "bool", NPY_BOOL);
+DECL_NPY_SCALAR(bool, NPY_BOOL);
 
-DECL_NPY_SCALAR(int8_t, "int8", NPY_INT8);
-DECL_NPY_SCALAR(int16_t, "int16", NPY_INT16);
-DECL_NPY_SCALAR(int32_t, "int32", NPY_INT32);
-DECL_NPY_SCALAR(int64_t, "int64", NPY_INT64);
+DECL_NPY_SCALAR(int8_t, NPY_INT8);
+DECL_NPY_SCALAR(int16_t, NPY_INT16);
+DECL_NPY_SCALAR(int32_t, NPY_INT32);
+DECL_NPY_SCALAR(int64_t, NPY_INT64);
 
-DECL_NPY_SCALAR(uint8_t, "uint8", NPY_UINT8);
-DECL_NPY_SCALAR(uint16_t, "uint16", NPY_UINT16);
-DECL_NPY_SCALAR(uint32_t, "uint32", NPY_UINT32);
-DECL_NPY_SCALAR(uint64_t, "uint64", NPY_UINT64);
+DECL_NPY_SCALAR(uint8_t, NPY_UINT8);
+DECL_NPY_SCALAR(uint16_t, NPY_UINT16);
+DECL_NPY_SCALAR(uint32_t, NPY_UINT32);
+DECL_NPY_SCALAR(uint64_t, NPY_UINT64);
 
-DECL_NPY_SCALAR(float, "float32", NPY_FLOAT);
-DECL_NPY_SCALAR(double, "float64", NPY_DOUBLE);
+DECL_NPY_SCALAR(float, NPY_FLOAT);
+DECL_NPY_SCALAR(double, NPY_DOUBLE);
 
 #undef DECL_NPY_SCALAR
 
@@ -313,8 +341,6 @@ inline bool check_flags(const void* ptr, int flag) {
 
 template <typename T> struct is_std_array : std::false_type { };
 template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
-template <typename T> struct is_complex : std::false_type { };
-template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
 
 template <typename T> struct array_info_scalar {
     typedef T type;
@@ -1088,31 +1114,6 @@ struct compare_buffer_info<T, detail::enable_if_t<detail::is_pod_struct<T>::valu
     static bool compare(const buffer_info& b) {
         return npy_api::get().PyArray_EquivTypes_(dtype::of<T>().ptr(), dtype(b).ptr());
     }
-};
-
-template <typename T, typename = void>
-struct npy_format_descriptor_name;
-
-template <typename T>
-struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {
-    static constexpr auto name = _<std::is_same<T, bool>::value>(
-        _("bool"), _<std::is_signed<T>::value>("int", "uint") + _<sizeof(T)*8>()
-    );
-};
-
-template <typename T>
-struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
-    static constexpr auto name = _<std::is_same<T, float>::value || std::is_same<T, double>::value>(
-        _("float") + _<sizeof(T)*8>(), _("longdouble")
-    );
-};
-
-template <typename T>
-struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
-    static constexpr auto name = _<std::is_same<typename T::value_type, float>::value
-                                   || std::is_same<typename T::value_type, double>::value>(
-        _("complex") + _<sizeof(typename T::value_type)*16>(), _("longcomplex")
-    );
 };
 
 template <typename T>
