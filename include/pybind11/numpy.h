@@ -14,6 +14,7 @@
 #include <numeric>
 #include <algorithm>
 #include <array>
+#include <complex>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -316,6 +317,11 @@ DECL_NPY_SCALAR(uint64_t, NPY_UINT64);
 
 DECL_NPY_SCALAR(float, NPY_FLOAT);
 DECL_NPY_SCALAR(double, NPY_DOUBLE);
+DECL_NPY_SCALAR(long double, NPY_LONGDOUBLE);
+
+DECL_NPY_SCALAR(std::complex<float>, NPY_CFLOAT);
+DECL_NPY_SCALAR(std::complex<double>, NPY_CDOUBLE);
+DECL_NPY_SCALAR(std::complex<long double>, NPY_CLONGDOUBLE);
 
 #undef DECL_NPY_SCALAR
 
