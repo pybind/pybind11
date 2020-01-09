@@ -225,8 +225,8 @@ Luckily, there's a helper type for this occasion - ``py::numpy_scalar``:
 This type is trivially convertible to and from the type it wraps; currently
 supported scalar types are NumPy arithmetic types: ``bool_``, ``int8``,
 ``int8``, ``int16``, ``int32``, ``int64``, ``uint8``, ``uint16``, ``uint32``,
-``uint64``, ``float32``, ``float64``, all of them mapping to respective C++
-equivalents.
+``uint64``, ``float32``, ``float64``, ``complex64``, ``complex128``, all of
+them mapping to respective C++ counterparts.
 
 .. note::
 
