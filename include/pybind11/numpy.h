@@ -164,6 +164,8 @@ struct npy_api {
             NPY_CDOUBLE_, NPY_CFLOAT_, NPY_CLONGDOUBLE_),
         NPY_COMPLEX128_ = platform_lookup<8, double, float, long double>(
             NPY_CDOUBLE_, NPY_CFLOAT_, NPY_CLONGDOUBLE_),
+        // Native character type
+        NPY_CHAR_ = std::is_signed<char>::value ? NPY_BYTE_ : NPY_UBYTE_,
     };
 
     typedef struct {
