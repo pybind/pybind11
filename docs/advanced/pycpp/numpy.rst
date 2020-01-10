@@ -234,6 +234,13 @@ them mapping to respective C++ counterparts.
     NumPy type and nothing else (e.g., ``py::numpy_scalar<int64_t>`` will not
     accept built-in ``int`` or any other type for that matter).
 
+.. note::
+
+    Native C types are mapped to NumPy types in a platform specific way: for
+    instance, ``char`` may be mapped to either ``np.int8`` or ``np.uint8``
+    depending on the platform. If you want to ensure specific NumPy types,
+    it is recommended to use fixed-width aliases from ``<cstdint>>``.
+
 Vectorizing functions
 =====================
 
