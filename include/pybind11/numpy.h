@@ -305,22 +305,32 @@ template<typename T> struct numpy_scalar_info {};
         static constexpr int typenum = npy_api::typenum_##_; \
     }
 
+// boolean type
 DECL_NPY_SCALAR(bool, NPY_BOOL);
 
-DECL_NPY_SCALAR(int8_t, NPY_INT8);
-DECL_NPY_SCALAR(int16_t, NPY_INT16);
-DECL_NPY_SCALAR(int32_t, NPY_INT32);
-DECL_NPY_SCALAR(int64_t, NPY_INT64);
+// character types
+DECL_NPY_SCALAR(char, NPY_CHAR);
+DECL_NPY_SCALAR(signed char, NPY_BYTE);
+DECL_NPY_SCALAR(unsigned char, NPY_UBYTE);
 
-DECL_NPY_SCALAR(uint8_t, NPY_UINT8);
-DECL_NPY_SCALAR(uint16_t, NPY_UINT16);
-DECL_NPY_SCALAR(uint32_t, NPY_UINT32);
-DECL_NPY_SCALAR(uint64_t, NPY_UINT64);
+// signed integer types
+DECL_NPY_SCALAR(short, NPY_SHORT);
+DECL_NPY_SCALAR(int, NPY_INT);
+DECL_NPY_SCALAR(long, NPY_LONG);
+DECL_NPY_SCALAR(long long, NPY_LONGLONG);
 
+// unsigned integer types
+DECL_NPY_SCALAR(unsigned short, NPY_USHORT);
+DECL_NPY_SCALAR(unsigned int, NPY_UINT);
+DECL_NPY_SCALAR(unsigned long, NPY_ULONG);
+DECL_NPY_SCALAR(unsigned long long, NPY_ULONGLONG);
+
+// floating point types
 DECL_NPY_SCALAR(float, NPY_FLOAT);
 DECL_NPY_SCALAR(double, NPY_DOUBLE);
 DECL_NPY_SCALAR(long double, NPY_LONGDOUBLE);
 
+// complex types
 DECL_NPY_SCALAR(std::complex<float>, NPY_CFLOAT);
 DECL_NPY_SCALAR(std::complex<double>, NPY_CDOUBLE);
 DECL_NPY_SCALAR(std::complex<long double>, NPY_CLONGDOUBLE);
