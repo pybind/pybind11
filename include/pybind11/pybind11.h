@@ -778,7 +778,12 @@ protected:
         } else {
             if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
                 auto *pi = reinterpret_cast<instance *>(parent.ptr());
-                self_value_and_holder.type->init_instance(pi, nullptr);
+                try {
+                    self_value_and_holder.type->init_instance(pi, nullptr);
+                } catch (const std::runtime_error &e) {
+                    PyErr_SetString(PyExc_RuntimeError, e.what());
+                    return nullptr;
+                }
             }
             return result.ptr();
         }
@@ -1298,17 +1303,23 @@ public:
     }
 
 private:
-    template <typename T = type, detail::enable_if_t<std::is_destructible<T>::value, int> = 0>
+    /// Initialize holder from pointer when the underlying object is destructible (public destructor)
+    template <typename T = type, detail::enable_if_t<
+        !detail::is_instantiation<std::shared_ptr, holder_type>::value ||
+        std::is_destructible<T>::value, int> = 0>
     static void init_shared_holder_from_pointer(detail::value_and_holder &v_h) {
-        new (&v_h.holder<holder_type>()) holder_type(v_h.value_ptr<type>());
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
         v_h.set_holder_constructed();
     }
 
-    template <typename T = type, detail::enable_if_t<!std::is_destructible<T>::value, int> = 0>
+    /// Do *not* initialize holder from pointer when the underlying object is *not* destructible
+    template <typename T = type, detail::enable_if_t<
+        detail::is_instantiation<std::shared_ptr, holder_type>::value &&
+        !std::is_destructible<T>::value, int> = 0>
     static void init_shared_holder_from_pointer(detail::value_and_holder &) {
         pybind11_fail("Unable to construct C++ holder"
 #if defined(NDEBUG)
-            " (compile in debug mode for type details)"
+            " (compile in debug mode for type information)"
 #else
             ": cannot construct a `" + type_id<holder_type>() + "' holder around a non-destructible `" +
             type_id<type>() + "' pointer"
