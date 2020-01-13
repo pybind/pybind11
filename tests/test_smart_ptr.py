@@ -115,6 +115,27 @@ def test_unique_nodelete():
     assert cstats.alive() == 1  # Leak, but that's intentional
 
 
+def test_unique_nodelete4a():
+    o = m.MyObject4a(23)
+    assert o.value == 23
+    cstats = ConstructorStats.get(m.MyObject4a)
+    assert cstats.alive() == 1
+    del o
+    assert cstats.alive() == 1  # Leak, but that's intentional
+
+
+def test_unique_deleter():
+    o = m.MyObject4b(23)
+    assert o.value == 23
+    cstats4a = ConstructorStats.get(m.MyObject4a)
+    assert cstats4a.alive() == 2  # Two because of previous test
+    cstats4b = ConstructorStats.get(m.MyObject4b)
+    assert cstats4b.alive() == 1
+    del o
+    assert cstats4a.alive() == 1  # Should now only be one leftover from previous test
+    assert cstats4b.alive() == 0  # Should be deleted
+
+
 def test_large_holder():
     o = m.MyObject5(5)
     assert o.value == 5
@@ -203,11 +224,56 @@ def test_move_only_holder():
     assert stats.alive() == 0
 
 
+def test_holder_with_addressof_operator():
+    # this test must not throw exception from c++
+    a = m.TypeForHolderWithAddressOf.make()
+    a.print_object_1()
+    a.print_object_2()
+    a.print_object_3()
+    a.print_object_4()
+
+    stats = ConstructorStats.get(m.TypeForHolderWithAddressOf)
+    assert stats.alive() == 1
+
+    np = m.TypeForHolderWithAddressOf.make()
+    assert stats.alive() == 2
+    del a
+    assert stats.alive() == 1
+    del np
+    assert stats.alive() == 0
+
+    b = m.TypeForHolderWithAddressOf.make()
+    c = b
+    assert b.get() is c.get()
+    assert stats.alive() == 1
+
+    del b
+    assert stats.alive() == 1
+
+    del c
+    assert stats.alive() == 0
+
+
+def test_move_only_holder_with_addressof_operator():
+    a = m.TypeForMoveOnlyHolderWithAddressOf.make()
+    a.print_object()
+
+    stats = ConstructorStats.get(m.TypeForMoveOnlyHolderWithAddressOf)
+    assert stats.alive() == 1
+
+    a.value = 42
+    assert a.value == 42
+
+    del a
+    assert stats.alive() == 0
+
+
 def test_smart_ptr_from_default():
     instance = m.HeldByDefaultHolder()
     with pytest.raises(RuntimeError) as excinfo:
         m.HeldByDefaultHolder.load_shared_ptr(instance)
-    assert "Unable to load a custom holder type from a default-holder instance" in str(excinfo)
+    assert "Unable to load a custom holder type from a " \
+           "default-holder instance" in str(excinfo.value)
 
 
 def test_shared_ptr_gc():

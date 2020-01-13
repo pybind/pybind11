@@ -285,6 +285,7 @@ TEST_SUBMODULE(factory_constructors, m) {
     // test_reallocations
     // Class that has verbose operator_new/operator_delete calls
     struct NoisyAlloc {
+        NoisyAlloc(const NoisyAlloc &) = default;
         NoisyAlloc(int i) { py::print(py::str("NoisyAlloc(int {})").format(i)); }
         NoisyAlloc(double d) { py::print(py::str("NoisyAlloc(double {})").format(d)); }
         ~NoisyAlloc() { py::print("~NoisyAlloc()"); }

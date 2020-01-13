@@ -36,6 +36,8 @@ TEST_SUBMODULE(call_policies, m) {
     class Child {
     public:
         Child() { py::print("Allocating child."); }
+        Child(const Child &) = default;
+        Child(Child &&) = default;
         ~Child() { py::print("Releasing child."); }
     };
     py::class_<Child>(m, "Child")

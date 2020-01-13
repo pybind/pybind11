@@ -126,7 +126,7 @@ targeted arguments can be passed through the :class:`cpp_function` constructor:
 
 .. warning::
 
-    Code with invalid return value policies might access unitialized memory or
+    Code with invalid return value policies might access uninitialized memory or
     free data structures multiple times, which can lead to hard-to-debug
     non-determinism and segmentation faults, hence it is worth spending the
     time to understand all the different options in the table above.
@@ -438,7 +438,7 @@ To explicitly enable or disable this behaviour, using the
     py::class_<Cat>(m, "Cat").def(py::init<>());
     m.def("bark", [](Dog *dog) -> std::string {
         if (dog) return "woof!"; /* Called with a Dog instance */
-        else return "(no dog)"; /* Called with None, d == nullptr */
+        else return "(no dog)"; /* Called with None, dog == nullptr */
     }, py::arg("dog").none(true));
     m.def("meow", [](Cat *cat) -> std::string {
         // Can't be called with None argument
@@ -466,6 +466,15 @@ dog)"``, while attempting to call ``meow(None)`` will raise a ``TypeError``:
     Invoked with: None
 
 The default behaviour when the tag is unspecified is to allow ``None``.
+
+.. note::
+
+    Even when ``.none(true)`` is specified for an argument, ``None`` will be converted to a
+    ``nullptr`` *only* for custom and :ref:`opaque <opaque>` types. Pointers to built-in types
+    (``double *``, ``int *``, ...) and STL types (``std::vector<T> *``, ...; if ``pybind11/stl.h``
+    is included) are copied when converted to C++ (see :doc:`/advanced/cast/overview`) and will
+    not allow ``None`` as argument.  To pass optional argument of these copied types consider
+    using ``std::optional<T>``
 
 Overload resolution order
 =========================

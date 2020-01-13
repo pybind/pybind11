@@ -5,13 +5,13 @@ from pybind11_tests import copy_move_policies as m
 def test_lacking_copy_ctor():
     with pytest.raises(RuntimeError) as excinfo:
         m.lacking_copy_ctor.get_one()
-    assert "the object is non-copyable!" in str(excinfo.value)
+    assert "is non-copyable!" in str(excinfo.value)
 
 
 def test_lacking_move_ctor():
     with pytest.raises(RuntimeError) as excinfo:
         m.lacking_move_ctor.get_one()
-    assert "the object is neither movable nor copyable!" in str(excinfo.value)
+    assert "is neither movable nor copyable!" in str(excinfo.value)
 
 
 def test_move_and_copy_casts():
@@ -98,7 +98,7 @@ def test_private_op_new():
 
     with pytest.raises(RuntimeError) as excinfo:
         m.private_op_new_value()
-    assert "the object is neither movable nor copyable" in str(excinfo.value)
+    assert "is neither movable nor copyable" in str(excinfo.value)
 
     assert m.private_op_new_reference().value == 1
 

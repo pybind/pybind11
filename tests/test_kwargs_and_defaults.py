@@ -5,11 +5,11 @@ from pybind11_tests import kwargs_and_defaults as m
 def test_function_signatures(doc):
     assert doc(m.kw_func0) == "kw_func0(arg0: int, arg1: int) -> str"
     assert doc(m.kw_func1) == "kw_func1(x: int, y: int) -> str"
-    assert doc(m.kw_func2) == "kw_func2(x: int=100, y: int=200) -> str"
-    assert doc(m.kw_func3) == "kw_func3(data: str='Hello world!') -> None"
-    assert doc(m.kw_func4) == "kw_func4(myList: List[int]=[13, 17]) -> str"
-    assert doc(m.kw_func_udl) == "kw_func_udl(x: int, y: int=300) -> str"
-    assert doc(m.kw_func_udl_z) == "kw_func_udl_z(x: int, y: int=0) -> str"
+    assert doc(m.kw_func2) == "kw_func2(x: int = 100, y: int = 200) -> str"
+    assert doc(m.kw_func3) == "kw_func3(data: str = 'Hello world!') -> None"
+    assert doc(m.kw_func4) == "kw_func4(myList: List[int] = [13, 17]) -> str"
+    assert doc(m.kw_func_udl) == "kw_func_udl(x: int, y: int = 300) -> str"
+    assert doc(m.kw_func_udl_z) == "kw_func_udl_z(x: int, y: int = 0) -> str"
     assert doc(m.args_function) == "args_function(*args) -> tuple"
     assert doc(m.args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> tuple"
     assert doc(m.KWClass.foo0) == \
@@ -93,7 +93,7 @@ def test_mixed_args_and_kwargs(msg):
         assert mpakd(1, i=1)
     assert msg(excinfo.value) == """
         mixed_plus_args_kwargs_defaults(): incompatible function arguments. The following argument types are supported:
-            1. (i: int=1, j: float=3.14159, *args, **kwargs) -> tuple
+            1. (i: int = 1, j: float = 3.14159, *args, **kwargs) -> tuple
 
         Invoked with: 1; kwargs: i=1
     """  # noqa: E501 line too long
@@ -101,7 +101,47 @@ def test_mixed_args_and_kwargs(msg):
         assert mpakd(1, 2, j=1)
     assert msg(excinfo.value) == """
         mixed_plus_args_kwargs_defaults(): incompatible function arguments. The following argument types are supported:
-            1. (i: int=1, j: float=3.14159, *args, **kwargs) -> tuple
+            1. (i: int = 1, j: float = 3.14159, *args, **kwargs) -> tuple
 
         Invoked with: 1, 2; kwargs: j=1
     """  # noqa: E501 line too long
+
+
+def test_args_refcount():
+    """Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with regular
+    arguments"""
+    refcount = m.arg_refcount_h
+
+    myval = 54321
+    expected = refcount(myval)
+    assert m.arg_refcount_h(myval) == expected
+    assert m.arg_refcount_o(myval) == expected + 1
+    assert m.arg_refcount_h(myval) == expected
+    assert refcount(myval) == expected
+
+    assert m.mixed_plus_args(1, 2.0, "a", myval) == (1, 2.0, ("a", myval))
+    assert refcount(myval) == expected
+
+    assert m.mixed_plus_kwargs(3, 4.0, a=1, b=myval) == (3, 4.0, {"a": 1, "b": myval})
+    assert refcount(myval) == expected
+
+    assert m.args_function(-1, myval) == (-1, myval)
+    assert refcount(myval) == expected
+
+    assert m.mixed_plus_args_kwargs(5, 6.0, myval, a=myval) == (5, 6.0, (myval,), {"a": myval})
+    assert refcount(myval) == expected
+
+    assert m.args_kwargs_function(7, 8, myval, a=1, b=myval) == \
+        ((7, 8, myval), {"a": 1, "b": myval})
+    assert refcount(myval) == expected
+
+    exp3 = refcount(myval, myval, myval)
+    assert m.args_refcount(myval, myval, myval) == (exp3, exp3, exp3)
+    assert refcount(myval) == expected
+
+    # This function takes the first arg as a `py::object` and the rest as a `py::args`.  Unlike the
+    # previous case, when we have both positional and `py::args` we need to construct a new tuple
+    # for the `py::args`; in the previous case, we could simply inc_ref and pass on Python's input
+    # tuple without having to inc_ref the individual elements, but here we can't, hence the extra
+    # refs.
+    assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)

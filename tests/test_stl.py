@@ -2,6 +2,7 @@ import pytest
 
 from pybind11_tests import stl as m
 from pybind11_tests import UserType
+from pybind11_tests import ConstructorStats
 
 
 def test_vector(doc):
@@ -20,6 +21,15 @@ def test_vector(doc):
 
     # Test regression caused by 936: pointers to stl containers weren't castable
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
+
+
+def test_deque(doc):
+    """std::deque <-> list"""
+    lst = m.cast_deque()
+    assert lst == [1]
+    lst.append(2)
+    assert m.load_deque(lst)
+    assert m.load_deque(tuple(lst))
 
 
 def test_array(doc):
@@ -46,7 +56,9 @@ def test_map(doc):
     """std::map <-> dict"""
     d = m.cast_map()
     assert d == {"key": "value"}
+    assert "key" in d
     d["key2"] = "value2"
+    assert "key2" in d
     assert m.load_map(d)
 
     assert doc(m.cast_map) == "cast_map() -> Dict[str, str]"
@@ -164,7 +176,7 @@ def test_stl_pass_by_pointer(msg):
         m.stl_pass_by_pointer()  # default value is `nullptr`
     assert msg(excinfo.value) == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: List[int]=None) -> List[int]
+            1. (v: List[int] = None) -> List[int]
 
         Invoked with:
     """  # noqa: E501 line too long
@@ -173,7 +185,7 @@ def test_stl_pass_by_pointer(msg):
         m.stl_pass_by_pointer(None)
     assert msg(excinfo.value) == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: List[int]=None) -> List[int]
+            1. (v: List[int] = None) -> List[int]
 
         Invoked with: None
     """  # noqa: E501 line too long
@@ -198,3 +210,32 @@ def test_missing_header_message():
     with pytest.raises(TypeError) as excinfo:
         cm.missing_header_return()
     assert expected_message in str(excinfo.value)
+
+
+def test_function_with_string_and_vector_string_arg():
+    """Check if a string is NOT implicitly converted to a list, which was the
+    behavior before fix of issue #1258"""
+    assert m.func_with_string_or_vector_string_arg_overload(('A', 'B', )) == 2
+    assert m.func_with_string_or_vector_string_arg_overload(['A', 'B']) == 2
+    assert m.func_with_string_or_vector_string_arg_overload('A') == 3
+
+
+def test_stl_ownership():
+    cstats = ConstructorStats.get(m.Placeholder)
+    assert cstats.alive() == 0
+    r = m.test_stl_ownership()
+    assert len(r) == 1
+    del r
+    assert cstats.alive() == 0
+
+
+def test_array_cast_sequence():
+    assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
+
+
+def test_issue_1561():
+    """ check fix for issue #1561 """
+    bar = m.Issue1561Outer()
+    bar.list = [m.Issue1561Inner('bar')]
+    bar.list
+    assert bar.list[0].data == 'bar'

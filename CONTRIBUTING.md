@@ -27,11 +27,23 @@ adhere to the following rules to make the process as smooth as possible:
   do add value by themselves.
 * Add tests for any new functionality and run the test suite (``make pytest``)
   to ensure that no existing features break.
+* Please run ``flake8`` and ``tools/check-style.sh`` to check your code matches
+  the project style. (Note that ``check-style.sh`` requires ``gawk``.)
 * This project has a strong focus on providing general solutions using a
   minimal amount of code, thus small pull requests are greatly preferred.
 
-### License
+### Licensing of contributions
 
 pybind11 is provided under a BSD-style license that can be found in the
 ``LICENSE`` file. By using, distributing, or contributing to this project, you
 agree to the terms and conditions of this license.
+
+You are under no obligation whatsoever to provide any bug fixes, patches, or
+upgrades to the features, functionality or performance of the source code
+("Enhancements") to anyone; however, if you choose to make your Enhancements
+available either publicly, or directly to the author of this software, without
+imposing a separate written license agreement for such Enhancements, then you
+hereby grant the following license: a non-exclusive, royalty-free perpetual
+license to install, use, modify, prepare derivative works, incorporate into
+other computer software, distribute, and sublicense such enhancements or
+derivative works thereof, in binary and source code form.

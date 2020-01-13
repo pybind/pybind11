@@ -11,6 +11,11 @@
 #include "constructor_stats.h"
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
+
+#if defined(_MSC_VER)
+#  pragma warning(disable: 4996) // C4996: std::unary_negation is deprecated
+#endif
+
 #include <Eigen/Cholesky>
 
 using MatrixXdR = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
@@ -119,7 +124,7 @@ TEST_SUBMODULE(eigen, m) {
     // This one accepts a matrix of any stride:
     m.def("add_any", [](py::EigenDRef<Eigen::MatrixXd> x, int r, int c, double v) { x(r,c) += v; });
 
-    // Return mutable references (numpy maps into eigen varibles)
+    // Return mutable references (numpy maps into eigen variables)
     m.def("get_cm_ref", []() { return Eigen::Ref<Eigen::MatrixXd>(get_cm()); });
     m.def("get_rm_ref", []() { return Eigen::Ref<MatrixXdR>(get_rm()); });
     // The same references, but non-mutable (numpy maps into eigen variables, but is !writeable)

@@ -1,4 +1,11 @@
 #include <pybind11/embed.h>
+
+#ifdef _MSC_VER
+// Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to catch
+// 2.0.1; this should be fixed in the next catch release after 2.0.1).
+#  pragma warning(disable: 4996)
+#endif
+
 #include <catch.hpp>
 
 #include <thread>
@@ -94,7 +101,8 @@ bool has_pybind11_internals_builtin() {
 };
 
 bool has_pybind11_internals_static() {
-    return py::detail::get_internals_ptr() != nullptr;
+    auto **&ipp = py::detail::get_internals_pp();
+    return ipp && *ipp;
 }
 
 TEST_CASE("Restart the interpreter") {
@@ -102,6 +110,11 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(py::module::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_pybind11_internals_builtin());
     REQUIRE(has_pybind11_internals_static());
+    REQUIRE(py::module::import("external_module").attr("A")(123).attr("value").cast<int>() == 123);
+
+    // local and foreign module internals should point to the same internals:
+    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp()) ==
+            py::module::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Restart the interpreter.
     py::finalize_interpreter();
@@ -116,6 +129,8 @@ TEST_CASE("Restart the interpreter") {
     pybind11::detail::get_internals();
     REQUIRE(has_pybind11_internals_builtin());
     REQUIRE(has_pybind11_internals_static());
+    REQUIRE(reinterpret_cast<uintptr_t>(*py::detail::get_internals_pp()) ==
+            py::module::import("external_module").attr("internals_at")().cast<uintptr_t>());
 
     // Make sure that an interpreter with no get_internals() created until finalize still gets the
     // internals destroyed

@@ -19,7 +19,7 @@
 
 // ref<T> is a wrapper for 'Object' which uses intrusive reference counting
 // It is always possible to construct a ref<T> from an Object* pointer without
-// possible incosistencies, hence the 'true' argument at the end.
+// possible inconsistencies, hence the 'true' argument at the end.
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
 // Make pybind11 aware of the non-standard getter member function
 namespace pybind11 { namespace detail {
@@ -54,6 +54,35 @@ public:
     T* release_ptr() { return impl.release(); }
 };
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
+
+// Simple custom holder that works like shared_ptr and has operator& overload
+// To obtain address of an instance of this holder pybind should use std::addressof
+// Attempt to get address via operator& may leads to segmentation fault
+template <typename T>
+class shared_ptr_with_addressof_operator {
+    std::shared_ptr<T> impl;
+public:
+    shared_ptr_with_addressof_operator( ) = default;
+    shared_ptr_with_addressof_operator(T* p) : impl(p) { }
+    T* get() const { return impl.get(); }
+    T** operator&() { throw std::logic_error("Call of overloaded operator& is not expected"); }
+};
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>);
+
+// Simple custom holder that works like unique_ptr and has operator& overload
+// To obtain address of an instance of this holder pybind should use std::addressof
+// Attempt to get address via operator& may leads to segmentation fault
+template <typename T>
+class unique_ptr_with_addressof_operator {
+    std::unique_ptr<T> impl;
+public:
+    unique_ptr_with_addressof_operator() = default;
+    unique_ptr_with_addressof_operator(T* p) : impl(p) { }
+    T* get() const { return impl.get(); }
+    T* release_ptr() { return impl.release(); }
+    T** operator&() { throw std::logic_error("Call of overloaded operator& is not expected"); }
+};
+PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
 
 
 TEST_SUBMODULE(smart_ptr, m) {
@@ -98,6 +127,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     // Object managed by a std::shared_ptr<>
     class MyObject2 {
     public:
+        MyObject2(const MyObject2 &) = default;
         MyObject2(int value) : value(value) { print_created(this, toString()); }
         std::string toString() const { return "MyObject2[" + std::to_string(value) + "]"; }
         virtual ~MyObject2() { print_destroyed(this); }
@@ -116,6 +146,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     // Object managed by a std::shared_ptr<>, additionally derives from std::enable_shared_from_this<>
     class MyObject3 : public std::enable_shared_from_this<MyObject3> {
     public:
+        MyObject3(const MyObject3 &) = default;
         MyObject3(int value) : value(value) { print_created(this, toString()); }
         std::string toString() const { return "MyObject3[" + std::to_string(value) + "]"; }
         virtual ~MyObject3() { print_destroyed(this); }
@@ -154,6 +185,32 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<MyObject4, std::unique_ptr<MyObject4, py::nodelete>>(m, "MyObject4")
         .def(py::init<int>())
         .def_readwrite("value", &MyObject4::value);
+
+    // test_unique_deleter
+    // Object with std::unique_ptr<T, D> where D is not matching the base class
+    // Object with a protected destructor
+    class MyObject4a {
+    public:
+        MyObject4a(int i) {
+            value = i;
+            print_created(this);
+        };
+        int value;
+    protected:
+        virtual ~MyObject4a() { print_destroyed(this); }
+    };
+    py::class_<MyObject4a, std::unique_ptr<MyObject4a, py::nodelete>>(m, "MyObject4a")
+        .def(py::init<int>())
+        .def_readwrite("value", &MyObject4a::value);
+
+    // Object derived but with public destructor and no Deleter in default holder
+    class MyObject4b : public MyObject4a {
+    public:
+        MyObject4b(int i) : MyObject4a(i) { print_created(this); }
+        ~MyObject4b() { print_destroyed(this); }
+    };
+    py::class_<MyObject4b, MyObject4a>(m, "MyObject4b")
+        .def(py::init<int>());
 
     // test_large_holder
     class MyObject5 { // managed by huge_unique_ptr
@@ -219,6 +276,8 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     // Issue #865: shared_from_this doesn't work with virtual inheritance
     struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
+        SharedFromThisVBase() = default;
+        SharedFromThisVBase(const SharedFromThisVBase &) = default;
         virtual ~SharedFromThisVBase() = default;
     };
     struct SharedFromThisVirt : virtual SharedFromThisVBase {};
@@ -234,6 +293,41 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")
         .def_static("make", []() { return custom_unique_ptr<C>(new C); });
 
+    // test_holder_with_addressof_operator
+    struct TypeForHolderWithAddressOf {
+        TypeForHolderWithAddressOf() { print_created(this); }
+        TypeForHolderWithAddressOf(const TypeForHolderWithAddressOf &) { print_copy_created(this); }
+        TypeForHolderWithAddressOf(TypeForHolderWithAddressOf &&) { print_move_created(this); }
+        ~TypeForHolderWithAddressOf() { print_destroyed(this); }
+        std::string toString() const {
+            return "TypeForHolderWithAddressOf[" + std::to_string(value) + "]";
+        }
+        int value = 42;
+    };
+    using HolderWithAddressOf = shared_ptr_with_addressof_operator<TypeForHolderWithAddressOf>;
+    py::class_<TypeForHolderWithAddressOf, HolderWithAddressOf>(m, "TypeForHolderWithAddressOf")
+        .def_static("make", []() { return HolderWithAddressOf(new TypeForHolderWithAddressOf); })
+        .def("get", [](const HolderWithAddressOf &self) { return self.get(); })
+        .def("print_object_1", [](const TypeForHolderWithAddressOf *obj) { py::print(obj->toString()); })
+        .def("print_object_2", [](HolderWithAddressOf obj) { py::print(obj.get()->toString()); })
+        .def("print_object_3", [](const HolderWithAddressOf &obj) { py::print(obj.get()->toString()); })
+        .def("print_object_4", [](const HolderWithAddressOf *obj) { py::print((*obj).get()->toString()); });
+
+    // test_move_only_holder_with_addressof_operator
+    struct TypeForMoveOnlyHolderWithAddressOf {
+        TypeForMoveOnlyHolderWithAddressOf(int value) : value{value} { print_created(this); }
+        ~TypeForMoveOnlyHolderWithAddressOf() { print_destroyed(this); }
+        std::string toString() const {
+            return "MoveOnlyHolderWithAddressOf[" + std::to_string(value) + "]";
+        }
+        int value;
+    };
+    using MoveOnlyHolderWithAddressOf = unique_ptr_with_addressof_operator<TypeForMoveOnlyHolderWithAddressOf>;
+    py::class_<TypeForMoveOnlyHolderWithAddressOf, MoveOnlyHolderWithAddressOf>(m, "TypeForMoveOnlyHolderWithAddressOf")
+        .def_static("make", []() { return MoveOnlyHolderWithAddressOf(new TypeForMoveOnlyHolderWithAddressOf(0)); })
+        .def_readwrite("value", &TypeForMoveOnlyHolderWithAddressOf::value)
+        .def("print_object", [](const TypeForMoveOnlyHolderWithAddressOf *obj) { py::print(obj->toString()); });
+
     // test_smart_ptr_from_default
     struct HeldByDefaultHolder { };
     py::class_<HeldByDefaultHolder>(m, "HeldByDefaultHolder")
@@ -242,7 +336,9 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     // test_shared_ptr_gc
     // #187: issue involving std::shared_ptr<> return value policy & garbage collection
-    struct ElementBase { virtual void foo() { } /* Force creation of virtual table */ };
+    struct ElementBase {
+        virtual ~ElementBase() { } /* Force creation of virtual table */
+    };
     py::class_<ElementBase, std::shared_ptr<ElementBase>>(m, "ElementBase");
 
     struct ElementA : ElementBase {

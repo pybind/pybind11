@@ -7,13 +7,32 @@ General notes regarding convenience macros
 ==========================================
 
 pybind11 provides a few convenience macros such as
-:func:`PYBIND11_MAKE_OPAQUE` and :func:`PYBIND11_DECLARE_HOLDER_TYPE`, and
-``PYBIND11_OVERLOAD_*``. Since these are "just" macros that are evaluated
-in the preprocessor (which has no concept of types), they *will* get confused
-by commas in a template argument such as ``PYBIND11_OVERLOAD(MyReturnValue<T1,
-T2>, myFunc)``. In this case, the preprocessor assumes that the comma indicates
-the beginning of the next parameter. Use a ``typedef`` to bind the template to
-another name and use it in the macro to avoid this problem.
+:func:`PYBIND11_DECLARE_HOLDER_TYPE` and ``PYBIND11_OVERLOAD_*``. Since these
+are "just" macros that are evaluated in the preprocessor (which has no concept
+of types), they *will* get confused by commas in a template argument; for
+example, consider:
+
+.. code-block:: cpp
+
+    PYBIND11_OVERLOAD(MyReturnType<T1, T2>, Class<T3, T4>, func)
+
+The limitation of the C preprocessor interprets this as five arguments (with new
+arguments beginning after each comma) rather than three.  To get around this,
+there are two alternatives: you can use a type alias, or you can wrap the type
+using the ``PYBIND11_TYPE`` macro:
+
+.. code-block:: cpp
+
+    // Version 1: using a type alias
+    using ReturnType = MyReturnType<T1, T2>;
+    using ClassType = Class<T3, T4>;
+    PYBIND11_OVERLOAD(ReturnType, ClassType, func);
+
+    // Version 2: using the PYBIND11_TYPE macro:
+    PYBIND11_OVERLOAD(PYBIND11_TYPE(MyReturnType<T1, T2>),
+                      PYBIND11_TYPE(Class<T3, T4>), func)
+
+The ``PYBIND11_MAKE_OPAQUE`` macro does *not* require the above workarounds.
 
 .. _gil:
 
@@ -137,7 +156,7 @@ Naturally, both methods will fail when there are cyclic dependencies.
 
 Note that pybind11 code compiled with hidden-by-default symbol visibility (e.g.
 via the command line flag ``-fvisibility=hidden`` on GCC/Clang), which is
-required proper pybind11 functionality, can interfere with the ability to
+required for proper pybind11 functionality, can interfere with the ability to
 access types defined in another extension module.  Working around this requires
 manually exporting types that are accessed by multiple extension modules;
 pybind11 provides a macro to do just this:
@@ -215,6 +234,21 @@ avoids this issue involves weak reference with a cleanup callback:
 
     // Create a weak reference with a cleanup callback and initially leak it
     (void) py::weakref(m.attr("BaseClass"), cleanup_callback).release();
+
+.. note::
+
+    PyPy (at least version 5.9) does not garbage collect objects when the
+    interpreter exits. An alternative approach (which also works on CPython) is to use
+    the :py:mod:`atexit` module [#f7]_, for example:
+
+    .. code-block:: cpp
+
+        auto atexit = py::module::import("atexit");
+        atexit.attr("register")(py::cpp_function([]() {
+            // perform cleanup here -- this function is called with the GIL held
+        }));
+
+    .. [#f7] https://docs.python.org/3/library/atexit.html
 
 
 Generating documentation using Sphinx

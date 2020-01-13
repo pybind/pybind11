@@ -17,6 +17,11 @@ _unicode_marker = re.compile(r'u(\'[^\']*\')')
 _long_marker = re.compile(r'([0-9])L')
 _hexadecimal = re.compile(r'0x[0-9a-fA-F]+')
 
+# test_async.py requires support for async and await
+collect_ignore = []
+if sys.version_info[:2] < (3, 5):
+    collect_ignore.append("test_async.py")
+
 
 def _strip_and_dedent(s):
     """For triple-quote strings"""
@@ -75,7 +80,7 @@ class Capture(object):
         self.capfd.readouterr()
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *args):
         self.out, self.err = self.capfd.readouterr()
 
     def __eq__(self, other):
@@ -185,7 +190,7 @@ def gc_collect():
     gc.collect()
 
 
-def pytest_namespace():
+def pytest_configure():
     """Add import suppression and test requirements to `pytest` namespace"""
     try:
         import numpy as np
@@ -202,19 +207,17 @@ def pytest_namespace():
     pypy = platform.python_implementation() == "PyPy"
 
     skipif = pytest.mark.skipif
-    return {
-        'suppress': suppress,
-        'requires_numpy': skipif(not np, reason="numpy is not installed"),
-        'requires_scipy': skipif(not np, reason="scipy is not installed"),
-        'requires_eigen_and_numpy': skipif(not have_eigen or not np,
-                                           reason="eigen and/or numpy are not installed"),
-        'requires_eigen_and_scipy': skipif(not have_eigen or not scipy,
-                                           reason="eigen and/or scipy are not installed"),
-        'unsupported_on_pypy': skipif(pypy, reason="unsupported on PyPy"),
-        'unsupported_on_py2': skipif(sys.version_info.major < 3,
-                                     reason="unsupported on Python 2.x"),
-        'gc_collect': gc_collect
-    }
+    pytest.suppress = suppress
+    pytest.requires_numpy = skipif(not np, reason="numpy is not installed")
+    pytest.requires_scipy = skipif(not np, reason="scipy is not installed")
+    pytest.requires_eigen_and_numpy = skipif(not have_eigen or not np,
+                                             reason="eigen and/or numpy are not installed")
+    pytest.requires_eigen_and_scipy = skipif(
+        not have_eigen or not scipy, reason="eigen and/or scipy are not installed")
+    pytest.unsupported_on_pypy = skipif(pypy, reason="unsupported on PyPy")
+    pytest.unsupported_on_py2 = skipif(sys.version_info.major < 3,
+                                       reason="unsupported on Python 2.x")
+    pytest.gc_collect = gc_collect
 
 
 def _test_import_pybind11():

@@ -18,6 +18,35 @@ inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
 inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 
+// The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
+// Thread Specific Storage (TSS) API.
+#if PY_VERSION_HEX >= 0x03070000
+#    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
+#else
+    // Usually an int but a long on Cygwin64 with Python 3.x
+#    define PYBIND11_TLS_KEY_INIT(var) decltype(PyThread_create_key()) var = 0
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_get_key_value((key))
+#    if PY_MAJOR_VERSION < 3
+#        define PYBIND11_TLS_DELETE_VALUE(key)                               \
+             PyThread_delete_key_value(key)
+#        define PYBIND11_TLS_REPLACE_VALUE(key, value)                       \
+             do {                                                            \
+                 PyThread_delete_key_value((key));                           \
+                 PyThread_set_key_value((key), (value));                     \
+             } while (false)
+#    else
+#        define PYBIND11_TLS_DELETE_VALUE(key)                               \
+             PyThread_set_key_value((key), nullptr)
+#        define PYBIND11_TLS_REPLACE_VALUE(key, value)                       \
+             PyThread_set_key_value((key), (value))
+#    endif
+#    define PYBIND11_TLS_FREE(key) (void)key
+#endif
+
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
 // other STLs, this means `typeid(A)` from one module won't equal `typeid(A)` from another module
 // even when `A` is the same, non-hidden-visibility type (e.g. from a common include).  Under
@@ -79,8 +108,18 @@ struct internals {
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
 #if defined(WITH_THREAD)
-    decltype(PyThread_create_key()) tstate = 0; // Usually an int but a long on Cygwin64 with Python 3.x
+    PYBIND11_TLS_KEY_INIT(tstate);
     PyInterpreterState *istate = nullptr;
+    ~internals() {
+        // This destructor is called *after* Py_Finalize() in finalize_interpreter().
+        // That *SHOULD BE* fine. The following details what happens whe PyThread_tss_free is called.
+        // PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does nothing.
+        // PyThread_tss_free calls PyThread_tss_delete and PyMem_RawFree.
+        // PyThread_tss_delete just calls TlsFree (on Windows) or pthread_key_delete (on *NIX). Neither
+        // of those have anything to do with CPython internals.
+        // PyMem_RawFree *requires* that the `tstate` be allocated with the CPython allocator.
+        PYBIND11_TLS_FREE(tstate);
+    }
 #endif
 };
 
@@ -89,7 +128,7 @@ struct internals {
 struct type_info {
     PyTypeObject *type;
     const std::type_info *cpptype;
-    size_t type_size, holder_size_in_ptrs;
+    size_t type_size, type_align, holder_size_in_ptrs;
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
     void (*dealloc)(value_and_holder &v_h);
@@ -111,7 +150,48 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 1
+#define PYBIND11_INTERNALS_VERSION 4
+
+/// On MSVC, debug and release builds are not ABI-compatible!
+#if defined(_MSC_VER) && defined(_DEBUG)
+#   define PYBIND11_BUILD_TYPE "_debug"
+#else
+#   define PYBIND11_BUILD_TYPE ""
+#endif
+
+/// Let's assume that different compilers are ABI-incompatible.
+#if defined(_MSC_VER)
+#   define PYBIND11_COMPILER_TYPE "_msvc"
+#elif defined(__INTEL_COMPILER)
+#   define PYBIND11_COMPILER_TYPE "_icc"
+#elif defined(__clang__)
+#   define PYBIND11_COMPILER_TYPE "_clang"
+#elif defined(__PGI)
+#   define PYBIND11_COMPILER_TYPE "_pgi"
+#elif defined(__MINGW32__)
+#   define PYBIND11_COMPILER_TYPE "_mingw"
+#elif defined(__CYGWIN__)
+#   define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
+#elif defined(__GNUC__)
+#   define PYBIND11_COMPILER_TYPE "_gcc"
+#else
+#   define PYBIND11_COMPILER_TYPE "_unknown"
+#endif
+
+#if defined(_LIBCPP_VERSION)
+#  define PYBIND11_STDLIB "_libcpp"
+#elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
+#  define PYBIND11_STDLIB "_libstdcpp"
+#else
+#  define PYBIND11_STDLIB ""
+#endif
+
+/// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
+#if defined(__GXX_ABI_VERSION)
+#  define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
+#else
+#  define PYBIND11_BUILD_ABI ""
+#endif
 
 #if defined(WITH_THREAD)
 #  define PYBIND11_INTERNALS_KIND ""
@@ -120,28 +200,65 @@ struct type_info {
 #endif
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 #define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
-inline internals *&get_internals_ptr() {
-    static internals *internals_ptr = nullptr;
-    return internals_ptr;
+inline internals **&get_internals_pp() {
+    static internals **internals_pp = nullptr;
+    return internals_pp;
 }
+
+inline void translate_exception(std::exception_ptr p) {
+    try {
+        if (p) std::rethrow_exception(p);
+    } catch (error_already_set &e)           { e.restore();                                    return;
+    } catch (const builtin_exception &e)     { e.set_error();                                  return;
+    } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
+    } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return;
+    } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::overflow_error &e)   { PyErr_SetString(PyExc_OverflowError, e.what()); return;
+    } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return;
+    } catch (...) {
+        PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
+        return;
+    }
+}
+
+#if !defined(__GLIBCXX__)
+inline void translate_local_exception(std::exception_ptr p) {
+    try {
+        if (p) std::rethrow_exception(p);
+    } catch (error_already_set &e)       { e.restore();   return;
+    } catch (const builtin_exception &e) { e.set_error(); return;
+    }
+}
+#endif
 
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE inline internals &get_internals() {
-    auto *&internals_ptr = get_internals_ptr();
-    if (internals_ptr)
-        return *internals_ptr;
+    auto **&internals_pp = get_internals_pp();
+    if (internals_pp && *internals_pp)
+        return **internals_pp;
+
+    // Ensure that the GIL is held since we will need to make Python calls.
+    // Cannot use py::gil_scoped_acquire here since that constructor calls get_internals.
+    struct gil_scoped_acquire_local {
+        gil_scoped_acquire_local() : state (PyGILState_Ensure()) {}
+        ~gil_scoped_acquire_local() { PyGILState_Release(state); }
+        const PyGILState_STATE state;
+    } gil;
 
     constexpr auto *id = PYBIND11_INTERNALS_ID;
     auto builtins = handle(PyEval_GetBuiltins());
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
-        internals_ptr = *static_cast<internals **>(capsule(builtins[id]));
+        internals_pp = static_cast<internals **>(capsule(builtins[id]));
 
         // We loaded builtins through python's builtins, which means that our `error_already_set`
         // and `builtin_exception` may be different local classes than the ones set up in the
@@ -149,50 +266,35 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         //
         // libstdc++ doesn't require this (types there are identified only by name)
 #if !defined(__GLIBCXX__)
-        internals_ptr->registered_exception_translators.push_front(
-            [](std::exception_ptr p) -> void {
-                try {
-                    if (p) std::rethrow_exception(p);
-                } catch (error_already_set &e)       { e.restore();   return;
-                } catch (const builtin_exception &e) { e.set_error(); return;
-                }
-            }
-        );
+        (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
     } else {
+        if (!internals_pp) internals_pp = new internals*();
+        auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
 #if defined(WITH_THREAD)
         PyEval_InitThreads();
         PyThreadState *tstate = PyThreadState_Get();
-        internals_ptr->tstate = PyThread_create_key();
-        PyThread_set_key_value(internals_ptr->tstate, tstate);
+        #if PY_VERSION_HEX >= 0x03070000
+            internals_ptr->tstate = PyThread_tss_alloc();
+            if (!internals_ptr->tstate || PyThread_tss_create(internals_ptr->tstate))
+                pybind11_fail("get_internals: could not successfully initialize the TSS key!");
+            PyThread_tss_set(internals_ptr->tstate, tstate);
+        #else
+            internals_ptr->tstate = PyThread_create_key();
+            if (internals_ptr->tstate == -1)
+                pybind11_fail("get_internals: could not successfully initialize the TLS key!");
+            PyThread_set_key_value(internals_ptr->tstate, tstate);
+        #endif
         internals_ptr->istate = tstate->interp;
 #endif
-        builtins[id] = capsule(&internals_ptr);
-        internals_ptr->registered_exception_translators.push_front(
-            [](std::exception_ptr p) -> void {
-                try {
-                    if (p) std::rethrow_exception(p);
-                } catch (error_already_set &e)           { e.restore();                                    return;
-                } catch (const builtin_exception &e)     { e.set_error();                                  return;
-                } catch (const std::bad_alloc &e)        { PyErr_SetString(PyExc_MemoryError,   e.what()); return;
-                } catch (const std::domain_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const std::invalid_argument &e) { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return;
-                } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return;
-                } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return;
-                } catch (...) {
-                    PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
-                    return;
-                }
-            }
-        );
+        builtins[id] = capsule(internals_pp);
+        internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
         internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
     }
-    return *internals_ptr;
+    return **internals_pp;
 }
 
 /// Works like `internals.registered_types_cpp`, but for module-local registered types:

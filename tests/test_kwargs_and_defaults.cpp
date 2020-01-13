@@ -8,6 +8,7 @@
 */
 
 #include "pybind11_tests.h"
+#include "constructor_stats.h"
 #include <pybind11/stl.h>
 
 TEST_SUBMODULE(kwargs_and_defaults, m) {
@@ -33,7 +34,9 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("kw_func_udl_z", kw_func, "x"_a, "y"_a=0);
 
     // test_args_and_kwargs
-    m.def("args_function", [](py::args args) -> py::tuple { return args; });
+    m.def("args_function", [](py::args args) -> py::tuple {
+        return std::move(args);
+    });
     m.def("args_kwargs_function", [](py::args args, py::kwargs kwargs) {
         return py::make_tuple(args, kwargs);
     });
@@ -52,6 +55,34 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
     m.def("mixed_plus_args_kwargs_defaults", mixed_plus_both,
             py::arg("i") = 1, py::arg("j") = 3.14159);
+
+    // test_args_refcount
+    // PyPy needs a garbage collection to get the reference count values to match CPython's behaviour
+    #ifdef PYPY_VERSION
+    #define GC_IF_NEEDED ConstructorStats::gc()
+    #else
+    #define GC_IF_NEEDED
+    #endif
+    m.def("arg_refcount_h", [](py::handle h) { GC_IF_NEEDED; return h.ref_count(); });
+    m.def("arg_refcount_h", [](py::handle h, py::handle, py::handle) { GC_IF_NEEDED; return h.ref_count(); });
+    m.def("arg_refcount_o", [](py::object o) { GC_IF_NEEDED; return o.ref_count(); });
+    m.def("args_refcount", [](py::args a) {
+        GC_IF_NEEDED;
+        py::tuple t(a.size());
+        for (size_t i = 0; i < a.size(); i++)
+            // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
+            t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<ssize_t>(i)));
+        return t;
+    });
+    m.def("mixed_args_refcount", [](py::object o, py::args a) {
+        GC_IF_NEEDED;
+        py::tuple t(a.size() + 1);
+        t[0] = o.ref_count();
+        for (size_t i = 0; i < a.size(); i++)
+            // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
+            t[i + 1] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<ssize_t>(i)));
+        return t;
+    });
 
     // pybind11 won't allow these to be bound: args and kwargs, if present, must be at the end.
     // Uncomment these to test that the static_assert is indeed working:

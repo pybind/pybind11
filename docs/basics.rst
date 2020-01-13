@@ -164,7 +164,7 @@ load and execute the example:
 Keyword arguments
 =================
 
-With a simple modification code, it is possible to inform Python about the
+With a simple code modification, it is possible to inform Python about the
 names of the arguments ("i" and "j" in this case).
 
 .. code-block:: cpp

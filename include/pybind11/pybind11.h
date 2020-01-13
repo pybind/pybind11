@@ -10,7 +10,17 @@
 
 #pragma once
 
-#if defined(_MSC_VER)
+#if defined(__INTEL_COMPILER)
+#  pragma warning push
+#  pragma warning disable 68    // integer conversion resulted in a change of sign
+#  pragma warning disable 186   // pointless comparison of unsigned integer with zero
+#  pragma warning disable 878   // incompatible exception specifications
+#  pragma warning disable 1334  // the "template" keyword used for syntactic disambiguation may only be used within a template
+#  pragma warning disable 1682  // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
+#  pragma warning disable 1786  // function "strdup" was declared deprecated
+#  pragma warning disable 1875  // offsetof applied to non-POD (Plain Old Data) types is nonstandard
+#  pragma warning disable 2196  // warning #2196: routine is both "inline" and "noinline"
+#elif defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
@@ -19,15 +29,6 @@
 #  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
 #  pragma warning(disable: 4702) // warning C4702: unreachable code
 #  pragma warning(disable: 4522) // warning C4522: multiple assignment operators specified
-#elif defined(__INTEL_COMPILER)
-#  pragma warning(push)
-#  pragma warning(disable: 68)    // integer conversion resulted in a change of sign
-#  pragma warning(disable: 186)   // pointless comparison of unsigned integer with zero
-#  pragma warning(disable: 878)   // incompatible exception specifications
-#  pragma warning(disable: 1334)  // the "template" keyword used for syntactic disambiguation may only be used within a template
-#  pragma warning(disable: 1682)  // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
-#  pragma warning(disable: 1875)  // offsetof applied to non-POD (Plain Old Data) types is nonstandard
-#  pragma warning(disable: 2196)  // warning #2196: routine is both "inline" and "noinline"
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
@@ -44,6 +45,10 @@
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
+
+#if defined(__GNUG__) && !defined(__clang__)
+#  include <cxxabi.h>
+#endif
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -94,7 +99,7 @@ protected:
     template <typename Func, typename Return, typename... Args, typename... Extra>
     void initialize(Func &&f, Return (*)(Args...), const Extra&... extra) {
         using namespace detail;
-        struct capture { detail::remove_reference_t<Func> f; };
+        struct capture { remove_reference_t<Func> f; };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
         auto rec = make_function_record();
@@ -113,23 +118,23 @@ protected:
 #  pragma GCC diagnostic pop
 #endif
             if (!std::is_trivially_destructible<Func>::value)
-                rec->free_data = [](detail::function_record *r) { ((capture *) &r->data)->~capture(); };
+                rec->free_data = [](function_record *r) { ((capture *) &r->data)->~capture(); };
         } else {
             rec->data[0] = new capture { std::forward<Func>(f) };
-            rec->free_data = [](detail::function_record *r) { delete ((capture *) r->data[0]); };
+            rec->free_data = [](function_record *r) { delete ((capture *) r->data[0]); };
         }
 
         /* Type casters for the function arguments and return value */
-        using cast_in = detail::argument_loader<Args...>;
-        using cast_out = detail::make_caster<
-            detail::conditional_t<std::is_void<Return>::value, detail::void_type, Return>
+        using cast_in = argument_loader<Args...>;
+        using cast_out = make_caster<
+            conditional_t<std::is_void<Return>::value, void_type, Return>
         >;
 
-        static_assert(detail::expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
+        static_assert(expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
                       "The number of argument annotations does not match the number of function arguments");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](detail::function_call &call) -> handle {
+        rec->impl = [](function_call &call) -> handle {
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
@@ -137,7 +142,7 @@ protected:
                 return PYBIND11_TRY_NEXT_OVERLOAD;
 
             /* Invoke call policy pre-call hook */
-            detail::process_attributes<Extra...>::precall(call);
+            process_attributes<Extra...>::precall(call);
 
             /* Get a pointer to the capture object */
             auto data = (sizeof(capture) <= sizeof(call.func.data)
@@ -145,23 +150,23 @@ protected:
             capture *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            const auto policy = detail::return_value_policy_override<Return>::policy(call.func.policy);
+            return_value_policy policy = return_value_policy_override<Return>::policy(call.func.policy);
 
             /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
-            using Guard = detail::extract_guard_t<Extra...>;
+            using Guard = extract_guard_t<Extra...>;
 
             /* Perform the function call */
             handle result = cast_out::cast(
                 std::move(args_converter).template call<Return, Guard>(cap->f), policy, call.parent);
 
             /* Invoke call policy post-call hook */
-            detail::process_attributes<Extra...>::postcall(call, result);
+            process_attributes<Extra...>::postcall(call, result);
 
             return result;
         };
 
         /* Process any user-provided function attributes */
-        detail::process_attributes<Extra...>::init(extra..., rec);
+        process_attributes<Extra...>::init(extra..., rec);
 
         /* Generate a readable signature describing the function's arguments and return value types */
         static constexpr auto signature = _("(") + cast_in::arg_names + _(") -> ") + cast_out::name;
@@ -238,7 +243,7 @@ protected:
             } else if (c == '}') {
                 // Write default value if available.
                 if (arg_index < rec->args.size() && rec->args[arg_index].descr) {
-                    signature += "=";
+                    signature += " = ";
                     signature += rec->args[arg_index].descr;
                 }
                 arg_index++;
@@ -306,7 +311,7 @@ protected:
             rec->def = new PyMethodDef();
             std::memset(rec->def, 0, sizeof(PyMethodDef));
             rec->def->ml_name = rec->name;
-            rec->def->ml_meth = reinterpret_cast<PyCFunction>(*dispatcher);
+            rec->def->ml_meth = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*) (void)>(*dispatcher));
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
             capsule rec_capsule(rec, [](void *ptr) {
@@ -420,8 +425,8 @@ protected:
         using namespace detail;
 
         /* Iterator over the list of potentially admissible overloads */
-        function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
-                        *it = overloads;
+        const function_record *overloads = (function_record *) PyCapsule_GetPointer(self, nullptr),
+                              *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
         const size_t n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
@@ -477,7 +482,7 @@ protected:
                    result other than PYBIND11_TRY_NEXT_OVERLOAD.
                  */
 
-                function_record &func = *it;
+                const function_record &func = *it;
                 size_t pos_args = func.nargs;    // Number of positional arguments that we need
                 if (func.has_args) --pos_args;   // (but don't count py::args
                 if (func.has_kwargs) --pos_args; //  or py::kwargs)
@@ -490,7 +495,7 @@ protected:
 
                 function_call call(func, parent);
 
-                size_t args_to_copy = std::min(pos_args, n_args_in);
+                size_t args_to_copy = (std::min)(pos_args, n_args_in); // Protect std::min with parentheses
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
@@ -509,7 +514,7 @@ protected:
                 // 1. Copy any position arguments given.
                 bool bad_arg = false;
                 for (; args_copied < args_to_copy; ++args_copied) {
-                    argument_record *arg_rec = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
+                    const argument_record *arg_rec = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
                     if (kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(kwargs_in, arg_rec->name)) {
                         bad_arg = true;
                         break;
@@ -568,8 +573,8 @@ protected:
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
 
                 // 4a. If we have a py::args argument, create a new tuple with leftovers
-                tuple extra_args;
                 if (func.has_args) {
+                    tuple extra_args;
                     if (args_to_copy == 0) {
                         // We didn't copy out any position arguments from the args_in tuple, so we
                         // can reuse it directly without copying:
@@ -580,12 +585,12 @@ protected:
                         size_t args_size = n_args_in - args_copied;
                         extra_args = tuple(args_size);
                         for (size_t i = 0; i < args_size; ++i) {
-                            handle item = PyTuple_GET_ITEM(args_in, args_copied + i);
-                            extra_args[i] = item.inc_ref().ptr();
+                            extra_args[i] = PyTuple_GET_ITEM(args_in, args_copied + i);
                         }
                     }
                     call.args.push_back(extra_args);
                     call.args_convert.push_back(false);
+                    call.args_ref = std::move(extra_args);
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
@@ -594,6 +599,7 @@ protected:
                         kwargs = dict(); // If we didn't get one, send an empty one
                     call.args.push_back(kwargs);
                     call.args_convert.push_back(false);
+                    call.kwargs_ref = std::move(kwargs);
                 }
 
                 // 5. Put everything in a vector.  Not technically step 5, we've been building it
@@ -649,13 +655,22 @@ protected:
                         result = PYBIND11_TRY_NEXT_OVERLOAD;
                     }
 
-                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
+                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
+                        // The error reporting logic below expects 'it' to be valid, as it would be
+                        // if we'd encountered this failure in the first-pass loop.
+                        if (!result)
+                            it = &call.func;
                         break;
+                    }
                 }
             }
         } catch (error_already_set &e) {
             e.restore();
             return nullptr;
+#if defined(__GNUG__) && !defined(__clang__)
+        } catch ( abi::__forced_unwind& ) {
+            throw;
+#endif
         } catch (...) {
             /* When an exception is caught, give each registered exception
                translator a chance to translate it to a Python exception
@@ -702,7 +717,7 @@ protected:
                 " arguments. The following argument types are supported:\n";
 
             int ctr = 0;
-            for (function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
+            for (const function_record *it2 = overloads; it2 != nullptr; it2 = it2->next) {
                 msg += "    "+ std::to_string(++ctr) + ". ";
 
                 bool wrote_sig = false;
@@ -890,6 +905,7 @@ protected:
         tinfo->type = (PyTypeObject *) m_ptr;
         tinfo->cpptype = rec.type;
         tinfo->type_size = rec.type_size;
+        tinfo->type_align = rec.type_align;
         tinfo->operator_new = rec.operator_new;
         tinfo->holder_size_in_ptrs = size_in_ptrs(rec.holder_size);
         tinfo->init_instance = rec.init_instance;
@@ -981,11 +997,28 @@ template <typename T> struct has_operator_delete_size<T, void_t<decltype(static_
     : std::true_type { };
 /// Call class-specific delete if it exists or global otherwise. Can also be an overload set.
 template <typename T, enable_if_t<has_operator_delete<T>::value, int> = 0>
-void call_operator_delete(T *p, size_t) { T::operator delete(p); }
+void call_operator_delete(T *p, size_t, size_t) { T::operator delete(p); }
 template <typename T, enable_if_t<!has_operator_delete<T>::value && has_operator_delete_size<T>::value, int> = 0>
-void call_operator_delete(T *p, size_t s) { T::operator delete(p, s); }
+void call_operator_delete(T *p, size_t s, size_t) { T::operator delete(p, s); }
 
-inline void call_operator_delete(void *p, size_t) { ::operator delete(p); }
+inline void call_operator_delete(void *p, size_t s, size_t a) {
+    (void)s; (void)a;
+    #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+        if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+            #ifdef __cpp_sized_deallocation
+                ::operator delete(p, s, std::align_val_t(a));
+            #else
+                ::operator delete(p, std::align_val_t(a));
+            #endif
+            return;
+        }
+    #endif
+    #ifdef __cpp_sized_deallocation
+        ::operator delete(p, s);
+    #else
+        ::operator delete(p);
+    #endif
+}
 
 NAMESPACE_END(detail)
 
@@ -1048,10 +1081,11 @@ public:
         record.name = name;
         record.type = &typeid(type);
         record.type_size = sizeof(conditional_t<has_alias, type_alias, type>);
+        record.type_align = alignof(conditional_t<has_alias, type_alias, type>&);
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-        record.default_holder = std::is_same<holder_type, std::unique_ptr<type>>::value;
+        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
         set_operator_new<type>(&record);
 
@@ -1093,7 +1127,7 @@ public:
                 "def_static(...) called with a non-static member function pointer");
         cpp_function cf(std::forward<Func>(f), name(name_), scope(*this),
                         sibling(getattr(*this, name_, none())), extra...);
-        attr(cf.name()) = cf;
+        attr(cf.name()) = staticmethod(cf);
         return *this;
     }
 
@@ -1157,7 +1191,7 @@ public:
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
-        static_assert(std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
+        static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this)),
                      fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
         def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
@@ -1166,7 +1200,7 @@ public:
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
-        static_assert(std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
+        static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this));
         def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
         return *this;
@@ -1238,6 +1272,8 @@ public:
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
     class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
+        static_assert( 0 == detail::constexpr_sum(std::is_base_of<arg, Extra>::value...),
+                      "Argument annotations are not allowed for properties");
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
         auto *rec_active = rec_fget;
         if (rec_fget) {
@@ -1288,7 +1324,7 @@ private:
             auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(
                     v_h.value_ptr<type>()->shared_from_this());
             if (sh) {
-                new (&v_h.holder<holder_type>()) holder_type(std::move(sh));
+                new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(sh));
                 v_h.set_holder_constructed();
             }
         } catch (const std::bad_weak_ptr &) {}
@@ -1300,12 +1336,12 @@ private:
 
     static void init_holder_from_existing(const detail::value_and_holder &v_h,
             const holder_type *holder_ptr, std::true_type /*is_copy_constructible*/) {
-        new (&v_h.holder<holder_type>()) holder_type(*reinterpret_cast<const holder_type *>(holder_ptr));
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(*reinterpret_cast<const holder_type *>(holder_ptr));
     }
 
     static void init_holder_from_existing(const detail::value_and_holder &v_h,
             const holder_type *holder_ptr, std::false_type /*is_copy_constructible*/) {
-        new (&v_h.holder<holder_type>()) holder_type(std::move(*const_cast<holder_type *>(holder_ptr)));
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*const_cast<holder_type *>(holder_ptr)));
     }
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
@@ -1315,7 +1351,7 @@ private:
             init_holder_from_existing(v_h, holder_ptr, std::is_copy_constructible<holder_type>());
             v_h.set_holder_constructed();
         } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
-            new (&v_h.holder<holder_type>()) holder_type(v_h.value_ptr<type>());
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
             v_h.set_holder_constructed();
         }
     }
@@ -1340,7 +1376,10 @@ private:
             v_h.set_holder_constructed(false);
         }
         else {
-            detail::call_operator_delete(v_h.value_ptr<type>(), v_h.type->type_size);
+            detail::call_operator_delete(v_h.value_ptr<type>(),
+                v_h.type->type_size,
+                v_h.type->type_align
+            );
         }
         v_h.value_ptr() = nullptr;
     }
@@ -1376,93 +1415,205 @@ detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetSta
     return {std::forward<GetState>(g), std::forward<SetState>(s)};
 }
 
+NAMESPACE_BEGIN(detail)
+struct enum_base {
+    enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
+
+    PYBIND11_NOINLINE void init(bool is_arithmetic, bool is_convertible) {
+        m_base.attr("__entries") = dict();
+        auto property = handle((PyObject *) &PyProperty_Type);
+        auto static_property = handle((PyObject *) get_internals().static_property_type);
+
+        m_base.attr("__repr__") = cpp_function(
+            [](handle arg) -> str {
+                handle type = arg.get_type();
+                object type_name = type.attr("__name__");
+                dict entries = type.attr("__entries");
+                for (const auto &kv : entries) {
+                    object other = kv.second[int_(0)];
+                    if (other.equal(arg))
+                        return pybind11::str("{}.{}").format(type_name, kv.first);
+                }
+                return pybind11::str("{}.???").format(type_name);
+            }, is_method(m_base)
+        );
+
+        m_base.attr("name") = property(cpp_function(
+            [](handle arg) -> str {
+                dict entries = arg.get_type().attr("__entries");
+                for (const auto &kv : entries) {
+                    if (handle(kv.second[int_(0)]).equal(arg))
+                        return pybind11::str(kv.first);
+                }
+                return "???";
+            }, is_method(m_base)
+        ));
+
+        m_base.attr("__doc__") = static_property(cpp_function(
+            [](handle arg) -> std::string {
+                std::string docstring;
+                dict entries = arg.attr("__entries");
+                if (((PyTypeObject *) arg.ptr())->tp_doc)
+                    docstring += std::string(((PyTypeObject *) arg.ptr())->tp_doc) + "\n\n";
+                docstring += "Members:";
+                for (const auto &kv : entries) {
+                    auto key = std::string(pybind11::str(kv.first));
+                    auto comment = kv.second[int_(1)];
+                    docstring += "\n\n  " + key;
+                    if (!comment.is_none())
+                        docstring += " : " + (std::string) pybind11::str(comment);
+                }
+                return docstring;
+            }
+        ), none(), none(), "");
+
+        m_base.attr("__members__") = static_property(cpp_function(
+            [](handle arg) -> dict {
+                dict entries = arg.attr("__entries"), m;
+                for (const auto &kv : entries)
+                    m[kv.first] = kv.second[int_(0)];
+                return m;
+            }), none(), none(), ""
+        );
+
+        #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                     \
+            m_base.attr(op) = cpp_function(                                            \
+                [](object a, object b) {                                               \
+                    if (!a.get_type().is(b.get_type()))                                \
+                        strict_behavior;                                               \
+                    return expr;                                                       \
+                },                                                                     \
+                is_method(m_base))
+
+        #define PYBIND11_ENUM_OP_CONV(op, expr)                                        \
+            m_base.attr(op) = cpp_function(                                            \
+                [](object a_, object b_) {                                             \
+                    int_ a(a_), b(b_);                                                 \
+                    return expr;                                                       \
+                },                                                                     \
+                is_method(m_base))
+
+        #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                    \
+            m_base.attr(op) = cpp_function(                                            \
+                [](object a_, object b) {                                              \
+                    int_ a(a_);                                                        \
+                    return expr;                                                       \
+                },                                                                     \
+                is_method(m_base))
+
+        if (is_convertible) {
+            PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() &&  a.equal(b));
+            PYBIND11_ENUM_OP_CONV_LHS("__ne__",  b.is_none() || !a.equal(b));
+
+            if (is_arithmetic) {
+                PYBIND11_ENUM_OP_CONV("__lt__",   a <  b);
+                PYBIND11_ENUM_OP_CONV("__gt__",   a >  b);
+                PYBIND11_ENUM_OP_CONV("__le__",   a <= b);
+                PYBIND11_ENUM_OP_CONV("__ge__",   a >= b);
+                PYBIND11_ENUM_OP_CONV("__and__",  a &  b);
+                PYBIND11_ENUM_OP_CONV("__rand__", a &  b);
+                PYBIND11_ENUM_OP_CONV("__or__",   a |  b);
+                PYBIND11_ENUM_OP_CONV("__ror__",  a |  b);
+                PYBIND11_ENUM_OP_CONV("__xor__",  a ^  b);
+                PYBIND11_ENUM_OP_CONV("__rxor__", a ^  b);
+                m_base.attr("__invert__") = cpp_function(
+                    [](object arg) { return ~(int_(arg)); }, is_method(m_base));
+            }
+        } else {
+            PYBIND11_ENUM_OP_STRICT("__eq__",  int_(a).equal(int_(b)), return false);
+            PYBIND11_ENUM_OP_STRICT("__ne__", !int_(a).equal(int_(b)), return true);
+
+            if (is_arithmetic) {
+                #define PYBIND11_THROW throw type_error("Expected an enumeration of matching type!");
+                PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) <  int_(b), PYBIND11_THROW);
+                PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) >  int_(b), PYBIND11_THROW);
+                PYBIND11_ENUM_OP_STRICT("__le__", int_(a) <= int_(b), PYBIND11_THROW);
+                PYBIND11_ENUM_OP_STRICT("__ge__", int_(a) >= int_(b), PYBIND11_THROW);
+                #undef PYBIND11_THROW
+            }
+        }
+
+        #undef PYBIND11_ENUM_OP_CONV_LHS
+        #undef PYBIND11_ENUM_OP_CONV
+        #undef PYBIND11_ENUM_OP_STRICT
+
+        object getstate = cpp_function(
+            [](object arg) { return int_(arg); }, is_method(m_base));
+
+        m_base.attr("__getstate__") = getstate;
+        m_base.attr("__hash__") = getstate;
+    }
+
+    PYBIND11_NOINLINE void value(char const* name_, object value, const char *doc = nullptr) {
+        dict entries = m_base.attr("__entries");
+        str name(name_);
+        if (entries.contains(name)) {
+            std::string type_name = (std::string) str(m_base.attr("__name__"));
+            throw value_error(type_name + ": element \"" + std::string(name_) + "\" already exists!");
+        }
+
+        entries[name] = std::make_pair(value, doc);
+        m_base.attr(name) = value;
+    }
+
+    PYBIND11_NOINLINE void export_values() {
+        dict entries = m_base.attr("__entries");
+        for (const auto &kv : entries)
+            m_parent.attr(kv.first) = kv.second[int_(0)];
+    }
+
+    handle m_base;
+    handle m_parent;
+};
+
+NAMESPACE_END(detail)
+
 /// Binds C++ enumerations and enumeration classes to Python
 template <typename Type> class enum_ : public class_<Type> {
 public:
-    using class_<Type>::def;
-    using class_<Type>::def_property_readonly_static;
+    using Base = class_<Type>;
+    using Base::def;
+    using Base::attr;
+    using Base::def_property_readonly;
+    using Base::def_property_readonly_static;
     using Scalar = typename std::underlying_type<Type>::type;
 
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
-      : class_<Type>(scope, name, extra...), m_entries(), m_parent(scope) {
-
+      : class_<Type>(scope, name, extra...), m_base(*this, scope) {
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
+        constexpr bool is_convertible = std::is_convertible<Type, Scalar>::value;
+        m_base.init(is_arithmetic, is_convertible);
 
-        auto m_entries_ptr = m_entries.inc_ref().ptr();
-        def("__repr__", [name, m_entries_ptr](Type value) -> pybind11::str {
-            for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr)) {
-                if (pybind11::cast<Type>(kv.second) == value)
-                    return pybind11::str("{}.{}").format(name, kv.first);
-            }
-            return pybind11::str("{}.???").format(name);
-        });
-        def_property_readonly_static("__members__", [m_entries_ptr](object /* self */) {
-            dict m;
-            for (const auto &kv : reinterpret_borrow<dict>(m_entries_ptr))
-                m[kv.first] = kv.second;
-            return m;
-        }, return_value_policy::copy);
         def(init([](Scalar i) { return static_cast<Type>(i); }));
         def("__int__", [](Type value) { return (Scalar) value; });
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
         #endif
-        def("__eq__", [](const Type &value, Type *value2) { return value2 && value == *value2; });
-        def("__ne__", [](const Type &value, Type *value2) { return !value2 || value != *value2; });
-        if (is_arithmetic) {
-            def("__lt__", [](const Type &value, Type *value2) { return value2 && value < *value2; });
-            def("__gt__", [](const Type &value, Type *value2) { return value2 && value > *value2; });
-            def("__le__", [](const Type &value, Type *value2) { return value2 && value <= *value2; });
-            def("__ge__", [](const Type &value, Type *value2) { return value2 && value >= *value2; });
-        }
-        if (std::is_convertible<Type, Scalar>::value) {
-            // Don't provide comparison with the underlying type if the enum isn't convertible,
-            // i.e. if Type is a scoped enum, mirroring the C++ behaviour.  (NB: we explicitly
-            // convert Type to Scalar below anyway because this needs to compile).
-            def("__eq__", [](const Type &value, Scalar value2) { return (Scalar) value == value2; });
-            def("__ne__", [](const Type &value, Scalar value2) { return (Scalar) value != value2; });
-            if (is_arithmetic) {
-                def("__lt__", [](const Type &value, Scalar value2) { return (Scalar) value < value2; });
-                def("__gt__", [](const Type &value, Scalar value2) { return (Scalar) value > value2; });
-                def("__le__", [](const Type &value, Scalar value2) { return (Scalar) value <= value2; });
-                def("__ge__", [](const Type &value, Scalar value2) { return (Scalar) value >= value2; });
-                def("__invert__", [](const Type &value) { return ~((Scalar) value); });
-                def("__and__", [](const Type &value, Scalar value2) { return (Scalar) value & value2; });
-                def("__or__", [](const Type &value, Scalar value2) { return (Scalar) value | value2; });
-                def("__xor__", [](const Type &value, Scalar value2) { return (Scalar) value ^ value2; });
-                def("__rand__", [](const Type &value, Scalar value2) { return (Scalar) value & value2; });
-                def("__ror__", [](const Type &value, Scalar value2) { return (Scalar) value | value2; });
-                def("__rxor__", [](const Type &value, Scalar value2) { return (Scalar) value ^ value2; });
-                def("__and__", [](const Type &value, const Type &value2) { return (Scalar) value & (Scalar) value2; });
-                def("__or__", [](const Type &value, const Type &value2) { return (Scalar) value | (Scalar) value2; });
-                def("__xor__", [](const Type &value, const Type &value2) { return (Scalar) value ^ (Scalar) value2; });
-            }
-        }
-        def("__hash__", [](const Type &value) { return (Scalar) value; });
-        // Pickling and unpickling -- needed for use with the 'multiprocessing' module
-        def(pickle([](const Type &value) { return pybind11::make_tuple((Scalar) value); },
-                   [](tuple t) { return static_cast<Type>(t[0].cast<Scalar>()); }));
+        #if PY_MAJOR_VERSION > 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 8)
+            def("__index__", [](Type value) { return (Scalar) value; });
+        #endif
+
+        cpp_function setstate(
+            [](Type &value, Scalar arg) { value = static_cast<Type>(arg); },
+            is_method(*this));
+        attr("__setstate__") = setstate;
     }
 
     /// Export enumeration entries into the parent scope
     enum_& export_values() {
-        for (const auto &kv : m_entries)
-            m_parent.attr(kv.first) = kv.second;
+        m_base.export_values();
         return *this;
     }
 
     /// Add an enumeration entry
-    enum_& value(char const* name, Type value) {
-        auto v = pybind11::cast(value, return_value_policy::copy);
-        this->attr(name) = v;
-        m_entries[pybind11::str(name)] = v;
+    enum_& value(char const* name, Type value, const char *doc = nullptr) {
+        m_base.value(name, pybind11::cast(value, return_value_policy::copy), doc);
         return *this;
     }
 
 private:
-    dict m_entries;
-    handle m_parent;
+    detail::enum_base m_base;
 };
 
 NAMESPACE_BEGIN(detail)
@@ -1651,6 +1802,7 @@ void register_exception_translator(ExceptionTranslator&& translator) {
 template <typename type>
 class exception : public object {
 public:
+    exception() = default;
     exception(handle scope, const char *name, PyObject *base = PyExc_Exception) {
         std::string full_name = scope.attr("__name__").cast<std::string>() +
                                 std::string(".") + name;
@@ -1667,6 +1819,14 @@ public:
     }
 };
 
+NAMESPACE_BEGIN(detail)
+// Returns a reference to a function-local static exception object used in the simple
+// register_exception approach below.  (It would be simpler to have the static local variable
+// directly in register_exception, but that makes clang <3.5 segfault - issue #1349).
+template <typename CppException>
+exception<CppException> &get_exception_object() { static exception<CppException> ex; return ex; }
+NAMESPACE_END(detail)
+
 /**
  * Registers a Python exception in `m` of the given `name` and installs an exception translator to
  * translate the C++ exception to the created Python exception using the exceptions what() method.
@@ -1677,13 +1837,15 @@ template <typename CppException>
 exception<CppException> &register_exception(handle scope,
                                             const char *name,
                                             PyObject *base = PyExc_Exception) {
-    static exception<CppException> ex(scope, name, base);
+    auto &ex = detail::get_exception_object<CppException>();
+    if (!ex) ex = exception<CppException>(scope, name, base);
+
     register_exception_translator([](std::exception_ptr p) {
         if (!p) return;
         try {
             std::rethrow_exception(p);
         } catch (const CppException &e) {
-            ex(e.what());
+            detail::get_exception_object<CppException>()(e.what());
         }
     });
     return ex;
@@ -1756,7 +1918,16 @@ class gil_scoped_acquire {
 public:
     PYBIND11_NOINLINE gil_scoped_acquire() {
         auto const &internals = detail::get_internals();
-        tstate = (PyThreadState *) PyThread_get_key_value(internals.tstate);
+        tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
+
+        if (!tstate) {
+            /* Check if the GIL was acquired using the PyGILState_* API instead (e.g. if
+               calling from a Python thread). Since we use a different key, this ensures
+               we don't create a new thread state and deadlock in PyEval_AcquireThread
+               below. Note we don't save this state with internals.tstate, since we don't
+               create it we would fail to clear it (its reference count should be > 0). */
+            tstate = PyGILState_GetThisThreadState();
+        }
 
         if (!tstate) {
             tstate = PyThreadState_New(internals.istate);
@@ -1765,10 +1936,7 @@ public:
                     pybind11_fail("scoped_acquire: could not create thread state!");
             #endif
             tstate->gilstate_counter = 0;
-            #if PY_MAJOR_VERSION < 3
-                PyThread_delete_key_value(internals.tstate);
-            #endif
-            PyThread_set_key_value(internals.tstate, tstate);
+            PYBIND11_TLS_REPLACE_VALUE(internals.tstate, tstate);
         } else {
             release = detail::get_thread_state_unchecked() != tstate;
         }
@@ -1807,7 +1975,7 @@ public:
             #endif
             PyThreadState_Clear(tstate);
             PyThreadState_DeleteCurrent();
-            PyThread_delete_key_value(detail::get_internals().tstate);
+            PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
             release = false;
         }
     }
@@ -1832,11 +2000,7 @@ public:
         tstate = PyEval_SaveThread();
         if (disassoc) {
             auto key = internals.tstate;
-            #if PY_MAJOR_VERSION < 3
-                PyThread_delete_key_value(key);
-            #else
-                PyThread_set_key_value(key, nullptr);
-            #endif
+            PYBIND11_TLS_DELETE_VALUE(key);
         }
     }
     ~gil_scoped_release() {
@@ -1845,10 +2009,7 @@ public:
         PyEval_RestoreThread(tstate);
         if (disassoc) {
             auto key = detail::get_internals().tstate;
-            #if PY_MAJOR_VERSION < 3
-                PyThread_delete_key_value(key);
-            #endif
-            PyThread_set_key_value(key, tstate);
+            PYBIND11_TLS_REPLACE_VALUE(key, tstate);
         }
     }
 private:
@@ -1875,11 +2036,12 @@ class gil_scoped_release { };
 #endif
 
 error_already_set::~error_already_set() {
-    if (type) {
+    if (m_type) {
         gil_scoped_acquire gil;
-        type.release().dec_ref();
-        value.release().dec_ref();
-        trace.release().dec_ref();
+        error_scope scope;
+        m_type.release().dec_ref();
+        m_value.release().dec_ref();
+        m_trace.release().dec_ref();
     }
 }
 
@@ -1940,6 +2102,14 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     return overload;
 }
 
+/** \rst
+  Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
+
+  :this_ptr: The pointer to the object the overload should be retrieved for. This should be the first
+                   non-trampoline class encountered in the inheritance chain.
+  :name: The name of the overloaded Python method to retrieve.
+  :return: The Python method by this name from the object or an empty function wrapper.
+ \endrst */
 template <class T> function get_overload(const T *this_ptr, const char *name) {
     auto tinfo = detail::get_type_info(typeid(T));
     return tinfo ? get_type_overload(this_ptr, tinfo, name) : function();
@@ -1958,26 +2128,73 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
         } \
     }
 
+/** \rst
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
+    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
+    the appropriate type. See :ref:`overriding_virtuals` for more information. This macro should be used when the method
+    name in C is not the same as the method name in Python. For example with `__str__`.
+
+    .. code-block:: cpp
+
+      std::string toString() override {
+        PYBIND11_OVERLOAD_NAME(
+            std::string, // Return type (ret_type)
+            Animal,      // Parent class (cname)
+            toString,    // Name of function in C++ (name)
+            "__str__",   // Name of method in Python (fn)
+        );
+      }
+\endrst */
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
-    PYBIND11_OVERLOAD_INT(ret_type, cname, name, __VA_ARGS__) \
+    PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
     return cname::fn(__VA_ARGS__)
 
+/** \rst
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD_NAME`, except that it
+    throws if no overload can be found.
+\endrst */
 #define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
-    PYBIND11_OVERLOAD_INT(ret_type, cname, name, __VA_ARGS__) \
-    pybind11::pybind11_fail("Tried to call pure virtual function \"" #cname "::" name "\"");
+    PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
+    pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\"");
 
+/** \rst
+    Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
+    from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
+    the appropriate type. This macro should be used if the method name in C and in Python are identical.
+    See :ref:`overriding_virtuals` for more information.
+
+    .. code-block:: cpp
+
+      class PyAnimal : public Animal {
+      public:
+          // Inherit the constructors
+          using Animal::Animal;
+
+          // Trampoline (need one for each virtual function)
+          std::string go(int n_times) override {
+              PYBIND11_OVERLOAD_PURE(
+                  std::string, // Return type (ret_type)
+                  Animal,      // Parent class (cname)
+                  go,          // Name of function in C++ (must match Python name) (fn)
+                  n_times      // Argument(s) (...)
+              );
+          }
+      };
+\endrst */
 #define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
-    PYBIND11_OVERLOAD_NAME(ret_type, cname, #fn, fn, __VA_ARGS__)
+    PYBIND11_OVERLOAD_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
+/** \rst
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD`, except that it throws
+    if no overload can be found.
+\endrst */
 #define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
-    PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, #fn, fn, __VA_ARGS__)
+    PYBIND11_OVERLOAD_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
 NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(pop)
-#elif defined(__INTEL_COMPILER)
-/* Leave ignored warnings on */
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic pop
 #endif
