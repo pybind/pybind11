@@ -136,6 +136,20 @@ def test_unique_deleter():
     assert cstats4b.alive() == 0  # Should be deleted
 
 
+def test_shared_ptr_non_public_destructor():
+    """#1178: Shared Pointers and Protected Destructors"""
+    with pytest.raises(RuntimeError) as excinfo:
+        m.MyObject4c()
+    assert "Unable to construct C++ holder" in str(excinfo.value)
+
+
+def test_shared_ptr_from_this_non_public_destructor():
+    """#1178: Shared Pointers and Protected Destructors"""
+    with pytest.raises(RuntimeError) as excinfo:
+        m.MyObject4d()
+    assert "Unable to construct C++ holder" in str(excinfo.value)
+
+
 def test_large_holder():
     o = m.MyObject5(5)
     assert o.value == 5

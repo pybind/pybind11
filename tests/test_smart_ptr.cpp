@@ -212,6 +212,26 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<MyObject4b, MyObject4a>(m, "MyObject4b")
         .def(py::init<int>());
 
+    // Object with non-public destructor in a shared_ptr
+    class MyObject4c {
+    public:
+        MyObject4c() { print_created(this); }
+    protected:
+        ~MyObject4c() { print_destroyed(this); }
+    };
+    py::class_<MyObject4c, std::shared_ptr<MyObject4c>>(m, "MyObject4c")
+        .def(py::init());
+
+    // Object with non-public destructor in a shared_ptr with std::enable_shared_from_this<>
+    class MyObject4d : public std::enable_shared_from_this<MyObject4d> {
+    public:
+        MyObject4d() { print_created(this); }
+    protected:
+        ~MyObject4d() { print_destroyed(this); }
+    };
+    py::class_<MyObject4d, std::shared_ptr<MyObject4d>>(m, "MyObject4d")
+        .def(py::init());
+
     // test_large_holder
     class MyObject5 { // managed by huge_unique_ptr
     public:
