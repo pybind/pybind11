@@ -18,11 +18,13 @@
 
 #if PY_MAJOR_VERSION >= 3
 #  define PYBIND11_EMBEDDED_MODULE_IMPL(name)            \
+      extern "C" PyObject *pybind11_init_impl_##name();  \
       extern "C" PyObject *pybind11_init_impl_##name() { \
           return pybind11_init_wrapper_##name();         \
       }
 #else
 #  define PYBIND11_EMBEDDED_MODULE_IMPL(name)            \
+      extern "C" void pybind11_init_impl_##name();       \
       extern "C" void pybind11_init_impl_##name() {      \
           pybind11_init_wrapper_##name();                \
       }

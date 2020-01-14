@@ -16,7 +16,8 @@ matrix:
     - PY_CMD=python3
     - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
     install:
-    - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe flake8 pep8-naming pytest
+    # breathe 4.14 doesn't work with bit fields. See https://github.com/michaeljones/breathe/issues/462
+    - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe==4.13.1 flake8 pep8-naming pytest
     - curl -fsSL https://sourceforge.net/projects/doxygen/files/rel-1.8.15/doxygen-1.8.15.linux.bin.tar.gz/download | tar xz
     - export PATH="$PWD/doxygen-1.8.15/bin:$PATH"
     script:
@@ -33,8 +34,7 @@ matrix:
     - |
       # Barebones build
       cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
-      make pytest -j 2
-      make cpptest -j 2
+      make pytest -j 2 && make cpptest -j 2
   # The following are regular test configurations, including optional dependencies.
   # With regard to each other they differ in Python version, C++ standard and compiler.
   - os: linux
@@ -62,7 +62,7 @@ matrix:
   - os: linux
     dist: trusty
     env: PYTHON=2.7 CPP=14 GCC=6 CMAKE=1
-    name: Python 2.7, c++14, gcc 4.8, CMake test
+    name: Python 2.7, c++14, gcc 6, CMake test
     addons:
       apt:
         sources:
@@ -107,13 +107,39 @@ matrix:
           - lld-7
           - libc++-7-dev
           - libc++abi-7-dev  # Why is this necessary???
+  - os: linux
+    dist: xenial
+    env: PYTHON=3.8 CPP=17 GCC=7
+    name: Python 3.8, c++17, gcc 7 (w/o numpy/scipy) # TODO: update build name when the numpy/scipy wheels become available
+    addons:
+      apt:
+        sources:
+          - deadsnakes
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-7
+          - python3.8-dev
+          - python3.8-venv
+    # Currently there is no numpy/scipy wheels available for python3.8
+    # TODO: remove next before_install, install and script clause when the wheels become available
+    before_install:
+      - pyenv global $(pyenv whence 2to3)  # activate all python versions
+      - PY_CMD=python3
+      - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
+    install:
+      - $PY_CMD -m pip install --user --upgrade pytest
+    script:
+      - |
+        # Barebones build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
+        make pytest -j 2 && make cpptest -j 2
   - os: osx
     name: Python 2.7, c++14, AppleClang 7.3, CMake test
     osx_image: xcode7.3
     env: PYTHON=2.7 CPP=14 CLANG CMAKE=1
   - os: osx
     name: Python 3.7, c++14, AppleClang 9, Debug build
-    osx_image: xcode9
+    osx_image: xcode9.4
     env: PYTHON=3.7 CPP=14 CLANG DEBUG=1
   # Test a PyPy 2.7 build
   - os: linux
@@ -131,7 +157,7 @@ matrix:
     dist: trusty
     services: docker
     env: DOCKER=i386/debian:stretch PYTHON=3.5 CPP=14 GCC=6 INSTALL=1
-    name: Python 3.4, c++14, gcc 6, 32-bit
+    name: Python 3.5, c++14, gcc 6, 32-bit
     script:
       - |
         # Consolidated 32-bit Docker Build + Install
@@ -194,7 +220,7 @@ before_install:
       PY_CMD=python$PYTHON
       if [ "$TRAVIS_OS_NAME" = "osx" ]; then
         if [ "$PY" = "3" ]; then
-          brew update && brew upgrade python
+          brew update && brew unlink python@2 && brew upgrade python
         else
           curl -fsSL https://bootstrap.pypa.io/get-pip.py | $PY_CMD - --user
         fi

@@ -54,6 +54,14 @@ template <class Map> Map *times_ten(int n) {
     return m;
 }
 
+template <class NestMap> NestMap *times_hundred(int n) {
+    auto m = new NestMap();
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= n; j++)
+            (*m)[i].emplace(int(j*10), E_nc(100*j));
+    return m;
+}
+
 TEST_SUBMODULE(stl_binders, m) {
     // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
@@ -85,6 +93,20 @@ TEST_SUBMODULE(stl_binders, m) {
     m.def("get_mnc", &times_ten<std::map<int, E_nc>>, py::return_value_policy::reference);
     py::bind_map<std::unordered_map<int, E_nc>>(m, "UmapENC");
     m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>, py::return_value_policy::reference);
+    // Issue #1885: binding nested std::map<X, Container<E>> with E non-copyable
+    py::bind_map<std::map<int, std::vector<E_nc>>>(m, "MapVecENC");
+    m.def("get_nvnc", [](int n)
+        {
+            auto m = new std::map<int, std::vector<E_nc>>();
+            for (int i = 1; i <= n; i++)
+                for (int j = 1; j <= n; j++)
+                    (*m)[i].emplace_back(j);
+            return m;
+        }, py::return_value_policy::reference);
+    py::bind_map<std::map<int, std::map<int, E_nc>>>(m, "MapMapENC");
+    m.def("get_nmnc", &times_hundred<std::map<int, std::map<int, E_nc>>>, py::return_value_policy::reference);
+    py::bind_map<std::unordered_map<int, std::unordered_map<int, E_nc>>>(m, "UmapUmapENC");
+    m.def("get_numnc", &times_hundred<std::unordered_map<int, std::unordered_map<int, E_nc>>>, py::return_value_policy::reference);
 
     // test_vector_buffer
     py::bind_vector<std::vector<unsigned char>>(m, "VectorUChar", py::buffer_protocol());

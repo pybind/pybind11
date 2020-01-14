@@ -25,6 +25,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
 #    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
 #    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
 #else
     // Usually an int but a long on Cygwin64 with Python 3.x
 #    define PYBIND11_TLS_KEY_INIT(var) decltype(PyThread_create_key()) var = 0
@@ -43,6 +44,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 #        define PYBIND11_TLS_REPLACE_VALUE(key, value)                       \
              PyThread_set_key_value((key), (value))
 #    endif
+#    define PYBIND11_TLS_FREE(key) (void)key
 #endif
 
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
@@ -108,6 +110,16 @@ struct internals {
 #if defined(WITH_THREAD)
     PYBIND11_TLS_KEY_INIT(tstate);
     PyInterpreterState *istate = nullptr;
+    ~internals() {
+        // This destructor is called *after* Py_Finalize() in finalize_interpreter().
+        // That *SHOULD BE* fine. The following details what happens whe PyThread_tss_free is called.
+        // PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does nothing.
+        // PyThread_tss_free calls PyThread_tss_delete and PyMem_RawFree.
+        // PyThread_tss_delete just calls TlsFree (on Windows) or pthread_key_delete (on *NIX). Neither
+        // of those have anything to do with CPython internals.
+        // PyMem_RawFree *requires* that the `tstate` be allocated with the CPython allocator.
+        PYBIND11_TLS_FREE(tstate);
+    }
 #endif
 };
 
@@ -140,13 +152,40 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 3
+#define PYBIND11_INTERNALS_VERSION 4
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
 #   define PYBIND11_BUILD_TYPE "_debug"
 #else
 #   define PYBIND11_BUILD_TYPE ""
+#endif
+
+/// Let's assume that different compilers are ABI-incompatible.
+#if defined(_MSC_VER)
+#   define PYBIND11_COMPILER_TYPE "_msvc"
+#elif defined(__INTEL_COMPILER)
+#   define PYBIND11_COMPILER_TYPE "_icc"
+#elif defined(__clang__)
+#   define PYBIND11_COMPILER_TYPE "_clang"
+#elif defined(__PGI)
+#   define PYBIND11_COMPILER_TYPE "_pgi"
+#elif defined(__MINGW32__)
+#   define PYBIND11_COMPILER_TYPE "_mingw"
+#elif defined(__CYGWIN__)
+#   define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
+#elif defined(__GNUC__)
+#   define PYBIND11_COMPILER_TYPE "_gcc"
+#else
+#   define PYBIND11_COMPILER_TYPE "_unknown"
+#endif
+
+#if defined(_LIBCPP_VERSION)
+#  define PYBIND11_STDLIB "_libcpp"
+#elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
+#  define PYBIND11_STDLIB "_libstdcpp"
+#else
+#  define PYBIND11_STDLIB ""
 #endif
 
 /// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
@@ -163,10 +202,10 @@ struct type_info {
 #endif
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 #define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" \
-    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
+    PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION) PYBIND11_INTERNALS_KIND PYBIND11_COMPILER_TYPE PYBIND11_STDLIB PYBIND11_BUILD_ABI PYBIND11_BUILD_TYPE "__"
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
@@ -186,6 +225,7 @@ inline void translate_exception(std::exception_ptr p) {
     } catch (const std::length_error &e)     { PyErr_SetString(PyExc_ValueError,    e.what()); return;
     } catch (const std::out_of_range &e)     { PyErr_SetString(PyExc_IndexError,    e.what()); return;
     } catch (const std::range_error &e)      { PyErr_SetString(PyExc_ValueError,    e.what()); return;
+    } catch (const std::overflow_error &e)   { PyErr_SetString(PyExc_OverflowError, e.what()); return;
     } catch (const std::exception &e)        { PyErr_SetString(PyExc_RuntimeError,  e.what()); return;
     } catch (...) {
         PyErr_SetString(PyExc_RuntimeError, "Caught an unknown exception!");
