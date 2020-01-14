@@ -1304,19 +1304,23 @@ public:
 
 private:
     /// Initialize holder from pointer when the underlying object is destructible (public destructor)
-    template <typename T = type, detail::enable_if_t<
+    template <typename T = type>
+    detail::enable_if_t<
         !detail::is_instantiation<std::shared_ptr, holder_type>::value ||
-        std::is_destructible<T>::value, int> = 0>
-    static void init_shared_holder_from_pointer(detail::value_and_holder &v_h) {
+        std::is_destructible<T>::value
+    , void>
+    static init_shared_holder_from_pointer(detail::value_and_holder &v_h) {
         new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
         v_h.set_holder_constructed();
     }
 
     /// Do *not* initialize holder from pointer when the underlying object is *not* destructible
-    template <typename T = type, detail::enable_if_t<
+    template <typename T = type>
+    detail::enable_if_t<
         detail::is_instantiation<std::shared_ptr, holder_type>::value &&
-        !std::is_destructible<T>::value, int> = 0>
-    static void init_shared_holder_from_pointer(detail::value_and_holder &) {
+        !std::is_destructible<T>::value
+    , void>
+    static init_shared_holder_from_pointer(detail::value_and_holder &) {
         pybind11_fail("Unable to construct C++ holder"
 #if defined(NDEBUG)
             " (compile in debug mode for type information)"
