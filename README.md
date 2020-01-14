@@ -1,5 +1,13 @@
 ![pybind11 logo](https://github.com/pybind/pybind11/raw/master/docs/pybind11-logo.png)
 
+## RobotLocomotion Fork for Drake
+
+This is a fork of the [official `pybind/pybind11` repository](https://github.com/pybind/pybind11/). For information specific to this fork, please see
+[`README_DRAKE.md`](./README_DRAKE.md).
+
+All the links and badges within this document may link back to the official
+repository.
+
 # pybind11 — Seamless operability between C++11 and Python
 
 [![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=master)](http://pybind11.readthedocs.org/en/master/?badge=master)
