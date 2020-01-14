@@ -225,19 +225,6 @@ inline bool deregister_instance_impl(void *ptr, instance *self) {
     for (auto it = range.first; it != range.second; ++it) {
         if (self == it->second && Py_TYPE(self) == Py_TYPE(it->second)) {
             registered_instances.erase(it);
-            // TODO(eric.cousineau): This section can be removed if we can use
-            // a different key, as mentioned in `get_type_overload` for
-            // pybind11#1922.
-            PyObject *to_remove = (PyObject *)it->second;
-            auto &cache = detail::get_internals().inactive_overload_cache;
-            for (auto key = cache.begin(); key != cache.end();) {
-               if (key->first == to_remove) {
-                  key = cache.erase(key);
-               }
-               else {
-                  ++key;
-               }
-            }
             return true;
         }
     }

@@ -2410,15 +2410,8 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     handle self = detail::get_object_handle(this_ptr, this_type);
     if (!self)
         return function();
-    // N.B. This uses `self.ptr()` instead of `type.ptr()` to resolve
-    // pybind11#1922.
-    // TODO(eric.cousineau): Consider using something like the tuple
-    // (cls, f"{cls.__module__}.{cls.__qualname__}", name). However, since
-    // internals::inactive_overload_cache only supports
-    // `(PyObject*, const char*)` (and thus avoids memory management), it may
-    // require some hand-crafting and really bumping the internals version. For
-    // now, leave as-is.
-    auto key = std::make_pair(self.ptr(), name);
+    handle type = self.get_type();
+    auto key = std::make_pair(type.ptr(), name);
 
     /* Cache functions that aren't overloaded in Python to avoid
        many costly Python dictionary lookups below */
