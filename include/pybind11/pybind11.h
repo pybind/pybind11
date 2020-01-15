@@ -2426,7 +2426,10 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     if (!self)
         return function();
     handle type = self.get_type();
-    auto key = std::make_pair(type.ptr(), name);
+    /* N.B. This uses `__qualname__.name` instead of `name`
+       to resolve pybind11#1922. */
+    std::string full_name = type.attr("__qualname__").cast<std::string>() + "." + name;
+    auto key = std::make_pair(type.ptr(), full_name);
 
     /* Cache functions that aren't overloaded in Python to avoid
        many costly Python dictionary lookups below */
