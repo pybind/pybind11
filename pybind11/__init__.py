@@ -10,17 +10,9 @@ def get_include(user=False):
     virtualenv = hasattr(sys, 'real_prefix') or \
         sys.prefix != getattr(sys, "base_prefix", sys.prefix)
 
-    # Are we running in a conda environment?
-    conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta'))
-
     if virtualenv:
         return os.path.join(sys.prefix, 'include', 'site',
                             'python' + sys.version[:3])
-    elif conda:
-        if os.name == 'nt':
-            return os.path.join(sys.prefix, 'Library', 'include')
-        else:
-            return os.path.join(sys.prefix, 'include')
     else:
         dist = Distribution({'name': 'pybind11'})
         dist.parse_config_files()
