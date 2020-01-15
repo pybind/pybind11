@@ -30,7 +30,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     else { wstr.push_back((wchar_t) mathbfA32); } // 𝐀, utf32
     wstr.push_back(0x7a); // z
 
-    m.def("good_utf8_string", []() { return std::string(u8"Say utf8\u203d \U0001f382 \U0001d400"); }); // Say utf8‽ 🎂 𝐀
+    m.def("good_utf8_string", []() { return std::string((const char*)u8"Say utf8\u203d \U0001f382 \U0001d400"); }); // Say utf8‽ 🎂 𝐀
     m.def("good_utf16_string", [=]() { return std::u16string({ b16, ib16, cake16_1, cake16_2, mathbfA16_1, mathbfA16_2, z16 }); }); // b‽🎂𝐀z
     m.def("good_utf32_string", [=]() { return std::u32string({ a32, mathbfA32, cake32, ib32, z32 }); }); // a𝐀🎂‽z
     m.def("good_wchar_string", [=]() { return wstr; }); // a‽𝐀z
@@ -60,6 +60,18 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("strlen", [](char *s) { return strlen(s); });
     m.def("string_length", [](std::string s) { return s.length(); });
 
+#ifdef PYBIND11_HAS_U8STRING
+    m.attr("has_u8string") = true;
+    m.def("good_utf8_u8string", []() { return std::u8string(u8"Say utf8\u203d \U0001f382 \U0001d400"); }); // Say utf8‽ 🎂 𝐀
+    m.def("bad_utf8_u8string", []()  { return std::u8string((const char8_t*)"abc\xd0" "def"); });
+
+    m.def("u8_char8_Z", []() -> char8_t { return u8'Z'; });
+
+    // test_single_char_arguments
+    m.def("ord_char8", [](char8_t c) -> int { return static_cast<unsigned char>(c); });
+    m.def("ord_char8_lv", [](char8_t &c) -> int { return static_cast<unsigned char>(c); });
+#endif
+
     // test_string_view
 #ifdef PYBIND11_HAS_STRING_VIEW
     m.attr("has_string_view") = true;
@@ -69,9 +81,15 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("string_view_chars",   [](std::string_view s)    { py::list l; for (auto c : s) l.append((std::uint8_t) c); return l; });
     m.def("string_view16_chars", [](std::u16string_view s) { py::list l; for (auto c : s) l.append((int) c); return l; });
     m.def("string_view32_chars", [](std::u32string_view s) { py::list l; for (auto c : s) l.append((int) c); return l; });
-    m.def("string_view_return",   []() { return std::string_view(u8"utf8 secret \U0001f382"); });
+    m.def("string_view_return",   []() { return std::string_view((const char*)u8"utf8 secret \U0001f382"); });
     m.def("string_view16_return", []() { return std::u16string_view(u"utf16 secret \U0001f382"); });
     m.def("string_view32_return", []() { return std::u32string_view(U"utf32 secret \U0001f382"); });
+
+#   ifdef PYBIND11_HAS_U8STRING
+    m.def("string_view8_print",  [](std::u8string_view s) { py::print(s, s.size()); });
+    m.def("string_view8_chars",  [](std::u8string_view s) { py::list l; for (auto c : s) l.append((std::uint8_t) c); return l; });
+    m.def("string_view8_return", []() { return std::u8string_view(u8"utf8 secret \U0001f382"); });
+#   endif
 #endif
 
     // test_integer_casting

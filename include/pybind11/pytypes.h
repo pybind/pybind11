@@ -1313,7 +1313,7 @@ class buffer : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(buffer, object, PyObject_CheckBuffer)
 
-    buffer_info request(bool writable = false) {
+    buffer_info request(bool writable = false) const {
         int flags = PyBUF_STRIDES | PyBUF_FORMAT;
         if (writable) flags |= PyBUF_WRITABLE;
         Py_buffer *view = new Py_buffer();
@@ -1346,7 +1346,7 @@ public:
         buf.strides = py_strides.data();
         buf.shape = py_shape.data();
         buf.suboffsets = nullptr;
-        buf.readonly = false;
+        buf.readonly = info.readonly;
         buf.internal = nullptr;
 
         m_ptr = PyMemoryView_FromBuffer(&buf);

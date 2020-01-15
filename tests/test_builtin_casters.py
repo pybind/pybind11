@@ -15,6 +15,8 @@ def test_unicode_conversion():
     assert m.good_utf16_string() == u"b‽🎂𝐀z"
     assert m.good_utf32_string() == u"a𝐀🎂‽z"
     assert m.good_wchar_string() == u"a⸘𝐀z"
+    if hasattr(m, "has_u8string"):
+        assert m.good_utf8_u8string() == u"Say utf8‽ 🎂 𝐀"
 
     with pytest.raises(UnicodeDecodeError):
         m.bad_utf8_string()
@@ -29,12 +31,17 @@ def test_unicode_conversion():
     if hasattr(m, "bad_wchar_string"):
         with pytest.raises(UnicodeDecodeError):
             m.bad_wchar_string()
+    if hasattr(m, "has_u8string"):
+        with pytest.raises(UnicodeDecodeError):
+            m.bad_utf8_u8string()
 
     assert m.u8_Z() == 'Z'
     assert m.u8_eacute() == u'é'
     assert m.u16_ibang() == u'‽'
     assert m.u32_mathbfA() == u'𝐀'
     assert m.wchar_heart() == u'♥'
+    if hasattr(m, "has_u8string"):
+        assert m.u8_char8_Z() == 'Z'
 
 
 def test_single_char_arguments():
@@ -92,6 +99,17 @@ def test_single_char_arguments():
         assert m.ord_wchar(u'aa')
     assert str(excinfo.value) == toolong_message
 
+    if hasattr(m, "has_u8string"):
+        assert m.ord_char8(u'a') == 0x61  # simple ASCII
+        assert m.ord_char8_lv(u'b') == 0x62
+        assert m.ord_char8(u'é') == 0xE9  # requires 2 bytes in utf-8, but can be stuffed in a char
+        with pytest.raises(ValueError) as excinfo:
+            assert m.ord_char8(u'Ā') == 0x100  # requires 2 bytes, doesn't fit in a char
+        assert str(excinfo.value) == toobig_message(0x100)
+        with pytest.raises(ValueError) as excinfo:
+            assert m.ord_char8(u'ab')
+        assert str(excinfo.value) == toolong_message
+
 
 def test_bytes_to_string():
     """Tests the ability to pass bytes to C++ string-accepting functions.  Note that this is
@@ -116,10 +134,15 @@ def test_string_view(capture):
     assert m.string_view_chars("Hi 🎂") == [72, 105, 32, 0xf0, 0x9f, 0x8e, 0x82]
     assert m.string_view16_chars("Hi 🎂") == [72, 105, 32, 0xd83c, 0xdf82]
     assert m.string_view32_chars("Hi 🎂") == [72, 105, 32, 127874]
+    if hasattr(m, "has_u8string"):
+        assert m.string_view8_chars("Hi") == [72, 105]
+        assert m.string_view8_chars("Hi 🎂") == [72, 105, 32, 0xf0, 0x9f, 0x8e, 0x82]
 
     assert m.string_view_return() == "utf8 secret 🎂"
     assert m.string_view16_return() == "utf16 secret 🎂"
     assert m.string_view32_return() == "utf32 secret 🎂"
+    if hasattr(m, "has_u8string"):
+        assert m.string_view8_return() == "utf8 secret 🎂"
 
     with capture:
         m.string_view_print("Hi")
@@ -132,6 +155,14 @@ def test_string_view(capture):
         utf16 🎂 8
         utf32 🎂 7
     """
+    if hasattr(m, "has_u8string"):
+        with capture:
+            m.string_view8_print("Hi")
+            m.string_view8_print("utf8 🎂")
+        assert capture == """
+            Hi 2
+            utf8 🎂 9
+        """
 
     with capture:
         m.string_view_print("Hi, ascii")
@@ -144,6 +175,14 @@ def test_string_view(capture):
         Hi, utf16 🎂 12
         Hi, utf32 🎂 11
     """
+    if hasattr(m, "has_u8string"):
+        with capture:
+            m.string_view8_print("Hi, ascii")
+            m.string_view8_print("Hi, utf8 🎂")
+        assert capture == """
+            Hi, ascii 9
+            Hi, utf8 🎂 13
+        """
 
 
 def test_integer_casting():
@@ -318,11 +357,15 @@ def test_numpy_bool():
     import numpy as np
     convert, noconvert = m.bool_passthrough, m.bool_passthrough_noconvert
 
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
     # np.bool_ is not considered implicit
     assert convert(np.bool_(True)) is True
     assert convert(np.bool_(False)) is False
     assert noconvert(np.bool_(True)) is True
     assert noconvert(np.bool_(False)) is False
+    cant_convert(np.zeros(2, dtype='int'))
 
 
 def test_int_long():

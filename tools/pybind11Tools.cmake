@@ -12,7 +12,7 @@ if(NOT PYBIND11_PYTHON_VERSION)
   set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 endif()
 
-set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5 3.4)
+set(Python_ADDITIONAL_VERSIONS 3.8 3.7 3.6 3.5 3.4)
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 include(CheckCXXCompilerFlag)
@@ -197,7 +197,7 @@ function(pybind11_add_module target_name)
 
   _pybind11_add_lto_flags(${target_name} ${ARG_THIN_LTO})
 
-  if (NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug)
+  if (NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
     # Strip unnecessary sections of the binary on Linux/Mac OS
     if(CMAKE_STRIP)
       if(APPLE)
