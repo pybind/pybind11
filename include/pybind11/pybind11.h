@@ -1432,19 +1432,22 @@ struct enum_base {
             }, is_method(m_base)
         ));
 
+        bool show_enum_members = options::show_enum_members_docstring();
         m_base.attr("__doc__") = static_property(cpp_function(
-            [](handle arg) -> std::string {
+            [show_enum_members](handle arg) -> std::string {
                 std::string docstring;
-                dict entries = arg.attr("__entries");
                 if (((PyTypeObject *) arg.ptr())->tp_doc)
-                    docstring += std::string(((PyTypeObject *) arg.ptr())->tp_doc) + "\n\n";
-                docstring += "Members:";
-                for (const auto &kv : entries) {
-                    auto key = std::string(pybind11::str(kv.first));
-                    auto comment = kv.second[int_(1)];
-                    docstring += "\n\n  " + key;
-                    if (!comment.is_none())
-                        docstring += " : " + (std::string) pybind11::str(comment);
+                    docstring += std::string(((PyTypeObject *) arg.ptr())->tp_doc);
+                if (show_enum_members) {
+                    docstring += "\n\nMembers:";
+                    dict entries = arg.attr("__entries");
+                    for (const auto &kv : entries) {
+                        auto key = std::string(pybind11::str(kv.first));
+                        auto comment = kv.second[int_(1)];
+                        docstring += "\n\n  " + key;
+                        if (!comment.is_none())
+                            docstring += " : " + (std::string) pybind11::str(comment);
+                    }
                 }
                 return docstring;
             }
