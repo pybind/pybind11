@@ -1540,6 +1540,15 @@ struct enum_base {
 
         entries[name] = std::make_pair(value, doc);
         m_base.attr(name) = value;
+
+        if (options::populate_enum_pdoc()) {
+            if (!hasattr(m_parent, "__pdoc__")) {
+                // Add the __pdoc__ dict to the  module if it isn't already there
+                m_parent.attr("__pdoc__") = dict();
+            }
+            auto doc_key = str("{}.{}").format(m_base.attr("__name__"), name);
+            m_parent.attr("__pdoc__")[doc_key] = doc;
+        }
     }
 
     PYBIND11_NOINLINE void export_values() {
