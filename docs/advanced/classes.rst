@@ -298,8 +298,8 @@ The classes are then registered with pybind11 using:
 .. code-block:: cpp
 
     py::class_<Animal, PyAnimal<>> animal(m, "Animal");
-    py::class_<Dog, PyDog<>> dog(m, "Dog");
-    py::class_<Husky, PyDog<Husky>> husky(m, "Husky");
+    py::class_<Dog, Animal, PyDog<>> dog(m, "Dog");
+    py::class_<Husky, Dog, PyDog<Husky>> husky(m, "Husky");
     // ... add animal, dog, husky definitions
 
 Note that ``Husky`` did not require a dedicated trampoline template class at
