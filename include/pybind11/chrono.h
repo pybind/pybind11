@@ -11,6 +11,7 @@
 #pragma once
 
 #include "pybind11.h"
+#include "numpy.h"
 #include <cmath>
 #include <ctime>
 #include <chrono>
