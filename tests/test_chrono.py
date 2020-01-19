@@ -95,10 +95,10 @@ def test_chrono_system_clock_roundtrip_time():
     assert date2.year == 1970
     assert date2.month == 1
     assert date2.day == 1
-    
+
 
 def test_numpy_chrono_system_clock_roundtrip_date():
-    date1    = datetime.datetime.today().date()
+    date1 = datetime.datetime.today().date()
     date1_np = np.datetime64(date1)
 
     # Roundtrip the time
@@ -110,7 +110,7 @@ def test_numpy_chrono_system_clock_roundtrip_date():
     assert isinstance(datetime2, datetime.datetime)
     assert isinstance(date2, datetime.date)
     assert isinstance(time2, datetime.time)
-    
+
     # There should be no time information
     assert time2.hour == 0
     assert time2.minute == 0
@@ -121,10 +121,10 @@ def test_numpy_chrono_system_clock_roundtrip_date():
     assert date2.year == date1.year
     assert date2.month == date1.month
     assert date2.day == date1.day
-   
+
 
 def test_numpy_chrono_system_clock_roundtrip_datetime():
-    datetime1    = datetime.datetime.today()
+    datetime1 = datetime.datetime.today()
     datetime1_np = np.datetime64(datetime1)
 
     # Roundtrip the time
@@ -136,13 +136,13 @@ def test_numpy_chrono_system_clock_roundtrip_datetime():
     assert isinstance(datetime2, datetime.datetime)
     assert isinstance(date2, datetime.date)
     assert isinstance(time2, datetime.time)
-    
+
     # They should be identical (no information lost on roundtrip)
     diff = abs(datetime1.date() - date2)
     assert diff.days == 0
     assert diff.seconds == 0
     assert diff.microseconds == 0
-    
+
     # Hour, Minute, Second & Microsecond should be the same after the round trip
     assert datetime1.hour == datetime2.hour
     assert datetime1.minute == datetime2.minute
