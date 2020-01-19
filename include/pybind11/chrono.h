@@ -137,6 +137,40 @@ public:
             cal.tm_year  = 70;  // earliest available date for Python's datetime
             cal.tm_isdst = -1;
             msecs        = microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()));
+        } else if (strcmp(src.ptr()->ob_type->tp_name, "numpy.datetime64") == 0)
+        {
+            long np_dt_long = array_t<long, 0>::ensure(src).data()[0];
+
+            object py_dt;
+            if (np_dt_long < 376200)  // np.datetime64('3000-01-01').astype(int) = 376200
+            {
+                static PyObject* dt_func_ptr = module::import("datetime").attr("datetime")
+                    .attr("fromordinal").cast<object>().release().ptr();
+                object fromordinal = reinterpret_borrow<object>(dt_func_ptr);
+
+                py_dt       = fromordinal(np_dt_long + 719163);  // datetime(1970,1,1).toordinal() = 719163
+                cal.tm_sec  = 0;
+                cal.tm_min  = 0;
+                cal.tm_hour = 0;
+                msecs       = microseconds(0);
+            }
+            else
+            {
+                static PyObject* dt_func_ptr = module::import("datetime").attr("datetime")
+                    .attr("utcfromtimestamp").cast<object>().release().ptr();
+                object utcfromtimestamp = reinterpret_borrow<object>(dt_func_ptr);
+
+                py_dt       = utcfromtimestamp(np_dt_long);
+                cal.tm_sec  = PyDateTime_DATE_GET_SECOND(py_dt.ptr());
+                cal.tm_min  = PyDateTime_DATE_GET_MINUTE(py_dt.ptr());
+                cal.tm_hour = PyDateTime_DATE_GET_HOUR(py_dt.ptr());
+                msecs       = microseconds(PyDateTime_DATE_GET_MICROSECOND(py_dt.ptr()));
+            }
+
+            cal.tm_mday  = PyDateTime_GET_DAY(py_dt.ptr());
+            cal.tm_mon   = PyDateTime_GET_MONTH(py_dt.ptr()) - 1;
+            cal.tm_year  = PyDateTime_GET_YEAR(py_dt.ptr()) - 1900;
+            cal.tm_isdst = -1;
         }
         else return false;
 
