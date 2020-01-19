@@ -1,6 +1,11 @@
 from pybind11_tests import chrono as m
 import datetime
-import numpy as np
+import pytest
+
+pytestmark = pytest.requires_numpy
+
+with pytest.suppress(ImportError):
+    import numpy as np
 
 
 def test_chrono_system_clock():
