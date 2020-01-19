@@ -137,8 +137,7 @@ public:
             cal.tm_year  = 70;  // earliest available date for Python's datetime
             cal.tm_isdst = -1;
             msecs        = microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()));
-        } else if (strcmp(src.ptr()->ob_type->tp_name, "numpy.datetime64") == 0)
-        {
+        } else if (strcmp(src.ptr()->ob_type->tp_name, "numpy.datetime64") == 0) {
             long np_dt_long = array_t<long, 0>::ensure(src).data()[0];
 
             object py_dt;
