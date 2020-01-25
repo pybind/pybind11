@@ -1427,7 +1427,7 @@ struct enum_base {
                         return pybind11::str("{}.{}").format(type_name, kv.first);
                 }
                 return pybind11::str("{}.???").format(type_name);
-            }, is_method(m_base)
+            }, name("__repr__"), is_method(m_base)
         );
 
         m_base.attr("name") = property(cpp_function(
@@ -1438,7 +1438,7 @@ struct enum_base {
                         return pybind11::str(kv.first);
                 }
                 return "???";
-            }, is_method(m_base)
+            }, name("name"), is_method(m_base)
         ));
 
         m_base.attr("__doc__") = static_property(cpp_function(
@@ -1456,7 +1456,7 @@ struct enum_base {
                         docstring += " : " + (std::string) pybind11::str(comment);
                 }
                 return docstring;
-            }
+            }, name("__doc__")
         ), none(), none(), "");
 
         m_base.attr("__members__") = static_property(cpp_function(
@@ -1465,7 +1465,7 @@ struct enum_base {
                 for (const auto &kv : entries)
                     m[kv.first] = kv.second[int_(0)];
                 return m;
-            }), none(), none(), ""
+            }, name("__members__")), none(), none(), ""
         );
 
         #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                     \
@@ -1475,7 +1475,7 @@ struct enum_base {
                         strict_behavior;                                               \
                     return expr;                                                       \
                 },                                                                     \
-                is_method(m_base))
+                name(op), is_method(m_base))
 
         #define PYBIND11_ENUM_OP_CONV(op, expr)                                        \
             m_base.attr(op) = cpp_function(                                            \
@@ -1483,7 +1483,7 @@ struct enum_base {
                     int_ a(a_), b(b_);                                                 \
                     return expr;                                                       \
                 },                                                                     \
-                is_method(m_base))
+                name(op), is_method(m_base))
 
         #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                    \
             m_base.attr(op) = cpp_function(                                            \
@@ -1491,7 +1491,7 @@ struct enum_base {
                     int_ a(a_);                                                        \
                     return expr;                                                       \
                 },                                                                     \
-                is_method(m_base))
+                name(op), is_method(m_base))
 
         if (is_convertible) {
             PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() &&  a.equal(b));
@@ -1509,7 +1509,7 @@ struct enum_base {
                 PYBIND11_ENUM_OP_CONV("__xor__",  a ^  b);
                 PYBIND11_ENUM_OP_CONV("__rxor__", a ^  b);
                 m_base.attr("__invert__") = cpp_function(
-                    [](object arg) { return ~(int_(arg)); }, is_method(m_base));
+                    [](object arg) { return ~(int_(arg)); }, name("__invert__"), is_method(m_base));
             }
         } else {
             PYBIND11_ENUM_OP_STRICT("__eq__",  int_(a).equal(int_(b)), return false);
@@ -1529,11 +1529,11 @@ struct enum_base {
         #undef PYBIND11_ENUM_OP_CONV
         #undef PYBIND11_ENUM_OP_STRICT
 
-        object getstate = cpp_function(
-            [](object arg) { return int_(arg); }, is_method(m_base));
+        m_base.attr("__getstate__") = cpp_function(
+            [](object arg) { return int_(arg); }, name("__getstate__"), is_method(m_base));
 
-        m_base.attr("__getstate__") = getstate;
-        m_base.attr("__hash__") = getstate;
+        m_base.attr("__hash__") = cpp_function(
+            [](object arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
     }
 
     PYBIND11_NOINLINE void value(char const* name_, object value, const char *doc = nullptr) {
@@ -1586,10 +1586,12 @@ public:
             def("__index__", [](Type value) { return (Scalar) value; });
         #endif
 
-        cpp_function setstate(
-            [](Type &value, Scalar arg) { value = static_cast<Type>(arg); },
-            is_method(*this));
-        attr("__setstate__") = setstate;
+        attr("__setstate__") = cpp_function(
+            [](detail::value_and_holder &v_h, Scalar arg) {
+                detail::initimpl::setstate<Base>(v_h, static_cast<Type>(arg),
+                        Py_TYPE(v_h.inst) != v_h.type->type); },
+            detail::is_new_style_constructor(),
+            pybind11::name("__setstate__"), is_method(*this));
     }
 
     /// Export enumeration entries into the parent scope
