@@ -1242,7 +1242,12 @@ private:
 class sequence : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(sequence, object, PySequence_Check)
-    size_t size() const { return (size_t) PySequence_Size(m_ptr); }
+    size_t size() const {
+        ssize_t result = PySequence_Size(m_ptr);
+        if (result == -1)
+            throw error_already_set();
+        return (size_t) result;
+    }
     bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
