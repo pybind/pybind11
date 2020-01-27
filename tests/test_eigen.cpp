@@ -286,10 +286,12 @@ TEST_SUBMODULE(eigen, m) {
     m.def("get_elem_rm_nocopy", [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long { return m(2, 1); },
             py::arg().noconvert());
 
-    // test_issue738
+    // test_issue738_issue2038
     // Issue #738: 1xN or Nx1 2D matrices were neither accepted nor properly copied with an
     // incompatible stride value on the length-1 dimension--but that should be allowed (without
     // requiring a copy!) because the stride value can be safely ignored on a size-1 dimension.
+    // Issue #2039: 0xN (col-major) or Nx0 (row-major) matrices were not accepted properly, due to a similar
+    // situation.
     m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg().noconvert());
     m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg().noconvert());
 

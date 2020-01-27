@@ -100,9 +100,9 @@ template <bool EigenRowMajor> struct EigenConformable {
         return
             !negativestrides &&
             (props::inner_stride == Eigen::Dynamic || props::inner_stride == stride.inner() ||
-                (EigenRowMajor ? cols : rows) == 1) &&
+                (EigenRowMajor ? cols : rows) <= 1) &&
             (props::outer_stride == Eigen::Dynamic || props::outer_stride == stride.outer() ||
-                (EigenRowMajor ? rows : cols) == 1);
+                (EigenRowMajor ? rows : cols) <= 1);
     }
     operator bool() const { return conformable; }
 };
