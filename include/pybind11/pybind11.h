@@ -1520,8 +1520,11 @@ struct enum_base {
         #undef PYBIND11_ENUM_OP_CONV
         #undef PYBIND11_ENUM_OP_STRICT
 
+        m_base.attr("__getstate__") = cpp_function(
+            [](object arg) { return int_(arg); }, name("__getstate__"), is_method(m_base));
+
         m_base.attr("__hash__") = cpp_function(
-                [](object arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
+            [](object arg) { return int_(arg); }, name("__hash__"), is_method(m_base));
     }
 
     PYBIND11_NOINLINE void value(char const* name_, object value, const char *doc = nullptr) {
@@ -1574,8 +1577,12 @@ public:
             def("__index__", [](Type value) { return (Scalar) value; });
         #endif
 
-        def(pickle([](Type value) { return static_cast<Scalar>(value); },
-                   [](Scalar arg) { return static_cast<Type>(arg); }));
+        attr("__setstate__") = cpp_function(
+            [](detail::value_and_holder &v_h, Scalar arg) {
+                detail::initimpl::setstate<Base>(v_h, std::move(static_cast<Type>(arg)),
+                        Py_TYPE(v_h.inst) != v_h.type->type); },
+            detail::is_new_style_constructor(),
+            pybind11::name("__setstate__"), is_method(*this));
     }
 
     /// Export enumeration entries into the parent scope
