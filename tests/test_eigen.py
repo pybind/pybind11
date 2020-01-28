@@ -753,13 +753,17 @@ def test_sparse_signature(doc):
     """  # noqa: E501 line too long
 
 
-def test_issue738():
-    """Ignore strides on a length-1 dimension (even if they would be incompatible length > 1)"""
+def test_issue738_issue2038():
+    """Ignore strides on a length-0 or -1 dimension (even if they would be incompatible
+    length > 1)"""
     assert np.all(m.iss738_f1(np.array([[1., 2, 3]])) == np.array([[1., 102, 203]]))
     assert np.all(m.iss738_f1(np.array([[1.], [2], [3]])) == np.array([[1.], [12], [23]]))
 
     assert np.all(m.iss738_f2(np.array([[1., 2, 3]])) == np.array([[1., 102, 203]]))
     assert np.all(m.iss738_f2(np.array([[1.], [2], [3]])) == np.array([[1.], [12], [23]]))
+
+    assert np.all(m.iss738_f1(np.zeros((0, 2))) == np.zeros((0, 2)))
+    assert np.all(m.iss738_f2(np.zeros((2, 0))) == np.zeros((2, 0)))
 
 
 def test_issue1105():
