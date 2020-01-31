@@ -109,14 +109,14 @@ if(NOT (CMAKE_VERSION VERSION_LESS 3.0))  # CMake >= 3.0
   endif()
   target_link_libraries(module INTERFACE pybind11::pybind11)
   if(WIN32 OR CYGWIN)
-    target_link_libraries(module INTERFACE $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+    target_link_libraries(module INTERFACE ${PYTHON_LIBRARIES})
   elseif(APPLE)
     target_link_libraries(module INTERFACE "-undefined dynamic_lookup")
   endif()
 
   add_library(embed INTERFACE)
   add_library(pybind11::embed ALIAS embed)
-  target_link_libraries(embed INTERFACE pybind11::pybind11 $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+  target_link_libraries(embed INTERFACE pybind11::pybind11 ${PYTHON_LIBRARIES})
 endif()
 
 if (PYBIND11_INSTALL)
