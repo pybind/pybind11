@@ -10,6 +10,8 @@
 
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
+#include <algorithm>
+#include <utility>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
