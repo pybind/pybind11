@@ -794,7 +794,8 @@ public:
     explicit module(const char *name, const char *doc = nullptr) {
         if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
-        PyModuleDef *def = new PyModuleDef();
+        static PyModuleDef def2;
+        PyModuleDef* def = &def2;
         std::memset(def, 0, sizeof(PyModuleDef));
         def->m_name = name;
         def->m_doc = doc;

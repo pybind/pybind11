@@ -212,6 +212,24 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
+inline void delete_internals_pp() {
+    detail::internals** internals_ptr_ptr = get_internals_pp();
+    if (internals_ptr_ptr) {
+        auto*& internals_ptr = *internals_ptr_ptr;
+        auto elem = internals_ptr->registered_types_cpp.begin();
+        while (elem != internals_ptr->registered_types_cpp.end()) {
+            type_info* ti = elem->second;
+            delete ti;
+            elem++;
+        }
+        internals_ptr->registered_types_cpp.clear();
+        delete internals_ptr;
+        delete internals_ptr_ptr;
+        internals_ptr_ptr = nullptr;
+    }
+}
+
+
 inline void translate_exception(std::exception_ptr p) {
     try {
         if (p) std::rethrow_exception(p);
@@ -269,6 +287,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
     } else {
+        Py_AtExit(delete_internals_pp);
         if (!internals_pp) internals_pp = new internals*();
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
