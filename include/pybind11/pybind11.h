@@ -1486,6 +1486,16 @@ detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetSta
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+inline str enum_name(handle arg) {
+    dict entries = arg.get_type().attr("__entries");
+    for (const auto &kv : entries) {
+        if (handle(kv.second[int_(0)]).equal(arg))
+            return pybind11::str(kv.first);
+    }
+    return "???";
+}
+
 struct enum_base {
     enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
 
@@ -1495,29 +1505,21 @@ struct enum_base {
         auto static_property = handle((PyObject *) get_internals().static_property_type);
 
         m_base.attr("__repr__") = cpp_function(
-            [](handle arg) -> str {
+            [](object arg) -> str {
                 handle type = type::handle_of(arg);
                 object type_name = type.attr("__name__");
-                dict entries = type.attr("__entries");
-                for (auto kv : entries) {
-                    object other = kv.second[int_(0)];
-                    if (other.equal(arg))
-                        return pybind11::str("{}.{}").format(type_name, kv.first);
-                }
-                return pybind11::str("{}.???").format(type_name);
+                return pybind11::str("<{}.{}: {}>").format(type_name, enum_name(arg), int_(arg));
             }, name("__repr__"), is_method(m_base)
         );
 
-        m_base.attr("name") = property(cpp_function(
+        m_base.attr("name") = property(cpp_function(&enum_name, name("name"), is_method(m_base)));
+
+        m_base.attr("__str__") = cpp_function(
             [](handle arg) -> str {
-                dict entries = type::handle_of(arg).attr("__entries");
-                for (auto kv : entries) {
-                    if (handle(kv.second[int_(0)]).equal(arg))
-                        return pybind11::str(kv.first);
-                }
-                return "???";
+                object type_name = type::handle_of(arg).attr("__name__");
+                return pybind11::str("{}.{}").format(type_name, enum_name(arg));
             }, name("name"), is_method(m_base)
-        ));
+        );
 
         m_base.attr("__doc__") = static_property(cpp_function(
             [](handle arg) -> std::string {

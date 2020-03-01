@@ -7,6 +7,9 @@ def test_unscoped_enum():
     assert str(m.UnscopedEnum.EOne) == "UnscopedEnum.EOne"
     assert str(m.UnscopedEnum.ETwo) == "UnscopedEnum.ETwo"
     assert str(m.EOne) == "UnscopedEnum.EOne"
+    assert repr(m.UnscopedEnum.EOne) == "<UnscopedEnum.EOne: 1>"
+    assert repr(m.UnscopedEnum.ETwo) == "<UnscopedEnum.ETwo: 2>"
+    assert repr(m.EOne) == "<UnscopedEnum.EOne: 1>"
 
     # name property
     assert m.UnscopedEnum.EOne.name == "EOne"
@@ -143,6 +146,8 @@ def test_scoped_enum():
 def test_implicit_conversion():
     assert str(m.ClassWithUnscopedEnum.EMode.EFirstMode) == "EMode.EFirstMode"
     assert str(m.ClassWithUnscopedEnum.EFirstMode) == "EMode.EFirstMode"
+    assert repr(m.ClassWithUnscopedEnum.EMode.EFirstMode) == "<EMode.EFirstMode: 1>"
+    assert repr(m.ClassWithUnscopedEnum.EFirstMode) == "<EMode.EFirstMode: 1>"
 
     f = m.ClassWithUnscopedEnum.test_function
     first = m.ClassWithUnscopedEnum.EFirstMode
@@ -167,7 +172,7 @@ def test_implicit_conversion():
     x[f(first)] = 3
     x[f(second)] = 4
     # Hashing test
-    assert str(x) == "{EMode.EFirstMode: 3, EMode.ESecondMode: 4}"
+    assert repr(x) == "{<EMode.EFirstMode: 1>: 3, <EMode.ESecondMode: 2>: 4}"
 
 
 def test_binary_operators():
