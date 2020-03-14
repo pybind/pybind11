@@ -50,7 +50,7 @@ namespace std {
 }
 
 
-template <template <typename> typename OptionalImpl, typename T>
+template <template <typename> class OptionalImpl, typename T>
 struct OptionalHolder
 {
     OptionalHolder() = default;
