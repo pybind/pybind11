@@ -215,6 +215,8 @@ def pytest_configure():
     pytest.requires_eigen_and_scipy = skipif(
         not have_eigen or not scipy, reason="eigen and/or scipy are not installed")
     pytest.unsupported_on_pypy = skipif(pypy, reason="unsupported on PyPy")
+    pytest.unsupported_on_pypy_lt_6 = skipif(pypy and sys.pypy_version_info[0] < 6,
+                                             reason="unsupported on PyPy<6")
     pytest.unsupported_on_py2 = skipif(sys.version_info.major < 3,
                                        reason="unsupported on Python 2.x")
     pytest.gc_collect = gc_collect
