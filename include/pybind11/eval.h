@@ -66,18 +66,18 @@ void exec(const char (&s)[N], object global = globals(), object local = object()
     eval<eval_statements>(s, global, local);
 }
 
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION) && PY_VERSION_MAJOR < 3
 template <eval_mode mode = eval_statements>
 object eval_file(str, object, object) {
-    pybind11_fail("eval_file not supported in PyPy. Use eval");
+    pybind11_fail("eval_file not supported in PyPy3. Use eval");
 }
 template <eval_mode mode = eval_statements>
 object eval_file(str, object) {
-    pybind11_fail("eval_file not supported in PyPy. Use eval");
+    pybind11_fail("eval_file not supported in PyPy3. Use eval");
 }
 template <eval_mode mode = eval_statements>
 object eval_file(str) {
-    pybind11_fail("eval_file not supported in PyPy. Use eval");
+    pybind11_fail("eval_file not supported in PyPy3. Use eval");
 }
 #else
 template <eval_mode mode = eval_statements>
