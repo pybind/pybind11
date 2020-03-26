@@ -270,16 +270,14 @@ install:
       export CXXFLAGS="-stdlib=libc++"
     fi
 
-    export NPY_NUM_BUILD_JOBS=2
-    echo "Installing pytest, numpy, scipy..."
     local PIP_CMD=""
-    if [ -n $PYPY ]; then
-      # For expediency, install only versions that are available on the extra index.
-      travis_wait 30 \
-        $PY_CMD -m pip install --user --upgrade --extra-index-url https://imaginary.ca/trusty-pypi \
-          pytest numpy==1.15.4 scipy==1.2.0
+    export NPY_NUM_BUILD_JOBS=2
+    if [ -n "$PYPY" ]; then
+       echo Installing "pytest"
+       $PY_CMD -m pip install --user --upgrade pytest
     else
-      $PY_CMD -m pip install --user --upgrade pytest numpy scipy
+       echo "Installing pytest, numpy, scipy..."
+       $PY_CMD -m pip install --user --upgrade pytest numpy scipy
     fi
     echo "done."
 
