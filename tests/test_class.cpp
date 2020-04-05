@@ -367,6 +367,14 @@ TEST_SUBMODULE(class_, m) {
             .def(py::init<>())
             .def("ptr", &Aligned::ptr);
     #endif
+
+    // test_final
+    struct IsFinal final {};
+    py::class_<IsFinal>(m, "IsFinal", py::is_final());
+
+    // test_non_final_final
+    struct IsNonFinalFinal {};
+    py::class_<IsNonFinalFinal>(m, "IsNonFinalFinal", py::is_final());
 }
 
 template <int N> class BreaksBase { public: virtual ~BreaksBase() = default; };

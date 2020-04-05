@@ -1042,6 +1042,32 @@ described trampoline:
     ``.def("foo", static_cast<int (A::*)() const>(&Publicist::foo));``
     where ``int (A::*)() const`` is the type of ``A::foo``.
 
+Binding final classes
+=====================
+
+Some classes may not be appropriate to inherit from. In C++11, classes can
+use the ``final`` specifier to ensure that a class cannot be inherited from.
+The ``py::is_final`` attribute can be used to ensure that Python classes 
+cannot inherit from a specified type. The underlying C++ type does not need
+to be declared final.
+
+.. code-block:: cpp
+
+    class IsFinal final {};
+
+    py::class_<IsFinal>(m, "IsFinal", py::is_final());
+
+When you try to inherit from such a class in Python, you will now get this
+error:
+
+.. code-block:: pycon
+
+    >>> class PyFinalChild(IsFinal):
+    ...     pass
+    TypeError: type 'IsFinal' is not an acceptable base type
+
+.. note:: This attribute is currently ignored on PyPy
+
 Custom automatic downcasters
 ============================
 
