@@ -101,6 +101,27 @@ def test_inheritance(msg):
     assert "No constructor defined!" in str(excinfo.value)
 
 
+def test_inheritance_init(msg):
+
+    # Single base
+    class Python(m.Pet):
+        def __init__(self):
+            pass
+    with pytest.raises(TypeError) as exc_info:
+        Python()
+    assert msg(exc_info.value) == "m.class_.Pet.__init__() must be called when overriding __init__"
+
+    # Multiple bases
+    class RabbitHamster(m.Rabbit, m.Hamster):
+        def __init__(self):
+            m.Rabbit.__init__(self, "RabbitHamster")
+
+    with pytest.raises(TypeError) as exc_info:
+        RabbitHamster()
+    expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
+    assert msg(exc_info.value) == expected
+
+
 def test_automatic_upcasting():
     assert type(m.return_class_1()).__name__ == "DerivedClass1"
     assert type(m.return_class_2()).__name__ == "DerivedClass2"
