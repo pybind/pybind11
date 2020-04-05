@@ -23,6 +23,9 @@ struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
 /// Annotation for operators
 struct is_operator { };
 
+/// Annotation for classes that cannot be subclassed
+struct is_final { };
+
 /// Annotation for parent scope
 struct scope { handle value; scope(const handle &s) : value(s) { } };
 
@@ -201,7 +204,7 @@ struct function_record {
 struct type_record {
     PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          default_holder(true), module_local(false) { }
+          default_holder(true), module_local(false), is_final(false) { }
 
     /// Handle to the parent scope
     handle scope;
@@ -253,6 +256,9 @@ struct type_record {
 
     /// Is the class definition local to the module shared object?
     bool module_local : 1;
+
+    /// Is the class inheritable from python classes?
+    bool is_final : 1;
 
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(base, false);
@@ -414,6 +420,11 @@ struct process_attribute<multiple_inheritance> : process_attribute_default<multi
 template <>
 struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr> {
     static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
+};
+
+template <>
+struct process_attribute<is_final> : process_attribute_default<is_final> {
+    static void init(const is_final &, type_record *r) { r->is_final = true; }
 };
 
 template <>
