@@ -55,17 +55,27 @@ if(PYTHONLIBS_FOUND AND PYTHON_MODULE_EXTENSION)
     return()
 endif()
 
-# Use the Python interpreter to find the libs.
-if(PythonLibsNew_FIND_REQUIRED)
-    find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} REQUIRED)
+if(${CMAKE_VERSION} VERSION_LESS "3.12.0")
+    set(PythonLibsNew_FIND_MODULE "PythonInterp")
 else()
-    find_package(PythonInterp ${PythonLibsNew_FIND_VERSION})
+    set(PythonLibsNew_FIND_MODULE "Python")
 endif()
 
-if(NOT PYTHONINTERP_FOUND)
+# Use the Python interpreter to find the libs.
+if(PythonLibsNew_FIND_REQUIRED)
+    find_package(${PythonLibsNew_FIND_MODULE} ${PythonLibsNew_FIND_VERSION} REQUIRED)
+else()
+    find_package(${PythonLibsNew_FIND_MODULE} ${PythonLibsNew_FIND_VERSION})
+endif()
+
+if(NOT (PYTHONINTERP_FOUND OR ${PythonLibsNew_FIND_MODULE}_FOUND))
     set(PYTHONLIBS_FOUND FALSE)
     set(PythonLibsNew_FOUND FALSE)
     return()
+endif()
+
+if(NOT PYTHONINTERP_FOUND)
+    set(PYTHON_EXECUTABLE "${${PythonLibsNew_FIND_MODULE}_EXECUTABLE}")
 endif()
 
 # According to http://stackoverflow.com/questions/646518/python-how-to-detect-debug-interpreter
