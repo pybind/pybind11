@@ -27,12 +27,14 @@ matrix:
     # - $PY_CMD -m sphinx -W -b html docs docs/.build
     - |
       # Make sure setup.py distributes and installs all the headers
+      set -ex
       $PY_CMD setup.py sdist
       $PY_CMD -m pip install --user -U ./dist/*
       installed=$($PY_CMD -c "import pybind11; print(pybind11.get_include(True) + '/pybind11')")
       diff -rq $installed ./include/pybind11
     - |
       # Barebones build
+      set -ex
       cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
       make pytest -j 2 && make cpptest -j 2
   # The following are regular test configurations, including optional dependencies.
@@ -130,6 +132,7 @@ matrix:
       - $PY_CMD -m pip install --user --upgrade pytest
     script:
       - |
+        set -ex
         # Barebones build
         cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
         make pytest -j 2 && make cpptest -j 2
