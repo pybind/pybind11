@@ -1486,7 +1486,7 @@ private:
 
 public:
     template <typename T>
-    explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) { }
+    explicit vectorize_helper(T &&_f) : f(std::forward<T>(_f)) { }
 
     object operator()(typename vectorize_arg<Args>::type... args) {
         return run(args...,
