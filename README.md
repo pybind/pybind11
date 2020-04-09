@@ -8,13 +8,21 @@ This is a fork of the [official `pybind/pybind11` repository](https://github.com
 All the links and badges within this document may link back to the official
 repository.
 
+This fork's CI badge:
+
+[![Build Status](https://travis-ci.com/RobotLocomotion/pybind11.svg?branch=drake)](https://travis-ci.com/github/RobotLocomotion/pybind11)
+
 # pybind11 — Seamless operability between C++11 and Python
+
+<!--
+Drake Fork: Hide upstream CI badges.
 
 [![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=master)](http://pybind11.readthedocs.org/en/master/?badge=master)
 [![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=stable)](http://pybind11.readthedocs.org/en/stable/?badge=stable)
 [![Gitter chat](https://img.shields.io/gitter/room/gitterHQ/gitter.svg)](https://gitter.im/pybind/Lobby)
 [![Build Status](https://travis-ci.org/pybind/pybind11.svg?branch=master)](https://travis-ci.org/pybind/pybind11)
 [![Build status](https://ci.appveyor.com/api/projects/status/riaj54pn4h08xy40?svg=true)](https://ci.appveyor.com/project/wjakob/pybind11)
+-->
 
 **pybind11** is a lightweight header-only library that exposes C++ types in Python
 and vice versa, mainly to create Python bindings of existing C++ code. Its

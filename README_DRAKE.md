@@ -43,19 +43,27 @@ source code (e.g. no whitespace reflowing), and try to stay relatively close to
 For simplicity, these checks are copied from upstream's CI which uses Travis
 CI as part of GitHub's Checks. They test:
 
-* Ubuntu and macOS
+* Ubuntu and macOS (Windows tests disabled)
 * C++11, C++14, and C++17
 * Release and debug builds
 * GCC 4.8, 6, and 7
 * clang 7
 * Apple clang 7.3 and 9
 * 64bit and 32bit
-* CPython and PyPy
-* Python 2.7, 3.5, 3.6, and 3.7
+* CPython and PyPy (though PyPy is partially supported on this fork)
+* Python 2.7, 3.5, 3.6, 3.7, and 3.8
 
 To see builds, see [this fork's Travis CI page](https://travis-ci.com/RobotLocomotion/pybind11/branches).
 
 Windows testing (with AppVeyor) is disabled for this repository.
+
+### Quick Testing
+
+    mkdir build && cd build
+    cmake .. \
+        -DPYTHON_EXECUTABLE=$(which python3) \
+        -DPYBIND11_TEST_OVERRIDE='test_builtin_casters.cpp;test_class.cpp;test_eigen.cpp;test_multiple_inheritance.cpp;test_ownership_transfer.cpp;test_smart_ptr.cpp'
+    make -j 4 pytest
 
 ## Local Git Setup
 
