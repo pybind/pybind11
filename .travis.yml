@@ -126,7 +126,8 @@ matrix:
     # TODO: remove next before_install, install and script clause when the wheels become available
     before_install:
       - pyenv global $(pyenv whence 2to3)  # activate all python versions
-      - PY_CMD=python3
+      - PY_CMD=python3.8
+      - $PY_CMD -m ensurepip --user
       - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
     install:
       - $PY_CMD -m pip install --user --upgrade pytest
