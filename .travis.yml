@@ -140,17 +140,18 @@ matrix:
     name: Python 3.7, c++14, AppleClang 9, Debug build
     osx_image: xcode9.4
     env: PYTHON=3.7 CPP=14 CLANG DEBUG=1
-  # Test a PyPy 2.7 build
-  - os: linux
-    dist: trusty
-    env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
-    name: PyPy 5.8, Python 2.7, c++11, gcc 4.8
-    addons:
-      apt:
-        packages:
-          - libblas-dev
-          - liblapack-dev
-          - gfortran
+  # WARNING: This current fails on download. Should try to upgrade OS + Python version?
+  # # Test a PyPy 2.7 build
+  # - os: linux
+  #   dist: trusty
+  #   env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
+  #   name: PyPy 5.8, Python 2.7, c++11, gcc 4.8
+  #   addons:
+  #     apt:
+  #       packages:
+  #         - libblas-dev
+  #         - liblapack-dev
+  #         - gfortran
   # Build in 32-bit mode and tests against the CMake-installed version
   - os: linux
     dist: trusty
