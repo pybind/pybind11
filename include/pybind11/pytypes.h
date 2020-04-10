@@ -1422,7 +1422,7 @@ class wrapper : public Base {
       }
       holder_type_id_ = holder_type_id;
       patient_ = std::move(patient);
-      // @note It would be nice to put `revive_python3` here, but this is called by
+      // @note It would be nice to put `resurrect_python3` here, but this is called by
       // `PyObject_CallFinalizer`, which will end up reversing its effect anyways.
   }
 
@@ -1431,7 +1431,7 @@ class wrapper : public Base {
       if (!lives_in_cpp()) {
           throw std::runtime_error("Instance does not live in C++");
       }
-      revive_python3();
+      resurrect_python3();
       // Remove existing reference.
       object tmp = std::move(patient_);
       assert(!patient_);
@@ -1462,16 +1462,27 @@ class wrapper : public Base {
       }
   }
 
-  // Python3 unfortunately will not implicitly call `__del__` multiple times,
-  // even if the object is resurrected. This is a dirty workaround.
-  // @see https://bugs.python.org/issue32377
-  inline void revive_python3() {
-#if PY_VERSION_HEX >= 0x03000000
-      // Reverse single-finalization constraint in Python3.
-      if (_PyGC_FINALIZED(patient_.ptr())) {
+  // Handle PEP 442, implemented in Python3, where resurrection more than once
+  // is a bit more dicey.
+  inline void resurrect_python3() {
+#if PY_VERSION_HEX >= 0x03080000
+    // Leak it as a means to stay alive for now.
+    // See: https://bugs.python.org/issue40240
+    if (_PyGC_FINALIZED(patient_.ptr())) {
+        if (leaked_) {
+          throw std::runtime_error("__del__ called twice in Python 3.8+?");
+        }
+        leaked_ = true;
+        patient_.inc_ref();
+    }
+#elif PY_VERSION_HEX >= 0x03000000
+    // Reverse single-finalization constraint in Python3.
+    // This was a really dirty workaround:
+    // See: https://bugs.python.org/issue32377
+    if (_PyGC_FINALIZED(patient_.ptr())) {
         _PyGC_SET_FINALIZED(patient_.ptr(), 0);
-      }
-#endif  // PY_VERSION_HEX >= 0x03000000
+    }
+#endif  // PY_VERSION_HEX >= 0x03080000
   }
 
  private:
@@ -1483,6 +1494,9 @@ class wrapper : public Base {
 
   object patient_;
   detail::HolderTypeId holder_type_id_{detail::HolderTypeId::Unknown};
+#if PY_VERSION_HEX >= 0x03080000
+  bool leaked_{false};
+#endif  // PY_VERSION_HEX >= 0x03080000
 };
 
 NAMESPACE_BEGIN(detail)
