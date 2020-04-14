@@ -462,4 +462,27 @@ TEST_SUBMODULE(smart_ptr, m) {
         [](std::shared_ptr<SharedPtrHeld> obj) {
             return obj != nullptr && obj->value == 10;
         });
+
+    // Test passing ownership of registered, but unowned, C++ instances back to
+    // Python. This happens when a raw pointer is passed first, and then
+    // ownership is transfered.
+    struct UniquePtrHeldContainer {
+        UniquePtrHeldContainer() {
+            value_.reset(new UniquePtrHeld(10));
+        }
+        UniquePtrHeld* get() const {
+            return value_.get();
+        }
+        using Ptr = std::unique_ptr<UniquePtrHeld>;
+        Ptr reset(Ptr to) {
+            Ptr from = std::move(value_);
+            value_ = std::move(to);
+            return from;
+        }
+        std::unique_ptr<UniquePtrHeld> value_;
+    };
+    py::class_<UniquePtrHeldContainer>(m, "UniquePtrHeldContainer")
+        .def(py::init())
+        .def("get", &UniquePtrHeldContainer::get, py::return_value_policy::reference_internal)
+        .def("reset", &UniquePtrHeldContainer::reset);
 }
