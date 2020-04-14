@@ -14,11 +14,15 @@
 #
 # Invoke as: tools/check-style.sh
 #
+set -euo pipefail
+
+# TODO(eacousineau): Is there a way to have grep return 0 if there's no
+# matches, but report an error on other things (like syntax)?
 
 check_style_errors=0
 IFS=$'\n'
 
-found="$( GREP_COLORS='mt=41' GREP_COLOR='41' grep $'\t' include tests/*.{cpp,py,h} docs/*.rst -rn --color=always )"
+found="$( GREP_COLORS='mt=41' GREP_COLOR='41' grep $'\t' include tests/*.{cpp,py,h} docs/*.rst -rn --color=always || :)"
 if [ -n "$found" ]; then
     # The mt=41 sets a red background for matched tabs:
     echo -e '\033[31;01mError: found tab characters in the following files:\033[0m'
@@ -27,14 +31,14 @@ if [ -n "$found" ]; then
 fi
 
 
-found="$( grep -IUlr $'\r' include tests/*.{cpp,py,h} docs/*.rst --color=always )"
+found="$( grep -IUlr $'\r' include tests/*.{cpp,py,h} docs/*.rst --color=always || : )"
 if [ -n "$found" ]; then
     echo -e '\033[31;01mError: found CRLF characters in the following files:\033[0m'
     check_style_errors=1
     echo "$found" | sed -e 's/^/    /'
 fi
 
-found="$(GREP_COLORS='mt=41' GREP_COLOR='41' grep '[[:blank:]]\+$' include tests/*.{cpp,py,h} docs/*.rst -rn --color=always )"
+found="$(GREP_COLORS='mt=41' GREP_COLOR='41' grep '[[:blank:]]\+$' include tests/*.{cpp,py,h} docs/*.rst -rn --color=always || :)"
 if [ -n "$found" ]; then
     # The mt=41 sets a red background for matched trailing spaces
     echo -e '\033[31;01mError: found trailing spaces in the following files:\033[0m'
@@ -42,7 +46,7 @@ if [ -n "$found" ]; then
     echo "$found" | sed -e 's/^/    /'
 fi
 
-found="$(grep '\<\(if\|for\|while\|catch\)(\|){' include tests/*.{cpp,h} -rn --color=always)"
+found="$(grep '\<\(if\|for\|while\|catch\)(\|){' include tests/*.{cpp,h} -rn --color=always || :)"
 if [ -n "$found" ]; then
     echo -e '\033[31;01mError: found the following coding style problems:\033[0m'
     check_style_errors=1
@@ -67,4 +71,5 @@ if [ -n "$found" ]; then
     echo "$found"
 fi
 
+echo "Success - no errors found!"
 exit $check_style_errors
