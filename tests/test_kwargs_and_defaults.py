@@ -141,7 +141,7 @@ def test_keyword_only_args(msg):
     with pytest.raises(RuntimeError) as excinfo:
         m.register_invalid_kwonly(m)
     assert msg(excinfo.value) == """
-        arg(): cannot specify an unnamed argument after an args_kw_only() annotation
+        arg(): cannot specify an unnamed argument after an kwonly() annotation
     """
 
 

@@ -1890,7 +1890,7 @@ public:
 /// \ingroup annotations
 /// Annotation indicating that all following arguments are keyword-only; the is the equivalent of an
 /// unnamed '*' argument (in Python 3)
-struct args_kw_only {};
+struct kwonly {};
 
 template <typename T>
 arg_v arg::operator=(T &&value) const { return {std::move(*this), std::forward<T>(value)}; }
