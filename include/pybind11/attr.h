@@ -135,7 +135,7 @@ struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
           is_operator(false), is_method(false),
-          has_args(false), has_kwargs(false), has_kw_only_args(false) { }
+          has_args(false), has_kwargs(false), has_kwonly_args(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -182,8 +182,8 @@ struct function_record {
     /// True if the function has a '**kwargs' argument
     bool has_kwargs : 1;
 
-    /// True once a 'py::args_kw_only' is encountered (any following args are keyword-only)
-    bool has_kw_only_args : 1;
+    /// True once a 'py::kwonly' is encountered (any following args are keyword-only)
+    bool has_kwonly_args : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
@@ -362,7 +362,7 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
 
 inline void process_kwonly_arg(const arg &a, function_record *r) {
     if (!a.name || strlen(a.name) == 0)
-        pybind11_fail("arg(): cannot specify an unnamed argument after an args_kw_only() annotation");
+        pybind11_fail("arg(): cannot specify an unnamed argument after an kwonly() annotation");
     ++r->nargs_kwonly;
 }
 
@@ -373,7 +373,7 @@ template <> struct process_attribute<arg> : process_attribute_default<arg> {
             r->args.emplace_back("self", nullptr, handle(), true /*convert*/, false /*none not allowed*/);
         r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert, a.flag_none);
 
-        if (r->has_kw_only_args) process_kwonly_arg(a, r);
+        if (r->has_kwonly_args) process_kwonly_arg(a, r);
     }
 };
 
@@ -406,14 +406,14 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
         }
         r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none);
 
-        if (r->has_kw_only_args) process_kwonly_arg(a, r);
+        if (r->has_kwonly_args) process_kwonly_arg(a, r);
     }
 };
 
 /// Process a keyword-only-arguments-follow pseudo argument
-template <> struct process_attribute<args_kw_only> : process_attribute_default<args_kw_only> {
-    static void init(const args_kw_only &, function_record *r) {
-        r->has_kw_only_args = true;
+template <> struct process_attribute<kwonly> : process_attribute_default<kwonly> {
+    static void init(const kwonly &, function_record *r) {
+        r->has_kwonly_args = true;
     }
 };
 

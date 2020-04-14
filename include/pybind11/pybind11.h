@@ -169,11 +169,11 @@ protected:
         process_attributes<Extra...>::init(extra..., rec);
 
         {
-            constexpr bool has_kw_only_args = any_of<std::is_same<args_kw_only, Extra>...>::value,
+            constexpr bool has_kwonly_args = any_of<std::is_same<kwonly, Extra>...>::value,
                            has_args = any_of<std::is_same<args, Args>...>::value,
                            has_arg_annotations = any_of<is_keyword<Extra>...>::value;
-            static_assert(has_arg_annotations || !has_kw_only_args, "py::args_kw_only requires the use of argument annotations");
-            static_assert(!(has_args && has_kw_only_args), "py::args_kw_only cannot be combined with a py::args argument");
+            static_assert(has_arg_annotations || !has_kwonly_args, "py::kwonly requires the use of argument annotations");
+            static_assert(!(has_args && has_kwonly_args), "py::kwonly cannot be combined with a py::args argument");
         }
 
         /* Generate a readable signature describing the function's arguments and return value types */

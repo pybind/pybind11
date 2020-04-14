@@ -96,27 +96,27 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
     // test_keyword_only_args
     m.def("kwonly_all", [](int i, int j) { return py::make_tuple(i, j); },
-            py::args_kw_only(), py::arg("i"), py::arg("j"));
+            py::kwonly(), py::arg("i"), py::arg("j"));
     m.def("kwonly_some", [](int i, int j, int k) { return py::make_tuple(i, j, k); },
-            py::arg(), py::args_kw_only(), py::arg("j"), py::arg("k"));
+            py::arg(), py::kwonly(), py::arg("j"), py::arg("k"));
     m.def("kwonly_with_defaults", [](int i, int j, int k, int z) { return py::make_tuple(i, j, k, z); },
-            py::arg() = 3, "j"_a = 4, py::args_kw_only(), "k"_a = 5, "z"_a);
+            py::arg() = 3, "j"_a = 4, py::kwonly(), "k"_a = 5, "z"_a);
     m.def("kwonly_mixed", [](int i, int j) { return py::make_tuple(i, j); },
-            "i"_a, py::args_kw_only(), "j"_a);
+            "i"_a, py::kwonly(), "j"_a);
     m.def("kwonly_plus_more", [](int i, int j, int k, py::kwargs kwargs) {
             return py::make_tuple(i, j, k, kwargs); },
-            py::arg() /* positional */, py::arg("j") = -1 /* both */, py::args_kw_only(), py::arg("k") /* kw-only */);
+            py::arg() /* positional */, py::arg("j") = -1 /* both */, py::kwonly(), py::arg("k") /* kw-only */);
 
     m.def("register_invalid_kwonly", [](py::module m) {
         m.def("bad_kwonly", [](int i, int j) { return py::make_tuple(i, j); },
-                py::args_kw_only(), py::arg() /* invalid unnamed argument */, "j"_a);
+                py::kwonly(), py::arg() /* invalid unnamed argument */, "j"_a);
     });
 
     // These should fail to compile:
-    // argument annotations are required when using args_kw_only
-//    m.def("bad_kwonly1", [](int) {}, py::args_kw_only());
-    // can't specify both `py::args_kw_only` and a `py::args` argument
-//    m.def("bad_kwonly2", [](int i, py::args) {}, py::args_kw_only(), "i"_a);
+    // argument annotations are required when using kwonly
+//    m.def("bad_kwonly1", [](int) {}, py::kwonly());
+    // can't specify both `py::kwonly` and a `py::args` argument
+//    m.def("bad_kwonly2", [](int i, py::args) {}, py::kwonly(), "i"_a);
 
     // test_function_signatures (along with most of the above)
     struct KWClass { void foo(int, float) {} };
