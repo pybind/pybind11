@@ -335,3 +335,17 @@ def test_unique_ptr_overload_fail():
     out = m.unique_ptr_overload(obj, m.SecondT())
     assert out["obj"] is obj
     assert out["overload"] == 2
+
+
+def test_unique_ptr_held_container_from_cpp():
+
+    def check_reset(obj_new):
+        c = m.UniquePtrHeldContainer()
+        obj = c.get()
+        assert obj is not None
+        obj_ref = c.reset(obj_new)
+        assert obj is obj_ref
+        assert c.get() is obj_new
+
+    check_reset(obj_new=m.UniquePtrHeld(10))
+    check_reset(obj_new=None)
