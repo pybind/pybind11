@@ -258,7 +258,7 @@ def read_args(args):
         # versions and distributions. LLVM switched to a monolithical setup
         # that includes everything under /usr/lib/llvm{version_number}/
         # We therefore glob for the library and select the highest version
-        library_file = sorted(glob("/usr/lib/llvm-*/lib/libclang.so"), reversed=True)[0]
+        library_file = sorted(glob("/usr/lib/llvm-*/lib/libclang.so"), reverse=True)[0]
         cindex.Config.set_library_file(library_file)
 
         # clang doesn't find its own base includes by default on Linux,
