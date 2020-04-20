@@ -304,3 +304,45 @@ the default settings are restored to prevent unwanted side effects.
 
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
+
+
+Generating documentation using pdoc3
+====================================
+
+pdoc3 [#f8]_ is an alternative for generate documentation without the need of a rather complex
+configuration like for Sphinx. It is especially usefull when documenting embedded python modules.
+
+It is recommended to enable the auto generation of function signaures and for a nice looking
+documentation of enums, you propably want to disable the ``enum_members_docstring`` option and
+enable the ``populate_enum_pdoc`` option:
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+        py::options options;
+        options.enable_function_signatures();
+        options.disable_enum_members_docstring();
+        options.enable_enum_pdoc();
+
+        py::class_<Pet> pet(m, "Pet", "A pet.");
+
+        py::enum_<Pet::Kind>(pet, "Kind", "The kind of a pet.")
+            .value("Dog", Pet::Kind::Dog, "A dog.")
+            .value("Cat", Pet::Kind::Cat, "A cat.");
+    }
+
+To generate the documentation for embedded modules, you have to run pdoc3 inside your embedded
+python interpreter:
+
+.. code-block:: python
+
+    import example
+    import sys
+    import pdoc
+
+    html_str = pdoc.html("example", show_type_annotations=True)
+    f = open('./example_documentation.html', 'w')
+    print(html_str, file=f)
+    f.close()
+
+.. [#f8] https://pdoc3.github.io/pdoc/
