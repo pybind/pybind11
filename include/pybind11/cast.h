@@ -288,8 +288,8 @@ public:
         // Past-the-end iterator:
         iterator(size_t end) : curr(end) {}
     public:
-        bool operator==(const iterator &other) { return curr.index == other.curr.index; }
-        bool operator!=(const iterator &other) { return curr.index != other.curr.index; }
+        bool operator==(const iterator &other) const { return curr.index == other.curr.index; }
+        bool operator!=(const iterator &other) const { return curr.index != other.curr.index; }
         iterator &operator++() {
             if (!inst->simple_layout)
                 curr.vh += 1 + (*types)[curr.index]->holder_size_in_ptrs;
