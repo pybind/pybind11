@@ -23,7 +23,7 @@ The following Python snippet demonstrates the intended usage from the Python sid
 .. code-block:: python
 
     class A:
-        def __new__(cls):
+        def __int__(self):
             return 123
 
     from example import print
