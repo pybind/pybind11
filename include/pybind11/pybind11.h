@@ -45,6 +45,10 @@
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
+#include <memory>
+#include <vector>
+#include <utility>
+#include <string>
 
 #if defined(__GNUG__) && !defined(__clang__)
 #  include <cxxabi.h>
