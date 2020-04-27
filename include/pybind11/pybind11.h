@@ -2141,7 +2141,7 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
 \endrst */
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
     PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
-    return cname::fn(__VA_ARGS__)
+    return cname::fn(__VA_ARGS__);
 
 /** \rst
     Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD_NAME`, except that it
