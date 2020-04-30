@@ -13,7 +13,12 @@ if(NOT PYBIND11_PYTHON_VERSION)
 endif()
 
 set(Python_ADDITIONAL_VERSIONS 3.9 3.8 3.7 3.6 3.5 3.4)
-find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
+# this minimum was determined by testing, and could potentially be made lower
+if(CMAKE_VERSION VERSION_LESS 3.10.2)
+    find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
+else()
+    find_package(PythonLibs ${PYBIND11_PYTHON_VERSION} REQUIRED)
+endif()
 
 include(CheckCXXCompilerFlag)
 include(CMakeParseArguments)
