@@ -1007,14 +1007,14 @@ struct npy_format_descriptor_name;
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {
     static constexpr auto name = _<std::is_same<T, bool>::value>(
-        _("bool"), _<std::is_signed<T>::value>("int", "uint") + _<sizeof(T)*8>()
+        _("bool"), _<std::is_signed<T>::value>("numpy.int", "numpy.uint") + _<sizeof(T)*8>()
     );
 };
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
     static constexpr auto name = _<std::is_same<T, float>::value || std::is_same<T, double>::value>(
-        _("float") + _<sizeof(T)*8>(), _("longdouble")
+        _("numpy.float") + _<sizeof(T)*8>(), _("numpy.longdouble")
     );
 };
 
@@ -1022,7 +1022,7 @@ template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
     static constexpr auto name = _<std::is_same<typename T::value_type, float>::value
                                    || std::is_same<typename T::value_type, double>::value>(
-        _("complex") + _<sizeof(typename T::value_type)*16>(), _("longcomplex")
+        _("numpy.complex") + _<sizeof(typename T::value_type)*16>(), _("numpy.longcomplex")
     );
 };
 
