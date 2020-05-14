@@ -5,6 +5,8 @@ import sys
 from pybind11_tests import pytypes as m
 from pybind11_tests import debug_enabled
 
+def test_int(doc):
+    assert doc(m.get_int) == "get_int() -> int"
 
 def test_list(capture, doc):
     with capture:

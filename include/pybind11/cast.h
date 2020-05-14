@@ -1604,6 +1604,7 @@ template <typename base, typename deleter> struct is_holder_type<base, std::uniq
 
 template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
 template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };
+template <> struct handle_type_name<int_> { static constexpr auto name = _("int"); };
 template <> struct handle_type_name<iterable> { static constexpr auto name = _("Iterable"); };
 template <> struct handle_type_name<iterator> { static constexpr auto name = _("Iterator"); };
 template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
