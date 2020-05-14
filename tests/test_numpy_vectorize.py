@@ -109,7 +109,7 @@ def test_type_selection():
 
 def test_docs(doc):
     assert doc(m.vectorized_func) == """
-        vectorized_func(arg0: numpy.ndarray[int32], arg1: numpy.ndarray[float32], arg2: numpy.ndarray[float64]) -> object
+        vectorized_func(arg0: numpy.ndarray[numpy.int32], arg1: numpy.ndarray[numpy.float32], arg2: numpy.ndarray[numpy.float64]) -> object
     """  # noqa: E501 line too long
 
 
@@ -160,12 +160,12 @@ def test_passthrough_arguments(doc):
     assert doc(m.vec_passthrough) == (
         "vec_passthrough(" + ", ".join([
             "arg0: float",
-            "arg1: numpy.ndarray[float64]",
-            "arg2: numpy.ndarray[float64]",
-            "arg3: numpy.ndarray[int32]",
+            "arg1: numpy.ndarray[numpy.float64]",
+            "arg2: numpy.ndarray[numpy.float64]",
+            "arg3: numpy.ndarray[numpy.int32]",
             "arg4: int",
             "arg5: m.numpy_vectorize.NonPODClass",
-            "arg6: numpy.ndarray[float64]"]) + ") -> object")
+            "arg6: numpy.ndarray[numpy.float64]"]) + ") -> object")
 
     b = np.array([[10, 20, 30]], dtype='float64')
     c = np.array([100, 200])  # NOT a vectorized argument
