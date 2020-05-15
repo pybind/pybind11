@@ -69,6 +69,8 @@ public:
 
     static py::str overloaded(float) { return "static float"; }
 
+    void refQualified(int other) & { value += other; }
+
     int value = 0;
 };
 
@@ -273,6 +275,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
             emna.def_static("overload_mixed2", static_cast<py::str (              *)(float   )>(&ExampleMandA::overloaded))
                 .def       ("overload_mixed2", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded));
         })
+        .def("refQualified", &ExampleMandA::refQualified)
         .def("__str__", &ExampleMandA::toString)
         .def_readwrite("value", &ExampleMandA::value);
 

@@ -48,7 +48,9 @@ def test_methods_and_attributes():
     assert instance1.overloaded_float(1., 1) == "(float, float)"
     assert instance1.overloaded_float(1., 1.) == "(float, float)"
 
-    assert instance1.value == 320
+    instance1.refQualified(1)
+    assert instance1.value == 321
+
     instance1.value = 100
     assert str(instance1) == "ExampleMandA[value=100]"
 
