@@ -67,6 +67,7 @@ def test_vector_int():
     v_int2.clear()
     assert len(v_int2) == 0
 
+
 # related to the PyPy's buffer protocol.
 @pytest.unsupported_on_pypy
 def test_vector_buffer():
