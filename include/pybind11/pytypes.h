@@ -980,6 +980,9 @@ public:
         return std::string(buffer, (size_t) length);
     }
 };
+// Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
+// are included in the doxygen group; close here and reopen after as a workaround
+/// @} pytypes
 
 inline bytes::bytes(const pybind11::str &s) {
     object temp = s;
@@ -1009,6 +1012,8 @@ inline str::str(const bytes& b) {
     m_ptr = obj.release().ptr();
 }
 
+/// \addtogroup pytypes
+/// @{
 class none : public object {
 public:
     PYBIND11_OBJECT(none, object, detail::PyNone_Check)
