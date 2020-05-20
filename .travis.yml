@@ -1,5 +1,7 @@
+os: linux
+dist: xenial
 language: cpp
-matrix:
+jobs:
   include:
   # This config does a few things:
   # - Checks C++ and Python code styles (check-style.sh and flake8).
