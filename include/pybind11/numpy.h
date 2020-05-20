@@ -40,6 +40,9 @@ NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class array; // Forward declaration
 
 NAMESPACE_BEGIN(detail)
+
+template <> struct handle_type_name<array> { static constexpr auto name = _("numpy.ndarray"); };
+
 template <typename type, typename SFINAE = void> struct npy_format_descriptor;
 
 struct PyArrayDescr_Proxy {
