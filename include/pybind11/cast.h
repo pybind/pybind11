@@ -1871,6 +1871,16 @@ public:
     arg_v(const arg &base, T &&x, const char *descr = nullptr)
         : arg_v(arg(base), std::forward<T>(x), descr) { }
 
+#define ARGV_NAN_DEFAULT_OVERLOAD(FLOAT_TYPE) \
+    arg_v(const arg &base, FLOAT_TYPE x) \
+        : arg_v(arg(base), x, std::isnan(x) ? "numpy.nan" : nullptr) {}
+
+    ARGV_NAN_DEFAULT_OVERLOAD(float)
+    ARGV_NAN_DEFAULT_OVERLOAD(double)
+    ARGV_NAN_DEFAULT_OVERLOAD(long double)
+
+#undef ARGV_NAN_DEFAULT_OVERLOAD
+
     /// Same as `arg::noconvert()`, but returns *this as arg_v&, not arg&
     arg_v &noconvert(bool flag = true) { arg::noconvert(flag); return *this; }
 

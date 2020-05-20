@@ -10,6 +10,8 @@ def test_function_signatures(doc):
     assert doc(m.kw_func4) == "kw_func4(myList: List[int] = [13, 17]) -> str"
     assert doc(m.kw_func_udl) == "kw_func_udl(x: int, y: int = 300) -> str"
     assert doc(m.kw_func_udl_z) == "kw_func_udl_z(x: int, y: int = 0) -> str"
+    assert doc(m.kw_func_float_123) == "kw_func_float_123(x: float = 1, y: float = 2, z: float = 3) -> str"
+    assert doc(m.kw_func_float_nan) == "kw_func_float_nan(x: float = numpy.nan, y: float = numpy.nan, z: float = numpy.nan) -> str"
     assert doc(m.args_function) == "args_function(*args) -> tuple"
     assert doc(m.args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> tuple"
     assert doc(m.KWClass.foo0) == \

@@ -13,6 +13,7 @@
 
 TEST_SUBMODULE(kwargs_and_defaults, m) {
     auto kw_func = [](int x, int y) { return "x=" + std::to_string(x) + ", y=" + std::to_string(y); };
+    auto kw_func_float = [](float x, double y, long double z) { return "x=" + std::to_string(x) + ", y=" + std::to_string(y) + ", y=" + std::to_string(z); };
 
     // test_named_arguments
     m.def("kw_func0", kw_func);
@@ -32,6 +33,13 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
     m.def("kw_func_udl", kw_func, "x"_a, "y"_a=300);
     m.def("kw_func_udl_z", kw_func, "x"_a, "y"_a=0);
+
+    m.def("kw_func_float_123", kw_func_float, "x"_a=1, "y"_a=2, "z"_a=3);
+    m.def("kw_func_float_nan", kw_func_float,
+        "x"_a=std::numeric_limits<float>::quiet_NaN(),
+        "y"_a=std::numeric_limits<double>::quiet_NaN(),
+        "z"_a=std::numeric_limits<long double>::quiet_NaN());
+
 
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {
