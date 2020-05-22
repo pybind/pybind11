@@ -6,6 +6,9 @@ from pybind11_tests import ConstructorStats
 def test_operator_overloading():
     v1 = m.Vector2(1, 2)
     v2 = m.Vector(3, -1)
+    v3 = m.Vector2(1, 2)  # Same value as v1, but different instance.
+    assert v1 is not v3
+
     assert str(v1) == "[1.000000, 2.000000]"
     assert str(v2) == "[3.000000, -1.000000]"
 
@@ -24,7 +27,11 @@ def test_operator_overloading():
     assert str(v1 * v2) == "[3.000000, -2.000000]"
     assert str(v2 / v1) == "[3.000000, -0.500000]"
 
+    assert v1 == v3
+    assert v1 != v2
     assert hash(v1) == 4
+    # TODO(eric.cousineau): Make this work.
+    # assert abs(v1) == "abs(Vector2)"
 
     v1 += 2 * v2
     assert str(v1) == "[7.000000, 0.000000]"
@@ -40,14 +47,17 @@ def test_operator_overloading():
     assert str(v2) == "[2.000000, 8.000000]"
 
     cstats = ConstructorStats.get(m.Vector2)
-    assert cstats.alive() == 2
+    assert cstats.alive() == 3
     del v1
-    assert cstats.alive() == 1
+    assert cstats.alive() == 2
     del v2
+    assert cstats.alive() == 1
+    del v3
     assert cstats.alive() == 0
     assert cstats.values() == [
         '[1.000000, 2.000000]',
         '[3.000000, -1.000000]',
+        '[1.000000, 2.000000]',
         '[-3.000000, 1.000000]',
         '[4.000000, 1.000000]',
         '[-2.000000, 3.000000]',
