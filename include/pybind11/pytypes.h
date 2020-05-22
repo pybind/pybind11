@@ -13,6 +13,7 @@
 #include "buffer_info.h"
 #include <utility>
 #include <type_traits>
+#include <algorithm>
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
