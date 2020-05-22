@@ -266,6 +266,8 @@ def test_list_slicing():
 def test_memoryview():
     import array
     view = m.test_memoryview(b'abc')
-    _ = m.test_memoryview(array.array('I', [1, 1]))
+    if sys.version_info[0] == 3:
+        # Python 2.7 array does not implement the new buffer protocol
+        m.test_memoryview(array.array('I', [1, 1]))
     assert view.format == 'B'
     assert view[0] == ord(b'a')
