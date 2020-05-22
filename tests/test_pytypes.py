@@ -270,4 +270,4 @@ def test_memoryview():
         # Python 2.7 array does not implement the new buffer protocol
         m.test_memoryview(array.array('I', [1, 1]))
     assert view.format == 'B'
-    assert view[0] == ord(b'a')
+    assert view[0] == ord(b'a') if sys.version_info[0] == 3 else 'a'
