@@ -1336,9 +1336,14 @@ public:
         // Py_buffer uses signed sizes, strides and shape!..
         static std::vector<Py_ssize_t> py_strides { };
         static std::vector<Py_ssize_t> py_shape { };
+        static std::vector<std::string> formats = {
+            "?", "b", "B", "h", "H", "i", "I", "q", "Q", "f", "d", "g"
+        };
         buf.buf = info.ptr;
         buf.itemsize = info.itemsize;
-        buf.format = const_cast<char *>(info.format.c_str());
+        auto it = std::find(formats.begin(), formats.end(), info.format);
+        buf.format = (it == formats.end()) ?
+            nullptr : const_cast<char*>(it->c_str());
         buf.ndim = (int) info.ndim;
         buf.len = info.size;
         py_strides.clear();

@@ -261,3 +261,11 @@ def test_number_protocol():
 def test_list_slicing():
     li = list(range(100))
     assert li[::2] == m.test_list_slicing(li)
+
+
+def test_memoryview():
+    import array
+    view = m.test_memoryview(b'abc')
+    _ = m.test_memoryview(array.array('I', [1, 1]))
+    assert view.format == 'B'
+    assert view[0] == ord(b'a')

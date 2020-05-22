@@ -307,4 +307,8 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("test_list_slicing", [](py::list a) {
         return a[py::slice(0, -1, 2)];
     });
+
+    m.def("test_memoryview", [](py::buffer b) {
+        return py::memoryview(b.request());
+    });
 }
