@@ -43,6 +43,13 @@ public:
     friend Vector2 operator-(float f, const Vector2 &v) { return Vector2(f - v.x, f - v.y); }
     friend Vector2 operator*(float f, const Vector2 &v) { return Vector2(f * v.x, f * v.y); }
     friend Vector2 operator/(float f, const Vector2 &v) { return Vector2(f / v.x, f / v.y); }
+
+    bool operator==(const Vector2 &v) const {
+        return x == v.x && y == v.y;
+    }
+    bool operator!=(const Vector2 &v) const {
+        return x != v.x || y != v.y;
+    }
 private:
     float x, y;
 };
@@ -55,12 +62,22 @@ int operator+(const C2 &, const C2 &) { return 22; }
 int operator+(const C2 &, const C1 &) { return 21; }
 int operator+(const C1 &, const C2 &) { return 12; }
 
+// Note: Specializing explicit within `namespace std { ... }` is done due to a
+// bug in GCC<7. If you are supporting compilers later than this, consider
+// specializing `using template<> struct std::hash<...>` in the global
+// namespace instead, per this recommendation:
+// https://en.cppreference.com/w/cpp/language/extending_std#Adding_template_specializations
 namespace std {
     template<>
     struct hash<Vector2> {
         // Not a good hash function, but easy to test
         size_t operator()(const Vector2 &) { return 4; }
     };
+}
+
+// Not a good abs function, but easy to test.
+std::string abs(const Vector2&) {
+    return "abs(Vector2)";
 }
 
 // MSVC warns about unknown pragmas, and warnings are errors.
@@ -107,7 +124,13 @@ TEST_SUBMODULE(operators, m) {
         .def(float() / py::self)
         .def(-py::self)
         .def("__str__", &Vector2::toString)
-        .def(hash(py::self))
+        .def("__repr__", &Vector2::toString)
+        .def(py::self == py::self)
+        .def(py::self != py::self)
+        .def(py::hash(py::self))
+        // N.B. See warning about usage of `py::detail::abs(py::self)` in
+        // `operators.h`.
+        .def("__abs__", [](const Vector2& v) { return abs(v); })
         ;
 
     m.attr("Vector") = m.attr("Vector2");
