@@ -110,9 +110,10 @@ Partitioning code over multiple extension modules
 
 It's straightforward to split binding code over multiple extension modules,
 while referencing types that are declared elsewhere. Everything "just" works
-without any special precautions. One exception to this rule occurs when
-extending a type declared in another extension module. Recall the basic example
-from Section :ref:`inheritance`.
+without any special precautions.
+
+One exception to this rule occurs when extending a type declared in another
+extension module. Recall the basic example from Section :ref:`inheritance`.
 
 .. code-block:: cpp
 
@@ -125,10 +126,27 @@ from Section :ref:`inheritance`.
         .def("bark", &Dog::bark);
 
 Suppose now that ``Pet`` bindings are defined in a module named ``basic``,
-whereas the ``Dog`` bindings are defined somewhere else. The challenge is of
-course that the variable ``pet`` is not available anymore though it is needed
-to indicate the inheritance relationship to the constructor of ``class_<Dog>``.
-However, it can be acquired as follows:
+whereas the ``Dog`` bindings are defined somewhere else:
+
+.. code-block:: cpp
+
+    // basic.cpp
+    PYBIND11_MODULE(basic, m) {
+      py::class_<Pet> pet(m, "Pet");
+      pet.def(py::init<const std::string &>())
+         .def_readwrite("name", &Pet::name);
+    }
+    // other_extension.cpp
+    PYBIND11_MODULE(other_extension, m) {
+      // The following won't compile as `pet` is not defined in this scope.
+      py::class_<Dog>(m, "Dog", pet)
+          .def(py::init<const std::string &>())
+          .def("bark", &Dog::bark);
+    }
+
+
+The challenge is that the variable ``pet`` is not available anymore in
+``other_extension.cpp`` scope. However, it can be acquired as follows:
 
 .. code-block:: cpp
 
@@ -153,6 +171,46 @@ has been executed:
         .def("bark", &Dog::bark);
 
 Naturally, both methods will fail when there are cyclic dependencies.
+
+This method can also be used to extend some external library pybind11 wrapper
+without modifying the external library:
+
+.. code-block:: cpp
+
+    // third_party.h
+    struct Foo{};
+
+    // third_party.cpp
+    #include "pybind11/pybind11.h"
+    #include "third_party.h"
+
+    namespace py = pybind11;
+
+    PYBIND11_MODULE(third_party, m) {
+      py::class_<Foo>(m, "Foo")
+          .def(py::init<>());
+    }
+
+    // my_module.cpp
+    #include "pybind11/pybind11.h"
+    #include "third_party.h"
+
+    namespace py = pybind11;
+
+    PYBIND11_MODULE(my_module, m) {
+      auto third_party = py::module::import("third_party");
+
+      py::class_<Foo> foo(third_party.attr("Foo"));
+      foo.def("hi",[](){ return "hello from my_module"; });
+    }
+
+.. code-block:: python
+
+    // test.py
+    from third_party import Foo
+    help(Foo)
+    import my_module
+    help(Foo)  # hi() appears
 
 Note that pybind11 code compiled with hidden-by-default symbol visibility (e.g.
 via the command line flag ``-fvisibility=hidden`` on GCC/Clang), which is
