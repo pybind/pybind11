@@ -109,7 +109,7 @@ matrix:
   - os: linux
     dist: xenial
     env: PYTHON=3.8 CPP=17 GCC=7
-    name: Python 3.8, c++17, gcc 7 (w/o numpy/scipy) # TODO: update build name when the numpy/scipy wheels become available
+    name: Python 3.8, c++17, gcc 7
     addons:
       apt:
         sources:
@@ -119,7 +119,20 @@ matrix:
           - g++-7
           - python3.8-dev
           - python3.8-venv
-    # Currently there is no numpy/scipy wheels available for python3.8
+  - os: linux
+    dist: xenial
+    env: PYTHON=3.9 CPP=17 GCC=7
+    name: Python 3.9 beta, c++17, gcc 7 (w/o numpy/scipy) # TODO: update build name when the numpy/scipy wheels become available
+    addons:
+      apt:
+        sources:
+          - deadsnakes
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-7
+          - python3.9-dev
+          - python3.9-venv
+    # Currently there are no numpy/scipy wheels available for python3.9
     # TODO: remove next before_install, install and script clause when the wheels become available
     before_install:
       - pyenv global $(pyenv whence 2to3)  # activate all python versions
@@ -255,7 +268,7 @@ install:
     export NPY_NUM_BUILD_JOBS=2
     echo "Installing pytest, numpy, scipy..."
     local PIP_CMD=""
-    if [ -n $PYPY ]; then
+    if [ -n "$PYPY" ]; then
       # For expediency, install only versions that are available on the extra index.
       travis_wait 30 \
         $PY_CMD -m pip install --user --upgrade --extra-index-url https://imaginary.ca/trusty-pypi \
