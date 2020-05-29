@@ -514,6 +514,7 @@ private:
         return cache;
     }
 
+private:
     handle obj;
     key_type key;
     mutable object cache;

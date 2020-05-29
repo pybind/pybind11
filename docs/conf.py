@@ -36,10 +36,6 @@ extensions = ['breathe']
 breathe_projects = {'pybind11': '.build/doxygenxml/'}
 breathe_default_project = 'pybind11'
 breathe_domain_by_extension = {'h': 'cpp'}
-breathe_doxygen_config_options = {
-    'ENABLE_PREPROCESSING'   : 'YES',
-    'MACRO_EXPANSION'        : 'YES',
-}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
