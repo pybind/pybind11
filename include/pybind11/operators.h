@@ -157,7 +157,7 @@ PYBIND11_UNARY_OPERATOR(float,      float_,       (double) l)
 #undef PYBIND11_BINARY_OPERATOR
 #undef PYBIND11_INPLACE_OPERATOR
 #undef PYBIND11_UNARY_OPERATOR
-NAMESPACE_END(detail);
+NAMESPACE_END(detail)
 
 using detail::self;
 
