@@ -134,11 +134,7 @@ matrix:
           - python3.9-dev
           - python3.9-venv
     # Currently there are no numpy/scipy wheels available for python3.9
-    # TODO: remove next before_install, install and script clause when the wheels become available
-    before_install:
-      - pyenv global $(pyenv whence 2to3)  # activate all python versions
-      - PY_CMD=python3
-      - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
+    # TODO: remove next install and script clause when the wheels become available
     install:
       - $PY_CMD -m pip install --user --upgrade pytest
     script:
@@ -198,6 +194,7 @@ matrix:
   allow_failures:
     - name: PyPy 7.3, Python 2.7, c++11, gcc 4.8
     - name: PyPy 7.3, Python 3.6, c++11, gcc 5
+    - name: Python 3.9 beta, c++17, gcc 7 (w/o numpy/scipy)
 cache:
   directories:
   - $HOME/.local/bin
