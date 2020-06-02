@@ -96,6 +96,12 @@
 #define PYBIND11_VERSION_MINOR 5
 #define PYBIND11_VERSION_PATCH dev1
 
+/* Don't let Python.h #define (v)snprintf as macro because they are implemented
+   properly in Visual Studio since 2015. */
+#if defined(_MSC_VER) && _MSC_VER >= 1900
+#  define HAVE_SNPRINTF 1
+#endif
+
 /// Include Python header, disable linking to pythonX_d.lib on Windows in debug mode
 #if defined(_MSC_VER)
 #  if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 4)
