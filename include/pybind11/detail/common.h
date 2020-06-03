@@ -185,9 +185,10 @@
 #define PYBIND11_STR_TYPE ::pybind11::str
 #define PYBIND11_BOOL_ATTR "__bool__"
 #define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
-// Providing a separate declaration to make Clang's -Wmissing-prototypes happy
+// Providing a separate declaration to make Clang's -Wmissing-prototypes happy.
+// See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
 #define PYBIND11_PLUGIN_IMPL(name) \
-    extern "C" PYBIND11_EXPORT PyObject *PyInit_##name();   \
+    extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PyObject *PyInit_##name(); \
     extern "C" PYBIND11_EXPORT PyObject *PyInit_##name()
 
 #else
@@ -211,13 +212,14 @@
 #define PYBIND11_STR_TYPE ::pybind11::bytes
 #define PYBIND11_BOOL_ATTR "__nonzero__"
 #define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_nonzero)
-// Providing a separate PyInit decl to make Clang's -Wmissing-prototypes happy
+// Providing a separate PyInit decl to make Clang's -Wmissing-prototypes happy.
+// See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
 #define PYBIND11_PLUGIN_IMPL(name) \
-    static PyObject *pybind11_init_wrapper();               \
-    extern "C" PYBIND11_EXPORT void init##name();           \
-    extern "C" PYBIND11_EXPORT void init##name() {          \
-        (void)pybind11_init_wrapper();                      \
-    }                                                       \
+    static PyObject *pybind11_init_wrapper();                           \
+    extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT void init##name(); \
+    extern "C" PYBIND11_EXPORT void init##name() {                      \
+        (void)pybind11_init_wrapper();                                  \
+    }                                                                   \
     PyObject *pybind11_init_wrapper()
 #endif
 
