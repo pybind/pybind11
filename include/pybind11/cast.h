@@ -1498,7 +1498,9 @@ public:
     }
 
     explicit operator type*() { return this->value; }
-    explicit operator type&() { return *(this->value); }
+    // static_cast works around compiler error with MSVC 17 and CUDA 10.2
+    // see issue #2180
+    explicit operator type&() { return *(static_cast<type *>(this->value)); }
     explicit operator holder_type*() { return std::addressof(holder); }
 
     // Workaround for Intel compiler bug
