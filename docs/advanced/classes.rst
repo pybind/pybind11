@@ -788,6 +788,36 @@ An instance can now be pickled as follows:
 
 .. [#f3] http://docs.python.org/3/library/pickle.html#pickling-class-instances
 
+Deepcopy support
+================
+
+Python normally uses references in assignments. Sometimes a real copy is needed
+to prevent changing all copies. The ``copy`` module [#f5]_ provides these
+capabilities.
+
+The ``__setstate__`` and ``__getstate__`` methods provided to support pickle,
+can be reused by the copy module. Though performance can be improved by adding
+custom ``__copy__`` and ``__deepcopy__`` methods.
+
+For simple classes (deep)copy can be enabled by using the copy constructor,
+which should look as follows:
+
+.. code-block:: cpp
+
+    py::class_<Copyable>(m, "Copyable")
+        .def("__copy__",  [](const Copyable &self) {
+            return Copyable(self);
+        })
+        .def("__deepcopy__", [](const Copyable &self, py::dict) {
+            return Copyable(self);
+        }, "memo"_a);
+
+.. note::
+
+    Dynamic attributes will not be copied in this example.
+
+.. [#f5] https://docs.python.org/3/library/copy.html
+
 Multiple Inheritance
 ====================
 
