@@ -795,9 +795,15 @@ Python normally uses references in assignments. Sometimes a real copy is needed
 to prevent changing all copies. The ``copy`` module [#f5]_ provides these
 capabilities.
 
-The ``__setstate__`` and ``__getstate__`` methods provided to support pickle,
-can be reused by the copy module. Though performance can be improved by adding
-custom ``__copy__`` and ``__deepcopy__`` methods.
+A class with pickle support is automatically also (deep)copy compatible. However,
+performance can be improved by adding custom ``__copy__`` and ``__deepcopy__``
+methods.
+
+.. note::
+    
+    Because only cPickle is supported on Python 2.7, a class with pickle support
+    is not automatically (deep)copy compatible. It is required to add copy
+    methods.
 
 For simple classes (deep)copy can be enabled by using the copy constructor,
 which should look as follows:
