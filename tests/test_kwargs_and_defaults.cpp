@@ -35,11 +35,12 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("kw_func_udl_z", kw_func, "x"_a, "y"_a=0);
 
     m.def("kw_func_float_123", kw_func_float, "x"_a=1, "y"_a=2, "z"_a=3);
+#if __cplusplus >= 201103L
     m.def("kw_func_float_nan", kw_func_float,
         "x"_a=std::numeric_limits<float>::quiet_NaN(),
         "y"_a=std::numeric_limits<double>::quiet_NaN(),
         "z"_a=std::numeric_limits<long double>::quiet_NaN());
-
+#endif
 
     // test_args_and_kwargs
     m.def("args_function", [](py::args args) -> py::tuple {
