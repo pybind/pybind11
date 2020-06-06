@@ -1871,7 +1871,7 @@ public:
     arg_v(const arg &base, T &&x, const char *descr = nullptr)
         : arg_v(arg(base), std::forward<T>(x), descr) { }
 
-#if __cplusplus >= 201103L
+#ifdef PYBIND11_CPP14
 #define ARGV_NAN_DEFAULT_OVERLOAD(FLOAT_TYPE) \
     arg_v(const arg &base, FLOAT_TYPE x) \
         : arg_v(arg(base), x, std::isnan(x) ? "numpy.nan" : nullptr) {}
