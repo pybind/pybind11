@@ -80,6 +80,8 @@ public:
     }
 
     /// Construct a cpp_function from a class method (non-const, lvalue ref-qualifier)
+    /// Is a copy of the overload for non-const functions without explicit ref-qualifier
+    /// but with an added `&`.
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     cpp_function(Return (Class::*f)(Arg...)&, const Extra&... extra) {
         initialize([f](Class *c, Arg... args) -> Return { return (c->*f)(args...); },
@@ -94,6 +96,8 @@ public:
     }
 
     /// Construct a cpp_function from a class method (const, lvalue ref-qualifier)
+    /// Is a copy of the overload for const functions without explicit ref-qualifier
+    /// but with an added `&`.
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     cpp_function(Return (Class::*f)(Arg...) const&, const Extra&... extra) {
         initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(args...); },
