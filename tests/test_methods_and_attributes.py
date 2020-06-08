@@ -48,9 +48,7 @@ def test_methods_and_attributes():
     assert instance1.overloaded_float(1., 1) == "(float, float)"
     assert instance1.overloaded_float(1., 1.) == "(float, float)"
 
-    instance1.refQualified(1)
-    assert instance1.value == 321
-
+    assert instance1.value == 320
     instance1.value = 100
     assert str(instance1) == "ExampleMandA[value=100]"
 
@@ -512,3 +510,14 @@ def test_custom_caster_destruction():
 
     # Make sure we still only have the original object (from ..._no_destroy()) alive:
     assert cstats.alive() == 1
+
+
+def test_ref_qualified():
+    """Tests that explicit lvalue ref-qualified methods can be called just like their
+    non ref-qualified counterparts."""
+
+    r = m.RefQualified()
+    assert r.value == 0
+    r.refQualified(17)
+    assert r.value == 17
+    assert r.constRefQualified(23) == 40
