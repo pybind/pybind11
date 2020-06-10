@@ -768,13 +768,17 @@ An instance can now be pickled as follows:
     p.setExtra(15)
     data = pickle.dumps(p, 2)
 
-Note that only the cPickle module is supported on Python 2.7. The second
-argument to ``dumps`` is also crucial: it selects the pickle protocol version
-2, since the older version 1 is not supported. Newer versions are also fine—for
-instance, specify ``-1`` to always use the latest available version. Beware:
-failure to follow these instructions will cause important pybind11 memory
-allocation routines to be skipped during unpickling, which will likely lead to
-memory corruption and/or segmentation faults.
+
+.. note::
+    Note that only the cPickle module is supported on Python 2.7.
+
+    The second argument to ``dumps`` is also crucial: it selects the pickle
+    protocol version 2, since the older version 1 is not supported. Newer
+    versions are also fine—for instance, specify ``-1`` to always use the
+    latest available version. Beware: failure to follow these instructions
+    will cause important pybind11 memory allocation routines to be skipped
+    during unpickling, which will likely lead to memory corruption and/or
+    segmentation faults.
 
 .. seealso::
 
@@ -783,6 +787,38 @@ memory corruption and/or segmentation faults.
     detail.
 
 .. [#f3] http://docs.python.org/3/library/pickle.html#pickling-class-instances
+
+Deepcopy support
+================
+
+Python normally uses references in assignments. Sometimes a real copy is needed
+to prevent changing all copies. The ``copy`` module [#f5]_ provides these
+capabilities.
+
+On Python 3, a class with pickle support is automatically also (deep)copy
+compatible. However, performance can be improved by adding custom
+``__copy__`` and ``__deepcopy__`` methods. With Python 2.7, these custom methods
+are mandatory for (deep)copy compatibility, because pybind11 only supports
+cPickle.
+
+For simple classes (deep)copy can be enabled by using the copy constructor,
+which should look as follows:
+
+.. code-block:: cpp
+
+    py::class_<Copyable>(m, "Copyable")
+        .def("__copy__",  [](const Copyable &self) {
+            return Copyable(self);
+        })
+        .def("__deepcopy__", [](const Copyable &self, py::dict) {
+            return Copyable(self);
+        }, "memo"_a);
+
+.. note::
+
+    Dynamic attributes will not be copied in this example.
+
+.. [#f5] https://docs.python.org/3/library/copy.html
 
 Multiple Inheritance
 ====================
