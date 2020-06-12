@@ -508,11 +508,13 @@ public:
         if (src == nullptr)
             return none().release();
 
-        auto it_instances = get_internals().registered_instances.equal_range(src);
-        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
-                    return handle((PyObject *) it_i->second).inc_ref();
+        if (policy != return_value_policy::copy && policy != return_value_policy::move) {
+            auto it_instances = get_internals().registered_instances.equal_range(src);
+            for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+                for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+                    if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
+                        return handle((PyObject *) it_i->second).inc_ref();
+                }
             }
         }
 
