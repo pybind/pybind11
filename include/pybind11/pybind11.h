@@ -2152,8 +2152,8 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
         PYBIND11_OVERLOAD_NAME(
             std::string, // Return type (ret_type)
             Animal,      // Parent class (cname)
-            toString,    // Name of function in C++ (name)
-            "__str__",   // Name of method in Python (fn)
+            "__str__",   // Name of method in Python (name)
+            toString,    // Name of function in C++ (fn)
         );
       }
 \endrst */
