@@ -871,7 +871,7 @@ public:
 
     static handle cast(const itype &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
-            policy = return_value_policy::copy;
+            policy = return_value_policy::reference;
         return cast(&src, policy, parent);
     }
 
