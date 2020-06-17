@@ -56,11 +56,11 @@ template <op_id id, op_type ot, typename L, typename R> struct op_ {
         using L_type = conditional_t<std::is_same<L, self_t>::value, Base, L>;
         using R_type = conditional_t<std::is_same<R, self_t>::value, Base, R>;
         using op = op_impl<id, ot, Base, L_type, R_type>;
-        cl.def(op::name(), &op::execute, is_operator(), op::rvp(), extra...);
+        cl.def(op::name(), &op::execute, is_operator(), extra...);
         #if PY_MAJOR_VERSION < 3
         if (id == op_truediv || id == op_itruediv)
             cl.def(id == op_itruediv ? "__idiv__" : ot == op_l ? "__div__" : "__rdiv__",
-                    &op::execute, is_operator(), op::rvp(), extra...);
+                    &op::execute, is_operator(), extra...);
         #endif
     }
     template <typename Class, typename... Extra> void execute_cast(Class &cl, const Extra&... extra) const {
@@ -68,11 +68,11 @@ template <op_id id, op_type ot, typename L, typename R> struct op_ {
         using L_type = conditional_t<std::is_same<L, self_t>::value, Base, L>;
         using R_type = conditional_t<std::is_same<R, self_t>::value, Base, R>;
         using op = op_impl<id, ot, Base, L_type, R_type>;
-        cl.def(op::name(), &op::execute_cast, is_operator(), op::rvp(), extra...);
+        cl.def(op::name(), &op::execute_cast, is_operator(), extra...);
         #if PY_MAJOR_VERSION < 3
         if (id == op_truediv || id == op_itruediv)
             cl.def(id == op_itruediv ? "__idiv__" : ot == op_l ? "__div__" : "__rdiv__",
-                    &op::execute, is_operator(), op::rvp(), extra...);
+                    &op::execute, is_operator(), extra...);
         #endif
     }
 };
@@ -82,13 +82,11 @@ template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(const L &l, const R &r) -> decltype(expr) { return (expr); }   \
     static B execute_cast(const L &l, const R &r) { return B(expr); }                  \
-    static return_value_policy rvp() { return return_value_policy::automatic; }        \
 };                                                                                     \
 template <typename B, typename L, typename R> struct op_impl<op_##id, op_r, B, L, R> { \
     static char const* name() { return "__" #rid "__"; }                               \
     static auto execute(const R &r, const L &l) -> decltype(expr) { return (expr); }   \
     static B execute_cast(const R &r, const L &l) { return B(expr); }                  \
-    static return_value_policy rvp() { return return_value_policy::automatic; }        \
 };                                                                                     \
 inline op_<op_##id, op_l, self_t, self_t> op(const self_t &, const self_t &) {         \
     return op_<op_##id, op_l, self_t, self_t>();                                       \
@@ -105,7 +103,6 @@ template <typename B, typename L, typename R> struct op_impl<op_##id, op_l, B, L
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(L &l, const R &r) -> decltype(expr) { return expr; }           \
     static B execute_cast(L &l, const R &r) { return B(expr); }                        \
-    static return_value_policy rvp() { return return_value_policy::reference; }        \
 };                                                                                     \
 template <typename T> op_<op_##id, op_l, self_t, T> op(const self_t &, const T &) {    \
     return op_<op_##id, op_l, self_t, T>();                                            \
@@ -116,7 +113,6 @@ template <typename B, typename L> struct op_impl<op_##id, op_u, B, L, undefined_
     static char const* name() { return "__" #id "__"; }                                \
     static auto execute(const L &l) -> decltype(expr) { return expr; }                 \
     static B execute_cast(const L &l) { return B(expr); }                              \
-    static return_value_policy rvp() { return return_value_policy::automatic; }        \
 };                                                                                     \
 inline op_<op_##id, op_u, self_t, undefined_t> op(const self_t &) {                    \
     return op_<op_##id, op_u, self_t, undefined_t>();                                  \
