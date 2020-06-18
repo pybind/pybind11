@@ -13,6 +13,8 @@ PYBIND11_MODULE(external_module, m) {
         int v;
     };
 
+    m.set_gil_not_used();
+
     py::class_<A>(m, "A").def(py::init<int>()).def_readwrite("value", &A::v);
 
     m.def("internals_at",

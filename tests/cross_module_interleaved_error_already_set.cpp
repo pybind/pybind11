@@ -42,6 +42,9 @@ extern "C" PYBIND11_EXPORT PyObject *PyInit_cross_module_interleaved_error_alrea
     if (m != nullptr) {
         static_assert(sizeof(&interleaved_error_already_set) == sizeof(void *),
                       "Function pointer must have the same size as void *");
+#ifdef Py_GIL_DISABLED
+        PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
+#endif
         PyModule_AddObject(
             m,
             "funcaddr",

@@ -980,6 +980,23 @@ inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
     return rv;
 }
 
+inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject *rv;
+    if (PyDict_GetItemStringRef(v, key, &rv) < 0) {
+        throw error_already_set();
+    }
+    return rv;
+#else
+    PyObject *rv = dict_getitemstring(v, key);
+    if (rv == nullptr && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    Py_XINCREF(rv);
+    return rv;
+#endif
+}
+
 // Helper aliases/functions to support implicit casting of values given to python
 // accessors/methods. When given a pyobject, this simply returns the pyobject as-is; for other C++
 // type, the value goes through pybind11::cast(obj) to convert it to an `object`.

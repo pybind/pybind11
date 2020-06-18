@@ -11,4 +11,7 @@
 
 #include "test_eigen_tensor.inl"
 
-PYBIND11_MODULE(eigen_tensor_avoid_stl_array, m) { eigen_tensor_test::test_module(m); }
+PYBIND11_MODULE(eigen_tensor_avoid_stl_array, m) {
+    m.set_gil_not_used();
+    eigen_tensor_test::test_module(m);
+}
