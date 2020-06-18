@@ -1859,7 +1859,9 @@ private:
     arg_v(arg &&base, T &&x, const char *descr = nullptr)
         : arg(base),
           value(reinterpret_steal<object>(
-              detail::make_caster<T>::cast(x, return_value_policy::automatic, {})
+              std::is_rvalue_reference<decltype(x)>::value
+              ? detail::make_caster<T>::cast(x, return_value_policy::copy, {})
+              : detail::make_caster<T>::cast(x, return_value_policy::automatic, {})
           )),
           descr(descr)
 #if !defined(NDEBUG)
