@@ -857,6 +857,9 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
 NAMESPACE_BEGIN(detail)
 
+template <typename> handle cast_shared_from_this(const void *) { return {}; }
+template <typename itype, typename T> handle cast_shared_from_this(const std::enable_shared_from_this<T> *src);
+
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
     using itype = intrinsic_t<type>;
@@ -868,8 +871,13 @@ public:
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) { }
 
     static handle cast(const itype &src, return_value_policy policy, handle parent) {
-        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference) {
+            // In automatic mode, check for shared_from_this before falling back to `::copy` (the
+            // pointer-accepting cast() doesn't try cast_shared_from_this for a copy policy).
+            if (handle h = cast_shared_from_this<itype>(&src))
+                return h;
             policy = return_value_policy::copy;
+        }
         return cast(&src, policy, parent);
     }
 
@@ -902,6 +910,10 @@ public:
     }
 
     static handle cast(const itype *src, return_value_policy policy, handle parent) {
+        if (policy != return_value_policy::copy)
+            if (handle h = cast_shared_from_this<itype>(src))
+                return h;
+
         auto st = src_and_type(src);
         return type_caster_generic::cast(
             st.first, policy, parent, st.second,
@@ -1801,6 +1813,18 @@ template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, 
 template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&) {
     pybind11_fail("Internal error: cast_safe fallback invoked"); }
 template <> inline void cast_safe<void>(object &&) {}
+
+// Pre-declared above
+template <typename itype, typename T> handle cast_shared_from_this(const std::enable_shared_from_this<T> *src) {
+    if (src) {
+        try {
+            auto sh = std::dynamic_pointer_cast<const itype>(src->shared_from_this());
+            if (sh)
+                return cast(sh).release();
+        } catch (const std::bad_weak_ptr &) {}
+    }
+    return {};
+};
 
 NAMESPACE_END(detail)
 

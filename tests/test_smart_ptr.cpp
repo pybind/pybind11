@@ -272,7 +272,28 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def_property_readonly("holder_copy", [](const SharedFromThisRef &s) { return s.shared; },
                                py::return_value_policy::copy)
         .def("set_ref", [](SharedFromThisRef &, const B &) { return true; })
-        .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; });
+        .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; })
+        .def("get_unshared_ref", [](const SharedFromThisRef &s) -> const B & { return s.value; }) // should copy
+        .def("get_shared_ref", [](const SharedFromThisRef &s) -> const B & { return *s.shared; }) // should find shared_from_this
+        .def("get_copy_ref", [](const SharedFromThisRef &s) -> const B & { return *s.shared; },
+                py::return_value_policy::copy) // should copy (even with the `shared_from_this`)
+        ;
+    struct UnregisteredSharedFromThisBase : std::enable_shared_from_this<UnregisteredSharedFromThisBase> {
+        virtual ~UnregisteredSharedFromThisBase() = default;
+    };
+    struct SFTSubclass : UnregisteredSharedFromThisBase {
+        SFTSubclass() { print_created(this); }
+        SFTSubclass(const SFTSubclass &) { print_copy_created(this); }
+        SFTSubclass(SFTSubclass &&) { print_move_created(this); }
+        ~SFTSubclass() override { print_destroyed(this); }
+        int test = 123;
+    };
+    py::class_<SFTSubclass, std::shared_ptr<SFTSubclass>>(m, "SFTSubclass")
+        .def_readonly("test", &SFTSubclass::test);
+    m.def("call_with_sft_subclass", [](py::function f) {
+        auto s = std::make_shared<SFTSubclass>();
+        return f(*s);
+    });
 
     // Issue #865: shared_from_this doesn't work with virtual inheritance
     struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {

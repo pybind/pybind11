@@ -215,6 +215,38 @@ def test_shared_ptr_from_this_and_references():
     y = m.SharedFromThisVirt.get()
     assert y is z
 
+    cc_init, mc_init = stats.copy_constructions, stats.move_constructions
+    s2 = m.SharedFromThisRef()
+    a1 = s2.get_unshared_ref()  # Inherits from enable_shared_from_this, but isn't active
+    assert stats.copy_constructions == cc_init + 1 and stats.move_constructions == mc_init
+    a2 = s2.get_unshared_ref()  # Likewise: should make another copy
+    assert stats.copy_constructions == cc_init + 2 and stats.move_constructions == mc_init
+    assert a1 is not a2
+    cc_init = cc_init + 2
+
+    b1 = s2.get_shared_ref()  # Has a shared_from_this, should use it rather than copying
+    assert stats.copy_constructions == cc_init and stats.move_constructions == mc_init
+    b2 = s2.get_shared_ref()  # Likewise: but also should be `is` b1
+    assert b2 is b1
+    assert stats.copy_constructions == cc_init and stats.move_constructions == mc_init
+
+    s3 = m.SharedFromThisRef()  # New instance so `get_copy_ref` doesn't return a known reference
+    cc_init, mc_init = stats.copy_constructions, stats.move_constructions
+    c1 = s3.get_copy_ref()  # Explicit copy rvp: should ignore shared_from_this
+    assert stats.copy_constructions == cc_init + 1 and stats.move_constructions == mc_init
+    c2 = s3.get_copy_ref()  # Explicit copy rvp: should ignore shared_from_this
+    assert stats.copy_constructions == cc_init + 2 and stats.move_constructions == mc_init
+    assert c1 is not c2
+
+    def func(s):
+        assert isinstance(s, m.SFTSubclass)
+        assert s.test == 123
+
+    m.call_with_sft_subclass(func)
+    sfts_stats = ConstructorStats.get(m.SFTSubclass)
+    assert sfts_stats.alive() == 0
+    assert sfts_stats.copy_constructions == 0 and sfts_stats.move_constructions == 0
+
 
 def test_move_only_holder():
     a = m.TypeWithMoveOnlyHolder.make()
