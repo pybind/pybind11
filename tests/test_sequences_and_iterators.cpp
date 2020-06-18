@@ -319,6 +319,9 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         return l;
     });
 
+    // test_sequence_length: check that Python sequences can be converted to py::sequence.
+    m.def("sequence_length", [](py::sequence seq) { return seq.size(); });
+
     // Make sure that py::iterator works with std algorithms
     m.def("count_none", [](py::object o) {
         return std::count_if(o.begin(), o.end(), [](py::handle h) { return h.is_none(); });

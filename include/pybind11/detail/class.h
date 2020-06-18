@@ -604,10 +604,12 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 #endif
 
     /* Flags */
-    type->tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
+    type->tp_flags |= Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE;
 #if PY_MAJOR_VERSION < 3
     type->tp_flags |= Py_TPFLAGS_CHECKTYPES;
 #endif
+    if (!rec.is_final)
+        type->tp_flags |= Py_TPFLAGS_BASETYPE;
 
     if (rec.dynamic_attr)
         enable_dynamic_attributes(heap_type);

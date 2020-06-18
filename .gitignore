@@ -10,6 +10,7 @@ cmake_install.cmake
 *.sdf
 *.opensdf
 *.vcxproj
+*.vcxproj.user
 *.filters
 example.dir
 Win32

@@ -6,6 +6,51 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+v2.5.0 (Mar 31, 2020)
+-----------------------------------------------------
+
+* Use C++17 fold expressions in type casters, if available. This can
+  improve performance during overload resolution when functions have
+  multiple arguments.
+  `#2043 <https://github.com/pybind/pybind11/pull/2043>`_.
+
+* Changed include directory resolution in ``pybind11/__init__.py``
+  and installation in ``setup.py``. This fixes a number of open issues
+  where pybind11 headers could not be found in certain environments.
+  `#1995 <https://github.com/pybind/pybind11/pull/1995>`_.
+
+* C++20 ``char8_t`` and ``u8string`` support. `#2026
+  <https://github.com/pybind/pybind11/pull/2026>`_.
+
+* CMake: search for Python 3.9. `bb9c91
+  <https://github.com/pybind/pybind11/commit/bb9c91>`_.
+
+* Fixes for MSYS-based build environments.
+  `#2087 <https://github.com/pybind/pybind11/pull/2087>`_,
+  `#2053 <https://github.com/pybind/pybind11/pull/2053>`_.
+
+* STL bindings for ``std::vector<...>::clear``. `#2074
+  <https://github.com/pybind/pybind11/pull/2074>`_.
+
+* Read-only flag for ``py::buffer``. `#1466
+  <https://github.com/pybind/pybind11/pull/1466>`_.
+
+* Exception handling during module initialization.
+  `bf2b031 <https://github.com/pybind/pybind11/commit/bf2b031>`_.
+
+* Support linking against a CPython debug build.
+  `#2025 <https://github.com/pybind/pybind11/pull/2025>`_.
+
+* Fixed issues involving the availability and use of aligned ``new`` and
+  ``delete``. `#1988 <https://github.com/pybind/pybind11/pull/1988>`_,
+  `759221 <https://github.com/pybind/pybind11/commit/759221>`_.
+
+* Fixed a resource leak upon interpreter shutdown.
+  `#2020 <https://github.com/pybind/pybind11/pull/2020>`_.
+
+* Fixed error handling in the boolean caster.
+  `#1976 <https://github.com/pybind/pybind11/pull/1976>`_.
+
 v2.4.3 (Oct 15, 2019)
 -----------------------------------------------------
 

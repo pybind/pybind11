@@ -23,6 +23,9 @@ struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
 /// Annotation for operators
 struct is_operator { };
 
+/// Annotation for classes that cannot be subclassed
+struct is_final { };
+
 /// Annotation for parent scope
 struct scope { handle value; scope(const handle &s) : value(s) { } };
 
@@ -134,7 +137,8 @@ struct argument_record {
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
-          is_operator(false), has_args(false), has_kwargs(false), is_method(false) { }
+          is_operator(false), is_method(false),
+          has_args(false), has_kwargs(false), has_kwonly_args(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -172,17 +176,23 @@ struct function_record {
     /// True if this is an operator (__add__), etc.
     bool is_operator : 1;
 
+    /// True if this is a method
+    bool is_method : 1;
+
     /// True if the function has a '*args' argument
     bool has_args : 1;
 
     /// True if the function has a '**kwargs' argument
     bool has_kwargs : 1;
 
-    /// True if this is a method
-    bool is_method : 1;
+    /// True once a 'py::kwonly' is encountered (any following args are keyword-only)
+    bool has_kwonly_args : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
+
+    /// Number of trailing arguments (counted in `nargs`) that are keyword-only
+    std::uint16_t nargs_kwonly = 0;
 
     /// Python method object
     PyMethodDef *def = nullptr;
@@ -201,7 +211,7 @@ struct function_record {
 struct type_record {
     PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          default_holder(true), module_local(false) { }
+          default_holder(true), module_local(false), is_final(false) { }
 
     /// Handle to the parent scope
     handle scope;
@@ -253,6 +263,9 @@ struct type_record {
 
     /// Is the class definition local to the module shared object?
     bool module_local : 1;
+
+    /// Is the class inheritable from python classes?
+    bool is_final : 1;
 
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(base, false);
@@ -353,12 +366,20 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
     static void init(const is_new_style_constructor &, function_record *r) { r->is_new_style_constructor = true; }
 };
 
+inline void process_kwonly_arg(const arg &a, function_record *r) {
+    if (!a.name || strlen(a.name) == 0)
+        pybind11_fail("arg(): cannot specify an unnamed argument after an kwonly() annotation");
+    ++r->nargs_kwonly;
+}
+
 /// Process a keyword argument attribute (*without* a default value)
 template <> struct process_attribute<arg> : process_attribute_default<arg> {
     static void init(const arg &a, function_record *r) {
         if (r->is_method && r->args.empty())
             r->args.emplace_back("self", nullptr, handle(), true /*convert*/, false /*none not allowed*/);
         r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert, a.flag_none);
+
+        if (r->has_kwonly_args) process_kwonly_arg(a, r);
     }
 };
 
@@ -390,6 +411,15 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
 #endif
         }
         r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none);
+
+        if (r->has_kwonly_args) process_kwonly_arg(a, r);
+    }
+};
+
+/// Process a keyword-only-arguments-follow pseudo argument
+template <> struct process_attribute<kwonly> : process_attribute_default<kwonly> {
+    static void init(const kwonly &, function_record *r) {
+        r->has_kwonly_args = true;
     }
 };
 
@@ -414,6 +444,11 @@ struct process_attribute<multiple_inheritance> : process_attribute_default<multi
 template <>
 struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr> {
     static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
+};
+
+template <>
+struct process_attribute<is_final> : process_attribute_default<is_final> {
+    static void init(const is_final &, type_record *r) { r->is_final = true; }
 };
 
 template <>

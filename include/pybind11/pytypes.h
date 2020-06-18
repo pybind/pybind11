@@ -980,6 +980,9 @@ public:
         return std::string(buffer, (size_t) length);
     }
 };
+// Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
+// are included in the doxygen group; close here and reopen after as a workaround
+/// @} pytypes
 
 inline bytes::bytes(const pybind11::str &s) {
     object temp = s;
@@ -1009,6 +1012,8 @@ inline str::str(const bytes& b) {
     m_ptr = obj.release().ptr();
 }
 
+/// \addtogroup pytypes
+/// @{
 class none : public object {
 public:
     PYBIND11_OBJECT(none, object, detail::PyNone_Check)
@@ -1242,7 +1247,12 @@ private:
 class sequence : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(sequence, object, PySequence_Check)
-    size_t size() const { return (size_t) PySequence_Size(m_ptr); }
+    size_t size() const {
+        ssize_t result = PySequence_Size(m_ptr);
+        if (result == -1)
+            throw error_already_set();
+        return (size_t) result;
+    }
     bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
     detail::item_accessor operator[](handle h) const { return object::operator[](h); }
