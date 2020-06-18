@@ -192,8 +192,6 @@ matrix:
           make pytest -j 2"
         set +ex
   allow_failures:
-    - name: PyPy 7.3, Python 2.7, c++11, gcc 4.8
-    - name: PyPy 7.3, Python 3.6, c++11, gcc 5
     - name: Python 3.9 beta, c++17, gcc 7 (w/o numpy/scipy)
 cache:
   directories:
@@ -236,22 +234,9 @@ before_install:
     SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
     $SCRIPT_RUN_PREFIX sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
   else
-<<<<<<< HEAD
-    if [ "$PYPY" = "5.8.0" ]; then
-      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.8.0-linux64.tar.bz2 | tar xj
-      PY_CMD=$(echo `pwd`/pypy2-v5.8.0-linux64/bin/pypy)
-=======
     if [ -n "$PYPY" ]; then
       curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy$PYTHON-v$PYPY-linux64.tar.bz2 | tar xj
       PY_CMD=$(echo `pwd`/pypy$PYTHON-v$PYPY-linux64/bin/pypy$PY)
->>>>>>> 8c0cd94465fbc1dbc34217e5a614edc784f0913e
-      CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
-    elif [ -n "$PYPY" ]; then
-      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy${PYTHON:0:3}-v${PYPY}-linux64.tar.bz2 | tar xj
-      PY_CMD=$PWD/pypy${PYTHON:0:3}-v${PYPY}-linux64/bin/pypy
-      if [ "${PYTHON:0:1}" = "3" ]; then
-        PY_CMD="${PY_CMD}3"
-      fi
       CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
     else
       PY_CMD=python$PYTHON
@@ -290,23 +275,17 @@ install:
       export CXXFLAGS="-stdlib=libc++"
     fi
 
-    local PIP_CMD=""
-<<<<<<< HEAD
     export NPY_NUM_BUILD_JOBS=2
-    if [ -n "$PYPY" ]; then
-       echo Installing "pytest"
-       $PY_CMD -m pip install --user --upgrade pytest
-=======
+    local PIP_CMD=""
     if [ -n "$PYPY" ]; then
       # For expediency, install only versions that are available on the extra index.
       travis_wait 30 \
         $PY_CMD -m pip install --user --upgrade --extra-index-url https://antocuni.github.io/pypy-wheels/manylinux2010 \
           numpy scipy
         $PY_CMD -m pip install --user --upgrade pytest
->>>>>>> 8c0cd94465fbc1dbc34217e5a614edc784f0913e
     else
-       echo "Installing pytest, numpy, scipy..."
-       $PY_CMD -m pip install --user --upgrade pytest numpy scipy
+      echo "Installing pytest, numpy, scipy..."
+      $PY_CMD -m pip install --user --upgrade pytest numpy scipy
     fi
     echo "done."
 
