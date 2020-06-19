@@ -16,7 +16,7 @@ template <typename T>
 using py_csr_t = py::csr_t<T, py::array::c_style | py::array::forcecast>;
 
 template <typename T>
-void accept_csr_matrix(py_csr_t<T> &/*csr*/){
+void swap_first_last_data(py_csr_t<T> &/*csr*/){
 
 }
 
@@ -24,5 +24,5 @@ TEST_SUBMODULE(numpy_csr_matrix, m) {
     try { py::module::import("numpy"); }
     catch (...) { return; }
 
-    m.def("accept_csr_matrix", accept_csr_matrix<double>, "accept_csr_matrix");
+    m.def("swap_first_last_data", swap_first_last_data<double>, "swap_first_last_data");
 }

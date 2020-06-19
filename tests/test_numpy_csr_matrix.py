@@ -15,9 +15,13 @@ def test_accept_csr_matrix():
 
     n_samples = 40
     n_features = 20
-    sparsity = 1e-4
+    sparsity = 1e-1
 
     features = sparse.rand(n_samples, n_features, density=sparsity, format='csr')
-    m.accept_csr_matrix(features)
+
+    first = features.data[0]
+    last = features.data[-1]
+
+    m.swap_first_last_data(features)
 
     assert all([1])

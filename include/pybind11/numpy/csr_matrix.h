@@ -11,17 +11,18 @@
 
 #include "pybind11/numpy.h"
 
-#include "numpy/arrayobject.h"
+#include <iostream>
+#define PRINT_(X) std::cout << __FILE__ << " " << __LINE__ << " " << X << std::endl;
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 
 #ifndef INDICE_TYPE
-#ifdef USE_SPARSE_INDICES_UINT64
+// #ifdef USE_SPARSE_INDICES_UINT64
 #define INDICE_TYPE size_t
-#else
-#define INDICE_TYPE std::uint32_t
-#endif
+// #else
+// #define INDICE_TYPE std::uint32_t
+// #endif
 #endif
 
 template <class T>
@@ -84,37 +85,51 @@ struct Sparse2dState {
 
 template <typename T>
 PyObject *sparse2d_to_csr(Sparse2dState<T> &state) {
-  auto data_type = NPY_UINT64;
-  if (std::is_same<T, double>::value)
-    data_type = NPY_DOUBLE;
-  else if (std::is_same<T, float>::value)
-    data_type = NPY_FLOAT;
-  else
-    throw std::runtime_error("Unhandeled data type for csr_matrix");
+  // auto data_type = NPY_UINT64;
+  // if (std::is_same<T, double>::value)
+  //   data_type = NPY_DOUBLE;
+  // else if (std::is_same<T, float>::value)
+  //   data_type = NPY_FLOAT;
+  // else
+  //   throw std::runtime_error("Unhandeled data type for csr_matrix");
 
-#ifdef USE_SPARSE_INDICES_UINT64
-  auto indice_type = NPY_UINT64;
-#else
-  auto indice_type = NPY_UINT32;
-#endif
+// #ifdef USE_SPARSE_INDICES_UINT64
+//   auto indice_type = NPY_UINT64;
+// #else
+//   auto indice_type = NPY_UINT32;
+// #endif
   auto info = state.info;
+
   size_t cols = info[0], rows = info[1], size_sparse = info[2];
-  npy_intp dims[1];
-  dims[0] = size_sparse;
-  npy_intp rowDim[1];
-  rowDim[0] = rows + 1;
+  // npy_intp dims[1];
+  // dims[0] = size_sparse;
+  // npy_intp rowDim[1];
+  // rowDim[0] = rows + 1;
 
-  PyArrayObject *array =
-      (PyArrayObject *)PyArray_SimpleNewFromData(1, dims, data_type, state.p_data);
-  if (!PyArray_Check(array)) throw std::runtime_error("Array check failed");
+  using py_array_t = pybind11::array_t<T, pybind11::array::c_style | pybind11::array::forcecast>;
+  using py_array_size_t = pybind11::array_t<T, pybind11::array::c_style | pybind11::array::forcecast>;
 
-  PyArrayObject *indices =
-      (PyArrayObject *)PyArray_SimpleNewFromData(1, dims, indice_type, state.p_indices);
-  if (!PyArray_Check(indices)) throw std::runtime_error("indices check failed");
+  py_array_t py_array{size_sparse, state.p_data};
+  auto array = py_array.m_ptr;
+  // PyArrayObject *array =
+  //     (PyArrayObject *)PyArray_SimpleNewFromData(1, dims, data_type, state.p_data);
+  // if (!PyArray_Check(array)) throw std::runtime_error("Array check failed");
 
-  PyArrayObject *row_indices =
-      (PyArrayObject *)PyArray_SimpleNewFromData(1, rowDim, indice_type, state.p_row_indices);
-  if (!PyArray_Check(row_indices)) throw std::runtime_error("row_indices check failed");
+  py_array_size_t py_indices{size_sparse, state.p_indices};
+  auto indices = py_indices.m_ptr;
+
+  // PyArrayObject *indices =
+  //     (PyArrayObject *)PyArray_SimpleNewFromData(1, dims, indice_type, state.p_indices);
+  // if (!PyArray_Check(indices)) throw std::runtime_error("indices check failed");
+
+
+
+  py_array_size_t py_row_indices{size_sparse, state.p_indices};
+  auto row_indices = py_row_indices.m_ptr;
+
+  // PyArrayObject *row_indices =
+  //     (PyArrayObject *)PyArray_SimpleNewFromData(1, rowDim, indice_type, state.p_row_indices);
+  // if (!PyArray_Check(row_indices)) throw std::runtime_error("row_indices check failed");
 
   if (!array) throw std::runtime_error("Array failed");
   if (!indices) throw std::runtime_error("indices failed");
@@ -162,19 +177,19 @@ PyObject *sparse2d_to_csr(Sparse2dState<T> &state) {
   if (PyObject_SetAttrString(matrix, "_row_indices", (PyObject *)row_indices))
     throw std::runtime_error("set row_indices failed");
 
-#if (NPY_API_VERSION >= 7)
-  PyArray_ENABLEFLAGS(array, NPY_ARRAY_OWNDATA);
-  PyArray_ENABLEFLAGS(indices, NPY_ARRAY_OWNDATA);
-  PyArray_ENABLEFLAGS(row_indices, NPY_ARRAY_OWNDATA);
-#else
-  PyArray_FLAGS(array) |= NPY_OWNDATA;
-  PyArray_FLAGS(indices) |= NPY_OWNDATA;
-  PyArray_FLAGS(row_indices) |= NPY_OWNDATA;
-#endif
+// #if (NPY_API_VERSION >= 7)
+//   PyArray_ENABLEFLAGS(array, NPY_ARRAY_OWNDATA);
+//   PyArray_ENABLEFLAGS(indices, NPY_ARRAY_OWNDATA);
+//   PyArray_ENABLEFLAGS(row_indices, NPY_ARRAY_OWNDATA);
+// #else
+//   PyArray_FLAGS(array) |= NPY_OWNDATA;
+//   PyArray_FLAGS(indices) |= NPY_OWNDATA;
+//   PyArray_FLAGS(row_indices) |= NPY_OWNDATA;
+// #endif
 
-  Py_DECREF(array);
-  Py_DECREF(indices);
-  Py_DECREF(row_indices);
+//   Py_DECREF(array);
+//   Py_DECREF(indices);
+//   Py_DECREF(row_indices);
 
   return matrix;
 }
@@ -531,11 +546,12 @@ class csr_t : public csr {
 
   csr_t() : csr(0, static_cast<const T *>(nullptr)) {}
   csr_t(handle h, borrowed_t) : csr(h, borrowed_t{}), _info(3) {
-    auto *obj = h.ptr();
-    auto *obj_shape = PyObject_GetAttrString(obj, "shape");
-    auto *obj_indptr = (PyArrayObject *)PyObject_GetAttrString(obj, "indptr");
-    auto *obj_indices = (PyArrayObject *)PyObject_GetAttrString(obj, "indices");
-    auto *obj_data = (PyArrayObject *)PyObject_GetAttrString(obj, "data");
+
+    PyObject *obj = h.ptr();
+    PyObject *obj_shape = PyObject_GetAttrString(obj, "shape");
+    PyObject *obj_indptr = PyObject_GetAttrString(obj, "indptr");
+    PyObject *obj_indices = PyObject_GetAttrString(obj, "indices");
+    PyObject *obj_data = PyObject_GetAttrString(obj, "data");
 
     if (obj_shape == NULL || obj_indptr == NULL || obj_indices == NULL || obj_data == NULL) {
       PyErr_SetString(PyExc_ValueError,
@@ -548,27 +564,36 @@ class csr_t : public csr {
       throw std::runtime_error("ERROR 1");
     }
 
-    if (!PyArray_IS_C_CONTIGUOUS(obj_data) || !PyArray_IS_C_CONTIGUOUS(obj_indptr) ||
+    /*if (!PyArray_IS_C_CONTIGUOUS(obj_data) || !PyArray_IS_C_CONTIGUOUS(obj_indptr) ||
         !PyArray_IS_C_CONTIGUOUS(obj_indices)) {
       PyErr_SetString(
           PyExc_ValueError,
           "The fields indptr, indices and data of sparse matrix must be contiguous numpy arrays.");
+
       Py_DECREF(obj_indptr);
       Py_DECREF(obj_indices);
       Py_DECREF(obj_data);
       Py_DECREF(obj_shape);
       throw std::runtime_error("ERROR 2");
-    }
+    }*/
 
-    PyObject *obj_nrows = PyTuple_GET_ITEM(obj_shape, 0);
-    PyObject *obj_ncols = PyTuple_GET_ITEM(obj_shape, 1);
-    _info[0] = PyLong_AsLong(obj_ncols);
-    _info[1] = PyLong_AsLong(obj_nrows);
-    _info[2] = PyArray_DIM(obj_data, 0);
+    _info[0] = PyLong_AsLong(PyTuple_GET_ITEM(obj_shape, 0));
+    _info[1] = PyLong_AsLong(PyTuple_GET_ITEM(obj_shape, 1));
 
-    auto *data = (T *)PyArray_DATA(obj_data);
-    auto *indices = (INDICE_TYPE *)PyArray_DATA(obj_indices);
-    auto *row_indices = (INDICE_TYPE *)PyArray_DATA(obj_indptr);
+    PyObject *obj_size = PyObject_GetAttrString(obj_data, "size");
+    _info[2] = PyLong_AsLong(obj_size); // detail::array_proxy(obj_data)->dimensions[0];
+
+    PRINT_(_info[0]);
+    PRINT_(_info[1]);
+    PRINT_(_info[2]);
+
+    auto *data = static_cast<T*>(static_cast<void *>(detail::array_proxy(obj_data)->data));
+    auto *indices = static_cast<INDICE_TYPE*>(static_cast<void *>(detail::array_proxy(obj_indices)->data));
+    auto *row_indices = static_cast<INDICE_TYPE*>(static_cast<void *>(detail::array_proxy(obj_indptr)->data));
+
+
+    PRINT_(data[0]);
+    PRINT_(data[79]);
 
     m_data_ptr = std::make_shared<Sparse2DView<T>>(data, _info.data(), indices, row_indices);
   }
