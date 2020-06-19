@@ -1,5 +1,5 @@
 /*
-    pybind11/numpy/csr_matrix.h: Basic NumPy support for csr_matrix
+    pybind11/scipy.h: Basic NumPy support for csr_matrix
 
     Copyright (c) 2020 Philip Deegan <philip.deegan@gmail.com>
 

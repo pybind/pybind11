@@ -51,12 +51,12 @@ set(PYBIND11_TEST_FILES
   test_multiple_inheritance.cpp
   test_numpy_array.cpp
   test_numpy_dtypes.cpp
-  test_numpy_csr_matrix.cpp
   test_numpy_vectorize.cpp
   test_opaque_types.cpp
   test_operator_overloading.cpp
   test_pickling.cpp
   test_pytypes.cpp
+  test_scipy_csr_matrix.cpp
   test_sequences_and_iterators.cpp
   test_smart_ptr.cpp
   test_stl.cpp

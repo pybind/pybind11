@@ -8,7 +8,7 @@
 */
 
 #include "pybind11_tests.h"
-#include <pybind11/numpy/csr_matrix.h>
+#include <pybind11/scipy.h>
 
 namespace py = pybind11;
 
@@ -21,7 +21,7 @@ void swap_first_last_data(py_csr_t<T> &/*csr*/){
 }
 
 TEST_SUBMODULE(numpy_csr_matrix, m) {
-    try { py::module::import("numpy"); }
+    try { py::module::import("scipy"); }
     catch (...) { return; }
 
     m.def("swap_first_last_data", swap_first_last_data<double>, "swap_first_last_data");
