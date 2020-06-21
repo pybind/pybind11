@@ -362,6 +362,34 @@ like so:
     py::class_<MyClass>("MyClass")
         .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
 
+Keyword-only arguments
+======================
+
+Python 3 introduced keyword-only arguments by specifying an unnamed ``*``
+argument in a function definition:
+
+.. code-block:: python
+
+    def f(a, *, b):  # a can be positional or via keyword; b must be via keyword
+        pass
+
+    f(a=1, b=2)  # good
+    f(b=2, a=1)  # good
+    f(1, b=2)    # good
+    f(1, 2)      # TypeError: f() takes 1 positional argument but 2 were given
+
+Pybind11 provides a ``py::kwonly`` object that allows you to implement
+the same behaviour by specifying the object between positional and keyword-only
+argument annotations when registering the function:
+
+.. code-block:: cpp
+
+    m.def("f", [](int a, int b) { /* ... */ },
+          py::arg("a"), py::kwonly(), py::arg("b"));
+
+Note that, as in Python, you cannot combine this with a ``py::args`` argument.
+This feature does *not* require Python 3 to work.
+
 .. _nonconverting_arguments:
 
 Non-converting arguments

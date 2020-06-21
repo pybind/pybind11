@@ -136,6 +136,13 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
         return v.release();
     }));
 
+    cl.def("clear",
+        [](Vector &v) {
+            v.clear();
+        },
+        "Clear the contents"
+    );
+
     cl.def("extend",
        [](Vector &v, const Vector &src) {
            v.insert(v.end(), src.begin(), src.end());

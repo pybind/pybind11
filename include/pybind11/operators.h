@@ -147,6 +147,9 @@ PYBIND11_INPLACE_OPERATOR(ixor,     operator^=,   l ^= r)
 PYBIND11_INPLACE_OPERATOR(ior,      operator|=,   l |= r)
 PYBIND11_UNARY_OPERATOR(neg,        operator-,    -l)
 PYBIND11_UNARY_OPERATOR(pos,        operator+,    +l)
+// WARNING: This usage of `abs` should only be done for existing STL overloads.
+// Adding overloads directly in to the `std::` namespace is advised against:
+// https://en.cppreference.com/w/cpp/language/extending_std
 PYBIND11_UNARY_OPERATOR(abs,        abs,          std::abs(l))
 PYBIND11_UNARY_OPERATOR(hash,       hash,         std::hash<L>()(l))
 PYBIND11_UNARY_OPERATOR(invert,     operator~,    (~l))
@@ -160,6 +163,8 @@ PYBIND11_UNARY_OPERATOR(float,      float_,       (double) l)
 NAMESPACE_END(detail)
 
 using detail::self;
+// Add named operators so that they are accessible via `py::`.
+using detail::hash;
 
 NAMESPACE_END(PYBIND11_NAMESPACE)
 

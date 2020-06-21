@@ -6,6 +6,18 @@ from pybind11_tests import pytypes as m
 from pybind11_tests import debug_enabled
 
 
+def test_int(doc):
+    assert doc(m.get_int) == "get_int() -> int"
+
+
+def test_iterator(doc):
+    assert doc(m.get_iterator) == "get_iterator() -> Iterator"
+
+
+def test_iterable(doc):
+    assert doc(m.get_iterable) == "get_iterable() -> Iterable"
+
+
 def test_list(capture, doc):
     with capture:
         lst = m.get_list()

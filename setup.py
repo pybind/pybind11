@@ -67,6 +67,13 @@ class BuildPy(build_py):
             self.mkpath(os.path.dirname(target))
             self.copy_file(header, target, preserve_mode=False)
 
+    def get_outputs(self, include_bytecode=1):
+        outputs = build_py.get_outputs(self, include_bytecode=include_bytecode)
+        for header in package_data:
+            target = os.path.join(self.build_lib, 'pybind11', header)
+            outputs.append(target)
+        return outputs
+
 
 setup(
     name='pybind11',
