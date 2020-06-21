@@ -287,6 +287,15 @@ def test_scalar_conversion():
                 assert 'incompatible function arguments' in str(excinfo.value)
 
 
+def test_vectorize():
+    n = 3
+    array = m.create_rec_simple(n)
+    values = m.f_simple_vectorized(array)
+    np.testing.assert_array_equal(values, [0, 10, 20])
+    array_2 = m.f_simple_pass_thru_vectorized(array)
+    np.testing.assert_array_equal(array, array_2)
+
+
 def test_register_dtype():
     with pytest.raises(RuntimeError) as excinfo:
         m.register_dtype()

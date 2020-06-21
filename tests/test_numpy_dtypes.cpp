@@ -462,9 +462,15 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("buffer_to_dtype", [](py::buffer& buf) { return py::dtype(buf.request()); });
 
     // test_scalar_conversion
-    m.def("f_simple", [](SimpleStruct s) { return s.uint_ * 10; });
+    auto f_simple = [](SimpleStruct s) { return s.uint_ * 10; };
+    m.def("f_simple", f_simple);
     m.def("f_packed", [](PackedStruct s) { return s.uint_ * 10; });
     m.def("f_nested", [](NestedStruct s) { return s.a.uint_ * 10; });
+
+    // test_vectorize
+    m.def("f_simple_vectorized", py::vectorize(f_simple));
+    auto f_simple_pass_thru = [](SimpleStruct s) { return s; };
+    m.def("f_simple_pass_thru_vectorized", py::vectorize(f_simple_pass_thru));
 
     // test_register_dtype
     m.def("register_dtype", []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_); });
