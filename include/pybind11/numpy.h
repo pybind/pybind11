@@ -40,6 +40,9 @@ NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 class array; // Forward declaration
 
 NAMESPACE_BEGIN(detail)
+
+template <> struct handle_type_name<array> { static constexpr auto name = _("numpy.ndarray"); };
+
 template <typename type, typename SFINAE = void> struct npy_format_descriptor;
 
 struct PyArrayDescr_Proxy {
@@ -1007,14 +1010,14 @@ struct npy_format_descriptor_name;
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {
     static constexpr auto name = _<std::is_same<T, bool>::value>(
-        _("bool"), _<std::is_signed<T>::value>("int", "uint") + _<sizeof(T)*8>()
+        _("bool"), _<std::is_signed<T>::value>("numpy.int", "numpy.uint") + _<sizeof(T)*8>()
     );
 };
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
     static constexpr auto name = _<std::is_same<T, float>::value || std::is_same<T, double>::value>(
-        _("float") + _<sizeof(T)*8>(), _("longdouble")
+        _("numpy.float") + _<sizeof(T)*8>(), _("numpy.longdouble")
     );
 };
 
@@ -1022,7 +1025,7 @@ template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
     static constexpr auto name = _<std::is_same<typename T::value_type, float>::value
                                    || std::is_same<typename T::value_type, double>::value>(
-        _("complex") + _<sizeof(typename T::value_type)*16>(), _("longcomplex")
+        _("numpy.complex") + _<sizeof(typename T::value_type)*16>(), _("numpy.longcomplex")
     );
 };
 
@@ -1218,7 +1221,7 @@ private:
 #define PYBIND11_MAP_NEXT0(test, next, ...) next PYBIND11_MAP_OUT
 #define PYBIND11_MAP_NEXT1(test, next) PYBIND11_MAP_NEXT0 (test, next, 0)
 #define PYBIND11_MAP_NEXT(test, next)  PYBIND11_MAP_NEXT1 (PYBIND11_MAP_GET_END test, next)
-#ifdef _MSC_VER // MSVC is not as eager to expand macros, hence this workaround
+#if defined(_MSC_VER) && !defined(__clang__) // MSVC is not as eager to expand macros, hence this workaround
 #define PYBIND11_MAP_LIST_NEXT1(test, next) \
     PYBIND11_EVAL0 (PYBIND11_MAP_NEXT0 (test, PYBIND11_MAP_COMMA next, 0))
 #else
@@ -1240,7 +1243,7 @@ private:
         (::std::vector<::pybind11::detail::field_descriptor> \
          {PYBIND11_MAP_LIST (PYBIND11_FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 #define PYBIND11_MAP2_LIST_NEXT1(test, next) \
     PYBIND11_EVAL0 (PYBIND11_MAP_NEXT0 (test, PYBIND11_MAP_COMMA next, 0))
 #else

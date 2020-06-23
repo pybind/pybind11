@@ -64,6 +64,10 @@ def test_vector_int():
     del v_int2[-1]
     assert v_int2 == m.VectorInt([0, 99, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 88])
 
+    v_int2.clear()
+    assert len(v_int2) == 0
+
+
 # related to the PyPy's buffer protocol.
 @pytest.unsupported_on_pypy
 def test_vector_buffer():

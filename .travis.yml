@@ -17,7 +17,8 @@ matrix:
     - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
     install:
     # breathe 4.14 doesn't work with bit fields. See https://github.com/michaeljones/breathe/issues/462
-    - $PY_CMD -m pip install --user --upgrade sphinx sphinx_rtd_theme breathe==4.13.1 flake8 pep8-naming pytest
+    # Latest breathe + Sphinx causes warnings and errors out
+    - $PY_CMD -m pip install --user --upgrade "sphinx<3" sphinx_rtd_theme breathe==4.13.1 flake8 pep8-naming pytest
     - curl -fsSL https://sourceforge.net/projects/doxygen/files/rel-1.8.15/doxygen-1.8.15.linux.bin.tar.gz/download | tar xz
     - export PATH="$PWD/doxygen-1.8.15/bin:$PATH"
     script:
@@ -112,7 +113,7 @@ matrix:
   - os: linux
     dist: xenial
     env: PYTHON=3.8 CPP=17 GCC=7
-    name: Python 3.8, c++17, gcc 7 (w/o numpy/scipy) # TODO: update build name when the numpy/scipy wheels become available
+    name: Python 3.8, c++17, gcc 7
     addons:
       apt:
         sources:
@@ -122,13 +123,21 @@ matrix:
           - g++-7
           - python3.8-dev
           - python3.8-venv
-    # Currently there is no numpy/scipy wheels available for python3.8
-    # TODO: remove next before_install, install and script clause when the wheels become available
-    before_install:
-      - pyenv global $(pyenv whence 2to3)  # activate all python versions
-      - PY_CMD=python3.8
-      - $PY_CMD -m ensurepip --user
-      - $PY_CMD -m pip install --user --upgrade pip wheel setuptools
+  - os: linux
+    dist: xenial
+    env: PYTHON=3.9 CPP=17 GCC=7
+    name: Python 3.9 beta, c++17, gcc 7 (w/o numpy/scipy) # TODO: update build name when the numpy/scipy wheels become available
+    addons:
+      apt:
+        sources:
+          - deadsnakes
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-7
+          - python3.9-dev
+          - python3.9-venv
+    # Currently there are no numpy/scipy wheels available for python3.9
+    # TODO: remove next install and script clause when the wheels become available
     install:
       - $PY_CMD -m pip install --user --upgrade pytest
     script:
@@ -145,18 +154,28 @@ matrix:
     name: Python 3.7, c++14, AppleClang 9, Debug build
     osx_image: xcode9.4
     env: PYTHON=3.7 CPP=14 CLANG DEBUG=1
-  # WARNING: This current fails on download. Should try to upgrade OS + Python version?
-  # # Test a PyPy 2.7 build
-  # - os: linux
-  #   dist: trusty
-  #   env: PYPY=5.8 PYTHON=2.7 CPP=11 GCC=4.8
-  #   name: PyPy 5.8, Python 2.7, c++11, gcc 4.8
-  #   addons:
-  #     apt:
-  #       packages:
-  #         - libblas-dev
-  #         - liblapack-dev
-  #         - gfortran
+  # Test a PyPy 2.7 build
+  - os: linux
+    dist: trusty
+    env: PYPY=7.3.1 PYTHON=2.7 CPP=11 GCC=4.8
+    name: PyPy 7.3, Python 2.7, c++11, gcc 4.8
+    addons:
+      apt:
+        packages:
+          - libblas-dev
+          - liblapack-dev
+          - gfortran
+  - os: linux
+    dist: xenial
+    env: PYPY=7.3.1 PYTHON=3.6 CPP=11 GCC=5
+    name: PyPy 7.3, Python 3.6, c++11, gcc 5
+    addons:
+      apt:
+        packages:
+          - libblas-dev
+          - liblapack-dev
+          - gfortran
+          - g++-5
   # Build in 32-bit mode and tests against the CMake-installed version
   - os: linux
     dist: trusty
@@ -176,6 +195,10 @@ matrix:
           cmake ../pybind11-tests ${CMAKE_EXTRA_ARGS} -DPYBIND11_WERROR=ON
           make pytest -j 2"
         set +ex
+  allow_failures:
+    - name: PyPy 7.3, Python 2.7, c++11, gcc 4.8
+    - name: PyPy 7.3, Python 3.6, c++11, gcc 5
+    - name: Python 3.9 beta, c++17, gcc 7 (w/o numpy/scipy)
 cache:
   directories:
   - $HOME/.local/bin
@@ -217,9 +240,9 @@ before_install:
     SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
     $SCRIPT_RUN_PREFIX sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
   else
-    if [ "$PYPY" = "5.8" ]; then
-      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy2-v5.8.0-linux64.tar.bz2 | tar xj
-      PY_CMD=$(echo `pwd`/pypy2-v5.8.0-linux64/bin/pypy)
+    if [ -n "$PYPY" ]; then
+      curl -fSL https://bitbucket.org/pypy/pypy/downloads/pypy$PYTHON-v$PYPY-linux64.tar.bz2 | tar xj
+      PY_CMD=$(echo `pwd`/pypy$PYTHON-v$PYPY-linux64/bin/pypy$PY)
       CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE:FILEPATH=$PY_CMD"
     else
       PY_CMD=python$PYTHON
@@ -261,11 +284,12 @@ install:
     export NPY_NUM_BUILD_JOBS=2
     echo "Installing pytest, numpy, scipy..."
     local PIP_CMD=""
-    if [ -n $PYPY ]; then
+    if [ -n "$PYPY" ]; then
       # For expediency, install only versions that are available on the extra index.
       travis_wait 30 \
-        $PY_CMD -m pip install --user --upgrade --extra-index-url https://imaginary.ca/trusty-pypi \
-          pytest numpy==1.15.4 scipy==1.2.0
+        $PY_CMD -m pip install --user --upgrade --extra-index-url https://antocuni.github.io/pypy-wheels/manylinux2010 \
+          numpy scipy
+        $PY_CMD -m pip install --user --upgrade pytest
     else
       $PY_CMD -m pip install --user --upgrade pytest numpy scipy
     fi

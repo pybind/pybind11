@@ -8,6 +8,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 
 option(PYBIND11_WERROR  "Report all warnings as errors"  OFF)
+set(PYBIND11_TEST_OVERRIDE "" CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
 
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # We're being loaded directly, i.e. not via add_subdirectory, so make this

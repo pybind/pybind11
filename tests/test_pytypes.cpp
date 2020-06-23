@@ -11,6 +11,12 @@
 
 
 TEST_SUBMODULE(pytypes, m) {
+    // test_int
+    m.def("get_int", []{return py::int_(0);});
+    // test_iterator
+    m.def("get_iterator", []{return py::iterator();});
+    // test_iterable
+    m.def("get_iterable", []{return py::iterable();});
     // test_list
     m.def("get_list", []() {
         py::list list;

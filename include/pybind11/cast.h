@@ -293,8 +293,8 @@ public:
         // Past-the-end iterator:
         iterator(size_t end) : curr(end) {}
     public:
-        bool operator==(const iterator &other) { return curr.index == other.curr.index; }
-        bool operator!=(const iterator &other) { return curr.index != other.curr.index; }
+        bool operator==(const iterator &other) const { return curr.index == other.curr.index; }
+        bool operator!=(const iterator &other) const { return curr.index != other.curr.index; }
         iterator &operator++() {
             if (!inst->simple_layout)
                 curr.vh += 1 + (*types)[curr.index]->holder_size_in_ptrs;
@@ -948,19 +948,25 @@ NAMESPACE_END(detail)
 // You may specialize polymorphic_type_hook yourself for types that want to appear
 // polymorphic to Python but do not use C++ RTTI. (This is a not uncommon pattern
 // in performance-sensitive applications, used most notably in LLVM.)
+//
+// polymorphic_type_hook_base allows users to specialize polymorphic_type_hook with
+// std::enable_if. User provided specializations will always have higher priority than
+// the default implementation and specialization provided in polymorphic_type_hook_base.
 template <typename itype, typename SFINAE = void>
-struct polymorphic_type_hook
+struct polymorphic_type_hook_base
 {
     static const void *get(const itype *src, const std::type_info*&) { return src; }
 };
 template <typename itype>
-struct polymorphic_type_hook<itype, detail::enable_if_t<std::is_polymorphic<itype>::value>>
+struct polymorphic_type_hook_base<itype, detail::enable_if_t<std::is_polymorphic<itype>::value>>
 {
     static const void *get(const itype *src, const std::type_info*& type) {
         type = src ? &typeid(*src) : nullptr;
         return dynamic_cast<const void*>(src);
     }
 };
+template <typename itype, typename SFINAE = void>
+struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
 NAMESPACE_BEGIN(detail)
 
@@ -1617,7 +1623,9 @@ public:
     }
 
     explicit operator type*() { return this->value; }
-    explicit operator type&() { return *(this->value); }
+    // static_cast works around compiler error with MSVC 17 and CUDA 10.2
+    // see issue #2180
+    explicit operator type&() { return *(static_cast<type *>(this->value)); }
     explicit operator holder_type*() { return std::addressof(holder); }
 
     // Workaround for Intel compiler bug
@@ -1871,6 +1879,9 @@ template <typename base, typename deleter> struct is_holder_type<base, std::uniq
 
 template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
 template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };
+template <> struct handle_type_name<int_> { static constexpr auto name = _("int"); };
+template <> struct handle_type_name<iterable> { static constexpr auto name = _("Iterable"); };
+template <> struct handle_type_name<iterator> { static constexpr auto name = _("Iterator"); };
 template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
 template <> struct handle_type_name<kwargs> { static constexpr auto name = _("**kwargs"); };
 
@@ -2177,6 +2188,11 @@ public:
     std::string type;
 #endif
 };
+
+/// \ingroup annotations
+/// Annotation indicating that all following arguments are keyword-only; the is the equivalent of an
+/// unnamed '*' argument (in Python 3)
+struct kwonly {};
 
 template <typename T>
 arg_v arg::operator=(T &&value) const { return {std::move(*this), std::forward<T>(value)}; }

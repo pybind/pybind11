@@ -207,6 +207,14 @@ public:
     double sum() const { return rw_value + ro_value; }
 };
 
+// Test explicit lvalue ref-qualification
+struct RefQualified {
+    int value = 0;
+
+    void refQualified(int other) & { value += other; }
+    int constRefQualified(int other) const & { return value + other; }
+};
+
 TEST_SUBMODULE(methods_and_attributes, m) {
     // test_methods_and_attributes
     py::class_<ExampleMandA> emna(m, "ExampleMandA");
@@ -457,4 +465,11 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.def("custom_caster_destroy_const", []() -> const DestructionTester * { return new DestructionTester(); },
             py::return_value_policy::take_ownership); // Likewise (const doesn't inhibit destruction)
     m.def("destruction_tester_cstats", &ConstructorStats::get<DestructionTester>, py::return_value_policy::reference);
+
+    // test_methods_and_attributes
+    py::class_<RefQualified>(m, "RefQualified")
+        .def(py::init<>())
+        .def_readonly("value", &RefQualified::value)
+        .def("refQualified", &RefQualified::refQualified)
+        .def("constRefQualified", &RefQualified::constRefQualified);
 }
