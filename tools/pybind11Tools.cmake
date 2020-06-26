@@ -33,7 +33,7 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.1)
   endif()
 endif()
 
-# Fall back to heuristics 
+# Fall back to heuristics
 if(NOT PYBIND11_CPP_STANDARD AND NOT CMAKE_CXX_STANDARD)
   if(MSVC)
     set(PYBIND11_CPP_STANDARD /std:c++14)
@@ -142,17 +142,32 @@ function(pybind11_add_module target_name)
 
   if(ARG_EXCLUDE_FROM_ALL)
     set(exclude_from_all EXCLUDE_FROM_ALL)
+  else()
+    set(exclude_from_all "")
   endif()
 
   add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
   if(ARG_SYSTEM)
     set(inc_isystem SYSTEM)
+  else()
+    set(inc_isystem "")
+  endif()
+
+  set(PYBIND11_INCLUDE_DIR_SELECTED "")
+  if(PYBIND11_INCLUDE_DIR)
+    # from project CMakeLists.txt
+    set(PYBIND11_INCLUDE_DIR_SELECTED ${PYBIND11_INCLUDE_DIR})
+  elseif(pybind11_INCLUDE_DIR)
+    # from pybind11Config
+    set(PYBIND11_INCLUDE_DIR_SELECTED ${pybind11_INCLUDE_DIR})
+  else()
+    message(FATAL "No pybind11_INCLUDE_DIR available. Use "
+      "find_package(pybind11) before calling pybind11_add_module.")
   endif()
 
   target_include_directories(${target_name} ${inc_isystem}
-    PRIVATE ${PYBIND11_INCLUDE_DIR}  # from project CMakeLists.txt
-    PRIVATE ${pybind11_INCLUDE_DIR}  # from pybind11Config
+    PRIVATE ${PYBIND11_INCLUDE_DIR_SELECTED}
     PRIVATE ${PYTHON_INCLUDE_DIRS})
 
   # Python debug libraries expose slightly different objects
@@ -201,10 +216,12 @@ function(pybind11_add_module target_name)
   endif()
 
   # Make sure C++11/14 are enabled
-  if(CMAKE_VERSION VERSION_LESS 3.3)
-    target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
-  else()
-    target_compile_options(${target_name} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
+  if(PYBIND11_CPP_STANDARD)
+    if(CMAKE_VERSION VERSION_LESS 3.3)
+      target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
+    else()
+      target_compile_options(${target_name} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
+    endif()
   endif()
 
   if(ARG_NO_EXTRAS)

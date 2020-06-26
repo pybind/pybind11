@@ -56,6 +56,9 @@ if(PYTHONLIBS_FOUND AND PYTHON_MODULE_EXTENSION)
 endif()
 
 # Use the Python interpreter to find the libs.
+if(NOT PythonLibsNew_FIND_VERSION)
+    set(PythonLibsNew_FIND_VERSION "")
+endif()
 if(PythonLibsNew_FIND_REQUIRED)
     find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} REQUIRED)
 else()
@@ -192,11 +195,18 @@ MARK_AS_ADVANCED(
 # module.
 SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
 SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
+if(NOT PYTHON_DEBUG_LIBRARY)
+    SET(PYTHON_DEBUG_LIBRARY "")
+endif()
 SET(PYTHON_DEBUG_LIBRARIES "${PYTHON_DEBUG_LIBRARY}")
 
 find_package_message(PYTHON
     "Found PythonLibs: ${PYTHON_LIBRARY}"
-    "${PYTHON_EXECUTABLE}${PYTHON_VERSION}")
+    "${PYTHON_EXECUTABLE}${PYTHON_VERSION_STRING}")
 
 set(PYTHONLIBS_FOUND TRUE)
 set(PythonLibsNew_FOUND TRUE)
+
+if(NOT PYTHON_MODULE_PREFIX)
+    SET(PYTHON_MODULE_PREFIX "")
+endif()
