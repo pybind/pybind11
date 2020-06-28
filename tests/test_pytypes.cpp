@@ -32,6 +32,11 @@ TEST_SUBMODULE(pytypes, m) {
         for (auto item : list)
             py::print("list item {}: {}"_s.format(index++, item));
     });
+    // test_none
+    m.def("get_none", []{return py::none();});
+    m.def("print_none", [](py::none none) {
+        py::print("none: {}"_s.format(none));
+    });
 
     // test_set
     m.def("get_set", []() {

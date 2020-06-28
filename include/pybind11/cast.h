@@ -1609,6 +1609,7 @@ template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBI
 template <> struct handle_type_name<int_> { static constexpr auto name = _("int"); };
 template <> struct handle_type_name<iterable> { static constexpr auto name = _("Iterable"); };
 template <> struct handle_type_name<iterator> { static constexpr auto name = _("Iterator"); };
+template <> struct handle_type_name<none> { static constexpr auto name = _("None"); };
 template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
 template <> struct handle_type_name<kwargs> { static constexpr auto name = _("**kwargs"); };
 
