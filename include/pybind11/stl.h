@@ -266,7 +266,9 @@ template<typename T> struct optional_caster {
     static handle cast(T_ &&src, return_value_policy policy, handle parent) {
         if (!src)
             return none().inc_ref();
-        policy = return_value_policy_override<typename T::value_type>::policy(policy);
+        if (!std::is_lvalue_reference<T>::value) {
+            policy = return_value_policy_override<T>::policy(policy);
+        }
         return value_conv::cast(*std::forward<T_>(src), policy, parent);
     }
 

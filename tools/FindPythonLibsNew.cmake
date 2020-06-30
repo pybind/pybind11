@@ -56,6 +56,9 @@ if(PYTHONLIBS_FOUND AND PYTHON_MODULE_EXTENSION)
 endif()
 
 # Use the Python interpreter to find the libs.
+if(NOT PythonLibsNew_FIND_VERSION)
+    set(PythonLibsNew_FIND_VERSION "")
+endif()
 if(PythonLibsNew_FIND_REQUIRED)
     find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} REQUIRED)
 else()
@@ -146,14 +149,14 @@ string(REGEX REPLACE "\\\\" "/" PYTHON_SITE_PACKAGES "${PYTHON_SITE_PACKAGES}")
 
 if(CMAKE_HOST_WIN32 AND NOT (MINGW AND DEFINED ENV{MSYSTEM}))
     set(PYTHON_LIBRARY
-        "${PYTHON_PREFIX}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
+        "${PYTHON_PREFIX}/libs/python${PYTHON_LIBRARY_SUFFIX}.lib")
 
     # when run in a venv, PYTHON_PREFIX points to it. But the libraries remain in the
     # original python installation. They may be found relative to PYTHON_INCLUDE_DIR.
     if(NOT EXISTS "${PYTHON_LIBRARY}")
         get_filename_component(_PYTHON_ROOT ${PYTHON_INCLUDE_DIR} DIRECTORY)
         set(PYTHON_LIBRARY
-            "${_PYTHON_ROOT}/libs/Python${PYTHON_LIBRARY_SUFFIX}.lib")
+            "${_PYTHON_ROOT}/libs/python${PYTHON_LIBRARY_SUFFIX}.lib")
     endif()
 
     # raise an error if the python libs are still not found.
@@ -192,11 +195,18 @@ MARK_AS_ADVANCED(
 # module.
 SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
 SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
+if(NOT PYTHON_DEBUG_LIBRARY)
+    SET(PYTHON_DEBUG_LIBRARY "")
+endif()
 SET(PYTHON_DEBUG_LIBRARIES "${PYTHON_DEBUG_LIBRARY}")
 
 find_package_message(PYTHON
     "Found PythonLibs: ${PYTHON_LIBRARY}"
-    "${PYTHON_EXECUTABLE}${PYTHON_VERSION}")
+    "${PYTHON_EXECUTABLE}${PYTHON_VERSION_STRING}")
 
 set(PYTHONLIBS_FOUND TRUE)
 set(PythonLibsNew_FOUND TRUE)
+
+if(NOT PYTHON_MODULE_PREFIX)
+    SET(PYTHON_MODULE_PREFIX "")
+endif()

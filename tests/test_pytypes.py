@@ -37,6 +37,11 @@ def test_list(capture, doc):
     assert doc(m.print_list) == "print_list(arg0: list) -> None"
 
 
+def test_none(capture, doc):
+    assert doc(m.get_none) == "get_none() -> None"
+    assert doc(m.print_none) == "print_none(arg0: None) -> None"
+
+
 def test_set(capture, doc):
     s = m.get_set()
     assert s == {"key1", "key2", "key3"}

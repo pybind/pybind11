@@ -67,7 +67,7 @@ specification.
 To create a C++ function that can take a Python buffer object as an argument,
 simply use the type ``py::buffer`` as one of its arguments. Buffers can exist
 in a great variety of configurations, hence some safety checks are usually
-necessary in the function body. Below, you can see an basic example on how to
+necessary in the function body. Below, you can see a basic example on how to
 define a custom constructor for the Eigen double precision matrix
 (``Eigen::MatrixXd``) type, which supports initialization from compatible
 buffer objects (e.g. a NumPy matrix).
