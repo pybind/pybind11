@@ -291,7 +291,8 @@ TEST_SUBMODULE(smart_ptr, m) {
         ~C() { print_destroyed(this); }
     };
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")
-        .def_static("make", []() { return custom_unique_ptr<C>(new C); });
+        .def_static("make", []() { return custom_unique_ptr<C>(new C); })
+        .def_static("make_as_object", []() { return py::cast(custom_unique_ptr<C>(new C)); });
 
     // test_holder_with_addressof_operator
     struct TypeForHolderWithAddressOf {
