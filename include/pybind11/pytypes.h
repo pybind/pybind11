@@ -1332,40 +1332,60 @@ public:
 
 class memoryview : public object {
 public:
-    explicit memoryview(const buffer_info& info) {
-        static Py_buffer buf { };
-        // Py_buffer uses signed sizes, strides and shape!..
-        static std::vector<Py_ssize_t> py_strides { };
-        static std::vector<Py_ssize_t> py_shape { };
-        static std::vector<std::string> formats = {
-            "?", "b", "B", "h", "H", "i", "I", "q", "Q", "f", "d", "g"
-        };
-        buf.buf = info.ptr;
-        buf.itemsize = info.itemsize;
-        auto it = std::find(formats.begin(), formats.end(), info.format);
-        buf.format = (it == formats.end()) ?
-            nullptr : const_cast<char*>(it->c_str());
-        buf.ndim = (int) info.ndim;
-        buf.len = info.size;
-        py_strides.clear();
-        py_shape.clear();
-        for (size_t i = 0; i < (size_t) info.ndim; ++i) {
-            py_strides.push_back(info.strides[i]);
-            py_shape.push_back(info.shape[i]);
-        }
-        buf.strides = py_strides.data();
-        buf.shape = py_shape.data();
-        buf.suboffsets = nullptr;
-        buf.readonly = info.readonly;
-        buf.internal = nullptr;
-
-        m_ptr = PyMemoryView_FromBuffer(&buf);
-        if (!m_ptr)
-            pybind11_fail("Unable to create memoryview from buffer descriptor");
-    }
-
     PYBIND11_OBJECT_CVT(memoryview, object, PyMemoryView_Check, PyMemoryView_FromObject)
+    explicit memoryview(char *mem, ssize_t size, bool writable = false)
+        : object(PyMemoryView_FromMemory(mem, size, (writable) ? PyBUF_WRITE : PyBUF_READ), stolen_t{}) {
+        if (!m_ptr) pybind11_fail("Could not allocate memoryview object!");
+    }
+    explicit memoryview(const buffer_info& info);
 };
+
+inline memoryview::memoryview(const buffer_info& info) {
+    // TODO: two-letter formats are not supported.
+    static const char* formats[] = {
+        pybind11::format_descriptor<bool>::value,
+        pybind11::format_descriptor<int8_t>::value,
+        pybind11::format_descriptor<uint8_t>::value,
+        pybind11::format_descriptor<int16_t>::value,
+        pybind11::format_descriptor<uint16_t>::value,
+        pybind11::format_descriptor<int32_t>::value,
+        pybind11::format_descriptor<uint32_t>::value,
+        pybind11::format_descriptor<int64_t>::value,
+        pybind11::format_descriptor<uint64_t>::value,
+        pybind11::format_descriptor<float>::value,
+        pybind11::format_descriptor<double>::value,
+        pybind11::format_descriptor<long double>::value,
+    };
+    if (info.view()) {
+        // Note: PyMemoryView_FromBuffer never increments obj reference.
+        m_ptr = (info.view()->obj) ?
+            PyMemoryView_FromObject(info.view()->obj) :
+            PyMemoryView_FromBuffer(info.view());
+    }
+    else {
+        size_t length = sizeof(formats) / sizeof(char*);
+        auto format = std::find(formats, formats + length, info.format);
+        if (format == (formats + length))
+            pybind11_fail("Invalid format string");
+        std::vector<Py_ssize_t> shape(info.shape.begin(), info.shape.end());
+        std::vector<Py_ssize_t> strides(info.strides.begin(), info.strides.end());
+        Py_buffer view;
+        view.buf = info.ptr;
+        view.obj = nullptr;
+        view.len = info.size * info.itemsize;
+        view.readonly = info.readonly;
+        view.itemsize = info.itemsize;
+        view.format = const_cast<char*>(*format);
+        view.ndim = static_cast<int>(info.ndim);
+        view.shape = shape.data();
+        view.strides = strides.data();
+        view.suboffsets = nullptr;
+        view.internal = nullptr;
+        m_ptr = PyMemoryView_FromBuffer(&view);
+    }
+    if (!m_ptr)
+        pybind11_fail("Unable to create memoryview from buffer descriptor");
+}
 /// @} pytypes
 
 /// \addtogroup python_builtins

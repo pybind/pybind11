@@ -263,11 +263,22 @@ def test_list_slicing():
     assert li[::2] == m.test_list_slicing(li)
 
 
-def test_memoryview():
-    import array
-    view = m.test_memoryview(b'abc')
-    if sys.version_info[0] == 3:
-        # Python 2.7 array does not implement the new buffer protocol
-        m.test_memoryview(array.array('I', [1, 1]))
-    assert view.format == 'B'
+@pytest.mark.parametrize('method, args, format', [
+    (m.test_memoryview_fromobject, (b'abc', ), 'B'),
+    (m.test_memoryview_frombuffer_reference, (b'abc',), 'B'),
+    (m.test_memoryview_frombuffer_new, tuple(), 'b'),
+])
+def test_memoryview(method, args, format):
+    view = method(*args)
+    assert isinstance(view, memoryview)
+    assert view.format == format
     assert view[0] == ord(b'a') if sys.version_info[0] == 3 else 'a'
+    assert len(view) == 3
+
+
+def test_memoryview_refcount():
+    buf = b'\x00\x00\x00\x00'
+    ref_before = sys.getrefcount(buf)
+    view = m.test_memoryview_frombuffer_reference(buf)
+    ref_after = sys.getrefcount(buf)
+    assert ref_before < ref_after
