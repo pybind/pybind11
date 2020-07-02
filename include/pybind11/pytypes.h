@@ -1333,10 +1333,12 @@ public:
 class memoryview : public object {
 public:
     PYBIND11_OBJECT_CVT(memoryview, object, PyMemoryView_Check, PyMemoryView_FromObject)
+#if PY_MAJOR_VERSION >= 3
     explicit memoryview(char *mem, ssize_t size, bool writable = false)
         : object(PyMemoryView_FromMemory(mem, size, (writable) ? PyBUF_WRITE : PyBUF_READ), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate memoryview object!");
     }
+#endif
     explicit memoryview(const buffer_info& info);
 };
 
