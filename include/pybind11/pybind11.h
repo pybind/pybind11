@@ -257,6 +257,7 @@ protected:
         /* Generate a proper function signature */
         std::string signature;
         size_t type_index = 0, arg_index = 0;
+        std::string self_type("object");
         for (auto *pc = text; *pc != '\0'; ++pc) {
             const auto c = *pc;
 
@@ -293,9 +294,13 @@ protected:
                     pybind11_fail("Internal error while parsing type signature (1)");
                 if (auto tinfo = detail::get_type_info(*t)) {
                     handle th((PyObject *) tinfo->type);
-                    signature +=
+                    std::string tname =
                         th.attr("__module__").cast<std::string>() + "." +
                         th.attr("__qualname__").cast<std::string>(); // Python 3.3+, but we backport it to earlier versions
+                    signature += tname;
+                    if (arg_index == 0 && rec->is_method) {
+                        self_type = tname;
+                    }
                 } else if (rec->is_new_style_constructor && arg_index == 0) {
                     // A new-style `__init__` takes `self` as `value_and_holder`.
                     // Rewrite it to the proper class type.
@@ -306,6 +311,9 @@ protected:
                     std::string tname(t->name());
                     detail::clean_type_id(tname);
                     signature += tname;
+                    if (arg_index == 0 && rec->is_method) {
+                        self_type = tname;
+                    }
                 }
             } else {
                 signature += c;
@@ -404,9 +412,10 @@ protected:
 
         std::string signatures;
         int index = 0;
+        const bool has_overloads = (chain || rec->is_operator);
         /* Create a nice pydoc rec including all signatures and
            docstrings of the functions in the overload chain */
-        if (chain && options::show_function_signatures()) {
+        if (has_overloads && options::show_function_signatures()) {
             // First a generic signature
             signatures += rec->name;
             signatures += "(*args, **kwargs)\n";
@@ -417,7 +426,7 @@ protected:
         for (auto it = chain_start; it != nullptr; it = it->next) {
             if (options::show_function_signatures()) {
                 if (index > 0) signatures += "\n";
-                if (chain)
+                if (has_overloads)
                     signatures += std::to_string(++index) + ". ";
                 signatures += rec->name;
                 signatures += it->signature;
@@ -434,6 +443,16 @@ protected:
                 signatures += it->doc;
                 if (options::show_function_signatures()) signatures += "\n";
             }
+        }
+        if (rec->is_operator) {
+            signatures += "\n";
+            signatures += std::to_string(++index) + ". ";
+            signatures += rec->name;
+            signatures += "(";
+            if (rec->is_method) {
+                signatures += "self: " + self_type + ", ";
+            }
+            signatures += "*args, **kwargs) -> NotImplemented\n";
         }
 
         /* Install docstring */
