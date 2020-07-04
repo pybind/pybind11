@@ -49,6 +49,7 @@ def test_multiple_inheritance_mix2():
     assert mt.foo() == 3
     assert mt.bar() == 4
 
+
 @pytest.bug_in_pypy
 def test_multiple_inheritance_python():
 

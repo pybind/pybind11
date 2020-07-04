@@ -215,7 +215,7 @@ def pytest_configure():
     pytest.requires_eigen_and_scipy = skipif(
         not have_eigen or not scipy, reason="eigen and/or scipy are not installed")
     pytest.unsupported_on_pypy = skipif(pypy, reason="unsupported on PyPy")
-    pytest.bug_in_pypy = skipif(pypy, reason="bug in PyPy")
+    pytest.bug_in_pypy = pytest.mark.xfail(pypy, reason="bug in PyPy")
     pytest.unsupported_on_pypy3 = skipif(pypy and sys.version_info.major >= 3,
                                          reason="unsupported on PyPy3")
     pytest.unsupported_on_pypy_lt_6 = skipif(pypy and sys.pypy_version_info[0] < 6,
