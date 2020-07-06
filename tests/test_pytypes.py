@@ -263,22 +263,26 @@ def test_list_slicing():
     assert li[::2] == m.test_list_slicing(li)
 
 
-@pytest.mark.parametrize('method, args, format', [
-    (m.test_memoryview_fromobject, (b'abc', ), 'B'),
-    (m.test_memoryview_frombuffer_reference, (b'abc',), 'B'),
-    (m.test_memoryview_frombuffer_new, tuple(), 'b'),
+@pytest.mark.parametrize('method, args, format, content', [
+    (m.test_memoryview_fromobject, (b'abc',), 'B', b'abc'),
+    (m.test_memoryview_frombuffer_reference, (b'def',), 'B', b'def'),
+    (m.test_memoryview_frombuffer_new, tuple(), 'b', b'ghi'),
 ])
-def test_memoryview(method, args, format):
+def test_memoryview(method, args, format, content):
     view = method(*args)
     assert isinstance(view, memoryview)
     assert view.format == format
-    assert view[0] == ord(b'a') if sys.version_info[0] == 3 else 'a'
-    assert len(view) == 3
+    assert view[:] == content
+    assert len(view) == len(content)
 
 
-def test_memoryview_refcount():
+@pytest.mark.parametrize('method', [
+    m.test_memoryview_frombuffer_reference,
+    m.test_memoryview_fromobject,
+])
+def test_memoryview_refcount(method):
     buf = b'\x00\x00\x00\x00'
     ref_before = sys.getrefcount(buf)
-    view = m.test_memoryview_frombuffer_reference(buf)
+    view = method(buf)
     ref_after = sys.getrefcount(buf)
     assert ref_before < ref_after

@@ -317,11 +317,7 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     m.def("test_memoryview_frombuffer_new", []() {
-        const char* buf = "abc";
-        const char* buf2 = "\x00\x00\x00\x00";
-        auto mv = py::memoryview(py::buffer_info(buf, 3, 1));
-        // Call twice with a different buffer to check the view content.
-        py::memoryview(py::buffer_info(const_cast<char*>(buf2), 4, "i", 1));
-        return mv;
+        const char* buf = "ghi";
+        return py::memoryview(py::buffer_info(buf, 3, 1));
     });
 }
