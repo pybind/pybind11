@@ -316,8 +316,11 @@ TEST_SUBMODULE(pytypes, m) {
         return py::memoryview(b.request());
     });
 
-    m.def("test_memoryview_frombuffer_new", []() {
-        const char* buf = "ghi";
-        return py::memoryview(py::buffer_info(buf, 3, 1));
+    m.def("test_memoryview_frombuffer_new", [](bool is_unsigned) {
+        static const int16_t si16[] = { 3, 1, 4, 1, 5 };
+        static const uint16_t ui16[] = { 2, 7, 1, 8 };
+        auto info = (is_unsigned) ?
+            py::buffer_info(ui16, 4, 1) : py::buffer_info(si16, 5, 1);
+        return py::memoryview(info);
     });
 }

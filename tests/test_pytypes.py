@@ -263,17 +263,22 @@ def test_list_slicing():
     assert li[::2] == m.test_list_slicing(li)
 
 
-@pytest.mark.parametrize('method, args, format, content', [
-    (m.test_memoryview_fromobject, (b'abc',), 'B', b'abc'),
-    (m.test_memoryview_frombuffer_reference, (b'def',), 'B', b'def'),
-    (m.test_memoryview_frombuffer_new, tuple(), 'b', b'ghi'),
+@pytest.mark.parametrize('method, arg, fmt, expected_view', [
+    (m.test_memoryview_fromobject, b'red', 'B', b'red'),
+    (m.test_memoryview_frombuffer_reference, b'green', 'B', b'green'),
+    (m.test_memoryview_frombuffer_new, False, 'h', [3, 1, 4, 1, 5]),
+    (m.test_memoryview_frombuffer_new, True, 'H', [2, 7, 1, 8]),
 ])
-def test_memoryview(method, args, format, content):
-    view = method(*args)
+def test_memoryview(method, arg, fmt, expected_view):
+    view = method(arg)
     assert isinstance(view, memoryview)
-    assert view.format == format
-    assert view[:] == content
-    assert len(view) == len(content)
+    assert view.format == fmt
+    if isinstance(expected_view, bytes) or sys.version_info[0] >= 3:
+        view_as_list = list(view)
+    else:
+        # Using max to pick non-zero byte (big-endian vs little-endian).
+        view_as_list = [max([ord(c) for c in s]) for s in view]
+    assert view_as_list == list(expected_view)
 
 
 @pytest.mark.parametrize('method', [
@@ -281,8 +286,9 @@ def test_memoryview(method, args, format, content):
     m.test_memoryview_fromobject,
 ])
 def test_memoryview_refcount(method):
-    buf = b'\x00\x00\x00\x00'
+    buf = b'\x0a\x0b\x0c\x0d'
     ref_before = sys.getrefcount(buf)
     view = method(buf)
     ref_after = sys.getrefcount(buf)
     assert ref_before < ref_after
+    assert list(view) == list(buf)
