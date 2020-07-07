@@ -407,51 +407,47 @@ PYBIND11_NOINLINE inline bool isinstance_generic(handle obj, const std::type_inf
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE inline std::string error_string() {
-    if (!PyErr_Occurred()) {
+PYBIND11_NOINLINE inline std::string error_string(PyObject *type, PyObject *value, PyObject *trace) {
+    if (!type) {
         PyErr_SetString(PyExc_RuntimeError, "Unknown internal error occurred");
         return "Unknown internal error occurred";
     }
 
-    error_scope scope; // Preserve error state
+    std::string result = handle(type).attr("__name__").cast<std::string>();
+    result += ": ";
 
-    std::string errorString;
-    if (scope.type) {
-        errorString += handle(scope.type).attr("__name__").cast<std::string>();
-        errorString += ": ";
-    }
-    if (scope.value)
-        errorString += (std::string) str(scope.value);
+    if (value)
+        result += str(value).cast<std::string>();
 
-    PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
-
-#if PY_MAJOR_VERSION >= 3
-    if (scope.trace != nullptr)
-        PyException_SetTraceback(scope.value, scope.trace);
-#endif
-
+    if (trace) {
 #if !defined(PYPY_VERSION)
-    if (scope.trace) {
-        PyTracebackObject *trace = (PyTracebackObject *) scope.trace;
+        PyTracebackObject *tb = (PyTracebackObject *) trace;
 
-        /* Get the deepest trace possible */
-        while (trace->tb_next)
-            trace = trace->tb_next;
+        // Get the deepest trace possible.
+        while (tb->tb_next)
+            tb = tb->tb_next;
 
-        PyFrameObject *frame = trace->tb_frame;
-        errorString += "\n\nAt:\n";
+        PyFrameObject *frame = tb->tb_frame;
+        result += "\n\nAt:\n";
         while (frame) {
             int lineno = PyFrame_GetLineNumber(frame);
-            errorString +=
+            result +=
                 "  " + handle(frame->f_code->co_filename).cast<std::string>() +
                 "(" + std::to_string(lineno) + "): " +
                 handle(frame->f_code->co_name).cast<std::string>() + "\n";
             frame = frame->f_back;
         }
-    }
 #endif
+    }
 
-    return errorString;
+    return result;
+}
+
+PYBIND11_NOINLINE inline std::string error_string() {
+    error_scope scope;  // Preserve error state.
+    if (scope.type)
+        PyErr_NormalizeException(&scope.type, &scope.value, &scope.trace);
+    return error_string(scope.type, scope.value, scope.trace);
 }
 
 PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail::type_info *type ) {
