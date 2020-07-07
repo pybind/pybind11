@@ -192,9 +192,8 @@ matrix:
           make pytest -j 2"
         set +ex
   allow_failures:
-    - name: PyPy 7.3, Python 2.7, c++11, gcc 4.8
-    - name: PyPy 7.3, Python 3.6, c++11, gcc 5
     - name: Python 3.9 beta, c++17, gcc 7 (w/o numpy/scipy)
+    - name: PyPy 7.3, Python 2.7, c++11, gcc 4.8
 cache:
   directories:
   - $HOME/.local/bin
@@ -278,15 +277,17 @@ install:
     fi
 
     export NPY_NUM_BUILD_JOBS=2
-    echo "Installing pytest, numpy, scipy..."
     local PIP_CMD=""
     if [ -n "$PYPY" ]; then
       # For expediency, install only versions that are available on the extra index.
+      echo "Not installing numpy, scipy as working wheels are not available"
+      # travis_wait 30 $PY_CMD -m pip install --user --upgrade --extra-index-url https://antocuni.github.io/pypy-wheels/manylinux2010 \
+      #    numpy scipy
+      echo "Installing pytest"
       travis_wait 30 \
-        $PY_CMD -m pip install --user --upgrade --extra-index-url https://antocuni.github.io/pypy-wheels/manylinux2010 \
-          numpy scipy
         $PY_CMD -m pip install --user --upgrade pytest
     else
+      echo "Installing pytest, numpy, scipy..."
       $PY_CMD -m pip install --user --upgrade pytest numpy scipy
     fi
     echo "done."
