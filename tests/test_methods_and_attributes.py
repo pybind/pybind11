@@ -58,8 +58,8 @@ def test_methods_and_attributes():
     assert cstats.alive() == 0
     assert cstats.values() == ["32"]
     assert cstats.default_constructions == 1
-    assert cstats.copy_constructions == 3
-    assert cstats.move_constructions >= 1
+    assert cstats.copy_constructions == 2
+    assert cstats.move_constructions >= 2
     assert cstats.copy_assignments == 0
     assert cstats.move_assignments == 0
 
