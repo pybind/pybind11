@@ -238,7 +238,7 @@ latex_elements = {
 #'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
-'preamble': '\DeclareUnicodeCharacter{00A0}{}',
+'preamble': r'\DeclareUnicodeCharacter{00A0}{}',
 
 # Latex figure (float) alignment
 #'figure_align': 'htbp',
