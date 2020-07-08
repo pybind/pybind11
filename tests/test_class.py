@@ -109,7 +109,10 @@ def test_inheritance_init(msg):
             pass
     with pytest.raises(TypeError) as exc_info:
         Python()
-    assert msg(exc_info.value) == "m.class_.Pet.__init__() must be called when overriding __init__"
+    expected = ["m.class_.Pet.__init__() must be called when overriding __init__",
+                "Pet.__init__() must be called when overriding __init__"]  # PyPy?
+    # TODO: fix PyPy error message wrt. tp_name/__qualname__?
+    assert msg(exc_info.value) in expected
 
     # Multiple bases
     class RabbitHamster(m.Rabbit, m.Hamster):
@@ -118,8 +121,9 @@ def test_inheritance_init(msg):
 
     with pytest.raises(TypeError) as exc_info:
         RabbitHamster()
-    expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
-    assert msg(exc_info.value) == expected
+    expected = ["m.class_.Hamster.__init__() must be called when overriding __init__",
+                "Hamster.__init__() must be called when overriding __init__"]  # PyPy
+    assert msg(exc_info.value) in expected
 
 
 def test_automatic_upcasting():
