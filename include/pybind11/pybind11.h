@@ -50,7 +50,7 @@
 #  include <cxxabi.h>
 #endif
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
@@ -909,7 +909,7 @@ inline dict globals() {
     return reinterpret_borrow<dict>(p ? p : module::import("__main__").attr("__dict__").ptr());
 }
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
     template <typename...> friend class class_;
@@ -1047,7 +1047,7 @@ inline void call_operator_delete(void *p, size_t s, size_t a) {
     #endif
 }
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /// Given a pointer to a member function, cast it to its `Derived` version.
 /// Forward everything else unchanged.
@@ -1425,7 +1425,7 @@ detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetSta
     return {std::forward<GetState>(g), std::forward<SetState>(s)};
 }
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 struct enum_base {
     enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
 
@@ -1576,7 +1576,7 @@ struct enum_base {
     handle m_parent;
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /// Binds C++ enumerations and enumeration classes to Python
 template <typename Type> class enum_ : public class_<Type> {
@@ -1628,7 +1628,7 @@ private:
     detail::enum_base m_base;
 };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 
 inline void keep_alive_impl(handle nurse, handle patient) {
@@ -1698,7 +1698,7 @@ struct iterator_state {
     bool first_or_done;
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /// Makes a python iterator from a first and past-the-end C++ InputIterator.
 template <return_value_policy Policy = return_value_policy::reference_internal,
@@ -1831,13 +1831,13 @@ public:
     }
 };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 // Returns a reference to a function-local static exception object used in the simple
 // register_exception approach below.  (It would be simpler to have the static local variable
 // directly in register_exception, but that makes clang <3.5 segfault - issue #1349).
 template <typename CppException>
 exception<CppException> &get_exception_object() { static exception<CppException> ex; return ex; }
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /**
  * Registers a Python exception in `m` of the given `name` and installs an exception translator to
@@ -1863,7 +1863,7 @@ exception<CppException> &register_exception(handle scope,
     return ex;
 }
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
@@ -1894,7 +1894,7 @@ PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
     if (kwargs.contains("flush") && kwargs["flush"].cast<bool>())
         file.attr("flush")();
 }
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
 void print(Args &&...args) {
@@ -2203,7 +2203,7 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
 #define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
     PYBIND11_OVERLOAD_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(pop)

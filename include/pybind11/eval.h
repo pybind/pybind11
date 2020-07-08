@@ -13,7 +13,7 @@
 
 #include "pybind11.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 enum eval_mode {
     /// Evaluate a string containing an isolated expression
@@ -129,4 +129,4 @@ object eval_file(str fname, object global = globals(), object local = object()) 
 }
 #endif
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

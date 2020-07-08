@@ -9,12 +9,8 @@
 
 #pragma once
 
-#if !defined(NAMESPACE_BEGIN)
-#  define NAMESPACE_BEGIN(name) namespace name {
-#endif
-#if !defined(NAMESPACE_END)
-#  define NAMESPACE_END(name) }
-#endif
+#define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
+#define PYBIND11_NAMESPACE_END(name) }
 
 // Robust support for some features and loading modules compiled against different pybind versions
 // requires forcing hidden visibility on pybind code, so we enforce this by setting the attribute on
@@ -325,7 +321,7 @@ extern "C" {
     void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
 
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using ssize_t = Py_ssize_t;
 using size_t  = std::size_t;
@@ -382,7 +378,7 @@ enum class return_value_policy : uint8_t {
     reference_internal
 };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
@@ -560,7 +556,7 @@ template <typename T, typename... Ts>
 constexpr size_t constexpr_sum(T n, Ts... ns) { return size_t{n} + constexpr_sum(ns...); }
 #endif
 
-NAMESPACE_BEGIN(constexpr_impl)
+PYBIND11_NAMESPACE_BEGIN(constexpr_impl)
 /// Implementation details for constexpr functions
 constexpr int first(int i) { return i; }
 template <typename T, typename... Ts>
@@ -569,7 +565,7 @@ constexpr int first(int i, T v, Ts... vs) { return v ? i : first(i + 1, vs...); 
 constexpr int last(int /*i*/, int result) { return result; }
 template <typename T, typename... Ts>
 constexpr int last(int i, int result, T v, Ts... vs) { return last(i + 1, v ? i : result, vs...); }
-NAMESPACE_END(constexpr_impl)
+PYBIND11_NAMESPACE_END(constexpr_impl)
 
 /// Return the index of the first type in Ts which satisfies Predicate<T>.  Returns sizeof...(Ts) if
 /// none match.
@@ -683,7 +679,7 @@ using expand_side_effects = bool[];
 #define PYBIND11_EXPAND_SIDE_EFFECTS(PATTERN) pybind11::detail::expand_side_effects{ ((PATTERN), void(), false)..., false }
 #endif
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /// C++ bindings of builtin Python exceptions
 class builtin_exception : public std::runtime_error {
@@ -715,7 +711,7 @@ PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used in
 
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 // Returns the index of the given type in the type char array below, and in the list in numpy.h
 // The order here is: bool; 8 ints ((signed,unsigned)x(8,16,32,64)bits); float,double,long double;
 // complex float,double,long double.  Note that the long double types only participate when long
@@ -728,7 +724,7 @@ template <typename T> struct is_fmt_numeric<T, enable_if_t<std::is_arithmetic<T>
         std::is_integral<T>::value ? detail::log2(sizeof(T))*2 + std::is_unsigned<T>::value : 8 + (
         std::is_same<T, double>::value ? 1 : std::is_same<T, long double>::value ? 2 : 0));
 };
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 template <typename T> struct format_descriptor<T, detail::enable_if_t<std::is_arithmetic<T>::value>> {
     static constexpr const char c = "?bBhHiIqQfdg"[detail::is_fmt_numeric<T>::index];
@@ -753,7 +749,7 @@ struct error_scope {
 /// Dummy destructor wrapper that can be used to expose classes with a private destructor
 struct nodelete { template <typename T> void operator()(T*) { } };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
     constexpr overload_cast_impl() {} // MSVC 2015 needs this
@@ -770,7 +766,7 @@ struct overload_cast_impl {
     constexpr auto operator()(Return (Class::*pmf)(Args...) const, std::true_type) const noexcept
                               -> decltype(pmf) { return pmf; }
 };
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 // overload_cast requires variable templates: C++14
 #if defined(PYBIND11_CPP14)
@@ -795,7 +791,7 @@ template <typename... Args> struct overload_cast {
 };
 #endif // overload_cast
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Adaptor for converting arbitrary container arguments into a vector; implicitly convertible from
 // any standard container (or C-style array) supporting std::begin/std::end, any singleton
@@ -834,8 +830,8 @@ public:
     const std::vector<T> *operator->() const { return &v; }
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

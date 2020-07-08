@@ -14,14 +14,14 @@
 #include <utility>
 #include <type_traits>
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* A few forward declarations */
 class handle; class object;
 class str; class iterator;
 struct arg; struct arg_v;
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 class args_proxy;
 inline bool isinstance_generic(handle obj, const std::type_info &tp);
 
@@ -158,7 +158,7 @@ private:
     bool rich_compare(object_api const &other, int value) const;
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
     Holds a reference to a Python object (no reference counting)
@@ -311,9 +311,9 @@ template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrow
 \endrst */
 template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen_t{}}; }
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 inline std::string error_string();
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /// Fetch and hold an error which was already set in Python.  An instance of this is typically
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
@@ -446,7 +446,7 @@ inline ssize_t hash(handle obj) {
 
 /// @} python_builtins
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 inline handle get_function(handle value) {
     if (value) {
 #if PY_MAJOR_VERSION >= 3
@@ -520,7 +520,7 @@ private:
     mutable object cache;
 };
 
-NAMESPACE_BEGIN(accessor_policies)
+PYBIND11_NAMESPACE_BEGIN(accessor_policies)
 struct obj_attr {
     using key_type = object;
     static object get(handle obj, handle key) { return getattr(obj, key); }
@@ -597,7 +597,7 @@ struct tuple_item {
         }
     }
 };
-NAMESPACE_END(accessor_policies)
+PYBIND11_NAMESPACE_END(accessor_policies)
 
 /// STL iterator template used for tuple, list, sequence and dict
 template <typename Policy>
@@ -638,7 +638,7 @@ public:
     friend bool operator<=(const It &a, const It &b) { return !(a > b); }
 };
 
-NAMESPACE_BEGIN(iterator_policies)
+PYBIND11_NAMESPACE_BEGIN(iterator_policies)
 /// Quick proxy class needed to implement ``operator->`` for iterators which can't return pointers
 template <typename T>
 struct arrow_proxy {
@@ -711,7 +711,7 @@ private:
     PyObject *key = nullptr, *value = nullptr;
     ssize_t pos = -1;
 };
-NAMESPACE_END(iterator_policies)
+PYBIND11_NAMESPACE_END(iterator_policies)
 
 #if !defined(PYPY_VERSION)
 using tuple_iterator = generic_iterator<iterator_policies::sequence_fast_readonly>;
@@ -770,7 +770,7 @@ class simple_collector;
 template <return_value_policy policy = return_value_policy::automatic_reference>
 class unpacking_collector;
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 // TODO: After the deprecated constructors are removed, this macro can be simplified by
 //       inheriting ctors: `using Parent::Parent`. It's not an option right now because
@@ -1045,7 +1045,7 @@ private:
     }
 };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 // Converts a value to the given unsigned type.  If an error occurs, you get back (Unsigned) -1;
 // otherwise you get back the unsigned long or unsigned long long value cast to (Unsigned).
 // (The distinction is critically important when casting a returned -1 error value to some other
@@ -1065,7 +1065,7 @@ Unsigned as_unsigned(PyObject *o) {
         return v == (unsigned long long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
     }
 }
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 class int_ : public object {
 public:
@@ -1409,7 +1409,7 @@ inline iterator iter(handle obj) {
 }
 /// @} python_builtins
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename D> iterator object_api<D>::begin() const { return iter(derived()); }
 template <typename D> iterator object_api<D>::end() const { return iterator::sentinel(); }
 template <typename D> item_accessor object_api<D>::operator[](handle key) const {
@@ -1490,5 +1490,5 @@ PYBIND11_MATH_OPERATOR_BINARY(operator>>=, PyNumber_InPlaceRshift)
 #undef PYBIND11_MATH_OPERATOR_UNARY
 #undef PYBIND11_MATH_OPERATOR_BINARY
 
-NAMESPACE_END(detail)
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
