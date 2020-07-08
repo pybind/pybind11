@@ -35,11 +35,11 @@
    upon the library user. */
 static_assert(sizeof(ssize_t) == sizeof(Py_intptr_t), "ssize_t != Py_intptr_t");
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 class array; // Forward declaration
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <> struct handle_type_name<array> { static constexpr auto name = _("numpy.ndarray"); };
 
@@ -442,7 +442,7 @@ struct type_caster<unchecked_reference<T, Dim>> {
 template <typename T, ssize_t Dim>
 struct type_caster<unchecked_mutable_reference<T, Dim>> : type_caster<unchecked_reference<T, Dim>> {};
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 class dtype : public object {
 public:
@@ -979,7 +979,7 @@ struct format_descriptor<T, detail::enable_if_t<detail::array_info<T>::is_array>
     }
 };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename T, int ExtraFlags>
 struct pyobject_caster<array_t<T, ExtraFlags>> {
     using type = array_t<T, ExtraFlags>;
@@ -1608,7 +1608,7 @@ template <typename T, int Flags> struct handle_type_name<array_t<T, Flags>> {
     static constexpr auto name = _("numpy.ndarray[") + npy_format_descriptor<T>::name + _("]");
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 // Vanilla pointer vectorizer:
 template <typename Return, typename... Args>
@@ -1638,7 +1638,7 @@ Helper vectorize(Return (Class::*f)(Args...) const) {
     return Helper(std::mem_fn(f));
 }
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

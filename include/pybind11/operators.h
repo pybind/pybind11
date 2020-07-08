@@ -18,8 +18,8 @@
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Enumeration with all supported operator types
 enum op_id : int {
@@ -160,13 +160,13 @@ PYBIND11_UNARY_OPERATOR(float,      float_,       (double) l)
 #undef PYBIND11_BINARY_OPERATOR
 #undef PYBIND11_INPLACE_OPERATOR
 #undef PYBIND11_UNARY_OPERATOR
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 using detail::self;
 // Add named operators so that they are accessible via `py::`.
 using detail::hash;
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER)
 #  pragma warning(pop)

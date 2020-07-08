@@ -36,8 +36,8 @@
 #  define PYBIND11_HAS_U8STRING
 #endif
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
@@ -816,7 +816,7 @@ template <typename Container> struct is_copy_assignable<Container, enable_if_t<a
 template <typename T1, typename T2> struct is_copy_assignable<std::pair<T1, T2>>
     : all_of<is_copy_assignable<T1>, is_copy_assignable<T2>> {};
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 // polymorphic_type_hook<itype>::get(src, tinfo) determines whether the object pointed
 // to by `src` actually is an instance of some class derived from `itype`.
@@ -855,7 +855,7 @@ struct polymorphic_type_hook_base<itype, detail::enable_if_t<std::is_polymorphic
 template <typename itype, typename SFINAE = void>
 struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
@@ -1708,7 +1708,7 @@ template <typename T> make_caster<T> load_type(const handle &handle) {
     return conv;
 }
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 // pytype -> C++ type
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
@@ -1779,7 +1779,7 @@ template <typename T> T object::cast() && { return pybind11::cast<T>(std::move(*
 template <> inline void object::cast() const & { return; }
 template <> inline void object::cast() && { return; }
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
@@ -1806,7 +1806,7 @@ template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T
     pybind11_fail("Internal error: cast_safe fallback invoked"); }
 template <> inline void cast_safe<void>(object &&) {}
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 template <return_value_policy policy = return_value_policy::automatic_reference>
 tuple make_tuple() { return tuple(0); }
@@ -1914,7 +1914,7 @@ inline namespace literals {
 constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 }
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // forward declaration (definition in attr.h)
 struct function_record;
@@ -2185,7 +2185,7 @@ object object_api<Derived>::call(Args &&...args) const {
     return operator()<policy>(std::forward<Args>(args)...);
 }
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 #define PYBIND11_MAKE_OPAQUE(...) \
     namespace pybind11 { namespace detail { \
@@ -2196,4 +2196,4 @@ NAMESPACE_END(detail)
 /// typedef, e.g.: `PYBIND11_OVERLOAD(PYBIND11_TYPE(ReturnType<A, B>), PYBIND11_TYPE(Parent<C, D>), f, arg)`
 #define PYBIND11_TYPE(...) __VA_ARGS__
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -11,7 +11,7 @@
 
 #include "detail/common.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// Information record describing a Python buffer object
 struct buffer_info {
@@ -94,7 +94,7 @@ private:
     bool ownview = false;
 };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename T, typename SFINAE = void> struct compare_buffer_info {
     static bool compare(const buffer_info& b) {
@@ -110,5 +110,5 @@ template <typename T> struct compare_buffer_info<T, detail::enable_if_t<std::is_
     }
 };
 
-NAMESPACE_END(detail)
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
