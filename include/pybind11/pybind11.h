@@ -768,6 +768,39 @@ protected:
                 }
                 if (!wrote_sig) msg += it2->signature;
 
+                // When reasonable, provide guidance for simple reasons why each
+                // overload doesn't match. Matches the dispatch code above, but
+                // duplicated for performance reasons
+
+                const function_record &func = *it2;
+                size_t num_args = func.nargs;    // Number of positional arguments that we need
+                if (func.has_args) --num_args;   // (but don't count py::args
+                if (func.has_kwargs) --num_args; //  or py::kwargs)
+                size_t pos_args = num_args - func.nargs_kwonly;
+
+                if (!func.has_args && n_args_in > pos_args) {
+                    // Too many positional arguments for this overload
+                    msg += "\n    ~> takes " + std::to_string(pos_args) +
+                           " positional argument" + (pos_args > 1 ? "s" : "") +
+                           " but " + std::to_string(n_args_in) + " were given";
+
+                } else if (n_args_in < pos_args) {
+                    // Not enough positional arguments given
+                    size_t defaults = 0;
+                    for (auto &arg : func.args) {
+                        if (arg.value) {
+                            defaults += 1;
+                        }
+                    }
+
+                    // And not enough defaults to fill in the blanks
+                    if (n_args_in + defaults < pos_args) {
+                        size_t missing = pos_args - n_args_in + defaults;
+                        msg += "\n    ~> missing " + std::to_string(missing) +
+                               " required positional argument" + (missing > 1 ? "s": "");
+                    }
+                }
+
                 msg += "\n";
             }
             msg += "\nInvoked with: ";
