@@ -1047,6 +1047,13 @@ inline void call_operator_delete(void *p, size_t s, size_t a) {
     #endif
 }
 
+inline void add_class_method(object& cls, const char *name_, const cpp_function &cf) {
+    cls.attr(cf.name()) = cf;
+    if (strcmp(name_, "__eq__") == 0 && !cls.attr("__dict__").contains("__hash__")) {
+      cls.attr("__hash__") = none();
+    }
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Given a pointer to a member function, cast it to its `Derived` version.
@@ -1144,7 +1151,7 @@ public:
     class_ &def(const char *name_, Func&& f, const Extra&... extra) {
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)), name(name_), is_method(*this),
                         sibling(getattr(*this, name_, none())), extra...);
-        attr(cf.name()) = cf;
+        add_class_method(*this, name_, cf);
         return *this;
     }
 

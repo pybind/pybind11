@@ -187,6 +187,38 @@ TEST_SUBMODULE(operators, m) {
         .def(py::self *= int())
         .def_readwrite("b", &NestC::b);
     m.def("get_NestC", [](const NestC &c) { return c.value; });
+
+
+    // test_overriding_eq_reset_hash
+    // #2191 Overriding __eq__ should set __hash__ to None
+    struct Comparable {
+        int value;
+        bool operator==(const Comparable& rhs) const {return value == rhs.value;}
+    };
+
+    struct Hashable : Comparable {
+        explicit Hashable(int value): Comparable{value}{};
+        size_t hash() const { return static_cast<size_t>(value); }
+    };
+
+    struct Hashable2 : Hashable {
+        using Hashable::Hashable;
+    };
+
+    py::class_<Comparable>(m, "Comparable")
+        .def(py::init<int>())
+        .def(py::self == py::self);
+
+    py::class_<Hashable>(m, "Hashable")
+        .def(py::init<int>())
+        .def(py::self == py::self)
+        .def("__hash__", &Hashable::hash);
+
+    // define __hash__ before __eq__
+    py::class_<Hashable2>(m, "Hashable2")
+        .def("__hash__", &Hashable::hash)
+        .def(py::init<int>())
+        .def(py::self == py::self);
 }
 
 #ifndef _MSC_VER
