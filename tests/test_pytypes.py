@@ -264,10 +264,11 @@ def test_list_slicing():
 
 
 @pytest.mark.parametrize('method, arg, fmt, expected_view', [
-    (m.test_memoryview_fromobject, b'red', 'B', b'red'),
-    (m.test_memoryview_frombuffer_reference, b'green', 'B', b'green'),
-    (m.test_memoryview_frombuffer_new, False, 'h', [3, 1, 4, 1, 5]),
-    (m.test_memoryview_frombuffer_new, True, 'H', [2, 7, 1, 8]),
+    (m.test_memoryview_object, b'red', 'B', b'red'),
+    (m.test_memoryview_buffer_info, b'green', 'B', b'green'),
+    (m.test_memoryview_frombuffer, False, 'h', [3, 1, 4, 1, 5]),
+    (m.test_memoryview_frombuffer, True, 'H', [2, 7, 1, 8]),
+    (m.test_memoryview_frombuffer_nativeformat, None, '@i', [4, 7, 5]),
 ])
 def test_memoryview(method, arg, fmt, expected_view):
     view = method(arg)
@@ -282,8 +283,8 @@ def test_memoryview(method, arg, fmt, expected_view):
 
 
 @pytest.mark.parametrize('method', [
-    m.test_memoryview_frombuffer_reference,
-    m.test_memoryview_fromobject,
+    m.test_memoryview_buffer_info,
+    m.test_memoryview_object,
 ])
 def test_memoryview_refcount(method):
     buf = b'\x0a\x0b\x0c\x0d'
@@ -292,3 +293,11 @@ def test_memoryview_refcount(method):
     ref_after = sys.getrefcount(buf)
     assert ref_before < ref_after
     assert list(view) == list(buf)
+
+
+@pytest.mark.skipif(sys.version_info.major < 3, reason='API not available')
+def test_memoryview_frommemory():
+    view = m.test_memoryview_frommemory()
+    assert isinstance(view, memoryview)
+    assert view.format == 'B'
+    assert bytes(view) == b'\xff\xe1\xab\x37'

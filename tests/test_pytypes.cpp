@@ -308,19 +308,39 @@ TEST_SUBMODULE(pytypes, m) {
         return a[py::slice(0, -1, 2)];
     });
 
-    m.def("test_memoryview_fromobject", [](py::buffer b) {
+    m.def("test_memoryview_object", [](py::buffer b) {
         return py::memoryview(b);
     });
 
-    m.def("test_memoryview_frombuffer_reference", [](py::buffer b) {
+    m.def("test_memoryview_buffer_info", [](py::buffer b) {
         return py::memoryview(b.request());
     });
 
-    m.def("test_memoryview_frombuffer_new", [](bool is_unsigned) {
+    m.def("test_memoryview_frombuffer", [](bool is_unsigned) {
         static const int16_t si16[] = { 3, 1, 4, 1, 5 };
         static const uint16_t ui16[] = { 2, 7, 1, 8 };
-        auto info = (is_unsigned) ?
-            py::buffer_info(ui16, 4, 1) : py::buffer_info(si16, 5, 1);
-        return py::memoryview(info);
+        if (is_unsigned)
+            return py::memoryview::frombuffer(
+                const_cast<uint16_t*>(ui16), { 4 }, { sizeof(uint16_t) }, true);
+        else
+            return py::memoryview::frombuffer(
+                const_cast<int16_t*>(si16), { 5 }, { sizeof(int16_t) }, true);
     });
+
+    m.def("test_memoryview_frombuffer_nativeformat", [](py::none unused) {
+        static const char* format = "@i";
+        static const int32_t arr[] = { 4, 7, 5 };
+        unused.is_none();  // Only to suppress unused compiler warn.
+        return py::memoryview::frombuffer(
+            const_cast<int32_t*>(arr), sizeof(int32_t), format, 1, { 3 },
+            { sizeof(int32_t) }, true);
+    });
+
+#if PY_MAJOR_VERSION >= 3
+    m.def("test_memoryview_frommemory", []() {
+        const char* buf = "\xff\xe1\xab\x37";
+        return py::memoryview::frommemory(
+            const_cast<char*>(buf), strlen(buf), true);
+    });
+#endif
 }
