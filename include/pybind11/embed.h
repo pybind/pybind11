@@ -61,7 +61,8 @@
         }                                                                     \
     }                                                                         \
     PYBIND11_EMBEDDED_MODULE_IMPL(name)                                       \
-    pybind11::detail::embedded_module name(PYBIND11_TOSTRING(name),           \
+    pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name) \
+                              (PYBIND11_TOSTRING(name),             \
                                PYBIND11_CONCAT(pybind11_init_impl_, name));   \
     void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
 
