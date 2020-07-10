@@ -70,11 +70,11 @@ TEST_SUBMODULE(call_policies, m) {
             patients.add(py::reinterpret_borrow<py::object>(p));
         return patients;
     });
-    m.def("refcount", [](py::handle h) {
-#ifdef PYPY_VERSION
-        ConstructorStats::gc(); // PyPy doesn't update ref counts until GC occurs
-#endif
-        return h.ref_count();
+    m.def("has_patients", [](uint64_t nurse_id) {
+        // This assumes that id() and PyObject* are equivalent.
+        // We use this to allow the original `nurse` object to be garbage collected.
+        PyObject *nurse_ptr = (PyObject*)nurse_id;
+        return pybind11::detail::get_internals().patients.count(nurse_ptr);
     });
 
 #if !defined(PYPY_VERSION)
