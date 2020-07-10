@@ -18,11 +18,13 @@
 
 #if PY_MAJOR_VERSION >= 3
 #  define PYBIND11_EMBEDDED_MODULE_IMPL(name)            \
+      extern "C" PyObject *pybind11_init_impl_##name();  \
       extern "C" PyObject *pybind11_init_impl_##name() { \
           return pybind11_init_wrapper_##name();         \
       }
 #else
 #  define PYBIND11_EMBEDDED_MODULE_IMPL(name)            \
+      extern "C" void pybind11_init_impl_##name();       \
       extern "C" void pybind11_init_impl_##name() {      \
           pybind11_init_wrapper_##name();                \
       }
@@ -59,13 +61,14 @@
         }                                                                     \
     }                                                                         \
     PYBIND11_EMBEDDED_MODULE_IMPL(name)                                       \
-    pybind11::detail::embedded_module name(PYBIND11_TOSTRING(name),           \
+    pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name) \
+                              (PYBIND11_TOSTRING(name),             \
                                PYBIND11_CONCAT(pybind11_init_impl_, name));   \
     void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
 
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Python 2.7/3.x compatible version of `PyImport_AppendInittab` and error checks.
 struct embedded_module {
@@ -84,14 +87,20 @@ struct embedded_module {
     }
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
     called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
     optional parameter can be used to skip the registration of signal handlers (see the
-    Python documentation for details). Calling this function again after the interpreter
+    `Python documentation`_ for details). Calling this function again after the interpreter
     has already been initialized is a fatal error.
+
+    If initializing the Python interpreter fails, then the program is terminated.  (This
+    is controlled by the CPython runtime and is an exception to pybind11's normal behavior
+    of throwing exceptions on errors.)
+
+    .. _Python documentation: https://docs.python.org/3/c-api/init.html#c.Py_InitializeEx
  \endrst */
 inline void initialize_interpreter(bool init_signal_handlers = true) {
     if (Py_IsInitialized())
@@ -191,4 +200,4 @@ private:
     bool is_valid = true;
 };
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

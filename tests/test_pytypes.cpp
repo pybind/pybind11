@@ -11,18 +11,31 @@
 
 
 TEST_SUBMODULE(pytypes, m) {
+    // test_int
+    m.def("get_int", []{return py::int_(0);});
+    // test_iterator
+    m.def("get_iterator", []{return py::iterator();});
+    // test_iterable
+    m.def("get_iterable", []{return py::iterable();});
     // test_list
     m.def("get_list", []() {
         py::list list;
         list.append("value");
         py::print("Entry at position 0:", list[0]);
         list[0] = py::str("overwritten");
+        list.insert(0, "inserted-0");
+        list.insert(2, "inserted-2");
         return list;
     });
     m.def("print_list", [](py::list list) {
         int index = 0;
         for (auto item : list)
             py::print("list item {}: {}"_s.format(index++, item));
+    });
+    // test_none
+    m.def("get_none", []{return py::none();});
+    m.def("print_none", [](py::none none) {
+        py::print("none: {}"_s.format(none));
     });
 
     // test_set
@@ -37,6 +50,12 @@ TEST_SUBMODULE(pytypes, m) {
         for (auto item : set)
             py::print("key:", item);
     });
+    m.def("set_contains", [](py::set set, py::object key) {
+        return set.contains(key);
+    });
+    m.def("set_contains", [](py::set set, const char* key) {
+        return set.contains(key);
+    });
 
     // test_dict
     m.def("get_dict", []() { return py::dict("key"_a="value"); });
@@ -48,6 +67,12 @@ TEST_SUBMODULE(pytypes, m) {
         auto d1 = py::dict("x"_a=1, "y"_a=2);
         auto d2 = py::dict("z"_a=3, **d1);
         return d2;
+    });
+    m.def("dict_contains", [](py::dict dict, py::object val) {
+        return dict.contains(val);
+    });
+    m.def("dict_contains", [](py::dict dict, const char* val) {
+        return dict.contains(val);
     });
 
     // test_str
@@ -269,4 +294,28 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("print_failure", []() { py::print(42, UnregisteredType()); });
 
     m.def("hash_function", [](py::object obj) { return py::hash(obj); });
+
+    m.def("test_number_protocol", [](py::object a, py::object b) {
+        py::list l;
+        l.append(a.equal(b));
+        l.append(a.not_equal(b));
+        l.append(a < b);
+        l.append(a <= b);
+        l.append(a > b);
+        l.append(a >= b);
+        l.append(a + b);
+        l.append(a - b);
+        l.append(a * b);
+        l.append(a / b);
+        l.append(a | b);
+        l.append(a & b);
+        l.append(a ^ b);
+        l.append(a >> b);
+        l.append(a << b);
+        return l;
+    });
+
+    m.def("test_list_slicing", [](py::list a) {
+        return a[py::slice(0, -1, 2)];
+    });
 }

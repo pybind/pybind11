@@ -41,7 +41,6 @@ The following core C++ features can be mapped to Python
 - Custom operators
 - Single and multiple inheritance
 - STL data structures
-- Iterators and ranges
 - Smart pointers with reference counting like ``std::shared_ptr``
 - Internal references with correct reference counting
 - C++ classes with virtual (and pure virtual) methods can be extended in Python
@@ -91,4 +90,4 @@ Supported compilers
 1. Clang/LLVM (any non-ancient version with C++11 support)
 2. GCC 4.8 or newer
 3. Microsoft Visual Studio 2015 or newer
-4. Intel C++ compiler v15 or newer
+4. Intel C++ compiler v17 or newer (v16 with pybind11 v2.0 and v15 with pybind11 v2.0 and a `workaround <https://github.com/pybind/pybind11/issues/276>`_ )

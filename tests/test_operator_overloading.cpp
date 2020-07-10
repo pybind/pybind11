@@ -23,6 +23,7 @@ public:
 
     std::string toString() const { return "[" + std::to_string(x) + ", " + std::to_string(y) + "]"; }
 
+    Vector2 operator-() const { return Vector2(-x, -y); }
     Vector2 operator+(const Vector2 &v) const { return Vector2(x + v.x, y + v.y); }
     Vector2 operator-(const Vector2 &v) const { return Vector2(x - v.x, y - v.y); }
     Vector2 operator-(float value) const { return Vector2(x - value, y - value); }
@@ -42,6 +43,13 @@ public:
     friend Vector2 operator-(float f, const Vector2 &v) { return Vector2(f - v.x, f - v.y); }
     friend Vector2 operator*(float f, const Vector2 &v) { return Vector2(f * v.x, f * v.y); }
     friend Vector2 operator/(float f, const Vector2 &v) { return Vector2(f / v.x, f / v.y); }
+
+    bool operator==(const Vector2 &v) const {
+        return x == v.x && y == v.y;
+    }
+    bool operator!=(const Vector2 &v) const {
+        return x != v.x || y != v.y;
+    }
 private:
     float x, y;
 };
@@ -54,6 +62,11 @@ int operator+(const C2 &, const C2 &) { return 22; }
 int operator+(const C2 &, const C1 &) { return 21; }
 int operator+(const C1 &, const C2 &) { return 12; }
 
+// Note: Specializing explicit within `namespace std { ... }` is done due to a
+// bug in GCC<7. If you are supporting compilers later than this, consider
+// specializing `using template<> struct std::hash<...>` in the global
+// namespace instead, per this recommendation:
+// https://en.cppreference.com/w/cpp/language/extending_std#Adding_template_specializations
 namespace std {
     template<>
     struct hash<Vector2> {
@@ -61,6 +74,30 @@ namespace std {
         size_t operator()(const Vector2 &) { return 4; }
     };
 }
+
+// Not a good abs function, but easy to test.
+std::string abs(const Vector2&) {
+    return "abs(Vector2)";
+}
+
+// MSVC warns about unknown pragmas, and warnings are errors.
+#ifndef _MSC_VER
+  #pragma GCC diagnostic push
+  // clang 7.0.0 and Apple LLVM 10.0.1 introduce `-Wself-assign-overloaded` to
+  // `-Wall`, which is used here for overloading (e.g. `py::self += py::self `).
+  // Here, we suppress the warning using `#pragma diagnostic`.
+  // Taken from: https://github.com/RobotLocomotion/drake/commit/aaf84b46
+  // TODO(eric): This could be resolved using a function / functor (e.g. `py::self()`).
+  #if (__APPLE__) && (__clang__)
+    #if (__clang_major__ >= 10) && (__clang_minor__ >= 0) && (__clang_patchlevel__ >= 1)
+      #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
+    #endif
+  #elif (__clang__)
+    #if (__clang_major__ >= 7)
+      #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
+    #endif
+  #endif
+#endif
 
 TEST_SUBMODULE(operators, m) {
 
@@ -85,8 +122,15 @@ TEST_SUBMODULE(operators, m) {
         .def(float() - py::self)
         .def(float() * py::self)
         .def(float() / py::self)
+        .def(-py::self)
         .def("__str__", &Vector2::toString)
-        .def(hash(py::self))
+        .def("__repr__", &Vector2::toString)
+        .def(py::self == py::self)
+        .def(py::self != py::self)
+        .def(py::hash(py::self))
+        // N.B. See warning about usage of `py::detail::abs(py::self)` in
+        // `operators.h`.
+        .def("__abs__", [](const Vector2& v) { return abs(v); })
         ;
 
     m.attr("Vector") = m.attr("Vector2");
@@ -144,3 +188,7 @@ TEST_SUBMODULE(operators, m) {
         .def_readwrite("b", &NestC::b);
     m.def("get_NestC", [](const NestC &c) { return c.value; });
 }
+
+#ifndef _MSC_VER
+  #pragma GCC diagnostic pop
+#endif

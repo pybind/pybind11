@@ -29,6 +29,13 @@ std::ostream& operator<<(std::ostream& os, const SimpleStruct& v) {
     return os << "s:" << v.bool_ << "," << v.uint_ << "," << v.float_ << "," << v.ldbl_;
 }
 
+struct SimpleStructReordered {
+    bool bool_;
+    float float_;
+    uint32_t uint_;
+    long double ldbl_;
+};
+
 PYBIND11_PACKED(struct PackedStruct {
     bool bool_;
     uint32_t uint_;
@@ -255,6 +262,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     py::class_<SimpleStruct>(m, "SimpleStruct");
 
     PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_);
+    PYBIND11_NUMPY_DTYPE(SimpleStructReordered, bool_, uint_, float_, ldbl_);
     PYBIND11_NUMPY_DTYPE(PackedStruct, bool_, uint_, float_, ldbl_);
     PYBIND11_NUMPY_DTYPE(NestedStruct, a, b);
     PYBIND11_NUMPY_DTYPE(PartialStruct, bool_, uint_, float_, ldbl_);

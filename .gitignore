@@ -10,6 +10,7 @@ cmake_install.cmake
 *.sdf
 *.opensdf
 *.vcxproj
+*.vcxproj.user
 *.filters
 example.dir
 Win32
@@ -27,6 +28,7 @@ MANIFEST
 *.py[co]
 *.egg-info
 *~
+.*.swp
 .DS_Store
 /dist
 /build

@@ -28,8 +28,8 @@
 #
 # Python headers, libraries (as needed by platform), and the C++ standard
 # are attached to the target. Set PythonLibsNew variables to influence
-# python detection and PYBIND11_CPP_STANDARD (-std=c++11 or -std=c++14) to
-# influence standard setting. ::
+# python detection and CMAKE_CXX_STANDARD (11 or 14) to influence standard
+# setting. ::
 #
 #   find_package(pybind11 CONFIG REQUIRED)
 #   message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
@@ -90,7 +90,11 @@ if(NOT TARGET ${PN}::pybind11)
       set_property(TARGET ${PN}::module APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
     endif()
 
-    set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${PYBIND11_CPP_STANDARD}")
+    if(CMAKE_VERSION VERSION_LESS 3.3)
+      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${PYBIND11_CPP_STANDARD}")
+    else()
+      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
+    endif()
 
     get_property(_iid TARGET ${PN}::pybind11 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
     get_property(_ill TARGET ${PN}::module PROPERTY INTERFACE_LINK_LIBRARIES)

@@ -362,6 +362,34 @@ like so:
     py::class_<MyClass>("MyClass")
         .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
 
+Keyword-only arguments
+======================
+
+Python 3 introduced keyword-only arguments by specifying an unnamed ``*``
+argument in a function definition:
+
+.. code-block:: python
+
+    def f(a, *, b):  # a can be positional or via keyword; b must be via keyword
+        pass
+
+    f(a=1, b=2)  # good
+    f(b=2, a=1)  # good
+    f(1, b=2)    # good
+    f(1, 2)      # TypeError: f() takes 1 positional argument but 2 were given
+
+Pybind11 provides a ``py::kwonly`` object that allows you to implement
+the same behaviour by specifying the object between positional and keyword-only
+argument annotations when registering the function:
+
+.. code-block:: cpp
+
+    m.def("f", [](int a, int b) { /* ... */ },
+          py::arg("a"), py::kwonly(), py::arg("b"));
+
+Note that, as in Python, you cannot combine this with a ``py::args`` argument.
+This feature does *not* require Python 3 to work.
+
 .. _nonconverting_arguments:
 
 Non-converting arguments
@@ -438,7 +466,7 @@ To explicitly enable or disable this behaviour, using the
     py::class_<Cat>(m, "Cat").def(py::init<>());
     m.def("bark", [](Dog *dog) -> std::string {
         if (dog) return "woof!"; /* Called with a Dog instance */
-        else return "(no dog)"; /* Called with None, d == nullptr */
+        else return "(no dog)"; /* Called with None, dog == nullptr */
     }, py::arg("dog").none(true));
     m.def("meow", [](Cat *cat) -> std::string {
         // Can't be called with None argument
@@ -466,6 +494,15 @@ dog)"``, while attempting to call ``meow(None)`` will raise a ``TypeError``:
     Invoked with: None
 
 The default behaviour when the tag is unspecified is to allow ``None``.
+
+.. note::
+
+    Even when ``.none(true)`` is specified for an argument, ``None`` will be converted to a
+    ``nullptr`` *only* for custom and :ref:`opaque <opaque>` types. Pointers to built-in types
+    (``double *``, ``int *``, ...) and STL types (``std::vector<T> *``, ...; if ``pybind11/stl.h``
+    is included) are copied when converted to C++ (see :doc:`/advanced/cast/overview`) and will
+    not allow ``None`` as argument.  To pass optional argument of these copied types consider
+    using ``std::optional<T>``
 
 Overload resolution order
 =========================

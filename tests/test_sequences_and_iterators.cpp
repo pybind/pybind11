@@ -71,6 +71,25 @@ py::list test_random_access_iterator(PythonType x) {
 }
 
 TEST_SUBMODULE(sequences_and_iterators, m) {
+    // test_sliceable
+    class Sliceable{
+    public:
+      Sliceable(int n): size(n) {}
+      int start,stop,step;
+      int size;
+    };
+    py::class_<Sliceable>(m,"Sliceable")
+        .def(py::init<int>())
+        .def("__getitem__",[](const Sliceable &s, py::slice slice) {
+          ssize_t start, stop, step, slicelength;
+          if (!slice.compute(s.size, &start, &stop, &step, &slicelength))
+              throw py::error_already_set();
+          int istart = static_cast<int>(start);
+          int istop =  static_cast<int>(stop);
+          int istep =  static_cast<int>(step);
+          return std::make_tuple(istart,istop,istep);
+        })
+        ;
 
     // test_sequence
     class Sequence {
@@ -299,6 +318,9 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         }
         return l;
     });
+
+    // test_sequence_length: check that Python sequences can be converted to py::sequence.
+    m.def("sequence_length", [](py::sequence seq) { return seq.size(); });
 
     // Make sure that py::iterator works with std algorithms
     m.def("count_none", [](py::object o) {

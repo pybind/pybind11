@@ -80,11 +80,26 @@ Redirecting C++ streams
 
 .. doxygenfunction:: add_ostream_redirect
 
-Python build-in functions
+Python built-in functions
 =========================
 
 .. doxygengroup:: python_builtins
     :members:
+
+Inheritance
+===========
+
+See :doc:`/classes` and :doc:`/advanced/classes` for more detail.
+
+.. doxygendefine:: PYBIND11_OVERLOAD
+
+.. doxygendefine:: PYBIND11_OVERLOAD_PURE
+
+.. doxygendefine:: PYBIND11_OVERLOAD_NAME
+
+.. doxygendefine:: PYBIND11_OVERLOAD_PURE_NAME
+
+.. doxygenfunction:: get_overload
 
 Exceptions
 ==========

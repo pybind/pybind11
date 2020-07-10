@@ -34,3 +34,9 @@ def test_roundtrip_with_dict(cls_name):
     assert p2.value == p.value
     assert p2.extra == p.extra
     assert p2.dynamic == p.dynamic
+
+
+def test_enum_pickle():
+    from pybind11_tests import enums as e
+    data = pickle.dumps(e.EOne, 2)
+    assert e.EOne == pickle.loads(data)

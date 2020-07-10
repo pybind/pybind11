@@ -124,7 +124,7 @@ TEST_SUBMODULE(eigen, m) {
     // This one accepts a matrix of any stride:
     m.def("add_any", [](py::EigenDRef<Eigen::MatrixXd> x, int r, int c, double v) { x(r,c) += v; });
 
-    // Return mutable references (numpy maps into eigen varibles)
+    // Return mutable references (numpy maps into eigen variables)
     m.def("get_cm_ref", []() { return Eigen::Ref<Eigen::MatrixXd>(get_cm()); });
     m.def("get_rm_ref", []() { return Eigen::Ref<MatrixXdR>(get_rm()); });
     // The same references, but non-mutable (numpy maps into eigen variables, but is !writeable)

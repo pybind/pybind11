@@ -13,7 +13,7 @@
 
 #include "pybind11.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 enum eval_mode {
     /// Evaluate a string containing an isolated expression
@@ -66,6 +66,20 @@ void exec(const char (&s)[N], object global = globals(), object local = object()
     eval<eval_statements>(s, global, local);
 }
 
+#if defined(PYPY_VERSION) && PY_VERSION_HEX >= 0x3000000
+template <eval_mode mode = eval_statements>
+object eval_file(str, object, object) {
+    pybind11_fail("eval_file not supported in PyPy3. Use eval");
+}
+template <eval_mode mode = eval_statements>
+object eval_file(str, object) {
+    pybind11_fail("eval_file not supported in PyPy3. Use eval");
+}
+template <eval_mode mode = eval_statements>
+object eval_file(str) {
+    pybind11_fail("eval_file not supported in PyPy3. Use eval");
+}
+#else
 template <eval_mode mode = eval_statements>
 object eval_file(str fname, object global = globals(), object local = object()) {
     if (!local)
@@ -113,5 +127,6 @@ object eval_file(str fname, object global = globals(), object local = object()) 
         throw error_already_set();
     return reinterpret_steal<object>(result);
 }
+#endif
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

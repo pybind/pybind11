@@ -53,13 +53,13 @@ public:
 /// Custom cast-only type that casts to a string "rvalue" or "lvalue" depending on the cast context.
 /// Used to test recursive casters (e.g. std::tuple, stl containers).
 struct RValueCaster {};
-NAMESPACE_BEGIN(pybind11)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(pybind11)
+PYBIND11_NAMESPACE_BEGIN(detail)
 template<> class type_caster<RValueCaster> {
 public:
     PYBIND11_TYPE_CASTER(RValueCaster, _("RValueCaster"));
     static handle cast(RValueCaster &&, return_value_policy, handle) { return py::str("rvalue").release(); }
     static handle cast(const RValueCaster &, return_value_policy, handle) { return py::str("lvalue").release(); }
 };
-NAMESPACE_END(detail)
-NAMESPACE_END(pybind11)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(pybind11)

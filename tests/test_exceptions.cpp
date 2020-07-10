@@ -116,12 +116,41 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("throws5", []() { throw MyException5("this is a helper-defined translated exception"); });
     m.def("throws5_1", []() { throw MyException5_1("MyException5 subclass"); });
     m.def("throws_logic_error", []() { throw std::logic_error("this error should fall through to the standard handler"); });
+    m.def("throws_overflow_error", []() {throw std::overflow_error(""); });
     m.def("exception_matches", []() {
         py::dict foo;
-        try { foo["bar"]; }
+        try {
+            // Assign to a py::object to force read access of nonexistent dict entry
+            py::object o = foo["bar"];
+        }
         catch (py::error_already_set& ex) {
             if (!ex.matches(PyExc_KeyError)) throw;
+            return true;
         }
+        return false;
+    });
+    m.def("exception_matches_base", []() {
+        py::dict foo;
+        try {
+            // Assign to a py::object to force read access of nonexistent dict entry
+            py::object o = foo["bar"];
+        }
+        catch (py::error_already_set &ex) {
+            if (!ex.matches(PyExc_Exception)) throw;
+            return true;
+        }
+        return false;
+    });
+    m.def("modulenotfound_exception_matches_base", []() {
+        try {
+            // On Python >= 3.6, this raises a ModuleNotFoundError, a subclass of ImportError
+            py::module::import("nonexistent");
+        }
+        catch (py::error_already_set &ex) {
+            if (!ex.matches(PyExc_ImportError)) throw;
+            return true;
+        }
+        return false;
     });
 
     m.def("throw_already_set", [](bool err) {

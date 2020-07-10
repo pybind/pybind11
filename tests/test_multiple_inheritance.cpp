@@ -193,7 +193,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def_readwrite_static("static_value", &VanillaStaticMix2::static_value);
 
 
-#if !defined(PYPY_VERSION)
+#if !(defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x06000000))
     struct WithDict { };
     struct VanillaDictMix1 : Vanilla, WithDict { };
     struct VanillaDictMix2 : WithDict, Vanilla { };
