@@ -699,7 +699,7 @@ throwing a type error.
 .. note::
 
      A class that overrides ``__eq__()`` and does not define ``__hash__()`` will have its ``__hash__()`` implicitly set. 
-     This is a deviation from the standard Python behaviour where ``__hash__()`` is set to `None` when overriding ``__eq__()``. To restore the default behaviour 
+     This is a deviation from the standard Python behaviour where ``__hash__()`` is set to ``None`` when overriding ``__eq__()``. To restore the default behaviour 
      one can use ``.attr("__hash__") = py::none()``. When set ``None`` the class will raise an appropriate TypeError when a program attempts to retrieve their 
      hash value, and will also be correctly identified as unhashable when checking ``isinstance(obj, collections.abc.Hashable)``.
 
