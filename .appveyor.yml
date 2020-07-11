@@ -18,16 +18,16 @@ environment:
     CPP: 14
     CONFIG: Debug
   - CONDA: 36
-    CPP: latest
+    CPP: 17
     CONFIG: Release
 matrix:
   exclude:
     - image: Visual Studio 2015
       platform: x86
     - image: Visual Studio 2015
-      CPP: latest
+      CPP: 17
     - image: Visual Studio 2017
-      CPP: latest
+      CPP: 17
       platform: x86
 install:
 - ps: |
@@ -58,7 +58,7 @@ install:
     $env:CMAKE_INCLUDE_PATH = "eigen-eigen-67e894c6cd8f;$env:CMAKE_INCLUDE_PATH"
 build_script:
 - cmake -G "%CMAKE_GENERATOR%" -A "%CMAKE_ARCH%"
-    -DPYBIND11_CPP_STANDARD=/std:c++%CPP%
+    -DPYBIND11_CPP_STANDARD="/std:c++%CPP%"
     -DPYBIND11_WERROR=ON
     -DDOWNLOAD_CATCH=ON
     -DCMAKE_SUPPRESS_REGENERATION=1
@@ -66,5 +66,5 @@ build_script:
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 - cmake --build . --config %CONFIG% --target pytest -- /m /v:m /logger:%MSBuildLogger%
 - cmake --build . --config %CONFIG% --target cpptest -- /m /v:m /logger:%MSBuildLogger%
-- if "%CPP%"=="latest" (cmake --build . --config %CONFIG% --target test_cmake_build -- /m /v:m /logger:%MSBuildLogger%)
+- if "%CPP%"=="17" (cmake --build . --config %CONFIG% --target test_cmake_build -- /m /v:m /logger:%MSBuildLogger%)
 on_failure: if exist "tests\test_cmake_build" type tests\test_cmake_build\*.log*
