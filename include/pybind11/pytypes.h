@@ -933,8 +933,8 @@ private:
     /// Return string representation -- always returns a new reference, even if already a str
     static PyObject *raw_str(PyObject *op) {
         PyObject *str_value = PyObject_Str(op);
-#if PY_MAJOR_VERSION < 3
         if (!str_value) throw error_already_set();
+#if PY_MAJOR_VERSION < 3
         PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
         Py_XDECREF(str_value); str_value = unicode;
 #endif
