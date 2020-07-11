@@ -217,7 +217,7 @@ function(pybind11_add_module target_name)
 
   # Make sure C++11/14 are enabled
   if(PYBIND11_CPP_STANDARD)
-    if(CMAKE_VERSION VERSION_LESS 3.3)
+    if(CMAKE_VERSION VERSION_LESS 3.3 OR CMAKE_GENERATOR MATCHES "Visual Studio")
       target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
     else()
       target_compile_options(${target_name} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
@@ -247,7 +247,7 @@ function(pybind11_add_module target_name)
     # /MP enables multithreaded builds (relevant when there are many files), /bigobj is
     # needed for bigger binding projects due to the limit to 64k addressable sections
     target_compile_options(${target_name} PRIVATE /bigobj)
-    if(CMAKE_VERSION VERSION_LESS 3.11)
+    if(CMAKE_VERSION VERSION_LESS 3.11 OR CMAKE_GENERATOR MATCHES "Visual Studio")
       target_compile_options(${target_name} PRIVATE $<$<NOT:$<CONFIG:Debug>>:/MP>)
     else()
       # Only set these options for C++ files.  This is important so that, for
