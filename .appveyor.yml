@@ -12,10 +12,10 @@ platform:
 environment:
   matrix:
   - PYTHON: 36
-    CPP: 14
+    CPP: 17
     CONFIG: Debug
   - PYTHON: 27
-    CPP: 14
+    CPP: 17
     CONFIG: Debug
   - CONDA: 36
     CPP: 17
@@ -35,7 +35,6 @@ install:
     if ($env:APPVEYOR_JOB_NAME -like "*Visual Studio 2017*") {
       $env:CMAKE_GENERATOR = "Visual Studio 15 2017"
       $env:CMAKE_INCLUDE_PATH = "C:\Libraries\boost_1_64_0"
-      $env:CXXFLAGS = "-permissive-"
     } else {
       $env:CMAKE_GENERATOR = "Visual Studio 14 2015"
     }
@@ -57,14 +56,15 @@ install:
     7z x 3.3.3.zip -y > $null
     $env:CMAKE_INCLUDE_PATH = "eigen-eigen-67e894c6cd8f;$env:CMAKE_INCLUDE_PATH"
 build_script:
+- set VERBOSE=1
+- cmake --version
 - cmake -G "%CMAKE_GENERATOR%" -A "%CMAKE_ARCH%"
-    -DPYBIND11_CPP_STANDARD="/std:c++%CPP%"
+    -DPYBIND11_CPP_STANDARD=/std:c++%CPP%
     -DPYBIND11_WERROR=ON
     -DDOWNLOAD_CATCH=ON
-    -DCMAKE_SUPPRESS_REGENERATION=1
     .
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-- cmake --build . --config %CONFIG% --target pytest -- /m /v:m /logger:%MSBuildLogger%
-- cmake --build . --config %CONFIG% --target cpptest -- /m /v:m /logger:%MSBuildLogger%
-- if "%CPP%"=="17" (cmake --build . --config %CONFIG% --target test_cmake_build -- /m /v:m /logger:%MSBuildLogger%)
+- cmake --build . --config %CONFIG% --target pytest -- /m /logger:%MSBuildLogger%
+- cmake --build . --config %CONFIG% --target cpptest -- /m /logger:%MSBuildLogger%
+- if "%CPP%"=="17" (cmake --build . --config %CONFIG% --target test_cmake_build -- /m /logger:%MSBuildLogger%)
 on_failure: if exist "tests\test_cmake_build" type tests\test_cmake_build\*.log*

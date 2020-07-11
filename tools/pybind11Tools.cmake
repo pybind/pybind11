@@ -20,7 +20,7 @@ include(CMakeParseArguments)
 
 # Use the language standards abstraction if CMake supports it with the current compiler
 if(NOT CMAKE_VERSION VERSION_LESS 3.1)
-  if(NOT CMAKE_CXX_STANDARD)
+  if(NOT CMAKE_CXX_STANDARD AND NOT PYBIND11_CPP_STANDARD)
     if(CMAKE_CXX14_STANDARD_COMPILE_OPTION)
       set(CMAKE_CXX_STANDARD 14)
     elseif(CMAKE_CXX11_STANDARD_COMPILE_OPTION)
@@ -55,6 +55,8 @@ if(NOT PYBIND11_CPP_STANDARD AND NOT CMAKE_CXX_STANDARD)
   set(PYBIND11_CPP_STANDARD ${PYBIND11_CPP_STANDARD} CACHE STRING
       "C++ standard flag, e.g. -std=c++11, -std=c++14, /std:c++14.  Defaults to C++14 mode." FORCE)
 endif()
+
+message(PYBIND11_CPP_STANDARD = ${PYBIND11_CPP_STANDARD})
 
 # Checks whether the given CXX/linker flags can compile and link a cxx file.  cxxflags and
 # linkerflags are lists of flags to use.  The result variable is a unique variable name for each set
@@ -218,8 +220,10 @@ function(pybind11_add_module target_name)
   # Make sure C++11/14 are enabled
   if(PYBIND11_CPP_STANDARD)
     if(CMAKE_VERSION VERSION_LESS 3.3 OR CMAKE_GENERATOR MATCHES "Visual Studio")
+      message("HERE, I hope?")
       target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
     else()
+      message("NOT HERE, I hope?")
       target_compile_options(${target_name} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
     endif()
   endif()
