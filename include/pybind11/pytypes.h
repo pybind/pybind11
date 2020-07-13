@@ -13,7 +13,6 @@
 #include "buffer_info.h"
 #include <utility>
 #include <type_traits>
-#include <algorithm>
 
 NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -1357,16 +1356,20 @@ public:
     /** \rst
         Creates ``memoryview`` from static buffer.
 
-        The caller is responsible for managing the lifetime of ``ptr`` and
-        ``format``. This method is meant for providing a ``memoryview`` for
-        C/C++ buffer not managed by Python.
+        This method is meant for providing a ``memoryview`` for C/C++ buffer not
+        managed by Python. The caller is responsible for managing the lifetime
+        of ``ptr`` and ``format``, which MUST outlive the memoryview constructed
+        here.
+
+        See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
+
+        .. _PyMemoryView_FromBuffer: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromBuffer
 
         :param ptr: Pointer to the buffer.
         :param itemsize: Byte size of an element.
         :param format: Pointer to the null-terminated format string. For
             homogeneous Buffers, this should be set to
-            format_descriptor<T>::value.
-        :param ndim: Number of dimensions.
+            ``format_descriptor<T>::value``.
         :param shape_in: Shape of the tensor (1 entry per dimension).
         :param strides_in: Number of bytes between adjacent entries (for each
             per dimension).
@@ -1374,31 +1377,34 @@ public:
             written to.
      \endrst */
     static memoryview frombuffer(
-        void *ptr, ssize_t itemsize, const char* format, ssize_t ndim,
+        void *ptr, ssize_t itemsize, const char* format,
         detail::any_container<ssize_t> shape_in,
-        detail::any_container<ssize_t> strides_in, bool readonly=false);
+        detail::any_container<ssize_t> strides_in, bool readonly = false);
 
     template<typename T>
     static memoryview frombuffer(
         T *ptr, detail::any_container<ssize_t> shape_in,
-        detail::any_container<ssize_t> strides_in, bool readonly=false) {
+        detail::any_container<ssize_t> strides_in, bool readonly = false) {
         return memoryview::frombuffer(
             reinterpret_cast<void*>(ptr), sizeof(T),
-            format_descriptor<T>::value, static_cast<ssize_t>(shape_in->size()),
-            shape_in, strides_in, readonly);
+            format_descriptor<T>::value, shape_in, strides_in, readonly);
     }
 
 #if PY_MAJOR_VERSION >= 3
     /** \rst
         Creates ``memoryview`` from static memory.
 
-        The caller is responsible for managing the lifetime of ``mem``. This
-        constructor is meant for providing a ``memoryview`` for C/C++ buffer not
-        managed by Python.
+        This method is meant for providing a ``memoryview`` for C/C++ buffer not
+        managed by Python. The caller is responsible for managing the lifetime
+        of ``mem``, which MUST outlive the memoryview constructed here.
+
+        See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
+
+        .. _PyMemoryView_FromMemory: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory
      \endrst */
-    static memoryview frommemory(char *mem, ssize_t size, bool writable = false) {
+    static memoryview frommemory(char *mem, ssize_t size, bool readonly = false) {
         PyObject* ptr = PyMemoryView_FromMemory(
-            mem, size, (writable) ? PyBUF_WRITE : PyBUF_READ);
+            mem, size, (readonly) ? PyBUF_READ : PyBUF_WRITE);
         if (!ptr)
             pybind11_fail("Could not allocate memoryview object!");
         return memoryview(object(ptr, stolen_t{}));
@@ -1407,17 +1413,17 @@ public:
 };
 
 inline memoryview memoryview::frombuffer(
-    void *ptr, ssize_t itemsize, const char* format, ssize_t ndim,
+    void *ptr, ssize_t itemsize, const char* format,
     detail::any_container<ssize_t> shape_in,
     detail::any_container<ssize_t> strides_in, bool readonly) {
-    std::vector<Py_ssize_t> shape(std::move(shape_in));
-    std::vector<Py_ssize_t> strides(std::move(strides_in));
-    if (ndim != static_cast<ssize_t>(shape.size()) ||
-        ndim != static_cast<ssize_t>(strides.size()))
-        pybind11_fail("memoryview: ndim doesn't match shape and/or strides length");
+    size_t ndim = shape_in->size();
+    if (ndim < 1)
+        pybind11_fail("memoryview: shape length (ndim) must be greater than zero");
+    if (ndim != strides_in->size())
+        pybind11_fail("memoryview: shape length doesn't match strides length");
     ssize_t size = 1;
-    for (size_t i = 0; i < static_cast<size_t>(ndim); ++i)
-        size *= shape[i];
+    for (size_t i = 0; i < ndim; ++i)
+        size *= (*shape_in)[i];
     Py_buffer view;
     view.buf = ptr;
     view.obj = nullptr;
@@ -1426,8 +1432,8 @@ inline memoryview memoryview::frombuffer(
     view.itemsize = itemsize;
     view.format = const_cast<char*>(format);
     view.ndim = static_cast<int>(ndim);
-    view.shape = shape.data();
-    view.strides = strides.data();
+    view.shape = shape_in->data();
+    view.strides = strides_in->data();
     view.suboffsets = nullptr;
     view.internal = nullptr;
     PyObject* obj = PyMemoryView_FromBuffer(&view);

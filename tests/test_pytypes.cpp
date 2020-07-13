@@ -332,15 +332,27 @@ TEST_SUBMODULE(pytypes, m) {
         static const int32_t arr[] = { 4, 7, 5 };
         unused.is_none();  // Only to suppress unused compiler warn.
         return py::memoryview::frombuffer(
-            const_cast<int32_t*>(arr), sizeof(int32_t), format, 1, { 3 },
+            const_cast<int32_t*>(arr), sizeof(int32_t), format, { 3 },
             { sizeof(int32_t) }, true);
+    });
+
+    m.def("test_memoryview_frombuffer_empty_shape", []() {
+        static const char* buf = "\x00\x01";
+        return py::memoryview::frombuffer(
+            const_cast<char*>(buf), 1, "B", { }, { });
+    });
+
+    m.def("test_memoryview_frombuffer_invalid_strides", []() {
+        static const char* buf = "\x02\x03\x04";
+        return py::memoryview::frombuffer(
+            const_cast<char*>(buf), 1, "B", { 3 }, { });
     });
 
 #if PY_MAJOR_VERSION >= 3
     m.def("test_memoryview_frommemory", []() {
         const char* buf = "\xff\xe1\xab\x37";
         return py::memoryview::frommemory(
-            const_cast<char*>(buf), strlen(buf), true);
+            const_cast<char*>(buf), static_cast<ssize_t>(strlen(buf)), true);
     });
 #endif
 }

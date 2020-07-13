@@ -282,9 +282,12 @@ def test_memoryview(method, arg, fmt, expected_view):
     assert view_as_list == list(expected_view)
 
 
+@pytest.mark.skipif(
+    not hasattr(sys, 'getrefcount'),
+    reason='getrefcount is not available')
 @pytest.mark.parametrize('method', [
-    m.test_memoryview_buffer_info,
     m.test_memoryview_object,
+    m.test_memoryview_buffer_info,
 ])
 def test_memoryview_refcount(method):
     buf = b'\x0a\x0b\x0c\x0d'
@@ -293,6 +296,15 @@ def test_memoryview_refcount(method):
     ref_after = sys.getrefcount(buf)
     assert ref_before < ref_after
     assert list(view) == list(buf)
+
+
+@pytest.mark.parametrize('method', [
+    m.test_memoryview_frombuffer_empty_shape,
+    m.test_memoryview_frombuffer_invalid_strides,
+])
+def test_memoryview_failures(method):
+    with pytest.raises(RuntimeError):
+        method()
 
 
 @pytest.mark.skipif(sys.version_info.major < 3, reason='API not available')
