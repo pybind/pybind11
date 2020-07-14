@@ -1370,25 +1370,21 @@ public:
         :param format: Pointer to the null-terminated format string. For
             homogeneous Buffers, this should be set to
             ``format_descriptor<T>::value``.
-        :param shape_in: Shape of the tensor (1 entry per dimension).
-        :param strides_in: Number of bytes between adjacent entries (for each
+        :param shape: Shape of the tensor (1 entry per dimension).
+        :param strides: Number of bytes between adjacent entries (for each
             per dimension).
         :param readonly: Flag to indicate if the underlying storage may be
             written to.
      \endrst */
     static memoryview frombuffer(
         void *ptr, ssize_t itemsize, const char* format,
-        detail::any_container<ssize_t> shape_in,
-        detail::any_container<ssize_t> strides_in, bool readonly = false);
+        detail::any_container<ssize_t> shape,
+        detail::any_container<ssize_t> strides, bool readonly = false);
 
     template<typename T>
     static memoryview frombuffer(
-        T *ptr, detail::any_container<ssize_t> shape_in,
-        detail::any_container<ssize_t> strides_in, bool readonly = false) {
-        return memoryview::frombuffer(
-            reinterpret_cast<void*>(ptr), sizeof(T),
-            format_descriptor<T>::value, shape_in, strides_in, readonly);
-    }
+        T *ptr, detail::any_container<ssize_t> shape,
+        detail::any_container<ssize_t> strides, bool readonly = false);
 
 #if PY_MAJOR_VERSION >= 3
     /** \rst
@@ -1397,6 +1393,8 @@ public:
         This method is meant for providing a ``memoryview`` for C/C++ buffer not
         managed by Python. The caller is responsible for managing the lifetime
         of ``mem``, which MUST outlive the memoryview constructed here.
+
+        This method is not available in Python 2.
 
         See also: Python C API documentation for `PyMemoryView_FromBuffer`_.
 
@@ -1412,18 +1410,17 @@ public:
 #endif
 };
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 inline memoryview memoryview::frombuffer(
     void *ptr, ssize_t itemsize, const char* format,
-    detail::any_container<ssize_t> shape_in,
-    detail::any_container<ssize_t> strides_in, bool readonly) {
-    size_t ndim = shape_in->size();
-    if (ndim < 1)
-        pybind11_fail("memoryview: shape length (ndim) must be greater than zero");
-    if (ndim != strides_in->size())
+    detail::any_container<ssize_t> shape,
+    detail::any_container<ssize_t> strides, bool readonly) {
+    size_t ndim = shape->size();
+    if (ndim != strides->size())
         pybind11_fail("memoryview: shape length doesn't match strides length");
-    ssize_t size = 1;
+    ssize_t size = ndim ? 1 : 0;
     for (size_t i = 0; i < ndim; ++i)
-        size *= (*shape_in)[i];
+        size *= (*shape)[i];
     Py_buffer view;
     view.buf = ptr;
     view.obj = nullptr;
@@ -1432,14 +1429,24 @@ inline memoryview memoryview::frombuffer(
     view.itemsize = itemsize;
     view.format = const_cast<char*>(format);
     view.ndim = static_cast<int>(ndim);
-    view.shape = shape_in->data();
-    view.strides = strides_in->data();
+    view.shape = shape->data();
+    view.strides = strides->data();
     view.suboffsets = nullptr;
     view.internal = nullptr;
     PyObject* obj = PyMemoryView_FromBuffer(&view);
     if (!obj)
         pybind11_fail("Unable to create memoryview from buffer structure");
     return memoryview(object(obj, stolen_t{}));
+}
+#endif  // DOXYGEN_SHOULD_SKIP_THIS
+
+template<typename T>
+inline memoryview memoryview::frombuffer(
+    T *ptr, detail::any_container<ssize_t> shape,
+    detail::any_container<ssize_t> strides, bool readonly) {
+    return memoryview::frombuffer(
+        reinterpret_cast<void*>(ptr), sizeof(T),
+        format_descriptor<T>::value, shape, strides, readonly);
 }
 /// @} pytypes
 

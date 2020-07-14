@@ -327,17 +327,16 @@ TEST_SUBMODULE(pytypes, m) {
                 const_cast<int16_t*>(si16), { 5 }, { sizeof(int16_t) }, true);
     });
 
-    m.def("test_memoryview_frombuffer_nativeformat", [](py::none unused) {
+    m.def("test_memoryview_frombuffer_nativeformat", []() {
         static const char* format = "@i";
         static const int32_t arr[] = { 4, 7, 5 };
-        unused.is_none();  // Only to suppress unused compiler warn.
         return py::memoryview::frombuffer(
             const_cast<int32_t*>(arr), sizeof(int32_t), format, { 3 },
             { sizeof(int32_t) }, true);
     });
 
     m.def("test_memoryview_frombuffer_empty_shape", []() {
-        static const char* buf = "\x00\x01";
+        static const char* buf = "";
         return py::memoryview::frombuffer(
             const_cast<char*>(buf), 1, "B", { }, { });
     });

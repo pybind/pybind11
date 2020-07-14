@@ -263,15 +263,15 @@ def test_list_slicing():
     assert li[::2] == m.test_list_slicing(li)
 
 
-@pytest.mark.parametrize('method, arg, fmt, expected_view', [
-    (m.test_memoryview_object, b'red', 'B', b'red'),
-    (m.test_memoryview_buffer_info, b'green', 'B', b'green'),
-    (m.test_memoryview_frombuffer, False, 'h', [3, 1, 4, 1, 5]),
-    (m.test_memoryview_frombuffer, True, 'H', [2, 7, 1, 8]),
-    (m.test_memoryview_frombuffer_nativeformat, None, '@i', [4, 7, 5]),
+@pytest.mark.parametrize('method, args, fmt, expected_view', [
+    (m.test_memoryview_object, (b'red',), 'B', b'red'),
+    (m.test_memoryview_buffer_info, (b'green',), 'B', b'green'),
+    (m.test_memoryview_frombuffer, (False,), 'h', [3, 1, 4, 1, 5]),
+    (m.test_memoryview_frombuffer, (True,), 'H', [2, 7, 1, 8]),
+    (m.test_memoryview_frombuffer_nativeformat, (), '@i', [4, 7, 5]),
 ])
-def test_memoryview(method, arg, fmt, expected_view):
-    view = method(arg)
+def test_memoryview(method, args, fmt, expected_view):
+    view = method(*args)
     assert isinstance(view, memoryview)
     assert view.format == fmt
     if isinstance(expected_view, bytes) or sys.version_info[0] >= 3:
@@ -298,13 +298,20 @@ def test_memoryview_refcount(method):
     assert list(view) == list(buf)
 
 
-@pytest.mark.parametrize('method', [
-    m.test_memoryview_frombuffer_empty_shape,
-    m.test_memoryview_frombuffer_invalid_strides,
-])
-def test_memoryview_failures(method):
+def test_memoryview_frombuffer_empty_shape():
+    view = m.test_memoryview_frombuffer_empty_shape()
+    assert isinstance(view, memoryview)
+    assert view.format == 'B'
+    if sys.version_info.major < 3:
+        # Python 2 behavior is weird, but Python 3 (the future) is fine.
+        assert bytes(view).startswith(b'<memory at ')
+    else:
+        assert bytes(view) == b''
+
+
+def test_test_memoryview_frombuffer_invalid_strides():
     with pytest.raises(RuntimeError):
-        method()
+        m.test_memoryview_frombuffer_invalid_strides()
 
 
 @pytest.mark.skipif(sys.version_info.major < 3, reason='API not available')
