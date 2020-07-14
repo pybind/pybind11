@@ -1400,9 +1400,10 @@ public:
 
         .. _PyMemoryView_FromMemory: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory
      \endrst */
-    static memoryview frommemory(char *mem, ssize_t size, bool readonly = false) {
+    static memoryview frommemory(void *mem, ssize_t size, bool readonly = false) {
         PyObject* ptr = PyMemoryView_FromMemory(
-            mem, size, (readonly) ? PyBUF_READ : PyBUF_WRITE);
+            reinterpret_cast<char*>(mem), size,
+            (readonly) ? PyBUF_READ : PyBUF_WRITE);
         if (!ptr)
             pybind11_fail("Could not allocate memoryview object!");
         return memoryview(object(ptr, stolen_t{}));
