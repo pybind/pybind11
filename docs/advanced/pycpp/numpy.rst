@@ -384,3 +384,45 @@ operation on the C++ side:
 
    py::array a = /* A NumPy array */;
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
+
+Memory view
+===========
+
+For a case when we simply want to provide a direct accessor to C/C++ buffer
+without a concrete class object, we can return a ``memoryview`` object. Suppose
+we wish to expose a ``memoryview`` for 2x4 uint8_t array, we can do the
+following:
+
+.. code-block:: cpp
+
+    const uint8_t buffer[] = {
+        0, 1, 2, 3,
+        4, 5, 6, 7
+    };
+    m.def("get_memoryview2d", []() {
+        return py::memoryview::frombuffer(
+            buffer,                                    // buffer pointer
+            { 2, 4 },                                  // shape (rows, cols)
+            { sizeof(uint8_t) * 4, sizeof(uint8_t) }   // strides in bytes
+        );
+    })
+
+This approach is meant for providing a ``memoryview`` for C/C++ buffer not
+managed by Python. The user is responsible for managing the lifetime of the
+buffer. Using ``memoryview`` created from this approach after deleting the
+buffer in C++ side results in undefined behavior.
+
+We can also use ``memoryview::frommemory`` for a simple 1D contiguous buffer:
+
+.. code-block:: cpp
+
+    m.def("get_memoryview1d", []() {
+        return py::memoryview::frommemory(
+            buffer,               // buffer pointer
+            sizeof(uint8_t) * 8   // buffer size
+        );
+    })
+
+.. note::
+
+    ``memoryview::frommemory`` is not available in Python 2.
