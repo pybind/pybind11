@@ -1377,14 +1377,34 @@ public:
             written to.
      \endrst */
     static memoryview frombuffer(
-        void *ptr, ssize_t itemsize, const char* format,
+        void *ptr, ssize_t itemsize, const char *format,
         detail::any_container<ssize_t> shape,
         detail::any_container<ssize_t> strides, bool readonly = false);
+
+    static memoryview frombuffer(
+        const void *ptr, ssize_t itemsize, const char *format,
+        detail::any_container<ssize_t> shape,
+        detail::any_container<ssize_t> strides) {
+        return memoryview::frombuffer(
+            const_cast<void*>(ptr), itemsize, format, shape, strides, true);
+    }
 
     template<typename T>
     static memoryview frombuffer(
         T *ptr, detail::any_container<ssize_t> shape,
-        detail::any_container<ssize_t> strides, bool readonly = false);
+        detail::any_container<ssize_t> strides, bool readonly = false) {
+        return memoryview::frombuffer(
+            reinterpret_cast<void*>(ptr), sizeof(T),
+            format_descriptor<T>::value, shape, strides, readonly);
+    }
+
+    template<typename T>
+    static memoryview frombuffer(
+        const T *ptr, detail::any_container<ssize_t> shape,
+        detail::any_container<ssize_t> strides) {
+        return memoryview::frombuffer(
+            const_cast<T*>(ptr), shape, strides, true);
+    }
 
 #if PY_MAJOR_VERSION >= 3
     /** \rst
@@ -1407,6 +1427,10 @@ public:
         if (!ptr)
             pybind11_fail("Could not allocate memoryview object!");
         return memoryview(object(ptr, stolen_t{}));
+    }
+
+    static memoryview frommemory(const void *mem, ssize_t size) {
+        return memoryview::frommemory(const_cast<void*>(mem), size, true);
     }
 #endif
 };
@@ -1440,15 +1464,6 @@ inline memoryview memoryview::frombuffer(
     return memoryview(object(obj, stolen_t{}));
 }
 #endif  // DOXYGEN_SHOULD_SKIP_THIS
-
-template<typename T>
-inline memoryview memoryview::frombuffer(
-    T *ptr, detail::any_container<ssize_t> shape,
-    detail::any_container<ssize_t> strides, bool readonly) {
-    return memoryview::frombuffer(
-        reinterpret_cast<void*>(ptr), sizeof(T),
-        format_descriptor<T>::value, shape, strides, readonly);
-}
 /// @} pytypes
 
 /// \addtogroup python_builtins
