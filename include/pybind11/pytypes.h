@@ -1460,7 +1460,7 @@ inline memoryview memoryview::frombuffer(
     view.internal = nullptr;
     PyObject* obj = PyMemoryView_FromBuffer(&view);
     if (!obj)
-        pybind11_fail("Unable to create memoryview from buffer structure");
+        throw error_already_set();
     return memoryview(object(obj, stolen_t{}));
 }
 #endif  // DOXYGEN_SHOULD_SKIP_THIS

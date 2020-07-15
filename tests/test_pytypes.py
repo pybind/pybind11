@@ -314,6 +314,11 @@ def test_test_memoryview_frombuffer_invalid_strides():
         m.test_memoryview_frombuffer_invalid_strides()
 
 
+def test_test_memoryview_frombuffer_nullptr():
+    with pytest.raises(ValueError):
+        m.test_memoryview_frombuffer_nullptr()
+
+
 @pytest.mark.skipif(sys.version_info.major < 3, reason='API not available')
 def test_memoryview_frommemory():
     view = m.test_memoryview_frommemory()

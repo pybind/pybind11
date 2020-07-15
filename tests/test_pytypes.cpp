@@ -344,6 +344,11 @@ TEST_SUBMODULE(pytypes, m) {
         return py::memoryview::frombuffer(buf, 1, "B", { 3 }, { });
     });
 
+    m.def("test_memoryview_frombuffer_nullptr", []() {
+        return py::memoryview::frombuffer(
+            static_cast<void*>(nullptr), 1, "B", { }, { });
+    });
+
 #if PY_MAJOR_VERSION >= 3
     m.def("test_memoryview_frommemory", []() {
         const char* buf = "\xff\xe1\xab\x37";
