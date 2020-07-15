@@ -407,10 +407,10 @@ following:
         );
     })
 
-This approach is meant for providing a ``memoryview`` for C/C++ buffer not
+This approach is meant for providing a ``memoryview`` for a C/C++ buffer not
 managed by Python. The user is responsible for managing the lifetime of the
-buffer. Using ``memoryview`` created from this approach after deleting the
-buffer in C++ side results in undefined behavior.
+buffer. Using a ``memoryview`` created in this way after deleting the buffer in
+C++ side results in undefined behavior.
 
 We can also use ``memoryview::frommemory`` for a simple 1D contiguous buffer:
 
