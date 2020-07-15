@@ -400,7 +400,7 @@ following:
         4, 5, 6, 7
     };
     m.def("get_memoryview2d", []() {
-        return py::memoryview::frombuffer(
+        return py::memoryview::from_buffer(
             buffer,                                    // buffer pointer
             { 2, 4 },                                  // shape (rows, cols)
             { sizeof(uint8_t) * 4, sizeof(uint8_t) }   // strides in bytes
@@ -412,12 +412,12 @@ managed by Python. The user is responsible for managing the lifetime of the
 buffer. Using a ``memoryview`` created in this way after deleting the buffer in
 C++ side results in undefined behavior.
 
-We can also use ``memoryview::frommemory`` for a simple 1D contiguous buffer:
+We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
 
 .. code-block:: cpp
 
     m.def("get_memoryview1d", []() {
-        return py::memoryview::frommemory(
+        return py::memoryview::from_memory(
             buffer,               // buffer pointer
             sizeof(uint8_t) * 8   // buffer size
         );
@@ -425,4 +425,4 @@ We can also use ``memoryview::frommemory`` for a simple 1D contiguous buffer:
 
 .. note::
 
-    ``memoryview::frommemory`` is not available in Python 2.
+    ``memoryview::from_memory`` is not available in Python 2.

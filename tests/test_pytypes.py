@@ -266,9 +266,9 @@ def test_list_slicing():
 @pytest.mark.parametrize('method, args, fmt, expected_view', [
     (m.test_memoryview_object, (b'red',), 'B', b'red'),
     (m.test_memoryview_buffer_info, (b'green',), 'B', b'green'),
-    (m.test_memoryview_frombuffer, (False,), 'h', [3, 1, 4, 1, 5]),
-    (m.test_memoryview_frombuffer, (True,), 'H', [2, 7, 1, 8]),
-    (m.test_memoryview_frombuffer_nativeformat, (), '@i', [4, 7, 5]),
+    (m.test_memoryview_from_buffer, (False,), 'h', [3, 1, 4, 1, 5]),
+    (m.test_memoryview_from_buffer, (True,), 'H', [2, 7, 1, 8]),
+    (m.test_memoryview_from_buffer_nativeformat, (), '@i', [4, 7, 5]),
 ])
 def test_memoryview(method, args, fmt, expected_view):
     view = method(*args)
@@ -298,8 +298,8 @@ def test_memoryview_refcount(method):
     assert list(view) == list(buf)
 
 
-def test_memoryview_frombuffer_empty_shape():
-    view = m.test_memoryview_frombuffer_empty_shape()
+def test_memoryview_from_buffer_empty_shape():
+    view = m.test_memoryview_from_buffer_empty_shape()
     assert isinstance(view, memoryview)
     assert view.format == 'B'
     if sys.version_info.major < 3:
@@ -309,22 +309,22 @@ def test_memoryview_frombuffer_empty_shape():
         assert bytes(view) == b''
 
 
-def test_test_memoryview_frombuffer_invalid_strides():
+def test_test_memoryview_from_buffer_invalid_strides():
     with pytest.raises(RuntimeError):
-        m.test_memoryview_frombuffer_invalid_strides()
+        m.test_memoryview_from_buffer_invalid_strides()
 
 
-def test_test_memoryview_frombuffer_nullptr():
+def test_test_memoryview_from_buffer_nullptr():
     if sys.version_info.major < 3:
-        m.test_memoryview_frombuffer_nullptr()
+        m.test_memoryview_from_buffer_nullptr()
     else:
         with pytest.raises(ValueError):
-            m.test_memoryview_frombuffer_nullptr()
+            m.test_memoryview_from_buffer_nullptr()
 
 
 @pytest.mark.skipif(sys.version_info.major < 3, reason='API not available')
-def test_memoryview_frommemory():
-    view = m.test_memoryview_frommemory()
+def test_memoryview_from_memory():
+    view = m.test_memoryview_from_memory()
     assert isinstance(view, memoryview)
     assert view.format == 'B'
     assert bytes(view) == b'\xff\xe1\xab\x37'

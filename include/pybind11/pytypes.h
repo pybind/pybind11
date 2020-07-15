@@ -1376,33 +1376,33 @@ public:
         :param readonly: Flag to indicate if the underlying storage may be
             written to.
      \endrst */
-    static memoryview frombuffer(
+    static memoryview from_buffer(
         void *ptr, ssize_t itemsize, const char *format,
         detail::any_container<ssize_t> shape,
         detail::any_container<ssize_t> strides, bool readonly = false);
 
-    static memoryview frombuffer(
+    static memoryview from_buffer(
         const void *ptr, ssize_t itemsize, const char *format,
         detail::any_container<ssize_t> shape,
         detail::any_container<ssize_t> strides) {
-        return memoryview::frombuffer(
+        return memoryview::from_buffer(
             const_cast<void*>(ptr), itemsize, format, shape, strides, true);
     }
 
     template<typename T>
-    static memoryview frombuffer(
+    static memoryview from_buffer(
         T *ptr, detail::any_container<ssize_t> shape,
         detail::any_container<ssize_t> strides, bool readonly = false) {
-        return memoryview::frombuffer(
+        return memoryview::from_buffer(
             reinterpret_cast<void*>(ptr), sizeof(T),
             format_descriptor<T>::value, shape, strides, readonly);
     }
 
     template<typename T>
-    static memoryview frombuffer(
+    static memoryview from_buffer(
         const T *ptr, detail::any_container<ssize_t> shape,
         detail::any_container<ssize_t> strides) {
-        return memoryview::frombuffer(
+        return memoryview::from_buffer(
             const_cast<T*>(ptr), shape, strides, true);
     }
 
@@ -1420,7 +1420,7 @@ public:
 
         .. _PyMemoryView_FromMemory: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory
      \endrst */
-    static memoryview frommemory(void *mem, ssize_t size, bool readonly = false) {
+    static memoryview from_memory(void *mem, ssize_t size, bool readonly = false) {
         PyObject* ptr = PyMemoryView_FromMemory(
             reinterpret_cast<char*>(mem), size,
             (readonly) ? PyBUF_READ : PyBUF_WRITE);
@@ -1429,14 +1429,14 @@ public:
         return memoryview(object(ptr, stolen_t{}));
     }
 
-    static memoryview frommemory(const void *mem, ssize_t size) {
-        return memoryview::frommemory(const_cast<void*>(mem), size, true);
+    static memoryview from_memory(const void *mem, ssize_t size) {
+        return memoryview::from_memory(const_cast<void*>(mem), size, true);
     }
 #endif
 };
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-inline memoryview memoryview::frombuffer(
+inline memoryview memoryview::from_buffer(
     void *ptr, ssize_t itemsize, const char* format,
     detail::any_container<ssize_t> shape,
     detail::any_container<ssize_t> strides, bool readonly) {
