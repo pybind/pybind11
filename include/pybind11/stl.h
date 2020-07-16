@@ -73,8 +73,11 @@ template <typename Type, typename Key> struct set_caster {
             return false;
         auto s = reinterpret_borrow<pybind11::set>(src);
         value.clear();
+        subcasters.clear();
+        subcasters.reserve(s.size());
         for (auto entry : s) {
-            key_conv conv;
+            subcasters.emplace_back();
+            auto &conv = subcasters.back();
             if (!conv.load(entry, convert))
                 return false;
             value.insert(cast_op<Key &&>(std::move(conv)));
@@ -96,6 +99,9 @@ template <typename Type, typename Key> struct set_caster {
     }
 
     PYBIND11_TYPE_CASTER(type, _("Set[") + key_conv::name + _("]"));
+
+private:
+    std::vector<key_conv> subcasters;
 };
 
 template <typename Type, typename Key, typename Value> struct map_caster {
@@ -107,9 +113,13 @@ template <typename Type, typename Key, typename Value> struct map_caster {
             return false;
         auto d = reinterpret_borrow<dict>(src);
         value.clear();
+        subcasters.clear();
+        subcasters.reserve(d.size());
         for (auto it : d) {
-            key_conv kconv;
-            value_conv vconv;
+            subcasters.emplace_back();
+            auto &conv_pair = subcasters.back();
+            auto &kconv = conv_pair.first;
+            auto &vconv = conv_pair.second;
             if (!kconv.load(it.first.ptr(), convert) ||
                 !vconv.load(it.second.ptr(), convert))
                 return false;
@@ -138,6 +148,9 @@ template <typename Type, typename Key, typename Value> struct map_caster {
     }
 
     PYBIND11_TYPE_CASTER(Type, _("Dict[") + key_conv::name + _(", ") + value_conv::name + _("]"));
+
+private:
+    std::vector<std::pair<key_conv, value_conv>> subcasters;
 };
 
 template <typename Type, typename Value> struct list_caster {
@@ -149,8 +162,11 @@ template <typename Type, typename Value> struct list_caster {
         auto s = reinterpret_borrow<sequence>(src);
         value.clear();
         reserve_maybe(s, &value);
+        subcasters.clear();
+        subcasters.reserve(s.size());
         for (auto it : s) {
-            value_conv conv;
+            subcasters.emplace_back();
+            auto &conv = subcasters.back();
             if (!conv.load(it, convert))
                 return false;
             value.push_back(cast_op<Value &&>(std::move(conv)));
@@ -181,6 +197,9 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type, _("List[") + value_conv::name + _("]"));
+
+private:
+    std::vector<value_conv> subcasters;
 };
 
 template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>>
@@ -214,9 +233,12 @@ public:
         auto l = reinterpret_borrow<sequence>(src);
         if (!require_size(l.size()))
             return false;
+        subcasters.clear();
+        subcasters.reserve(l.size());
         size_t ctr = 0;
         for (auto it : l) {
-            value_conv conv;
+            subcasters.emplace_back();
+            auto &conv = subcasters.back();
             if (!conv.load(it, convert))
                 return false;
             value[ctr++] = cast_op<Value &&>(std::move(conv));
@@ -238,6 +260,9 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(ArrayType, _("List[") + value_conv::name + _<Resizable>(_(""), _("[") + _<Size>() + _("]")) + _("]"));
+
+private:
+    std::vector<value_conv> subcasters;
 };
 
 template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
@@ -278,7 +303,6 @@ template<typename T> struct optional_caster {
         } else if (src.is_none()) {
             return true;  // default-constructed value is already empty
         }
-        value_conv inner_caster;
         if (!inner_caster.load(src, convert))
             return false;
 
@@ -287,6 +311,9 @@ template<typename T> struct optional_caster {
     }
 
     PYBIND11_TYPE_CASTER(T, _("Optional[") + value_conv::name + _("]"));
+
+private:
+    value_conv inner_caster;
 };
 
 #if PYBIND11_HAS_OPTIONAL
@@ -342,6 +369,7 @@ struct variant_caster<V<Ts...>> {
         auto caster = make_caster<U>();
         if (caster.load(src, convert)) {
             value = cast_op<U>(caster);
+            subcaster = std::move(caster);
             return true;
         }
         return load_alternative(src, convert, type_list<Us...>{});
@@ -367,6 +395,9 @@ struct variant_caster<V<Ts...>> {
 
     using Type = V<Ts...>;
     PYBIND11_TYPE_CASTER(Type, _("Union[") + detail::concat(make_caster<Ts>::name...) + _("]"));
+
+private:
+    V<make_caster<Ts>...> subcaster;
 };
 
 #if PYBIND11_HAS_VARIANT

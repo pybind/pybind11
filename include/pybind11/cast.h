@@ -1347,7 +1347,7 @@ public:
         return StringCaster::cast(StringType(1, src), policy, parent);
     }
 
-    operator CharT*() { return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str()); }
+    operator CharT*() { return none ? nullptr : &static_cast<StringType &>(str_caster)[0]; }
     operator CharT&() {
         if (none)
             throw value_error("Cannot convert None to a character");
