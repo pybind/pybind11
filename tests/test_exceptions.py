@@ -25,6 +25,22 @@ def test_error_already_set(msg):
     assert msg(excinfo.value) == "foo"
 
 
+@pytest.mark.skipif("env.PY2")
+def test_raise_from(msg):
+    with pytest.raises(ValueError) as excinfo:
+        m.raise_from()
+    assert msg(excinfo.value) == "outer"
+    assert msg(excinfo.value.__cause__) == "inner"
+
+
+@pytest.mark.skipif("env.PY2")
+def test_raise_from_already_set(msg):
+    with pytest.raises(ValueError) as excinfo:
+        m.raise_from_already_set()
+    assert msg(excinfo.value) == "outer"
+    assert msg(excinfo.value.__cause__) == "inner"
+
+
 def test_cross_module_exceptions(msg):
     with pytest.raises(RuntimeError) as excinfo:
         cm.raise_runtime_error()
