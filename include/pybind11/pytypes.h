@@ -388,7 +388,7 @@ private:
 /// 'raise from' to indicate that the chosen error was caused by the original error
 inline void raise_from(PyObject *type, const char *message) {
     // from cpython/errors.c _PyErr_FormatVFromCause
-    PyObject *exc, *val, *val2, *tb;
+    PyObject *exc = nullptr, *val = nullptr, *val2 = nullptr, *tb = nullptr;
     PyErr_Fetch(&exc, &val, &tb);
 
     PyErr_NormalizeException(&exc, &val, &tb);
