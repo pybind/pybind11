@@ -589,3 +589,17 @@ def test_weakref(create_weakref, create_weakref_with_callback):
     del obj
     pytest.gc_collect()
     assert callback.called
+
+
+@pytest.mark.skipif(sys.version_info < (3, 2), reason="API not available")
+def test_memoryview_scoped_release():
+    class C:
+        def fn(self, view):
+            self.view = view
+            assert bytes(view) == b"\x42"
+
+    c = C()
+    m.test_memoryview_scoped_release(c.fn)
+    assert hasattr(c, "view")
+    with pytest.raises(ValueError):
+        bytes(c.view)
