@@ -147,7 +147,7 @@ string(REGEX REPLACE "\\\\" "/" PYTHON_PREFIX "${PYTHON_PREFIX}")
 string(REGEX REPLACE "\\\\" "/" PYTHON_INCLUDE_DIR "${PYTHON_INCLUDE_DIR}")
 string(REGEX REPLACE "\\\\" "/" PYTHON_SITE_PACKAGES "${PYTHON_SITE_PACKAGES}")
 
-if(CMAKE_HOST_WIN32 AND NOT (MINGW AND DEFINED ENV{MSYSTEM}))
+if(CMAKE_HOST_WIN32)
     set(PYTHON_LIBRARY
         "${PYTHON_PREFIX}/libs/python${PYTHON_LIBRARY_SUFFIX}.lib")
 
@@ -157,6 +157,20 @@ if(CMAKE_HOST_WIN32 AND NOT (MINGW AND DEFINED ENV{MSYSTEM}))
         get_filename_component(_PYTHON_ROOT ${PYTHON_INCLUDE_DIR} DIRECTORY)
         set(PYTHON_LIBRARY
             "${_PYTHON_ROOT}/libs/python${PYTHON_LIBRARY_SUFFIX}.lib")
+    endif()
+
+    # if we are in MSYS & MINGW, and we didn't find windows python lib, look for system python lib
+    if(DEFINED ENV{MSYSTEM} AND MINGW AND NOT EXISTS "${PYTHON_LIBRARY}")
+        if(PYTHON_MULTIARCH)
+            set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}/${PYTHON_MULTIARCH}" "${PYTHON_LIBDIR}")
+        else()
+            set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}")
+        endif()
+        unset(PYTHON_LIBRARY)
+        find_library(PYTHON_LIBRARY
+            NAMES "python${PYTHON_LIBRARY_SUFFIX}"
+            PATHS ${_PYTHON_LIBS_SEARCH}
+            NO_DEFAULT_PATH)
     endif()
 
     # raise an error if the python libs are still not found.
