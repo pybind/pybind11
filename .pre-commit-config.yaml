@@ -24,5 +24,14 @@ repos:
   rev: 3.8.2
   hooks:
   - id: flake8
-    additional_dependencies: [flake8-bugbear]
+    additional_dependencies: [flake8-bugbear, pep8-naming]
     exclude: ^(docs/.*|tools/.*)$
+
+- repo: local
+  hooks:
+  - id: check-style
+    name: Classic check-style
+    language: system
+    types:
+    - c++
+    entry: ./tools/check-style.sh
