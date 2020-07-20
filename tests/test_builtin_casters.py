@@ -1,4 +1,4 @@
-# Python < 3 needs this: coding=utf-8
+# -*- coding: utf-8 -*-
 import pytest
 
 from pybind11_tests import builtin_casters as m

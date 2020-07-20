@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import multiprocessing
 import threading
 from pybind11_tests import gil_scoped as m

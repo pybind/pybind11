@@ -218,7 +218,7 @@ collected:
 
 Both approaches also expose a potentially dangerous ``_cleanup`` attribute in
 Python, which may be undesirable from an API standpoint (a premature explicit
-call from Python might lead to undefined behavior). Yet another approach that 
+call from Python might lead to undefined behavior). Yet another approach that
 avoids this issue involves weak reference with a cleanup callback:
 
 .. code-block:: cpp
@@ -283,9 +283,9 @@ work, it is important that all lines are indented consistently, i.e.:
         ----------
     )mydelimiter");
 
-By default, pybind11 automatically generates and prepends a signature to the docstring of a function 
+By default, pybind11 automatically generates and prepends a signature to the docstring of a function
 registered with ``module::def()`` and ``class_::def()``. Sometimes this
-behavior is not desirable, because you want to provide your own signature or remove 
+behavior is not desirable, because you want to provide your own signature or remove
 the docstring completely to exclude the function from the Sphinx documentation.
 The class ``options`` allows you to selectively suppress auto-generated signatures:
 
@@ -298,8 +298,8 @@ The class ``options`` allows you to selectively suppress auto-generated signatur
         m.def("add", [](int a, int b) { return a + b; }, "A function which adds two numbers");
     }
 
-Note that changes to the settings affect only function bindings created during the 
-lifetime of the ``options`` instance. When it goes out of scope at the end of the module's init function, 
+Note that changes to the settings affect only function bindings created during the
+lifetime of the ``options`` instance. When it goes out of scope at the end of the module's init function,
 the default settings are restored to prevent unwanted side effects.
 
 .. [#f4] http://www.sphinx-doc.org

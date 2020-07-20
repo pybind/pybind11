@@ -60,7 +60,7 @@ This example obtains a reference to the Python ``Decimal`` class.
 Calling Python functions
 ========================
 
-It is also possible to call Python classes, functions and methods 
+It is also possible to call Python classes, functions and methods
 via ``operator()``.
 
 .. code-block:: cpp
@@ -75,7 +75,7 @@ via ``operator()``.
     py::object makedirs = os.attr("makedirs");
     makedirs("/tmp/path/to/somewhere");
 
-One can convert the result obtained from Python to a pure C++ version 
+One can convert the result obtained from Python to a pure C++ version
 if a ``py::class_`` or type conversion is defined.
 
 .. code-block:: cpp
@@ -99,8 +99,8 @@ Python method.
     py::print(py::str(exp_pi));
 
 In the example above ``pi.attr("exp")`` is a *bound method*: it will always call
-the method for that same instance of the class. Alternately one can create an 
-*unbound method* via the Python class (instead of instance) and pass the ``self`` 
+the method for that same instance of the class. Alternately one can create an
+*unbound method* via the Python class (instead of instance) and pass the ``self``
 object explicitly, followed by other arguments.
 
 .. code-block:: cpp

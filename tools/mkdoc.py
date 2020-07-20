@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 #  Syntax: mkdoc.py [-I<path> ..] [.. a list of header files ..]
 #

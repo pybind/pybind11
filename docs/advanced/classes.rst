@@ -82,7 +82,7 @@ helper class that is defined as follows:
 
 The macro :c:macro:`PYBIND11_OVERLOAD_PURE` should be used for pure virtual
 functions, and :c:macro:`PYBIND11_OVERLOAD` should be used for functions which have
-a default implementation.  There are also two alternate macros 
+a default implementation.  There are also two alternate macros
 :c:macro:`PYBIND11_OVERLOAD_PURE_NAME` and :c:macro:`PYBIND11_OVERLOAD_NAME` which
 take a string-valued name argument between the *Parent class* and *Name of the
 function* slots, which defines the name of function in Python. This is required
@@ -1088,7 +1088,7 @@ Binding final classes
 
 Some classes may not be appropriate to inherit from. In C++11, classes can
 use the ``final`` specifier to ensure that a class cannot be inherited from.
-The ``py::is_final`` attribute can be used to ensure that Python classes 
+The ``py::is_final`` attribute can be used to ensure that Python classes
 cannot inherit from a specified type. The underlying C++ type does not need
 to be declared final.
 
