@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from pybind11_tests import sequences_and_iterators as m
 from pybind11_tests import ConstructorStats

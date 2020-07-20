@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from pybind11_tests import ConstructorStats
 
@@ -143,7 +144,7 @@ def test_nonunit_stride_from_python():
 
     counting_3d = np.arange(27.0, dtype=np.float32).reshape((3, 3, 3))
     slices = [counting_3d[0, :, :], counting_3d[:, 0, :], counting_3d[:, :, 0]]
-    for slice_idx, ref_mat in enumerate(slices):
+    for ref_mat in slices:
         np.testing.assert_array_equal(m.double_mat_cm(ref_mat), 2.0 * ref_mat)
         np.testing.assert_array_equal(m.double_mat_rm(ref_mat), 2.0 * ref_mat)
 
@@ -172,7 +173,7 @@ def test_negative_stride_from_python(msg):
     counting_3d = np.arange(27.0, dtype=np.float32).reshape((3, 3, 3))
     counting_3d = counting_3d[::-1, ::-1, ::-1]
     slices = [counting_3d[0, :, :], counting_3d[:, 0, :], counting_3d[:, :, 0]]
-    for slice_idx, ref_mat in enumerate(slices):
+    for ref_mat in slices:
         np.testing.assert_array_equal(m.double_mat_cm(ref_mat), 2.0 * ref_mat)
         np.testing.assert_array_equal(m.double_mat_rm(ref_mat), 2.0 * ref_mat)
 

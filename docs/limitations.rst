@@ -17,4 +17,3 @@ These features could be implemented but would lead to a significant increase in
 complexity. I've decided to draw the line here to keep this project simple and
 compact. Users who absolutely require these features are encouraged to fork
 pybind11.
-

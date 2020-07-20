@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import pytest
 from pybind11_tests import eval_ as m
