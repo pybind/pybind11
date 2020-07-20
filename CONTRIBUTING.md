@@ -27,11 +27,10 @@ adhere to the following rules to make the process as smooth as possible:
   do add value by themselves.
 * Add tests for any new functionality and run the test suite (``make pytest``)
   to ensure that no existing features break.
-* Please run [``pre-commit``][pre-commit] and ``tools/check-style.sh`` to check
-  your code matches the project style. (Note that ``check-style.sh`` requires
-  ``gawk``.) Use `pre-commit run --all-files` before committing (or use
-  installed-mode, check pre-commit docs) to verify your code passes before
-  pushing to save time.
+* Please run [``pre-commit``][pre-commit] to check your code matches the
+  project style. (Note that ``gawk`` is required.) Use `pre-commit run
+  --all-files` before committing (or use installed-mode, check pre-commit docs)
+  to verify your code passes before pushing to save time.
 * This project has a strong focus on providing general solutions using a
   minimal amount of code, thus small pull requests are greatly preferred.
 
