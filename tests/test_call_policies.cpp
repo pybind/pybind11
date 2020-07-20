@@ -8,6 +8,7 @@
 */
 
 #include "pybind11_tests.h"
+#include "constructor_stats.h"
 
 struct CustomGuard {
     static bool enabled;
@@ -60,6 +61,21 @@ TEST_SUBMODULE(call_policies, m) {
         .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveChild", &Parent::returnNullChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>());
+
+    // test_keep_alive_single
+    m.def("add_patient", [](py::object /*nurse*/, py::object /*patient*/) { }, py::keep_alive<1, 2>());
+    m.def("get_patients", [](py::object nurse) {
+        py::list patients;
+        for (PyObject *p : pybind11::detail::get_internals().patients[nurse.ptr()])
+            patients.append(py::reinterpret_borrow<py::object>(p));
+        return patients;
+    });
+    m.def("has_patients", [](uint64_t nurse_id) {
+        // This assumes that id() and PyObject* are equivalent.
+        // We use this to allow the original `nurse` object to be garbage collected.
+        PyObject *nurse_ptr = (PyObject*)nurse_id;
+        return pybind11::detail::get_internals().patients.count(nurse_ptr);
+    });
 
 #if !defined(PYPY_VERSION)
     // test_alive_gc
