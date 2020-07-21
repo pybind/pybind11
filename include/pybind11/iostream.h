@@ -104,8 +104,10 @@ PYBIND11_NAMESPACE_END(detail)
     .. code-block:: cpp
 
         {
-            py::scoped_ostream_redirect output{std::cerr, py::module_::import("sys").attr("stderr")};
-            std::cerr << "Hello, World!";
+            py::scoped_ostream_redirect output{
+                std::cerr,
+                py::module::import("sys").attr("stderr")
+            };
         }
  \endrst */
 class scoped_ostream_redirect {
