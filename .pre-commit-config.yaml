@@ -15,13 +15,12 @@ repos:
   - id: fix-encoding-pragma
 
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: v1.1.7
+  rev: v1.1.9
   hooks:
   - id: remove-tabs
-    exclude: (Makefile|debian/rules|.gitmodules)(\.in)?$
 
 - repo: https://gitlab.com/pycqa/flake8
-  rev: 3.8.2
+  rev: 3.8.3
   hooks:
   - id: flake8
     additional_dependencies: [flake8-bugbear, pep8-naming]
