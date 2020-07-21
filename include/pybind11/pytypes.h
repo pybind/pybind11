@@ -948,6 +948,8 @@ inline namespace literals {
 inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
 }
 
+template <> inline bool isinstance<str>(handle obj) { return PyUnicode_Check(obj.ptr()); }
+
 /// \addtogroup pytypes
 /// @{
 class bytes : public object {
@@ -1009,6 +1011,12 @@ inline str::str(const bytes& b) {
         pybind11_fail("Could not allocate string object!");
     m_ptr = obj.release().ptr();
 }
+
+#if PY_MAJOR_VERSION < 3
+using native_str = bytes;
+#else
+using native_str = str;
+#endif
 
 /// \addtogroup pytypes
 /// @{

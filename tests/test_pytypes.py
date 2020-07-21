@@ -374,7 +374,7 @@ def test_isinstance_string_types():
     # pybind11 isinstance
     assert m.isinstance_pybind11_bytes(actual_bytes)
     assert not m.isinstance_pybind11_bytes(actual_unicode)
-    assert m.isinstance_pybind11_unicode(actual_bytes)  # NOT like native
+    assert not m.isinstance_pybind11_unicode(actual_bytes)
     assert m.isinstance_pybind11_unicode(actual_unicode)
 
 
@@ -386,7 +386,8 @@ def test_pass_actual_bytes_or_unicode_to_string_types():
     with pytest.raises(TypeError):
         m.pass_to_pybind11_bytes(actual_unicode)  # NO implicit encode
 
-    assert m.pass_to_pybind11_unicode(actual_bytes) == 5  # implicit decode
+    with pytest.raises(TypeError):
+        m.pass_to_pybind11_unicode(actual_bytes)  # NO implicit decode
     assert m.pass_to_pybind11_unicode(actual_unicode) == 3
 
     assert m.pass_to_std_string(actual_bytes) == 5
