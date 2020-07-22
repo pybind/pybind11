@@ -13,6 +13,7 @@ function(pybind11_add_build_test name)
   set(build_options "-DCMAKE_PREFIX_PATH=${PROJECT_BINARY_DIR}/mock_install"
                     "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
                     "-DPYTHON_EXECUTABLE:FILEPATH=${PYTHON_EXECUTABLE}"
+                    "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}"
                     "-DPYBIND11_CPP_STANDARD=${PYBIND11_CPP_STANDARD}")
   if(NOT ARG_INSTALL)
     list(APPEND build_options "-DPYBIND11_PROJECT_DIR=${PROJECT_SOURCE_DIR}")
