@@ -8,8 +8,10 @@ Adds docstring and exceptions message sanitizers: ignore Python 2 vs 3 differenc
 import pytest
 import textwrap
 import difflib
+import functools
 import re
 import sys
+import trace
 import contextlib
 import platform
 import gc
@@ -191,6 +193,25 @@ def gc_collect():
     gc.collect()
 
 
+def traced(f):
+    """Decorator to trace the output of a given function (or test case).
+
+    Example:
+
+        @pytest.traced
+        def test_something():
+            print("Hello")
+
+    """
+    tracer = trace.Trace(trace=1, count=0, ignoredirs=["/usr", sys.prefix])
+
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        return tracer.runfunc(f, *args, **kwargs)
+
+    return wrapped
+
+
 def pytest_configure():
     """Add import suppression and test requirements to `pytest` namespace"""
     try:
@@ -224,6 +245,7 @@ def pytest_configure():
     pytest.unsupported_on_py2 = skipif(sys.version_info.major < 3,
                                        reason="unsupported on Python 2.x")
     pytest.gc_collect = gc_collect
+    pytest.traced = traced
 
 
 def _test_import_pybind11():
