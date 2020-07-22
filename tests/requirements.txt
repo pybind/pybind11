@@ -1,0 +1,3 @@
+--extra-index-url https://antocuni.github.io/pypy-wheels/manylinux2010/
+numpy; platform_python_implementation!="PyPy" or sys_platform!="darwin" or python_version<"3.0"
+pytest

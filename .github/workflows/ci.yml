@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - stable
+      - v*
+
+jobs:
+  standard:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu, windows, macos]
+        python:
+        - 2.7
+        - 3.5
+        - 3.8
+        - 3.9-dev
+        - pypy2
+        - pypy3
+
+        include:
+          - os: ubuntu
+            python: 3.6
+          - os: macos
+            python: 3.7
+
+        exclude:
+            # Currently 32bit only, and we build 64bit
+          - os: windows
+            python: pypy2
+          - os: windows
+            python: pypy3
+
+            # Currently can't build due to warning, fixed in CPython > 3.9b5
+          - os: macos
+            python: 3.9-dev
+
+            # Currently broken on embed_test
+          - os: windows
+            python: 3.8
+          - os: windows
+            python: 3.9-dev
+
+    name: Python ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt
+
+    - name: Configure
+      shell: bash
+      run: >
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest -j 2 -v
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest -j 2 -v
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
