@@ -322,7 +322,8 @@ def test_memoryview_from_buffer_empty_shape():
     assert view.format == 'B'
     if sys.version_info.major < 3:
         # Python 2 behavior is weird, but Python 3 (the future) is fine.
-        assert bytes(view).startswith(b'<memory at ')
+        # PyPy3 has <memoryview, while CPython 2 has <memory
+        assert bytes(view).startswith(b'<memory')
     else:
         assert bytes(view) == b''
 
