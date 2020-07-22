@@ -132,24 +132,24 @@ def test_string_view(capture):
     """Tests support for C++17 string_view arguments and return values"""
     assert m.string_view_chars("Hi") == [72, 105]
     assert m.string_view_chars("Hi 🎂") == [72, 105, 32, 0xf0, 0x9f, 0x8e, 0x82]
-    assert m.string_view16_chars("Hi 🎂") == [72, 105, 32, 0xd83c, 0xdf82]
-    assert m.string_view32_chars("Hi 🎂") == [72, 105, 32, 127874]
+    assert m.string_view16_chars(u"Hi 🎂") == [72, 105, 32, 0xd83c, 0xdf82]
+    assert m.string_view32_chars(u"Hi 🎂") == [72, 105, 32, 127874]
     if hasattr(m, "has_u8string"):
         assert m.string_view8_chars("Hi") == [72, 105]
-        assert m.string_view8_chars("Hi 🎂") == [72, 105, 32, 0xf0, 0x9f, 0x8e, 0x82]
+        assert m.string_view8_chars(u"Hi 🎂") == [72, 105, 32, 0xf0, 0x9f, 0x8e, 0x82]
 
-    assert m.string_view_return() == "utf8 secret 🎂"
-    assert m.string_view16_return() == "utf16 secret 🎂"
-    assert m.string_view32_return() == "utf32 secret 🎂"
+    assert m.string_view_return() == u"utf8 secret 🎂"
+    assert m.string_view16_return() == u"utf16 secret 🎂"
+    assert m.string_view32_return() == u"utf32 secret 🎂"
     if hasattr(m, "has_u8string"):
-        assert m.string_view8_return() == "utf8 secret 🎂"
+        assert m.string_view8_return() == u"utf8 secret 🎂"
 
     with capture:
         m.string_view_print("Hi")
         m.string_view_print("utf8 🎂")
-        m.string_view16_print("utf16 🎂")
-        m.string_view32_print("utf32 🎂")
-    assert capture == """
+        m.string_view16_print(u"utf16 🎂")
+        m.string_view32_print(u"utf32 🎂")
+    assert capture == u"""
         Hi 2
         utf8 🎂 9
         utf16 🎂 8
@@ -158,8 +158,8 @@ def test_string_view(capture):
     if hasattr(m, "has_u8string"):
         with capture:
             m.string_view8_print("Hi")
-            m.string_view8_print("utf8 🎂")
-        assert capture == """
+            m.string_view8_print(u"utf8 🎂")
+        assert capture == u"""
             Hi 2
             utf8 🎂 9
         """
@@ -167,9 +167,9 @@ def test_string_view(capture):
     with capture:
         m.string_view_print("Hi, ascii")
         m.string_view_print("Hi, utf8 🎂")
-        m.string_view16_print("Hi, utf16 🎂")
-        m.string_view32_print("Hi, utf32 🎂")
-    assert capture == """
+        m.string_view16_print(u"Hi, utf16 🎂")
+        m.string_view32_print(u"Hi, utf32 🎂")
+    assert capture == u"""
         Hi, ascii 9
         Hi, utf8 🎂 13
         Hi, utf16 🎂 12
@@ -178,8 +178,8 @@ def test_string_view(capture):
     if hasattr(m, "has_u8string"):
         with capture:
             m.string_view8_print("Hi, ascii")
-            m.string_view8_print("Hi, utf8 🎂")
-        assert capture == """
+            m.string_view8_print(u"Hi, utf8 🎂")
+        assert capture == u"""
             Hi, ascii 9
             Hi, utf8 🎂 13
         """
