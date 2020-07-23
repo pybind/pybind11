@@ -123,4 +123,9 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     py::class_<KWClass>(m, "KWClass")
         .def("foo0", &KWClass::foo)
         .def("foo1", &KWClass::foo, "x"_a, "y"_a);
+
+    // Make sure a class (not an instance) can be used as a default argument.
+    // The return value doesn't matter, only that the module is importable.
+    m.def("class_default_argument", [](py::object a) { return py::repr(a); },
+        "a"_a = py::module::import("decimal").attr("Decimal"));
 }
