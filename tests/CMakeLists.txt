@@ -57,6 +57,7 @@ set(PYBIND11_TEST_FILES
   test_operator_overloading.cpp
   test_pickling.cpp
   test_pytypes.cpp
+  test_scipy_csr_matrix.cpp
   test_sequences_and_iterators.cpp
   test_smart_ptr.cpp
   test_stl.cpp
