@@ -50,6 +50,12 @@ public:
     IncType &operator=(IncType &&) = delete;
 };
 
+/// A simple union for basic testing
+union IntFloat {
+    int i;
+    float f;
+};
+
 /// Custom cast-only type that casts to a string "rvalue" or "lvalue" depending on the cast context.
 /// Used to test recursive casters (e.g. std::tuple, stl containers).
 struct RValueCaster {};

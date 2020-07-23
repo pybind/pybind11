@@ -609,8 +609,9 @@ template <typename Base, typename Derived> using is_strict_base_of = bool_consta
 
 /// Like is_base_of, but also requires that the base type is accessible (i.e. that a Derived pointer
 /// can be converted to a Base pointer)
+/// For unions, `is_base_of<T, T>::value` is False, so we need to check `is_same` as well.
 template <typename Base, typename Derived> using is_accessible_base_of = bool_constant<
-    std::is_base_of<Base, Derived>::value && std::is_convertible<Derived *, Base *>::value>;
+    (std::is_same<Base, Derived>::value || std::is_base_of<Base, Derived>::value) && std::is_convertible<Derived *, Base *>::value>;
 
 template <template<typename...> class Base>
 struct is_template_base_of_impl {

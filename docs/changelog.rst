@@ -96,7 +96,10 @@ Smaller or developer focused features:
 * Debug Python interpreter support.
   `#2025 <https://github.com/pybind/pybind11/pull/2025>`_
 
-
+* `py::class_<union_type>` is now supported. Note that writing to one data
+  member of the union and reading another (type punning) is UB in C++. Thus
+  pybind11-bound enums should never be used for such conversion.
+  `#2320 <https://github.com/pybind/pybind11/pull/2320>`_.
 
 v2.5.0 (Mar 31, 2020)
 -----------------------------------------------------
