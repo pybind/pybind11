@@ -81,7 +81,7 @@ buffer objects (e.g. a NumPy matrix).
     constexpr bool rowMajor = Matrix::Flags & Eigen::RowMajorBit;
 
     py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
-        .def("__init__", [](Matrix &m, py::buffer b) {
+        .def("__init__", [](py::buffer b) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 
             /* Request a buffer descriptor from Python */
@@ -101,7 +101,7 @@ buffer objects (e.g. a NumPy matrix).
             auto map = Eigen::Map<Matrix, 0, Strides>(
                 static_cast<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
 
-            new (&m) Matrix(map);
+            return Matrix(m);
         });
 
 For reference, the ``def_buffer()`` call for this Eigen data type should look
