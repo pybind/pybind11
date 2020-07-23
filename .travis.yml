@@ -1,4 +1,11 @@
 language: cpp
+
+branches:
+  only:
+  - master
+  - stable
+  - /^v\d/
+
 matrix:
   include:
   # This config does a few things:
@@ -33,6 +40,7 @@ matrix:
       # Barebones build
       cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
       make pytest -j 2 && make cpptest -j 2
+
   # The following are regular test configurations, including optional dependencies.
   # With regard to each other they differ in Python version, C++ standard and compiler.
   - os: linux
