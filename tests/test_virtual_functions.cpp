@@ -130,6 +130,8 @@ private:
 class NCVirt {
 public:
     virtual ~NCVirt() { }
+    NCVirt() = default;
+    NCVirt(const NCVirt&) = delete;
     virtual NonCopyable get_noncopyable(int a, int b) { return NonCopyable(a, b); }
     virtual Movable get_movable(int a, int b) = 0;
 
@@ -151,6 +153,8 @@ struct Base {
     /* for some reason MSVC2015 can't compile this if the function is pure virtual */
     virtual std::string dispatch() const { return {}; };
     virtual ~Base() = default;
+    Base() = default;
+    Base(const Base&) = delete;
 };
 
 struct DispatchIssue : Base {
@@ -221,12 +225,15 @@ TEST_SUBMODULE(virtual_functions, m) {
     // don't invoke Python dispatch classes by default when instantiating C++ classes
     // that were not extended on the Python side
     struct A {
+        A() = default;
+        A(const A&) = delete;
         virtual ~A() {}
         virtual void f() { py::print("A.f()"); }
     };
 
     struct PyA : A {
         PyA() { py::print("PyA.PyA()"); }
+        PyA(const PyA&) = delete;
         ~PyA() { py::print("PyA.~PyA()"); }
 
         void f() override {
@@ -246,12 +253,15 @@ TEST_SUBMODULE(virtual_functions, m) {
     // test_alias_delay_initialization2
     // ... unless we explicitly request it, as in this example:
     struct A2 {
+        A2() = default;
+        A2(const A2&) = delete;
         virtual ~A2() {}
         virtual void f() { py::print("A2.f()"); }
     };
 
     struct PyA2 : A2 {
         PyA2() { py::print("PyA2.PyA2()"); }
+        PyA2(const PyA2&) = delete;
         ~PyA2() { py::print("PyA2.~PyA2()"); }
         void f() override {
             py::print("PyA2.f()");
@@ -282,6 +292,8 @@ TEST_SUBMODULE(virtual_functions, m) {
         std::string v;
         A a;
         explicit OverrideTest(const std::string &v) : v{v} {}
+        OverrideTest() = default;
+        OverrideTest(const OverrideTest&) = delete;
         virtual std::string str_value() { return v; }
         virtual std::string &str_ref() { return v; }
         virtual A A_value() { return a; }
@@ -339,6 +351,8 @@ public: \
         return say_something(1) + " " + std::to_string(unlucky_number()); \
     }
 A_METHODS
+    A_Repeat() = default;
+    A_Repeat(const A_Repeat&) = delete;
     virtual ~A_Repeat() = default;
 };
 class B_Repeat : public A_Repeat {
@@ -364,7 +378,12 @@ D_METHODS
 };
 
 // Base classes for templated inheritance trampolines.  Identical to the repeat-everything version:
-class A_Tpl { A_METHODS; virtual ~A_Tpl() = default; };
+class A_Tpl {
+    A_METHODS;
+    A_Tpl() = default;
+    A_Tpl(const A_Tpl&) = delete;
+    virtual ~A_Tpl() = default;
+};
 class B_Tpl : public A_Tpl { B_METHODS };
 class C_Tpl : public B_Tpl { C_METHODS };
 class D_Tpl : public C_Tpl { D_METHODS };

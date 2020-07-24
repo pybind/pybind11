@@ -289,6 +289,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     class DynamicClass {
     public:
         DynamicClass() { print_default_created(this); }
+        DynamicClass(const DynamicClass&) = delete;
         ~DynamicClass() { print_destroyed(this); }
     };
     py::class_<DynamicClass>(m, "DynamicClass", py::dynamic_attr())

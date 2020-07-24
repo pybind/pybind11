@@ -46,6 +46,7 @@ TEST_SUBMODULE(call_policies, m) {
     class Parent {
     public:
         Parent() { py::print("Allocating parent."); }
+        Parent(const Parent& parent) = default;
         ~Parent() { py::print("Releasing parent."); }
         void addChild(Child *) { }
         Child *returnChild() { return new Child(); }
