@@ -550,7 +550,7 @@ public:
         forcecast = detail::npy_api::NPY_ARRAY_FORCECAST_
     };
 
-    array() : array({{0}}, static_cast<const double *>(nullptr)) {}
+    array() : array(0, static_cast<const double *>(nullptr)) {}
 
     using ShapeContainer = detail::any_container<ssize_t>;
     using StridesContainer = detail::any_container<ssize_t>;
