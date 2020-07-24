@@ -224,6 +224,14 @@ function(pybind11_add_module target_name)
     endif()
   endif()
 
+  # Python 2 doesn't really support C++17, Clang warns/errors over it
+  if(CMAKE_CXX_STANDARD
+     AND CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+     AND PYTHON_VERSION VERSION_LESS 3.0
+     AND NOT CMAKE_CXX_STANDARD LESS 17)
+       target_compile_options(${target_name} PUBLIC -Wno-register)
+  endif()
+
   if(ARG_NO_EXTRAS)
     return()
   endif()
