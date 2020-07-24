@@ -38,7 +38,7 @@ function(_download_catch version destination_dir)
 endfunction()
 
 # Look for catch locally
-find_path(CATCH_INCLUDE_DIR NAMES catch.hpp PATH_SUFFIXES catch)
+find_path(CATCH_INCLUDE_DIR NAMES catch.hpp PATH_SUFFIXES catch2)
 if(CATCH_INCLUDE_DIR)
   _get_catch_version()
 endif()
