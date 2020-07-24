@@ -43,3 +43,13 @@ endforeach()
 add_dependencies(cpptest external_module)
 
 add_dependencies(check cpptest)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND PYTHON_VERSION VERSION_LESS 3.0)
+  if(CMAKE_CXX_STANDARD LESS 17)
+    target_compile_options(test_embed PUBLIC -Wno-deprecated-register)
+    target_compile_options(external_module PUBLIC -Wno-deprecated-register)
+  else()
+    target_compile_options(test_embed PUBLIC -Wno-register)
+    target_compile_options(external_module PUBLIC -Wno-register)
+  endif()
+endif()

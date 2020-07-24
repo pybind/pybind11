@@ -20,3 +20,11 @@ set_target_properties(test_cmake_build PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
 
 add_custom_target(check ${CMAKE_COMMAND} -E env PYTHONPATH=$<TARGET_FILE_DIR:test_cmake_build>
                   ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/../test.py ${PROJECT_NAME})
+
+if(CMAKE_CXX_STANDARD AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND PYTHON_VERSION VERSION_LESS 3.0)
+  if(CMAKE_CXX_STANDARD LESS 17)
+    target_compile_options(test_cmake_build PUBLIC -Wno-deprecated-register)
+  else()
+    target_compile_options(test_cmake_build PUBLIC -Wno-register)
+  endif()
+endif()
