@@ -2180,7 +2180,8 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
     return tinfo ? get_type_overload(this_ptr, tinfo, name) : function();
 }
 
-#define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) { \
+#define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) \
+    do { \
         pybind11::gil_scoped_acquire gil; \
         pybind11::function overload = pybind11::get_overload(static_cast<const cname *>(this), name); \
         if (overload) { \
@@ -2191,7 +2192,7 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
             } \
             else return pybind11::detail::cast_safe<ret_type>(std::move(o)); \
         } \
-    }
+    } while (false)
 
 /** \rst
     Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
@@ -2211,16 +2212,20 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
       }
 \endrst */
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
-    PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
-    return cname::fn(__VA_ARGS__)
+    do { \
+        PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
+        return cname::fn(__VA_ARGS__); \
+    } while (false)
 
 /** \rst
     Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD_NAME`, except that it
     throws if no overload can be found.
 \endrst */
 #define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
-    PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
-    pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\"");
+    do { \
+        PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
+        pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\""); \
+    } while (false)
 
 /** \rst
     Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
