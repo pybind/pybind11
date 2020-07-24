@@ -191,3 +191,5 @@ def test_args_refcount():
     # tuple without having to inc_ref the individual elements, but here we can't, hence the extra
     # refs.
     assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)
+
+    assert m.class_default_argument() == "<class 'decimal.Decimal'>"
