@@ -370,7 +370,7 @@ bool isinstance(handle obj) { return T::check_(obj); }
 template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) { return detail::isinstance_generic(obj, typeid(T)); }
 
-template <> inline bool isinstance<handle>(handle obj) = delete;
+template <> inline bool isinstance<handle>(handle) = delete;
 template <> inline bool isinstance<object>(handle obj) { return obj.ptr() != nullptr; }
 
 /// \ingroup python_builtins
