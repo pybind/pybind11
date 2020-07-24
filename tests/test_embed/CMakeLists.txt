@@ -4,7 +4,7 @@ if(${PYTHON_MODULE_EXTENSION} MATCHES "pypy")
   return()
 endif()
 
-find_package(Catch 1.9.3)
+find_package(Catch 2.13.0)
 if(CATCH_FOUND)
   message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
 else()
