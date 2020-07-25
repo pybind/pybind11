@@ -6,11 +6,26 @@ from pybind11_tests import UserType
 from pybind11_tests import ConstructorStats
 
 
+def test_integral_constant(doc):
+    """std::integral_constant<integer,value> <-> int(value)"""
+    int_0 = m.cast_integral_constant_int_0()
+    assert int_0 == int(0)
+    assert m.load_integral_constant_int_0(int(0))
+    pytest.raises(TypeError, m.load_integral_constant_int_0, 'foo')
+    pytest.raises(TypeError, m.load_integral_constant_int_0, 1)
+
+    size_t_5 = m.cast_integral_constant_size_t_5()
+    assert size_t_5 == int(5)
+    pytest.raises(TypeError, m.load_integral_constant_size_t_5, 'foo')
+    pytest.raises(TypeError, m.load_integral_constant_size_t_5, 1)
+
+
 def test_vector(doc):
     """std::vector <-> list"""
     lst = m.cast_vector()
     assert lst == [1]
     lst.append(2)
+
     assert m.load_vector(lst)
     assert m.load_vector(tuple(lst))
 

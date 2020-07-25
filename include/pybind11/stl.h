@@ -18,6 +18,7 @@
 #include <list>
 #include <deque>
 #include <valarray>
+#include <type_traits>
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -50,6 +51,21 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+template<typename Integral,Integral constant>
+struct type_caster<std::integral_constant<Integral,constant>>{
+    using IntegralConstant = std::integral_constant<Integral,constant>;
+
+    bool load(handle source, bool convert) const {
+        auto caster = make_caster<Integral>();
+        return caster.load(source,convert) && cast_op<Integral>(caster) == constant;
+    }
+    static handle cast(const IntegralConstant &source,return_value_policy policy,handle parent) {
+        return make_caster<Integral>::cast(source(),policy,parent);
+    }
+
+    PYBIND11_TYPE_CASTER(IntegralConstant,_("Constant[") + make_caster<Integral>::name + _("(") + _<constant>() + _(")]"));
+};
 
 /// Extracts an const lvalue reference or rvalue reference for U based on the type of T (e.g. for
 /// forwarding a container element).  Typically used indirect via forwarded_type(), below.

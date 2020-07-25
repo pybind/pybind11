@@ -62,6 +62,13 @@ struct OptionalHolder
 
 
 TEST_SUBMODULE(stl, m) {
+
+    // test_integral_constant
+    m.def("cast_integral_constant_int_0", []() { return std::integral_constant<int,0>{}; });
+    m.def("load_integral_constant_int_0", [](std::integral_constant<int,0>) { return true; });
+    m.def("cast_integral_constant_size_t_5", []() { return std::integral_constant<std::size_t,5>{}; });
+    m.def("load_integral_constant_size_t_5", [](std::integral_constant<std::size_t,5>) { return true; });
+
     // test_vector
     m.def("cast_vector", []() { return std::vector<int>{1}; });
     m.def("load_vector", [](const std::vector<int> &v) { return v.at(0) == 1 && v.at(1) == 2; });

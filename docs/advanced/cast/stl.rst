@@ -5,9 +5,10 @@ Automatic conversion
 ====================
 
 When including the additional header file :file:`pybind11/stl.h`, conversions
-between ``std::vector<>``/``std::deque<>``/``std::list<>``/``std::array<>``,
-``std::set<>``/``std::unordered_set<>``, and
-``std::map<>``/``std::unordered_map<>`` and the Python ``list``, ``set`` and
+between ``std::integral_constant<>``,
+``std::vector<>``/``std::deque<>``/``std::list<>``/``std::array<>``,
+``std::set<>``/``std::unordered_set<>``, and ``std::map<>``/``std::unordered_map<>``
+and the Python ``int`` data type, and the ``list``, ``set`` and
 ``dict`` data structures are automatically enabled. The types ``std::pair<>``
 and ``std::tuple<>`` are already supported out of the box with just the core
 :file:`pybind11/pybind11.h` header.
