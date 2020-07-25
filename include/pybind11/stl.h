@@ -60,8 +60,8 @@ struct type_caster<std::integral_constant<Integral,constant>>{
         auto caster = make_caster<Integral>();
         return caster.load(source,convert) && cast_op<Integral>(caster) == constant;
     }
-    static handle cast(const IntegralConstant &source,return_value_policy policy,handle parent) {
-        return make_caster<Integral>::cast(source(),policy,parent);
+    static handle cast(const IntegralConstant &,return_value_policy policy,handle parent) {
+        return make_caster<Integral>::cast(IntegralConstant::value,policy,parent);
     }
 
     PYBIND11_TYPE_CASTER(IntegralConstant,_("Constant[") + make_caster<Integral>::name + _("(") + _<constant>() + _(")]"));
