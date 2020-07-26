@@ -6,7 +6,6 @@
 [![Documentation Status](https://readthedocs.org/projects/pybind11/badge/?version=stable)](http://pybind11.readthedocs.org/en/stable/?badge=stable)
 [![Gitter chat](https://img.shields.io/gitter/room/gitterHQ/gitter.svg)](https://gitter.im/pybind/Lobby)
 [![CI](https://github.com/pybind/pybind11/workflows/CI/badge.svg)](https://github.com/pybind/pybind11/actions)
-[![Build Status](https://travis-ci.org/pybind/pybind11.svg?branch=master)](https://travis-ci.org/pybind/pybind11)
 [![Build status](https://ci.appveyor.com/api/projects/status/riaj54pn4h08xy40?svg=true)](https://ci.appveyor.com/project/wjakob/pybind11)
 
 **pybind11** is a lightweight header-only library that exposes C++ types in Python
