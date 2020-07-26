@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu, windows, macos]
+        runs-on: [ubuntu-latest, windows-latest, macos-latest]
         python:
         - 2.7
         - 3.5
@@ -24,30 +24,32 @@ jobs:
         - pypy3
 
         include:
-          - os: ubuntu
+          - runs-on: ubuntu-latest
             python: 3.6
-          - os: macos
+          - runs-on: macos-latest
+            python: 3.7
+          - runs-on: windows-2016
             python: 3.7
 
         exclude:
             # Currently 32bit only, and we build 64bit
-          - os: windows
+          - runs-on: windows-latest
             python: pypy2
-          - os: windows
+          - runs-on: windows-latest
             python: pypy3
 
             # Currently can't build due to warning, fixed in CPython > 3.9b5
-          - os: macos
+          - runs-on: macos-latest
             python: 3.9-dev
 
             # Currently broken on embed_test
-          - os: windows
+          - runs-on: windows-latest
             python: 3.8
-          - os: windows
+          - runs-on: windows-latest
             python: 3.9-dev
 
-    name: 🐍 ${{ matrix.python }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }}"
+    runs-on: ${{ matrix.runs-on }}
 
     steps:
     - uses: actions/checkout@v2
@@ -132,7 +134,7 @@ jobs:
           - 9
           - dev
 
-    name: Clang ${{ matrix.clang }}
+    name: "🐍 3 • Clang ${{ matrix.clang }}"
     container: "silkeh/clang:${{ matrix.clang }}"
 
     steps:
@@ -171,7 +173,7 @@ jobs:
           - 7
           - latest
 
-    name: 🐍 3 GCC ${{ matrix.gcc }}
+    name: "🐍 3 • GCC ${{ matrix.gcc }}"
     container: "gcc:${{ matrix.gcc }}"
 
     steps:
@@ -258,7 +260,7 @@ jobs:
       run: cmake --build build --target test_cmake_build
 
   install-classic:
-    name: "🐍 3.5 32-bit Linux install"
+    name: "🐍 3.5 • 32-bit Linux • Install"
     runs-on: ubuntu-latest
     container: i386/debian:stretch
 
@@ -292,7 +294,7 @@ jobs:
 
 
   doxygen:
-    name: Docs test
+    name: "Documentation build test"
     runs-on: ubuntu-latest
     container: alpine:3.12
 
