@@ -15,6 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x64]
+        max-cxx-std: [17]
         python:
         - 2.7
         - 3.5
@@ -26,29 +28,45 @@ jobs:
         include:
           - runs-on: ubuntu-latest
             python: 3.6
+            arch: x64
+            max-cxx-std: 17
           - runs-on: macos-latest
             python: 3.7
+            arch: x64
+            max-cxx-std: 17
           - runs-on: windows-2016
             python: 3.7
+            arch: x86
+            max-cxx-std: 14
 
         exclude:
             # Currently 32bit only, and we build 64bit
           - runs-on: windows-latest
             python: pypy2
+            arch: x64
+            max-cxx-std: 17
           - runs-on: windows-latest
             python: pypy3
+            arch: x64
+            max-cxx-std: 17
 
             # Currently can't build due to warning, fixed in CPython > 3.9b5
           - runs-on: macos-latest
             python: 3.9-dev
+            arch: x64
+            max-cxx-std: 17
 
             # Currently broken on embed_test
           - runs-on: windows-latest
             python: 3.8
+            arch: x64
+            max-cxx-std: 17
           - runs-on: windows-latest
             python: 3.9-dev
+            arch: x64
+            max-cxx-std: 17
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }}"
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }}"
     runs-on: ${{ matrix.runs-on }}
 
     steps:
@@ -58,6 +76,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
+        architecture: ${{ matrix.arch }}
 
     - name: Cache wheels
       if: startsWith(runner.os, 'macOS')
@@ -98,27 +117,27 @@ jobs:
     - name: Interface test C++11
       run: cmake --build build --target test_cmake_build
 
-    - name: Configure C++17
+    - name: Configure C++${{ matrix.max-cxx-std }}
       shell: bash
       run: >
-        cmake -S . -B build17
+        cmake -S . -B build2
         -DPYBIND17_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_STANDARD=${{ matrix.max-cxx-std }}
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
 
-    - name: Build C++17
-      run: cmake --build build17 -j 2
+    - name: Build C++${{ matrix.max-cxx-std }}
+      run: cmake --build build2 -j 2
 
-    - name: Python tests C++17
-      run: cmake --build build17 --target pytest
+    - name: Python tests C++${{ matrix.max-cxx-std }}
+      run: cmake --build build2 --target pytest
 
-    - name: C++17 tests
-      run: cmake --build build17 --target cpptest
+    - name: C++${{ matrix.max-cxx-std }} tests
+      run: cmake --build build2 --target cpptest
 
-    - name: Interface test C++17
-      run: cmake --build build17 --target test_cmake_build
+    - name: Interface test C++${{ matrix.max-cxx-std }}
+      run: cmake --build build2 --target test_cmake_build
 
   clang:
     runs-on: ubuntu-latest
@@ -134,7 +153,7 @@ jobs:
           - 9
           - dev
 
-    name: "🐍 3 • Clang ${{ matrix.clang }}"
+    name: "🐍 3 • Clang ${{ matrix.clang }} • x64"
     container: "silkeh/clang:${{ matrix.clang }}"
 
     steps:
@@ -173,7 +192,7 @@ jobs:
           - 7
           - latest
 
-    name: "🐍 3 • GCC ${{ matrix.gcc }}"
+    name: "🐍 3 • GCC ${{ matrix.gcc }} • x64"
     container: "gcc:${{ matrix.gcc }}"
 
     steps:
@@ -221,7 +240,7 @@ jobs:
           - 7  # GCC 4.8
           - 8
 
-    name: "🐍 3 • CentOS ${{ matrix.centos }}"
+    name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
     container: "centos:${{ matrix.centos }}"
 
     steps:
@@ -260,7 +279,7 @@ jobs:
       run: cmake --build build --target test_cmake_build
 
   install-classic:
-    name: "🐍 3.5 • 32-bit Linux • Install"
+    name: "🐍 3.5 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
     container: i386/debian:stretch
 
