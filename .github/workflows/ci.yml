@@ -126,7 +126,6 @@ jobs:
         clang:
           - 3.6
           - 3.7
-          - 3.8
           - 3.9
           - 5
           - 7
@@ -149,6 +148,101 @@ jobs:
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
+
+  gcc:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc:
+          - 7
+          - latest
+
+    name: 🐍 3 GCC ${{ matrix.gcc }}
+    container: "gcc:${{ matrix.gcc }}"
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Add Python 3
+      run: apt-get update; apt-get install -y python3-dev python3-numpy python3-pytest python3-pip libeigen3-dev
+
+    - name: Update pip
+      run: python3 -m pip install --upgrade pip
+
+    - name: Setup CMake 3.18
+      uses: jwlawson/actions-setup-cmake@v1.3
+      with:
+        cmake-version: 3.18
+
+    - name: Configure
+      shell: bash
+      run: >
+        cmake --version &&
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DCMAKE_CXX_STANDARD=11
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
+
+  centos:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        centos:
+          - 7  # GCC 4.8
+          - 8
+
+    name: "🐍 3 • CentOS ${{ matrix.centos }}"
+    container: "centos:${{ matrix.centos }}"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add Python 3
+      run: yum update -y && yum install -y python3-devel gcc-c++ make git
+
+    - name: Update pip
+      run: python3 -m pip install --upgrade pip
+
+    - name: Install dependencies
+      run: python3 -m pip install cmake -r tests/requirements.txt
+
+    - name: Configure
+      shell: bash
+      run: >
+        cmake --version &&
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=11
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
