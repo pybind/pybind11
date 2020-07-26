@@ -46,7 +46,7 @@ jobs:
           - os: windows
             python: 3.9-dev
 
-    name: Python ${{ matrix.python }} on ${{ matrix.os }}
+    name: 🐍 ${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
 
     steps:
@@ -256,3 +256,36 @@ jobs:
 
     - name: Interface test
       run: cmake --build build --target test_cmake_build
+
+  install-classic:
+    name: "🐍 3.5 32-bit Linux install"
+    runs-on: ubuntu-latest
+    container: i386/debian:stretch
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install requirements
+      run: |
+        apt-get update
+        apt-get install -y git make cmake g++ libeigen3-dev python3-dev python3-pip python3-pytest
+
+    - name: Configure for install
+      run: cmake -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") -DPYBIND11_INSTALL=1 -DPYBIND11_TEST=0 .
+
+    - name: Make and install
+      run: make install
+
+    - name: Copy tests to new directory
+      run: cp -a tests /pybind11-tests
+
+    - name: Make a new test directory
+      run: mkdir /build-tests
+
+    - name: Configure tests
+      run: cmake -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") ../pybind11-tests -DPYBIND11_WERROR=ON
+      working-directory: /build-tests
+
+    - name: Run tests
+      run: make pytest -j 2
+      working-directory: /build-tests
