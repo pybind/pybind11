@@ -40,26 +40,6 @@ matrix:
       # Barebones build
       cmake -DCMAKE_BUILD_TYPE=Debug -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON -DPYTHON_EXECUTABLE=$(which $PY_CMD) .
       make pytest -j 2 && make cpptest -j 2
-
-  # Build in 32-bit mode and tests against the CMake-installed version
-  - os: linux
-    dist: trusty
-    services: docker
-    env: DOCKER=i386/debian:stretch PYTHON=3.5 CPP=14 GCC=6 INSTALL=1
-    name: Python 3.5, c++14, gcc 6, 32-bit
-    script:
-      - |
-        # Consolidated 32-bit Docker Build + Install
-        set -ex
-        $SCRIPT_RUN_PREFIX sh -c "
-          set -ex
-          cmake ${CMAKE_EXTRA_ARGS} -DPYBIND11_INSTALL=1 -DPYBIND11_TEST=0 .
-          make install
-          cp -a tests /pybind11-tests
-          mkdir /build-tests && cd /build-tests
-          cmake ../pybind11-tests ${CMAKE_EXTRA_ARGS} -DPYBIND11_WERROR=ON
-          make pytest -j 2"
-        set +ex
 cache:
   directories:
   - $HOME/.local/bin
@@ -80,90 +60,35 @@ before_install:
 - |
   # Initialize environment
   set -ex
-  if [ -n "$DOCKER" ]; then
-    docker pull $DOCKER
-
-    containerid=$(docker run --detach --tty \
-      --volume="$PWD":/pybind11 --workdir=/pybind11 \
-      --env="CC=$CC" --env="CXX=$CXX" --env="DEBIAN_FRONTEND=$DEBIAN_FRONTEND" \
-      --env=GCC_COLORS=\  \
-      $DOCKER)
-    SCRIPT_RUN_PREFIX="docker exec --tty $containerid"
-    $SCRIPT_RUN_PREFIX sh -c 'for s in 0 15; do sleep $s; apt-get update && apt-get -qy dist-upgrade && break; done'
-  else
-    PY_CMD=python$PYTHON
-    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      if [ "$PY" = "3" ]; then
-        brew update && brew unlink python@2 && (brew upgrade python || brew install python)
-      else
-        curl -fsSL https://bootstrap.pypa.io/get-pip.py | $PY_CMD - --user
-      fi
+  PY_CMD=python$PYTHON
+  if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    if [ "$PY" = "3" ]; then
+      brew update && brew unlink python@2 && (brew upgrade python || brew install python)
+    else
+      curl -fsSL https://bootstrap.pypa.io/get-pip.py | $PY_CMD - --user
     fi
-    if [ "$PY" = 3 ] || [ -n "$PYPY" ]; then
-      $PY_CMD -m ensurepip --user
-    fi
-    $PY_CMD --version
-    $PY_CMD -m pip install --user --upgrade pip wheel
   fi
+  if [ "$PY" = 3 ] || [ -n "$PYPY" ]; then
+    $PY_CMD -m ensurepip --user
+  fi
+  $PY_CMD --version
+  $PY_CMD -m pip install --user --upgrade pip wheel
   set +ex
 install:
 - |
   # Install dependencies
   set -ex
   cmake --version
-  if [ -n "$DOCKER" ]; then
-    if [ -n "$DEBUG" ]; then
-      PY_DEBUG="python$PYTHON-dbg python$PY-scipy-dbg"
-      CMAKE_EXTRA_ARGS+=" -DPYTHON_EXECUTABLE=/usr/bin/python${PYTHON}dm"
-    fi
-    $SCRIPT_RUN_PREFIX sh -c "for s in 0 15; do sleep \$s; \
-      apt-get -qy --no-install-recommends install \
-        $PY_DEBUG python$PYTHON-dev python$PY-pytest python$PY-scipy \
-        libeigen3-dev libboost-dev cmake make ${EXTRA_PACKAGES} && break; done"
-  else
 
-    export NPY_NUM_BUILD_JOBS=2
-    local PIP_CMD=""
-    echo "Installing pytest, numpy, scipy..."
-    $PY_CMD -m pip install --user --upgrade pytest numpy scipy
-    echo "done."
+  export NPY_NUM_BUILD_JOBS=2
+  local PIP_CMD=""
+  echo "Installing pytest, numpy, scipy..."
+  $PY_CMD -m pip install --user --upgrade pytest numpy scipy
+  echo "done."
 
-    mkdir eigen
-    curl -fsSL https://bitbucket.org/eigen/eigen/get/3.3.4.tar.bz2 | \
-        tar --extract -j --directory=eigen --strip-components=1
-    export CMAKE_INCLUDE_PATH="${CMAKE_INCLUDE_PATH:+$CMAKE_INCLUDE_PATH:}$PWD/eigen"
-  fi
-  set +ex
-script:
-- |
-  # CMake Configuration
-  set -ex
-  $SCRIPT_RUN_PREFIX cmake ${CMAKE_EXTRA_ARGS} \
-    -DPYBIND11_PYTHON_VERSION=$PYTHON \
-    -DPYBIND11_CPP_STANDARD=$CPP \
-    -DPYBIND11_WERROR=${WERROR:-ON} \
-    -DDOWNLOAD_CATCH=${DOWNLOAD_CATCH:-ON} \
-    .
-  set +ex
-- |
-  # pytest
-  set -ex
-  $SCRIPT_RUN_PREFIX make pytest -j 2 VERBOSE=1
-  set +ex
-- |
-  # cpptest
-  set -ex
-  $SCRIPT_RUN_PREFIX make cpptest -j 2
-  set +ex
-- |
-  # CMake Build Interface
-  set -ex
-  if [ -n "$CMAKE" ]; then $SCRIPT_RUN_PREFIX make test_cmake_build; fi
+  mkdir eigen
+  curl -fsSL https://bitbucket.org/eigen/eigen/get/3.3.4.tar.bz2 | \
+      tar --extract -j --directory=eigen --strip-components=1
+  export CMAKE_INCLUDE_PATH="${CMAKE_INCLUDE_PATH:+$CMAKE_INCLUDE_PATH:}$PWD/eigen"
   set +ex
 after_failure: cat tests/test_cmake_build/*.log*
-after_script:
-- |
-  # Cleanup (Docker)
-  set -ex
-  if [ -n "$DOCKER" ]; then docker stop "$containerid"; docker rm "$containerid"; fi
-  set +ex
