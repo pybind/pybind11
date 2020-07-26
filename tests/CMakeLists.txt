@@ -97,6 +97,8 @@ set(PYBIND11_CROSS_MODULE_GIL_TESTS
   test_gil_scoped.py
 )
 
+option(DOWNLOAD_EIGEN "Download EIGEN (requires CMake 3.11+)" OFF)
+
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
 # skip message).
@@ -105,18 +107,42 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake).
   # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements, but also
   # produces a fatal error if loaded from a pre-3.0 cmake.
-  if (NOT CMAKE_VERSION VERSION_LESS 3.0)
-    find_package(Eigen3 3.2.7 QUIET CONFIG)
-    if (EIGEN3_FOUND)
-      if (EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1)
-        set(PYBIND11_EIGEN_VIA_TARGET 1)
+  if(DOWNLOAD_EIGEN)
+    if(CMAKE_VERSION VERSION_LESS 3.11)
+      message(FATAL_ERROR "CMake 3.11+ required when using DOWNLOAD_EIGEN")
+    endif()
+
+    set(EIGEN3_VERSION_STRING "3.3.7")
+
+    include(FetchContent)
+    FetchContent_Declare(
+      eigen
+      GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+      GIT_TAG ${EIGEN3_VERSION_STRING}
+    )
+
+    FetchContent_GetProperties(eigen)
+    if(NOT eigen_POPULATED)
+      message(STATUS "Downloading Eigen")
+      FetchContent_Populate(eigen)
+    endif()
+
+    set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
+    set(EIGEN3_FOUND TRUE)
+  else()
+    if (NOT CMAKE_VERSION VERSION_LESS 3.0)
+      find_package(Eigen3 3.2.7 QUIET CONFIG)
+      if (EIGEN3_FOUND)
+        if (EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1)
+          set(PYBIND11_EIGEN_VIA_TARGET TRUE)
+        endif()
       endif()
     endif()
-  endif()
-  if (NOT EIGEN3_FOUND)
-    # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
-    # tools/FindEigen3.cmake
-    find_package(Eigen3 3.2.7 QUIET)
+    if (NOT EIGEN3_FOUND)
+      # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
+      # tools/FindEigen3.cmake
+      find_package(Eigen3 3.2.7 QUIET)
+    endif()
   endif()
 
   if(EIGEN3_FOUND)
@@ -129,7 +155,7 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
   else()
     list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
-    message(STATUS "Building tests WITHOUT Eigen")
+    message(STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN on CMake 3.11+ to download")
   endif()
 endif()
 

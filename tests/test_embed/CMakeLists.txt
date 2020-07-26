@@ -9,7 +9,7 @@ if(CATCH_FOUND)
   message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
 else()
   message(STATUS "Catch not detected. Interpreter tests will be skipped. Install Catch headers"
-                 " manually or use `cmake -DDOWNLOAD_CATCH=1` to fetch them automatically.")
+                 " manually or use `cmake -DDOWNLOAD_CATCH=ON` to fetch them automatically.")
   return()
 endif()
 
