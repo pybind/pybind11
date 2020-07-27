@@ -87,9 +87,7 @@ jobs:
         # for ways to do this more generally
         path: ~/Library/Caches/pip
         # Look to see if there is a cache hit for the corresponding requirements file
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        key: ${{ runner.os }}-pip-${{ matrix.python }}-${{ matrix.arch }}-${{ hashFiles('tests/requirements.txt') }}
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt
