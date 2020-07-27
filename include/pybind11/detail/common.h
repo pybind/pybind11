@@ -445,6 +445,10 @@ struct nonsimple_values_and_holders {
 /// The 'instance' type which needs to be standard layout (need to be able to use 'offsetof')
 struct instance {
     PyObject_HEAD
+    // Necessary to support exceptions.
+    PyObject *dict;
+    PyObject *args;
+    PyObject *message;
     /// Storage for pointers and holder; see simple_layout, below, for a description
     union {
         void *simple_value_holder[1 + instance_simple_holder_in_ptrs()];
