@@ -20,7 +20,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
-inline PyObject *make_object_base_type(PyTypeObject *metaclass);
+inline PyObject *make_object_base_type(PyTypeObject *metaclass, bool is_except);
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
@@ -111,6 +111,7 @@ struct internals {
     PyTypeObject *static_property_type;
     PyTypeObject *default_metaclass;
     PyObject *instance_base;
+    PyObject *exception_base;
 #if defined(WITH_THREAD)
     PYBIND11_TLS_KEY_INIT(tstate);
     PyInterpreterState *istate = nullptr;
@@ -312,7 +313,8 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         internals_ptr->registered_exception_translators.push_front(&translate_exception);
         internals_ptr->static_property_type = make_static_property_type();
         internals_ptr->default_metaclass = make_default_metaclass();
-        internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
+        internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass, false);
+        internals_ptr->exception_base = make_object_base_type(internals_ptr->default_metaclass, true);
     }
     return **internals_pp;
 }
