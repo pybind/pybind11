@@ -248,3 +248,18 @@ def test_local_translator(msg):
         m.throws_local_simple_error()
     assert not isinstance(excinfo.value, cm.LocalSimpleException)
     assert msg(excinfo.value) == "this mod"
+
+
+def test_bound_exceptions():
+    """Tests throwing/catching an exception bound as a class"""
+    try:
+        m.throws_bound_exception()
+    except m.BoundException as ex:
+        assert ex.message == "this error is a class"
+        assert ex.getErrorCode() == 42
+
+    try:
+        raise m.BoundException("raising from python", 14)
+    except m.BoundException as ex:
+        assert ex.message == "raising from python"
+        assert ex.getErrorCode() == 14
