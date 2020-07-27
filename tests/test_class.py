@@ -383,3 +383,9 @@ def test_multiple_instances_with_same_pointer(capture):
     # No assert: if this does not trigger the error
     #   pybind11_fail("pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
     # and just completes without crashing, we're good.
+
+
+# https://github.com/pybind/pybind11/issues/1624
+def test_base_and_derived_nested_scope():
+    assert issubclass(m.DerivedWithNested, m.BaseWithNested)
+    assert m.DerivedWithNested.Nested != m.BaseWithNested.Nested

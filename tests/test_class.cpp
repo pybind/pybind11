@@ -406,6 +406,7 @@ TEST_SUBMODULE(class_, m) {
     struct IsNonFinalFinal {};
     py::class_<IsNonFinalFinal>(m, "IsNonFinalFinal", py::is_final());
 
+    // test_exception_rvalue_abort
     struct PyPrintDestructor {
         PyPrintDestructor() = default;
         ~PyPrintDestructor() {
@@ -417,6 +418,7 @@ TEST_SUBMODULE(class_, m) {
         .def(py::init<>())
         .def("throw_something", &PyPrintDestructor::throw_something);
 
+    // test_multiple_instances_with_same_pointer
     struct SamePointer {};
     static SamePointer samePointer;
     py::class_<SamePointer, std::unique_ptr<SamePointer, py::nodelete>>(m, "SamePointer")
@@ -426,6 +428,20 @@ TEST_SUBMODULE(class_, m) {
     struct Empty {};
     py::class_<Empty>(m, "Empty")
         .def(py::init<>());
+
+    // test_base_and_derived_nested_scope
+    struct BaseWithNested {
+        struct Nested {};
+    };
+
+    struct DerivedWithNested : BaseWithNested {
+        struct Nested {};
+    };
+
+    py::class_<BaseWithNested> baseWithNested_class(m, "BaseWithNested");
+    py::class_<DerivedWithNested, BaseWithNested> derivedWithNested_class(m, "DerivedWithNested");
+    py::class_<BaseWithNested::Nested>(baseWithNested_class, "Nested");
+    py::class_<DerivedWithNested::Nested>(derivedWithNested_class, "Nested");
 }
 
 template <int N> class BreaksBase { public:
