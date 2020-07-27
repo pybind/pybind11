@@ -438,7 +438,7 @@ extern "C" inline void pybind11_object_dealloc(PyObject *self) {
 /** Create the type which can be used as a common base for all classes.  This is
     needed in order to satisfy Python's requirements for multiple inheritance.
     Return value: New reference. */
-inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
+inline PyObject *make_object_base_type(PyTypeObject *metaclass, bool is_except=false) {
     constexpr auto *name = "pybind11_object";
     auto name_obj = reinterpret_steal<object>(PYBIND11_FROM_STRING(name));
 
@@ -457,7 +457,12 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
 
     auto type = &heap_type->ht_type;
     type->tp_name = name;
-    type->tp_base = type_incref(&PyBaseObject_Type);
+    if (is_except) {
+      type->tp_base = type_incref(reinterpret_cast<PyTypeObject*>(PyExc_Exception));
+    }
+    else {
+      type->tp_base = type_incref(&PyBaseObject_Type);
+    }
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
     type->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
 
@@ -474,7 +479,9 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
     setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
-    assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
+    if (!is_except) {
+      assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
+    }
     return (PyObject *) heap_type;
 }
 
@@ -630,8 +637,9 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     auto &internals = get_internals();
     auto bases = tuple(rec.bases);
-    auto base = (bases.empty()) ? internals.instance_base
-                                    : bases[0].ptr();
+    auto base = (bases.empty()) ? (rec.is_except ? internals.exception_base
+                                               : internals.instance_base)
+                                : bases[0].ptr();
 
     /* Danger zone: from now (and until PyType_Ready), make sure to
        issue no Python C API calls which could potentially invoke the
