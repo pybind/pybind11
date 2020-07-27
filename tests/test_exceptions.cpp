@@ -127,7 +127,7 @@ TEST_SUBMODULE(exceptions, m) {
     .def(py::init< std::string, int>())
     .def("getErrorCode", &BoundException::errorCode)
     .def("getMessage", &BoundException::what)
-    .def_property_readonly("message", &BoundException::what);
+    .def("__str__", &BoundException::what);
 
     m.def("throw_std_exception", []() {
         throw std::runtime_error("This exception was intentionally thrown.");

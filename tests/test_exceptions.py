@@ -255,11 +255,11 @@ def test_bound_exceptions():
     try:
         m.throws_bound_exception()
     except m.BoundException as ex:
-        assert ex.message == "this error is a class"
+        assert str(ex) == "this error is a class"
         assert ex.getErrorCode() == 42
 
     try:
         raise m.BoundException("raising from python", 14)
     except m.BoundException as ex:
-        assert ex.message == "raising from python"
+        assert str(ex) == "raising from python"
         assert ex.getErrorCode() == 14
