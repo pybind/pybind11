@@ -250,6 +250,8 @@ def test_tuple(doc):
     assert m.rvalue_nested() == ("rvalue", ("rvalue", ("rvalue", "rvalue")))
     assert m.lvalue_nested() == ("lvalue", ("lvalue", ("lvalue", "lvalue")))
 
+    assert m.int_string_pair() == (2, "items")
+
 
 def test_builtins_cast_return_none():
     """Casters produced with PYBIND11_TYPE_CASTER() should convert nullptr to None"""
@@ -258,6 +260,7 @@ def test_builtins_cast_return_none():
     assert m.return_none_bool() is None
     assert m.return_none_int() is None
     assert m.return_none_float() is None
+    assert m.return_none_pair() is None
 
 
 def test_none_deferred():
