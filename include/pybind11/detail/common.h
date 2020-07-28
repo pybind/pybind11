@@ -9,6 +9,11 @@
 
 #pragma once
 
+#define PYBIND11_VERSION_MAJOR 2
+#define PYBIND11_VERSION_MINOR 6
+#define PYBIND11_VERSION_PATCH 0
+#define PYBIND11_VERSION_TYPE "dev"
+
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
 
@@ -95,10 +100,6 @@
 #else
 #  define PYBIND11_MAYBE_UNUSED __attribute__ ((__unused__))
 #endif
-
-#define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 5
-#define PYBIND11_VERSION_PATCH dev1
 
 /* Don't let Python.h #define (v)snprintf as macro because they are implemented
    properly in Visual Studio since 2015. */

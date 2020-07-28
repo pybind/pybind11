@@ -95,7 +95,6 @@ jobs:
     - name: Configure C++11
       shell: bash
       run: >
-        cmake --version &&
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
@@ -163,7 +162,6 @@ jobs:
     - name: Configure
       shell: bash
       run: >
-        cmake --version &&
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
@@ -210,7 +208,6 @@ jobs:
     - name: Configure
       shell: bash
       run: >
-        cmake --version &&
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
@@ -256,7 +253,6 @@ jobs:
     - name: Configure
       shell: bash
       run: >
-        cmake --version &&
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
