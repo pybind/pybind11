@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.7)
 project(test_subdirectory_embed CXX)
 
 set(PYBIND11_INSTALL ON CACHE BOOL "")
@@ -23,13 +23,3 @@ install(TARGETS test_embed_lib
         RUNTIME DESTINATION lib)
 install(EXPORT      test_export
         DESTINATION lib/cmake/test_export/test_export-Targets.cmake)
-
-if(CMAKE_CXX_STANDARD AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND PYTHON_VERSION VERSION_LESS 3.0)
-  if(CMAKE_CXX_STANDARD LESS 17)
-    target_compile_options(test_embed_lib PUBLIC -Wno-deprecated-register)
-    target_compile_options(test_cmake_build PUBLIC -Wno-deprecated-register)
-  else()
-    target_compile_options(test_embed_lib PUBLIC -Wno-register)
-    target_compile_options(test_cmake_build PUBLIC -Wno-register)
-  endif()
-endif()

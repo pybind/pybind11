@@ -75,7 +75,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 include(pybind11Tools)
 
-if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
 #-----------------------------------------------------------------------------
 # Don't include targets if this file is being picked up by another
 # project which has already built this as a subproject
@@ -85,20 +84,14 @@ if(NOT TARGET ${PN}::pybind11)
 
     find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
     set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIRS})
+    set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIRS})
     set_property(TARGET ${PN}::embed APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
     if(WIN32 OR CYGWIN)
       set_property(TARGET ${PN}::module APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
-    endif()
-
-    if(CMAKE_VERSION VERSION_LESS 3.3)
-      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${PYBIND11_CPP_STANDARD}")
-    else()
-      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
     endif()
 
     get_property(_iid TARGET ${PN}::pybind11 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
     get_property(_ill TARGET ${PN}::module PROPERTY INTERFACE_LINK_LIBRARIES)
     set(${PN}_INCLUDE_DIRS ${_iid})
     set(${PN}_LIBRARIES ${_ico} ${_ill})
-endif()
 endif()

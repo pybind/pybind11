@@ -20,18 +20,12 @@ add_executable(test_embed
 target_include_directories(test_embed PRIVATE "${CATCH_INCLUDE_DIR}")
 pybind11_enable_warnings(test_embed)
 
-if(NOT CMAKE_VERSION VERSION_LESS 3.0)
-  target_link_libraries(test_embed PRIVATE pybind11::embed)
-else()
-  target_include_directories(test_embed PRIVATE "${PYBIND11_INCLUDE_DIR}" "${PYTHON_INCLUDE_DIRS}")
-  target_compile_options(test_embed PRIVATE "${PYBIND11_CPP_STANDARD}")
-  target_link_libraries(test_embed PRIVATE "${PYTHON_LIBRARIES}")
-endif()
+target_link_libraries(test_embed PRIVATE pybind11::embed)
 
 find_package(Threads REQUIRED)
-target_link_libraries(test_embed PUBLIC ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_embed PUBLIC Threads::Threads)
 
-add_custom_target(cpptest COMMAND $<TARGET_FILE:test_embed>
+add_custom_target(cpptest COMMAND "$<TARGET_FILE:test_embed>"
                   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 pybind11_add_module(external_module THIN_LTO external_module.cpp)
@@ -43,13 +37,3 @@ endforeach()
 add_dependencies(cpptest external_module)
 
 add_dependencies(check cpptest)
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND PYTHON_VERSION VERSION_LESS 3.0)
-  if(CMAKE_CXX_STANDARD LESS 17)
-    target_compile_options(test_embed PUBLIC -Wno-deprecated-register)
-    target_compile_options(external_module PUBLIC -Wno-deprecated-register)
-  else()
-    target_compile_options(test_embed PUBLIC -Wno-register)
-    target_compile_options(external_module PUBLIC -Wno-register)
-  endif()
-endif()

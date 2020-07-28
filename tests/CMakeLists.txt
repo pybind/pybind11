@@ -5,16 +5,26 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.7)
+
+# VERSION 3.7...3.18, but some versions of VS have a patched CMake 3.11
+# that do not work properly with this syntax, so using the following workaround:
+if(${CMAKE_VERSION} VERSION_LESS 3.18)
+    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
+else()
+    cmake_policy(VERSION 3.18)
+endif()
+
+# There's no harm in including a project in a project
+project(pybind11_tests CXX)
 
 option(PYBIND11_WERROR  "Report all warnings as errors"  OFF)
+option(DOWNLOAD_EIGEN "Download EIGEN (requires CMake 3.11+)" OFF)
 set(PYBIND11_TEST_OVERRIDE "" CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
 
-if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # We're being loaded directly, i.e. not via add_subdirectory, so make this
     # work as its own project and load the pybind11Config to get the tools we need
-    project(pybind11_tests CXX)
-
     find_package(pybind11 REQUIRED CONFIG)
 endif()
 
@@ -97,8 +107,6 @@ set(PYBIND11_CROSS_MODULE_GIL_TESTS
   test_gil_scoped.py
 )
 
-option(DOWNLOAD_EIGEN "Download EIGEN (requires CMake 3.11+)" OFF)
-
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
 # skip message).
@@ -130,14 +138,13 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
     set(EIGEN3_FOUND TRUE)
   else()
-    if (NOT CMAKE_VERSION VERSION_LESS 3.0)
-      find_package(Eigen3 3.2.7 QUIET CONFIG)
-      if (EIGEN3_FOUND)
-        if (EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1)
-          set(PYBIND11_EIGEN_VIA_TARGET TRUE)
-        endif()
+    find_package(Eigen3 3.2.7 QUIET CONFIG)
+    if (EIGEN3_FOUND)
+      if (EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1)
+        set(PYBIND11_EIGEN_VIA_TARGET TRUE)
       endif()
     endif()
+
     if (NOT EIGEN3_FOUND)
       # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
       # tools/FindEigen3.cmake
@@ -178,6 +185,7 @@ function(pybind11_enable_warnings target_name)
     endif()
   endif()
 
+  # Needs to be readded since the ordering requires these to be after the ones above
   if(CMAKE_CXX_STANDARD AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND PYTHON_VERSION VERSION_LESS 3.0)
     if(CMAKE_CXX_STANDARD LESS 17)
       target_compile_options(${target_name} PUBLIC -Wno-deprecated-register)
@@ -259,15 +267,9 @@ if(NOT PYBIND11_PYTEST_FOUND)
   set(PYBIND11_PYTEST_FOUND TRUE CACHE INTERNAL "")
 endif()
 
-if(CMAKE_VERSION VERSION_LESS 3.2)
-  set(PYBIND11_USES_TERMINAL "")
-else()
-  set(PYBIND11_USES_TERMINAL "USES_TERMINAL")
-endif()
-
 # A single command to compile and run the tests
 add_custom_target(pytest COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_PYTEST_FILES}
-                  DEPENDS ${test_targets} WORKING_DIRECTORY ${testdir} ${PYBIND11_USES_TERMINAL})
+                  DEPENDS ${test_targets} WORKING_DIRECTORY ${testdir} USES_TERMINAL)
 
 if(PYBIND11_TEST_OVERRIDE)
   add_custom_command(TARGET pytest POST_BUILD
@@ -279,14 +281,19 @@ add_custom_target(check DEPENDS pytest)
 
 # The remaining tests only apply when being built as part of the pybind11 project, but not if the
 # tests are being built independently.
-if (NOT PROJECT_NAME STREQUAL "pybind11")
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   return()
 endif()
 
 # Add a post-build comment to show the primary test suite .so size and, if a previous size, compare it:
-add_custom_command(TARGET pybind11_tests POST_BUILD
-  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/libsize.py
-  $<TARGET_FILE:pybind11_tests> ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
+add_custom_command(
+  TARGET
+    pybind11_tests
+  POST_BUILD COMMAND
+    ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tools/libsize.py
+    $<TARGET_FILE:pybind11_tests>
+    ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
 
 # Test embedding the interpreter. Provides the `cpptest` target.
 add_subdirectory(test_embed)

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.7)
 project(test_installed_module CXX)
 
 set(CMAKE_MODULE_PATH "")
