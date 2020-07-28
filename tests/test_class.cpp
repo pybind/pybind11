@@ -440,8 +440,10 @@ TEST_SUBMODULE(class_, m) {
 
     py::class_<BaseWithNested> baseWithNested_class(m, "BaseWithNested");
     py::class_<DerivedWithNested, BaseWithNested> derivedWithNested_class(m, "DerivedWithNested");
-    py::class_<BaseWithNested::Nested>(baseWithNested_class, "Nested");
-    py::class_<DerivedWithNested::Nested>(derivedWithNested_class, "Nested");
+    py::class_<BaseWithNested::Nested>(baseWithNested_class, "Nested")
+        .def_static("get_name", []() { return "BaseWithNested::Nested"; });
+    py::class_<DerivedWithNested::Nested>(derivedWithNested_class, "Nested")
+        .def_static("get_name", []() { return "DerivedWithNested::Nested"; });
 }
 
 template <int N> class BreaksBase { public:
