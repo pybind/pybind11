@@ -217,7 +217,7 @@ endforeach()
 set(testdir ${CMAKE_CURRENT_SOURCE_DIR})
 foreach(target ${test_targets})
   set(test_files ${PYBIND11_TEST_FILES})
-  if(NOT target STREQUAL "pybind11_tests")
+  if(NOT "${target}" STREQUAL "pybind11_tests")
     set(test_files "")
   endif()
 
