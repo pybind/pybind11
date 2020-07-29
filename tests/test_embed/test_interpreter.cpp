@@ -22,6 +22,7 @@ public:
 
     std::string the_message() const { return message; }
     virtual int the_answer() const = 0;
+    virtual std::string argv0() const = 0;
 
 private:
     std::string message;
@@ -31,6 +32,7 @@ class PyWidget final : public Widget {
     using Widget::Widget;
 
     int the_answer() const override { PYBIND11_OVERLOAD_PURE(int, Widget, the_answer); }
+    std::string argv0() const override { PYBIND11_OVERLOAD_PURE(std::string, Widget, argv0); }
 };
 
 PYBIND11_EMBEDDED_MODULE(widget_module, m) {
@@ -281,4 +283,26 @@ TEST_CASE("Reload module from file") {
     module.reload();
     result = module.attr("test")().cast<int>();
     REQUIRE(result == 2);
+}
+
+TEST_CASE("sys.argv gets initialized properly") {
+    py::finalize_interpreter();
+    {
+        py::scoped_interpreter default_scope;
+        auto module = py::module::import("test_interpreter");
+        auto py_widget = module.attr("DerivedWidget")("The question");
+        const auto &cpp_widget = py_widget.cast<const Widget &>();
+        REQUIRE(cpp_widget.argv0() == "");
+    }
+
+    {
+        char* argv[] = { strdup("a.out") };
+        py::scoped_interpreter argv_scope(true, 1, argv);
+        free(argv[0]);
+        auto module = py::module::import("test_interpreter");
+        auto py_widget = module.attr("DerivedWidget")("The question");
+        const auto &cpp_widget = py_widget.cast<const Widget &>();
+        REQUIRE(cpp_widget.argv0() == "a.out");
+    }
+    py::initialize_interpreter();
 }

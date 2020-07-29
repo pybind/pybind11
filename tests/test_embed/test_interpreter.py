@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from widget_module import Widget
+import sys
 
 
 class DerivedWidget(Widget):
@@ -8,3 +9,6 @@ class DerivedWidget(Widget):
 
     def the_answer(self):
         return 42
+
+    def argv0(self):
+        return sys.argv[0]
