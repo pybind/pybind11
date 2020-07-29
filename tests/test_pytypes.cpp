@@ -197,6 +197,7 @@ TEST_SUBMODULE(pytypes, m) {
     // test_constructors
     m.def("default_constructors", []() {
         return py::dict(
+            "bytes"_a=py::bytes(),
             "str"_a=py::str(),
             "bool"_a=py::bool_(),
             "int"_a=py::int_(),
@@ -210,6 +211,7 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("converting_constructors", [](py::dict d) {
         return py::dict(
+            "bytes"_a=py::bytes(d["bytes"]),
             "str"_a=py::str(d["str"]),
             "bool"_a=py::bool_(d["bool"]),
             "int"_a=py::int_(d["int"]),
@@ -225,6 +227,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("cast_functions", [](py::dict d) {
         // When converting between Python types, obj.cast<T>() should be the same as T(obj)
         return py::dict(
+            "bytes"_a=d["bytes"].cast<py::bytes>(),
             "str"_a=d["str"].cast<py::str>(),
             "bool"_a=d["bool"].cast<py::bool_>(),
             "int"_a=d["int"].cast<py::int_>(),
