@@ -103,9 +103,9 @@ standard explicitly with
 
 .. code-block:: cmake
 
-    # Use just one of these:
-    set(CMAKE_CXX_STANDARD 14)
-    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD 14)  # or 11, 14, 17, 20
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)  # optional, ensure standard is supported
+    set(CMAKE_CXX_EXTENSIONS OFF)  # optional, keep compiler extensionsn off
 
 
 The variables can also be set when calling CMake from the command line using
@@ -120,7 +120,11 @@ For example:
 .. code-block:: bash
 
     cmake -DPYBIND11_PYTHON_VERSION=3.6 ..
-    # or
+
+    # Another method:
+    cmake -DPYTHON_EXECUTABLE=/path/to/python ..
+
+    # You will often see this idiom:
     cmake -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") ..
 
 find_package vs. add_subdirectory
@@ -144,11 +148,18 @@ the pybind11 repository  :
 
 .. code-block:: bash
 
+    # Classic CMake
     cd pybind11
     mkdir build
     cd build
     cmake ..
     make install
+
+    # CMake 3.15+
+    cd pybind11
+    cmake -S . -B build
+    cmake --build build -j 2  # Build on 2 cores
+    cmake --install build
 
 Once detected, the aforementioned ``pybind11_add_module`` can be employed as
 before. The function usage and configuration variables are identical no matter
@@ -198,11 +209,11 @@ to an independently constructed (through ``add_library``, not
 
     .. code-block:: cmake
 
-        cmake_minimum_required(3.9)
         set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+        set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)  # CMake 3.9+ required
 
-    or set teh corisponding property (without the ``CMAKE_``) on the targets
+    or set the corresponding property (without the ``CMAKE_``) on the targets
     manually.
 
 Embedding the Python interpreter

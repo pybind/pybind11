@@ -27,15 +27,20 @@ find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 include(CheckCXXCompilerFlag)
 include(CMakeParseArguments)
 
-# Use the language standards abstraction if CMake supports it with the current compiler
+# Warn or error if old variable name used
 if(PYBIND11_CPP_STANDARD)
-    message(WARNING "USE -DCMAKE_CXX_STANDARD=11 instead of PYBIND11_PYTHON_VERSION")
     if(NOT CMAKE_CXX_STANDARD)
         string(REGEX MATCH
             [=[..^]=]
             VAL
             "${PYBIND11_CPP_STANDARD}")
-        set(CMAKE_CXX_STANDARD ${VAL})
+        set(supported_standards 11 14 17 20)
+        if("${VAL}" IN_LIST supported_standards)
+            message(WARNING "USE -DCMAKE_CXX_STANDARD=${VAL} instead of PYBIND11_PYTHON_VERSION")
+            set(CMAKE_CXX_STANDARD ${VAL})
+        else()
+            message(FATAL_ERROR "PYBIND11_CPP_STANDARD should be replaced with CMAKE_CXX_STANDARD")
+        endif()
     endif()
 endif()
 
