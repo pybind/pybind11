@@ -26,6 +26,12 @@ repos:
     additional_dependencies: [flake8-bugbear, pep8-naming]
     exclude: ^(docs/.*|tools/.*)$
 
+- repo: https://github.com/cheshirekow/cmake-format-precommit
+  rev: v0.6.10
+  hooks:
+  - id: cmake-format
+    additional_dependencies: [pyyaml]
+
 - repo: local
   hooks:
   - id: check-style
