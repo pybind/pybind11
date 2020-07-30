@@ -97,7 +97,7 @@ Configuration variables
 -----------------------
 
 By default, pybind11 will compile modules with the compiler default or the
-minimum standard required by PyBind11, whichever is higher.  You can set the
+minimum standard required by pybind11, whichever is higher.  You can set the
 standard explicitly with
 `CMAKE_CXX_STANDARD <https://cmake.org/cmake/help/latest/variable/CMAKE_CXX_STANDARD.html>`_:
 
@@ -124,7 +124,7 @@ For example:
     # Another method:
     cmake -DPYTHON_EXECUTABLE=/path/to/python ..
 
-    # You will often see this idiom:
+    # This often is a good way to get the current Python, works in environments:
     cmake -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") ..
 
 find_package vs. add_subdirectory
