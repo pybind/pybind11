@@ -102,9 +102,10 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
         safe_argv[0][0] = '\0';
         argc = 1;
     }
+    size_t argv_size = static_cast<size_t>(argc);
 #if PY_MAJOR_VERSION >= 3
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
-    std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[static_cast<unsigned>(argc)]);
+    std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[argv_size]);
 #  if PY_MINOR_VERSION >= 5
     // Use of PyMem_RawFree here instead of PyMem_Free is as recommended by the python
     // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
@@ -117,7 +118,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
 #  else
     std::vector< std::unique_ptr<wchar_t[]> > widened_argv_entries;
 #  endif
-    for (int ii = 0; ii < argc; ++ii) {
+    for (size_t ii = 0; ii < argv_size; ++ii) {
 #  if PY_MINOR_VERSION >= 5
         // From Python 3.5 onwards, we're supposed to use Py_DecodeLocale to
         // generate the wchar_t version of argv.
