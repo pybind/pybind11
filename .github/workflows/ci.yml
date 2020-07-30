@@ -106,10 +106,10 @@ jobs:
       run: cmake --build build -j 2
 
     - name: Python tests C++11
-      run: cmake --build build --target pytest -j 2 -v
+      run: cmake --build build --target pytest -j 2
 
     - name: C++11 tests
-      run: cmake --build build --target cpptest -j 2 -v
+      run: cmake --build build --target cpptest -j 2
 
     - name: Interface test C++11
       run: cmake --build build --target test_cmake_build
@@ -125,7 +125,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
 
     - name: Build C++${{ matrix.max-cxx-std }}
-      run: cmake --build build2 -j 2 -v
+      run: cmake --build build2 -j 2
 
     - name: Python tests C++${{ matrix.max-cxx-std }}
       run: cmake --build build2 --target pytest
