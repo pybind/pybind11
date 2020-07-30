@@ -190,7 +190,8 @@ def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [str, bool, int, float, tuple, list, dict, set]
     expected = {t.__name__: t() for t in types}
-    assert m.default_constructors() == expected
+    default_constructed = m.default_constructors()
+    assert default_constructed == expected
 
     data = {
         str: 42,
@@ -218,6 +219,23 @@ def test_constructors():
     noconv2 = m.cast_functions(expected)
     for k in noconv2:
         assert noconv2[k] is expected[k]
+
+    if str is bytes:  # Python 2
+        # pybind11::str passes through bytes unchanged.
+        assert isinstance(default_constructed["str"], unicode)  # NOT str
+        assert isinstance(noconv1["str"], str)  # NOT unicode
+        assert isinstance(noconv2["str"], str)  # NOT unicode
+    else:
+        assert isinstance(default_constructed["str"], str)  # unicode
+        assert isinstance(noconv1["str"], str)  # unicode
+        assert isinstance(noconv2["str"], str)  # unicode
+
+    expected["str"] = b"actual bytes"
+    noconv1b = m.converting_constructors(expected)
+    noconv2b = m.cast_functions(expected)
+    # Even with Python 3, pybind11::str passes through bytes unchanged.
+    assert isinstance(noconv1b["str"], bytes)  # NOT str
+    assert isinstance(noconv2b["str"], bytes)  # NOT str
 
 
 def test_implicit_casting():
