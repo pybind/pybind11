@@ -102,8 +102,8 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
         safe_argv[0][0] = '\0';
         argc = 1;
     }
-    size_t argv_size = static_cast<size_t>(argc);
 #if PY_MAJOR_VERSION >= 3
+    size_t argv_size = static_cast<size_t>(argc);
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
     std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[argv_size]);
 #  if PY_MINOR_VERSION >= 5
