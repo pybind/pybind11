@@ -11,6 +11,8 @@
 
 #include "pybind11.h"
 #include "eval.h"
+#include <memory>
+#include <vector>
 
 #if defined(PYPY_VERSION)
 #  error Embedding the interpreter is not supported with PyPy
@@ -92,26 +94,34 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     // Before it was special-cased in python 3.8, passing an empty or null argv
     // caused a segfault, so we have to reimplement the special case ourselves.
     char** safe_argv = argv;
+    std::unique_ptr<char*[]> argv_guard;
+    std::unique_ptr<char[]> argv_inner_guard;
     if (nullptr == argv || argc <= 0) {
-        safe_argv = new char*[1];
-        if (nullptr == safe_argv) return;
-        safe_argv[0] = new char[1];
-        if (nullptr == safe_argv[0]) {
-            delete[] safe_argv;
-            return;
-        }
+        argv_guard = std::unique_ptr<char*[]>(safe_argv = new char*[1]);
+        argv_inner_guard = std::unique_ptr<char[]>(safe_argv[0] = new char[1]);
         safe_argv[0][0] = '\0';
         argc = 1;
     }
 #if PY_MAJOR_VERSION >= 3
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
-    wchar_t** widened_argv = new wchar_t*[static_cast<unsigned>(argc)];
+    std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[static_cast<unsigned>(argc)]);
+#  if PY_MINOR_VERSION >= 5
+    // Use of PyMem_RawFree here instead of PyMem_Free is as recommended by the python
+    // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
+    struct pymem_rawfree_deleter {
+        void operator()(void* ptr) const {
+            PyMem_RawFree(ptr);
+        }
+    };
+    std::vector< std::unique_ptr<wchar_t[], pymem_rawfree_deleter> > widened_argv_entries;
+#  else
+    std::vector< std::unique_ptr<wchar_t[]> > widened_argv_entries;
+#  endif
     for (int ii = 0; ii < argc; ++ii) {
 #  if PY_MINOR_VERSION >= 5
         // From Python 3.5 onwards, we're supposed to use Py_DecodeLocale to
         // generate the wchar_t version of argv.
         widened_argv[ii] = Py_DecodeLocale(safe_argv[ii], nullptr);
-#    define FREE_WIDENED_ARG(X) PyMem_RawFree(X)
 #  else
         // Before Python 3.5, we're stuck with mbstowcs, which may or may not
         // actually work. Mercifully, pyconfig.h provides this define:
@@ -125,15 +135,12 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
             widened_argv[ii] = new wchar_t[count + 1];
             mbstowcs(widened_argv[ii], safe_argv[ii], count + 1);
         }
-#    define FREE_WIDENED_ARG(X) delete[] X
 #  endif
         if (nullptr == widened_argv[ii]) {
             // Either we ran out of memory or had a unicode encoding issue.
-            // Free what we've encoded so far and bail.
-            for (--ii; ii >= 0; --ii)
-                FREE_WIDENED_ARG(widened_argv[ii]);
             return;
-        }
+        } else
+            widened_argv_entries.emplace_back(widened_argv[ii]);
     }
 
 #  if PY_MINOR_VERSION < 1 || (PY_MINOR_VERSION == 1 && PY_MICRO_VERSION < 3)
@@ -168,12 +175,6 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     if (!add_current_dir_to_path)
         PyRun_SimpleString("import sys; sys.path.pop(0)\n");
 #endif
-
-    // if we allocated new memory to make safe_argv, we need to free it
-    if (safe_argv != argv) {
-        delete[] safe_argv[0];
-        delete[] safe_argv;
-    }
 }
 
 PYBIND11_NAMESPACE_END(detail)
