@@ -11,5 +11,12 @@ target_link_libraries(test_cmake_build PRIVATE pybind11::module)
 set_target_properties(test_cmake_build PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                                   SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-add_custom_target(check ${CMAKE_COMMAND} -E env PYTHONPATH=$<TARGET_FILE_DIR:test_cmake_build>
-                  ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/../test.py ${PROJECT_NAME})
+add_custom_target(
+  check
+  ${CMAKE_COMMAND}
+  -E
+  env
+  PYTHONPATH=$<TARGET_FILE_DIR:test_cmake_build>
+  ${PYTHON_EXECUTABLE}
+  ${PROJECT_SOURCE_DIR}/../test.py
+  ${PROJECT_NAME})
