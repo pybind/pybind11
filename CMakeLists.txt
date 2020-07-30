@@ -176,9 +176,14 @@ endif()
 
 message(STATUS "CXX Compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
 
+# Workaround for Python 2.7 and C++17 (C++14 as a warning) incompatibility
 set(clang_4plus "$<AND:$<CXX_COMPILER_ID:Clang>,$<NOT:$<VERSION_LESS:$<CXX_COMPILER_VERSION>,3.9>>>")
 set(no_register "$<OR:${clang_4plus},$<CXX_COMPILER_ID:AppleClang>>")
-target_compile_options(pybind11 INTERFACE "$<${no_register}:-Wno-register;-Wno-deprecated-register>")
+set(cxx_no_register "$<AND:$<COMPILE_LANGUAGE:CXX>,${no_register}>")
+set(msvc "$<CXX_COMPILER_ID:MSVC>")
+target_compile_options(
+  pybind11 INTERFACE "$<${cxx_no_register}:-Wno-register;-Wno-deprecated-register>"
+                     "$<${msvc}:/wd5033>")
 
 add_library(embed INTERFACE)
 add_library(pybind11::embed ALIAS embed)

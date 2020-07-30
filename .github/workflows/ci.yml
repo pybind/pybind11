@@ -118,14 +118,14 @@ jobs:
       shell: bash
       run: >
         cmake -S . -B build2
-        -DPYBIND17_WERROR=ON
+        -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.max-cxx-std }}
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
 
     - name: Build C++${{ matrix.max-cxx-std }}
-      run: cmake --build build2 -j 2
+      run: cmake --build build2 -j 2 -v
 
     - name: Python tests C++${{ matrix.max-cxx-std }}
       run: cmake --build build2 --target pytest
