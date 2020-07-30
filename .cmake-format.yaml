@@ -67,3 +67,7 @@ format:
   # If true, the parsers may infer whether or not an argument
   # list is sortable (without annotation).
   autosort: false
+
+# Causes a few issues - can be solved later, possibly.
+markup:
+  enable_markup: false
