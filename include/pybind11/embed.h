@@ -138,43 +138,29 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
         }
 #  endif
         if (nullptr == widened_argv[ii]) {
-            // Either we ran out of memory or had a unicode encoding issue.
+            // A null here indicates a character-encoding failure or the python
+            // interpreter out of memory. Give up.
             return;
         } else
             widened_argv_entries.emplace_back(widened_argv[ii]);
     }
 
-#  if PY_MINOR_VERSION < 1 || (PY_MINOR_VERSION == 1 && PY_MICRO_VERSION < 3)
-#    define NEED_PYRUN_TO_SANITIZE_PATH 1
-    // don't have SetArgvEx yet
-    PySys_SetArgv(argc, widened_argv);
-#  else
-    PySys_SetArgvEx(argc, widened_argv, add_current_dir_to_path ? 1 : 0);
-#  endif
-
-    // PySys_SetArgv makes new PyUnicode objects so we can clean up this memory
-    if (nullptr != widened_argv) {
-        for (int ii = 0; ii < argc; ++ii)
-            if (nullptr != widened_argv[ii])
-                FREE_WIDENED_ARG(widened_argv[ii]);
-        delete[] widened_argv;
-    }
-#  undef FREE_WIDENED_ARG
+    auto pysys_argv = widened_argv.get();
 #else
     // python 2.x
-#  if PY_MINOR_VERSION < 6 || (PY_MINOR_VERSION == 6 && PY_MICRO_VERSION < 6)
-#    define NEED_PYRUN_TO_SANITIZE_PATH 1
-    // don't have SetArgvEx yet
-    PySys_SetArgv(argc, safe_argv);
-#  else
-    PySys_SetArgvEx(argc, safe_argv, add_current_dir_to_path ? 1 : 0);
-#  endif
+    auto pysys_argv = safe_argv;
 #endif
 
-#ifdef NEED_PYRUN_TO_SANITIZE_PATH
-#  undef NEED_PYRUN_TO_SANITIZE_PATH
+# if PY_MAJOR_VERSION == 2 && (PY_MINOR_VERSION < 6 || (PY_MINOR_VERSION == 6 && PY_MICRO_VERSION < 6)) || \
+     PY_MAJOR_VERSION == 3 && (PY_MINOR_VERSION < 1 || (PY_MINOR_VERSION == 1 && PY_MICRO_VERSION < 3))
+    // These python versions don't have PySys_SetArgvEx, so we have to use the workaround
+    // recommended by https://docs.python.org/3.5/c-api/init.html#c.PySys_SetArgvEx
+    // to work around CVE-2008-5983
+    PySys_SetArgv(argc, pysys_argv);
     if (!add_current_dir_to_path)
         PyRun_SimpleString("import sys; sys.path.pop(0)\n");
+#else
+    PySys_SetArgvEx(argc, pysys_argv, add_current_dir_to_path ? 1 : 0);
 #endif
 }
 
