@@ -245,13 +245,13 @@ if(PYBIND11_INSTALL)
     EXPORT "${PYBIND11_EXPORT_NAME}"
     NAMESPACE "pybind11::"
     DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
-endif()
 
-# Uninstall target
-if(PYBIND11_MASTER_PROJECT)
-  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
-                 "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
+  # Uninstall target
+  if(PYBIND11_MASTER_PROJECT)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake_uninstall.cmake.in"
+                   "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY)
 
-  add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P
-                                      ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+    add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P
+                                        ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+  endif()
 endif()
