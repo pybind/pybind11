@@ -183,7 +183,7 @@ function(pybind11_add_module target_name)
 
   if(CMAKE_VERSION VERSION_LESS 3.9 OR PYBIND11_CLASSIC_LTO)
     _pybind11_add_lto_flags(${target_name} ${ARG_THIN_LTO})
-  else()
+  elseif(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
     include(CheckIPOSupported)
     check_ipo_supported(RESULT supported OUTPUT error)
     if(supported)
