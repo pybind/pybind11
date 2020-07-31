@@ -782,7 +782,9 @@ PYBIND11_NAMESPACE_END(detail)
         Name(handle h, stolen_t) : Parent(h, stolen_t{}) { } \
         PYBIND11_DEPRECATED("Use py::isinstance<py::python_type>(obj) instead") \
         bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); } \
-        static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); }
+        static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); } \
+        template <typename Policy_> \
+        Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
@@ -792,9 +794,7 @@ PYBIND11_NAMESPACE_END(detail)
     { if (!m_ptr) throw error_already_set(); } \
     Name(object &&o) \
     : Parent(check_(o) ? o.release().ptr() : ConvertFun(o.ptr()), stolen_t{}) \
-    { if (!m_ptr) throw error_already_set(); } \
-    template <typename Policy_> \
-    Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
+    { if (!m_ptr) throw error_already_set(); }
 
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
