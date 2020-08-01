@@ -97,6 +97,7 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.12)
     GLOB_RECURSE _pybind11_header_check
     LIST_DIRECTORIES false
     RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    CONFIGURE_DEPENDS
     "include/pybind11/*.h")
   set(_pybind11_here_only ${PYBIND11_HEADERS})
   set(_pybind11_disk_only ${_pybind11_header_check})
