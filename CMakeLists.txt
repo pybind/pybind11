@@ -82,6 +82,7 @@ set(PYBIND11_HEADERS
     include/pybind11/eigen.h
     include/pybind11/embed.h
     include/pybind11/eval.h
+    include/pybind11/iostream.h
     include/pybind11/functional.h
     include/pybind11/numpy.h
     include/pybind11/operators.h
@@ -90,9 +91,26 @@ set(PYBIND11_HEADERS
     include/pybind11/stl.h
     include/pybind11/stl_bind.h)
 
-# TODO: compare with grep and warn if missmatched
+# Compare with grep and warn if mismatched
+if(NOT CMAKE_VERSION VERSION_LESS 3.12)
+  file(
+    GLOB_RECURSE _pybind11_header_check
+    LIST_DIRECTORIES false
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "include/pybind11/*.h")
+  set(_pybind11_here_only ${PYBIND11_HEADERS})
+  set(_pybind11_disk_only ${_pybind11_header_check})
+  list(REMOVE_ITEM _pybind11_here_only ${_pybind11_header_check})
+  list(REMOVE_ITEM _pybind11_disk_only ${PYBIND11_HEADERS})
+  if(_pybind11_here_only)
+    message(AUTHOR_WARNING "PYBIND11_HEADERS has extra files:" ${_pybind11_here_only})
+  endif()
+  if(_pybind11_disk_only)
+    message(AUTHOR_WARNING "PYBIND11_HEADERS is missing files:" ${_pybind11_disk_only})
+  endif()
+endif()
 
-# cmake 3.12 added list(TRANSFORM <list> PREPEND
+# CMake 3.12 added list(TRANSFORM <list> PREPEND
 # But we can't use it yet
 string(REPLACE "include/" "${CMAKE_CURRENT_SOURCE_DIR}/include/" PYBIND11_HEADERS
                "${PYBIND11_HEADERS}")
