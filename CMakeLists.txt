@@ -46,7 +46,23 @@ if(NOT pybind11_FIND_QUIETLY)
 endif()
 
 # Check if pybind11 is being used directly or via add_subdirectory
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  ### Warn if not an out-of-source builds
+  if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+    set(lines
+        "You are building in-place, which is highly discouraged in CMake. "
+        "Please consider cleaning your source directory and building in a separate folder. "
+        "For example:\n"
+        "rm -r CMakeCache.txt CMakeFiles/ cmake_uninstall.cmake pybind11Config.cmake pybind11ConfigVersion.cmake tests/CMakeFiles/\n"
+    )
+    if(CMAKE_VERSION VERSION_LESS 3.14)
+      list(APPEND lines "mkdir build\ncd build\ncmake ..\n cmake --build .")
+    else()
+      list(APPEND lines "cmake -S . -B build\ncmake --build build")
+    endif()
+    message(AUTHOR_WARNING ${lines})
+  endif()
+
   set(PYBIND11_MASTER_PROJECT ON)
 
   if(OSX AND CMAKE_VERSION VERSION_LESS 3.7)

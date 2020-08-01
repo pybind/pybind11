@@ -239,7 +239,6 @@ foreach(t ${PYBIND11_CROSS_MODULE_GIL_TESTS})
   endif()
 endforeach()
 
-set(testdir ${CMAKE_CURRENT_SOURCE_DIR})
 foreach(target ${test_targets})
   set(test_files ${PYBIND11_TEST_FILES})
   if(NOT "${target}" STREQUAL "pybind11_tests")
@@ -266,10 +265,12 @@ foreach(target ${test_targets})
 
   # Always write the output file directly into the 'tests' directory (even on MSVC)
   if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
-    set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${testdir}")
+    set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                               "${CMAKE_CURRENT_BINARY_DIR}")
     foreach(config ${CMAKE_CONFIGURATION_TYPES})
       string(TOUPPER ${config} config)
-      set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config} "${testdir}")
+      set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                 "${CMAKE_CURRENT_BINARY_DIR}")
     endforeach()
   endif()
 endforeach()
@@ -293,12 +294,26 @@ if(NOT PYBIND11_PYTEST_FOUND)
       CACHE INTERNAL "")
 endif()
 
+if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+  # This is not used later in the build, so it's okay to regenerate each time.
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pytest.ini" "${CMAKE_CURRENT_BINARY_DIR}/pytest.ini"
+                 COPYONLY)
+  file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/pytest.ini"
+       "\ntestpaths = \"${CMAKE_CURRENT_SOURCE_DIR}\"")
+
+endif()
+
+# cmake 3.12 added list(transform <list> prepend
+# but we can't use it yet
+string(REPLACE "test_" "${CMAKE_CURRENT_BINARY_DIR}/test_" PYBIND11_BINARY_TEST_FILES
+               "${PYBIND11_PYTEST_FILES}")
+
 # A single command to compile and run the tests
 add_custom_target(
   pytest
-  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_PYTEST_FILES}
+  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_BINARY_PYTEST_FILES}
   DEPENDS ${test_targets}
-  WORKING_DIRECTORY ${testdir}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL)
 
 if(PYBIND11_TEST_OVERRIDE)

@@ -21,18 +21,22 @@ pybind11_enable_warnings(test_embed)
 
 target_link_libraries(test_embed PRIVATE pybind11::embed Catch2::Catch2 Threads::Threads)
 
+if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+  file(COPY test_interpreter.py DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+endif()
+
 add_custom_target(
   cpptest
   COMMAND "$<TARGET_FILE:test_embed>"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
 pybind11_add_module(external_module THIN_LTO external_module.cpp)
 set_target_properties(external_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                 "${CMAKE_CURRENT_SOURCE_DIR}")
+                                                 "${CMAKE_CURRENT_BINARY_DIR}")
 foreach(config ${CMAKE_CONFIGURATION_TYPES})
   string(TOUPPER ${config} config)
   set_target_properties(external_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
-                                                   "${CMAKE_CURRENT_SOURCE_DIR}")
+                                                   "${CMAKE_CURRENT_BINARY_DIR}")
 endforeach()
 add_dependencies(cpptest external_module)
 

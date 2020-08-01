@@ -13,12 +13,19 @@ import textwrap
 
 import pytest
 
+import env
+
 # Early diagnostic for failed imports
 import pybind11_tests  # noqa: F401
 
 _unicode_marker = re.compile(r'u(\'[^\']*\')')
 _long_marker = re.compile(r'([0-9])L')
 _hexadecimal = re.compile(r'0x[0-9a-fA-F]+')
+
+# Avoid collecting Python3 only files
+collect_ignore = []
+if env.PY2:
+    collect_ignore.append("test_async.py")
 
 
 def _strip_and_dedent(s):
