@@ -323,3 +323,9 @@ def test_non_final_final():
         class PyNonFinalFinalChild(m.IsNonFinalFinal):
             pass
     assert str(exc_info.value).endswith("is not an acceptable base type")
+
+
+# https://github.com/pybind/pybind11/issues/1878
+def test_exception_rvalue_abort():
+    with pytest.raises(RuntimeError):
+        m.PyPrintDestructor().throw_something()
