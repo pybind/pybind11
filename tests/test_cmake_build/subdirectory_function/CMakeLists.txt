@@ -9,17 +9,18 @@ else()
   cmake_policy(VERSION 3.18)
 endif()
 
-project(test_subdirectory_module CXX)
+project(test_subdirectory_function CXX)
 
-add_subdirectory(${PYBIND11_PROJECT_DIR} pybind11)
-pybind11_add_module(test_cmake_build THIN_LTO ../main.cpp)
+add_subdirectory("${PYBIND11_PROJECT_DIR}" pybind11)
+pybind11_add_module(test_subdirectory_function THIN_LTO ../main.cpp)
+set_target_properties(test_subdirectory_function PROPERTIES OUTPUT_NAME test_cmake_build)
 
 add_custom_target(
-  check
+  check_subdirectory_function
   ${CMAKE_COMMAND}
   -E
   env
-  PYTHONPATH=$<TARGET_FILE_DIR:test_cmake_build>
+  PYTHONPATH=$<TARGET_FILE_DIR:test_subdirectory_function>
   ${PYTHON_EXECUTABLE}
   ${PROJECT_SOURCE_DIR}/../test.py
   ${PROJECT_NAME})

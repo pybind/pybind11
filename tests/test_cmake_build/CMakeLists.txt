@@ -1,7 +1,7 @@
 add_custom_target(test_cmake_build)
 
 function(pybind11_add_build_test name)
-  cmake_parse_arguments(ARG "INSTALL" "" "" ${ARGN})
+  cmake_parse_arguments(PARSE_ARGV 1 ARG "INSTALL" "" "")
 
   set(build_options
       "-DCMAKE_PREFIX_PATH=${pybind11_BINARY_DIR}/mock_install"
@@ -14,10 +14,12 @@ function(pybind11_add_build_test name)
 
   if(NOT ARG_INSTALL)
     list(APPEND build_options "-DPYBIND11_PROJECT_DIR=${pybind11_SOURCE_DIR}")
+  else()
+    list(APPEND build_options "-DCMAKE_PREFIX_PATH=${pybind11_BINARY_DIR}/mock_install")
   endif()
 
   add_custom_target(
-    test_${name}
+    test_build_${name}
     ${CMAKE_CTEST_COMMAND}
     --build-and-test
     "${CMAKE_CURRENT_SOURCE_DIR}/${name}"
@@ -32,13 +34,13 @@ function(pybind11_add_build_test name)
     --build-makeprogram
     ${CMAKE_MAKE_PROGRAM}
     --build-target
-    check
+    check_${name}
     --build-options
     ${build_options})
   if(ARG_INSTALL)
-    add_dependencies(test_${name} mock_install)
+    add_dependencies(test_build_${name} mock_install)
   endif()
-  add_dependencies(test_cmake_build test_${name})
+  add_dependencies(test_cmake_build test_build_${name})
 endfunction()
 
 pybind11_add_build_test(subdirectory_function)
