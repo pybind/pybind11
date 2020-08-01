@@ -8,7 +8,7 @@ function(pybind11_add_build_test name)
       "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
       "-DPYTHON_EXECUTABLE:FILEPATH=${PYTHON_EXECUTABLE}")
 
-  if(CMAKE_CXX_STANDARD)
+  if(DEFINED CMAKE_CXX_STANDARD)
     list(APPEND build_options "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}")
   endif()
 

@@ -7,8 +7,9 @@
 
 cmake_minimum_required(VERSION 3.7)
 
-# VERSION 3.7...3.18, but some versions of VS have a patched CMake 3.11
-# that do not work properly with this syntax, so using the following workaround:
+# The `cmake_minimum_required(VERSION 3.7...3.18)` syntax does not work with
+# some versions of VS that have a patched CMake 3.11. This forces us to emulate
+# the behavior using the following workaround:
 if(${CMAKE_VERSION} VERSION_LESS 3.18)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
@@ -17,6 +18,9 @@ endif()
 
 # There's no harm in including a project in a project
 project(pybind11_tests CXX)
+
+# Access FindCatch and more
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN (requires CMake 3.11+)" OFF)
@@ -89,12 +93,8 @@ endif()
 
 # Skip test_async for Python < 3.5
 list(FIND PYBIND11_TEST_FILES test_async.cpp PYBIND11_TEST_FILES_ASYNC_I)
-if((PYBIND11_TEST_FILES_ASYNC_I GREATER -1) AND ("${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}"
-                                                 VERSION_LESS 3.5))
-  message(
-    STATUS
-      "Skipping test_async because Python version ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} < 3.5"
-  )
+if((PYBIND11_TEST_FILES_ASYNC_I GREATER -1) AND (PYTHON_VERSION VERSION_LESS 3.5))
+  message(STATUS "Skipping test_async because Python version ${PYTHON_VERSION} < 3.5")
   list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_ASYNC_I})
 endif()
 
