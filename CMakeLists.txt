@@ -92,7 +92,7 @@ set(PYBIND11_HEADERS
     include/pybind11/stl_bind.h)
 
 # Compare with grep and warn if mismatched
-if(NOT CMAKE_VERSION VERSION_LESS 3.12)
+if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)
   file(
     GLOB_RECURSE _pybind11_header_check
     LIST_DIRECTORIES false
