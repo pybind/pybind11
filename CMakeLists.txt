@@ -7,8 +7,9 @@
 
 cmake_minimum_required(VERSION 3.7)
 
-# VERSION 3.7...3.18, but some versions of MCVS have a patched CMake 3.11
-# that do not work properly with this syntax, so using the following workaround:
+# The `cmake_minimum_required(VERSION 3.7...3.18)` syntax does not work with
+# some versions of VS that have a patched CMake 3.11. This forces us to emulate
+# the behavior using the following workaround:
 if(${CMAKE_VERSION} VERSION_LESS 3.18)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
@@ -26,7 +27,7 @@ foreach(ver ${pybind11_version_defines})
 endforeach()
 
 if(PYBIND11_VERSION_PATCH MATCHES [[([a-zA-Z]+)]])
-  set(PYBIND11_VERSION_TYPE "${CMAKE_MATCH_1}")
+  set(pybind11_VERSION_TYPE "${CMAKE_MATCH_1}")
 endif()
 string(REGEX MATCH "[0-9]+" PYBIND11_VERSION_PATCH "${PYBIND11_VERSION_PATCH}")
 
@@ -40,7 +41,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CMakeDependentOption)
 
-message(STATUS "pybind11 v${pybind11_VERSION} ${PYBIND11_VERSION_TYPE}")
+message(STATUS "pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}")
 
 # Check if pybind11 is being used directly or via add_subdirectory
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -56,9 +57,11 @@ else()
   set(pybind11_system SYSTEM)
 endif()
 
+# Options
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_CLASSIC_LTO "Use the classic LTO flag algorithm, even on CMake 3.9+" OFF)
+
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
   "Install pybind11 headers in Python include directory instead of default installation prefix"
@@ -117,8 +120,7 @@ string(REPLACE "include/" "${CMAKE_CURRENT_SOURCE_DIR}/include/" PYBIND11_HEADER
 
 # Classic mode
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools")
-include(pybind11Tools)
+include("${CMAKE_CURRENT_LIST_DIR}/tools/pybind11Tools.cmake")
 
 # Cache variables so pybind11_add_module can be used in parent projects
 set(PYBIND11_INCLUDE_DIR
@@ -145,10 +147,6 @@ set(PYTHON_VERSION_MINOR
 set(PYTHON_IS_DEBUG
     "${PYTHON_IS_DEBUG}"
     CACHE INTERNAL "")
-
-if(PYBIND11_TEST OR (BUILD_TESTING AND PYBIND11_MASTER_PROJECT))
-  add_subdirectory(tests)
-endif()
 
 if(USE_PYTHON_INCLUDE_DIR)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
@@ -272,4 +270,8 @@ if(PYBIND11_INSTALL)
     add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P
                                         ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
   endif()
+endif()
+
+if(PYBIND11_TEST OR (BUILD_TESTING AND PYBIND11_MASTER_PROJECT))
+  add_subdirectory(tests)
 endif()

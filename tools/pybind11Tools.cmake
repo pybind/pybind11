@@ -5,16 +5,6 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.7)
-
-# VERSION 3.7...3.18, but some versions of VS have a patched CMake 3.11
-# that do not work properly with this syntax, so using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.18)
-  cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-else()
-  cmake_policy(VERSION 3.18)
-endif()
-
 # Add a CMake parameter for choosing a desired Python version
 if(NOT PYBIND11_PYTHON_VERSION)
   set(PYBIND11_PYTHON_VERSION
@@ -26,10 +16,12 @@ endif()
 set(Python_ADDITIONAL_VERSIONS
     "3.9;3.8;3.7;3.6;3.5;3.4"
     CACHE INTERNAL "")
-find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
+list(REMOVE_AT CMAKE_MODULE_PATH -1)
 
 include(CheckCXXCompilerFlag)
-include(CMakeParseArguments)
 
 # Warn or error if old variable name used
 if(PYBIND11_CPP_STANDARD)
@@ -131,7 +123,7 @@ endfunction()
 #
 function(pybind11_add_module target_name)
   set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)
-  cmake_parse_arguments(ARG "${options}" "" "" ${ARGN})
+  cmake_parse_arguments(PARSE_ARGV 2 ARG "${options}" "" "")
 
   if(ARG_MODULE AND ARG_SHARED)
     message(FATAL_ERROR "Can't be both MODULE and SHARED")
@@ -185,9 +177,14 @@ function(pybind11_add_module target_name)
     _pybind11_add_lto_flags(${target_name} ${ARG_THIN_LTO})
   else()
     include(CheckIPOSupported)
-    check_ipo_supported(RESULT supported OUTPUT error)
+    check_ipo_supported(
+      RESULT supported
+      OUTPUT error
+      LANGUAGES CXX)
     if(supported)
       set_property(TARGET ${target_name} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else()
+      message(WARNING "IPO is not supported: ${output}")
     endif()
   endif()
 
