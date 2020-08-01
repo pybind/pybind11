@@ -13,20 +13,21 @@ project(test_subdirectory_target CXX)
 
 add_subdirectory(${PYBIND11_PROJECT_DIR} pybind11)
 
-add_library(test_cmake_build MODULE ../main.cpp)
+add_library(test_subdirectory_target MODULE ../main.cpp)
+set_target_properties(test_subdirectory_target PROPERTIES OUTPUT_NAME test_cmake_build)
 
-target_link_libraries(test_cmake_build PRIVATE pybind11::module)
+target_link_libraries(test_subdirectory_target PRIVATE pybind11::module)
 
 # make sure result is, for example, test_installed_target.so, not libtest_installed_target.dylib
-set_target_properties(test_cmake_build PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                                  SUFFIX "${PYTHON_MODULE_EXTENSION}")
+set_target_properties(test_subdirectory_target PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                                          SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
 add_custom_target(
-  check
+  check_subdirectory_target
   ${CMAKE_COMMAND}
   -E
   env
-  PYTHONPATH=$<TARGET_FILE_DIR:test_cmake_build>
+  PYTHONPATH=$<TARGET_FILE_DIR:test_subdirectory_target>
   ${PYTHON_EXECUTABLE}
   ${PROJECT_SOURCE_DIR}/../test.py
   ${PROJECT_NAME})
