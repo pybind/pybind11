@@ -38,6 +38,14 @@ jobs:
             python: 3.7
             arch: x86
             max-cxx-std: 14
+          - runs-on: windows-latest
+            python: 3.6
+            arch: x64
+            max-cxx-std: 17
+          - runs-on: windows-latest
+            python: 3.7
+            arch: x64
+            max-cxx-std: 17
 
         exclude:
             # Currently 32bit only, and we build 64bit
