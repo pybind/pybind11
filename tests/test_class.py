@@ -329,3 +329,21 @@ def test_non_final_final():
 def test_exception_rvalue_abort():
     with pytest.raises(RuntimeError):
         m.PyPrintDestructor().throw_something()
+
+
+def test_pyexception_destructor():
+    import sys
+
+    if hasattr(sys, "unraisablehook"):
+        old_hook = sys.unraisablehook
+        try:
+            ctxt = [None]
+
+            def new_hook(*args):
+                ctxt[0] = True
+
+            sys.unraisablehook = new_hook
+            m.PyRaiseDestructor()
+            assert ctxt[0] is not None
+        finally:
+            sys.unraisablehook = old_hook

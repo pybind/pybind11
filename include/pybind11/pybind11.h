@@ -1406,6 +1406,9 @@ private:
             );
         }
         v_h.value_ptr() = nullptr;
+        if (PyErr_Occurred()) {
+            PyErr_WriteUnraisable(v_h.type ? (PyObject*)v_h.type->type : nullptr);
+        }
     }
 
     static detail::function_record *get_function_record(handle h) {

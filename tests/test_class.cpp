@@ -390,6 +390,15 @@ TEST_SUBMODULE(class_, m) {
     py::class_<PyPrintDestructor>(m, "PyPrintDestructor")
         .def(py::init<>())
         .def("throw_something", &PyPrintDestructor::throw_something);
+
+    struct PyRaiseDestructor {
+        PyRaiseDestructor() {}
+        ~PyRaiseDestructor() {
+            PyErr_SetString(PyExc_ValueError, "unraisable error");
+        }
+    };
+    py::class_<PyRaiseDestructor>(m, "PyRaiseDestructor")
+        .def(py::init<>());
 }
 
 template <int N> class BreaksBase { public:
