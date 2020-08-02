@@ -191,7 +191,8 @@ else()
   find_library(
     PYTHON_LIBRARY
     NAMES "python${PYTHON_LIBRARY_SUFFIX}"
-    PATHS ${_PYTHON_LIBS_SEARCH} NO_DEFAULT_PATH)
+    PATHS ${_PYTHON_LIBS_SEARCH}
+    NO_DEFAULT_PATH)
 
   # If all else fails, just set the name/version and let the linker figure out the path.
   if(NOT PYTHON_LIBRARY)
