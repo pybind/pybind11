@@ -13,6 +13,11 @@ Available types include :class:`handle`, :class:`object`, :class:`bool_`,
 :class:`iterable`, :class:`iterator`, :class:`function`, :class:`buffer`,
 :class:`array`, and :class:`array_t`.
 
+.. warning::
+
+    You should be aware of how these classes interact with :func:`py::none`.
+    See :ref:`pytypes_interaction_with_none` for more details.
+
 Casting back and forth
 ======================
 
@@ -168,3 +173,62 @@ Generalized unpacking according to PEP448_ is also supported:
     Python functions from C++, including keywords arguments and unpacking.
 
 .. _PEP448: https://www.python.org/dev/peps/pep-0448/
+
+.. _pytypes_interaction_with_none:
+
+Interaction with None
+=====================
+
+You may be tempted to use types like ``py::str`` and ``py::dict`` in C++
+signatures (either pure C++, or in bound signatures). However, there are some
+"gotchas" for ``py::none()`` and how it interacts with these types. In best
+case scenarios, it will fail fast (e.g. with default arguments); in worst
+cases, it will silently work but corrupt the types you want to work with.
+
+At a first glance, you may think after executing the following code, the
+expression ``my_value.is(py::none())`` will be true:
+
+.. code-block:: cpp
+
+    py::str my_value = py::none();
+
+However, this is not the case. Instead, the value of ``my_value`` will be equal
+to the Python value of ``str(None)``, due to how :c:macro:`PYBIND11_OBJECT_CVT`
+is used in :file:`pybind11/pytypes.h`.
+
+Additionally, calling the following binding with the default argument used will
+raise a ``TypeError`` about invalid arguments:
+
+.. code-block:: cpp
+
+    m.def(
+        "my_function",
+        [](py::str my_value) { ... },
+        py::arg("my_value") = py::none());
+
+In both of these cases where you may want to pass ``None`` through any
+signatures where you want to constrain the type, you should either use
+:class:`py::object` in conjunction with :func:`py::isinstance`, or use the
+corresponding C++ type with `std::optional` (if it is available on your
+system).
+
+An example of working around the above edge case for conversion:
+
+.. code-block:: cpp
+
+    py::object my_value = /* py::none() or some string */;
+    ...
+    if (!my_value.is(py::none()) && !py::isinstance<py::str>(my_value)) {
+        /* error behavior */
+    }
+
+An example of working around the above edge case for default arguments:
+
+.. code-block:: cpp
+
+    m.def(
+        "my_function",
+        [](std::optional<std::string> my_value) { ... },
+        py::arg("my_value") = std::nullopt);
+
+For more details, see the tests for ``pytypes`` mentioned above.

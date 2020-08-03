@@ -281,6 +281,21 @@ def test_list_slicing():
     assert li[::2] == m.test_list_slicing(li)
 
 
+def test_pytypes_with_none():
+    # See issue #2361
+    assert m.test_str_assign_none() == "None"
+    with pytest.raises(TypeError) as excinfo:
+        m.test_str_with_default_arg_none()
+    assert "incompatible function arguments" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        assert m.test_dict_assign_none()
+    assert "'NoneType' object is not iterable" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.test_dict_with_default_arg_none()
+    assert "incompatible function arguments" in str(excinfo.value)
+
+
 @pytest.mark.parametrize('method, args, fmt, expected_view', [
     (m.test_memoryview_object, (b'red',), 'B', b'red'),
     (m.test_memoryview_buffer_info, (b'green',), 'B', b'green'),
