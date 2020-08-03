@@ -7,22 +7,23 @@ on:
     branches:
       - drake
 
-
 jobs:
   standard:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-latest, windows-latest, macos-latest]
+        # runs-on: [ubuntu-latest, windows-latest, macos-latest]
+        runs-on: [ubuntu-latest, macos-latest]
         arch: [x64]
         max-cxx-std: [17]
         python:
-        - 2.7
-        - 3.5
+        # - 2.7
+        # - 3.5
+        - 3.7
         - 3.8
         - 3.9-dev
-        - pypy2
-        - pypy3
+        # - pypy2
+        # - pypy3
 
         include:
           - runs-on: ubuntu-latest
@@ -33,21 +34,21 @@ jobs:
             python: 3.7
             arch: x64
             max-cxx-std: 17
-          - runs-on: windows-2016
-            python: 3.7
-            arch: x86
-            max-cxx-std: 14
+          # - runs-on: windows-2016
+          #   python: 3.7
+          #   arch: x86
+          #   max-cxx-std: 14
 
         exclude:
-            # Currently 32bit only, and we build 64bit
-          - runs-on: windows-latest
-            python: pypy2
-            arch: x64
-            max-cxx-std: 17
-          - runs-on: windows-latest
-            python: pypy3
-            arch: x64
-            max-cxx-std: 17
+          #   # Currently 32bit only, and we build 64bit
+          # - runs-on: windows-latest
+          #   python: pypy2
+          #   arch: x64
+          #   max-cxx-std: 17
+          # - runs-on: windows-latest
+          #   python: pypy3
+          #   arch: x64
+          #   max-cxx-std: 17
 
             # Currently can't build due to warning, fixed in CPython > 3.9b5
           - runs-on: macos-latest
@@ -55,15 +56,15 @@ jobs:
             arch: x64
             max-cxx-std: 17
 
-            # Currently broken on embed_test
-          - runs-on: windows-latest
-            python: 3.8
-            arch: x64
-            max-cxx-std: 17
-          - runs-on: windows-latest
-            python: 3.9-dev
-            arch: x64
-            max-cxx-std: 17
+          #   # Currently broken on embed_test
+          # - runs-on: windows-latest
+          #   python: 3.8
+          #   arch: x64
+          #   max-cxx-std: 17
+          # - runs-on: windows-latest
+          #   python: 3.9-dev
+          #   arch: x64
+          #   max-cxx-std: 17
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }}"
     runs-on: ${{ matrix.runs-on }}
@@ -141,11 +142,11 @@ jobs:
       fail-fast: false
       matrix:
         clang:
-          - 3.6
-          - 3.7
-          - 3.9
-          - 5
-          - 7
+          # - 3.6
+          # - 3.7
+          # - 3.9
+          # - 5
+          # - 7
           - 9
           - dev
 
@@ -225,51 +226,51 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
-  centos:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        centos:
-          - 7  # GCC 4.8
-          - 8
+  # centos:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       centos:
+  #         - 7  # GCC 4.8
+  #         - 8
 
-    name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
-    container: "centos:${{ matrix.centos }}"
+  #   name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
+  #   container: "centos:${{ matrix.centos }}"
 
-    steps:
-    - uses: actions/checkout@v2
+  #   steps:
+  #   - uses: actions/checkout@v2
 
-    - name: Add Python 3
-      run: yum update -y && yum install -y python3-devel gcc-c++ make git
+  #   - name: Add Python 3
+  #     run: yum update -y && yum install -y python3-devel gcc-c++ make git
 
-    - name: Update pip
-      run: python3 -m pip install --upgrade pip
+  #   - name: Update pip
+  #     run: python3 -m pip install --upgrade pip
 
-    - name: Install dependencies
-      run: python3 -m pip install cmake -r tests/requirements.txt
+  #   - name: Install dependencies
+  #     run: python3 -m pip install cmake -r tests/requirements.txt
 
-    - name: Configure
-      shell: bash
-      run: >
-        cmake -S . -B build
-        -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
-        -DDOWNLOAD_EIGEN=ON
-        -DCMAKE_CXX_STANDARD=11
-        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+  #   - name: Configure
+  #     shell: bash
+  #     run: >
+  #       cmake -S . -B build
+  #       -DPYBIND11_WERROR=ON
+  #       -DDOWNLOAD_CATCH=ON
+  #       -DDOWNLOAD_EIGEN=ON
+  #       -DCMAKE_CXX_STANDARD=11
+  #       -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
-    - name: Build
-      run: cmake --build build -j 2
+  #   - name: Build
+  #     run: cmake --build build -j 2
 
-    - name: Python tests
-      run: cmake --build build --target pytest
+  #   - name: Python tests
+  #     run: cmake --build build --target pytest
 
-    - name: C++ tests
-      run: cmake --build build --target cpptest
+  #   - name: C++ tests
+  #     run: cmake --build build --target cpptest
 
-    - name: Interface test
-      run: cmake --build build --target test_cmake_build
+  #   - name: Interface test
+  #     run: cmake --build build --target test_cmake_build
 
   install-classic:
     name: "🐍 3.5 • Debian • x86 •  Install"
