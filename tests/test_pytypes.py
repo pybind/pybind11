@@ -198,19 +198,24 @@ def test_constructors():
     assert m.default_constructors() == expected
 
     data = {
-        "bytes": b'41',  # Currently no supported or working conversions.
-        "str": 42,
-        "bool": "Not empty",
-        "int": "42",
-        "float": "+1e3",
-        "tuple": range(3),
-        "list": range(3),
-        "dict": [("two", 2), ("one", 1), ("three", 3)],
-        "set": [4, 4, 5, 6, 6, 6],
-        "memoryview": b'abc'
+        bytes: b'41',  # Currently no supported or working conversions.
+        str: 42,
+        bool: "Not empty",
+        int: "42",
+        float: "+1e3",
+        tuple: range(3),
+        list: range(3),
+        dict: [("two", 2), ("one", 1), ("three", 3)],
+        set: [4, 4, 5, 6, 6, 6],
+        memoryview: b'abc'
     }
-    inputs = {k: v for k, v in data.items()}
-    expected = {k: eval(k)(v) for k, v in data.items()}
+    inputs = {k.__name__: v for k, v in data.items()}
+    expected = {k.__name__: k(v) for k, v in data.items()}
+    if str is bytes:  # Similar to the above. See comments above.
+        inputs["bytes"] = b'41'
+        inputs["str"] = 42
+        expected["bytes"] = b'41'
+        expected["str"] = u"42"
 
     assert m.converting_constructors(inputs) == expected
     assert m.cast_functions(inputs) == expected
