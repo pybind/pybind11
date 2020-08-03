@@ -159,6 +159,11 @@ memory for the C++ portion of the instance will be left uninitialized, which
 will generally leave the C++ instance in an invalid state and cause undefined
 behavior if the C++ instance is subsequently used.
 
+.. versionadded:: 2.5.1
+
+   The default pybind11 metaclass will throw a ``TypeError`` when it detects
+   that ``__init__`` was not called by a derived class.
+
 Here is an example:
 
 .. code-block:: python
