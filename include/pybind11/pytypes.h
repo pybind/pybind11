@@ -1012,12 +1012,6 @@ inline str::str(const bytes& b) {
     m_ptr = obj.release().ptr();
 }
 
-#if PY_MAJOR_VERSION < 3
-using native_str = bytes;
-#else
-using native_str = str;
-#endif
-
 /// \addtogroup pytypes
 /// @{
 class none : public object {
