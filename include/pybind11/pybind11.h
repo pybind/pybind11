@@ -818,7 +818,12 @@ public:
     PYBIND11_OBJECT_DEFAULT(module, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    explicit module(const char *name, const char *doc = nullptr, PyModuleDef *def = nullptr) {
+    explicit module(const char *name, const char *doc = nullptr
+#if PY_MAJOR_VERSION >= 3
+                    , PyModuleDef *def = nullptr
+#endif
+                   )
+    {
         if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
         if (!def) {
