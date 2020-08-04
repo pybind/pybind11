@@ -185,6 +185,14 @@ signatures (either pure C++, or in bound signatures). However, there are some
 case scenarios, it will fail fast (e.g. with default arguments); in worst
 cases, it will silently work but corrupt the types you want to work with.
 
+In general, the pytypes like ``py::str``, ``py::dict``, etc., are
+strict **non-nullable** reference types. They may not store a copy when
+assigned to, but they cannot store ``None``. For statically typed languages,
+this is in contrast  Java's ``String`` or ``List<E>``, or C#'s ``string`` or
+``List<T>``, which are strict nullable refernce types, and C++'s
+``std::string``, which is simply a value type, or
+``std::optional<std::string>``, which is a nullable value type.
+
 At a first glance, you may think after executing the following code, the
 expression ``my_value.is(py::none())`` will be true:
 
