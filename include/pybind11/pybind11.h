@@ -822,7 +822,7 @@ public:
         if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
         if (!def) {
-            PyModuleDef *def = new PyModuleDef();
+            def = new PyModuleDef();
             std::memset(def, 0, sizeof(PyModuleDef));
             def->m_name = name;
             def->m_doc = doc;
