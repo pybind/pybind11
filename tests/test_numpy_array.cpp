@@ -382,9 +382,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         return a;
     });
 
-#if PY_MAJOR_VERSION >= 3
-        sm.def("index_using_ellipsis", [](py::array a) {
-            return a[py::make_tuple(0, py::ellipsis(), 0)];
-        });
-#endif
+    sm.def("index_using_ellipsis", [](py::array a) {
+        return a[py::make_tuple(0, py::ellipsis(), 0)];
+    });
 }
