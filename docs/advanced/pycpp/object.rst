@@ -193,6 +193,13 @@ this is in contrast  Java's ``String`` or ``List<E>``, or C#'s ``string`` or
 ``std::string``, which is simply a value type, or
 ``std::optional<std::string>``, which is a nullable value type.
 
+.. note::
+
+    You actually *can* make ``py::str``, ``py::dict``, etc. nullable by
+    using their default constructors (which effectively means that
+    ``.ptr() == nullptr``). However, this nullability cannot be "passed" to
+    Python without explicit intervention.
+
 At a first glance, you may think after executing the following code, the
 expression ``my_value.is(py::none())`` will be true:
 
