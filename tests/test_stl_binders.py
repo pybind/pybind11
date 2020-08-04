@@ -84,9 +84,10 @@ def test_vector_buffer():
         mv[2] = '\x06'
     assert v[2] == 6
 
-    mv = memoryview(b)
-    v = m.VectorUChar(mv[::2])
-    assert v[1] == 3
+    if sys.version_info.major > 2:
+        mv = memoryview(b)
+        v = m.VectorUChar(mv[::2])
+        assert v[1] == 3
 
     with pytest.raises(RuntimeError) as excinfo:
         m.create_undeclstruct()  # Undeclared struct contents, no buffer interface
