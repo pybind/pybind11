@@ -1629,7 +1629,25 @@ struct pyobject_caster {
     template <typename T = type, enable_if_t<std::is_same<T, handle>::value, int> = 0>
     bool load(handle src, bool /* convert */) { value = src; return static_cast<bool>(value); }
 
+#ifdef PYBIND11_DISABLE_IMPLICIT_STR_FROM_BYTES
     template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
+#else
+    template <typename T = type, enable_if_t<std::is_same<T, str>::value, int> = 0>
+    bool load(handle src, bool /* convert */) {
+        if (isinstance<bytes>(src)) {
+            PyObject *str_from_bytes = PyUnicode_FromEncodedObject(src.ptr(), "utf-8", nullptr);
+            if (!str_from_bytes) throw error_already_set();
+            value = reinterpret_steal<type>(str_from_bytes);
+            return true;
+        }
+        if (!isinstance<type>(src))
+            return false;
+        value = reinterpret_borrow<type>(src);
+        return true;
+    }
+
+    template <typename T = type, enable_if_t<std::is_base_of<object, T>::value && !std::is_same<T, str>::value, int> = 0>
+#endif
     bool load(handle src, bool /* convert */) {
         if (!isinstance<type>(src))
             return false;
