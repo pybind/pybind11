@@ -396,3 +396,8 @@ def test_pass_actual_bytes_or_unicode_to_string_types():
 
     assert m.pass_to_std_string(actual_bytes) == 5
     assert m.pass_to_std_string(actual_unicode) == 3
+
+    malformed_utf8 = b"\x80"
+    with pytest.raises(UnicodeDecodeError) as excinfo:
+        m.pass_to_pybind11_unicode(malformed_utf8)
+    assert 'invalid start byte' in str(excinfo.value)
