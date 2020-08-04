@@ -2204,6 +2204,27 @@ object object_api<Derived>::call(Args &&...args) const {
 
 PYBIND11_NAMESPACE_END(detail)
 
+
+/** \ingroup python_builtins
+    \rst
+    Return the registered type object for a C++ class, given as a template parameter.
+    py::type<T>() returns the Python type object previously registered for T.
+\endrst */
+template<typename T>
+handle type() {
+    static_assert(
+      std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
+      "This currently only works for registered C++ types. The type here is most likely type converted (using type_caster)."
+    );
+
+    return detail::get_type_handle(typeid(T), true);
+}
+
+inline handle type(handle h) {
+    PyObject* obj = (PyObject *) Py_TYPE(h.ptr());
+    return handle(obj);
+}
+
 #define PYBIND11_MAKE_OPAQUE(...) \
     namespace pybind11 { namespace detail { \
         template<> class type_caster<__VA_ARGS__> : public type_caster_base<__VA_ARGS__> { }; \

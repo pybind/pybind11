@@ -26,6 +26,23 @@ def test_instance(msg):
     assert cstats.alive() == 0
 
 
+def test_type():
+    assert m.check_type(1) == m.DerivedClass1
+    with pytest.raises(RuntimeError) as execinfo:
+        m.check_type(0)
+
+    assert 'pybind11::detail::get_type_info: unable to find type info' in str(execinfo.value)
+    assert 'Invalid' in str(execinfo.value)
+
+    # Currently not supported
+    # assert m.check_type(2) == int
+
+
+def test_type_py():
+    assert m.compute_type(1) == int
+    assert m.compute_type(m.DerivedClass1()) == m.DerivedClass1
+
+
 def test_docstrings(doc):
     assert doc(UserType) == "A `py::class_` type for testing"
     assert UserType.__name__ == "UserType"

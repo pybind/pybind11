@@ -134,6 +134,23 @@ TEST_SUBMODULE(class_, m) {
         );
     });
 
+    struct Invalid {};
+
+    // test_type
+    m.def("check_type", [](int category) {
+        // Currently not supported (via a fail at compile time)
+        // if (category == 2)
+        //     return py::type<int>();
+        if (category == 1)
+            return py::type<DerivedClass1>();
+        else
+            return py::type<Invalid>();
+    });
+
+    m.def("compute_type", [](py::handle h) {
+        return py::type(h);
+    });
+
     // test_mismatched_holder
     struct MismatchBase1 { };
     struct MismatchDerived1 : MismatchBase1 { };
