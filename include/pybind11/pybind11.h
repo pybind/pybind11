@@ -818,14 +818,16 @@ public:
     PYBIND11_OBJECT_DEFAULT(module, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    explicit module(const char *name, const char *doc = nullptr) {
+    explicit module(const char *name, const char *doc = nullptr, PyModuleDef *def = nullptr) {
         if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
-        PyModuleDef *def = new PyModuleDef();
-        std::memset(def, 0, sizeof(PyModuleDef));
-        def->m_name = name;
-        def->m_doc = doc;
-        def->m_size = -1;
+        if (!def) {
+            PyModuleDef *def = new PyModuleDef();
+            std::memset(def, 0, sizeof(PyModuleDef));
+            def->m_name = name;
+            def->m_doc = doc;
+            def->m_size = -1;
+        }
         Py_INCREF(def);
         m_ptr = PyModule_Create(def);
 #else
