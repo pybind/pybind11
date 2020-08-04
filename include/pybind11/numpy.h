@@ -611,8 +611,8 @@ public:
     template <typename T>
     explicit array(ssize_t count, const T *ptr, handle base = handle()) : array({count}, {}, ptr, base) { }
 
-    explicit array(const buffer_info &info)
-    : array(pybind11::dtype(info), info.shape, info.strides, info.ptr) { }
+    explicit array(const buffer_info &info, handle base = handle())
+    : array(pybind11::dtype(info), info.shape, info.strides, info.ptr, base) { }
 
     /// Array descriptor (dtype)
     pybind11::dtype dtype() const {
