@@ -237,6 +237,8 @@ TEST_SUBMODULE(pytypes, m) {
         );
     });
 
+    m.def("convert_to_pybind11_str", [](py::object o) { return py::str(o); });
+
     m.def("get_implicit_casting", []() {
         py::dict d;
         d["char*_i1"] = "abc";

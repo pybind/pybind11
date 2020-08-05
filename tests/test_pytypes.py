@@ -220,6 +220,38 @@ def test_constructors():
         assert noconv2[k] is expected[k]
 
 
+def test_pybind11_str_raw_str():
+    # specifically to exercise pybind11::str::raw_str
+    cvt = m.convert_to_pybind11_str
+    assert cvt(u"Str") == u"Str"
+    assert cvt(b'Bytes') == u"Bytes" if str is bytes else "b'Bytes'"
+    assert cvt(None) == u"None"
+    assert cvt(False) == u"False"
+    assert cvt(True) == u"True"
+    assert cvt(42) == u"42"
+    assert cvt(2**65) == u"36893488147419103232"
+    assert cvt(-1.50) == u"-1.5"
+    assert cvt(()) == u"()"
+    assert cvt((18,)) == u"(18,)"
+    assert cvt([]) == u"[]"
+    assert cvt([28]) == u"[28]"
+    assert cvt({}) == u"{}"
+    assert cvt({3: 4}) == u"{3: 4}"
+    assert cvt(set()) == u"set([])" if str is bytes else "set()"
+    assert cvt({3, 3}) == u"set([3])" if str is bytes else "{3}"
+
+    valid_orig = u"Ǳ"
+    valid_utf8 = valid_orig.encode("utf-8")
+    valid_cvt = cvt(valid_utf8)
+    assert type(valid_cvt) == bytes  # Probably surprising.
+    assert valid_cvt == b'\xc7\xb1'
+
+    malformed_utf8 = b'\x80'
+    malformed_cvt = cvt(malformed_utf8)
+    assert type(malformed_cvt) == bytes  # Probably surprising.
+    assert malformed_cvt == b'\x80'
+
+
 def test_implicit_casting():
     """Tests implicit casting when assigning or appending to dicts and lists."""
     z = m.get_implicit_casting()
