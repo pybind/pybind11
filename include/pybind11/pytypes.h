@@ -928,12 +928,21 @@ public:
 private:
     /// Return string representation -- always returns a new reference, even if already a str
     static PyObject *raw_str(PyObject *op) {
+#ifdef PYBIND11_STR_RAW_STR_PY2_EMULATE_UNICODE_CONSTRUCTOR_NOT_IMPLICIT_ENCODE
 #if PY_MAJOR_VERSION < 3
         PyObject *str_value = PyObject_Unicode(op);
 #else
         PyObject *str_value = PyObject_Str(op);
 #endif
         if (!str_value) throw error_already_set();
+#else
+        PyObject *str_value = PyObject_Str(op);
+        if (!str_value) throw error_already_set();
+#if PY_MAJOR_VERSION < 3
+        PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
+        Py_XDECREF(str_value); str_value = unicode;
+#endif
+#endif
         return str_value;
     }
 };
