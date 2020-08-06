@@ -18,9 +18,8 @@ set_target_properties(test_subdirectory_target PROPERTIES OUTPUT_NAME test_cmake
 
 target_link_libraries(test_subdirectory_target PRIVATE pybind11::module)
 
-# make sure result is, for example, test_installed_target.so, not libtest_installed_target.dylib
-set_target_properties(test_subdirectory_target PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                                          SUFFIX "${PYTHON_MODULE_EXTENSION}")
+# Make sure result is, for example, test_installed_target.so, not libtest_installed_target.dylib
+pybind11_extension(test_subdirectory_target)
 
 add_custom_target(
   check_subdirectory_target

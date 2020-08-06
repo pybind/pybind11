@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.7)
+project(test_installed_module CXX)
 
 # The `cmake_minimum_required(VERSION 3.7...3.18)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
@@ -17,6 +18,10 @@ message(
 
 pybind11_add_module(test_installed_function SHARED NO_EXTRAS ../main.cpp)
 set_target_properties(test_installed_function PROPERTIES OUTPUT_NAME test_cmake_build)
+
+if(DEFINED Python_EXECUTABLE)
+  set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
+endif()
 
 add_custom_target(
   check_installed_function

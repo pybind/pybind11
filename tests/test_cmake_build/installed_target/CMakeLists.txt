@@ -19,13 +19,16 @@ add_library(test_installed_target MODULE ../main.cpp)
 target_link_libraries(test_installed_target PRIVATE pybind11::module)
 set_target_properties(test_installed_target PROPERTIES OUTPUT_NAME test_cmake_build)
 
-# make sure result is, for example, test_installed_target.so, not libtest_installed_target.dylib
-set_target_properties(test_installed_target PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                                       SUFFIX "${PYTHON_MODULE_EXTENSION}")
+# Make sure result is, for example, test_installed_target.so, not libtest_installed_target.dylib
+pybind11_extension(test_installed_target)
 
 # Do not treat includes from IMPORTED target as SYSTEM (Python headers in pybind11::module).
 # This may be needed to resolve header conflicts, e.g. between Python release and debug headers.
 set_target_properties(test_installed_target PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
+
+if(DEFINED Python_EXECUTABLE)
+  set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
+endif()
 
 add_custom_target(
   check_installed_target

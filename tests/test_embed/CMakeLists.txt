@@ -1,4 +1,4 @@
-if(${PYTHON_MODULE_EXTENSION} MATCHES "pypy")
+if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy")
   add_custom_target(cpptest) # Dummy target on PyPy. Embedding is not supported.
   set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()

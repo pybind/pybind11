@@ -16,6 +16,13 @@ else()
   cmake_policy(VERSION 3.18)
 endif()
 
+# New Python support
+if(DEFINED Python_EXECUTABLE)
+  set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
+  set(PYTHON_VERSION "${Python_VERSION}")
+endif()
+message(STATUS "Python version for tests: ${PYTHON_VERSION}")
+
 # There's no harm in including a project in a project
 project(pybind11_tests CXX)
 

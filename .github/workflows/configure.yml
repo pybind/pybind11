@@ -26,7 +26,7 @@ jobs:
         # TODO: 3.8
         - runs-on: windows-2016
           arch: x86
-          cmake: 3.11
+          cmake: 3.8
 
         - runs-on: windows-2016
           arch: x86

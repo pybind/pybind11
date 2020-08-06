@@ -3,10 +3,23 @@ add_custom_target(test_cmake_build)
 function(pybind11_add_build_test name)
   cmake_parse_arguments(PARSE_ARGV 1 ARG "INSTALL" "" "")
 
-  set(build_options
-      "-DCMAKE_PREFIX_PATH=${pybind11_BINARY_DIR}/mock_install"
-      "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-      "-DPYTHON_EXECUTABLE:FILEPATH=${PYTHON_EXECUTABLE}")
+  set(build_options "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
+
+  if(DEFINED PYBIND11_NEW_PYTHON)
+    list(APPEND build_options "-DPYBIND11_NEW_PYTHON=${PYBIND11_NEW_PYTHON}")
+  endif()
+
+  if(DEFINED Python_ROOT_DIR)
+    list(APPEND build_options "-DPython_ROOT_DIR=${Python_ROOT_DIR}")
+  endif()
+
+  if(DEFINED PYTHON_EXECUTABLE)
+    list(APPEND build_options "-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
+  endif()
+
+  if(DEFINED Python_EXECUTABLE)
+    list(APPEND build_options "-DPython_EXECUTABLE=${Python_EXECUTABLE}")
+  endif()
 
   if(DEFINED CMAKE_CXX_STANDARD)
     list(APPEND build_options "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}")
@@ -45,7 +58,9 @@ endfunction()
 
 pybind11_add_build_test(subdirectory_function)
 pybind11_add_build_test(subdirectory_target)
-if(NOT ${PYTHON_MODULE_EXTENSION} MATCHES "pypy")
+if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy")
+  message(STATUS "Skipping embed test on PyPy")
+else()
   pybind11_add_build_test(subdirectory_embed)
 endif()
 
@@ -56,7 +71,8 @@ if(PYBIND11_INSTALL)
 
   pybind11_add_build_test(installed_function INSTALL)
   pybind11_add_build_test(installed_target INSTALL)
-  if(NOT ${PYTHON_MODULE_EXTENSION} MATCHES "pypy")
+  if(NOT ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
+         ))
     pybind11_add_build_test(installed_embed INSTALL)
   endif()
 endif()

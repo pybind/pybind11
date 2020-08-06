@@ -31,11 +31,13 @@ jobs:
             arch: x64
             max-cxx-std: 17
             dev: false
+            args: "-DPYBIND11_NEW_PYTHON=ON"
           - runs-on: macos-latest
             python: 3.7
             arch: x64
             max-cxx-std: 17
             dev: false
+            args: "-DPYBIND11_NEW_PYTHON=ON"
           - runs-on: windows-2016
             python: 3.7
             arch: x86
@@ -46,6 +48,7 @@ jobs:
             arch: x64
             max-cxx-std: 17
             dev: false
+            args: "-DPYBIND11_NEW_PYTHON=ON"
           - runs-on: windows-latest
             python: 3.7
             arch: x64
@@ -106,6 +109,9 @@ jobs:
       if: runner.os != 'macOS'
       run: echo "::set-env name=BOOST_ROOT::$BOOST_ROOT_1_72_0"
 
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.3
+
     - name: Cache wheels
       if: runner.os == 'macOS'
       uses: actions/cache@v2
@@ -128,7 +134,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
-        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        ${{ matrix.args }}
 
     - name: Build C++11
       run: cmake --build build -j 2
@@ -150,7 +156,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.max-cxx-std }}
-        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        ${{ matrix.args }}
 
     - name: Build C++${{ matrix.max-cxx-std }}
       run: cmake --build build2 -j 2
