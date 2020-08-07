@@ -1794,7 +1794,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
     typename Sentinel,
     typename ValueType = decltype(*std::declval<Iterator>()),
     typename... Extra>
-[[deprecated("Superseded by make_iterator_ng")]]
+PYBIND11_DEPRECATED("Superseded by make_iterator_ng")
 iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     return cast(make_iterator_ng(first, last, std::forward<Extra>(extra)...));
 }
@@ -1805,7 +1805,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
     typename Sentinel,
     typename ValueType = decltype(*std::declval<Iterator>()),
     typename... Extra>
-[[deprecated("Superseded by make_key_iterator_ng")]]
+PYBIND11_DEPRECATED("Superseded by make_key_iterator_ng")
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     return cast(make_key_iterator_ng(first, last, std::forward<Extra>(extra)...));
 }
@@ -1830,6 +1830,7 @@ make_key_iterator_ng(Type &value, Extra &&... extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type, typename... Extra>
+PYBIND11_DEPRECATED("Superseded by make_iterator_ng")
 iterator make_iterator(Type &value, Extra&&... extra) {
     return cast(make_iterator_ng<Policy>(value, std::forward<Extra>(extra)...));
 }
@@ -1838,6 +1839,7 @@ iterator make_iterator(Type &value, Extra&&... extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type, typename... Extra>
+PYBIND11_DEPRECATED("Superseded by make_key_iterator_ng")
 iterator make_key_iterator(Type &value, Extra&&... extra) {
     return cast(make_key_iterator<Policy>(value, std::forward<Extra>(extra)...));
 }
