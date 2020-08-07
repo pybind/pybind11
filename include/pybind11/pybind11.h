@@ -1795,7 +1795,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
     typename ValueType = decltype(*std::declval<Iterator>()),
     typename... Extra>
 [[deprecated("Superseded by make_iterator_ng")]]
-auto make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     return cast(make_iterator_ng(first, last, std::forward<Extra>(extra)...));
 }
 
@@ -1806,21 +1806,23 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
     typename ValueType = decltype(*std::declval<Iterator>()),
     typename... Extra>
 [[deprecated("Superseded by make_key_iterator_ng")]]
-auto make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
     return cast(make_key_iterator_ng(first, last, std::forward<Extra>(extra)...));
 }
 
 template <return_value_policy Policy = return_value_policy::reference_internal,
     typename Type, typename... Extra>
-auto make_iterator_ng(Type &value, Extra&&... extra) {
+detail::iterator_state<decltype(std::begin(std::declval<Type &>())), decltype(std::end(std::declval<Type &>())), false, Policy>
+make_iterator_ng(Type &value, Extra &&... extra) {
     return make_iterator_ng<Policy>(std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over the keys (`.first`) of a stl map-like container supporting
 /// `std::begin()`/`std::end()`
-template <return_value_policy Policy = return_value_policy::reference_internal,
+template<return_value_policy Policy = return_value_policy::reference_internal,
     typename Type, typename... Extra>
-auto make_key_iterator_ng(Type &value, Extra&&... extra) {
+detail::iterator_state<decltype(std::begin(std::declval<Type&>())), decltype(std::end(std::declval<Type&>())), true, Policy>
+make_key_iterator_ng(Type &value, Extra &&... extra) {
     return make_key_iterator_ng<Policy>(std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
@@ -1828,7 +1830,7 @@ auto make_key_iterator_ng(Type &value, Extra&&... extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type, typename... Extra>
-auto make_iterator(Type &value, Extra&&... extra) {
+iterator make_iterator(Type &value, Extra&&... extra) {
     return cast(make_iterator_ng<Policy>(value, std::forward<Extra>(extra)...));
 }
 
@@ -1836,7 +1838,7 @@ auto make_iterator(Type &value, Extra&&... extra) {
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Type, typename... Extra>
-auto make_key_iterator(Type &value, Extra&&... extra) {
+iterator make_key_iterator(Type &value, Extra&&... extra) {
     return cast(make_key_iterator<Policy>(value, std::forward<Extra>(extra)...));
 }
 
