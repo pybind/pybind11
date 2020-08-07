@@ -1737,7 +1737,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename ValueType = decltype(*std::declval<Iterator>()),
           typename... Extra>
 detail::iterator_state<Iterator, Sentinel, false, Policy>
-[[deprecated]] make_iterator_ng(Iterator first, Sentinel last, Extra &&... extra) {
+make_iterator_ng(Iterator first, Sentinel last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator, Sentinel, false, Policy> state;
 
     if (!detail::get_type_info(typeid(state), false)) {
