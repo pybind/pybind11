@@ -189,7 +189,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         })
         .def("__len__", &Sequence::size)
         /// Optional sequence protocol operations
-        .def("__iter__", [](const Sequence &s) { return py::make_iterator(s.begin(), s.end()); },
+        .def("__iter__", [](const Sequence &s) { return py::make_iterator_ng(s.begin(), s.end()); },
                          py::keep_alive<0, 1>() /* Essential: keep object alive while iterator exists */)
         .def("__contains__", [](const Sequence &s, float v) { return s.contains(v); })
         .def("__reversed__", [](const Sequence &s) -> Sequence { return s.reversed(); })
@@ -249,9 +249,9 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         })
         .def("__setitem__", &StringMap::set)
         .def("__len__", &StringMap::size)
-        .def("__iter__", [](const StringMap &map) { return py::make_key_iterator(map.begin(), map.end()); },
+        .def("__iter__", [](const StringMap &map) { return py::make_key_iterator_ng(map.begin(), map.end()); },
                 py::keep_alive<0, 1>())
-        .def("items", [](const StringMap &map) { return py::make_iterator(map.begin(), map.end()); },
+        .def("items", [](const StringMap &map) { return py::make_iterator_ng(map.begin(), map.end()); },
                 py::keep_alive<0, 1>())
         ;
 
@@ -266,10 +266,10 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     py::class_<IntPairs>(m, "IntPairs")
         .def(py::init<std::vector<std::pair<int, int>>>())
         .def("nonzero", [](const IntPairs& s) {
-                return py::make_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+                return py::make_iterator_ng(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
         }, py::keep_alive<0, 1>())
         .def("nonzero_keys", [](const IntPairs& s) {
-            return py::make_key_iterator(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
+            return py::make_key_iterator_ng(NonZeroIterator<std::pair<int, int>>(s.begin()), NonZeroSentinel());
         }, py::keep_alive<0, 1>())
         ;
 
@@ -351,6 +351,6 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     // test_iterator_rvp
     // #388: Can't make iterators via make_iterator() with different r/v policies
     static std::vector<int> list = { 1, 2, 3 };
-    m.def("make_iterator_1", []() { return py::make_iterator<py::return_value_policy::copy>(list); });
-    m.def("make_iterator_2", []() { return py::make_iterator<py::return_value_policy::automatic>(list); });
+    m.def("make_iterator_1", []() { return py::make_iterator_ng<py::return_value_policy::copy>(list); });
+    m.def("make_iterator_2", []() { return py::make_iterator_ng<py::return_value_policy::automatic>(list); });
 }
