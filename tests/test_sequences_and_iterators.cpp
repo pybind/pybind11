@@ -345,7 +345,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     // test_iterator_passthrough
     // #181: iterator passthrough did not compile
     m.def("iterator_passthrough", [](py::iterator s) -> py::iterator {
-        return py::make_iterator(std::begin(s), std::end(s));
+        return py::cast(py::make_iterator_ng(std::begin(s), std::end(s)));
     });
 
     // test_iterator_rvp
