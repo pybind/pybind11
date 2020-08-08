@@ -1631,6 +1631,14 @@ struct pyobject_caster {
 
     template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
     bool load(handle src, bool /* convert */) {
+#ifndef PYBIND11_DISABLE_IMPLICIT_STR_FROM_BYTES
+        if (std::is_same<T, str>::value && isinstance<bytes>(src)) {
+            PyObject *str_from_bytes = PyUnicode_FromEncodedObject(src.ptr(), "utf-8", nullptr);
+            if (!str_from_bytes) throw error_already_set();
+            value = reinterpret_steal<type>(str_from_bytes);
+            return true;
+        }
+#endif
         if (!isinstance<type>(src))
             return false;
         value = reinterpret_borrow<type>(src);
