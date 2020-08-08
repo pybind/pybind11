@@ -132,7 +132,7 @@ endfunction()
 #
 function(pybind11_add_module target_name)
   set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)
-  cmake_parse_arguments(PARSE_ARGV 2 ARG "${options}" "" "")
+  cmake_parse_arguments(PARSE_ARGV 1 ARG "${options}" "" "")
 
   if(ARG_MODULE AND ARG_SHARED)
     message(FATAL_ERROR "Can't be both MODULE and SHARED")
