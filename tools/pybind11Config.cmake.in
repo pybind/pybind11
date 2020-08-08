@@ -32,7 +32,7 @@ are attached to the target.
 Advanced targets are also supplied - these are primary for users building
 complex applications, and they are available in all modes::
 
-  pybind11::headers - Just the PyBind11 headers and minimum compile requirements
+  pybind11::headers - Just the pybind11 headers and minimum compile requirements
   pybind11::pybind11 - Python headers too
   pybind11::python_link_helper - Just the "linking" part of pybind11:module, for CMake < 3.15
   pybind11::python2_no_register - Quiets the warning/error when mixing C++14+ and Python 2, also included in pybind11::module

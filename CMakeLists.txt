@@ -67,7 +67,7 @@ cmake_dependent_option(
   "Install pybind11 headers in Python include directory instead of default installation prefix"
   OFF "PYBIND11_INSTALL" OFF)
 
-cmake_dependent_option(PYBIND11_FINDPYTHON "Force new findPython" OFF
+cmake_dependent_option(PYBIND11_FINDPYTHON "Force new FindPython" OFF
                        "NOT CMAKE_VERSION VERSION_LESS 3.12" OFF)
 
 # NB: when adding a header don't forget to also add it to setup.py
