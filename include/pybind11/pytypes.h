@@ -337,6 +337,20 @@ public:
     /// error variables (but the `.what()` string is still available).
     void restore() { PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr()); }
 
+    /// If it is impossible to raise the currently-held error, such as in destructor, we can write
+    /// it out using Python's unraisable hook (sys.unraisablehook). The error context should be
+    /// some object whose repr() helps identify the location of the error. Python already knows the
+    /// type and value of the error, so there is no need to repeat that. For example, __func__ could
+    /// be helpful. After this call, the current object no longer stores the error variables,
+    /// and neither does Python.
+    void discard_as_unraisable(object err_context) {
+        restore();
+        PyErr_WriteUnraisable(err_context.ptr());
+    }
+    void discard_as_unraisable(const char *err_context) {
+        discard_as_unraisable(reinterpret_steal<object>(PYBIND11_FROM_STRING(err_context)));
+    }
+
     // Does nothing; provided for backwards compatibility.
     PYBIND11_DEPRECATED("Use of error_already_set.clear() is deprecated")
     void clear() {}
