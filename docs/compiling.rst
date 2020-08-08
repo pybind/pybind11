@@ -190,9 +190,9 @@ FindPython, pybind11 will detect this and use the existing targets instead:
     pybind11_add_module(example example.cpp)
 
 You can also use the targets (as listed below) with FindPython. If you define
-``PYBIND11_NEW_PYTHON``, pybind11 will perform the FindPython step for you
+``PYBIND11_FINDPYTHON``, pybind11 will perform the FindPython step for you
 (mostly useful when building pybind11's own tests, or as a way to change search
-algorithms from the CMake invocation, with ``-DPYBIND11_NEW_PYTHON=ON``.
+algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
 
 .. warning::
 

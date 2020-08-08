@@ -135,7 +135,7 @@ endif()
 # --------------------- Python specifics -------------------------
 
 # Check to see which Python mode we are in, new or old python
-if(PYBIND11_NEW_PYTHON
+if(PYBIND11_FINDPYTHON
    OR Python_FOUND
    OR Python3_FOUND
    OR Python2_FOUND)

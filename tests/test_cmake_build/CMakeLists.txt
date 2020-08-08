@@ -5,20 +5,17 @@ function(pybind11_add_build_test name)
 
   set(build_options "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
 
-  if(DEFINED PYBIND11_NEW_PYTHON)
-    list(APPEND build_options "-DPYBIND11_NEW_PYTHON=${PYBIND11_NEW_PYTHON}")
-  endif()
+  if(PYBIND11_FINDPYTHON)
+    list(APPEND build_options "-DPYBIND11_FINDPYTHON=${PYBIND11_FINDPYTHON}")
 
-  if(DEFINED Python_ROOT_DIR)
-    list(APPEND build_options "-DPython_ROOT_DIR=${Python_ROOT_DIR}")
-  endif()
+    if(DEFINED Python_ROOT_DIR)
+      list(APPEND build_options "-DPython_ROOT_DIR=${Python_ROOT_DIR}")
+    else()
+      list(APPEND build_options "-DPython_EXECUTABLE=${Python_EXECUTABLE}")
+    endif()
 
-  if(DEFINED PYTHON_EXECUTABLE)
+  else()
     list(APPEND build_options "-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
-  endif()
-
-  if(DEFINED Python_EXECUTABLE)
-    list(APPEND build_options "-DPython_EXECUTABLE=${Python_EXECUTABLE}")
   endif()
 
   if(DEFINED CMAKE_CXX_STANDARD)

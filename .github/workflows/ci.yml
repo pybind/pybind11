@@ -31,13 +31,13 @@ jobs:
             arch: x64
             max-cxx-std: 17
             dev: false
-            args: "-DPYBIND11_NEW_PYTHON=ON"
+            args: "-DPYBIND11_FINDPYTHON=ON"
           - runs-on: macos-latest
             python: 3.7
             arch: x64
             max-cxx-std: 17
             dev: false
-            args: "-DPYBIND11_NEW_PYTHON=ON"
+            args: "-DPYBIND11_FINDPYTHON=ON"
           - runs-on: windows-2016
             python: 3.7
             arch: x86
@@ -48,7 +48,7 @@ jobs:
             arch: x64
             max-cxx-std: 17
             dev: false
-            args: "-DPYBIND11_NEW_PYTHON=ON"
+            args: "-DPYBIND11_FINDPYTHON=ON"
           - runs-on: windows-latest
             python: 3.7
             arch: x64
@@ -92,7 +92,7 @@ jobs:
             dev: false
 
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }}"
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }} ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
     continue-on-error: ${{ matrix.dev }}
 
@@ -126,7 +126,7 @@ jobs:
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt
 
-    - name: Configure C++11
+    - name: Configure C++11 ${{ matrix.args }}
       shell: bash
       run: >
         cmake -S . -B build
@@ -148,7 +148,7 @@ jobs:
     - name: Interface test C++11
       run: cmake --build build --target test_cmake_build
 
-    - name: Configure C++${{ matrix.max-cxx-std }}
+    - name: Configure C++${{ matrix.max-cxx-std }} ${{ matrix.args }}
       shell: bash
       run: >
         cmake -S . -B build2

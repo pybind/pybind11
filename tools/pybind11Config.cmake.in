@@ -49,7 +49,7 @@ from 3.12+ forward (3.15+ _highly_ recommended).
 New FindPython mode::
 
 To activate this mode, either call ``find_package(Python COMPONENTS Interpreter Development)``
-before finding this package, or set the ``PYBIND11_NEW_PYTHON`` variable to ON. In this mode,
+before finding this package, or set the ``PYBIND11_FINDPYTHON`` variable to ON. In this mode,
 you can either use the basic targets, or use the FindPython tools::
 
   find_package(Python COMPONENTS Interpreter Development)
