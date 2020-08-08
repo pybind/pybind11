@@ -30,29 +30,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
 list(REMOVE_AT CMAKE_MODULE_PATH -1)
 
-# Warn or error if old variable name used
-if(PYBIND11_CPP_STANDARD)
-  string(REGEX MATCH [[..$]] VAL "${PYBIND11_CPP_STANDARD}")
-  if(CMAKE_CXX_STANDARD)
-    if(NOT CMAKE_CXX_STANDARD STREQUAL VAL)
-      message(WARNING "CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD} does not match "
-                      "PYBIND11_CPP_STANDARD=${PYBIND11_CPP_STANDARD}, "
-                      "please remove PYBIND11_CPP_STANDARD from your cache")
-    endif()
-  else()
-    set(supported_standards 11 14 17 20)
-    if("${VAL}" IN_LIST supported_standards)
-      message(WARNING "USE -DCMAKE_CXX_STANDARD=${VAL} instead of PYBIND11_PYTHON_VERSION")
-      set(CMAKE_CXX_STANDARD
-          ${VAL}
-          CACHE STRING "From PYBIND11_CPP_STANDARD")
-    else()
-      message(FATAL_ERROR "PYBIND11_CPP_STANDARD should be replaced with CMAKE_CXX_STANDARD "
-                          "(last two chars: ${VAL} not understood as a valid CXX std)")
-    endif()
-  endif()
-endif()
-
 # Cache variables so pybind11_add_module can be used in parent projects
 set(PYTHON_INCLUDE_DIRS
     ${PYTHON_INCLUDE_DIRS}

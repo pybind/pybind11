@@ -132,17 +132,50 @@ if(MSVC)
       PROPERTY INTERFACE_COMPILE_OPTIONS $<$<NOT:$<CONFIG:Debug>>:$<$<COMPILE_LANGUAGE:CXX>:/MP>>)
   endif()
 endif()
+
+# ----------------------- Legacy option --------------------------
+
+# Warn or error if old variable name used
+if(PYBIND11_CPP_STANDARD)
+  string(REGEX MATCH [[..$]] VAL "${PYBIND11_CPP_STANDARD}")
+  if(CMAKE_CXX_STANDARD)
+    if(NOT CMAKE_CXX_STANDARD STREQUAL VAL)
+      message(WARNING "CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD} does not match "
+                      "PYBIND11_CPP_STANDARD=${PYBIND11_CPP_STANDARD}, "
+                      "please remove PYBIND11_CPP_STANDARD from your cache")
+    endif()
+  else()
+    set(supported_standards 11 14 17 20)
+    if("${VAL}" IN_LIST supported_standards)
+      message(WARNING "USE -DCMAKE_CXX_STANDARD=${VAL} instead of PYBIND11_PYTHON_VERSION")
+      set(CMAKE_CXX_STANDARD
+          ${VAL}
+          CACHE STRING "From PYBIND11_CPP_STANDARD")
+    else()
+      message(FATAL_ERROR "PYBIND11_CPP_STANDARD should be replaced with CMAKE_CXX_STANDARD "
+                          "(last two chars: ${VAL} not understood as a valid CXX std)")
+    endif()
+  endif()
+endif()
+
 # --------------------- Python specifics -------------------------
 
-# Check to see which Python mode we are in, new or old python
-if(PYBIND11_FINDPYTHON
-   OR Python_FOUND
-   OR Python3_FOUND
-   OR Python2_FOUND)
+# Check to see which Python mode we are in, new, old, or no python
+if(PYBIND11_NOPYTHON)
+  set(_pybind11_nopython ON)
+  if(NOT pybind11_QUIETLY)
+    message(STATUS "pybind11 in NOPYHTON mode")
+  endif()
+elseif(PYBIND11_FINDPYTHON OR Python_FOUND)
 
   # New mode
   include("${CMAKE_CURRENT_LIST_DIR}/pybind11NewTools.cmake")
 
+elseif(Python3_FOUND OR Python2_FOUND)
+  set(_pybind11_nopython ON)
+  if(NOT pybind11_QUIETLY)
+    message(STATUS "pybind11 in NOPYHTON mode due to Python2/Python3 only being present")
+  endif()
 else()
 
   # Classic mode
@@ -221,11 +254,11 @@ function(_pybind11_generate_lto target prefer_thin_lto)
       TARGET ${target}
       APPEND
       PROPERTY INTERFACE_COMPILE_OPTIONS "$<${genex}:${PYBIND11_LTO_CXX_FLAGS}>")
-    if(NOT is_config)
+    if(NOT is_config AND NOT pybind11_QUIETLY)
       message(STATUS "${target} enabled")
     endif()
   else()
-    if(NOT is_config)
+    if(NOT is_config AND NOT pybind11_QUIETLY)
       message(STATUS "${target} disabled (not supported by the compiler and/or linker)")
     endif()
   endif()

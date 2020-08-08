@@ -14,14 +14,12 @@ if(CMAKE_VERSION VERSION_LESS 3.12)
   message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
 endif()
 
-if(NOT Python_FOUND
-   OR Python2_FOUND
-   OR Python3_FOUND)
-
+if(NOT Python_FOUND)
   if(NOT DEFINED Python_FIND_IMPLEMENTATIONS)
     set(Python_FIND_IMPLEMENTATIONS CPython PyPy)
   endif()
 
+  # GitHub Actions like activation
   if(NOT DEFINED Python_ROOT_DIR AND DEFINED ENV{pythonLocation})
     set(Python_ROOT_DIR "$ENV{pythonLocation}")
   endif()
@@ -48,14 +46,14 @@ if(DEFINED Python_INCLUDE_DIRS)
     PROPERTY INTERFACE_INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${Python_INCLUDE_DIRS}>)
 endif()
 
-if(DEFINED Python2_VERSION OR (Python_VERSION AND Python_VERSION VERSION_LESS 3))
+if(DEFINED Python_VERSION AND Python_VERSION VERSION_LESS 3)
   set_property(
     TARGET pybind11::pybind11
     APPEND
     PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python2_no_register)
 endif()
 
-# In CMake 3.18+, you can find these separately, so include an if (also Python2 and Python3, for which we do nothing)
+# In CMake 3.18+, you can find these separately, so include an if
 if(TARGET Python::Python)
   set_property(
     TARGET pybind11::embed
@@ -89,10 +87,6 @@ function(pybind11_add_module target_name)
 
   if(COMMAND Python_add_library)
     python_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
-  elseif(COMMAND Python3_add_library)
-    python3_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
-  elseif(COMMAND Python2_add_library)
-    python2_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
   endif()
 
   target_link_libraries(${target_name} PRIVATE pybind11::headers)
@@ -107,9 +101,7 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::windows_extras)
   endif()
 
-  if(DEFINED Python2_VERSION
-     OR Python_VERSION
-     AND Python_VERSION VERSION_LESS 3)
+  if(DEFINED Python_VERSION AND Python_VERSION VERSION_LESS 3)
     target_link_libraries(${target_name} PRIVATE pybind11::python2_no_register)
   endif()
 

@@ -234,7 +234,7 @@ available in all modes. The targets provided are:
      An alternative to `INTERPROCEDURAL_OPTIMIZATION` for adding link-time optimization.
 
    ``pybind11::windows_extras``
-     Bigobj and mp for MSVC.
+     ``/bigobj`` and ``/mp`` for MSVC.
 
 Two helper functions are also provided:
 
@@ -275,6 +275,17 @@ Instead of setting properties, you can set ``CMAKE_*`` variables to initialize t
     provides a *composable* set of targets to ensure that you retain flexibility.
     It can be expecially important to provide or set these properties; the
     :ref:`FAQ <faq:symhidden>` contains an explanation on why these are needed.
+
+Advanced: NOPYTHON mode
+-----------------------
+
+If you want complete control, you can set ``PYBIND11_NOPYTHON`` to completely
+disable Python integration (this also happens if you run ``FindPython2`` and/or
+``FindPython3`` without running ``FindPython``). This gives you complete
+freedom to integrate into an existing system (like `Scikit-Build's
+<https://scikit-build.readthedocs.io>`_ ``PythonExtensions``).
+``pybind11_add_module`` and ``pybind11_extension`` will be unavailable, and the
+targets will be missing any Python specific behavior.
 
 Embedding the Python interpreter
 --------------------------------

@@ -41,7 +41,9 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CMakeDependentOption)
 
-message(STATUS "pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}")
+if(NOT pybind11_QUIETLY)
+  message(STATUS "pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}")
+endif()
 
 # Check if pybind11 is being used directly or via add_subdirectory
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -60,7 +62,7 @@ endif()
 # Options
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
-option(PYBIND11_CLASSIC_LTO "Use the classic LTO flag algorithm, even on CMake 3.9+" OFF)
+option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
@@ -215,10 +217,18 @@ endif()
 # BUILD_TESTING takes priority, but only if this is the master project
 if(PYBIND11_MASTER_PROJECT AND DEFINED BUILD_TESTING)
   if(BUILD_TESTING)
-    add_subdirectory(tests)
+    if(_pybind11_nopython)
+      message(FATAL_ERROR "Cannot activate tests in NOPYTHON mode")
+    else()
+      add_subdirectory(tests)
+    endif()
   endif()
 else()
   if(PYBIND11_TEST)
-    add_subdirectory(tests)
+    if(_pybind11_nopython)
+      message(FATAL_ERROR "Cannot activate tests in NOPYTHON mode")
+    else()
+      add_subdirectory(tests)
+    endif()
   endif()
 endif()
