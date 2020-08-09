@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import pytest
-import sys
 from pybind11_tests import stl_binders as m
 
 with pytest.suppress(ImportError):
@@ -77,7 +76,7 @@ def test_vector_buffer():
     assert v[1] == 2
     v[2] = 5
     mv = memoryview(v)  # We expose the buffer interface
-    if sys.version_info.major > 2:
+    if pytest.PY3:
         assert mv[2] == 5
         mv[2] = 6
     else:

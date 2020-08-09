@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 import io
 import struct
-import sys
 
 import pytest
 
 from pybind11_tests import buffers as m
 from pybind11_tests import ConstructorStats
-
-PY3 = sys.version_info[0] >= 3
 
 pytestmark = pytest.requires_numpy
 
@@ -98,7 +95,7 @@ def test_pointer_to_member_fn():
 def test_readonly_buffer():
     buf = m.BufferReadOnly(0x64)
     view = memoryview(buf)
-    assert view[0] == 0x64 if PY3 else b'd'
+    assert view[0] == 0x64 if pytest.PY3 else b'd'
     assert view.readonly
 
 
@@ -106,7 +103,7 @@ def test_readonly_buffer():
 def test_selective_readonly_buffer():
     buf = m.BufferReadOnlySelect()
 
-    memoryview(buf)[0] = 0x64 if PY3 else b'd'
+    memoryview(buf)[0] = 0x64 if pytest.PY3 else b'd'
     assert buf.value == 0x64
 
     io.BytesIO(b'A').readinto(buf)
@@ -114,6 +111,6 @@ def test_selective_readonly_buffer():
 
     buf.readonly = True
     with pytest.raises(TypeError):
-        memoryview(buf)[0] = 0 if PY3 else b'\0'
+        memoryview(buf)[0] = 0 if pytest.PY3 else b'\0'
     with pytest.raises(TypeError):
         io.BytesIO(b'1').readinto(buf)

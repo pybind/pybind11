@@ -115,13 +115,12 @@ def test_bytes_to_string():
     """Tests the ability to pass bytes to C++ string-accepting functions.  Note that this is
     one-way: the only way to return bytes to Python is via the pybind11::bytes class."""
     # Issue #816
-    import sys
-    byte = bytes if sys.version_info[0] < 3 else str
+    bytes_ = bytes if pytest.PY2 else str
 
-    assert m.strlen(byte("hi")) == 2
-    assert m.string_length(byte("world")) == 5
-    assert m.string_length(byte("a\x00b")) == 3
-    assert m.strlen(byte("a\x00b")) == 1  # C-string limitation
+    assert m.strlen(bytes_("hi")) == 2
+    assert m.string_length(bytes_("world")) == 5
+    assert m.string_length(bytes_("a\x00b")) == 3
+    assert m.strlen(bytes_("a\x00b")) == 1  # C-string limitation
 
     # passing in a utf8 encoded string should work
     assert m.string_length(u'💩'.encode("utf8")) == 4
@@ -187,12 +186,11 @@ def test_string_view(capture):
 
 def test_integer_casting():
     """Issue #929 - out-of-range integer values shouldn't be accepted"""
-    import sys
     assert m.i32_str(-1) == "-1"
     assert m.i64_str(-1) == "-1"
     assert m.i32_str(2000000000) == "2000000000"
     assert m.u32_str(2000000000) == "2000000000"
-    if sys.version_info < (3,):
+    if pytest.PY2:
         assert m.i32_str(long(-1)) == "-1"  # noqa: F821 undefined name 'long'
         assert m.i64_str(long(-1)) == "-1"  # noqa: F821 undefined name 'long'
         assert m.i64_str(long(-999999999999)) == "-999999999999"  # noqa: F821 undefined name
@@ -214,7 +212,7 @@ def test_integer_casting():
         m.i32_str(3000000000)
     assert "incompatible function arguments" in str(excinfo.value)
 
-    if sys.version_info < (3,):
+    if pytest.PY2:
         with pytest.raises(TypeError) as excinfo:
             m.u32_str(long(-1))  # noqa: F821 undefined name 'long'
         assert "incompatible function arguments" in str(excinfo.value)
