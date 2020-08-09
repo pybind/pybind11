@@ -15,8 +15,8 @@ Available types include :class:`handle`, :class:`object`, :class:`bool_`,
 
 .. warning::
 
-    You should be aware of how these classes interact with :func:`py::none`.
-    See :ref:`pytypes_interaction_with_none` for more details.
+    Be sure to review the :ref:`gotchas` before using this heavily in your C++
+    API.
 
 Casting back and forth
 ======================
@@ -174,76 +174,22 @@ Generalized unpacking according to PEP448_ is also supported:
 
 .. _PEP448: https://www.python.org/dev/peps/pep-0448/
 
-.. _pytypes_interaction_with_none:
+.. _pytypes_gotchas:
 
-Interaction with None
-=====================
+Gotchas
+=======
+
+Default-Constructed Wrappers
+----------------------------
+
+When a wrapper type is default-constructed, it is **not** a valid Python object (i.e. it is not ``py::none()``). It is simply the same as
+``(PyObject*)nullptr``. To check for this, either use ``(bool)my_wrapper`` or
+``my_wrapper.ptr() == nullptr``.
+
+Assigning py::none() to wrappers
+--------------------------------
 
 You may be tempted to use types like ``py::str`` and ``py::dict`` in C++
-signatures (either pure C++, or in bound signatures). However, there are some
-"gotchas" for ``py::none()`` and how it interacts with these types. In best
-case scenarios, it will fail fast (e.g. with default arguments); in worst
-cases, it will silently work but corrupt the types you want to work with.
-
-In general, the pytypes like ``py::str``, ``py::dict``, etc., are
-strict **non-nullable** reference types. They may not store a copy when
-assigned to, but they cannot store ``None``. For statically typed languages,
-this is in contrast  Java's ``String`` or ``List<E>``, or C#'s ``string`` or
-``List<T>``, which are strict nullable refernce types, and C++'s
-``std::string``, which is simply a value type, or
-``std::optional<std::string>``, which is a nullable value type.
-
-.. note::
-
-    You actually *can* make ``py::str``, ``py::dict``, etc. nullable by
-    using their default constructors (which effectively means that
-    ``.ptr() == nullptr``). However, this nullability cannot be "passed" to
-    Python without explicit intervention.
-
-At a first glance, you may think after executing the following code, the
-expression ``my_value.is(py::none())`` will be true:
-
-.. code-block:: cpp
-
-    py::str my_value = py::none();
-
-However, this is not the case. Instead, the value of ``my_value`` will be equal
-to the Python value of ``str(None)``, due to how :c:macro:`PYBIND11_OBJECT_CVT`
-is used in :file:`pybind11/pytypes.h`.
-
-Additionally, calling the following binding with the default argument used will
-raise a ``TypeError`` about invalid arguments:
-
-.. code-block:: cpp
-
-    m.def(
-        "my_function",
-        [](py::str my_value) { ... },
-        py::arg("my_value") = py::none());
-
-In both of these cases where you may want to pass ``None`` through any
-signatures where you want to constrain the type, you should either use
-:class:`py::object` in conjunction with :func:`py::isinstance`, or use the
-corresponding C++ type with `std::optional` (if it is available on your
-system).
-
-An example of working around the above edge case for conversion:
-
-.. code-block:: cpp
-
-    py::object my_value = /* py::none() or some string */;
-    ...
-    if (!my_value.is(py::none()) && !py::isinstance<py::str>(my_value)) {
-        /* error behavior */
-    }
-
-An example of working around the above edge case for default arguments:
-
-.. code-block:: cpp
-
-    m.def(
-        "my_function",
-        [](std::optional<std::string> my_value) { ... },
-        py::arg("my_value") = std::nullopt);
-
-For more details, see the tests for ``pytypes`` mentioned above.
+signatures (either pure C++, or in bound signatures), and assign them default values of ``py::none()``. However, in a best case scenario, it will fail fast
+because ``None`` is not convertible to that type (e.g. ``py::dict``), or in a worse case scenario, it will silently work but corrupt the types you want to
+work with (e.g. ``py::str(py::none())`` will yield ``"None"`` in Python).
