@@ -15,8 +15,8 @@ Available types include :class:`handle`, :class:`object`, :class:`bool_`,
 
 .. warning::
 
-    Be sure to review the :ref:`gotchas` before using this heavily in your C++
-    API.
+    Be sure to review the :ref:`pytypes_gotchas` before using this heavily in
+    your C++ API.
 
 Casting back and forth
 ======================
