@@ -281,19 +281,12 @@ def test_list_slicing():
     assert li[::2] == m.test_list_slicing(li)
 
 
-def test_pytypes_with_none():
+def test_issue2361():
     # See issue #2361
-    assert m.test_str_assign_none() == "None"
+    assert m.issue2361_str_implicit_copy_none() == "None"
     with pytest.raises(TypeError) as excinfo:
-        m.test_str_with_default_arg_none()
-    assert "incompatible function arguments" in str(excinfo.value)
-
-    with pytest.raises(TypeError) as excinfo:
-        assert m.test_dict_assign_none()
+        assert m.issue2361_dict_implicit_copy_none()
     assert "'NoneType' object is not iterable" in str(excinfo.value)
-    with pytest.raises(TypeError) as excinfo:
-        m.test_dict_with_default_arg_none()
-    assert "incompatible function arguments" in str(excinfo.value)
 
 
 @pytest.mark.parametrize('method, args, fmt, expected_view', [

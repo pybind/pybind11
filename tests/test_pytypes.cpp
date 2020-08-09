@@ -320,19 +320,11 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     // See #2361
-    // These four tests should reflect the text in `object.rst`, the
-    // "Interaction with None" section.
-    m.def("test_str_with_default_arg_none" ,[](py::str value) {
-        return value;
-    }, py::arg("value") = py::none());
-    m.def("test_str_assign_none", []() {
+    m.def("issue2361_str_implicit_copy_none", []() {
         py::str is_this_none = py::none();
         return is_this_none;
     });
-    m.def("test_dict_with_default_arg_none", [](py::dict value) {
-        return value;
-    }, py::arg("value") = py::none());
-    m.def("test_dict_assign_none", []() {
+    m.def("issue2361_dict_implicit_copy_none", []() {
         py::dict is_this_none = py::none();
         return is_this_none;
     });
