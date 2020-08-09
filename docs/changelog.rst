@@ -6,6 +6,31 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+v2.6.0 (IN PROGRESS)
+--------------------
+* Minimum CMake required increased to 3.7 `#2338
+  <https://github.com/pybind/pybind11/pull/2338>`_
+
+  * Full integration with CMake’s C++ standard system replaces
+    ``PYBIND11_CPP_STANDARD``
+
+  * Generated config file is now portable to different Python/compiler/CMake
+    versions
+
+  * Other CMake features now natively supported, like
+    ``CMAKE_INTERPROCEDURAL_OPTIMIZATION``, ``set(CMAKE_CXX_VISIBILITY_PRESET
+    hidden)``
+
+* Optional FindPython support and NOPYTHON mode with CMake
+  `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
+
+* Uninstall target added
+  `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
+  `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
+
+
+
+
 v2.5.0 (Mar 31, 2020)
 -----------------------------------------------------
 
