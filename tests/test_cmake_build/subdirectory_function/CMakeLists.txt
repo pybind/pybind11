@@ -12,7 +12,7 @@ endif()
 project(test_subdirectory_function CXX)
 
 add_subdirectory("${PYBIND11_PROJECT_DIR}" pybind11)
-pybind11_add_module(test_subdirectory_function THIN_LTO ../main.cpp)
+pybind11_add_module(test_subdirectory_function ../main.cpp)
 set_target_properties(test_subdirectory_function PROPERTIES OUTPUT_NAME test_cmake_build)
 
 add_custom_target(
