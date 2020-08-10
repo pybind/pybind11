@@ -3,11 +3,9 @@ sections on how to contribute code and bug reports.
 
 ### Reporting bugs
 
-At the moment, this project is run in the spare time of a single person
-([Wenzel Jakob](http://rgl.epfl.ch/people/wjakob)) with very limited resources
-for issue tracker tickets. Thus, before submitting a question or bug report,
-please take a moment of your time and ensure that your issue isn't already
-discussed in the project documentation provided at
+Before submitting a question or bug report, please take a moment of your time
+and ensure that your issue isn't already discussed in the project documentation
+provided at
 [http://pybind11.readthedocs.org/en/latest](http://pybind11.readthedocs.org/en/latest).
 
 Assuming that you have identified a previously unknown problem or an important
@@ -17,7 +15,8 @@ isolate the function(s) that cause breakage, submit matched and complete C++
 and Python snippets that can be easily compiled and run on my end.
 
 ## Pull requests
-Contributions are submitted, reviewed, and accepted using Github pull requests.
+
+Contributions are submitted, reviewed, and accepted using GitHub pull requests.
 Please refer to [this
 article](https://help.github.com/articles/using-pull-requests) for details and
 adhere to the following rules to make the process as smooth as possible:
@@ -25,10 +24,10 @@ adhere to the following rules to make the process as smooth as possible:
 * Make a new branch for every feature you're working on.
 * Make small and clean pull requests that are easy to review but make sure they
   do add value by themselves.
-* Add tests for any new functionality and run the test suite (``make pytest``)
-  to ensure that no existing features break.
-* Please run [``pre-commit``][pre-commit] to check your code matches the
-  project style. (Note that ``gawk`` is required.) Use `pre-commit run
+* Add tests for any new functionality and run the test suite (`cmake --build
+  build --target pytest`) to ensure that no existing features break.
+* Please run [`pre-commit`][pre-commit] to check your code matches the
+  project style. (Note that `gawk` is required.) Use `pre-commit run
   --all-files` before committing (or use installed-mode, check pre-commit docs)
   to verify your code passes before pushing to save time.
 * This project has a strong focus on providing general solutions using a
@@ -51,3 +50,114 @@ hereby grant the following license: a non-exclusive, royalty-free perpetual
 license to install, use, modify, prepare derivative works, incorporate into
 other computer software, distribute, and sublicense such enhancements or
 derivative works thereof, in binary and source code form.
+
+
+## Development of pybind11
+
+To setup an ideal development environment, run the following commands on a
+system with CMake 3.14+.
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r tests/requirements.txt
+cmake -S . -B build -DPYTHON_EXECUTABLE=$(which python) -DDOWNLOAD_CATCH=ON -DDOWNLOAD_EIGEN=ON
+cmake --build build -j4
+```
+
+Tips:
+
+* You can use `virtualenv` (from PyPI) instead of `venv` (which is Python 3
+  only).
+* You can select any name for your environment folder.
+* If you use a different shell, there are other activate scripts.
+* If you don’t have CMake 3.14+, just add “cmake” to the pip install command.
+* You can use `-DPYBIND11_FINDPYTHON=ON` instead of setting the
+  `PYTHON_EXECUTABLE` - the new search algorithm can find virtual environments,
+  Conda, and more.
+
+### Configuration options
+
+In CMake, configuration options are given with “-D”. Options are stored in the
+build directory, in the `CMakeCache.txt` file, so they are remembered for each
+build directory. Two selections are special - the generator, given with `-G`,
+and the compiler, which is selected based on environment variables `CXX` and
+similar, or `-DCMAKE_CXX_COMPILER=`. Unlike the others, these cannot be changed
+after the initial run.
+
+The valid options are:
+
+* `-DCMAKE_BUILD_TYPE`: Release, Debug, MinSizeRel, RelWithDebInfo
+* `-DPYBIND11_FINDPYTHON=ON`: Use CMake 3.12+’s FindPython instead of the
+  classic, deprecated, custom FindPythonLibs
+* `-DPYBIND11_NOPYTHON=ON`: Disable all Python searching (disables tests)
+* `-DBUILD_TESTING=ON`: Enable the tests
+* `-DDOWNLOAD_CATCH=ON`: Download catch to build the C++ tests
+* `-DOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests
+* `-DPYBIND11_INSTALL=ON/OFF`: Enable the install target (on by default for the
+  master project)
+* `-DUSE_PYTHON_INSTALL_DIR=ON`: Try to install into the python dir
+
+
+<details><summary>A few standard CMake tricks: (click to expand)</summary><p>
+
+* Use `cmake --build build -v` to see the commands used to build the files.
+* Use `cmake build -LH` to list the CMake options with help.
+* Use `ccmake` if available to see a curses (terminal) gui, or `cmake-gui` for
+  a completely graphical interface (not present in the PyPI package).
+* Use `-G` and the name of a generator to use something other than `make`, like
+  `Xcode` or `Ninja` (automatic multithread!).
+* Open the `CMakeLists.txt` with QtCreator to generate for that IDE.
+* Use `cmake --build build -j12` to build with 12 cores (for example).
+* If you are using the `llvm` tool-suite, you can use
+  `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the .json file that the
+  `clang-*` commands expect.
+
+</p></details>
+
+
+To run the tests, you can "build" the check target:
+
+```bash
+cmake --build build --target check
+```
+
+`--target` can be spelled `-t` in CMake 3.15+. You can also run individual tests with these targets:
+
+* `pytest`: Python tests only
+* `cpptest`: C++ tests only
+* `test_cmake_build`: Install / subdirectory tests
+
+If you want to build just a subset of tests, use
+`-DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_picking.cpp"`. If this is
+empty, all tests will be built.
+
+### Formatting
+
+All formatting is handled by pre-commit. You will need docker installed as well
+for pre-commit to run the clang-format step in a consistent environment.
+
+Install with brew (macOS) or pip (any OS):
+
+```bash
+# Any OS
+python3 -m pip install pre-commit
+
+# OR macOS with homebrew:
+brew install pre-commit
+```
+
+Then, you can run it on the items you've added to your staging area, or all files:
+
+```bash
+pre-commit run
+# OR
+pre-commit run --all-files
+```
+
+
+And, if you want to always use it, you can install it as a git hook (hence the name, pre-commit):
+
+```bash
+pre-commit install
+```
