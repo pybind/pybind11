@@ -89,7 +89,7 @@ public:
     PyTF6(const PyTF6 &f) : TestFactory6(f) { print_copy_created(this); }
     PyTF6(std::string s) : TestFactory6((int) s.size()) { alias = true; print_created(this, s); }
     virtual ~PyTF6() { print_destroyed(this); }
-    int get() override { PYBIND11_OVERLOAD(int, TestFactory6, get, /*no args*/); }
+    int get() override { PYBIND11_OVERRIDE(int, TestFactory6, get, /*no args*/); }
 };
 
 class TestFactory7 {
@@ -110,7 +110,7 @@ public:
     PyTF7(PyTF7 &&f) : TestFactory7(std::move(f)) { print_move_created(this); }
     PyTF7(const PyTF7 &f) : TestFactory7(f) { print_copy_created(this); }
     virtual ~PyTF7() { print_destroyed(this); }
-    int get() override { PYBIND11_OVERLOAD(int, TestFactory7, get, /*no args*/); }
+    int get() override { PYBIND11_OVERRIDE(int, TestFactory7, get, /*no args*/); }
 };
 
 
