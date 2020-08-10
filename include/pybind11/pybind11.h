@@ -2118,14 +2118,14 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
     handle type = self.get_type();
     auto key = std::make_pair(type.ptr(), name);
 
-    /* Cache functions that aren't overloaded in Python to avoid
+    /* Cache functions that aren't overridden in Python to avoid
        many costly Python dictionary lookups below */
-    auto &cache = get_internals().inactive_overload_cache;
+    auto &cache = get_internals().inactive_override_cache;
     if (cache.find(key) != cache.end())
         return function();
 
-    function overload = getattr(self, name, function());
-    if (overload.is_cpp_function()) {
+    function override = getattr(self, name, function());
+    if (override.is_cpp_function()) {
         cache.insert(key);
         return function();
     }
@@ -2165,7 +2165,7 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
     Py_DECREF(result);
 #endif
 
-    return overload;
+    return override;
 }
 PYBIND11_NAMESPACE_END(detail)
 
@@ -2189,7 +2189,7 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
         if (override) { \
             auto o = override(__VA_ARGS__); \
             if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value) { \
-                static pybind11::detail::overload_caster_t<ret_type> caster; \
+                static pybind11::detail::override_caster_t<ret_type> caster; \
                 return pybind11::detail::cast_ref<ret_type>(std::move(o), caster); \
             } \
             else return pybind11::detail::cast_safe<ret_type>(std::move(o)); \

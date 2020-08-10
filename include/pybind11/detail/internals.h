@@ -82,10 +82,10 @@ struct type_equal_to {
 template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
-struct overload_hash {
+struct override_hash {
     inline size_t operator()(const std::pair<const PyObject *, const char *>& v) const {
         size_t value = std::hash<const void *>()(v.first);
-        value ^= std::hash<const void *>()(v.second)  + 0x9e3779b9 + (value<<6) + (value>>2);
+        value ^= std::hash<const void *>()(v.second) + 0x9e3779b9 + (value<<6) + (value>>2);
         return value;
     }
 };
@@ -97,7 +97,7 @@ struct internals {
     type_map<type_info *> registered_types_cpp; // std::type_index -> pybind11's type information
     std::unordered_map<PyTypeObject *, std::vector<type_info *>> registered_types_py; // PyTypeObject* -> base type_info(s)
     std::unordered_multimap<const void *, instance*> registered_instances; // void * -> instance*
-    std::unordered_set<std::pair<const PyObject *, const char *>, overload_hash> inactive_overload_cache;
+    std::unordered_set<std::pair<const PyObject *, const char *>, override_hash> inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
     std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
