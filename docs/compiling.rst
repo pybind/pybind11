@@ -306,3 +306,10 @@ extensible, and applies to very complex C++ libraries, composed of thousands of
 classes or incorporating modern meta-programming constructs.
 
 .. [AutoWIG] https://github.com/StatisKit/AutoWIG
+
+[robotpy-build]_ is a is a pure python, cross platform build tool that aims to
+simplify creation of python wheels for pybind11 projects, and provide
+cross-project dependency management. Additionally, it is able to autogenerate
+customizable pybind11-based wrappers by parsing C++ header files.
+
+.. [robotpy-build] https://robotpy-build.readthedocs.io
