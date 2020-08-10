@@ -2110,8 +2110,9 @@ error_already_set::~error_already_set() {
     }
 }
 
-inline function get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name)  {
-    handle self = detail::get_object_handle(this_ptr, this_type);
+PYBIND11_NAMESPACE_BEGIN(detail)
+inline function get_type_override(const void *this_ptr, const type_info *this_type, const char *name)  {
+    handle self = get_object_handle(this_ptr, this_type);
     if (!self)
         return function();
     handle type = self.get_type();
@@ -2119,7 +2120,7 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
 
     /* Cache functions that aren't overloaded in Python to avoid
        many costly Python dictionary lookups below */
-    auto &cache = detail::get_internals().inactive_overload_cache;
+    auto &cache = get_internals().inactive_overload_cache;
     if (cache.find(key) != cache.end())
         return function();
 
@@ -2166,26 +2167,27 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
 
     return overload;
 }
+PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
   Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
 
-  :this_ptr: The pointer to the object the overload should be retrieved for. This should be the first
-                   non-trampoline class encountered in the inheritance chain.
-  :name: The name of the overloaded Python method to retrieve.
+  :this_ptr: The pointer to the object the overriden method should be retrieved for. This should be
+             the first non-trampoline class encountered in the inheritance chain.
+  :name: The name of the overridden Python method to retrieve.
   :return: The Python method by this name from the object or an empty function wrapper.
  \endrst */
-template <class T> function get_overload(const T *this_ptr, const char *name) {
+template <class T> function get_override(const T *this_ptr, const char *name) {
     auto tinfo = detail::get_type_info(typeid(T));
-    return tinfo ? get_type_overload(this_ptr, tinfo, name) : function();
+    return tinfo ? detail::get_type_override(this_ptr, tinfo, name) : function();
 }
 
-#define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) \
+#define PYBIND11_OVERRIDE_IMPL(ret_type, cname, name, ...) \
     do { \
         pybind11::gil_scoped_acquire gil; \
-        pybind11::function overload = pybind11::get_overload(static_cast<const cname *>(this), name); \
-        if (overload) { \
-            auto o = overload(__VA_ARGS__); \
+        pybind11::function override = pybind11::get_override(static_cast<const cname *>(this), name); \
+        if (override) { \
+            auto o = override(__VA_ARGS__); \
             if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value) { \
                 static pybind11::detail::overload_caster_t<ret_type> caster; \
                 return pybind11::detail::cast_ref<ret_type>(std::move(o), caster); \
@@ -2203,7 +2205,7 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
     .. code-block:: cpp
 
       std::string toString() override {
-        PYBIND11_OVERLOAD_NAME(
+        PYBIND11_OVERRIDE_NAME(
             std::string, // Return type (ret_type)
             Animal,      // Parent class (cname)
             "__str__",   // Name of method in Python (name)
@@ -2211,19 +2213,19 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
         );
       }
 \endrst */
-#define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
+#define PYBIND11_OVERRIDE_NAME(ret_type, cname, name, fn, ...) \
     do { \
-        PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
+        PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
         return cname::fn(__VA_ARGS__); \
     } while (false)
 
 /** \rst
-    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD_NAME`, except that it
-    throws if no overload can be found.
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE_NAME`, except that it
+    throws if no override can be found.
 \endrst */
-#define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
+#define PYBIND11_OVERRIDE_PURE_NAME(ret_type, cname, name, fn, ...) \
     do { \
-        PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
+        PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
         pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\""); \
     } while (false)
 
@@ -2242,7 +2244,7 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
 
           // Trampoline (need one for each virtual function)
           std::string go(int n_times) override {
-              PYBIND11_OVERLOAD_PURE(
+              PYBIND11_OVERRIDE_PURE(
                   std::string, // Return type (ret_type)
                   Animal,      // Parent class (cname)
                   go,          // Name of function in C++ (must match Python name) (fn)
@@ -2251,15 +2253,60 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
           }
       };
 \endrst */
-#define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
-    PYBIND11_OVERLOAD_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
+#define PYBIND11_OVERRIDE(ret_type, cname, fn, ...) \
+    PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
 /** \rst
-    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD`, except that it throws
-    if no overload can be found.
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE`, except that it throws
+    if no override can be found.
 \endrst */
+#define PYBIND11_OVERRIDE_PURE(ret_type, cname, fn, ...) \
+    PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
+
+
+// Deprecated versions
+
+PYBIND11_DEPRECATED("get_type_overload has been deprecated")
+inline function get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name) {
+    return detail::get_type_override(this_ptr, this_type, name);
+}
+
+template <class T>
+PYBIND11_DEPRECATED("get_overload has been deprecated in favor of get_override")
+inline function get_overload(const T *this_ptr, const char *name) {
+    return get_override(this_ptr, name);
+}
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+PYBIND11_DEPRECATED("PYBIND11_OVERLOAD_* macros have been deprecated in favor of PYBIND11_OVERRIDE_*")
+static inline void PYBIND11_OVERLOAD_deprecated() {}
+PYBIND11_NAMESPACE_END(detail)
+
+#define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) \
+    do { \
+        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
+        PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
+    } while (false)
+#define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
+    do { \
+        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
+        PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__); \
+    } while (false)
+#define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
+    do { \
+        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
+        PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__); \
+    } while (false)
+#define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
+    do { \
+        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
+        PYBIND11_OVERRIDE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__); \
+    } while (false)
 #define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
-    PYBIND11_OVERLOAD_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
+    do { \
+        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
+        PYBIND11_OVERRIDE_PURE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__); \
+    } while (false)
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
