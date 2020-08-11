@@ -7,9 +7,14 @@ title: "[BUG] "
 
 Make sure you've completed the following steps before submitting your issue -- thank you!
 
-1. Make sure you've read the [documentation](http://pybind11.readthedocs.io/en/latest/). Your issue may be addressed there.
-2. Consider asking first in the [Gitter chat room](https://gitter.im/pybind/Lobby).
-3. Include a self-contained and minimal piece of code that reproduces the problem. If that's not possible, try to make the description as clear as possible.
+1. Make sure you've read the [documentation][]. Your issue may be addressed there.
+2. Search the [issue tracker][] to verify that this hasn't already been reported. +1 or comment there if it has.
+3. Consider asking first in the [Gitter chat room][].
+4. Include a self-contained and minimal piece of code that reproduces the problem. If that's not possible, try to make the description as clear as possible.
+
+[documentation]: https://pybind11.readthedocs.io
+[issue tracker]: https://github.com/pybind/pybind11/issues
+[Gitter chat room]: https://gitter.im/pybind/Lobby
 
 *After reading, remove this checklist and the template text in parentheses below.*
 

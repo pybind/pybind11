@@ -69,8 +69,8 @@ Tips:
 
 * You can use `virtualenv` (from PyPI) instead of `venv` (which is Python 3
   only).
-* You can select any name for your environment folder.
-* If you use a different shell, there are other activate scripts.
+* You can select any name for your environment folder; if it contains "env" it
+  will be ignored by git.
 * If you don’t have CMake 3.14+, just add “cmake” to the pip install command.
 * You can use `-DPYBIND11_FINDPYTHON=ON` instead of setting the
   `PYTHON_EXECUTABLE` - the new search algorithm can find virtual environments,
@@ -105,13 +105,12 @@ The valid options are:
 * Use `cmake build -LH` to list the CMake options with help.
 * Use `ccmake` if available to see a curses (terminal) gui, or `cmake-gui` for
   a completely graphical interface (not present in the PyPI package).
-* Use `-G` and the name of a generator to use something other than `make`, like
-  `Xcode` or `Ninja` (automatic multithread!).
+* Use `-G` and the name of a generator to use something different, like `Ninja`
+  (automatic multithreading!). `cmake --help` lists the generators available.
 * Open the `CMakeLists.txt` with QtCreator to generate for that IDE.
 * Use `cmake --build build -j12` to build with 12 cores (for example).
-* If you are using the `llvm` tool-suite, you can use
-  `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the .json file that the
-  `clang-*` commands expect.
+* You can use `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the `.json` file
+  that some tools expect.
 
 </p></details>
 
