@@ -190,6 +190,9 @@ def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [str, bool, int, float, tuple, list, dict, set]
     expected = {t.__name__: t() for t in types}
+    if str is bytes:  # Python 2.
+        # pybind11::str is unicode even under Python 2.
+        expected["str"] = u""  # flake8 complains about unicode().
     assert m.default_constructors() == expected
 
     data = {
@@ -205,6 +208,9 @@ def test_constructors():
     }
     inputs = {k.__name__: v for k, v in data.items()}
     expected = {k.__name__: k(v) for k, v in data.items()}
+    if str is bytes:  # Similar to the above. See comments above.
+        inputs["str"] = 42
+        expected["str"] = u"42"
 
     assert m.converting_constructors(inputs) == expected
     assert m.cast_functions(inputs) == expected
