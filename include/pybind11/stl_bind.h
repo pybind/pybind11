@@ -313,7 +313,7 @@ void vector_accessor(enable_if_t<!vector_needs_copy<Vector>::value, Class_> &cl)
 
     cl.def("__iter__",
            [](Vector &v) {
-               return make_iterator<
+               return make_iterator_ng<
                    return_value_policy::reference_internal, ItType, ItType, T&>(
                    v.begin(), v.end());
            },
@@ -340,7 +340,7 @@ void vector_accessor(enable_if_t<vector_needs_copy<Vector>::value, Class_> &cl) 
 
     cl.def("__iter__",
            [](Vector &v) {
-               return make_iterator<
+               return make_iterator_ng<
                    return_value_policy::copy, ItType, ItType, T>(
                    v.begin(), v.end());
            },
@@ -608,12 +608,12 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     );
 
     cl.def("__iter__",
-           [](Map &m) { return make_key_iterator(m.begin(), m.end()); },
+           [](Map &m) { return make_key_iterator_ng(m.begin(), m.end()); },
            keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
     );
 
     cl.def("items",
-           [](Map &m) { return make_iterator(m.begin(), m.end()); },
+           [](Map &m) { return make_iterator_ng(m.begin(), m.end()); },
            keep_alive<0, 1>() /* Essential: keep list alive while iterator exists */
     );
 

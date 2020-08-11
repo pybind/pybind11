@@ -1712,6 +1712,22 @@ struct iterator_state {
     bool first_or_done;
 };
 
+template<typename Iterator, typename Sentinel, return_value_policy Policy>
+struct type_caster<iterator_state<Iterator, Sentinel, false, Policy>> :
+    type_caster_base<iterator_state<Iterator, Sentinel, false, Policy>> {
+    using ValueType = decltype(*std::declval<Iterator>());
+public:
+    static constexpr auto name = _("Iterator[") + make_caster<ValueType>::name + _("]");
+};
+
+template<typename Iterator, typename Sentinel, return_value_policy Policy>
+struct type_caster<iterator_state<Iterator, Sentinel, true, Policy>> :
+    type_caster_base<iterator_state<Iterator, Sentinel, true, Policy>> {
+    using ValueType = decltype((*std::declval<Iterator>()).first);
+public:
+    static constexpr auto name = _("Iterator[") + make_caster<ValueType>::name + _("]");
+};
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Makes a python iterator from a first and past-the-end C++ InputIterator.
@@ -1720,7 +1736,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = decltype(*std::declval<Iterator>()),
           typename... Extra>
-iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+detail::iterator_state<Iterator, Sentinel, false, Policy>
+make_iterator_ng(Iterator first, Sentinel last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator, Sentinel, false, Policy> state;
 
     if (!detail::get_type_info(typeid(state), false)) {
@@ -1738,8 +1755,7 @@ iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                 return *s.it;
             }, std::forward<Extra>(extra)..., Policy);
     }
-
-    return cast(state{first, last, true});
+    return state{first, last, true};
 }
 
 /// Makes an python iterator over the keys (`.first`) of a iterator over pairs from a
@@ -1749,7 +1765,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename KeyType = decltype((*std::declval<Iterator>()).first),
           typename... Extra>
-iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+detail::iterator_state<Iterator, Sentinel, true, Policy>
+    make_key_iterator_ng(Iterator first, Sentinel last, Extra &&... extra) {
     typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
 
     if (!detail::get_type_info(typeid(state), false)) {
@@ -1768,22 +1785,65 @@ iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
             }, std::forward<Extra>(extra)..., Policy);
     }
 
-    return cast(state{first, last, true});
+    return state{first, last, true};
+}
+
+/// Makes a python iterator from a first and past-the-end C++ InputIterator.
+template <return_value_policy Policy = return_value_policy::reference_internal,
+    typename Iterator,
+    typename Sentinel,
+    typename ValueType = decltype(*std::declval<Iterator>()),
+    typename... Extra>
+PYBIND11_DEPRECATED("Superseded by make_iterator_ng")
+iterator make_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    return cast(make_iterator_ng(first, last, std::forward<Extra>(extra)...));
+}
+
+/// Makes a python iterator from a first and past-the-end C++ InputIterator.
+template <return_value_policy Policy = return_value_policy::reference_internal,
+    typename Iterator,
+    typename Sentinel,
+    typename ValueType = decltype(*std::declval<Iterator>()),
+    typename... Extra>
+PYBIND11_DEPRECATED("Superseded by make_key_iterator_ng")
+iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    return cast(make_key_iterator_ng(first, last, std::forward<Extra>(extra)...));
+}
+
+template <return_value_policy Policy = return_value_policy::reference_internal,
+    typename Type, typename... Extra>
+detail::iterator_state<decltype(std::begin(std::declval<Type &>())), decltype(std::end(std::declval<Type &>())), false, Policy>
+make_iterator_ng(Type &value, Extra &&... extra) {
+    return make_iterator_ng<Policy>(std::begin(value), std::end(value), std::forward<Extra>(extra)...);
+}
+
+/// Makes an iterator over the keys (`.first`) of a stl map-like container supporting
+/// `std::begin()`/`std::end()`
+template<return_value_policy Policy = return_value_policy::reference_internal,
+    typename Type, typename... Extra>
+detail::iterator_state<decltype(std::begin(std::declval<Type&>())), decltype(std::end(std::declval<Type&>())), true, Policy>
+make_key_iterator_ng(Type &value, Extra &&... extra) {
+    return make_key_iterator_ng<Policy>(std::begin(value), std::end(value), std::forward<Extra>(extra)...);
 }
 
 /// Makes an iterator over values of an stl container or other container supporting
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Type, typename... Extra> iterator make_iterator(Type &value, Extra&&... extra) {
-    return make_iterator<Policy>(std::begin(value), std::end(value), extra...);
+          typename Type, typename... Extra>
+PYBIND11_DEPRECATED("Superseded by make_iterator_ng")
+iterator make_iterator(Type &value, Extra&&... extra) {
+    return cast(make_iterator_ng<Policy>(value, std::forward<Extra>(extra)...));
 }
 
 /// Makes an iterator over the keys (`.first`) of a stl map-like container supporting
 /// `std::begin()`/`std::end()`
 template <return_value_policy Policy = return_value_policy::reference_internal,
-          typename Type, typename... Extra> iterator make_key_iterator(Type &value, Extra&&... extra) {
-    return make_key_iterator<Policy>(std::begin(value), std::end(value), extra...);
+          typename Type, typename... Extra>
+PYBIND11_DEPRECATED("Superseded by make_key_iterator_ng")
+iterator make_key_iterator(Type &value, Extra&&... extra) {
+    return cast(make_key_iterator<Policy>(value, std::forward<Extra>(extra)...));
 }
+
 
 template <typename InputType, typename OutputType> void implicitly_convertible() {
     struct set_flag {

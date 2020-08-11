@@ -277,3 +277,32 @@ def test_map_delitem():
     del um['ua']
     assert sorted(list(um)) == ['ub']
     assert sorted(list(um.items())) == [('ub', 2.6)]
+
+
+def test_map_docstrings(doc):
+    assert (doc(m.MapStringDouble.__iter__) ==
+            "__iter__(self: m.stl_binders.MapStringDouble)"
+            " -> Iterator[str]")
+    assert (doc(m.MapStringDouble.items) ==
+            "items(self: m.stl_binders.MapStringDouble)"
+            " -> Iterator[Tuple[str, float]]")
+    assert (doc(m.UnorderedMapStringDouble.__iter__) ==
+            "__iter__(self: m.stl_binders.UnorderedMapStringDouble)"
+            " -> Iterator[str]\n")
+    assert (doc(m.UnorderedMapStringDouble.items) ==
+            "items(self: m.stl_binders.UnorderedMapStringDouble)"
+            " -> Iterator[Tuple[str, float]]\n")
+
+
+def test_vector_docstrings(doc):
+    assert (doc(m.VectorInt.__iter__) ==
+            "__iter__(self: m.stl_binders.VectorInt)"
+            " -> Iterator[int]\n")
+
+
+@pytest.unsupported_on_pypy
+@pytest.requires_numpy
+def test_vector_docstring2(doc):
+    assert (doc(m.VectorStruct.__iter__) ==
+            "__iter__(self: m.stl_binders.VectorStruct)"
+            " -> Iterator[m.stl_binders.VStruct]")
