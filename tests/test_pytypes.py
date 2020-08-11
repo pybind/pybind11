@@ -390,3 +390,26 @@ def test_memoryview_from_memory():
     assert isinstance(view, memoryview)
     assert view.format == 'B'
     assert bytes(view) == b'\xff\xe1\xab\x37'
+
+
+def test_isinstance_string_types():
+    assert m.isinstance_pybind11_bytes(b"")
+    assert not m.isinstance_pybind11_bytes(u"")
+
+    assert m.isinstance_pybind11_str(u"")
+    assert m.isinstance_pybind11_str(b"")  # Probably surprising.
+
+
+def test_pass_bytes_or_unicode_to_string_types():
+    assert m.pass_to_pybind11_bytes(b"Bytes") == 5
+    with pytest.raises(TypeError):
+        m.pass_to_pybind11_bytes(u"Str")  # NO implicit encode
+
+    assert m.pass_to_pybind11_str(b"Bytes") == 5
+    assert m.pass_to_pybind11_str(u"Str") == 3
+
+    assert m.pass_to_std_string(b"Bytes") == 5
+    assert m.pass_to_std_string(u"Str") == 3
+
+    malformed_utf8 = b"\x80"
+    assert m.pass_to_pybind11_str(malformed_utf8) == 1  # NO decoding error
