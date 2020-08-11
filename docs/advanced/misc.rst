@@ -7,14 +7,14 @@ General notes regarding convenience macros
 ==========================================
 
 pybind11 provides a few convenience macros such as
-:func:`PYBIND11_DECLARE_HOLDER_TYPE` and ``PYBIND11_OVERLOAD_*``. Since these
+:func:`PYBIND11_DECLARE_HOLDER_TYPE` and ``PYBIND11_OVERRIDE_*``. Since these
 are "just" macros that are evaluated in the preprocessor (which has no concept
 of types), they *will* get confused by commas in a template argument; for
 example, consider:
 
 .. code-block:: cpp
 
-    PYBIND11_OVERLOAD(MyReturnType<T1, T2>, Class<T3, T4>, func)
+    PYBIND11_OVERRIDE(MyReturnType<T1, T2>, Class<T3, T4>, func)
 
 The limitation of the C preprocessor interprets this as five arguments (with new
 arguments beginning after each comma) rather than three.  To get around this,
@@ -26,10 +26,10 @@ using the ``PYBIND11_TYPE`` macro:
     // Version 1: using a type alias
     using ReturnType = MyReturnType<T1, T2>;
     using ClassType = Class<T3, T4>;
-    PYBIND11_OVERLOAD(ReturnType, ClassType, func);
+    PYBIND11_OVERRIDE(ReturnType, ClassType, func);
 
     // Version 2: using the PYBIND11_TYPE macro:
-    PYBIND11_OVERLOAD(PYBIND11_TYPE(MyReturnType<T1, T2>),
+    PYBIND11_OVERRIDE(PYBIND11_TYPE(MyReturnType<T1, T2>),
                       PYBIND11_TYPE(Class<T3, T4>), func)
 
 The ``PYBIND11_MAKE_OPAQUE`` macro does *not* require the above workarounds.
@@ -59,7 +59,7 @@ could be realized as follows (important changes highlighted):
             /* Acquire GIL before calling Python code */
             py::gil_scoped_acquire acquire;
 
-            PYBIND11_OVERLOAD_PURE(
+            PYBIND11_OVERRIDE_PURE(
                 std::string, /* Return type */
                 Animal,      /* Parent class */
                 go,          /* Name of function */
