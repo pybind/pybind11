@@ -372,4 +372,11 @@ TEST_SUBMODULE(pytypes, m) {
             buf, static_cast<ssize_t>(strlen(buf)));
     });
 #endif
+
+    m.def("isinstance_pybind11_bytes", [](py::object o) { return py::isinstance<py::bytes>(o); });
+    m.def("isinstance_pybind11_str", [](py::object o) { return py::isinstance<py::str>(o); });
+
+    m.def("pass_to_pybind11_bytes", [](py::bytes b) { return py::len(b); });
+    m.def("pass_to_pybind11_str", [](py::str s) { return py::len(s); });
+    m.def("pass_to_std_string", [](std::string s) { return s.size(); });
 }
