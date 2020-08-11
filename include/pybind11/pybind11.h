@@ -2296,7 +2296,7 @@ PYBIND11_NAMESPACE_END(detail)
     do { \
         pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
         PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__); \
-    } while (false)
+    } while (false);
 #define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
     do { \
         pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
@@ -2306,7 +2306,7 @@ PYBIND11_NAMESPACE_END(detail)
     do { \
         pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
         PYBIND11_OVERRIDE_PURE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__); \
-    } while (false)
+    } while (false);
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
