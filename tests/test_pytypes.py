@@ -188,14 +188,17 @@ def test_accessors():
 
 def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
-    types = [str, bool, int, float, tuple, list, dict, set]
+    types = [bytes, str, bool, int, float, tuple, list, dict, set]
     expected = {t.__name__: t() for t in types}
     if str is bytes:  # Python 2.
+        # Note that bytes.__name__ == 'str' in Python 2.
         # pybind11::str is unicode even under Python 2.
+        expected["bytes"] = bytes()
         expected["str"] = u""  # flake8 complains about unicode().
     assert m.default_constructors() == expected
 
     data = {
+        bytes: b'41',  # Currently no supported or working conversions.
         str: 42,
         bool: "Not empty",
         int: "42",
@@ -209,7 +212,9 @@ def test_constructors():
     inputs = {k.__name__: v for k, v in data.items()}
     expected = {k.__name__: k(v) for k, v in data.items()}
     if str is bytes:  # Similar to the above. See comments above.
+        inputs["bytes"] = b'41'
         inputs["str"] = 42
+        expected["bytes"] = b'41'
         expected["str"] = u"42"
 
     assert m.converting_constructors(inputs) == expected
