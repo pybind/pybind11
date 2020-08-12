@@ -14,7 +14,7 @@ else()
 endif()
 
 add_executable(test_embed catch.cpp test_interpreter.cpp)
-target_include_directories(test_embed PRIVATE "${CATCH_INCLUDE_DIR}")
+target_include_directories(test_embed SYSTEM PRIVATE "${CATCH_INCLUDE_DIR}")
 pybind11_enable_warnings(test_embed)
 
 target_link_libraries(test_embed PRIVATE pybind11::embed)
