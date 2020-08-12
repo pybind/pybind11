@@ -146,7 +146,7 @@ jobs:
       run: cmake --build build --target cpptest -j 2
 
     - name: Interface test C++11
-      run: cmake --build build --target test_cmake_build
+      run: cmake --build build --target test_cmake_build -v
 
     - name: Configure C++${{ matrix.max-cxx-std }} ${{ matrix.args }}
       shell: bash

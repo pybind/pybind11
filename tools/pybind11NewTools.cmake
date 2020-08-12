@@ -14,7 +14,9 @@ if(CMAKE_VERSION VERSION_LESS 3.12)
   message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
 endif()
 
-if(NOT Python_FOUND)
+if(NOT Python_FOUND
+   AND NOT Python3_FOUND
+   AND NOT Python2_FOUND)
   if(NOT DEFINED Python_FIND_IMPLEMENTATIONS)
     set(Python_FIND_IMPLEMENTATIONS CPython PyPy)
   endif()
@@ -24,7 +26,7 @@ if(NOT Python_FOUND)
     set(Python_ROOT_DIR "$ENV{pythonLocation}")
   endif()
 
-  find_package(Python COMPONENTS Interpreter Development)
+  find_package(Python REQUIRED COMPONENTS Interpreter Development)
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
@@ -37,16 +39,35 @@ if(NOT Python_FOUND)
   endif()
 endif()
 
+if(Python_FOUND)
+  set(_Python
+      Python
+      CACHE INTERNAL "" FORCE)
+elseif(Python3_FOUND AND NOT Python2_FOUND)
+  set(_Python
+      Python3
+      CACHE INTERNAL "" FORCE)
+elseif(Python2_FOUND AND NOT Python3_FOUND)
+  set(_Python
+      Python2
+      CACHE INTERNAL "" FORCE)
+else()
+  if(NOT pybind11_QUIETLY)
+    message(STATUS "Python2 and Python3 both present, pybind11 in NOPYTHON mode")
+  endif()
+  return()
+endif()
+
 # Check on every access - since Python2 and Python3 could have been used - do nothing in that case.
 
-if(DEFINED Python_INCLUDE_DIRS)
+if(DEFINED ${_Python}_INCLUDE_DIRS)
   set_property(
     TARGET pybind11::pybind11
     APPEND
-    PROPERTY INTERFACE_INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${Python_INCLUDE_DIRS}>)
+    PROPERTY INTERFACE_INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${${_Python}_INCLUDE_DIRS}>)
 endif()
 
-if(DEFINED Python_VERSION AND Python_VERSION VERSION_LESS 3)
+if(DEFINED ${_Python}_VERSION AND ${_Python}_VERSION VERSION_LESS 3)
   set_property(
     TARGET pybind11::pybind11
     APPEND
@@ -54,19 +75,19 @@ if(DEFINED Python_VERSION AND Python_VERSION VERSION_LESS 3)
 endif()
 
 # In CMake 3.18+, you can find these separately, so include an if
-if(TARGET Python::Python)
+if(TARGET ${_Python}::${_Python})
   set_property(
     TARGET pybind11::embed
     APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES Python::Python)
+    PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::${_Python})
 endif()
 
 # CMake 3.15+ has this
-if(TARGET Python::Module)
+if(TARGET ${_Python}::Module)
   set_property(
     TARGET pybind11::module
     APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES Python::Module)
+    PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Module)
 else()
   set_property(
     TARGET pybind11::module
@@ -85,8 +106,14 @@ function(pybind11_add_module target_name)
     set(type MODULE)
   endif()
 
-  if(COMMAND Python_add_library)
+  if("${_Python}" STREQUAL "Python")
     python_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
+  elseif("${_Python}" STREQUAL "Python3")
+    python3_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
+  elseif("${_Python}" STREQUAL "Python2")
+    python2_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
+  else()
+    message(FATAL_ERROR "Cannot detect FindPython version: ${_Python}")
   endif()
 
   target_link_libraries(${target_name} PRIVATE pybind11::headers)
@@ -101,11 +128,11 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::windows_extras)
   endif()
 
-  if(DEFINED Python_VERSION AND Python_VERSION VERSION_LESS 3)
+  if(DEFINED ${_Python}_VERSION AND ${_Python}_VERSION VERSION_LESS 3)
     target_link_libraries(${target_name} PRIVATE pybind11::python2_no_register)
   endif()
 
-  # Currently Debug Python interps not supported for Python < 3.8
+  # Currently Debug ${_Python} interps not supported for ${_Python} < 3.8
 
   set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden"
                                                   CUDA_VISIBILITY_PRESET "hidden")
@@ -139,7 +166,7 @@ function(pybind11_extension name)
     set_property(TARGET ${name} PROPERTY SUFFIX ".pyd")
   endif()
 
-  if(Python_SOABI)
+  if(${_Python}_SOABI)
     get_property(
       suffix
       TARGET ${name}
@@ -147,6 +174,6 @@ function(pybind11_extension name)
     if(NOT suffix)
       set(suffix "${CMAKE_SHARED_MODULE_SUFFIX}")
     endif()
-    set_property(TARGET ${name} PROPERTY SUFFIX ".${Python_SOABI}${suffix}")
+    set_property(TARGET ${name} PROPERTY SUFFIX ".${${_Python}_SOABI}${suffix}")
   endif()
 endfunction()

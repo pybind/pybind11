@@ -10,10 +10,9 @@ function(pybind11_add_build_test name)
 
     if(DEFINED Python_ROOT_DIR)
       list(APPEND build_options "-DPython_ROOT_DIR=${Python_ROOT_DIR}")
-    else()
-      list(APPEND build_options "-DPython_EXECUTABLE=${Python_EXECUTABLE}")
     endif()
 
+    list(APPEND build_options "-DPython_EXECUTABLE=${Python_EXECUTABLE}")
   else()
     list(APPEND build_options "-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
   endif()

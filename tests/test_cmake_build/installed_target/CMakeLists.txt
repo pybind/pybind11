@@ -27,7 +27,11 @@ pybind11_extension(test_installed_target)
 set_target_properties(test_installed_target PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
 
 if(DEFINED Python_EXECUTABLE)
-  set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
+  set(_Python_EXECUTABLE "${Python_EXECUTABLE}")
+elseif(DEFINED PYTHON_EXECUTABLE)
+  set(_Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
+else()
+  message(FATAL_ERROR "No Python executable defined (should not be possible at this stage)")
 endif()
 
 add_custom_target(
@@ -36,6 +40,6 @@ add_custom_target(
   -E
   env
   PYTHONPATH=$<TARGET_FILE_DIR:test_installed_target>
-  ${PYTHON_EXECUTABLE}
+  ${_Python_EXECUTABLE}
   ${PROJECT_SOURCE_DIR}/../test.py
   ${PROJECT_NAME})

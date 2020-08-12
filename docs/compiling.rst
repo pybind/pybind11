@@ -196,7 +196,7 @@ algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
 
 .. warning::
 
-    If you use FindPython2/FindPython3 instead of FindPython, use the
+    If you use FindPython2 and FindPython3 to dual-target Python, use the
     individual targets listed below, and avoid targets that directly include
     Python parts.
 
@@ -280,7 +280,7 @@ Advanced: NOPYTHON mode
 -----------------------
 
 If you want complete control, you can set ``PYBIND11_NOPYTHON`` to completely
-disable Python integration (this also happens if you run ``FindPython2`` and/or
+disable Python integration (this also happens if you run ``FindPython2`` and
 ``FindPython3`` without running ``FindPython``). This gives you complete
 freedom to integrate into an existing system (like `Scikit-Build's
 <https://scikit-build.readthedocs.io>`_ ``PythonExtensions``).
