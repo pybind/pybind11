@@ -58,12 +58,6 @@ jobs:
             arch: x64
             max-cxx-std: 17
 
-            # Currently can't build due to warning, fixed in CPython > 3.9b5
-          - runs-on: macos-latest
-            python: 3.9-dev
-            arch: x64
-            max-cxx-std: 17
-
             # Currently broken on embed_test
           - runs-on: windows-latest
             python: 3.8
