@@ -149,3 +149,16 @@ def test_nested_throws(capture):
     with pytest.raises(m.MyException5) as excinfo:
         m.try_catch(m.MyException, pycatch, m.MyException, m.throws5)
     assert str(excinfo.value) == "this is a helper-defined translated exception"
+
+
+# This can often happen if you wrap a pybind11 class in a Python wrapper
+def test_invalid_repr():
+
+    class MyRepr(object):
+        def __repr__(self):
+            raise AttributeError("Example error")
+
+    with pytest.raises(TypeError) as execinfo:
+        m.simple_bool_passthrough(MyRepr())
+
+    assert "MyRepr" in str(execinfo)

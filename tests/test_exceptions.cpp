@@ -194,4 +194,7 @@ TEST_SUBMODULE(exceptions, m) {
         }
     });
 
+    // Test repr that cannot be displayed
+    m.def("simple_bool_passthrough", [](bool x) {return x;});
+
 }
