@@ -158,7 +158,5 @@ def test_invalid_repr():
         def __repr__(self):
             raise AttributeError("Example error")
 
-    with pytest.raises(TypeError) as execinfo:
+    with pytest.raises(TypeError):
         m.simple_bool_passthrough(MyRepr())
-
-    assert "MyRepr" in str(execinfo)

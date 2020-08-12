@@ -779,7 +779,7 @@ protected:
                 try {
                     msg += pybind11::repr(args_[ti]);
                 } catch (const error_already_set&) {
-                    msg += pybind11::repr(args_[ti].get_type());
+                    msg += "<repr raised Error>";
                 }
             }
             if (kwargs_in) {
@@ -791,7 +791,12 @@ protected:
                     for (auto kwarg : kwargs) {
                         if (first) first = false;
                         else msg += ", ";
-                        msg += pybind11::str("{}={!r}").format(kwarg.first, kwarg.second);
+                        msg += pybind11::str("{}=").format(kwarg.first);
+                        try {
+                            msg += pybind11::repr(kwarg.second);
+                        } catch (const error_already_set&) {
+                            msg += "<repr raised Error>";
+                        }
                     }
                 }
             }
