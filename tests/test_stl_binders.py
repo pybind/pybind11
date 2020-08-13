@@ -85,6 +85,11 @@ def test_vector_buffer():
         mv[2] = '\x06'
     assert v[2] == 6
 
+    if sys.version_info.major > 2:
+        mv = memoryview(b)
+        v = m.VectorUChar(mv[::2])
+        assert v[1] == 3
+
     with pytest.raises(RuntimeError) as excinfo:
         m.create_undeclstruct()  # Undeclared struct contents, no buffer interface
     assert "NumPy type info missing for " in str(excinfo.value)
@@ -118,6 +123,10 @@ def test_vector_buffer_numpy():
     v = m.VectorStruct(np.zeros(3, dtype=np.dtype([('w', 'bool'), ('x', 'I'),
                                                    ('y', 'float64'), ('z', 'bool')], align=True)))
     assert len(v) == 3
+
+    b = np.array([1, 2, 3, 4], dtype=np.uint8)
+    v = m.VectorUChar(b[::2])
+    assert v[1] == 3
 
 
 def test_vector_bool():
