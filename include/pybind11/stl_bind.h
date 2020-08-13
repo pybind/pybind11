@@ -401,15 +401,14 @@ vector_buffer(Class_& cl) {
         ssize_t step = info.strides[0] / static_cast<ssize_t>(sizeof(T));
         T *end = p + info.shape[0] * step;
         if (step == 1) {
-            auto vec = std::unique_ptr<Vector>(new Vector(p, end));
-            return vec.release();
+            return Vector(p, end);
         }
         else {
-            auto vec = std::unique_ptr<Vector>(new Vector());
-            vec->reserve((size_t) info.shape[0]);
+            Vector vec;
+            vec.reserve((size_t) info.shape[0]);
             for (; p != end; p += step)
-                vec->push_back(*p);
-            return vec.release();
+                vec.push_back(*p);
+            return vec;
         }
     }));
 
