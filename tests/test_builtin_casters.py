@@ -115,12 +115,19 @@ def test_bytes_to_string():
     """Tests the ability to pass bytes to C++ string-accepting functions.  Note that this is
     one-way: the only way to return bytes to Python is via the pybind11::bytes class."""
     # Issue #816
-    bytes_ = bytes if pytest.PY2 else str
 
-    assert m.strlen(bytes_("hi")) == 2
-    assert m.string_length(bytes_("world")) == 5
-    assert m.string_length(bytes_("a\x00b")) == 3
-    assert m.strlen(bytes_("a\x00b")) == 1  # C-string limitation
+    def to_bytes(s):
+        if pytest.PY2:
+            b = s
+        else:
+            b = s.encode("utf8")
+        assert isinstance(b, bytes)
+        return b
+
+    assert m.strlen(to_bytes("hi")) == 2
+    assert m.string_length(to_bytes("world")) == 5
+    assert m.string_length(to_bytes("a\x00b")) == 3
+    assert m.strlen(to_bytes("a\x00b")) == 1  # C-string limitation
 
     # passing in a utf8 encoded string should work
     assert m.string_length(u'💩'.encode("utf8")) == 4
