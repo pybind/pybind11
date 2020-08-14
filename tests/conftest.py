@@ -208,16 +208,8 @@ def pytest_configure():
 
     # Provide simple `six`-like aliases.
     pytest.PY2 = (sys.version_info.major == 2)
-    pytest.PY3 = (sys.version_info.major == 3)
     pytest.CPYTHON = (platform.python_implementation() == "CPython")
     pytest.PYPY = (platform.python_implementation() == "PyPy")
-
-    if not pytest.PY2 and not pytest.PY3:
-        print("pybind11 is only supported on Python 2.x or 3.x")
-        sys.exit(1)
-    if not pytest.CPYTHON and not pytest.PYPY:
-        print("pybind11 is only supported for CPython or PyPy")
-        sys.exit(1)
 
     skipif = pytest.mark.skipif
     pytest.suppress = suppress
@@ -229,7 +221,7 @@ def pytest_configure():
         not have_eigen or not scipy, reason="eigen and/or scipy are not installed")
     pytest.unsupported_on_pypy = skipif(pytest.PYPY, reason="unsupported on PyPy")
     pytest.bug_in_pypy = pytest.mark.xfail(pytest.PYPY, reason="bug in PyPy")
-    pytest.unsupported_on_pypy3 = skipif(pytest.PYPY and pytest.PY3,
+    pytest.unsupported_on_pypy3 = skipif(pytest.PYPY and not pytest.PY2,
                                          reason="unsupported on PyPy3")
     pytest.unsupported_on_pypy_lt_6 = skipif(pytest.PYPY and sys.pypy_version_info[0] < 6,
                                              reason="unsupported on PyPy<6")

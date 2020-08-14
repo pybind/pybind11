@@ -113,7 +113,7 @@ def test_bytes(doc):
     assert m.bytes_from_str().decode() == "bar"
 
     assert doc(m.bytes_from_str) == "bytes_from_str() -> {}".format(
-        "bytes" if pytest.PY3 else "str"
+        "str" if pytest.PY2 else "bytes"
     )
 
 
@@ -324,7 +324,7 @@ def test_memoryview(method, args, fmt, expected_view):
     view = method(*args)
     assert isinstance(view, memoryview)
     assert view.format == fmt
-    if isinstance(expected_view, bytes) or pytest.PY3:
+    if isinstance(expected_view, bytes) or not pytest.PY2:
         view_as_list = list(view)
     else:
         # Using max to pick non-zero byte (big-endian vs little-endian).
