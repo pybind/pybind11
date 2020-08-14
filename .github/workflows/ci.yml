@@ -84,10 +84,6 @@ jobs:
       if: runner.os != 'macOS'
       run: echo "::set-env name=BOOST_ROOT::$BOOST_ROOT_1_72_0"
 
-    - name: Setup Boost (macOS)
-      if: runner.os == 'macOS'
-      run: brew install boost
-
     - name: Cache wheels
       if: runner.os == 'macOS'
       uses: actions/cache@v2
