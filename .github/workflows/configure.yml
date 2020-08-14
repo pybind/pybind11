@@ -14,16 +14,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [ubuntu-latest, macos-latest]
+        runs-on: [ubuntu-latest, macos-latest, windows-latest]
         arch: [x64]
-        cmake: [3.7, 3.18]
+        cmake: [3.18]
 
         include:
-        - runs-on: windows-latest
+        - runs-on: ubuntu-latest
           arch: x64
-          cmake: 3.18
+          cmake: 3.4
 
-        # TODO: 3.8
+        - runs-on: macos-latest
+          arch: x64
+          cmake: 3.7
+
         - runs-on: windows-2016
           arch: x86
           cmake: 3.8
@@ -63,3 +66,13 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+
+    - name: Build
+      working-directory: build dir
+      if: github.event_name == 'workflow_dispatch'
+      run: cmake --build . --config Release
+
+    - name: Test
+      working-directory: build dir
+      if: github.event_name == 'workflow_dispatch'
+      run: cmake --build . --config Release --target check

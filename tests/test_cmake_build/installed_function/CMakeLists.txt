@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.4)
 project(test_installed_module CXX)
 
-# The `cmake_minimum_required(VERSION 3.7...3.18)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
 if(${CMAKE_VERSION} VERSION_LESS 3.18)

@@ -1,7 +1,10 @@
+# Built-in in CMake 3.5+
+include(CMakeParseArguments)
+
 add_custom_target(test_cmake_build)
 
 function(pybind11_add_build_test name)
-  cmake_parse_arguments(PARSE_ARGV 1 ARG "INSTALL" "" "")
+  cmake_parse_arguments(ARG "INSTALL" "" "" ${ARGN})
 
   set(build_options "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
 
