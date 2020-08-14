@@ -458,7 +458,7 @@ PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail:
     auto &instances = get_internals().registered_instances;
     auto range = instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
-        for (auto vh : values_and_holders(it->second)) {
+        for (const auto &vh : values_and_holders(it->second)) {
             if (vh.type == type)
                 return handle((PyObject *) it->second);
         }
