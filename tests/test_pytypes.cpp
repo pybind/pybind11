@@ -80,6 +80,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });
     m.def("str_from_object", [](const py::object& obj) { return py::str(obj); });
     m.def("repr_from_object", [](const py::object& obj) { return py::repr(obj); });
+    m.def("str_from_handle", [](py::handle h) { return py::str(h); });
 
     m.def("str_format", []() {
         auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
