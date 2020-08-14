@@ -2,11 +2,6 @@
 import pytest
 from pybind11_tests import kwargs_and_defaults as m
 
-import platform
-import sys
-
-pypy = platform.python_implementation() == "PyPy"
-
 
 def test_function_signatures(doc):
     assert doc(m.kw_func0) == "kw_func0(arg0: int, arg1: int) -> str"
@@ -151,7 +146,7 @@ def test_keyword_only_args(msg):
     """
 
 
-@pytest.mark.xfail(pypy and sys.version_info < (3, 0),
+@pytest.mark.xfail(pytest.PYPY and pytest.PY2,
                    reason="PyPy2 doesn't seem to double count")
 def test_args_refcount():
     """Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with regular

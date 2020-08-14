@@ -113,7 +113,7 @@ def test_bytes(doc):
     assert m.bytes_from_str().decode() == "bar"
 
     assert doc(m.bytes_from_str) == "bytes_from_str() -> {}".format(
-        "bytes" if sys.version_info[0] == 3 else "str"
+        "str" if pytest.PY2 else "bytes"
     )
 
 
@@ -324,7 +324,7 @@ def test_memoryview(method, args, fmt, expected_view):
     view = method(*args)
     assert isinstance(view, memoryview)
     assert view.format == fmt
-    if isinstance(expected_view, bytes) or sys.version_info[0] >= 3:
+    if isinstance(expected_view, bytes) or not pytest.PY2:
         view_as_list = list(view)
     else:
         # Using max to pick non-zero byte (big-endian vs little-endian).
@@ -352,7 +352,7 @@ def test_memoryview_from_buffer_empty_shape():
     view = m.test_memoryview_from_buffer_empty_shape()
     assert isinstance(view, memoryview)
     assert view.format == 'B'
-    if sys.version_info.major < 3:
+    if pytest.PY2:
         # Python 2 behavior is weird, but Python 3 (the future) is fine.
         # PyPy3 has <memoryview, while CPython 2 has <memory
         assert bytes(view).startswith(b'<memory')
@@ -366,14 +366,14 @@ def test_test_memoryview_from_buffer_invalid_strides():
 
 
 def test_test_memoryview_from_buffer_nullptr():
-    if sys.version_info.major < 3:
+    if pytest.PY2:
         m.test_memoryview_from_buffer_nullptr()
     else:
         with pytest.raises(ValueError):
             m.test_memoryview_from_buffer_nullptr()
 
 
-@pytest.mark.skipif(sys.version_info.major < 3, reason='API not available')
+@pytest.unsupported_on_py2
 def test_memoryview_from_memory():
     view = m.test_memoryview_from_memory()
     assert isinstance(view, memoryview)
