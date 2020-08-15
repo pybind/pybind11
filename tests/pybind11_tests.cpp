@@ -88,6 +88,4 @@ PYBIND11_MODULE(pybind11_tests, m) {
 
     for (const auto &initializer : initializers())
         initializer(m);
-
-    if (!py::hasattr(m, "have_eigen")) m.attr("have_eigen") = false;
 }

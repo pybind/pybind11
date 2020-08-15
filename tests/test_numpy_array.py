@@ -2,10 +2,7 @@
 import pytest
 from pybind11_tests import numpy_array as m
 
-pytestmark = pytest.requires_numpy
-
-with pytest.suppress(ImportError):
-    import numpy as np
+np = pytest.importorskip("numpy")
 
 
 def test_dtypes():
@@ -243,7 +240,7 @@ def test_numpy_view(capture):
     """
 
 
-@pytest.unsupported_on_pypy
+@pytest.mark.cpython
 def test_cast_numpy_int64_to_uint64():
     m.function_taking_uint64(123)
     m.function_taking_uint64(np.uint64(123))
@@ -424,7 +421,7 @@ def test_array_resize(msg):
     assert(b.shape == (8, 8))
 
 
-@pytest.unsupported_on_pypy
+@pytest.mark.cpython
 def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
     assert(a.size == 4)
@@ -436,7 +433,7 @@ def test_index_using_ellipsis():
     assert a.shape == (6,)
 
 
-@pytest.unsupported_on_pypy
+@pytest.mark.cpython
 def test_dtype_refcount_leak():
     from sys import getrefcount
     dtype = np.dtype(np.float_)

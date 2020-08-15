@@ -160,7 +160,7 @@ def test_alias_delay_initialization2(capture):
 
 # PyPy: Reference count > 1 causes call with noncopyable instance
 # to fail in ncv1.print_nc()
-@pytest.unsupported_on_pypy
+@pytest.mark.cpython
 @pytest.mark.skipif(not hasattr(m, "NCVirt"), reason="NCVirt test broken on ICPC")
 def test_move_support():
     class NCVirtExt(m.NCVirt):

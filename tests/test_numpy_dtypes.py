@@ -3,10 +3,7 @@ import re
 import pytest
 from pybind11_tests import numpy_dtypes as m
 
-pytestmark = pytest.requires_numpy
-
-with pytest.suppress(ImportError):
-    import numpy as np
+np = pytest.importorskip("numpy")
 
 
 @pytest.fixture(scope='module')
@@ -294,7 +291,7 @@ def test_register_dtype():
     assert 'dtype is already registered' in str(excinfo.value)
 
 
-@pytest.unsupported_on_pypy
+@pytest.mark.cpython
 def test_str_leak():
     from sys import getrefcount
     fmt = "f4"

@@ -17,11 +17,11 @@ jobs:
         runs-on: [ubuntu-latest, windows-latest, macos-latest]
         arch: [x64]
         max-cxx-std: [17]
+        dev: [false]
         python:
         - 2.7
         - 3.5
         - 3.8
-        - 3.9-dev
         - pypy2
         - pypy3
 
@@ -30,22 +30,38 @@ jobs:
             python: 3.6
             arch: x64
             max-cxx-std: 17
+            dev: false
           - runs-on: macos-latest
             python: 3.7
             arch: x64
             max-cxx-std: 17
+            dev: false
           - runs-on: windows-2016
             python: 3.7
             arch: x86
             max-cxx-std: 14
+            dev: false
           - runs-on: windows-latest
             python: 3.6
             arch: x64
             max-cxx-std: 17
+            dev: false
           - runs-on: windows-latest
             python: 3.7
             arch: x64
             max-cxx-std: 17
+            dev: false
+
+          - runs-on: ubuntu-latest
+            python: 3.9-dev
+            arch: x64
+            max-cxx-std: 17
+            dev: true
+          - runs-on: macos-latest
+            python: 3.9-dev
+            arch: x64
+            max-cxx-std: 17
+            dev: true
 
         exclude:
             # Currently 32bit only, and we build 64bit
@@ -53,23 +69,29 @@ jobs:
             python: pypy2
             arch: x64
             max-cxx-std: 17
+            dev: false
           - runs-on: windows-latest
             python: pypy3
             arch: x64
             max-cxx-std: 17
+            dev: false
 
             # Currently broken on embed_test
           - runs-on: windows-latest
             python: 3.8
             arch: x64
             max-cxx-std: 17
+            dev: false
           - runs-on: windows-latest
             python: 3.9-dev
             arch: x64
             max-cxx-std: 17
+            dev: false
+
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }}"
     runs-on: ${{ matrix.runs-on }}
+    continue-on-error: ${{ matrix.dev }}
 
     steps:
     - uses: actions/checkout@v2
