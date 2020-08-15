@@ -128,7 +128,7 @@ cmake --build build --target check
 * `test_cmake_build`: Install / subdirectory tests
 
 If you want to build just a subset of tests, use
-`-DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_picking.cpp"`. If this is
+`-DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp"`. If this is
 empty, all tests will be built.
 
 ### Formatting

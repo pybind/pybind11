@@ -11,6 +11,7 @@ Make sure you've completed the following steps before submitting your issue -- t
 2. Search the [issue tracker][] to verify that this hasn't already been reported. +1 or comment there if it has.
 3. Consider asking first in the [Gitter chat room][].
 4. Include a self-contained and minimal piece of code that reproduces the problem. If that's not possible, try to make the description as clear as possible.
+    a. If possible, make a PR with a new, failing test to give us a starting point to work on!
 
 [documentation]: https://pybind11.readthedocs.io
 [issue tracker]: https://github.com/pybind/pybind11/issues
