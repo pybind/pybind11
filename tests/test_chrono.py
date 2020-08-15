@@ -15,14 +15,12 @@ def test_chrono_system_clock():
     # The numbers should vary by a very small amount (time it took to execute)
     diff = abs(date1 - date2)
 
-    # There should never be a days/seconds difference
+    # There should never be a days difference
     assert diff.days == 0
-    assert diff.seconds == 0
 
-    # We test that no more than about 0.5 seconds passes here
-    # This makes sure that the dates created are very close to the same
-    # but if the testing system is incredibly overloaded this should still pass
-    assert diff.microseconds < 500000
+    # Since datetime.datetime.today() calls time.time(), and on some platforms
+    # that has 1 second accuracy, we should always be less than 2 seconds.
+    assert diff.seconds < 2
 
 
 def test_chrono_system_clock_roundtrip():
