@@ -258,7 +258,7 @@ def test_property_rvalue_policy():
 
 
 # https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.mark.cpython
+@pytest.mark.skip_pypy
 def test_dynamic_attributes():
     instance = m.DynamicClass()
     assert not hasattr(instance, "foo")
@@ -300,7 +300,7 @@ def test_dynamic_attributes():
 
 
 # https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.mark.cpython
+@pytest.mark.skip_pypy
 def test_cyclic_gc():
     # One object references itself
     instance = m.DynamicClass()

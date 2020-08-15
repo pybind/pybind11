@@ -11,7 +11,8 @@ def test_multiple_inheritance_cpp():
     assert mt.bar() == 4
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.skip_pypy2
+@pytest.mark.xfail_pypy3
 def test_multiple_inheritance_mix1():
     class Base1:
         def __init__(self, i):
@@ -50,7 +51,8 @@ def test_multiple_inheritance_mix2():
     assert mt.bar() == 4
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.skip_pypy2
+@pytest.mark.xfail_pypy3
 def test_multiple_inheritance_python():
 
     class MI1(m.Base1, m.Base2):

@@ -291,7 +291,7 @@ def test_register_dtype():
     assert 'dtype is already registered' in str(excinfo.value)
 
 
-@pytest.mark.cpython
+@pytest.mark.skip_pypy
 def test_str_leak():
     from sys import getrefcount
     fmt = "f4"

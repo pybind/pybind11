@@ -332,9 +332,8 @@ def test_memoryview(method, args, fmt, expected_view, PY2):
     assert view_as_list == list(expected_view)
 
 
-@pytest.mark.skipif(
-    not hasattr(sys, 'getrefcount'),
-    reason='getrefcount is not available')
+# getrefcount missing
+@pytest.mark.xfail_pypy
 @pytest.mark.parametrize('method', [
     m.test_memoryview_object,
     m.test_memoryview_buffer_info,
@@ -373,7 +372,7 @@ def test_test_memoryview_from_buffer_nullptr(PY2):
             m.test_memoryview_from_buffer_nullptr()
 
 
-@pytest.mark.py3
+@pytest.mark.skip_py2
 def test_memoryview_from_memory():
     view = m.test_memoryview_from_memory()
     assert isinstance(view, memoryview)

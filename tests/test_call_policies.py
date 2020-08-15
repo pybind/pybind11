@@ -71,7 +71,7 @@ def test_keep_alive_return_value(capture):
 
 
 # https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.mark.cpython
+@pytest.mark.skip_pypy
 def test_alive_gc(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     p = m.ParentGC()

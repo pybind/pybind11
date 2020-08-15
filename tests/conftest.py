@@ -195,13 +195,15 @@ def pytest_configure():
     pytest.gc_collect = gc_collect
 
 
-# Platform tools
+# Platform Markers
 
+PLAT = sys.platform.lower()
+IMPL = platform.python_implementation().lower()
+PYMAJ = str(sys.version_info.major)
+PYNAME = "PY" + PYMAJ
 
-PLAT = sys.platform
-IMPL = platform.python_implementation()
-PYVM = sys.version_info.major
-PYN = "py{}".format(PYVM)
+CURRENT = {PLAT, IMPL, PYNAME, PLAT + PYMAJ}
+START = {"xfail", "skip"}
 
 
 @pytest.fixture
@@ -214,53 +216,14 @@ def PY2():
 
 def pytest_collection_modifyitems(items):
     for item in items:
-        names = set(mark.name for mark in item.iter_markers())
-        if "unix" in names:
-            if "linux" not in names:
-                item.add_marker(pytest.mark.linux)
-            if "darwin" not in names:
-                item.add_marker(pytest.mark.darwin)
-        if "pypy" in names:
-            if "pypy2" not in names:
-                item.add_marker(pytest.mark.pypy2)
-            if "pypy3" not in names:
-                item.add_marker(pytest.mark.pypy3)
+        for mark in tuple(item.iter_markers()):
+            parts = mark.name.split("_")
+            if len(parts) == 2 and parts[0] in START and parts[1] in CURRENT:
+                marker = getattr(pytest.mark, parts[0])
+                reason = "expected to fail on {}".format(parts[1])
 
-        if "xfail_{}".format(IMPL.lower()) in names:
-            item.add_marker(
-                pytest.mark.xfail(reason="expected to fail on {}".format(IMPL))
-            )
-        if "xfail_{}".format(PLAT.lower()) in names:
-            item.add_marker(
-                pytest.mark.xfail(reason="expected to fail on {}".format(PLAT))
-            )
-        if "xfail_{}".format(PYN.lower()) in names:
-            item.add_marker(
-                pytest.mark.xfail(reason="expected to fail on Python {}".format(PYVM))
-            )
-        if "xfail_pypy{}".format(PYVM) in names and PLAT == "PyPy":
-            item.add_marker(
-                pytest.mark.xfail(reason="expected to fail on PyPy {}".format(PYVM))
-            )
-
-
-ALL_PLAT = {"darwin", "linux", "win32"}
-ALL_IMPL = {"cpython", "pypy2", "pypy3"}
-ALL_PY = {"py2", "py3"}
-
-
-def pytest_runtest_setup(item):
-    names = {mark.name for mark in item.iter_markers()}
-
-    supported_platforms = ALL_PLAT.intersection(names)
-    if supported_platforms and PLAT not in supported_platforms:
-        pytest.skip("cannot run on platform {}".format(PLAT))
-
-    supported_impls = ALL_IMPL.intersection(names)
-    impl = IMPL.lower() + (str(PYVM) if IMPL == "PyPy" else "")
-    if supported_impls and impl not in supported_impls:
-        pytest.skip("cannot run on implementation {}".format(impl))
-
-    supported_pythons = ALL_PY.intersection(names)
-    if supported_pythons and PYN.lower() not in supported_pythons:
-        pytest.skip("cannot run on Python {}".format(PYVM))
+                item.add_marker(
+                    marker(**mark.kwargs)
+                    if "reason" in mark.kwargs
+                    else marker(reason=reason, **mark.kwargs)
+                )
