@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+import six
+
 from pybind11_tests import builtin_casters as m
 from pybind11_tests import UserType, IncType
 
@@ -111,13 +113,13 @@ def test_single_char_arguments():
         assert str(excinfo.value) == toolong_message
 
 
-def test_bytes_to_string(PY2):
+def test_bytes_to_string():
     """Tests the ability to pass bytes to C++ string-accepting functions.  Note that this is
     one-way: the only way to return bytes to Python is via the pybind11::bytes class."""
     # Issue #816
 
     def to_bytes(s):
-        b = s if PY2 else s.encode("utf8")
+        b = s if six.PY2 else s.encode("utf8")
         assert isinstance(b, bytes)
         return b
 
@@ -188,13 +190,13 @@ def test_string_view(capture):
         """
 
 
-def test_integer_casting(PY2):
+def test_integer_casting():
     """Issue #929 - out-of-range integer values shouldn't be accepted"""
     assert m.i32_str(-1) == "-1"
     assert m.i64_str(-1) == "-1"
     assert m.i32_str(2000000000) == "2000000000"
     assert m.u32_str(2000000000) == "2000000000"
-    if PY2:
+    if six.PY2:
         assert m.i32_str(long(-1)) == "-1"  # noqa: F821 undefined name 'long'
         assert m.i64_str(long(-1)) == "-1"  # noqa: F821 undefined name 'long'
         assert m.i64_str(long(-999999999999)) == "-999999999999"  # noqa: F821 undefined name
@@ -216,7 +218,7 @@ def test_integer_casting(PY2):
         m.i32_str(3000000000)
     assert "incompatible function arguments" in str(excinfo.value)
 
-    if PY2:
+    if six.PY2:
         with pytest.raises(TypeError) as excinfo:
             m.u32_str(long(-1))  # noqa: F821 undefined name 'long'
         assert "incompatible function arguments" in str(excinfo.value)

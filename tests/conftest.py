@@ -200,18 +200,10 @@ def pytest_configure():
 PLAT = sys.platform.lower()
 IMPL = platform.python_implementation().lower()
 PYMAJ = str(sys.version_info.major)
-PYNAME = "PY" + PYMAJ
+PYNAME = "py" + PYMAJ
 
-CURRENT = {PLAT, IMPL, PYNAME, PLAT + PYMAJ}
+CURRENT = {PLAT, IMPL, PYNAME, IMPL + PYMAJ}
 START = {"xfail", "skip"}
-
-
-@pytest.fixture
-def PY2():
-    return PYVM == 2
-
-
-# Markers
 
 
 def pytest_collection_modifyitems(items):

@@ -4,6 +4,8 @@ import struct
 
 import pytest
 
+import six
+
 from pybind11_tests import buffers as m
 from pybind11_tests import ConstructorStats
 
@@ -89,18 +91,18 @@ def test_pointer_to_member_fn():
 
 
 @pytest.mark.skip_pypy
-def test_readonly_buffer(PY2):
+def test_readonly_buffer():
     buf = m.BufferReadOnly(0x64)
     view = memoryview(buf)
-    assert view[0] == b'd' if PY2 else 0x64
+    assert view[0] == b'd' if six.PY2 else 0x64
     assert view.readonly
 
 
 @pytest.mark.skip_pypy
-def test_selective_readonly_buffer(PY2):
+def test_selective_readonly_buffer():
     buf = m.BufferReadOnlySelect()
 
-    memoryview(buf)[0] = b'd' if PY2 else 0x64
+    memoryview(buf)[0] = b'd' if six.PY2 else 0x64
     assert buf.value == 0x64
 
     io.BytesIO(b'A').readinto(buf)
@@ -108,6 +110,6 @@ def test_selective_readonly_buffer(PY2):
 
     buf.readonly = True
     with pytest.raises(TypeError):
-        memoryview(buf)[0] = b'\0' if PY2 else 0
+        memoryview(buf)[0] = b'\0' if six.PY2 else 0
     with pytest.raises(TypeError):
         io.BytesIO(b'1').readinto(buf)

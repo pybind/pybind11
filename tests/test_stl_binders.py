@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+import six
+
 from pybind11_tests import stl_binders as m
 
 
@@ -67,13 +70,13 @@ def test_vector_int():
 
 # related to the PyPy's buffer protocol.
 @pytest.mark.skip_pypy
-def test_vector_buffer(PY2):
+def test_vector_buffer():
     b = bytearray([1, 2, 3, 4])
     v = m.VectorUChar(b)
     assert v[1] == 2
     v[2] = 5
     mv = memoryview(v)  # We expose the buffer interface
-    if not PY2:
+    if not six.PY2:
         assert mv[2] == 5
         mv[2] = 6
     else:
@@ -81,7 +84,7 @@ def test_vector_buffer(PY2):
         mv[2] = '\x06'
     assert v[2] == 6
 
-    if not PY2:
+    if not six.PY2:
         mv = memoryview(b)
         v = m.VectorUChar(mv[::2])
         assert v[1] == 3
