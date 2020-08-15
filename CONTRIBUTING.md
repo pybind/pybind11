@@ -5,21 +5,22 @@ sections on how to contribute code and bug reports.
 
 Before submitting a question or bug report, please take a moment of your time
 and ensure that your issue isn't already discussed in the project documentation
-provided at
-[http://pybind11.readthedocs.org/en/latest](http://pybind11.readthedocs.org/en/latest).
+provided at [pybind11.readthedocs.org][] or in the [issue tracker][]. You can
+also check [gitter][] to see if it came up before.
 
 Assuming that you have identified a previously unknown problem or an important
 question, it's essential that you submit a self-contained and minimal piece of
 code that reproduces the problem. In other words: no external dependencies,
 isolate the function(s) that cause breakage, submit matched and complete C++
-and Python snippets that can be easily compiled and run on my end.
+and Python snippets that can be easily compiled and run in isolation; or
+ideally make a small PR with a failing test case that can be used as a starting
+point.
 
 ## Pull requests
 
 Contributions are submitted, reviewed, and accepted using GitHub pull requests.
-Please refer to [this
-article](https://help.github.com/articles/using-pull-requests) for details and
-adhere to the following rules to make the process as smooth as possible:
+Please refer to [this article][using pull requests] for details and adhere to
+the following rules to make the process as smooth as possible:
 
 * Make a new branch for every feature you're working on.
 * Make small and clean pull requests that are easy to review but make sure they
@@ -32,8 +33,6 @@ adhere to the following rules to make the process as smooth as possible:
   to verify your code passes before pushing to save time.
 * This project has a strong focus on providing general solutions using a
   minimal amount of code, thus small pull requests are greatly preferred.
-
-[pre-commit]: https://pre-commit.com
 
 ### Licensing of contributions
 
@@ -55,7 +54,7 @@ derivative works thereof, in binary and source code form.
 ## Development of pybind11
 
 To setup an ideal development environment, run the following commands on a
-system with CMake 3.14+.
+system with CMake 3.14+:
 
 ```bash
 python3 -m venv venv
@@ -121,7 +120,8 @@ To run the tests, you can "build" the check target:
 cmake --build build --target check
 ```
 
-`--target` can be spelled `-t` in CMake 3.15+. You can also run individual tests with these targets:
+`--target` can be spelled `-t` in CMake 3.15+. You can also run individual
+tests with these targets:
 
 * `pytest`: Python tests only
 * `cpptest`: C++ tests only
@@ -133,8 +133,7 @@ empty, all tests will be built.
 
 ### Formatting
 
-All formatting is handled by pre-commit. You will need docker installed as well
-for pre-commit to run the clang-format step in a consistent environment.
+All formatting is handled by pre-commit.
 
 Install with brew (macOS) or pip (any OS):
 
@@ -146,7 +145,8 @@ python3 -m pip install pre-commit
 brew install pre-commit
 ```
 
-Then, you can run it on the items you've added to your staging area, or all files:
+Then, you can run it on the items you've added to your staging area, or all
+files:
 
 ```bash
 pre-commit run
@@ -154,9 +154,15 @@ pre-commit run
 pre-commit run --all-files
 ```
 
-
-And, if you want to always use it, you can install it as a git hook (hence the name, pre-commit):
+And, if you want to always use it, you can install it as a git hook (hence the
+name, pre-commit):
 
 ```bash
 pre-commit install
 ```
+
+[pre-commit]: https://pre-commit.com
+[pybind11.readthedocs.org]: http://pybind11.readthedocs.org/en/latest
+[issue tracker]: https://github.com/pybind/pybind11/issues
+[gitter]: https://gitter.im/pybind/Lobby
+[using pull requests]: https://help.github.com/articles/using-pull-requests
