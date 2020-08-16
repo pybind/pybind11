@@ -266,8 +266,8 @@ if(NOT PYBIND11_PYTEST_FOUND)
   if(pytest_not_found)
     message(FATAL_ERROR "Running the tests requires pytest. Please install it manually"
                         " (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
-  elseif(pytest_version VERSION_LESS 3.6)
-    message(FATAL_ERROR "Running the tests requires pytest >= 3.6. Found: ${pytest_version}"
+  elseif(pytest_version VERSION_LESS 3.1)
+    message(FATAL_ERROR "Running the tests requires pytest >= 3.1. Found: ${pytest_version}"
                         "Please update it (try: ${PYTHON_EXECUTABLE} -m pip install -U pytest)")
   endif()
   set(PYBIND11_PYTEST_FOUND
