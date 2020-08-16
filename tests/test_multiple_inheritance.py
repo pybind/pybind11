@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-import info  # noqa: F401
+import env  # noqa: F401
 
 from pybind11_tests import ConstructorStats
 from pybind11_tests import multiple_inheritance as m
@@ -14,8 +14,8 @@ def test_multiple_inheritance_cpp():
     assert mt.bar() == 4
 
 
-@pytest.mark.skipif("info.PYPY and info.PY2")
-@pytest.mark.xfail("info.PYPY and not info.PY2")
+@pytest.mark.skipif("env.PYPY and env.PY2")
+@pytest.mark.xfail("env.PYPY and not env.PY2")
 def test_multiple_inheritance_mix1():
     class Base1:
         def __init__(self, i):
@@ -54,8 +54,8 @@ def test_multiple_inheritance_mix2():
     assert mt.bar() == 4
 
 
-@pytest.mark.skipif("info.PYPY and info.PY2")
-@pytest.mark.xfail("info.PYPY and not info.PY2")
+@pytest.mark.skipif("env.PYPY and env.PY2")
+@pytest.mark.xfail("env.PYPY and not env.PY2")
 def test_multiple_inheritance_python():
 
     class MI1(m.Base1, m.Base2):

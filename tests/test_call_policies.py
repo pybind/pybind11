@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-import info  # noqa: F401
+import env  # noqa: F401
 
 from pybind11_tests import call_policies as m
 from pybind11_tests import ConstructorStats
@@ -74,7 +74,7 @@ def test_keep_alive_return_value(capture):
 
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
-@pytest.mark.xfail("info.PYPY", reason="_PyObject_GetDictPtr is unimplemented")
+@pytest.mark.xfail("env.PYPY", reason="_PyObject_GetDictPtr is unimplemented")
 def test_alive_gc(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     p = m.ParentGC()

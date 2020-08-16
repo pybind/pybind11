@@ -4,7 +4,7 @@ import struct
 
 import pytest
 
-import info  # noqa: F401
+import env  # noqa: F401
 
 from pybind11_tests import buffers as m
 from pybind11_tests import ConstructorStats
@@ -89,14 +89,14 @@ def test_pointer_to_member_fn():
 def test_readonly_buffer():
     buf = m.BufferReadOnly(0x64)
     view = memoryview(buf)
-    assert view[0] == b'd' if info.PY2 else 0x64
+    assert view[0] == b'd' if env.PY2 else 0x64
     assert view.readonly
 
 
 def test_selective_readonly_buffer():
     buf = m.BufferReadOnlySelect()
 
-    memoryview(buf)[0] = b'd' if info.PY2 else 0x64
+    memoryview(buf)[0] = b'd' if env.PY2 else 0x64
     assert buf.value == 0x64
 
     io.BytesIO(b'A').readinto(buf)
@@ -104,6 +104,6 @@ def test_selective_readonly_buffer():
 
     buf.readonly = True
     with pytest.raises(TypeError):
-        memoryview(buf)[0] = b'\0' if info.PY2 else 0
+        memoryview(buf)[0] = b'\0' if env.PY2 else 0
     with pytest.raises(TypeError):
         io.BytesIO(b'1').readinto(buf)

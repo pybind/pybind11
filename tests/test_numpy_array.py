@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-import info  # noqa: F401
+import env  # noqa: F401
 
 from pybind11_tests import numpy_array as m
 
@@ -423,7 +423,7 @@ def test_array_resize(msg):
     assert(b.shape == (8, 8))
 
 
-@pytest.mark.xfail("info.PYPY")
+@pytest.mark.xfail("env.PYPY")
 def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
     assert(a.size == 4)
@@ -435,7 +435,7 @@ def test_index_using_ellipsis():
     assert a.shape == (6,)
 
 
-@pytest.mark.xfail("info.PYPY")
+@pytest.mark.xfail("env.PYPY")
 def test_dtype_refcount_leak():
     from sys import getrefcount
     dtype = np.dtype(np.float_)

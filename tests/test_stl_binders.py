@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-import info  # noqa: F401
+import env  # noqa: F401
 
 from pybind11_tests import stl_binders as m
 
@@ -75,7 +75,7 @@ def test_vector_buffer():
     assert v[1] == 2
     v[2] = 5
     mv = memoryview(v)  # We expose the buffer interface
-    if not info.PY2:
+    if not env.PY2:
         assert mv[2] == 5
         mv[2] = 6
     else:
@@ -83,7 +83,7 @@ def test_vector_buffer():
         mv[2] = '\x06'
     assert v[2] == 6
 
-    if not info.PY2:
+    if not env.PY2:
         mv = memoryview(b)
         v = m.VectorUChar(mv[::2])
         assert v[1] == 3

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-import info  # noqa: F401
+import env  # noqa: F401
 
 from pybind11_tests import virtual_functions as m
 from pybind11_tests import ConstructorStats
@@ -162,7 +162,7 @@ def test_alias_delay_initialization2(capture):
 
 # PyPy: Reference count > 1 causes call with noncopyable instance
 # to fail in ncv1.print_nc()
-@pytest.mark.xfail("info.PYPY")
+@pytest.mark.xfail("env.PYPY")
 @pytest.mark.skipif(not hasattr(m, "NCVirt"), reason="NCVirt test broken on ICPC")
 def test_move_support():
     class NCVirtExt(m.NCVirt):
