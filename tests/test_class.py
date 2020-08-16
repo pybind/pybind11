@@ -263,7 +263,7 @@ def test_brace_initialization():
     assert b.vec == [123, 456]
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY", strict=True)
 def test_class_refcount():
     """Instances must correctly increase/decrease the reference count of their types (#1029)"""
     from sys import getrefcount
@@ -310,7 +310,7 @@ def test_aligned():
 
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2742
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY", strict=True)
 def test_final():
     with pytest.raises(TypeError) as exc_info:
         class PyFinalChild(m.IsFinal):
@@ -319,7 +319,7 @@ def test_final():
 
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2742
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY", strict=True)
 def test_non_final_final():
     with pytest.raises(TypeError) as exc_info:
         class PyNonFinalFinalChild(m.IsNonFinalFinal):

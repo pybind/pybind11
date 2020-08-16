@@ -334,7 +334,7 @@ def test_memoryview(method, args, fmt, expected_view):
     assert view_as_list == list(expected_view)
 
 
-@pytest.mark.xfail("env.PYPY", reason="getrefcount is not available")
+@pytest.mark.xfail("env.PYPY", reason="getrefcount is not available", strict=True)
 @pytest.mark.parametrize('method', [
     m.test_memoryview_object,
     m.test_memoryview_buffer_info,
