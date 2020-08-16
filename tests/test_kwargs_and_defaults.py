@@ -146,8 +146,7 @@ def test_keyword_only_args(msg):
     """
 
 
-# PyPy2 doesn't seem to double count
-@pytest.mark.xfail_pypy2
+@pytest.mark.xfail_pypy(2, reason="PyPy2 doesn't seem to double count")
 def test_args_refcount():
     """Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with regular
     arguments"""

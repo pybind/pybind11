@@ -197,25 +197,40 @@ def pytest_configure():
 
 # Platform Markers
 
-PLAT = sys.platform.lower()
-IMPL = platform.python_implementation().lower()
-PYMAJ = str(sys.version_info.major)
-PYNAME = "py" + PYMAJ
-
-CURRENT = {PLAT, IMPL, PYNAME, IMPL + PYMAJ}
-START = {"xfail", "skip"}
+PLAT = sys.platform.lower()  # linux, osx, or win32
+IMPL = platform.python_implementation().lower()  # cpython or pypy
 
 
 def pytest_collection_modifyitems(items):
+    """
+    This will find the markers listed in pytest.ini and add
+    skip or xfail as needed. The second part can be a platform
+    marker (linux, osx, or win32), or python, cpython, or pypy.
+
+    You can add also add Python version numbers - either 2 or 3.
+
+    Keyword arguments are passed on.
+
+    # Will skip on Python 2
+    pytest.mark.skip_python(2)
+
+    # Will xfail on pypy as long as TypeError is raised
+    pytest.mark.xfail_pypy(reason="Not supported", raises=TypeError)
+    """
     for item in items:
         for mark in tuple(item.iter_markers()):
+            # Check for recognised name
             parts = mark.name.split("_")
-            if len(parts) == 2 and parts[0] in START and parts[1] in CURRENT:
+            if len(parts) == 2 and parts[0] in {"xfail", "skip"}:
                 marker = getattr(pytest.mark, parts[0])
-                reason = "expected to fail on {}".format(parts[1])
 
-                item.add_marker(
-                    marker(**mark.kwargs)
-                    if "reason" in mark.kwargs
-                    else marker(reason=reason, **mark.kwargs)
-                )
+                if parts[1] in {PLAT, IMPL, "python"}:
+                    # args lets you remove only Py 2 or 3
+                    if mark.args:
+                        (ver,) = mark.args  # Only single argument supported
+                        assert isinstance(ver, int), "should be a version number"
+                        if ver == sys.version_info.major:
+                            item.add_marker(marker(**mark.kwargs))
+                    else:
+                        assert parts[1] != "python", "version required (otherwise use mark.skip)"
+                        item.add_marker(marker(**mark.kwargs))

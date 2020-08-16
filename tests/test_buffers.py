@@ -35,9 +35,8 @@ def test_from_python():
     assert cstats.move_assignments == 0
 
 
-# PyPy: Memory leak in the "np.array(m, copy=False)" call
-# https://bitbucket.org/pypy/pypy/issues/2444
-@pytest.mark.skip_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2444
+@pytest.mark.xfail_pypy(reason="memory leak in np.array(m, copy=False)")
 def test_to_python():
     mat = m.Matrix(5, 4)
     assert memoryview(mat).shape == (5, 4)
@@ -72,7 +71,7 @@ def test_to_python():
     assert cstats.move_assignments == 0
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_inherited_protocol():
     """SquareMatrix is derived from Matrix and inherits the buffer protocol"""
 
@@ -81,7 +80,7 @@ def test_inherited_protocol():
     assert np.asarray(matrix).shape == (5, 5)
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_pointer_to_member_fn():
     for cls in [m.Buffer, m.ConstBuffer, m.DerivedBuffer]:
         buf = cls()
@@ -90,7 +89,7 @@ def test_pointer_to_member_fn():
         assert value == 0x12345678
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_readonly_buffer():
     buf = m.BufferReadOnly(0x64)
     view = memoryview(buf)
@@ -98,7 +97,7 @@ def test_readonly_buffer():
     assert view.readonly
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_selective_readonly_buffer():
     buf = m.BufferReadOnlySelect()
 

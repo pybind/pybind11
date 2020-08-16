@@ -373,7 +373,7 @@ def test_test_memoryview_from_buffer_nullptr():
             m.test_memoryview_from_buffer_nullptr()
 
 
-@pytest.mark.skip_py2
+@pytest.mark.skip_python(2)
 def test_memoryview_from_memory():
     view = m.test_memoryview_from_memory()
     assert isinstance(view, memoryview)

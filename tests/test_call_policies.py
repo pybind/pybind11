@@ -70,8 +70,8 @@ def test_keep_alive_return_value(capture):
     """
 
 
-# https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.mark.skip_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2447
+@pytest.mark.xfail_pypy(reason="_PyObject_GetDictPtr is unimplemented")
 def test_alive_gc(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     p = m.ParentGC()

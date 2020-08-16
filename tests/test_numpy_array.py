@@ -240,7 +240,7 @@ def test_numpy_view(capture):
     """
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_cast_numpy_int64_to_uint64():
     m.function_taking_uint64(123)
     m.function_taking_uint64(np.uint64(123))
@@ -421,7 +421,7 @@ def test_array_resize(msg):
     assert(b.shape == (8, 8))
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
     assert(a.size == 4)
@@ -433,7 +433,7 @@ def test_index_using_ellipsis():
     assert a.shape == (6,)
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_dtype_refcount_leak():
     from sys import getrefcount
     dtype = np.dtype(np.float_)

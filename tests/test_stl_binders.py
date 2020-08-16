@@ -68,8 +68,7 @@ def test_vector_int():
     assert len(v_int2) == 0
 
 
-# related to the PyPy's buffer protocol.
-@pytest.mark.skip_pypy
+# Older PyPy's failed here, related to the PyPy's buffer protocol.
 def test_vector_buffer():
     b = bytearray([1, 2, 3, 4])
     v = m.VectorUChar(b)
@@ -94,7 +93,7 @@ def test_vector_buffer():
     assert "NumPy type info missing for " in str(excinfo.value)
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_vector_buffer_numpy():
     np = pytest.importorskip("numpy")
     a = np.array([1, 2, 3, 4], dtype=np.int32)

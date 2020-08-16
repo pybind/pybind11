@@ -261,7 +261,7 @@ def test_brace_initialization():
     assert b.vec == [123, 456]
 
 
-@pytest.mark.skip_pypy
+@pytest.mark.xfail_pypy
 def test_class_refcount():
     """Instances must correctly increase/decrease the reference count of their types (#1029)"""
     from sys import getrefcount
@@ -307,8 +307,8 @@ def test_aligned():
         assert p % 1024 == 0
 
 
-# https://bitbucket.org/pypy/pypy/issues/2742
-@pytest.mark.skip_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2742
+@pytest.mark.xfail_pypy
 def test_final():
     with pytest.raises(TypeError) as exc_info:
         class PyFinalChild(m.IsFinal):
@@ -316,8 +316,8 @@ def test_final():
     assert str(exc_info.value).endswith("is not an acceptable base type")
 
 
-# https://bitbucket.org/pypy/pypy/issues/2742
-@pytest.mark.skip_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2742
+@pytest.mark.xfail_pypy
 def test_non_final_final():
     with pytest.raises(TypeError) as exc_info:
         class PyNonFinalFinalChild(m.IsNonFinalFinal):
