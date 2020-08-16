@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+import info  # noqa: F401
+
 from pybind11_tests import numpy_array as m
 
 np = pytest.importorskip("numpy")
@@ -240,7 +243,7 @@ def test_numpy_view(capture):
     """
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_cast_numpy_int64_to_uint64():
     m.function_taking_uint64(123)
     m.function_taking_uint64(np.uint64(123))
@@ -421,7 +424,7 @@ def test_array_resize(msg):
     assert(b.shape == (8, 8))
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
     assert(a.size == 4)
@@ -433,7 +436,7 @@ def test_index_using_ellipsis():
     assert a.shape == (6,)
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_dtype_refcount_leak():
     from sys import getrefcount
     dtype = np.dtype(np.float_)

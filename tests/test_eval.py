@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
+
 import pytest
+
+import info  # noqa: F401
+
 from pybind11_tests import eval_ as m
 
 
@@ -15,7 +19,7 @@ def test_evals(capture):
     assert m.test_eval_failure()
 
 
-@pytest.mark.xfail_pypy(3, raises=RuntimeError)
+@pytest.mark.xfail("info.PYPY and not info.PY2", raises=RuntimeError)
 def test_eval_file():
     filename = os.path.join(os.path.dirname(__file__), "test_eval_call.py")
     assert m.test_eval_file(filename)

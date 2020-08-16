@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+import info  # noqa: F401
+
 from pybind11_tests import methods_and_attributes as m
 from pybind11_tests import ConstructorStats
 
@@ -257,8 +260,8 @@ def test_property_rvalue_policy():
     assert os.value == 1
 
 
-# https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.mark.xfail_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2447
+@pytest.mark.xfail("info.PYPY")
 def test_dynamic_attributes():
     instance = m.DynamicClass()
     assert not hasattr(instance, "foo")
@@ -300,7 +303,7 @@ def test_dynamic_attributes():
 
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_cyclic_gc():
     # One object references itself
     instance = m.DynamicClass()

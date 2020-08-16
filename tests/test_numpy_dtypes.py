@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import re
+
 import pytest
+
+import info  # noqa: F401
+
 from pybind11_tests import numpy_dtypes as m
 
 np = pytest.importorskip("numpy")
@@ -291,7 +295,7 @@ def test_register_dtype():
     assert 'dtype is already registered' in str(excinfo.value)
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_str_leak():
     from sys import getrefcount
     fmt = "f4"

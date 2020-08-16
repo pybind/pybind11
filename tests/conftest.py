@@ -8,9 +8,7 @@ Adds docstring and exceptions message sanitizers: ignore Python 2 vs 3 differenc
 import contextlib
 import difflib
 import gc
-import platform
 import re
-import sys
 import textwrap
 
 import pytest
@@ -193,44 +191,3 @@ def gc_collect():
 def pytest_configure():
     pytest.suppress = suppress
     pytest.gc_collect = gc_collect
-
-
-# Platform Markers
-
-PLAT = sys.platform.lower()  # linux, osx, or win32
-IMPL = platform.python_implementation().lower()  # cpython or pypy
-
-
-def pytest_collection_modifyitems(items):
-    """
-    This will find the markers listed in pytest.ini and add
-    skip or xfail as needed. The second part can be a platform
-    marker (linux, osx, or win32), or python, cpython, or pypy.
-
-    You can add also add Python version numbers - either 2 or 3.
-
-    Keyword arguments are passed on.
-
-    # Will skip on Python 2
-    pytest.mark.skip_python(2)
-
-    # Will xfail on pypy as long as TypeError is raised
-    pytest.mark.xfail_pypy(reason="Not supported", raises=TypeError)
-    """
-    for item in items:
-        for mark in tuple(item.iter_markers()):
-            # Check for recognised name
-            parts = mark.name.split("_")
-            if len(parts) == 2 and parts[0] in {"xfail", "skip"}:
-                marker = getattr(pytest.mark, parts[0])
-
-                if parts[1] in {PLAT, IMPL, "python"}:
-                    # args lets you remove only Py 2 or 3
-                    if mark.args:
-                        (ver,) = mark.args  # Only single argument supported
-                        assert isinstance(ver, int), "should be a version number"
-                        if ver == sys.version_info.major:
-                            item.add_marker(marker(**mark.kwargs))
-                    else:
-                        assert parts[1] != "python", "version required (otherwise use mark.skip)"
-                        item.add_marker(marker(**mark.kwargs))

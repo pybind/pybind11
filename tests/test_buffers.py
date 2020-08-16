@@ -4,7 +4,7 @@ import struct
 
 import pytest
 
-import six
+import info  # noqa: F401
 
 from pybind11_tests import buffers as m
 from pybind11_tests import ConstructorStats
@@ -36,7 +36,7 @@ def test_from_python():
 
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2444
-@pytest.mark.xfail_pypy(reason="memory leak in np.array(m, copy=False)")
+@pytest.mark.xfail("info.PYPY", reason="memory leak in np.array(m, copy=False)")
 def test_to_python():
     mat = m.Matrix(5, 4)
     assert memoryview(mat).shape == (5, 4)
@@ -71,7 +71,7 @@ def test_to_python():
     assert cstats.move_assignments == 0
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_inherited_protocol():
     """SquareMatrix is derived from Matrix and inherits the buffer protocol"""
 
@@ -80,7 +80,7 @@ def test_inherited_protocol():
     assert np.asarray(matrix).shape == (5, 5)
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_pointer_to_member_fn():
     for cls in [m.Buffer, m.ConstBuffer, m.DerivedBuffer]:
         buf = cls()
@@ -89,19 +89,19 @@ def test_pointer_to_member_fn():
         assert value == 0x12345678
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_readonly_buffer():
     buf = m.BufferReadOnly(0x64)
     view = memoryview(buf)
-    assert view[0] == b'd' if six.PY2 else 0x64
+    assert view[0] == b'd' if info.PY2 else 0x64
     assert view.readonly
 
 
-@pytest.mark.xfail_pypy
+@pytest.mark.xfail("info.PYPY")
 def test_selective_readonly_buffer():
     buf = m.BufferReadOnlySelect()
 
-    memoryview(buf)[0] = b'd' if six.PY2 else 0x64
+    memoryview(buf)[0] = b'd' if info.PY2 else 0x64
     assert buf.value == 0x64
 
     io.BytesIO(b'A').readinto(buf)
@@ -109,6 +109,6 @@ def test_selective_readonly_buffer():
 
     buf.readonly = True
     with pytest.raises(TypeError):
-        memoryview(buf)[0] = b'\0' if six.PY2 else 0
+        memoryview(buf)[0] = b'\0' if info.PY2 else 0
     with pytest.raises(TypeError):
         io.BytesIO(b'1').readinto(buf)

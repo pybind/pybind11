@@ -2,6 +2,8 @@
 import pytest
 import re
 
+import info  # noqa: F401
+
 from pybind11_tests import factory_constructors as m
 from pybind11_tests.factory_constructors import tag
 from pybind11_tests import ConstructorStats
@@ -418,7 +420,7 @@ def test_reallocations(capture, msg):
     """)
 
 
-@pytest.mark.skip_python(2)
+@pytest.mark.skipif("info.PY2")
 def test_invalid_self():
     """Tests invocation of the pybind-registered base class with an invalid `self` argument.  You
     can only actually do this on Python 3: Python 2 raises an exception itself if you try."""
