@@ -15,7 +15,7 @@ def test_multiple_inheritance_cpp():
 
 
 @pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2", strict=True)
+@pytest.mark.xfail("env.PYPY and not env.PY2")
 def test_multiple_inheritance_mix1():
     class Base1:
         def __init__(self, i):
@@ -55,7 +55,7 @@ def test_multiple_inheritance_mix2():
 
 
 @pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2", strict=True)
+@pytest.mark.xfail("env.PYPY and not env.PY2")
 def test_multiple_inheritance_python():
 
     class MI1(m.Base1, m.Base2):

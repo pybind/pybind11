@@ -25,7 +25,7 @@ def test_roundtrip(cls_name):
     assert p2.extra2() == p.extra2()
 
 
-@pytest.mark.xfail("env.PYPY", strict=True)
+@pytest.mark.xfail("env.PYPY")
 @pytest.mark.parametrize("cls_name", ["PickleableWithDict", "PickleableWithDictNew"])
 def test_roundtrip_with_dict(cls_name):
     cls = getattr(m, cls_name)

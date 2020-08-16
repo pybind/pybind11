@@ -75,7 +75,7 @@ def test_keep_alive_return_value(capture):
 
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
-@pytest.mark.xfail("env.PYPY", reason="_PyObject_GetDictPtr is unimplemented", strict=True)
+@pytest.mark.xfail("env.PYPY", reason="_PyObject_GetDictPtr is unimplemented")
 def test_alive_gc(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     p = m.ParentGC()
