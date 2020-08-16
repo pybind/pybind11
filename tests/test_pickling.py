@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+import env  # noqa: F401
+
 from pybind11_tests import pickling as m
 
 try:
@@ -22,7 +25,7 @@ def test_roundtrip(cls_name):
     assert p2.extra2() == p.extra2()
 
 
-@pytest.unsupported_on_pypy
+@pytest.mark.xfail("env.PYPY")
 @pytest.mark.parametrize("cls_name", ["PickleableWithDict", "PickleableWithDictNew"])
 def test_roundtrip_with_dict(cls_name):
     cls = getattr(m, cls_name)

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import pytest
-from pybind11_tests import stl_binders as m
 
-with pytest.suppress(ImportError):
-    import numpy as np
+import env  # noqa: F401
+
+from pybind11_tests import stl_binders as m
 
 
 def test_vector_int():
@@ -68,15 +68,14 @@ def test_vector_int():
     assert len(v_int2) == 0
 
 
-# related to the PyPy's buffer protocol.
-@pytest.unsupported_on_pypy
+# Older PyPy's failed here, related to the PyPy's buffer protocol.
 def test_vector_buffer():
     b = bytearray([1, 2, 3, 4])
     v = m.VectorUChar(b)
     assert v[1] == 2
     v[2] = 5
     mv = memoryview(v)  # We expose the buffer interface
-    if not pytest.PY2:
+    if not env.PY2:
         assert mv[2] == 5
         mv[2] = 6
     else:
@@ -84,7 +83,7 @@ def test_vector_buffer():
         mv[2] = '\x06'
     assert v[2] == 6
 
-    if not pytest.PY2:
+    if not env.PY2:
         mv = memoryview(b)
         v = m.VectorUChar(mv[::2])
         assert v[1] == 3
@@ -94,9 +93,8 @@ def test_vector_buffer():
     assert "NumPy type info missing for " in str(excinfo.value)
 
 
-@pytest.unsupported_on_pypy
-@pytest.requires_numpy
 def test_vector_buffer_numpy():
+    np = pytest.importorskip("numpy")
     a = np.array([1, 2, 3, 4], dtype=np.int32)
     with pytest.raises(TypeError):
         m.VectorInt(a)

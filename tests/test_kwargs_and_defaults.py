@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+import env  # noqa: F401
+
 from pybind11_tests import kwargs_and_defaults as m
 
 
@@ -146,8 +149,7 @@ def test_keyword_only_args(msg):
     """
 
 
-@pytest.mark.xfail(pytest.PYPY and pytest.PY2,
-                   reason="PyPy2 doesn't seem to double count")
+@pytest.mark.xfail("env.PYPY and env.PY2", reason="PyPy2 doesn't double count")
 def test_args_refcount():
     """Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with regular
     arguments"""

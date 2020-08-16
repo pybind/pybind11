@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+import env  # noqa: F401
+
 from pybind11_tests import class_ as m
 from pybind11_tests import UserType, ConstructorStats
 
@@ -261,7 +263,7 @@ def test_brace_initialization():
     assert b.vec == [123, 456]
 
 
-@pytest.unsupported_on_pypy
+@pytest.mark.xfail("env.PYPY")
 def test_class_refcount():
     """Instances must correctly increase/decrease the reference count of their types (#1029)"""
     from sys import getrefcount
@@ -307,8 +309,8 @@ def test_aligned():
         assert p % 1024 == 0
 
 
-# https://bitbucket.org/pypy/pypy/issues/2742
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2742
+@pytest.mark.xfail("env.PYPY")
 def test_final():
     with pytest.raises(TypeError) as exc_info:
         class PyFinalChild(m.IsFinal):
@@ -316,8 +318,8 @@ def test_final():
     assert str(exc_info.value).endswith("is not an acceptable base type")
 
 
-# https://bitbucket.org/pypy/pypy/issues/2742
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2742
+@pytest.mark.xfail("env.PYPY")
 def test_non_final_final():
     with pytest.raises(TypeError) as exc_info:
         class PyNonFinalFinalChild(m.IsNonFinalFinal):

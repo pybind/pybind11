@@ -3,6 +3,8 @@ from __future__ import division
 import pytest
 import sys
 
+import env  # noqa: F401
+
 from pybind11_tests import pytypes as m
 from pybind11_tests import debug_enabled
 
@@ -113,7 +115,7 @@ def test_bytes(doc):
     assert m.bytes_from_str().decode() == "bar"
 
     assert doc(m.bytes_from_str) == "bytes_from_str() -> {}".format(
-        "str" if pytest.PY2 else "bytes"
+        "str" if env.PY2 else "bytes"
     )
 
 
@@ -224,7 +226,7 @@ def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str
     cvt = m.convert_to_pybind11_str
     assert cvt(u"Str") == u"Str"
-    assert cvt(b'Bytes') == u"Bytes" if pytest.PY2 else "b'Bytes'"
+    assert cvt(b'Bytes') == u"Bytes" if env.PY2 else "b'Bytes'"
     assert cvt(None) == u"None"
     assert cvt(False) == u"False"
     assert cvt(True) == u"True"
@@ -237,8 +239,8 @@ def test_pybind11_str_raw_str():
     assert cvt([28]) == u"[28]"
     assert cvt({}) == u"{}"
     assert cvt({3: 4}) == u"{3: 4}"
-    assert cvt(set()) == u"set([])" if pytest.PY2 else "set()"
-    assert cvt({3, 3}) == u"set([3])" if pytest.PY2 else "{3}"
+    assert cvt(set()) == u"set([])" if env.PY2 else "set()"
+    assert cvt({3, 3}) == u"set([3])" if env.PY2 else "{3}"
 
     valid_orig = u"Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
@@ -324,7 +326,7 @@ def test_memoryview(method, args, fmt, expected_view):
     view = method(*args)
     assert isinstance(view, memoryview)
     assert view.format == fmt
-    if isinstance(expected_view, bytes) or not pytest.PY2:
+    if isinstance(expected_view, bytes) or not env.PY2:
         view_as_list = list(view)
     else:
         # Using max to pick non-zero byte (big-endian vs little-endian).
@@ -332,9 +334,7 @@ def test_memoryview(method, args, fmt, expected_view):
     assert view_as_list == list(expected_view)
 
 
-@pytest.mark.skipif(
-    not hasattr(sys, 'getrefcount'),
-    reason='getrefcount is not available')
+@pytest.mark.xfail("env.PYPY", reason="getrefcount is not available")
 @pytest.mark.parametrize('method', [
     m.test_memoryview_object,
     m.test_memoryview_buffer_info,
@@ -352,7 +352,7 @@ def test_memoryview_from_buffer_empty_shape():
     view = m.test_memoryview_from_buffer_empty_shape()
     assert isinstance(view, memoryview)
     assert view.format == 'B'
-    if pytest.PY2:
+    if env.PY2:
         # Python 2 behavior is weird, but Python 3 (the future) is fine.
         # PyPy3 has <memoryview, while CPython 2 has <memory
         assert bytes(view).startswith(b'<memory')
@@ -366,14 +366,14 @@ def test_test_memoryview_from_buffer_invalid_strides():
 
 
 def test_test_memoryview_from_buffer_nullptr():
-    if pytest.PY2:
+    if env.PY2:
         m.test_memoryview_from_buffer_nullptr()
     else:
         with pytest.raises(ValueError):
             m.test_memoryview_from_buffer_nullptr()
 
 
-@pytest.unsupported_on_py2
+@pytest.mark.skipif("env.PY2")
 def test_memoryview_from_memory():
     view = m.test_memoryview_from_memory()
     assert isinstance(view, memoryview)
