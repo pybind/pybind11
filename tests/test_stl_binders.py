@@ -93,7 +93,6 @@ def test_vector_buffer():
     assert "NumPy type info missing for " in str(excinfo.value)
 
 
-@pytest.mark.xfail("info.PYPY")
 def test_vector_buffer_numpy():
     np = pytest.importorskip("numpy")
     a = np.array([1, 2, 3, 4], dtype=np.int32)
