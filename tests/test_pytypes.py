@@ -244,12 +244,14 @@ def test_constructors():
     for k in noconv2:
         assert noconv2[k] is expected[k]
 
-    type_error_tests = [
+
+def test_non_converting_constructors():
+    non_converting_test_cases = [
         ("bytes", range(10)),
         ("none", 42),
         ("ellipsis", 42),
     ]
-    for t, v in type_error_tests:
+    for t, v in non_converting_test_cases:
         with pytest.raises(TypeError) as excinfo:
             m.nonconverting_constructor(t, v)
         expected_error = "Object of type '{}' is not an instance of '{}'".format(
