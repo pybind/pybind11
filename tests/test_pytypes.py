@@ -192,7 +192,7 @@ def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [bytes, str, bool, int, float, tuple, list, dict, set]
     expected = {t.__name__: t() for t in types}
-    if pytest.PY2:
+    if env.PY2:
         # Note that bytes.__name__ == 'str' in Python 2.
         # pybind11::str is unicode even under Python 2.
         expected["bytes"] = bytes()
@@ -213,7 +213,7 @@ def test_constructors():
     }
     inputs = {k.__name__: v for k, v in data.items()}
     expected = {k.__name__: k(v) for k, v in data.items()}
-    if pytest.PY2:  # Similar to the above. See comments above.
+    if env.PY2:  # Similar to the above. See comments above.
         inputs["bytes"] = b'41'
         inputs["str"] = 42
         expected["bytes"] = b'41'
@@ -256,19 +256,19 @@ def test_pybind11_str_raw_str():
     valid_orig = u"Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
     valid_cvt = cvt(valid_utf8)
-    assert type(valid_cvt) is unicode if pytest.PY2 else str  # noqa: F821
-    if pytest.PY2:
+    assert type(valid_cvt) is unicode if env.PY2 else str  # noqa: F821
+    if env.PY2:
         assert valid_cvt == valid_orig
     else:
         assert valid_cvt == u"b'\\xc7\\xb1'"
 
     malformed_utf8 = b'\x80'
-    if pytest.PY2:
+    if env.PY2:
         with pytest.raises(UnicodeDecodeError):
             cvt(malformed_utf8)
     else:
         malformed_cvt = cvt(malformed_utf8)
-        assert type(malformed_cvt) is unicode if pytest.PY2 else str  # noqa: F821
+        assert type(malformed_cvt) is unicode if env.PY2 else str  # noqa: F821
         assert malformed_cvt == u"b'\\x80'"
 
 
