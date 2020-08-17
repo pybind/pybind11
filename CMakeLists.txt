@@ -245,3 +245,11 @@ else()
     endif()
   endif()
 endif()
+
+# Better symmetry with find_package(pybind11 CONFIG) mode.
+if(NOT PYBIND11_MASTER_PROJECT)
+  set(pybind11_FOUND TRUE INTERNAL BOOL
+                     "true if pybind11 and all required components found on the system")
+  set(pybind11_INCLUDE_DIR "${PYBIND11_INCLUDE_DIR}" INTERNAL STRING
+                           "Directory where pybind11 headers are located")
+endif()
