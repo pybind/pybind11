@@ -84,7 +84,7 @@ set(PYBIND11_TEST_FILES
     test_virtual_functions.cpp)
 
 # Invoking cmake with something like:
-#     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_picking.cpp" ..
+#     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp" ..
 # lets you override the tests that get compiled and run.  You can restore to all tests with:
 #     cmake -DPYBIND11_TEST_OVERRIDE= ..
 if(PYBIND11_TEST_OVERRIDE)
