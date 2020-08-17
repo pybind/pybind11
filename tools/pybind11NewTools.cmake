@@ -10,6 +10,10 @@ get_property(
   TARGET pybind11::headers
   PROPERTY IMPORTED)
 
+if(pybind11_FIND_QUIETLY)
+  set(_pybind11_quiet QUIET)
+endif()
+
 if(CMAKE_VERSION VERSION_LESS 3.12)
   message(FATAL_ERROR "You cannot use the new FindPython module with CMake < 3.12")
 endif()
@@ -26,7 +30,7 @@ if(NOT Python_FOUND
     set(Python_ROOT_DIR "$ENV{pythonLocation}")
   endif()
 
-  find_package(Python REQUIRED COMPONENTS Interpreter Development)
+  find_package(Python REQUIRED COMPONENTS Interpreter Development ${_pybind11_quiet})
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
@@ -52,9 +56,8 @@ elseif(Python2_FOUND AND NOT Python3_FOUND)
       Python2
       CACHE INTERNAL "" FORCE)
 else()
-  if(NOT pybind11_FIND_QUIETLY)
-    message(STATUS "Python2 and Python3 both present, pybind11 in NOPYTHON mode")
-  endif()
+  message(AUTHOR_WARNING "Python2 and Python3 both present, pybind11 in NOPYTHON mode")
+  set(_pybind11_nopython ON)
   return()
 endif()
 

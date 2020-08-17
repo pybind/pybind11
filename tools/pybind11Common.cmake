@@ -163,19 +163,14 @@ endif()
 # Check to see which Python mode we are in, new, old, or no python
 if(PYBIND11_NOPYTHON)
   set(_pybind11_nopython ON)
-  if(NOT pybind11_FIND_QUIETLY)
-    message(STATUS "pybind11 in NOPYHTON mode")
-  endif()
-elseif(PYBIND11_FINDPYTHON OR Python_FOUND)
-
+elseif(
+  PYBIND11_FINDPYTHON
+  OR Python_FOUND
+  OR Python2_FOUND
+  OR Python3_FOUND)
   # New mode
   include("${CMAKE_CURRENT_LIST_DIR}/pybind11NewTools.cmake")
 
-elseif(Python3_FOUND OR Python2_FOUND)
-  set(_pybind11_nopython ON)
-  if(NOT pybind11_FIND_QUIETLY)
-    message(STATUS "pybind11 in NOPYHTON mode due to Python2/Python3 only being present")
-  endif()
 else()
 
   # Classic mode
@@ -254,11 +249,11 @@ function(_pybind11_generate_lto target prefer_thin_lto)
       TARGET ${target}
       APPEND
       PROPERTY INTERFACE_COMPILE_OPTIONS "$<${genex}:${PYBIND11_LTO_CXX_FLAGS}>")
-    if(NOT is_config AND NOT pybind11_FIND_QUIETLY)
+    if(CMAKE_PROJECT_NAME STREQUAL "pybind11")
       message(STATUS "${target} enabled")
     endif()
   else()
-    if(NOT is_config AND NOT pybind11_FIND_QUIETLY)
+    if(CMAKE_PROJECT_NAME STREQUAL "pybind11")
       message(STATUS "${target} disabled (not supported by the compiler and/or linker)")
     endif()
   endif()

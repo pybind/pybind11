@@ -8,6 +8,10 @@
 # Built-in in CMake 3.5+
 include(CMakeParseArguments)
 
+if(pybind11_FIND_QUIETLY)
+  set(_pybind11_quiet QUIET)
+endif()
+
 # Add a CMake parameter for choosing a desired Python version
 if(NOT PYBIND11_PYTHON_VERSION)
   set(PYBIND11_PYTHON_VERSION
@@ -21,7 +25,7 @@ set(Python_ADDITIONAL_VERSIONS
     CACHE INTERNAL "")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
-find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
+find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED ${_pybind11_quiet})
 list(REMOVE_AT CMAKE_MODULE_PATH -1)
 
 # Cache variables so pybind11_add_module can be used in parent projects

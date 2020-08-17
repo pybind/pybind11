@@ -55,6 +55,14 @@ if(PYTHONLIBS_FOUND AND PYTHON_MODULE_EXTENSION)
   return()
 endif()
 
+if(PythonLibsNew_FIND_QUIETLY)
+  set(_pythonlibs_quiet QUIET)
+endif()
+
+if(PythonLibsNew_FIND_REQUIRED)
+  set(_pythonlibs_required REQUIRED)
+endif()
+
 # Check to see if the `python` command is present and from a virtual
 # environment, conda, or GHA activation - if it is, try to use that.
 
@@ -84,11 +92,9 @@ endif()
 if(NOT PythonLibsNew_FIND_VERSION)
   set(PythonLibsNew_FIND_VERSION "")
 endif()
-if(PythonLibsNew_FIND_REQUIRED)
-  find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} REQUIRED)
-else()
-  find_package(PythonInterp ${PythonLibsNew_FIND_VERSION})
-endif()
+
+find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
+             ${_pythonlibs_quiet})
 
 if(NOT PYTHONINTERP_FOUND)
   set(PYTHONLIBS_FOUND FALSE)

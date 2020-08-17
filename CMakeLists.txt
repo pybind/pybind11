@@ -156,6 +156,10 @@ target_compile_features(headers INTERFACE cxx_inheriting_constructors cxx_user_l
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
 
+if(NOT PYBIND11_MASTER_PROJECT AND NOT pybind11_FIND_QUIETLY)
+  message(STATUS "Using pybind11: (version \"${pybind11_VERSION}\" ${pybind11_VERSION_TYPE})")
+endif()
+
 if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python_INCLUDE_DIRS})
 elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED PYTHON_INCLUDE_DIR)
