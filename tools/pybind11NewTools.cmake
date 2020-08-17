@@ -61,6 +61,20 @@ else()
   return()
 endif()
 
+# Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
+execute_process(COMMAND ${_Python}::Python -c "import sys; print(hasattr(sys, 'gettotalrefcount'))"
+                OUTPUT_VARIABLE PYTHON_IS_DEBUG)
+
+# Python debug libraries expose slightly different objects before 3.8
+# https://docs.python.org/3.6/c-api/intro.html#debugging-builds
+# https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
+if(PYTHON_IS_DEBUG)
+  set_property(
+    TARGET pybind::pybind11
+    APPEND
+    PROPERTY INTERFACE_COMPILE_DEFINITIONS Py_DEBUG)
+endif()
+
 # Check on every access - since Python2 and Python3 could have been used - do nothing in that case.
 
 if(DEFINED ${_Python}_INCLUDE_DIRS)
@@ -134,8 +148,6 @@ function(pybind11_add_module target_name)
   if(DEFINED ${_Python}_VERSION AND ${_Python}_VERSION VERSION_LESS 3)
     target_link_libraries(${target_name} PRIVATE pybind11::python2_no_register)
   endif()
-
-  # Currently Debug ${_Python} interps not supported for ${_Python} < 3.8
 
   set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden"
                                                   CUDA_VISIBILITY_PRESET "hidden")

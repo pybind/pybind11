@@ -102,7 +102,7 @@ if(NOT PYTHONINTERP_FOUND)
   return()
 endif()
 
-# According to http://stackoverflow.com/questions/646518/python-how-to-detect-debug-interpreter
+# According to https://stackoverflow.com/questions/646518/python-how-to-detect-debug-interpreter
 # testing whether sys has the gettotalrefcount function is a reliable, cross-platform
 # way to detect a CPython debug interpreter.
 #
