@@ -41,7 +41,7 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CMakeDependentOption)
 
-if(NOT pybind11_QUIETLY)
+if(NOT pybind11_FIND_QUIETLY)
   message(STATUS "pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}")
 endif()
 

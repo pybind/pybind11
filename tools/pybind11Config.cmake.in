@@ -75,7 +75,7 @@ Set PythonLibsNew variables to influence python detection and
 CMAKE_CXX_STANDARD to influence standard setting. ::
 
   find_package(pybind11 CONFIG REQUIRED)
-  if(NOT pybind11_QUIETLY)
+  if(NOT pybind11_FIND_QUIETLY)
     message(STATUS "Found pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}: ${pybind11_INCLUDE_DIRS}")
   endif()
 

@@ -52,7 +52,7 @@ elseif(Python2_FOUND AND NOT Python3_FOUND)
       Python2
       CACHE INTERNAL "" FORCE)
 else()
-  if(NOT pybind11_QUIETLY)
+  if(NOT pybind11_FIND_QUIETLY)
     message(STATUS "Python2 and Python3 both present, pybind11 in NOPYTHON mode")
   endif()
   return()
