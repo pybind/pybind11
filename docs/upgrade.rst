@@ -8,9 +8,10 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+.. _upgrade-guide-2.6:
+
 v2.6
 ====
-
 
 CMake support:
 --------------

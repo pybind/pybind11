@@ -50,9 +50,11 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(PYBIND11_MASTER_PROJECT ON)
 
   if(OSX AND CMAKE_VERSION VERSION_LESS 3.7)
+    # Bug in macOS CMake < 3.7 breaks the test suite.
     message(FATAL_ERROR "CMAKE 3.7+ required on macOS, and newer HIGHLY recommended")
   elseif(WINDOWS AND CMAKE_VERSION VERSION_LESS 3.8)
-    message(FATAL_ERROR "CMAKE 3.8+ required on Windows, and newer HIGHLY recommended")
+    # Only tested with 3.8+ in CI.
+    message(WARNING "CMAKE 3.8+ tested on Windows, previous versions untested")
   endif()
 
   message(STATUS "CMake ${CMAKE_VERSION}")

@@ -8,6 +8,9 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 
 v2.6.0 (IN PROGRESS)
 --------------------
+
+See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
+
 * Minimum CMake required increased to 3.4 (Linux), 3.7 (macOS), or 3.8 (Windows)
   `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
   `#2370 <https://github.com/pybind/pybind11/pull/2370>`_

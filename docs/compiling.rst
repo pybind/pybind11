@@ -185,7 +185,8 @@ FindPython, pybind11 will detect this and use the existing targets instead:
     project(example LANGUAGES CXX)
 
     find_package(Python COMPONENTS Interpreter Development REQUIRED)
-    find_package(pybind11 CONFIG REQUIRED) # or add_subdirectory
+    find_package(pybind11 CONFIG REQUIRED)
+    # or add_subdirectory(pybind11)
 
     pybind11_add_module(example example.cpp)
 
@@ -200,11 +201,11 @@ algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
     individual targets listed below, and avoid targets that directly include
     Python parts.
 
-There are `many ways to hint or force a discovery
-<https://cmake.org/cmake/help/latest/module/FindPython.html>`_), setting
-``Python_ROOT_DIR`` may be the most common one (though with virtualenv/venv
-support, and Conda support, this tends to find the correct Python version more
-often than the old system did).
+There are `many ways to hint or force a discovery of a specific Python
+installation <https://cmake.org/cmake/help/latest/module/FindPython.html>`_),
+setting ``Python_ROOT_DIR`` may be the most common one (though with
+virtualenv/venv support, and Conda support, this tends to find the correct
+Python version more often than the old system did).
 
 Advanced: interface library targets
 -----------------------------------
