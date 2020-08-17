@@ -55,6 +55,31 @@ if(PYTHONLIBS_FOUND AND PYTHON_MODULE_EXTENSION)
   return()
 endif()
 
+# Check to see if the `python` command is present and from a virtual
+# environment, conda, or GHA activation - if it is, try to use that.
+
+if(NOT DEFINED PYTHON_EXECUTABLE)
+  if(DEFINED ENV{VIRTUAL_ENV})
+    find_program(
+      PYTHON_EXECUTABLE python
+      PATHS "$ENV{VIRTUAL_ENV}" "$ENV{VIRTUAL_ENV}/bin"
+      NO_DEFAULT_PATH)
+  elseif(DEFINED ENV{CONDA_PREFIX})
+    find_program(
+      PYTHON_EXECUTABLE python
+      PATHS "$ENV{CONDA_PREFIX}" "$ENV{CONDA_PREFIX}/bin"
+      NO_DEFAULT_PATH)
+  elseif(DEFINED ENV{pythonLocation})
+    find_program(
+      PYTHON_EXECUTABLE python
+      PATHS "$ENV{pythonLocation}" "$ENV{pythonLocation}/bin"
+      NO_DEFAULT_PATH)
+  endif()
+  if(NOT PYTHON_EXECUTABLE)
+    unset(PYTHON_EXECUTABLE)
+  endif()
+endif()
+
 # Use the Python interpreter to find the libs.
 if(NOT PythonLibsNew_FIND_VERSION)
   set(PythonLibsNew_FIND_VERSION "")

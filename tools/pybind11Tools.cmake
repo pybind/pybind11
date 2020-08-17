@@ -20,15 +20,6 @@ set(Python_ADDITIONAL_VERSIONS
     "3.9;3.8;3.7;3.6;3.5;3.4"
     CACHE INTERNAL "")
 
-# Support for GitHub Actions-like activations
-if(NOT DEFINED PYTHON_EXECUTABLE AND DEFINED ENV{pythonLocation})
-  if(EXISTS "$ENV{pythonLocation}/bin/python")
-    set(PYTHON_EXECUTABLE "$ENV{pythonLocation}/bin/python")
-  elseif(EXISTS "$ENV{pythonLocation}/python")
-    set(PYTHON_EXECUTABLE "$ENV{pythonLocation}/python")
-  endif()
-endif()
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
 list(REMOVE_AT CMAKE_MODULE_PATH -1)

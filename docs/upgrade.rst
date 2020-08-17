@@ -38,6 +38,10 @@ shown if you need to change something. The changes are:
   config and submodule mode, and behaves like a ``SYSTEM`` library by
   default.
 
+* If ``PYTHON_EXECUTABLE`` is not set, virtual environments (``venv``,
+  ``virtualenv``, and ``conda``) are prioritized over the standard search
+  (similar to the new FindPython mode).
+
 In addition, the following changes may be of interest:
 
 * ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` will be respected by

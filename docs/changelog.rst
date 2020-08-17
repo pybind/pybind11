@@ -18,6 +18,10 @@ v2.6.0 (IN PROGRESS)
   * Generated config file is now portable to different Python/compiler/CMake
     versions
 
+  * Virtual environments prioritized if ``PYTHON_EXECUTABLE`` is not set
+    (``venv``, ``virtualenv``, and ``conda``) (similar to the new FindPython
+    mode).
+
   * Other CMake features now natively supported, like
     ``CMAKE_INTERPROCEDURAL_OPTIMIZATION``, ``set(CMAKE_CXX_VISIBILITY_PRESET
     hidden)``
