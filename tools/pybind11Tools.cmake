@@ -54,6 +54,23 @@ set(PYTHON_IS_DEBUG
     "${PYTHON_IS_DEBUG}"
     CACHE INTERNAL "")
 
+if(PYBIND11_MASTER_PROJECT)
+  if(PYTHON_MODULE_EXTENSION MATCHES "pypy")
+    if(NOT DEFINED PYPY_VERSION)
+      execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} -c
+                [=[import sys; print(".".join(map(str, sys.pypy_version_info[:3])))]=]
+        OUTPUT_VARIABLE pypy_version)
+      set(PYPY_VERSION
+          ${pypy_version}
+          CACHE INTERNAL "")
+    endif()
+    message(STATUS "PYPY ${PYPY_VERSION} (Py ${PYTHON_VERSION})")
+  else()
+    message(STATUS "PYTHON ${PYTHON_VERSION}")
+  endif()
+endif()
+
 # Only add Python for build - must be added during the import for config since it has to be re-discovered.
 set_property(
   TARGET pybind11::pybind11

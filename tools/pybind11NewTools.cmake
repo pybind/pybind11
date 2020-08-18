@@ -62,6 +62,14 @@ else()
   return()
 endif()
 
+if(PYBIND11_MASTER_PROJECT)
+  if(${_Python}_INTERPRETER_ID MATCHES "PyPy")
+    message(STATUS "PyPy ${${_Python}_PyPy_VERSION} (Py ${${_Python}_VERSION})")
+  else()
+    message(STATUS "${_Python} ${${_Python}_VERSION}")
+  endif()
+endif()
+
 # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
 execute_process(COMMAND ${_Python}::Python -c "import sys; print(hasattr(sys, 'gettotalrefcount'))"
                 OUTPUT_VARIABLE PYTHON_IS_DEBUG)
