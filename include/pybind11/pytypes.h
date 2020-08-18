@@ -756,7 +756,12 @@ inline bool PyIterable_Check(PyObject *obj) {
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
+#ifdef PYBIND11_STR_NON_PERMISSIVE
+#define PYBIND11_STR_CHECK_FUN PyUnicode_Check
+#else
 inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
+#define PYBIND11_STR_CHECK_FUN detail::PyUnicode_Check_Permissive
+#endif
 
 inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }
 
@@ -936,7 +941,7 @@ class bytes;
 
 class str : public object {
 public:
-    PYBIND11_OBJECT_CVT(str, object, detail::PyUnicode_Check_Permissive, raw_str)
+    PYBIND11_OBJECT_CVT(str, object, PYBIND11_STR_CHECK_FUN, raw_str)
 
     str(const char *c, size_t n)
         : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
