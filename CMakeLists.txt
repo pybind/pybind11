@@ -147,24 +147,26 @@ set(PYBIND11_INCLUDE_DIR
 add_library(headers INTERFACE)
 add_library(pybind11::headers ALIAS headers) # to match exported target
 
-target_include_directories(
-  headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
-                                       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-
-target_compile_features(headers INTERFACE cxx_inheriting_constructors cxx_user_literals
-                                          cxx_right_angle_brackets)
-
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
 
 if(NOT PYBIND11_MASTER_PROJECT AND NOT pybind11_FIND_QUIETLY)
   message(STATUS "Using pybind11: (version \"${pybind11_VERSION}\" ${pybind11_VERSION_TYPE})")
 endif()
 
+# Relative directory setting
 if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python_INCLUDE_DIRS})
 elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED PYTHON_INCLUDE_DIR)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
 endif()
+
+# Fill in headers target
+target_include_directories(
+  headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
+                                       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
+target_compile_features(headers INTERFACE cxx_inheriting_constructors cxx_user_literals
+                                          cxx_right_angle_brackets)
 
 if(PYBIND11_INSTALL)
   install(DIRECTORY ${PYBIND11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
