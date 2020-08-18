@@ -249,6 +249,18 @@ foreach(target ${test_targets})
   pybind11_add_module(${target} THIN_LTO ${target}.cpp ${test_files} ${PYBIND11_HEADERS})
   pybind11_enable_warnings(${target})
 
+  if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+    get_property(
+      suffix
+      TARGET ${target}
+      PROPERTY SUFFIX)
+    set(source_output "${CMAKE_CURRENT_SOURCE_DIR}/${target}${suffix}")
+    if(suffix AND EXISTS "${source_output}")
+      message(WARNING "Output file also in source directory; "
+                      "please remove to avoid confusion: ${source_output}")
+    endif()
+  endif()
+
   if(MSVC)
     target_compile_options(${target} PRIVATE /utf-8)
   endif()
