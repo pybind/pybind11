@@ -60,7 +60,7 @@ system with CMake 3.14+:
 python3 -m venv venv
 source venv/bin/activate
 pip install -r tests/requirements.txt
-cmake -S . -B build -DPYTHON_EXECUTABLE=$(which python) -DDOWNLOAD_CATCH=ON -DDOWNLOAD_EIGEN=ON
+cmake -S . -B build -DDOWNLOAD_CATCH=ON -DDOWNLOAD_EIGEN=ON
 cmake --build build -j4
 ```
 
@@ -71,9 +71,10 @@ Tips:
 * You can select any name for your environment folder; if it contains "env" it
   will be ignored by git.
 * If you don’t have CMake 3.14+, just add “cmake” to the pip install command.
-* You can use `-DPYBIND11_FINDPYTHON=ON` instead of setting the
-  `PYTHON_EXECUTABLE` - the new search algorithm can find virtual environments,
-  Conda, and more.
+* You can use `-DPYBIND11_FINDPYTHON=ON` to use FindPython on CMake 3.12+
+* In classic mode, you may need to set `-DPYTHON_EXECUTABLE=/path/to/python`.
+  FindPython uses `-DPython_ROOT_DIR=/path/to` or
+  `-DPython_EXECUTABLE=/path/to/python`.
 
 ### Configuration options
 
@@ -104,10 +105,12 @@ The valid options are:
 * Use `cmake build -LH` to list the CMake options with help.
 * Use `ccmake` if available to see a curses (terminal) gui, or `cmake-gui` for
   a completely graphical interface (not present in the PyPI package).
-* Use `-G` and the name of a generator to use something different, like `Ninja`
-  (automatic multithreading!). `cmake --help` lists the generators available.
-* Open the `CMakeLists.txt` with QtCreator to generate for that IDE.
 * Use `cmake --build build -j12` to build with 12 cores (for example).
+* Use `-G` and the name of a generator to use something different. `cmake
+  --help` lists the generators available.
+      - On Unix, setting `CMAKE_GENERATER=Ninja` in your environment will give
+        you automatic mulithreading on all your CMake projects!
+* Open the `CMakeLists.txt` with QtCreator to generate for that IDE.
 * You can use `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the `.json` file
   that some tools expect.
 

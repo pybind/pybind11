@@ -11,6 +11,24 @@ v2.6.0 (IN PROGRESS)
 
 See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
+* Keyword only argument supported in Python 2 or 3 with ``py::kwonly()``.
+  `#2100 <https://github.com/pybind/pybind11/pull/2100>`_
+
+* Perfect forwarding support for methods.
+  `#2048 <https://github.com/pybind/pybind11/pull/2048>`_
+
+* Added ``py::error_already_set::discard_as_unraisable()``.
+  `#2372 <https://github.com/pybind/pybind11/pull/2372>`_
+
+* ``py::hash`` is now public.
+  `#2217 <https://github.com/pybind/pybind11/pull/2217>`_
+
+* ``py::is_final()`` class modifier to block subclassing (CPython only).
+  `#2151 <https://github.com/pybind/pybind11/pull/2151>`_
+
+* ``py::memoryview``  update and documentation.
+  `#2223 <https://github.com/pybind/pybind11/pull/2223>`_
+
 * Minimum CMake required increased to 3.4.
   `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
   `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
@@ -36,6 +54,39 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
   `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
 
+Smaller or developer focused features:
+
+* Error now thrown when ``__init__`` is forgotten on subclasses.
+  `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
+
+* If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
+  ``None``.
+  `#2291 <https://github.com/pybind/pybind11/pull/2291>`_
+
+* ``py::ellipsis`` now also works on Python 2
+  `#2360 <https://github.com/pybind/pybind11/pull/2360>`_
+
+* Added missing signature for ``py::array``
+  `#2363 <https://github.com/pybind/pybind11/pull/2363>`_
+
+* Bugfixes related to more extensive testing
+  `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
+
+* Pointer to ``std::tuple`` & ``std::pair`` supported in cast.
+  `#2334 <https://github.com/pybind/pybind11/pull/2334>`_
+
+* Small fixes in NumPy support. ``py::array`` now uses ``py::ssize_t`` as first
+  argument type.
+  `#2293 <https://github.com/pybind/pybind11/pull/2293>`_
+
+* PyPy fixes, including support for PyPy3 and PyPy 7.
+  `#2146 <https://github.com/pybind/pybind11/pull/2146>`_
+
+* CPython 3.9 fixes.
+  `#2253 <https://github.com/pybind/pybind11/pull/2253>`_
+
+* Debug Python interpreter support.
+  `#2025 <https://github.com/pybind/pybind11/pull/2025>`_
 
 
 

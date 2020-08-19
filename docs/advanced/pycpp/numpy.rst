@@ -387,6 +387,9 @@ operation on the C++ side:
    py::array a = /* A NumPy array */;
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
 
+.. versionchanged:: 2.6
+   ``py::ellipsis()`` is now also avaliable in Python 2.
+
 Memory view
 ===========
 
@@ -428,3 +431,6 @@ We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
 .. note::
 
     ``memoryview::from_memory`` is not available in Python 2.
+
+.. versionchanged:: 2.6
+    ``memoryview::from_memory`` added.

@@ -390,6 +390,8 @@ argument annotations when registering the function:
 Note that, as in Python, you cannot combine this with a ``py::args`` argument.
 This feature does *not* require Python 3 to work.
 
+.. versionadded:: 2.6
+
 .. _nonconverting_arguments:
 
 Non-converting arguments

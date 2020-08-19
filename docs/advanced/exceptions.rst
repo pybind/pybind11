@@ -188,3 +188,5 @@ You can convert them to Python exceptions and then discard as unraisable.
             third_party::log(e);
         }
     }
+
+.. versionadded:: 2.6
