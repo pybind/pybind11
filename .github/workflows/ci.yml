@@ -17,7 +17,6 @@ jobs:
         runs-on: [ubuntu-latest, windows-latest, macos-latest]
         arch: [x64]
         max-cxx-std: [17]
-        dev: [false]
         python:
         - 2.7
         - 3.5
@@ -30,41 +29,34 @@ jobs:
             python: 3.6
             arch: x64
             max-cxx-std: 17
-            dev: false
             args: "-DPYBIND11_FINDPYTHON=ON"
           - runs-on: macos-latest
             python: 3.7
             arch: x64
             max-cxx-std: 17
-            dev: false
             args: "-DPYBIND11_FINDPYTHON=ON"
           - runs-on: windows-2016
             python: 3.7
             arch: x86
             max-cxx-std: 14
-            dev: false
           - runs-on: windows-latest
             python: 3.6
             arch: x64
             max-cxx-std: 17
-            dev: false
             args: "-DPYBIND11_FINDPYTHON=ON"
           - runs-on: windows-latest
             python: 3.7
             arch: x64
             max-cxx-std: 17
-            dev: false
 
           - runs-on: ubuntu-latest
             python: 3.9-dev
             arch: x64
             max-cxx-std: 17
-            dev: true
           - runs-on: macos-latest
             python: 3.9-dev
             arch: x64
             max-cxx-std: 17
-            dev: true
 
         exclude:
             # Currently 32bit only, and we build 64bit
@@ -72,29 +64,24 @@ jobs:
             python: pypy2
             arch: x64
             max-cxx-std: 17
-            dev: false
           - runs-on: windows-latest
             python: pypy3
             arch: x64
             max-cxx-std: 17
-            dev: false
 
             # Currently broken on embed_test
           - runs-on: windows-latest
             python: 3.8
             arch: x64
             max-cxx-std: 17
-            dev: false
           - runs-on: windows-latest
             python: 3.9-dev
             arch: x64
             max-cxx-std: 17
-            dev: false
 
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }} ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
-    continue-on-error: ${{ matrix.dev }}
 
     steps:
     - uses: actions/checkout@v2
@@ -129,7 +116,7 @@ jobs:
     - name: Configure C++11 ${{ matrix.args }}
       shell: bash
       run: >
-        cmake -S . -B build
+        cmake -S . -B .
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -137,16 +124,19 @@ jobs:
         ${{ matrix.args }}
 
     - name: Build C++11
-      run: cmake --build build -j 2
+      run: cmake --build . -j 2
 
     - name: Python tests C++11
-      run: cmake --build build --target pytest -j 2
+      run: cmake --build . --target pytest -j 2
 
     - name: C++11 tests
-      run: cmake --build build --target cpptest -j 2
+      run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
-      run: cmake --build build --target test_cmake_build -v
+      run: cmake --build . --target test_cmake_build
+
+    - name: Clean directory
+      run: git clean -fdx
 
     - name: Configure C++${{ matrix.max-cxx-std }} ${{ matrix.args }}
       shell: bash
