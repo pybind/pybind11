@@ -5,15 +5,21 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.4)
 
-# The `cmake_minimum_required(VERSION 3.7...3.18)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
 if(${CMAKE_VERSION} VERSION_LESS 3.18)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
   cmake_policy(VERSION 3.18)
+endif()
+
+# New Python support
+if(DEFINED Python_EXECUTABLE)
+  set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
+  set(PYTHON_VERSION "${Python_VERSION}")
 endif()
 
 # There's no harm in including a project in a project
@@ -137,13 +143,9 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
 
     set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
     set(EIGEN3_FOUND TRUE)
+
   else()
     find_package(Eigen3 3.2.7 QUIET CONFIG)
-    if(EIGEN3_FOUND)
-      if(EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1)
-        set(PYBIND11_EIGEN_VIA_TARGET TRUE)
-      endif()
-    endif()
 
     if(NOT EIGEN3_FOUND)
       # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
@@ -153,6 +155,12 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   endif()
 
   if(EIGEN3_FOUND)
+    if(NOT TARGET Eigen3::Eigen)
+      add_library(Eigen3::Eigen IMPORTED INTERFACE)
+      set_property(TARGET Eigen3::Eigen PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                                                 "${EIGEN3_INCLUDE_DIR}")
+    endif()
+
     # Eigen 3.3.1+ cmake sets EIGEN3_VERSION_STRING (and hard codes the version when installed
     # rather than looking it up in the cmake script); older versions, and the
     # tools/FindEigen3.cmake, set EIGEN3_VERSION instead.
@@ -168,6 +176,20 @@ endif()
 
 # Optional dependency for some tests (boost::variant is only supported with version >= 1.56)
 find_package(Boost 1.56)
+
+if(Boost_FOUND)
+  if(NOT TARGET Boost::headers)
+    if(TARGET Boost::boost)
+      # Classic FindBoost
+      add_library(Boost::headers ALIAS Boost::boost)
+    else()
+      # Very old FindBoost, or newer Boost than CMake in older CMakes
+      add_library(Boost::headers IMPORTED INTERFACE)
+      set_property(TARGET Boost::headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                                                  ${Boost_INCLUDE_DIRS})
+    endif()
+  endif()
+endif()
 
 # Compile with compiler warnings turned on
 function(pybind11_enable_warnings target_name)
@@ -233,16 +255,12 @@ foreach(target ${test_targets})
   endif()
 
   if(EIGEN3_FOUND)
-    if(PYBIND11_EIGEN_VIA_TARGET)
-      target_link_libraries(${target} PRIVATE Eigen3::Eigen)
-    else()
-      target_include_directories(${target} SYSTEM PRIVATE ${EIGEN3_INCLUDE_DIR})
-    endif()
+    target_link_libraries(${target} PRIVATE Eigen3::Eigen)
     target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_EIGEN)
   endif()
 
   if(Boost_FOUND)
-    target_include_directories(${target} SYSTEM PRIVATE ${Boost_INCLUDE_DIRS})
+    target_link_libraries(${target} PRIVATE Boost::headers)
     target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_BOOST)
   endif()
 

@@ -5,9 +5,9 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.4)
 
-# The `cmake_minimum_required(VERSION 3.7...3.18)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
 if(${CMAKE_VERSION} VERSION_LESS 3.18)
@@ -41,11 +41,22 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CMakeDependentOption)
 
-message(STATUS "pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}")
+if(NOT pybind11_FIND_QUIETLY)
+  message(STATUS "pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}")
+endif()
 
 # Check if pybind11 is being used directly or via add_subdirectory
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(PYBIND11_MASTER_PROJECT ON)
+
+  if(OSX AND CMAKE_VERSION VERSION_LESS 3.7)
+    # Bug in macOS CMake < 3.7 is unable to download catch
+    message(WARNING "CMAKE 3.7+ needed on macOS to download catch, and newer HIGHLY recommended")
+  elseif(WINDOWS AND CMAKE_VERSION VERSION_LESS 3.8)
+    # Only tested with 3.8+ in CI.
+    message(WARNING "CMAKE 3.8+ tested on Windows, previous versions untested")
+  endif()
+
   message(STATUS "CMake ${CMAKE_VERSION}")
 
   if(CMAKE_CXX_STANDARD)
@@ -60,12 +71,15 @@ endif()
 # Options
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
-option(PYBIND11_CLASSIC_LTO "Use the classic LTO flag algorithm, even on CMake 3.9+" OFF)
+option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
   "Install pybind11 headers in Python include directory instead of default installation prefix"
   OFF "PYBIND11_INSTALL" OFF)
+
+cmake_dependent_option(PYBIND11_FINDPYTHON "Force new FindPython" OFF
+                       "NOT CMAKE_VERSION VERSION_LESS 3.12" OFF)
 
 # NB: when adding a header don't forget to also add it to setup.py
 set(PYBIND11_HEADERS
@@ -118,101 +132,41 @@ endif()
 string(REPLACE "include/" "${CMAKE_CURRENT_SOURCE_DIR}/include/" PYBIND11_HEADERS
                "${PYBIND11_HEADERS}")
 
-# Classic mode
-
-include("${CMAKE_CURRENT_LIST_DIR}/tools/pybind11Tools.cmake")
-
 # Cache variables so pybind11_add_module can be used in parent projects
 set(PYBIND11_INCLUDE_DIR
     "${CMAKE_CURRENT_LIST_DIR}/include"
     CACHE INTERNAL "")
-set(PYTHON_INCLUDE_DIRS
-    ${PYTHON_INCLUDE_DIRS}
-    CACHE INTERNAL "")
-set(PYTHON_LIBRARIES
-    ${PYTHON_LIBRARIES}
-    CACHE INTERNAL "")
-set(PYTHON_MODULE_PREFIX
-    ${PYTHON_MODULE_PREFIX}
-    CACHE INTERNAL "")
-set(PYTHON_MODULE_EXTENSION
-    ${PYTHON_MODULE_EXTENSION}
-    CACHE INTERNAL "")
-set(PYTHON_VERSION_MAJOR
-    ${PYTHON_VERSION_MAJOR}
-    CACHE INTERNAL "")
-set(PYTHON_VERSION_MINOR
-    ${PYTHON_VERSION_MINOR}
-    CACHE INTERNAL "")
-set(PYTHON_IS_DEBUG
-    "${PYTHON_IS_DEBUG}"
-    CACHE INTERNAL "")
-
-if(USE_PYTHON_INCLUDE_DIR)
-  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
-endif()
 
 # Note: when creating targets, you cannot use if statements at configure time -
 # you need generator expressions, because those will be placed in the target file.
 # You can also place ifs *in* the Config.in, but not here.
 
-# Build an interface library target:
-add_library(pybind11 INTERFACE)
-add_library(pybind11::pybind11 ALIAS pybind11) # to match exported target
+# This section builds targets, but does *not* touch Python
 
+# Build the headers-only target (no Python included):
+add_library(headers INTERFACE)
+add_library(pybind11::headers ALIAS headers) # to match exported target
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
+
+if(NOT PYBIND11_MASTER_PROJECT AND NOT pybind11_FIND_QUIETLY)
+  message(STATUS "Using pybind11: (version \"${pybind11_VERSION}\" ${pybind11_VERSION_TYPE})")
+endif()
+
+# Relative directory setting
+if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
+  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python_INCLUDE_DIRS})
+elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED PYTHON_INCLUDE_DIR)
+  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
+endif()
+
+# Fill in headers target
 target_include_directories(
-  pybind11 ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
-                                        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-# Only add Python for build - must be added during the import for config since it has to be re-discovered.
-target_include_directories(pybind11 SYSTEM INTERFACE $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>)
+  headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
+                                       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-if(CMAKE_VERSION VERSION_LESS 3.13)
-  target_compile_features(pybind11 INTERFACE cxx_inheriting_constructors cxx_user_literals
-                                             cxx_right_angle_brackets)
-else()
-  # This was added in CMake 3.8, but we are keeping a consistent breaking
-  # point for the config file at 3.13. A config generated by CMake 3.13+
-  # can only be read in 3.13+ due to the SHELL usage later, so this is safe to do.
-  target_compile_features(pybind11 INTERFACE cxx_std_11)
-endif()
-
-add_library(module INTERFACE)
-add_library(pybind11::module ALIAS module)
-
-target_link_libraries(module INTERFACE pybind11::pybind11)
-
-# See https://github.com/Kitware/CMake/blob/master/Modules/CMakePlatformId.h.in for platform IDs
-# Note: CMake 3.15 allows $<PLATFORM_ID:Windows,Cygwin>
-target_link_libraries(
-  module
-  INTERFACE
-    "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>")
-
-if(CMAKE_VERSION VERSION_LESS 3.13)
-  target_link_libraries(module INTERFACE "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
-else()
-  # SHELL (3.12+) forces this to remain together, and link_options was added in 3.13+
-  # This is safer, because you are ensured the deduplication pass in CMake will not consider
-  # these separate and remove one but not the other.
-  target_link_options(module INTERFACE "$<$<PLATFORM_ID:Darwin>:SHELL:-undefined dynamic_lookup>")
-endif()
-
-# Workaround for Python 2.7 and C++17 (C++14 as a warning) incompatibility
-# This adds the flags -Wno-register and -Wno-deprecated-register if the compiler
-# is Clang 3.9+ or AppleClang and the compile language is CXX, or /wd5033 for MSVC (all languages,
-# since MSVC didn't recognize COMPILE_LANGUAGE until CMake 3.11+).
-set(clang_4plus
-    "$<AND:$<CXX_COMPILER_ID:Clang>,$<NOT:$<VERSION_LESS:$<CXX_COMPILER_VERSION>,3.9>>>")
-set(no_register "$<OR:${clang_4plus},$<CXX_COMPILER_ID:AppleClang>>")
-set(cxx_no_register "$<AND:$<COMPILE_LANGUAGE:CXX>,${no_register}>")
-set(msvc "$<CXX_COMPILER_ID:MSVC>")
-target_compile_options(
-  pybind11 INTERFACE "$<${cxx_no_register}:-Wno-register;-Wno-deprecated-register>"
-                     "$<${msvc}:/wd5033>")
-
-add_library(embed INTERFACE)
-add_library(pybind11::embed ALIAS embed)
-target_link_libraries(embed INTERFACE pybind11::pybind11 $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+target_compile_features(headers INTERFACE cxx_inheriting_constructors cxx_user_literals
+                                          cxx_right_angle_brackets)
 
 if(PYBIND11_INSTALL)
   install(DIRECTORY ${PYBIND11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -248,14 +202,17 @@ if(PYBIND11_INSTALL)
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-          tools/FindPythonLibsNew.cmake tools/pybind11Tools.cmake
+          tools/FindPythonLibsNew.cmake
+          tools/pybind11Common.cmake
+          tools/pybind11Tools.cmake
+          tools/pybind11NewTools.cmake
     DESTINATION ${PYBIND11_CMAKECONFIG_INSTALL_DIR})
 
   if(NOT PYBIND11_EXPORT_NAME)
     set(PYBIND11_EXPORT_NAME "${PROJECT_NAME}Targets")
   endif()
 
-  install(TARGETS pybind11 module embed EXPORT "${PYBIND11_EXPORT_NAME}")
+  install(TARGETS headers EXPORT "${PYBIND11_EXPORT_NAME}")
 
   install(
     EXPORT "${PYBIND11_EXPORT_NAME}"
@@ -275,10 +232,28 @@ endif()
 # BUILD_TESTING takes priority, but only if this is the master project
 if(PYBIND11_MASTER_PROJECT AND DEFINED BUILD_TESTING)
   if(BUILD_TESTING)
-    add_subdirectory(tests)
+    if(_pybind11_nopython)
+      message(FATAL_ERROR "Cannot activate tests in NOPYTHON mode")
+    else()
+      add_subdirectory(tests)
+    endif()
   endif()
 else()
   if(PYBIND11_TEST)
-    add_subdirectory(tests)
+    if(_pybind11_nopython)
+      message(FATAL_ERROR "Cannot activate tests in NOPYTHON mode")
+    else()
+      add_subdirectory(tests)
+    endif()
   endif()
+endif()
+
+# Better symmetry with find_package(pybind11 CONFIG) mode.
+if(NOT PYBIND11_MASTER_PROJECT)
+  set(pybind11_FOUND
+      TRUE
+      CACHE INTERNAL "true if pybind11 and all required components found on the system")
+  set(pybind11_INCLUDE_DIR
+      "${PYBIND11_INCLUDE_DIR}"
+      CACHE INTERNAL "Directory where pybind11 headers are located")
 endif()
