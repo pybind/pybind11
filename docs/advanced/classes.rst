@@ -149,8 +149,7 @@ memory for the C++ portion of the instance will be left uninitialized, which
 will generally leave the C++ instance in an invalid state and cause undefined
 behavior if the C++ instance is subsequently used.
 
-.. versionadded:: 2.5.1
-
+.. versionchanged:: 2.6
    The default pybind11 metaclass will throw a ``TypeError`` when it detects
    that ``__init__`` was not called by a derived class.
 
@@ -596,6 +595,8 @@ For more information, see :ref:`the documentation on exceptions <unraisable_exce
 .. note::
 
     pybind11 does not support C++ destructors marked ``noexcept(false)``.
+
+.. versionadded:: 2.6
 
 .. _implicit_conversions:
 
@@ -1146,6 +1147,8 @@ error:
     TypeError: type 'IsFinal' is not an acceptable base type
 
 .. note:: This attribute is currently ignored on PyPy
+
+.. versionadded:: 2.6
 
 Custom automatic downcasters
 ============================
