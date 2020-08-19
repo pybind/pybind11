@@ -12,10 +12,17 @@ if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
 endif()
 
-# Add a CMake parameter for choosing a desired Python version
-if(NOT PYBIND11_PYTHON_VERSION)
+# If this is the first run, PYTHON_VERSION can stand in for PYBIND11_PYTHON_VERSION
+if(NOT DEFINED PYBIND11_PYTHON_VERSION AND DEFINED PYTHON_VERSION)
   set(PYBIND11_PYTHON_VERSION
-      ""
+      "${PYTHON_VERSION}"
+      CACHE STRING "Python version to use for compiling modules")
+  unset(PYTHON_VERSION)
+  unset(PYTHON_VERSION CACHE)
+else()
+  # If this is set as a normal variable, promote it, otherwise, make an empty cache variable.
+  set(PYBIND11_PYTHON_VERSION
+      "${PYBIND11_PYTHON_VERSION}"
       CACHE STRING "Python version to use for compiling modules")
 endif()
 
