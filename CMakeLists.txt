@@ -46,7 +46,7 @@ if(NOT pybind11_FIND_QUIETLY)
 endif()
 
 # Check if pybind11 is being used directly or via add_subdirectory
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   ### Warn if not an out-of-source builds
   if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(lines
