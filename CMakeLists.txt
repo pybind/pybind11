@@ -50,8 +50,8 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(PYBIND11_MASTER_PROJECT ON)
 
   if(OSX AND CMAKE_VERSION VERSION_LESS 3.7)
-    # Bug in macOS CMake < 3.7 breaks the test suite.
-    message(FATAL_ERROR "CMAKE 3.7+ required on macOS, and newer HIGHLY recommended")
+    # Bug in macOS CMake < 3.7 is unable to download catch
+    message(WARNING "CMAKE 3.7+ needed on macOS to download catch, and newer HIGHLY recommended")
   elseif(WINDOWS AND CMAKE_VERSION VERSION_LESS 3.8)
     # Only tested with 3.8+ in CI.
     message(WARNING "CMAKE 3.8+ tested on Windows, previous versions untested")
@@ -250,8 +250,10 @@ endif()
 
 # Better symmetry with find_package(pybind11 CONFIG) mode.
 if(NOT PYBIND11_MASTER_PROJECT)
-  set(pybind11_FOUND TRUE INTERNAL BOOL
-                     "true if pybind11 and all required components found on the system")
-  set(pybind11_INCLUDE_DIR "${PYBIND11_INCLUDE_DIR}" INTERNAL STRING
-                           "Directory where pybind11 headers are located")
+  set(pybind11_FOUND
+      TRUE
+      CACHE INTERNAL "true if pybind11 and all required components found on the system")
+  set(pybind11_INCLUDE_DIR
+      "${PYBIND11_INCLUDE_DIR}"
+      CACHE INTERNAL "Directory where pybind11 headers are located")
 endif()

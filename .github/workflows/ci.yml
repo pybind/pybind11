@@ -356,14 +356,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install requirements
+    - name: Install system requirements
       run: apk add doxygen python3-dev
 
     - name: Ensure pip
       run: python3 -m ensurepip
 
-    - name: Install python docs requirements
-      run: python3 -m pip install "sphinx<3" sphinx_rtd_theme breathe==4.13.1 pytest setuptools
+    - name: Install docs & setup requirements
+      run: python3 -m pip install -r docs/requirements.txt pytest setuptools
 
     - name: Build docs
       run: python3 -m sphinx -W -b html docs docs/.build

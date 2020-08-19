@@ -50,6 +50,9 @@ PyPI integration, can be found in the [cmake_example]_  repository.
 
 .. [cmake_example] https://github.com/pybind/cmake_example
 
+.. versionchanged:: 2.6
+   CMake 3.4+ is required.
+
 pybind11_add_module
 -------------------
 
@@ -172,8 +175,11 @@ can refer to the same [cmake_example]_ repository for a full sample project
 
 .. _Config file: https://github.com/pybind/pybind11/blob/master/tools/pybind11Config.cmake.in
 
-New: FindPython support
------------------------
+
+.. _find-python-mode:
+
+FindPython mode
+---------------
 
 CMake 3.12+ (3.15+ recommended) added a new module called FindPython that had a
 highly improved search algorithm and modern targets and tools. If you use
@@ -206,6 +212,8 @@ installation <https://cmake.org/cmake/help/latest/module/FindPython.html>`_),
 setting ``Python_ROOT_DIR`` may be the most common one (though with
 virtualenv/venv support, and Conda support, this tends to find the correct
 Python version more often than the old system did).
+
+.. versionadded:: 2.6
 
 Advanced: interface library targets
 -----------------------------------
@@ -267,7 +275,6 @@ You can use these targets to build complex applications. For example, the
 
 Instead of setting properties, you can set ``CMAKE_*`` variables to initialize these correctly.
 
-
 .. warning::
 
     Since pybind11 is a metatemplate library, it is crucial that certain
@@ -276,6 +283,10 @@ Instead of setting properties, you can set ``CMAKE_*`` variables to initialize t
     provides a *composable* set of targets to ensure that you retain flexibility.
     It can be expecially important to provide or set these properties; the
     :ref:`FAQ <faq:symhidden>` contains an explanation on why these are needed.
+
+.. versionadded:: 2.6
+
+.. _nopython-mode:
 
 Advanced: NOPYTHON mode
 -----------------------
@@ -287,6 +298,8 @@ freedom to integrate into an existing system (like `Scikit-Build's
 <https://scikit-build.readthedocs.io>`_ ``PythonExtensions``).
 ``pybind11_add_module`` and ``pybind11_extension`` will be unavailable, and the
 targets will be missing any Python specific behavior.
+
+.. versionadded:: 2.6
 
 Embedding the Python interpreter
 --------------------------------

@@ -11,15 +11,15 @@ v2.6.0 (IN PROGRESS)
 
 See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
-* Minimum CMake required increased to 3.4 (Linux), 3.7 (macOS), or 3.8 (Windows)
+* Minimum CMake required increased to 3.4.
   `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
   `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
 
   * Full integration with CMake’s C++ standard system replaces
-    ``PYBIND11_CPP_STANDARD``
+    ``PYBIND11_CPP_STANDARD``.
 
   * Generated config file is now portable to different Python/compiler/CMake
-    versions
+    versions.
 
   * Virtual environments prioritized if ``PYTHON_EXECUTABLE`` is not set
     (``venv``, ``virtualenv``, and ``conda``) (similar to the new FindPython
@@ -27,12 +27,12 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
   * Other CMake features now natively supported, like
     ``CMAKE_INTERPROCEDURAL_OPTIMIZATION``, ``set(CMAKE_CXX_VISIBILITY_PRESET
-    hidden)``
+    hidden)``.
 
-* Optional FindPython support and NOPYTHON mode with CMake
+* Optional :ref:`find-python-mode` and :ref:`nopython-mode` with CMake.
   `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
 
-* Uninstall target added
+* Uninstall target added.
   `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
   `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
 

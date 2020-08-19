@@ -16,9 +16,9 @@ v2.6
 CMake support:
 --------------
 
-The minimum required version of CMake is now 3.4 (or 3.7 macOS/3.8 Windows).
-Several details of the CMake support have been deprecated; warnings will be
-shown if you need to change something. The changes are:
+The minimum required version of CMake is now 3.4.  Several details of the CMake
+support have been deprecated; warnings will be shown if you need to change
+something. The changes are:
 
 * ``PYBIND11_CPP_STANDARD=<platform-flag>`` is deprecated, please use
   ``CMAKE_CXX_STANDARD=<number>`` instead, or any other valid CMake CXX or CUDA

@@ -1,1 +1,3 @@
-breathe == 4.5.0
+breathe==4.13.1
+sphinx<3
+sphinx_rtd_theme
