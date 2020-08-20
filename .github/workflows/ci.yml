@@ -111,7 +111,7 @@ jobs:
         key: ${{ runner.os }}-pip-${{ matrix.python }}-${{ matrix.arch }}-${{ hashFiles('tests/requirements.txt') }}
 
     - name: Prepare env
-      run: python -m pip install -r tests/requirements.txt
+      run: python -m pip install -r tests/requirements.txt --prefer-binary
 
     - name: Configure C++11 ${{ matrix.args }}
       shell: bash
@@ -272,7 +272,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Install dependencies
-      run: python3 -m pip install cmake -r tests/requirements.txt
+      run: python3 -m pip install cmake -r tests/requirements.txt --prefer-binary
 
     - name: Configure
       shell: bash
