@@ -1,2 +1,2 @@
 recursive-include include/pybind11 *.h
-include LICENSE README.md CONTRIBUTING.md
+include LICENSE README.md .github/CONTRIBUTING.md
