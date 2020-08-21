@@ -154,8 +154,10 @@ set(PYBIND11_INCLUDE_DIR
 # This section builds targets, but does *not* touch Python
 
 # Build the headers-only target (no Python included):
-add_library(headers INTERFACE)
-add_library(pybind11::headers ALIAS headers) # to match exported target
+# (long name used here to keep this from clashing in subdirectory mode)
+add_library(pybind11_headers INTERFACE)
+add_library(pybind11:pybind11_headers ALIAS pybind11_headers) # to match exported target
+add_library(pybind11::headers ALIAS pybind11_headers) # easier to use/remember
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
 
@@ -172,11 +174,11 @@ endif()
 
 # Fill in headers target
 target_include_directories(
-  headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
-                                       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+  pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
+                                                $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-target_compile_features(headers INTERFACE cxx_inheriting_constructors cxx_user_literals
-                                          cxx_right_angle_brackets)
+target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
+                                                   cxx_right_angle_brackets)
 
 if(PYBIND11_INSTALL)
   install(DIRECTORY ${PYBIND11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -222,7 +224,7 @@ if(PYBIND11_INSTALL)
     set(PYBIND11_EXPORT_NAME "${PROJECT_NAME}Targets")
   endif()
 
-  install(TARGETS headers EXPORT "${PYBIND11_EXPORT_NAME}")
+  install(TARGETS pybind11_headers EXPORT "${PYBIND11_EXPORT_NAME}")
 
   install(
     EXPORT "${PYBIND11_EXPORT_NAME}"
