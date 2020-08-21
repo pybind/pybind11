@@ -82,7 +82,7 @@ set_property(
 # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
 if(PYTHON_IS_DEBUG)
   set_property(
-    TARGET pybind::pybind11
+    TARGET pybind11::pybind11
     APPEND
     PROPERTY INTERFACE_COMPILE_DEFINITIONS Py_DEBUG)
 endif()
