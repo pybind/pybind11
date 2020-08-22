@@ -156,7 +156,7 @@ set(PYBIND11_INCLUDE_DIR
 # Build the headers-only target (no Python included):
 # (long name used here to keep this from clashing in subdirectory mode)
 add_library(pybind11_headers INTERFACE)
-add_library(pybind11:pybind11_headers ALIAS pybind11_headers) # to match exported target
+add_library(pybind11::pybind11_headers ALIAS pybind11_headers) # to match exported target
 add_library(pybind11::headers ALIAS pybind11_headers) # easier to use/remember
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
