@@ -29,21 +29,20 @@ jobs:
             python: 3.6
             arch: x64
             max-cxx-std: 17
-            args: "-DPYBIND11_FINDPYTHON=ON"
-          - runs-on: macos-latest
-            python: 3.7
-            arch: x64
-            max-cxx-std: 17
-            args: "-DPYBIND11_FINDPYTHON=ON"
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
           - runs-on: windows-2016
             python: 3.7
             arch: x86
-            max-cxx-std: 14
+            max-cxx-std: 17
+            args2: >
+              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
           - runs-on: windows-latest
             python: 3.6
             arch: x64
             max-cxx-std: 17
-            args: "-DPYBIND11_FINDPYTHON=ON"
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
           - runs-on: windows-latest
             python: 3.7
             arch: x64
@@ -57,6 +56,8 @@ jobs:
             python: 3.9-dev
             arch: x64
             max-cxx-std: 17
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
 
         exclude:
             # Currently 32bit only, and we build 64bit
@@ -92,8 +93,7 @@ jobs:
         python-version: ${{ matrix.python }}
         architecture: ${{ matrix.arch }}
 
-    - name: Setup Boost
-      if: runner.os != 'macOS'
+    - name: Setup Boost (Windows / Linux latest)
       run: echo "::set-env name=BOOST_ROOT::$BOOST_ROOT_1_72_0"
 
     - name: Update CMake
@@ -114,7 +114,6 @@ jobs:
       run: python -m pip install -r tests/requirements.txt --prefer-binary
 
     - name: Configure C++11 ${{ matrix.args }}
-      shell: bash
       run: >
         cmake -S . -B .
         -DPYBIND11_WERROR=ON
@@ -139,7 +138,6 @@ jobs:
       run: git clean -fdx
 
     - name: Configure C++${{ matrix.max-cxx-std }} ${{ matrix.args }}
-      shell: bash
       run: >
         cmake -S . -B build2
         -DPYBIND11_WERROR=ON
@@ -147,6 +145,7 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.max-cxx-std }}
         ${{ matrix.args }}
+        ${{ matrix.args2 }}
 
     - name: Build C++${{ matrix.max-cxx-std }}
       run: cmake --build build2 -j 2
