@@ -3,128 +3,182 @@
 
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 
-from setuptools import setup
-from distutils.command.install_headers import install_headers
-from distutils.command.build_py import build_py
-from pybind11 import __version__
+import contextlib
+import glob
 import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from distutils.command.install_headers import install_headers
 
-package_data = [
-    'include/pybind11/detail/class.h',
-    'include/pybind11/detail/common.h',
-    'include/pybind11/detail/descr.h',
-    'include/pybind11/detail/init.h',
-    'include/pybind11/detail/internals.h',
-    'include/pybind11/detail/typeid.h',
-    'include/pybind11/attr.h',
-    'include/pybind11/buffer_info.h',
-    'include/pybind11/cast.h',
-    'include/pybind11/chrono.h',
-    'include/pybind11/common.h',
-    'include/pybind11/complex.h',
-    'include/pybind11/eigen.h',
-    'include/pybind11/embed.h',
-    'include/pybind11/eval.h',
-    'include/pybind11/functional.h',
-    'include/pybind11/iostream.h',
-    'include/pybind11/numpy.h',
-    'include/pybind11/operators.h',
-    'include/pybind11/options.h',
-    'include/pybind11/pybind11.h',
-    'include/pybind11/pytypes.h',
-    'include/pybind11/stl.h',
-    'include/pybind11/stl_bind.h',
-]
+from setuptools import setup
 
-# Prevent installation of pybind11 headers by setting
-# PYBIND11_USE_CMAKE.
-if os.environ.get('PYBIND11_USE_CMAKE'):
-    headers = []
-else:
-    headers = package_data
+# For now, there are three parts to this package. Besides the "normal" module:
+# PYBIND11_USE_HEADERS will include the python-headers files.
+# PYBIND11_USE_SYSTEM will include the sys.prefix files (CMake and headers).
+# The final version will likely only include the normal module or come in
+# different versions.
+
+use_headers = os.environ.get("PYBIND11_USE_HEADERS", False)
+use_system = os.environ.get("PYBIND11_USE_SYSTEM", False)
+
+setup_opts = dict()
+
+# In a PEP 518 build, this will be in its own environment, so it will not
+# create extra files in the source
+
+DIR = os.path.abspath(os.path.dirname(__file__))
+
+prexist_include = os.path.exists("pybind11/include")
+prexist_share = os.path.exists("pybind11/share")
 
 
-class InstallHeaders(install_headers):
-    """Use custom header installer because the default one flattens subdirectories"""
+@contextlib.contextmanager
+def monkey_patch_file(input_file):
+    "Allow a file to be temporarily modified"
+
+    with open(os.path.join(DIR, input_file), "r") as f:
+        contents = f.read()
+    try:
+        yield contents
+    finally:
+        with open(os.path.join(DIR, input_file), "w") as f:
+            f.write(contents)
+
+
+@contextlib.contextmanager
+def TemporaryDirectory():  # noqa: N802
+    "Prepare a temporary directory, cleanup when done"
+    try:
+        tmpdir = tempfile.mkdtemp()
+        yield tmpdir
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+@contextlib.contextmanager
+def remove_output(*sources):
+    try:
+        yield
+    finally:
+        for src in sources:
+            shutil.rmtree(src)
+
+
+def check_compare(input_set, *patterns):
+    "Just a quick way to make sure all files are present"
+    disk_files = set()
+    for pattern in patterns:
+        disk_files |= set(glob.glob(pattern, recursive=True))
+
+    assert input_set == disk_files, "{} setup.py only, {} on disk only".format(
+        input_set - disk_files, disk_files - input_set
+    )
+
+
+class InstallHeadersNested(install_headers):
     def run(self):
-        if not self.distribution.headers:
-            return
+        headers = self.distribution.headers or []
+        for header in headers:
+            # Remove include/*/
+            short_header = header.split("/", 2)[-1]
 
-        for header in self.distribution.headers:
-            subdir = os.path.dirname(os.path.relpath(header, 'include/pybind11'))
-            install_dir = os.path.join(self.install_dir, subdir)
-            self.mkpath(install_dir)
-
-            (out, _) = self.copy_file(header, install_dir)
+            dst = os.path.join(self.install_dir, os.path.dirname(short_header))
+            self.mkpath(dst)
+            (out, _) = self.copy_file(header, dst)
             self.outfiles.append(out)
 
 
-# Install the headers inside the package as well
-class BuildPy(build_py):
-    def build_package_data(self):
-        build_py.build_package_data(self)
-        for header in package_data:
-            target = os.path.join(self.build_lib, 'pybind11', header)
-            self.mkpath(os.path.dirname(target))
-            self.copy_file(header, target, preserve_mode=False)
+main_headers = {
+    "include/pybind11/attr.h",
+    "include/pybind11/buffer_info.h",
+    "include/pybind11/cast.h",
+    "include/pybind11/chrono.h",
+    "include/pybind11/common.h",
+    "include/pybind11/complex.h",
+    "include/pybind11/eigen.h",
+    "include/pybind11/embed.h",
+    "include/pybind11/eval.h",
+    "include/pybind11/functional.h",
+    "include/pybind11/iostream.h",
+    "include/pybind11/numpy.h",
+    "include/pybind11/operators.h",
+    "include/pybind11/options.h",
+    "include/pybind11/pybind11.h",
+    "include/pybind11/pytypes.h",
+    "include/pybind11/stl.h",
+    "include/pybind11/stl_bind.h",
+}
 
-    def get_outputs(self, include_bytecode=1):
-        outputs = build_py.get_outputs(self, include_bytecode=include_bytecode)
-        for header in package_data:
-            target = os.path.join(self.build_lib, 'pybind11', header)
-            outputs.append(target)
-        return outputs
+detail_headers = {
+    "include/pybind11/detail/class.h",
+    "include/pybind11/detail/common.h",
+    "include/pybind11/detail/descr.h",
+    "include/pybind11/detail/init.h",
+    "include/pybind11/detail/internals.h",
+    "include/pybind11/detail/typeid.h",
+}
+
+headers = main_headers | detail_headers
+check_compare(headers, "include/**/*.h")
+
+if use_headers:
+    setup_opts["headers"] = headers
+    setup_opts["cmdclass"] = {"install_headers": InstallHeadersNested}
+
+cmake_files = {
+    "pybind11/share/cmake/pybind11/FindPythonLibsNew.cmake",
+    "pybind11/share/cmake/pybind11/pybind11Common.cmake",
+    "pybind11/share/cmake/pybind11/pybind11Config.cmake",
+    "pybind11/share/cmake/pybind11/pybind11ConfigVersion.cmake",
+    "pybind11/share/cmake/pybind11/pybind11NewTools.cmake",
+    "pybind11/share/cmake/pybind11/pybind11Targets.cmake",
+    "pybind11/share/cmake/pybind11/pybind11Tools.cmake",
+}
 
 
-setup(
-    name='pybind11',
-    version=__version__,
-    description='Seamless operability between C++11 and Python',
-    author='Wenzel Jakob',
-    author_email='wenzel.jakob@epfl.ch',
-    url='https://github.com/pybind/pybind11',
-    download_url='https://github.com/pybind/pybind11/tarball/v' + __version__,
-    packages=['pybind11'],
-    license='BSD',
-    headers=headers,
-    zip_safe=False,
-    cmdclass=dict(install_headers=InstallHeaders, build_py=BuildPy),
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Utilities',
-        'Programming Language :: C++',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'License :: OSI Approved :: BSD License'
-    ],
-    keywords='C++11, Python bindings',
-    long_description="""pybind11 is a lightweight header-only library that
-exposes C++ types in Python and vice versa, mainly to create Python bindings of
-existing C++ code. Its goals and syntax are similar to the excellent
-Boost.Python by David Abrahams: to minimize boilerplate code in traditional
-extension modules by inferring type information using compile-time
-introspection.
+package_headers = set("pybind11/{}".format(h) for h in headers)
+package_files = package_headers | cmake_files
 
-The main issue with Boost.Python-and the reason for creating such a similar
-project-is Boost. Boost is an enormously large and complex suite of utility
-libraries that works with almost every C++ compiler in existence. This
-compatibility has its cost: arcane template tricks and workarounds are
-necessary to support the oldest and buggiest of compiler specimens. Now that
-C++11-compatible compilers are widely available, this heavy machinery has
-become an excessively large and unnecessary dependency.
+# Generate the files if they are not generated (will be present in tarball)
+GENERATED = (
+    []
+    if all(os.path.exists(h) for h in package_files)
+    else ["pybind11/include", "pybind11/share"]
+)
+with remove_output(*GENERATED):
+    # Generate the files if they are not present.
+    if GENERATED:
+        with TemporaryDirectory() as tmpdir:
+            cmd = ["cmake", "-S", ".", "-B", tmpdir] + [
+                "-DCMAKE_INSTALL_PREFIX=pybind11",
+                "-DBUILD_TESTING=OFF",
+                "-DPYBIND11_NOPYTHON=ON",
+            ]
+            cmake_opts = dict(cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)
+            subprocess.check_call(cmd, **cmake_opts)
+            subprocess.check_call(["cmake", "--install", tmpdir], **cmake_opts)
 
-Think of this library as a tiny self-contained version of Boost.Python with
-everything stripped away that isn't relevant for binding generation. Without
-comments, the core header files only require ~4K lines of code and depend on
-Python (2.7 or 3.x, or PyPy2.7 >= 5.7) and the C++ standard library. This
-compact implementation was possible thanks to some of the new C++11 language
-features (specifically: tuples, lambda functions and variadic templates). Since
-its creation, this library has grown beyond Boost.Python in many ways, leading
-to dramatically simpler binding code in many common situations.""")
+    # Make sure all files are present
+    check_compare(package_files, "pybind11/include/**/*.h", "pybind11/share/**/*.cmake")
+
+    if use_system:
+        setup_opts["data_files"] = [
+            ("share/cmake", cmake_files),
+            ("include/pybind11", main_headers),
+            ("include/pybind11/detail", detail_headers),
+        ]
+
+    # Remove the cmake / ninja requirements as now all files are guaranteed to exist
+    if GENERATED:
+        REQUIRES = re.compile(r"requires\s*=.+?\]", re.DOTALL | re.MULTILINE)
+        with monkey_patch_file("pyproject.toml") as txt:
+            with open("pyproject.toml", "w") as f:
+                new_txt = REQUIRES.sub('requires = ["setuptools", "wheel"]', txt)
+                f.write(new_txt)
+
+            setup(**setup_opts)
+    else:
+        setup(**setup_opts)

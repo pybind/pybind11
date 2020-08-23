@@ -14,6 +14,12 @@ repos:
   - id: trailing-whitespace
   - id: fix-encoding-pragma
 
+- repo: https://github.com/psf/black
+  rev: 19.10b0
+  hooks:
+  - id: black
+    files: ^(setup.py|pybind11)
+
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.9
   hooks:
@@ -33,6 +39,13 @@ repos:
     additional_dependencies: [pyyaml]
     types: [file]
     files: (\.cmake|CMakeLists.txt)(.in)?$
+
+- repo: https://github.com/mgedmin/check-manifest
+  rev: "0.42"
+  hooks:
+  - id: check-manifest
+    stages: [manual]
+    additional_dependencies: [cmake, ninja]
 
 - repo: local
   hooks:

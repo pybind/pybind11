@@ -443,19 +443,17 @@ jobs:
   doxygen:
     name: "Documentation build test"
     runs-on: ubuntu-latest
-    container: alpine:3.12
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install system requirements
-      run: apk add doxygen python3-dev
+    - uses: actions/setup-python@v2
 
-    - name: Ensure pip
-      run: python3 -m ensurepip
+    - name: Install Doxygen
+      run: sudo apt install -y doxygen
 
     - name: Install docs & setup requirements
-      run: python3 -m pip install -r docs/requirements.txt pytest setuptools
+      run: python3 -m pip install -r docs/requirements.txt
 
     - name: Build docs
       run: python3 -m sphinx -W -b html docs docs/.build
@@ -463,8 +461,16 @@ jobs:
     - name: Make SDist
       run: python3 setup.py sdist
 
+    - run: git status --ignored
+
+    - name: Check local include dir
+      run: >
+        ls pybind11;
+        python3 -c "import pybind11, pathlib; assert (a := pybind11.get_include()) == (b := str(pathlib.Path('include').resolve())), f'{a} != {b}'"
+
     - name: Compare Dists (headers only)
+      working-directory: include
       run: |
-        python3 -m pip install --user -U ./dist/*
-        installed=$(python3 -c "import pybind11; print(pybind11.get_include(True) + '/pybind11')")
-        diff -rq $installed ./include/pybind11
+        python3 -m pip install --user -U ../dist/*
+        installed=$(python3 -c "import pybind11; print(pybind11.get_include() + '/pybind11')")
+        diff -rq $installed ./pybind11

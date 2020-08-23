@@ -13,6 +13,51 @@ the [python_example]_ repository.
 
 .. [python_example] https://github.com/pybind/python_example
 
+A helper file is provided with pybind11 that can simplify usage with setuptools
+if you have pybind11 installed as a Python package; the file is also standalone,
+if you want to copy it to your package. If use use PEP518's ``pyproject.toml``
+file:
+
+.. code-block:: toml
+
+    [build-system]
+    requires = ["setuptools", "wheel", "pybind11==2.6.0"]
+    build-backend = "setuptools.build_meta"
+
+you can ensure that pybind11 is available during the building of your project
+(pip 10+ required).
+
+An example of a ``setup.py`` using pybind11's helpers:
+
+.. code-block:: python
+
+    from setuptools import setup, Extension
+    from pybind11.setup_helpers import BuildExt
+
+    ext_modules = [
+        Extension(
+            "python_example",
+            sorted(["src/main.cpp"]),
+            language="c++",
+        ),
+    ]
+
+    setup(
+        ...,
+        cmdclass={"build_ext": BuildExt},
+        ext_modules=ext_modules
+    )
+
+
+If you copy ``setup_helpers.py`` into your local project to try to support the
+classic build procedure, then you will need to use the deprecated
+``setup_requires=["pybind11>=2.6.0"]`` keyword argument to setup;
+``setup_helpers`` tries to support this as well.
+
+.. versionchanged:: 2.6
+
+    Added support file.
+
 Building with cppimport
 ========================
 
