@@ -12,7 +12,6 @@ on:
 jobs:
   standard:
     strategy:
-      fail-fast: false
       matrix:
         runs-on: [ubuntu-latest, windows-latest, macos-latest]
         arch: [x64]
@@ -72,6 +71,7 @@ jobs:
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }} ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
+    continue-on-error: ${{ endsWith(matrix.python, 'dev') }}
 
     steps:
     - uses: actions/checkout@v2
@@ -102,7 +102,10 @@ jobs:
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
 
-    - name: Configure C++11 ${{ matrix.args1 }}
+    - name: Setup annotations
+      run: python -m pip install pytest-github-actions-annotate-failures
+
+    - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
         -DPYBIND11_WERROR=ON
