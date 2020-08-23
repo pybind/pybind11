@@ -159,7 +159,7 @@ Here is an example:
 
     class Dachshund(Dog):
         def __init__(self, name):
-            Dog.__init__(self) # Without this, undefined behavior may occur if the C++ portions are referenced.
+            Dog.__init__(self) # Without this, a TypeError is raised.
             self.name = name
         def bark(self):
             return "yap!"
