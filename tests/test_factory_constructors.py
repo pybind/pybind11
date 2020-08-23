@@ -41,9 +41,12 @@ def test_init_factory_basic():
     z3 = m.TestFactory3("bye")
     assert z3.value == "bye"
 
-    with pytest.raises(TypeError) as excinfo:
-        m.TestFactory3(tag.null_ptr)
-    assert str(excinfo.value) == "pybind11::init(): factory function returned nullptr"
+    for null_ptr_kind in [tag.null_ptr,
+                          tag.null_unique_ptr,
+                          tag.null_shared_ptr]:
+        with pytest.raises(TypeError) as excinfo:
+            m.TestFactory3(null_ptr_kind)
+        assert str(excinfo.value) == "pybind11::init(): factory function returned nullptr"
 
     assert [i.alive() for i in cstats] == [3, 3, 3]
     assert ConstructorStats.detail_reg_inst() == n_inst + 9
