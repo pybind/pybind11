@@ -132,6 +132,21 @@ def test_inheritance_init(msg):
         expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
     assert msg(exc_info.value) == expected
 
+    # Base doesn't have __init__
+    class ChChimera(m.Chimera):
+        def __init__(self):
+            pass
+
+    with pytest.raises(TypeError) as exc_info:
+        ChChimera()
+    if env.PYPY:
+        # can't detect no __init__ in PyPy
+        expected = "Chimera.__init__() must be called when overriding __init__"
+    else:
+        expected = \
+            "m.class_.Chimera has no __init__ and cannot be used as a base class from Python"
+    assert msg(exc_info.value) == expected
+
 
 def test_automatic_upcasting():
     assert type(m.return_class_1()).__name__ == "DerivedClass1"
