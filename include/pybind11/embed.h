@@ -89,6 +89,17 @@ struct embedded_module {
     }
 };
 
+struct wide_char_arg_deleter {
+    void operator()(void* ptr) const {
+#if PY_VERSION_HEX >= 0x030500f0
+        // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
+        PyMem_RawFree(ptr);
+#else
+        delete ptr;
+#endif
+    }
+};
+
 /// Python 2.x/3.x-compatible version of `PySys_SetArgv`
 inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_path) {
     // Before it was special-cased in python 3.8, passing an empty or null argv
@@ -106,18 +117,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     size_t argv_size = static_cast<size_t>(argc);
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
     std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[argv_size]);
-#  if PY_MINOR_VERSION >= 5
-    // Use of PyMem_RawFree here instead of PyMem_Free is as recommended by the python
-    // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
-    struct pymem_rawfree_deleter {
-        void operator()(void* ptr) const {
-            PyMem_RawFree(ptr);
-        }
-    };
-    std::vector< std::unique_ptr<wchar_t[], pymem_rawfree_deleter> > widened_argv_entries;
-#  else
-    std::vector< std::unique_ptr<wchar_t[]> > widened_argv_entries;
-#  endif
+    std::vector< std::unique_ptr<wchar_t[], wide_char_arg_deleter> > widened_argv_entries;
     for (size_t ii = 0; ii < argv_size; ++ii) {
 #  if PY_MINOR_VERSION >= 5
         // From Python 3.5 onwards, we're supposed to use Py_DecodeLocale to
