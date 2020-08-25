@@ -76,3 +76,61 @@ jobs:
       working-directory: build dir
       if: github.event_name == 'workflow_dispatch'
       run: cmake --build . --config Release --target check
+
+  test-packaging:
+    name: 🐍 2.7 • 📦 tests • windows-latest
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup 🐍 2.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 2.7
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt --prefer-binary
+
+    - name: Python Packaging tests
+      run: pytest tests/extra_python_package/
+
+
+  packaging:
+    name: 🐍 3.8 • 📦 & 📦 tests • ubuntu-latest
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup 🐍 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt wheel twine --prefer-binary
+
+    - name: Python Packaging tests
+      run: pytest tests/extra_python_package/
+
+    - name: Build SDist
+      run: |
+        python setup.py sdist
+        PYBIND11_ALT_SDIST=1 python setup.py sdist
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: dist/*
+
+    - name: Build wheel
+      run: |
+        python -m pip wheel . -w wheels
+        PYBIND11_ALT_SDIST=1 python -m pip wheel . -w wheels
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: wheels/pybind11*.whl
+
+    - name: Check metadata
+      run: twine check dist/* wheels/*

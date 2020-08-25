@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v3.1.0
+  rev: v3.2.0
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -15,10 +15,10 @@ repos:
   - id: fix-encoding-pragma
 
 - repo: https://github.com/psf/black
-  rev: 19.10b0
+  rev: 20.8b1
   hooks:
   - id: black
-    files: ^(setup.py|pybind11)
+    files: ^(setup.py|pybind11|tests/extra)
 
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.9

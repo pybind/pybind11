@@ -15,7 +15,7 @@ the [python_example]_ repository.
 
 A helper file is provided with pybind11 that can simplify usage with setuptools
 if you have pybind11 installed as a Python package; the file is also standalone,
-if you want to copy it to your package. If use use PEP518's ``pyproject.toml``
+if you want to copy it to your package. If you use PEP518's ``pyproject.toml``
 file:
 
 .. code-block:: toml
@@ -412,7 +412,7 @@ Besides, the ``--extension-suffix`` option may or may not be available, dependin
 on the distribution; in the latter case, the module extension can be manually
 set to ``.so``.
 
-On Mac OS: the build command is almost the same but it also requires passing
+On macOS: the build command is almost the same but it also requires passing
 the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
 building the module:
 

@@ -12,6 +12,7 @@
 #include "constructor_stats.h"
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+#include <algorithm>
 
 #include <algorithm>
 

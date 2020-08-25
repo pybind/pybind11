@@ -11,11 +11,11 @@ included set of test cases.
 Compiling the test cases
 ========================
 
-Linux/MacOS
+Linux/macOS
 -----------
 
 On Linux  you'll need to install the **python-dev** or **python3-dev** packages as
-well as **cmake**. On Mac OS, the included python version works out of the box,
+well as **cmake**. On macOS, the included python version works out of the box,
 but **cmake** must still be installed.
 
 After installing the prerequisites, run
@@ -138,7 +138,7 @@ On Linux, the above example can be compiled using the following command:
 
     $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
 
-For more details on the required compiler flags on Linux and MacOS, see
+For more details on the required compiler flags on Linux and macOS, see
 :ref:`building_manually`. For complete cross-platform compilation instructions,
 refer to the :ref:`compiling` page.
 
