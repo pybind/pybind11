@@ -240,7 +240,7 @@ public:
     ~object() { dec_ref(); }
 
     /** \rst
-        Resets the internal pointer to ``nullptr`` without without decreasing the
+        Resets the internal pointer to ``nullptr`` without decreasing the
         object's reference count. The function returns a raw handle to the original
         Python object.
     \endrst */
