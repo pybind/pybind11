@@ -158,7 +158,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     // to work around CVE-2008-5983
     PySys_SetArgv(argc, pysys_argv);
     if (!add_current_dir_to_path)
-        PyRun_SimpleString("import sys; sys.path.pop(0)\n");
+        PyList_PopItem(py::module::import("sys").attr("path").ptr(), 0);
 #else
     PySys_SetArgvEx(argc, pysys_argv, add_current_dir_to_path ? 1 : 0);
 #endif
