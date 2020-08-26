@@ -147,7 +147,7 @@ if(PYBIND11_CPP_STANDARD)
   else()
     set(supported_standards 11 14 17 20)
     if("${VAL}" IN_LIST supported_standards)
-      message(WARNING "USE -DCMAKE_CXX_STANDARD=${VAL} instead of PYBIND11_PYTHON_VERSION")
+      message(WARNING "USE -DCMAKE_CXX_STANDARD=${VAL} instead of PYBIND11_CPP_STANDARD")
       set(CMAKE_CXX_STANDARD
           ${VAL}
           CACHE STRING "From PYBIND11_CPP_STANDARD")
