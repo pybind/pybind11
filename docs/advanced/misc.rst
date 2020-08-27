@@ -304,3 +304,31 @@ the default settings are restored to prevent unwanted side effects.
 
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
+
+.. _avoid-cpp-types-in-docstrings:
+
+Avoid C++ types in docstrings
+=============================
+
+Most of docstrings are generated at the time of the declaration, e.g. when ``.def(...)`` is called.
+At this point arguments/return types should be known to pybind11, otherwise C++ types would be used instead:
+
+.. code-block:: text
+
+     |  __init__(...)
+     |      __init__(self: example.Foo, arg0: ns::Bar) -> None
+                                              ^^^^^^^
+
+
+This limitation can be tolerated by "forward declaring" bound classes:
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+
+        auto pyFoo = py::class_<ns::Foo>(m, "Foo");
+        auto pyBar = py::class_<ns::Bar>(m, "Bar");
+
+        pyFoo.def(py::init<const ns::Bar&>());
+        pyBar.def(py::init<const ns::Foo&>());
+    }
