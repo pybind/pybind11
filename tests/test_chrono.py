@@ -81,7 +81,14 @@ def test_chrono_system_clock_roundtrip_date():
     datetime.time(5, 59, 59, 0),
     datetime.time(5, 59, 59, 1),
 ])
-def test_chrono_system_clock_roundtrip_time(time1):
+@pytest.mark.parametrize("tz", [
+    "Europe/Brussels",
+    "Asia/Pyongyang",
+    "America/New_York",
+])
+def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
+    monkeypatch.setenv("TZ", "/usr/share/zoneinfo/{}".format(tz))
+
     # Roundtrip the time
     datetime2 = m.test_chrono2(time1)
     date2 = datetime2.date()
