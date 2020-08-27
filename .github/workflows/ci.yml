@@ -12,6 +12,7 @@ on:
 jobs:
   standard:
     strategy:
+      fail-fast: false
       matrix:
         runs-on: [ubuntu-latest, windows-latest, macos-latest]
         arch: [x64]
@@ -103,6 +104,7 @@ jobs:
       run: python -m pip install -r tests/requirements.txt --prefer-binary
 
     - name: Setup annotations
+      if: runner.os == 'Linux'
       run: python -m pip install pytest-github-actions-annotate-failures
 
     - name: Configure C++11 ${{ matrix.args }}
