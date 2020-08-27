@@ -47,23 +47,13 @@ import distutils.errors
 from distutils.command.build_ext import build_ext
 
 
+WIN = sys.platform.startswith("win")
+PY2 = sys.version_info[0] < 3
+
+
 # It is recommended to use PEP 518 builds if using this module. However, this
 # file explicitly supports being copied into a user's project directory
 # standalone, and pulling pybind11 with the deprecated setup_requires feature.
-
-
-class DelayedPybindInclude(object):
-    """
-    Helper class to determine the pybind11 include path The purpose of this
-    class is to postpone importing pybind11 until it is actually installed, so
-    that the ``get_include()`` method can be invoked if pybind11 is loaded via
-    setup_requires.
-    """
-
-    def __str__(self):
-        import pybind11
-
-        return pybind11.get_include()
 
 
 # Just in case someone clever tries to multithread
@@ -107,37 +97,34 @@ def has_flag(compiler, flagname):
 
 def cpp_flag(compiler, value=None):
     """
-    Return the ``-std=c++[11/14/17]`` compiler flag.
-    The newer version is preferred over c++11 (when it is available).
+    Return the ``-std=c++[11/14/17]`` compiler flag(s) as a list. May add
+    register fix for Python 2.  The newer version is preferred over c++11 (when
+    it is available).
     """
 
     flags = ["-std=c++17", "-std=c++14", "-std=c++11"]
 
     if value is not None:
-        mapping = {17: 0, 14: 1, 11: 2}
-        flags = [flags[mapping[value]]]
+        flags = ["-std=c++{}".format(value)]
 
     for flag in flags:
+        if sys.platform.startswith("win32"):
+            # MSVC 2017+
+            flag = "/std:{}".format(flag[5:]).replace("11", "14")
+
         if has_flag(compiler, flag):
-            return flag
+            cxx17plus = (value is not None and value >= 17) or flag == "-std=c++17"
+            cxx14plus = (
+                cxx17plus or (value is not None and value >= 14) or flag == "-std=c++14"
+            )
+            if PY2:
+                if cxx17plus:
+                    return [flag, "/wd503" if WIN else "-Wno-register"]
+                elif cxx14plus and not WIN:
+                    return [flag, "-Wno-deprecated-register"]
+            return [flag]
 
     raise RuntimeError("Unsupported compiler -- at least C++11 support is needed!")
-
-
-c_opts = {
-    "msvc": ["/EHsc"],
-    "unix": [],
-}
-
-l_opts = {
-    "msvc": [],
-    "unix": [],
-}
-
-if sys.platform == "darwin":
-    darwin_opts = ["-stdlib=libc++", "-mmacosx-version-min=10.9"]
-    c_opts["unix"] += darwin_opts
-    l_opts["unix"] += darwin_opts
 
 
 class BuildExt(build_ext):
@@ -158,18 +145,35 @@ class BuildExt(build_ext):
     """
 
     def build_extensions(self):
-        ct = self.compiler.compiler_type
-        comp_opts = c_opts.get(ct, [])
-        link_opts = l_opts.get(ct, [])
-        if ct == "unix":
-            comp_opts.append(cpp_flag(self.compiler, getattr(self, "cxx_std", None)))
+        # Import here to support `setup_requires` if someone really has to use it.
+        import pybind11
+
+        visibility_flag = None
+
+        std_flags = cpp_flag(self.compiler, getattr(self, "cxx_std", None))
+
+        if self.compiler.compiler_type == "unix":
             if has_flag(self.compiler, "-fvisibility=hidden"):
-                comp_opts.append("-fvisibility=hidden")
+                visibility_flag = "-fvisibility=hidden"
 
         for ext in self.extensions:
-            ext.extra_compile_args += comp_opts
-            ext.extra_link_args += link_opts
-            ext.include_dirs += [DelayedPybindInclude()]
+            ext.extra_compile_args += std_flags
+
+            if sys.platform.startswith("win32"):
+                ext.extra_compile_args.append("/EHsc")
+
+            if visibility_flag:
+                ext.extra_compile_args.append(visibility_flag)
+
+            if sys.platform.startswith("darwin"):
+                # Question: Do we need this as long as macos min version is more than 10.9?
+                ext.extra_compile_args.append("-stdlib=libc++")
+
+                if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
+                    ext.extra_compile_args.append("-mmacos-version-min=10.9")
+                    ext.extra_link_args.append("-mmacos-version-min=10.9")
+
+            ext.include_dirs += [pybind11.get_include()]
 
         # Python 2 doesn't allow super here, since it's not a "class"
         build_ext.build_extensions(self)

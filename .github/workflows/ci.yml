@@ -152,6 +152,18 @@ jobs:
     - name: Interface test
       run: cmake --build build2 --target test_cmake_build
 
+    - name: Prepare compiler environment for Windows 🐍 2.7
+      if: matrix.python == 2.7 && runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Set Windows 🐍 2.7 environment variables
+      if: matrix.python == 2.7 && runner.os == 'Windows'
+      run: |
+        echo "::set-env name=DISTUTILS_USE_SDK::1"
+        echo "::set-env name=MSSdk::1"
+
     - name: Setuptools helpers test
       run: pytest tests/extra_setuptools
 

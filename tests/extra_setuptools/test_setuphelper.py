@@ -60,7 +60,10 @@ def test_simple_setup_py(monkeypatch, tmpdir):
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
-    assert len(list(tmpdir.visit("simple_setup*"))) == 1
+    print(tmpdir.listdir())
+    so = list(tmpdir.visit("simple_setup*so"))
+    pyd = list(tmpdir.visit("simple_setup*pyd"))
+    assert len(so + pyd) == 1
     assert len(list(tmpdir.listdir())) == 4  # two files + output + build_dir
 
     (tmpdir / "test.py").write_text(
