@@ -150,11 +150,9 @@ public:
         // Lazy initialise the PyDateTime import
         if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
-        // Declare these special duration types so the conversions happen with the correct primitive types (int)
-        using us_t = duration<int, std::micro>;
-
         // Get out microseconds, and make sure they are positive, to avoid bug in eastern hemisphere time zones
         // (cfr. https://github.com/pybind/pybind11/issues/2417)
+        using us_t = duration<int, std::micro>;
         auto us = duration_cast<us_t>(src.time_since_epoch() % seconds(1));
         if (us.count() < 0)
             us += seconds(1);

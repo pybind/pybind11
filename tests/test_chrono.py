@@ -3,6 +3,8 @@ from pybind11_tests import chrono as m
 import datetime
 import pytest
 
+import env  # noqa: F401
+
 
 def test_chrono_system_clock():
 
@@ -71,6 +73,11 @@ def test_chrono_system_clock_roundtrip_date():
     assert time2.microsecond == 0
 
 
+SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
+    "env.WIN", reason="TZ environment variable only supported on POSIX"
+)
+
+
 @pytest.mark.parametrize("time1", [
     datetime.datetime.today().time(),
     datetime.time(0, 0, 0),
@@ -82,12 +89,14 @@ def test_chrono_system_clock_roundtrip_date():
     datetime.time(5, 59, 59, 1),
 ])
 @pytest.mark.parametrize("tz", [
-    "Europe/Brussels",
-    "Asia/Pyongyang",
-    "America/New_York",
+    None,
+    pytest.param("Europe/Brussels", marks=SKIP_TZ_ENV_ON_WIN),
+    pytest.param("Asia/Pyongyang", marks=SKIP_TZ_ENV_ON_WIN),
+    pytest.param("America/New_York", marks=SKIP_TZ_ENV_ON_WIN),
 ])
 def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
-    monkeypatch.setenv("TZ", "/usr/share/zoneinfo/{}".format(tz))
+    if tz is not None:
+        monkeypatch.setenv("TZ", "/usr/share/zoneinfo/{}".format(tz))
 
     # Roundtrip the time
     datetime2 = m.test_chrono2(time1)
