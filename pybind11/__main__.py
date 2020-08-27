@@ -5,7 +5,7 @@ import argparse
 import sys
 import sysconfig
 
-from . import get_include
+from .commands import get_include
 
 
 def print_includes():

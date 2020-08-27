@@ -16,6 +16,5 @@ def get_cmake_dir():
     if os.path.exists(cmake_installed_path):
         return cmake_installed_path
     else:
-        raise ImportError(
-            "pybind11 not installed, installation required to access the CMake files"
-        )
+        msg = "pybind11 not installed, installation required to access the CMake files"
+        raise ImportError(msg)

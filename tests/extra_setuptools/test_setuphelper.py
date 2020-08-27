@@ -15,26 +15,26 @@ def test_simple_setup_py(monkeypatch, tmpdir):
     (tmpdir / "setup.py").write_text(
         dedent(
             u"""\
-        import sys
-        sys.path.append("{MAIN_DIR}")
+            import sys
+            sys.path.append({MAIN_DIR!r})
 
-        from setuptools import setup, Extension
-        from pybind11.setup_helpers import BuildExt
+            from setuptools import setup, Extension
+            from pybind11.setup_helpers import BuildExt
 
-        ext_modules = [
-            Extension(
-                "simple_setup",
-                sorted(["main.cpp"]),
-                language="c++",
-            ),
-        ]
+            ext_modules = [
+                Extension(
+                    "simple_setup",
+                    sorted(["main.cpp"]),
+                    language="c++",
+                ),
+            ]
 
-        setup(
-            name="simple_setup_package",
-            cmdclass=dict(build_ext=BuildExt),
-            ext_modules=ext_modules
-        )
-        """
+            setup(
+                name="simple_setup_package",
+                cmdclass=dict(build_ext=BuildExt),
+                ext_modules=ext_modules
+            )
+            """
         ).format(MAIN_DIR=MAIN_DIR),
         encoding="ascii",
     )
@@ -50,7 +50,7 @@ def test_simple_setup_py(monkeypatch, tmpdir):
             PYBIND11_MODULE(simple_setup, m) {
                 m.def("f", &f);
             }
-        """
+            """
         ),
         encoding="ascii",
     )
@@ -71,7 +71,7 @@ def test_simple_setup_py(monkeypatch, tmpdir):
             u"""\
             import simple_setup
             assert simple_setup.f(3) == 9
-        """
+            """
         ),
         encoding="ascii",
     )

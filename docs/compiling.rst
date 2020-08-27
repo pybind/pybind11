@@ -51,8 +51,8 @@ An example of a ``setup.py`` using pybind11's helpers:
 
 If you copy ``setup_helpers.py`` into your local project to try to support the
 classic build procedure, then you will need to use the deprecated
-``setup_requires=["pybind11>=2.6.0"]`` keyword argument to setup;
-``setup_helpers`` tries to support this as well.
+``setup_requires=["pybind11"]`` keyword argument to setup; ``setup_helpers``
+tries to support this as well.
 
 .. versionchanged:: 2.6
 
