@@ -100,6 +100,27 @@ struct wide_char_arg_deleter {
     }
 };
 
+wchar_t* widen_chars(char* safe_arg) {
+#if PY_VERSION_HEX >= 0x030500f0
+    wchar_t* widened_arg = Py_DecodeLocale(safe_arg, nullptr);
+#elif HAVE_BROKEN_MBSTOWCS
+    size_t count = strlen(safe_arg);
+    widened_arg = nullptr;
+    if (count != static_cast<size_t>(-1)) {
+        widened_arg = new wchar_t[count + 1];
+        mbstowcs(widened_arg, safe_arg, count + 1);
+    }
+#else
+    size_t count = mbstowcs(nullptr, safe_arg, 0);
+    widened_arg = nullptr;
+    if (count != static_cast<size_t>(-1)) {
+        widened_arg = new wchar_t[count + 1];
+        mbstowcs(widened_arg, safe_arg, count + 1);
+    }
+#endif
+    return widened_arg;
+}
+
 /// Python 2.x/3.x-compatible version of `PySys_SetArgv`
 inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_path) {
     // Before it was special-cased in python 3.8, passing an empty or null argv
@@ -116,33 +137,14 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
 #if PY_MAJOR_VERSION >= 3
     size_t argv_size = static_cast<size_t>(argc);
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
-    std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[argv_size]);
     std::vector< std::unique_ptr<wchar_t[], wide_char_arg_deleter> > widened_argv_entries;
     for (size_t ii = 0; ii < argv_size; ++ii) {
-#  if PY_MINOR_VERSION >= 5
-        // From Python 3.5 onwards, we're supposed to use Py_DecodeLocale to
-        // generate the wchar_t version of argv.
-        widened_argv[ii] = Py_DecodeLocale(safe_argv[ii], nullptr);
-#  else
-        // Before Python 3.5, we're stuck with mbstowcs, which may or may not
-        // actually work. Mercifully, pyconfig.h provides this define:
-#    ifdef HAVE_BROKEN_MBSTOWCS
-        size_t count = strlen(safe_argv[ii]);
-#    else
-        size_t count = mbstowcs(nullptr, safe_argv[ii], 0);
-#    endif
-        widened_argv[ii] = nullptr;
-        if (count != static_cast<size_t>(-1)) {
-            widened_argv[ii] = new wchar_t[count + 1];
-            mbstowcs(widened_argv[ii], safe_argv[ii], count + 1);
-        }
-#  endif
-        if (nullptr == widened_argv[ii]) {
+        widened_argv_entries.emplace_back(widen_chars(safe_argv[ii]));
+        if (!widened_argv_entries.back()) {
             // A null here indicates a character-encoding failure or the python
             // interpreter out of memory. Give up.
             return;
-        } else
-            widened_argv_entries.emplace_back(widened_argv[ii]);
+        }
     }
 
     auto pysys_argv = widened_argv.get();
