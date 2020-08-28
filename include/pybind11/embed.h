@@ -152,16 +152,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     auto pysys_argv = safe_argv;
 #endif
 
-#if PY_VERSION_HEX < 0x020606f0 || (PY_MAJOR_VERSION == 3 && PY_VERSION_HEX < 0x030103f0)
-    // These python versions don't have PySys_SetArgvEx, so we have to use the approach
-    // recommended by https://docs.python.org/3.5/c-api/init.html#c.PySys_SetArgvEx
-    // to work around CVE-2008-5983
-    PySys_SetArgv(argc, pysys_argv);
-    if (!add_current_dir_to_path)
-        module::import("sys").attr("path").attr("pop")();
-#else
     PySys_SetArgvEx(argc, pysys_argv, add_current_dir_to_path ? 1 : 0);
-#endif
 }
 
 PYBIND11_NAMESPACE_END(detail)
