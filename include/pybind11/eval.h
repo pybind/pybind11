@@ -57,9 +57,7 @@ object eval(const char (&s)[N], object global = globals(), object local = object
     return eval<mode>(expr, global, local);
 }
 
-inline void exec(str expr, object global = globals(), object local = object()) {
-    eval<eval_statements>(expr, global, local);
-}
+void exec(str expr, object global = globals(), object local = object());
 
 template <size_t N>
 void exec(const char (&s)[N], object global = globals(), object local = object()) {
@@ -130,3 +128,7 @@ object eval_file(str fname, object global = globals(), object local = object()) 
 #endif
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if !defined(PYBIND11_DECLARATIONS_ONLY)
+#include "eval-inl.h"
+#endif

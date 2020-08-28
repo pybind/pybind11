@@ -87,30 +87,16 @@ struct numpy_type_info {
 struct numpy_internals {
     std::unordered_map<std::type_index, numpy_type_info> registered_dtypes;
 
-    numpy_type_info *get_type_info(const std::type_info& tinfo, bool throw_if_missing = true) {
-        auto it = registered_dtypes.find(std::type_index(tinfo));
-        if (it != registered_dtypes.end())
-            return &(it->second);
-        if (throw_if_missing)
-            pybind11_fail(std::string("NumPy type info missing for ") + tinfo.name());
-        return nullptr;
-    }
+    numpy_type_info *get_type_info(const std::type_info& tinfo, bool throw_if_missing = true);
 
     template<typename T> numpy_type_info *get_type_info(bool throw_if_missing = true) {
         return get_type_info(typeid(typename std::remove_cv<T>::type), throw_if_missing);
     }
 };
 
-inline PYBIND11_NOINLINE void load_numpy_internals(numpy_internals* &ptr) {
-    ptr = &get_or_create_shared_data<numpy_internals>("_numpy_internals");
-}
+PYBIND11_NOINLINE void load_numpy_internals(numpy_internals* &ptr);
 
-inline numpy_internals& get_numpy_internals() {
-    static numpy_internals* ptr = nullptr;
-    if (!ptr)
-        load_numpy_internals(ptr);
-    return *ptr;
-}
+numpy_internals& get_numpy_internals();
 
 template <typename T> struct same_size {
     template <typename U> using as = bool_constant<sizeof(T) == sizeof(U)>;
@@ -166,17 +152,10 @@ struct npy_api {
         int len;
     } PyArray_Dims;
 
-    static npy_api& get() {
-        static npy_api api = lookup();
-        return api;
-    }
+    static npy_api& get();
 
-    bool PyArray_Check_(PyObject *obj) const {
-        return (bool) PyObject_TypeCheck(obj, PyArray_Type_);
-    }
-    bool PyArrayDescr_Check_(PyObject *obj) const {
-        return (bool) PyObject_TypeCheck(obj, PyArrayDescr_Type_);
-    }
+    bool PyArray_Check_(PyObject *obj) const;
+    bool PyArrayDescr_Check_(PyObject *obj) const;
 
     unsigned int (*PyArray_GetNDArrayCFeatureVersion_)();
     PyObject *(*PyArray_DescrFromType_)(int);
@@ -221,59 +200,18 @@ private:
         API_PyArray_SetBaseObject = 282
     };
 
-    static npy_api lookup() {
-        module m = module::import("numpy.core.multiarray");
-        auto c = m.attr("_ARRAY_API");
-#if PY_MAJOR_VERSION >= 3
-        void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
-#else
-        void **api_ptr = (void **) PyCObject_AsVoidPtr(c.ptr());
-#endif
-        npy_api api;
-#define DECL_NPY_API(Func) api.Func##_ = (decltype(api.Func##_)) api_ptr[API_##Func];
-        DECL_NPY_API(PyArray_GetNDArrayCFeatureVersion);
-        if (api.PyArray_GetNDArrayCFeatureVersion_() < 0x7)
-            pybind11_fail("pybind11 numpy support requires numpy >= 1.7.0");
-        DECL_NPY_API(PyArray_Type);
-        DECL_NPY_API(PyVoidArrType_Type);
-        DECL_NPY_API(PyArrayDescr_Type);
-        DECL_NPY_API(PyArray_DescrFromType);
-        DECL_NPY_API(PyArray_DescrFromScalar);
-        DECL_NPY_API(PyArray_FromAny);
-        DECL_NPY_API(PyArray_Resize);
-        DECL_NPY_API(PyArray_CopyInto);
-        DECL_NPY_API(PyArray_NewCopy);
-        DECL_NPY_API(PyArray_NewFromDescr);
-        DECL_NPY_API(PyArray_DescrNewFromType);
-        DECL_NPY_API(PyArray_DescrConverter);
-        DECL_NPY_API(PyArray_EquivTypes);
-        DECL_NPY_API(PyArray_GetArrayParamsFromObject);
-        DECL_NPY_API(PyArray_Squeeze);
-        DECL_NPY_API(PyArray_SetBaseObject);
-#undef DECL_NPY_API
-        return api;
-    }
+    static npy_api lookup();
 };
 
-inline PyArray_Proxy* array_proxy(void* ptr) {
-    return reinterpret_cast<PyArray_Proxy*>(ptr);
-}
+PyArray_Proxy* array_proxy(void* ptr);
 
-inline const PyArray_Proxy* array_proxy(const void* ptr) {
-    return reinterpret_cast<const PyArray_Proxy*>(ptr);
-}
+const PyArray_Proxy* array_proxy(const void* ptr);
 
-inline PyArrayDescr_Proxy* array_descriptor_proxy(PyObject* ptr) {
-   return reinterpret_cast<PyArrayDescr_Proxy*>(ptr);
-}
+PyArrayDescr_Proxy* array_descriptor_proxy(PyObject* ptr);
 
-inline const PyArrayDescr_Proxy* array_descriptor_proxy(const PyObject* ptr) {
-   return reinterpret_cast<const PyArrayDescr_Proxy*>(ptr);
-}
+const PyArrayDescr_Proxy* array_descriptor_proxy(const PyObject* ptr);
 
-inline bool check_flags(const void* ptr, int flag) {
-    return (flag == (array_proxy(ptr)->flags & flag));
-}
+bool check_flags(const void* ptr, int flag);
 
 template <typename T> struct is_std_array : std::false_type { };
 template <typename T, size_t N> struct is_std_array<std::array<T, N>> : std::true_type { };
@@ -450,94 +388,36 @@ class dtype : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
 
-    explicit dtype(const buffer_info &info) {
-        dtype descr(_dtype_from_pep3118()(PYBIND11_STR_TYPE(info.format)));
-        // If info.itemsize == 0, use the value calculated from the format string
-        m_ptr = descr.strip_padding(info.itemsize ? info.itemsize : descr.itemsize()).release().ptr();
-    }
+    explicit dtype(const buffer_info &info);
 
-    explicit dtype(const std::string &format) {
-        m_ptr = from_args(pybind11::str(format)).release().ptr();
-    }
+    explicit dtype(const std::string &format);
 
-    dtype(const char *format) : dtype(std::string(format)) { }
+    dtype(const char *format);
 
-    dtype(list names, list formats, list offsets, ssize_t itemsize) {
-        dict args;
-        args["names"] = names;
-        args["formats"] = formats;
-        args["offsets"] = offsets;
-        args["itemsize"] = pybind11::int_(itemsize);
-        m_ptr = from_args(args).release().ptr();
-    }
+    dtype(list names, list formats, list offsets, ssize_t itemsize);
 
     /// This is essentially the same as calling numpy.dtype(args) in Python.
-    static dtype from_args(object args) {
-        PyObject *ptr = nullptr;
-        if (!detail::npy_api::get().PyArray_DescrConverter_(args.ptr(), &ptr) || !ptr)
-            throw error_already_set();
-        return reinterpret_steal<dtype>(ptr);
-    }
+    static dtype from_args(object args);
 
     /// Return dtype associated with a C++ type.
     template <typename T> static dtype of() {
         return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::dtype();
     }
 
+
     /// Size of the data type in bytes.
-    ssize_t itemsize() const {
-        return detail::array_descriptor_proxy(m_ptr)->elsize;
-    }
+    ssize_t itemsize() const;
 
     /// Returns true for structured data types.
-    bool has_fields() const {
-        return detail::array_descriptor_proxy(m_ptr)->names != nullptr;
-    }
+    bool has_fields() const;
 
     /// Single-character type code.
-    char kind() const {
-        return detail::array_descriptor_proxy(m_ptr)->kind;
-    }
+    char kind() const;
 
 private:
-    static object _dtype_from_pep3118() {
-        static PyObject *obj = module::import("numpy.core._internal")
-            .attr("_dtype_from_pep3118").cast<object>().release().ptr();
-        return reinterpret_borrow<object>(obj);
-    }
+    static object _dtype_from_pep3118();
 
-    dtype strip_padding(ssize_t itemsize) {
-        // Recursively strip all void fields with empty names that are generated for
-        // padding fields (as of NumPy v1.11).
-        if (!has_fields())
-            return *this;
-
-        struct field_descr { PYBIND11_STR_TYPE name; object format; pybind11::int_ offset; };
-        std::vector<field_descr> field_descriptors;
-
-        for (auto field : attr("fields").attr("items")()) {
-            auto spec = field.cast<tuple>();
-            auto name = spec[0].cast<pybind11::str>();
-            auto format = spec[1].cast<tuple>()[0].cast<dtype>();
-            auto offset = spec[1].cast<tuple>()[1].cast<pybind11::int_>();
-            if (!len(name) && format.kind() == 'V')
-                continue;
-            field_descriptors.push_back({(PYBIND11_STR_TYPE) name, format.strip_padding(format.itemsize()), offset});
-        }
-
-        std::sort(field_descriptors.begin(), field_descriptors.end(),
-                  [](const field_descr& a, const field_descr& b) {
-                      return a.offset.cast<int>() < b.offset.cast<int>();
-                  });
-
-        list names, formats, offsets;
-        for (auto& descr : field_descriptors) {
-            names.append(descr.name);
-            formats.append(descr.format);
-            offsets.append(descr.offset);
-        }
-        return dtype(names, formats, offsets, itemsize);
-    }
+    dtype strip_padding(ssize_t itemsize);
 };
 
 class array : public buffer {
@@ -557,44 +437,9 @@ public:
 
     // Constructs an array taking shape/strides from arbitrary container types
     array(const pybind11::dtype &dt, ShapeContainer shape, StridesContainer strides,
-          const void *ptr = nullptr, handle base = handle()) {
+          const void *ptr = nullptr, handle base = handle());
 
-        if (strides->empty())
-            *strides = c_strides(*shape, dt.itemsize());
-
-        auto ndim = shape->size();
-        if (ndim != strides->size())
-            pybind11_fail("NumPy: shape ndim doesn't match strides ndim");
-        auto descr = dt;
-
-        int flags = 0;
-        if (base && ptr) {
-            if (isinstance<array>(base))
-                /* Copy flags from base (except ownership bit) */
-                flags = reinterpret_borrow<array>(base).flags() & ~detail::npy_api::NPY_ARRAY_OWNDATA_;
-            else
-                /* Writable by default, easy to downgrade later on if needed */
-                flags = detail::npy_api::NPY_ARRAY_WRITEABLE_;
-        }
-
-        auto &api = detail::npy_api::get();
-        auto tmp = reinterpret_steal<object>(api.PyArray_NewFromDescr_(
-            api.PyArray_Type_, descr.release().ptr(), (int) ndim, shape->data(), strides->data(),
-            const_cast<void *>(ptr), flags, nullptr));
-        if (!tmp)
-            throw error_already_set();
-        if (ptr) {
-            if (base) {
-                api.PyArray_SetBaseObject_(tmp.ptr(), base.inc_ref().ptr());
-            } else {
-                tmp = reinterpret_steal<object>(api.PyArray_NewCopy_(tmp.ptr(), -1 /* any order */));
-            }
-        }
-        m_ptr = tmp.release().ptr();
-    }
-
-    array(const pybind11::dtype &dt, ShapeContainer shape, const void *ptr = nullptr, handle base = handle())
-        : array(dt, std::move(shape), {}, ptr, base) { }
+    array(const pybind11::dtype &dt, ShapeContainer shape, const void *ptr = nullptr, handle base = handle());
 
     template <typename T, typename = detail::enable_if_t<std::is_integral<T>::value && !std::is_same<bool, T>::value>>
     array(const pybind11::dtype &dt, T count, const void *ptr = nullptr, handle base = handle())
@@ -611,77 +456,46 @@ public:
     template <typename T>
     explicit array(ssize_t count, const T *ptr, handle base = handle()) : array({count}, {}, ptr, base) { }
 
-    explicit array(const buffer_info &info, handle base = handle())
-    : array(pybind11::dtype(info), info.shape, info.strides, info.ptr, base) { }
+    explicit array(const buffer_info &info, handle base = handle());
 
     /// Array descriptor (dtype)
-    pybind11::dtype dtype() const {
-        return reinterpret_borrow<pybind11::dtype>(detail::array_proxy(m_ptr)->descr);
-    }
+    pybind11::dtype dtype() const;
 
     /// Total number of elements
-    ssize_t size() const {
-        return std::accumulate(shape(), shape() + ndim(), (ssize_t) 1, std::multiplies<ssize_t>());
-    }
+    ssize_t size() const;
 
     /// Byte size of a single element
-    ssize_t itemsize() const {
-        return detail::array_descriptor_proxy(detail::array_proxy(m_ptr)->descr)->elsize;
-    }
+    ssize_t itemsize() const;
 
     /// Total number of bytes
-    ssize_t nbytes() const {
-        return size() * itemsize();
-    }
+    ssize_t nbytes() const;
 
     /// Number of dimensions
-    ssize_t ndim() const {
-        return detail::array_proxy(m_ptr)->nd;
-    }
+    ssize_t ndim() const;
 
     /// Base object
-    object base() const {
-        return reinterpret_borrow<object>(detail::array_proxy(m_ptr)->base);
-    }
+    object base() const;
 
     /// Dimensions of the array
-    const ssize_t* shape() const {
-        return detail::array_proxy(m_ptr)->dimensions;
-    }
+    const ssize_t* shape() const;
 
     /// Dimension along a given axis
-    ssize_t shape(ssize_t dim) const {
-        if (dim >= ndim())
-            fail_dim_check(dim, "invalid axis");
-        return shape()[dim];
-    }
+    ssize_t shape(ssize_t dim) const;
 
     /// Strides of the array
-    const ssize_t* strides() const {
-        return detail::array_proxy(m_ptr)->strides;
-    }
+    const ssize_t* strides() const;
 
     /// Stride along a given axis
-    ssize_t strides(ssize_t dim) const {
-        if (dim >= ndim())
-            fail_dim_check(dim, "invalid axis");
-        return strides()[dim];
-    }
+    ssize_t strides(ssize_t dim) const;
 
     /// Return the NumPy array flags
-    int flags() const {
-        return detail::array_proxy(m_ptr)->flags;
-    }
+    int flags() const;
 
     /// If set, the array is writeable (otherwise the buffer is read-only)
-    bool writeable() const {
-        return detail::check_flags(m_ptr, detail::npy_api::NPY_ARRAY_WRITEABLE_);
-    }
+    bool writeable() const;
 
     /// If set, the array owns the data (will be freed when the array is deleted)
-    bool owndata() const {
-        return detail::check_flags(m_ptr, detail::npy_api::NPY_ARRAY_OWNDATA_);
-    }
+    bool owndata() const;
 
     /// Pointer to the contained data. If index is not provided, points to the
     /// beginning of the buffer. May throw if the index would lead to out of bounds access.
@@ -741,42 +555,21 @@ public:
     }
 
     /// Return a new view with all of the dimensions of length 1 removed
-    array squeeze() {
-        auto& api = detail::npy_api::get();
-        return reinterpret_steal<array>(api.PyArray_Squeeze_(m_ptr));
-    }
+    array squeeze();
 
     /// Resize array to given shape
     /// If refcheck is true and more that one reference exist to this array
     /// then resize will succeed only if it makes a reshape, i.e. original size doesn't change
-    void resize(ShapeContainer new_shape, bool refcheck = true) {
-        detail::npy_api::PyArray_Dims d = {
-            new_shape->data(), int(new_shape->size())
-        };
-        // try to resize, set ordering param to -1 cause it's not used anyway
-        object new_array = reinterpret_steal<object>(
-            detail::npy_api::get().PyArray_Resize_(m_ptr, &d, int(refcheck), -1)
-        );
-        if (!new_array) throw error_already_set();
-        if (isinstance<array>(new_array)) { *this = std::move(new_array); }
-    }
+    void resize(ShapeContainer new_shape, bool refcheck = true);
 
     /// Ensure that the argument is a NumPy array
     /// In case of an error, nullptr is returned and the Python error is cleared.
-    static array ensure(handle h, int ExtraFlags = 0) {
-        auto result = reinterpret_steal<array>(raw_array(h.ptr(), ExtraFlags));
-        if (!result)
-            PyErr_Clear();
-        return result;
-    }
+    static array ensure(handle h, int ExtraFlags = 0);
 
 protected:
     template<typename, typename> friend struct detail::npy_format_descriptor;
 
-    void fail_dim_check(ssize_t dim, const std::string& msg) const {
-        throw index_error(msg + ": " + std::to_string(dim) +
-                          " (ndim = " + std::to_string(ndim()) + ")");
-    }
+    void fail_dim_check(ssize_t dim, const std::string& msg) const;
 
     template<typename... Ix> ssize_t byte_offset(Ix... index) const {
         check_dimensions(index...);
@@ -789,23 +582,10 @@ protected:
     }
 
     // Default, C-style strides
-    static std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
-        auto ndim = shape.size();
-        std::vector<ssize_t> strides(ndim, itemsize);
-        if (ndim > 0)
-            for (size_t i = ndim - 1; i > 0; --i)
-                strides[i - 1] = strides[i] * shape[i];
-        return strides;
-    }
+    static std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t itemsize);
 
     // F-style strides; default when constructing an array_t with `ExtraFlags & f_style`
-    static std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
-        auto ndim = shape.size();
-        std::vector<ssize_t> strides(ndim, itemsize);
-        for (size_t i = 1; i < ndim; ++i)
-            strides[i] = strides[i - 1] * shape[i - 1];
-        return strides;
-    }
+    static std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t itemsize);
 
     template<typename... Ix> void check_dimensions(Ix... index) const {
         check_dimensions_impl(ssize_t(0), shape(), ssize_t(index)...);
@@ -823,14 +603,7 @@ protected:
     }
 
     /// Create array from any object -- always returns a new reference
-    static PyObject *raw_array(PyObject *ptr, int ExtraFlags = 0) {
-        if (ptr == nullptr) {
-            PyErr_SetString(PyExc_ValueError, "cannot create a pybind11::array from a nullptr");
-            return nullptr;
-        }
-        return detail::npy_api::get().PyArray_FromAny_(
-            ptr, nullptr, 0, 0, detail::npy_api::NPY_ARRAY_ENSUREARRAY_ | ExtraFlags, nullptr);
-    }
+    static PyObject *raw_array(PyObject *ptr, int ExtraFlags = 0);
 };
 
 template <typename T, int ExtraFlags = array::forcecast> class array_t : public array {
@@ -1091,68 +864,10 @@ struct field_descriptor {
     dtype descr;
 };
 
-inline PYBIND11_NOINLINE void register_structured_dtype(
+PYBIND11_NOINLINE void register_structured_dtype(
     any_container<field_descriptor> fields,
     const std::type_info& tinfo, ssize_t itemsize,
-    bool (*direct_converter)(PyObject *, void *&)) {
-
-    auto& numpy_internals = get_numpy_internals();
-    if (numpy_internals.get_type_info(tinfo, false))
-        pybind11_fail("NumPy: dtype is already registered");
-
-    // Use ordered fields because order matters as of NumPy 1.14:
-    // https://docs.scipy.org/doc/numpy/release.html#multiple-field-indexing-assignment-of-structured-arrays
-    std::vector<field_descriptor> ordered_fields(std::move(fields));
-    std::sort(ordered_fields.begin(), ordered_fields.end(),
-        [](const field_descriptor &a, const field_descriptor &b) { return a.offset < b.offset; });
-
-    list names, formats, offsets;
-    for (auto& field : ordered_fields) {
-        if (!field.descr)
-            pybind11_fail(std::string("NumPy: unsupported field dtype: `") +
-                            field.name + "` @ " + tinfo.name());
-        names.append(PYBIND11_STR_TYPE(field.name));
-        formats.append(field.descr);
-        offsets.append(pybind11::int_(field.offset));
-    }
-    auto dtype_ptr = pybind11::dtype(names, formats, offsets, itemsize).release().ptr();
-
-    // There is an existing bug in NumPy (as of v1.11): trailing bytes are
-    // not encoded explicitly into the format string. This will supposedly
-    // get fixed in v1.12; for further details, see these:
-    // - https://github.com/numpy/numpy/issues/7797
-    // - https://github.com/numpy/numpy/pull/7798
-    // Because of this, we won't use numpy's logic to generate buffer format
-    // strings and will just do it ourselves.
-    ssize_t offset = 0;
-    std::ostringstream oss;
-    // mark the structure as unaligned with '^', because numpy and C++ don't
-    // always agree about alignment (particularly for complex), and we're
-    // explicitly listing all our padding. This depends on none of the fields
-    // overriding the endianness. Putting the ^ in front of individual fields
-    // isn't guaranteed to work due to https://github.com/numpy/numpy/issues/9049
-    oss << "^T{";
-    for (auto& field : ordered_fields) {
-        if (field.offset > offset)
-            oss << (field.offset - offset) << 'x';
-        oss << field.format << ':' << field.name << ':';
-        offset = field.offset + field.size;
-    }
-    if (itemsize > offset)
-        oss << (itemsize - offset) << 'x';
-    oss << '}';
-    auto format_str = oss.str();
-
-    // Sanity check: verify that NumPy properly parses our buffer format string
-    auto& api = npy_api::get();
-    auto arr =  array(buffer_info(nullptr, itemsize, format_str, 1));
-    if (!api.PyArray_EquivTypes_(dtype_ptr, arr.dtype().ptr()))
-        pybind11_fail("NumPy: invalid buffer descriptor!");
-
-    auto tindex = std::type_index(tinfo);
-    numpy_internals.registered_dtypes[tindex] = { dtype_ptr, format_str };
-    get_internals().direct_conversions[tindex].push_back(direct_converter);
-}
+    bool (*direct_converter)(PyObject *, void *&));
 
 template <typename T, typename SFINAE> struct npy_format_descriptor {
     static_assert(is_pod_struct<T>::value, "Attempt to use a non-POD or unimplemented POD type as a numpy dtype");
@@ -1290,23 +1005,11 @@ public:
 
     common_iterator() : p_ptr(0), m_strides() {}
 
-    common_iterator(void* ptr, const container_type& strides, const container_type& shape)
-        : p_ptr(reinterpret_cast<char*>(ptr)), m_strides(strides.size()) {
-        m_strides.back() = static_cast<value_type>(strides.back());
-        for (size_type i = m_strides.size() - 1; i != 0; --i) {
-            size_type j = i - 1;
-            value_type s = static_cast<value_type>(shape[i]);
-            m_strides[j] = strides[j] + m_strides[i] - strides[i] * s;
-        }
-    }
+    common_iterator(void* ptr, const container_type& strides, const container_type& shape);
 
-    void increment(size_type dim) {
-        p_ptr += m_strides[dim];
-    }
+    void increment(size_type dim);
 
-    void* data() const {
-        return p_ptr;
-    }
+    void* data() const;
 
 private:
     char* p_ptr;
@@ -1644,4 +1347,8 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
+#endif
+
+#if !defined(PYBIND11_DECLARATIONS_ONLY)
+#include "numpy-inl.h"
 #endif

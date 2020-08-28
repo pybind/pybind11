@@ -30,46 +30,18 @@ private:
     object pywrite;
     object pyflush;
 
-    int overflow(int c) {
-        if (!traits_type::eq_int_type(c, traits_type::eof())) {
-            *pptr() = traits_type::to_char_type(c);
-            pbump(1);
-        }
-        return sync() == 0 ? traits_type::not_eof(c) : traits_type::eof();
-    }
+    int overflow(int c);
 
-    int sync() {
-        if (pbase() != pptr()) {
-            // This subtraction cannot be negative, so dropping the sign
-            str line(pbase(), static_cast<size_t>(pptr() - pbase()));
-
-            {
-                gil_scoped_acquire tmp;
-                pywrite(line);
-                pyflush();
-            }
-
-            setp(pbase(), epptr());
-        }
-        return 0;
-    }
+    int sync();
 
 public:
 
-    pythonbuf(object pyostream, size_t buffer_size = 1024)
-        : buf_size(buffer_size),
-          d_buffer(new char[buf_size]),
-          pywrite(pyostream.attr("write")),
-          pyflush(pyostream.attr("flush")) {
-        setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
-    }
+    pythonbuf(object pyostream, size_t buffer_size = 1024);
 
     pythonbuf(pythonbuf&&) = default;
 
     /// Sync before destroy
-    ~pythonbuf() {
-        sync();
-    }
+    ~pythonbuf();
 };
 
 PYBIND11_NAMESPACE_END(detail)
@@ -108,14 +80,9 @@ protected:
 public:
     scoped_ostream_redirect(
             std::ostream &costream = std::cout,
-            object pyostream = module::import("sys").attr("stdout"))
-        : costream(costream), buffer(pyostream) {
-        old = costream.rdbuf(&buffer);
-    }
+            object pyostream = module::import("sys").attr("stdout"));
 
-    ~scoped_ostream_redirect() {
-        costream.rdbuf(old);
-    }
+    ~scoped_ostream_redirect();
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
     scoped_ostream_redirect(scoped_ostream_redirect &&other) = default;
@@ -157,17 +124,9 @@ public:
     OstreamRedirect(bool do_stdout = true, bool do_stderr = true)
         : do_stdout_(do_stdout), do_stderr_(do_stderr) {}
 
-    void enter() {
-        if (do_stdout_)
-            redirect_stdout.reset(new scoped_ostream_redirect());
-        if (do_stderr_)
-            redirect_stderr.reset(new scoped_estream_redirect());
-    }
+    void enter();
 
-    void exit() {
-        redirect_stdout.reset();
-        redirect_stderr.reset();
-    }
+    void exit();
 };
 
 PYBIND11_NAMESPACE_END(detail)
@@ -199,11 +158,10 @@ PYBIND11_NAMESPACE_END(detail)
             m.noisy_function_with_error_printing()
 
  \endrst */
-inline class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::string name = "ostream_redirect") {
-    return class_<detail::OstreamRedirect>(m, name.c_str(), module_local())
-        .def(init<bool,bool>(), arg("stdout")=true, arg("stderr")=true)
-        .def("__enter__", &detail::OstreamRedirect::enter)
-        .def("__exit__", [](detail::OstreamRedirect &self_, args) { self_.exit(); });
-}
+class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::string name = "ostream_redirect");
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if !defined(PYBIND11_DECLARATIONS_ONLY)
+#include "iostream-inl.h"
+#endif

@@ -376,13 +376,14 @@ struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { 
 
 PYBIND11_NAMESPACE_END(detail)
 
-inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
-    os << (std::string) str(obj);
-    return os;
-}
+std::ostream &operator<<(std::ostream &os, const handle &obj);
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
+#endif
+
+#if !defined(PYBIND11_DECLARATIONS_ONLY)
+#include "stl-inl.h"
 #endif

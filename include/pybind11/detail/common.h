@@ -83,7 +83,27 @@
 #if defined(_MSC_VER)
 #  define PYBIND11_NOINLINE __declspec(noinline)
 #else
-#  define PYBIND11_NOINLINE __attribute__ ((noinline))
+#  if defined(PYBIND11_DECLARATIONS_ONLY)
+#    define PYBIND11_NOINLINE __attribute__ ((noinline))
+#  else
+// Otherwise GCC 9 would emit warnings for functions that are marked both
+// inline and noinline if we weren't enabling:
+// #pragma GCC diagnostic ignored "-Wattributes"
+// as is currently done in Pybind11. This way we remove reliance on this
+// disabled warning.
+#    define PYBIND11_NOINLINE
+#  endif
+#endif
+
+// Must be used in every .cpp function definition:
+// - on header-only mode, functions must be marked as inline
+//   to prevent multiple definitions
+// - on non-header-only mode, functions must not be marked as inline
+//   so that the symbols will be visible from other objects
+#if defined(PYBIND11_DECLARATIONS_ONLY)
+#  define PYBIND11_INLINE
+#else
+#  define PYBIND11_INLINE inline
 #endif
 
 #if defined(PYBIND11_CPP14)
@@ -380,10 +400,11 @@ enum class return_value_policy : uint8_t {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
+static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
 // Returns the size as a multiple of sizeof(void *), rounded up.
-inline static constexpr size_t size_in_ptrs(size_t s) { return 1 + ((s - 1) >> log2(sizeof(void *))); }
+static constexpr size_t size_in_ptrs(size_t s) { return 1 + ((s - 1) >> log2(sizeof(void *))); }
+
 
 /**
  * The space to allocate for simple layout instance holders (see below) in multiple of the size of
@@ -706,8 +727,8 @@ PYBIND11_RUNTIME_EXCEPTION(import_error, PyExc_ImportError)
 PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybind11::cast or handle::call fail due to a type casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const char *reason) { throw std::runtime_error(reason); }
-[[noreturn]] PYBIND11_NOINLINE inline void pybind11_fail(const std::string &reason) { throw std::runtime_error(reason); }
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason);
+[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason);
 
 template <typename T, typename SFINAE = void> struct format_descriptor { };
 
@@ -742,8 +763,8 @@ template <typename T> constexpr const char format_descriptor<
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {
     PyObject *type, *value, *trace;
-    error_scope() { PyErr_Fetch(&type, &value, &trace); }
-    ~error_scope() { PyErr_Restore(type, value, trace); }
+    error_scope();
+    ~error_scope();
 };
 
 /// Dummy destructor wrapper that can be used to expose classes with a private destructor
@@ -835,3 +856,7 @@ PYBIND11_NAMESPACE_END(detail)
 
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if !defined(PYBIND11_DECLARATIONS_ONLY)
+#include "common-inl.h"
+#endif

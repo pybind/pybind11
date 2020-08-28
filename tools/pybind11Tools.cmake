@@ -148,6 +148,10 @@ function(pybind11_add_module target_name)
 
   target_link_libraries(${target_name} PRIVATE pybind11::module)
 
+  if(TARGET pybind11::lib)
+    target_link_libraries(${target_name} PUBLIC pybind11::lib)
+  endif()
+
   if(ARG_SYSTEM)
     message(
       STATUS

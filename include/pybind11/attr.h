@@ -119,7 +119,7 @@ enum op_id : int;
 enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
-inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -267,39 +267,8 @@ struct type_record {
     /// Is the class inheritable from python classes?
     bool is_final : 1;
 
-    PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
-        auto base_info = detail::get_type_info(base, false);
-        if (!base_info) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name) +
-                          "\" referenced unknown base type \"" + tname + "\"");
-        }
-
-        if (default_holder != base_info->default_holder) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name) + "\" " +
-                    (default_holder ? "does not have" : "has") +
-                    " a non-default holder type while its base \"" + tname + "\" " +
-                    (base_info->default_holder ? "does not" : "does"));
-        }
-
-        bases.append((PyObject *) base_info->type);
-
-        if (base_info->type->tp_dictoffset != 0)
-            dynamic_attr = true;
-
-        if (caster)
-            base_info->implicit_casts.emplace_back(type, caster);
-    }
+    PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *));
 };
-
-inline function_call::function_call(const function_record &f, handle p) :
-        func(f), parent(p) {
-    args.reserve(f.nargs);
-    args_convert.reserve(f.nargs);
-}
 
 /// Tag for a new-style `__init__` defined in `detail/init.h`
 struct is_new_style_constructor { };
@@ -366,11 +335,7 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
     static void init(const is_new_style_constructor &, function_record *r) { r->is_new_style_constructor = true; }
 };
 
-inline void process_kwonly_arg(const arg &a, function_record *r) {
-    if (!a.name || strlen(a.name) == 0)
-        pybind11_fail("arg(): cannot specify an unnamed argument after an kwonly() annotation");
-    ++r->nargs_kwonly;
-}
+void process_kwonly_arg(const arg &a, function_record *r);
 
 /// Process a keyword argument attribute (*without* a default value)
 template <> struct process_attribute<arg> : process_attribute_default<arg> {
@@ -526,3 +491,7 @@ constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if !defined(PYBIND11_DECLARATIONS_ONLY)
+#include "attr-inl.h"
+#endif

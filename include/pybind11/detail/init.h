@@ -32,9 +32,7 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(initimpl)
 
-inline void no_nullptr(void *ptr) {
-    if (!ptr) throw type_error("pybind11::init(): factory function returned nullptr");
-}
+void no_nullptr(void *ptr);
 
 // Implementing functions for all forms of py::init<...> and py::init(...)
 template <typename Class> using Cpp = typename Class::type;
@@ -334,3 +332,7 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
 PYBIND11_NAMESPACE_END(initimpl)
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(pybind11)
+
+#if !defined(PYBIND11_DECLARATIONS_ONLY)
+#include "init-inl.h"
+#endif
