@@ -752,8 +752,6 @@ inline bool PyIterable_Check(PyObject *obj) {
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
-inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
-
 inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }
 
 class kwargs_proxy : public handle {
@@ -796,7 +794,9 @@ PYBIND11_NAMESPACE_END(detail)
         Name(handle h, stolen_t) : Parent(h, stolen_t{}) { } \
         PYBIND11_DEPRECATED("Use py::isinstance<py::python_type>(obj) instead") \
         bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); } \
-        static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); }
+        static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); } \
+        template <typename Policy_> \
+        Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
@@ -806,9 +806,7 @@ PYBIND11_NAMESPACE_END(detail)
     { if (!m_ptr) throw error_already_set(); } \
     Name(object &&o) \
     : Parent(check_(o) ? o.release().ptr() : ConvertFun(o.ptr()), stolen_t{}) \
-    { if (!m_ptr) throw error_already_set(); } \
-    template <typename Policy_> \
-    Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
+    { if (!m_ptr) throw error_already_set(); }
 
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
@@ -899,7 +897,7 @@ class bytes;
 
 class str : public object {
 public:
-    PYBIND11_OBJECT_CVT(str, object, detail::PyUnicode_Check_Permissive, raw_str)
+    PYBIND11_OBJECT_CVT(str, object, PyUnicode_Check, raw_str)
 
     str(const char *c, size_t n)
         : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
@@ -920,7 +918,7 @@ public:
         Return a string representation of the object. This is analogous to
         the ``str()`` function in Python.
     \endrst */
-    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { }
+    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { if (!m_ptr) throw error_already_set(); }
 
     operator std::string() const {
         object temp = *this;
@@ -945,8 +943,8 @@ private:
     /// Return string representation -- always returns a new reference, even if already a str
     static PyObject *raw_str(PyObject *op) {
         PyObject *str_value = PyObject_Str(op);
-        if (!str_value) throw error_already_set();
 #if PY_MAJOR_VERSION < 3
+        if (!str_value) throw error_already_set();
         PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
         Py_XDECREF(str_value); str_value = unicode;
 #endif

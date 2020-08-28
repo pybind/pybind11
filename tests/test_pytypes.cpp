@@ -80,6 +80,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });
     m.def("str_from_object", [](const py::object& obj) { return py::str(obj); });
     m.def("repr_from_object", [](const py::object& obj) { return py::repr(obj); });
+    m.def("str_from_handle", [](py::handle h) { return py::str(h); });
 
     m.def("str_format", []() {
         auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
@@ -197,6 +198,7 @@ TEST_SUBMODULE(pytypes, m) {
     // test_constructors
     m.def("default_constructors", []() {
         return py::dict(
+            "bytes"_a=py::bytes(),
             "str"_a=py::str(),
             "bool"_a=py::bool_(),
             "int"_a=py::int_(),
@@ -210,6 +212,7 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("converting_constructors", [](py::dict d) {
         return py::dict(
+            "bytes"_a=py::bytes(d["bytes"]),
             "str"_a=py::str(d["str"]),
             "bool"_a=py::bool_(d["bool"]),
             "int"_a=py::int_(d["int"]),
@@ -225,6 +228,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("cast_functions", [](py::dict d) {
         // When converting between Python types, obj.cast<T>() should be the same as T(obj)
         return py::dict(
+            "bytes"_a=d["bytes"].cast<py::bytes>(),
             "str"_a=d["str"].cast<py::str>(),
             "bool"_a=d["bool"].cast<py::bool_>(),
             "int"_a=d["int"].cast<py::int_>(),
@@ -369,4 +373,11 @@ TEST_SUBMODULE(pytypes, m) {
             buf, static_cast<ssize_t>(strlen(buf)));
     });
 #endif
+
+    m.def("isinstance_pybind11_bytes", [](py::object o) { return py::isinstance<py::bytes>(o); });
+    m.def("isinstance_pybind11_str", [](py::object o) { return py::isinstance<py::str>(o); });
+
+    m.def("pass_to_pybind11_bytes", [](py::bytes b) { return py::len(b); });
+    m.def("pass_to_pybind11_str", [](py::str s) { return py::len(s); });
+    m.def("pass_to_std_string", [](std::string s) { return s.size(); });
 }
