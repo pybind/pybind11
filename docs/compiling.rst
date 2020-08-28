@@ -32,7 +32,7 @@ An example of a ``setup.py`` using pybind11's helpers:
 .. code-block:: python
 
     from setuptools import setup, Extension
-    from pybind11.setup_helpers import BuildExt
+    from pybind11.setup_helpers import build_ext
 
     ext_modules = [
         Extension(
@@ -44,7 +44,7 @@ An example of a ``setup.py`` using pybind11's helpers:
 
     setup(
         ...,
-        cmdclass={"build_ext": BuildExt},
+        cmdclass={"build_ext": build_ext},
         ext_modules=ext_modules
     )
 

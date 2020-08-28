@@ -44,7 +44,7 @@ import tempfile
 import threading
 
 import distutils.errors
-from distutils.command.build_ext import build_ext
+import distutils.command.build_ext
 
 
 WIN = sys.platform.startswith("win")
@@ -127,18 +127,19 @@ def cpp_flag(compiler, value=None):
     raise RuntimeError("Unsupported compiler -- at least C++11 support is needed!")
 
 
-class BuildExt(build_ext):
+class build_ext(distutils.command.build_ext.build_ext):  # noqa: N801
     """
     Customized build_ext that can be further customized by users.
 
     Most use cases can be addressed by adding items to the extensions.
     However, if you need to customize, try:
 
-        class BuildExt(pybind11.setup_utils.BuildExt):
+        class build_ext(pybind11.setup_utils.build_ext):
             def build_extensions(self):
                 # Do something here, like add things to extensions
 
-            super(BuildExt, self).build_extensions()
+            # super only works on Python 3 due to distutils oddities
+            pybind11.setup_utils.build_ext.build_extensions(self)
 
     One simple customization point is provided: ``self.cxx_std`` lets
     you set a C++ standard (None is the default search).
@@ -176,4 +177,4 @@ class BuildExt(build_ext):
             ext.include_dirs += [pybind11.get_include()]
 
         # Python 2 doesn't allow super here, since it's not a "class"
-        build_ext.build_extensions(self)
+        distutils.command.build_ext.build_ext.build_extensions(self)

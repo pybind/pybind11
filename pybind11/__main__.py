@@ -5,7 +5,7 @@ import argparse
 import sys
 import sysconfig
 
-from .commands import get_include
+from .commands import get_include, get_cmake_dir
 
 
 def print_includes():
@@ -31,11 +31,18 @@ def main():
         action="store_true",
         help="Include flags for both pybind11 and Python headers.",
     )
+    parser.add_argument(
+        "--cmakedir",
+        action="store_true",
+        help="Print the CMake module directory, ideal for pybind11_ROOT.",
+    )
     args = parser.parse_args()
     if not sys.argv[1:]:
         parser.print_help()
     if args.includes:
         print_includes()
+    if args.includes:
+        print(get_cmake_dir())
 
 
 if __name__ == "__main__":

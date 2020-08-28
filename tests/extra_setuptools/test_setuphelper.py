@@ -19,7 +19,7 @@ def test_simple_setup_py(monkeypatch, tmpdir):
             sys.path.append({MAIN_DIR!r})
 
             from setuptools import setup, Extension
-            from pybind11.setup_helpers import BuildExt
+            from pybind11.setup_helpers import build_ext
 
             ext_modules = [
                 Extension(
@@ -31,7 +31,7 @@ def test_simple_setup_py(monkeypatch, tmpdir):
 
             setup(
                 name="simple_setup_package",
-                cmdclass=dict(build_ext=BuildExt),
+                cmdclass=dict(build_ext=build_ext),
                 ext_modules=ext_modules
             )
             """

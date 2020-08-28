@@ -25,6 +25,12 @@ Usage of the ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function should
 be replaced by ``PYBIND11_OVERRIDE*`` and ``get_override``. In the future, the
 old macros may be deprecated and removed.
 
+The ``pybind11`` package on PyPI no longer fills the wheel "headers" slot - if
+you were using the headers from this slot, they are available in the
+``pybind11-inplace`` package. (Most users will be unaffected, as the
+``pybind11/include`` location is reported by ``pybind11 --includes`` and
+``pybind11.get_include()`` is still correct and has not changed since 2.5).
+
 CMake support:
 --------------
 
@@ -63,9 +69,20 @@ In addition, the following changes may be of interest:
 
 * Using ``find_package(Python COMPONENTS Interpreter Development)`` before
   pybind11 will cause pybind11 to use the new Python mechanisms instead of its
-  own custom search, based on a patched version of classic
-  FindPythonInterp/FindPythonLibs. In the future, this may become the default.
+  own custom search, based on a patched version of classic ``FindPythonInterp``
+  / ``FindPythonLibs``. In the future, this may become the default.
 
+
+
+v2.5
+====
+
+The Python package now includes the headers as data in the package itself, as
+well as in the "headers" wheel slot. ``pybind11 --includes`` and
+``pybind11.get_include()`` report the new location, which is always correct
+regardless of how pybind11 was installed, making the old ``user=`` argument
+meaningless. If you are not using the helper, you are encouraged to switch to
+the package location.
 
 
 v2.2
