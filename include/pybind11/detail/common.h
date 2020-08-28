@@ -83,7 +83,27 @@
 #if defined(_MSC_VER)
 #  define PYBIND11_NOINLINE __declspec(noinline)
 #else
-#  define PYBIND11_NOINLINE __attribute__ ((noinline))
+#  if PYBIND11_DECLARATIONS_ONLY
+#    define PYBIND11_NOINLINE __attribute__ ((noinline))
+#  else
+// Otherwise GCC 9 would emit warnings for functions that are marked both
+// inline and noinline if we weren't enabling:
+// #pragma GCC diagnostic ignored "-Wattributes"
+// as is currently done in Pybind11. This way we remove reliance on this
+// disabled warning.
+#    define PYBIND11_NOINLINE
+#  endif
+#endif
+
+// Must be used in every .cpp function definition:
+// - on header-only mode, functions must be marked as inline
+//   to prevent multiple definitions
+// - on non-header-only mode, functions must not be marked as inline
+//   so that the symbols will be visible from other objects
+#if PYBIND11_DECLARATIONS_ONLY
+#  define PYBIND11_INLINE
+#else
+#  define PYBIND11_INLINE inline
 #endif
 
 #if defined(PYBIND11_CPP14)

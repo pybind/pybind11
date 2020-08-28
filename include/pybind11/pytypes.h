@@ -330,7 +330,7 @@ public:
     error_already_set(const error_already_set &) = default;
     error_already_set(error_already_set &&) = default;
 
-    inline ~error_already_set();
+    ~error_already_set();
 
     /// Give the currently-held error back to Python, if any.  If there is currently a Python error
     /// already set it is cleared first.  After this call, the current object no longer stores the
