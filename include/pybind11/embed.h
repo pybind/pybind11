@@ -152,7 +152,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     auto pysys_argv = safe_argv;
 #endif
 
-    PySys_SetArgvEx(argc, pysys_argv, add_current_dir_to_path ? 1 : 0);
+    PySys_SetArgvEx(argc, pysys_argv, add_current_dir_to_path);
 }
 
 PYBIND11_NAMESPACE_END(detail)
