@@ -152,7 +152,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     auto pysys_argv = safe_argv;
 #endif
 
-#if PY_VERSION_HEX < 0x020606f0 || (PY_MAJOR_VERSION == 3 && PY_VERSION_HEX < 0x030103f0
+#if PY_VERSION_HEX < 0x020606f0 || (PY_MAJOR_VERSION == 3 && PY_VERSION_HEX < 0x030103f0)
     // These python versions don't have PySys_SetArgvEx, so we have to use the approach
     // recommended by https://docs.python.org/3.5/c-api/init.html#c.PySys_SetArgvEx
     // to work around CVE-2008-5983
