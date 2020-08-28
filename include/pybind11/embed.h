@@ -100,7 +100,7 @@ struct wide_char_arg_deleter {
     }
 };
 
-wchar_t* widen_chars(char* safe_arg) {
+inline wchar_t* widen_chars(char* safe_arg) {
 #if PY_VERSION_HEX >= 0x030500f0
     wchar_t* widened_arg = Py_DecodeLocale(safe_arg, nullptr);
 #else
@@ -159,7 +159,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     // to work around CVE-2008-5983
     PySys_SetArgv(argc, pysys_argv);
     if (!add_current_dir_to_path)
-        PyList_PopItem(py::module::import("sys").attr("path").ptr(), 0);
+        module::import("sys").attr("path").attr("pop")();
 #else
     PySys_SetArgvEx(argc, pysys_argv, add_current_dir_to_path ? 1 : 0);
 #endif
