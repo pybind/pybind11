@@ -95,7 +95,7 @@ struct wide_char_arg_deleter {
         // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
         PyMem_RawFree(ptr);
 #else
-        delete ptr;
+        delete[] ptr;
 #endif
     }
 };
