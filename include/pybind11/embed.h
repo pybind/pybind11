@@ -126,8 +126,8 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     std::unique_ptr<char*[]> argv_guard;
     std::unique_ptr<char[]> argv_inner_guard;
     if (nullptr == argv || argc <= 0) {
-        argv_guard = std::unique_ptr<char*[]>(safe_argv = new char*[1]);
-        argv_inner_guard = std::unique_ptr<char[]>(safe_argv[0] = new char[1]);
+        argv_guard.reset(safe_argv = new char*[1]);
+        argv_inner_guard.reset(safe_argv[0] = new char[1]);
         safe_argv[0][0] = '\0';
         argc = 1;
     }
