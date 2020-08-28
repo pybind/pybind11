@@ -103,16 +103,13 @@ struct wide_char_arg_deleter {
 wchar_t* widen_chars(char* safe_arg) {
 #if PY_VERSION_HEX >= 0x030500f0
     wchar_t* widened_arg = Py_DecodeLocale(safe_arg, nullptr);
-#elif HAVE_BROKEN_MBSTOWCS
-    size_t count = strlen(safe_arg);
-    widened_arg = nullptr;
-    if (count != static_cast<size_t>(-1)) {
-        widened_arg = new wchar_t[count + 1];
-        mbstowcs(widened_arg, safe_arg, count + 1);
-    }
 #else
+    wchar_t* widened_arg = nullptr;
+#  if HAVE_BROKEN_MBSTOWCS
+    size_t count = strlen(safe_arg);
+#  else
     size_t count = mbstowcs(nullptr, safe_arg, 0);
-    widened_arg = nullptr;
+#  endif
     if (count != static_cast<size_t>(-1)) {
         widened_arg = new wchar_t[count + 1];
         mbstowcs(widened_arg, safe_arg, count + 1);
