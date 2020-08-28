@@ -90,7 +90,7 @@ struct embedded_module {
 };
 
 struct wide_char_arg_deleter {
-    void operator()(void* ptr) const {
+    void operator()(wchar_t* ptr) const {
 #if PY_VERSION_HEX >= 0x030500f0
         // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
         PyMem_RawFree(ptr);
