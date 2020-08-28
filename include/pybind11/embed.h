@@ -137,6 +137,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
 #if PY_MAJOR_VERSION >= 3
     size_t argv_size = static_cast<size_t>(argc);
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
+    std::unique_ptr<wchar_t*[]> widened_argv(new wchar_t*[argv_size]);
     std::vector< std::unique_ptr<wchar_t[], wide_char_arg_deleter> > widened_argv_entries;
     for (size_t ii = 0; ii < argv_size; ++ii) {
         widened_argv_entries.emplace_back(widen_chars(safe_argv[ii]));
@@ -144,7 +145,8 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
             // A null here indicates a character-encoding failure or the python
             // interpreter out of memory. Give up.
             return;
-        }
+        } else
+            widened_argv[ii] = widened_argv_entries.back().get();
     }
 
     auto pysys_argv = widened_argv.get();
