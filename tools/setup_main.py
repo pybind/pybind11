@@ -19,4 +19,9 @@ setup(
         "pybind11.include.pybind11.detail": ["*.h"],
         "pybind11.share.cmake.pybind11": ["*.cmake"],
     },
+    entry_points={
+        "console_scripts": [
+             "pybind11-config = pybind11.__main__:main",
+        ]
+    }
 )

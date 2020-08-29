@@ -25,7 +25,7 @@ def print_includes():
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="python -m pybind11")
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--includes",
         action="store_true",

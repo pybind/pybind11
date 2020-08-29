@@ -110,7 +110,7 @@ def test_build_sdist(monkeypatch, tmpdir):
     if hasattr(out, "decode"):
         out = out.decode()
 
-    assert out.count("copying") == 48
+    assert out.count("copying") == 49
 
     (sdist,) = tmpdir.visit("*.tar")
 
@@ -131,6 +131,7 @@ def test_build_sdist(monkeypatch, tmpdir):
     files = set("pybind11/{}".format(n) for n in all_files)
     files |= sdist_files
     files |= set("pybind11{}".format(n) for n in local_sdist_files)
+    files.add("pybind11.egg-info/entry_points.txt")
     assert simpler == files
 
     with open(os.path.join(MAIN_DIR, "tools", "setup_main.py"), "rb") as f:
@@ -201,9 +202,10 @@ def tests_build_wheel(monkeypatch, tmpdir):
     files |= {
         "dist-info/LICENSE",
         "dist-info/METADATA",
-        "dist-info/WHEEL",
-        "dist-info/top_level.txt",
         "dist-info/RECORD",
+        "dist-info/WHEEL",
+        "dist-info/entry_points.txt",
+        "dist-info/top_level.txt",
     }
 
     with zipfile.ZipFile(str(wheel)) as z:
