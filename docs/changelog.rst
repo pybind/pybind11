@@ -47,7 +47,7 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   * CMake configuration files are now included in the Python package. Use
     ``pybind11.get_cmake_dir()`` or ``python -m pybind11 --cmakedir`` to get
     the CMake directory, or include the site-packages location in your
-    ``CMAKE_MODULE_PATH``. Or you can use the new ``pybind11-inplace`` module,
+    ``CMAKE_MODULE_PATH``. Or you can use the new ``pybind11-global`` module,
     which installs the includes and headers into your base environment in the
     standard location.
 

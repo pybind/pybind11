@@ -10,11 +10,11 @@ import subprocess
 import sys
 import tempfile
 
-# PYBIND11_ALT_SDIST will build a different sdist, with the python-headers
+# PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
 # files, and the sys.prefix files (CMake and headers).
 
-alt_sdist = os.environ.get("PYBIND11_ALT_SDIST", False)
-setup_py = "tools/setup_alt.py" if alt_sdist else "tools/setup_main.py"
+alt_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
+setup_py = "tools/setup_global.py" if alt_sdist else "tools/setup_main.py"
 pyproject_toml = "tools/pyproject.toml"
 
 # In a PEP 518 build, this will be in its own environment, so it will not

@@ -117,7 +117,7 @@ jobs:
     - name: Build SDist
       run: |
         python setup.py sdist
-        PYBIND11_ALT_SDIST=1 python setup.py sdist
+        PYBIND11_GLOBAL_SDIST=1 python setup.py sdist
 
     - uses: actions/upload-artifact@v2
       with:
@@ -126,7 +126,7 @@ jobs:
     - name: Build wheel
       run: |
         python -m pip wheel . -w wheels
-        PYBIND11_ALT_SDIST=1 python -m pip wheel . -w wheels
+        PYBIND11_GLOBAL_SDIST=1 python -m pip wheel . -w wheels
 
     - uses: actions/upload-artifact@v2
       with:

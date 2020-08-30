@@ -27,9 +27,9 @@ old macros may be deprecated and removed.
 
 The ``pybind11`` package on PyPI no longer fills the wheel "headers" slot - if
 you were using the headers from this slot, they are available in the
-``pybind11-inplace`` package. (Most users will be unaffected, as the
-``pybind11/include`` location is reported by ``pybind11 --includes`` and
-``pybind11.get_include()`` is still correct and has not changed since 2.5).
+``pybind11-global`` package. (Most users will be unaffected, as the
+``pybind11/include`` location is reported by ``python -m pybind11 --includes``
+and ``pybind11.get_include()`` is still correct and has not changed since 2.5).
 
 CMake support:
 --------------

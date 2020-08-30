@@ -144,7 +144,7 @@ def test_build_sdist(monkeypatch, tmpdir):
 def test_build_alt_dist(monkeypatch, tmpdir):
 
     monkeypatch.chdir(MAIN_DIR)
-    monkeypatch.setenv("PYBIND11_ALT_SDIST", "1")
+    monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
 
     out = subprocess.check_output(
         [
@@ -179,10 +179,10 @@ def test_build_alt_dist(monkeypatch, tmpdir):
 
     files = set("pybind11/{}".format(n) for n in all_files)
     files |= sdist_files
-    files |= set("pybind11_inplace{}".format(n) for n in local_sdist_files)
+    files |= set("pybind11_global{}".format(n) for n in local_sdist_files)
     assert simpler == files
 
-    with open(os.path.join(MAIN_DIR, "tools", "setup_alt.py"), "rb") as f:
+    with open(os.path.join(MAIN_DIR, "tools", "setup_global.py"), "rb") as f:
         assert setup_py == f.read()
 
     with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
@@ -220,7 +220,7 @@ def tests_build_wheel(monkeypatch, tmpdir):
 
 def tests_build_alt_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
-    monkeypatch.setenv("PYBIND11_ALT_SDIST", "1")
+    monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
 
     subprocess.check_output(
         [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)]
