@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This module provides a way to check to see if flag is available,
-has_flag (built-in to distutils.CCompiler in Python 3.6+), and
-a cpp_flag function, which will compute the highest available
-flag (or if a flag is supported).
+This module provides a
 
 LICENSE:
 
@@ -42,13 +39,17 @@ import shutil
 import sys
 import tempfile
 import threading
+import warnings
 
 import distutils.errors
 import distutils.command.build_ext
+import distutils.extension
 
 
-WIN = sys.platform.startswith("win")
+WIN = sys.platform.startswith("win32")
 PY2 = sys.version_info[0] < 3
+MACOS = sys.platform.startswith("darwin")
+STD_TMPL = "/std:cxx{}" if WIN else "-std=c++{}"
 
 
 # It is recommended to use PEP 518 builds if using this module. However, this
@@ -60,6 +61,7 @@ PY2 = sys.version_info[0] < 3
 
 # Just in case someone clever tries to multithread
 tmp_chdir_lock = threading.Lock()
+cpp_cache_lock = threading.Lock()
 
 
 @contextlib.contextmanager
@@ -78,166 +80,181 @@ def tmp_chdir():
             shutil.rmtree(tmpdir)
 
 
-class build_ext(distutils.command.build_ext.build_ext):  # noqa: N801
+class Pybind11Extension(distutils.extension.Extension):
     """
-    Customized build_ext that can be further customized by users.
+    Build a Pybind11 Extension module. This automatically adds the recommended
+    flags when you init the extension and assumes C++ sources - you can further
+    modify the options yourself.
 
-    Most use cases can be addressed by adding items to the extensions.
-    However, if you need to customize beyond the customization points provided,
-    try:
+    The customizations are:
 
-        class build_ext(pybind11.setup_utils.build_ext):
-            def build_extensions(self):
-                # Do something here, like add things to extensions
+    * ``/EHsc`` and ``/bigobj`` on Windows
+    * ``stdlib=libc++`` on macOS
+    * ``visibility=hidden`` and ``-g0`` on Unix
 
-            # super only works on Python 3 due to distutils oddities
-            pybind11.setup_utils.build_ext.build_extensions(self)
+    Finally, you can set ``cxx_std`` via constructor or afterwords to enable
+    flags for C++ std, and a few extra helper flags related to the C++ standard
+    level. It is _highly_ recommended you either set this, or use the provided
+    ``build_ext``, which will search for the highest supported extension for
+    you if the ``cxx_std`` property is not set. Do not set the ``cxx_std``
+    property more than once, as flags are added when you set it. Set the
+    property to None to disable the addition of C++ standard flags.
 
-    Simple customization points are provided: CPP_FLAGS, UNIX_FLAGS,
-    LINUX_FLAGS, DARWIN_FLAGS, and WIN_FLAGS (along with ``*_LINK_FLAGS``
-    versions). You can override these per class or per instance.
-
-    If CPP_FLAGS is empty, no search is done. The first supported flag is used.
-    Reasonable defaults are selected for the flags for optimal extensions. An
-    ALL_COMPILERS set lists flags that will always pass "has_flag".
-
-    Two flags are special, and are not listed here. One is the Python 2 +
-    C++14+/C++17 register flag; this is added by cpp_flags. The other is the
-    macos-version-min flag, which is only added if MACOSX_DEPLOYMENT_TARGET is
-    not set, and is based on the C++ standard selected.
+    Warning: do not use property-based access to the instance on Python 2 -
+    this is an ugly old-style class due to Distutils.
     """
 
-    CPP_FLAGS = ("-std=c++17", "-std=c++14", "-std=c++11")
-    LINUX_FLAGS = ()
-    LINUX_LINK_FLAGS = ()
-    UNIX_FLAGS = ("-fvisibility=hidden", "-g0")
-    UNIX_LINK_FLAGS = ()
-    DARWIN_FLAGS = ("-stdlib=libc++",)
-    DARWIN_LINK_FLAGS = ("-stdlib=libc++",)
-    WIN_FLAGS = ("/EHsc", "/bigobj")
-    WIN_LINK_FLAGS = ()
-    ALL_COMPILERS = {"-g0", "/EHsc", "/bigobj"}
+    def _add_cflags(self, *flags):
+        for flag in flags:
+            if flag not in self.extra_compile_args:
+                self.extra_compile_args.append(flag)
 
-    # cf http://bugs.python.org/issue26689
-    def has_flag(self, *flagnames):
-        """
-        Return the flag if a flag name is supported on the
-        specified compiler, otherwise None (can be used as a boolean).
-        If multiple flags are passed, return the first that matches.
-        """
+    def _add_lflags(self, *flags):
+        for flag in flags:
+            if flag not in self.extra_compile_args:
+                self.extra_link_args.append(flag)
 
-        with tmp_chdir():
-            fname = "flagcheck.cpp"
-            for flagname in flagnames:
-                if flagname in self.ALL_COMPILERS or "mmacosx-version-min" in flagname:
-                    return flagname
-                with open(fname, "w") as f:
-                    f.write("int main (int argc, char **argv) { return 0; }")
+    def __init__(self, *args, **kwargs):
 
-                try:
-                    self.compiler.compile([fname], extra_postargs=[flagname])
-                    return flagname
-                except distutils.errors.CompileError:
-                    pass
+        self._cxx_level = 0
+        cxx_std = kwargs.pop("cxx_std", 0)
 
-        return None
+        if "language" not in kwargs:
+            kwargs["language"] = "c++"
 
-    def cpp_flags(self):
-        """
-        Return the ``-std=c++[11/14/17]`` compiler flag(s) as a list. May add
-        register fix for Python 2.  The newer version is preferred over c++11
-        (when it is available). Windows will not fail, since MSVC 15 doesn't
-        have these flags but supports C++14 (for the most part). The first flag
-        is always the C++ selection flag.
-        """
+        # Can't use super here because distutils has old-style classes in
+        # Python 2!
+        distutils.extension.Extension.__init__(self, *args, **kwargs)
 
-        # None or missing attribute, provide default list; if empty list, return nothing
-        if not self.CPP_FLAGS:
-            return []
+        # Have to use the accessor manually to support Python 2 distutils
+        CppExtension.cxx_std.__set__(self, cxx_std)
 
-        # Windows uses a different form
+        # If using setup_requires, this fails the first time - that's okay
+        try:
+            import pybind11
+
+            pyinc = pybind11.get_include()
+
+            if pyinc not in self.include_dirs:
+                self.include_dirs.append(pyinc)
+        except ImportError:
+            pass
+
         if WIN:
-            # MSVC 2017+
-            flags = [
-                "/std:{}".format(flag[5:]).replace("11", "14")
-                for flag in self.CPP_FLAGS
-            ]
+            self._add_cflags("/EHsc", "/bigobj")
         else:
-            flags = self.CPP_FLAGS
+            self._add_cflags("-fvisibility=hidden", "-g0")
+            if MACOS:
+                self._add_cflags("-stdlib=libc++")
+                self._add_lflags("-stdlib=libc++")
 
-        flag = self.has_flag(*flags)
+    @property
+    def cxx_std(self):
+        """
+        The CXX standard level. If set, will add the required flags. If left
+        at 0, it will trigger an automatic search when pybind11's build_ext
+        is used. If None, will have no effect.  Besides just the flags, this
+        may add a register warning/error fix for Python 2 or macos-min 10.9
+        or 10.14.
+        """
+        return self._cxx_level
 
-        if flag is None:
-            # On Windows, the default is to support C++14 on MSVC 2015, and it is
-            # not a specific flag so not failing here if on Windows. An empty list
-            # also passes since it doesn't look for anything.
-            if WIN:
-                return []
-            else:
-                msg = "Unsupported compiler -- at least C++11 support is needed!"
-                raise RuntimeError(msg)
+    @cxx_std.setter
+    def cxx_std(self, level):
+
+        if self._cxx_level:
+            warnings.warn("You cannot safely change the cxx_level after setting it!")
+
+        self._cxx_level = level
+
+        if not level or (WIN and level == 11):
+            return
+
+        self.extra_compile_args.append(STD_TMPL.format(level))
+
+        if MACOS and "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
+            # C++17 requires a higher min version of macOS
+            macosx_min = "-mmacosx-version-min=" + ("10.9" if level < 17 else "10.14")
+            self.extra_compile_args.append(macosx_min)
+            self.extra_link_args.append(macosx_min)
 
         if PY2:
-            try:
-                value = int(flag[-2:])
-                if value >= 17:
-                    return [flag, "/wd503" if WIN else "-Wno-register"]
-                elif not WIN and value >= 14:
-                    return [flag, "-Wno-deprecated-register"]
-            except ValueError:
-                return [flag, "/wd503" if WIN else "-Wno-register"]
+            if level >= 17:
+                self.extra_compile_args.append("/wd503" if WIN else "-Wno-register")
+            elif not WIN and level >= 14:
+                self.extra_compile_args.append("-Wno-deprecated-register")
 
-        return [flag]
+
+# cf http://bugs.python.org/issue26689
+def has_flag(compiler, flag):
+    """
+    Return the flag if a flag name is supported on the
+    specified compiler, otherwise None (can be used as a boolean).
+    If multiple flags are passed, return the first that matches.
+    """
+
+    with tmp_chdir():
+        fname = "flagcheck.cpp"
+        with open(fname, "w") as f:
+            f.write("int main (int argc, char **argv) { return 0; }")
+
+        try:
+            compiler.compile([fname], extra_postargs=[flag])
+        except distutils.errors.CompileError:
+            return False
+        return True
+
+
+# Every call will cache the result
+cpp_flag_cache = None
+
+
+def auto_cpp_level(compiler):
+    """
+    Return the max supported C++ std level (17, 14, or 11). If neither 17 or 14
+    is supported on Windows, "11" is returned. Caches result.
+    """
+
+    global cpp_flag_cache
+
+    # If this has been previously calculated with the same args, return that
+    with cpp_cache_lock:
+        if cpp_flag_cache:
+            return cpp_flag_cache
+
+    levels = [17, 14] + ([] if WIN else [11])
+
+    for level in levels:
+        if has_flag(compiler, STD_TMPL.format(level)):
+            with cpp_cache_lock:
+                cpp_flag_cache = level
+            return level
+
+    if WIN:
+        with cpp_cache_lock:
+            cpp_flag_cache = 11
+        return 11
+
+    msg = "Unsupported compiler -- at least C++11 support is needed!"
+    raise RuntimeError(msg)
+
+
+class build_ext(distutils.command.build_ext.build_ext):  # noqa: N801
+    """
+    Customized build_ext that allows an auto-search for the highest supported
+    C++ level for Pybind11Extension.
+    """
 
     def build_extensions(self):
         """
-        Build extensions, injecting extra flags and includes as needed.
+        Build extensions, injecting C++ std for Pybind11Extension if needed.
         """
-        # Import here to support `setup_requires` if someone really has to use it.
-        import pybind11
-
-        def valid_flags(flagnames):
-            return [flag for flag in flagnames if self.has_flag(flag)]
-
-        extra_compile_args = []
-        extra_link_args = []
-
-        cpp_flags = self.cpp_flags()
-        extra_compile_args += cpp_flags
-
-        if WIN:
-            extra_compile_args += valid_flags(self.WIN_FLAGS)
-            extra_link_args += self.WIN_LINK_FLAGS
-        else:
-            extra_compile_args += valid_flags(self.UNIX_FLAGS)
-            extra_link_args += self.UNIX_LINK_FLAGS
-
-            if sys.platform.startswith("darwin"):
-                extra_compile_args += valid_flags(self.DARWIN_FLAGS)
-                extra_link_args += self.DARWIN_LINK_FLAGS
-
-                if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
-                    macosx_min = "-mmacosx-version-min=10.9"
-
-                    # C++17 requires a higher min version of macOS
-                    if cpp_flags:
-                        try:
-                            if int(cpp_flags[0][-2:]) >= 17:
-                                macosx_min = "-mmacosx-version-min=10.14"
-                        except ValueError:
-                            pass
-
-                    extra_compile_args.append(macosx_min)
-                    extra_link_args.append(macosx_min)
-
-            else:
-                extra_compile_args += valid_flags(self.LINUX_FLAGS)
-                extra_link_args += self.LINUX_LINK_FLAGS
 
         for ext in self.extensions:
-            ext.extra_compile_args += extra_compile_args
-            ext.extra_link_args += extra_link_args
-            ext.include_dirs += [pybind11.get_include()]
+            if hasattr(ext, "_cxx_level") and ext._cxx_level == 0:
+                # Python 2 syntax - old-style distutils class
+                ext.__class__.cxx_std.__set__(ext, auto_cpp_level(self.compiler))
 
-        # Python 2 doesn't allow super here, since it's not a "class"
+        # Python 2 doesn't allow super here, since distutils uses old-style
+        # classes!
         distutils.command.build_ext.build_ext.build_extensions(self)

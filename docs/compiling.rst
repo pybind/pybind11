@@ -31,14 +31,41 @@ An example of a ``setup.py`` using pybind11's helpers:
 
 .. code-block:: python
 
-    from setuptools import setup, Extension
-    from pybind11.setup_helpers import build_ext
+    from setuptools import setup  # Always import first
+    from pybind11.setup_helpers import Pybind11Extension
 
     ext_modules = [
-        Extension(
+        Pybind11Extension(
             "python_example",
             sorted(["src/main.cpp"]),
-            language="c++",
+        ),
+    ]
+
+    setup(
+        ...,
+        ext_modules=ext_modules
+    )
+
+
+If you copy ``setup_helpers.py`` into your local project to try to support the
+classic build procedure, then you will need to use the deprecated
+``setup_requires=["pybind11"]`` keyword argument to setup; ``setup_helpers``
+tries to support this as well. As with all distutils compatible tools, you need
+to import setuptools before importing from ``pybind11.setup_helpers``.
+
+If you want to do an automatic search for the highest supported C++ standard,
+that is supported via a ``build_ext`` command override; it will only affect
+Pybind11Extensions:
+
+.. code-block:: python
+
+    from setuptools import setup  # Always import first
+    from pybind11.setup_helpers import Pybind11Extension, build_ext
+
+    ext_modules = [
+        Pybind11Extension(
+            "python_example",
+            sorted(["src/main.cpp"]),
         ),
     ]
 
@@ -48,11 +75,6 @@ An example of a ``setup.py`` using pybind11's helpers:
         ext_modules=ext_modules
     )
 
-
-If you copy ``setup_helpers.py`` into your local project to try to support the
-classic build procedure, then you will need to use the deprecated
-``setup_requires=["pybind11"]`` keyword argument to setup; ``setup_helpers``
-tries to support this as well.
 
 .. versionchanged:: 2.6
 

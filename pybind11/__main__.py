@@ -41,7 +41,7 @@ def main():
         parser.print_help()
     if args.includes:
         print_includes()
-    if args.includes:
+    if args.cmakedir:
         print(get_cmake_dir())
 
 
