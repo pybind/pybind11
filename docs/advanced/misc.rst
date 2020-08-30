@@ -322,7 +322,8 @@ its C++ type name will be used instead to generate the signature in the docstrin
                                               ^^^^^^^
 
 
-This limitation can be circumvented by "forward declaring" bound classes:
+This limitation can be circumvented by ensuring that C++ classes are registered with pybind11
+before they are used as a parameter to a function:
 
 .. code-block:: cpp
 
