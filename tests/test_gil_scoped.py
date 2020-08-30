@@ -54,6 +54,8 @@ def _python_to_cpp_to_python_from_threads(num_threads, parallel=False):
         thread.join()
 
 
+# TODO: FIXME, sometimes returns -11 instead of 0
+@pytest.mark.xfail("env.PY > (3,8) and env.MACOS", strict=False)
 def test_python_to_cpp_to_python_from_thread():
     """Makes sure there is no GIL deadlock when running in a thread.
 
