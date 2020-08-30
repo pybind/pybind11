@@ -311,7 +311,7 @@ Avoiding C++ types in docstrings
 ================================
 
 Docstrings are generated at the time of the declaration, e.g. when ``.def(...)`` is called.
-At this point argument and return types should be known to pybind11.
+At this point parameter and return types should be known to pybind11.
 If a custom type is not exposed yet through a ``py::class_`` constructor or a custom type caster,
 its C++ type name will be used instead to generate the signature in the docstring:
 
@@ -323,7 +323,7 @@ its C++ type name will be used instead to generate the signature in the docstrin
 
 
 This limitation can be circumvented by ensuring that C++ classes are registered with pybind11
-before they are used as a parameter to a function:
+before they are used as a parameter or return type of a function:
 
 .. code-block:: cpp
 
