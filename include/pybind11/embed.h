@@ -119,7 +119,7 @@ inline wchar_t* widen_chars(char* safe_arg) {
 }
 
 /// Python 2.x/3.x-compatible version of `PySys_SetArgv`
-inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_path) {
+inline void set_interpreter_argv(int argc, char** argv, bool add_program_dir_to_path) {
     // Before it was special-cased in python 3.8, passing an empty or null argv
     // caused a segfault, so we have to reimplement the special case ourselves.
     char** safe_argv = argv;
@@ -152,7 +152,7 @@ inline void set_interpreter_argv(int argc, char** argv, bool add_current_dir_to_
     auto pysys_argv = safe_argv;
 #endif
 
-    PySys_SetArgvEx(argc, pysys_argv, add_current_dir_to_path);
+    PySys_SetArgvEx(argc, pysys_argv, add_program_dir_to_path);
 }
 
 PYBIND11_NAMESPACE_END(detail)
@@ -168,7 +168,7 @@ PYBIND11_NAMESPACE_END(detail)
     is controlled by the CPython runtime and is an exception to pybind11's normal behavior
     of throwing exceptions on errors.)
 
-    The remaining optional parameters, `argc`, `argv`, and `add_current_dir_to_path` are
+    The remaining optional parameters, `argc`, `argv`, and `add_program_dir_to_path` are
     used to populate ``sys.argv`` and ``sys.path``.
     See the |PySys_SetArgvEx documentation|_ for details.
 
@@ -179,13 +179,13 @@ PYBIND11_NAMESPACE_END(detail)
 inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
                                    char** argv = nullptr,
-                                   bool add_current_dir_to_path = true) {
+                                   bool add_program_dir_to_path = true) {
     if (Py_IsInitialized())
         pybind11_fail("The interpreter is already running");
 
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 
-    detail::set_interpreter_argv(argc, argv, add_current_dir_to_path);
+    detail::set_interpreter_argv(argc, argv, add_program_dir_to_path);
 }
 
 /** \rst
@@ -263,8 +263,8 @@ public:
     scoped_interpreter(bool init_signal_handlers = true,
                        int argc = 0,
                        char** argv = nullptr,
-                       bool add_current_dir_to_path = true) {
-        initialize_interpreter(init_signal_handlers, argc, argv, add_current_dir_to_path);
+                       bool add_program_dir_to_path = true) {
+        initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
 
     scoped_interpreter(const scoped_interpreter &) = delete;
