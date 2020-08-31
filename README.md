@@ -138,6 +138,6 @@ you agree to the terms and conditions of this license.
 [docs-pdf]: https://media.readthedocs.org/pdf/pybind11/master/pybind11.pdf
 [Boost.Python]: http://www.boost.org/doc/libs/1_58_0/libs/python/doc/
 [pyrosetta-report]: http://graylab.jhu.edu/RosettaCon2016/PyRosetta-4.pdf
-[contributing guide]:  https://github.com/pybind/pybind11/blob/master/CONTRIBUTING.md
+[contributing guide]:  https://github.com/pybind/pybind11/blob/master/.github/CONTRIBUTING.md
 [`LICENSE`]: https://github.com/pybind/pybind11/blob/master/LICENSE
 [intel-15-workaround]: https://github.com/pybind/pybind11/issues/276
