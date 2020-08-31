@@ -25,7 +25,7 @@ def test_chrono_system_clock():
 
     # Since datetime.datetime.today() calls time.time(), and on some platforms
     # that has 1 second accuracy, we compare this way
-    assert int(diff.seconds) <= int(diff_python.seconds)
+    assert diff.seconds <= diff_python.seconds
 
 
 def test_chrono_system_clock_roundtrip():
