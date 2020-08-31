@@ -307,13 +307,21 @@ extern "C" {
             });
         }
 \endrst */
+#if PY_MAJOR_VERSION >= 3
+#define PYBIND11_MODULE_DETAIL_CREATE(name)                                    \
+        static PyModuleDef mdef;                                               \
+        auto m = pybind11::module(PYBIND11_TOSTRING(name), nullptr, &mdef);
+#else
+#define PYBIND11_MODULE_DETAIL_CREATE(name)                                    \
+        auto m = pybind11::module(PYBIND11_TOSTRING(name));
+#endif
 #define PYBIND11_MODULE(name, variable)                                        \
     PYBIND11_MAYBE_UNUSED                                                      \
     static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         PYBIND11_CHECK_PYTHON_VERSION                                          \
         PYBIND11_ENSURE_INTERNALS_READY                                        \
-        auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
+        PYBIND11_MODULE_DETAIL_CREATE(name)                                    \
         try {                                                                  \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
             return m.ptr();                                                    \
