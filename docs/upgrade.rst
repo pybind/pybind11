@@ -26,10 +26,11 @@ be replaced by ``PYBIND11_OVERRIDE*`` and ``get_override``. In the future, the
 old macros may be deprecated and removed.
 
 The ``pybind11`` package on PyPI no longer fills the wheel "headers" slot - if
-you were using the headers from this slot, they are available in the
-``pybind11-global`` package. (Most users will be unaffected, as the
-``pybind11/include`` location is reported by ``python -m pybind11 --includes``
-and ``pybind11.get_include()`` is still correct and has not changed since 2.5).
+you were using the headers from this slot, they are available by requesting the
+``global`` extra, that is, ``pip install "pybind11[global]"``. (Most users will
+be unaffected, as the ``pybind11/include`` location is reported by ``python -m
+pybind11 --includes`` and ``pybind11.get_include()`` is still correct and has
+not changed since 2.5).
 
 CMake support:
 --------------

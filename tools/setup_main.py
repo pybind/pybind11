@@ -5,7 +5,6 @@
 
 from setuptools import setup
 
-
 setup(
     name="pybind11",
     packages=[
@@ -19,6 +18,9 @@ setup(
         "pybind11.include.pybind11.detail": ["*.h"],
         "pybind11.share.cmake.pybind11": ["*.cmake"],
     },
+    extras_require={
+        "global": ["pybind11_global==2.6.0"]
+        },
     entry_points={
         "console_scripts": [
              "pybind11-config = pybind11.__main__:main",
