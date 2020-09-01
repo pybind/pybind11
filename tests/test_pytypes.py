@@ -221,6 +221,26 @@ def test_constructors():
     for k in noconv2:
         assert noconv2[k] is expected[k]
 
+    init_list = m.initializer_list()
+    expected = ("tuple_ints", tuple), ("list_ints", list)
+    for key, type_ in expected:
+        ints = init_list[key]
+        assert(isinstance(ints, type_))
+        assert(len(ints) == 3)
+        assert(ints[0] == 1)
+        assert(ints[1] == 2)
+        assert(ints[2] == 3)
+
+    expected = ("tuple_floats", tuple), ("list_floats", list)
+    for key, type_ in expected:
+        floats = init_list[key]
+        assert(isinstance(floats, type_))
+        assert(len(floats) == 4)
+        assert(floats[0] == 2.2)
+        assert(floats[1] == 3.1)
+        assert(floats[2] == 4.5)
+        assert(floats[3] == 5.4)
+
 
 def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str

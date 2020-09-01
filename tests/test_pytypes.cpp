@@ -237,6 +237,16 @@ TEST_SUBMODULE(pytypes, m) {
         );
     });
 
+    // Tuples and lists can also be constructed using an initializer list of pybind11::object subclasses
+    m.def("initializer_list", []() {
+        return py::dict(
+            "tuple_ints"_a = py::tuple({py::int_(1), py::int_(2), py::int_(3)}),
+            "tuple_floats"_a = py::tuple({py::float_(2.2), py::float_(3.1), py::float_(4.5), py::float_(5.4)}),
+            "list_ints"_a = py::list({py::int_(1), py::int_(2), py::int_(3)}),
+            "list_floats"_a = py::list({py::float_(2.2), py::float_(3.1), py::float_(4.5), py::float_(5.4)})
+        );
+    });
+
     m.def("convert_to_pybind11_str", [](py::object o) { return py::str(o); });
 
     m.def("get_implicit_casting", []() {
