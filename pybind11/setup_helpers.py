@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This module provides a
+This module provides helpers for C++11+ projects using pybind11.
 
 LICENSE:
 
@@ -80,9 +80,9 @@ def tmp_chdir():
             shutil.rmtree(tmpdir)
 
 
-class Pybind11Extension(distutils.extension.Extension):
+class CppExtension(distutils.extension.Extension):
     """
-    Build a Pybind11 Extension module. This automatically adds the recommended
+    Build a C++11+ Extension module. This automatically adds the recommended
     flags when you init the extension and assumes C++ sources - you can further
     modify the options yourself.
 
@@ -129,17 +129,6 @@ class Pybind11Extension(distutils.extension.Extension):
         # Have to use the accessor manually to support Python 2 distutils
         CppExtension.cxx_std.__set__(self, cxx_std)
 
-        # If using setup_requires, this fails the first time - that's okay
-        try:
-            import pybind11
-
-            pyinc = pybind11.get_include()
-
-            if pyinc not in self.include_dirs:
-                self.include_dirs.append(pyinc)
-        except ImportError:
-            pass
-
         if WIN:
             self._add_cflags("/EHsc", "/bigobj")
         else:
@@ -183,6 +172,30 @@ class Pybind11Extension(distutils.extension.Extension):
                 self.extra_compile_args.append("/wd503" if WIN else "-Wno-register")
             elif not WIN and level >= 14:
                 self.extra_compile_args.append("-Wno-deprecated-register")
+
+
+class Pybind11Extension(CppExtension):
+    """
+    A pybind11 Extension subclass. Includes the header directory from the
+    package.
+    """
+
+    def __init__(self, *args, **kwargs):
+        CppExtension.__init__(self, *args, **kwargs)
+
+        # If using setup_requires, this fails the first time - that's okay
+        try:
+            import pybind11
+
+            pyinc = pybind11.get_include()
+
+            if pyinc not in self.include_dirs:
+                self.include_dirs.append(pyinc)
+        except ImportError:
+            pass
+
+
+Pybind11Extension.__doc__ += CppExtension.__doc__
 
 
 # cf http://bugs.python.org/issue26689
