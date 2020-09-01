@@ -7,6 +7,8 @@ from setuptools import setup
 
 setup(
     name="pybind11",
+    version="$version",
+    download_url='https://github.com/pybind/pybind11/tarball/v$version',
     packages=[
         "pybind11",
         "pybind11.include.pybind11",
@@ -19,7 +21,7 @@ setup(
         "pybind11.share.cmake.pybind11": ["*.cmake"],
     },
     extras_require={
-        "global": ["pybind11_global==2.6.0"]
+        "global": ["pybind11_global==$version"]
         },
     entry_points={
         "console_scripts": [

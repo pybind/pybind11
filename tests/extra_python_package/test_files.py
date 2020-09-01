@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import contextlib
+import os
+import string
 import subprocess
 import sys
-import os
 import tarfile
-import contextlib
 import zipfile
 
 # These tests must be run explicitly
@@ -110,12 +111,11 @@ def test_build_sdist(monkeypatch, tmpdir):
     if hasattr(out, "decode"):
         out = out.decode()
 
-    assert out.count("copying") == 49
-
     (sdist,) = tmpdir.visit("*.tar")
 
     with tarfile.open(str(sdist)) as tar:
         start = tar.getnames()[0] + "/"
+        version = start[9:-1]
         simpler = set(n.split("/", 1)[-1] for n in tar.getnames()[1:])
 
         with contextlib.closing(
@@ -132,13 +132,20 @@ def test_build_sdist(monkeypatch, tmpdir):
     files |= sdist_files
     files |= set("pybind11{}".format(n) for n in local_sdist_files)
     files.add("pybind11.egg-info/entry_points.txt")
+    files.add("pybind11.egg-info/requires.txt")
     assert simpler == files
 
     with open(os.path.join(MAIN_DIR, "tools", "setup_main.py"), "rb") as f:
-        assert setup_py == f.read()
+        contents = (
+            string.Template(f.read().decode()).substitute(version=version).encode()
+        )
+        assert setup_py == contents
 
     with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
-        assert pyproject_toml == f.read()
+        contents = (
+            string.Template(f.read().decode()).substitute(version=version).encode()
+        )
+        assert pyproject_toml == contents
 
 
 def test_build_alt_dist(monkeypatch, tmpdir):
@@ -159,12 +166,11 @@ def test_build_alt_dist(monkeypatch, tmpdir):
     if hasattr(out, "decode"):
         out = out.decode()
 
-    assert out.count("copying") == 48
-
     (sdist,) = tmpdir.visit("*.tar")
 
     with tarfile.open(str(sdist)) as tar:
         start = tar.getnames()[0] + "/"
+        version = start[16:-1]
         simpler = set(n.split("/", 1)[-1] for n in tar.getnames()[1:])
 
         with contextlib.closing(
@@ -183,10 +189,16 @@ def test_build_alt_dist(monkeypatch, tmpdir):
     assert simpler == files
 
     with open(os.path.join(MAIN_DIR, "tools", "setup_global.py"), "rb") as f:
-        assert setup_py == f.read()
+        contents = (
+            string.Template(f.read().decode()).substitute(version=version).encode()
+        )
+        assert setup_py == contents
 
     with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
-        assert pyproject_toml == f.read()
+        contents = (
+            string.Template(f.read().decode()).substitute(version=version).encode()
+        )
+        assert pyproject_toml == contents
 
 
 def tests_build_wheel(monkeypatch, tmpdir):

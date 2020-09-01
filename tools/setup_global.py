@@ -38,6 +38,7 @@ headers = main_headers + detail_headers
 
 setup(
     name="pybind11_global",
+    version="$version",
     packages=[],
     headers=headers,
     cmdclass={"install_headers": InstallHeadersNested},
