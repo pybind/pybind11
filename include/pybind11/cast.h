@@ -89,7 +89,7 @@ public:
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
 // returned by emplace, i.e. an iterator for the entry and a bool set to `true` if the entry was
 // just created.
-inline std::pair<decltype(internals::registered_types_py)::iterator, bool> all_type_info_get_cache(PyTypeObject *type);
+std::pair<decltype(internals::registered_types_py)::iterator, bool> all_type_info_get_cache(PyTypeObject *type);
 
 // Populates a just-created cache entry.
 PYBIND11_NOINLINE inline void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
@@ -481,7 +481,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 }
 
 // Forward declarations
-inline void keep_alive_impl(handle nurse, handle patient);
+void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
 
 class type_caster_generic {

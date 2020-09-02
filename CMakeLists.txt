@@ -269,3 +269,12 @@ if(NOT PYBIND11_MASTER_PROJECT)
       "${PYBIND11_INCLUDE_DIR}"
       CACHE INTERNAL "Directory where pybind11 headers are located")
 endif()
+
+find_package (Python3 COMPONENTS Development)
+include_directories(${Python3_INCLUDE_DIRS})
+add_definitions(-DPYBIND11_DECLARATIONS_ONLY=1)
+file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/include/pybind11/*.cpp)
+# Produce libpybind11.a, which contains position independent object files.
+# that may be used to create a shared library.
+add_library(pybind11 STATIC ${SOURCES})
+set_property(TARGET pybind11 PROPERTY POSITION_INDEPENDENT_CODE ON)

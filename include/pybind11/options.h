@@ -17,32 +17,30 @@ class options {
 public:
 
     // Default RAII constructor, which leaves settings as they currently are.
-    options() : previous_state(global_state()) {}
+    options();
 
     // Class is non-copyable.
     options(const options&) = delete;
     options& operator=(const options&) = delete;
 
     // Destructor, which restores settings that were in effect before.
-    ~options() {
-        global_state() = previous_state;
-    }
+    ~options();
 
     // Setter methods (affect the global state):
 
-    options& disable_user_defined_docstrings() & { global_state().show_user_defined_docstrings = false; return *this; }
+    options& disable_user_defined_docstrings() &;
 
-    options& enable_user_defined_docstrings() & { global_state().show_user_defined_docstrings = true; return *this; }
+    options& enable_user_defined_docstrings() &;
 
-    options& disable_function_signatures() & { global_state().show_function_signatures = false; return *this; }
+    options& disable_function_signatures() &;
 
-    options& enable_function_signatures() & { global_state().show_function_signatures = true; return *this; }
+    options& enable_function_signatures() &;
 
     // Getter methods (return the global state):
 
-    static bool show_user_defined_docstrings() { return global_state().show_user_defined_docstrings; }
+    static bool show_user_defined_docstrings();
 
-    static bool show_function_signatures() { return global_state().show_function_signatures; }
+    static bool show_function_signatures();
 
     // This type is not meant to be allocated on the heap.
     void* operator new(size_t) = delete;
@@ -63,3 +61,7 @@ private:
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if !PYBIND11_DECLARATIONS_ONLY
+#include "options.cpp"
+#endif
