@@ -66,7 +66,7 @@ void exec(const char (&s)[N], object global = globals(), object local = object()
     eval<eval_statements>(s, global, local);
 }
 
-#if defined(PYPY_VERSION) && PY_VERSION_HEX >= 0x3000000
+#if defined(PYPY_VERSION) && PY_VERSION_HEX >= 0x03000000
 template <eval_mode mode = eval_statements>
 object eval_file(str, object, object) {
     pybind11_fail("eval_file not supported in PyPy3. Use eval");
