@@ -222,24 +222,16 @@ def test_constructors():
         assert noconv2[k] is expected[k]
 
     init_list = m.initializer_list()
-    expected = ("tuple_ints", tuple), ("list_ints", list)
-    for key, type_ in expected:
-        ints = init_list[key]
-        assert(isinstance(ints, type_))
-        assert(len(ints) == 3)
-        assert(ints[0] == 1)
-        assert(ints[1] == 2)
-        assert(ints[2] == 3)
-
-    expected = ("tuple_floats", tuple), ("list_floats", list)
-    for key, type_ in expected:
-        floats = init_list[key]
-        assert(isinstance(floats, type_))
-        assert(len(floats) == 4)
-        assert(floats[0] == 2.2)
-        assert(floats[1] == 3.1)
-        assert(floats[2] == 4.5)
-        assert(floats[3] == 5.4)
+    assert init_list["tuple_ints"] == (1, 2, 3)
+    assert init_list["list_ints"] == [1, 2, 3]
+    assert init_list["tuple_floats"] == (2.2, 3.1, 4.5, 5.4)
+    assert init_list["list_floats"] == [2.2, 3.1, 4.5, 5.4]
+    assert init_list["tuple_mixed"] == (
+        321, 123.3, (1, 3.3), [5.5, 12], {"k_s": "v1", "k_i": 12, "k_f": 12.1}
+    )
+    assert init_list["list_mixed"] == [
+        321, 123.3, (1, 3.3), [5.5, 12], {"k_s": "v1", "k_i": 12, "k_f": 12.1}
+    ]
 
 
 def test_pybind11_str_raw_str():
