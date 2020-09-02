@@ -478,10 +478,6 @@ extern "C" inline int pybind11_clear(PyObject *self) {
 /// Give instances of this type a `__dict__` and opt into garbage collection.
 inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto type = &heap_type->ht_type;
-#if defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x06000000)
-    pybind11_fail(get_fully_qualified_tp_name(type) + ": dynamic attributes are currently not "
-                                                      "supported in conjunction with PyPy!");
-#endif
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
     type->tp_dictoffset = type->tp_basicsize; // place dict at the end
     type->tp_basicsize += (ssize_t)sizeof(PyObject *); // and allocate enough space for it
