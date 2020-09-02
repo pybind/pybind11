@@ -18,7 +18,7 @@ An example of a ``setup.py`` using pybind11's helpers:
 
 .. code-block:: python
 
-    from setuptools import setup  # Always import setuptools first
+    from setuptools import setup
     from pybind11.setup_helpers import Pybind11Extension
 
     ext_modules = [
@@ -39,7 +39,7 @@ Pybind11Extensions:
 
 .. code-block:: python
 
-    from setuptools import setup  # Always import first
+    from setuptools import setup
     from pybind11.setup_helpers import Pybind11Extension, build_ext
 
     ext_modules = [

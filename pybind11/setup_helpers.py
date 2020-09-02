@@ -41,9 +41,14 @@ import tempfile
 import threading
 import warnings
 
+try:
+    from setuptools.command.build_ext import build_ext as _build_ext
+    from setuptools import Extension as _Extension
+except ImportError:
+    from distutils.command.build_ext import build_ext as _build_ext
+    from distutils.extension import Extension as _Extension
+
 import distutils.errors
-import distutils.command.build_ext
-import distutils.extension
 
 
 WIN = sys.platform.startswith("win32")
@@ -80,7 +85,7 @@ def tmp_chdir():
             shutil.rmtree(tmpdir)
 
 
-class CppExtension(distutils.extension.Extension):
+class CppExtension(_Extension):
     """
     Build a C++11+ Extension module. This automatically adds the recommended
     flags when you init the extension and assumes C++ sources - you can further
@@ -124,7 +129,7 @@ class CppExtension(distutils.extension.Extension):
 
         # Can't use super here because distutils has old-style classes in
         # Python 2!
-        distutils.extension.Extension.__init__(self, *args, **kwargs)
+        _Extension.__init__(self, *args, **kwargs)
 
         # Have to use the accessor manually to support Python 2 distutils
         CppExtension.cxx_std.__set__(self, cxx_std)
@@ -252,7 +257,7 @@ def auto_cpp_level(compiler):
     raise RuntimeError(msg)
 
 
-class build_ext(distutils.command.build_ext.build_ext):  # noqa: N801
+class build_ext(_build_ext):  # noqa: N801
     """
     Customized build_ext that allows an auto-search for the highest supported
     C++ level for Pybind11Extension.
@@ -270,4 +275,4 @@ class build_ext(distutils.command.build_ext.build_ext):  # noqa: N801
 
         # Python 2 doesn't allow super here, since distutils uses old-style
         # classes!
-        distutils.command.build_ext.build_ext.build_extensions(self)
+        _build_ext.build_extensions(self)
