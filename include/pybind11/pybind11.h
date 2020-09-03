@@ -187,13 +187,13 @@ protected:
         process_attributes<Extra...>::init(extra..., rec);
 
         {
-            constexpr bool has_kwonly_args = any_of<std::is_same<kwonly, Extra>...>::value,
+            constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,
                            has_pos_only_args = any_of<std::is_same<pos_only, Extra>...>::value,
                            has_args = any_of<std::is_same<args, Args>...>::value,
                            has_arg_annotations = any_of<is_keyword<Extra>...>::value;
-            static_assert(has_arg_annotations || !has_kwonly_args, "py::kwonly requires the use of argument annotations");
-            static_assert(has_arg_annotations || !has_pos_only_args, "py::pos_only requires the use of argument annotations (for docstrings and aligning the annotations to the arguments)");
-            static_assert(!(has_args && has_kwonly_args), "py::kwonly cannot be combined with a py::args argument");
+            static_assert(has_arg_annotations || !has_kw_only_args, "py::kw_only requires the use of argument annotations");
+            static_assert(has_arg_annotations || !has_pos_only_args, "py::pos_only requires the use of argument annotations (for docstrings and aligning the annotations to the argument)");
+            static_assert(!(has_args && has_kw_only_args), "py::kw_only cannot be combined with a py::args argument");
         }
 
         /* Generate a readable signature describing the function's arguments and return value types */
@@ -261,7 +261,7 @@ protected:
                     continue;
                 // Separator for keyword-only arguments, placed before the kw
                 // arguments start
-                if (rec->nargs_kwonly > 0 && arg_index + rec->nargs_kwonly == args)
+                if (rec->nargs_kw_only > 0 && arg_index + rec->nargs_kw_only == args)
                     signature += "*, ";
                 if (arg_index < rec->args.size() && rec->args[arg_index].name) {
                     signature += rec->args[arg_index].name;
@@ -522,7 +522,7 @@ protected:
                 size_t num_args = func.nargs;    // Number of positional arguments that we need
                 if (func.has_args) --num_args;   // (but don't count py::args
                 if (func.has_kwargs) --num_args; //  or py::kwargs)
-                size_t pos_args = num_args - func.nargs_kwonly;
+                size_t pos_args = num_args - func.nargs_kw_only;
 
                 if (!func.has_args && n_args_in > pos_args)
                     continue; // Too many positional arguments for this overload

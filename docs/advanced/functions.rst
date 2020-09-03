@@ -378,14 +378,14 @@ argument in a function definition:
     f(1, b=2)    # good
     f(1, 2)      # TypeError: f() takes 1 positional argument but 2 were given
 
-Pybind11 provides a ``py::kwonly`` object that allows you to implement
+Pybind11 provides a ``py::kw_only`` object that allows you to implement
 the same behaviour by specifying the object between positional and keyword-only
 argument annotations when registering the function:
 
 .. code-block:: cpp
 
     m.def("f", [](int a, int b) { /* ... */ },
-          py::arg("a"), py::kwonly(), py::arg("b"));
+          py::arg("a"), py::kw_only(), py::arg("b"));
 
 Note that you currently cannot combine this with a ``py::args`` argument.  This
 feature does *not* require Python 3 to work.

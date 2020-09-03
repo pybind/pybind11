@@ -1910,7 +1910,7 @@ public:
 /// \ingroup annotations
 /// Annotation indicating that all following arguments are keyword-only; the is the equivalent of an
 /// unnamed '*' argument (in Python 3)
-struct kwonly {};
+struct kw_only {};
 
 /// \ingroup annotations
 /// Annotation indicating that all previous arguments are positional-only; the is the equivalent of an
