@@ -210,6 +210,43 @@ cmake -S pybind11/ -B build
 cmake --build build
 ```
 
+
+### Explanation of the SDist/wheel building design
+
+In order to support CMake output files (`pybind11Config.cmake` and helper
+files), the `setup.py` _in the source_ has a few tricks to make the simplest
+possible SDists and wheels. The build procedure is as follows:
+
+#### 1. Building from the source directory
+
+When you invoke any `setup.py` command from the source directory, including
+`pip wheel .` and `pip install .`, you will activate a full source build. This is made of the
+following steps:
+
+1. If the tool is PEP 518 compliant, it will create a temporary virtual
+   environment and install the build requirements (mostly CMake) into it. (if
+   you are not on Windows, macOS, ora a manylinux compliant system, you can
+   disable this with `--no-build-isolation` as long as you have CMake 3.15+
+   installed)
+2. The environment variable `PYBIND11_GLOBAL_DIST` is checked - if it is set
+   and truthy, this will be make the accessory `pybind11-global` package,
+   instead of the normal `pybind11` package. This package is used for
+   installing the "global" headers and CMake files, using `pybind11[global]`.
+2. `setup.py` reads the version from `includes/pybind11/detail/common.h`.
+3. CMake is run with `-DCMAKE_INSTALL_PREIFX=pybind11`. Since the CMake install
+   procedure uses only relative paths and is identical on all platforms, these
+   files are valid as long as they stay in the correct relative position to the
+   includes. `pybind11/share/cmake/pybind11` has the CMake files, and
+   `pybind11/include` has the includes. The build directory is discarded.
+4. Three files are temporarily substituted in: `tools/setup_main.py.in`,
+   `tools/pyproject.toml`, and `tools/_version.py.in`. The previously read
+   version is included in these files during the copy.
+5. The package (such as the SDist) is created using the setup function in the
+   new setup.py. Since the SDist procedure just copies existing files.
+6. Context managers clean up all changes (even if an error is thrown).
+
+
+
 [pre-commit]: https://pre-commit.com
 [pybind11.readthedocs.org]: http://pybind11.readthedocs.org/en/latest
 [issue tracker]: https://github.com/pybind/pybind11/issues

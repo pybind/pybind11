@@ -19,10 +19,10 @@ ToFrom = collections.namedtuple("ToFrom", ("to", "src"))
 # files, and the sys.prefix files (CMake and headers).
 
 alt_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
-version_py = ToFrom("pybind11/_version.py", "tools/_version.py")
+version_py = ToFrom("pybind11/_version.py", "tools/_version.py.in")
 pyproject_toml = ToFrom("pyproject.toml", "tools/pyproject.toml")
 setup_py = ToFrom(
-    "setup.py", "tools/setup_global.py" if alt_sdist else "tools/setup_main.py"
+    "setup.py", "tools/setup_global.py.in" if alt_sdist else "tools/setup_main.py.in"
 )
 
 # In a PEP 518 build, this will be in its own environment, so it will not
