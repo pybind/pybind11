@@ -280,15 +280,15 @@ TEST_SUBMODULE(pytypes, m) {
     // Some python containers can also be constructed using C++ containers
     m.def("init_containers", []() {
         return py::dict(
-            "tuple_array_ints"_a = py::tuple(std::array<int, 3>{1, 2, 3}),
-            "tuple_deque_floats"_a = py::tuple(std::deque<float>{2.2f, 3.1f, 4.5f}),
-            "tuple_list_floats"_a = py::tuple(std::list<float>{2.2f, 3.1f, 4.5f}),
-            "tuple_vector_ints"_a = py::tuple(std::vector<int>{1, 2, 3}),
+            "tuple_array_ints"_a = py::tuple(std::array<int, 3>({1, 2, 3})),
+            "tuple_deque_floats"_a = py::tuple(std::deque<float>({2.2f, 3.1f, 4.5f})),
+            "tuple_list_floats"_a = py::tuple(std::list<float>({2.2f, 3.1f, 4.5f})),
+            "tuple_vector_ints"_a = py::tuple(std::vector<int>({1, 2, 3})),
 
-            "tuple_multiset_int"_a = py::tuple(std::multiset<int>{1, 1, 2, 3}),
+            "tuple_multiset_int"_a = py::tuple(std::multiset<int>({1, 1, 2, 3})),
             // std::set is sorted so insertion order does not matter. Iteration order will be
             // one three two
-            "tuple_set_strings"_a = py::tuple(std::set<std::string>{"one", "two", "three"})
+            "tuple_set_strings"_a = py::tuple(std::set<std::string>({"one", "two", "three"}))
         );
     });
 
