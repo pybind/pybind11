@@ -244,6 +244,7 @@ def test_constructors():
     assert init_containers["tuple_multiset_int"] == (1, 1, 2, 3)
     assert init_containers["tuple_set_strings"] == ("one", "three", "two")
 
+
 def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str
     cvt = m.convert_to_pybind11_str
