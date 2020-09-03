@@ -138,7 +138,7 @@ struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
           is_operator(false), is_method(false),
-          has_args(false), has_kwargs(false), has_kwonly_args(false), has_pos_only_args(false) { }
+          has_args(false), has_kwargs(false), has_kwonly_args(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -188,16 +188,13 @@ struct function_record {
     /// True once a 'py::kwonly' is encountered (any following args are keyword-only)
     bool has_kwonly_args : 1;
 
-    /// True once a 'py::pos_only' is encountered (any previous args are pos-only)
-    bool has_pos_only_args : 1;
-
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
 
     /// Number of trailing arguments (counted in `nargs`) that are keyword-only
     std::uint16_t nargs_kwonly = 0;
 
-    /// Number of trailing arguments (counted in `nargs`) that are positional-only
+    /// Number of leading arguments (counted in `nargs`) that are positional-only
     std::uint16_t nargs_pos_only = 0;
 
     /// Python method object
@@ -432,7 +429,6 @@ template <> struct process_attribute<kwonly> : process_attribute_default<kwonly>
 /// Process a positional-only-argument maker
 template <> struct process_attribute<pos_only> : process_attribute_default<pos_only> {
     static void init(const pos_only &, function_record *r) {
-        r->has_pos_only_args = true;
         r->nargs_pos_only = static_cast<std::uint16_t>(r->args.size());
     }
 };

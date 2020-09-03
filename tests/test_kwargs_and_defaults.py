@@ -175,13 +175,26 @@ def test_positional_only_args(msg):
         m.pos_kw_only_mix(1, 2, 3)
     assert "incompatible function arguments" in str(excinfo.value)
 
+    with pytest.raises(TypeError) as excinfo:
+        m.pos_only_def_mix()
+    assert "incompatible function arguments" in str(excinfo.value)
+
+    assert m.pos_only_def_mix(1) == (1, 2, 3)
+    assert m.pos_only_def_mix(1, 4) == (1, 4, 3)
+    assert m.pos_only_def_mix(1, 4, 7) == (1, 4, 7)
+    assert m.pos_only_def_mix(1, 4, k=7) == (1, 4, 7)
+
+    with pytest.raises(TypeError) as excinfo:
+        m.pos_only_def_mix(1, j=4)
+    assert "incompatible function arguments" in str(excinfo.value)
+
 
 def test_signatures():
-    assert "kwonly_all(*, i: int, j: int) -> tuple" in m.kwonly_all.__doc__
-    assert "kwonly_mixed(i: int, *, j: int) -> tuple" in m.kwonly_mixed.__doc__
-    assert "pos_only_all(i: int, j: int, /) -> tuple" in m.pos_only_all.__doc__
-    assert "pos_only_mix(i: int, /, j: int) -> tuple" in m.pos_only_mix.__doc__
-    assert "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple" in m.pos_kw_only_mix.__doc__
+    assert "kwonly_all(*, i: int, j: int) -> tuple\n" == m.kwonly_all.__doc__
+    assert "kwonly_mixed(i: int, *, j: int) -> tuple\n" == m.kwonly_mixed.__doc__
+    assert "pos_only_all(i: int, j: int, /) -> tuple\n" == m.pos_only_all.__doc__
+    assert "pos_only_mix(i: int, /, j: int) -> tuple\n" == m.pos_only_mix.__doc__
+    assert "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple\n" == m.pos_kw_only_mix.__doc__
 
 
 @pytest.mark.xfail("env.PYPY and env.PY2", reason="PyPy2 doesn't double count")

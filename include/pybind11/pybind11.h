@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <iostream>
-
 #if defined(__INTEL_COMPILER)
 #  pragma warning push
 #  pragma warning disable 68    // integer conversion resulted in a change of sign
@@ -194,7 +192,7 @@ protected:
                            has_args = any_of<std::is_same<args, Args>...>::value,
                            has_arg_annotations = any_of<is_keyword<Extra>...>::value;
             static_assert(has_arg_annotations || !has_kwonly_args, "py::kwonly requires the use of argument annotations");
-            static_assert(has_arg_annotations || !has_pos_only_args, "py::pos_only requires the use of argument annotations (for doc string generation)");
+            static_assert(has_arg_annotations || !has_pos_only_args, "py::pos_only requires the use of argument annotations (for docstrings and aligning the annotations to the arguments)");
             static_assert(!(has_args && has_kwonly_args), "py::kwonly cannot be combined with a py::args argument");
         }
 
@@ -261,7 +259,8 @@ protected:
                 // Write arg name for everything except *args and **kwargs.
                 if (*(pc + 1) == '*')
                     continue;
-                // Seperator for keyword only arguments
+                // Separator for keyword-only arguments, placed before the kw
+                // arguments start
                 if (rec->nargs_kwonly > 0 && arg_index + rec->nargs_kwonly == args)
                     signature += "*, ";
                 if (arg_index < rec->args.size() && rec->args[arg_index].name) {
@@ -278,7 +277,8 @@ protected:
                     signature += " = ";
                     signature += rec->args[arg_index].descr;
                 }
-                // Seperator for positional only arguments
+                // Separator for positional-only arguments (placed after the
+                // argument, rather than before like *
                 if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only)
                     signature += ", /";
                 arg_index++;
