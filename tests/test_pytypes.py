@@ -224,15 +224,25 @@ def test_constructors():
     init_list = m.initializer_list()
     assert init_list["tuple_ints"] == (1, 2, 3)
     assert init_list["list_ints"] == [1, 2, 3]
-    assert init_list["tuple_floats"] == (2.2, 3.1, 4.5, 5.4)
-    assert init_list["list_floats"] == [2.2, 3.1, 4.5, 5.4]
-    assert init_list["tuple_mixed"] == (
-        321, 123.3, (1, 3.3), [5.5, 12], {"k_s": "v1", "k_i": 12, "k_f": 12.1}
+    # This has been created with floats so we don't directly check with doubles
+    assert tuple(round(x, 1) for x in init_list["tuple_floats"]) == (2.2, 3.1, 4.5, 5.4)
+    assert [round(x, 1) for x in init_list["list_floats"]] == [2.2, 3.1, 4.5, 5.4]
+    assert init_list["tuple_objects"] == (
+        321, 123.3, "somestring", (1, 3.3), [5.5, 12], {"k_s": "v1", "k_i": 12, "k_f": 12.1}
     )
     assert init_list["list_mixed"] == [
-        321, 123.3, (1, 3.3), [5.5, 12], {"k_s": "v1", "k_i": 12, "k_f": 12.1}
+        321, 123.3, "somestring", (1, 3.3), [5.5, 12], {"k_s": "v1", "k_i": 12, "k_f": 12.1}
     ]
+    assert init_list["set_mixed"] == {321, 123.3, "somestring", (1, 3.3)}
 
+    init_containers = m.init_containers()
+    assert init_containers["tuple_array_ints"] == (1, 2, 3)
+    # See above, created with floats
+    assert tuple((round(x, 1) for x in init_containers["tuple_deque_floats"])) == (2.2, 3.1, 4.5)
+    assert tuple((round(x, 1) for x in init_containers["tuple_list_floats"])) == (2.2, 3.1, 4.5)
+    assert init_containers["tuple_vector_ints"] == (1, 2, 3)
+    assert init_containers["tuple_multiset_int"] == (1, 1, 2, 3)
+    assert init_containers["tuple_set_strings"] == ("one", "three", "two")
 
 def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str
