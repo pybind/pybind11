@@ -15,8 +15,6 @@
 #include <utility>
 #include <type_traits>
 
-#include <cstdio>
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* A few forward declarations */
@@ -1230,7 +1228,7 @@ public:
         signature from the other std::initializer_list based constructor.
      \endrst */
     // The templated-based initializer_list constructor does not work with an init
-    // list composed of heterogeneour pybind11::objects so this specific one was added.
+    // list composed of heterogeneous pybind11::objects so this specific one was added.
     explicit tuple(std::initializer_list<object> init_list, size_t index = 0) : tuple(init_list.size()) {
         index = 0;
         for (const pybind11::object& item : init_list)
