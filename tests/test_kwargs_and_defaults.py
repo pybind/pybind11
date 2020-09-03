@@ -161,7 +161,7 @@ def test_positional_only_args(msg):
     assert m.pos_only_mix(2, j=1) == (2, 1)
 
     with pytest.raises(TypeError) as excinfo:
-        m.pos_only_all(i=1, j=2)
+        m.pos_only_mix(i=1, j=2)
     assert "incompatible function arguments" in str(excinfo.value)
 
     assert m.pos_kw_only_mix(1, 2, k=3) == (1, 2, 3)

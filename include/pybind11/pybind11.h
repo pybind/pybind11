@@ -598,7 +598,6 @@ protected:
                     for (; args_copied < num_args; ++args_copied) {
                         const auto &arg = func.args[args_copied];
 
-
                         handle value;
                         if (kwargs_in && arg.name)
                             value = PyDict_GetItemString(kwargs.ptr(), arg.name);
