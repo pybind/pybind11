@@ -220,8 +220,8 @@ possible SDists and wheels. The build procedure is as follows:
 #### 1. Building from the source directory
 
 When you invoke any `setup.py` command from the source directory, including
-`pip wheel .` and `pip install .`, you will activate a full source build. This is made of the
-following steps:
+`pip wheel .` and `pip install .`, you will activate a full source build. This
+is made of the following steps:
 
 1. If the tool is PEP 518 compliant, it will create a temporary virtual
    environment and install the build requirements (mostly CMake) into it. (if
@@ -238,12 +238,18 @@ following steps:
    files are valid as long as they stay in the correct relative position to the
    includes. `pybind11/share/cmake/pybind11` has the CMake files, and
    `pybind11/include` has the includes. The build directory is discarded.
-4. Three files are temporarily substituted in: `tools/setup_main.py.in`,
-   `tools/pyproject.toml`, and `tools/_version.py.in`. The previously read
-   version is included in these files during the copy.
-5. The package (such as the SDist) is created using the setup function in the
-   new setup.py. Since the SDist procedure just copies existing files.
-6. Context managers clean up all changes (even if an error is thrown).
+4. Three files are placed in the SDist: `tools/setup_main.py.in`,
+   `tools/pyproject.toml`, and `tools/_version.py.in`.
+5. The package is created using the setup function in the new setup.py.
+6. A context manager cleans up the temporary CMake install directory (even if
+   an error is thrown).
+
+### 2. Building from SDist
+
+Since the SDist has the rendered template files in `tools` along with the
+includes and CMake files in the correct locations, the builds are completely
+trivial and simple. No extra requirements are required. The version is baked
+in, so there is not even a lookup performance penalty.
 
 
 

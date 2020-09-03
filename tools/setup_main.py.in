@@ -5,6 +5,9 @@
 
 from setuptools import setup
 
+cmdclass = {}
+$extra_cmd
+
 setup(
     name="pybind11",
     version="$version",
@@ -27,5 +30,6 @@ setup(
         "console_scripts": [
              "pybind11-config = pybind11.__main__:main",
         ]
-    }
+    },
+    cmdclass=cmdclass
 )

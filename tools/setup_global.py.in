@@ -35,16 +35,18 @@ detail_headers = glob.glob("pybind11/include/pybind11/detail/*.h")
 cmake_files = glob.glob("pybind11/share/cmake/pybind11/*.cmake")
 headers = main_headers + detail_headers
 
+cmdclass = {"install_headers": InstallHeadersNested}
+$extra_cmd
 
 setup(
     name="pybind11_global",
     version="$version",
     packages=[],
     headers=headers,
-    cmdclass={"install_headers": InstallHeadersNested},
     data_files=[
         ("share/cmake/pybind11", cmake_files),
         ("include/pybind11", main_headers),
         ("include/pybind11/detail", detail_headers),
     ],
+    cmdclass=cmdclass,
 )

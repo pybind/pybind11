@@ -124,6 +124,11 @@ def test_build_sdist(monkeypatch, tmpdir):
             setup_py = f.read()
 
         with contextlib.closing(
+            tar.extractfile(tar.getmember(start + "pybind11/_version.py"))
+        ) as f:
+            version_py = f.read()
+
+        with contextlib.closing(
             tar.extractfile(tar.getmember(start + "pyproject.toml"))
         ) as f:
             pyproject_toml = f.read()
@@ -135,16 +140,22 @@ def test_build_sdist(monkeypatch, tmpdir):
     files.add("pybind11.egg-info/requires.txt")
     assert simpler == files
 
-    with open(os.path.join(MAIN_DIR, "tools", "setup_main.py"), "rb") as f:
+    with open(os.path.join(MAIN_DIR, "tools", "setup_main.py.in"), "rb") as f:
         contents = (
-            string.Template(f.read().decode()).substitute(version=version).encode()
+            string.Template(f.read().decode())
+            .substitute(version=version, extra_cmd="")
+            .encode()
         )
         assert setup_py == contents
 
-    with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
+    with open(os.path.join(MAIN_DIR, "tools", "_version.py.in"), "rb") as f:
         contents = (
             string.Template(f.read().decode()).substitute(version=version).encode()
         )
+        assert version_py == contents
+
+    with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
+        contents = f.read()
         assert pyproject_toml == contents
 
 
@@ -179,6 +190,11 @@ def test_build_alt_dist(monkeypatch, tmpdir):
             setup_py = f.read()
 
         with contextlib.closing(
+            tar.extractfile(tar.getmember(start + "pybind11/_version.py"))
+        ) as f:
+            version_py = f.read()
+
+        with contextlib.closing(
             tar.extractfile(tar.getmember(start + "pyproject.toml"))
         ) as f:
             pyproject_toml = f.read()
@@ -188,16 +204,22 @@ def test_build_alt_dist(monkeypatch, tmpdir):
     files |= set("pybind11_global{}".format(n) for n in local_sdist_files)
     assert simpler == files
 
-    with open(os.path.join(MAIN_DIR, "tools", "setup_global.py"), "rb") as f:
+    with open(os.path.join(MAIN_DIR, "tools", "setup_global.py.in"), "rb") as f:
         contents = (
-            string.Template(f.read().decode()).substitute(version=version).encode()
+            string.Template(f.read().decode())
+            .substitute(version=version, extra_cmd="")
+            .encode()
         )
         assert setup_py == contents
 
-    with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
+    with open(os.path.join(MAIN_DIR, "tools", "_version.py.in"), "rb") as f:
         contents = (
             string.Template(f.read().decode()).substitute(version=version).encode()
         )
+        assert version_py == contents
+
+    with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
+        contents = f.read()
         assert pyproject_toml == contents
 
 

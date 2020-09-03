@@ -3,7 +3,6 @@
 
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 
-import collections
 import contextlib
 import os
 import shutil
@@ -12,57 +11,61 @@ import subprocess
 import sys
 import tempfile
 
+import setuptools.command.sdist
 
-ToFrom = collections.namedtuple("ToFrom", ("to", "src"))
+DIR = os.path.abspath(os.path.dirname(__file__))
 
 # PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
 # files, and the sys.prefix files (CMake and headers).
 
 alt_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
-version_py = ToFrom("pybind11/_version.py", "tools/_version.py.in")
-pyproject_toml = ToFrom("pyproject.toml", "tools/pyproject.toml")
-setup_py = ToFrom(
-    "setup.py", "tools/setup_global.py.in" if alt_sdist else "tools/setup_main.py.in"
+
+version_py = "pybind11/_version.py"
+setup_py = "tools/setup_global.py.in" if alt_sdist else "tools/setup_main.py.in"
+extra_cmd = 'cmdclass["sdist"] = SDist\n'
+
+to_src = (
+    (version_py, "tools/_version.py.in"),
+    ("pyproject.toml", "tools/pyproject.toml"),
+    ("setup.py", setup_py),
 )
 
-# In a PEP 518 build, this will be in its own environment, so it will not
-# create extra files in the source
 
-DIR = os.path.abspath(os.path.dirname(__file__))
-
-with open(version_py.to) as f:
-    loc = {"__file__": version_py.to}
-    code = compile(f.read(), version_py.to, "exec")
+with open(version_py) as f:
+    loc = {"__file__": version_py}
+    code = compile(f.read(), version_py, "exec")
     exec(code, loc)
     version = loc["__version__"]
 
 
-@contextlib.contextmanager
-def monkey_patch_file(input_file, replacement_file, **template):
-    "Allow a file to be temporarily replaced"
-    inp_file = os.path.abspath(os.path.join(DIR, input_file))
-    rep_file = os.path.abspath(os.path.join(DIR, replacement_file))
-
-    with open(inp_file, "rb") as f:
+def get_and_replace(filename, binary=False, **opts):
+    with open(filename, "rb" if binary else "r") as f:
         contents = f.read()
-    with open(rep_file, "rb") as f:
-        replacement = f.read()
-
-    if template:
-        # We convert from/to binary, so that newline style is preserved.
-        replacement = replacement.decode()
-        replacement = string.Template(replacement).substitute(template)
-        replacement = replacement.encode()
-
-    try:
-        with open(inp_file, "wb") as f:
-            f.write(replacement)
-        yield
-    finally:
-        with open(inp_file, "wb") as f:
-            f.write(contents)
+    # Replacement has to be done on text in Python 3 (both work in Python 2)
+    if binary:
+        return string.Template(contents.decode()).substitute(opts).encode()
+    else:
+        return string.Template(contents).substitute(opts)
 
 
+# Use our input files instead when making the SDist (and anything that depends
+# on it, like a wheel)
+class SDist(setuptools.command.sdist.sdist):
+    def make_release_tree(self, base_dir, files):
+        setuptools.command.sdist.sdist.make_release_tree(self, base_dir, files)
+
+        for to, src in to_src:
+            txt = get_and_replace(src, binary=True, version=version, extra_cmd="")
+
+            dest = os.path.join(base_dir, to)
+
+            # This is normally linked, so unlink before writing!
+            os.unlink(dest)
+            with open(dest, "wb") as f:
+                f.write(txt)
+
+
+# Backport from Python 3
 @contextlib.contextmanager
 def TemporaryDirectory():  # noqa: N802
     "Prepare a temporary directory, cleanup when done"
@@ -73,6 +76,7 @@ def TemporaryDirectory():  # noqa: N802
         shutil.rmtree(tmpdir)
 
 
+# Remove the CMake install directory when done
 @contextlib.contextmanager
 def remove_output(*sources):
     try:
@@ -94,9 +98,6 @@ with remove_output("pybind11/include", "pybind11/share"):
         subprocess.check_call(cmd, **cmake_opts)
         subprocess.check_call(["cmake", "--install", tmpdir], **cmake_opts)
 
-    with monkey_patch_file(*pyproject_toml, version=version):
-        with monkey_patch_file(*setup_py, version=version):
-            with monkey_patch_file(*version_py, version=version):
-                with open(setup_py.to) as f:
-                    code = compile(f.read(), setup_py.to, "exec")
-                    exec(code, {})
+    txt = get_and_replace(setup_py, version=version, extra_cmd=extra_cmd)
+    code = compile(txt, setup_py, "exec")
+    exec(code, {"SDist": SDist})
