@@ -387,8 +387,26 @@ argument annotations when registering the function:
     m.def("f", [](int a, int b) { /* ... */ },
           py::arg("a"), py::kwonly(), py::arg("b"));
 
-Note that, as in Python, you cannot combine this with a ``py::args`` argument.
-This feature does *not* require Python 3 to work.
+Note that you currently cannot combine this with a ``py::args`` argument.  This
+feature does *not* require Python 3 to work.
+
+.. versionadded:: 2.6
+
+Positional-only arguments
+=========================
+
+Python 3.8 introduced a new positional-only argument syntax, using ``/`` in the
+function definition (note that this has been a convention for CPython
+positional arguments, such as in ``pow()``, since Python 2). You can
+do the same thing in any version of Python using ``py::pos_only()``:
+
+.. code-block:: cpp
+
+   m.def("f", [](int a, int b) { /* ... */ },
+          py::arg("a"), py::pos_only(), py::arg("b"));
+
+You now cannot give argument ``a`` by keyword. This can be combined with
+keyword-only arguments, as well.
 
 .. versionadded:: 2.6
 

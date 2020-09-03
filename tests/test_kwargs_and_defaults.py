@@ -149,6 +149,41 @@ def test_keyword_only_args(msg):
     """
 
 
+def test_positional_only_args(msg):
+    assert m.pos_only_all(1, 2) == (1, 2)
+    assert m.pos_only_all(2, 1) == (2, 1)
+
+    with pytest.raises(TypeError) as excinfo:
+        m.pos_only_all(i=1, j=2)
+    assert "incompatible function arguments" in str(excinfo.value)
+
+    assert m.pos_only_mix(1, 2) == (1, 2)
+    assert m.pos_only_mix(2, j=1) == (2, 1)
+
+    with pytest.raises(TypeError) as excinfo:
+        m.pos_only_all(i=1, j=2)
+    assert "incompatible function arguments" in str(excinfo.value)
+
+    assert m.pos_kw_only_mix(1, 2, k=3) == (1, 2, 3)
+    assert m.pos_kw_only_mix(1, j=2, k=3) == (1, 2, 3)
+
+    with pytest.raises(TypeError) as excinfo:
+        m.pos_kw_only_mix(i=1, j=2, k=3)
+    assert "incompatible function arguments" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        m.pos_kw_only_mix(1, 2, 3)
+    assert "incompatible function arguments" in str(excinfo.value)
+
+
+def test_signatures():
+    assert "kwonly_all(*, i: int, j: int) -> tuple" in m.kwonly_all.__doc__
+    assert "kwonly_mixed(i: int, *, j: int) -> tuple" in m.kwonly_mixed.__doc__
+    assert "pos_only_all(i: int, j: int, /) -> tuple" in m.pos_only_all.__doc__
+    assert "pos_only_mix(i: int, /, j: int) -> tuple" in m.pos_only_mix.__doc__
+    assert "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple" in m.pos_kw_only_mix.__doc__
+
+
 @pytest.mark.xfail("env.PYPY and env.PY2", reason="PyPy2 doesn't double count")
 def test_args_refcount():
     """Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with regular

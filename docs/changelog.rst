@@ -11,8 +11,10 @@ v2.6.0 (IN PROGRESS)
 
 See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
-* Keyword only argument supported in Python 2 or 3 with ``py::kwonly()``.
+* Keyword-only argument supported in Python 2 or 3 with ``py::kwonly()``.
   `#2100 <https://github.com/pybind/pybind11/pull/2100>`_
+
+* Positional-only argument supported in Python 2 or 3 with ``py::pos_only()``.
 
 * Perfect forwarding support for methods.
   `#2048 <https://github.com/pybind/pybind11/pull/2048>`_

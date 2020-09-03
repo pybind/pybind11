@@ -1912,6 +1912,11 @@ public:
 /// unnamed '*' argument (in Python 3)
 struct kwonly {};
 
+/// \ingroup annotations
+/// Annotation indicating that all previous arguments are positional-only; the is the equivalent of an
+/// unnamed '/' argument (in Python 3.8)
+struct pos_only {};
+
 template <typename T>
 arg_v arg::operator=(T &&value) const { return {std::move(*this), std::forward<T>(value)}; }
 

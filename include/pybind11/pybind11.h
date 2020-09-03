@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #if defined(__INTEL_COMPILER)
 #  pragma warning push
 #  pragma warning disable 68    // integer conversion resulted in a change of sign
@@ -188,9 +190,11 @@ protected:
 
         {
             constexpr bool has_kwonly_args = any_of<std::is_same<kwonly, Extra>...>::value,
+                           has_pos_only_args = any_of<std::is_same<pos_only, Extra>...>::value,
                            has_args = any_of<std::is_same<args, Args>...>::value,
                            has_arg_annotations = any_of<is_keyword<Extra>...>::value;
             static_assert(has_arg_annotations || !has_kwonly_args, "py::kwonly requires the use of argument annotations");
+            static_assert(has_arg_annotations || !has_pos_only_args, "py::pos_only requires the use of argument annotations (for doc string generation)");
             static_assert(!(has_args && has_kwonly_args), "py::kwonly cannot be combined with a py::args argument");
         }
 
@@ -257,7 +261,9 @@ protected:
                 // Write arg name for everything except *args and **kwargs.
                 if (*(pc + 1) == '*')
                     continue;
-
+                // Seperator for keyword only arguments
+                if (rec->nargs_kwonly > 0 && arg_index + rec->nargs_kwonly == args)
+                    signature += "*, ";
                 if (arg_index < rec->args.size() && rec->args[arg_index].name) {
                     signature += rec->args[arg_index].name;
                 } else if (arg_index == 0 && rec->is_method) {
@@ -272,6 +278,9 @@ protected:
                     signature += " = ";
                     signature += rec->args[arg_index].descr;
                 }
+                // Seperator for positional only arguments
+                if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only)
+                    signature += ", /";
                 arg_index++;
             } else if (c == '%') {
                 const std::type_info *t = types[type_index++];
@@ -297,6 +306,7 @@ protected:
                 signature += c;
             }
         }
+
         if (arg_index != args || types[type_index] != nullptr)
             pybind11_fail("Internal error while parsing type signature (2)");
 
@@ -561,12 +571,33 @@ protected:
                 // We'll need to copy this if we steal some kwargs for defaults
                 dict kwargs = reinterpret_borrow<dict>(kwargs_in);
 
+                // 1.5. Fill in any missing pos_only args from defaults if they exist
+                if (args_copied < func.nargs_pos_only) {
+                    for (; args_copied < func.nargs_pos_only; ++args_copied) {
+                        const auto &arg = func.args[args_copied];
+                        handle value;
+
+                        if (arg.value) {
+                            value = arg.value;
+                        }
+                        if (value) {
+                            call.args.push_back(value);
+                            call.args_convert.push_back(arg.convert);
+                        } else
+                            break;
+                    }
+
+                    if (args_copied < func.nargs_pos_only)
+                        continue; // Not enough defaults to fill the positional arguments
+                }
+
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
                 if (args_copied < num_args) {
                     bool copied_kwargs = false;
 
                     for (; args_copied < num_args; ++args_copied) {
                         const auto &arg = func.args[args_copied];
+
 
                         handle value;
                         if (kwargs_in && arg.name)

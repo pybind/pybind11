@@ -107,6 +107,14 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
             return py::make_tuple(i, j, k, kwargs); },
             py::arg() /* positional */, py::arg("j") = -1 /* both */, py::kwonly(), py::arg("k") /* kw-only */);
 
+    // test_positional_only_args
+    m.def("pos_only_all", [](int i, int j) { return py::make_tuple(i, j); },
+            py::arg("i"), py::arg("j"), py::pos_only());
+    m.def("pos_only_mix", [](int i, int j) { return py::make_tuple(i, j); },
+            py::arg("i"), py::pos_only(), py::arg("j"));
+    m.def("pos_kw_only_mix", [](int i, int j, int k) { return py::make_tuple(i, j, k); },
+            py::arg("i"), py::pos_only(), py::arg("j"), py::kwonly(), py::arg("k"));
+
     m.def("register_invalid_kwonly", [](py::module m) {
         m.def("bad_kwonly", [](int i, int j) { return py::make_tuple(i, j); },
                 py::kwonly(), py::arg() /* invalid unnamed argument */, "j"_a);
