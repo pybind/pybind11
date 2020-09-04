@@ -225,7 +225,7 @@ is made of the following steps:
 
 1. If the tool is PEP 518 compliant, it will create a temporary virtual
    environment and install the build requirements (mostly CMake) into it. (if
-   you are not on Windows, macOS, ora a manylinux compliant system, you can
+   you are not on Windows, macOS, or a manylinux compliant system, you can
    disable this with `--no-build-isolation` as long as you have CMake 3.15+
    installed)
 2. The environment variable `PYBIND11_GLOBAL_DIST` is checked - if it is set
@@ -240,7 +240,7 @@ is made of the following steps:
    `pybind11/include` has the includes. The build directory is discarded.
 4. Three files are placed in the SDist: `tools/setup_main.py.in`,
    `tools/pyproject.toml`, and `tools/_version.py.in`.
-5. The package is created using the setup function in the new setup.py.
+5. The package is created using the setup function in the `tools/setup_*.py`.
 6. A context manager cleans up the temporary CMake install directory (even if
    an error is thrown).
 
@@ -249,7 +249,7 @@ is made of the following steps:
 Since the SDist has the rendered template files in `tools` along with the
 includes and CMake files in the correct locations, the builds are completely
 trivial and simple. No extra requirements are required. The version is baked
-in, so there is not even a lookup performance penalty.
+in, so there is not even a lookup performance penalty / point of failure.
 
 
 

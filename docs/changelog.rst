@@ -41,9 +41,9 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   `#2433 <https://github.com/pybind/pybind11/pull/2433>`_
 
   * :ref:`build-setuptools` is easier thanks to a new
-    ``pybind11.setup_helpers`` module, which provides utilities to easily use
-    setuptools with pybind11, and can be used via PEP 518 or by directly
-    copying ``setup_helpers.py`` into your project .
+    ``pybind11.setup_helpers`` module, which provides utilities to use
+    setuptools with pybind11, and can be used via PEP 518, ``setup_requires``,
+    or by directly copying ``setup_helpers.py`` into your project.
 
   * CMake configuration files are now included in the Python package. Use
     ``pybind11.get_cmake_dir()`` or ``python -m pybind11 --cmakedir`` to get

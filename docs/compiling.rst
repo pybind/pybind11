@@ -22,8 +22,8 @@ ensure that ``pybind11`` is installed when you build your package. There are
 four possible ways to do this, and pybind11 supports all four: You can ask all
 users to install pybind11 beforehand (bad), you can use
 :ref:`setup_helpers-pep518` (good, but very new and requires Pip 10),
-:ref:`setup_helpers-setup_requires` (discouraged py Python packagers now that
-PEP 518 is available, but still works everywhere), or you can
+:ref:`setup_helpers-setup_requires` (discouraged by Python packagers now that
+PEP 518 is available, but it still works everywhere), or you can
 :ref:`setup_helpers-copy-manually` (always works but you have to manually sync
 your copy to get updates).
 

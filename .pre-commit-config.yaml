@@ -4,13 +4,14 @@
 #
 # Or:
 #
-#     pre-commit install # (runs every time you commit in git)
+#     pre-commit install  # (runs every time you commit in git)
 #
 # To update this file:
 #
 #     pre-commit autoupdate
 #
 # See https://github.com/pre-commit/pre-commit
+
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -28,7 +29,7 @@ repos:
   - id: trailing-whitespace
   - id: fix-encoding-pragma
 
-# Black natively supports pre-commit
+# Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
   rev: 20.8b1
   hooks:

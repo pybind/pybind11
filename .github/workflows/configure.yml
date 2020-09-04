@@ -52,8 +52,8 @@ jobs:
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt
 
-        # An action for adding a specific version of CMake:
-        #   https://github.com/jwlawson/actions-setup-cmake
+    # An action for adding a specific version of CMake:
+    #   https://github.com/jwlawson/actions-setup-cmake
     - name: Setup CMake ${{ matrix.cmake }}
       uses: jwlawson/actions-setup-cmake@v1.3
       with:

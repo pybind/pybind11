@@ -163,6 +163,8 @@ jobs:
     - name: Interface test
       run: cmake --build build2 --target test_cmake_build
 
+    # Eventually Microsoft might have an action for setting up
+    # MSVC, but for now, this action works:
     - name: Prepare compiler environment for Windows 🐍 2.7
       if: matrix.python == 2.7 && runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
@@ -182,7 +184,7 @@ jobs:
       run: pytest tests/extra_setuptools
 
 
-  # Testing on clang using the sikleh clang docker images
+  # Testing on clang using the excellent silkeh clang docker images
   clang:
     runs-on: ubuntu-latest
     strategy:
