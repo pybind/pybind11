@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pybind11_tests import constants_and_functions as m
 
 

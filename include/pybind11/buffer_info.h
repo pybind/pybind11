@@ -11,7 +11,7 @@
 
 #include "detail/common.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// Information record describing a Python buffer object
 struct buffer_info {
@@ -54,7 +54,7 @@ struct buffer_info {
     explicit buffer_info(Py_buffer *view, bool ownview = true)
     : buffer_info(view->buf, view->itemsize, view->format, view->ndim,
             {view->shape, view->shape + view->ndim}, {view->strides, view->strides + view->ndim}, view->readonly) {
-        this->view = view;
+        this->m_view = view;
         this->ownview = ownview;
     }
 
@@ -73,16 +73,18 @@ struct buffer_info {
         ndim = rhs.ndim;
         shape = std::move(rhs.shape);
         strides = std::move(rhs.strides);
-        std::swap(view, rhs.view);
+        std::swap(m_view, rhs.m_view);
         std::swap(ownview, rhs.ownview);
         readonly = rhs.readonly;
         return *this;
     }
 
     ~buffer_info() {
-        if (view && ownview) { PyBuffer_Release(view); delete view; }
+        if (m_view && ownview) { PyBuffer_Release(m_view); delete m_view; }
     }
 
+    Py_buffer *view() const { return m_view; }
+    Py_buffer *&view() { return m_view; }
 private:
     struct private_ctr_tag { };
 
@@ -90,11 +92,11 @@ private:
                 detail::any_container<ssize_t> &&shape_in, detail::any_container<ssize_t> &&strides_in, bool readonly)
     : buffer_info(ptr, itemsize, format, ndim, std::move(shape_in), std::move(strides_in), readonly) { }
 
-    Py_buffer *view = nullptr;
+    Py_buffer *m_view = nullptr;
     bool ownview = false;
 };
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename T, typename SFINAE = void> struct compare_buffer_info {
     static bool compare(const buffer_info& b) {
@@ -110,5 +112,5 @@ template <typename T> struct compare_buffer_info<T, detail::enable_if_t<std::is_
     }
 };
 
-NAMESPACE_END(detail)
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

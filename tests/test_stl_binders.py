@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 import sys
 from pybind11_tests import stl_binders as m
@@ -222,7 +223,8 @@ def test_noncopyable_containers():
         for j in range(0, 5):
             assert nvnc[i][j].value == j + 1
 
-    for k, v in nvnc.items():
+    # Note: maps do not have .values()
+    for _, v in nvnc.items():
         for i, j in enumerate(v, start=1):
             assert j.value == i
 
@@ -233,7 +235,7 @@ def test_noncopyable_containers():
             assert nmnc[i][j].value == 10 * j
 
     vsum = 0
-    for k_o, v_o in nmnc.items():
+    for _, v_o in nmnc.items():
         for k_i, v_i in v_o.items():
             assert v_i.value == 10 * k_i
             vsum += v_i.value
@@ -247,7 +249,7 @@ def test_noncopyable_containers():
             assert numnc[i][j].value == 10 * j
 
     vsum = 0
-    for k_o, v_o in numnc.items():
+    for _, v_o in numnc.items():
         for k_i, v_i in v_o.items():
             assert v_i.value == 10 * k_i
             vsum += v_i.value

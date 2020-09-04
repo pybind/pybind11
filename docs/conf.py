@@ -130,8 +130,8 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 else:
     html_context = {
         'css_files': [
-            '//media.readthedocs.org/css/sphinx_rtd_theme.css',            
-            '//media.readthedocs.org/css/readthedocs-doc-embed.css',    
+            '//media.readthedocs.org/css/sphinx_rtd_theme.css',
+            '//media.readthedocs.org/css/readthedocs-doc-embed.css',
             '_static/theme_overrides.css'
         ]
     }
@@ -238,7 +238,7 @@ latex_elements = {
 #'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
-'preamble': '\DeclareUnicodeCharacter{00A0}{}',
+'preamble': r'\DeclareUnicodeCharacter{00A0}{}',
 
 # Latex figure (float) alignment
 #'figure_align': 'htbp',

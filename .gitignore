@@ -2,6 +2,7 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 cmake_install.cmake
+cmake_uninstall.cmake
 .DS_Store
 *.so
 *.pyd
@@ -32,8 +33,8 @@ MANIFEST
 .DS_Store
 /dist
 /build
-/cmake/
 .cache/
 sosize-*.txt
 pybind11Config*.cmake
 pybind11Targets.cmake
+/*env*

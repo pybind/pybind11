@@ -67,7 +67,7 @@ specification.
 To create a C++ function that can take a Python buffer object as an argument,
 simply use the type ``py::buffer`` as one of its arguments. Buffers can exist
 in a great variety of configurations, hence some safety checks are usually
-necessary in the function body. Below, you can see an basic example on how to
+necessary in the function body. Below, you can see a basic example on how to
 define a custom constructor for the Eigen double precision matrix
 (``Eigen::MatrixXd``) type, which supports initialization from compatible
 buffer objects (e.g. a NumPy matrix).
@@ -81,7 +81,7 @@ buffer objects (e.g. a NumPy matrix).
     constexpr bool rowMajor = Matrix::Flags & Eigen::RowMajorBit;
 
     py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
-        .def("__init__", [](Matrix &m, py::buffer b) {
+        .def("__init__", [](py::buffer b) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 
             /* Request a buffer descriptor from Python */
@@ -101,7 +101,7 @@ buffer objects (e.g. a NumPy matrix).
             auto map = Eigen::Map<Matrix, 0, Strides>(
                 static_cast<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
 
-            new (&m) Matrix(map);
+            return Matrix(m);
         });
 
 For reference, the ``def_buffer()`` call for this Eigen data type should look
@@ -384,3 +384,45 @@ operation on the C++ side:
 
    py::array a = /* A NumPy array */;
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
+
+Memory view
+===========
+
+For a case when we simply want to provide a direct accessor to C/C++ buffer
+without a concrete class object, we can return a ``memoryview`` object. Suppose
+we wish to expose a ``memoryview`` for 2x4 uint8_t array, we can do the
+following:
+
+.. code-block:: cpp
+
+    const uint8_t buffer[] = {
+        0, 1, 2, 3,
+        4, 5, 6, 7
+    };
+    m.def("get_memoryview2d", []() {
+        return py::memoryview::from_buffer(
+            buffer,                                    // buffer pointer
+            { 2, 4 },                                  // shape (rows, cols)
+            { sizeof(uint8_t) * 4, sizeof(uint8_t) }   // strides in bytes
+        );
+    })
+
+This approach is meant for providing a ``memoryview`` for a C/C++ buffer not
+managed by Python. The user is responsible for managing the lifetime of the
+buffer. Using a ``memoryview`` created in this way after deleting the buffer in
+C++ side results in undefined behavior.
+
+We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
+
+.. code-block:: cpp
+
+    m.def("get_memoryview1d", []() {
+        return py::memoryview::from_memory(
+            buffer,               // buffer pointer
+            sizeof(uint8_t) * 8   // buffer size
+        );
+    })
+
+.. note::
+
+    ``memoryview::from_memory`` is not available in Python 2.

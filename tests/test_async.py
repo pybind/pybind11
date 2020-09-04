@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import asyncio
 import pytest
 from pybind11_tests import async_module as m

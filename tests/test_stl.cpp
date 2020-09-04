@@ -50,6 +50,17 @@ namespace std {
 }
 
 
+template <template <typename> class OptionalImpl, typename T>
+struct OptionalHolder
+{
+    OptionalHolder() = default;
+    bool member_initialized() const {
+        return member && member->initialized;
+    }
+    OptionalImpl<T> member = T{};
+};
+
+
 TEST_SUBMODULE(stl, m) {
     // test_vector
     m.def("cast_vector", []() { return std::vector<int>{1}; });
@@ -154,6 +165,23 @@ TEST_SUBMODULE(stl, m) {
         .def(py::init<>())
         .def(py::init<int>());
 
+
+    struct MoveOutDetector
+    {
+        MoveOutDetector() = default;
+        MoveOutDetector(const MoveOutDetector&) = default;
+        MoveOutDetector(MoveOutDetector&& other) noexcept
+         : initialized(other.initialized) {
+            // steal underlying resource
+            other.initialized = false;
+        }
+        bool initialized = true;
+    };
+    py::class_<MoveOutDetector>(m, "MoveOutDetector", "Class with move tracking")
+        .def(py::init<>())
+        .def_readonly("initialized", &MoveOutDetector::initialized);
+
+
 #ifdef PYBIND11_HAS_OPTIONAL
     // test_optional
     m.attr("has_optional") = true;
@@ -175,6 +203,12 @@ TEST_SUBMODULE(stl, m) {
 
     m.def("nodefer_none_optional", [](std::optional<int>) { return true; });
     m.def("nodefer_none_optional", [](py::none) { return false; });
+
+    using opt_holder = OptionalHolder<std::optional, MoveOutDetector>;
+    py::class_<opt_holder>(m, "OptionalHolder", "Class with optional member")
+        .def(py::init<>())
+        .def_readonly("member", &opt_holder::member)
+        .def("member_initialized", &opt_holder::member_initialized);
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
@@ -195,6 +229,12 @@ TEST_SUBMODULE(stl, m) {
     m.def("test_no_assign_exp", [](const exp_opt_no_assign &x) {
         return x ? x->value : 42;
     }, py::arg_v("x", std::experimental::nullopt, "None"));
+
+    using opt_exp_holder = OptionalHolder<std::experimental::optional, MoveOutDetector>;
+    py::class_<opt_exp_holder>(m, "OptionalExpHolder", "Class with optional member")
+        .def(py::init<>())
+        .def_readonly("member", &opt_exp_holder::member)
+        .def("member_initialized", &opt_exp_holder::member_initialized);
 #endif
 
 #ifdef PYBIND11_HAS_VARIANT

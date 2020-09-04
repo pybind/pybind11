@@ -15,8 +15,8 @@
 #include <algorithm>
 #include <sstream>
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /* SFINAE helper class used by 'is_comparable */
 template <typename T>  struct container_traits {
@@ -413,7 +413,7 @@ vector_buffer(Class_& cl) {
 template <typename Vector, typename Class_, typename... Args>
 enable_if_t<!detail::any_of<std::is_same<Args, buffer_protocol>...>::value> vector_buffer(Class_&) {}
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 //
 // std::vector
@@ -511,7 +511,7 @@ class_<Vector, holder_type> bind_vector(handle scope, std::string const &name, A
 // std::map, std::unordered_map
 //
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /* Fallback functions */
 template <typename, typename, typename... Args> void map_if_insertion_operator(const Args &...) { }
@@ -577,7 +577,7 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
 }
 
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
 class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&... args) {
@@ -653,4 +653,4 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     return cl;
 }
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

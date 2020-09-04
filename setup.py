@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 

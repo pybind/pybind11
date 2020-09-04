@@ -5,110 +5,108 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.7)
+
+# VERSION 3.7...3.18, but some versions of VS have a patched CMake 3.11
+# that do not work properly with this syntax, so using the following workaround:
+if(${CMAKE_VERSION} VERSION_LESS 3.18)
+  cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
+else()
+  cmake_policy(VERSION 3.18)
+endif()
 
 # Add a CMake parameter for choosing a desired Python version
 if(NOT PYBIND11_PYTHON_VERSION)
-  set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
+  set(PYBIND11_PYTHON_VERSION
+      ""
+      CACHE STRING "Python version to use for compiling modules")
 endif()
 
-set(Python_ADDITIONAL_VERSIONS 3.9 3.8 3.7 3.6 3.5 3.4)
+# A user can set versions manually too
+set(Python_ADDITIONAL_VERSIONS
+    "3.9;3.8;3.7;3.6;3.5;3.4"
+    CACHE INTERNAL "")
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} REQUIRED)
 
 include(CheckCXXCompilerFlag)
 include(CMakeParseArguments)
 
-# Use the language standards abstraction if CMake supports it with the current compiler
-if(NOT CMAKE_VERSION VERSION_LESS 3.1)
+# Warn or error if old variable name used
+if(PYBIND11_CPP_STANDARD)
   if(NOT CMAKE_CXX_STANDARD)
-    if(CMAKE_CXX14_STANDARD_COMPILE_OPTION)
-      set(CMAKE_CXX_STANDARD 14)
-    elseif(CMAKE_CXX11_STANDARD_COMPILE_OPTION)
-      set(CMAKE_CXX_STANDARD 11)
-    endif()
-  endif()
-  if(CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_EXTENSIONS OFF)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  endif()
-endif()
-
-# Fall back to heuristics 
-if(NOT PYBIND11_CPP_STANDARD AND NOT CMAKE_CXX_STANDARD)
-  if(MSVC)
-    set(PYBIND11_CPP_STANDARD /std:c++14)
-  else()
-    check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
-    if(HAS_CPP14_FLAG)
-      set(PYBIND11_CPP_STANDARD -std=c++14)
+    string(REGEX MATCH [=[..^]=] VAL "${PYBIND11_CPP_STANDARD}")
+    set(supported_standards 11 14 17 20)
+    if("${VAL}" IN_LIST supported_standards)
+      message(WARNING "USE -DCMAKE_CXX_STANDARD=${VAL} instead of PYBIND11_PYTHON_VERSION")
+      set(CMAKE_CXX_STANDARD ${VAL})
     else()
-      check_cxx_compiler_flag("-std=c++11" HAS_CPP11_FLAG)
-      if(HAS_CPP11_FLAG)
-        set(PYBIND11_CPP_STANDARD -std=c++11)
-      endif()
+      message(FATAL_ERROR "PYBIND11_CPP_STANDARD should be replaced with CMAKE_CXX_STANDARD")
     endif()
   endif()
-
-  if(NOT PYBIND11_CPP_STANDARD)
-    message(FATAL_ERROR "Unsupported compiler -- pybind11 requires C++11 support!")
-  endif()
-  set(PYBIND11_CPP_STANDARD ${PYBIND11_CPP_STANDARD} CACHE STRING
-      "C++ standard flag, e.g. -std=c++11, -std=c++14, /std:c++14.  Defaults to C++14 mode." FORCE)
 endif()
 
 # Checks whether the given CXX/linker flags can compile and link a cxx file.  cxxflags and
 # linkerflags are lists of flags to use.  The result variable is a unique variable name for each set
 # of flags: the compilation result will be cached base on the result variable.  If the flags work,
 # sets them in cxxflags_out/linkerflags_out internal cache variables (in addition to ${result}).
-function(_pybind11_return_if_cxx_and_linker_flags_work result cxxflags linkerflags cxxflags_out linkerflags_out)
+function(_pybind11_return_if_cxx_and_linker_flags_work result cxxflags linkerflags cxxflags_out
+         linkerflags_out)
   set(CMAKE_REQUIRED_LIBRARIES ${linkerflags})
   check_cxx_compiler_flag("${cxxflags}" ${result})
-  if (${result})
-    set(${cxxflags_out} "${cxxflags}" CACHE INTERNAL "" FORCE)
-    set(${linkerflags_out} "${linkerflags}" CACHE INTERNAL "" FORCE)
+  if(${result})
+    set(${cxxflags_out}
+        "${cxxflags}"
+        CACHE INTERNAL "" FORCE)
+    set(${linkerflags_out}
+        "${linkerflags}"
+        CACHE INTERNAL "" FORCE)
   endif()
 endfunction()
 
 # Internal: find the appropriate link time optimization flags for this compiler
 function(_pybind11_add_lto_flags target_name prefer_thin_lto)
-  if (NOT DEFINED PYBIND11_LTO_CXX_FLAGS)
-    set(PYBIND11_LTO_CXX_FLAGS "" CACHE INTERNAL "")
-    set(PYBIND11_LTO_LINKER_FLAGS "" CACHE INTERNAL "")
+  if(NOT DEFINED PYBIND11_LTO_CXX_FLAGS)
+    set(PYBIND11_LTO_CXX_FLAGS
+        ""
+        CACHE INTERNAL "")
+    set(PYBIND11_LTO_LINKER_FLAGS
+        ""
+        CACHE INTERNAL "")
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
       set(cxx_append "")
       set(linker_append "")
-      if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
         # Clang Gold plugin does not support -Os; append -O3 to MinSizeRel builds to override it
         set(linker_append ";$<$<CONFIG:MinSizeRel>:-O3>")
       elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set(cxx_append ";-fno-fat-lto-objects")
       endif()
 
-      if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND prefer_thin_lto)
-        _pybind11_return_if_cxx_and_linker_flags_work(HAS_FLTO_THIN
-          "-flto=thin${cxx_append}" "-flto=thin${linker_append}"
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND prefer_thin_lto)
+        _pybind11_return_if_cxx_and_linker_flags_work(
+          HAS_FLTO_THIN "-flto=thin${cxx_append}" "-flto=thin${linker_append}"
           PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
       endif()
 
-      if (NOT HAS_FLTO_THIN)
-        _pybind11_return_if_cxx_and_linker_flags_work(HAS_FLTO
-          "-flto${cxx_append}" "-flto${linker_append}"
-          PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+      if(NOT HAS_FLTO_THIN)
+        _pybind11_return_if_cxx_and_linker_flags_work(
+          HAS_FLTO "-flto${cxx_append}" "-flto${linker_append}" PYBIND11_LTO_CXX_FLAGS
+          PYBIND11_LTO_LINKER_FLAGS)
       endif()
-    elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
       # Intel equivalent to LTO is called IPO
-      _pybind11_return_if_cxx_and_linker_flags_work(HAS_INTEL_IPO
-      "-ipo" "-ipo" PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+      _pybind11_return_if_cxx_and_linker_flags_work(
+        HAS_INTEL_IPO "-ipo" "-ipo" PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     elseif(MSVC)
       # cmake only interprets libraries as linker flags when they start with a - (otherwise it
       # converts /LTCG to \LTCG as if it was a Windows path).  Luckily MSVC supports passing flags
       # with - instead of /, even if it is a bit non-standard:
-      _pybind11_return_if_cxx_and_linker_flags_work(HAS_MSVC_GL_LTCG
-        "/GL" "-LTCG" PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+      _pybind11_return_if_cxx_and_linker_flags_work(
+        HAS_MSVC_GL_LTCG "/GL" "-LTCG" PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
     endif()
 
-    if (PYBIND11_LTO_CXX_FLAGS)
+    if(PYBIND11_LTO_CXX_FLAGS)
       message(STATUS "LTO enabled")
     else()
       message(STATUS "LTO disabled (not supported by the compiler and/or linker)")
@@ -116,17 +114,20 @@ function(_pybind11_add_lto_flags target_name prefer_thin_lto)
   endif()
 
   # Enable LTO flags if found, except for Debug builds
-  if (PYBIND11_LTO_CXX_FLAGS)
-    target_compile_options(${target_name} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${PYBIND11_LTO_CXX_FLAGS}>")
+  if(PYBIND11_LTO_CXX_FLAGS)
+    set(not_debug "$<NOT:$<CONFIG:Debug>>")
+    set(cxx_lang "$<COMPILE_LANGUAGE:CXX>")
+    target_compile_options(${target_name}
+                           PRIVATE "$<$<AND:${not_debug},${cxx_lang}>:${PYBIND11_LTO_CXX_FLAGS}>")
   endif()
-  if (PYBIND11_LTO_LINKER_FLAGS)
-    target_link_libraries(${target_name} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${PYBIND11_LTO_LINKER_FLAGS}>")
+  if(PYBIND11_LTO_LINKER_FLAGS)
+    target_link_libraries(${target_name} PRIVATE "$<${not_debug}:${PYBIND11_LTO_LINKER_FLAGS}>")
   endif()
 endfunction()
 
 # Build a Python extension module:
 # pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
-#                     [NO_EXTRAS] [SYSTEM] [THIN_LTO] source1 [source2 ...])
+#                     [NO_EXTRAS] [THIN_LTO] source1 [source2 ...])
 #
 function(pybind11_add_module target_name)
   set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)
@@ -142,86 +143,67 @@ function(pybind11_add_module target_name)
 
   if(ARG_EXCLUDE_FROM_ALL)
     set(exclude_from_all EXCLUDE_FROM_ALL)
+  else()
+    set(exclude_from_all "")
   endif()
 
   add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
-  if(TARGET pybind11::module)
-    # Use interface target library.
-    target_link_libraries(${target_name} PRIVATE pybind11::module)
-  else()
-    target_include_directories(${target_name}
-      PRIVATE ${PYBIND11_INCLUDE_DIR}  # from project CMakeLists.txt
-      PRIVATE ${pybind11_INCLUDE_DIR}  # from pybind11Config
-      PRIVATE ${PYTHON_INCLUDE_DIRS})
+  target_link_libraries(${target_name} PRIVATE pybind11::module)
 
-    # Python debug libraries expose slightly different objects
-    # https://docs.python.org/3.6/c-api/intro.html#debugging-builds
-    # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
-    if(PYTHON_IS_DEBUG)
-      target_compile_definitions(${target_name} PRIVATE Py_DEBUG)
-    endif()
+  if(ARG_SYSTEM)
+    message(
+      STATUS
+        "Warning: this does not have an effect - use NO_SYSTEM_FROM_IMPORTED if using imported targets"
+    )
+  endif()
 
-    # -fvisibility=hidden is required to allow multiple modules compiled against
-    # different pybind versions to work properly, and for some features (e.g.
-    # py::module_local).  We force it on everything inside the `pybind11`
-    # namespace; also turning it on for a pybind module compilation here avoids
-    # potential warnings or issues from having mixed hidden/non-hidden types.
-    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
-
-    if(WIN32 OR CYGWIN)
-      # Link against the Python shared library on Windows
-      target_link_libraries(${target_name} PRIVATE ${PYTHON_LIBRARIES})
-    endif()
-
-    # Make sure C++11/14 are enabled
-    target_compile_options(${target_name} PUBLIC ${PYBIND11_CPP_STANDARD})
-
-    if(APPLE)
-      # It's quite common to have multiple copies of the same Python version
-      # installed on one's system. E.g.: one copy from the OS and another copy
-      # that's statically linked into an application like Blender or Maya.
-      # If we link our plugin library against the OS Python here and import it
-      # into Blender or Maya later on, this will cause segfaults when multiple
-      # conflicting Python instances are active at the same time (even when they
-      # are of the same version).
-
-      # Windows is not affected by this issue since it handles DLL imports
-      # differently. The solution for Linux and Mac OS is simple: we just don't
-      # link against the Python library. The resulting shared library will have
-      # missing symbols, but that's perfectly fine -- they will be resolved at
-      # import time.
-
-      target_link_libraries(${target_name} PRIVATE "-undefined dynamic_lookup")
-
-      if(ARG_SHARED)
-        # Suppress CMake >= 3.0 warning for shared libraries
-        set_target_properties(${target_name} PROPERTIES MACOSX_RPATH ON)
-      endif()
-    endif()
-
+  # Python debug libraries expose slightly different objects before 3.8
+  # https://docs.python.org/3.6/c-api/intro.html#debugging-builds
+  # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
+  if(PYTHON_IS_DEBUG)
+    target_compile_definitions(${target_name} PRIVATE Py_DEBUG)
   endif()
 
   # The prefix and extension are provided by FindPythonLibsNew.cmake
   set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
   set_target_properties(${target_name} PROPERTIES SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
+  # -fvisibility=hidden is required to allow multiple modules compiled against
+  # different pybind versions to work properly, and for some features (e.g.
+  # py::module_local).  We force it on everything inside the `pybind11`
+  # namespace; also turning it on for a pybind module compilation here avoids
+  # potential warnings or issues from having mixed hidden/non-hidden types.
+  set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+  set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
+
   if(ARG_NO_EXTRAS)
     return()
   endif()
 
-  _pybind11_add_lto_flags(${target_name} ${ARG_THIN_LTO})
+  if(CMAKE_VERSION VERSION_LESS 3.9 OR PYBIND11_CLASSIC_LTO)
+    _pybind11_add_lto_flags(${target_name} ${ARG_THIN_LTO})
+  else()
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT supported OUTPUT error)
+    if(supported)
+      set_property(TARGET ${target_name} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    endif()
+  endif()
 
-  if (NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
+  if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
     # Strip unnecessary sections of the binary on Linux/Mac OS
     if(CMAKE_STRIP)
       if(APPLE)
-        add_custom_command(TARGET ${target_name} POST_BUILD
-                           COMMAND ${CMAKE_STRIP} -x $<TARGET_FILE:${target_name}>)
+        add_custom_command(
+          TARGET ${target_name}
+          POST_BUILD
+          COMMAND ${CMAKE_STRIP} -x $<TARGET_FILE:${target_name}>)
       else()
-        add_custom_command(TARGET ${target_name} POST_BUILD
-                           COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${target_name}>)
+        add_custom_command(
+          TARGET ${target_name}
+          POST_BUILD
+          COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${target_name}>)
       endif()
     endif()
   endif()
@@ -237,7 +219,8 @@ function(pybind11_add_module target_name)
       # instance, projects that include other types of source files like CUDA
       # .cu files don't get these options propagated to nvcc since that would
       # cause the build to fail.
-      target_compile_options(${target_name} PRIVATE $<$<NOT:$<CONFIG:Debug>>:$<$<COMPILE_LANGUAGE:CXX>:/MP>>)
+      target_compile_options(${target_name}
+                             PRIVATE $<$<NOT:$<CONFIG:Debug>>:$<$<COMPILE_LANGUAGE:CXX>:/MP>>)
     endif()
   endif()
 endfunction()

@@ -1,5 +1,11 @@
+# -*- coding: utf-8 -*-
 import pytest
 from pybind11_tests import kwargs_and_defaults as m
+
+import platform
+import sys
+
+pypy = platform.python_implementation() == "PyPy"
 
 
 def test_function_signatures(doc):
@@ -145,6 +151,8 @@ def test_keyword_only_args(msg):
     """
 
 
+@pytest.mark.xfail(pypy and sys.version_info < (3, 0),
+                   reason="PyPy2 doesn't seem to double count")
 def test_args_refcount():
     """Issue/PR #1216 - py::args elements get double-inc_ref()ed when combined with regular
     arguments"""
@@ -183,3 +191,5 @@ def test_args_refcount():
     # tuple without having to inc_ref the individual elements, but here we can't, hence the extra
     # refs.
     assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)
+
+    assert m.class_default_argument() == "<class 'decimal.Decimal'>"

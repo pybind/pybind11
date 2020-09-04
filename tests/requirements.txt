@@ -1,0 +1,8 @@
+--extra-index-url https://antocuni.github.io/pypy-wheels/manylinux2010/
+numpy==1.16.6; python_version<"3.6"
+numpy==1.18.0; platform_python_implementation=="PyPy" and sys_platform=="darwin" and python_version>="3.6"
+numpy==1.19.1; (platform_python_implementation!="PyPy" or sys_platform!="darwin") and python_version>="3.6"
+pytest==4.6.9; python_version<"3.5"
+pytest==5.4.3; python_version>="3.5"
+scipy==1.2.3; (platform_python_implementation!="PyPy" or sys_platform!="darwin") and python_version<"3.6"
+scipy==1.5.2; (platform_python_implementation!="PyPy" or sys_platform!="darwin") and python_version>="3.6" and python_version<"3.9"

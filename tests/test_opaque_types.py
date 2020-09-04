@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from pybind11_tests import opaque_types as m
 from pybind11_tests import ConstructorStats, UserType

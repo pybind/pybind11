@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.7)
 project(test_installed_embed CXX)
 
 set(CMAKE_MODULE_PATH "")

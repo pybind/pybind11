@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import io
 import struct
 import sys

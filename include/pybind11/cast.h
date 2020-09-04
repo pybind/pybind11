@@ -36,8 +36,8 @@
 #  define PYBIND11_HAS_U8STRING
 #endif
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
@@ -929,7 +929,7 @@ template <typename Container> struct is_copy_assignable<Container, enable_if_t<a
 template <typename T1, typename T2> struct is_copy_assignable<std::pair<T1, T2>>
     : all_of<is_copy_assignable<T1>, is_copy_assignable<T2>> {};
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 // polymorphic_type_hook<itype>::get(src, tinfo) determines whether the object pointed
 // to by `src` actually is an instance of some class derived from `itype`.
@@ -968,7 +968,7 @@ struct polymorphic_type_hook_base<itype, detail::enable_if_t<std::is_polymorphic
 template <typename itype, typename SFINAE = void>
 struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Generic type caster for objects stored on the heap
 template <typename type> class type_caster_base : public type_caster_generic {
@@ -1537,6 +1537,17 @@ public:
         return cast_impl(std::forward<T>(src), policy, parent, indices{});
     }
 
+    // copied from the PYBIND11_TYPE_CASTER macro
+    template <typename T>
+    static handle cast(T *src, return_value_policy policy, handle parent) {
+        if (!src) return none().release();
+        if (policy == return_value_policy::take_ownership) {
+            auto h = cast(std::move(*src), policy, parent); delete src; return h;
+        } else {
+            return cast(*src, policy, parent);
+        }
+    }
+
     static constexpr auto name = _("Tuple[") + concat(make_caster<Ts>::name...) + _("]");
 
     template <typename T> using cast_op_type = type;
@@ -1882,6 +1893,7 @@ template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBI
 template <> struct handle_type_name<int_> { static constexpr auto name = _("int"); };
 template <> struct handle_type_name<iterable> { static constexpr auto name = _("Iterable"); };
 template <> struct handle_type_name<iterator> { static constexpr auto name = _("Iterator"); };
+template <> struct handle_type_name<none> { static constexpr auto name = _("None"); };
 template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
 template <> struct handle_type_name<kwargs> { static constexpr auto name = _("**kwargs"); };
 
@@ -1984,7 +1996,7 @@ template <typename T> make_caster<T> load_type(const handle &handle) {
     return conv;
 }
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 // pytype -> C++ type
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
@@ -2001,13 +2013,16 @@ T cast(const handle &handle) { return T(reinterpret_borrow<object>(handle)); }
 
 // C++ type -> py::object
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
-object cast(const T &value, return_value_policy policy = return_value_policy::automatic_reference,
+object cast(T &&value, return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
+    using no_ref_T = typename std::remove_reference<T>::type;
     if (policy == return_value_policy::automatic)
-        policy = std::is_pointer<T>::value ? return_value_policy::take_ownership : return_value_policy::copy;
+        policy = std::is_pointer<no_ref_T>::value ? return_value_policy::take_ownership :
+                 std::is_lvalue_reference<T>::value ? return_value_policy::copy : return_value_policy::move;
     else if (policy == return_value_policy::automatic_reference)
-        policy = std::is_pointer<T>::value ? return_value_policy::reference : return_value_policy::copy;
-    return reinterpret_steal<object>(detail::make_caster<T>::cast(value, policy, parent));
+        policy = std::is_pointer<no_ref_T>::value ? return_value_policy::reference :
+                 std::is_lvalue_reference<T>::value ? return_value_policy::copy : return_value_policy::move;
+    return reinterpret_steal<object>(detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));
 }
 
 template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
@@ -2072,7 +2087,7 @@ template <typename T> T object::cast() && { return pybind11::cast<T>(std::move(*
 template <> inline void object::cast() const & { return; }
 template <> inline void object::cast() && { return; }
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Declared in pytypes.h:
 template <typename T, enable_if_t<!is_pyobject<T>::value, int>>
@@ -2099,7 +2114,7 @@ template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T
     pybind11_fail("Internal error: cast_safe fallback invoked"); }
 template <> inline void cast_safe<void>(object &&) {}
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 template <return_value_policy policy = return_value_policy::automatic_reference>
 tuple make_tuple() { return tuple(0); }
@@ -2207,7 +2222,7 @@ inline namespace literals {
 constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 }
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // forward declaration (definition in attr.h)
 struct function_record;
@@ -2478,7 +2493,7 @@ object object_api<Derived>::call(Args &&...args) const {
     return operator()<policy>(std::forward<Args>(args)...);
 }
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 #define PYBIND11_MAKE_OPAQUE(...) \
     namespace pybind11 { namespace detail { \
@@ -2489,4 +2504,4 @@ NAMESPACE_END(detail)
 /// typedef, e.g.: `PYBIND11_OVERLOAD(PYBIND11_TYPE(ReturnType<A, B>), PYBIND11_TYPE(Parent<C, D>), f, arg)`
 #define PYBIND11_TYPE(...) __VA_ARGS__
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

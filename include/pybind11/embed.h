@@ -61,13 +61,14 @@
         }                                                                     \
     }                                                                         \
     PYBIND11_EMBEDDED_MODULE_IMPL(name)                                       \
-    pybind11::detail::embedded_module name(PYBIND11_TOSTRING(name),           \
+    pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name) \
+                              (PYBIND11_TOSTRING(name),             \
                                PYBIND11_CONCAT(pybind11_init_impl_, name));   \
     void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
 
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Python 2.7/3.x compatible version of `PyImport_AppendInittab` and error checks.
 struct embedded_module {
@@ -86,7 +87,7 @@ struct embedded_module {
     }
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
@@ -199,4 +200,4 @@ private:
     bool is_valid = true;
 };
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
