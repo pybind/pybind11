@@ -1,0 +1,359 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - stable
+      - v*
+
+jobs:
+  standard:
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x64]
+        python:
+        - 2.7
+        - 3.5
+        - 3.8
+        - pypy2
+        - pypy3
+
+        include:
+          - runs-on: ubuntu-latest
+            python: 3.6
+            arch: x64
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
+          - runs-on: windows-2016
+            python: 3.7
+            arch: x86
+            args2: >
+              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
+          - runs-on: windows-latest
+            python: 3.6
+            arch: x64
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
+          - runs-on: windows-latest
+            python: 3.7
+            arch: x64
+
+          - runs-on: ubuntu-latest
+            python: 3.9-dev
+            arch: x64
+          - runs-on: macos-latest
+            python: 3.9-dev
+            arch: x64
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
+
+        exclude:
+            # Currently 32bit only, and we build 64bit
+          - runs-on: windows-latest
+            python: pypy2
+            arch: x64
+          - runs-on: windows-latest
+            python: pypy3
+            arch: x64
+
+            # Currently broken on embed_test
+          - runs-on: windows-latest
+            python: 3.8
+            arch: x64
+          - runs-on: windows-latest
+            python: 3.9-dev
+            arch: x64
+
+
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }} ${{ matrix.args }}"
+    runs-on: ${{ matrix.runs-on }}
+    continue-on-error: ${{ endsWith(matrix.python, 'dev') }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+        architecture: ${{ matrix.arch }}
+
+    - name: Setup Boost (Windows / Linux latest)
+      run: echo "::set-env name=BOOST_ROOT::$BOOST_ROOT_1_72_0"
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.3
+
+    - name: Cache wheels
+      if: runner.os == 'macOS'
+      uses: actions/cache@v2
+      with:
+        # This path is specific to macOS - we really only need it for PyPy NumPy wheels
+        # See https://github.com/actions/cache/blob/master/examples.md#python---pip
+        # for ways to do this more generally
+        path: ~/Library/Caches/pip
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: ${{ runner.os }}-pip-${{ matrix.python }}-${{ matrix.arch }}-${{ hashFiles('tests/requirements.txt') }}
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt --prefer-binary
+
+    - name: Setup annotations
+      run: python -m pip install pytest-github-actions-annotate-failures
+
+    - name: Configure C++11 ${{ matrix.args }}
+      run: >
+        cmake -S . -B .
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=11
+        ${{ matrix.args }}
+
+    - name: Build C++11
+      run: cmake --build . -j 2
+
+    - name: Python tests C++11
+      run: cmake --build . --target pytest -j 2
+
+    - name: C++11 tests
+      run: cmake --build .  --target cpptest -j 2
+
+    - name: Interface test C++11
+      run: cmake --build . --target test_cmake_build
+
+    - name: Clean directory
+      run: git clean -fdx
+
+    - name: Configure ${{ matrix.args2 }}
+      run: >
+        cmake -S . -B build2
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=17
+        ${{ matrix.args }}
+        ${{ matrix.args2 }}
+
+    - name: Build
+      run: cmake --build build2 -j 2
+
+    - name: Python tests
+      run: cmake --build build2 --target pytest
+
+    - name: C++ tests
+      run: cmake --build build2 --target cpptest
+
+    - name: Interface test
+      run: cmake --build build2 --target test_cmake_build
+
+  clang:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        clang:
+          - 3.6
+          - 3.7
+          - 3.9
+          - 5
+          - 7
+          - 9
+          - dev
+
+    name: "🐍 3 • Clang ${{ matrix.clang }} • x64"
+    container: "silkeh/clang:${{ matrix.clang }}"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add wget and python3
+      run: apt-get update && apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
+
+    - name: Configure
+      shell: bash
+      run: >
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
+
+  gcc:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc:
+          - 7
+          - latest
+
+    name: "🐍 3 • GCC ${{ matrix.gcc }} • x64"
+    container: "gcc:${{ matrix.gcc }}"
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Add Python 3
+      run: apt-get update; apt-get install -y python3-dev python3-numpy python3-pytest python3-pip libeigen3-dev
+
+    - name: Update pip
+      run: python3 -m pip install --upgrade pip
+
+    - name: Setup CMake 3.18
+      uses: jwlawson/actions-setup-cmake@v1.3
+      with:
+        cmake-version: 3.18
+
+    - name: Configure
+      shell: bash
+      run: >
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DCMAKE_CXX_STANDARD=11
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
+
+  centos:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        centos:
+          - 7  # GCC 4.8
+          - 8
+
+    name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
+    container: "centos:${{ matrix.centos }}"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add Python 3
+      run: yum update -y && yum install -y python3-devel gcc-c++ make git
+
+    - name: Update pip
+      run: python3 -m pip install --upgrade pip
+
+    - name: Install dependencies
+      run: python3 -m pip install cmake -r tests/requirements.txt --prefer-binary
+
+    - name: Configure
+      shell: bash
+      run: >
+        cmake -S . -B build
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=11
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
+
+  install-classic:
+    name: "🐍 3.5 • Debian • x86 •  Install"
+    runs-on: ubuntu-latest
+    container: i386/debian:stretch
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install requirements
+      run: |
+        apt-get update
+        apt-get install -y git make cmake g++ libeigen3-dev python3-dev python3-pip
+        pip3 install "pytest==3.1.*"
+
+    - name: Configure for install
+      run: >
+        cmake .
+        -DPYBIND11_INSTALL=1 -DPYBIND11_TEST=0
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Make and install
+      run: make install
+
+    - name: Copy tests to new directory
+      run: cp -a tests /pybind11-tests
+
+    - name: Make a new test directory
+      run: mkdir /build-tests
+
+    - name: Configure tests
+      run: >
+        cmake ../pybind11-tests
+        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_WERROR=ON
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+      working-directory: /build-tests
+
+    - name: Run tests
+      run: make pytest -j 2
+      working-directory: /build-tests
+
+
+  doxygen:
+    name: "Documentation build test"
+    runs-on: ubuntu-latest
+    container: alpine:3.12
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install system requirements
+      run: apk add doxygen python3-dev
+
+    - name: Ensure pip
+      run: python3 -m ensurepip
+
+    - name: Install docs & setup requirements
+      run: python3 -m pip install -r docs/requirements.txt pytest setuptools
+
+    - name: Build docs
+      run: python3 -m sphinx -W -b html docs docs/.build
+
+    - name: Make SDist
+      run: python3 setup.py sdist
+
+    - name: Compare Dists (headers only)
+      run: |
+        python3 -m pip install --user -U ./dist/*
+        installed=$(python3 -c "import pybind11; print(pybind11.get_include(True) + '/pybind11')")
+        diff -rq $installed ./include/pybind11
