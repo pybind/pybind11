@@ -71,8 +71,17 @@ if(PYBIND11_MASTER_PROJECT)
 endif()
 
 # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
-execute_process(COMMAND ${_Python}::Python -c "import sys; print(hasattr(sys, 'gettotalrefcount'))"
-                OUTPUT_VARIABLE PYTHON_IS_DEBUG)
+execute_process(
+  COMMAND "${${_Python}_EXECUTABLE}" "-c" "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
+  RESULT_VARIABLE PYTHON_IS_DEBUG)
+
+# Get the suffix - SO is deprecated, should use EXT_SUFFIX, but this is
+# required for PyPy3 (as of 7.3.1)
+execute_process(
+  COMMAND "${${_Python}_EXECUTABLE}" "-c"
+          "from distutils import sysconfig; print(sysconfig.get_config_var('SO'))"
+  OUTPUT_VARIABLE PYTHON_MODULE_EXTENSION
+  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # Python debug libraries expose slightly different objects before 3.8
 # https://docs.python.org/3.6/c-api/intro.html#debugging-builds
@@ -121,8 +130,11 @@ else()
     PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_link_helper)
 endif()
 
+# WITHOUT_SOABI and WITH_SOABI will disable the custom extension handling used by pybind11.
+# WITH_SOABI is passed on to python_add_library.
 function(pybind11_add_module target_name)
-  cmake_parse_arguments(PARSE_ARGV 1 ARG "STATIC;SHARED;MODULE;THIN_LTO;NO_EXTRAS" "" "")
+  cmake_parse_arguments(PARSE_ARGV 1 ARG "STATIC;SHARED;MODULE;THIN_LTO;NO_EXTRAS;WITHOUT_SOABI"
+                        "" "")
 
   if(ARG_ADD_LIBRARY_STATIC)
     set(type STATIC)
@@ -133,11 +145,11 @@ function(pybind11_add_module target_name)
   endif()
 
   if("${_Python}" STREQUAL "Python")
-    python_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
+    python_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
-    python3_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
+    python3_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python2")
-    python2_add_library(${target_name} ${type} WITH_SOABI ${ARG_UNPARSED_ARGUMENTS})
+    python2_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
   else()
     message(FATAL_ERROR "Cannot detect FindPython version: ${_Python}")
   endif()
@@ -160,6 +172,12 @@ function(pybind11_add_module target_name)
 
   set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden"
                                                   CUDA_VISIBILITY_PRESET "hidden")
+
+  # If we don't pass a WITH_SOABI or WITHOUT_SOABI, use our own default handling of extensions
+  if("${type}" STREQUAL "MODULE" AND (NOT ARG_WITHOUT_SOABI OR NOT "WITH_SOABI" IN_LIST
+                                                               ARG_UNPARSED_ARGUMENTS))
+    pybind11_extension(${target_name})
+  endif()
 
   if(ARG_NO_EXTRAS)
     return()
@@ -184,20 +202,7 @@ function(pybind11_add_module target_name)
 endfunction()
 
 function(pybind11_extension name)
-  set_property(TARGET ${name} PROPERTY PREFIX "")
+  # The extension is precomputed
+  set_target_properties(${name} PROPERTIES PREFIX "" SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-  if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set_property(TARGET ${name} PROPERTY SUFFIX ".pyd")
-  endif()
-
-  if(${_Python}_SOABI)
-    get_property(
-      suffix
-      TARGET ${name}
-      PROPERTY SUFFIX)
-    if(NOT suffix)
-      set(suffix "${CMAKE_SHARED_MODULE_SUFFIX}")
-    endif()
-    set_property(TARGET ${name} PROPERTY SUFFIX ".${${_Python}_SOABI}${suffix}")
-  endif()
 endfunction()
