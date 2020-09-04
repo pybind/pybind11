@@ -15,6 +15,11 @@ Available types include :class:`handle`, :class:`object`, :class:`bool_`,
 :class:`iterable`, :class:`iterator`, :class:`function`, :class:`buffer`,
 :class:`array`, and :class:`array_t`.
 
+.. warning::
+
+    Be sure to review the :ref:`pytypes_gotchas` before using this heavily in
+    your C++ API.
+
 Casting back and forth
 ======================
 
@@ -178,3 +183,25 @@ Python exceptions from wrapper classes will be thrown as a ``py::error_already_s
 See :ref:`Handling exceptions from Python in C++
 <handling_python_exceptions_cpp>` for more information on handling exceptions
 raised when calling C++ wrapper classes.
+
+.. _pytypes_gotchas:
+
+Gotchas
+=======
+
+Default-Constructed Wrappers
+----------------------------
+
+When a wrapper type is default-constructed, it is **not** a valid Python object (i.e. it is not ``py::none()``). It is simply the same as
+``PyObject*`` null pointer. To check for this, use
+``static_cast<bool>(my_wrapper)``.
+
+Assigning py::none() to wrappers
+--------------------------------
+
+You may be tempted to use types like ``py::str`` and ``py::dict`` in C++
+signatures (either pure C++, or in bound signatures), and assign them default
+values of ``py::none()``. However, in a best case scenario, it will fail fast
+because ``None`` is not convertible to that type (e.g. ``py::dict``), or in a
+worse case scenario, it will silently work but corrupt the types you want to
+work with (e.g. ``py::str(py::none())`` will yield ``"None"`` in Python).

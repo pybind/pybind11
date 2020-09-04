@@ -326,6 +326,14 @@ def test_list_slicing():
     assert li[::2] == m.test_list_slicing(li)
 
 
+def test_issue2361():
+    # See issue #2361
+    assert m.issue2361_str_implicit_copy_none() == "None"
+    with pytest.raises(TypeError) as excinfo:
+        assert m.issue2361_dict_implicit_copy_none()
+    assert "'NoneType' object is not iterable" in str(excinfo.value)
+
+
 @pytest.mark.parametrize('method, args, fmt, expected_view', [
     (m.test_memoryview_object, (b'red',), 'B', b'red'),
     (m.test_memoryview_buffer_info, (b'green',), 'B', b'green'),

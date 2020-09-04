@@ -324,6 +324,16 @@ TEST_SUBMODULE(pytypes, m) {
         return a[py::slice(0, -1, 2)];
     });
 
+    // See #2361
+    m.def("issue2361_str_implicit_copy_none", []() {
+        py::str is_this_none = py::none();
+        return is_this_none;
+    });
+    m.def("issue2361_dict_implicit_copy_none", []() {
+        py::dict is_this_none = py::none();
+        return is_this_none;
+    });
+
     m.def("test_memoryview_object", [](py::buffer b) {
         return py::memoryview(b);
     });
