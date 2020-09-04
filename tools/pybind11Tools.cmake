@@ -1,6 +1,6 @@
 # tools/pybind11Tools.cmake -- Build system for the pybind11 modules
 #
-# Copyright (c) 2015 Wenzel Jakob <wenzel@inf.ethz.ch>
+# Copyright (c) 2020 Wenzel Jakob <wenzel.jakob@epfl.ch>
 #
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
@@ -124,10 +124,10 @@ endfunction()
 
 # Build a Python extension module:
 # pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
-#                     [NO_EXTRAS] [THIN_LTO] source1 [source2 ...])
+#                     [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] source1 [source2 ...])
 #
 function(pybind11_add_module target_name)
-  set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)
+  set(options "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE")
   cmake_parse_arguments(ARG "${options}" "" "" ${ARGN})
 
   if(ARG_MODULE AND ARG_SHARED)
@@ -185,4 +185,7 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::windows_extras)
   endif()
 
+  if(ARG_OPT_SIZE)
+    target_link_libraries(${target_name} PRIVATE pybind11::opt_size)
+  endif()
 endfunction()

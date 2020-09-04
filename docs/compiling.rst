@@ -62,7 +62,7 @@ function with the following signature:
 .. code-block:: cmake
 
     pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
-                        [NO_EXTRAS] [THIN_LTO] source1 [source2 ...])
+                        [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] source1 [source2 ...])
 
 This function behaves very much like CMake's builtin ``add_library`` (in fact,
 it's a wrapper function around that command). It will add a library target
@@ -95,6 +95,19 @@ the function to prefer this flavor if available. The function falls back to
 regular LTO if ``-flto=thin`` is not available. If
 ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is set (either ON or OFF), then that
 will be respected instead of the built-in flag search.
+
+The ``OPT_SIZE`` flag enables size-based optimization equivalent to the
+standard ``/Os`` or ``-Os`` compiler flags and the ``MinSizeRel`` build type,
+which avoid optimizations that that can substantially increase the size of the
+resulting binary. This flag is particularly useful in projects that are split
+into performance-critical parts and associated bindings. In this case, we can
+compile the project in release mode (and hence, optimize performance globally),
+and specify ``OPT_SIZE`` for the binding target, where size might be the main
+concern as performance is often less critical here. A ~25% size reduction has
+been observed in practice. This flag only changes the optimization behavior at
+a per-target level and takes precedence over the global CMake build type
+(``Release``, ``RelWithDebInfo``) except for ``Debug`` builds, where
+optimizations remain disabled.
 
 .. _ThinLTO: http://clang.llvm.org/docs/ThinLTO.html
 
@@ -244,6 +257,9 @@ available in all modes. The targets provided are:
 
    ``pybind11::windows_extras``
      ``/bigobj`` and ``/mp`` for MSVC.
+
+   ``pybind11::opt_size``
+     ``/Os`` for MSVC, ``-Os`` for other compilers. Does nothing for debug builds.
 
 Two helper functions are also provided:
 

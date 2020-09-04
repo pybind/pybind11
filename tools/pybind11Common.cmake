@@ -10,6 +10,7 @@ Adds the following targets::
     pybind11::python_link_helper - Adds link to Python libraries
     pybind11::python2_no_register - Avoid warning/error with Python 2 + C++14/7
     pybind11::windows_extras - MSVC bigobj and mp for building multithreaded
+    pybind11::opt_size - avoid optimizations that increase code size
 
 Adds the following functions::
 
@@ -132,6 +133,23 @@ if(MSVC)
       PROPERTY INTERFACE_COMPILE_OPTIONS $<$<NOT:$<CONFIG:Debug>>:$<$<COMPILE_LANGUAGE:CXX>:/MP>>)
   endif()
 endif()
+
+# ----------------------- Optimize binary size --------------------------
+
+add_library(pybind11::opt_size IMPORTED INTERFACE ${optional_global})
+
+if(MSVC)
+  set(PYBIND11_OPT_SIZE /Os)
+else()
+  set(PYBIND11_OPT_SIZE -Os)
+endif()
+
+set_property(
+  TARGET pybind11::opt_size
+  APPEND
+  PROPERTY INTERFACE_COMPILE_OPTIONS $<$<CONFIG:Release>:${PYBIND11_OPT_SIZE}>
+           $<$<CONFIG:MinSizeRel>:${PYBIND11_OPT_SIZE}>
+           $<$<CONFIG:RelWithDebInfo>:${PYBIND11_OPT_SIZE}>)
 
 # ----------------------- Legacy option --------------------------
 
