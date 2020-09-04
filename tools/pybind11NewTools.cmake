@@ -138,8 +138,8 @@ endif()
 # WITHOUT_SOABI and WITH_SOABI will disable the custom extension handling used by pybind11.
 # WITH_SOABI is passed on to python_add_library.
 function(pybind11_add_module target_name)
-  cmake_parse_arguments(PARSE_ARGV 1 ARG "STATIC;SHARED;MODULE;THIN_LTO;NO_EXTRAS;WITHOUT_SOABI"
-                        "" "")
+  cmake_parse_arguments(PARSE_ARGV 1 ARG
+                        "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI" "" "")
 
   if(ARG_ADD_LIBRARY_STATIC)
     set(type STATIC)
@@ -203,6 +203,10 @@ function(pybind11_add_module target_name)
 
   if(MSVC)
     target_link_libraries(${target_name} PRIVATE pybind11::windows_extras)
+  endif()
+
+  if(ARG_OPT_SIZE)
+    target_link_libraries(${target_name} PRIVATE pybind11::opt_size)
   endif()
 endfunction()
 
