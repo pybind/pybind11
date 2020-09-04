@@ -175,7 +175,10 @@ TEST_SUBMODULE(copy_move_policies, m) {
     m.attr("has_optional") = false;
 #endif
 
-    // #70 compilation issue if operator new is not public - body added but not needed on most compilers
+    // #70 compilation issue if operator new is not public - simple body added
+    // but not needed on most compilers; MSVC and nvcc don't like a local
+    // struct not having a method defined when declared, since it can not be
+    // added later.
     struct PrivateOpNew {
         int value = 1;
     private:
