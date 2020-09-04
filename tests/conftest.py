@@ -5,22 +5,26 @@ Extends output capture as needed by pybind11: ignore constructors, optional unor
 Adds docstring and exceptions message sanitizers: ignore Python 2 vs 3 differences.
 """
 
-import pytest
-import textwrap
-import difflib
-import re
-import sys
 import contextlib
-import platform
+import difflib
 import gc
+import re
+import textwrap
+
+import pytest
+
+import env
+
+# Early diagnostic for failed imports
+import pybind11_tests  # noqa: F401
 
 _unicode_marker = re.compile(r'u(\'[^\']*\')')
 _long_marker = re.compile(r'([0-9])L')
 _hexadecimal = re.compile(r'0x[0-9a-fA-F]+')
 
-# test_async.py requires support for async and await
+# Avoid collecting Python3 only files
 collect_ignore = []
-if sys.version_info[:2] < (3, 5):
+if env.PY2:
     collect_ignore.append("test_async.py")
 
 
@@ -192,59 +196,5 @@ def gc_collect():
 
 
 def pytest_configure():
-    """Add import suppression and test requirements to `pytest` namespace"""
-    try:
-        import numpy as np
-    except ImportError:
-        np = None
-    try:
-        import scipy
-    except ImportError:
-        scipy = None
-    try:
-        from pybind11_tests.eigen import have_eigen
-    except ImportError:
-        have_eigen = False
-    pypy = platform.python_implementation() == "PyPy"
-
-    skipif = pytest.mark.skipif
     pytest.suppress = suppress
-    pytest.requires_numpy = skipif(not np, reason="numpy is not installed")
-    pytest.requires_scipy = skipif(not np, reason="scipy is not installed")
-    pytest.requires_eigen_and_numpy = skipif(not have_eigen or not np,
-                                             reason="eigen and/or numpy are not installed")
-    pytest.requires_eigen_and_scipy = skipif(
-        not have_eigen or not scipy, reason="eigen and/or scipy are not installed")
-    pytest.unsupported_on_pypy = skipif(pypy, reason="unsupported on PyPy")
-    pytest.bug_in_pypy = pytest.mark.xfail(pypy, reason="bug in PyPy")
-    pytest.unsupported_on_pypy3 = skipif(pypy and sys.version_info.major >= 3,
-                                         reason="unsupported on PyPy3")
-    pytest.unsupported_on_pypy_lt_6 = skipif(pypy and sys.pypy_version_info[0] < 6,
-                                             reason="unsupported on PyPy<6")
-    pytest.unsupported_on_py2 = skipif(sys.version_info.major < 3,
-                                       reason="unsupported on Python 2.x")
     pytest.gc_collect = gc_collect
-
-
-def _test_import_pybind11():
-    """Early diagnostic for test module initialization errors
-
-    When there is an error during initialization, the first import will report the
-    real error while all subsequent imports will report nonsense. This import test
-    is done early (in the pytest configuration file, before any tests) in order to
-    avoid the noise of having all tests fail with identical error messages.
-
-    Any possible exception is caught here and reported manually *without* the stack
-    trace. This further reduces noise since the trace would only show pytest internals
-    which are not useful for debugging pybind11 module issues.
-    """
-    # noinspection PyBroadException
-    try:
-        import pybind11_tests  # noqa: F401 imported but unused
-    except Exception as e:
-        print("Failed to import pybind11_tests from pytest:")
-        print("  {}: {}".format(type(e).__name__, e))
-        sys.exit(1)
-
-
-_test_import_pybind11()

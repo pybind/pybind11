@@ -169,7 +169,7 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     auto instance = reinterpret_cast<detail::instance *>(self);
 
     // Ensure that the base __init__ function(s) were called
-    for (auto vh : values_and_holders(instance)) {
+    for (const auto &vh : values_and_holders(instance)) {
         if (!vh.holder_constructed()) {
             PyErr_Format(PyExc_TypeError, "%.200s.__init__() must be called when overriding __init__",
                          vh.type->type->tp_name);

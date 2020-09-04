@@ -55,15 +55,46 @@ if(PYTHONLIBS_FOUND AND PYTHON_MODULE_EXTENSION)
   return()
 endif()
 
+if(PythonLibsNew_FIND_QUIETLY)
+  set(_pythonlibs_quiet QUIET)
+endif()
+
+if(PythonLibsNew_FIND_REQUIRED)
+  set(_pythonlibs_required REQUIRED)
+endif()
+
+# Check to see if the `python` command is present and from a virtual
+# environment, conda, or GHA activation - if it is, try to use that.
+
+if(NOT DEFINED PYTHON_EXECUTABLE)
+  if(DEFINED ENV{VIRTUAL_ENV})
+    find_program(
+      PYTHON_EXECUTABLE python
+      PATHS "$ENV{VIRTUAL_ENV}" "$ENV{VIRTUAL_ENV}/bin"
+      NO_DEFAULT_PATH)
+  elseif(DEFINED ENV{CONDA_PREFIX})
+    find_program(
+      PYTHON_EXECUTABLE python
+      PATHS "$ENV{CONDA_PREFIX}" "$ENV{CONDA_PREFIX}/bin"
+      NO_DEFAULT_PATH)
+  elseif(DEFINED ENV{pythonLocation})
+    find_program(
+      PYTHON_EXECUTABLE python
+      PATHS "$ENV{pythonLocation}" "$ENV{pythonLocation}/bin"
+      NO_DEFAULT_PATH)
+  endif()
+  if(NOT PYTHON_EXECUTABLE)
+    unset(PYTHON_EXECUTABLE)
+  endif()
+endif()
+
 # Use the Python interpreter to find the libs.
 if(NOT PythonLibsNew_FIND_VERSION)
   set(PythonLibsNew_FIND_VERSION "")
 endif()
-if(PythonLibsNew_FIND_REQUIRED)
-  find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} REQUIRED)
-else()
-  find_package(PythonInterp ${PythonLibsNew_FIND_VERSION})
-endif()
+
+find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
+             ${_pythonlibs_quiet})
 
 if(NOT PYTHONINTERP_FOUND)
   set(PYTHONLIBS_FOUND FALSE)
@@ -71,7 +102,7 @@ if(NOT PYTHONINTERP_FOUND)
   return()
 endif()
 
-# According to http://stackoverflow.com/questions/646518/python-how-to-detect-debug-interpreter
+# According to https://stackoverflow.com/questions/646518/python-how-to-detect-debug-interpreter
 # testing whether sys has the gettotalrefcount function is a reliable, cross-platform
 # way to detect a CPython debug interpreter.
 #
@@ -140,6 +171,7 @@ string(REGEX REPLACE "\\." ";" _PYTHON_VERSION_LIST ${_PYTHON_VERSION_LIST})
 list(GET _PYTHON_VERSION_LIST 0 PYTHON_VERSION_MAJOR)
 list(GET _PYTHON_VERSION_LIST 1 PYTHON_VERSION_MINOR)
 list(GET _PYTHON_VERSION_LIST 2 PYTHON_VERSION_PATCH)
+set(PYTHON_VERSION "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.${PYTHON_VERSION_PATCH}")
 
 # Make sure all directory separators are '/'
 string(REGEX REPLACE "\\\\" "/" PYTHON_PREFIX "${PYTHON_PREFIX}")
@@ -190,7 +222,8 @@ else()
   find_library(
     PYTHON_LIBRARY
     NAMES "python${PYTHON_LIBRARY_SUFFIX}"
-    PATHS ${_PYTHON_LIBS_SEARCH} NO_DEFAULT_PATH)
+    PATHS ${_PYTHON_LIBS_SEARCH}
+    NO_DEFAULT_PATH)
 
   # If all else fails, just set the name/version and let the linker figure out the path.
   if(NOT PYTHON_LIBRARY)

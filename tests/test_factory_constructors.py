@@ -2,6 +2,8 @@
 import pytest
 import re
 
+import env  # noqa: F401
+
 from pybind11_tests import factory_constructors as m
 from pybind11_tests.factory_constructors import tag
 from pybind11_tests import ConstructorStats
@@ -39,9 +41,12 @@ def test_init_factory_basic():
     z3 = m.TestFactory3("bye")
     assert z3.value == "bye"
 
-    with pytest.raises(TypeError) as excinfo:
-        m.TestFactory3(tag.null_ptr)
-    assert str(excinfo.value) == "pybind11::init(): factory function returned nullptr"
+    for null_ptr_kind in [tag.null_ptr,
+                          tag.null_unique_ptr,
+                          tag.null_shared_ptr]:
+        with pytest.raises(TypeError) as excinfo:
+            m.TestFactory3(null_ptr_kind)
+        assert str(excinfo.value) == "pybind11::init(): factory function returned nullptr"
 
     assert [i.alive() for i in cstats] == [3, 3, 3]
     assert ConstructorStats.detail_reg_inst() == n_inst + 9
@@ -418,7 +423,7 @@ def test_reallocations(capture, msg):
     """)
 
 
-@pytest.unsupported_on_py2
+@pytest.mark.skipif("env.PY2")
 def test_invalid_self():
     """Tests invocation of the pybind-registered base class with an invalid `self` argument.  You
     can only actually do this on Python 3: Python 2 raises an exception itself if you try."""

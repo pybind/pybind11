@@ -2,10 +2,7 @@
 import pytest
 from pybind11_tests import numpy_vectorize as m
 
-pytestmark = pytest.requires_numpy
-
-with pytest.suppress(ImportError):
-    import numpy as np
+np = pytest.importorskip("numpy")
 
 
 def test_vectorize(capture):

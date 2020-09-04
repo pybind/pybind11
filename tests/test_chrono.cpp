@@ -10,6 +10,7 @@
 
 #include "pybind11_tests.h"
 #include <pybind11/chrono.h>
+#include <chrono>
 
 TEST_SUBMODULE(chrono, m) {
     using system_time = std::chrono::system_clock::time_point;

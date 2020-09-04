@@ -27,10 +27,12 @@ repos:
     exclude: ^(docs/.*|tools/.*)$
 
 - repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: v0.6.10
+  rev: v0.6.11
   hooks:
   - id: cmake-format
     additional_dependencies: [pyyaml]
+    types: [file]
+    files: (\.cmake|CMakeLists.txt)(.in)?$
 
 - repo: local
   hooks:

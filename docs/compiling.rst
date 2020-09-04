@@ -33,8 +33,8 @@ extension module can be created with just a few lines of code:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.7)
-    project(example)
+    cmake_minimum_required(VERSION 3.4...3.18)
+    project(example LANGUAGES CXX)
 
     add_subdirectory(pybind11)
     pybind11_add_module(example example.cpp)
@@ -49,6 +49,9 @@ A working sample project, including a way to invoke CMake from :file:`setup.py` 
 PyPI integration, can be found in the [cmake_example]_  repository.
 
 .. [cmake_example] https://github.com/pybind/cmake_example
+
+.. versionchanged:: 2.6
+   CMake 3.4+ is required.
 
 pybind11_add_module
 -------------------
@@ -89,7 +92,9 @@ will result in code bloat and is generally not recommended.
 As stated above, LTO is enabled by default. Some newer compilers also support
 different flavors of LTO such as `ThinLTO`_. Setting ``THIN_LTO`` will cause
 the function to prefer this flavor if available. The function falls back to
-regular LTO if ``-flto=thin`` is not available.
+regular LTO if ``-flto=thin`` is not available. If
+``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is set (either ON or OFF), then that
+will be respected instead of the built-in flag search.
 
 .. _ThinLTO: http://clang.llvm.org/docs/ThinLTO.html
 
@@ -113,9 +118,9 @@ the ``-D<variable>=<value>`` flag. You can also manually set ``CXX_STANDARD``
 on a target or use ``target_compile_features`` on your targets - anything that
 CMake supports.
 
-The target Python version can be selected by setting ``PYBIND11_PYTHON_VERSION``
-or an exact Python installation can be specified with ``PYTHON_EXECUTABLE``.
-For example:
+Classic Python support: The target Python version can be selected by setting
+``PYBIND11_PYTHON_VERSION`` or an exact Python installation can be specified
+with ``PYTHON_EXECUTABLE``.  For example:
 
 .. code-block:: bash
 
@@ -127,6 +132,7 @@ For example:
     # This often is a good way to get the current Python, works in environments:
     cmake -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") ..
 
+
 find_package vs. add_subdirectory
 ---------------------------------
 
@@ -136,8 +142,8 @@ See the `Config file`_ docstring for details of relevant CMake variables.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.7)
-    project(example)
+    cmake_minimum_required(VERSION 3.4...3.18)
+    project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)
     pybind11_add_module(example example.cpp)
@@ -169,52 +175,131 @@ can refer to the same [cmake_example]_ repository for a full sample project
 
 .. _Config file: https://github.com/pybind/pybind11/blob/master/tools/pybind11Config.cmake.in
 
-Advanced: interface library target
-----------------------------------
 
-When using a version of CMake greater than 3.0, pybind11 can additionally
-be used as a special *interface library* . The target ``pybind11::module``
-is available with pybind11 headers, Python headers and libraries as needed,
-and C++ compile features attached. This target is suitable for linking
-to an independently constructed (through ``add_library``, not
-``pybind11_add_module``) target in the consuming project.
+.. _find-python-mode:
+
+FindPython mode
+---------------
+
+CMake 3.12+ (3.15+ recommended) added a new module called FindPython that had a
+highly improved search algorithm and modern targets and tools. If you use
+FindPython, pybind11 will detect this and use the existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.7)
-    project(example)
+    cmake_minumum_required(VERSION 3.15...3.18)
+    project(example LANGUAGES CXX)
+
+    find_package(Python COMPONENTS Interpreter Development REQUIRED)
+    find_package(pybind11 CONFIG REQUIRED)
+    # or add_subdirectory(pybind11)
+
+    pybind11_add_module(example example.cpp)
+
+You can also use the targets (as listed below) with FindPython. If you define
+``PYBIND11_FINDPYTHON``, pybind11 will perform the FindPython step for you
+(mostly useful when building pybind11's own tests, or as a way to change search
+algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
+
+.. warning::
+
+    If you use FindPython2 and FindPython3 to dual-target Python, use the
+    individual targets listed below, and avoid targets that directly include
+    Python parts.
+
+There are `many ways to hint or force a discovery of a specific Python
+installation <https://cmake.org/cmake/help/latest/module/FindPython.html>`_),
+setting ``Python_ROOT_DIR`` may be the most common one (though with
+virtualenv/venv support, and Conda support, this tends to find the correct
+Python version more often than the old system did).
+
+.. versionadded:: 2.6
+
+Advanced: interface library targets
+-----------------------------------
+
+Pybind11 supports modern CMake usage patterns with a set of interface targets,
+available in all modes. The targets provided are:
+
+   ``pybind11::headers``
+     Just the pybind11 headers and minimum compile requirements
+
+   ``pybind11::python2_no_register``
+     Quiets the warning/error when mixing C++14 or higher and Python 2
+
+   ``pybind11::pybind11``
+     Python headers + ``pybind11::headers`` + ``pybind11::python2_no_register`` (Python 2 only)
+
+   ``pybind11::python_link_helper``
+     Just the "linking" part of pybind11:module
+
+   ``pybind11::module``
+     Everything for extension modules - ``pybind11::pybind11`` + ``Python::Module`` (FindPython CMake 3.15+) or ``pybind11::python_link_helper``
+
+   ``pybind11::embed``
+     Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Embed`` (FindPython) or Python libs
+
+   ``pybind11::lto`` / ``pybind11::thin_lto``
+     An alternative to `INTERPROCEDURAL_OPTIMIZATION` for adding link-time optimization.
+
+   ``pybind11::windows_extras``
+     ``/bigobj`` and ``/mp`` for MSVC.
+
+Two helper functions are also provided:
+
+    ``pybind11_strip(target)``
+      Strips a target (uses ``CMAKE_STRIP`` after the target is built)
+
+    ``pybind11_extension(target)``
+      Sets the correct extension (with SOABI) for a target.
+
+You can use these targets to build complex applications. For example, the
+``add_python_module`` function is identical to:
+
+.. code-block:: cmake
+
+    cmake_minimum_required(VERSION 3.4)
+    project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
 
     add_library(example MODULE main.cpp)
-    target_link_libraries(example PRIVATE pybind11::module)
-    set_target_properties(example PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                             SUFFIX "${PYTHON_MODULE_EXTENSION}")
+
+    target_link_libraries(example PRIVATE pybind11::module pybind11::lto pybind11::windows_extras)
+
+    pybind11_extension(example)
+    pybind11_strip(example)
+
+    set_target_properties(example PROPERTIES CXX_VISIBILITY_PRESET "hidden"
+                                             CUDA_VISIBILITY_PRESET "hidden")
+
+Instead of setting properties, you can set ``CMAKE_*`` variables to initialize these correctly.
 
 .. warning::
 
     Since pybind11 is a metatemplate library, it is crucial that certain
     compiler flags are provided to ensure high quality code generation. In
     contrast to the ``pybind11_add_module()`` command, the CMake interface
-    library only provides the *minimal* set of parameters to ensure that the
-    code using pybind11 compiles, but it does **not** pass these extra compiler
-    flags (i.e. this is up to you).
+    provides a *composable* set of targets to ensure that you retain flexibility.
+    It can be expecially important to provide or set these properties; the
+    :ref:`FAQ <faq:symhidden>` contains an explanation on why these are needed.
 
-    These include Link Time Optimization (``-flto`` on GCC/Clang/ICPC, ``/GL``
-    and ``/LTCG`` on Visual Studio) and .OBJ files with many sections on Visual
-    Studio (``/bigobj``).  The :ref:`FAQ <faq:symhidden>` contains an
-    explanation on why these are needed.
+.. versionadded:: 2.6
 
-    If you want to add these in yourself, you can use:
+.. _nopython-mode:
 
-    .. code-block:: cmake
+Advanced: NOPYTHON mode
+-----------------------
 
-        set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-        set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
-        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)  # CMake 3.9+ required
+If you want complete control, you can set ``PYBIND11_NOPYTHON`` to completely
+disable Python integration (this also happens if you run ``FindPython2`` and
+``FindPython3`` without running ``FindPython``). This gives you complete
+freedom to integrate into an existing system (like `Scikit-Build's
+<https://scikit-build.readthedocs.io>`_ ``PythonExtensions``).
+``pybind11_add_module`` and ``pybind11_extension`` will be unavailable, and the
+targets will be missing any Python specific behavior.
 
-    or set the corresponding property (without the ``CMAKE_``) on the targets
-    manually.
+.. versionadded:: 2.6
 
 Embedding the Python interpreter
 --------------------------------
@@ -228,8 +313,8 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.7)
-    project(example)
+    cmake_minimum_required(VERSION 3.4...3.18)
+    project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
 
@@ -306,3 +391,10 @@ extensible, and applies to very complex C++ libraries, composed of thousands of
 classes or incorporating modern meta-programming constructs.
 
 .. [AutoWIG] https://github.com/StatisKit/AutoWIG
+
+[robotpy-build]_ is a is a pure python, cross platform build tool that aims to
+simplify creation of python wheels for pybind11 projects, and provide
+cross-project dependency management. Additionally, it is able to autogenerate
+customizable pybind11-based wrappers by parsing C++ header files.
+
+.. [robotpy-build] https://robotpy-build.readthedocs.io

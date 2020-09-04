@@ -5,18 +5,28 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.4)
 
-# VERSION 3.7...3.18, but some versions of VS have a patched CMake 3.11
-# that do not work properly with this syntax, so using the following workaround:
+# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
+# some versions of VS that have a patched CMake 3.11. This forces us to emulate
+# the behavior using the following workaround:
 if(${CMAKE_VERSION} VERSION_LESS 3.18)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
   cmake_policy(VERSION 3.18)
 endif()
 
+# New Python support
+if(DEFINED Python_EXECUTABLE)
+  set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
+  set(PYTHON_VERSION "${Python_VERSION}")
+endif()
+
 # There's no harm in including a project in a project
 project(pybind11_tests CXX)
+
+# Access FindCatch and more
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN (requires CMake 3.11+)" OFF)
@@ -80,7 +90,7 @@ set(PYBIND11_TEST_FILES
     test_virtual_functions.cpp)
 
 # Invoking cmake with something like:
-#     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_picking.cpp" ..
+#     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp" ..
 # lets you override the tests that get compiled and run.  You can restore to all tests with:
 #     cmake -DPYBIND11_TEST_OVERRIDE= ..
 if(PYBIND11_TEST_OVERRIDE)
@@ -89,12 +99,8 @@ endif()
 
 # Skip test_async for Python < 3.5
 list(FIND PYBIND11_TEST_FILES test_async.cpp PYBIND11_TEST_FILES_ASYNC_I)
-if((PYBIND11_TEST_FILES_ASYNC_I GREATER -1) AND ("${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}"
-                                                 VERSION_LESS 3.5))
-  message(
-    STATUS
-      "Skipping test_async because Python version ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} < 3.5"
-  )
+if((PYBIND11_TEST_FILES_ASYNC_I GREATER -1) AND (PYTHON_VERSION VERSION_LESS 3.5))
+  message(STATUS "Skipping test_async because Python version ${PYTHON_VERSION} < 3.5")
   list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_ASYNC_I})
 endif()
 
@@ -137,13 +143,9 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
 
     set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
     set(EIGEN3_FOUND TRUE)
+
   else()
     find_package(Eigen3 3.2.7 QUIET CONFIG)
-    if(EIGEN3_FOUND)
-      if(EIGEN3_VERSION_STRING AND NOT EIGEN3_VERSION_STRING VERSION_LESS 3.3.1)
-        set(PYBIND11_EIGEN_VIA_TARGET TRUE)
-      endif()
-    endif()
 
     if(NOT EIGEN3_FOUND)
       # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
@@ -153,6 +155,12 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   endif()
 
   if(EIGEN3_FOUND)
+    if(NOT TARGET Eigen3::Eigen)
+      add_library(Eigen3::Eigen IMPORTED INTERFACE)
+      set_property(TARGET Eigen3::Eigen PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                                                 "${EIGEN3_INCLUDE_DIR}")
+    endif()
+
     # Eigen 3.3.1+ cmake sets EIGEN3_VERSION_STRING (and hard codes the version when installed
     # rather than looking it up in the cmake script); older versions, and the
     # tools/FindEigen3.cmake, set EIGEN3_VERSION instead.
@@ -168,6 +176,20 @@ endif()
 
 # Optional dependency for some tests (boost::variant is only supported with version >= 1.56)
 find_package(Boost 1.56)
+
+if(Boost_FOUND)
+  if(NOT TARGET Boost::headers)
+    if(TARGET Boost::boost)
+      # Classic FindBoost
+      add_library(Boost::headers ALIAS Boost::boost)
+    else()
+      # Very old FindBoost, or newer Boost than CMake in older CMakes
+      add_library(Boost::headers IMPORTED INTERFACE)
+      set_property(TARGET Boost::headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                                                  ${Boost_INCLUDE_DIRS})
+    endif()
+  endif()
+endif()
 
 # Compile with compiler warnings turned on
 function(pybind11_enable_warnings target_name)
@@ -217,7 +239,6 @@ foreach(t ${PYBIND11_CROSS_MODULE_GIL_TESTS})
   endif()
 endforeach()
 
-set(testdir ${CMAKE_CURRENT_SOURCE_DIR})
 foreach(target ${test_targets})
   set(test_files ${PYBIND11_TEST_FILES})
   if(NOT "${target}" STREQUAL "pybind11_tests")
@@ -228,30 +249,40 @@ foreach(target ${test_targets})
   pybind11_add_module(${target} THIN_LTO ${target}.cpp ${test_files} ${PYBIND11_HEADERS})
   pybind11_enable_warnings(${target})
 
+  if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+    get_property(
+      suffix
+      TARGET ${target}
+      PROPERTY SUFFIX)
+    set(source_output "${CMAKE_CURRENT_SOURCE_DIR}/${target}${suffix}")
+    if(suffix AND EXISTS "${source_output}")
+      message(WARNING "Output file also in source directory; "
+                      "please remove to avoid confusion: ${source_output}")
+    endif()
+  endif()
+
   if(MSVC)
     target_compile_options(${target} PRIVATE /utf-8)
   endif()
 
   if(EIGEN3_FOUND)
-    if(PYBIND11_EIGEN_VIA_TARGET)
-      target_link_libraries(${target} PRIVATE Eigen3::Eigen)
-    else()
-      target_include_directories(${target} PRIVATE ${EIGEN3_INCLUDE_DIR})
-    endif()
+    target_link_libraries(${target} PRIVATE Eigen3::Eigen)
     target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_EIGEN)
   endif()
 
   if(Boost_FOUND)
-    target_include_directories(${target} PRIVATE ${Boost_INCLUDE_DIRS})
+    target_link_libraries(${target} PRIVATE Boost::headers)
     target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_BOOST)
   endif()
 
   # Always write the output file directly into the 'tests' directory (even on MSVC)
   if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
-    set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${testdir}")
+    set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                               "${CMAKE_CURRENT_BINARY_DIR}")
     foreach(config ${CMAKE_CONFIGURATION_TYPES})
       string(TOUPPER ${config} config)
-      set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config} "${testdir}")
+      set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                 "${CMAKE_CURRENT_BINARY_DIR}")
     endforeach()
   endif()
 endforeach()
@@ -266,8 +297,8 @@ if(NOT PYBIND11_PYTEST_FOUND)
   if(pytest_not_found)
     message(FATAL_ERROR "Running the tests requires pytest. Please install it manually"
                         " (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
-  elseif(pytest_version VERSION_LESS 3.0)
-    message(FATAL_ERROR "Running the tests requires pytest >= 3.0. Found: ${pytest_version}"
+  elseif(pytest_version VERSION_LESS 3.1)
+    message(FATAL_ERROR "Running the tests requires pytest >= 3.1. Found: ${pytest_version}"
                         "Please update it (try: ${PYTHON_EXECUTABLE} -m pip install -U pytest)")
   endif()
   set(PYBIND11_PYTEST_FOUND
@@ -275,12 +306,26 @@ if(NOT PYBIND11_PYTEST_FOUND)
       CACHE INTERNAL "")
 endif()
 
+if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+  # This is not used later in the build, so it's okay to regenerate each time.
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pytest.ini" "${CMAKE_CURRENT_BINARY_DIR}/pytest.ini"
+                 COPYONLY)
+  file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/pytest.ini"
+       "\ntestpaths = \"${CMAKE_CURRENT_SOURCE_DIR}\"")
+
+endif()
+
+# cmake 3.12 added list(transform <list> prepend
+# but we can't use it yet
+string(REPLACE "test_" "${CMAKE_CURRENT_BINARY_DIR}/test_" PYBIND11_BINARY_TEST_FILES
+               "${PYBIND11_PYTEST_FILES}")
+
 # A single command to compile and run the tests
 add_custom_target(
   pytest
-  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_PYTEST_FILES}
+  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_BINARY_PYTEST_FILES}
   DEPENDS ${test_targets}
-  WORKING_DIRECTORY ${testdir}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL)
 
 if(PYBIND11_TEST_OVERRIDE)

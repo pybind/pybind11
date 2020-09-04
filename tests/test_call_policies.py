@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+import env  # noqa: F401
+
 from pybind11_tests import call_policies as m
 from pybind11_tests import ConstructorStats
 
 
+@pytest.mark.xfail("env.PYPY", reason="sometimes comes out 1 off on PyPy", strict=False)
 def test_keep_alive_argument(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:
@@ -70,8 +74,8 @@ def test_keep_alive_return_value(capture):
     """
 
 
-# https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2447
+@pytest.mark.xfail("env.PYPY", reason="_PyObject_GetDictPtr is unimplemented")
 def test_alive_gc(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     p = m.ParentGC()

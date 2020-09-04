@@ -149,8 +149,7 @@ memory for the C++ portion of the instance will be left uninitialized, which
 will generally leave the C++ instance in an invalid state and cause undefined
 behavior if the C++ instance is subsequently used.
 
-.. versionadded:: 2.5.1
-
+.. versionchanged:: 2.6
    The default pybind11 metaclass will throw a ``TypeError`` when it detects
    that ``__init__`` was not called by a derived class.
 
@@ -160,7 +159,7 @@ Here is an example:
 
     class Dachshund(Dog):
         def __init__(self, name):
-            Dog.__init__(self) # Without this, undefined behavior may occur if the C++ portions are referenced.
+            Dog.__init__(self) # Without this, a TypeError is raised.
             self.name = name
         def bark(self):
             return "yap!"
@@ -558,6 +557,46 @@ crucial that instances are deallocated on the C++ side to avoid memory leaks.
 
     py::class_<MyClass, std::unique_ptr<MyClass, py::nodelete>>(m, "MyClass")
         .def(py::init<>())
+
+.. _destructors_that_call_python:
+
+Destructors that call Python
+============================
+
+If a Python function is invoked from a C++ destructor, an exception may be thrown
+of type :class:`error_already_set`. If this error is thrown out of a class destructor,
+``std::terminate()`` will be called, terminating the process. Class destructors
+must catch all exceptions of type :class:`error_already_set` to discard the Python
+exception using :func:`error_already_set::discard_as_unraisable`.
+
+Every Python function should be treated as *possibly throwing*. When a Python generator
+stops yielding items, Python will throw a ``StopIteration`` exception, which can pass
+though C++ destructors if the generator's stack frame holds the last reference to C++
+objects.
+
+For more information, see :ref:`the documentation on exceptions <unraisable_exceptions>`.
+
+.. code-block:: cpp
+
+    class MyClass {
+    public:
+        ~MyClass() {
+            try {
+                py::print("Even printing is dangerous in a destructor");
+                py::exec("raise ValueError('This is an unraisable exception')");
+            } catch (py::error_already_set &e) {
+                // error_context should be information about where/why the occurred,
+                // e.g. use __func__ to get the name of the current function
+                e.discard_as_unraisable(__func__);
+            }
+        }
+    };
+
+.. note::
+
+    pybind11 does not support C++ destructors marked ``noexcept(false)``.
+
+.. versionadded:: 2.6
 
 .. _implicit_conversions:
 
@@ -1108,6 +1147,8 @@ error:
     TypeError: type 'IsFinal' is not an acceptable base type
 
 .. note:: This attribute is currently ignored on PyPy
+
+.. versionadded:: 2.6
 
 Custom automatic downcasters
 ============================

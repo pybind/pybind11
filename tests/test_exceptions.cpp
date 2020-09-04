@@ -65,6 +65,25 @@ struct PythonCallInDestructor {
     py::dict d;
 };
 
+
+
+struct PythonAlreadySetInDestructor {
+    PythonAlreadySetInDestructor(const py::str &s) : s(s) {}
+    ~PythonAlreadySetInDestructor() {
+        py::dict foo;
+        try {
+            // Assign to a py::object to force read access of nonexistent dict entry
+            py::object o = foo["bar"];
+        }
+        catch (py::error_already_set& ex) {
+            ex.discard_as_unraisable(s);
+        }
+    }
+
+    py::str s;
+};
+
+
 TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception", []() {
         throw std::runtime_error("This exception was intentionally thrown.");
@@ -183,6 +202,11 @@ TEST_SUBMODULE(exceptions, m) {
         return false;
     });
 
+    m.def("python_alreadyset_in_destructor", [](py::str s) {
+        PythonAlreadySetInDestructor alreadyset_in_destructor(s);
+        return true;
+    });
+
     // test_nested_throws
     m.def("try_catch", [m](py::object exc_type, py::function f, py::args args) {
         try { f(*args); }
@@ -193,5 +217,8 @@ TEST_SUBMODULE(exceptions, m) {
                 throw;
         }
     });
+
+    // Test repr that cannot be displayed
+    m.def("simple_bool_passthrough", [](bool x) {return x;});
 
 }

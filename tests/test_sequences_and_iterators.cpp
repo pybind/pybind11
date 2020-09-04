@@ -13,6 +13,8 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
+#include <algorithm>
+
 template<typename T>
 class NonZeroIterator {
     const T* ptr_;

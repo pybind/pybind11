@@ -458,7 +458,7 @@ PYBIND11_NOINLINE inline handle get_object_handle(const void *ptr, const detail:
     auto &instances = get_internals().registered_instances;
     auto range = instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
-        for (auto vh : values_and_holders(it->second)) {
+        for (const auto &vh : values_and_holders(it->second)) {
             if (vh.type == type)
                 return handle((PyObject *) it->second);
         }
@@ -1767,7 +1767,7 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     return ret;
 }
 
-// Calling cast() on an rvalue calls pybind::cast with the object rvalue, which does:
+// Calling cast() on an rvalue calls pybind11::cast with the object rvalue, which does:
 // - If we have to move (because T has no copy constructor), do it.  This will fail if the moved
 //   object has multiple references, but trying to copy will fail to compile.
 // - If both movable and copyable, check ref count: if 1, move; otherwise copy

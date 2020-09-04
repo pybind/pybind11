@@ -154,6 +154,8 @@ TEST_SUBMODULE(factory_constructors, m) {
     MAKE_TAG_TYPE(TF4);
     MAKE_TAG_TYPE(TF5);
     MAKE_TAG_TYPE(null_ptr);
+    MAKE_TAG_TYPE(null_unique_ptr);
+    MAKE_TAG_TYPE(null_shared_ptr);
     MAKE_TAG_TYPE(base);
     MAKE_TAG_TYPE(invalid_base);
     MAKE_TAG_TYPE(alias);
@@ -194,6 +196,8 @@ TEST_SUBMODULE(factory_constructors, m) {
 
         // Returns nullptr:
         .def(py::init([](null_ptr_tag) { return (TestFactory3 *) nullptr; }))
+        .def(py::init([](null_unique_ptr_tag) { return std::unique_ptr<TestFactory3>(); }))
+        .def(py::init([](null_shared_ptr_tag) { return std::shared_ptr<TestFactory3>(); }))
 
         .def_readwrite("value", &TestFactory3::value)
         ;

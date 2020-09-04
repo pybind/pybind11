@@ -1,6 +1,8 @@
 Python types
 ############
 
+.. _wrappers:
+
 Available wrappers
 ==================
 
@@ -173,6 +175,14 @@ Generalized unpacking according to PEP448_ is also supported:
     Python functions from C++, including keywords arguments and unpacking.
 
 .. _PEP448: https://www.python.org/dev/peps/pep-0448/
+
+Handling exceptions
+===================
+
+Python exceptions from wrapper classes will be thrown as a ``py::error_already_set``.
+See :ref:`Handling exceptions from Python in C++
+<handling_python_exceptions_cpp>` for more information on handling exceptions
+raised when calling C++ wrapper classes.
 
 .. _pytypes_gotchas:
 
