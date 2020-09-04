@@ -161,10 +161,6 @@ add_library(pybind11::headers ALIAS pybind11_headers) # easier to use/remember
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
 
-if(NOT PYBIND11_MASTER_PROJECT AND NOT pybind11_FIND_QUIETLY)
-  message(STATUS "Using pybind11: (version \"${pybind11_VERSION}\" ${pybind11_VERSION_TYPE})")
-endif()
-
 # Relative directory setting
 if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python_INCLUDE_DIRS})
