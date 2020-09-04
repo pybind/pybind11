@@ -295,8 +295,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
     - name: Install 🐍 3
-      run: apt-get update && apt-get install -y cmake python3-dev python3-pytest
+      run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake python3-dev python3-pytest
 
     - name: Configure
       run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
