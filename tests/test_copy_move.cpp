@@ -175,14 +175,17 @@ TEST_SUBMODULE(copy_move_policies, m) {
     m.attr("has_optional") = false;
 #endif
 
-    // #70 compilation issue if operator new is not public
+    // #70 compilation issue if operator new is not public - body added but not needed on most compilers
     struct PrivateOpNew {
         int value = 1;
     private:
-#if defined(_MSC_VER)
-#  pragma warning(disable: 4822) // warning C4822: local class member function does not have a body
-#endif
-        void *operator new(size_t bytes);
+        void *operator new(size_t bytes) {
+            void *ptr = std::malloc(bytes);
+            if (ptr)
+                return ptr;
+            else
+                throw std::bad_alloc{};
+        }
     };
     py::class_<PrivateOpNew>(m, "PrivateOpNew").def_readonly("value", &PrivateOpNew::value);
     m.def("private_op_new_value", []() { return PrivateOpNew(); });

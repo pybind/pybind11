@@ -1006,6 +1006,27 @@ template <typename CharT> using is_std_char_type = any_of<
     std::is_same<CharT, wchar_t> /* std::wstring */
 >;
 
+
+template<typename T, typename U, enable_if_t<!std::is_integral<T>::value, int> = 0>
+bool invalid_convert_integral(U) {
+    return false;
+}
+
+template<typename T, typename U, enable_if_t<std::is_integral<T>::value && !std::is_unsigned<T>::value, int> = 0>
+bool invalid_convert_integral(U value) {
+    return sizeof(U) != sizeof(T)
+           && (   value < (U) (std::numeric_limits<T>::min)()
+               || value > (U) (std::numeric_limits<T>::max)()
+           );
+}
+
+template<typename T, typename U, enable_if_t<std::is_integral<T>::value && std::is_unsigned<T>::value, int> = 0>
+bool invalid_convert_integral(U value) {
+    return sizeof(U) != sizeof(T)
+           &&  value > (U) (std::numeric_limits<T>::max)();
+}
+
+
 template <typename T>
 struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
     using _py_type_0 = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
@@ -1036,10 +1057,8 @@ public:
 
         bool py_err = py_value == (py_type) -1 && PyErr_Occurred();
 
-        // Protect std::numeric_limits::min/max with parentheses
-        if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) &&
-                       (py_value < (py_type) (std::numeric_limits<T>::min)() ||
-                        py_value > (py_type) (std::numeric_limits<T>::max)()))) {
+        // Only compare > 0 if not unsigned (warns on some compilers, like nvcc)
+        if (py_err || invalid_convert_integral<T>(py_value)) {
             bool type_error = py_err && PyErr_ExceptionMatches(
 #if PY_VERSION_HEX < 0x03000000 && !defined(PYPY_VERSION)
                 PyExc_SystemError

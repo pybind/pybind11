@@ -139,7 +139,7 @@ public:
     std::string print_movable(int a, int b) { return get_movable(a, b).get_value(); }
 };
 class NCVirtTrampoline : public NCVirt {
-#if !defined(__INTEL_COMPILER)
+#if !defined(__INTEL_COMPILER) && !defined(__CUDACC__)
     NonCopyable get_noncopyable(int a, int b) override {
         PYBIND11_OVERLOAD(NonCopyable, NCVirt, get_noncopyable, a, b);
     }
@@ -205,7 +205,7 @@ TEST_SUBMODULE(virtual_functions, m) {
         .def(py::init<int, int>());
 
     // test_move_support
-#if !defined(__INTEL_COMPILER)
+#if !defined(__INTEL_COMPILER) && !defined(__CUDACC__)
     py::class_<NCVirt, NCVirtTrampoline>(m, "NCVirt")
         .def(py::init<>())
         .def("get_noncopyable", &NCVirt::get_noncopyable)
