@@ -34,7 +34,7 @@ def main():
     parser.add_argument(
         "--cmakedir",
         action="store_true",
-        help="Print the CMake module directory, ideal for pybind11_ROOT.",
+        help="Print the CMake module directory, ideal for setting -Dpybind11_ROOT in CMake.",
     )
     args = parser.parse_args()
     if not sys.argv[1:]:
