@@ -87,11 +87,10 @@ parameter, a pointer to `PyObject`:
     py::register_exception<CppExp>(module, "PyExp", PyExc_RuntimeError);
 
 Then `PyExp` can be caught both as `PyExp` and `RuntimeError`.
-Common base classes from the table above are `PyExc_Exception` (default), 
-`PyExc_IndexError`, `PyExc_KeyError`, `PyExc_MemoryError`, `PyExc_OverflowError`, 
-`PyExc_RuntimeError`, `PyExc_StopIteration`, `PyExc_ValueError`. 
-More definitions can be found in Python's `pyerrors.h` file, and they follow
-the pattern `PyExc_XXX`.
+
+The class objects of the built-in Python exceptions are listed in the Python 
+documentation on `Standard Exceptions <https://docs.python.org/3/c-api/exceptions.html#standard-exceptions>`_.
+The default base class is `PyExc_Exception`.
 
 When more advanced exception translation is needed, the function
 ``py::register_exception_translator(translator)`` can be used to register
