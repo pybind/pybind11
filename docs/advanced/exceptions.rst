@@ -79,6 +79,20 @@ This call creates a Python exception class with the name ``PyExp`` in the given
 module and automatically converts any encountered exceptions of type ``CppExp``
 into Python exceptions of type ``PyExp``.
 
+It is possible to specify base class for the exception using the third 
+parameter, a pointer to `PyObject`:
+
+.. code-block:: cpp
+
+    py::register_exception<CppExp>(module, "PyExp", PyExc_RuntimeError);
+
+Then `PyExp` can be caught both as `PyExp` and `RuntimeError`.
+Common base classes from the table above are `PyExc_Exception` (default), 
+`PyExc_IndexError`, `PyExc_KeyError`, `PyExc_MemoryError`, `PyExc_OverflowError`, 
+`PyExc_RuntimeError`, `PyExc_StopIteration`, `PyExc_ValueError`. 
+More definitions can be found in Python's `pyerrors.h` file, and they follow
+the pattern `PyExc_XXX`.
+
 When more advanced exception translation is needed, the function
 ``py::register_exception_translator(translator)`` can be used to register
 functions that can translate arbitrary exception types (and which may include
