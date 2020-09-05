@@ -79,7 +79,7 @@ This call creates a Python exception class with the name ``PyExp`` in the given
 module and automatically converts any encountered exceptions of type ``CppExp``
 into Python exceptions of type ``PyExp``.
 
-It is possible to specify base class for the exception using the third 
+It is possible to specify base class for the exception using the third
 parameter, a pointer to `PyObject`:
 
 .. code-block:: cpp
@@ -88,7 +88,7 @@ parameter, a pointer to `PyObject`:
 
 Then `PyExp` can be caught both as `PyExp` and `RuntimeError`.
 
-The class objects of the built-in Python exceptions are listed in the Python 
+The class objects of the built-in Python exceptions are listed in the Python
 documentation on `Standard Exceptions <https://docs.python.org/3/c-api/exceptions.html#standard-exceptions>`_.
 The default base class is `PyExc_Exception`.
 
