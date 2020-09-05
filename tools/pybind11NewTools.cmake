@@ -80,8 +80,13 @@ execute_process(
 execute_process(
   COMMAND "${${_Python}_EXECUTABLE}" "-c"
           "from distutils import sysconfig; print(sysconfig.get_config_var('SO'))"
-  OUTPUT_VARIABLE PYTHON_MODULE_EXTENSION
+  OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
   ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# This needs to be available for the pybind11_extension function
+set(PYTHON_MODULE_EXTENSION
+    "${_PYTHON_MODULE_EXTENSION}"
+    CACHE INTERNAL "")
 
 # Python debug libraries expose slightly different objects before 3.8
 # https://docs.python.org/3.6/c-api/intro.html#debugging-builds
