@@ -40,28 +40,28 @@ source code (e.g. no whitespace reflowing), and try to stay relatively close to
 
 ## Continuous Integration
 
-For simplicity, these checks are copied from upstream's CI which uses Travis
-CI as part of GitHub's Checks. They test:
+For simplicity, these checks are copied from upstream's CI which uses GitHub
+Actions as part of GitHub's checks. They test:
 
-* Ubuntu and macOS (Windows tests disabled)
-* C++11, C++14, and C++17
+* Code formatting (Python, C++, CMake)
+* Latest Ubuntu and macOS images
+    * **drake specific**: Windows and centOS disabled
+* C++11 and C++17
 * Release and debug builds
-* GCC 4.8, 6, and 7
-* clang 7
-* Apple clang 7.3 and 9
-* 64bit and 32bit
-* CPython and PyPy (though PyPy is partially supported on this fork)
-* Python 2.7, 3.5, 3.6, 3.7, and 3.8
-
-To see builds, see [this fork's Travis CI page](https://travis-ci.com/RobotLocomotion/pybind11/branches).
-
-Windows testing (with AppVeyor) is disabled for this repository.
+* GCC and clang
+* 64bit
+    * **drake specific**: no 32bit since Windows is disabled
+* CPython
+    * **drake difference**: PyPy is disabled
+* Python 3.6, 3.7, and 3.8
+    * **drake difference**: Python 2.7 and 3.5 are disabled
 
 ### Quick Testing
 
+For quickly testing Drake modifications on the platform's Python 3 interpreter:
+
     mkdir build && cd build
     cmake .. \
-        -DPYTHON_EXECUTABLE=$(which python3) \
         -DPYBIND11_TEST_OVERRIDE='test_builtin_casters.cpp;test_class.cpp;test_eigen.cpp;test_multiple_inheritance.cpp;test_ownership_transfer.cpp;test_smart_ptr.cpp'
     make -j 4 pytest
 
