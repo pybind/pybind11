@@ -1312,7 +1312,7 @@ Normally, if you keep the object alive in Python, then no additional instrumenta
     >>> cat = Cat()
     >>> c.add(cat)  # This object lives in both Python and C++.
     >>> c.release().go(2)
-    meow! meow! 
+    meow! meow!
 
 However, if you pass an instance that Python later wishes to destroy, without :class:`py::wrapper`, we would get an error that ``go`` is not implented,
 as the `Cat` portion would have been destroyed and no longer visible for the trampoline. With the wrapper, ``pybind11`` will intercept this event and keep the Python portion alive:
@@ -1321,6 +1321,6 @@ as the `Cat` portion would have been destroyed and no longer visible for the tra
 
     >>> c.add(Cat())
     >>> c.release().go(2)
-    meow! meow! 
+    meow! meow!
 
 Note that both the C++ and Python portion of ``cat`` will be destroyed once ``cage`` is destroyed.

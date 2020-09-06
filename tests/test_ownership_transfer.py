@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pybind11_tests import ownership_transfer as m
 from pybind11_tests import ConstructorStats
 
