@@ -1868,7 +1868,7 @@ template <typename type>
 class exception : public object {
 public:
     exception() = default;
-    exception(handle scope, const char *name, PyObject *base = PyExc_Exception) {
+    exception(handle scope, const char *name, handle base = PyExc_Exception) {
         std::string full_name = scope.attr("__name__").cast<std::string>() +
                                 std::string(".") + name;
         m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base, NULL);
@@ -1901,7 +1901,7 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename CppException>
 exception<CppException> &register_exception(handle scope,
                                             const char *name,
-                                            PyObject *base = PyExc_Exception) {
+                                            handle base = PyExc_Exception) {
     auto &ex = detail::get_exception_object<CppException>();
     if (!ex) ex = exception<CppException>(scope, name, base);
 
