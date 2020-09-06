@@ -105,6 +105,25 @@ The two approaches can also be combined:
         std::cout << message;
     }
 
+Typically, a call to a function in a `py::module` returns a generic `py::object`,
+which can often be autmatically cast to a specialized pybind11 type:
+
+.. code-block:: cpp
+
+    py::module os = py::module::import("os");
+    py::module path = py::module::import("os.path");  // like 'import os.path as path'
+    py::module np = py::module::import("numpy");  // like 'import numpy as np'
+
+    py::str curdir_abs = path.attr("abspath")(path.attr("curdir"));
+    py::print(py::str("Current directory: ") + curdir_abs);
+    py::dict environ = os.attr("environ");
+    py::print(environ["HOME"]);
+    py::array_t<float> arr = np.attr("ones")(3, "dtype"_a="float32");
+    py::print(py::repr(arr + py::int_(1)));
+
+(Note that this example requires ``#include <pybind11/numpy.h>`` and
+``using namespace pybind11::literals;`` to work.)
+
 Importing modules
 =================
 
