@@ -20,6 +20,8 @@ Available types include :class:`handle`, :class:`object`, :class:`bool_`,
     Be sure to review the :ref:`pytypes_gotchas` before using this heavily in
     your C++ API.
 
+.. _casting_back_and_forth:
+
 Casting back and forth
 ======================
 
@@ -61,6 +63,40 @@ This example obtains a reference to the Python ``Decimal`` class.
     // Try to import scipy
     py::object scipy = py::module::import("scipy");
     return scipy.attr("__version__");
+
+.. _implicit_casting:
+
+Implicit (automatic) casting
+============================
+
+Instead of using a generic :class:`object` as return type, it is possible to
+specialize to a subtype, e.g., to use the lookup syntax of :class:`dict`.
+
+.. note::
+    Casting to the wrong type will currently lead to downstream errors, e.g.,
+    when casting a Python dict to :class:`list` and using the ``append`` method.
+    In the future, such a bad cast will likely result in a :class:`cast_error`,
+    see `PR #2349 <https://github.com/pybind/pybind11/pull/2349>`_.
+
+.. code-block:: cpp
+    #include <pybind11/numpy.h>
+    using namespace pybind11::literals;
+
+    py::module os = py::module::import("os");
+    py::module path = py::module::import("os.path");  // like 'import os.path as path'
+    py::module np = py::module::import("numpy");  // like 'import numpy as np'
+
+    py::str curdir_abs = path.attr("abspath")(path.attr("curdir"));
+    py::print(py::str("Current directory: ") + curdir_abs);
+    py::dict environ = os.attr("environ");
+    py::print(environ["HOME"]);
+    py::array_t<float> arr = np.attr("ones")(3, "dtype"_a="float32");
+    py::print(py::repr(arr + py::int_(1)));
+
+This constructor syntax is available for subclasses of :class:`object`; there
+is no need to call ``obj.cast()`` explicitly as for custom classes, see
+:ref:`_casting_back_and_forth`.
+
 
 .. _calling_python_functions:
 
