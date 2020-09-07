@@ -209,7 +209,7 @@ C++ functions that require a specific subtype rather than a generic :class:`obje
 
 These implicit conversions are available for subclasses of :class:`object`; there
 is no need to call ``obj.cast()`` explicitly as for custom classes, see
-:ref:`_casting_back_and_forth`.
+:ref:`casting_back_and_forth`.
 
 .. note::
     If a trivial conversion via move constructor is not possible, both implicit and
