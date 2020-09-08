@@ -210,12 +210,45 @@ cmake -S pybind11/ -B build
 cmake --build build
 ```
 
-
 ### Explanation of the SDist/wheel building design
 
+> These details are _only_ for building from the Python sources from git. The
+> SDists and wheels created do not have any extra requirements at all and are
+> completely normal.
+
 In order to support CMake output files (`pybind11Config.cmake` and helper
-files), the `setup.py` _in the source_ has a few tricks to make the simplest
-possible SDists and wheels. The build procedure is as follows:
+files), the `[globals]` option, and a simple version file taken from the C++
+sources, the `setup.py` _in the source_ has a few tricks to make the simplest
+possible SDists and wheels. If you want to build the SDist from the GitHub
+source, it is best to have Pip 10 on a manylinux1, macOS, or Windows system.
+You can then build the SDists, or run any procedure that makes SDists
+internally, like making wheels or installing. Since Pip itself
+does not have an `sdist` command (it does have `wheel` and `install`), you will
+need to use the `pep517` package directly:
+
+```bash
+# Normal package
+python3 -m pep517.build -s .
+
+# Global extra
+PYBIND11_GLOBAL_SDIST=1 python3 -m pep517.build -s .
+```
+
+If you want to use the classic "direct" usage of `python setup.py`, you will
+need CMake 3.15+ and either make or ninja preinstalled (possibly via `pip
+install cmake ninja`), since directly running Python on `setup.py` cannot pick
+up `pyproject.toml` requirements. As long as you have those two things, though,
+everything works as normal:
+
+```bash
+# Normal package
+python setup.py sdist
+
+# Global extra
+PYBIND11_GLOBAL_SDIST=1 python setup.py sdist
+```
+
+A detailed explanation of the build procedure design is as follows:
 
 #### 1. Building from the source directory
 
@@ -223,12 +256,12 @@ When you invoke any `setup.py` command from the source directory, including
 `pip wheel .` and `pip install .`, you will activate a full source build. This
 is made of the following steps:
 
-1. If the tool is PEP 518 compliant, it will create a temporary virtual
-   environment and install the build requirements (mostly CMake) into it. (if
-   you are not on Windows, macOS, or a manylinux compliant system, you can
-   disable this with `--no-build-isolation` as long as you have CMake 3.15+
-   installed)
-2. The environment variable `PYBIND11_GLOBAL_DIST` is checked - if it is set
+1. If the tool is PEP 518 compliant, like `pep517.build` or Pip 10+, it will
+   create a temporary virtual environment and install the build requirements
+   (mostly CMake) into it. (if you are not on Windows, macOS, or a manylinux
+   compliant system, you can disable this with `--no-build-isolation` as long
+   as you have CMake 3.15+ installed)
+2. The environment variable `PYBIND11_GLOBAL_SDIST` is checked - if it is set
    and truthy, this will be make the accessory `pybind11-global` package,
    instead of the normal `pybind11` package. This package is used for
    installing the "global" headers and CMake files, using `pybind11[global]`.
@@ -241,6 +274,8 @@ is made of the following steps:
 4. Three files are placed in the SDist: `tools/setup_main.py.in`,
    `tools/pyproject.toml`, and `tools/_version.py.in`.
 5. The package is created using the setup function in the `tools/setup_*.py`.
+   `setup_main.py` fills in Python packages, and `setup_global.py` fills in
+   only the data/header slots.
 6. A context manager cleans up the temporary CMake install directory (even if
    an error is thrown).
 
