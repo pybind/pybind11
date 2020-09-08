@@ -628,7 +628,7 @@ v2.2.0 (August 31, 2017)
   in reference cycles.
   `#856 <https://github.com/pybind/pybind11/pull/856>`_.
 
-* Numpy and buffer protocol related improvements:
+* NumPy and buffer protocol related improvements:
 
   1. Support for negative strides in Python buffer objects/numpy arrays. This
      required changing integers from unsigned to signed for the related C++ APIs.
@@ -1359,7 +1359,7 @@ Happy Christmas!
 * Improved support for ``std::shared_ptr<>`` conversions
 * Initial support for ``std::set<>`` conversions
 * Fixed type resolution issue for types defined in a separate plugin module
-* Cmake build system improvements
+* CMake build system improvements
 * Factored out generic functionality to non-templated code (smaller code size)
 * Added a code size / compile time benchmark vs Boost.Python
 * Added an appveyor CI script

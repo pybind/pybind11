@@ -36,6 +36,14 @@ repos:
 
 - repo: local
   hooks:
+  - id: disallow-caps
+    name: Disallow improper capitalization
+    language: pygrep
+    entry: PyBind|Numpy|Cmake
+    exclude: .pre-commit-config.yaml
+
+- repo: local
+  hooks:
   - id: check-style
     name: Classic check-style
     language: system
