@@ -32,7 +32,7 @@ something. The changes are:
   ``CMAKE_CXX_STANDARD=<number>`` instead, or any other valid CMake CXX or CUDA
   standard selection method, like ``target_compile_features``.
 
-* If you do not request a standard, PyBind11 targets will compile with the
+* If you do not request a standard, pybind11 targets will compile with the
   compiler default, but not less than C++11, instead of forcing C++14 always.
   If you depend on the old behavior, please use ``set(CMAKE_CXX_STANDARD 14)``
   instead.
