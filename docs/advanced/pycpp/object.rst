@@ -184,11 +184,11 @@ Generalized unpacking according to PEP448_ is also supported:
 Implicit casting
 ================
 
-When using this C++ interface for Python types or calling Python functions,
-and objects of type :class:`object` are returned, it is possible to
-specialize to a subtype like :class:`dict`. The same holds for the proxy objects
+When using the C++ interface for Python types, or calling Python functions,
+objects of type :class:`object` are returned. It is possible to invoke implicit
+conversions to subclasses like :class:`dict`. The same holds for the proxy objects
 returned by ``operator[]`` or ``obj.attr()``.
-Casting to subtypes improves code readability and allows values to be used in
+Casting to subtypes improves code readability and allows values to be passed to
 C++ functions that require a specific subtype rather than a generic :class:`object`.
 
 .. code-block:: cpp
