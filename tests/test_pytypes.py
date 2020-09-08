@@ -109,6 +109,16 @@ def test_str(doc):
     assert s1 == "1 + 2 = 3"
     assert s1 == s2
 
+    assert m.str_from_handle(A()) == "this is a str"
+
+    malformed_utf8 = b"\x80"
+    assert m.str_from_object(malformed_utf8) is malformed_utf8  # Probably surprising.
+    if env.PY2:
+        with pytest.raises(TypeError):
+            m.str_from_handle(malformed_utf8)
+    else:
+        assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
+
 
 def test_bytes(doc):
     assert m.bytes_from_string().decode() == "foo"
