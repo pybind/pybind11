@@ -54,7 +54,7 @@ import distutils.errors
 WIN = sys.platform.startswith("win32")
 PY2 = sys.version_info[0] < 3
 MACOS = sys.platform.startswith("darwin")
-STD_TMPL = "/std:cxx{}" if WIN else "-std=c++{}"
+STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 
 
 # It is recommended to use PEP 518 builds if using this module. However, this
