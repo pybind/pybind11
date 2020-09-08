@@ -140,11 +140,11 @@ TEST_SUBMODULE(class_, m) {
     m.def("check_type", [](int category) {
         // Currently not supported (via a fail at compile time)
         // if (category == 2)
-        //     return py::type<int>();
+        //     return py::type::of<int>();
         if (category == 1)
-            return py::type<DerivedClass1>();
+            return py::type::of<DerivedClass1>();
         else
-            return py::type<Invalid>();
+            return py::type::of<Invalid>();
     });
 
     m.def("compute_type", [](py::handle h) {

@@ -19,6 +19,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 /* A few forward declarations */
 class handle; class object;
 class str; class iterator;
+class type;
 struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -888,6 +889,22 @@ private:
 
 private:
     object value = {};
+};
+
+class type : public handle {
+public:
+    // Explicit omitted here since PyTypeObject required (rather than just PyObject)
+    type(PyTypeObject* type_ptr) : handle((PyObject*) type_ptr) {}
+
+    /// Giving a handle/object gets the type from it
+    explicit type(const handle& h) : handle((PyObject *) Py_TYPE(h.ptr())) {}
+
+    /// Convert C++ type to py::type if prevously registered. Does not convert standard types, like int, float. etc. yet.
+    template<typename T>
+    static type of();
+
+    /// Custom check function that also ensures this is a type
+    bool check() const { return ptr() != nullptr && PyType_Check(ptr());}
 };
 
 class iterable : public object {
