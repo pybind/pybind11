@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.7)
 project(test_installed_target CXX)
 
 set(CMAKE_MODULE_PATH "")
@@ -18,5 +18,12 @@ set_target_properties(test_cmake_build PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX
 # This may be needed to resolve header conflicts, e.g. between Python release and debug headers.
 set_target_properties(test_cmake_build PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
 
-add_custom_target(check ${CMAKE_COMMAND} -E env PYTHONPATH=$<TARGET_FILE_DIR:test_cmake_build>
-                  ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/../test.py ${PROJECT_NAME})
+add_custom_target(
+  check
+  ${CMAKE_COMMAND}
+  -E
+  env
+  PYTHONPATH=$<TARGET_FILE_DIR:test_cmake_build>
+  ${PYTHON_EXECUTABLE}
+  ${PROJECT_SOURCE_DIR}/../test.py
+  ${PROJECT_NAME})

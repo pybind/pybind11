@@ -17,8 +17,8 @@
 #include <memory>
 #include <iostream>
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Buffer that writes to Python instead of C++
 class pythonbuf : public std::streambuf {
@@ -72,7 +72,7 @@ public:
     }
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 
 /** \rst
@@ -144,7 +144,7 @@ public:
 };
 
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Class to redirect output as a context manager. C++ backend.
 class OstreamRedirect {
@@ -170,7 +170,7 @@ public:
     }
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
     This is a helper function to add a C++ redirect context manager to Python
@@ -206,4 +206,4 @@ inline class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::strin
         .def("__exit__", [](detail::OstreamRedirect &self_, args) { self_.exit(); });
 }
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

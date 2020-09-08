@@ -82,7 +82,7 @@ helper class that is defined as follows:
 
 The macro :c:macro:`PYBIND11_OVERLOAD_PURE` should be used for pure virtual
 functions, and :c:macro:`PYBIND11_OVERLOAD` should be used for functions which have
-a default implementation.  There are also two alternate macros 
+a default implementation.  There are also two alternate macros
 :c:macro:`PYBIND11_OVERLOAD_PURE_NAME` and :c:macro:`PYBIND11_OVERLOAD_NAME` which
 take a string-valued name argument between the *Parent class* and *Name of the
 function* slots, which defines the name of function in Python. This is required
@@ -1104,7 +1104,7 @@ Binding final classes
 
 Some classes may not be appropriate to inherit from. In C++11, classes can
 use the ``final`` specifier to ensure that a class cannot be inherited from.
-The ``py::is_final`` attribute can be used to ensure that Python classes 
+The ``py::is_final`` attribute can be used to ensure that Python classes
 cannot inherit from a specified type. The underlying C++ type does not need
 to be declared final.
 
@@ -1312,7 +1312,7 @@ Normally, if you keep the object alive in Python, then no additional instrumenta
     >>> cat = Cat()
     >>> c.add(cat)  # This object lives in both Python and C++.
     >>> c.release().go(2)
-    meow! meow! 
+    meow! meow!
 
 However, if you pass an instance that Python later wishes to destroy, without :class:`py::wrapper`, we would get an error that ``go`` is not implented,
 as the `Cat` portion would have been destroyed and no longer visible for the trampoline. With the wrapper, ``pybind11`` will intercept this event and keep the Python portion alive:
@@ -1321,6 +1321,6 @@ as the `Cat` portion would have been destroyed and no longer visible for the tra
 
     >>> c.add(Cat())
     >>> c.release().go(2)
-    meow! meow! 
+    meow! meow!
 
 Note that both the C++ and Python portion of ``cat`` will be destroyed once ``cage`` is destroyed.

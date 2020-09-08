@@ -60,45 +60,37 @@
 
 @PACKAGE_INIT@
 
-set(PN pybind11)
+# Location of pybind11/pybind11.h
+set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@")
 
-# location of pybind11/pybind11.h
-set(${PN}_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@")
+set(pybind11_LIBRARY "")
+set(pybind11_DEFINITIONS USING_pybind11)
 
-set(${PN}_LIBRARY "")
-set(${PN}_DEFINITIONS USING_${PN})
+check_required_components(pybind11)
 
-check_required_components(${PN})
-
-# make detectable the FindPythonLibsNew.cmake module
+# Make the FindPythonLibsNew.cmake module available
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 include(pybind11Tools)
 
-if(NOT (CMAKE_VERSION VERSION_LESS 3.0))
 #-----------------------------------------------------------------------------
 # Don't include targets if this file is being picked up by another
 # project which has already built this as a subproject
 #-----------------------------------------------------------------------------
-if(NOT TARGET ${PN}::pybind11)
-    include("${CMAKE_CURRENT_LIST_DIR}/${PN}Targets.cmake")
+if(NOT TARGET pybind11::pybind11)
+    include("${CMAKE_CURRENT_LIST_DIR}/pybind11Targets.cmake")
 
     find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED)
-    set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIRS})
-    set_property(TARGET ${PN}::embed APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
-    if(WIN32 OR CYGWIN)
-      set_property(TARGET ${PN}::module APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
-    endif()
 
-    if(CMAKE_VERSION VERSION_LESS 3.3)
-      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${PYBIND11_CPP_STANDARD}")
-    else()
-      set_property(TARGET ${PN}::pybind11 APPEND PROPERTY INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:${PYBIND11_CPP_STANDARD}>)
-    endif()
+    set_property(TARGET pybind11::pybind11 APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIRS})
+    set_property(TARGET pybind11::pybind11 APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${PYTHON_INCLUDE_DIRS})
 
-    get_property(_iid TARGET ${PN}::pybind11 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-    get_property(_ill TARGET ${PN}::module PROPERTY INTERFACE_LINK_LIBRARIES)
-    set(${PN}_INCLUDE_DIRS ${_iid})
-    set(${PN}_LIBRARIES ${_ico} ${_ill})
-endif()
+    set_property(TARGET pybind11::embed APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${PYTHON_LIBRARIES})
+    set_property(TARGET pybind11::module APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+        "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>>:$<BUILD_INTERFACE:${PYTHON_LIBRARIES}>>")
+
+    get_property(_iid TARGET pybind11::pybind11 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+    get_property(_ill TARGET pybind11::module PROPERTY INTERFACE_LINK_LIBRARIES)
+    set(pybind11_INCLUDE_DIRS ${_iid})
+    set(pybind11_LIBRARIES ${_ico} ${_ill})
 endif()

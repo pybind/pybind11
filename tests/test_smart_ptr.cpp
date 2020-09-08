@@ -292,7 +292,8 @@ TEST_SUBMODULE(smart_ptr, m) {
         ~C() { print_destroyed(this); }
     };
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")
-        .def_static("make", []() { return custom_unique_ptr<C>(new C); });
+        .def_static("make", []() { return custom_unique_ptr<C>(new C); })
+        .def_static("make_as_object", []() { return py::cast(custom_unique_ptr<C>(new C)); });
 
     // test_holder_with_addressof_operator
     struct TypeForHolderWithAddressOf {
@@ -339,6 +340,8 @@ TEST_SUBMODULE(smart_ptr, m) {
     // #187: issue involving std::shared_ptr<> return value policy & garbage collection
     struct ElementBase {
         virtual ~ElementBase() { } /* Force creation of virtual table */
+        ElementBase() = default;
+        ElementBase(const ElementBase&) = delete;
     };
     py::class_<ElementBase, std::shared_ptr<ElementBase>>(m, "ElementBase");
 

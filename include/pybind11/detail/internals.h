@@ -11,8 +11,8 @@
 
 #include "../pytypes.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
@@ -275,7 +275,10 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         auto *&internals_ptr = *internals_pp;
         internals_ptr = new internals();
 #if defined(WITH_THREAD)
-        PyEval_InitThreads();
+
+        #if PY_VERSION_HEX < 0x03090000
+                PyEval_InitThreads();
+        #endif
         PyThreadState *tstate = PyThreadState_Get();
         #if PY_VERSION_HEX >= 0x03070000
             internals_ptr->tstate = PyThread_tss_alloc();
@@ -316,7 +319,7 @@ const char *c_str(Args &&...args) {
     return strings.front().c_str();
 }
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /// Returns a named pointer that is shared among all extension modules (using the same
 /// pybind11 version) running in the current interpreter. Names starting with underscores
@@ -348,4 +351,4 @@ T &get_or_create_shared_data(const std::string &name) {
     return *ptr;
 }
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

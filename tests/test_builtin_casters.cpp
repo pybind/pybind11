@@ -117,12 +117,16 @@ TEST_SUBMODULE(builtin_casters, m) {
         return std::make_pair(RValueCaster{}, std::make_tuple(RValueCaster{}, std::make_pair(RValueCaster{}, RValueCaster{}))); });
     m.def("lvalue_nested", []() -> const decltype(lvnested) & { return lvnested; });
 
+    static std::pair<int, std::string> int_string_pair{2, "items"};
+    m.def("int_string_pair", []() { return &int_string_pair; });
+
     // test_builtins_cast_return_none
     m.def("return_none_string", []() -> std::string * { return nullptr; });
     m.def("return_none_char",   []() -> const char *  { return nullptr; });
     m.def("return_none_bool",   []() -> bool *        { return nullptr; });
     m.def("return_none_int",    []() -> int *         { return nullptr; });
     m.def("return_none_float",  []() -> float *       { return nullptr; });
+    m.def("return_none_pair",   []() -> std::pair<int,int> * { return nullptr; });
 
     // test_none_deferred
     m.def("defer_none_cstring", [](char *) { return false; });

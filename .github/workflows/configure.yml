@@ -1,0 +1,78 @@
+name: Configure
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - stable
+      - v*
+
+jobs:
+  cmake:
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+        - 2.7
+        - 3.8
+
+    name: CMake ${{ matrix.cmake }} Python ${{ matrix.python }} on ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt
+
+    - name: Make build directories
+      run: |
+        mkdir build3.7
+        mkdir build3.11
+        mkdir build3.18
+
+    - name: Setup CMake 3.7
+      uses: jwlawson/actions-setup-cmake@v1.3
+      with:
+        cmake-version: 3.7
+
+    - name: Configure 3.7
+      working-directory: build3.7
+      run: >
+        cmake ..
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+
+    - name: Setup CMake 3.11
+      uses: jwlawson/actions-setup-cmake@v1.3
+      with:
+        cmake-version: 3.11
+
+    - name: Configure 3.11
+      working-directory: build3.11
+      run: >
+        cmake ..
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+
+    - name: Setup CMake 3.18
+      uses: jwlawson/actions-setup-cmake@v1.3
+      with:
+        cmake-version: 3.18
+
+    - name: Configure 3.18
+      working-directory: build3.18
+      run: >
+        cmake ..
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")

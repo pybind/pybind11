@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This file is called from 'test_eval.py'
 
 if 'call_test2' in locals():

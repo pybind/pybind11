@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function, division
 import os
 import sys
@@ -35,4 +36,3 @@ else:
 
 with open(save, 'w') as sf:
     sf.write(str(libsize))
-

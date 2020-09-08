@@ -13,7 +13,9 @@
 
 class VirtClass  {
 public:
-    virtual ~VirtClass() {}
+    virtual ~VirtClass() = default;
+    VirtClass() = default;
+    VirtClass(const VirtClass&) = delete;
     virtual void virtual_func() {}
     virtual void pure_virtual_func() = 0;
 };

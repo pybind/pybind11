@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 #  Syntax: mkdoc.py [-I<path> ..] [.. a list of header files ..]
 #
@@ -106,8 +107,8 @@ def process_comment(comment):
         result = result2
 
     # Doxygen tags
-    cpp_group = '([\w:]+)'
-    param_group = '([\[\w:\]]+)'
+    cpp_group = r'([\w:]+)'
+    param_group = r'([\[\w:\]]+)'
 
     s = result
     s = re.sub(r'\\c\s+%s' % cpp_group, r'``\1``', s)

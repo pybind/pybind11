@@ -12,10 +12,10 @@
 #include "../attr.h"
 #include "../options.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
-#if PY_VERSION_HEX >= 0x03030000
+#if PY_VERSION_HEX >= 0x03030000 && !defined(PYPY_VERSION)
 #  define PYBIND11_BUILTIN_QUALNAME
 #  define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj)
 #else
@@ -475,7 +475,7 @@ extern "C" inline int pybind11_clear(PyObject *self) {
 /// Give instances of this type a `__dict__` and opt into garbage collection.
 inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto type = &heap_type->ht_type;
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x06000000)
     pybind11_fail(std::string(type->tp_name) + ": dynamic attributes are "
                                                "currently not supported in "
                                                "conjunction with PyPy!");
@@ -664,5 +664,5 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     return (PyObject *) type;
 }
 
-NAMESPACE_END(detail)
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

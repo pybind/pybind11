@@ -68,8 +68,8 @@ public:
 
     int value;
 };
-NAMESPACE_BEGIN(pybind11)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(pybind11)
+PYBIND11_NAMESPACE_BEGIN(detail)
 template <> struct type_caster<MoveOnlyInt> {
     PYBIND11_TYPE_CASTER(MoveOnlyInt, _("MoveOnlyInt"));
     bool load(handle src, bool) { value = MoveOnlyInt(src.cast<int>()); return true; }
@@ -97,8 +97,8 @@ public:
     operator CopyOnlyInt&() { return value; }
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 };
-NAMESPACE_END(detail)
-NAMESPACE_END(pybind11)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(pybind11)
 
 TEST_SUBMODULE(copy_move_policies, m) {
     // test_lacking_copy_ctor

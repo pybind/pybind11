@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pybind11_tests import modules as m
 from pybind11_tests.modules import subsubmodule as ms
 from pybind11_tests import ConstructorStats

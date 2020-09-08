@@ -12,7 +12,7 @@
 
 #include "cast.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// \addtogroup annotations
 /// @{
@@ -113,7 +113,7 @@ struct call_guard<T, Ts...> {
 
 /// @} annotations
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 /* Forward declarations */
 enum op_id : int;
 enum op_type : int;
@@ -527,5 +527,5 @@ constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
     return named == 0 || (self + named + has_args + has_kwargs) == nargs;
 }
 
-NAMESPACE_END(detail)
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -48,8 +48,8 @@
 #  define PYBIND11_HAS_VARIANT 1
 #endif
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Extracts an const lvalue reference or rvalue reference for U based on the type of T (e.g. for
 /// forwarding a container element).  Typically used indirect via forwarded_type(), below.
@@ -266,7 +266,9 @@ template<typename T> struct optional_caster {
     static handle cast(T_ &&src, return_value_policy policy, handle parent) {
         if (!src)
             return none().inc_ref();
-        policy = return_value_policy_override<typename T::value_type>::policy(policy);
+        if (!std::is_lvalue_reference<T>::value) {
+            policy = return_value_policy_override<T>::policy(policy);
+        }
         return value_conv::cast(*std::forward<T_>(src), policy, parent);
     }
 
@@ -372,14 +374,14 @@ template <typename... Ts>
 struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { };
 #endif
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
     os << (std::string) str(obj);
     return os;
 }
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

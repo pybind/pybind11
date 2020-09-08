@@ -227,6 +227,8 @@ TEST_SUBMODULE(class_, m) {
         static void *operator new(size_t s, void *ptr) { py::print("C placement-new", s); return ptr; }
         static void operator delete(void *p, size_t s) { py::print("C delete", s); return ::operator delete(p); }
         virtual ~AliasedHasOpNewDelSize() = default;
+        AliasedHasOpNewDelSize() = default;
+        AliasedHasOpNewDelSize(const AliasedHasOpNewDelSize&) = delete;
     };
     struct PyAliasedHasOpNewDelSize : AliasedHasOpNewDelSize {
         PyAliasedHasOpNewDelSize() = default;
@@ -277,6 +279,8 @@ TEST_SUBMODULE(class_, m) {
     class ProtectedB {
     public:
         virtual ~ProtectedB() = default;
+        ProtectedB() = default;
+        ProtectedB(const ProtectedB &) = delete;
 
     protected:
         virtual int foo() const { return value; }
@@ -376,6 +380,17 @@ TEST_SUBMODULE(class_, m) {
     struct IsNonFinalFinal {};
     py::class_<IsNonFinalFinal>(m, "IsNonFinalFinal", py::is_final());
 
+    struct PyPrintDestructor {
+        PyPrintDestructor() {}
+        ~PyPrintDestructor() {
+            py::print("Print from destructor");
+        }
+        void throw_something() { throw std::runtime_error("error"); }
+    };
+    py::class_<PyPrintDestructor>(m, "PyPrintDestructor")
+        .def(py::init<>())
+        .def("throw_something", &PyPrintDestructor::throw_something);
+
     // Test #1922 (drake#11424).
     class ExampleVirt2 {
         public:
@@ -395,7 +410,11 @@ TEST_SUBMODULE(class_, m) {
         [](const ExampleVirt2& obj) { return obj.get_name(); });
 }
 
-template <int N> class BreaksBase { public: virtual ~BreaksBase() = default; };
+template <int N> class BreaksBase { public:
+    virtual ~BreaksBase() = default;
+    BreaksBase() = default;
+    BreaksBase(const BreaksBase&) = delete;
+};
 template <int N> class BreaksTramp : public BreaksBase<N> {};
 // These should all compile just fine:
 typedef py::class_<BreaksBase<1>, std::unique_ptr<BreaksBase<1>>, BreaksTramp<1>> DoesntBreak1;

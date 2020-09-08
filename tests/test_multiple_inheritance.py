@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from pybind11_tests import ConstructorStats
 from pybind11_tests import multiple_inheritance as m
@@ -10,6 +11,7 @@ def test_multiple_inheritance_cpp():
     assert mt.bar() == 4
 
 
+@pytest.bug_in_pypy
 def test_multiple_inheritance_mix1():
     class Base1:
         def __init__(self, i):
@@ -49,6 +51,7 @@ def test_multiple_inheritance_mix2():
     assert mt.bar() == 4
 
 
+@pytest.bug_in_pypy
 def test_multiple_inheritance_python():
 
     class MI1(m.Base1, m.Base2):
@@ -253,7 +256,7 @@ def test_mi_static_properties():
         assert d.static_value == 0
 
 
-@pytest.unsupported_on_pypy
+@pytest.unsupported_on_pypy_lt_6
 def test_mi_dynamic_attributes():
     """Mixing bases with and without dynamic attribute support"""
 
