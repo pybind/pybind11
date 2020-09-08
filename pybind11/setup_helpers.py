@@ -159,9 +159,13 @@ class CppExtension(_Extension):
         if self._cxx_level:
             warnings.warn("You cannot safely change the cxx_level after setting it!")
 
+        # MSVC 2015 Update 3 and later only have 14 (and later 17) modes
+        if WIN and level == 11:
+            level = 14
+
         self._cxx_level = level
 
-        if not level or (WIN and level == 11):
+        if not level:
             return
 
         self.extra_compile_args.append(STD_TMPL.format(level))
@@ -229,8 +233,7 @@ cpp_flag_cache = None
 
 def auto_cpp_level(compiler):
     """
-    Return the max supported C++ std level (17, 14, or 11). If neither 17 or 14
-    is supported on Windows, "11" is returned. Caches result.
+    Return the max supported C++ std level (17, 14, or 11).
     """
 
     global cpp_flag_cache
@@ -247,11 +250,6 @@ def auto_cpp_level(compiler):
             with cpp_cache_lock:
                 cpp_flag_cache = level
             return level
-
-    if WIN:
-        with cpp_cache_lock:
-            cpp_flag_cache = 11
-        return 11
 
     msg = "Unsupported compiler -- at least C++11 support is needed!"
     raise RuntimeError(msg)
