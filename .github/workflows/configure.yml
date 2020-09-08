@@ -120,28 +120,19 @@ jobs:
         python-version: 3.8
 
     - name: Prepare env
-      run: python -m pip install -r tests/requirements.txt wheel twine --prefer-binary
+      run: python -m pip install -r tests/requirements.txt pep517 twine --prefer-binary
 
     - name: Python Packaging tests
       run: pytest tests/extra_python_package/
 
-    - name: Build SDist
+    - name: Build SDist and wheels
       run: |
-        python setup.py sdist
-        PYBIND11_GLOBAL_SDIST=1 python setup.py sdist
+        python -m pep517.build -s -b .
+        PYBIND11_GLOBAL_SDIST=1 python -m pep517.build -s -b .
+
+    - name: Check metadata
+      run: twine check dist/*
 
     - uses: actions/upload-artifact@v2
       with:
         path: dist/*
-
-    - name: Build wheel
-      run: |
-        python -m pip wheel . -w wheels
-        PYBIND11_GLOBAL_SDIST=1 python -m pip wheel . -w wheels
-
-    - uses: actions/upload-artifact@v2
-      with:
-        path: wheels/pybind11*.whl
-
-    - name: Check metadata
-      run: twine check dist/* wheels/*
