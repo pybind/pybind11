@@ -114,7 +114,7 @@ def test_str(doc):
     malformed_utf8 = b"\x80"
     assert m.str_from_object(malformed_utf8) is malformed_utf8  # Probably surprising.
     if env.PY2:
-        with pytest.raises(TypeError):
+        with pytest.raises(UnicodeDecodeError):
             m.str_from_handle(malformed_utf8)
     else:
         assert m.str_from_handle(malformed_utf8) == "b'\\x80'"

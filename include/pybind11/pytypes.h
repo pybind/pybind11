@@ -920,7 +920,7 @@ public:
         Return a string representation of the object. This is analogous to
         the ``str()`` function in Python.
     \endrst */
-    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { }
+    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { if (!m_ptr) throw error_already_set(); }
 
     operator std::string() const {
         object temp = *this;
@@ -945,8 +945,8 @@ private:
     /// Return string representation -- always returns a new reference, even if already a str
     static PyObject *raw_str(PyObject *op) {
         PyObject *str_value = PyObject_Str(op);
-        if (!str_value) throw error_already_set();
 #if PY_MAJOR_VERSION < 3
+        if (!str_value) throw error_already_set();
         PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
         Py_XDECREF(str_value); str_value = unicode;
 #endif
