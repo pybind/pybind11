@@ -8,6 +8,7 @@ on:
       - master
       - stable
       - v*
+      - support_pgc
 
 jobs:
   standard:
@@ -289,6 +290,7 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
+
   cuda:
     runs-on: ubuntu-latest
     name: "🐍 3.8 • CUDA 11 • Ubuntu 20.04"
@@ -296,7 +298,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
+    
     # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
     - name: Install 🐍 3
       run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake python3-dev python3-pytest
@@ -310,6 +312,55 @@ jobs:
     - name: Python tests
       run: cmake --build build --target pytest
 
+
+  centos-nvhpc:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        centos:
+          - 7  # GCC 4.8
+          - 8
+
+    name: "🐍 3 • CentOS ${{ matrix.centos }} • x64 with NVHPC (PGC)"
+    container: "centos:${{ matrix.centos }}"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add Python 3
+      run: yum update -y && yum install -y python3-devel gcc-c++ make git
+
+    - name: Update pip
+      run: python3 -m pip install --upgrade pip
+
+    - name: Install dependencies
+      run: python3 -m pip install cmake -r tests/requirements.txt --prefer-binary
+    
+    - name: Install NVidia HPC SDK
+      run: yum -y install  https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-7-20.7-1.x86_64.rpm  https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.7-1.x86_64.rpm
+
+    - name: Install modules
+      run: yum -y install  environment-modules
+      
+    - name: Configure
+      shell: bash
+      run: |
+        source /etc/profile.d/modules.sh
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
+        cmake -S . -B build -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=OFF -DDOWNLOAD_EIGEN=OFF -DCMAKE_CXX_STANDARD=11 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
 
   install-classic:
     name: "🐍 3.5 • Debian • x86 •  Install"

@@ -740,6 +740,7 @@ protected:
                 - do nothing and let the exception fall through to the next translator, or
                 - delegate translation to the next translator by throwing a new type of exception. */
 
+#if !defined (__PGIC__)
             auto last_exception = std::current_exception();
             auto &registered_exception_translators = get_internals().registered_exception_translators;
             for (auto& translator : registered_exception_translators) {
@@ -751,6 +752,7 @@ protected:
                 }
                 return nullptr;
             }
+#endif
             PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
             return nullptr;
         }
@@ -1851,11 +1853,13 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
 }
 
+#if !defined (__PGIC__)
 template <typename ExceptionTranslator>
 void register_exception_translator(ExceptionTranslator&& translator) {
     detail::get_internals().registered_exception_translators.push_front(
         std::forward<ExceptionTranslator>(translator));
 }
+#endif
 
 /**
  * Wrapper to generate a new Python exception type.
