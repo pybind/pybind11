@@ -8,7 +8,6 @@ on:
       - master
       - stable
       - v*
-      - support_pgc
 
 jobs:
   standard:
@@ -298,7 +297,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    
+
     # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
     - name: Install 🐍 3
       run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake python3-dev python3-pytest
@@ -317,38 +316,31 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        centos:
-          - 7  # GCC 4.8
-          - 8
 
-    name: "🐍 3 • CentOS ${{ matrix.centos }} • x64 with NVHPC (PGC)"
-    container: "centos:${{ matrix.centos }}"
+    name: "🐍 3 • PGI • x64"
+    container: "centos:8"
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Add Python 3
-      run: yum update -y && yum install -y python3-devel gcc-c++ make git
+    - name: Add Python 3 and a few requirements
+      run: yum update -y && yum install -y python3-devel cmake make environment-modules
 
     - name: Update pip
       run: python3 -m pip install --upgrade pip
 
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: python3 -m pip install cmake -r tests/requirements.txt --prefer-binary
-    
-    - name: Install NVidia HPC SDK
-      run: yum -y install  https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-7-20.7-1.x86_64.rpm  https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.7-1.x86_64.rpm
 
-    - name: Install modules
-      run: yum -y install  environment-modules
-      
+    - name: Install NVidia HPC SDK
+      run: yum -y install https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-7-20.7-1.x86_64.rpm  https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.7-1.x86_64.rpm
+
     - name: Configure
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
         module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
-        cmake -S . -B build -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=OFF -DDOWNLOAD_EIGEN=OFF -DCMAKE_CXX_STANDARD=11 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+        cmake -S . -B build -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=OFF -DDOWNLOAD_EIGEN=OFF -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
       run: cmake --build build -j 2

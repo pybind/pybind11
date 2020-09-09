@@ -16,6 +16,29 @@ else()
   cmake_policy(VERSION 3.18)
 endif()
 
+# Only needed for CMake < 3.5 support
+include(CMakeParseArguments)
+
+# Filter out items; print an optional message if any items filtered
+#
+# Usage:
+#   pybind11_filter_tests(LISTNAME file1.cpp file2.cpp ... MESSAGE "")
+#
+macro(PYBIND11_FILTER_TESTS LISTNAME)
+  cmake_parse_arguments(ARG "" "MESSAGE" "" ${ARGN})
+  set(PYBIND11_FILTER_TESTS_FOUND OFF)
+  foreach(filename IN LISTS ARG_UNPARSED_ARGUMENTS)
+    list(FIND ${LISTNAME} ${filename} _FILE_FOUND)
+    if(_FILE_FOUND GREATER -1)
+      list(REMOVE_AT ${LISTNAME} ${_FILE_FOUND})
+      set(PYBIND11_FILTER_TESTS_FOUND ON)
+    endif()
+  endforeach()
+  if(PYBIND11_FILTER_TESTS_FOUND AND ARG_MESSAGE)
+    message(STATUS "${ARG_MESSAGE}")
+  endif()
+endmacro()
+
 # New Python support
 if(DEFINED Python_EXECUTABLE)
   set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
@@ -74,7 +97,7 @@ set(PYBIND11_TEST_FILES
     test_eigen.cpp
     test_enum.cpp
     test_eval.cpp
-    #AV  this fails with PGI test_exceptions.cpp
+    test_exceptions.cpp
     test_factory_constructors.cpp
     test_gil_scoped.cpp
     test_iostream.cpp
@@ -91,13 +114,12 @@ set(PYBIND11_TEST_FILES
     test_pickling.cpp
     test_pytypes.cpp
     test_sequences_and_iterators.cpp
-    #AV  this fails with PGI test_smart_ptr.cpp
+    test_smart_ptr.cpp
     test_stl.cpp
     test_stl_binders.cpp
     test_tagbased_polymorphic.cpp
     test_union.cpp
-    #AV  this fails with PGI test_virtual_functions.cpp
-    )
+    test_virtual_functions.cpp)
 
 # Invoking cmake with something like:
 #     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp" ..
@@ -107,21 +129,18 @@ if(PYBIND11_TEST_OVERRIDE)
   set(PYBIND11_TEST_FILES ${PYBIND11_TEST_OVERRIDE})
 endif()
 
-# Skip test_async for Python < 3.5
-list(FIND PYBIND11_TEST_FILES test_async.cpp PYBIND11_TEST_FILES_ASYNC_I)
-if((PYBIND11_TEST_FILES_ASYNC_I GREATER -1) AND (PYTHON_VERSION VERSION_LESS 3.5))
-  message(STATUS "Skipping test_async because Python version ${PYTHON_VERSION} < 3.5")
-  list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_ASYNC_I})
+if(PYTHON_VERSION VERSION_LESS 3.5)
+  pybind11_filter_tests(PYBIND11_TEST_FILES test_async.cpp MESSAGE
+                        "Skipping test_async on Python 2")
 endif()
 
 # Skip tests for CUDA check:
 # /pybind11/tests/test_constants_and_functions.cpp(125):
 #   error: incompatible exception specifications
-list(FIND PYBIND11_TEST_FILES test_constants_and_functions.cpp PYBIND11_TEST_FILES_CAF_I)
-if((PYBIND11_TEST_FILES_CAF_I GREATER -1) AND PYBIND11_CUDA_TESTS)
-  message(
-    STATUS "Skipping test_constants_and_functions due to incompatible exception specifications")
-  list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_CAF_I})
+if(PYBIND11_CUDA_TESTS)
+  pybind11_filter_tests(
+    PYBIND11_TEST_FILES test_constants_and_functions.cpp MESSAGE
+    "Skipping test_constants_and_functions due to incompatible exception specifications")
 endif()
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
@@ -296,15 +315,13 @@ foreach(target ${test_targets})
   if(MSVC)
     target_compile_options(${target} PRIVATE /utf-8)
   endif()
-  if (${CMAKE_CXX_COMPILER_ID} MATCHES "PGI")
-    if (WIN32)
-      target_compile_options(${target} PRIVATE -Wc,--pending_instantiations=0 )
-    else()
-      target_compile_options(${target} PRIVATE -Wc,--pending_instantiations=0 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1)
+
+  if(${CMAKE_CXX_COMPILER_ID} MATCHES "PGI")
+    target_compile_options(${target} PRIVATE -Wc,--pending_instantiations=0)
+    if(NOT WIN32)
+      target_compile_definitions(${target} PRIVATE -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1)
     endif()
   endif()
-  
-  
 
   if(EIGEN3_FOUND)
     target_link_libraries(${target} PRIVATE Eigen3::Eigen)

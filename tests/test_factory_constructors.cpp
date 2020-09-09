@@ -298,7 +298,7 @@ TEST_SUBMODULE(factory_constructors, m) {
         static void *operator new(size_t, void *p) { py::print("noisy placement new"); return p; }
         static void operator delete(void *p, size_t) { py::print("noisy delete"); ::operator delete(p); }
         static void operator delete(void *, void *) { py::print("noisy placement delete"); }
-#if defined(_MSC_VER) && _MSC_VER < 1910
+#if defined(__PGIC__) || (defined(_MSC_VER) && _MSC_VER < 1910)
         // MSVC 2015 bug: the above "noisy delete" isn't invoked (fixed in MSVC 2017)
         static void operator delete(void *p) { py::print("noisy delete"); ::operator delete(p); }
 #endif
