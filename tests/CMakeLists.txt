@@ -197,7 +197,7 @@ function(pybind11_enable_warnings target_name)
     target_compile_options(${target_name} PRIVATE /W4)
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)")
     target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wconversion -Wcast-qual
-                                                  -Wdeprecated)
+                                                  -Wdeprecated -Wundef)
   endif()
 
   if(PYBIND11_WERROR)
