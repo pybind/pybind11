@@ -1039,7 +1039,8 @@ public:
         bool py_err = py_value == (py_type) -1 && PyErr_Occurred();
 
         // Check to see if the conversion is valid (integers should match exactly)
-        if (py_err || (std::is_integral<T>::value && py_value != (py_type) (T) py_value)) {
+        // Signed/unsigned checks happen elsewhere
+        if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) && py_value != (py_type) (T) py_value)) {
             bool type_error = py_err && PyErr_ExceptionMatches(
 #if PY_VERSION_HEX < 0x03000000 && !defined(PYPY_VERSION)
                 PyExc_SystemError
