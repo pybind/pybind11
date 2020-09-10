@@ -501,8 +501,12 @@ template <bool... Bs> using select_indices = typename select_indices_impl<index_
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T> struct negation : bool_constant<!T::value> { };
 
-template <typename... >
-using void_t = void;
+#if defined(__PGIC__)
+template<typename... > using void_t = void;
+#else
+template<typename... Ts> struct make_void { typedef void type;};
+template<typename... Ts> using void_t = typename make_void<Ts...>::type;
+#endif
 
 
 /// Compile-time all/any/none of that check the boolean value of all template types
