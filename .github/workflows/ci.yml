@@ -246,7 +246,7 @@ jobs:
       run: |
         source /etc/profile.d/modules.sh
         module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
-        cmake -S . -B build -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=OFF -DDOWNLOAD_EIGEN=OFF -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DDOWNLOAD_EIGEN=OFF -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
       run: cmake --build build -j 2
