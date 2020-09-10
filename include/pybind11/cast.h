@@ -1006,6 +1006,7 @@ template <typename CharT> using is_std_char_type = any_of<
     std::is_same<CharT, wchar_t> /* std::wstring */
 >;
 
+
 template <typename T>
 struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
     using _py_type_0 = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
@@ -1034,12 +1035,12 @@ public:
                 : (py_type) PYBIND11_LONG_AS_LONGLONG(src.ptr());
         }
 
+        // Python API reported an error
         bool py_err = py_value == (py_type) -1 && PyErr_Occurred();
 
-        // Protect std::numeric_limits::min/max with parentheses
-        if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) &&
-                       (py_value < (py_type) (std::numeric_limits<T>::min)() ||
-                        py_value > (py_type) (std::numeric_limits<T>::max)()))) {
+        // Check to see if the conversion is valid (integers should match exactly)
+        // Signed/unsigned checks happen elsewhere
+        if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) && py_value != (py_type) (T) py_value)) {
             bool type_error = py_err && PyErr_ExceptionMatches(
 #if PY_VERSION_HEX < 0x03000000 && !defined(PYPY_VERSION)
                 PyExc_SystemError

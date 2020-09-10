@@ -1483,7 +1483,14 @@ struct vectorize_arg {
 
 template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {
+
+// NVCC for some reason breaks if NVectorized is private
+#ifdef __CUDACC__
+public:
+#else
 private:
+#endif
+
     static constexpr size_t N = sizeof...(Args);
     static constexpr size_t NVectorized = constexpr_sum(vectorize_arg<Args>::vectorize...);
     static_assert(NVectorized >= 1,
