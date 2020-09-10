@@ -88,11 +88,11 @@ std::string abs(const Vector2&) {
   // Here, we suppress the warning using `#pragma diagnostic`.
   // Taken from: https://github.com/RobotLocomotion/drake/commit/aaf84b46
   // TODO(eric): This could be resolved using a function / functor (e.g. `py::self()`).
-  #if (__APPLE__) && (__clang__)
+  #if defined(__APPLE__) && defined(__clang__)
     #if (__clang_major__ >= 10) && (__clang_minor__ >= 0) && (__clang_patchlevel__ >= 1)
       #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
     #endif
-  #elif (__clang__)
+  #elif defined(__clang__)
     #if (__clang_major__ >= 7)
       #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
     #endif
