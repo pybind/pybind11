@@ -11,6 +11,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <cmath>
+#include <new>
 
 // Classes for testing python construction via C++ factory function:
 // Not publicly constructible, copyable, or movable:
@@ -298,11 +299,14 @@ TEST_SUBMODULE(factory_constructors, m) {
         static void *operator new(size_t, void *p) { py::print("noisy placement new"); return p; }
         static void operator delete(void *p, size_t) { py::print("noisy delete"); ::operator delete(p); }
         static void operator delete(void *, void *) { py::print("noisy placement delete"); }
-#if defined(__PGIC__) || (defined(_MSC_VER) && _MSC_VER < 1910)
+#       if defined(_MSC_VER) && _MSC_VER < 1910
         // MSVC 2015 bug: the above "noisy delete" isn't invoked (fixed in MSVC 2017)
-        static void operator delete(void *p) { py::print("noisy delete"); ::operator delete(p); }
-#endif
+            static void operator delete(void *p) { py::print("noisy delete"); ::operator delete(p); }
+#       endif
     };
+
+    static_assert(py::detail::has_operator_delete_size<NoisyAlloc>::value, "Must have sized delete");
+
     py::class_<NoisyAlloc>(m, "NoisyAlloc")
         // Since these overloads have the same number of arguments, the dispatcher will try each of
         // them until the arguments convert.  Thus we can get a pre-allocation here when passing a
