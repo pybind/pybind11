@@ -305,8 +305,6 @@ TEST_SUBMODULE(factory_constructors, m) {
 #       endif
     };
 
-    static_assert(py::detail::has_operator_delete_size<NoisyAlloc>::value, "Must have sized delete");
-
     py::class_<NoisyAlloc>(m, "NoisyAlloc")
         // Since these overloads have the same number of arguments, the dispatcher will try each of
         // them until the arguments convert.  Thus we can get a pre-allocation here when passing a
