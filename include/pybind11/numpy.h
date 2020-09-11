@@ -281,7 +281,7 @@ template <typename T> struct is_complex : std::false_type { };
 template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
 
 template <typename T> struct array_info_scalar {
-    typedef T type;
+    using type = T;
     static constexpr bool is_array = false;
     static constexpr bool is_empty = false;
     static constexpr auto extents = _("");

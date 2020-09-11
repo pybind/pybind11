@@ -425,14 +425,14 @@ template <int N> class BreaksBase { public:
 };
 template <int N> class BreaksTramp : public BreaksBase<N> {};
 // These should all compile just fine:
-typedef py::class_<BreaksBase<1>, std::unique_ptr<BreaksBase<1>>, BreaksTramp<1>> DoesntBreak1;
-typedef py::class_<BreaksBase<2>, BreaksTramp<2>, std::unique_ptr<BreaksBase<2>>> DoesntBreak2;
-typedef py::class_<BreaksBase<3>, std::unique_ptr<BreaksBase<3>>> DoesntBreak3;
-typedef py::class_<BreaksBase<4>, BreaksTramp<4>> DoesntBreak4;
-typedef py::class_<BreaksBase<5>> DoesntBreak5;
-typedef py::class_<BreaksBase<6>, std::shared_ptr<BreaksBase<6>>, BreaksTramp<6>> DoesntBreak6;
-typedef py::class_<BreaksBase<7>, BreaksTramp<7>, std::shared_ptr<BreaksBase<7>>> DoesntBreak7;
-typedef py::class_<BreaksBase<8>, std::shared_ptr<BreaksBase<8>>> DoesntBreak8;
+using DoesntBreak1 = py::class_<BreaksBase<1>, std::unique_ptr<BreaksBase<1>>, BreaksTramp<1>>;
+using DoesntBreak2 = py::class_<BreaksBase<2>, BreaksTramp<2>, std::unique_ptr<BreaksBase<2>>>;
+using DoesntBreak3 = py::class_<BreaksBase<3>, std::unique_ptr<BreaksBase<3>>>;
+using DoesntBreak4 = py::class_<BreaksBase<4>, BreaksTramp<4>>;
+using DoesntBreak5 = py::class_<BreaksBase<5>>;
+using DoesntBreak6 = py::class_<BreaksBase<6>, std::shared_ptr<BreaksBase<6>>, BreaksTramp<6>>;
+using DoesntBreak7 = py::class_<BreaksBase<7>, BreaksTramp<7>, std::shared_ptr<BreaksBase<7>>>;
+using DoesntBreak8 = py::class_<BreaksBase<8>, std::shared_ptr<BreaksBase<8>>>;
 #define CHECK_BASE(N) static_assert(std::is_same<typename DoesntBreak##N::type, BreaksBase<N>>::value, \
         "DoesntBreak" #N " has wrong type!")
 CHECK_BASE(1); CHECK_BASE(2); CHECK_BASE(3); CHECK_BASE(4); CHECK_BASE(5); CHECK_BASE(6); CHECK_BASE(7); CHECK_BASE(8);
