@@ -148,7 +148,7 @@ TEST_SUBMODULE(class_, m) {
     });
 
     m.def("compute_type", [](py::handle h) {
-        return py::type(h);
+        return py::type::of(h);
     });
 
     // test_mismatched_holder

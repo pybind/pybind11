@@ -891,20 +891,21 @@ private:
     object value = {};
 };
 
-class type : public handle {
+class type : public object {
 public:
+    PYBIND11_OBJECT_DEFAULT(type, object, PyType_Check);
+
     // Explicit omitted here since PyTypeObject required (rather than just PyObject)
-    type(PyTypeObject* type_ptr) : handle((PyObject*) type_ptr) {}
+    type(PyTypeObject* type_ptr) : object((PyObject*) type_ptr, borrowed_t()) {}
 
     /// Giving a handle/object gets the type from it
-    explicit type(const handle& h) : handle((PyObject *) Py_TYPE(h.ptr())) {}
+    static type of(const handle& h) {
+        return type(Py_TYPE(h.ptr()));
+    }
 
     /// Convert C++ type to py::type if prevously registered. Does not convert standard types, like int, float. etc. yet.
     template<typename T>
     static type of();
-
-    /// Custom check function that also ensures this is a type
-    bool check() const { return ptr() != nullptr && PyType_Check(ptr());}
 };
 
 class iterable : public object {

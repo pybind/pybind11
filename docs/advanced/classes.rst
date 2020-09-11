@@ -1240,9 +1240,9 @@ You can get the type object from a C++ class that has already been registered us
 
 .. code-block:: python
 
-    auto T_py = py::type::of<T>();
+    py::type T_py = py::type::of<T>();
 
-You can directly use ``py::type(ob)`` to get the type object from any python
+You can directly use ``py::type::of(ob)`` to get the type object from any python
 object, just like ``type(ob)`` in Python.
 
 .. versionadded:: 2.6

@@ -2209,7 +2209,7 @@ template<typename T>
 type type::of() {
    static_assert(
       std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
-      "This currently only works for registered C++ types. The type here is most likely type converted (using type_caster)."
+      "py::type::of<T> only supports the case where T is a registered C++ types. The type here is most likely type converted (using type_caster)."
     );
 
     return type((PyTypeObject*) detail::get_type_handle(typeid(T), true).ptr());
