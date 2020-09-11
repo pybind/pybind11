@@ -50,8 +50,6 @@
 #  include <cxxabi.h>
 #endif
 
-#include <exception>
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object

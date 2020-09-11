@@ -11,8 +11,6 @@
 
 #include "../pytypes.h"
 
-#include <exception>
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 // Forward declarations
