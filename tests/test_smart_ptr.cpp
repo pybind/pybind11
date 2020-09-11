@@ -27,7 +27,8 @@ namespace pybind11 { namespace detail {
     struct holder_helper<ref<T>> {
         static const T *get(const ref<T> &p) { return p.get_ptr(); }
     };
-}}
+} // namespace detail
+} // namespace pybind11
 
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);

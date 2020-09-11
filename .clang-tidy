@@ -1,0 +1,8 @@
+FormatStyle: file
+
+Checks: '
+-*,
+llvm-namespace-comment,
+'
+
+HeaderFilterRegex: 'pybind11/.*h'

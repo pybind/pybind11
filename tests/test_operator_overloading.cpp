@@ -73,7 +73,7 @@ namespace std {
         // Not a good hash function, but easy to test
         size_t operator()(const Vector2 &) { return 4; }
     };
-}
+} // namespace std
 
 // Not a good abs function, but easy to test.
 std::string abs(const Vector2&) {

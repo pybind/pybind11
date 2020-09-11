@@ -47,7 +47,7 @@ struct TplCtorClass {
 namespace std {
     template <>
     struct hash<TplCtorClass> { size_t operator()(const TplCtorClass &) const { return 0; } };
-}
+} // namespace std
 
 
 template <template <typename> class OptionalImpl, typename T>
