@@ -265,7 +265,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Add Python 3 and a few requirements
-      run: yum update -y && yum install -y git python3-devel  make environment-modules
+      run: yum update -y && yum install -y git python3-devel  make environment-modules cmake3
 
     - name: Install CMake with pip
       run: |
@@ -280,23 +280,23 @@ jobs:
       run: |
         source /etc/profile.d/modules.sh
         module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
-        cmake -S . -B build -DDOWNLOAD_CATCH=ON \
+        cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=11 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
                             -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
                             -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
 
     - name: Build
-      run: cmake --build build -j 2 --verbose
+      run: cmake3 --build build -j 2 --verbose
 
     - name: Python tests
-      run: cmake --build build --target pytest
+      run: cmake3 --build build --target pytest
 
     - name: C++ tests
-      run: cmake --build build --target cpptest
+      run: cmake3 --build build --target cpptest
 
     - name: Interface test
-      run: cmake --build build --target test_cmake_build
+      run: cmake3 --build build --target test_cmake_build
 
   gcc:
     runs-on: ubuntu-latest
