@@ -220,7 +220,6 @@ jobs:
 
   centos-nvhpc:
     runs-on: ubuntu-latest
-
     name: "🐍 3 • CentOS8/PGI • x64"
     container: "centos:8"
 
@@ -258,6 +257,7 @@ jobs:
       run: cmake --build build --target test_cmake_build
 
   centos-nvhpc7:
+    runs-on: ubuntu-latest
     name: "🐍 3 • CentOS7/PGI • x64"
     container: "centos:7"
 
