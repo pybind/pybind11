@@ -432,7 +432,7 @@ PYBIND11_NOINLINE inline std::string error_string() {
 
 #if !defined(PYPY_VERSION)
     if (scope.trace) {
-        PyTracebackObject *trace = (PyTracebackObject *) scope.trace;
+        auto *trace = (PyTracebackObject *) scope.trace;
 
         /* Get the deepest trace possible */
         while (trace->tb_next)
@@ -1244,7 +1244,7 @@ template <typename StringType, bool IsView = false> struct string_caster {
             load_src.ptr(), UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr));
         if (!utfNbytes) { PyErr_Clear(); return false; }
 
-        const CharT *buffer = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
+        const auto *buffer = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
         size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
         if (UTF_N > 8) { buffer++; length--; } // Skip BOM for UTF-16/32
         value = StringType(buffer, length);
@@ -1258,7 +1258,7 @@ template <typename StringType, bool IsView = false> struct string_caster {
 
     static handle cast(const StringType &src, return_value_policy /* policy */, handle /* parent */) {
         const char *buffer = reinterpret_cast<const char *>(src.data());
-        ssize_t nbytes = ssize_t(src.size() * sizeof(CharT));
+        auto nbytes = ssize_t(src.size() * sizeof(CharT));
         handle s = decode_utfN(buffer, nbytes);
         if (!s) throw error_already_set();
         return s;
@@ -1364,7 +1364,7 @@ public:
         // errors.  We also allow want to allow unicode characters U+0080 through U+00FF, as those
         // can fit into a single char value.
         if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
-            unsigned char v0 = static_cast<unsigned char>(value[0]);
+            auto v0 = static_cast<unsigned char>(value[0]);
             size_t char0_bytes = !(v0 & 0x80) ? 1 : // low bits only: 0-127
                 (v0 & 0xE0) == 0xC0 ? 2 : // 0b110xxxxx - start of 2-byte sequence
                 (v0 & 0xF0) == 0xE0 ? 3 : // 0b1110xxxx - start of 3-byte sequence

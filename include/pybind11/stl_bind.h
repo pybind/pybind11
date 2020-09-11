@@ -223,7 +223,7 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
             if (!slice.compute(v.size(), &start, &stop, &step, &slicelength))
                 throw error_already_set();
 
-            Vector *seq = new Vector();
+            auto *seq = new Vector();
             seq->reserve((size_t) slicelength);
 
             for (size_t i=0; i<slicelength; ++i) {

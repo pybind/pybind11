@@ -165,7 +165,7 @@ protected:
             /* Get a pointer to the capture object */
             auto data = (sizeof(capture) <= sizeof(call.func.data)
                          ? &call.func.data : call.func.data[0]);
-            capture *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
+            auto *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
             return_value_policy policy = return_value_policy_override<Return>::policy(call.func.policy);
@@ -420,7 +420,7 @@ protected:
         }
 
         /* Install docstring */
-        PyCFunctionObject *func = (PyCFunctionObject *) m_ptr;
+        auto *func = (PyCFunctionObject *) m_ptr;
         if (func->m_ml->ml_doc)
             std::free(const_cast<char *>(func->m_ml->ml_doc));
         func->m_ml->ml_doc = strdup(signatures.c_str());
@@ -465,7 +465,7 @@ protected:
                               *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
-        const size_t n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
+        const auto n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
 
         handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
@@ -860,7 +860,7 @@ public:
     explicit module(const char *name, const char *doc = nullptr) {
         if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
-        PyModuleDef *def = new PyModuleDef();
+        auto *def = new PyModuleDef();
         std::memset(def, 0, sizeof(PyModuleDef));
         def->m_name = name;
         def->m_doc = doc;
@@ -1020,7 +1020,7 @@ protected:
     void install_buffer_funcs(
             buffer_info *(*get_buffer)(PyObject *, void *),
             void *get_buffer_data) {
-        PyHeapTypeObject *type = (PyHeapTypeObject*) m_ptr;
+        auto *type = (PyHeapTypeObject*) m_ptr;
         auto tinfo = detail::get_type_info(&type->ht_type);
 
         if (!type->ht_type.tp_as_buffer)
@@ -1242,7 +1242,7 @@ public:
 
     template <typename Func> class_& def_buffer(Func &&func) {
         struct capture { Func func; };
-        capture *ptr = new capture { std::forward<Func>(func) };
+        auto *ptr = new capture { std::forward<Func>(func) };
         install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
             detail::make_caster<type> caster;
             if (!caster.load(obj, false))
