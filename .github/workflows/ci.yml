@@ -223,7 +223,7 @@ jobs:
     strategy:
       fail-fast: false
 
-    name: "🐍 3 • PGI • x64"
+    name: "🐍 3 • CentOS8/PGI • x64"
     container: "centos:8"
 
     steps:
@@ -259,7 +259,42 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
+    name: "🐍 3 • CentOS7/PGI • x64"
+    container: "centos:7"
 
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add Python 3 and a few requirements
+      run: yum update -y && yum install -y git python3-devel  make environment-modules
+
+    - name: Install CMake with pip
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install cmake --prefer-binary
+
+    - name: Install NVidia HPC SDK
+      run: yum -y install https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-7-20.7-1.x86_64.rpm  https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.7-1.x86_64.rpm
+
+    - name: Configure
+      shell: bash
+      run: |
+        source /etc/profile.d/modules.sh
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
+        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: C++ tests
+      run: cmake --build build --target cpptest
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build
+      
   gcc:
     runs-on: ubuntu-latest
     strategy:
