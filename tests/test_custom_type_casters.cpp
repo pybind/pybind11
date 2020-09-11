@@ -58,7 +58,8 @@ public:
         return py::none().release();
     }
 };
-}}
+} // namespace detail
+} // namespace pybind11
 
 // test_custom_caster_destruction
 class DestructionTester {
@@ -79,7 +80,8 @@ template <> struct type_caster<DestructionTester> {
         return py::bool_(true).release();
     }
 };
-}}
+} // namespace detail
+} // namespace pybind11
 
 TEST_SUBMODULE(custom_type_casters, m) {
     // test_custom_type_casters

@@ -35,7 +35,7 @@ namespace accessor_policies {
     struct sequence_item;
     struct list_item;
     struct tuple_item;
-}
+} // namespace accessor_policies
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
 using str_attr_accessor = accessor<accessor_policies::str_attr>;
 using item_accessor = accessor<accessor_policies::generic_item>;
@@ -976,7 +976,7 @@ inline namespace literals {
     String literal version of `str`
  \endrst */
 inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
-}
+} // namespace literals
 
 /// \addtogroup pytypes
 /// @{

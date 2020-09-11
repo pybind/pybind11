@@ -164,6 +164,30 @@ name, pre-commit):
 pre-commit install
 ```
 
+### Clang-Tidy
+
+To run Clang tidy, the following recipe should work. Files will be modified in
+place, so you can use git to monitor the changes.
+
+```bash
+docker run --rm -v $PWD:/pybind11 -it silkeh/clang:10
+apt-get update && apt-get install python3-dev python3-pytest
+cmake -S pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);-fix"
+cmake --build build
+```
+
+### Include what you use
+
+To run include what you use, install (`brew install include-what-you-use` on
+macOS), then run:
+
+```bash
+cmake -S . -B build-iwyu -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=$(which include-what-you-use)
+cmake --build build
+```
+
+The report is sent to stderr; you can pip it into a file if you wish.
+
 ### Build recipes
 
 This builds with the Intel compiler (assuming it is in your path, along with a
@@ -185,7 +209,6 @@ wget -qO- "https://cmake.org/files/v3.18/cmake-3.18.2-Linux-x86_64.tar.gz" | tar
 cmake -S pybind11/ -B build
 cmake --build build
 ```
-
 
 [pre-commit]: https://pre-commit.com
 [pybind11.readthedocs.org]: http://pybind11.readthedocs.org/en/latest
