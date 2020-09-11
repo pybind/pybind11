@@ -120,8 +120,7 @@
 #endif
 
 #include <Python.h>
-#include <frameobject.h>
-#include <pythread.h>
+#include <stdint.h>
 
 /* Python #defines overrides on all sorts of core functions, which
    tends to weak havok in C++ codebases that expect these to work
@@ -149,16 +148,14 @@
 #endif
 
 #include <cstddef>
-#include <cstring>
-#include <forward_list>
-#include <vector>
-#include <string>
-#include <stdexcept>
-#include <unordered_set>
-#include <unordered_map>
+#include <initializer_list>
+#include <iterator>
 #include <memory>
-#include <typeindex>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)

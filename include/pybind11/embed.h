@@ -7,10 +7,17 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#pragma once
+#include <Python.h>
 
-#include "pybind11.h"
-#include "eval.h"
+#include <string>
+
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/internals.h"
+#include "pybind11/eval.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
+
+#pragma once
 
 #if defined(PYPY_VERSION)
 #  error Embedding the interpreter is not supported with PyPy

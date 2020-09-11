@@ -9,11 +9,23 @@
 
 #pragma once
 
-#include "detail/common.h"
-#include "operators.h"
-
-#include <algorithm>
+#include <exception>
+#include <memory>
 #include <sstream>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#include "pybind11/attr.h"
+#include "pybind11/buffer_info.h"
+#include "pybind11/cast.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/internals.h"
+#include "pybind11/operators.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

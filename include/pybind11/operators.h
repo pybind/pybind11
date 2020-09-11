@@ -7,9 +7,18 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#pragma once
+#include <Python.h>
+#include <stdlib.h>
 
-#include "pybind11.h"
+#include <type_traits>
+#include <utility>
+
+#include "pybind11/attr.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/stl_bind.h"
+
+#pragma once
 
 #if defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma clang diagnostic ignored "-Wunsequenced" // multiple unsequenced modifications to 'self' (when using def(py::self OP Type()))

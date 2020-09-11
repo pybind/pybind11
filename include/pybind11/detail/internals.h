@@ -7,9 +7,48 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#pragma once
+#include <Python.h>
+#include <string.h>
 
-#include "../pytypes.h"
+#include <exception>
+#include <forward_list>
+#include <new>
+#include <stdexcept>
+#include <string>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include "pybind11/attr.h"
+#include "pybind11/buffer_info.h"
+#include "pybind11/cast.h"
+#include "pybind11/chrono.h"
+#include "pybind11/complex.h"
+#include "pybind11/detail/class.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/init.h"
+#include "pybind11/embed.h"
+#include "pybind11/eval.h"
+#include "pybind11/functional.h"
+#include "pybind11/iostream.h"
+#include "pybind11/numpy.h"
+#include "pybind11/operators.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
+#include "pybind11/stl.h"
+#include "pybind11/stl_bind.h"
+
+namespace pybind11 {
+namespace detail {
+struct type_info;
+struct value_and_holder;
+}  // namespace detail
+}  // namespace pybind11
+
+#pragma once
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

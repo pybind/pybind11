@@ -9,13 +9,18 @@
 
 #pragma once
 
-#include "pybind11.h"
-
-#include <streambuf>
-#include <ostream>
-#include <string>
-#include <memory>
 #include <iostream>
+#include <memory>
+#include <new>
+#include <string>
+#include <utility>
+
+#include "pybind11/attr.h"
+#include "pybind11/cast.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/descr.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

@@ -10,11 +10,18 @@
 
 #pragma once
 
-#include "pybind11.h"
-#include <cmath>
-#include <ctime>
+#include <Python.h>
+#include <stdint.h>
+
 #include <chrono>
-#include <datetime.h>
+#include <ctime>
+#include <ratio>
+
+#include "pybind11/cast.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/descr.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
 
 // Backport the PyDateTime_DELTA functions from Python3.3 if required
 #ifndef PyDateTime_DELTA_GET_DAYS

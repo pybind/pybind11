@@ -8,9 +8,36 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#pragma once
+#include <Python.h>
+#include <stdint.h>
+#include <string.h>
 
-#include "cast.h"
+#include <string>
+#include <type_traits>
+#include <typeinfo>
+#include <utility>
+#include <vector>
+
+#include "pybind11/cast.h"
+#include "pybind11/chrono.h"
+#include "pybind11/complex.h"
+#include "pybind11/detail/class.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/init.h"
+#include "pybind11/detail/internals.h"
+#include "pybind11/detail/typeid.h"
+#include "pybind11/embed.h"
+#include "pybind11/eval.h"
+#include "pybind11/functional.h"
+#include "pybind11/iostream.h"
+#include "pybind11/numpy.h"
+#include "pybind11/operators.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
+#include "pybind11/stl.h"
+#include "pybind11/stl_bind.h"
+
+#pragma once
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -73,26 +100,6 @@ struct module_local { const bool value; constexpr module_local(bool v = true) : 
 /// Annotation to mark enums as an arithmetic type
 struct arithmetic { };
 
-/** \rst
-    A call policy which places one or more guard variables (``Ts...``) around the function call.
-
-    For example, this definition:
-
-    .. code-block:: cpp
-
-        m.def("foo", foo, py::call_guard<T>());
-
-    is equivalent to the following pseudocode:
-
-    .. code-block:: cpp
-
-        m.def("foo", [](args...) {
-            T scope_guard;
-            return foo(args...); // forwarded arguments
-        });
- \endrst */
-template <typename... Ts> struct call_guard;
-
 template <> struct call_guard<> { using type = detail::void_type; };
 
 template <typename T>
@@ -117,8 +124,6 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /* Forward declarations */
 enum op_id : int;
 enum op_type : int;
-struct undefined_t;
-template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t> struct op_;
 inline void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
@@ -306,14 +311,6 @@ inline function_call::function_call(const function_record &f, handle p) :
 
 /// Tag for a new-style `__init__` defined in `detail/init.h`
 struct is_new_style_constructor { };
-
-/**
- * Partial template specializations to process custom attributes provided to
- * cpp_function_ and class_. These are either used to initialize the respective
- * fields in the type_record and function_record data structures or executed at
- * runtime to deal with custom call policies (e.g. keep_alive).
- */
-template <typename T, typename SFINAE = void> struct process_attribute;
 
 template <typename T> struct process_attribute_default {
     /// Default implementation: do nothing

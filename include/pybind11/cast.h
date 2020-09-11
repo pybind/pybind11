@@ -10,14 +10,47 @@
 
 #pragma once
 
-#include "pytypes.h"
-#include "detail/typeid.h"
-#include "detail/descr.h"
-#include "detail/internals.h"
+#include <Python.h>
+#include <stdint.h>
+#include <string.h>
+
 #include <array>
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <new>
+#include <string>
 #include <tuple>
 #include <type_traits>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "pybind11/attr.h"
+#include "pybind11/chrono.h"
+#include "pybind11/complex.h"
+#include "pybind11/detail/class.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/descr.h"
+#include "pybind11/detail/init.h"
+#include "pybind11/detail/internals.h"
+#include "pybind11/detail/typeid.h"
+#include "pybind11/embed.h"
+#include "pybind11/eval.h"
+#include "pybind11/functional.h"
+#include "pybind11/iostream.h"
+#include "pybind11/numpy.h"
+#include "pybind11/operators.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
+#include "pybind11/stl.h"
+#include "pybind11/stl_bind.h"
+
+namespace pybind11 {
+struct arg_v;
+}  // namespace pybind11
 
 #if defined(PYBIND11_CPP17)
 #  if defined(__has_include)

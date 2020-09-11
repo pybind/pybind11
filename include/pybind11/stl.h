@@ -9,15 +9,27 @@
 
 #pragma once
 
-#include "pybind11.h"
-#include <set>
-#include <unordered_set>
-#include <map>
-#include <unordered_map>
+#include <Python.h>
+
+#include <array>
+#include <deque>
 #include <iostream>
 #include <list>
-#include <deque>
+#include <map>
+#include <set>
+#include <string>
+#include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <valarray>
+#include <vector>
+
+#include "pybind11/cast.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/descr.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -28,22 +40,26 @@
 // std::optional (but including it in c++14 mode isn't allowed)
 #  if defined(PYBIND11_CPP17) && __has_include(<optional>)
 #    include <optional>
+
 #    define PYBIND11_HAS_OPTIONAL 1
 #  endif
 // std::experimental::optional (but not allowed in c++11 mode)
 #  if defined(PYBIND11_CPP14) && (__has_include(<experimental/optional>) && \
                                  !__has_include(<optional>))
 #    include <experimental/optional>
+
 #    define PYBIND11_HAS_EXP_OPTIONAL 1
 #  endif
 // std::variant
 #  if defined(PYBIND11_CPP17) && __has_include(<variant>)
 #    include <variant>
+
 #    define PYBIND11_HAS_VARIANT 1
 #  endif
 #elif defined(_MSC_VER) && defined(PYBIND11_CPP17)
 #  include <optional>
 #  include <variant>
+
 #  define PYBIND11_HAS_OPTIONAL 1
 #  define PYBIND11_HAS_VARIANT 1
 #endif
@@ -329,9 +345,6 @@ struct visit_helper {
         return visit(std::forward<Args>(args)...);
     }
 };
-
-/// Generic variant caster
-template <typename Variant> struct variant_caster;
 
 template <template<typename...> class V, typename... Ts>
 struct variant_caster<V<Ts...>> {

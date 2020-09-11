@@ -9,14 +9,32 @@
 
 #pragma once
 
-#include <cstdio>
 #include <cstdlib>
+#include <memory>
+#include <string>
+#include <typeinfo>
+
+#include "pybind11/attr.h"
+#include "pybind11/cast.h"
+#include "pybind11/chrono.h"
+#include "pybind11/complex.h"
+#include "pybind11/detail/class.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/init.h"
+#include "pybind11/embed.h"
+#include "pybind11/eval.h"
+#include "pybind11/functional.h"
+#include "pybind11/iostream.h"
+#include "pybind11/numpy.h"
+#include "pybind11/operators.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
+#include "pybind11/stl_bind.h"
+#include "third_party/stl/itanium_abi/cxxabi.h"
 
 #if defined(__GNUG__)
 #include <cxxabi.h>
 #endif
-
-#include "common.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

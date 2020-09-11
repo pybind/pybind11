@@ -9,30 +9,55 @@
 
 #pragma once
 
-#include "detail/common.h"
-#include "buffer_info.h"
-#include <utility>
+#include <Python.h>
+
+#include <iterator>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <typeinfo>
+#include <utility>
+#include <vector>
+
+#include "pybind11/attr.h"
+#include "pybind11/buffer_info.h"
+#include "pybind11/cast.h"
+#include "pybind11/chrono.h"
+#include "pybind11/complex.h"
+#include "pybind11/detail/class.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/init.h"
+#include "pybind11/detail/internals.h"
+#include "pybind11/embed.h"
+#include "pybind11/eval.h"
+#include "pybind11/functional.h"
+#include "pybind11/iostream.h"
+#include "pybind11/numpy.h"
+#include "pybind11/operators.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
+#include "pybind11/stl_bind.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* A few forward declarations */
 class handle; class object;
 class str; class iterator;
-struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 class args_proxy;
+
 inline bool isinstance_generic(handle obj, const std::type_info &tp);
 
 // Accessor forward declarations
 template <typename Policy> class accessor;
+
 namespace accessor_policies {
-    struct obj_attr;
-    struct str_attr;
     struct generic_item;
-    struct sequence_item;
     struct list_item;
+    struct obj_attr;
+    struct sequence_item;
+    struct str_attr;
     struct tuple_item;
 }
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
@@ -776,9 +801,6 @@ template <typename T> using is_positional = satisfies_none_of<T,
 >;
 template <typename T> using is_keyword_or_ds = satisfies_any_of<T, is_keyword, is_ds_unpacking>;
 
-// Call argument collector forward declarations
-template <return_value_policy policy = return_value_policy::automatic_reference>
-class simple_collector;
 template <return_value_policy policy = return_value_policy::automatic_reference>
 class unpacking_collector;
 

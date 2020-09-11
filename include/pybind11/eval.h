@@ -9,9 +9,17 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#pragma once
+#include <Python.h>
+#include <stdio.h>
 
-#include "pybind11.h"
+#include <string>
+
+#include "pybind11/detail/common.h"
+#include "pybind11/embed.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
+
+#pragma once
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 

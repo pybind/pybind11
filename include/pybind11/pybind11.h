@@ -8,6 +8,48 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <Python.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <algorithm>
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <new>
+#include <string>
+#include <type_traits>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+#include <version>
+
+#include "pybind11/attr.h"
+#include "pybind11/buffer_info.h"
+#include "pybind11/cast.h"
+#include "pybind11/chrono.h"
+#include "pybind11/complex.h"
+#include "pybind11/detail/class.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/descr.h"
+#include "pybind11/detail/init.h"
+#include "pybind11/detail/internals.h"
+#include "pybind11/detail/typeid.h"
+#include "pybind11/embed.h"
+#include "pybind11/eval.h"
+#include "pybind11/functional.h"
+#include "pybind11/iostream.h"
+#include "pybind11/numpy.h"
+#include "pybind11/operators.h"
+#include "pybind11/options.h"
+#include "pybind11/pytypes.h"
+#include "pybind11/stl.h"
+#include "pybind11/stl_bind.h"
+
 #pragma once
 
 #if defined(__INTEL_COMPILER)
@@ -40,11 +82,6 @@
 #    pragma GCC diagnostic ignored "-Wnoexcept-type"
 #  endif
 #endif
-
-#include "attr.h"
-#include "options.h"
-#include "detail/class.h"
-#include "detail/init.h"
 
 #if defined(__GNUG__) && !defined(__clang__)
 #  include <cxxabi.h>

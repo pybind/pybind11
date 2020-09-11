@@ -9,20 +9,36 @@
 
 #pragma once
 
-#include "pybind11.h"
-#include "complex.h"
-#include <numeric>
+#include <Python.h>
+#include <stddef.h>
+#include <sys/types.h>
+
 #include <algorithm>
 #include <array>
+#include <complex>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <sstream>
-#include <string>
 #include <functional>
+#include <iterator>
+#include <numeric>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#include <typeindex>
+
+#include "pybind11/buffer_info.h"
+#include "pybind11/cast.h"
+#include "pybind11/complex.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/descr.h"
+#include "pybind11/detail/internals.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
@@ -1005,9 +1021,6 @@ struct compare_buffer_info<T, detail::enable_if_t<detail::is_pod_struct<T>::valu
         return npy_api::get().PyArray_EquivTypes_(dtype::of<T>().ptr(), dtype(b).ptr());
     }
 };
-
-template <typename T, typename = void>
-struct npy_format_descriptor_name;
 
 template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_integral<T>::value>> {

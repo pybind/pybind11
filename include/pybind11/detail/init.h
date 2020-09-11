@@ -7,9 +7,31 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#pragma once
+#include <Python.h>
 
-#include "class.h"
+#include <type_traits>
+#include <utility>
+
+#include "pybind11/attr.h"
+#include "pybind11/cast.h"
+#include "pybind11/chrono.h"
+#include "pybind11/complex.h"
+#include "pybind11/detail/class.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/detail/descr.h"
+#include "pybind11/detail/internals.h"
+#include "pybind11/embed.h"
+#include "pybind11/eval.h"
+#include "pybind11/functional.h"
+#include "pybind11/iostream.h"
+#include "pybind11/numpy.h"
+#include "pybind11/operators.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
+#include "pybind11/stl.h"
+#include "pybind11/stl_bind.h"
+
+#pragma once
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -209,11 +231,6 @@ template <typename... Args> struct alias_constructor {
     }
 };
 
-// Implementation class for py::init(Func) and py::init(Func, AliasFunc)
-template <typename CFunc, typename AFunc = void_type (*)(),
-          typename = function_signature_t<CFunc>, typename = function_signature_t<AFunc>>
-struct factory;
-
 // Specialization for py::init(Func)
 template <typename Func, typename Return, typename... Args>
 struct factory<Func, void_type (*)(), Return(Args...)> {
@@ -295,11 +312,6 @@ void setstate(value_and_holder &v_h, std::pair<T, O> &&result, bool need_alias) 
     construct<Class>(v_h, std::move(result.first), need_alias);
     setattr((PyObject *) v_h.inst, "__dict__", result.second);
 }
-
-/// Implementation for py::pickle(GetState, SetState)
-template <typename Get, typename Set,
-          typename = function_signature_t<Get>, typename = function_signature_t<Set>>
-struct pickle_factory;
 
 template <typename Get, typename Set,
           typename RetState, typename Self, typename NewInstance, typename ArgState>
