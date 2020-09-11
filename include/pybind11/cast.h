@@ -59,7 +59,7 @@ public:
         Py_CLEAR(ptr);
 
         // A heuristic to reduce the stack's capacity (e.g. after long recursive calls)
-        if (stack.capacity() > 16 && stack.size() != 0 && stack.capacity() / stack.size() > 2)
+        if (stack.capacity() > 16 && !stack.empty() && stack.capacity() / stack.size() > 2)
             stack.shrink_to_fit();
     }
 
@@ -163,7 +163,7 @@ inline const std::vector<detail::type_info *> &all_type_info(PyTypeObject *type)
  */
 PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
     auto &bases = all_type_info(type);
-    if (bases.size() == 0)
+    if (bases.empty())
         return nullptr;
     if (bases.size() > 1)
         pybind11_fail("pybind11::detail::get_type_info: type has multiple pybind11-registered bases");

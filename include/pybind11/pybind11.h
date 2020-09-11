@@ -626,7 +626,7 @@ protected:
                 }
 
                 // 3. Check everything was consumed (unless we have a kwargs arg)
-                if (kwargs && kwargs.size() > 0 && !func.has_kwargs)
+                if (kwargs && !kwargs.empty() && !func.has_kwargs)
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
 
                 // 4a. If we have a py::args argument, create a new tuple with leftovers
@@ -814,7 +814,7 @@ protected:
             }
             if (kwargs_in) {
                 auto kwargs = reinterpret_borrow<dict>(kwargs_in);
-                if (kwargs.size() > 0) {
+                if (!kwargs.empty()) {
                     if (some_args) msg += "; ";
                     msg += "kwargs: ";
                     bool first = true;
