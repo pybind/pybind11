@@ -33,9 +33,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename type> class duration_caster {
 public:
     typedef typename type::rep rep;
-    typedef typename type::period period;
+    using period = typename type::period;
 
-    typedef std::chrono::duration<uint_fast32_t, std::ratio<86400>> days;
+    using days = std::chrono::duration<uint_fast32_t, std::ratio<86400>>;
 
     bool load(handle src, bool) {
         using namespace std::chrono;
@@ -98,7 +98,7 @@ public:
 // This is for casting times on the system clock into datetime.datetime instances
 template <typename Duration> class type_caster<std::chrono::time_point<std::chrono::system_clock, Duration>> {
 public:
-    typedef std::chrono::time_point<std::chrono::system_clock, Duration> type;
+    using type = std::chrono::time_point<std::chrono::system_clock, Duration>;
     bool load(handle src, bool) {
         using namespace std::chrono;
 
