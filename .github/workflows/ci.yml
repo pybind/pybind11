@@ -287,7 +287,7 @@ jobs:
                             -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 2 --verbose
 
     - name: Python tests
       run: cmake --build build --target pytest
