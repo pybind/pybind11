@@ -592,7 +592,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     auto &internals = get_internals();
     auto bases = tuple(rec.bases);
-    auto base = (bases.size() == 0) ? internals.instance_base
+    auto base = (bases.empty()) ? internals.instance_base
                                     : bases[0].ptr();
 
     /* Danger zone: from now (and until PyType_Ready), make sure to
@@ -616,7 +616,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     type->tp_doc = tp_doc;
     type->tp_base = type_incref((PyTypeObject *)base);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
-    if (bases.size() > 0)
+    if (!bases.empty())
         type->tp_bases = bases.release().ptr();
 
     /* Don't inherit base __init__ */

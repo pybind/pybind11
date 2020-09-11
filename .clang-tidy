@@ -4,6 +4,7 @@ Checks: '
 -*,
 llvm-namespace-comment,
 modernize-use-override,
+readability-container-size-empty,
 '
 
 HeaderFilterRegex: 'pybind11/.*h'
