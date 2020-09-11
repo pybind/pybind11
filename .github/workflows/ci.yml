@@ -293,7 +293,7 @@ jobs:
 
     - name: Interface test
       run: cmake --build build --target test_cmake_build
-      
+
   gcc:
     runs-on: ubuntu-latest
     strategy:
