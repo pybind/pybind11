@@ -280,7 +280,10 @@ jobs:
       run: |
         source /etc/profile.d/modules.sh
         module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
-        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=11 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+        cmake -S . -B build -DDOWNLOAD_CATCH=ON \
+                            -DCMAKE_CXX_STANDARD=11 \
+                            -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
+                            -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0"
 
     - name: Build
       run: cmake --build build -j 2
