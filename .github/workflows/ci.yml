@@ -283,7 +283,8 @@ jobs:
         cmake -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=11 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
-                            -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0"
+                            -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
+                            -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
 
     - name: Build
       run: cmake --build build -j 2

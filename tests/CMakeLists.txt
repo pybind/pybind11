@@ -57,6 +57,9 @@ option(PYBIND11_CUDA_TESTS "Enable building CUDA tests (requires CMake 3.12+)" O
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
+set(PYBIND11_TEST_FILTER
+    ""
+    CACHE STRING "Tests from ;-separated list of *.cpp files will be removed from all tests")
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   # We're being loaded directly, i.e. not via add_subdirectory, so make this
@@ -127,6 +130,11 @@ set(PYBIND11_TEST_FILES
 #     cmake -DPYBIND11_TEST_OVERRIDE= ..
 if(PYBIND11_TEST_OVERRIDE)
   set(PYBIND11_TEST_FILES ${PYBIND11_TEST_OVERRIDE})
+endif()
+
+# You can also filter tests:
+if(PYBIND11_TEST_FILTER)
+  pybind11_filter_tests(PYBIND11_TEST_FILES ${PYBIND11_TEST_FILTER})
 endif()
 
 if(PYTHON_VERSION VERSION_LESS 3.5)
@@ -314,13 +322,6 @@ foreach(target ${test_targets})
 
   if(MSVC)
     target_compile_options(${target} PRIVATE /utf-8)
-  endif()
-
-  if(${CMAKE_CXX_COMPILER_ID} MATCHES "PGI")
-    # target_compile_options(${target} PRIVATE -Wc,--pending_instantiations=0)
-    # if(NOT WIN32)
-    #   target_compile_definitions(${target} PRIVATE -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1)
-    # endif()
   endif()
 
   if(EIGEN3_FOUND)
