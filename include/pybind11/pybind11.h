@@ -543,7 +543,7 @@ protected:
                         self_value_and_holder.type->dealloc(self_value_and_holder);
 
                     call.init_self = PyTuple_GET_ITEM(args_in, 0);
-                    call.args.push_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
+                    call.args.emplace_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
                     call.args_convert.push_back(false);
                     ++args_copied;
                 }

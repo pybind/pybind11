@@ -8,6 +8,7 @@ readability-container-size-empty,
 modernize-use-using,
 modernize-use-equals-default,
 modernize-use-auto,
+modernize-use-emplace,
 '
 
 HeaderFilterRegex: 'pybind11/.*h'
