@@ -220,7 +220,7 @@ struct value_and_holder {
     {}
 
     // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
-    value_and_holder() {}
+    value_and_holder() = default;
 
     // Used for past-the-end iterator
     value_and_holder(size_t index) : index{index} {}

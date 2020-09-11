@@ -40,8 +40,9 @@ struct sibling { handle value; sibling(const handle &value) : value(value.ptr())
 
 /// Annotation indicating that a class derives from another given type
 template <typename T> struct base {
+
     PYBIND11_DEPRECATED("base<T>() was deprecated in favor of specifying 'T' as a template argument to class_")
-    base() { }
+    base() { } // NOLINT(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
 };
 
 /// Keep patient alive while nurse lives
@@ -61,7 +62,7 @@ struct metaclass {
     handle value;
 
     PYBIND11_DEPRECATED("py::metaclass() is no longer required. It's turned on by default now.")
-    metaclass() {}
+    metaclass() { } // NOLINT(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
 
     /// Override pybind11's default metaclass
     explicit metaclass(handle value) : value(value) { }

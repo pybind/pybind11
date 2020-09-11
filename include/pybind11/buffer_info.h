@@ -24,7 +24,7 @@ struct buffer_info {
     std::vector<ssize_t> strides; // Number of bytes between adjacent entries (for each per dimension)
     bool readonly = false;        // flag to indicate if the underlying storage may be written to
 
-    buffer_info() { }
+    buffer_info() = default;
 
     buffer_info(void *ptr, ssize_t itemsize, const std::string &format, ssize_t ndim,
                 detail::any_container<ssize_t> shape_in, detail::any_container<ssize_t> strides_in, bool readonly=false)

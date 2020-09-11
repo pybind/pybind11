@@ -761,7 +761,7 @@ struct nodelete { template <typename T> void operator()(T*) { } };
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
-    constexpr overload_cast_impl() {} // MSVC 2015 needs this
+    constexpr overload_cast_impl() {}; // NOLINT(modernize-use-equals-default):  MSVC 2015 needs this
 
     template <typename Return>
     constexpr auto operator()(Return (*pf)(Args...)) const noexcept
