@@ -103,7 +103,7 @@ TEST_SUBMODULE(class_, m) {
         BaseClass() = default;
         BaseClass(const BaseClass &) = default;
         BaseClass(BaseClass &&) = default;
-        virtual ~BaseClass() {}
+        virtual ~BaseClass() = default;
     };
     struct DerivedClass1 : BaseClass { };
     struct DerivedClass2 : BaseClass { };
@@ -353,7 +353,7 @@ TEST_SUBMODULE(class_, m) {
     // test_reentrant_implicit_conversion_failure
     // #1035: issue with runaway reentrant implicit conversion
     struct BogusImplicitConversion {
-        BogusImplicitConversion(const BogusImplicitConversion &) { }
+        BogusImplicitConversion(const BogusImplicitConversion &) = default;
     };
 
     py::class_<BogusImplicitConversion>(m, "BogusImplicitConversion")
@@ -407,7 +407,7 @@ TEST_SUBMODULE(class_, m) {
     py::class_<IsNonFinalFinal>(m, "IsNonFinalFinal", py::is_final());
 
     struct PyPrintDestructor {
-        PyPrintDestructor() {}
+        PyPrintDestructor() = default;
         ~PyPrintDestructor() {
             py::print("Print from destructor");
         }

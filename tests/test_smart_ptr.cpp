@@ -339,7 +339,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     // test_shared_ptr_gc
     // #187: issue involving std::shared_ptr<> return value policy & garbage collection
     struct ElementBase {
-        virtual ~ElementBase() { } /* Force creation of virtual table */
+        virtual ~ElementBase() = default; /* Force creation of virtual table */
         ElementBase() = default;
         ElementBase(const ElementBase&) = delete;
     };

@@ -129,7 +129,7 @@ private:
 
 class NCVirt {
 public:
-    virtual ~NCVirt() { }
+    virtual ~NCVirt() = default;
     NCVirt() = default;
     NCVirt(const NCVirt&) = delete;
     virtual NonCopyable get_noncopyable(int a, int b) { return NonCopyable(a, b); }
@@ -227,7 +227,7 @@ TEST_SUBMODULE(virtual_functions, m) {
     struct A {
         A() = default;
         A(const A&) = delete;
-        virtual ~A() {}
+        virtual ~A() = default;
         virtual void f() { py::print("A.f()"); }
     };
 
@@ -255,7 +255,7 @@ TEST_SUBMODULE(virtual_functions, m) {
     struct A2 {
         A2() = default;
         A2(const A2&) = delete;
-        virtual ~A2() {}
+        virtual ~A2() = default;
         virtual void f() { py::print("A2.f()"); }
     };
 

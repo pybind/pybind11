@@ -19,14 +19,14 @@ struct empty {
 };
 
 struct lacking_copy_ctor : public empty<lacking_copy_ctor> {
-    lacking_copy_ctor() {}
+    lacking_copy_ctor() = default;
     lacking_copy_ctor(const lacking_copy_ctor& other) = delete;
 };
 
 template <> lacking_copy_ctor empty<lacking_copy_ctor>::instance_ = {};
 
 struct lacking_move_ctor : public empty<lacking_move_ctor> {
-    lacking_move_ctor() {}
+    lacking_move_ctor() = default;
     lacking_move_ctor(const lacking_move_ctor& other) = delete;
     lacking_move_ctor(lacking_move_ctor&& other) = delete;
 };
