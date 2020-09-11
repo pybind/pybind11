@@ -265,7 +265,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Add Python 3 and a few requirements
-      run: yum update -y && yum install epel-release && yum install -y git python3-devel  make environment-modules cmake3
+      run: yum update -y && yum install -y epel-release && yum install -y git python3-devel  make environment-modules cmake3
 
     - name: Install CMake with pip
       run: |
