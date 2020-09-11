@@ -158,8 +158,8 @@ struct Base {
 };
 
 struct DispatchIssue : Base {
-    virtual std::string dispatch() const {
-        PYBIND11_OVERRIDE_PURE(std::string, Base, dispatch, /* no arguments */);
+    std::string dispatch() const override {
+        PYBIND11_OVERLOAD_PURE(std::string, Base, dispatch, /* no arguments */);
     }
 };
 
@@ -234,7 +234,7 @@ TEST_SUBMODULE(virtual_functions, m) {
     struct PyA : A {
         PyA() { py::print("PyA.PyA()"); }
         PyA(const PyA&) = delete;
-        ~PyA() { py::print("PyA.~PyA()"); }
+        ~PyA() override { py::print("PyA.~PyA()"); }
 
         void f() override {
             py::print("PyA.f()");
@@ -262,7 +262,7 @@ TEST_SUBMODULE(virtual_functions, m) {
     struct PyA2 : A2 {
         PyA2() { py::print("PyA2.PyA2()"); }
         PyA2(const PyA2&) = delete;
-        ~PyA2() { py::print("PyA2.~PyA2()"); }
+        ~PyA2() override { py::print("PyA2.~PyA2()"); }
         void f() override {
             py::print("PyA2.f()");
             PYBIND11_OVERRIDE(void, A2, f);

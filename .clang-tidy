@@ -3,6 +3,7 @@ FormatStyle: file
 Checks: '
 -*,
 llvm-namespace-comment,
+modernize-use-override,
 '
 
 HeaderFilterRegex: 'pybind11/.*h'

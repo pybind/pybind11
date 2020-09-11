@@ -30,7 +30,7 @@ private:
     object pywrite;
     object pyflush;
 
-    int overflow(int c) {
+    int overflow(int c) override {
         if (!traits_type::eq_int_type(c, traits_type::eof())) {
             *pptr() = traits_type::to_char_type(c);
             pbump(1);
@@ -38,7 +38,7 @@ private:
         return sync() == 0 ? traits_type::not_eof(c) : traits_type::eof();
     }
 
-    int sync() {
+    int sync() override {
         if (pbase() != pptr()) {
             // This subtraction cannot be negative, so dropping the sign
             str line(pbase(), static_cast<size_t>(pptr() - pbase()));
@@ -67,7 +67,7 @@ public:
     pythonbuf(pythonbuf&&) = default;
 
     /// Sync before destroy
-    ~pythonbuf() {
+    ~pythonbuf() override {
         sync();
     }
 };

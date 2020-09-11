@@ -98,9 +98,9 @@ TEST_SUBMODULE(smart_ptr, m) {
     class MyObject1 : public Object {
     public:
         MyObject1(int value) : value(value) { print_created(this, toString()); }
-        std::string toString() const { return "MyObject1[" + std::to_string(value) + "]"; }
+        std::string toString() const override { return "MyObject1[" + std::to_string(value) + "]"; }
     protected:
-        virtual ~MyObject1() { print_destroyed(this); }
+        ~MyObject1() override { print_destroyed(this); }
     private:
         int value;
     };
@@ -208,7 +208,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     class MyObject4b : public MyObject4a {
     public:
         MyObject4b(int i) : MyObject4a(i) { print_created(this); }
-        ~MyObject4b() { print_destroyed(this); }
+        ~MyObject4b() override { print_destroyed(this); }
     };
     py::class_<MyObject4b, MyObject4a>(m, "MyObject4b")
         .def(py::init<int>());
