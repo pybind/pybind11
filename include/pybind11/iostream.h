@@ -38,7 +38,10 @@ private:
         return sync() == 0 ? traits_type::not_eof(c) : traits_type::eof();
     }
 
-    int sync() override {
+    // This function must be non-virtual to be called in a destructor. If the
+    // rare MSVC test failure shows up with this version, then this should be
+    // simplified to a fully qualified call.
+    int _sync() {
         if (pbase() != pptr()) {
             // This subtraction cannot be negative, so dropping the sign
             str line(pbase(), static_cast<size_t>(pptr() - pbase()));
@@ -52,6 +55,10 @@ private:
             setp(pbase(), epptr());
         }
         return 0;
+    }
+
+    int sync() override {
+        return _sync();
     }
 
 public:
@@ -68,7 +75,7 @@ public:
 
     /// Sync before destroy
     ~pythonbuf() override {
-        sync();
+        _sync();
     }
 };
 
