@@ -16,6 +16,29 @@ else()
   cmake_policy(VERSION 3.18)
 endif()
 
+# Only needed for CMake < 3.5 support
+include(CMakeParseArguments)
+
+# Filter out items; print an optional message if any items filtered
+#
+# Usage:
+#   pybind11_filter_tests(LISTNAME file1.cpp file2.cpp ... MESSAGE "")
+#
+macro(PYBIND11_FILTER_TESTS LISTNAME)
+  cmake_parse_arguments(ARG "" "MESSAGE" "" ${ARGN})
+  set(PYBIND11_FILTER_TESTS_FOUND OFF)
+  foreach(filename IN LISTS ARG_UNPARSED_ARGUMENTS)
+    list(FIND ${LISTNAME} ${filename} _FILE_FOUND)
+    if(_FILE_FOUND GREATER -1)
+      list(REMOVE_AT ${LISTNAME} ${_FILE_FOUND})
+      set(PYBIND11_FILTER_TESTS_FOUND ON)
+    endif()
+  endforeach()
+  if(PYBIND11_FILTER_TESTS_FOUND AND ARG_MESSAGE)
+    message(STATUS "${ARG_MESSAGE}")
+  endif()
+endmacro()
+
 # New Python support
 if(DEFINED Python_EXECUTABLE)
   set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
@@ -34,6 +57,9 @@ option(PYBIND11_CUDA_TESTS "Enable building CUDA tests (requires CMake 3.12+)" O
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
+set(PYBIND11_TEST_FILTER
+    ""
+    CACHE STRING "Tests from ;-separated list of *.cpp files will be removed from all tests")
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   # We're being loaded directly, i.e. not via add_subdirectory, so make this
@@ -106,21 +132,23 @@ if(PYBIND11_TEST_OVERRIDE)
   set(PYBIND11_TEST_FILES ${PYBIND11_TEST_OVERRIDE})
 endif()
 
-# Skip test_async for Python < 3.5
-list(FIND PYBIND11_TEST_FILES test_async.cpp PYBIND11_TEST_FILES_ASYNC_I)
-if((PYBIND11_TEST_FILES_ASYNC_I GREATER -1) AND (PYTHON_VERSION VERSION_LESS 3.5))
-  message(STATUS "Skipping test_async because Python version ${PYTHON_VERSION} < 3.5")
-  list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_ASYNC_I})
+# You can also filter tests:
+if(PYBIND11_TEST_FILTER)
+  pybind11_filter_tests(PYBIND11_TEST_FILES ${PYBIND11_TEST_FILTER})
+endif()
+
+if(PYTHON_VERSION VERSION_LESS 3.5)
+  pybind11_filter_tests(PYBIND11_TEST_FILES test_async.cpp MESSAGE
+                        "Skipping test_async on Python 2")
 endif()
 
 # Skip tests for CUDA check:
 # /pybind11/tests/test_constants_and_functions.cpp(125):
 #   error: incompatible exception specifications
-list(FIND PYBIND11_TEST_FILES test_constants_and_functions.cpp PYBIND11_TEST_FILES_CAF_I)
-if((PYBIND11_TEST_FILES_CAF_I GREATER -1) AND PYBIND11_CUDA_TESTS)
-  message(
-    STATUS "Skipping test_constants_and_functions due to incompatible exception specifications")
-  list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_CAF_I})
+if(PYBIND11_CUDA_TESTS)
+  pybind11_filter_tests(
+    PYBIND11_TEST_FILES test_constants_and_functions.cpp MESSAGE
+    "Skipping test_constants_and_functions due to incompatible exception specifications")
 endif()
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
@@ -318,7 +346,7 @@ foreach(target ${test_targets})
   endif()
 endforeach()
 
-# Make sure pytest is found or produce a fatal error
+# Make sure pytest is found or produce a warning
 if(NOT PYBIND11_PYTEST_FOUND)
   execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -c "import pytest; print(pytest.__version__)"
@@ -326,15 +354,16 @@ if(NOT PYBIND11_PYTEST_FOUND)
     OUTPUT_VARIABLE pytest_version
     ERROR_QUIET)
   if(pytest_not_found)
-    message(FATAL_ERROR "Running the tests requires pytest. Please install it manually"
-                        " (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
+    message(WARNING "Running the tests requires pytest. Please install it manually"
+                    " (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
   elseif(pytest_version VERSION_LESS 3.1)
-    message(FATAL_ERROR "Running the tests requires pytest >= 3.1. Found: ${pytest_version}"
-                        "Please update it (try: ${PYTHON_EXECUTABLE} -m pip install -U pytest)")
+    message(WARNING "Running the tests requires pytest >= 3.1. Found: ${pytest_version}"
+                    "Please update it (try: ${PYTHON_EXECUTABLE} -m pip install -U pytest)")
+  else()
+    set(PYBIND11_PYTEST_FOUND
+        TRUE
+        CACHE INTERNAL "")
   endif()
-  set(PYBIND11_PYTEST_FOUND
-      TRUE
-      CACHE INTERNAL "")
 endif()
 
 if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)

@@ -154,6 +154,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <exception>
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
@@ -501,8 +502,16 @@ template <bool... Bs> using select_indices = typename select_indices_impl<index_
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T> struct negation : bool_constant<!T::value> { };
 
+// PGI cannot detect operator delete with the "compatible" void_t impl, so
+// using the new one (C++14 defect, so generally works on newer compilers, even
+// if not in C++17 mode)
+#if defined(__PGIC__)
+template<typename... > using void_t = void;
+#else
 template <typename...> struct void_t_impl { using type = void; };
 template <typename... Ts> using void_t = typename void_t_impl<Ts...>::type;
+#endif
+
 
 /// Compile-time all/any/none of that check the boolean value of all template types
 #if defined(__cpp_fold_expressions) && !(defined(_MSC_VER) && (_MSC_VER < 1916))

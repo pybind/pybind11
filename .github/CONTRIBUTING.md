@@ -164,6 +164,29 @@ name, pre-commit):
 pre-commit install
 ```
 
+### Build recipes
+
+This builds with the Intel compiler (assuming it is in your path, along with a
+recent CMake and Python 3):
+
+```bash
+python3 -m venv venv
+. venv/bin/activate
+pip install pytest
+cmake -S . -B build-intel -DCMAKE_CXX_COMPILER=$(which icpc) -DDOWNLOAD_CATCH=ON -DDOWNLOAD_EIGEN=ON -DPYBIND11_WERROR=ON
+```
+
+This will test the PGI compilers:
+
+```bash
+docker run --rm -it -v $PWD:/pybind11 nvcr.io/hpc/pgi-compilers:ce
+apt-get update && apt-get install -y python3-dev python3-pip python3-pytest
+wget -qO- "https://cmake.org/files/v3.18/cmake-3.18.2-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
+cmake -S pybind11/ -B build
+cmake --build build
+```
+
+
 [pre-commit]: https://pre-commit.com
 [pybind11.readthedocs.org]: http://pybind11.readthedocs.org/en/latest
 [issue tracker]: https://github.com/pybind/pybind11/issues

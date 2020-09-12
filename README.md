@@ -99,6 +99,7 @@ In addition to the core functionality, pybind11 provides some extra goodies:
    v2.0 and a [workaround][intel-15-workaround])
 5. Cygwin/GCC (tested on 2.5.1)
 6. NVCC (CUDA 11 tested)
+7. NVIDIA PGI (20.7 tested)
 
 ## About
 

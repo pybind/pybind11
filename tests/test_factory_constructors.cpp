@@ -11,6 +11,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <cmath>
+#include <new>
 
 // Classes for testing python construction via C++ factory function:
 // Not publicly constructible, copyable, or movable:
