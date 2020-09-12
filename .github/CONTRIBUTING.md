@@ -181,7 +181,7 @@ This will test the PGI compilers:
 ```bash
 docker run --rm -it -v $PWD:/pybind11 nvcr.io/hpc/pgi-compilers:ce
 apt-get update && apt-get install -y python3-dev python3-pip python3-pytest
-wget -qO- "https://cmake.org/files/v3.18/cmake-3.18.1-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
+wget -qO- "https://cmake.org/files/v3.18/cmake-3.18.2-Linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
 cmake -S pybind11/ -B build
 cmake --build build
 ```

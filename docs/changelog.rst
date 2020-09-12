@@ -80,6 +80,9 @@ Smaller or developer focused features:
 * Bugfixes related to more extensive testing
   `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
 
+* Bug in timezone issue in Eastern hemisphere midnight fixed.
+  `#2438 <https://github.com/pybind/pybind11/pull/2438>`_
+
 * Pointer to ``std::tuple`` & ``std::pair`` supported in cast.
   `#2334 <https://github.com/pybind/pybind11/pull/2334>`_
 
@@ -95,6 +98,13 @@ Smaller or developer focused features:
 
 * Debug Python interpreter support.
   `#2025 <https://github.com/pybind/pybind11/pull/2025>`_
+
+* NVCC (CUDA 11) now supported and tested in CI.
+  `#2461 <https://github.com/pybind/pybind11/pull/2461>`_
+
+* NVIDIA PGI compilers now supported and tested in CI.
+  `#2475 <https://github.com/pybind/pybind11/pull/2475>`_
+
 
 
 

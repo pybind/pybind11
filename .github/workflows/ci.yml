@@ -218,10 +218,10 @@ jobs:
       run: cmake --build build --target pytest
 
 
-  centos-nvhpc:
+  centos-nvhpc8:
     runs-on: ubuntu-latest
-    name: "🐍 3 • CentOS8/PGI • x64"
-    container: "centos:8"
+    name: "🐍 3 • CentOS8 / PGI 20.7 • x64"
+    container: centos:8
 
     steps:
     - uses: actions/checkout@v2
@@ -258,8 +258,8 @@ jobs:
 
   centos-nvhpc7:
     runs-on: ubuntu-latest
-    name: "🐍 3 • CentOS7/PGI • x64"
-    container: "centos:7"
+    name: "🐍 3 • CentOS7 / PGI 20.7 • x64"
+    container: centos:7
 
     steps:
     - uses: actions/checkout@v2
@@ -270,6 +270,10 @@ jobs:
     - name: Install NVidia HPC SDK
       run:  yum -y install https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-7-20.7-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.7-1.x86_64.rpm
 
+    # On CentOS 7, we have to filter a few tests (compiler internal error)
+    # and allow deeper templete recursion (not needed on CentOS 8 with a newer
+    # standard library). On some systems, you many need further workarounds:
+    # https://github.com/pybind/pybind11/pull/2475
     - name: Configure
       shell: bash
       run: |
@@ -281,6 +285,7 @@ jobs:
                             -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
                             -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
 
+    # Building before installing Pip should produce a warning but not an error
     - name: Build
       run: cmake3 --build build -j 2 --verbose
 
