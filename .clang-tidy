@@ -1,7 +1,6 @@
 FormatStyle: file
 
 Checks: '
--*,
 llvm-namespace-comment,
 modernize-use-override,
 readability-container-size-empty,
