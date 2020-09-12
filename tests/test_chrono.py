@@ -200,3 +200,13 @@ def test_nano_timepoint():
     time = datetime.datetime.now()
     time1 = m.test_nano_timepoint(time, datetime.timedelta(seconds=60))
     assert(time1 == time + datetime.timedelta(seconds=60))
+
+
+def test_chrono_different_resolutions():
+    resolutions = m.different_resolutions()
+    time = datetime.datetime.now()
+    resolutions.timestamp_h = time
+    resolutions.timestamp_m = time
+    resolutions.timestamp_s = time
+    resolutions.timestamp_ms = time
+    resolutions.timestamp_us = time
