@@ -140,7 +140,7 @@ public:
         }
         else return false;
 
-        value = system_clock::from_time_t(std::mktime(&cal)) + msecs;
+        value = time_point_cast<Duration>(system_clock::from_time_t(std::mktime(&cal)) + msecs);
         return true;
     }
 
