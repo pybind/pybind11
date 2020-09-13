@@ -435,6 +435,45 @@ def test_index_using_ellipsis():
     assert a.shape == (6,)
 
 
+@pytest.mark.parametrize("forcecast", [False, True])
+@pytest.mark.parametrize("contiguity", [None, 'C', 'F'])
+@pytest.mark.parametrize("noconvert", [False, True])
+@pytest.mark.filterwarnings(
+    "ignore:Casting complex values to real discards the imaginary part:numpy.ComplexWarning"
+)
+def test_argument_conversions(forcecast, contiguity, noconvert):
+    function_name = "accept_double"
+    if contiguity == 'C':
+        function_name += "_c_style"
+    elif contiguity == 'F':
+        function_name += "_f_style"
+    if forcecast:
+        function_name += "_forcecast"
+    if noconvert:
+        function_name += "_noconvert"
+    function = getattr(m, function_name)
+
+    for dtype in [np.dtype('float32'), np.dtype('float64'), np.dtype('complex128')]:
+        for order in ['C', 'F']:
+            if not noconvert:
+                # If noconvert is not passed, only complex128 needs to be truncated and
+                # "cannot be safely obtained". So without `forcecast`, it shouldn't be accepted
+                should_raise = dtype.name == 'complex128' and not forcecast
+            else:
+                # If noconvert is passed, only float64 and the matching order is accepted
+                should_raise = (
+                    dtype.name != 'float64' or
+                    (contiguity is not None and contiguity != order)
+                )
+
+            array = np.zeros((2, 2), dtype=dtype, order=order)
+            if not should_raise:
+                function(array)
+            else:
+                with pytest.raises(TypeError, match="incompatible function arguments"):
+                    function(array)
+
+
 @pytest.mark.xfail("env.PYPY")
 def test_dtype_refcount_leak():
     from sys import getrefcount
