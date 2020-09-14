@@ -18,10 +18,10 @@ DIR = os.path.abspath(os.path.dirname(__file__))
 # PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
 # files, and the sys.prefix files (CMake and headers).
 
-alt_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
+global_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
 
 version_py = "pybind11/_version.py"
-setup_py = "tools/setup_global.py.in" if alt_sdist else "tools/setup_main.py.in"
+setup_py = "tools/setup_global.py.in" if global_sdist else "tools/setup_main.py.in"
 extra_cmd = 'cmdclass["sdist"] = SDist\n'
 
 to_src = (

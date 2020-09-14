@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Setup script for PyPI - placed in the sdist
+# Setup script (in the sdist or in tools/setup_main.py in the repository)
 
 from setuptools import setup
 

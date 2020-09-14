@@ -64,32 +64,11 @@ STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 # directory into your path if it sits beside your setup.py.
 
 
-# Just in case someone clever tries to multithread
-tmp_chdir_lock = threading.Lock()
-cpp_cache_lock = threading.Lock()
-
-
-@contextlib.contextmanager
-def tmp_chdir():
-    "Prepare and enter a temporary directory, cleanup when done"
-
-    # Threadsafe
-    with tmp_chdir_lock:
-        olddir = os.getcwd()
-        try:
-            tmpdir = tempfile.mkdtemp()
-            os.chdir(tmpdir)
-            yield tmpdir
-        finally:
-            os.chdir(olddir)
-            shutil.rmtree(tmpdir)
-
-
-class CppExtension(_Extension):
+class Pybind11Extension(_Extension):
     """
-    Build a C++11+ Extension module. This automatically adds the recommended
-    flags when you init the extension and assumes C++ sources - you can further
-    modify the options yourself.
+    Build a C++11+ Extension module with pybind11. This automatically adds the
+    recommended flags when you init the extension and assumes C++ sources - you
+    can further modify the options yourself.
 
     The customizations are:
 
@@ -104,6 +83,9 @@ class CppExtension(_Extension):
     you if the ``cxx_std`` property is not set. Do not set the ``cxx_std``
     property more than once, as flags are added when you set it. Set the
     property to None to disable the addition of C++ standard flags.
+
+    If you want to add pybind11 headers manually, for example for an exact
+    git checkout, then set ``include_pybind11=False``.
 
     Warning: do not use property-based access to the instance on Python 2 -
     this is an ugly old-style class due to Distutils.
@@ -127,12 +109,27 @@ class CppExtension(_Extension):
         if "language" not in kwargs:
             kwargs["language"] = "c++"
 
+        include_pybind11 = kwargs.pop("include_pybind11", True)
+
         # Can't use super here because distutils has old-style classes in
         # Python 2!
         _Extension.__init__(self, *args, **kwargs)
 
+        # Include the installed package pybind11 headers
+        if include_pybind11:
+            # If using setup_requires, this fails the first time - that's okay
+            try:
+                import pybind11
+
+                pyinc = pybind11.get_include()
+
+                if pyinc not in self.include_dirs:
+                    self.include_dirs.append(pyinc)
+            except ImportError:
+                pass
+
         # Have to use the accessor manually to support Python 2 distutils
-        CppExtension.cxx_std.__set__(self, cxx_std)
+        Pybind11Extension.cxx_std.__set__(self, cxx_std)
 
         if WIN:
             self._add_cflags("/EHsc", "/bigobj")
@@ -183,28 +180,25 @@ class CppExtension(_Extension):
                 self.extra_compile_args.append("-Wno-deprecated-register")
 
 
-class Pybind11Extension(CppExtension):
-    """
-    A pybind11 Extension subclass. Includes the header directory from the
-    package.
-    """
+# Just in case someone clever tries to multithread
+tmp_chdir_lock = threading.Lock()
+cpp_cache_lock = threading.Lock()
 
-    def __init__(self, *args, **kwargs):
-        CppExtension.__init__(self, *args, **kwargs)
 
-        # If using setup_requires, this fails the first time - that's okay
+@contextlib.contextmanager
+def tmp_chdir():
+    "Prepare and enter a temporary directory, cleanup when done"
+
+    # Threadsafe
+    with tmp_chdir_lock:
+        olddir = os.getcwd()
         try:
-            import pybind11
-
-            pyinc = pybind11.get_include()
-
-            if pyinc not in self.include_dirs:
-                self.include_dirs.append(pyinc)
-        except ImportError:
-            pass
-
-
-Pybind11Extension.__doc__ += CppExtension.__doc__
+            tmpdir = tempfile.mkdtemp()
+            os.chdir(tmpdir)
+            yield tmpdir
+        finally:
+            os.chdir(olddir)
+            shutil.rmtree(tmpdir)
 
 
 # cf http://bugs.python.org/issue26689

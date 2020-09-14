@@ -82,8 +82,8 @@ The Python package now includes the headers as data in the package itself, as
 well as in the "headers" wheel slot. ``pybind11 --includes`` and
 ``pybind11.get_include()`` report the new location, which is always correct
 regardless of how pybind11 was installed, making the old ``user=`` argument
-meaningless. If you are not using the helper, you are encouraged to switch to
-the package location.
+meaningless. If you are not using the function to get the location already, you
+are encouraged to switch to the package location.
 
 
 v2.2

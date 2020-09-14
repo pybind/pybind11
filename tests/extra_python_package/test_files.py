@@ -159,7 +159,7 @@ def test_build_sdist(monkeypatch, tmpdir):
         assert pyproject_toml == contents
 
 
-def test_build_alt_dist(monkeypatch, tmpdir):
+def test_build_global_dist(monkeypatch, tmpdir):
 
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
@@ -252,7 +252,7 @@ def tests_build_wheel(monkeypatch, tmpdir):
     assert files == trimmed
 
 
-def tests_build_alt_wheel(monkeypatch, tmpdir):
+def tests_build_global_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
 

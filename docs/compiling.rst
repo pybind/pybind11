@@ -127,11 +127,11 @@ Copy manually
 -------------
 
 You can also copy ``setup_helpers.py`` directly to your project; it was
-designed to be usable standalone, like the old example ``setup.py``. The
-``CppExtension`` class is identical to ``Pybind11Extension``, except it does
-not include the pybind11 package headers, so you can use it with git submodules
-and a specific git version. If you use this, you will need to import from a
-local file in ``setup.py`` and ensure the helper file is part of your MANIFEST.
+designed to be usable standalone, like the old example ``setup.py``. You can
+set ``include_pybind11=False`` to skip including the pybind11 package headers,
+so you can use it with git submodules and a specific git version. If you use
+this, you will need to import from a local file in ``setup.py`` and ensure the
+helper file is part of your MANIFEST.
 
 
 .. versionchanged:: 2.6
