@@ -274,9 +274,9 @@ simply using ``vectorize``).
 
         py::buffer_info buf3 = result.request();
 
-        double *ptr1 = (double *) buf1.ptr,
-               *ptr2 = (double *) buf2.ptr,
-               *ptr3 = (double *) buf3.ptr;
+        double *ptr1 = static_cast<double *>(buf1.ptr);
+        double *ptr2 = static_cast<double *>(buf2.ptr);
+        double *ptr3 = static_cast<double *>(buf3.ptr);
 
         for (size_t idx = 0; idx < buf1.shape[0]; idx++)
             ptr3[idx] = ptr1[idx] + ptr2[idx];
