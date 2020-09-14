@@ -62,6 +62,12 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
   `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
 
+* ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function replaced by
+  correctly-named ``PYBIND11_OVERRIDE*`` and ``get_override``, fixing
+  inconsistencies in the presene of a closing ``;`` in these macros.
+  ``get_type_overload`` is deprecated.
+  `#2325 <https://github.com/pybind/pybind11/pull/2325>`_
+
 Smaller or developer focused features:
 
 * Error now thrown when ``__init__`` is forgotten on subclasses.
