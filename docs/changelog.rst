@@ -42,7 +42,7 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
   * :ref:`build-setuptools` is easier thanks to a new
     ``pybind11.setup_helpers`` module, which provides utilities to use
-    setuptools with pybind11, and can be used via PEP 518, ``setup_requires``,
+    setuptools with pybind11. It can be used via PEP 518, ``setup_requires``,
     or by directly copying ``setup_helpers.py`` into your project.
 
   * CMake configuration files are now included in the Python package. Use
@@ -51,6 +51,9 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
     site-packages location in your ``CMAKE_MODULE_PATH``. Or you can use the
     new ``pybind11[global]`` option, which installs the CMake files and headers
     into your base environment in the standard location.
+
+  * ``pybind11-config`` is another way to write ``python -m pybind11`` if you
+    have your PATH set up.
 
 * Minimum CMake required increased to 3.4.
   `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
