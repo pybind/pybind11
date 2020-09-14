@@ -120,15 +120,15 @@ jobs:
         python-version: 3.8
 
     - name: Prepare env
-      run: python -m pip install -r tests/requirements.txt pep517 twine --prefer-binary
+      run: python -m pip install -r tests/requirements.txt build twine --prefer-binary
 
     - name: Python Packaging tests
       run: pytest tests/extra_python_package/
 
     - name: Build SDist and wheels
       run: |
-        python -m pep517.build -s -b .
-        PYBIND11_GLOBAL_SDIST=1 python -m pep517.build -s -b .
+        python -m build -s -w .
+        PYBIND11_GLOBAL_SDIST=1 python -m build -s -w .
 
     - name: Check metadata
       run: twine check dist/*

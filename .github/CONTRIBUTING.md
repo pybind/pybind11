@@ -224,14 +224,14 @@ source, it is best to have Pip 10 on a manylinux1, macOS, or Windows system.
 You can then build the SDists, or run any procedure that makes SDists
 internally, like making wheels or installing. Since Pip itself
 does not have an `sdist` command (it does have `wheel` and `install`), you will
-need to use the `pep517` package directly:
+need to use the upcoming `build` package:
 
 ```bash
 # Normal package
-python3 -m pep517.build -s .
+python3 -m build -s .
 
 # Global extra
-PYBIND11_GLOBAL_SDIST=1 python3 -m pep517.build -s .
+PYBIND11_GLOBAL_SDIST=1 python3 -m build -s .
 ```
 
 If you want to use the classic "direct" usage of `python setup.py`, you will
@@ -256,7 +256,7 @@ When you invoke any `setup.py` command from the source directory, including
 `pip wheel .` and `pip install .`, you will activate a full source build. This
 is made of the following steps:
 
-1. If the tool is PEP 518 compliant, like `pep517.build` or Pip 10+, it will
+1. If the tool is PEP 518 compliant, like `build` or Pip 10+, it will
    create a temporary virtual environment and install the build requirements
    (mostly CMake) into it. (if you are not on Windows, macOS, or a manylinux
    compliant system, you can disable this with `--no-build-isolation` as long
