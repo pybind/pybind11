@@ -2272,41 +2272,20 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
 }
 
 template <class T>
-PYBIND11_DEPRECATED("get_overload has been deprecated in favor of get_override")
 inline function get_overload(const T *this_ptr, const char *name) {
     return get_override(this_ptr, name);
 }
 
-PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_DEPRECATED("PYBIND11_OVERLOAD_* macros have been deprecated in favor of PYBIND11_OVERRIDE_*")
-static inline void PYBIND11_OVERLOAD_deprecated() {}
-PYBIND11_NAMESPACE_END(detail)
-
 #define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) \
-    do { \
-        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
-        PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
-    } while (false)
+    PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__)
 #define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
-    do { \
-        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
-        PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__); \
-    } while (false)
+    PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__)
 #define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
-    do { \
-        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
-        PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__); \
-    } while (false);
+    PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__);
 #define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
-    do { \
-        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
-        PYBIND11_OVERRIDE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__); \
-    } while (false)
+    PYBIND11_OVERRIDE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__)
 #define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
-    do { \
-        pybind11::detail::PYBIND11_OVERLOAD_deprecated(); \
-        PYBIND11_OVERRIDE_PURE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__); \
-    } while (false);
+    PYBIND11_OVERRIDE_PURE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__);
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
