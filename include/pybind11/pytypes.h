@@ -750,6 +750,10 @@ inline bool PyIterable_Check(PyObject *obj) {
     }
 }
 
+inline PyObject* Py_TYPE_Convert(PyObject *obj) {
+    return (PyObject*) Py_TYPE(obj);
+}
+
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
@@ -891,16 +895,15 @@ private:
     object value = {};
 };
 
+
+
 class type : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(type, object, PyType_Check);
-
-    // Explicit omitted here since PyTypeObject required (rather than just PyObject)
-    type(PyTypeObject* type_ptr) : object((PyObject*) type_ptr, borrowed_t()) {}
+    PYBIND11_OBJECT_CVT(type, object, PyType_Check, detail::Py_TYPE_Convert);
 
     /// Giving a handle/object gets the type from it
     static type of(const handle& h) {
-        return type(Py_TYPE(h.ptr()));
+        return type(detail::Py_TYPE_Convert(h.ptr()), borrowed_t());
     }
 
     /// Convert C++ type to py::type if prevously registered. Does not convert standard types, like int, float. etc. yet.
