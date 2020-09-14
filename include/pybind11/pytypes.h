@@ -750,10 +750,6 @@ inline bool PyIterable_Check(PyObject *obj) {
     }
 }
 
-inline PyObject* Py_TYPE_Convert(PyObject *obj) {
-    return (PyObject*) Py_TYPE(obj);
-}
-
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
@@ -899,14 +895,13 @@ private:
 
 class type : public object {
 public:
-    PYBIND11_OBJECT_CVT(type, object, PyType_Check, detail::Py_TYPE_Convert);
+    PYBIND11_OBJECT_COMMON(type, object, PyType_Check)
 
-    /// Giving a handle/object gets the type from it
-    static type of(const handle& h) {
-        return type(detail::Py_TYPE_Convert(h.ptr()), borrowed_t());
-    }
+    explicit type(handle h): type((PyObject*) Py_TYPE(h.ptr()), borrowed_t{}) {}
+    explicit type(object ob): type((PyObject*) Py_TYPE(ob.ptr()), borrowed_t{}) {}
 
-    /// Convert C++ type to py::type if prevously registered. Does not convert standard types, like int, float. etc. yet.
+    /// Convert C++ type to py::type if previously registered. Does not convert
+    //standard types, like int, float. etc. yet.
     template<typename T>
     static type of();
 };

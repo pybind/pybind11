@@ -147,16 +147,8 @@ TEST_SUBMODULE(class_, m) {
             return py::type::of<Invalid>();
     });
 
-    m.def("get_type", [](py::handle h) {
-        return py::type::of(h);
-    });
-
-    m.def("get_type_direct", [](py::object ob) {
+    m.def("get_type", [](py::object ob) {
         return py::type(ob);
-    });
-
-    m.def("get_type_implicit", [](py::object ob) -> py::type {
-        return ob;
     });
 
     // test_mismatched_holder

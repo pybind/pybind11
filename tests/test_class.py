@@ -44,23 +44,9 @@ def test_type_py():
     assert m.get_type(int) == type
 
 
-def test_type_implicit():
-    assert m.get_type_implicit(m.DerivedClass1()) == m.DerivedClass1
-    assert m.get_type_implicit(1) == int
-    assert m.get_type_implicit(int) == int
-
-
-def test_type_direct():
-    # Comment following line to avoid segfault (getting type of registered
-    # class twice causes segfault)
-    assert m.get_type_direct(m.DerivedClass1()) == m.DerivedClass1
-    assert m.get_type_direct(1) == int
-    assert m.get_type_direct(int) == int
-
-
-# Uncomment for segfault
-# def test_type_implicit_again():
-#    assert m.get_type_implicit(m.DerivedClass1()) == m.DerivedClass1
+def test_type_py_nodelete():
+    # If the above test deleted the class, this will segfault
+    assert m.get_type(m.DerivedClass1()) == m.DerivedClass1
 
 
 def test_docstrings(doc):
