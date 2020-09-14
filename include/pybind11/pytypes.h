@@ -895,10 +895,9 @@ private:
 
 class type : public object {
 public:
-    PYBIND11_OBJECT_COMMON(type, object, PyType_Check)
+    PYBIND11_OBJECT(type, object, PyType_Check)
 
-    explicit type(handle h): type((PyObject*) Py_TYPE(h.ptr()), borrowed_t{}) {}
-    explicit type(object ob): type((PyObject*) Py_TYPE(ob.ptr()), borrowed_t{}) {}
+    static type of(handle h) { return type((PyObject*) Py_TYPE(h.ptr()), borrowed_t{}); }
 
     /// Convert C++ type to py::type if previously registered. Does not convert
     // standard types, like int, float. etc. yet.

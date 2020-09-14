@@ -39,15 +39,25 @@ def test_type():
     # assert m.check_type(2) == int
 
 
-def test_type_py():
-    assert m.get_type(1) == int
-    assert m.get_type(m.DerivedClass1()) == m.DerivedClass1
-    assert m.get_type(int) == type
+def test_type_of_py():
+    assert m.get_type_of(1) == int
+    assert m.get_type_of(m.DerivedClass1()) == m.DerivedClass1
+    assert m.get_type_of(int) == type
 
 
-def test_type_py_nodelete():
+def test_type_of_py_nodelete():
     # If the above test deleted the class, this will segfault
-    assert m.get_type(m.DerivedClass1()) == m.DerivedClass1
+    assert m.get_type_of(m.DerivedClass1()) == m.DerivedClass1
+
+
+def test_as_type_py():
+    assert m.as_type(int) == int
+
+    with pytest.raises(RuntimeError):
+        assert m.as_type(1) == int
+
+    with pytest.raises(RuntimeError):
+        assert m.as_type(m.DerivedClass1()) == m.DerivedClass1
 
 
 def test_docstrings(doc):

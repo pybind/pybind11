@@ -1247,6 +1247,6 @@ object, just like ``type(ob)`` in Python.
 
 .. note::
 
-    Other types, like ``py::type::of<int>``, do not work, see :ref:`type-conversions`.
+    Other types, like ``py::type::of<int>()``, do not work, see :ref:`type-conversions`.
 
 .. versionadded:: 2.6
