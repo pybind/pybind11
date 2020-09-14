@@ -176,9 +176,9 @@ pybind11 version. Consider the following example:
 
 .. code-block:: cpp
 
-    auto data = (MyData *) py::get_shared_data("mydata");
+    auto data = reinterpret_cast<MyData *>(py::get_shared_data("mydata"));
     if (!data)
-        data = (MyData *) py::set_shared_data("mydata", new MyData(42));
+        data = static_cast<MyData *>(py::set_shared_data("mydata", new MyData(42)));
 
 If the above snippet was used in several separately compiled extension modules,
 the first one to be imported would create a ``MyData`` instance and associate

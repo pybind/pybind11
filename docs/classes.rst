@@ -373,8 +373,8 @@ sequence.
 
     py::class_<Pet>(m, "Pet")
        .def(py::init<const std::string &, int>())
-       .def("set", (void (Pet::*)(int)) &Pet::set, "Set the pet's age")
-       .def("set", (void (Pet::*)(const std::string &)) &Pet::set, "Set the pet's name");
+       .def("set", static_cast<void (Pet::*)(int)>(&Pet::set), "Set the pet's age")
+       .def("set", static_cast<void (Pet::*)(const std::string &)>(&Pet::set), "Set the pet's name");
 
 The overload signatures are also visible in the method's docstring:
 
