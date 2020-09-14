@@ -901,7 +901,8 @@ public:
     explicit type(object ob): type((PyObject*) Py_TYPE(ob.ptr()), borrowed_t{}) {}
 
     /// Convert C++ type to py::type if previously registered. Does not convert
-    //standard types, like int, float. etc. yet.
+    // standard types, like int, float. etc. yet.
+    // See https://github.com/pybind/pybind11/issues/2486
     template<typename T>
     static type of();
 };

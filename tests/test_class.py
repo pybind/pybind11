@@ -35,6 +35,7 @@ def test_type():
     assert 'Invalid' in str(execinfo.value)
 
     # Currently not supported
+    # See https://github.com/pybind/pybind11/issues/2486
     # assert m.check_type(2) == int
 
 

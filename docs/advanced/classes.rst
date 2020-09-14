@@ -1245,4 +1245,8 @@ You can get the type object from a C++ class that has already been registered us
 You can directly use ``py::type::of(ob)`` to get the type object from any python
 object, just like ``type(ob)`` in Python.
 
+.. note::
+
+    Other types, like ``py::type::of<int>``, do not work, see :ref:`type-conversions`.
+
 .. versionadded:: 2.6

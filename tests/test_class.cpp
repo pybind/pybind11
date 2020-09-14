@@ -139,6 +139,7 @@ TEST_SUBMODULE(class_, m) {
     // test_type
     m.def("check_type", [](int category) {
         // Currently not supported (via a fail at compile time)
+        // See https://github.com/pybind/pybind11/issues/2486
         // if (category == 2)
         //     return py::type::of<int>();
         if (category == 1)
