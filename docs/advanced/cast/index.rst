@@ -1,3 +1,5 @@
+.. _type-conversions:
+
 Type conversions
 ################
 

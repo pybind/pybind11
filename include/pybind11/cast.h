@@ -2204,6 +2204,18 @@ object object_api<Derived>::call(Args &&...args) const {
 
 PYBIND11_NAMESPACE_END(detail)
 
+
+template<typename T>
+type type::of() {
+   static_assert(
+      std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
+      "py::type::of<T> only supports the case where T is a registered C++ types."
+    );
+
+    return type((PyObject*) detail::get_type_handle(typeid(T), true).ptr(), borrowed_t());
+}
+
+
 #define PYBIND11_MAKE_OPAQUE(...) \
     namespace pybind11 { namespace detail { \
         template<> class type_caster<__VA_ARGS__> : public type_caster_base<__VA_ARGS__> { }; \

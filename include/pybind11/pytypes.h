@@ -19,6 +19,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 /* A few forward declarations */
 class handle; class object;
 class str; class iterator;
+class type;
 struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -888,6 +889,21 @@ private:
 
 private:
     object value = {};
+};
+
+
+
+class type : public object {
+public:
+    PYBIND11_OBJECT(type, object, PyType_Check)
+
+    static type of(handle h) { return type((PyObject*) Py_TYPE(h.ptr()), borrowed_t{}); }
+
+    /// Convert C++ type to py::type if previously registered. Does not convert
+    // standard types, like int, float. etc. yet.
+    // See https://github.com/pybind/pybind11/issues/2486
+    template<typename T>
+    static type of();
 };
 
 class iterable : public object {

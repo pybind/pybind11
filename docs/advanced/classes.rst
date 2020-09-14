@@ -1232,3 +1232,21 @@ appropriate derived-class pointer (e.g. using
     more complete example, including a demonstration of how to provide
     automatic downcasting for an entire class hierarchy without
     writing one get() function for each class.
+
+Accessing the type object
+=========================
+
+You can get the type object from a C++ class that has already been registered using:
+
+.. code-block:: python
+
+    py::type T_py = py::type::of<T>();
+
+You can directly use ``py::type::of(ob)`` to get the type object from any python
+object, just like ``type(ob)`` in Python.
+
+.. note::
+
+    Other types, like ``py::type::of<int>()``, do not work, see :ref:`type-conversions`.
+
+.. versionadded:: 2.6

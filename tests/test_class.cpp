@@ -134,6 +134,32 @@ TEST_SUBMODULE(class_, m) {
         );
     });
 
+    struct Invalid {};
+
+    // test_type
+    m.def("check_type", [](int category) {
+        // Currently not supported (via a fail at compile time)
+        // See https://github.com/pybind/pybind11/issues/2486
+        // if (category == 2)
+        //     return py::type::of<int>();
+        if (category == 1)
+            return py::type::of<DerivedClass1>();
+        else
+            return py::type::of<Invalid>();
+    });
+
+    m.def("get_type_of", [](py::object ob) {
+        return py::type::of(ob);
+    });
+
+    m.def("as_type", [](py::object ob) {
+        auto tp = py::type(ob);
+        if (py::isinstance<py::type>(ob))
+            return tp;
+        else
+            throw std::runtime_error("Invalid type");
+    });
+
     // test_mismatched_holder
     struct MismatchBase1 { };
     struct MismatchDerived1 : MismatchBase1 { };
