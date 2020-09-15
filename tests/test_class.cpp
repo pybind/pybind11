@@ -317,7 +317,7 @@ TEST_SUBMODULE(class_, m) {
 
     class TrampolineB : public ProtectedB {
     public:
-        int foo() const override { PYBIND11_OVERLOAD(int, ProtectedB, foo, ); }
+        int foo() const override { PYBIND11_OVERRIDE(int, ProtectedB, foo, ); }
     };
 
     class PublicistB : public ProtectedB {

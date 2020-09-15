@@ -30,7 +30,7 @@ private:
 class PyWidget final : public Widget {
     using Widget::Widget;
 
-    int the_answer() const override { PYBIND11_OVERLOAD_PURE(int, Widget, the_answer); }
+    int the_answer() const override { PYBIND11_OVERRIDE_PURE(int, Widget, the_answer); }
 };
 
 PYBIND11_EMBEDDED_MODULE(widget_module, m) {

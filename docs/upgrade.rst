@@ -21,6 +21,10 @@ If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
 ``None``, as in normal CPython. You should add ``__hash__`` if you intended the
 class to be hashable, possibly using the new ``py::hash`` shortcut.
 
+Usage of the ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function should
+be replaced by ``PYBIND11_OVERRIDE*`` and ``get_override``. In the future, the
+old macros may be deprecated and removed.
+
 CMake support:
 --------------
 

@@ -29,9 +29,9 @@ The following Python snippet demonstrates the intended usage from the Python sid
     from example import print
     print(A())
 
-To register the necessary conversion routines, it is necessary to add
-a partial overload to the ``pybind11::detail::type_caster<T>`` template.
-Although this is an implementation detail, adding partial overloads to this
+To register the necessary conversion routines, it is necessary to add an
+instantiation of the ``pybind11::detail::type_caster<T>`` template.
+Although this is an implementation detail, adding an instantiation of this
 type is explicitly allowed.
 
 .. code-block:: cpp
