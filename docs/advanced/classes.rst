@@ -196,9 +196,9 @@ Please take a look at the :ref:`macro_notes` before using this feature.
     The :c:macro:`PYBIND11_OVERRIDE` and accompanying macros used to be called
     ``PYBIND11_OVERLOAD`` up until pybind11 v2.5.0, and :func:`get_override`
     used to be called ``get_overload``. This naming was corrected and the older
-    macro and function names have been deprecated, in order to reduce confusion
-    with overloaded functions and methods and ``py::overload_cast`` (see
-    :ref:`classes`).
+    macro and function names may soon be deprecated, in order to reduce
+    confusion with overloaded functions and methods and ``py::overload_cast``
+    (see :ref:`classes`).
 
 .. seealso::
 
