@@ -159,7 +159,7 @@ struct Base {
 
 struct DispatchIssue : Base {
     std::string dispatch() const override {
-        PYBIND11_OVERLOAD_PURE(std::string, Base, dispatch, /* no arguments */);
+        PYBIND11_OVERRIDE_PURE(std::string, Base, dispatch, /* no arguments */);
     }
 };
 
