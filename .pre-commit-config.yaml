@@ -51,8 +51,7 @@ repos:
     additional_dependencies: [flake8-bugbear, pep8-naming]
     exclude: ^(docs/.*|tools/.*)$
 
-# CMake formatting (first party, but in a separate repo due to author's desire
-# to use PyPI for pinning)
+# CMake formatting
 - repo: https://github.com/cheshirekow/cmake-format-precommit
   rev: v0.6.11
   hooks:

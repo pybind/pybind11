@@ -74,17 +74,11 @@ PEP 518 requirements (Pip 10+ required)
 ---------------------------------------
 
 If you use `PEP 518's <https://www.python.org/dev/peps/pep-0518/>`_
-``pyproject.toml`` file, you can ensure that pybind11 is available during the
-building of your project.  When this file exists, Pip will make a new virtual
-environment, download just the packages listed here in ``requires=``, and build
-a wheel (binary Python package). It will then throw away the environment, and
-install your wheel.
-
-The main drawback is that Pip 10+ is required to build from source; older
-versions completely ignore this file. If you distribute wheels, using something
-like `cibuildwheel <https://cibuildwheel.readthedocs.io>`_, remember that
-``setup.py`` and ``pyproject.toml`` are not even contained in the wheel, so
-this high Pip requirement is only for source builds.
+``pyproject.toml`` file, you can ensure that ``pybind11`` is available during
+the compilation of your project.  When this file exists, Pip will make a new
+virtual environment, download just the packages listed here in ``requires=``,
+and build a wheel (binary Python package). It will then throw away the
+environment, and install your wheel.
 
 Your ``pyproject.toml`` file will likely look something like this:
 
@@ -94,6 +88,18 @@ Your ``pyproject.toml`` file will likely look something like this:
     requires = ["setuptools", "wheel", "pybind11==2.6.0"]
     build-backend = "setuptools.build_meta"
 
+.. note::
+
+    The main drawback to this method is that a `PEP 517`_ compiant build tool,
+    such as Pip 10+, is required for this approach to work; older versions of
+    Pip completely ignore this file. If you distribute binaries (called wheels
+    in Python) using something like `cibuildwheel`_, remember that ``setup.py``
+    and ``pyproject.toml`` are not even contained in the wheel, so this high
+    Pip requirement is only for source builds, and will not affect users of
+    your binary wheels.
+
+.. _PEP 517: https://www.python.org/dev/peps/pep-0517/
+.. _cibuildwheel: https://cibuildwheel.readthedocs.io
 
 .. _setup_helpers-setup_requires:
 
