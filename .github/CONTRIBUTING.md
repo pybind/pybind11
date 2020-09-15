@@ -289,17 +289,18 @@ is made of the following steps:
    instead of the normal `pybind11` package. This package is used for
    installing the files directly to your environment root directory, using
    `pybind11[global]`.
-2. `setup.py` reads the version from `includes/pybind11/detail/common.h`.
+2. `setup.py` reads the version from `pybind11/_version.py` and verifies it
+   matches `includes/pybind11/detail/common.h`.
 3. CMake is run with `-DCMAKE_INSTALL_PREIFX=pybind11`. Since the CMake install
    procedure uses only relative paths and is identical on all platforms, these
    files are valid as long as they stay in the correct relative position to the
    includes. `pybind11/share/cmake/pybind11` has the CMake files, and
    `pybind11/include` has the includes. The build directory is discarded.
-4. Three files are placed in the SDist: `tools/setup_main.py.in`,
-   `tools/pyproject.toml`, and `tools/_version.py.in`.
-5. The package is created using the setup function in the `tools/setup_*.py`.
-   `setup_main.py` fills in Python packages, and `setup_global.py` fills in
-   only the data/header slots.
+4. Simpler files are placed in the SDist: `tools/setup_*.py.in`,
+   `tools/pyproject.toml` (`main` or `global`)
+5. The package is created by running the setup function in the
+   `tools/setup_*.py`.  `setup_main.py` fills in Python packages, and
+   `setup_global.py` fills in only the data/header slots.
 6. A context manager cleans up the temporary CMake install directory (even if
    an error is thrown).
 
@@ -307,10 +308,8 @@ is made of the following steps:
 
 Since the SDist has the rendered template files in `tools` along with the
 includes and CMake files in the correct locations, the builds are completely
-trivial and simple. No extra requirements are required. The version is baked
-in, so there is not even a lookup performance penalty / point of failure. You
-can even use Pip 9 if you really want to.
-
+trivial and simple. No extra requirements are required. You can even use Pip 9
+if you really want to.
 
 
 [pre-commit]: https://pre-commit.com

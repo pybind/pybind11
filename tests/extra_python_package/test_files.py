@@ -124,11 +124,6 @@ def test_build_sdist(monkeypatch, tmpdir):
             setup_py = f.read()
 
         with contextlib.closing(
-            tar.extractfile(tar.getmember(start + "pybind11/_version.py"))
-        ) as f:
-            version_py = f.read()
-
-        with contextlib.closing(
             tar.extractfile(tar.getmember(start + "pyproject.toml"))
         ) as f:
             pyproject_toml = f.read()
@@ -147,12 +142,6 @@ def test_build_sdist(monkeypatch, tmpdir):
             .encode()
         )
         assert setup_py == contents
-
-    with open(os.path.join(MAIN_DIR, "tools", "_version.py.in"), "rb") as f:
-        contents = (
-            string.Template(f.read().decode()).substitute(version=version).encode()
-        )
-        assert version_py == contents
 
     with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
         contents = f.read()
@@ -190,11 +179,6 @@ def test_build_global_dist(monkeypatch, tmpdir):
             setup_py = f.read()
 
         with contextlib.closing(
-            tar.extractfile(tar.getmember(start + "pybind11/_version.py"))
-        ) as f:
-            version_py = f.read()
-
-        with contextlib.closing(
             tar.extractfile(tar.getmember(start + "pyproject.toml"))
         ) as f:
             pyproject_toml = f.read()
@@ -211,12 +195,6 @@ def test_build_global_dist(monkeypatch, tmpdir):
             .encode()
         )
         assert setup_py == contents
-
-    with open(os.path.join(MAIN_DIR, "tools", "_version.py.in"), "rb") as f:
-        contents = (
-            string.Template(f.read().decode()).substitute(version=version).encode()
-        )
-        assert version_py == contents
 
     with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
         contents = f.read()

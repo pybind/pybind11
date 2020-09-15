@@ -5,6 +5,7 @@
 
 import contextlib
 import os
+import re
 import shutil
 import string
 import subprocess
@@ -14,28 +15,39 @@ import tempfile
 import setuptools.command.sdist
 
 DIR = os.path.abspath(os.path.dirname(__file__))
+VERSION_REGEX = re.compile(
+    r"^\s*#\s*define\s+PYBIND11_VERSION_([A-Z]+)\s+(.*)$", re.MULTILINE
+)
 
 # PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
 # files, and the sys.prefix files (CMake and headers).
 
 global_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
 
-version_py = "pybind11/_version.py"
 setup_py = "tools/setup_global.py.in" if global_sdist else "tools/setup_main.py.in"
 extra_cmd = 'cmdclass["sdist"] = SDist\n'
 
 to_src = (
-    (version_py, "tools/_version.py.in"),
     ("pyproject.toml", "tools/pyproject.toml"),
     ("setup.py", setup_py),
 )
 
-
-with open(version_py) as f:
-    loc = {"__file__": version_py}
-    code = compile(f.read(), version_py, "exec")
+# Read the listed version
+with open("pybind11/_version.py") as f:
+    code = compile(f.read(), "pybind11/_version.py", "exec")
+    loc = {}
     exec(code, loc)
     version = loc["__version__"]
+
+# Verify that the version matches the one in C++
+with open("include/pybind11/detail/common.h") as f:
+    matches = dict(VERSION_REGEX.findall(f.read()))
+cpp_version = "{MAJOR}.{MINOR}.{PATCH}".format(**matches)
+if version != cpp_version:
+    msg = "Python version {} does not match C++ version {}!".format(
+        version, cpp_version
+    )
+    raise RuntimeError(msg)
 
 
 def get_and_replace(filename, binary=False, **opts):
