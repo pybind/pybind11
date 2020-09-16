@@ -1580,9 +1580,7 @@ template <typename D>
 str_attr_accessor object_api<D>::doc() const { return attr("__doc__"); }
 
 template <typename D>
-handle object_api<D>::get_type() const {
-    return (PyObject *) Py_TYPE(derived().ptr());
-}
+handle object_api<D>::get_type() const {return type::handle_of(*this);}
 
 template <typename D>
 bool object_api<D>::rich_compare(object_api const &other, int value) const {
