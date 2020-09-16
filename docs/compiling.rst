@@ -90,7 +90,7 @@ Your ``pyproject.toml`` file will likely look something like this:
 
 .. note::
 
-    The main drawback to this method is that a `PEP 517`_ compiant build tool,
+    The main drawback to this method is that a `PEP 517`_ compliant build tool,
     such as Pip 10+, is required for this approach to work; older versions of
     Pip completely ignore this file. If you distribute binaries (called wheels
     in Python) using something like `cibuildwheel`_, remember that ``setup.py``
