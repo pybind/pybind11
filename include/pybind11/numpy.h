@@ -222,7 +222,7 @@ private:
     };
 
     static npy_api lookup() {
-        module m = module::import("numpy.core.multiarray");
+        module_ m = module::import("numpy.core.multiarray");
         auto c = m.attr("_ARRAY_API");
 #if PY_MAJOR_VERSION >= 3
         void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);

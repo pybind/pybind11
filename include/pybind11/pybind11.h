@@ -852,12 +852,12 @@ protected:
 };
 
 /// Wrapper for Python extension modules
-class module : public object {
+class module_ : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(module, object, PyModule_Check)
+    PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    explicit module(const char *name, const char *doc = nullptr) {
+    explicit module_(const char *name, const char *doc = nullptr) {
         if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
         auto *def = new PyModuleDef();
@@ -871,7 +871,7 @@ public:
         m_ptr = Py_InitModule3(name, nullptr, doc);
 #endif
         if (m_ptr == nullptr)
-            pybind11_fail("Internal error in module::module()");
+            pybind11_fail("Internal error in module_::module_()");
         inc_ref();
     }
 
@@ -881,7 +881,7 @@ public:
         details on the ``Extra&& ... extra`` argument, see section :ref:`extras`.
     \endrst */
     template <typename Func, typename... Extra>
-    module &def(const char *name_, Func &&f, const Extra& ... extra) {
+    module_ &def(const char *name_, Func &&f, const Extra& ... extra) {
         cpp_function func(std::forward<Func>(f), name(name_), scope(*this),
                           sibling(getattr(*this, name_, none())), extra...);
         // NB: allow overwriting here because cpp_function sets up a chain with the intention of
@@ -900,10 +900,10 @@ public:
             py::module m2 = m.def_submodule("sub", "A submodule of 'example'");
             py::module m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
-    module def_submodule(const char *name, const char *doc = nullptr) {
+    module_ def_submodule(const char *name, const char *doc = nullptr) {
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
-        auto result = reinterpret_borrow<module>(PyImport_AddModule(full_name.c_str()));
+        auto result = reinterpret_borrow<module_>(PyImport_AddModule(full_name.c_str()));
         if (doc && options::show_user_defined_docstrings())
             result.attr("__doc__") = pybind11::str(doc);
         attr(name) = result;
@@ -911,11 +911,11 @@ public:
     }
 
     /// Import and return a module or throws `error_already_set`.
-    static module import(const char *name) {
+    static module_ import(const char *name) {
         PyObject *obj = PyImport_ImportModule(name);
         if (!obj)
             throw error_already_set();
-        return reinterpret_steal<module>(obj);
+        return reinterpret_steal<module_>(obj);
     }
 
     /// Reload the module or throws `error_already_set`.
@@ -923,7 +923,7 @@ public:
         PyObject *obj = PyImport_ReloadModule(ptr());
         if (!obj)
             throw error_already_set();
-        *this = reinterpret_steal<module>(obj);
+        *this = reinterpret_steal<module_>(obj);
     }
 
     // Adds an object to the module using the given name.  Throws if an object with the given name
@@ -939,6 +939,8 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 };
+
+using module = module_;
 
 /// \ingroup python_builtins
 /// Return a dictionary representing the global variables in the current execution frame,

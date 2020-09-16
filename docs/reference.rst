@@ -46,7 +46,7 @@ With reference counting
 Convenience classes for specific Python types
 =============================================
 
-.. doxygenclass:: module
+.. doxygenclass:: module_
     :members:
 
 .. doxygengroup:: pytypes

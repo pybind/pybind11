@@ -11,6 +11,11 @@ v2.6.0 (IN PROGRESS)
 
 See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
+* Provide an additional spelling of ``py::module`` - ``py::module_`` (with a
+  trailing underscore), for C++20 compatibility. Only relevant when used
+  unqualified.
+  `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
+
 * ``pybind11_add_module()`` now accepts an optional ``OPT_SIZE`` flag that
   switches the binding target to size-based optimization regardless global
   CMake build type (except in debug mode, where optimizations remain disabled).
