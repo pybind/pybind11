@@ -3,20 +3,6 @@
 Build systems
 #############
 
-Building with vcpkg
-===================
-You can download and install pybind11 using the `vcpkg <https://github.com/Microsoft/vcpkg/>`_ dependency manager:
-
-.. code-block:: bash
-
-    git clone https://github.com/Microsoft/vcpkg.git
-    cd vcpkg
-    ./bootstrap-vcpkg.sh
-    ./vcpkg integrate install
-    vcpkg install pybind11
-
-The pybind11 port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please `create an issue or pull request <https://github.com/Microsoft/vcpkg/>`_ on the vcpkg repository.
-
 Building with setuptools
 ========================
 
@@ -404,6 +390,25 @@ build system that works on all platforms including Windows.
     software). In this way, the plugin will work with both versions, instead
     of possibly importing a second Python library into a process that already
     contains one (which will lead to a segfault).
+
+
+Building with vcpkg
+===================
+You can download and install pybind11 using the Microsoft `vcpkg
+<https://github.com/Microsoft/vcpkg/>`_ dependency manager:
+
+.. code-block:: bash
+
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh
+    ./vcpkg integrate install
+    vcpkg install pybind11
+
+The pybind11 port in vcpkg is kept up to date by Microsoft team members and
+community contributors. If the version is out of date, please `create an issue
+or pull request <https://github.com/Microsoft/vcpkg/>`_ on the vcpkg
+repository.
 
 Generating binding code automatically
 =====================================
