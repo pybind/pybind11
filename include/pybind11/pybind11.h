@@ -863,7 +863,7 @@ public:
 
     /// Create a new top-level Python module with the given name and docstring
 #if PY_MAJOR_VERSION >= 3
-    explicit module(const char *name, const char *doc = nullptr, PyModuleDef *def = nullptr) {
+    explicit module_(const char *name, const char *doc = nullptr, PyModuleDef *def = nullptr) {
         if (!def) def = new PyModuleDef();
         def = new (def) PyModuleDef {  // Placement new (not an allocation).
             /* m_base */     PyModuleDef_HEAD_INIT,
