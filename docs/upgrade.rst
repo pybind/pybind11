@@ -13,6 +13,12 @@ modernization and other useful information.
 v2.6
 ====
 
+The ``tools/clang`` submodule and ``tools/mkdoc.py`` have been moved to a
+standalone package, `pybind11-mkdoc`_. If you were using those tools, please
+use them via a pip install from the new location.
+
+.. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
+
 An error is now thrown when ``__init__`` is forgotten on subclasses. This was
 incorrect before, but was not checked. Add a call to ``__init__`` if it is
 missing.
