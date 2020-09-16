@@ -262,7 +262,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     py::class_<SimpleStruct>(m, "SimpleStruct")
         // Explicit construct with braces to ensure zero-valued initialization.
         .def(py::init([]() {
-            SimpleStruct s;
+            SimpleStruct s = {0};
             return s;
          }))
         .def_readwrite("bool_", &SimpleStruct::bool_)
