@@ -1580,7 +1580,8 @@ template <typename D>
 str_attr_accessor object_api<D>::doc() const { return attr("__doc__"); }
 
 template <typename D>
-handle object_api<D>::get_type() const {return type::handle_of(*this);}
+PYBIND11_DEPRECATED("Use py::type::of(h) instead of h.get_type()")
+handle object_api<D>::get_type() const { return type::handle_of(*this); }
 
 template <typename D>
 bool object_api<D>::rich_compare(object_api const &other, int value) const {
