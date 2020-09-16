@@ -70,6 +70,10 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
 Smaller or developer focused features:
 
+* Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_.
+
+.. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
+
 * Error now thrown when ``__init__`` is forgotten on subclasses.
   `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
 
