@@ -17,6 +17,9 @@ An error is now thrown when ``__init__`` is forgotten on subclasses. This was
 incorrect before, but was not checked. Add a call to ``__init__`` if it is
 missing.
 
+The undocumented ``h.get_type()`` method has been deprecated and replaced by
+``py::type::of(h)``.
+
 If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
 ``None``, as in normal CPython. You should add ``__hash__`` if you intended the
 class to be hashable, possibly using the new ``py::hash`` shortcut.

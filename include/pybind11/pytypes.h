@@ -152,7 +152,8 @@ public:
 
     /// Return the object's current reference count
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
-    /// Return a handle to the Python type object underlying the instance
+
+    PYBIND11_DEPRECATED("Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
     handle get_type() const;
 
 private:
@@ -897,13 +898,24 @@ class type : public object {
 public:
     PYBIND11_OBJECT(type, object, PyType_Check)
 
-    static type of(handle h) { return type((PyObject*) Py_TYPE(h.ptr()), borrowed_t{}); }
+    /// Return a type handle from a handle or an object
+    static handle handle_of(handle h) { return handle((PyObject*) Py_TYPE(h.ptr())); }
 
-    /// Convert C++ type to py::type if previously registered. Does not convert
-    // standard types, like int, float. etc. yet.
-    // See https://github.com/pybind/pybind11/issues/2486
+    /// Return a type object from a handle or an object
+    static type of(handle h) { return type(type::handle_of(h), borrowed_t{}); }
+
+    // Defined in pybind11/cast.h
+    /// Convert C++ type to handle if previously registered. Does not convert
+    /// standard types, like int, float. etc. yet.
+    /// See https://github.com/pybind/pybind11/issues/2486
     template<typename T>
-    static type of();
+    static handle handle_of();
+
+    /// Convert C++ type to type if previously registered. Does not convert
+    /// standard types, like int, float. etc. yet.
+    /// See https://github.com/pybind/pybind11/issues/2486
+    template<typename T>
+    static type of() {return type(type::handle_of<T>(), borrowed_t{}); }
 };
 
 class iterable : public object {
@@ -1568,7 +1580,9 @@ template <typename D>
 str_attr_accessor object_api<D>::doc() const { return attr("__doc__"); }
 
 template <typename D>
-handle object_api<D>::get_type() const { return (PyObject *) Py_TYPE(derived().ptr()); }
+handle object_api<D>::get_type() const {
+    return (PyObject *) Py_TYPE(derived().ptr());
+}
 
 template <typename D>
 bool object_api<D>::rich_compare(object_api const &other, int value) const {

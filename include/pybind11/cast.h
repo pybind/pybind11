@@ -636,7 +636,7 @@ public:
     /// native typeinfo, or when the native one wasn't able to produce a value.
     PYBIND11_NOINLINE bool try_load_foreign_module_local(handle src) {
         constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
-        const auto pytype = src.get_type();
+        const auto pytype = type::handle_of(src);
         if (!hasattr(pytype, local_key))
             return false;
 
@@ -1130,7 +1130,7 @@ public:
         }
 
         /* Check if this is a C++ type */
-        auto &bases = all_type_info((PyTypeObject *) h.get_type().ptr());
+        auto &bases = all_type_info((PyTypeObject *) type::handle_of(h).ptr());
         if (bases.size() == 1) { // Only allowing loading from a single-value type
             value = values_and_holders(reinterpret_cast<instance *>(h.ptr())).begin()->value_ptr();
             return true;
@@ -1708,7 +1708,7 @@ template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_ca
         throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
 #else
         throw cast_error("Unable to cast Python instance of type " +
-            (std::string) str(handle.get_type()) + " to C++ type '" + type_id<T>() + "'");
+            (std::string) str(type::handle_of(handle)) + " to C++ type '" + type_id<T>() + "'");
 #endif
     }
     return conv;
@@ -1759,7 +1759,7 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
         throw cast_error("Unable to cast Python instance to C++ rvalue: instance has multiple references"
             " (compile in debug mode for details)");
 #else
-        throw cast_error("Unable to move from Python " + (std::string) str(obj.get_type()) +
+        throw cast_error("Unable to move from Python " + (std::string) str(type::handle_of(obj)) +
                 " instance to C++ " + type_id<T>() + " instance: instance has multiple references");
 #endif
 
@@ -2206,13 +2206,13 @@ PYBIND11_NAMESPACE_END(detail)
 
 
 template<typename T>
-type type::of() {
+handle type::handle_of() {
    static_assert(
       std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
       "py::type::of<T> only supports the case where T is a registered C++ types."
     );
 
-    return type((PyObject*) detail::get_type_handle(typeid(T), true).ptr(), borrowed_t());
+    return detail::get_type_handle(typeid(T), true);
 }
 
 

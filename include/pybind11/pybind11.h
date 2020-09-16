@@ -1489,7 +1489,7 @@ struct enum_base {
 
         m_base.attr("__repr__") = cpp_function(
             [](handle arg) -> str {
-                handle type = arg.get_type();
+                handle type = type::handle_of(arg);
                 object type_name = type.attr("__name__");
                 dict entries = type.attr("__entries");
                 for (const auto &kv : entries) {
@@ -1503,7 +1503,7 @@ struct enum_base {
 
         m_base.attr("name") = property(cpp_function(
             [](handle arg) -> str {
-                dict entries = arg.get_type().attr("__entries");
+                dict entries = type::handle_of(arg).attr("__entries");
                 for (const auto &kv : entries) {
                     if (handle(kv.second[int_(0)]).equal(arg))
                         return pybind11::str(kv.first);
@@ -1542,7 +1542,7 @@ struct enum_base {
         #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                     \
             m_base.attr(op) = cpp_function(                                            \
                 [](object a, object b) {                                               \
-                    if (!a.get_type().is(b.get_type()))                                \
+                    if (!type::handle_of(a).is(type::handle_of(b)))                    \
                         strict_behavior;                                               \
                     return expr;                                                       \
                 },                                                                     \
@@ -2115,7 +2115,7 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
     handle self = get_object_handle(this_ptr, this_type);
     if (!self)
         return function();
-    handle type = self.get_type();
+    handle type = type::handle_of(self);
     auto key = std::make_pair(type.ptr(), name);
 
     /* Cache functions that aren't overridden in Python to avoid

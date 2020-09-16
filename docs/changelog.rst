@@ -17,10 +17,16 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   This reduces binary size quite substantially (~25%).
   `#2463 <https://github.com/pybind/pybind11/pull/2463>`_
 
-* Keyword-only argument supported in Python 2 or 3 with ``py::kw_only()``.
+* Keyword-only arguments supported in Python 2 or 3 with ``py::kw_only()``.
   `#2100 <https://github.com/pybind/pybind11/pull/2100>`_
 
-* Positional-only argument supported in Python 2 or 3 with ``py::pos_only()``.
+* Positional-only arguments supported in Python 2 or 3 with ``py::pos_only()``.
+  `#2459 <https://github.com/pybind/pybind11/pull/2459>`_
+
+* Access to the type object now provided with ``py::type::of<T>()`` and
+  ``py::type::of(h)``.
+  `#2364 <https://github.com/pybind/pybind11/pull/2364>`_
+
 
 * Perfect forwarding support for methods.
   `#2048 <https://github.com/pybind/pybind11/pull/2048>`_
