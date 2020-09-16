@@ -260,11 +260,8 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     // typeinfo may be registered before the dtype descriptor for scalar casts to work...
     py::class_<SimpleStruct>(m, "SimpleStruct")
-        // Explicit construct with braces to ensure zero-valued initialization.
-        .def(py::init([]() {
-            SimpleStruct s = {};
-            return s;
-         }))
+        // Explicit construct to ensure zero-valued initialization.
+        .def(py::init([]() { return SimpleStruct(); }))
         .def_readwrite("bool_", &SimpleStruct::bool_)
         .def_readwrite("uint_", &SimpleStruct::uint_)
         .def_readwrite("float_", &SimpleStruct::float_)
