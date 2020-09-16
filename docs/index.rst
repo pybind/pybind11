@@ -1,11 +1,4 @@
-.. only: not latex
-
-    .. image:: pybind11-logo.png
-
-pybind11 --- Seamless operability between C++11 and Python
-==========================================================
-
-Source code available at `github.com/pybind/pybind11 <https://github.com/pybind/pybind11>`_.
+.. include:: ../README.rst
 
 .. only: not latex
 
@@ -14,7 +7,6 @@ Source code available at `github.com/pybind/pybind11 <https://github.com/pybind/
 .. toctree::
    :maxdepth: 1
 
-   intro
    changelog
    upgrade
 

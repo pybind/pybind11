@@ -80,7 +80,7 @@ sdist_files = {
     "setup.py",
     "LICENSE",
     "MANIFEST.in",
-    "README.md",
+    "README.rst",
     "PKG-INFO",
 }
 
