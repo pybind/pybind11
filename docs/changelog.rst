@@ -81,17 +81,14 @@ Smaller or developer focused features:
   ``None``.
   `#2291 <https://github.com/pybind/pybind11/pull/2291>`_
 
-* ``py::ellipsis`` now also works on Python 2
+* ``py::ellipsis`` now also works on Python 2.
   `#2360 <https://github.com/pybind/pybind11/pull/2360>`_
 
-* Added missing signature for ``py::array``
+* Throw if conversion to ``str`` fails.
+  `#2477 <https://github.com/pybind/pybind11/pull/2477>`_
+
+* Added missing signature for ``py::array``.
   `#2363 <https://github.com/pybind/pybind11/pull/2363>`_
-
-* Bugfixes related to more extensive testing
-  `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
-
-* Bug in timezone issue in Eastern hemisphere midnight fixed.
-  `#2438 <https://github.com/pybind/pybind11/pull/2438>`_
 
 * Pointer to ``std::tuple`` & ``std::pair`` supported in cast.
   `#2334 <https://github.com/pybind/pybind11/pull/2334>`_
@@ -100,11 +97,28 @@ Smaller or developer focused features:
   argument type.
   `#2293 <https://github.com/pybind/pybind11/pull/2293>`_
 
+* Bugfixes related to more extensive testing
+  `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
+
+* Bug in timezone issue in Eastern hemisphere midnight fixed.
+  `#2438 <https://github.com/pybind/pybind11/pull/2438>`_
+
+* ``std::chrono::time_point`` now works when the resolution is not the same as
+  the system.
+  `#2481 <https://github.com/pybind/pybind11/pull/2481>`_
+
+* Bug fixed where ``py::array_t`` could accept arrays that did not match the
+  requested ordering.
+  `#2484 <https://github.com/pybind/pybind11/pull/2484>`_
+
 * PyPy fixes, including support for PyPy3 and PyPy 7.
   `#2146 <https://github.com/pybind/pybind11/pull/2146>`_
 
 * CPython 3.9 fixes.
   `#2253 <https://github.com/pybind/pybind11/pull/2253>`_
+
+* More C++20 support.
+  `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
 
 * Debug Python interpreter support.
   `#2025 <https://github.com/pybind/pybind11/pull/2025>`_
@@ -115,6 +129,9 @@ Smaller or developer focused features:
 * NVIDIA PGI compilers now supported and tested in CI.
   `#2475 <https://github.com/pybind/pybind11/pull/2475>`_
 
+* Extensive style checking in CI, with `pre-commit`_ support.
+
+.. _pre-commit: https://pre-commit.com
 
 
 
