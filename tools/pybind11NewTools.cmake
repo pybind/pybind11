@@ -197,7 +197,7 @@ function(pybind11_add_module target_name)
   endif()
 
   if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
-    # Strip unnecessary sections of the binary on Linux/Mac OS
+    # Strip unnecessary sections of the binary on Linux/macOS
     pybind11_strip(${target_name})
   endif()
 

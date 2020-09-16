@@ -26,10 +26,10 @@ foreach(ver ${pybind11_version_defines})
   endif()
 endforeach()
 
-if(PYBIND11_VERSION_PATCH MATCHES [[([a-zA-Z]+)]])
+if(PYBIND11_VERSION_PATCH MATCHES [[\.([a-zA-Z0-9]+)$]])
   set(pybind11_VERSION_TYPE "${CMAKE_MATCH_1}")
 endif()
-string(REGEX MATCH "[0-9]+" PYBIND11_VERSION_PATCH "${PYBIND11_VERSION_PATCH}")
+string(REGEX MATCH "^[0-9]+" PYBIND11_VERSION_PATCH "${PYBIND11_VERSION_PATCH}")
 
 project(
   pybind11

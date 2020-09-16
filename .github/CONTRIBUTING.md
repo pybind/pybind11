@@ -210,6 +210,108 @@ cmake -S pybind11/ -B build
 cmake --build build
 ```
 
+### Explanation of the SDist/wheel building design
+
+> These details below are _only_ for packaging the Python sources from git. The
+> SDists and wheels created do not have any extra requirements at all and are
+> completely normal.
+
+The main objective of the packaging system is to create SDists (Python's source
+distribution packages) and wheels (Python's binary distribution packages) that
+include everything that is needed to work with pybind11, and which can be
+installed without any additional dependencies. This is more complex than it
+appears: in order to support CMake as a first class language even when using
+the PyPI package, they must include the _generated_ CMake files (so as not to
+require CMake when installing the `pybind11` package itself). They should also
+provide the option to install to the "standard" location
+(`<ENVROOT>/include/pybind11` and `<ENVROOT>/share/cmake/pybind11`) so they are
+easy to find with CMake, but this can cause problems if you are not an
+environment or using ``pyproject.toml`` requirements. This was solved by having
+two packages; the "nice" pybind11 package that stores the includes and CMake
+files inside the package, that you get access to via functions in the package,
+and a `pybind11-global` package that can be included via `pybind11[global]` if
+you want the more invasive but discoverable file locations.
+
+If you want to install or package the GitHub source, it is best to have Pip 10
+or newer on Windows, macOS, or Linux (manylinux1 compatible, includes most
+distributions).  You can then build the SDists, or run any procedure that makes
+SDists internally, like making wheels or installing.
+
+
+```bash
+# Editable development install example
+python3 -m pip install -e .
+```
+
+Since Pip itself does not have an `sdist` command (it does have `wheel` and
+`install`), you may want to use the upcoming `build` package:
+
+```bash
+python3 -m pip install build
+
+# Normal package
+python3 -m build -s .
+
+# Global extra
+PYBIND11_GLOBAL_SDIST=1 python3 -m build -s .
+```
+
+If you want to use the classic "direct" usage of `python setup.py`, you will
+need CMake 3.15+ and either `make` or `ninja` preinstalled (possibly via `pip
+install cmake ninja`), since directly running Python on `setup.py` cannot pick
+up and install `pyproject.toml` requirements. As long as you have those two
+things, though, everything works the way you would expect:
+
+```bash
+# Normal package
+python3 setup.py sdist
+
+# Global extra
+PYBIND11_GLOBAL_SDIST=1 python3 setup.py sdist
+```
+
+A detailed explanation of the build procedure design for developers wanting to
+work on or maintain the packaging system is as follows:
+
+#### 1. Building from the source directory
+
+When you invoke any `setup.py` command from the source directory, including
+`pip wheel .` and `pip install .`, you will activate a full source build. This
+is made of the following steps:
+
+1. If the tool is PEP 518 compliant, like Pip 10+, it will create a temporary
+   virtual environment and install the build requirements (mostly CMake) into
+   it. (if you are not on Windows, macOS, or a manylinux compliant system, you
+   can disable this with `--no-build-isolation` as long as you have CMake 3.15+
+   installed)
+2. The environment variable `PYBIND11_GLOBAL_SDIST` is checked - if it is set
+   and truthy, this will be make the accessory `pybind11-global` package,
+   instead of the normal `pybind11` package. This package is used for
+   installing the files directly to your environment root directory, using
+   `pybind11[global]`.
+2. `setup.py` reads the version from `pybind11/_version.py` and verifies it
+   matches `includes/pybind11/detail/common.h`.
+3. CMake is run with `-DCMAKE_INSTALL_PREIFX=pybind11`. Since the CMake install
+   procedure uses only relative paths and is identical on all platforms, these
+   files are valid as long as they stay in the correct relative position to the
+   includes. `pybind11/share/cmake/pybind11` has the CMake files, and
+   `pybind11/include` has the includes. The build directory is discarded.
+4. Simpler files are placed in the SDist: `tools/setup_*.py.in`,
+   `tools/pyproject.toml` (`main` or `global`)
+5. The package is created by running the setup function in the
+   `tools/setup_*.py`.  `setup_main.py` fills in Python packages, and
+   `setup_global.py` fills in only the data/header slots.
+6. A context manager cleans up the temporary CMake install directory (even if
+   an error is thrown).
+
+### 2. Building from SDist
+
+Since the SDist has the rendered template files in `tools` along with the
+includes and CMake files in the correct locations, the builds are completely
+trivial and simple. No extra requirements are required. You can even use Pip 9
+if you really want to.
+
+
 [pre-commit]: https://pre-commit.com
 [pybind11.readthedocs.org]: http://pybind11.readthedocs.org/en/latest
 [issue tracker]: https://github.com/pybind/pybind11/issues

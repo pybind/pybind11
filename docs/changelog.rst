@@ -43,6 +43,25 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 * ``py::memoryview``  update and documentation.
   `#2223 <https://github.com/pybind/pybind11/pull/2223>`_
 
+* The Python package was reworked to be more powerful and useful.
+  `#2433 <https://github.com/pybind/pybind11/pull/2433>`_
+
+  * :ref:`build-setuptools` is easier thanks to a new
+    ``pybind11.setup_helpers`` module, which provides utilities to use
+    setuptools with pybind11. It can be used via PEP 518, ``setup_requires``,
+    or by directly copying ``setup_helpers.py`` into your project.
+
+  * CMake configuration files are now included in the Python package. Use
+    ``pybind11.get_cmake_dir()`` or ``python -m pybind11 --cmakedir`` to get
+    the directory with the CMake configuration files, or include the
+    site-packages location in your ``CMAKE_MODULE_PATH``. Or you can use the
+    new ``pybind11[global]`` extra when you install ``pybind11``, which
+    installs the CMake files and headers into your base environment in the
+    standard location
+
+  * ``pybind11-config`` is another way to write ``python -m pybind11`` if you
+    have your PATH set up.
+
 * Minimum CMake required increased to 3.4.
   `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
   `#2370 <https://github.com/pybind/pybind11/pull/2370>`_

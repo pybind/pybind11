@@ -1,3 +1,6 @@
+# This is a format job. Pre-commit has a first-party GitHub action, so we use
+# that: https://github.com/pre-commit/action
+
 name: Format
 
 on:
@@ -17,6 +20,9 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
     - uses: pre-commit/action@v2.0.0
+      with:
+        # Slow hooks are marked with manual - slow is okay here, run them too
+        extra_args: --hook-stage manual
 
   clang-tidy:
     name: Clang-Tidy

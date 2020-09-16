@@ -10,6 +10,8 @@ on:
       - v*
 
 jobs:
+  # This is the "main" test suite, which tests a large number of different
+  # versions of default compilers and Python versions in GitHub Actions.
   standard:
     strategy:
       fail-fast: false
@@ -23,6 +25,12 @@ jobs:
         - pypy2
         - pypy3
 
+        # Items in here will either be added to the build matrix (if not
+        # present), or add new keys to an existing matrix element if all the
+        # existing keys match.
+        #
+        # We support three optional keys: args (both build), args1 (first
+        # build), and args2 (second build).
         include:
           - runs-on: ubuntu-latest
             python: 3.6
@@ -52,6 +60,7 @@ jobs:
             args: >
               -DPYBIND11_FINDPYTHON=ON
 
+        # These items will be removed from the build matrix, keys must match.
         exclude:
             # Currently 32bit only, and we build 64bit
           - runs-on: windows-latest
@@ -102,10 +111,11 @@ jobs:
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
 
-    - name: Setup annotations
+    - name: Setup annotations on Linux
       if: runner.os == 'Linux'
       run: python -m pip install pytest-github-actions-annotate-failures
 
+    # First build - C++11 mode and inplace
     - name: Configure C++11 ${{ matrix.args }}
       run: >
         cmake -S . -B .
@@ -130,6 +140,7 @@ jobs:
     - name: Clean directory
       run: git clean -fdx
 
+    # Second build - C++17 mode and in a build directory
     - name: Configure ${{ matrix.args2 }}
       run: >
         cmake -S . -B build2
@@ -152,6 +163,28 @@ jobs:
     - name: Interface test
       run: cmake --build build2 --target test_cmake_build
 
+    # Eventually Microsoft might have an action for setting up
+    # MSVC, but for now, this action works:
+    - name: Prepare compiler environment for Windows 🐍 2.7
+      if: matrix.python == 2.7 && runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    # This makes two environment variables available in the following step(s)
+    - name: Set Windows 🐍 2.7 environment variables
+      if: matrix.python == 2.7 && runner.os == 'Windows'
+      run: |
+        echo "::set-env name=DISTUTILS_USE_SDK::1"
+        echo "::set-env name=MSSdk::1"
+
+    # This makes sure the setup_helpers module can build packages using
+    # setuptools
+    - name: Setuptools helpers test
+      run: pytest tests/extra_setuptools
+
+
+  # Testing on clang using the excellent silkeh clang docker images
   clang:
     runs-on: ubuntu-latest
     strategy:
@@ -196,6 +229,7 @@ jobs:
       run: cmake --build build --target test_cmake_build
 
 
+  # Testing NVCC; forces sources to behave like .cu files
   cuda:
     runs-on: ubuntu-latest
     name: "🐍 3.8 • CUDA 11 • Ubuntu 20.04"
@@ -218,6 +252,7 @@ jobs:
       run: cmake --build build --target pytest
 
 
+  # Testing CentOS 8 + PGI compilers
   centos-nvhpc8:
     runs-on: ubuntu-latest
     name: "🐍 3 • CentOS8 / PGI 20.7 • x64"
@@ -256,6 +291,8 @@ jobs:
     - name: Interface test
       run: cmake --build build --target test_cmake_build
 
+
+  # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   centos-nvhpc7:
     runs-on: ubuntu-latest
     name: "🐍 3 • CentOS7 / PGI 20.7 • x64"
@@ -303,6 +340,7 @@ jobs:
     - name: Interface test
       run: cmake3 --build build --target test_cmake_build
 
+  # Testing on GCC using the GCC docker images (only recent images supported)
   gcc:
     runs-on: ubuntu-latest
     strategy:
@@ -351,6 +389,8 @@ jobs:
       run: cmake --build build --target test_cmake_build
 
 
+  # Testing on CentOS (manylinux uses a centos base, and this is an easy way
+  # to get GCC 4.8, which is the manylinux1 compiler).
   centos:
     runs-on: ubuntu-latest
     strategy:
@@ -398,6 +438,7 @@ jobs:
       run: cmake --build build --target test_cmake_build
 
 
+  # This tests an "install" with the CMake tools
   install-classic:
     name: "🐍 3.5 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
@@ -440,22 +481,22 @@ jobs:
       working-directory: /build-tests
 
 
+  # This verifies that the documentation is not horribly broken, and does a
+  # basic sanity check on the SDist.
   doxygen:
     name: "Documentation build test"
     runs-on: ubuntu-latest
-    container: alpine:3.12
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install system requirements
-      run: apk add doxygen python3-dev
+    - uses: actions/setup-python@v2
 
-    - name: Ensure pip
-      run: python3 -m ensurepip
+    - name: Install Doxygen
+      run: sudo apt install -y doxygen
 
     - name: Install docs & setup requirements
-      run: python3 -m pip install -r docs/requirements.txt pytest setuptools
+      run: python3 -m pip install -r docs/requirements.txt
 
     - name: Build docs
       run: python3 -m sphinx -W -b html docs docs/.build
@@ -463,8 +504,16 @@ jobs:
     - name: Make SDist
       run: python3 setup.py sdist
 
+    - run: git status --ignored
+
+    - name: Check local include dir
+      run: >
+        ls pybind11;
+        python3 -c "import pybind11, pathlib; assert (a := pybind11.get_include()) == (b := str(pathlib.Path('include').resolve())), f'{a} != {b}'"
+
     - name: Compare Dists (headers only)
+      working-directory: include
       run: |
-        python3 -m pip install --user -U ./dist/*
-        installed=$(python3 -c "import pybind11; print(pybind11.get_include(True) + '/pybind11')")
-        diff -rq $installed ./include/pybind11
+        python3 -m pip install --user -U ../dist/*
+        installed=$(python3 -c "import pybind11; print(pybind11.get_include() + '/pybind11')")
+        diff -rq $installed ./pybind11

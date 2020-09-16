@@ -3,6 +3,8 @@
 Build systems
 #############
 
+.. _build-setuptools:
+
 Building with setuptools
 ========================
 
@@ -12,6 +14,135 @@ including automatic generation of documentation using Sphinx. Please refer to
 the [python_example]_ repository.
 
 .. [python_example] https://github.com/pybind/python_example
+
+A helper file is provided with pybind11 that can simplify usage with setuptools.
+
+To use pybind11 inside your ``setup.py``, you have to have some system to
+ensure that ``pybind11`` is installed when you build your package. There are
+four possible ways to do this, and pybind11 supports all four: You can ask all
+users to install pybind11 beforehand (bad), you can use
+:ref:`setup_helpers-pep518` (good, but very new and requires Pip 10),
+:ref:`setup_helpers-setup_requires` (discouraged by Python packagers now that
+PEP 518 is available, but it still works everywhere), or you can
+:ref:`setup_helpers-copy-manually` (always works but you have to manually sync
+your copy to get updates).
+
+An example of a ``setup.py`` using pybind11's helpers:
+
+.. code-block:: python
+
+    from setuptools import setup
+    from pybind11.setup_helpers import Pybind11Extension
+
+    ext_modules = [
+        Pybind11Extension(
+            "python_example",
+            ["src/main.cpp"],
+        ),
+    ]
+
+    setup(
+        ...,
+        ext_modules=ext_modules
+    )
+
+If you want to do an automatic search for the highest supported C++ standard,
+that is supported via a ``build_ext`` command override; it will only affect
+``Pybind11Extensions``:
+
+.. code-block:: python
+
+    from setuptools import setup
+    from pybind11.setup_helpers import Pybind11Extension, build_ext
+
+    ext_modules = [
+        Pybind11Extension(
+            "python_example",
+            ["src/main.cpp"],
+        ),
+    ]
+
+    setup(
+        ...,
+        cmdclass={"build_ext": build_ext},
+        ext_modules=ext_modules
+    )
+
+.. _setup_helpers-pep518:
+
+PEP 518 requirements (Pip 10+ required)
+---------------------------------------
+
+If you use `PEP 518's <https://www.python.org/dev/peps/pep-0518/>`_
+``pyproject.toml`` file, you can ensure that ``pybind11`` is available during
+the compilation of your project.  When this file exists, Pip will make a new
+virtual environment, download just the packages listed here in ``requires=``,
+and build a wheel (binary Python package). It will then throw away the
+environment, and install your wheel.
+
+Your ``pyproject.toml`` file will likely look something like this:
+
+.. code-block:: toml
+
+    [build-system]
+    requires = ["setuptools", "wheel", "pybind11==2.6.0"]
+    build-backend = "setuptools.build_meta"
+
+.. note::
+
+    The main drawback to this method is that a `PEP 517`_ compliant build tool,
+    such as Pip 10+, is required for this approach to work; older versions of
+    Pip completely ignore this file. If you distribute binaries (called wheels
+    in Python) using something like `cibuildwheel`_, remember that ``setup.py``
+    and ``pyproject.toml`` are not even contained in the wheel, so this high
+    Pip requirement is only for source builds, and will not affect users of
+    your binary wheels.
+
+.. _PEP 517: https://www.python.org/dev/peps/pep-0517/
+.. _cibuildwheel: https://cibuildwheel.readthedocs.io
+
+.. _setup_helpers-setup_requires:
+
+Classic ``setup_requires``
+--------------------------
+
+If you want to support old versions of Pip with the classic
+``setup_requires=["pybind11"]`` keyword argument to setup, which triggers a
+two-phase ``setup.py`` run, then you will need to use something like this to
+ensure the first pass works (which has not yet installed the ``setup_requires``
+packages, since it can't install something it does not know about):
+
+.. code-block:: python
+
+    try:
+        from pybind11.setup_helpers import Pybind11Extension
+    except ImportError:
+        from setuptools import Extension as Pybind11Extension
+
+
+It doesn't matter that the Extension class is not the enhanced subclass for the
+first pass run; and the second pass will have the ``setup_requires``
+requirements.
+
+This is obviously more of a hack than the PEP 518 method, but it supports
+ancient versions of Pip.
+
+.. _setup_helpers-copy-manually:
+
+Copy manually
+-------------
+
+You can also copy ``setup_helpers.py`` directly to your project; it was
+designed to be usable standalone, like the old example ``setup.py``. You can
+set ``include_pybind11=False`` to skip including the pybind11 package headers,
+so you can use it with git submodules and a specific git version. If you use
+this, you will need to import from a local file in ``setup.py`` and ensure the
+helper file is part of your MANIFEST.
+
+
+.. versionchanged:: 2.6
+
+    Added ``setup_helpers`` file.
 
 Building with cppimport
 ========================
@@ -367,7 +498,7 @@ Besides, the ``--extension-suffix`` option may or may not be available, dependin
 on the distribution; in the latter case, the module extension can be manually
 set to ``.so``.
 
-On Mac OS: the build command is almost the same but it also requires passing
+On macOS: the build command is almost the same but it also requires passing
 the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
 building the module:
 
