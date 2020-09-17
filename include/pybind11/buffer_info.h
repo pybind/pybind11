@@ -52,8 +52,7 @@ struct buffer_info {
     : buffer_info(const_cast<T*>(ptr), sizeof(T), format_descriptor<T>::format(), size, readonly) { }
 
     explicit buffer_info(Py_buffer *view, bool ownview = true)
-    : buffer_info(view->buf, view->itemsize, view->format, view->ndim,
-            {view->shape, view->shape + view->ndim}, {view->strides, view->strides + view->ndim}, view->readonly) {
+    : buffer_info(from_view(view)) {
         this->m_view = view;
         this->ownview = ownview;
     }
@@ -91,6 +90,23 @@ private:
     buffer_info(private_ctr_tag, void *ptr, ssize_t itemsize, const std::string &format, ssize_t ndim,
                 detail::any_container<ssize_t> &&shape_in, detail::any_container<ssize_t> &&strides_in, bool readonly)
     : buffer_info(ptr, itemsize, format, ndim, std::move(shape_in), std::move(strides_in), readonly) { }
+
+    static buffer_info from_view(Py_buffer *view) {
+      if (view->strides)
+	return {
+	  view->buf, view->itemsize, view->format, view->ndim,
+	  {view->shape, view->shape + view->ndim},
+	  {view->strides, view->strides + view->ndim},
+	  view->readonly
+	};
+      else
+	return {
+	  view->buf, view->itemsize, view->format, view->ndim,
+	  {view->shape, view->shape + view->ndim},
+	  std::vector<ssize_t>(view->ndim),
+	  view->readonly
+	};
+    }
 
     Py_buffer *m_view = nullptr;
     bool ownview = false;
