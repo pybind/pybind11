@@ -152,6 +152,10 @@ TEST_SUBMODULE(class_, m) {
         return py::type::of(ob);
     });
 
+    m.def("get_type_classic", [](py::handle h) {
+        return h.get_type();
+    });
+
     m.def("as_type", [](py::object ob) {
         auto tp = py::type(ob);
         if (py::isinstance<py::type>(ob))

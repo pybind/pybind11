@@ -153,7 +153,7 @@ public:
     /// Return the object's current reference count
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
 
-    PYBIND11_DEPRECATED("Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
+    // TODO PYBIND11_DEPRECATED("Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
     handle get_type() const;
 
 private:
@@ -1580,8 +1580,7 @@ template <typename D>
 str_attr_accessor object_api<D>::doc() const { return attr("__doc__"); }
 
 template <typename D>
-PYBIND11_DEPRECATED("Use py::type::of(h) instead of h.get_type()")
-handle object_api<D>::get_type() const { return type::handle_of(*this); }
+handle object_api<D>::get_type() const { return type::handle_of(derived()); }
 
 template <typename D>
 bool object_api<D>::rich_compare(object_api const &other, int value) const {
