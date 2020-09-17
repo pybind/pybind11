@@ -523,23 +523,11 @@ build system that works on all platforms including Windows.
     contains one (which will lead to a segfault).
 
 
-Building with vcpkg
+Building with Bazel
 ===================
-You can download and install pybind11 using the Microsoft `vcpkg
-<https://github.com/Microsoft/vcpkg/>`_ dependency manager:
 
-.. code-block:: bash
-
-    git clone https://github.com/Microsoft/vcpkg.git
-    cd vcpkg
-    ./bootstrap-vcpkg.sh
-    ./vcpkg integrate install
-    vcpkg install pybind11
-
-The pybind11 port in vcpkg is kept up to date by Microsoft team members and
-community contributors. If the version is out of date, please `create an issue
-or pull request <https://github.com/Microsoft/vcpkg/>`_ on the vcpkg
-repository.
+You can build with the Bazel build system using the `pybind11_bazel
+<https://github.com/pybind/pybind11_bazel>`_ repository.
 
 Generating binding code automatically
 =====================================

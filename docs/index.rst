@@ -5,6 +5,8 @@
 pybind11 --- Seamless operability between C++11 and Python
 ==========================================================
 
+Source code available at `github.com/pybind/pybind11 <https://github.com/pybind/pybind11>`_.
+
 .. only: not latex
 
     Contents:
@@ -20,6 +22,7 @@ pybind11 --- Seamless operability between C++11 and Python
    :caption: The Basics
    :maxdepth: 2
 
+   installing
    basics
    classes
    compiling
