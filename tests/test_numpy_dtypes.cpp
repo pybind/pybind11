@@ -259,7 +259,26 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     catch (...) { return; }
 
     // typeinfo may be registered before the dtype descriptor for scalar casts to work...
-    py::class_<SimpleStruct>(m, "SimpleStruct");
+    py::class_<SimpleStruct>(m, "SimpleStruct")
+        // Explicit construct to ensure zero-valued initialization.
+        .def(py::init([]() { return SimpleStruct(); }))
+        .def_readwrite("bool_", &SimpleStruct::bool_)
+        .def_readwrite("uint_", &SimpleStruct::uint_)
+        .def_readwrite("float_", &SimpleStruct::float_)
+        .def_readwrite("ldbl_", &SimpleStruct::ldbl_)
+        .def("astuple", [](const SimpleStruct& self) {
+            return py::make_tuple(self.bool_, self.uint_, self.float_, self.ldbl_);
+        })
+        .def_static("fromtuple", [](const py::tuple tup) {
+            if (py::len(tup) != 4) {
+                throw py::cast_error("Invalid size");
+            }
+            return SimpleStruct{
+                tup[0].cast<bool>(),
+                tup[1].cast<uint32_t>(),
+                tup[2].cast<float>(),
+                tup[3].cast<long double>()};
+        });
 
     PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_);
     PYBIND11_NUMPY_DTYPE(SimpleStructReordered, bool_, uint_, float_, ldbl_);
@@ -462,9 +481,15 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("buffer_to_dtype", [](py::buffer& buf) { return py::dtype(buf.request()); });
 
     // test_scalar_conversion
-    m.def("f_simple", [](SimpleStruct s) { return s.uint_ * 10; });
+    auto f_simple = [](SimpleStruct s) { return s.uint_ * 10; };
+    m.def("f_simple", f_simple);
     m.def("f_packed", [](PackedStruct s) { return s.uint_ * 10; });
     m.def("f_nested", [](NestedStruct s) { return s.a.uint_ * 10; });
+
+    // test_vectorize
+    m.def("f_simple_vectorized", py::vectorize(f_simple));
+    auto f_simple_pass_thru = [](SimpleStruct s) { return s; };
+    m.def("f_simple_pass_thru_vectorized", py::vectorize(f_simple_pass_thru));
 
     // test_register_dtype
     m.def("register_dtype", []() { PYBIND11_NUMPY_DTYPE(SimpleStruct, bool_, uint_, float_, ldbl_); });
