@@ -4,7 +4,7 @@
 pybind11 — Seamless operability between C++11 and Python
 ========================================================
 
-|Documentation Status| |image1| |Gitter chat| |CI| |Build status|
+|Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |CI| |Build status|
 
 **pybind11** is a lightweight header-only library that exposes C++ types
 in Python and vice versa, mainly to create Python bindings of existing
@@ -34,7 +34,7 @@ grown beyond Boost.Python in many ways, leading to dramatically simpler
 binding code in many common situations.
 
 Tutorial and reference documentation is provided at
-`pybind11.readthedocs.org <http://pybind11.readthedocs.org/en/master>`_.
+`pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_).
 A PDF version of the manual is available
 `here <https://media.readthedocs.org/pdf/pybind11/master/pybind11.pdf>`_.
 And the source code is always available at
@@ -146,9 +146,9 @@ pybind11 is provided under a BSD-style license that can be found in the
 file. By using, distributing, or contributing to this project, you agree
 to the terms and conditions of this license.
 
-.. |Documentation Status| image:: https://readthedocs.org/projects/pybind11/badge/?version=master
-   :target: http://pybind11.readthedocs.org/en/master/?badge=master
-.. |image1| image:: https://readthedocs.org/projects/pybind11/badge/?version=stable
+.. |Latest Documentation Status| image:: https://readthedocs.org/projects/pybind11/badge?version=latest
+   :target: http://pybind11.readthedocs.org/en/master/?badge=latest
+.. |Stable Documentation Status| image:: https://img.shields.io/badge/docs-stable-blue
    :target: http://pybind11.readthedocs.org/en/stable/?badge=stable
 .. |Gitter chat| image:: https://img.shields.io/gitter/room/gitterHQ/gitter.svg
    :target: https://gitter.im/pybind/Lobby
