@@ -35,9 +35,9 @@ to_src = (
 # Read the listed version
 with open("pybind11/_version.py") as f:
     code = compile(f.read(), "pybind11/_version.py", "exec")
-    loc = {}
-    exec(code, loc)
-    version = loc["__version__"]
+loc = {}
+exec(code, loc)
+version = loc["__version__"]
 
 # Verify that the version matches the one in C++
 with open("include/pybind11/detail/common.h") as f:
