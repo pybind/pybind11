@@ -31,7 +31,7 @@ import subprocess
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['breathe']
+extensions = ['breathe', 'sphinx.ext.imgconverter']
 
 breathe_projects = {'pybind11': '.build/doxygenxml/'}
 breathe_default_project = 'pybind11'
@@ -242,7 +242,10 @@ latex_elements = {
 #'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
-'preamble': r'\DeclareUnicodeCharacter{00A0}{}',
+'preamble': r'''
+\DeclareUnicodeCharacter{00A0}{}
+\DeclareUnicodeCharacter{2194}{<->}
+''',
 
 # Latex figure (float) alignment
 #'figure_align': 'htbp',
