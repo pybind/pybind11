@@ -103,8 +103,8 @@ private:
 	return {
 	  view->buf, view->itemsize, view->format, view->ndim,
 	  {view->shape, view->shape + view->ndim},
-	  std::vector<ssize_t>(view->ndim),
-	  view->readonly
+	  std::vector<ssize_t>(static_cast<std::vector<ssize_t>::size_type>(view->ndim)),
+	  static_cast<bool>(view->readonly)
 	};
     }
 
