@@ -95,6 +95,7 @@ set(PYBIND11_TEST_FILES
     test_class.cpp
     test_constants_and_functions.cpp
     test_copy_move.cpp
+    test_ctypes_buffer.cpp
     test_custom_type_casters.cpp
     test_docstring_options.cpp
     test_eigen.cpp
