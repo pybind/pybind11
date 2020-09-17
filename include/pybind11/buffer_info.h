@@ -97,7 +97,7 @@ private:
 	  view->buf, view->itemsize, view->format, view->ndim,
 	  {view->shape, view->shape + view->ndim},
 	  {view->strides, view->strides + view->ndim},
-	  view->readonly
+	  static_cast<bool>(view->readonly)
 	};
       else
 	return {
