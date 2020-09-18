@@ -41,15 +41,15 @@
 #  endif
 #endif
 
-#include <memory>
-#include <vector>
-#include <string>
-#include <utility>
-
 #include "attr.h"
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
+
+#include <memory>
+#include <vector>
+#include <string>
+#include <utility>
 
 #if defined(__GNUG__) && !defined(__clang__)
 #  include <cxxabi.h>
