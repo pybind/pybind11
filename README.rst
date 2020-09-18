@@ -147,9 +147,9 @@ file. By using, distributing, or contributing to this project, you agree
 to the terms and conditions of this license.
 
 .. |Latest Documentation Status| image:: https://readthedocs.org/projects/pybind11/badge?version=latest
-   :target: http://pybind11.readthedocs.org/en/master/?badge=latest
+   :target: http://pybind11.readthedocs.org/en/latest
 .. |Stable Documentation Status| image:: https://img.shields.io/badge/docs-stable-blue
-   :target: http://pybind11.readthedocs.org/en/stable/?badge=stable
+   :target: http://pybind11.readthedocs.org/en/stable
 .. |Gitter chat| image:: https://img.shields.io/gitter/room/gitterHQ/gitter.svg
    :target: https://gitter.im/pybind/Lobby
 .. |CI| image:: https://github.com/pybind/pybind11/workflows/CI/badge.svg

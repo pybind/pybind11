@@ -493,7 +493,7 @@ jobs:
     - uses: actions/setup-python@v2
 
     - name: Install Doxygen
-      run: sudo apt install -y doxygen
+      run: sudo apt-get install -y doxygen librsvg2-bin # Changed to rsvg-convert in 20.04
 
     - name: Install docs & setup requirements
       run: python3 -m pip install -r docs/requirements.txt
