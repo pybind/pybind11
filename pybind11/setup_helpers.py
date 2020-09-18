@@ -156,7 +156,8 @@ class Pybind11Extension(_Extension):
         if self._cxx_level:
             warnings.warn("You cannot safely change the cxx_level after setting it!")
 
-        # MSVC 2015 Update 3 and later only have 14 (and later 17) modes
+        # MSVC 2015 Update 3 and later only have 14 (and later 17) modes, so
+        # force a valid flag here.
         if WIN and level == 11:
             level = 14
 
@@ -168,15 +169,22 @@ class Pybind11Extension(_Extension):
         self.extra_compile_args.append(STD_TMPL.format(level))
 
         if MACOS and "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
-            # C++17 requires a higher min version of macOS
+            # C++17 requires a higher min version of macOS. An earlier version
+            # can be set manually via environment variable if you are careful
+            # in your feature usage, but 10.14 is the safest setting for
+            # general use.
             macosx_min = "-mmacosx-version-min=" + ("10.9" if level < 17 else "10.14")
             self.extra_compile_args.append(macosx_min)
             self.extra_link_args.append(macosx_min)
 
         if PY2:
-            if level >= 17:
-                self.extra_compile_args.append("/wd5033" if WIN else "-Wno-register")
-            elif not WIN and level >= 14:
+            if WIN:
+                # Will be ignored on MSVC 2015, where C++17 is not supported so
+                # this flag is not valid.
+                self.extra_compile_args.append("/wd5033")
+            elif level >= 17:
+                self.extra_compile_args.append("-Wno-register")
+            elif level >= 14:
                 self.extra_compile_args.append("-Wno-deprecated-register")
 
 
@@ -227,8 +235,11 @@ cpp_flag_cache = None
 
 def auto_cpp_level(compiler):
     """
-    Return the max supported C++ std level (17, 14, or 11).
+    Return the max supported C++ std level (17, 14, or 11). Returns latest on Windows.
     """
+
+    if WIN:
+        return "latest"
 
     global cpp_flag_cache
 
@@ -237,7 +248,7 @@ def auto_cpp_level(compiler):
         if cpp_flag_cache:
             return cpp_flag_cache
 
-    levels = [17, 14] + ([] if WIN else [11])
+    levels = [17, 14, 11]
 
     for level in levels:
         if has_flag(compiler, STD_TMPL.format(level)):
