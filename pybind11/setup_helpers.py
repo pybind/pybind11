@@ -175,7 +175,7 @@ class Pybind11Extension(_Extension):
 
         if PY2:
             if level >= 17:
-                self.extra_compile_args.append("/wd503" if WIN else "-Wno-register")
+                self.extra_compile_args.append("/wd5033" if WIN else "-Wno-register")
             elif not WIN and level >= 14:
                 self.extra_compile_args.append("-Wno-deprecated-register")
 
