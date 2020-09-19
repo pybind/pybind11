@@ -318,6 +318,18 @@ TEST_SUBMODULE(numpy_array, sm) {
         return auxiliaries(r, r2);
     });
 
+    sm.def("proxy_auxiliaries1_const_ref", [](py::array_t<double> a) {
+        const auto &r = a.unchecked<1>();
+        const auto &r2 = a.mutable_unchecked<1>();
+        return r(0) == r2(0) && r[0] == r2[0];
+    });
+
+    sm.def("proxy_auxiliaries2_const_ref", [](py::array_t<double> a) {
+        const auto &r = a.unchecked<2>();
+        const auto &r2 = a.mutable_unchecked<2>();
+        return r(0, 0) == r2(0, 0);
+    });
+
     // test_array_unchecked_dyn_dims
     // Same as the above, but without a compile-time dimensions specification:
     sm.def("proxy_add2_dyn", [](py::array_t<double> a, double v) {

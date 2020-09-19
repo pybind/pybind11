@@ -419,6 +419,10 @@ class unchecked_mutable_reference : public unchecked_reference<T, Dims> {
     using ConstBase::ConstBase;
     using ConstBase::Dynamic;
 public:
+    // Bring in const-qualified versions from base class
+    using ConstBase::operator();
+    using ConstBase::operator[];
+
     /// Mutable, unchecked access to data at the given indices.
     template <typename... Ix> T& operator()(Ix... index) {
         static_assert(ssize_t{sizeof...(Ix)} == Dims || Dynamic,
