@@ -62,6 +62,8 @@ int operator+(const C2 &, const C2 &) { return 22; }
 int operator+(const C2 &, const C1 &) { return 21; }
 int operator+(const C1 &, const C2 &) { return 12; }
 
+
+
 // Note: Specializing explicit within `namespace std { ... }` is done due to a
 // bug in GCC<7. If you are supporting compilers later than this, consider
 // specializing `using template<> struct std::hash<...>` in the global
@@ -79,6 +81,17 @@ namespace std {
 std::string abs(const Vector2&) {
     return "abs(Vector2)";
 }
+
+// ReverseA and ReverseB simulate two classes defined in separate files, both
+// with oeprator overloads on +, and ReverseB wishes to overload __radd__ with
+// ReversedA. This won't work, as will be shown in the Python test.
+struct ReverseA {
+    friend int operator+(int, ReverseA) { return 1; };
+};
+struct ReverseB {
+    friend int operator+(ReverseB, ReverseA) { return 2; };
+    friend int operator+(ReverseA, ReverseB) { return 3; };
+};
 
 // MSVC warns about unknown pragmas, and warnings are errors.
 #ifndef _MSC_VER
@@ -219,6 +232,14 @@ TEST_SUBMODULE(operators, m) {
         .def("__hash__", &Hashable::hash)
         .def(py::init<int>())
         .def(py::self == py::self);
+
+    py::class_<ReverseA>(m, "ReverseA")
+        .def(py::init())
+        .def(int{} + py::self);
+    py::class_<ReverseB>(m, "ReverseB")
+        .def(py::init())
+        .def(py::self + ReverseA{})
+        .def(ReverseA{} + py::self);
 }
 
 #ifndef _MSC_VER
