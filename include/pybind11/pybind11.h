@@ -1494,7 +1494,7 @@ struct enum_base {
                 handle type = type::handle_of(arg);
                 object type_name = type.attr("__name__");
                 dict entries = type.attr("__entries");
-                for (const auto &kv : entries) {
+                for (auto kv : entries) {
                     object other = kv.second[int_(0)];
                     if (other.equal(arg))
                         return pybind11::str("{}.{}").format(type_name, kv.first);
@@ -1506,7 +1506,7 @@ struct enum_base {
         m_base.attr("name") = property(cpp_function(
             [](handle arg) -> str {
                 dict entries = type::handle_of(arg).attr("__entries");
-                for (const auto &kv : entries) {
+                for (auto kv : entries) {
                     if (handle(kv.second[int_(0)]).equal(arg))
                         return pybind11::str(kv.first);
                 }
@@ -1521,7 +1521,7 @@ struct enum_base {
                 if (((PyTypeObject *) arg.ptr())->tp_doc)
                     docstring += std::string(((PyTypeObject *) arg.ptr())->tp_doc) + "\n\n";
                 docstring += "Members:";
-                for (const auto &kv : entries) {
+                for (auto kv : entries) {
                     auto key = std::string(pybind11::str(kv.first));
                     auto comment = kv.second[int_(1)];
                     docstring += "\n\n  " + key;
@@ -1535,7 +1535,7 @@ struct enum_base {
         m_base.attr("__members__") = static_property(cpp_function(
             [](handle arg) -> dict {
                 dict entries = arg.attr("__entries"), m;
-                for (const auto &kv : entries)
+                for (auto kv : entries)
                     m[kv.first] = kv.second[int_(0)];
                 return m;
             }, name("__members__")), none(), none(), ""
@@ -1623,7 +1623,7 @@ struct enum_base {
 
     PYBIND11_NOINLINE void export_values() {
         dict entries = m_base.attr("__entries");
-        for (const auto &kv : entries)
+        for (auto kv : entries)
             m_parent.attr(kv.first) = kv.second[int_(0)];
     }
 

@@ -128,7 +128,7 @@ TEST_SUBMODULE(pytypes, m) {
         d["basic_attr"] = o.attr("basic_attr");
 
         auto l = py::list();
-        for (const auto &item : o.attr("begin_end")) {
+        for (auto item : o.attr("begin_end")) {
             l.append(item);
         }
         d["begin_end"] = l;
