@@ -89,7 +89,7 @@ std::string abs(const Vector2&) {
   // Taken from: https://github.com/RobotLocomotion/drake/commit/aaf84b46
   // TODO(eric): This could be resolved using a function / functor (e.g. `py::self()`).
   #if defined(__APPLE__) && defined(__clang__)
-    #if (__clang_major__ >= 10) && (__clang_minor__ >= 0) && (__clang_patchlevel__ >= 1)
+    #if (__clang_major__ >= 10)
       #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
     #endif
   #elif defined(__clang__)
