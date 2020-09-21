@@ -70,6 +70,16 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
+# If a user finds Python, they may forget to include the Interpreter component
+# and the following two steps require it. It is highly recommended by CMake
+# when finding development libraries anyway, so we will require it.
+if(NOT DEFINED ${_Python}_EXECUTABLE)
+  message(
+    FATAL_ERROR
+      "${_Python} was found without the Interpreter component. Pybind11 requires this component.")
+
+endif()
+
 # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
 execute_process(
   COMMAND "${${_Python}_EXECUTABLE}" "-c" "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
