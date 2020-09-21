@@ -110,7 +110,7 @@ def test_selective_readonly_buffer():
         io.BytesIO(b'1').readinto(buf)
 
 
-def test_ctypes_buffer():
+def test_ctypes_array_1d():
     char1d = (ctypes.c_char * 10)()
     int1d = (ctypes.c_int * 15)()
     long1d = (ctypes.c_long * 7)()
@@ -124,6 +124,8 @@ def test_ctypes_buffer():
         assert info.strides == [info.itemsize]
         assert not info.readonly
 
+
+def test_ctypes_array_2d():
     char2d = ((ctypes.c_char * 10) * 4)()
     int2d = ((ctypes.c_int * 15) * 3)()
     long2d = ((ctypes.c_long * 7) * 2)()
@@ -137,6 +139,11 @@ def test_ctypes_buffer():
         assert info.strides == [info.itemsize * len(carray[0]), info.itemsize]
         assert not info.readonly
 
+
+@pytest.mark.skipif(
+    "env.PYPY and env.PY2", reason="PyPy2 bytes buffer not reported as readonly"
+)
+def test_ctypes_from_buffer():
     test_pystr = b"0123456789"
     for pyarray in (test_pystr, bytearray(test_pystr)):
         pyinfo = m.get_buffer_info(pyarray)
