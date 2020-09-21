@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import io
 import struct
+import ctypes
 
 import pytest
 
@@ -107,3 +108,7 @@ def test_selective_readonly_buffer():
         memoryview(buf)[0] = b'\0' if env.PY2 else 0
     with pytest.raises(TypeError):
         io.BytesIO(b'1').readinto(buf)
+
+
+def test_ctypes_buffer():
+    assert m.ctypes_buffer_size((ctypes.c_char * 10)()) == 10

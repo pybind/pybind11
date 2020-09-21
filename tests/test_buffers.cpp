@@ -192,4 +192,8 @@ TEST_SUBMODULE(buffers, m) {
         .def_readwrite("readonly", &BufferReadOnlySelect::readonly)
         .def_buffer(&BufferReadOnlySelect::get_buffer_info);
 
+    m.def("ctypes_buffer_size", [](py::buffer buffer) {
+	py::buffer_info info = buffer.request();
+	return info.size;
+    });
 }
