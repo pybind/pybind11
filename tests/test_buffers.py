@@ -111,4 +111,45 @@ def test_selective_readonly_buffer():
 
 
 def test_ctypes_buffer():
-    assert m.ctypes_buffer_size((ctypes.c_char * 10)()) == 10
+    char1d = (ctypes.c_char * 10)()
+    int1d = (ctypes.c_int * 15)()
+    long1d = (ctypes.c_long * 7)()
+
+    for carray in (char1d, int1d, long1d):
+        info = m.get_buffer_info(carray)
+        assert info.itemsize == ctypes.sizeof(carray._type_)
+        assert info.size == len(carray)
+        assert info.ndim == 1
+        assert info.shape == [info.size]
+        assert info.strides == [info.itemsize]
+        assert not info.readonly
+
+    char2d = ((ctypes.c_char * 10) * 4)()
+    int2d = ((ctypes.c_int * 15) * 3)()
+    long2d = ((ctypes.c_long * 7) * 2)()
+
+    for carray in (char2d, int2d, long2d):
+        info = m.get_buffer_info(carray)
+        assert info.itemsize == ctypes.sizeof(carray[0]._type_)
+        assert info.size == len(carray) * len(carray[0])
+        assert info.ndim == 2
+        assert info.shape == [len(carray), len(carray[0])]
+        assert info.strides == [info.itemsize * len(carray[0]), info.itemsize]
+        assert not info.readonly
+
+    test_pystr = b"0123456789"
+    for pyarray in (test_pystr, bytearray(test_pystr)):
+        pyinfo = m.get_buffer_info(pyarray)
+
+        if pyinfo.readonly:
+            cbytes = (ctypes.c_char * len(pyarray)).from_buffer_copy(pyarray)
+            cinfo = m.get_buffer_info(cbytes)
+        else:
+            cbytes = (ctypes.c_char * len(pyarray)).from_buffer(pyarray)
+            cinfo = m.get_buffer_info(cbytes)
+
+        assert cinfo.size == pyinfo.size
+        assert cinfo.ndim == pyinfo.ndim
+        assert cinfo.shape == pyinfo.shape
+        assert cinfo.strides == pyinfo.strides
+        assert not cinfo.readonly
