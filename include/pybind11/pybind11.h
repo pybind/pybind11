@@ -242,7 +242,7 @@ protected:
 
 #if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
-            const auto class_name = std::string(((PyTypeObject *) rec->scope.ptr())->tp_name);
+            const auto class_name = detail::get_tp_name((PyTypeObject *) rec->scope.ptr());
             const auto func_name = std::string(rec->name);
             PyErr_WarnEx(
                 PyExc_FutureWarning,
@@ -1033,7 +1033,7 @@ protected:
         if (!type->ht_type.tp_as_buffer)
             pybind11_fail(
                 "To be able to register buffer protocol support for the type '" +
-                std::string(tinfo->type->tp_name) +
+                get_tp_name(tinfo->type) +
                 "' the associated class<>(..) invocation must "
                 "include the pybind11::buffer_protocol() annotation!");
 
