@@ -53,11 +53,14 @@ struct buffer_info {
 
     explicit buffer_info(Py_buffer *view, bool ownview = true)
     : buffer_info(view->buf, view->itemsize, view->format, view->ndim,
-	    {view->shape, view->shape + view->ndim},
+            {view->shape, view->shape + view->ndim},
+            /* Though buffer::request() requests PyBUF_STRIDES, ctypes objects
+             * ignore this flag and return a view with NULL strides.
+             * When strides are NULL, build them manually.  */
             view->strides
-	    ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
-	    : std::vector<ssize_t>(static_cast<std::vector<ssize_t>::size_type>(view->ndim)),
-	    view->readonly) {
+            ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
+            : std::vector<ssize_t>(static_cast<std::vector<ssize_t>::size_type>(view->ndim)),
+            view->readonly) {
         this->m_view = view;
         this->ownview = ownview;
     }
