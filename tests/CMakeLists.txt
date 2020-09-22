@@ -377,13 +377,13 @@ endif()
 
 # cmake 3.12 added list(transform <list> prepend
 # but we can't use it yet
-string(REPLACE "test_" "${CMAKE_CURRENT_BINARY_DIR}/test_" PYBIND11_BINARY_TEST_FILES
+string(REPLACE "test_" "${CMAKE_CURRENT_SOURCE_DIR}/test_" PYBIND11_ABS_PYTEST_FILES
                "${PYBIND11_PYTEST_FILES}")
 
 # A single command to compile and run the tests
 add_custom_target(
   pytest
-  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_BINARY_PYTEST_FILES}
+  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL)
