@@ -1489,7 +1489,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline str enum_name(handle arg) {
     dict entries = arg.get_type().attr("__entries");
-    for (const auto &kv : entries) {
+    for (auto kv : entries) {
         if (handle(kv.second[int_(0)]).equal(arg))
             return pybind11::str(kv.first);
     }
