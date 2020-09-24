@@ -15,7 +15,7 @@ Adds the following targets::
 Adds the following functions::
 
     pybind11_strip(target) - strip target after building on linux/macOS
-
+    pybind11_find_import(module) - See if a module is installed.
 
 #]======================================================]
 
@@ -194,6 +194,77 @@ else()
   # Classic mode
   include("${CMAKE_CURRENT_LIST_DIR}/pybind11Tools.cmake")
 
+endif()
+
+# --------------------- pybind11_check_import -------------------------------
+
+if(NOT _pybind11_nopython)
+  # Check to see if modules are importable. Use REQUIRED to force an error if
+  # one of the modules is not found. <package_name>_FOUND will be set if the
+  # package was found (underscores replace dashes if present). QUIET will hide
+  # the found message, and VERSION will require a minimum version. A successful
+  # find will cache the result.
+  function(pybind11_find_import PYPI_NAME)
+    # CMake variables need underscores (PyPI doesn't care)
+    string(REPLACE "-" "_" NORM_PYPI_NAME "${PYPI_NAME}")
+
+    # Return if found previously
+    if(${NORM_PYPI_NAME}_FOUND)
+      return()
+    endif()
+
+    set(options "REQUIRED;QUIET")
+    set(oneValueArgs "VERSION")
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "" ${ARGN})
+
+    if(ARG_REQUIRED)
+      set(status_level FATAL_ERROR)
+    else()
+      set(status_level WARNING)
+    endif()
+
+    execute_process(
+      COMMAND
+        ${${_Python}_EXECUTABLE} -c
+        "from pkg_resources import get_distribution; print(get_distribution('${PYPI_NAME}').version)"
+      RESULT_VARIABLE RESULT_PRESENT
+      OUTPUT_VARIABLE PKG_VERSION
+      ERROR_QUIET)
+
+    string(STRIP "${PKG_VERSION}" PKG_VERSION)
+
+    # If a result is present, this failed
+    if(RESULT_PRESENT)
+      set(${NORM_PYPI_NAME}_FOUND
+          ${NORM_PYPI_NAME}-NOTFOUND
+          CACHE INTERNAL "")
+      # Always warn or error
+      message(
+        ${status_level}
+        "Missing: ${PYPI_NAME} ${ARG_VERSION}\nTry: ${${_Python}_EXECUTABLE} -m pip install ${PYPI_NAME}"
+      )
+    else()
+      if(ARG_VERSION AND PKG_VERSION VERSION_LESS ARG_VERSION)
+        message(
+          ${status_level}
+          "Version incorrect: ${PYPI_NAME} ${PKG_VERSION} found, ${ARG_VERSION} required - try upgrading"
+        )
+      else()
+        set(${NORM_PYPI_NAME}_FOUND
+            YES
+            CACHE INTERNAL "")
+        set(${NORM_PYPI_NAME}_VERSION
+            ${PKG_VERSION}
+            CACHE INTERNAL "")
+      endif()
+      if(NOT ARG_QUIET)
+        message(STATUS "Found ${PYPI_NAME} ${PKG_VERSION}")
+      endif()
+    endif()
+    if(NOT ARG_VERSION OR (NOT PKG_VERSION VERSION_LESS ARG_VERSION))
+      # We have successfully found a good version, cache to avoid calling again.
+    endif()
+  endfunction()
 endif()
 
 # --------------------- LTO -------------------------------
