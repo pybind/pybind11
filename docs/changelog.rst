@@ -98,14 +98,14 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   ``get_type_overload`` is deprecated.
   `#2325 <https://github.com/pybind/pybind11/pull/2325>`_
 
+* Error now thrown when ``__init__`` is forgotten on subclasses.
+  `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
+
 Smaller or developer focused features:
 
 * Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_.
 
 .. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
-
-* Error now thrown when ``__init__`` is forgotten on subclasses.
-  `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
 
 * If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
   ``None``.
@@ -117,9 +117,6 @@ Smaller or developer focused features:
 * Throw if conversion to ``str`` fails.
   `#2477 <https://github.com/pybind/pybind11/pull/2477>`_
 
-* Added missing signature for ``py::array``.
-  `#2363 <https://github.com/pybind/pybind11/pull/2363>`_
-
 * Pointer to ``std::tuple`` & ``std::pair`` supported in cast.
   `#2334 <https://github.com/pybind/pybind11/pull/2334>`_
 
@@ -127,7 +124,13 @@ Smaller or developer focused features:
   argument type.
   `#2293 <https://github.com/pybind/pybind11/pull/2293>`_
 
-* Bugfixes related to more extensive testing
+* Added missing signature for ``py::array``.
+  `#2363 <https://github.com/pybind/pybind11/pull/2363>`_
+
+* ``py::vectorize`` is now supported on functions that return void.
+  `#1969 <https://github.com/pybind/pybind11/pull/1969>`_
+
+* Bugfixes related to more extensive testing.
   `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
 
 * Bug in timezone issue in Eastern hemisphere midnight fixed.

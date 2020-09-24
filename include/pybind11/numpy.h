@@ -1483,6 +1483,7 @@ struct vectorize_arg {
 };
 
 
+// py::vectorize when a return type is present
 template <typename Func, typename Return, typename... Args>
 struct vectorize_returned_array {
     using Type = array_t<Return>;
@@ -1507,6 +1508,7 @@ struct vectorize_returned_array {
     }
 };
 
+// py::vectorize when a return type is not present
 template <typename Func, typename... Args>
 struct vectorize_returned_array<Func, void, Args...> {
     using Type = none;
