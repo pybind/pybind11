@@ -53,7 +53,7 @@ repos:
 
 # CMake formatting
 - repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: v0.6.11
+  rev: v0.6.13
   hooks:
   - id: cmake-format
     additional_dependencies: [pyyaml]
@@ -62,7 +62,7 @@ repos:
 
 # Checks the manifest for missing files (native support)
 - repo: https://github.com/mgedmin/check-manifest
-  rev: "0.42"
+  rev: "0.43"
   hooks:
   - id: check-manifest
     # This is a slow hook, so only run this if --hook-stage manual is passed
