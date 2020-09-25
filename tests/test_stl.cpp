@@ -70,6 +70,13 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_bool_vector", [](const std::vector<bool> &v) {
         return v.at(0) == true && v.at(1) == false;
     });
+    // `std::vector<std::string*> does not work because the string is owned by
+    // the element caster, which is destroyed before the function is called.
+    m.def("load_vector_str_ptr", [](const std::vector<std::string*>& v) {
+        // print more reliably triggers a memory error, making the use-after-free more obvious.
+        py::print(*v.at(0), " && ", *v.at(1));
+        return *v.at(0) == "test1" && *v.at(1) == "test2";
+    });
     // Unnumbered regression (caused by #936): pointers to stl containers aren't castable
     static std::vector<RValueCaster> lvv{2};
     m.def("cast_ptr_vector", []() { return &lvv; });

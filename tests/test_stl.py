@@ -13,6 +13,7 @@ def test_vector(doc):
     lst.append(2)
     assert m.load_vector(lst)
     assert m.load_vector(tuple(lst))
+    assert m.load_vector_str_ptr(["test1", "test2"])
 
     assert m.cast_bool_vector() == [True, False]
     assert m.load_bool_vector([True, False])
