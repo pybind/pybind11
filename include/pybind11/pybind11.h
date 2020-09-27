@@ -856,35 +856,32 @@ protected:
     }
 };
 
+
+#if PY_MAJOR_VERSION >= 3
+class module_;
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def);
+PYBIND11_NAMESPACE_END(detail)
+#endif
+
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
+    explicit module_(const char *name, const char *doc = nullptr)
 #if PY_MAJOR_VERSION >= 3
-    explicit module_(const char *name, const char *doc = nullptr, PyModuleDef *def = nullptr) {
-        if (!def) def = new PyModuleDef();
-        def = new (def) PyModuleDef {  // Placement new (not an allocation).
-            /* m_base */     PyModuleDef_HEAD_INIT,
-            /* m_name */     name,
-            /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
-            /* m_size */     -1,
-            /* m_methods */  nullptr,
-            /* m_slots */    nullptr,
-            /* m_traverse */ nullptr,
-            /* m_clear */    nullptr,
-            /* m_free */     nullptr
-        };
-        m_ptr = PyModule_Create(def);
+        : module_(name, doc, new PyModuleDef()) {}
 #else
-    explicit module_(const char *name, const char *doc = nullptr) {
+    {
         m_ptr = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
-#endif
         if (m_ptr == nullptr)
             pybind11_fail("Internal error in module_::module_()");
         inc_ref();
     }
+#endif
 
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
@@ -949,9 +946,40 @@ public:
 
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
+
+private:
+#if PY_MAJOR_VERSION >= 3
+    friend module_ detail::create_top_level_module(const char *, const char *, PyModuleDef *);
+
+    explicit module_(const char *name, const char *doc, PyModuleDef *def) {
+        def = new (def) PyModuleDef {  // Placement new (not an allocation).
+            /* m_base */     PyModuleDef_HEAD_INIT,
+            /* m_name */     name,
+            /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
+            /* m_size */     -1,
+            /* m_methods */  nullptr,
+            /* m_slots */    nullptr,
+            /* m_traverse */ nullptr,
+            /* m_clear */    nullptr,
+            /* m_free */     nullptr
+        };
+        m_ptr = PyModule_Create(def);
+        if (m_ptr == nullptr)
+            pybind11_fail("Internal error in module::module()");
+        inc_ref();
+    }
+#endif
 };
 
 using module = module_;
+
+#if PY_MAJOR_VERSION >= 3
+PYBIND11_NAMESPACE_BEGIN(detail)
+inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def) {
+    return module_(name, doc, def);
+}
+PYBIND11_NAMESPACE_END(detail)
+#endif
 
 /// \ingroup python_builtins
 /// Return a dictionary representing the global variables in the current execution frame,

@@ -311,7 +311,7 @@ extern "C" {
 #define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                \
     static PyModuleDef PYBIND11_CONCAT(pybind11_module_def_, name);
 #define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
-        auto m = pybind11::module(                                             \
+        auto m = pybind11::detail::create_top_level_module(                    \
             PYBIND11_TOSTRING(name), nullptr,                                  \
             &PYBIND11_CONCAT(pybind11_module_def_, name));
 #else
