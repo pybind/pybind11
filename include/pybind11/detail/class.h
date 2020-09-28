@@ -24,7 +24,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #  define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj) setattr((PyObject *) obj, "__qualname__", nameobj)
 #endif
 
-inline std::string get_tp_name(PyTypeObject *type) {
+inline std::string get_fully_qualified_tp_name(PyTypeObject *type) {
 #if !defined(PYPY_VERSION)
     return type->tp_name;
 #else
@@ -180,7 +180,7 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     for (const auto &vh : values_and_holders(instance)) {
         if (!vh.holder_constructed()) {
             PyErr_Format(PyExc_TypeError, "%.200s.__init__() must be called when overriding __init__",
-                         get_tp_name(vh.type->type).c_str());
+                         get_fully_qualified_tp_name(vh.type->type).c_str());
             Py_DECREF(self);
             return nullptr;
         }
@@ -312,7 +312,7 @@ extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, 
 /// following default function will be used which simply throws an exception.
 extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject *) {
     PyTypeObject *type = Py_TYPE(self);
-    std::string msg = get_tp_name(type) + ": No constructor defined!";
+    std::string msg = get_fully_qualified_tp_name(type) + ": No constructor defined!";
     PyErr_SetString(PyExc_TypeError, msg.c_str());
     return -1;
 }
@@ -451,7 +451,7 @@ extern "C" inline PyObject *pybind11_get_dict(PyObject *self, void *) {
 extern "C" inline int pybind11_set_dict(PyObject *self, PyObject *new_dict, void *) {
     if (!PyDict_Check(new_dict)) {
         PyErr_Format(PyExc_TypeError, "__dict__ must be set to a dictionary, not a '%.200s'",
-                     get_tp_name(Py_TYPE(new_dict)).c_str());
+                     get_fully_qualified_tp_name(Py_TYPE(new_dict)).c_str());
         return -1;
     }
     PyObject *&dict = *_PyObject_GetDictPtr(self);
@@ -479,8 +479,8 @@ extern "C" inline int pybind11_clear(PyObject *self) {
 inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto type = &heap_type->ht_type;
 #if defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x06000000)
-    pybind11_fail(get_tp_type(type) + ": dynamic attributes are currently not "
-                                      "supported in conjunction with PyPy!");
+    pybind11_fail(get_fully_qualified_tp_name(type) + ": dynamic attributes are currently not "
+                                                      "supported in conjunction with PyPy!");
 #endif
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
     type->tp_dictoffset = type->tp_basicsize; // place dict at the end

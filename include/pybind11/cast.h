@@ -40,7 +40,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Forward-declaration; see detail/class.h
-std::string get_tp_name(PyTypeObject*);
+std::string get_fully_qualified_tp_name(PyTypeObject*);
 
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
@@ -345,8 +345,8 @@ PYBIND11_NOINLINE inline value_and_holder instance::get_value_and_holder(const t
             "(compile in debug mode for type details)");
 #else
     pybind11_fail("pybind11::detail::instance::get_value_and_holder: `" +
-            get_tp_name(find_type->type) + "' is not a pybind11 base of the given `" +
-            get_tp_name(Py_TYPE(this)) + "' instance");
+            get_fully_qualified_tp_name(find_type->type) + "' is not a pybind11 base of the given `" +
+            get_fully_qualified_tp_name(Py_TYPE(this)) + "' instance");
 #endif
 }
 
