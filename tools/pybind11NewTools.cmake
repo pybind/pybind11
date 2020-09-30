@@ -91,7 +91,13 @@ execute_process(
   COMMAND "${${_Python}_EXECUTABLE}" "-c"
           "from distutils import sysconfig; print(sysconfig.get_config_var('SO'))"
   OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
-  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+  ERROR_VARIABLE _PYTHON_MODULE_EXTENSION_ERR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+if (_PYTHON_MODULE_EXTENSION STREQUAL "")
+  message(FATAL_ERROR "pybind11 could not query the module file extension, likely the 'distutils'"
+         "package is not installed. Full error message:\n${_PYTHON_MODULE_EXTENSION_ERR}")
+endif()
 
 # This needs to be available for the pybind11_extension function
 set(PYTHON_MODULE_EXTENSION
