@@ -63,9 +63,18 @@ jobs:
     - name: Check metadata
       run: twine check dist/*
 
-    - uses: actions/upload-artifact@v2
+    - name: Save standard package
+      uses: actions/upload-artifact@v2
       with:
-        path: dist/*
+        name: standard
+        path: dist/pybind11-*
+
+    - name: Save global package
+      uses: actions/upload-artifact@v2
+      with:
+        name: global
+        path: dist/pybind11_global-*
+
 
 
   # When a GitHub release is made, upload the artifacts to PyPI
@@ -78,12 +87,17 @@ jobs:
     steps:
     - uses: actions/setup-python@v2
 
+    # Downloads all to directories matching the artifact names
     - uses: actions/download-artifact@v2
-      with:
-        path: dist
-        name: artifact
 
-    - uses: pypa/gh-action-pypi-publish@v1.4.1
+    - name: Publish standard package
+      uses: pypa/gh-action-pypi-publish@v1.4.1
       with:
-        user: __token__
         password: ${{ secrets.pypi_password }}
+        packages_dir: standard/
+
+    - name: Publish global package
+      uses: pypa/gh-action-pypi-publish@v1.4.1
+      with:
+        password: ${{ secrets.pypi_password_global }}
+        packages_dir: global/
