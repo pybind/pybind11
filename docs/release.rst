@@ -36,7 +36,7 @@ To release a new version of pybind11:
   - ``git push --tags``.
 - Update stable
     - ``git checkout stable``
-    - ``git merge --ff-only master``
+    - ``git merge master``
     - ``git push``
 - Make a GitHub release (this shows up in the UI, sends new release
   notifications to users watching releases, and also uploads PyPI packages).
