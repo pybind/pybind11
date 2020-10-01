@@ -39,15 +39,25 @@ headers = main_headers + detail_headers
 cmdclass = {"install_headers": InstallHeadersNested}
 $extra_cmd
 
+# This will _not_ affect installing from wheels,
+# only building wheels or installing from SDist.
+# Primarily intended on Windows, where this is sometimes
+# customized (for example, conda-forge uses Library/)
+base = os.environ.get("PYBIND11_GLOBAL_PREFIX", "")
+
+# Must have a separator
+if base and not base.endswith("/"):
+    base += "/"
+
 setup(
     name="pybind11_global",
     version="$version",
     packages=[],
     headers=headers,
     data_files=[
-        ("share/cmake/pybind11", cmake_files),
-        ("include/pybind11", main_headers),
-        ("include/pybind11/detail", detail_headers),
+        (base + "share/cmake/pybind11", cmake_files),
+        (base + "include/pybind11", main_headers),
+        (base + "include/pybind11/detail", detail_headers),
     ],
     cmdclass=cmdclass,
 )
