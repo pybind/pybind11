@@ -152,10 +152,12 @@ def test_inheritance_init(msg):
             pass
     with pytest.raises(TypeError) as exc_info:
         Python()
-    expected = ["m.class_.Pet.__init__() must be called when overriding __init__",
-                "Pet.__init__() must be called when overriding __init__"]  # PyPy?
+    if env.PYPY:
+        expected = "Pet.__init__() must be called when overriding __init__"
+    else:
+        expected = "m.class_.Pet.__init__() must be called when overriding __init__"
     # TODO: fix PyPy error message wrt. tp_name/__qualname__?
-    assert msg(exc_info.value) in expected
+    assert msg(exc_info.value) == expected
 
     # Multiple bases
     class RabbitHamster(m.Rabbit, m.Hamster):
@@ -164,9 +166,26 @@ def test_inheritance_init(msg):
 
     with pytest.raises(TypeError) as exc_info:
         RabbitHamster()
-    expected = ["m.class_.Hamster.__init__() must be called when overriding __init__",
-                "Hamster.__init__() must be called when overriding __init__"]  # PyPy
-    assert msg(exc_info.value) in expected
+    if env.PYPY:
+        expected = "Hamster.__init__() must be called when overriding __init__"
+    else:
+        expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
+    assert msg(exc_info.value) == expected
+
+    # Base doesn't have __init__
+    class ChChimera(m.Chimera):
+        def __init__(self):
+            pass
+
+    with pytest.raises(TypeError) as exc_info:
+        ChChimera()
+    if env.PYPY:
+        # can't detect no __init__ in PyPy
+        expected = "Chimera.__init__() must be called when overriding __init__"
+    else:
+        expected = \
+            "m.class_.Chimera has no __init__ and cannot be used as a base class from Python"
+    assert msg(exc_info.value) == expected
 
 
 def test_automatic_upcasting():

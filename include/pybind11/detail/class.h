@@ -171,8 +171,14 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     // Ensure that the base __init__ function(s) were called
     for (const auto &vh : values_and_holders(instance)) {
         if (!vh.holder_constructed()) {
-            PyErr_Format(PyExc_TypeError, "%.200s.__init__() must be called when overriding __init__",
-                         vh.type->type->tp_name);
+            auto message = "%.200s.__init__() must be called when overriding __init__";
+#if !defined(PYPY_VERSION)
+            auto default_init = ((PyHeapTypeObject*)get_internals().instance_base)->ht_type.tp_init;
+            if (vh.type->type->tp_init == default_init) {
+                message = "%.200s has no __init__ and cannot be used as a base class from Python";
+            }
+#endif
+            PyErr_Format(PyExc_TypeError, message, vh.type->type->tp_name);
             Py_DECREF(self);
             return nullptr;
         }
@@ -620,7 +626,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
         type->tp_bases = bases.release().ptr();
 
     /* Don't inherit base __init__ */
-    type->tp_init = pybind11_object_init;
+    type->tp_init = ((PyHeapTypeObject*)internals.instance_base)->ht_type.tp_init;
 
     /* Supported protocols */
     type->tp_as_number = &heap_type->as_number;
