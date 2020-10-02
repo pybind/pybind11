@@ -64,4 +64,10 @@ TEST_SUBMODULE(opaque_types, m) {
         result->push_back("some value");
         return std::unique_ptr<StringList>(result);
     });
+
+    // test unions
+    py::class_<IntFloat>(m, "IntFloat")
+        .def(py::init<>())
+        .def_readwrite("i", &IntFloat::i)
+        .def_readwrite("f", &IntFloat::f);
 }

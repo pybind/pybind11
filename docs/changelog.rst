@@ -98,6 +98,11 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   ``get_type_overload`` is deprecated.
   `#2325 <https://github.com/pybind/pybind11/pull/2325>`_
 
+* `py::class_<union_type>` is now supported. Note that writing to one data
+  member of the union and reading another (type punning) is UB in C++. Thus
+  pybind11-bound enums should never be used for such conversion.
+  `#2320 <https://github.com/pybind/pybind11/pull/2320>`_.
+
 Smaller or developer focused features:
 
 * Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_.
@@ -162,7 +167,6 @@ Smaller or developer focused features:
 * Extensive style checking in CI, with `pre-commit`_ support.
 
 .. _pre-commit: https://pre-commit.com
-
 
 
 v2.5.0 (Mar 31, 2020)
