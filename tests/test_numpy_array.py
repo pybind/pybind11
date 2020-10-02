@@ -364,6 +364,9 @@ def test_array_unchecked_fixed_dims(msg):
     assert m.proxy_auxiliaries2(z1) == [11, 11, True, 2, 8, 2, 2, 4, 32]
     assert m.proxy_auxiliaries2(z1) == m.array_auxiliaries2(z1)
 
+    assert m.proxy_auxiliaries1_const_ref(z1[0, :])
+    assert m.proxy_auxiliaries2_const_ref(z1)
+
 
 def test_array_unchecked_dyn_dims(msg):
     z1 = np.array([[1, 2], [3, 4]], dtype='float64')
