@@ -258,7 +258,7 @@ inline bool deregister_instance_impl(void *ptr, instance *self) {
     auto &registered_instances = get_internals().registered_instances;
     auto range = registered_instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
-        if (Py_TYPE(self) == Py_TYPE(it->second)) {
+        if (self == it->second) {
             registered_instances.erase(it);
             return true;
         }

@@ -420,6 +420,16 @@ TEST_SUBMODULE(class_, m) {
     py::class_<PyPrintDestructor>(m, "PyPrintDestructor")
         .def(py::init<>())
         .def("throw_something", &PyPrintDestructor::throw_something);
+
+    struct SamePointer {};
+    static SamePointer samePointer;
+    py::class_<SamePointer, std::unique_ptr<SamePointer, py::nodelete>>(m, "SamePointer")
+        .def(py::init([]() { return &samePointer; }))
+        .def("__del__", [](SamePointer&) { py::print("__del__ called"); });
+
+    struct Empty {};
+    py::class_<Empty>(m, "Empty")
+        .def(py::init<>());
 }
 
 template <int N> class BreaksBase { public:

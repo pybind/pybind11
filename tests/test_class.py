@@ -368,3 +368,18 @@ def test_non_final_final():
 def test_exception_rvalue_abort():
     with pytest.raises(RuntimeError):
         m.PyPrintDestructor().throw_something()
+
+
+# https://github.com/pybind/pybind11/issues/1568
+def test_multiple_instances_with_same_pointer(capture):
+    n = 100
+    instances = [m.SamePointer() for _ in range(n)]
+    for i in range(n):
+        # We need to reuse the same allocated memory for with a different type,
+        # to ensure the bug in `deregister_instance_impl` is detected. Otherwise
+        # `Py_TYPE(self) == Py_TYPE(it->second)` will still succeed, even though
+        # the `instance` is already deleted.
+        instances[i] = m.Empty()
+    # No assert: if this does not trigger the error
+    #   pybind11_fail("pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
+    # and just completes without crashing, we're good.
