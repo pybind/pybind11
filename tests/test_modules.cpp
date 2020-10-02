@@ -13,7 +13,8 @@
 
 TEST_SUBMODULE(modules, m) {
     // test_nested_modules
-    py::module_ m_sub = m.def_submodule("subsubmodule");
+    // This is intentionally "py::module" to verify it still can be used in place of "py::module_"
+    py::module m_sub = m.def_submodule("subsubmodule");
     m_sub.def("submodule_func", []() { return "submodule_func()"; });
 
     // test_reference_internal
@@ -50,7 +51,8 @@ TEST_SUBMODULE(modules, m) {
         .def_readwrite("a1", &B::a1)  // def_readonly uses an internal reference return policy by default
         .def_readwrite("a2", &B::a2);
 
-    m.attr("OD") = py::module_::import("collections").attr("OrderedDict");
+    // This is intentionally "py::module" to verify it still can be used in place of "py::module_"
+    m.attr("OD") = py::module::import("collections").attr("OrderedDict");
 
     // test_duplicate_registration
     // Registering two things with the same name

@@ -974,7 +974,7 @@ private:
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
 // C++20 allows "module" to be used. This is provided for backward compatibility, and for
 // simplicity, if someone wants to use py::module for example, that is perfectly safe.
-// TODO: using module = module_;
+using module = module_;
 
 #if PY_MAJOR_VERSION >= 3
 PYBIND11_NAMESPACE_BEGIN(detail)
