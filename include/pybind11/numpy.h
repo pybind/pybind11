@@ -222,7 +222,7 @@ private:
     };
 
     static npy_api lookup() {
-        module_ m = module::import("numpy.core.multiarray");
+        module_ m = module_::import("numpy.core.multiarray");
         auto c = m.attr("_ARRAY_API");
 #if PY_MAJOR_VERSION >= 3
         void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
@@ -501,7 +501,7 @@ public:
 
 private:
     static object _dtype_from_pep3118() {
-        static PyObject *obj = module::import("numpy.core._internal")
+        static PyObject *obj = module_::import("numpy.core._internal")
             .attr("_dtype_from_pep3118").cast<object>().release().ptr();
         return reinterpret_borrow<object>(obj);
     }

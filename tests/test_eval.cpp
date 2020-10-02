@@ -14,7 +14,7 @@
 TEST_SUBMODULE(eval_, m) {
     // test_evals
 
-    auto global = py::dict(py::module::import("__main__").attr("__dict__"));
+    auto global = py::dict(py::module_::import("__main__").attr("__dict__"));
 
     m.def("test_eval_statements", [global]() {
         auto local = py::dict();

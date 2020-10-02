@@ -56,12 +56,12 @@ This example obtains a reference to the Python ``Decimal`` class.
 .. code-block:: cpp
 
     // Equivalent to "from decimal import Decimal"
-    py::object Decimal = py::module::import("decimal").attr("Decimal");
+    py::object Decimal = py::module_::import("decimal").attr("Decimal");
 
 .. code-block:: cpp
 
     // Try to import scipy
-    py::object scipy = py::module::import("scipy");
+    py::object scipy = py::module_::import("scipy");
     return scipy.attr("__version__");
 
 
@@ -81,7 +81,7 @@ via ``operator()``.
 .. code-block:: cpp
 
     // Use Python to make our directories
-    py::object os = py::module::import("os");
+    py::object os = py::module_::import("os");
     py::object makedirs = os.attr("makedirs");
     makedirs("/tmp/path/to/somewhere");
 
@@ -196,9 +196,9 @@ C++ functions that require a specific subtype rather than a generic :class:`obje
     #include <pybind11/numpy.h>
     using namespace pybind11::literals;
 
-    py::module os = py::module::import("os");
-    py::module path = py::module::import("os.path");  // like 'import os.path as path'
-    py::module np = py::module::import("numpy");  // like 'import numpy as np'
+    py::module_ os = py::module_::import("os");
+    py::module_ path = py::module_::import("os.path");  // like 'import os.path as path'
+    py::module_ np = py::module_::import("numpy");  // like 'import numpy as np'
 
     py::str curdir_abs = path.attr("abspath")(path.attr("curdir"));
     py::print(py::str("Current directory: ") + curdir_abs);

@@ -107,7 +107,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
             return py::make_tuple(i, j, k, kwargs); },
             py::arg() /* positional */, py::arg("j") = -1 /* both */, py::kw_only(), py::arg("k") /* kw-only */);
 
-    m.def("register_invalid_kw_only", [](py::module m) {
+    m.def("register_invalid_kw_only", [](py::module_ m) {
         m.def("bad_kw_only", [](int i, int j) { return py::make_tuple(i, j); },
                 py::kw_only(), py::arg() /* invalid unnamed argument */, "j"_a);
     });
@@ -138,5 +138,5 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     // Make sure a class (not an instance) can be used as a default argument.
     // The return value doesn't matter, only that the module is importable.
     m.def("class_default_argument", [](py::object a) { return py::repr(a); },
-        "a"_a = py::module::import("decimal").attr("Decimal"));
+        "a"_a = py::module_::import("decimal").attr("Decimal"));
 }

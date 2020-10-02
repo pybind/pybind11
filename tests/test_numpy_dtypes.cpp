@@ -255,7 +255,7 @@ struct A {};
 struct B {};
 
 TEST_SUBMODULE(numpy_dtypes, m) {
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // typeinfo may be registered before the dtype descriptor for scalar casts to work...

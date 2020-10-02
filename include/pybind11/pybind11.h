@@ -904,9 +904,9 @@ public:
 
         .. code-block:: cpp
 
-            py::module m("example", "pybind11 example plugin");
-            py::module m2 = m.def_submodule("sub", "A submodule of 'example'");
-            py::module m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
+            py::module_ m("example", "pybind11 example plugin");
+            py::module_ m2 = m.def_submodule("sub", "A submodule of 'example'");
+            py::module_ m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
     module_ def_submodule(const char *name, const char *doc = nullptr) {
         std::string full_name = std::string(PyModule_GetName(m_ptr))
@@ -965,13 +965,16 @@ private:
         };
         m_ptr = PyModule_Create(def);
         if (m_ptr == nullptr)
-            pybind11_fail("Internal error in module::module()");
+            pybind11_fail("Internal error in module_::module_()");
         inc_ref();
     }
 #endif
 };
 
-using module = module_;
+// When inside a namespace (or anywhere as long as it's not the first item on a line),
+// C++20 allows "module" to be used. This is provided for backward compatibility, and for
+// simplicity, if someone wants to use py::module for example, that is perfectly safe.
+// TODO: using module = module_;
 
 #if PY_MAJOR_VERSION >= 3
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -986,7 +989,7 @@ PYBIND11_NAMESPACE_END(detail)
 /// or ``__main__.__dict__`` if there is no frame (usually when the interpreter is embedded).
 inline dict globals() {
     PyObject *p = PyEval_GetGlobals();
-    return reinterpret_borrow<dict>(p ? p : module::import("__main__").attr("__dict__").ptr());
+    return reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -1973,7 +1976,7 @@ PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
         file = kwargs["file"].cast<object>();
     } else {
         try {
-            file = module::import("sys").attr("stdout");
+            file = module_::import("sys").attr("stdout");
         } catch (const error_already_set &) {
             /* If print() is called from code that is executed as
                part of garbage collection during interpreter shutdown,

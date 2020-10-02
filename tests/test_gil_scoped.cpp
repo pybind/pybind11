@@ -45,7 +45,7 @@ TEST_SUBMODULE(gil_scoped, m) {
           [](VirtClass &virt) { virt.pure_virtual_func(); });
     m.def("test_cross_module_gil",
           []() {
-              auto cm = py::module::import("cross_module_gil_utils");
+              auto cm = py::module_::import("cross_module_gil_utils");
               auto gil_acquire = reinterpret_cast<void (*)()>(
                   PyLong_AsVoidPtr(cm.attr("gil_acquire_funcaddr").ptr()));
               py::gil_scoped_release gil_release;

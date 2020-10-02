@@ -22,7 +22,7 @@ struct DtypeCheck {
 
 template <typename T>
 DtypeCheck get_dtype_check(const char* name) {
-    py::module np = py::module::import("numpy");
+    py::module_ np = py::module_::import("numpy");
     DtypeCheck check{};
     check.numpy = np.attr("dtype")(np.attr(name));
     check.pybind11 = py::dtype::of<T>();
@@ -133,7 +133,7 @@ template <typename T, typename T2> py::handle auxiliaries(T &&r, T2 &&r2) {
 static int data_i = 42;
 
 TEST_SUBMODULE(numpy_array, sm) {
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_dtypes
