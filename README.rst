@@ -46,21 +46,21 @@ Core features
 pybind11 can map the following core C++ features to Python:
 
 -  Functions accepting and returning custom data structures per value,
-   reference, or pointer
--  Instance methods and static methods
--  Overloaded functions
--  Instance attributes and static attributes
--  Arbitrary exception types
--  Enumerations
--  Callbacks
--  Iterators and ranges
--  Custom operators
--  Single and multiple inheritance
--  STL data structures
--  Smart pointers with reference counting like ``std::shared_ptr``
--  Internal references with correct reference counting
+   reference, or pointer.
+-  Instance methods and static methods.
+-  Overloaded functions.
+-  Instance attributes and static attributes.
+-  Arbitrary exception types.
+-  Enumerations.
+-  Callbacks.
+-  Iterators and ranges.
+-  Custom operators.
+-  Single and multiple inheritance.
+-  STL data structures.
+-  Smart pointers with reference counting like ``std::shared_ptr``.
+-  Internal references with correct reference counting.
 -  C++ classes with virtual (and pure virtual) methods can be extended
-   in Python
+   in Python.
 
 Goodies
 -------
@@ -110,16 +110,16 @@ Supported compilers
 -------------------
 
 1. Clang/LLVM 3.3 or newer (for Apple Xcode’s clang, this is 5.0.0 or
-   newer)
-2. GCC 4.8 or newer
-3. Microsoft Visual Studio 2015 Update 3 or newer
+   newer).
+2. GCC 4.8 or newer.
+3. Microsoft Visual Studio 2015 Update 3 or newer.
 4. Intel C++ compiler 17 or newer (16 with pybind11 v2.0 and 15 with
    pybind11 v2.0 and a
-   `workaround <https://github.com/pybind/pybind11/issues/276>`_)
-5. Cygwin/GCC (tested on 2.5.1)
-6. NVCC (CUDA 11 tested)
+   `workaround <https://github.com/pybind/pybind11/issues/276>`_).
+5. Cygwin/GCC (tested on 2.5.1).
+6. NVCC (CUDA 11 tested).
 7. NVIDIA PGI (20.7 tested)
-
+.
 About
 -----
 
