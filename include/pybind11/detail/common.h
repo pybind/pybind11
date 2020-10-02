@@ -11,7 +11,7 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 6
-#define PYBIND11_VERSION_PATCH 0.dev1
+#define PYBIND11_VERSION_PATCH 0b1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -307,13 +307,26 @@ extern "C" {
             });
         }
 \endrst */
+#if PY_MAJOR_VERSION >= 3
+#define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                \
+    static PyModuleDef PYBIND11_CONCAT(pybind11_module_def_, name);
+#define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
+        auto m = pybind11::detail::create_top_level_module(                    \
+            PYBIND11_TOSTRING(name), nullptr,                                  \
+            &PYBIND11_CONCAT(pybind11_module_def_, name));
+#else
+#define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)
+#define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
+        auto m = pybind11::module(PYBIND11_TOSTRING(name));
+#endif
 #define PYBIND11_MODULE(name, variable)                                        \
+    PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                    \
     PYBIND11_MAYBE_UNUSED                                                      \
     static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         PYBIND11_CHECK_PYTHON_VERSION                                          \
         PYBIND11_ENSURE_INTERNALS_READY                                        \
-        auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
+        PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
         try {                                                                  \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
             return m.ptr();                                                    \
@@ -618,8 +631,9 @@ template <typename Base, typename Derived> using is_strict_base_of = bool_consta
 
 /// Like is_base_of, but also requires that the base type is accessible (i.e. that a Derived pointer
 /// can be converted to a Base pointer)
+/// For unions, `is_base_of<T, T>::value` is False, so we need to check `is_same` as well.
 template <typename Base, typename Derived> using is_accessible_base_of = bool_constant<
-    std::is_base_of<Base, Derived>::value && std::is_convertible<Derived *, Base *>::value>;
+    (std::is_same<Base, Derived>::value || std::is_base_of<Base, Derived>::value) && std::is_convertible<Derived *, Base *>::value>;
 
 template <template<typename...> class Base>
 struct is_template_base_of_impl {

@@ -242,7 +242,7 @@ protected:
 
 #if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
-            const auto class_name = std::string(((PyTypeObject *) rec->scope.ptr())->tp_name);
+            const auto class_name = detail::get_fully_qualified_tp_name((PyTypeObject *) rec->scope.ptr());
             const auto func_name = std::string(rec->name);
             PyErr_WarnEx(
                 PyExc_FutureWarning,
@@ -856,29 +856,32 @@ protected:
     }
 };
 
+
+#if PY_MAJOR_VERSION >= 3
+class module_;
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def);
+PYBIND11_NAMESPACE_END(detail)
+#endif
+
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    explicit module_(const char *name, const char *doc = nullptr) {
-        if (!options::show_user_defined_docstrings()) doc = nullptr;
+    explicit module_(const char *name, const char *doc = nullptr)
 #if PY_MAJOR_VERSION >= 3
-        auto *def = new PyModuleDef();
-        std::memset(def, 0, sizeof(PyModuleDef));
-        def->m_name = name;
-        def->m_doc = doc;
-        def->m_size = -1;
-        Py_INCREF(def);
-        m_ptr = PyModule_Create(def);
+        : module_(name, doc, new PyModuleDef()) {}
 #else
-        m_ptr = Py_InitModule3(name, nullptr, doc);
-#endif
+    {
+        m_ptr = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
         if (m_ptr == nullptr)
             pybind11_fail("Internal error in module_::module_()");
         inc_ref();
     }
+#endif
 
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
@@ -943,9 +946,40 @@ public:
 
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
+
+private:
+#if PY_MAJOR_VERSION >= 3
+    friend module_ detail::create_top_level_module(const char *, const char *, PyModuleDef *);
+
+    explicit module_(const char *name, const char *doc, PyModuleDef *def) {
+        def = new (def) PyModuleDef {  // Placement new (not an allocation).
+            /* m_base */     PyModuleDef_HEAD_INIT,
+            /* m_name */     name,
+            /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
+            /* m_size */     -1,
+            /* m_methods */  nullptr,
+            /* m_slots */    nullptr,
+            /* m_traverse */ nullptr,
+            /* m_clear */    nullptr,
+            /* m_free */     nullptr
+        };
+        m_ptr = PyModule_Create(def);
+        if (m_ptr == nullptr)
+            pybind11_fail("Internal error in module::module()");
+        inc_ref();
+    }
+#endif
 };
 
 using module = module_;
+
+#if PY_MAJOR_VERSION >= 3
+PYBIND11_NAMESPACE_BEGIN(detail)
+inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def) {
+    return module_(name, doc, def);
+}
+PYBIND11_NAMESPACE_END(detail)
+#endif
 
 /// \ingroup python_builtins
 /// Return a dictionary representing the global variables in the current execution frame,
@@ -1033,7 +1067,7 @@ protected:
         if (!type->ht_type.tp_as_buffer)
             pybind11_fail(
                 "To be able to register buffer protocol support for the type '" +
-                std::string(tinfo->type->tp_name) +
+                get_fully_qualified_tp_name(tinfo->type) +
                 "' the associated class<>(..) invocation must "
                 "include the pybind11::buffer_protocol() annotation!");
 

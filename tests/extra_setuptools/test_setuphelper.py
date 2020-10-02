@@ -10,8 +10,9 @@ DIR = os.path.abspath(os.path.dirname(__file__))
 MAIN_DIR = os.path.dirname(os.path.dirname(DIR))
 
 
+@pytest.mark.parametrize("parallel", [False, True])
 @pytest.mark.parametrize("std", [11, 0])
-def test_simple_setup_py(monkeypatch, tmpdir, std):
+def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
     monkeypatch.chdir(tmpdir)
     monkeypatch.syspath_prepend(MAIN_DIR)
 
@@ -39,13 +40,18 @@ def test_simple_setup_py(monkeypatch, tmpdir, std):
                 cmdclass["build_ext"] = build_ext
 
 
+            parallel = {parallel}
+            if parallel:
+                from pybind11.setup_helpers import ParallelCompile
+                ParallelCompile().install()
+
             setup(
                 name="simple_setup_package",
                 cmdclass=cmdclass,
                 ext_modules=ext_modules,
             )
             """
-        ).format(MAIN_DIR=MAIN_DIR, std=std),
+        ).format(MAIN_DIR=MAIN_DIR, std=std, parallel=parallel),
         encoding="ascii",
     )
 
