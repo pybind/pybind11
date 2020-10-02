@@ -222,7 +222,7 @@ private:
     };
 
     static npy_api lookup() {
-        module m = module::import("numpy.core.multiarray");
+        module_ m = module::import("numpy.core.multiarray");
         auto c = m.attr("_ARRAY_API");
 #if PY_MAJOR_VERSION >= 3
         void **api_ptr = (void **) PyCapsule_GetPointer(c.ptr(), NULL);
@@ -281,7 +281,7 @@ template <typename T> struct is_complex : std::false_type { };
 template <typename T> struct is_complex<std::complex<T>> : std::true_type { };
 
 template <typename T> struct array_info_scalar {
-    typedef T type;
+    using type = T;
     static constexpr bool is_array = false;
     static constexpr bool is_empty = false;
     static constexpr auto extents = _("");
@@ -934,7 +934,8 @@ public:
     static bool check_(handle h) {
         const auto &api = detail::npy_api::get();
         return api.PyArray_Check_(h.ptr())
-               && api.PyArray_EquivTypes_(detail::array_proxy(h.ptr())->descr, dtype::of<T>().ptr());
+               && api.PyArray_EquivTypes_(detail::array_proxy(h.ptr())->descr, dtype::of<T>().ptr())
+               && detail::check_flags(h.ptr(), ExtraFlags & (array::c_style | array::f_style));
     }
 
 protected:
@@ -1295,7 +1296,7 @@ public:
         m_strides.back() = static_cast<value_type>(strides.back());
         for (size_type i = m_strides.size() - 1; i != 0; --i) {
             size_type j = i - 1;
-            value_type s = static_cast<value_type>(shape[i]);
+            auto s = static_cast<value_type>(shape[i]);
             m_strides[j] = strides[j] + m_strides[i] - strides[i] * s;
         }
     }
@@ -1483,7 +1484,14 @@ struct vectorize_arg {
 
 template <typename Func, typename Return, typename... Args>
 struct vectorize_helper {
+
+// NVCC for some reason breaks if NVectorized is private
+#ifdef __CUDACC__
+public:
+#else
 private:
+#endif
+
     static constexpr size_t N = sizeof...(Args);
     static constexpr size_t NVectorized = constexpr_sum(vectorize_arg<Args>::vectorize...);
     static_assert(NVectorized >= 1,
@@ -1531,7 +1539,7 @@ private:
         ssize_t nd = 0;
         std::vector<ssize_t> shape(0);
         auto trivial = broadcast(buffers, nd, shape);
-        size_t ndim = (size_t) nd;
+        auto ndim = (size_t) nd;
 
         size_t size = std::accumulate(shape.begin(), shape.end(), (size_t) 1, std::multiplies<size_t>());
 

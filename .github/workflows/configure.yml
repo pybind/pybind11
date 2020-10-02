@@ -10,6 +10,8 @@ on:
       - v*
 
 jobs:
+  # This tests various versions of CMake in various combinations, to make sure
+  # the configure step passes.
   cmake:
     strategy:
       fail-fast: false
@@ -50,11 +52,14 @@ jobs:
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt
 
+    # An action for adding a specific version of CMake:
+    #   https://github.com/jwlawson/actions-setup-cmake
     - name: Setup CMake ${{ matrix.cmake }}
       uses: jwlawson/actions-setup-cmake@v1.3
       with:
         cmake-version: ${{ matrix.cmake }}
 
+    # These steps use a directory with a space in it intentionally
     - name: Make build directories
       run: mkdir "build dir"
 
@@ -67,6 +72,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
 
+    # Only build and test if this was manually triggered in the GitHub UI
     - name: Build
       working-directory: build dir
       if: github.event_name == 'workflow_dispatch'

@@ -19,6 +19,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 /* A few forward declarations */
 class handle; class object;
 class str; class iterator;
+class type;
 struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -34,7 +35,7 @@ namespace accessor_policies {
     struct sequence_item;
     struct list_item;
     struct tuple_item;
-}
+} // namespace accessor_policies
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
 using str_attr_accessor = accessor<accessor_policies::str_attr>;
 using item_accessor = accessor<accessor_policies::generic_item>;
@@ -151,7 +152,8 @@ public:
 
     /// Return the object's current reference count
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
-    /// Return a handle to the Python type object underlying the instance
+
+    // TODO PYBIND11_DEPRECATED("Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
     handle get_type() const;
 
 private:
@@ -330,7 +332,7 @@ public:
     error_already_set(const error_already_set &) = default;
     error_already_set(error_already_set &&) = default;
 
-    inline ~error_already_set();
+    inline ~error_already_set() override;
 
     /// Give the currently-held error back to Python, if any.  If there is currently a Python error
     /// already set it is cleared first.  After this call, the current object no longer stores the
@@ -890,6 +892,32 @@ private:
     object value = {};
 };
 
+
+
+class type : public object {
+public:
+    PYBIND11_OBJECT(type, object, PyType_Check)
+
+    /// Return a type handle from a handle or an object
+    static handle handle_of(handle h) { return handle((PyObject*) Py_TYPE(h.ptr())); }
+
+    /// Return a type object from a handle or an object
+    static type of(handle h) { return type(type::handle_of(h), borrowed_t{}); }
+
+    // Defined in pybind11/cast.h
+    /// Convert C++ type to handle if previously registered. Does not convert
+    /// standard types, like int, float. etc. yet.
+    /// See https://github.com/pybind/pybind11/issues/2486
+    template<typename T>
+    static handle handle_of();
+
+    /// Convert C++ type to type if previously registered. Does not convert
+    /// standard types, like int, float. etc. yet.
+    /// See https://github.com/pybind/pybind11/issues/2486
+    template<typename T>
+    static type of() {return type(type::handle_of<T>(), borrowed_t{}); }
+};
+
 class iterable : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(iterable, object, detail::PyIterable_Check)
@@ -920,7 +948,7 @@ public:
         Return a string representation of the object. This is analogous to
         the ``str()`` function in Python.
     \endrst */
-    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { }
+    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { if (!m_ptr) throw error_already_set(); }
 
     operator std::string() const {
         object temp = *this;
@@ -945,8 +973,8 @@ private:
     /// Return string representation -- always returns a new reference, even if already a str
     static PyObject *raw_str(PyObject *op) {
         PyObject *str_value = PyObject_Str(op);
-        if (!str_value) throw error_already_set();
 #if PY_MAJOR_VERSION < 3
+        if (!str_value) throw error_already_set();
         PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
         Py_XDECREF(str_value); str_value = unicode;
 #endif
@@ -960,7 +988,7 @@ inline namespace literals {
     String literal version of `str`
  \endrst */
 inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
-}
+} // namespace literals
 
 /// \addtogroup pytypes
 /// @{
@@ -1335,7 +1363,7 @@ public:
     buffer_info request(bool writable = false) const {
         int flags = PyBUF_STRIDES | PyBUF_FORMAT;
         if (writable) flags |= PyBUF_WRITABLE;
-        Py_buffer *view = new Py_buffer();
+        auto *view = new Py_buffer();
         if (PyObject_GetBuffer(m_ptr, view, flags) != 0) {
             delete view;
             throw error_already_set();
@@ -1552,7 +1580,7 @@ template <typename D>
 str_attr_accessor object_api<D>::doc() const { return attr("__doc__"); }
 
 template <typename D>
-handle object_api<D>::get_type() const { return (PyObject *) Py_TYPE(derived().ptr()); }
+handle object_api<D>::get_type() const { return type::handle_of(derived()); }
 
 template <typename D>
 bool object_api<D>::rich_compare(object_api const &other, int value) const {

@@ -27,7 +27,8 @@ namespace pybind11 { namespace detail {
     struct holder_helper<ref<T>> {
         static const T *get(const ref<T> &p) { return p.get_ptr(); }
     };
-}}
+} // namespace detail
+} // namespace pybind11
 
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
@@ -97,9 +98,9 @@ TEST_SUBMODULE(smart_ptr, m) {
     class MyObject1 : public Object {
     public:
         MyObject1(int value) : value(value) { print_created(this, toString()); }
-        std::string toString() const { return "MyObject1[" + std::to_string(value) + "]"; }
+        std::string toString() const override { return "MyObject1[" + std::to_string(value) + "]"; }
     protected:
-        virtual ~MyObject1() { print_destroyed(this); }
+        ~MyObject1() override { print_destroyed(this); }
     private:
         int value;
     };
@@ -207,7 +208,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     class MyObject4b : public MyObject4a {
     public:
         MyObject4b(int i) : MyObject4a(i) { print_created(this); }
-        ~MyObject4b() { print_destroyed(this); }
+        ~MyObject4b() override { print_destroyed(this); }
     };
     py::class_<MyObject4b, MyObject4a>(m, "MyObject4b")
         .def(py::init<int>());
@@ -338,7 +339,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     // test_shared_ptr_gc
     // #187: issue involving std::shared_ptr<> return value policy & garbage collection
     struct ElementBase {
-        virtual ~ElementBase() { } /* Force creation of virtual table */
+        virtual ~ElementBase() = default; /* Force creation of virtual table */
         ElementBase() = default;
         ElementBase(const ElementBase&) = delete;
     };

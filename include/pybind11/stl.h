@@ -289,7 +289,7 @@ template<typename T> struct optional_caster {
     PYBIND11_TYPE_CASTER(T, _("Optional[") + value_conv::name + _("]"));
 };
 
-#if PYBIND11_HAS_OPTIONAL
+#if defined(PYBIND11_HAS_OPTIONAL)
 template<typename T> struct type_caster<std::optional<T>>
     : public optional_caster<std::optional<T>> {};
 
@@ -297,7 +297,7 @@ template<> struct type_caster<std::nullopt_t>
     : public void_caster<std::nullopt_t> {};
 #endif
 
-#if PYBIND11_HAS_EXP_OPTIONAL
+#if defined(PYBIND11_HAS_EXP_OPTIONAL)
 template<typename T> struct type_caster<std::experimental::optional<T>>
     : public optional_caster<std::experimental::optional<T>> {};
 
@@ -369,7 +369,7 @@ struct variant_caster<V<Ts...>> {
     PYBIND11_TYPE_CASTER(Type, _("Union[") + detail::concat(make_caster<Ts>::name...) + _("]"));
 };
 
-#if PYBIND11_HAS_VARIANT
+#if defined(PYBIND11_HAS_VARIANT)
 template <typename... Ts>
 struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { };
 #endif

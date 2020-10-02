@@ -70,6 +70,16 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
+# If a user finds Python, they may forget to include the Interpreter component
+# and the following two steps require it. It is highly recommended by CMake
+# when finding development libraries anyway, so we will require it.
+if(NOT DEFINED ${_Python}_EXECUTABLE)
+  message(
+    FATAL_ERROR
+      "${_Python} was found without the Interpreter component. Pybind11 requires this component.")
+
+endif()
+
 # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
 execute_process(
   COMMAND "${${_Python}_EXECUTABLE}" "-c" "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
@@ -81,7 +91,13 @@ execute_process(
   COMMAND "${${_Python}_EXECUTABLE}" "-c"
           "from distutils import sysconfig; print(sysconfig.get_config_var('SO'))"
   OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
-  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+  ERROR_VARIABLE _PYTHON_MODULE_EXTENSION_ERR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+if (_PYTHON_MODULE_EXTENSION STREQUAL "")
+  message(FATAL_ERROR "pybind11 could not query the module file extension, likely the 'distutils'"
+         "package is not installed. Full error message:\n${_PYTHON_MODULE_EXTENSION_ERR}")
+endif()
 
 # This needs to be available for the pybind11_extension function
 set(PYTHON_MODULE_EXTENSION
@@ -197,7 +213,7 @@ function(pybind11_add_module target_name)
   endif()
 
   if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
-    # Strip unnecessary sections of the binary on Linux/Mac OS
+    # Strip unnecessary sections of the binary on Linux/macOS
     pybind11_strip(${target_name})
   endif()
 

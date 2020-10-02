@@ -80,7 +80,7 @@ module and automatically converts any encountered exceptions of type ``CppExp``
 into Python exceptions of type ``PyExp``.
 
 It is possible to specify base class for the exception using the third
-parameter, a pointer to `PyObject`:
+parameter, a `handle`:
 
 .. code-block:: cpp
 

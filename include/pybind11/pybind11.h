@@ -46,6 +46,11 @@
 #include "detail/class.h"
 #include "detail/init.h"
 
+#include <memory>
+#include <vector>
+#include <string>
+#include <utility>
+
 #if defined(__GNUG__) && !defined(__clang__)
 #  include <cxxabi.h>
 #endif
@@ -55,7 +60,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
 public:
-    cpp_function() { }
+    cpp_function() = default;
     cpp_function(std::nullptr_t) { }
 
     /// Construct a cpp_function from a vanilla function pointer
@@ -165,7 +170,7 @@ protected:
             /* Get a pointer to the capture object */
             auto data = (sizeof(capture) <= sizeof(call.func.data)
                          ? &call.func.data : call.func.data[0]);
-            capture *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
+            auto *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
             /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
             return_value_policy policy = return_value_policy_override<Return>::policy(call.func.policy);
@@ -237,7 +242,7 @@ protected:
 
 #if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
-            const auto class_name = std::string(((PyTypeObject *) rec->scope.ptr())->tp_name);
+            const auto class_name = detail::get_fully_qualified_tp_name((PyTypeObject *) rec->scope.ptr());
             const auto func_name = std::string(rec->name);
             PyErr_WarnEx(
                 PyExc_FutureWarning,
@@ -420,7 +425,7 @@ protected:
         }
 
         /* Install docstring */
-        PyCFunctionObject *func = (PyCFunctionObject *) m_ptr;
+        auto *func = (PyCFunctionObject *) m_ptr;
         if (func->m_ml->ml_doc)
             std::free(const_cast<char *>(func->m_ml->ml_doc));
         func->m_ml->ml_doc = strdup(signatures.c_str());
@@ -465,7 +470,7 @@ protected:
                               *it = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right overload */
-        const size_t n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
+        const auto n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
 
         handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
@@ -543,7 +548,7 @@ protected:
                         self_value_and_holder.type->dealloc(self_value_and_holder);
 
                     call.init_self = PyTuple_GET_ITEM(args_in, 0);
-                    call.args.push_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
+                    call.args.emplace_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
                     call.args_convert.push_back(false);
                     ++args_copied;
                 }
@@ -626,7 +631,7 @@ protected:
                 }
 
                 // 3. Check everything was consumed (unless we have a kwargs arg)
-                if (kwargs && kwargs.size() > 0 && !func.has_kwargs)
+                if (kwargs && !kwargs.empty() && !func.has_kwargs)
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
 
                 // 4a. If we have a py::args argument, create a new tuple with leftovers
@@ -814,7 +819,7 @@ protected:
             }
             if (kwargs_in) {
                 auto kwargs = reinterpret_borrow<dict>(kwargs_in);
-                if (kwargs.size() > 0) {
+                if (!kwargs.empty()) {
                     if (some_args) msg += "; ";
                     msg += "kwargs: ";
                     bool first = true;
@@ -852,26 +857,32 @@ protected:
 };
 
 /// Wrapper for Python extension modules
-class module : public object {
+class module_ : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(module, object, PyModule_Check)
+    PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    explicit module(const char *name, const char *doc = nullptr) {
-        if (!options::show_user_defined_docstrings()) doc = nullptr;
 #if PY_MAJOR_VERSION >= 3
-        PyModuleDef *def = new PyModuleDef();
-        std::memset(def, 0, sizeof(PyModuleDef));
-        def->m_name = name;
-        def->m_doc = doc;
-        def->m_size = -1;
-        Py_INCREF(def);
+    explicit module_(const char *name, const char *doc = nullptr, PyModuleDef *def = nullptr) {
+        if (!def) def = new PyModuleDef();
+        def = new (def) PyModuleDef {  // Placement new (not an allocation).
+            /* m_base */     PyModuleDef_HEAD_INIT,
+            /* m_name */     name,
+            /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
+            /* m_size */     -1,
+            /* m_methods */  nullptr,
+            /* m_slots */    nullptr,
+            /* m_traverse */ nullptr,
+            /* m_clear */    nullptr,
+            /* m_free */     nullptr
+        };
         m_ptr = PyModule_Create(def);
 #else
-        m_ptr = Py_InitModule3(name, nullptr, doc);
+    explicit module_(const char *name, const char *doc = nullptr) {
+        m_ptr = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
 #endif
         if (m_ptr == nullptr)
-            pybind11_fail("Internal error in module::module()");
+            pybind11_fail("Internal error in module_::module_()");
         inc_ref();
     }
 
@@ -881,7 +892,7 @@ public:
         details on the ``Extra&& ... extra`` argument, see section :ref:`extras`.
     \endrst */
     template <typename Func, typename... Extra>
-    module &def(const char *name_, Func &&f, const Extra& ... extra) {
+    module_ &def(const char *name_, Func &&f, const Extra& ... extra) {
         cpp_function func(std::forward<Func>(f), name(name_), scope(*this),
                           sibling(getattr(*this, name_, none())), extra...);
         // NB: allow overwriting here because cpp_function sets up a chain with the intention of
@@ -900,10 +911,10 @@ public:
             py::module m2 = m.def_submodule("sub", "A submodule of 'example'");
             py::module m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
-    module def_submodule(const char *name, const char *doc = nullptr) {
+    module_ def_submodule(const char *name, const char *doc = nullptr) {
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
-        auto result = reinterpret_borrow<module>(PyImport_AddModule(full_name.c_str()));
+        auto result = reinterpret_borrow<module_>(PyImport_AddModule(full_name.c_str()));
         if (doc && options::show_user_defined_docstrings())
             result.attr("__doc__") = pybind11::str(doc);
         attr(name) = result;
@@ -911,11 +922,11 @@ public:
     }
 
     /// Import and return a module or throws `error_already_set`.
-    static module import(const char *name) {
+    static module_ import(const char *name) {
         PyObject *obj = PyImport_ImportModule(name);
         if (!obj)
             throw error_already_set();
-        return reinterpret_steal<module>(obj);
+        return reinterpret_steal<module_>(obj);
     }
 
     /// Reload the module or throws `error_already_set`.
@@ -923,7 +934,7 @@ public:
         PyObject *obj = PyImport_ReloadModule(ptr());
         if (!obj)
             throw error_already_set();
-        *this = reinterpret_steal<module>(obj);
+        *this = reinterpret_steal<module_>(obj);
     }
 
     // Adds an object to the module using the given name.  Throws if an object with the given name
@@ -939,6 +950,8 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 };
+
+using module = module_;
 
 /// \ingroup python_builtins
 /// Return a dictionary representing the global variables in the current execution frame,
@@ -1020,13 +1033,13 @@ protected:
     void install_buffer_funcs(
             buffer_info *(*get_buffer)(PyObject *, void *),
             void *get_buffer_data) {
-        PyHeapTypeObject *type = (PyHeapTypeObject*) m_ptr;
+        auto *type = (PyHeapTypeObject*) m_ptr;
         auto tinfo = detail::get_type_info(&type->ht_type);
 
         if (!type->ht_type.tp_as_buffer)
             pybind11_fail(
                 "To be able to register buffer protocol support for the type '" +
-                std::string(tinfo->type->tp_name) +
+                get_fully_qualified_tp_name(tinfo->type) +
                 "' the associated class<>(..) invocation must "
                 "include the pybind11::buffer_protocol() annotation!");
 
@@ -1242,7 +1255,7 @@ public:
 
     template <typename Func> class_& def_buffer(Func &&func) {
         struct capture { Func func; };
-        capture *ptr = new capture { std::forward<Func>(func) };
+        auto *ptr = new capture { std::forward<Func>(func) };
         install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
             detail::make_caster<type> caster;
             if (!caster.load(obj, false))
@@ -1479,6 +1492,16 @@ detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetSta
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+inline str enum_name(handle arg) {
+    dict entries = arg.get_type().attr("__entries");
+    for (auto kv : entries) {
+        if (handle(kv.second[int_(0)]).equal(arg))
+            return pybind11::str(kv.first);
+    }
+    return "???";
+}
+
 struct enum_base {
     enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
 
@@ -1488,29 +1511,21 @@ struct enum_base {
         auto static_property = handle((PyObject *) get_internals().static_property_type);
 
         m_base.attr("__repr__") = cpp_function(
-            [](handle arg) -> str {
-                handle type = arg.get_type();
+            [](object arg) -> str {
+                handle type = type::handle_of(arg);
                 object type_name = type.attr("__name__");
-                dict entries = type.attr("__entries");
-                for (const auto &kv : entries) {
-                    object other = kv.second[int_(0)];
-                    if (other.equal(arg))
-                        return pybind11::str("{}.{}").format(type_name, kv.first);
-                }
-                return pybind11::str("{}.???").format(type_name);
+                return pybind11::str("<{}.{}: {}>").format(type_name, enum_name(arg), int_(arg));
             }, name("__repr__"), is_method(m_base)
         );
 
-        m_base.attr("name") = property(cpp_function(
+        m_base.attr("name") = property(cpp_function(&enum_name, name("name"), is_method(m_base)));
+
+        m_base.attr("__str__") = cpp_function(
             [](handle arg) -> str {
-                dict entries = arg.get_type().attr("__entries");
-                for (const auto &kv : entries) {
-                    if (handle(kv.second[int_(0)]).equal(arg))
-                        return pybind11::str(kv.first);
-                }
-                return "???";
+                object type_name = type::handle_of(arg).attr("__name__");
+                return pybind11::str("{}.{}").format(type_name, enum_name(arg));
             }, name("name"), is_method(m_base)
-        ));
+        );
 
         m_base.attr("__doc__") = static_property(cpp_function(
             [](handle arg) -> std::string {
@@ -1519,7 +1534,7 @@ struct enum_base {
                 if (((PyTypeObject *) arg.ptr())->tp_doc)
                     docstring += std::string(((PyTypeObject *) arg.ptr())->tp_doc) + "\n\n";
                 docstring += "Members:";
-                for (const auto &kv : entries) {
+                for (auto kv : entries) {
                     auto key = std::string(pybind11::str(kv.first));
                     auto comment = kv.second[int_(1)];
                     docstring += "\n\n  " + key;
@@ -1533,7 +1548,7 @@ struct enum_base {
         m_base.attr("__members__") = static_property(cpp_function(
             [](handle arg) -> dict {
                 dict entries = arg.attr("__entries"), m;
-                for (const auto &kv : entries)
+                for (auto kv : entries)
                     m[kv.first] = kv.second[int_(0)];
                 return m;
             }, name("__members__")), none(), none(), ""
@@ -1542,7 +1557,7 @@ struct enum_base {
         #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                     \
             m_base.attr(op) = cpp_function(                                            \
                 [](object a, object b) {                                               \
-                    if (!a.get_type().is(b.get_type()))                                \
+                    if (!type::handle_of(a).is(type::handle_of(b)))                    \
                         strict_behavior;                                               \
                     return expr;                                                       \
                 },                                                                     \
@@ -1621,7 +1636,7 @@ struct enum_base {
 
     PYBIND11_NOINLINE void export_values() {
         dict entries = m_base.attr("__entries");
-        for (const auto &kv : entries)
+        for (auto kv : entries)
             m_parent.attr(kv.first) = kv.second[int_(0)];
     }
 
@@ -1789,7 +1804,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename KeyType = decltype((*std::declval<Iterator>()).first),
           typename... Extra>
 iterator make_key_iterator(Iterator first, Sentinel last, Extra &&... extra) {
-    typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
+    using state = detail::iterator_state<Iterator, Sentinel, true, Policy>;
 
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
@@ -1868,10 +1883,10 @@ template <typename type>
 class exception : public object {
 public:
     exception() = default;
-    exception(handle scope, const char *name, PyObject *base = PyExc_Exception) {
+    exception(handle scope, const char *name, handle base = PyExc_Exception) {
         std::string full_name = scope.attr("__name__").cast<std::string>() +
                                 std::string(".") + name;
-        m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base, NULL);
+        m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), NULL);
         if (hasattr(scope, name))
             pybind11_fail("Error during initialization: multiple incompatible "
                           "definitions with name \"" + std::string(name) + "\"");
@@ -1901,7 +1916,7 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename CppException>
 exception<CppException> &register_exception(handle scope,
                                             const char *name,
-                                            PyObject *base = PyExc_Exception) {
+                                            handle base = PyExc_Exception) {
     auto &ex = detail::get_exception_object<CppException>();
     if (!ex) ex = exception<CppException>(scope, name, base);
 
@@ -2110,21 +2125,22 @@ error_already_set::~error_already_set() {
     }
 }
 
-inline function get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name)  {
-    handle self = detail::get_object_handle(this_ptr, this_type);
+PYBIND11_NAMESPACE_BEGIN(detail)
+inline function get_type_override(const void *this_ptr, const type_info *this_type, const char *name)  {
+    handle self = get_object_handle(this_ptr, this_type);
     if (!self)
         return function();
-    handle type = self.get_type();
+    handle type = type::handle_of(self);
     auto key = std::make_pair(type.ptr(), name);
 
-    /* Cache functions that aren't overloaded in Python to avoid
+    /* Cache functions that aren't overridden in Python to avoid
        many costly Python dictionary lookups below */
-    auto &cache = detail::get_internals().inactive_overload_cache;
+    auto &cache = get_internals().inactive_override_cache;
     if (cache.find(key) != cache.end())
         return function();
 
-    function overload = getattr(self, name, function());
-    if (overload.is_cpp_function()) {
+    function override = getattr(self, name, function());
+    if (override.is_cpp_function()) {
         cache.insert(key);
         return function();
     }
@@ -2164,34 +2180,36 @@ inline function get_type_overload(const void *this_ptr, const detail::type_info 
     Py_DECREF(result);
 #endif
 
-    return overload;
+    return override;
 }
+PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
   Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
 
-  :this_ptr: The pointer to the object the overload should be retrieved for. This should be the first
-                   non-trampoline class encountered in the inheritance chain.
-  :name: The name of the overloaded Python method to retrieve.
+  :this_ptr: The pointer to the object the overriden method should be retrieved for. This should be
+             the first non-trampoline class encountered in the inheritance chain.
+  :name: The name of the overridden Python method to retrieve.
   :return: The Python method by this name from the object or an empty function wrapper.
  \endrst */
-template <class T> function get_overload(const T *this_ptr, const char *name) {
+template <class T> function get_override(const T *this_ptr, const char *name) {
     auto tinfo = detail::get_type_info(typeid(T));
-    return tinfo ? get_type_overload(this_ptr, tinfo, name) : function();
+    return tinfo ? detail::get_type_override(this_ptr, tinfo, name) : function();
 }
 
-#define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) { \
+#define PYBIND11_OVERRIDE_IMPL(ret_type, cname, name, ...) \
+    do { \
         pybind11::gil_scoped_acquire gil; \
-        pybind11::function overload = pybind11::get_overload(static_cast<const cname *>(this), name); \
-        if (overload) { \
-            auto o = overload(__VA_ARGS__); \
+        pybind11::function override = pybind11::get_override(static_cast<const cname *>(this), name); \
+        if (override) { \
+            auto o = override(__VA_ARGS__); \
             if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value) { \
-                static pybind11::detail::overload_caster_t<ret_type> caster; \
+                static pybind11::detail::override_caster_t<ret_type> caster; \
                 return pybind11::detail::cast_ref<ret_type>(std::move(o), caster); \
             } \
             else return pybind11::detail::cast_safe<ret_type>(std::move(o)); \
         } \
-    }
+    } while (false)
 
 /** \rst
     Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
@@ -2202,7 +2220,7 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
     .. code-block:: cpp
 
       std::string toString() override {
-        PYBIND11_OVERLOAD_NAME(
+        PYBIND11_OVERRIDE_NAME(
             std::string, // Return type (ret_type)
             Animal,      // Parent class (cname)
             "__str__",   // Name of method in Python (name)
@@ -2210,17 +2228,21 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
         );
       }
 \endrst */
-#define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
-    PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
-    return cname::fn(__VA_ARGS__)
+#define PYBIND11_OVERRIDE_NAME(ret_type, cname, name, fn, ...) \
+    do { \
+        PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
+        return cname::fn(__VA_ARGS__); \
+    } while (false)
 
 /** \rst
-    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD_NAME`, except that it
-    throws if no overload can be found.
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE_NAME`, except that it
+    throws if no override can be found.
 \endrst */
-#define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
-    PYBIND11_OVERLOAD_INT(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__) \
-    pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\"");
+#define PYBIND11_OVERRIDE_PURE_NAME(ret_type, cname, name, fn, ...) \
+    do { \
+        PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
+        pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\""); \
+    } while (false)
 
 /** \rst
     Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
@@ -2237,7 +2259,7 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
 
           // Trampoline (need one for each virtual function)
           std::string go(int n_times) override {
-              PYBIND11_OVERLOAD_PURE(
+              PYBIND11_OVERRIDE_PURE(
                   std::string, // Return type (ret_type)
                   Animal,      // Parent class (cname)
                   go,          // Name of function in C++ (must match Python name) (fn)
@@ -2246,15 +2268,39 @@ template <class T> function get_overload(const T *this_ptr, const char *name) {
           }
       };
 \endrst */
-#define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
-    PYBIND11_OVERLOAD_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
+#define PYBIND11_OVERRIDE(ret_type, cname, fn, ...) \
+    PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
 /** \rst
-    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERLOAD`, except that it throws
-    if no overload can be found.
+    Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE`, except that it throws
+    if no override can be found.
 \endrst */
+#define PYBIND11_OVERRIDE_PURE(ret_type, cname, fn, ...) \
+    PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
+
+
+// Deprecated versions
+
+PYBIND11_DEPRECATED("get_type_overload has been deprecated")
+inline function get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name) {
+    return detail::get_type_override(this_ptr, this_type, name);
+}
+
+template <class T>
+inline function get_overload(const T *this_ptr, const char *name) {
+    return get_override(this_ptr, name);
+}
+
+#define PYBIND11_OVERLOAD_INT(ret_type, cname, name, ...) \
+    PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__)
+#define PYBIND11_OVERLOAD_NAME(ret_type, cname, name, fn, ...) \
+    PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__)
+#define PYBIND11_OVERLOAD_PURE_NAME(ret_type, cname, name, fn, ...) \
+    PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, fn, __VA_ARGS__);
+#define PYBIND11_OVERLOAD(ret_type, cname, fn, ...) \
+    PYBIND11_OVERRIDE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__)
 #define PYBIND11_OVERLOAD_PURE(ret_type, cname, fn, ...) \
-    PYBIND11_OVERLOAD_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
+    PYBIND11_OVERRIDE_PURE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__);
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 

@@ -37,7 +37,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     ));
 
     // test_type_selection
-    // Numpy function which only accepts specific data types
+    // NumPy function which only accepts specific data types
     m.def("selective_func", [](py::array_t<int, py::array::c_style>) { return "Int branch taken."; });
     m.def("selective_func", [](py::array_t<float, py::array::c_style>) { return "Float branch taken."; });
     m.def("selective_func", [](py::array_t<std::complex<float>, py::array::c_style>) { return "Complex float branch taken."; });

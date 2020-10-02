@@ -13,7 +13,7 @@
 class MyException : public std::exception {
 public:
     explicit MyException(const char * m) : message{m} {}
-    virtual const char * what() const noexcept override {return message.c_str();}
+    const char * what() const noexcept override {return message.c_str();}
 private:
     std::string message = "";
 };
@@ -22,7 +22,7 @@ private:
 class MyException2 : public std::exception {
 public:
     explicit MyException2(const char * m) : message{m} {}
-    virtual const char * what() const noexcept override {return message.c_str();}
+    const char * what() const noexcept override {return message.c_str();}
 private:
     std::string message = "";
 };
@@ -41,7 +41,7 @@ private:
 class MyException4 : public std::exception {
 public:
     explicit MyException4(const char * m) : message{m} {}
-    virtual const char * what() const noexcept override {return message.c_str();}
+    const char * what() const noexcept override {return message.c_str();}
 private:
     std::string message = "";
 };

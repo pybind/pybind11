@@ -212,7 +212,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         .def(py::init<>())
         .def("numpy_view", [](py::object &obj) {
             py::print("ArrayClass::numpy_view()");
-            ArrayClass &a = obj.cast<ArrayClass&>();
+            auto &a = obj.cast<ArrayClass&>();
             return py::array_t<int>({2}, {4}, a.data, obj);
         }
     );
@@ -362,7 +362,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     // test_array_resize
     // reshape array to 2D without changing size
     sm.def("array_reshape2", [](py::array_t<double> a) {
-        const ssize_t dim_sz = (ssize_t)std::sqrt(a.size());
+        const auto dim_sz = (ssize_t)std::sqrt(a.size());
         if (dim_sz * dim_sz != a.size())
             throw std::domain_error("array_reshape2: input array total size is not a squared integer");
         a.resize({dim_sz, dim_sz});
@@ -385,4 +385,42 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("index_using_ellipsis", [](py::array a) {
         return a[py::make_tuple(0, py::ellipsis(), 0)];
     });
+
+    // test_argument_conversions
+    sm.def("accept_double",
+           [](py::array_t<double, 0>) {},
+           py::arg("a"));
+    sm.def("accept_double_forcecast",
+           [](py::array_t<double, py::array::forcecast>) {},
+           py::arg("a"));
+    sm.def("accept_double_c_style",
+           [](py::array_t<double, py::array::c_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_c_style_forcecast",
+           [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_f_style",
+           [](py::array_t<double, py::array::f_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_f_style_forcecast",
+           [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_noconvert",
+           [](py::array_t<double, 0>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_c_style_noconvert",
+           [](py::array_t<double, py::array::c_style>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_c_style_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_f_style_noconvert",
+           [](py::array_t<double, py::array::f_style>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_f_style_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
+           py::arg("a").noconvert());
 }

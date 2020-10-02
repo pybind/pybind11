@@ -11,7 +11,7 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 6
-#define PYBIND11_VERSION_PATCH dev0
+#define PYBIND11_VERSION_PATCH 0b1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -154,6 +154,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <exception>
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
@@ -306,13 +307,26 @@ extern "C" {
             });
         }
 \endrst */
+#if PY_MAJOR_VERSION >= 3
+#define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                \
+    static PyModuleDef PYBIND11_CONCAT(pybind11_module_def_, name);
+#define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
+        auto m = pybind11::module(                                             \
+            PYBIND11_TOSTRING(name), nullptr,                                  \
+            &PYBIND11_CONCAT(pybind11_module_def_, name));
+#else
+#define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)
+#define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
+        auto m = pybind11::module(PYBIND11_TOSTRING(name));
+#endif
 #define PYBIND11_MODULE(name, variable)                                        \
+    PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                    \
     PYBIND11_MAYBE_UNUSED                                                      \
     static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);     \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         PYBIND11_CHECK_PYTHON_VERSION                                          \
         PYBIND11_ENSURE_INTERNALS_READY                                        \
-        auto m = pybind11::module(PYBIND11_TOSTRING(name));                    \
+        PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
         try {                                                                  \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                          \
             return m.ptr();                                                    \
@@ -501,8 +515,16 @@ template <bool... Bs> using select_indices = typename select_indices_impl<index_
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T> struct negation : bool_constant<!T::value> { };
 
+// PGI cannot detect operator delete with the "compatible" void_t impl, so
+// using the new one (C++14 defect, so generally works on newer compilers, even
+// if not in C++17 mode)
+#if defined(__PGIC__)
+template<typename... > using void_t = void;
+#else
 template <typename...> struct void_t_impl { using type = void; };
 template <typename... Ts> using void_t = typename void_t_impl<Ts...>::type;
+#endif
+
 
 /// Compile-time all/any/none of that check the boolean value of all template types
 #if defined(__cpp_fold_expressions) && !(defined(_MSC_VER) && (_MSC_VER < 1916))
@@ -528,17 +550,17 @@ template <class T, template<class> class... Predicates> using satisfies_none_of 
 
 /// Strip the class from a method type
 template <typename T> struct remove_class { };
-template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...)> { typedef R type(A...); };
-template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...) const> { typedef R type(A...); };
+template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...)> { using type = R (A...); };
+template <typename C, typename R, typename... A> struct remove_class<R (C::*)(A...) const> { using type = R (A...); };
 
 /// Helper template to strip away type modifiers
-template <typename T> struct intrinsic_type                       { typedef T type; };
-template <typename T> struct intrinsic_type<const T>              { typedef typename intrinsic_type<T>::type type; };
-template <typename T> struct intrinsic_type<T*>                   { typedef typename intrinsic_type<T>::type type; };
-template <typename T> struct intrinsic_type<T&>                   { typedef typename intrinsic_type<T>::type type; };
-template <typename T> struct intrinsic_type<T&&>                  { typedef typename intrinsic_type<T>::type type; };
-template <typename T, size_t N> struct intrinsic_type<const T[N]> { typedef typename intrinsic_type<T>::type type; };
-template <typename T, size_t N> struct intrinsic_type<T[N]>       { typedef typename intrinsic_type<T>::type type; };
+template <typename T> struct intrinsic_type                       { using type = T; };
+template <typename T> struct intrinsic_type<const T>              { using type = typename intrinsic_type<T>::type; };
+template <typename T> struct intrinsic_type<T*>                   { using type = typename intrinsic_type<T>::type; };
+template <typename T> struct intrinsic_type<T&>                   { using type = typename intrinsic_type<T>::type; };
+template <typename T> struct intrinsic_type<T&&>                  { using type = typename intrinsic_type<T>::type; };
+template <typename T, size_t N> struct intrinsic_type<const T[N]> { using type = typename intrinsic_type<T>::type; };
+template <typename T, size_t N> struct intrinsic_type<T[N]>       { using type = typename intrinsic_type<T>::type; };
 template <typename T> using intrinsic_t = typename intrinsic_type<T>::type;
 
 /// Helper type to replace 'void' in some expressions
@@ -753,7 +775,7 @@ struct nodelete { template <typename T> void operator()(T*) { } };
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
-    constexpr overload_cast_impl() {} // MSVC 2015 needs this
+    constexpr overload_cast_impl() {}; // NOLINT(modernize-use-equals-default):  MSVC 2015 needs this
 
     template <typename Return>
     constexpr auto operator()(Return (*pf)(Args...)) const noexcept

@@ -16,6 +16,29 @@ else()
   cmake_policy(VERSION 3.18)
 endif()
 
+# Only needed for CMake < 3.5 support
+include(CMakeParseArguments)
+
+# Filter out items; print an optional message if any items filtered
+#
+# Usage:
+#   pybind11_filter_tests(LISTNAME file1.cpp file2.cpp ... MESSAGE "")
+#
+macro(PYBIND11_FILTER_TESTS LISTNAME)
+  cmake_parse_arguments(ARG "" "MESSAGE" "" ${ARGN})
+  set(PYBIND11_FILTER_TESTS_FOUND OFF)
+  foreach(filename IN LISTS ARG_UNPARSED_ARGUMENTS)
+    list(FIND ${LISTNAME} ${filename} _FILE_FOUND)
+    if(_FILE_FOUND GREATER -1)
+      list(REMOVE_AT ${LISTNAME} ${_FILE_FOUND})
+      set(PYBIND11_FILTER_TESTS_FOUND ON)
+    endif()
+  endforeach()
+  if(PYBIND11_FILTER_TESTS_FOUND AND ARG_MESSAGE)
+    message(STATUS "${ARG_MESSAGE}")
+  endif()
+endmacro()
+
 # New Python support
 if(DEFINED Python_EXECUTABLE)
   set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
@@ -30,9 +53,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN (requires CMake 3.11+)" OFF)
+option(PYBIND11_CUDA_TESTS "Enable building CUDA tests (requires CMake 3.12+)" OFF)
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
+set(PYBIND11_TEST_FILTER
+    ""
+    CACHE STRING "Tests from ;-separated list of *.cpp files will be removed from all tests")
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   # We're being loaded directly, i.e. not via add_subdirectory, so make this
@@ -47,6 +74,14 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
       CACHE STRING "Choose the type of build." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel"
                                                "RelWithDebInfo")
+endif()
+
+if(PYBIND11_CUDA_TESTS)
+  enable_language(CUDA)
+  if(DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
+  endif()
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
 # Full set of test files (you can override these; see below)
@@ -97,11 +132,23 @@ if(PYBIND11_TEST_OVERRIDE)
   set(PYBIND11_TEST_FILES ${PYBIND11_TEST_OVERRIDE})
 endif()
 
-# Skip test_async for Python < 3.5
-list(FIND PYBIND11_TEST_FILES test_async.cpp PYBIND11_TEST_FILES_ASYNC_I)
-if((PYBIND11_TEST_FILES_ASYNC_I GREATER -1) AND (PYTHON_VERSION VERSION_LESS 3.5))
-  message(STATUS "Skipping test_async because Python version ${PYTHON_VERSION} < 3.5")
-  list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_ASYNC_I})
+# You can also filter tests:
+if(PYBIND11_TEST_FILTER)
+  pybind11_filter_tests(PYBIND11_TEST_FILES ${PYBIND11_TEST_FILTER})
+endif()
+
+if(PYTHON_VERSION VERSION_LESS 3.5)
+  pybind11_filter_tests(PYBIND11_TEST_FILES test_async.cpp MESSAGE
+                        "Skipping test_async on Python 2")
+endif()
+
+# Skip tests for CUDA check:
+# /pybind11/tests/test_constants_and_functions.cpp(125):
+#   error: incompatible exception specifications
+if(PYBIND11_CUDA_TESTS)
+  pybind11_filter_tests(
+    PYBIND11_TEST_FILES test_constants_and_functions.cpp MESSAGE
+    "Skipping test_constants_and_functions due to incompatible exception specifications")
 endif()
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
@@ -195,14 +242,16 @@ endif()
 function(pybind11_enable_warnings target_name)
   if(MSVC)
     target_compile_options(${target_name} PRIVATE /W4)
-  elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)")
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)" AND NOT PYBIND11_CUDA_TESTS)
     target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wconversion -Wcast-qual
-                                                  -Wdeprecated)
+                                                  -Wdeprecated -Wundef)
   endif()
 
   if(PYBIND11_WERROR)
     if(MSVC)
       target_compile_options(${target_name} PRIVATE /WX)
+    elseif(PYBIND11_CUDA_TESTS)
+      target_compile_options(${target_name} PRIVATE "SHELL:-Werror all-warnings")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Intel|Clang)")
       target_compile_options(${target_name} PRIVATE -Werror)
     endif()
@@ -239,10 +288,20 @@ foreach(t ${PYBIND11_CROSS_MODULE_GIL_TESTS})
   endif()
 endforeach()
 
+# Support CUDA testing by forcing the target file to compile with NVCC
+if(PYBIND11_CUDA_TESTS)
+  set_property(SOURCE ${PYBIND11_TEST_FILES} PROPERTY LANGUAGE CUDA)
+endif()
+
 foreach(target ${test_targets})
   set(test_files ${PYBIND11_TEST_FILES})
   if(NOT "${target}" STREQUAL "pybind11_tests")
     set(test_files "")
+  endif()
+
+  # Support CUDA testing by forcing the target file to compile with NVCC
+  if(PYBIND11_CUDA_TESTS)
+    set_property(SOURCE ${target}.cpp PROPERTY LANGUAGE CUDA)
   endif()
 
   # Create the binding library
@@ -287,7 +346,7 @@ foreach(target ${test_targets})
   endif()
 endforeach()
 
-# Make sure pytest is found or produce a fatal error
+# Make sure pytest is found or produce a warning
 if(NOT PYBIND11_PYTEST_FOUND)
   execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -c "import pytest; print(pytest.__version__)"
@@ -295,15 +354,16 @@ if(NOT PYBIND11_PYTEST_FOUND)
     OUTPUT_VARIABLE pytest_version
     ERROR_QUIET)
   if(pytest_not_found)
-    message(FATAL_ERROR "Running the tests requires pytest. Please install it manually"
-                        " (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
+    message(WARNING "Running the tests requires pytest. Please install it manually"
+                    " (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
   elseif(pytest_version VERSION_LESS 3.1)
-    message(FATAL_ERROR "Running the tests requires pytest >= 3.1. Found: ${pytest_version}"
-                        "Please update it (try: ${PYTHON_EXECUTABLE} -m pip install -U pytest)")
+    message(WARNING "Running the tests requires pytest >= 3.1. Found: ${pytest_version}"
+                    "Please update it (try: ${PYTHON_EXECUTABLE} -m pip install -U pytest)")
+  else()
+    set(PYBIND11_PYTEST_FOUND
+        TRUE
+        CACHE INTERNAL "")
   endif()
-  set(PYBIND11_PYTEST_FOUND
-      TRUE
-      CACHE INTERNAL "")
 endif()
 
 if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -317,13 +377,13 @@ endif()
 
 # cmake 3.12 added list(transform <list> prepend
 # but we can't use it yet
-string(REPLACE "test_" "${CMAKE_CURRENT_BINARY_DIR}/test_" PYBIND11_BINARY_TEST_FILES
+string(REPLACE "test_" "${CMAKE_CURRENT_SOURCE_DIR}/test_" PYBIND11_ABS_PYTEST_FILES
                "${PYBIND11_PYTEST_FILES}")
 
 # A single command to compile and run the tests
 add_custom_target(
   pytest
-  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_BINARY_PYTEST_FILES}
+  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL)
@@ -354,8 +414,10 @@ add_custom_command(
     $<TARGET_FILE:pybind11_tests>
     ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
 
-# Test embedding the interpreter. Provides the `cpptest` target.
-add_subdirectory(test_embed)
+if(NOT PYBIND11_CUDA_TESTS)
+  # Test embedding the interpreter. Provides the `cpptest` target.
+  add_subdirectory(test_embed)
 
-# Test CMake build using functions and targets from subdirectory or installed location
-add_subdirectory(test_cmake_build)
+  # Test CMake build using functions and targets from subdirectory or installed location
+  add_subdirectory(test_cmake_build)
+endif()

@@ -336,10 +336,10 @@ def strip_comments(s):
     return re.sub(r'\s+#.*', '', s)
 
 
-def test_reallocations(capture, msg):
+def test_reallocation_a(capture, msg):
     """When the constructor is overloaded, previous overloads can require a preallocated value.
     This test makes sure that such preallocated values only happen when they might be necessary,
-    and that they are deallocated properly"""
+    and that they are deallocated properly."""
 
     pytest.gc_collect()
 
@@ -353,6 +353,9 @@ def test_reallocations(capture, msg):
         ~NoisyAlloc()
         noisy delete
     """
+
+
+def test_reallocation_b(capture, msg):
     with capture:
         create_and_destroy(1.5)
     assert msg(capture) == strip_comments("""
@@ -365,6 +368,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_c(capture, msg):
     with capture:
         create_and_destroy(2, 3)
     assert msg(capture) == strip_comments("""
@@ -375,6 +380,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_d(capture, msg):
     with capture:
         create_and_destroy(2.5, 3)
     assert msg(capture) == strip_comments("""
@@ -386,6 +393,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_e(capture, msg):
     with capture:
         create_and_destroy(3.5, 4.5)
     assert msg(capture) == strip_comments("""
@@ -397,6 +406,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_f(capture, msg):
     with capture:
         create_and_destroy(4, 0.5)
     assert msg(capture) == strip_comments("""
@@ -409,6 +420,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_g(capture, msg):
     with capture:
         create_and_destroy(5, "hi")
     assert msg(capture) == strip_comments("""

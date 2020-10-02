@@ -1,6 +1,21 @@
+# To use:
+#
+#     pre-commit run -a
+#
+# Or:
+#
+#     pre-commit install  # (runs every time you commit in git)
+#
+# To update this file:
+#
+#     pre-commit autoupdate
+#
+# See https://github.com/pre-commit/pre-commit
+
 repos:
+# Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v3.1.0
+  rev: v3.2.0
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -14,11 +29,21 @@ repos:
   - id: trailing-whitespace
   - id: fix-encoding-pragma
 
+# Black, the code formatter, natively supports pre-commit
+- repo: https://github.com/psf/black
+  rev: 20.8b1
+  hooks:
+  - id: black
+    # Not all Python files are Blacked, yet
+    files: ^(setup.py|pybind11|tests/extra)
+
+# Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.9
   hooks:
   - id: remove-tabs
 
+# Flake8 also supports pre-commit natively (same author)
 - repo: https://gitlab.com/pycqa/flake8
   rev: 3.8.3
   hooks:
@@ -26,13 +51,32 @@ repos:
     additional_dependencies: [flake8-bugbear, pep8-naming]
     exclude: ^(docs/.*|tools/.*)$
 
+# CMake formatting
 - repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: v0.6.11
+  rev: v0.6.13
   hooks:
   - id: cmake-format
     additional_dependencies: [pyyaml]
     types: [file]
     files: (\.cmake|CMakeLists.txt)(.in)?$
+
+# Checks the manifest for missing files (native support)
+- repo: https://github.com/mgedmin/check-manifest
+  rev: "0.43"
+  hooks:
+  - id: check-manifest
+    # This is a slow hook, so only run this if --hook-stage manual is passed
+    stages: [manual]
+    additional_dependencies: [cmake, ninja]
+
+# The original pybind11 checks for a few C++ style items
+- repo: local
+  hooks:
+  - id: disallow-caps
+    name: Disallow improper capitalization
+    language: pygrep
+    entry: PyBind|Numpy|Cmake
+    exclude: .pre-commit-config.yaml
 
 - repo: local
   hooks:

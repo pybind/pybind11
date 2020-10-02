@@ -20,6 +20,8 @@ Available types include :class:`handle`, :class:`object`, :class:`bool_`,
     Be sure to review the :ref:`pytypes_gotchas` before using this heavily in
     your C++ API.
 
+.. _casting_back_and_forth:
+
 Casting back and forth
 ======================
 
@@ -61,6 +63,7 @@ This example obtains a reference to the Python ``Decimal`` class.
     // Try to import scipy
     py::object scipy = py::module::import("scipy");
     return scipy.attr("__version__");
+
 
 .. _calling_python_functions:
 
@@ -175,6 +178,47 @@ Generalized unpacking according to PEP448_ is also supported:
     Python functions from C++, including keywords arguments and unpacking.
 
 .. _PEP448: https://www.python.org/dev/peps/pep-0448/
+
+.. _implicit_casting:
+
+Implicit casting
+================
+
+When using the C++ interface for Python types, or calling Python functions,
+objects of type :class:`object` are returned. It is possible to invoke implicit
+conversions to subclasses like :class:`dict`. The same holds for the proxy objects
+returned by ``operator[]`` or ``obj.attr()``.
+Casting to subtypes improves code readability and allows values to be passed to
+C++ functions that require a specific subtype rather than a generic :class:`object`.
+
+.. code-block:: cpp
+
+    #include <pybind11/numpy.h>
+    using namespace pybind11::literals;
+
+    py::module os = py::module::import("os");
+    py::module path = py::module::import("os.path");  // like 'import os.path as path'
+    py::module np = py::module::import("numpy");  // like 'import numpy as np'
+
+    py::str curdir_abs = path.attr("abspath")(path.attr("curdir"));
+    py::print(py::str("Current directory: ") + curdir_abs);
+    py::dict environ = os.attr("environ");
+    py::print(environ["HOME"]);
+    py::array_t<float> arr = np.attr("ones")(3, "dtype"_a="float32");
+    py::print(py::repr(arr + py::int_(1)));
+
+These implicit conversions are available for subclasses of :class:`object`; there
+is no need to call ``obj.cast()`` explicitly as for custom classes, see
+:ref:`casting_back_and_forth`.
+
+.. note::
+    If a trivial conversion via move constructor is not possible, both implicit and
+    explicit casting (calling ``obj.cast()``) will attempt a "rich" conversion.
+    For instance, ``py::list env = os.attr("environ");`` will succeed and is
+    equivalent to the Python code ``env = list(os.environ)`` that produces a
+    list of the dict keys.
+
+..  TODO: Adapt text once PR #2349 has landed
 
 Handling exceptions
 ===================

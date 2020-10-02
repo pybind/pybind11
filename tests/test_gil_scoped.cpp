@@ -22,10 +22,10 @@ public:
 
 class PyVirtClass : public VirtClass {
     void virtual_func() override {
-        PYBIND11_OVERLOAD(void, VirtClass, virtual_func,);
+        PYBIND11_OVERRIDE(void, VirtClass, virtual_func,);
     }
     void pure_virtual_func() override {
-        PYBIND11_OVERLOAD_PURE(void, VirtClass, pure_virtual_func,);
+        PYBIND11_OVERRIDE_PURE(void, VirtClass, pure_virtual_func,);
     }
 };
 

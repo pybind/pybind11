@@ -285,7 +285,7 @@ CMake code. Conflicts can arise, however, when using pybind11 in a project that 
 Python detection in a system with several Python versions installed.
 
 This difference may cause inconsistencies and errors if *both* mechanisms are used in the same project. Consider the following
-Cmake code executed in a system with Python 2.7 and 3.x installed:
+CMake code executed in a system with Python 2.7 and 3.x installed:
 
 .. code-block:: cmake
 

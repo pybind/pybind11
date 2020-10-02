@@ -300,7 +300,7 @@ _pybind11_generate_lto(pybind11::thin_lto TRUE)
 # ---------------------- pybind11_strip -----------------------------
 
 function(pybind11_strip target_name)
-  # Strip unnecessary sections of the binary on Linux/Mac OS
+  # Strip unnecessary sections of the binary on Linux/macOS
   if(CMAKE_STRIP)
     if(APPLE)
       set(x_opt -x)

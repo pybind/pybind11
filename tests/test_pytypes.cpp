@@ -80,6 +80,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("str_from_bytes", []() { return py::str(py::bytes("boo", 3)); });
     m.def("str_from_object", [](const py::object& obj) { return py::str(obj); });
     m.def("repr_from_object", [](const py::object& obj) { return py::repr(obj); });
+    m.def("str_from_handle", [](py::handle h) { return py::str(h); });
 
     m.def("str_format", []() {
         auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
@@ -127,7 +128,7 @@ TEST_SUBMODULE(pytypes, m) {
         d["basic_attr"] = o.attr("basic_attr");
 
         auto l = py::list();
-        for (const auto &item : o.attr("begin_end")) {
+        for (auto item : o.attr("begin_end")) {
             l.append(item);
         }
         d["begin_end"] = l;

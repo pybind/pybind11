@@ -360,7 +360,7 @@ like so:
 .. code-block:: cpp
 
     py::class_<MyClass>("MyClass")
-        .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
+        .def("myFunction", py::arg("arg") = static_cast<SomeType *>(nullptr));
 
 Keyword-only arguments
 ======================
