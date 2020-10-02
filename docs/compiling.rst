@@ -68,6 +68,23 @@ that is supported via a ``build_ext`` command override; it will only affect
         ext_modules=ext_modules
     )
 
+Since pybind11 does not require NumPy when building, a light-weight replacement
+for NumPy's parallel compilation distutils tool is included. Use it like this:
+
+    from pybind11.setup_helpers import ParallelCompile
+
+    # Optional multithreaded build
+    ParallelCompile("NPY_NUM_BUILD_JOBS").install()
+
+    setup(...
+
+The argument is the name of an environment variable to control the number of
+threads, such as ``NPY_NUM_BUILD_JOBS`` (as used by NumPy), though you can set
+something different if you want. You can also pass ``default=N`` to set the
+default number of threads (0 will take the number of threads available) and
+``max=N``, the maximum number of threads; if you have a large extension you may
+want set this to a memory dependent number.
+
 .. _setup_helpers-pep518:
 
 PEP 518 requirements (Pip 10+ required)
