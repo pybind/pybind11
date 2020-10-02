@@ -39,9 +39,6 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-// Forward-declaration; see detail/class.h
-std::string get_fully_qualified_tp_name(PyTypeObject*);
-
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {

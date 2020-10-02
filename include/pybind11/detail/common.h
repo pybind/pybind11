@@ -853,8 +853,8 @@ public:
     const std::vector<T> *operator->() const { return &v; }
 };
 
+// Forward-declaration; see detail/class.h
+std::string get_fully_qualified_tp_name(PyTypeObject*);
+
 PYBIND11_NAMESPACE_END(detail)
-
-
-
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
