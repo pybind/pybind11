@@ -118,8 +118,8 @@ a file named :file:`example.cpp` with the following contents:
 The :func:`PYBIND11_MODULE` macro creates a function that will be called when an
 ``import`` statement is issued from within Python. The module name (``example``)
 is given as the first macro argument (it should not be in quotes). The second
-argument (``m``) defines a variable of type :class:`py::module <module>` which
-is the main interface for creating bindings. The method :func:`module::def`
+argument (``m``) defines a variable of type :class:`py::module_ <module>` which
+is the main interface for creating bindings. The method :func:`module_::def`
 generates binding code that exposes the ``add()`` function to Python.
 
 .. note::
@@ -181,7 +181,7 @@ names of the arguments ("i" and "j" in this case).
           py::arg("i"), py::arg("j"));
 
 :class:`arg` is one of several special tag classes which can be used to pass
-metadata into :func:`module::def`. With this modified binding code, we can now
+metadata into :func:`module_::def`. With this modified binding code, we can now
 call the function using keyword arguments, which is a more readable alternative
 particularly for functions taking many parameters:
 

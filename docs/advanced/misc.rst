@@ -132,7 +132,7 @@ However, it can be acquired as follows:
 
 .. code-block:: cpp
 
-    py::object pet = (py::object) py::module::import("basic").attr("Pet");
+    py::object pet = (py::object) py::module_::import("basic").attr("Pet");
 
     py::class_<Dog>(m, "Dog", pet)
         .def(py::init<const std::string &>())
@@ -146,7 +146,7 @@ has been executed:
 
 .. code-block:: cpp
 
-    py::module::import("basic");
+    py::module_::import("basic");
 
     py::class_<Dog, Pet>(m, "Dog")
         .def(py::init<const std::string &>())
@@ -243,7 +243,7 @@ avoids this issue involves weak reference with a cleanup callback:
 
     .. code-block:: cpp
 
-        auto atexit = py::module::import("atexit");
+        auto atexit = py::module_::import("atexit");
         atexit.attr("register")(py::cpp_function([]() {
             // perform cleanup here -- this function is called with the GIL held
         }));
@@ -284,7 +284,7 @@ work, it is important that all lines are indented consistently, i.e.:
     )mydelimiter");
 
 By default, pybind11 automatically generates and prepends a signature to the docstring of a function
-registered with ``module::def()`` and ``class_::def()``. Sometimes this
+registered with ``module_::def()`` and ``class_::def()``. Sometimes this
 behavior is not desirable, because you want to provide your own signature or remove
 the docstring completely to exclude the function from the Sphinx documentation.
 The class ``options`` allows you to selectively suppress auto-generated signatures:

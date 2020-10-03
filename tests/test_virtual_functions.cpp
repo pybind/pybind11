@@ -187,7 +187,7 @@ static void test_gil_from_thread() {
 
 // Forward declaration (so that we can put the main tests here; the inherited virtual approaches are
 // rather long).
-void initialize_inherited_virtuals(py::module &m);
+void initialize_inherited_virtuals(py::module_ &m);
 
 TEST_SUBMODULE(virtual_functions, m) {
     // test_override
@@ -459,7 +459,7 @@ public:
 };
 */
 
-void initialize_inherited_virtuals(py::module &m) {
+void initialize_inherited_virtuals(py::module_ &m) {
     // test_inherited_virtuals
 
     // Method 1: repeat

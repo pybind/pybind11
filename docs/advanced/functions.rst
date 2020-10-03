@@ -17,7 +17,7 @@ bindings for functions that return a non-trivial type. Just by looking at the
 type information, it is not clear whether Python should take charge of the
 returned value and eventually free its resources, or if this is handled on the
 C++ side. For this reason, pybind11 provides a several *return value policy*
-annotations that can be passed to the :func:`module::def` and
+annotations that can be passed to the :func:`module_::def` and
 :func:`class_::def` functions. The default policy is
 :enum:`return_value_policy::automatic`.
 

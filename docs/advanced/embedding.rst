@@ -108,11 +108,11 @@ The two approaches can also be combined:
 Importing modules
 =================
 
-Python modules can be imported using `module::import()`:
+Python modules can be imported using `module_::import()`:
 
 .. code-block:: cpp
 
-    py::module sys = py::module::import("sys");
+    py::module_ sys = py::module_::import("sys");
     py::print(sys.attr("path"));
 
 For convenience, the current working directory is included in ``sys.path`` when
@@ -128,12 +128,12 @@ embedding the interpreter. This makes it easy to import local Python files:
 
 .. code-block:: cpp
 
-    py::module calc = py::module::import("calc");
+    py::module_ calc = py::module_::import("calc");
     py::object result = calc.attr("add")(1, 2);
     int n = result.cast<int>();
     assert(n == 3);
 
-Modules can be reloaded using `module::reload()` if the source is modified e.g.
+Modules can be reloaded using `module_::reload()` if the source is modified e.g.
 by an external process. This can be useful in scenarios where the application
 imports a user defined data processing script which needs to be updated after
 changes by the user. Note that this function does not reload modules recursively.
@@ -153,7 +153,7 @@ like any other module.
     namespace py = pybind11;
 
     PYBIND11_EMBEDDED_MODULE(fast_calc, m) {
-        // `m` is a `py::module` which is used to bind functions and classes
+        // `m` is a `py::module_` which is used to bind functions and classes
         m.def("add", [](int i, int j) {
             return i + j;
         });
@@ -162,7 +162,7 @@ like any other module.
     int main() {
         py::scoped_interpreter guard{};
 
-        auto fast_calc = py::module::import("fast_calc");
+        auto fast_calc = py::module_::import("fast_calc");
         auto result = fast_calc.attr("add")(1, 2).cast<int>();
         assert(result == 3);
     }
@@ -196,7 +196,7 @@ naturally:
     int main() {
         py::scoped_interpreter guard{};
 
-        auto py_module = py::module::import("py_module");
+        auto py_module = py::module_::import("py_module");
 
         auto locals = py::dict("fmt"_a="{} + {} = {}", **py_module.attr("__dict__"));
         assert(locals["a"].cast<int>() == 1);

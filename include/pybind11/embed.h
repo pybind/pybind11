@@ -46,9 +46,9 @@
         }
  \endrst */
 #define PYBIND11_EMBEDDED_MODULE(name, variable)                              \
-    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &);    \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module_ &);    \
     static PyObject PYBIND11_CONCAT(*pybind11_init_wrapper_, name)() {        \
-        auto m = pybind11::module(PYBIND11_TOSTRING(name));                   \
+        auto m = pybind11::module_(PYBIND11_TOSTRING(name));                   \
         try {                                                                 \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                         \
             return m.ptr();                                                   \
@@ -64,7 +64,7 @@
     pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name) \
                               (PYBIND11_TOSTRING(name),             \
                                PYBIND11_CONCAT(pybind11_init_impl_, name));   \
-    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module &variable)
+    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module_ &variable)
 
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -109,7 +109,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true) {
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
 
     // Make .py files in the working directory available by default
-    module::import("sys").attr("path").cast<list>().append(".");
+    module_::import("sys").attr("path").cast<list>().append(".");
 }
 
 /** \rst

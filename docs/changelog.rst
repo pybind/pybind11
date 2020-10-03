@@ -11,9 +11,9 @@ v2.6.0 (IN PROGRESS)
 
 See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
-* Provide an additional spelling of ``py::module`` - ``py::module_`` (with a
-  trailing underscore), for C++20 compatibility. Only relevant when used
-  unqualified.
+* ``py::module`` was renamed ``py::module_`` to avoid issues with C++20 when
+  used unqualified, but an alias ``py::module`` is provided for backward
+  compatibility.
   `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
 
 * ``pybind11_add_module()`` now accepts an optional ``OPT_SIZE`` flag that
@@ -529,7 +529,7 @@ v2.2.2 (February 7, 2018)
 v2.2.1 (September 14, 2017)
 -----------------------------------------------------
 
-* Added ``py::module::reload()`` member function for reloading a module.
+* Added ``py::module_::reload()`` member function for reloading a module.
   `#1040 <https://github.com/pybind/pybind11/pull/1040>`_.
 
 * Fixed a reference leak in the number converter.

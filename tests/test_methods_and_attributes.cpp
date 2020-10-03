@@ -207,12 +207,12 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         // test_no_mixed_overloads
         // Raise error if trying to mix static/non-static overloads on the same name:
         .def_static("add_mixed_overloads1", []() {
-            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
+            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module_::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
             emna.def       ("overload_mixed1", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded))
                 .def_static("overload_mixed1", static_cast<py::str (              *)(float   )>(&ExampleMandA::overloaded));
         })
         .def_static("add_mixed_overloads2", []() {
-            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
+            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module_::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
             emna.def_static("overload_mixed2", static_cast<py::str (              *)(float   )>(&ExampleMandA::overloaded))
                 .def       ("overload_mixed2", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded));
         })
@@ -308,11 +308,11 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.attr("debug_enabled") = false;
 #endif
     m.def("bad_arg_def_named", []{
-        auto m = py::module::import("pybind11_tests");
+        auto m = py::module_::import("pybind11_tests");
         m.def("should_fail", [](int, UnregisteredType) {}, py::arg(), py::arg("a") = UnregisteredType());
     });
     m.def("bad_arg_def_unnamed", []{
-        auto m = py::module::import("pybind11_tests");
+        auto m = py::module_::import("pybind11_tests");
         m.def("should_fail", [](int, UnregisteredType) {}, py::arg(), py::arg() = UnregisteredType());
     });
 

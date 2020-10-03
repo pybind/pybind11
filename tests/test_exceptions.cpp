@@ -163,7 +163,7 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("modulenotfound_exception_matches_base", []() {
         try {
             // On Python >= 3.6, this raises a ModuleNotFoundError, a subclass of ImportError
-            py::module::import("nonexistent");
+            py::module_::import("nonexistent");
         }
         catch (py::error_already_set &ex) {
             if (!ex.matches(PyExc_ImportError)) throw;

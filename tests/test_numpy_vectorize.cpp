@@ -17,7 +17,7 @@ double my_func(int x, float y, double z) {
 }
 
 TEST_SUBMODULE(numpy_vectorize, m) {
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_vectorize, test_docs, test_array_collapse

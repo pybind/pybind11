@@ -182,7 +182,7 @@ For example:
 
     try {
         // open("missing.txt", "r")
-        auto file = py::module::import("io").attr("open")("missing.txt", "r");
+        auto file = py::module_::import("io").attr("open")("missing.txt", "r");
         auto text = file.attr("read")();
         file.attr("close")();
     } catch (py::error_already_set &e) {

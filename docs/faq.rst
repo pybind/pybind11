@@ -100,8 +100,8 @@ following example:
 
 .. code-block:: cpp
 
-    void init_ex1(py::module &);
-    void init_ex2(py::module &);
+    void init_ex1(py::module_ &);
+    void init_ex2(py::module_ &);
     /* ... */
 
     PYBIND11_MODULE(example, m) {
@@ -114,7 +114,7 @@ following example:
 
 .. code-block:: cpp
 
-    void init_ex1(py::module &m) {
+    void init_ex1(py::module_ &m) {
         m.def("add", [](int a, int b) { return a + b; });
     }
 
@@ -122,7 +122,7 @@ following example:
 
 .. code-block:: cpp
 
-    void init_ex2(py::module &m) {
+    void init_ex2(py::module_ &m) {
         m.def("sub", [](int a, int b) { return a - b; });
     }
 
