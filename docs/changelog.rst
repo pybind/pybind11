@@ -113,8 +113,6 @@ Smaller or developer focused features:
 
 * Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_.
 
-.. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
-
 * If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
   ``None``.
   `#2291 <https://github.com/pybind/pybind11/pull/2291>`_
@@ -174,6 +172,7 @@ Smaller or developer focused features:
 
 .. _pre-commit: https://pre-commit.com
 
+.. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
 
 v2.5.0 (Mar 31, 2020)
 -----------------------------------------------------
