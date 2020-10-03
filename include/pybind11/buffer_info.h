@@ -13,6 +13,29 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Default, C-style strides
+inline std::vector<ssize_t> c_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
+    auto ndim = shape.size();
+    std::vector<ssize_t> strides(ndim, itemsize);
+    if (ndim > 0)
+        for (size_t i = ndim - 1; i > 0; --i)
+            strides[i - 1] = strides[i] * shape[i];
+    return strides;
+}
+
+// F-style strides; default when constructing an array_t with `ExtraFlags & f_style`
+inline std::vector<ssize_t> f_strides(const std::vector<ssize_t> &shape, ssize_t itemsize) {
+    auto ndim = shape.size();
+    std::vector<ssize_t> strides(ndim, itemsize);
+    for (size_t i = 1; i < ndim; ++i)
+        strides[i] = strides[i - 1] * shape[i - 1];
+    return strides;
+}
+
+PYBIND11_NAMESPACE_END(detail)
+
 /// Information record describing a Python buffer object
 struct buffer_info {
     void *ptr = nullptr;          // Pointer to the underlying storage
@@ -53,7 +76,14 @@ struct buffer_info {
 
     explicit buffer_info(Py_buffer *view, bool ownview = true)
     : buffer_info(view->buf, view->itemsize, view->format, view->ndim,
-            {view->shape, view->shape + view->ndim}, {view->strides, view->strides + view->ndim}, view->readonly) {
+            {view->shape, view->shape + view->ndim},
+            /* Though buffer::request() requests PyBUF_STRIDES, ctypes objects
+             * ignore this flag and return a view with NULL strides.
+             * When strides are NULL, build them manually.  */
+            view->strides
+            ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
+            : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
+            view->readonly) {
         this->m_view = view;
         this->ownview = ownview;
     }

@@ -9,6 +9,7 @@
 
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
+#include <pybind11/stl.h>
 
 TEST_SUBMODULE(buffers, m) {
     // test_from_python / test_to_python:
@@ -192,4 +193,22 @@ TEST_SUBMODULE(buffers, m) {
         .def_readwrite("readonly", &BufferReadOnlySelect::readonly)
         .def_buffer(&BufferReadOnlySelect::get_buffer_info);
 
+    // Expose buffer_info for testing.
+    py::class_<py::buffer_info>(m, "buffer_info")
+        .def(py::init<>())
+        .def_readonly("itemsize", &py::buffer_info::itemsize)
+        .def_readonly("size", &py::buffer_info::size)
+        .def_readonly("format", &py::buffer_info::format)
+        .def_readonly("ndim", &py::buffer_info::ndim)
+        .def_readonly("shape", &py::buffer_info::shape)
+        .def_readonly("strides", &py::buffer_info::strides)
+        .def_readonly("readonly", &py::buffer_info::readonly)
+        .def("__repr__", [](py::handle self) {
+             return py::str("itemsize={0.itemsize!r}, size={0.size!r}, format={0.format!r}, ndim={0.ndim!r}, shape={0.shape!r}, strides={0.strides!r}, readonly={0.readonly!r}").format(self);
+        })
+        ;
+
+    m.def("get_buffer_info", [](py::buffer buffer) {
+        return buffer.request();
+    });
 }
