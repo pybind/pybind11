@@ -189,3 +189,6 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::opt_size)
   endif()
 endfunction()
+
+# Provide general way to call common Python commands in "common" file.
+set(_Python PYTHON)

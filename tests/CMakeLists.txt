@@ -347,24 +347,7 @@ foreach(target ${test_targets})
 endforeach()
 
 # Make sure pytest is found or produce a warning
-if(NOT PYBIND11_PYTEST_FOUND)
-  execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -c "import pytest; print(pytest.__version__)"
-    RESULT_VARIABLE pytest_not_found
-    OUTPUT_VARIABLE pytest_version
-    ERROR_QUIET)
-  if(pytest_not_found)
-    message(WARNING "Running the tests requires pytest. Please install it manually"
-                    " (try: ${PYTHON_EXECUTABLE} -m pip install pytest)")
-  elseif(pytest_version VERSION_LESS 3.1)
-    message(WARNING "Running the tests requires pytest >= 3.1. Found: ${pytest_version}"
-                    "Please update it (try: ${PYTHON_EXECUTABLE} -m pip install -U pytest)")
-  else()
-    set(PYBIND11_PYTEST_FOUND
-        TRUE
-        CACHE INTERNAL "")
-  endif()
-endif()
+pybind11_find_import(pytest VERSION 3.1)
 
 if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
   # This is not used later in the build, so it's okay to regenerate each time.
