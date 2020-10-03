@@ -86,8 +86,7 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
     hidden)``.
 
   * Helper functions ``pybind11_strip``, ``pybind11_extension``,
-    ``pybind11_find_import`` added (see ``tools/pybind11Config.cmake.in`` for
-    docs).
+    ``pybind11_find_import`` added, see :doc:`cmake/index`.
 
 * Optional :ref:`find-python-mode` and :ref:`nopython-mode` with CMake.
   `#2370 <https://github.com/pybind/pybind11/pull/2370>`_

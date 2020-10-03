@@ -184,6 +184,8 @@ PyPI integration, can be found in the [cmake_example]_  repository.
 .. versionchanged:: 2.6
    CMake 3.4+ is required.
 
+Further information can be found at :doc:`cmake/index`.
+
 pybind11_add_module
 -------------------
 
