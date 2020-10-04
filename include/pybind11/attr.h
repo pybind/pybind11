@@ -483,8 +483,9 @@ struct process_attribute<module_local> : process_attribute_default<module_local>
     static void init(const module_local &l, type_record *r) { r->module_local = l.value; }
 };
 
-/// Process an 'prepend' attribute, putting this at the top of the overload chain
-template <> struct process_attribute<prepend> : process_attribute_default<prepend> {
+/// Process a 'prepend' attribute, putting this at the beginning of the overload chain
+template <>
+struct process_attribute<prepend> : process_attribute_default<prepend> {
     static void init(const prepend &, function_record *r) { r->is_prepended = true; }
 };
 
