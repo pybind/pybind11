@@ -141,7 +141,7 @@ struct argument_record {
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
-          is_operator(false), is_method(false), has_args(false), 
+          is_operator(false), is_method(false), has_args(false),
           has_kwargs(false), has_kw_only_args(false), prepend(false) { }
 
     /// Function name

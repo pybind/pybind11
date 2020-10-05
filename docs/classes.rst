@@ -367,9 +367,7 @@ Attempting to bind ``Pet::set`` will cause an error since the compiler does not
 know which method the user intended to select. We can disambiguate by casting
 them to function pointers. Binding multiple functions to the same Python name
 automatically creates a chain of function overloads that will be tried in
-the order they were defined. If the ``py::prepend()`` tag is added to the
-definition, the function will be placed at the begining of the overload sequence
-instead.
+sequence.
 
 .. code-block:: cpp
 
