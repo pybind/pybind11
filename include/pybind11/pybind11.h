@@ -385,7 +385,7 @@ protected:
                     #endif
                 );
 
-            if (rec->is_prepended) {
+            if (rec->prepend) {
                 // Beginning of chain; we need to replace the capsule's current head-of-the-chain
                 // pointer with this one, then make this one point to the previous head of the
                 // chain.

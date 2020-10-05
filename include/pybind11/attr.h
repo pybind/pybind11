@@ -142,7 +142,7 @@ struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
           is_operator(false), is_method(false), has_args(false), 
-          has_kwargs(false), has_kw_only_args(false), is_prepended(false) { }
+          has_kwargs(false), has_kw_only_args(false), prepend(false) { }
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -193,7 +193,7 @@ struct function_record {
     bool has_kw_only_args : 1;
 
     /// True if this function is to be inserted at the beginning of the overload resolution chain
-    bool is_prepended : 1;
+    bool prepend : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
@@ -486,7 +486,7 @@ struct process_attribute<module_local> : process_attribute_default<module_local>
 /// Process a 'prepend' attribute, putting this at the beginning of the overload chain
 template <>
 struct process_attribute<prepend> : process_attribute_default<prepend> {
-    static void init(const prepend &, function_record *r) { r->is_prepended = true; }
+    static void init(const prepend &, function_record *r) { r->prepend = true; }
 };
 
 /// Process an 'arithmetic' attribute for enums (does nothing here)
