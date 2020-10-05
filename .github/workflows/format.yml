@@ -22,7 +22,7 @@ jobs:
     - uses: pre-commit/action@v2.0.0
       with:
         # Slow hooks are marked with manual - slow is okay here, run them too
-        extra_args: --hook-stage manual
+        extra_args: --hook-stage manual --all-files
 
   clang-tidy:
     name: Clang-Tidy
