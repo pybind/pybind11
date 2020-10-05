@@ -1277,10 +1277,8 @@ private:
             UTF_N == 16 ? PyUnicode_DecodeUTF16(buffer, nbytes, nullptr, nullptr) :
                           PyUnicode_DecodeUTF32(buffer, nbytes, nullptr, nullptr);
 #else
-        // PyPy seems to have multiple problems related to PyUnicode_UTF*: the UTF8 version
-        // sometimes segfaults for unknown reasons, while the UTF16 and 32 versions require a
-        // non-const char * arguments, which is also a nuisance, so bypass the whole thing by just
-        // passing the encoding as a string value, which works properly:
+        // PyPy segfaults when on PyUnicode_DecodeUTF16 (and possibly on PyUnicode_DecodeUTF32 as well),
+        // so bypass the whole thing by just passing the encoding as a string value, which works properly:
         return PyUnicode_Decode(buffer, nbytes, UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr);
 #endif
     }

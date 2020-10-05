@@ -223,7 +223,7 @@ avoids this issue involves weak reference with a cleanup callback:
 
 .. code-block:: cpp
 
-    // Register a callback function that is invoked when the BaseClass object is colelcted
+    // Register a callback function that is invoked when the BaseClass object is collected
     py::cpp_function cleanup_callback(
         [](py::handle weakref) {
             // perform cleanup here -- this function is called with the GIL held
@@ -237,9 +237,9 @@ avoids this issue involves weak reference with a cleanup callback:
 
 .. note::
 
-    PyPy (at least version 5.9) does not garbage collect objects when the
-    interpreter exits. An alternative approach (which also works on CPython) is to use
-    the :py:mod:`atexit` module [#f7]_, for example:
+    PyPy does not garbage collect objects when the interpreter exits. An alternative
+    approach (which also works on CPython) is to use the :py:mod:`atexit` module [#f7]_,
+    for example:
 
     .. code-block:: cpp
 
