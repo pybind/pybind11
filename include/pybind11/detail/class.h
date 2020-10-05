@@ -29,19 +29,10 @@ inline std::string get_fully_qualified_tp_name(PyTypeObject *type) {
     return type->tp_name;
 #else
     auto module_name = handle((PyObject *) type).attr("__module__").cast<std::string>();
-    bool is_builtin_module = module_name ==
-#  if PY_MAJOR_VERSION >= 3
-        "builtins"
-#  else
-        "__builtin__"
-#  endif
-        ;
-    if (is_builtin_module) {
+    if (module_name == PYBIND11_BUILTINS_MODULE)
         return type->tp_name;
-    }
-    else {
+    else
         return std::move(module_name) + "." + type->tp_name;
-    }
 #endif
 }
 
