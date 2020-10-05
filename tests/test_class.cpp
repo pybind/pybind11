@@ -444,6 +444,28 @@ TEST_SUBMODULE(class_, m) {
         .def_static("get_name", []() { return "BaseWithNested::Nested"; });
     py::class_<DerivedWithNested::Nested>(derivedWithNested_class, "Nested")
         .def_static("get_name", []() { return "DerivedWithNested::Nested"; });
+
+    // test_register_duplicate_class
+    struct Duplicate {};
+    struct OtherDuplicate {};
+    struct DuplicateNested {};
+    struct OtherDuplicateNested {};
+    m.def("register_duplicate_class_name", [](py::module_ m) {
+        py::class_<Duplicate>(m, "Duplicate");
+        py::class_<OtherDuplicate>(m, "Duplicate");
+    });
+    m.def("register_duplicate_class_type", [](py::module_ m) {
+        py::class_<OtherDuplicate>(m, "OtherDuplicate");
+        py::class_<OtherDuplicate>(m, "YetAnotherDuplicate");
+    });
+    m.def("register_duplicate_nested_class_name", [](py::object gt) {
+        py::class_<DuplicateNested>(gt, "DuplicateNested");
+        py::class_<OtherDuplicateNested>(gt, "DuplicateNested");
+    });
+    m.def("register_duplicate_nested_class_type", [](py::object gt) {
+        py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
+        py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
+    });
 }
 
 template <int N> class BreaksBase { public:
