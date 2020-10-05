@@ -868,14 +868,15 @@ protected:
     }
 };
 
-
-#if PY_MAJOR_VERSION >= 3
 class module_;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+#if PY_MAJOR_VERSION >= 3
 inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def);
-PYBIND11_NAMESPACE_END(detail)
+#else
+inline module_ create_top_level_module(const char *name, const char *doc);
 #endif
+PYBIND11_NAMESPACE_END(detail)
 
 /// Wrapper for Python extension modules
 class module_ : public object {
@@ -883,17 +884,14 @@ public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    explicit module_(const char *name, const char *doc = nullptr)
+    PYBIND11_DEPRECATED("Use PYBIND11_MODULE, module_::def_submodule, or module_::import instead")
+    explicit module_(const char *name, const char *doc = nullptr) {
 #if PY_MAJOR_VERSION >= 3
-        : module_(name, doc, new PyModuleDef()) {}
+        *this = detail::create_top_level_module(name, doc, new PyModuleDef());
 #else
-    {
-        m_ptr = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
-        if (m_ptr == nullptr)
-            pybind11_fail("Internal error in module_::module_()");
-        inc_ref();
-    }
+        *this = detail::create_top_level_module(name, doc);
 #endif
+    }
 
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
@@ -958,29 +956,6 @@ public:
 
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
-
-private:
-#if PY_MAJOR_VERSION >= 3
-    friend module_ detail::create_top_level_module(const char *, const char *, PyModuleDef *);
-
-    explicit module_(const char *name, const char *doc, PyModuleDef *def) {
-        def = new (def) PyModuleDef {  // Placement new (not an allocation).
-            /* m_base */     PyModuleDef_HEAD_INIT,
-            /* m_name */     name,
-            /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
-            /* m_size */     -1,
-            /* m_methods */  nullptr,
-            /* m_slots */    nullptr,
-            /* m_traverse */ nullptr,
-            /* m_clear */    nullptr,
-            /* m_free */     nullptr
-        };
-        m_ptr = PyModule_Create(def);
-        if (m_ptr == nullptr)
-            pybind11_fail("Internal error in module_::module_()");
-        inc_ref();
-    }
-#endif
 };
 
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
@@ -988,13 +963,35 @@ private:
 // simplicity, if someone wants to use py::module for example, that is perfectly safe.
 using module = module_;
 
-#if PY_MAJOR_VERSION >= 3
 PYBIND11_NAMESPACE_BEGIN(detail)
+#if PY_MAJOR_VERSION >= 3
 inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def) {
-    return module_(name, doc, def);
+    def = new (def) PyModuleDef {  // Placement new (not an allocation).
+        /* m_base */     PyModuleDef_HEAD_INIT,
+        /* m_name */     name,
+        /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
+        /* m_size */     -1,
+        /* m_methods */  nullptr,
+        /* m_slots */    nullptr,
+        /* m_traverse */ nullptr,
+        /* m_clear */    nullptr,
+        /* m_free */     nullptr
+    };
+    auto m = PyModule_Create(def);
+    if (m == nullptr)
+        pybind11_fail("Internal error in detail::create_top_level_module()");
+    // TODO: Should be reinterpret_steal, but Python also steals it again when returned from PyInit_...
+    return reinterpret_borrow<module_>(m);
 }
-PYBIND11_NAMESPACE_END(detail)
+#else
+inline module_ create_top_level_module(const char *name, const char *doc) {
+    auto m = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
+    if (m == nullptr)
+        pybind11_fail("Internal error in detail::create_top_level_module()");
+    return reinterpret_borrow<module_>(m);
+}
 #endif
+PYBIND11_NAMESPACE_END(detail)
 
 /// \ingroup python_builtins
 /// Return a dictionary representing the global variables in the current execution frame,

@@ -62,7 +62,11 @@ TEST_SUBMODULE(modules, m) {
         class Dupe3 { };
         class DupeException { };
 
-        auto dm = py::module_("dummy");
+#if PY_MAJOR_VERSION >= 3
+        auto dm = py::detail::create_top_level_module("dummy", nullptr, new PyModuleDef);
+#else
+        auto dm = py::detail::create_top_level_module("dummy", nullptr);
+#endif
         auto failures = py::list();
 
         py::class_<Dupe1>(dm, "Dupe1");

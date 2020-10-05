@@ -313,18 +313,19 @@ extern "C" {
 #define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                \
     static PyModuleDef PYBIND11_CONCAT(pybind11_module_def_, name);
 #define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
-        auto m = pybind11::detail::create_top_level_module(                    \
+        auto m = ::pybind11::detail::create_top_level_module(                  \
             PYBIND11_TOSTRING(name), nullptr,                                  \
             &PYBIND11_CONCAT(pybind11_module_def_, name));
 #else
 #define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)
 #define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
-        auto m = pybind11::module_(PYBIND11_TOSTRING(name));
+        auto m = ::pybind11::detail::create_top_level_module(                  \
+            PYBIND11_TOSTRING(name), nullptr);
 #endif
 #define PYBIND11_MODULE(name, variable)                                        \
     PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                    \
     PYBIND11_MAYBE_UNUSED                                                      \
-    static void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module_ &);     \
+    static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);  \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
         PYBIND11_CHECK_PYTHON_VERSION                                          \
         PYBIND11_ENSURE_INTERNALS_READY                                        \
@@ -334,7 +335,7 @@ extern "C" {
             return m.ptr();                                                    \
         } PYBIND11_CATCH_INIT_EXCEPTIONS                                       \
     }                                                                          \
-    void PYBIND11_CONCAT(pybind11_init_, name)(pybind11::module_ &variable)
+    void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &variable)
 
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
