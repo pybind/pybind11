@@ -196,7 +196,7 @@ else()
 
 endif()
 
-# --------------------- pybind11_check_import -------------------------------
+# --------------------- pybind11_find_import -------------------------------
 
 if(NOT _pybind11_nopython)
   # Check to see if modules are importable. Use REQUIRED to force an error if

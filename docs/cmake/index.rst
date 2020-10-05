@@ -6,4 +6,3 @@ install with ``find_package(pybind11 CONFIG)``. The interface provided in
 either case is functionally identical.
 
 .. cmake-module:: ../../tools/pybind11Config.cmake.in
-
