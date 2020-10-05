@@ -157,11 +157,7 @@ TEST_SUBMODULE(class_, m) {
     });
 
     m.def("as_type", [](py::object ob) {
-        auto tp = py::type(ob);
-        if (py::isinstance<py::type>(ob))
-            return tp;
-        else
-            throw std::runtime_error("Invalid type");
+        return py::type(ob);
     });
 
     // test_mismatched_holder

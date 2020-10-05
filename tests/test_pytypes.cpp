@@ -243,6 +243,19 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("convert_to_pybind11_str", [](py::object o) { return py::str(o); });
 
+    m.def("nonconverting_constructor", [](std::string type, py::object value) -> py::object {
+        if (type == "bytes") {
+            return py::bytes(value);
+        }
+        else if (type == "none") {
+            return py::none(value);
+        }
+        else if (type == "ellipsis") {
+            return py::ellipsis(value);
+        }
+        throw std::runtime_error("Invalid type");
+    });
+
     m.def("get_implicit_casting", []() {
         py::dict d;
         d["char*_i1"] = "abc";

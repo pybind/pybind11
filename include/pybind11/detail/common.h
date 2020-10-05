@@ -182,6 +182,7 @@
 #define PYBIND11_STR_TYPE ::pybind11::str
 #define PYBIND11_BOOL_ATTR "__bool__"
 #define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
+#define PYBIND11_BUILTINS_MODULE "builtins"
 // Providing a separate declaration to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
 #define PYBIND11_PLUGIN_IMPL(name) \
@@ -209,6 +210,7 @@
 #define PYBIND11_STR_TYPE ::pybind11::bytes
 #define PYBIND11_BOOL_ATTR "__nonzero__"
 #define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_nonzero)
+#define PYBIND11_BUILTINS_MODULE "__builtin__"
 // Providing a separate PyInit decl to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
 #define PYBIND11_PLUGIN_IMPL(name) \
@@ -853,8 +855,8 @@ public:
     const std::vector<T> *operator->() const { return &v; }
 };
 
+// Forward-declaration; see detail/class.h
+std::string get_fully_qualified_tp_name(PyTypeObject*);
+
 PYBIND11_NAMESPACE_END(detail)
-
-
-
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

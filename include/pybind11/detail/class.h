@@ -28,7 +28,11 @@ inline std::string get_fully_qualified_tp_name(PyTypeObject *type) {
 #if !defined(PYPY_VERSION)
     return type->tp_name;
 #else
-    return handle((PyObject *) type).attr("__module__").cast<std::string>() + "." + type->tp_name;
+    auto module_name = handle((PyObject *) type).attr("__module__").cast<std::string>();
+    if (module_name == PYBIND11_BUILTINS_MODULE)
+        return type->tp_name;
+    else
+        return std::move(module_name) + "." + type->tp_name;
 #endif
 }
 

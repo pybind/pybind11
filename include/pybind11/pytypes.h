@@ -812,11 +812,18 @@ PYBIND11_NAMESPACE_END(detail)
     : Parent(check_(o) ? o.release().ptr() : ConvertFun(o.ptr()), stolen_t{}) \
     { if (!m_ptr) throw error_already_set(); }
 
+#define PYBIND11_OBJECT_CHECK_FAILED(Name, o) \
+    type_error("Object of type '" + \
+               pybind11::detail::get_fully_qualified_tp_name(Py_TYPE(o.ptr())) + \
+               "' is not an instance of '" #Name "'")
+
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
     /* This is deliberately not 'explicit' to allow implicit conversion from object: */ \
-    Name(const object &o) : Parent(o) { } \
-    Name(object &&o) : Parent(std::move(o)) { }
+    Name(const object &o) : Parent(o) \
+    { if (o && !check_(o)) throw PYBIND11_OBJECT_CHECK_FAILED(Name, o); } \
+    Name(object &&o) : Parent(std::move(o)) \
+    { if (o && !check_(o)) throw PYBIND11_OBJECT_CHECK_FAILED(Name, o); }
 
 #define PYBIND11_OBJECT_DEFAULT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT(Name, Parent, CheckFun) \

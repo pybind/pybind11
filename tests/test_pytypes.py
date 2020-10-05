@@ -245,6 +245,20 @@ def test_constructors():
         assert noconv2[k] is expected[k]
 
 
+def test_non_converting_constructors():
+    non_converting_test_cases = [
+        ("bytes", range(10)),
+        ("none", 42),
+        ("ellipsis", 42),
+    ]
+    for t, v in non_converting_test_cases:
+        with pytest.raises(TypeError) as excinfo:
+            m.nonconverting_constructor(t, v)
+        expected_error = "Object of type '{}' is not an instance of '{}'".format(
+            type(v).__name__, t)
+        assert str(excinfo.value) == expected_error
+
+
 def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str
     cvt = m.convert_to_pybind11_str
