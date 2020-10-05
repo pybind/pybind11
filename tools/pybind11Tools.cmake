@@ -191,4 +191,6 @@ function(pybind11_add_module target_name)
 endfunction()
 
 # Provide general way to call common Python commands in "common" file.
-set(_Python PYTHON)
+set(_Python
+    PYTHON
+    CACHE INTERNAL "" FORCE)
