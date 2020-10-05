@@ -272,8 +272,10 @@ extern "C" {
 
     .. code-block:: cpp
 
+        static pybind11::module_::module_def example_module_def;
         PYBIND11_PLUGIN(example) {
-            pybind11::module_ m("example", "pybind11 example plugin");
+            auto m = pybind11::module_::create_extension_module(
+                "example", "pybind11 example plugin", &example_module_def);
             /// Set up bindings here
             return m.ptr();
         }

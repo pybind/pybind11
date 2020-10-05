@@ -887,19 +887,28 @@ protected:
     }
 };
 
-/// Wrapper for Python extension modules
+/// Wrapper for Python modules
 class module_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    PYBIND11_DEPRECATED("Use PYBIND11_MODULE or module_::create_extension_module instead")
     explicit module_(const char *name, const char *doc = nullptr) {
-#if PY_MAJOR_VERSION >= 3
-        *this = create_extension_module(name, doc, new PyModuleDef());
+#if defined(PYPY_VERSION)
+        m_ptr = PyModule_New(const_cast<char *>(name));
 #else
-        *this = create_extension_module(name, doc, nullptr);
+        m_ptr = PyModule_New(name);
 #endif
+        if (m_ptr == nullptr)
+            pybind11_fail("Internal error in module_::module_()");
+        if (doc && options::show_user_defined_docstrings()) {
+#if PY_MAJOR_VERSION >= 3 && !defined(PYPY_VERSION)
+            if (PyModule_SetDocString(m_ptr, doc) != 0)
+                throw error_already_set();
+#else
+            setattr(m_ptr, "__doc__", PYBIND11_STR_TYPE(doc));
+#endif
+        }
     }
 
     /** \rst
