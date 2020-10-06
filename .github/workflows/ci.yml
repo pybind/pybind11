@@ -2,6 +2,9 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      enable-tmate:
+        description: 'Enable tmate debugging'
   pull_request:
   push:
     branches:
@@ -182,6 +185,10 @@ jobs:
     # setuptools
     - name: Setuptools helpers test
       run: pytest tests/extra_setuptools
+
+    - name: Setup tmate debugging session
+      uses: mxschmitt/action-tmate@v3
+      if: failure() && github.event.inputs.enable-tmate
 
 
   # Testing on clang using the excellent silkeh clang docker images
