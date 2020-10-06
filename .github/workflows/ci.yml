@@ -91,10 +91,11 @@ jobs:
         architecture: ${{ matrix.arch }}
 
     - name: Setup Boost (Windows / Linux latest)
-      run: echo "::set-env name=BOOST_ROOT::$BOOST_ROOT_1_72_0"
+      shell: bash
+      run: echo "BOOST_ROOT=$BOOST_ROOT_1_72_0" >> $GITHUB_ENV
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.3
+      uses: jwlawson/actions-setup-cmake@v1.4
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -166,16 +167,17 @@ jobs:
     # MSVC, but for now, this action works:
     - name: Prepare compiler environment for Windows 🐍 2.7
       if: matrix.python == 2.7 && runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1.4.1
       with:
         arch: x64
 
     # This makes two environment variables available in the following step(s)
     - name: Set Windows 🐍 2.7 environment variables
       if: matrix.python == 2.7 && runner.os == 'Windows'
+      shell: bash
       run: |
-        echo "::set-env name=DISTUTILS_USE_SDK::1"
-        echo "::set-env name=MSSdk::1"
+        echo "DISTUTILS_USE_SDK=1" >> $GITHUB_ENV
+        echo "MSSdk=1" >> $GITHUB_ENV
 
     # This makes sure the setup_helpers module can build packages using
     # setuptools
@@ -362,7 +364,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Setup CMake 3.18
-      uses: jwlawson/actions-setup-cmake@v1.3
+      uses: jwlawson/actions-setup-cmake@v1.4
       with:
         cmake-version: 3.18
 
