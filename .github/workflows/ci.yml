@@ -22,6 +22,7 @@ jobs:
         - 2.7
         - 3.5
         - 3.8
+        - 3.9
         - pypy2
         - pypy3
 
@@ -32,33 +33,32 @@ jobs:
         # We support three optional keys: args (both build), args1 (first
         # build), and args2 (second build).
         include:
+          # Just add a key
           - runs-on: ubuntu-latest
             python: 3.6
             arch: x64
             args: >
               -DPYBIND11_FINDPYTHON=ON
+          - runs-on: windows-latest
+            python: 3.6
+            arch: x64
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
+          - runs-on: ubuntu-latest
+            python: 3.8
+            arch: x64
+            args: >
+              -DPYBIND11_FINDPYTHON=ON
+
+          # New runs
           - runs-on: windows-2016
             python: 3.7
             arch: x86
             args2: >
               -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
           - runs-on: windows-latest
-            python: 3.6
-            arch: x64
-            args: >
-              -DPYBIND11_FINDPYTHON=ON
-          - runs-on: windows-latest
             python: 3.7
             arch: x64
-
-          - runs-on: ubuntu-latest
-            python: 3.9-dev
-            arch: x64
-          - runs-on: macos-latest
-            python: 3.9-dev
-            arch: x64
-            args: >
-              -DPYBIND11_FINDPYTHON=ON
 
         # These items will be removed from the build matrix, keys must match.
         exclude:
@@ -75,12 +75,11 @@ jobs:
             python: 3.8
             arch: x64
           - runs-on: windows-latest
-            python: 3.9-dev
+            python: 3.9
             arch: x64
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }} ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
-    continue-on-error: ${{ endsWith(matrix.python, 'dev') }}
 
     steps:
     - uses: actions/checkout@v2
@@ -196,7 +195,7 @@ jobs:
           - 3.9
           - 5
           - 7
-          - 9
+          - 10
           - dev
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • x64"
