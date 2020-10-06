@@ -372,10 +372,9 @@ protected:
             if (!m_ptr)
                 pybind11_fail("cpp_function::cpp_function(): Could not allocate function object");
         } else {
-            /* Append at the end of the overload chain */
+            /* Append at the beginning or end of the overload chain */
             m_ptr = rec->sibling.ptr();
             inc_ref();
-            chain_start = chain;
             if (chain->is_method != rec->is_method)
                 pybind11_fail("overloading a method with both static and instance methods is not supported; "
                     #if defined(NDEBUG)
@@ -385,9 +384,22 @@ protected:
                         std::string(pybind11::str(rec->scope.attr("__name__"))) + "." + std::string(rec->name) + signature
                     #endif
                 );
-            while (chain->next)
-                chain = chain->next;
-            chain->next = rec;
+
+            if (rec->prepend) {
+                // Beginning of chain; we need to replace the capsule's current head-of-the-chain
+                // pointer with this one, then make this one point to the previous head of the
+                // chain.
+                chain_start = rec;
+                rec->next = chain;
+                auto rec_capsule = reinterpret_borrow<capsule>(((PyCFunctionObject *) m_ptr)->m_self);
+                rec_capsule.set_pointer(rec);
+            } else {
+                // Or end of chain (normal behavior)
+                chain_start = chain;
+                while (chain->next)
+                    chain = chain->next;
+                chain->next = rec;
+            }
         }
 
         std::string signatures;

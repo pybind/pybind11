@@ -32,6 +32,9 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   ``py::type::of(h)``.
   `#2364 <https://github.com/pybind/pybind11/pull/2364>`_
 
+* Added ``py::prepend()``, allowing a function to be placed at the beginning of
+  the overload chain.
+  `#1131 <https://github.com/pybind/pybind11/pull/1131>`_
 
 * Perfect forwarding support for methods.
   `#2048 <https://github.com/pybind/pybind11/pull/2048>`_
@@ -135,6 +138,9 @@ Smaller or developer focused features:
 
 * ``py::vectorize`` is now supported on functions that return void.
   `#1969 <https://github.com/pybind/pybind11/pull/1969>`_
+
+* ``py::capsule`` supports ``get_pointer`` and ``set_pointer``.
+  `#1131 <https://github.com/pybind/pybind11/pull/1131>`_
 
 * Bugfixes related to more extensive testing.
   `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
