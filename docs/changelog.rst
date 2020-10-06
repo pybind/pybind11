@@ -126,6 +126,11 @@ Smaller or developer focused features:
 * Throw if conversion to ``str`` fails.
   `#2477 <https://github.com/pybind/pybind11/pull/2477>`_
 
+* Throw error if conversion to a pybind11 type if the Python object isn't a
+  valid instance of that type, such as ``py::bytes(o)`` when ``py::object o``
+  isn't a bytes instance.
+  `#2349 <https://github.com/pybind/pybind11/pull/2349>`_
+
 * Pointer to ``std::tuple`` & ``std::pair`` supported in cast.
   `#2334 <https://github.com/pybind/pybind11/pull/2334>`_
 

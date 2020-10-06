@@ -23,6 +23,10 @@ An error is now thrown when ``__init__`` is forgotten on subclasses. This was
 incorrect before, but was not checked. Add a call to ``__init__`` if it is
 missing.
 
+A ``py::type_error`` is now thrown when casting to a subclass (like
+``py::bytes`` from ``py::object``) if the conversion is not valid. Make a valid
+conversion instead.
+
 The undocumented ``h.get_type()`` method has been deprecated and replaced by
 ``py::type::of(h)``.
 
