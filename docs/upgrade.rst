@@ -17,7 +17,6 @@ The ``tools/clang`` submodule and ``tools/mkdoc.py`` have been moved to a
 standalone package, `pybind11-mkdoc`_. If you were using those tools, please
 use them via a pip install from the new location.
 
-.. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
 
 An error is now thrown when ``__init__`` is forgotten on subclasses. This was
 incorrect before, but was not checked. Add a call to ``__init__`` if it is
@@ -49,6 +48,8 @@ be unaffected, as the ``pybind11/include`` location is reported by ``python -m
 pybind11 --includes`` and ``pybind11.get_include()`` is still correct and has
 not changed since 2.5).
 
+.. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
+
 CMake support:
 --------------
 
@@ -62,7 +63,7 @@ something. The changes are:
 
 * If you do not request a standard, pybind11 targets will compile with the
   compiler default, but not less than C++11, instead of forcing C++14 always.
-  If you depend on the old behavior, please use ``set(CMAKE_CXX_STANDARD 14)``
+  If you depend on the old behavior, please use ``set(CMAKE_CXX_STANDARD 14 CACHE STRING "")``
   instead.
 
 * Direct ``pybind11::module`` usage should always be accompanied by at least
@@ -88,7 +89,8 @@ In addition, the following changes may be of interest:
 * Using ``find_package(Python COMPONENTS Interpreter Development)`` before
   pybind11 will cause pybind11 to use the new Python mechanisms instead of its
   own custom search, based on a patched version of classic ``FindPythonInterp``
-  / ``FindPythonLibs``. In the future, this may become the default.
+  / ``FindPythonLibs``. In the future, this may become the default. A recent
+  (3.15+ or 3.18.2+) version of CMake recommended.
 
 
 

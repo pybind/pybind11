@@ -271,10 +271,9 @@ standard explicitly with
 
 .. code-block:: cmake
 
-    set(CMAKE_CXX_STANDARD 14)  # or 11, 14, 17, 20
+    set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ version selection")  # or 11, 14, 17, 20
     set(CMAKE_CXX_STANDARD_REQUIRED ON)  # optional, ensure standard is supported
     set(CMAKE_CXX_EXTENSIONS OFF)  # optional, keep compiler extensionsn off
-
 
 The variables can also be set when calling CMake from the command line using
 the ``-D<variable>=<value>`` flag. You can also manually set ``CXX_STANDARD``
