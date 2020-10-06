@@ -108,7 +108,7 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     m.def("return_capsule_with_name_and_destructor", []() {
-        auto capsule = py::capsule((void *) 1234, "pointer type description", [](PyObject *ptr) {
+        auto capsule = py::capsule((void *) 12345, "pointer type description", [](PyObject *ptr) {
             if (ptr) {
                 auto name = PyCapsule_GetName(ptr);
                 py::print("destructing capsule ({}, '{}')"_s.format(
@@ -116,8 +116,19 @@ TEST_SUBMODULE(pytypes, m) {
                 ));
             }
         });
-        void *contents = capsule;
-        py::print("created capsule ({}, '{}')"_s.format((size_t) contents, capsule.name()));
+
+        capsule.set_pointer((void *) 1234);
+
+        // Using get_pointer<T>()
+        void* contents1 = static_cast<void*>(capsule);
+        void* contents2 = capsule.get_pointer();
+        void* contents3 = capsule.get_pointer<void>();
+
+        auto result1 = reinterpret_cast<size_t>(contents1);
+        auto result2 = reinterpret_cast<size_t>(contents2);
+        auto result3 = reinterpret_cast<size_t>(contents3);
+
+        py::print("created capsule ({}, '{}')"_s.format(result1 & result2 & result3, capsule.name()));
         return capsule;
     });
 
