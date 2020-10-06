@@ -813,9 +813,9 @@ PYBIND11_NAMESPACE_END(detail)
     { if (!m_ptr) throw error_already_set(); }
 
 #define PYBIND11_OBJECT_CHECK_FAILED(Name, o) \
-    type_error("Object of type '" + \
-               pybind11::detail::get_fully_qualified_tp_name(Py_TYPE(o.ptr())) + \
-               "' is not an instance of '" #Name "'")
+    ::pybind11::type_error("Object of type '" + \
+                           ::pybind11::detail::get_fully_qualified_tp_name(Py_TYPE(o.ptr())) + \
+                           "' is not an instance of '" #Name "'")
 
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
