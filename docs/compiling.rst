@@ -157,6 +157,23 @@ this, you will need to import from a local file in ``setup.py`` and ensure the
 helper file is part of your MANIFEST.
 
 
+Closely related, if you include pybind11 as a subproject, you can run the
+``setup_helpers.py`` inplace. If loaded correctly, this should even pick up
+the correct include for pybind11, though you can turn it off as shown above if
+you want to input it manually.
+
+Suggested usage if you have pybind11 as a submodule in ``extern/pybind11``:
+
+.. code-block:: python
+
+    DIR = os.path.abspath(os.path.dirname(__file__))
+
+    sys.path.append(os.path.join(DIR, "extern", "pybind11"))
+    from pybind11.setup_helpers import Pybind11Extension  # noqa: E402
+
+    del sys.path[-1]
+
+
 .. versionchanged:: 2.6
 
     Added ``setup_helpers`` file.
