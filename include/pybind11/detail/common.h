@@ -261,6 +261,20 @@ extern "C" {
             return nullptr;                                                    \
         }                                                                      \
 
+#if PY_MAJOR_VERSION >= 3
+#define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                \
+    static PyModuleDef PYBIND11_CONCAT(pybind11_module_def_, name);
+#define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
+        auto m = ::pybind11::detail::create_top_level_module(                  \
+            PYBIND11_TOSTRING(name), nullptr,                                  \
+            &PYBIND11_CONCAT(pybind11_module_def_, name));
+#else
+#define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)
+#define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
+        auto m = ::pybind11::detail::create_top_level_module(                  \
+            PYBIND11_TOSTRING(name), nullptr);
+#endif
+
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***
 
@@ -309,19 +323,6 @@ extern "C" {
             });
         }
 \endrst */
-#if PY_MAJOR_VERSION >= 3
-#define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                \
-    static PyModuleDef PYBIND11_CONCAT(pybind11_module_def_, name);
-#define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
-        auto m = ::pybind11::detail::create_top_level_module(                  \
-            PYBIND11_TOSTRING(name), nullptr,                                  \
-            &PYBIND11_CONCAT(pybind11_module_def_, name));
-#else
-#define PYBIND11_DETAIL_MODULE_STATIC_DEF(name)
-#define PYBIND11_DETAIL_MODULE_CREATE(name)                                    \
-        auto m = ::pybind11::detail::create_top_level_module(                  \
-            PYBIND11_TOSTRING(name), nullptr);
-#endif
 #define PYBIND11_MODULE(name, variable)                                        \
     PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                    \
     PYBIND11_MAYBE_UNUSED                                                      \
