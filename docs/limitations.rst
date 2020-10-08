@@ -1,6 +1,9 @@
 Limitations
 ###########
 
+Design choices
+^^^^^^^^^^^^^^
+
 pybind11 strives to be a general solution to binding generation, but it also has
 certain limitations:
 
@@ -14,6 +17,38 @@ certain limitations:
   class like ``Eigen::Array`` or ``boost.multi_array``.
 
 These features could be implemented but would lead to a significant increase in
-complexity. I've decided to draw the line here to keep this project simple and
-compact. Users who absolutely require these features are encouraged to fork
-pybind11.
+complexity. Pybind11 strives to be simple and compact. Users who absolutely
+require these features are encouraged to fork pybind11.
+
+
+Known bugs
+^^^^^^^^^^
+
+These are issues that hopefully will one day be fixed, but currently are
+unsolved. If you know how to help with one of these issues, contributions
+are welcome!
+
+- The test suite currently segfaults on macOS and Python 3.9.0 when exiting the
+  interpreter.  This was suspected to be related to the cross module GIL code,
+  but could be a broader Python 3.9.0 issue.
+  `#2558 <https://github.com/pybind/pybind11/issues/2558>`_
+
+- The ``cpptest`` does not run on Windows with Python 3.8 or newer, due to DLL
+  loader changes. Normally packages user code should not be affected.
+  `#2560 <https://github.com/pybind/pybind11/pull/2560>`_
+
+- There may be a rare issue with leakage under some compilers, exposed by
+  adding an unrelated test to the test suite.
+  `#2335 <https://github.com/pybind/pybind11/pull/2335>`_
+
+Known limitations
+^^^^^^^^^^^^^^^^^
+
+These are issues that are probably solvable, but have not been fixed yet. A
+clean, well written patch would likely be accepted to solve them.
+
+- Containers of ``char *`` are currently not supported.
+  `#2245 <https://github.com/pybind/pybind11/issues/2245>`_
+
+- Type casters are not kept alive recursively
+  `#2527 <https://github.com/pybind/pybind11/issues/2527>`_
