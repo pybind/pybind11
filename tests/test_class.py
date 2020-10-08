@@ -383,3 +383,38 @@ def test_multiple_instances_with_same_pointer(capture):
     # No assert: if this does not trigger the error
     #   pybind11_fail("pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
     # and just completes without crashing, we're good.
+
+
+# https://github.com/pybind/pybind11/issues/1624
+def test_base_and_derived_nested_scope():
+    assert issubclass(m.DerivedWithNested, m.BaseWithNested)
+    assert m.BaseWithNested.Nested != m.DerivedWithNested.Nested
+    assert m.BaseWithNested.Nested.get_name() == "BaseWithNested::Nested"
+    assert m.DerivedWithNested.Nested.get_name() == "DerivedWithNested::Nested"
+
+
+@pytest.mark.skip("See https://github.com/pybind/pybind11/pull/2564")
+def test_register_duplicate_class():
+    import types
+    module_scope = types.ModuleType("module_scope")
+    with pytest.raises(RuntimeError) as exc_info:
+        m.register_duplicate_class_name(module_scope)
+    expected = ('generic_type: cannot initialize type "Duplicate": '
+                'an object with that name is already defined')
+    assert str(exc_info.value) == expected
+    with pytest.raises(RuntimeError) as exc_info:
+        m.register_duplicate_class_type(module_scope)
+    expected = 'generic_type: type "YetAnotherDuplicate" is already registered!'
+    assert str(exc_info.value) == expected
+
+    class ClassScope:
+        pass
+    with pytest.raises(RuntimeError) as exc_info:
+        m.register_duplicate_nested_class_name(ClassScope)
+    expected = ('generic_type: cannot initialize type "DuplicateNested": '
+                'an object with that name is already defined')
+    assert str(exc_info.value) == expected
+    with pytest.raises(RuntimeError) as exc_info:
+        m.register_duplicate_nested_class_type(ClassScope)
+    expected = 'generic_type: type "YetAnotherDuplicateNested" is already registered!'
+    assert str(exc_info.value) == expected
