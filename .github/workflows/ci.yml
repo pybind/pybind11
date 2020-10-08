@@ -70,14 +70,6 @@ jobs:
             python: pypy3
             arch: x64
 
-            # Currently broken on embed_test
-          - runs-on: windows-latest
-            python: 3.8
-            arch: x64
-          - runs-on: windows-latest
-            python: 3.9
-            arch: x64
-
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }} ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
 
@@ -132,6 +124,8 @@ jobs:
       run: cmake --build . --target pytest -j 2
 
     - name: C++11 tests
+      # TODO: Figure out how to load the DLL on Python 3.8+
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9))"
       run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -158,6 +152,8 @@ jobs:
       run: cmake --build build2 --target pytest
 
     - name: C++ tests
+      # TODO: Figure out how to load the DLL on Python 3.8+
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9))"
       run: cmake --build build2 --target cpptest
 
     - name: Interface test
