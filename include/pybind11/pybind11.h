@@ -976,18 +976,19 @@ public:
             /* m_free */     nullptr
         };
         auto m = PyModule_Create(def);
-        if (m == nullptr)
-            pybind11_fail("Internal error in module_::create_extension_module()");
-        // TODO: Should be reinterpret_steal, but Python also steals it again when returned from PyInit_...
-        return reinterpret_borrow<module_>(m);
 #else
         // Ignore module_def *def; only necessary for Python 3
         (void) def;
         auto m = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
-        if (m == nullptr)
-            pybind11_fail("Internal error in module_::create_extension_module()");
-        return reinterpret_borrow<module_>(m);
 #endif
+        if (m == nullptr) {
+            if (PyErr_Occurred())
+                throw error_already_set();
+            pybind11_fail("Internal error in module_::create_extension_module()");
+        }
+        // TODO: Sould be reinterpret_steal for Python 3, but Python also steals it again when returned from PyInit_...
+        //       For Python 2, reinterpret_borrow is correct.
+        return reinterpret_borrow<module_>(m);
     }
 };
 
