@@ -2,15 +2,6 @@
 import multiprocessing
 import threading
 
-import pytest
-
-import env  # noqa: F401
-
-
-if env.PY >= (3,9) and env.MACOS:
-    pytest.skip("skipping segfaulting macOS Python 3.9 tests", allow_module_level=True)
-
-
 from pybind11_tests import gil_scoped as m
 
 
@@ -59,7 +50,7 @@ def _python_to_cpp_to_python_from_threads(num_threads, parallel=False):
         thread.join()
 
 
-# TODO: FIXME, sometimes returns -11 (segfault) instead of 0
+# TODO: FIXME, sometimes returns -11 (segfault) instead of 0 on macOS Python 3.9
 def test_python_to_cpp_to_python_from_thread():
     """Makes sure there is no GIL deadlock when running in a thread.
 
@@ -68,7 +59,7 @@ def test_python_to_cpp_to_python_from_thread():
     assert _run_in_process(_python_to_cpp_to_python_from_threads, 1) == 0
 
 
-# TODO: FIXME
+# TODO: FIXME on macOS Python 3.9
 def test_python_to_cpp_to_python_from_thread_multiple_parallel():
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
 
@@ -77,7 +68,7 @@ def test_python_to_cpp_to_python_from_thread_multiple_parallel():
     assert _run_in_process(_python_to_cpp_to_python_from_threads, 8, parallel=True) == 0
 
 
-# TODO: FIXME
+# TODO: FIXME on macOS Python 3.9
 def test_python_to_cpp_to_python_from_thread_multiple_sequential():
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
 
@@ -86,7 +77,7 @@ def test_python_to_cpp_to_python_from_thread_multiple_sequential():
     assert _run_in_process(_python_to_cpp_to_python_from_threads, 8, parallel=False) == 0
 
 
-# TODO: FIXME
+# TODO: FIXME on macOS Python 3.9
 def test_python_to_cpp_to_python_from_process():
     """Makes sure there is no GIL deadlock when using processes.
 
