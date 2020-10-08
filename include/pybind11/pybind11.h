@@ -868,16 +868,6 @@ protected:
     }
 };
 
-class module_;
-
-PYBIND11_NAMESPACE_BEGIN(detail)
-#if PY_MAJOR_VERSION >= 3
-inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def);
-#else
-inline module_ create_top_level_module(const char *name, const char *doc);
-#endif
-PYBIND11_NAMESPACE_END(detail)
-
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
@@ -887,9 +877,9 @@ public:
     PYBIND11_DEPRECATED("Use PYBIND11_MODULE, module_::def_submodule, or module_::import instead")
     explicit module_(const char *name, const char *doc = nullptr) {
 #if PY_MAJOR_VERSION >= 3
-        *this = detail::create_top_level_module(name, doc, new PyModuleDef());
+        *this = create_extension_module(name, doc, new PyModuleDef());
 #else
-        *this = detail::create_top_level_module(name, doc);
+        *this = create_extension_module(name, doc, nullptr);
 #endif
     }
 
@@ -958,42 +948,53 @@ public:
 
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
+
+#if PY_MAJOR_VERSION >= 3
+    using module_def = PyModuleDef;
+#else
+    struct module_def {};
+#endif
+
+    /** \rst
+        Create a new top-level module that can be used as the main module of a C extension.
+
+        For Python 3, ``def`` should point to a staticly allocated module_def.
+        For Python 2, ``def`` can be a nullptr and is completely ignored.
+    \endrst */
+    static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
+#if PY_MAJOR_VERSION >= 3
+        // module_def is PyModuleDef
+        def = new (def) PyModuleDef {  // Placement new (not an allocation).
+            /* m_base */     PyModuleDef_HEAD_INIT,
+            /* m_name */     name,
+            /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
+            /* m_size */     -1,
+            /* m_methods */  nullptr,
+            /* m_slots */    nullptr,
+            /* m_traverse */ nullptr,
+            /* m_clear */    nullptr,
+            /* m_free */     nullptr
+        };
+        auto m = PyModule_Create(def);
+        if (m == nullptr)
+            pybind11_fail("Internal error in module_::create_extension_module()");
+        // TODO: Should be reinterpret_steal, but Python also steals it again when returned from PyInit_...
+        return reinterpret_borrow<module_>(m);
+#else
+        // Ignore module_def *def; only necessary for Python 3
+        (void) def;
+        auto m = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
+        if (m == nullptr)
+            pybind11_fail("Internal error in module_::create_extension_module()");
+        return reinterpret_borrow<module_>(m);
+#endif
+    }
 };
 
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
 // C++20 allows "module" to be used. This is provided for backward compatibility, and for
 // simplicity, if someone wants to use py::module for example, that is perfectly safe.
 using module = module_;
-
-PYBIND11_NAMESPACE_BEGIN(detail)
-#if PY_MAJOR_VERSION >= 3
-inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def) {
-    def = new (def) PyModuleDef {  // Placement new (not an allocation).
-        /* m_base */     PyModuleDef_HEAD_INIT,
-        /* m_name */     name,
-        /* m_doc */      options::show_user_defined_docstrings() ? doc : nullptr,
-        /* m_size */     -1,
-        /* m_methods */  nullptr,
-        /* m_slots */    nullptr,
-        /* m_traverse */ nullptr,
-        /* m_clear */    nullptr,
-        /* m_free */     nullptr
-    };
-    auto m = PyModule_Create(def);
-    if (m == nullptr)
-        pybind11_fail("Internal error in detail::create_top_level_module()");
-    // TODO: Should be reinterpret_steal, but Python also steals it again when returned from PyInit_...
-    return reinterpret_borrow<module_>(m);
-}
-#else
-inline module_ create_top_level_module(const char *name, const char *doc) {
-    auto m = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
-    if (m == nullptr)
-        pybind11_fail("Internal error in detail::create_top_level_module()");
-    return reinterpret_borrow<module_>(m);
-}
-#endif
-PYBIND11_NAMESPACE_END(detail)
 
 /// \ingroup python_builtins
 /// Return a dictionary representing the global variables in the current execution frame,

@@ -46,10 +46,13 @@
         }
  \endrst */
 #define PYBIND11_EMBEDDED_MODULE(name, variable)                                \
-    PYBIND11_DETAIL_MODULE_STATIC_DEF(name)                                     \
+    static ::pybind11::module_::module_def                                      \
+        PYBIND11_CONCAT(pybind11_module_def_, name);                            \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);   \
     static PyObject PYBIND11_CONCAT(*pybind11_init_wrapper_, name)() {          \
-        PYBIND11_DETAIL_MODULE_CREATE(name)                                     \
+        auto m = ::pybind11::module_::create_extension_module(                  \
+            PYBIND11_TOSTRING(name), nullptr,                                   \
+            &PYBIND11_CONCAT(pybind11_module_def_, name));                      \
         try {                                                                   \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                           \
             return m.ptr();                                                     \

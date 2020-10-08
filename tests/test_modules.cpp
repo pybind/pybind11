@@ -62,11 +62,8 @@ TEST_SUBMODULE(modules, m) {
         class Dupe3 { };
         class DupeException { };
 
-#if PY_MAJOR_VERSION >= 3
-        auto dm = py::detail::create_top_level_module("dummy", nullptr, new PyModuleDef);
-#else
-        auto dm = py::detail::create_top_level_module("dummy", nullptr);
-#endif
+        // Go ahead and leak, until we have a non-leaking py::module_ constructor
+        auto dm = py::module_::create_extension_module("dummy", nullptr, new py::module_::module_def);
         auto failures = py::list();
 
         py::class_<Dupe1>(dm, "Dupe1");
