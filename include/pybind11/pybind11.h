@@ -1028,7 +1028,7 @@ public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
     void initialize(const type_record &rec) {
-        if (rec.scope && hasattr(rec.scope, "__dict__") && rec.scope.attr("__dict__").contains(rec.name))
+        if (rec.scope && hasattr(rec.scope, rec.name))
             pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name) +
                           "\": an object with that name is already defined");
 
@@ -1946,7 +1946,7 @@ public:
         std::string full_name = scope.attr("__name__").cast<std::string>() +
                                 std::string(".") + name;
         m_ptr = PyErr_NewException(const_cast<char *>(full_name.c_str()), base.ptr(), NULL);
-        if (hasattr(scope, "__dict__") && scope.attr("__dict__").contains(name))
+        if (hasattr(scope, name))
             pybind11_fail("Error during initialization: multiple incompatible "
                           "definitions with name \"" + std::string(name) + "\"");
         scope.attr(name) = *this;
