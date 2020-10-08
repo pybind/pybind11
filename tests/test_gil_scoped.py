@@ -94,6 +94,7 @@ def test_python_to_cpp_to_python_from_process():
     assert _run_in_process(_python_to_cpp_to_python) == 0
 
 
+@pytest.mark.xfail("env.PY >= (3,9) and env.MACOS", run=False)
 def test_cross_module_gil():
     """Makes sure that the GIL can be acquired by another module from a GIL-released state."""
     m.test_cross_module_gil()  # Should not raise a SIGSEGV
