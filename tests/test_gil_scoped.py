@@ -6,6 +6,11 @@ import pytest
 
 import env  # noqa: F401
 
+
+if env.PY >= (3,9) and env.MACOS:
+    pytest.skip("skipping segfaulting macOS Python 3.9 tests", allow_module_level=True)
+
+
 from pybind11_tests import gil_scoped as m
 
 
@@ -55,7 +60,6 @@ def _python_to_cpp_to_python_from_threads(num_threads, parallel=False):
 
 
 # TODO: FIXME, sometimes returns -11 (segfault) instead of 0
-@pytest.mark.xfail("env.PY >= (3,9) and env.MACOS", run=False)
 def test_python_to_cpp_to_python_from_thread():
     """Makes sure there is no GIL deadlock when running in a thread.
 
@@ -65,7 +69,6 @@ def test_python_to_cpp_to_python_from_thread():
 
 
 # TODO: FIXME
-@pytest.mark.xfail("env.PY >= (3,9) and env.MACOS", run=False)
 def test_python_to_cpp_to_python_from_thread_multiple_parallel():
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
 
@@ -75,7 +78,6 @@ def test_python_to_cpp_to_python_from_thread_multiple_parallel():
 
 
 # TODO: FIXME
-@pytest.mark.xfail("env.PY >= (3,9) and env.MACOS", run=False)
 def test_python_to_cpp_to_python_from_thread_multiple_sequential():
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
 
@@ -85,7 +87,6 @@ def test_python_to_cpp_to_python_from_thread_multiple_sequential():
 
 
 # TODO: FIXME
-@pytest.mark.xfail("env.PY >= (3,9) and env.MACOS", run=False)
 def test_python_to_cpp_to_python_from_process():
     """Makes sure there is no GIL deadlock when using processes.
 
@@ -94,7 +95,6 @@ def test_python_to_cpp_to_python_from_process():
     assert _run_in_process(_python_to_cpp_to_python) == 0
 
 
-@pytest.mark.xfail("env.PY >= (3,9) and env.MACOS", run=False)
 def test_cross_module_gil():
     """Makes sure that the GIL can be acquired by another module from a GIL-released state."""
     m.test_cross_module_gil()  # Should not raise a SIGSEGV
