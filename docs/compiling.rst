@@ -31,13 +31,14 @@ An example of a ``setup.py`` using pybind11's helpers:
 
 .. code-block:: python
 
+    from glob import glob
     from setuptools import setup
     from pybind11.setup_helpers import Pybind11Extension
 
     ext_modules = [
         Pybind11Extension(
             "python_example",
-            ["src/main.cpp"],
+            sorted(glob("src/*.cpp")),  # Sort source files for reproducibility
         ),
     ]
 
@@ -52,13 +53,14 @@ that is supported via a ``build_ext`` command override; it will only affect
 
 .. code-block:: python
 
+    from glob import glob
     from setuptools import setup
     from pybind11.setup_helpers import Pybind11Extension, build_ext
 
     ext_modules = [
         Pybind11Extension(
             "python_example",
-            ["src/main.cpp"],
+            sorted(glob("src/*.cpp")),
         ),
     ]
 
@@ -71,12 +73,14 @@ that is supported via a ``build_ext`` command override; it will only affect
 Since pybind11 does not require NumPy when building, a light-weight replacement
 for NumPy's parallel compilation distutils tool is included. Use it like this:
 
+.. code-block:: python
+
     from pybind11.setup_helpers import ParallelCompile
 
     # Optional multithreaded build
     ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 
-    setup(...
+    setup(...)
 
 The argument is the name of an environment variable to control the number of
 threads, such as ``NPY_NUM_BUILD_JOBS`` (as used by NumPy), though you can set
