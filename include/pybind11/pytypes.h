@@ -1220,56 +1220,13 @@ public:
     explicit tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
-
     /** \rst
         Creates a ``tuple`` from an initializer list of object instances.
-
-        The second argument is unused and serves the purpose of having a different
-        signature from the other std::initializer_list based constructor.
      \endrst */
-    // The templated-based initializer_list constructor does not work with an init
-    // list composed of heterogeneous pybind11::objects so this specific one was added.
-    explicit tuple(std::initializer_list<object> init_list, size_t index = 0) : tuple(init_list.size()) {
-        index = 0;
+    explicit tuple(std::initializer_list<object> init_list) : tuple(init_list.size()) {
+        detail::accessor_policies::tuple_item::key_type index{0};
         for (const pybind11::object& item : init_list)
             detail::tuple_accessor(*this, index++) = item;
-    }
-
-    /** \rst
-        Creates a ``tuple`` from an initializer list of C++ objects.
-
-        Note that there must be a pybind11 cast available to convert the
-        C++ object to a pybind11::object.
-     \endrst */
-    template<typename T>
-    explicit tuple(std::initializer_list<T> init_list) : tuple(init_list.size()) {
-        size_t index{0};
-        for (const T& item : init_list) {
-            detail::tuple_accessor(*this, index++) = item;
-        }
-    }
-
-    /** \rst
-        Creates a ``tuple`` from an arbitrary C++ container of known size.
-
-        Note that there must be a pybind11 cast available to convert the
-        C++ object to a pybind11::object.
-     \endrst */
-    template<
-        typename T,
-        typename = std::enable_if<
-            std::is_base_of<
-                std::forward_iterator_tag,
-                typename std::iterator_traits<typename T::iterator>::iterator_category
-            >::value &&
-            std::is_unsigned<typename T::size_type>::value
-        >
-    >
-    explicit tuple(T&& init_list) : tuple(init_list.size()) {
-        size_t index{0};
-        for (const typename T::value_type& item : init_list) {
-            detail::tuple_accessor(*this, index++) = item;
-        }
     }
 
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
@@ -1333,10 +1290,11 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
     explicit list(std::initializer_list<object> init_list) : list(init_list.size()) {
-        size_t index {0};
+        detail::accessor_policies::list_item::key_type index {0};
         for (const pybind11::object& item : init_list)
             detail::list_accessor(*this, index++) = item;
     }
+
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
@@ -1361,10 +1319,11 @@ public:
     set() : object(PySet_New(nullptr), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate set object!");
     }
-    set(std::initializer_list<object> init_list): set() {
+    explicit set(std::initializer_list<object> init_list): set() {
         for (const object& item : init_list)
             PySet_Add(m_ptr, item.ptr());
     }
+
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     template <typename T> bool add(T &&val) const {
