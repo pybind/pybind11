@@ -247,8 +247,8 @@ TEST_SUBMODULE(pytypes, m) {
     // Some python containers can also be constructed using an initializer list
     m.def("initializer_list", []() {
         return py::dict(
-            "tuple_ints"_a = py::tuple{1, 2, 3},
-            "tuple_floats"_a = py::tuple{2.2, 3.1, 4.5, 5.4},
+            "tuple_ints"_a = py::tuple{py::int_(1), py::int_(2), py::int_(3)},
+            "tuple_floats"_a = py::tuple{py::float_(2.2), py::float_(3.1), py::float_(4.5), py::float_(5.4)},
             "list_ints"_a = py::list{py::int_(1), py::int_(2), py::int_(3)},
             "list_floats"_a = py::list{py::float_(2.2), py::float_(3.1), py::float_(4.5), py::float_(5.4)},
             "tuple_objects"_a = py::tuple{
@@ -259,7 +259,7 @@ TEST_SUBMODULE(pytypes, m) {
                 py::list({py::float_(5.5), py::int_(12)}),
                 py::dict("k_s"_a="v1", "k_i"_a=12, "k_f"_a=12.1)
             },
-            "list_mixed"_a = py::list{
+            "list_objects"_a = py::list{
                 py::int_(321),
                 py::float_(123.3),
                 "somestring"_s,
@@ -268,27 +268,12 @@ TEST_SUBMODULE(pytypes, m) {
                 py::dict("k_s"_a="v1", "k_i"_a=12, "k_f"_a=12.1)
             },
             // Tuples are hashable, lists and dicts are not
-            "set_mixed"_a = py::set{
+            "set_objects"_a = py::set{
                 py::int_(321),
                 py::float_(123.3),
                 "somestring"_s,
                 py::tuple({py::int_(1), py::float_(3.3)})
             }
-        );
-    });
-
-    // Some python containers can also be constructed using C++ containers
-    m.def("init_containers", []() {
-        return py::dict(
-            "tuple_array_ints"_a = py::tuple(std::array<int, 3>({1, 2, 3})),
-            "tuple_deque_floats"_a = py::tuple(std::deque<float>({2.2f, 3.1f, 4.5f})),
-            "tuple_list_floats"_a = py::tuple(std::list<float>({2.2f, 3.1f, 4.5f})),
-            "tuple_vector_ints"_a = py::tuple(std::vector<int>({1, 2, 3})),
-
-            "tuple_multiset_int"_a = py::tuple(std::multiset<int>({1, 1, 2, 3})),
-            // std::set is sorted so insertion order does not matter. Iteration order will be
-            // one three two
-            "tuple_set_strings"_a = py::tuple(std::set<std::string>({"one", "two", "three"}))
         );
     });
 
