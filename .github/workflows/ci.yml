@@ -167,7 +167,7 @@ jobs:
     # MSVC, but for now, this action works:
     - name: Prepare compiler environment for Windows 🐍 2.7
       if: matrix.python == 2.7 && runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1.4.1
+      uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
 
