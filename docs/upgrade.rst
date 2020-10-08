@@ -90,7 +90,7 @@ In addition, the following changes may be of interest:
   pybind11 will cause pybind11 to use the new Python mechanisms instead of its
   own custom search, based on a patched version of classic ``FindPythonInterp``
   / ``FindPythonLibs``. In the future, this may become the default. A recent
-  (3.15+ or 3.18.2+) version of CMake recommended.
+  (3.15+ or 3.18.2+) version of CMake is recommended.
 
 
 
