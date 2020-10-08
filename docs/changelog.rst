@@ -91,12 +91,12 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   * Helper functions ``pybind11_strip``, ``pybind11_extension``,
     ``pybind11_find_import`` added, see :doc:`cmake/index`.
 
-* Optional :ref:`find-python-mode` and :ref:`nopython-mode` with CMake.
-  `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
+  * Optional :ref:`find-python-mode` and :ref:`nopython-mode` with CMake.
+    `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
 
-* Uninstall target added.
-  `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
-  `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
+  * Uninstall target added.
+    `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
+    `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
 
 * ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function replaced by
   correctly-named ``PYBIND11_OVERRIDE*`` and ``get_override``, fixing
@@ -107,7 +107,7 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 * Error now thrown when ``__init__`` is forgotten on subclasses.
   `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
 
-* `py::class_<union_type>` is now supported. Note that writing to one data
+* ``py::class_<union_type>`` is now supported. Note that writing to one data
   member of the union and reading another (type punning) is UB in C++. Thus
   pybind11-bound enums should never be used for such conversion.
   `#2320 <https://github.com/pybind/pybind11/pull/2320>`_.
@@ -123,13 +123,13 @@ Smaller or developer focused features:
 * ``py::ellipsis`` now also works on Python 2.
   `#2360 <https://github.com/pybind/pybind11/pull/2360>`_
 
-* Throw if conversion to ``str`` fails.
-  `#2477 <https://github.com/pybind/pybind11/pull/2477>`_
-
 * Throw error if conversion to a pybind11 type if the Python object isn't a
   valid instance of that type, such as ``py::bytes(o)`` when ``py::object o``
   isn't a bytes instance.
   `#2349 <https://github.com/pybind/pybind11/pull/2349>`_
+
+* Throw if conversion to ``str`` fails.
+  `#2477 <https://github.com/pybind/pybind11/pull/2477>`_
 
 * Pointer to ``std::tuple`` & ``std::pair`` supported in cast.
   `#2334 <https://github.com/pybind/pybind11/pull/2334>`_
@@ -161,7 +161,7 @@ Smaller or developer focused features:
   requested ordering.
   `#2484 <https://github.com/pybind/pybind11/pull/2484>`_
 
-* PyPy fixes, including support for PyPy3 and PyPy 7.
+* PyPy fixes, PyPy 7.3.x now supported, including PyPy3.
   `#2146 <https://github.com/pybind/pybind11/pull/2146>`_
 
 * CPython 3.9 fixes.
