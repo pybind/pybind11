@@ -80,30 +80,38 @@ if(NOT DEFINED ${_Python}_EXECUTABLE)
 
 endif()
 
-# Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
-execute_process(
-  COMMAND "${${_Python}_EXECUTABLE}" "-c" "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
-  RESULT_VARIABLE PYTHON_IS_DEBUG)
+if(NOT DEFINED PYTHON_IS_DEBUG)
+  # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
+  execute_process(
+    COMMAND "${${_Python}_EXECUTABLE}" "-c"
+            "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
+    RESULT_VARIABLE _PYTHON_IS_DEBUG)
+  set(PYTHON_IS_DEBUG
+      "${_PYTHON_IS_DEBUG}"
+      CACHE INTERNAL "Python debug status")
+endif()
 
 # Get the suffix - SO is deprecated, should use EXT_SUFFIX, but this is
 # required for PyPy3 (as of 7.3.1)
-execute_process(
-  COMMAND "${${_Python}_EXECUTABLE}" "-c"
-          "from distutils import sysconfig; print(sysconfig.get_config_var('SO'))"
-  OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
-  ERROR_VARIABLE _PYTHON_MODULE_EXTENSION_ERR
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT DEFINED PYTHON_MODULE_EXTENSION)
+  execute_process(
+    COMMAND "${${_Python}_EXECUTABLE}" "-c"
+            "from distutils import sysconfig; print(sysconfig.get_config_var('SO'))"
+    OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
+    ERROR_VARIABLE _PYTHON_MODULE_EXTENSION_ERR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-if(_PYTHON_MODULE_EXTENSION STREQUAL "")
-  message(
-    FATAL_ERROR "pybind11 could not query the module file extension, likely the 'distutils'"
-                "package is not installed. Full error message:\n${_PYTHON_MODULE_EXTENSION_ERR}")
+  if(_PYTHON_MODULE_EXTENSION STREQUAL "")
+    message(
+      FATAL_ERROR "pybind11 could not query the module file extension, likely the 'distutils'"
+                  "package is not installed. Full error message:\n${_PYTHON_MODULE_EXTENSION_ERR}")
+  endif()
+
+  # This needs to be available for the pybind11_extension function
+  set(PYTHON_MODULE_EXTENSION
+      "${_PYTHON_MODULE_EXTENSION}"
+      CACHE INTERNAL "")
 endif()
-
-# This needs to be available for the pybind11_extension function
-set(PYTHON_MODULE_EXTENSION
-    "${_PYTHON_MODULE_EXTENSION}"
-    CACHE INTERNAL "")
 
 # Python debug libraries expose slightly different objects before 3.8
 # https://docs.python.org/3.6/c-api/intro.html#debugging-builds
