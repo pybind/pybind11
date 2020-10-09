@@ -1,7 +1,7 @@
 needs changelog:
 - all:
   - '!docs/changelog.rst'
-  any: 
+  any:
   - 'include/pybind11/**/*|pybind11/**/*|tools/**/*|CMakeLists.txt'
 
 docs:
@@ -9,7 +9,6 @@ docs:
   - 'docs/**/*.rst'
   - '!docs/changelog.rst'
   - '!docs/upgrade.rst'
-
 
 ci:
 - '.github/workflows/*.yaml'
