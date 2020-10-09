@@ -118,7 +118,7 @@ Supported compilers
    `workaround <https://github.com/pybind/pybind11/issues/276>`_)
 5. Cygwin/GCC (tested on 2.5.1)
 6. NVCC (CUDA 11 tested)
-7. NVIDIA PGI (20.7 tested)
+7. NVIDIA PGI (20.7 and 20.9 tested)
 
 About
 -----
