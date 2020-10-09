@@ -276,7 +276,7 @@ your prefer.)
 You can alternatively try ``-DPYBIND11_FINDPYTHON=ON``, which will activate the
 new CMake FindPython support instead of pybind11's custom search. Requires
 CMake 3.12+, and 3.15+ or 3.18.2+ are even better. You can set this in your
-``CMakeLists.txt`` before using pybind11, as well.
+``CMakeLists.txt`` before adding or finding pybind11, as well.
 
 Inconsistent detection of Python version in CMake and pybind11
 ==============================================================

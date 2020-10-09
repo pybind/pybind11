@@ -17,6 +17,16 @@ Usage of the ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function should
 be replaced by ``PYBIND11_OVERRIDE*`` and ``get_override``. In the future, the
 old macros may be deprecated and removed.
 
+``py::module`` has been renamed ``py::module_``, but a backward compatible
+typedef has been included. This change was to avoid a language change in C++20
+that requires unqualified ``module`` not be placed at the start of a logical
+line. Qualified usage is unaffected and the typedef will remain unless the
+C++ language rules change again.
+
+The public constructors of ``py::module_`` have been deprecated. Use
+``PYBIND11_MODULE`` or ``module_::create_extension_module`` instead.
+**Provisional in 2.6.0rc1.**
+
 An error is now thrown when ``__init__`` is forgotten on subclasses. This was
 incorrect before, but was not checked. Add a call to ``__init__`` if it is
 missing.

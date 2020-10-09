@@ -72,11 +72,12 @@ API changes:
 * Public constructors for ``py::module_`` have been deprecated; please use
   ``pybind11::module_::create_extension_module`` if you were using the public
   constructor (fairly rare after ``PYBIND11_MODULE`` was introduced).
+  **Provisional in 2.6.0rc1.**
   `#2552 <https://github.com/pybind/pybind11/pull/2552>`_
 
 * ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function replaced by
   correctly-named ``PYBIND11_OVERRIDE*`` and ``get_override``, fixing
-  inconsistencies in the presene of a closing ``;`` in these macros.
+  inconsistencies in the presence of a closing ``;`` in these macros.
   ``get_type_overload`` is deprecated.
   `#2325 <https://github.com/pybind/pybind11/pull/2325>`_
 
