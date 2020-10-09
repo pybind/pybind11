@@ -258,7 +258,7 @@ jobs:
   # Testing CentOS 8 + PGI compilers
   centos-nvhpc8:
     runs-on: ubuntu-latest
-    name: "🐍 3 • CentOS8 / PGI 20.9 • x64"
+    name: "🐍 3 • CentOS8 / PGI 20.7 • x64"
     container: centos:8
 
     steps:
@@ -273,13 +273,13 @@ jobs:
         python3 -m pip install cmake --prefer-binary
 
     - name: Install NVidia HPC SDK
-      run: yum -y install https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-20-9-20.9-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-2020-20.9-1.x86_64.rpm
+      run: yum -y install https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-7-20.7-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.7-1.x86_64.rpm
 
     - name: Configure
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.9
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
         cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
