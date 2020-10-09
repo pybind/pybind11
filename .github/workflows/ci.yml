@@ -298,7 +298,7 @@ jobs:
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
   centos-nvhpc7:
     runs-on: ubuntu-latest
-    name: "🐍 3 • CentOS7 / PGI 20.7 • x64"
+    name: "🐍 3 • CentOS7 / PGI 20.9 • x64"
     container: centos:7
 
     steps:
@@ -308,7 +308,7 @@ jobs:
       run: yum update -y && yum install -y epel-release && yum install -y git python3-devel make environment-modules cmake3
 
     - name: Install NVidia HPC SDK
-      run:  yum -y install https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-7-20.7-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.7-1.x86_64.rpm
+      run:  yum -y install https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-20-9-20.9-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-2020-20.9-1.x86_64.rpm
 
     # On CentOS 7, we have to filter a few tests (compiler internal error)
     # and allow deeper templete recursion (not needed on CentOS 8 with a newer
@@ -318,7 +318,7 @@ jobs:
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.9
         cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=11 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
