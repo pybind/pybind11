@@ -1,8 +1,0 @@
-needs changelog:
-  - all: ['!docs/changelog.rst']
-  - any:
-    - 'include/pybind11/**/*.h'
-    - 'pybind11/**/*.py'
-    - 'tools/**/*.cmake'
-    - 'tools/**/*.in'
-    - 'CMakeLists.txt'
