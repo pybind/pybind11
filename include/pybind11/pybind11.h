@@ -868,32 +868,20 @@ protected:
     }
 };
 
-
-#if PY_MAJOR_VERSION >= 3
-class module_;
-
-PYBIND11_NAMESPACE_BEGIN(detail)
-inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def);
-PYBIND11_NAMESPACE_END(detail)
-#endif
-
 /// Wrapper for Python extension modules
 class module_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    explicit module_(const char *name, const char *doc = nullptr)
+    PYBIND11_DEPRECATED("Use PYBIND11_MODULE or module_::create_extension_module instead")
+    explicit module_(const char *name, const char *doc = nullptr) {
 #if PY_MAJOR_VERSION >= 3
-        : module_(name, doc, new PyModuleDef()) {}
+        *this = create_extension_module(name, doc, new PyModuleDef());
 #else
-    {
-        m_ptr = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
-        if (m_ptr == nullptr)
-            pybind11_fail("Internal error in module_::module_()");
-        inc_ref();
-    }
+        *this = create_extension_module(name, doc, nullptr);
 #endif
+    }
 
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
@@ -946,11 +934,13 @@ public:
         *this = reinterpret_steal<module_>(obj);
     }
 
-    // Adds an object to the module using the given name.  Throws if an object with the given name
-    // already exists.
-    //
-    // overwrite should almost always be false: attempting to overwrite objects that pybind11 has
-    // established will, in most cases, break things.
+    /** \rst
+        Adds an object to the module using the given name.  Throws if an object with the given name
+        already exists.
+
+        ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11 has
+        established will, in most cases, break things.
+    \endrst */
     PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
         if (!overwrite && hasattr(*this, name))
             pybind11_fail("Error during initialization: multiple incompatible definitions with name \"" +
@@ -959,11 +949,21 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 
-private:
 #if PY_MAJOR_VERSION >= 3
-    friend module_ detail::create_top_level_module(const char *, const char *, PyModuleDef *);
+    using module_def = PyModuleDef;
+#else
+    struct module_def {};
+#endif
 
-    explicit module_(const char *name, const char *doc, PyModuleDef *def) {
+    /** \rst
+        Create a new top-level module that can be used as the main module of a C extension.
+
+        For Python 3, ``def`` should point to a staticly allocated module_def.
+        For Python 2, ``def`` can be a nullptr and is completely ignored.
+    \endrst */
+    static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
+#if PY_MAJOR_VERSION >= 3
+        // module_def is PyModuleDef
         def = new (def) PyModuleDef {  // Placement new (not an allocation).
             /* m_base */     PyModuleDef_HEAD_INIT,
             /* m_name */     name,
@@ -975,26 +975,27 @@ private:
             /* m_clear */    nullptr,
             /* m_free */     nullptr
         };
-        m_ptr = PyModule_Create(def);
-        if (m_ptr == nullptr)
-            pybind11_fail("Internal error in module_::module_()");
-        inc_ref();
-    }
+        auto m = PyModule_Create(def);
+#else
+        // Ignore module_def *def; only necessary for Python 3
+        (void) def;
+        auto m = Py_InitModule3(name, nullptr, options::show_user_defined_docstrings() ? doc : nullptr);
 #endif
+        if (m == nullptr) {
+            if (PyErr_Occurred())
+                throw error_already_set();
+            pybind11_fail("Internal error in module_::create_extension_module()");
+        }
+        // TODO: Sould be reinterpret_steal for Python 3, but Python also steals it again when returned from PyInit_...
+        //       For Python 2, reinterpret_borrow is correct.
+        return reinterpret_borrow<module_>(m);
+    }
 };
 
 // When inside a namespace (or anywhere as long as it's not the first item on a line),
 // C++20 allows "module" to be used. This is provided for backward compatibility, and for
 // simplicity, if someone wants to use py::module for example, that is perfectly safe.
 using module = module_;
-
-#if PY_MAJOR_VERSION >= 3
-PYBIND11_NAMESPACE_BEGIN(detail)
-inline module_ create_top_level_module(const char *name, const char *doc, PyModuleDef *def) {
-    return module_(name, doc, def);
-}
-PYBIND11_NAMESPACE_END(detail)
-#endif
 
 /// \ingroup python_builtins
 /// Return a dictionary representing the global variables in the current execution frame,
