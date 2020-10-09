@@ -37,8 +37,8 @@ If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
 class to be hashable, possibly using the new ``py::hash`` shortcut.
 
 The constructors for ``py::array`` now always take signed integers for size,
-for consistency. Can cause some compiler warnings to appear. Cast to
-``py::ssize_t`` if needed.
+for consistency. This may lead to compiler warnings on some systems. Cast to
+``py::ssize_t`` instead of ``std::size_t``.
 
 The ``tools/clang`` submodule and ``tools/mkdoc.py`` have been moved to a
 standalone package, `pybind11-mkdoc`_. If you were using those tools, please

@@ -315,7 +315,7 @@ There are three possible solutions:
 
 1. Avoid using ``find_package(PythonInterp)`` and ``find_package(PythonLibs)``
    from CMake and rely on pybind11 in detecting Python version. If this is not
-   possible CMake machinery should be called *before* including pybind11.
+   possible, the CMake machinery should be called *before* including pybind11.
 2. Set ``PYBIND11_FINDPYTHON`` to ``True`` or use ``find_package(Python
    COMPONENTS Interpreter Development)`` on modern CMake (3.12+, 3.15+ better,
    3.18.2+ best). Pybind11 in these cases uses the new CMake FindPython instead

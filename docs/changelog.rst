@@ -41,7 +41,7 @@ New features:
 
 * ``py::class_<union_type>`` is now supported. Note that writing to one data
   member of the union and reading another (type punning) is UB in C++. Thus
-  pybind11-bound enums should never be used for such conversion.
+  pybind11-bound enums should never be used for such conversions.
   `#2320 <https://github.com/pybind/pybind11/pull/2320>`_.
 
 * Classes now check local scope when registering members, allowing a subclass
@@ -133,9 +133,10 @@ Packaging / building improvements:
   `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
 
 * ``pybind11_add_module()`` now accepts an optional ``OPT_SIZE`` flag that
-  switches the binding target to size-based optimization regardless global
-  CMake build type (except in debug mode, where optimizations remain disabled).
-  This reduces binary size quite substantially (~25%).
+  switches the binding target to size-based optimization if the global build
+  type can not always be fixed to ``MinSizeRel`` (except in debug mode, where
+  optimizations remain disabled).  ``MinSizeRel`` or this flag reduces binary
+  size quite substantially (~25% on some platforms).
   `#2463 <https://github.com/pybind/pybind11/pull/2463>`_
 
 Smaller or developer focused features:
@@ -143,8 +144,8 @@ Smaller or developer focused features:
 * Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_. There are no longer
   submodules in the main repo.
 
-* ``py::memoryview``  update, with ``py::memoryview::from_memory`` in Python 3,
-  and documentation.
+* ``py::memoryview`` segfault fix and update, with new
+  ``py::memoryview::from_memory`` in Python 3, and documentation.
   `#2223 <https://github.com/pybind/pybind11/pull/2223>`_
 
 * Fix for ``buffer_info`` on Python 2.
