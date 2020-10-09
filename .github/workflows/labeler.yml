@@ -1,13 +1,11 @@
-name: PR merged
+name: Labeler
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, edited, closed]
 
 jobs:
   label-merged:
     name: Changelog needed
     runs-on: ubuntu-latest
-    if: "!(github.event.action == 'closed' && github.event.pull_request.merged == false)"
     steps:
     - uses: actions/labeler@main
       with:

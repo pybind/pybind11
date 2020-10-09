@@ -1,28 +1,15 @@
 needs changelog:
-  - all:
-    - '!docs/changelog.rst'
-    any:
-    - 'include/pybind11/**/*'
-    - 'pybind11/**/*'
-    - 'tools/**/*'
-    - 'CMakeLists.txt'
+- all:
+  - '!docs/changelog.rst'
+  any: 
+  - 'include/pybind11/**/*|pybind11/**/*|tools/**/*|CMakeLists.txt'
 
 docs:
-  - any:
-    - 'docs/basics.rst'
-    - 'docs/benchmark.rst'
-    - 'docs/classes.rst'
-    - 'docs/compiling.rst'
-    - 'docs/faq.rst'
-    - 'docs/index.rst'
-    - 'docs/installing.rst'
-    - 'docs/limitations.rst'
-    - 'docs/reference.rst'
-    - 'docs/release.rst'
-    - 'docs/advanced/**/*.rst'
-    - 'docs/cmake/**/*.rst'
+- any:
+  - 'docs/**/*.rst'
+  - '!docs/changelog.rst'
+  - '!docs/upgrade.rst'
 
 
 ci:
-  - any:
-    - '.github/workflows/*.yaml'
+- '.github/workflows/*.yaml'
