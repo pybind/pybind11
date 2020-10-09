@@ -741,7 +741,7 @@ protected:
         } catch (error_already_set &e) {
             e.restore();
             return nullptr;
-#if defined(__GNUG__) && !defined(__clang__)
+#if defined(__GNUG__) && !defined(__clang__) && !defined(_LIBCPP_VERSION)
         } catch ( abi::__forced_unwind& ) {
             throw;
 #endif
