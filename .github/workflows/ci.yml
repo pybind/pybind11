@@ -273,7 +273,7 @@ jobs:
         python3 -m pip install cmake --prefer-binary
 
     - name: Install NVidia HPC SDK
-      run: yum -y install https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-9-20.9-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.9-1.x86_64.rpm
+      run: yum -y install https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-20-9-20.9-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-2020-20.9-1.x86_64.rpm
 
     - name: Configure
       shell: bash
@@ -308,7 +308,7 @@ jobs:
       run: yum update -y && yum install -y epel-release && yum install -y git python3-devel make environment-modules cmake3
 
     - name: Install NVidia HPC SDK
-      run:  yum -y install https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-9-20.9-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.9-1.x86_64.rpm
+      run:  yum -y install https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-20-9-20.9-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-2020-20.9-1.x86_64.rpm
 
     # On CentOS 7, we have to filter a few tests (compiler internal error)
     # and allow deeper templete recursion (not needed on CentOS 8 with a newer
