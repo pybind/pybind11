@@ -874,7 +874,7 @@ public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
     /// Create a new top-level Python module with the given name and docstring
-    PYBIND11_DEPRECATED("Use PYBIND11_MODULE, module_::def_submodule, or module_::import instead")
+    PYBIND11_DEPRECATED("Use PYBIND11_MODULE or module_::create_extension_module instead")
     explicit module_(const char *name, const char *doc = nullptr) {
 #if PY_MAJOR_VERSION >= 3
         *this = create_extension_module(name, doc, new PyModuleDef());
