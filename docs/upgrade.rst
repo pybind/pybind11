@@ -13,10 +13,19 @@ modernization and other useful information.
 v2.6
 ====
 
-The ``tools/clang`` submodule and ``tools/mkdoc.py`` have been moved to a
-standalone package, `pybind11-mkdoc`_. If you were using those tools, please
-use them via a pip install from the new location.
+Usage of the ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function should
+be replaced by ``PYBIND11_OVERRIDE*`` and ``get_override``. In the future, the
+old macros may be deprecated and removed.
 
+``py::module`` has been renamed ``py::module_``, but a backward compatible
+typedef has been included. This change was to avoid a language change in C++20
+that requires unqualified ``module`` not be placed at the start of a logical
+line. Qualified usage is unaffected and the typedef will remain unless the
+C++ language rules change again.
+
+The public constructors of ``py::module_`` have been deprecated. Use
+``PYBIND11_MODULE`` or ``module_::create_extension_module`` instead.
+**Provisional in 2.6.0rc1.**
 
 An error is now thrown when ``__init__`` is forgotten on subclasses. This was
 incorrect before, but was not checked. Add a call to ``__init__`` if it is
@@ -37,9 +46,13 @@ If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
 ``None``, as in normal CPython. You should add ``__hash__`` if you intended the
 class to be hashable, possibly using the new ``py::hash`` shortcut.
 
-Usage of the ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function should
-be replaced by ``PYBIND11_OVERRIDE*`` and ``get_override``. In the future, the
-old macros may be deprecated and removed.
+The constructors for ``py::array`` now always take signed integers for size,
+for consistency. This may lead to compiler warnings on some systems. Cast to
+``py::ssize_t`` instead of ``std::size_t``.
+
+The ``tools/clang`` submodule and ``tools/mkdoc.py`` have been moved to a
+standalone package, `pybind11-mkdoc`_. If you were using those tools, please
+use them via a pip install from the new location.
 
 The ``pybind11`` package on PyPI no longer fills the wheel "headers" slot - if
 you were using the headers from this slot, they are available by requesting the

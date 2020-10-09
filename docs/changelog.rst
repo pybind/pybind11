@@ -11,16 +11,7 @@ v2.6.0 (IN PROGRESS)
 
 See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 
-* ``py::module`` was renamed ``py::module_`` to avoid issues with C++20 when
-  used unqualified, but an alias ``py::module`` is provided for backward
-  compatibility.
-  `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
-
-* ``pybind11_add_module()`` now accepts an optional ``OPT_SIZE`` flag that
-  switches the binding target to size-based optimization regardless global
-  CMake build type (except in debug mode, where optimizations remain disabled).
-  This reduces binary size quite substantially (~25%).
-  `#2463 <https://github.com/pybind/pybind11/pull/2463>`_
+New features:
 
 * Keyword-only arguments supported in Python 2 or 3 with ``py::kw_only()``.
   `#2100 <https://github.com/pybind/pybind11/pull/2100>`_
@@ -28,13 +19,16 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 * Positional-only arguments supported in Python 2 or 3 with ``py::pos_only()``.
   `#2459 <https://github.com/pybind/pybind11/pull/2459>`_
 
-* Access to the type object now provided with ``py::type::of<T>()`` and
-  ``py::type::of(h)``.
-  `#2364 <https://github.com/pybind/pybind11/pull/2364>`_
+* ``py::is_final()`` class modifier to block subclassing (CPython only).
+  `#2151 <https://github.com/pybind/pybind11/pull/2151>`_
 
 * Added ``py::prepend()``, allowing a function to be placed at the beginning of
   the overload chain.
   `#1131 <https://github.com/pybind/pybind11/pull/1131>`_
+
+* Access to the type object now provided with ``py::type::of<T>()`` and
+  ``py::type::of(h)``.
+  `#2364 <https://github.com/pybind/pybind11/pull/2364>`_
 
 * Perfect forwarding support for methods.
   `#2048 <https://github.com/pybind/pybind11/pull/2048>`_
@@ -45,11 +39,49 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
 * ``py::hash`` is now public.
   `#2217 <https://github.com/pybind/pybind11/pull/2217>`_
 
-* ``py::is_final()`` class modifier to block subclassing (CPython only).
-  `#2151 <https://github.com/pybind/pybind11/pull/2151>`_
+* ``py::class_<union_type>`` is now supported. Note that writing to one data
+  member of the union and reading another (type punning) is UB in C++. Thus
+  pybind11-bound enums should never be used for such conversions.
+  `#2320 <https://github.com/pybind/pybind11/pull/2320>`_.
 
-* ``py::memoryview``  update and documentation.
-  `#2223 <https://github.com/pybind/pybind11/pull/2223>`_
+* Classes now check local scope when registering members, allowing a subclass
+  to have a member with the same name as a parent (such as an enum).
+  `#2335 <https://github.com/pybind/pybind11/pull/2335>`_
+
+Assisting in writing more correct code:
+
+* Error now thrown when ``__init__`` is forgotten on subclasses.
+  `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
+
+* Throw error if conversion to a pybind11 type if the Python object isn't a
+  valid instance of that type, such as ``py::bytes(o)`` when ``py::object o``
+  isn't a bytes instance.
+  `#2349 <https://github.com/pybind/pybind11/pull/2349>`_
+
+* Throw if conversion to ``str`` fails.
+  `#2477 <https://github.com/pybind/pybind11/pull/2477>`_
+
+
+API changes:
+
+* ``py::module`` was renamed ``py::module_`` to avoid issues with C++20 when
+  used unqualified, but an alias ``py::module`` is provided for backward
+  compatibility.
+  `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
+
+* Public constructors for ``py::module_`` have been deprecated; please use
+  ``pybind11::module_::create_extension_module`` if you were using the public
+  constructor (fairly rare after ``PYBIND11_MODULE`` was introduced).
+  **Provisional in 2.6.0rc1.**
+  `#2552 <https://github.com/pybind/pybind11/pull/2552>`_
+
+* ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function replaced by
+  correctly-named ``PYBIND11_OVERRIDE*`` and ``get_override``, fixing
+  inconsistencies in the presence of a closing ``;`` in these macros.
+  ``get_type_overload`` is deprecated.
+  `#2325 <https://github.com/pybind/pybind11/pull/2325>`_
+
+Packaging / building improvements:
 
 * The Python package was reworked to be more powerful and useful.
   `#2433 <https://github.com/pybind/pybind11/pull/2433>`_
@@ -57,7 +89,7 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   * :ref:`build-setuptools` is easier thanks to a new
     ``pybind11.setup_helpers`` module, which provides utilities to use
     setuptools with pybind11. It can be used via PEP 518, ``setup_requires``,
-    or by directly copying ``setup_helpers.py`` into your project.
+    or by directly importing or copying ``setup_helpers.py`` into your project.
 
   * CMake configuration files are now included in the Python package. Use
     ``pybind11.get_cmake_dir()`` or ``python -m pybind11 --cmakedir`` to get
@@ -70,12 +102,13 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
   * ``pybind11-config`` is another way to write ``python -m pybind11`` if you
     have your PATH set up.
 
+
 * Minimum CMake required increased to 3.4.
   `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
   `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
 
-  * Full integration with CMake’s C++ standard system replaces
-    ``PYBIND11_CPP_STANDARD``.
+  * Full integration with CMake’s C++ standard system and compile features
+    replaces ``PYBIND11_CPP_STANDARD``.
 
   * Generated config file is now portable to different Python/compiler/CMake
     versions.
@@ -88,33 +121,36 @@ See :ref:`upgrade-guide-2.6` for help upgrading to the new version.
     ``CMAKE_INTERPROCEDURAL_OPTIMIZATION``, ``set(CMAKE_CXX_VISIBILITY_PRESET
     hidden)``.
 
+  * ``CUDA`` as a language is now supported.
+
   * Helper functions ``pybind11_strip``, ``pybind11_extension``,
     ``pybind11_find_import`` added, see :doc:`cmake/index`.
 
   * Optional :ref:`find-python-mode` and :ref:`nopython-mode` with CMake.
     `#2370 <https://github.com/pybind/pybind11/pull/2370>`_
 
-  * Uninstall target added.
-    `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
-    `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
+* Uninstall target added.
+  `#2265 <https://github.com/pybind/pybind11/pull/2265>`_ and
+  `#2346 <https://github.com/pybind/pybind11/pull/2346>`_
 
-* ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function replaced by
-  correctly-named ``PYBIND11_OVERRIDE*`` and ``get_override``, fixing
-  inconsistencies in the presene of a closing ``;`` in these macros.
-  ``get_type_overload`` is deprecated.
-  `#2325 <https://github.com/pybind/pybind11/pull/2325>`_
-
-* Error now thrown when ``__init__`` is forgotten on subclasses.
-  `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
-
-* ``py::class_<union_type>`` is now supported. Note that writing to one data
-  member of the union and reading another (type punning) is UB in C++. Thus
-  pybind11-bound enums should never be used for such conversion.
-  `#2320 <https://github.com/pybind/pybind11/pull/2320>`_.
+* ``pybind11_add_module()`` now accepts an optional ``OPT_SIZE`` flag that
+  switches the binding target to size-based optimization if the global build
+  type can not always be fixed to ``MinSizeRel`` (except in debug mode, where
+  optimizations remain disabled).  ``MinSizeRel`` or this flag reduces binary
+  size quite substantially (~25% on some platforms).
+  `#2463 <https://github.com/pybind/pybind11/pull/2463>`_
 
 Smaller or developer focused features:
 
-* Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_.
+* Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_. There are no longer
+  submodules in the main repo.
+
+* ``py::memoryview`` segfault fix and update, with new
+  ``py::memoryview::from_memory`` in Python 3, and documentation.
+  `#2223 <https://github.com/pybind/pybind11/pull/2223>`_
+
+* Fix for ``buffer_info`` on Python 2.
+  `#2503 <https://github.com/pybind/pybind11/pull/2503>`_
 
 * If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
   ``None``.
@@ -122,14 +158,6 @@ Smaller or developer focused features:
 
 * ``py::ellipsis`` now also works on Python 2.
   `#2360 <https://github.com/pybind/pybind11/pull/2360>`_
-
-* Throw error if conversion to a pybind11 type if the Python object isn't a
-  valid instance of that type, such as ``py::bytes(o)`` when ``py::object o``
-  isn't a bytes instance.
-  `#2349 <https://github.com/pybind/pybind11/pull/2349>`_
-
-* Throw if conversion to ``str`` fails.
-  `#2477 <https://github.com/pybind/pybind11/pull/2477>`_
 
 * Pointer to ``std::tuple`` & ``std::pair`` supported in cast.
   `#2334 <https://github.com/pybind/pybind11/pull/2334>`_
@@ -141,13 +169,20 @@ Smaller or developer focused features:
 * Added missing signature for ``py::array``.
   `#2363 <https://github.com/pybind/pybind11/pull/2363>`_
 
+* ``unchecked_mutable_reference`` has access to operator ``()`` and ``[]`` when
+  const.
+  `#2514 <https://github.com/pybind/pybind11/pull/2514>`_
+
 * ``py::vectorize`` is now supported on functions that return void.
   `#1969 <https://github.com/pybind/pybind11/pull/1969>`_
 
 * ``py::capsule`` supports ``get_pointer`` and ``set_pointer``.
   `#1131 <https://github.com/pybind/pybind11/pull/1131>`_
 
-* Bugfixes related to more extensive testing.
+* Fix crash when different instances share the same pointer of the same type.
+  `#2252 <https://github.com/pybind/pybind11/pull/2252>`_
+
+* Bugfixes related to more extensive testing, new GitHub Actions CI.
   `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
 
 * Bug in timezone issue in Eastern hemisphere midnight fixed.
@@ -179,7 +214,13 @@ Smaller or developer focused features:
 * NVIDIA PGI compilers now supported and tested in CI.
   `#2475 <https://github.com/pybind/pybind11/pull/2475>`_
 
-* Extensive style checking in CI, with `pre-commit`_ support.
+* Extensive style checking in CI, with `pre-commit`_ support. Code
+  modernization, checked by clang-tidy.
+
+* Expanded docs, including new main page, new installing section, and CMake
+  helpers page, along with over a dozen new sections on existing pages.
+
+* In GitHub, new docs for contributing and new issue templates.
 
 .. _pre-commit: https://pre-commit.com
 

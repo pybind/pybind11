@@ -1,15 +1,15 @@
 name: PR merged
 on:
   pull_request_target:
-    types: [closed]
+    types: [opened, reopened, synchronize, edited, closed]
 
 jobs:
   label-merged:
     name: Changelog needed
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    if: "!(github.event.action == 'closed' && github.event.pull_request.merged == false)"
     steps:
     - uses: actions/labeler@main
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        configuration-path: .github/labeler_merged.yml
+        sync-labels: true
