@@ -1037,10 +1037,11 @@ protected:
                           "\" is already registered!");
 
         m_ptr = make_new_python_type(rec);
+        auto type = (PyTypeObject *) m_ptr;
 
         /* Register supplemental type information in C++ dict */
         auto *tinfo = new detail::type_info();
-        tinfo->type = (PyTypeObject *) m_ptr;
+        tinfo->type = type;
         tinfo->cpptype = rec.type;
         tinfo->type_size = rec.type_size;
         tinfo->type_align = rec.type_align;
@@ -1060,7 +1061,11 @@ protected:
             registered_local_types_cpp()[tindex] = tinfo;
         else
             internals.registered_types_cpp[tindex] = tinfo;
-        internals.registered_types_py[(PyTypeObject *) m_ptr] = { tinfo };
+        internals.registered_types_py[type] = { tinfo };
+        weakref(m_ptr, cpp_function([type](handle wr) {
+            get_internals().registered_types_py.erase(type);
+            wr.dec_ref();
+        })).release();
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
             mark_parents_nonsimple(tinfo->type);
