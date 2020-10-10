@@ -92,8 +92,8 @@ class non_null_ptr {
     std::shared_ptr<T> impl;
 public:
     non_null_ptr() = delete;
-    non_null_ptr(const non_null_ptr<T>& src) = default;
-    non_null_ptr(non_null_ptr<T>&& src) = default;
+    non_null_ptr(const non_null_ptr<T>&) = default;
+    non_null_ptr(non_null_ptr<T>&&) = default;
     template <typename U>
     non_null_ptr(U&& u) : impl(std::forward<U>(u)) {
         if (!impl)
