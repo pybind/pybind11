@@ -396,21 +396,20 @@ jobs:
       fail-fast: false
 
     name: "🐍 3 • ICC latest • x64"
-    container: "gcc"
 
     steps:
     - uses: actions/checkout@v1
 
     - name: Add apt repo
       run: |
-        apt-get update
-        apt-get install -y wget build-essential pkg-config cmake ca-certificates gnupg
+        sudo apt-get update
+        sudo apt-get install -y wget build-essential pkg-config cmake ca-certificates gnupg
         wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
+        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
 
     - name: Add ICC & Python 3
-      run: apt-get update; apt-get install -y intel-oneapi-dpcpp-cpp-compiler-pro intel-oneapi-python libc6-dev
+      run: sudo apt-get update; sudo apt-get install -y intel-oneapi-dpcpp-cpp-compiler-pro intel-oneapi-python
 
     - name: Update pip & pytest
       shell: bash
