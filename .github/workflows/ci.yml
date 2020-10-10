@@ -430,7 +430,7 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake -S . -B build     \
         -DPYBIND11_WERROR=ON    \
-        -DDOWNLOAD_CATCH=ON     \
+        -DDOWNLOAD_CATCH=OFF    \
         -DDOWNLOAD_EIGEN=ON     \
         -DCMAKE_CXX_STANDARD=11             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
