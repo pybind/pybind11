@@ -334,6 +334,7 @@ jobs:
     - name: Interface test
       run: cmake3 --build build --target test_cmake_build
 
+
   # Testing on GCC using the GCC docker images (only recent images supported)
   gcc:
     runs-on: ubuntu-latest
@@ -386,6 +387,78 @@ jobs:
 
     - name: Interface test
       run: cmake --build build --target test_cmake_build
+
+
+  # Testing on ICC using the oneAPI apt repo
+  icc:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    name: "🐍 3 • ICC latest • x64"
+    container: "gcc"
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Add apt repo
+      run: |
+        apt-get update
+        apt-get install -y wget build-essential pkg-config cmake ca-certificates gnupg
+        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
+
+    - name: Add ICC & Python 3
+      run: apt-get update; apt-get install -y intel-oneapi-dpcpp-cpp-compiler-pro intel-oneapi-python
+
+    - name: Update pip & pytest
+      shell: bash
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade pytest
+
+    - name: Setup CMake 3.18
+      uses: jwlawson/actions-setup-cmake@v1.4
+      with:
+        cmake-version: 3.18
+
+    - name: Configure
+      shell: bash
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake -S . -B build     \
+        -DPYBIND11_WERROR=ON    \
+        -DDOWNLOAD_CATCH=ON     \
+        -DDOWNLOAD_EIGEN=ON     \
+        -DCMAKE_CXX_STANDARD=11             \
+        -DCMAKE_CXX_COMPILER=$(which icpc)  \
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+
+    - name: Build
+      shell: bash
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build -j 2
+
+    - name: Python tests
+      shell: bash
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build --target pytest
+
+    - name: C++ tests
+      shell: bash
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build --target cpptest
+
+    - name: Interface test
+      shell: bash
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build --target test_cmake_build
 
 
   # Testing on CentOS (manylinux uses a centos base, and this is an easy way
