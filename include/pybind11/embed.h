@@ -109,7 +109,7 @@ inline wchar_t* widen_chars(char* safe_arg) {
     wchar_t* widened_arg = Py_DecodeLocale(safe_arg, nullptr);
 #else
     wchar_t* widened_arg = nullptr;
-#  if HAVE_BROKEN_MBSTOWCS
+#  if defined(HAVE_BROKEN_MBSTOWCS) && HAVE_BROKEN_MBSTOWCS
     size_t count = strlen(safe_arg);
 #  else
     size_t count = mbstowcs(nullptr, safe_arg, 0);
