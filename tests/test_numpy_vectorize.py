@@ -2,10 +2,7 @@
 import pytest
 from pybind11_tests import numpy_vectorize as m
 
-pytestmark = pytest.requires_numpy
-
-with pytest.suppress(ImportError):
-    import numpy as np
+np = pytest.importorskip("numpy")
 
 
 def test_vectorize(capture):
@@ -195,3 +192,14 @@ def test_array_collapse():
     z = m.vectorized_func(1, [[[2]]], 3)
     assert isinstance(z, np.ndarray)
     assert z.shape == (1, 1, 1)
+
+
+def test_vectorized_noreturn():
+    x = m.NonPODClass(0)
+    assert x.value == 0
+    m.add_to(x, [1, 2, 3, 4])
+    assert x.value == 10
+    m.add_to(x, 1)
+    assert x.value == 11
+    m.add_to(x, [[1, 1], [2, 3]])
+    assert x.value == 18

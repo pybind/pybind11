@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 from pybind11_tests import chrono as m
 import datetime
+import pytest
+
+import env  # noqa: F401
 
 
 def test_chrono_system_clock():
 
     # Get the time from both c++ and datetime
+    date0 = datetime.datetime.today()
     date1 = m.test_chrono1()
     date2 = datetime.datetime.today()
 
@@ -13,16 +17,15 @@ def test_chrono_system_clock():
     assert isinstance(date1, datetime.datetime)
 
     # The numbers should vary by a very small amount (time it took to execute)
+    diff_python = abs(date2 - date0)
     diff = abs(date1 - date2)
 
-    # There should never be a days/seconds difference
+    # There should never be a days difference
     assert diff.days == 0
-    assert diff.seconds == 0
 
-    # We test that no more than about 0.5 seconds passes here
-    # This makes sure that the dates created are very close to the same
-    # but if the testing system is incredibly overloaded this should still pass
-    assert diff.microseconds < 500000
+    # Since datetime.datetime.today() calls time.time(), and on some platforms
+    # that has 1 second accuracy, we compare this way
+    assert diff.seconds <= diff_python.seconds
 
 
 def test_chrono_system_clock_roundtrip():
@@ -72,8 +75,30 @@ def test_chrono_system_clock_roundtrip_date():
     assert time2.microsecond == 0
 
 
-def test_chrono_system_clock_roundtrip_time():
-    time1 = datetime.datetime.today().time()
+SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
+    "env.WIN", reason="TZ environment variable only supported on POSIX"
+)
+
+
+@pytest.mark.parametrize("time1", [
+    datetime.datetime.today().time(),
+    datetime.time(0, 0, 0),
+    datetime.time(0, 0, 0, 1),
+    datetime.time(0, 28, 45, 109827),
+    datetime.time(0, 59, 59, 999999),
+    datetime.time(1, 0, 0),
+    datetime.time(5, 59, 59, 0),
+    datetime.time(5, 59, 59, 1),
+])
+@pytest.mark.parametrize("tz", [
+    None,
+    pytest.param("Europe/Brussels", marks=SKIP_TZ_ENV_ON_WIN),
+    pytest.param("Asia/Pyongyang", marks=SKIP_TZ_ENV_ON_WIN),
+    pytest.param("America/New_York", marks=SKIP_TZ_ENV_ON_WIN),
+])
+def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
+    if tz is not None:
+        monkeypatch.setenv("TZ", "/usr/share/zoneinfo/{}".format(tz))
 
     # Roundtrip the time
     datetime2 = m.test_chrono2(time1)
@@ -175,3 +200,13 @@ def test_nano_timepoint():
     time = datetime.datetime.now()
     time1 = m.test_nano_timepoint(time, datetime.timedelta(seconds=60))
     assert(time1 == time + datetime.timedelta(seconds=60))
+
+
+def test_chrono_different_resolutions():
+    resolutions = m.different_resolutions()
+    time = datetime.datetime.now()
+    resolutions.timestamp_h = time
+    resolutions.timestamp_m = time
+    resolutions.timestamp_s = time
+    resolutions.timestamp_ms = time
+    resolutions.timestamp_us = time

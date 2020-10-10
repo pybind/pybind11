@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+import env  # noqa: F401
+
 from pybind11_tests import builtin_casters as m
 from pybind11_tests import UserType, IncType
 
@@ -115,13 +117,16 @@ def test_bytes_to_string():
     """Tests the ability to pass bytes to C++ string-accepting functions.  Note that this is
     one-way: the only way to return bytes to Python is via the pybind11::bytes class."""
     # Issue #816
-    import sys
-    byte = bytes if sys.version_info[0] < 3 else str
 
-    assert m.strlen(byte("hi")) == 2
-    assert m.string_length(byte("world")) == 5
-    assert m.string_length(byte("a\x00b")) == 3
-    assert m.strlen(byte("a\x00b")) == 1  # C-string limitation
+    def to_bytes(s):
+        b = s if env.PY2 else s.encode("utf8")
+        assert isinstance(b, bytes)
+        return b
+
+    assert m.strlen(to_bytes("hi")) == 2
+    assert m.string_length(to_bytes("world")) == 5
+    assert m.string_length(to_bytes("a\x00b")) == 3
+    assert m.strlen(to_bytes("a\x00b")) == 1  # C-string limitation
 
     # passing in a utf8 encoded string should work
     assert m.string_length(u'💩'.encode("utf8")) == 4
@@ -187,12 +192,11 @@ def test_string_view(capture):
 
 def test_integer_casting():
     """Issue #929 - out-of-range integer values shouldn't be accepted"""
-    import sys
     assert m.i32_str(-1) == "-1"
     assert m.i64_str(-1) == "-1"
     assert m.i32_str(2000000000) == "2000000000"
     assert m.u32_str(2000000000) == "2000000000"
-    if sys.version_info < (3,):
+    if env.PY2:
         assert m.i32_str(long(-1)) == "-1"  # noqa: F821 undefined name 'long'
         assert m.i64_str(long(-1)) == "-1"  # noqa: F821 undefined name 'long'
         assert m.i64_str(long(-999999999999)) == "-999999999999"  # noqa: F821 undefined name
@@ -214,7 +218,7 @@ def test_integer_casting():
         m.i32_str(3000000000)
     assert "incompatible function arguments" in str(excinfo.value)
 
-    if sys.version_info < (3,):
+    if env.PY2:
         with pytest.raises(TypeError) as excinfo:
             m.u32_str(long(-1))  # noqa: F821 undefined name 'long'
         assert "incompatible function arguments" in str(excinfo.value)
@@ -355,9 +359,9 @@ def test_bool_caster():
     assert convert(A(False)) is False
 
 
-@pytest.requires_numpy
 def test_numpy_bool():
-    import numpy as np
+    np = pytest.importorskip("numpy")
+
     convert, noconvert = m.bool_passthrough, m.bool_passthrough_noconvert
 
     def cant_convert(v):

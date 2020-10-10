@@ -58,7 +58,10 @@ public:
         struct func_handle {
             function f;
             func_handle(function&& f_) : f(std::move(f_)) {}
-            func_handle(const func_handle&) = default;
+            func_handle(const func_handle& f_) {
+                gil_scoped_acquire acq;
+                f = f_.f;
+            }
             ~func_handle() {
                 gil_scoped_acquire acq;
                 function kill_f(std::move(f));

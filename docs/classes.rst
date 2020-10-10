@@ -74,7 +74,7 @@ Note how ``print(p)`` produced a rather useless summary of our data structure in
     >>> print(p)
     <example.Pet object at 0x10cd98060>
 
-To address this, we could bind an utility function that returns a human-readable
+To address this, we could bind a utility function that returns a human-readable
 summary to the special method slot named ``__repr__``. Unfortunately, there is no
 suitable functionality in the ``Pet`` data structure, and it would be nice if
 we did not have to change it. This can easily be accomplished by binding a
@@ -373,8 +373,8 @@ sequence.
 
     py::class_<Pet>(m, "Pet")
        .def(py::init<const std::string &, int>())
-       .def("set", (void (Pet::*)(int)) &Pet::set, "Set the pet's age")
-       .def("set", (void (Pet::*)(const std::string &)) &Pet::set, "Set the pet's name");
+       .def("set", static_cast<void (Pet::*)(int)>(&Pet::set), "Set the pet's age")
+       .def("set", static_cast<void (Pet::*)(const std::string &)>(&Pet::set), "Set the pet's name");
 
 The overload signatures are also visible in the method's docstring:
 

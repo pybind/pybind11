@@ -5,7 +5,7 @@ Automatic conversion
 ====================
 
 When including the additional header file :file:`pybind11/stl.h`, conversions
-between ``std::vector<>``/``std::deque<>``/``std::list<>``/``std::array<>``,
+between ``std::vector<>``/``std::deque<>``/``std::list<>``/``std::array<>``/``std::valarray<>``,
 ``std::set<>``/``std::unordered_set<>``, and
 ``std::map<>``/``std::unordered_map<>`` and the Python ``list``, ``set`` and
 ``dict`` data structures are automatically enabled. The types ``std::pair<>``
@@ -157,7 +157,7 @@ the declaration
 
 before any binding code (e.g. invocations to ``class_::def()``, etc.). This
 macro must be specified at the top level (and outside of any namespaces), since
-it instantiates a partial template overload. If your binding code consists of
+it adds a template instantiation of ``type_caster``. If your binding code consists of
 multiple compilation units, it must be present in every file (typically via a
 common header) preceding any usage of ``std::vector<int>``. Opaque types must
 also have a corresponding ``class_`` declaration to associate them with a name

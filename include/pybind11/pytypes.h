@@ -19,6 +19,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 /* A few forward declarations */
 class handle; class object;
 class str; class iterator;
+class type;
 struct arg; struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -34,7 +35,7 @@ namespace accessor_policies {
     struct sequence_item;
     struct list_item;
     struct tuple_item;
-}
+} // namespace accessor_policies
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
 using str_attr_accessor = accessor<accessor_policies::str_attr>;
 using item_accessor = accessor<accessor_policies::generic_item>;
@@ -151,7 +152,8 @@ public:
 
     /// Return the object's current reference count
     int ref_count() const { return static_cast<int>(Py_REFCNT(derived().ptr())); }
-    /// Return a handle to the Python type object underlying the instance
+
+    // TODO PYBIND11_DEPRECATED("Call py::type::handle_of(h) or py::type::of(h) instead of h.get_type()")
     handle get_type() const;
 
 private:
@@ -240,7 +242,7 @@ public:
     ~object() { dec_ref(); }
 
     /** \rst
-        Resets the internal pointer to ``nullptr`` without without decreasing the
+        Resets the internal pointer to ``nullptr`` without decreasing the
         object's reference count. The function returns a raw handle to the original
         Python object.
     \endrst */
@@ -330,12 +332,26 @@ public:
     error_already_set(const error_already_set &) = default;
     error_already_set(error_already_set &&) = default;
 
-    inline ~error_already_set();
+    inline ~error_already_set() override;
 
     /// Give the currently-held error back to Python, if any.  If there is currently a Python error
     /// already set it is cleared first.  After this call, the current object no longer stores the
     /// error variables (but the `.what()` string is still available).
     void restore() { PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr()); }
+
+    /// If it is impossible to raise the currently-held error, such as in destructor, we can write
+    /// it out using Python's unraisable hook (sys.unraisablehook). The error context should be
+    /// some object whose repr() helps identify the location of the error. Python already knows the
+    /// type and value of the error, so there is no need to repeat that. For example, __func__ could
+    /// be helpful. After this call, the current object no longer stores the error variables,
+    /// and neither does Python.
+    void discard_as_unraisable(object err_context) {
+        restore();
+        PyErr_WriteUnraisable(err_context.ptr());
+    }
+    void discard_as_unraisable(const char *err_context) {
+        discard_as_unraisable(reinterpret_steal<object>(PYBIND11_FROM_STRING(err_context)));
+    }
 
     // Does nothing; provided for backwards compatibility.
     PYBIND11_DEPRECATED("Use of error_already_set.clear() is deprecated")
@@ -736,9 +752,7 @@ inline bool PyIterable_Check(PyObject *obj) {
 }
 
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
-#if PY_MAJOR_VERSION >= 3
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
-#endif
 
 inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
 
@@ -784,7 +798,9 @@ PYBIND11_NAMESPACE_END(detail)
         Name(handle h, stolen_t) : Parent(h, stolen_t{}) { } \
         PYBIND11_DEPRECATED("Use py::isinstance<py::python_type>(obj) instead") \
         bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); } \
-        static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); }
+        static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); } \
+        template <typename Policy_> \
+        Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
 
 #define PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
@@ -794,15 +810,20 @@ PYBIND11_NAMESPACE_END(detail)
     { if (!m_ptr) throw error_already_set(); } \
     Name(object &&o) \
     : Parent(check_(o) ? o.release().ptr() : ConvertFun(o.ptr()), stolen_t{}) \
-    { if (!m_ptr) throw error_already_set(); } \
-    template <typename Policy_> \
-    Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
+    { if (!m_ptr) throw error_already_set(); }
+
+#define PYBIND11_OBJECT_CHECK_FAILED(Name, o) \
+    ::pybind11::type_error("Object of type '" + \
+                           ::pybind11::detail::get_fully_qualified_tp_name(Py_TYPE(o.ptr())) + \
+                           "' is not an instance of '" #Name "'")
 
 #define PYBIND11_OBJECT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT_COMMON(Name, Parent, CheckFun) \
     /* This is deliberately not 'explicit' to allow implicit conversion from object: */ \
-    Name(const object &o) : Parent(o) { } \
-    Name(object &&o) : Parent(std::move(o)) { }
+    Name(const object &o) : Parent(o) \
+    { if (o && !check_(o)) throw PYBIND11_OBJECT_CHECK_FAILED(Name, o); } \
+    Name(object &&o) : Parent(std::move(o)) \
+    { if (o && !check_(o)) throw PYBIND11_OBJECT_CHECK_FAILED(Name, o); }
 
 #define PYBIND11_OBJECT_DEFAULT(Name, Parent, CheckFun) \
     PYBIND11_OBJECT(Name, Parent, CheckFun) \
@@ -878,6 +899,32 @@ private:
     object value = {};
 };
 
+
+
+class type : public object {
+public:
+    PYBIND11_OBJECT(type, object, PyType_Check)
+
+    /// Return a type handle from a handle or an object
+    static handle handle_of(handle h) { return handle((PyObject*) Py_TYPE(h.ptr())); }
+
+    /// Return a type object from a handle or an object
+    static type of(handle h) { return type(type::handle_of(h), borrowed_t{}); }
+
+    // Defined in pybind11/cast.h
+    /// Convert C++ type to handle if previously registered. Does not convert
+    /// standard types, like int, float. etc. yet.
+    /// See https://github.com/pybind/pybind11/issues/2486
+    template<typename T>
+    static handle handle_of();
+
+    /// Convert C++ type to type if previously registered. Does not convert
+    /// standard types, like int, float. etc. yet.
+    /// See https://github.com/pybind/pybind11/issues/2486
+    template<typename T>
+    static type of() {return type(type::handle_of<T>(), borrowed_t{}); }
+};
+
 class iterable : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(iterable, object, detail::PyIterable_Check)
@@ -908,7 +955,7 @@ public:
         Return a string representation of the object. This is analogous to
         the ``str()`` function in Python.
     \endrst */
-    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { }
+    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { if (!m_ptr) throw error_already_set(); }
 
     operator std::string() const {
         object temp = *this;
@@ -933,8 +980,8 @@ private:
     /// Return string representation -- always returns a new reference, even if already a str
     static PyObject *raw_str(PyObject *op) {
         PyObject *str_value = PyObject_Str(op);
-        if (!str_value) throw error_already_set();
 #if PY_MAJOR_VERSION < 3
+        if (!str_value) throw error_already_set();
         PyObject *unicode = PyUnicode_FromEncodedObject(str_value, "utf-8", nullptr);
         Py_XDECREF(str_value); str_value = unicode;
 #endif
@@ -948,7 +995,7 @@ inline namespace literals {
     String literal version of `str`
  \endrst */
 inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
-}
+} // namespace literals
 
 /// \addtogroup pytypes
 /// @{
@@ -1020,13 +1067,11 @@ public:
     none() : object(Py_None, borrowed_t{}) { }
 };
 
-#if PY_MAJOR_VERSION >= 3
 class ellipsis : public object {
 public:
     PYBIND11_OBJECT(ellipsis, object, detail::PyEllipsis_Check)
     ellipsis() : object(Py_Ellipsis, borrowed_t{}) { }
 };
-#endif
 
 class bool_ : public object {
 public:
@@ -1191,10 +1236,22 @@ public:
     }
 
     template <typename T> operator T *() const {
+        return get_pointer<T>();
+    }
+
+    /// Get the pointer the capsule holds.
+    template<typename T = void>
+    T* get_pointer() const {
         auto name = this->name();
-        T * result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, name));
+        T *result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, name));
         if (!result) pybind11_fail("Unable to extract capsule contents!");
         return result;
+    }
+
+    /// Replaces a capsule's pointer *without* calling the destructor on the existing one.
+    void set_pointer(const void *value) {
+        if (PyCapsule_SetPointer(m_ptr, const_cast<void *>(value)) != 0)
+            pybind11_fail("Could not set capsule pointer");
     }
 
     const char *name() const { return PyCapsule_GetName(m_ptr); }
@@ -1325,7 +1382,7 @@ public:
     buffer_info request(bool writable = false) const {
         int flags = PyBUF_STRIDES | PyBUF_FORMAT;
         if (writable) flags |= PyBUF_WRITABLE;
-        Py_buffer *view = new Py_buffer();
+        auto *view = new Py_buffer();
         if (PyObject_GetBuffer(m_ptr, view, flags) != 0) {
             delete view;
             throw error_already_set();
@@ -1542,7 +1599,7 @@ template <typename D>
 str_attr_accessor object_api<D>::doc() const { return attr("__doc__"); }
 
 template <typename D>
-handle object_api<D>::get_type() const { return (PyObject *) Py_TYPE(derived().ptr()); }
+handle object_api<D>::get_type() const { return type::handle_of(derived()); }
 
 template <typename D>
 bool object_api<D>::rich_compare(object_api const &other, int value) const {

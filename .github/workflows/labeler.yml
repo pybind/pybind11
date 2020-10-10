@@ -1,0 +1,13 @@
+name: Labeler
+on:
+  pull_request_target:
+
+jobs:
+  label-merged:
+    name: Changelog needed
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/labeler@main
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        sync-labels: true

@@ -11,6 +11,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <cmath>
+#include <new>
 
 // Classes for testing python construction via C++ factory function:
 // Not publicly constructible, copyable, or movable:
@@ -57,13 +58,13 @@ class TestFactory4 : public TestFactory3 {
 public:
     TestFactory4() : TestFactory3() { print_default_created(this); }
     TestFactory4(int v) : TestFactory3(v) { print_created(this, v); }
-    virtual ~TestFactory4() { print_destroyed(this); }
+    ~TestFactory4() override { print_destroyed(this); }
 };
 // Another class for an invalid downcast test
 class TestFactory5 : public TestFactory3 {
 public:
     TestFactory5(int i) : TestFactory3(i) { print_created(this, i); }
-    virtual ~TestFactory5() { print_destroyed(this); }
+    ~TestFactory5() override { print_destroyed(this); }
 };
 
 class TestFactory6 {
@@ -87,8 +88,8 @@ public:
     PyTF6(PyTF6 &&f) : TestFactory6(std::move(f)) { print_move_created(this); }
     PyTF6(const PyTF6 &f) : TestFactory6(f) { print_copy_created(this); }
     PyTF6(std::string s) : TestFactory6((int) s.size()) { alias = true; print_created(this, s); }
-    virtual ~PyTF6() { print_destroyed(this); }
-    int get() override { PYBIND11_OVERLOAD(int, TestFactory6, get, /*no args*/); }
+    ~PyTF6() override { print_destroyed(this); }
+    int get() override { PYBIND11_OVERRIDE(int, TestFactory6, get, /*no args*/); }
 };
 
 class TestFactory7 {
@@ -108,8 +109,8 @@ public:
     PyTF7(int i) : TestFactory7(i) { alias = true; print_created(this, i); }
     PyTF7(PyTF7 &&f) : TestFactory7(std::move(f)) { print_move_created(this); }
     PyTF7(const PyTF7 &f) : TestFactory7(f) { print_copy_created(this); }
-    virtual ~PyTF7() { print_destroyed(this); }
-    int get() override { PYBIND11_OVERLOAD(int, TestFactory7, get, /*no args*/); }
+    ~PyTF7() override { print_destroyed(this); }
+    int get() override { PYBIND11_OVERRIDE(int, TestFactory7, get, /*no args*/); }
 };
 
 
@@ -141,7 +142,7 @@ public:
 TEST_SUBMODULE(factory_constructors, m) {
 
     // Define various trivial types to allow simpler overload resolution:
-    py::module m_tag = m.def_submodule("tag");
+    py::module_ m_tag = m.def_submodule("tag");
 #define MAKE_TAG_TYPE(Name) \
     struct Name##_tag {}; \
     py::class_<Name##_tag>(m_tag, #Name "_tag").def(py::init<>()); \
@@ -154,6 +155,8 @@ TEST_SUBMODULE(factory_constructors, m) {
     MAKE_TAG_TYPE(TF4);
     MAKE_TAG_TYPE(TF5);
     MAKE_TAG_TYPE(null_ptr);
+    MAKE_TAG_TYPE(null_unique_ptr);
+    MAKE_TAG_TYPE(null_shared_ptr);
     MAKE_TAG_TYPE(base);
     MAKE_TAG_TYPE(invalid_base);
     MAKE_TAG_TYPE(alias);
@@ -194,6 +197,8 @@ TEST_SUBMODULE(factory_constructors, m) {
 
         // Returns nullptr:
         .def(py::init([](null_ptr_tag) { return (TestFactory3 *) nullptr; }))
+        .def(py::init([](null_unique_ptr_tag) { return std::unique_ptr<TestFactory3>(); }))
+        .def(py::init([](null_shared_ptr_tag) { return std::shared_ptr<TestFactory3>(); }))
 
         .def_readwrite("value", &TestFactory3::value)
         ;

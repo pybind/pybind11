@@ -103,7 +103,7 @@ TEST_SUBMODULE(class_, m) {
         BaseClass() = default;
         BaseClass(const BaseClass &) = default;
         BaseClass(BaseClass &&) = default;
-        virtual ~BaseClass() {}
+        virtual ~BaseClass() = default;
     };
     struct DerivedClass1 : BaseClass { };
     struct DerivedClass2 : BaseClass { };
@@ -134,6 +134,32 @@ TEST_SUBMODULE(class_, m) {
         );
     });
 
+    struct Invalid {};
+
+    // test_type
+    m.def("check_type", [](int category) {
+        // Currently not supported (via a fail at compile time)
+        // See https://github.com/pybind/pybind11/issues/2486
+        // if (category == 2)
+        //     return py::type::of<int>();
+        if (category == 1)
+            return py::type::of<DerivedClass1>();
+        else
+            return py::type::of<Invalid>();
+    });
+
+    m.def("get_type_of", [](py::object ob) {
+        return py::type::of(ob);
+    });
+
+    m.def("get_type_classic", [](py::handle h) {
+        return h.get_type();
+    });
+
+    m.def("as_type", [](py::object ob) {
+        return py::type(ob);
+    });
+
     // test_mismatched_holder
     struct MismatchBase1 { };
     struct MismatchDerived1 : MismatchBase1 { };
@@ -142,12 +168,12 @@ TEST_SUBMODULE(class_, m) {
     struct MismatchDerived2 : MismatchBase2 { };
 
     m.def("mismatched_holder_1", []() {
-        auto mod = py::module::import("__main__");
+        auto mod = py::module_::import("__main__");
         py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(mod, "MismatchBase1");
         py::class_<MismatchDerived1, MismatchBase1>(mod, "MismatchDerived1");
     });
     m.def("mismatched_holder_2", []() {
-        auto mod = py::module::import("__main__");
+        auto mod = py::module_::import("__main__");
         py::class_<MismatchBase2>(mod, "MismatchBase2");
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>,
                    MismatchBase2>(mod, "MismatchDerived2");
@@ -291,7 +317,7 @@ TEST_SUBMODULE(class_, m) {
 
     class TrampolineB : public ProtectedB {
     public:
-        int foo() const override { PYBIND11_OVERLOAD(int, ProtectedB, foo, ); }
+        int foo() const override { PYBIND11_OVERRIDE(int, ProtectedB, foo, ); }
     };
 
     class PublicistB : public ProtectedB {
@@ -327,7 +353,7 @@ TEST_SUBMODULE(class_, m) {
     // test_reentrant_implicit_conversion_failure
     // #1035: issue with runaway reentrant implicit conversion
     struct BogusImplicitConversion {
-        BogusImplicitConversion(const BogusImplicitConversion &) { }
+        BogusImplicitConversion(const BogusImplicitConversion &) = default;
     };
 
     py::class_<BogusImplicitConversion>(m, "BogusImplicitConversion")
@@ -379,6 +405,67 @@ TEST_SUBMODULE(class_, m) {
     // test_non_final_final
     struct IsNonFinalFinal {};
     py::class_<IsNonFinalFinal>(m, "IsNonFinalFinal", py::is_final());
+
+    // test_exception_rvalue_abort
+    struct PyPrintDestructor {
+        PyPrintDestructor() = default;
+        ~PyPrintDestructor() {
+            py::print("Print from destructor");
+        }
+        void throw_something() { throw std::runtime_error("error"); }
+    };
+    py::class_<PyPrintDestructor>(m, "PyPrintDestructor")
+        .def(py::init<>())
+        .def("throw_something", &PyPrintDestructor::throw_something);
+
+    // test_multiple_instances_with_same_pointer
+    struct SamePointer {};
+    static SamePointer samePointer;
+    py::class_<SamePointer, std::unique_ptr<SamePointer, py::nodelete>>(m, "SamePointer")
+        .def(py::init([]() { return &samePointer; }))
+        .def("__del__", [](SamePointer&) { py::print("__del__ called"); });
+
+    struct Empty {};
+    py::class_<Empty>(m, "Empty")
+        .def(py::init<>());
+
+    // test_base_and_derived_nested_scope
+    struct BaseWithNested {
+        struct Nested {};
+    };
+
+    struct DerivedWithNested : BaseWithNested {
+        struct Nested {};
+    };
+
+    py::class_<BaseWithNested> baseWithNested_class(m, "BaseWithNested");
+    py::class_<DerivedWithNested, BaseWithNested> derivedWithNested_class(m, "DerivedWithNested");
+    py::class_<BaseWithNested::Nested>(baseWithNested_class, "Nested")
+        .def_static("get_name", []() { return "BaseWithNested::Nested"; });
+    py::class_<DerivedWithNested::Nested>(derivedWithNested_class, "Nested")
+        .def_static("get_name", []() { return "DerivedWithNested::Nested"; });
+
+    // test_register_duplicate_class
+    struct Duplicate {};
+    struct OtherDuplicate {};
+    struct DuplicateNested {};
+    struct OtherDuplicateNested {};
+    m.def("register_duplicate_class_name", [](py::module_ m) {
+        py::class_<Duplicate>(m, "Duplicate");
+        py::class_<OtherDuplicate>(m, "Duplicate");
+    });
+    m.def("register_duplicate_class_type", [](py::module_ m) {
+        py::class_<OtherDuplicate>(m, "OtherDuplicate");
+        py::class_<OtherDuplicate>(m, "YetAnotherDuplicate");
+    });
+    m.def("register_duplicate_nested_class_name", [](py::object gt) {
+        py::class_<DuplicateNested>(gt, "DuplicateNested");
+        py::class_<OtherDuplicateNested>(gt, "DuplicateNested");
+    });
+    m.def("register_duplicate_nested_class_type", [](py::object gt) {
+        py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
+        py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
+    });
 }
 
 template <int N> class BreaksBase { public:
@@ -388,14 +475,14 @@ template <int N> class BreaksBase { public:
 };
 template <int N> class BreaksTramp : public BreaksBase<N> {};
 // These should all compile just fine:
-typedef py::class_<BreaksBase<1>, std::unique_ptr<BreaksBase<1>>, BreaksTramp<1>> DoesntBreak1;
-typedef py::class_<BreaksBase<2>, BreaksTramp<2>, std::unique_ptr<BreaksBase<2>>> DoesntBreak2;
-typedef py::class_<BreaksBase<3>, std::unique_ptr<BreaksBase<3>>> DoesntBreak3;
-typedef py::class_<BreaksBase<4>, BreaksTramp<4>> DoesntBreak4;
-typedef py::class_<BreaksBase<5>> DoesntBreak5;
-typedef py::class_<BreaksBase<6>, std::shared_ptr<BreaksBase<6>>, BreaksTramp<6>> DoesntBreak6;
-typedef py::class_<BreaksBase<7>, BreaksTramp<7>, std::shared_ptr<BreaksBase<7>>> DoesntBreak7;
-typedef py::class_<BreaksBase<8>, std::shared_ptr<BreaksBase<8>>> DoesntBreak8;
+using DoesntBreak1 = py::class_<BreaksBase<1>, std::unique_ptr<BreaksBase<1>>, BreaksTramp<1>>;
+using DoesntBreak2 = py::class_<BreaksBase<2>, BreaksTramp<2>, std::unique_ptr<BreaksBase<2>>>;
+using DoesntBreak3 = py::class_<BreaksBase<3>, std::unique_ptr<BreaksBase<3>>>;
+using DoesntBreak4 = py::class_<BreaksBase<4>, BreaksTramp<4>>;
+using DoesntBreak5 = py::class_<BreaksBase<5>>;
+using DoesntBreak6 = py::class_<BreaksBase<6>, std::shared_ptr<BreaksBase<6>>, BreaksTramp<6>>;
+using DoesntBreak7 = py::class_<BreaksBase<7>, BreaksTramp<7>, std::shared_ptr<BreaksBase<7>>>;
+using DoesntBreak8 = py::class_<BreaksBase<8>, std::shared_ptr<BreaksBase<8>>>;
 #define CHECK_BASE(N) static_assert(std::is_same<typename DoesntBreak##N::type, BreaksBase<N>>::value, \
         "DoesntBreak" #N " has wrong type!")
 CHECK_BASE(1); CHECK_BASE(2); CHECK_BASE(3); CHECK_BASE(4); CHECK_BASE(5); CHECK_BASE(6); CHECK_BASE(7); CHECK_BASE(8);

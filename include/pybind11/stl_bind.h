@@ -223,7 +223,7 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
             if (!slice.compute(v.size(), &start, &stop, &step, &slicelength))
                 throw error_already_set();
 
-            Vector *seq = new Vector();
+            auto *seq = new Vector();
             seq->reserve((size_t) slicelength);
 
             for (size_t i=0; i<slicelength; ++i) {
@@ -397,14 +397,19 @@ vector_buffer(Class_& cl) {
         if (!detail::compare_buffer_info<T>::compare(info) || (ssize_t) sizeof(T) != info.itemsize)
             throw type_error("Format mismatch (Python: " + info.format + " C++: " + format_descriptor<T>::format() + ")");
 
-        auto vec = std::unique_ptr<Vector>(new Vector());
-        vec->reserve((size_t) info.shape[0]);
         T *p = static_cast<T*>(info.ptr);
         ssize_t step = info.strides[0] / static_cast<ssize_t>(sizeof(T));
         T *end = p + info.shape[0] * step;
-        for (; p != end; p += step)
-            vec->push_back(*p);
-        return vec.release();
+        if (step == 1) {
+            return Vector(p, end);
+        }
+        else {
+            Vector vec;
+            vec.reserve((size_t) info.shape[0]);
+            for (; p != end; p += step)
+                vec.push_back(*p);
+            return vec;
+        }
     }));
 
     return;

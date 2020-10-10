@@ -24,6 +24,18 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #  define PYBIND11_SET_OLDPY_QUALNAME(obj, nameobj) setattr((PyObject *) obj, "__qualname__", nameobj)
 #endif
 
+inline std::string get_fully_qualified_tp_name(PyTypeObject *type) {
+#if !defined(PYPY_VERSION)
+    return type->tp_name;
+#else
+    auto module_name = handle((PyObject *) type).attr("__module__").cast<std::string>();
+    if (module_name == PYBIND11_BUILTINS_MODULE)
+        return type->tp_name;
+    else
+        return std::move(module_name) + "." + type->tp_name;
+#endif
+}
+
 inline PyTypeObject *type_incref(PyTypeObject *type) {
     Py_INCREF(type);
     return type;
@@ -169,10 +181,10 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     auto instance = reinterpret_cast<detail::instance *>(self);
 
     // Ensure that the base __init__ function(s) were called
-    for (auto vh : values_and_holders(instance)) {
+    for (const auto &vh : values_and_holders(instance)) {
         if (!vh.holder_constructed()) {
             PyErr_Format(PyExc_TypeError, "%.200s.__init__() must be called when overriding __init__",
-                         vh.type->type->tp_name);
+                         get_fully_qualified_tp_name(vh.type->type).c_str());
             Py_DECREF(self);
             return nullptr;
         }
@@ -250,7 +262,7 @@ inline bool deregister_instance_impl(void *ptr, instance *self) {
     auto &registered_instances = get_internals().registered_instances;
     auto range = registered_instances.equal_range(ptr);
     for (auto it = range.first; it != range.second; ++it) {
-        if (Py_TYPE(self) == Py_TYPE(it->second)) {
+        if (self == it->second) {
             registered_instances.erase(it);
             return true;
         }
@@ -304,12 +316,7 @@ extern "C" inline PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, 
 /// following default function will be used which simply throws an exception.
 extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject *) {
     PyTypeObject *type = Py_TYPE(self);
-    std::string msg;
-#if defined(PYPY_VERSION)
-    msg += handle((PyObject *) type).attr("__module__").cast<std::string>() + ".";
-#endif
-    msg += type->tp_name;
-    msg += ": No constructor defined!";
+    std::string msg = get_fully_qualified_tp_name(type) + ": No constructor defined!";
     PyErr_SetString(PyExc_TypeError, msg.c_str());
     return -1;
 }
@@ -448,7 +455,7 @@ extern "C" inline PyObject *pybind11_get_dict(PyObject *self, void *) {
 extern "C" inline int pybind11_set_dict(PyObject *self, PyObject *new_dict, void *) {
     if (!PyDict_Check(new_dict)) {
         PyErr_Format(PyExc_TypeError, "__dict__ must be set to a dictionary, not a '%.200s'",
-                     Py_TYPE(new_dict)->tp_name);
+                     get_fully_qualified_tp_name(Py_TYPE(new_dict)).c_str());
         return -1;
     }
     PyObject *&dict = *_PyObject_GetDictPtr(self);
@@ -475,11 +482,6 @@ extern "C" inline int pybind11_clear(PyObject *self) {
 /// Give instances of this type a `__dict__` and opt into garbage collection.
 inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto type = &heap_type->ht_type;
-#if defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x06000000)
-    pybind11_fail(std::string(type->tp_name) + ": dynamic attributes are "
-                                               "currently not supported in "
-                                               "conjunction with PyPy!");
-#endif
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
     type->tp_dictoffset = type->tp_basicsize; // place dict at the end
     type->tp_basicsize += (ssize_t)sizeof(PyObject *); // and allocate enough space for it
@@ -567,17 +569,17 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 #endif
     }
 
-    object module;
+    object module_;
     if (rec.scope) {
         if (hasattr(rec.scope, "__module__"))
-            module = rec.scope.attr("__module__");
+            module_ = rec.scope.attr("__module__");
         else if (hasattr(rec.scope, "__name__"))
-            module = rec.scope.attr("__name__");
+            module_ = rec.scope.attr("__name__");
     }
 
     auto full_name = c_str(
 #if !defined(PYPY_VERSION)
-        module ? str(module).cast<std::string>() + "." + rec.name :
+        module_ ? str(module_).cast<std::string>() + "." + rec.name :
 #endif
         rec.name);
 
@@ -592,7 +594,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
 
     auto &internals = get_internals();
     auto bases = tuple(rec.bases);
-    auto base = (bases.size() == 0) ? internals.instance_base
+    auto base = (bases.empty()) ? internals.instance_base
                                     : bases[0].ptr();
 
     /* Danger zone: from now (and until PyType_Ready), make sure to
@@ -616,7 +618,7 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     type->tp_doc = tp_doc;
     type->tp_base = type_incref((PyTypeObject *)base);
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
-    if (bases.size() > 0)
+    if (!bases.empty())
         type->tp_bases = bases.release().ptr();
 
     /* Don't inherit base __init__ */
@@ -656,8 +658,8 @@ inline PyObject* make_new_python_type(const type_record &rec) {
     else
         Py_INCREF(type); // Keep it alive forever (reference leak)
 
-    if (module) // Needed by pydoc
-        setattr((PyObject *) type, "__module__", module);
+    if (module_) // Needed by pydoc
+        setattr((PyObject *) type, "__module__", module_);
 
     PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
 

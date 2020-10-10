@@ -3,6 +3,8 @@
 Build systems
 #############
 
+.. _build-setuptools:
+
 Building with setuptools
 ========================
 
@@ -12,6 +14,173 @@ including automatic generation of documentation using Sphinx. Please refer to
 the [python_example]_ repository.
 
 .. [python_example] https://github.com/pybind/python_example
+
+A helper file is provided with pybind11 that can simplify usage with setuptools.
+
+To use pybind11 inside your ``setup.py``, you have to have some system to
+ensure that ``pybind11`` is installed when you build your package. There are
+four possible ways to do this, and pybind11 supports all four: You can ask all
+users to install pybind11 beforehand (bad), you can use
+:ref:`setup_helpers-pep518` (good, but very new and requires Pip 10),
+:ref:`setup_helpers-setup_requires` (discouraged by Python packagers now that
+PEP 518 is available, but it still works everywhere), or you can
+:ref:`setup_helpers-copy-manually` (always works but you have to manually sync
+your copy to get updates).
+
+An example of a ``setup.py`` using pybind11's helpers:
+
+.. code-block:: python
+
+    from glob import glob
+    from setuptools import setup
+    from pybind11.setup_helpers import Pybind11Extension
+
+    ext_modules = [
+        Pybind11Extension(
+            "python_example",
+            sorted(glob("src/*.cpp")),  # Sort source files for reproducibility
+        ),
+    ]
+
+    setup(
+        ...,
+        ext_modules=ext_modules
+    )
+
+If you want to do an automatic search for the highest supported C++ standard,
+that is supported via a ``build_ext`` command override; it will only affect
+``Pybind11Extensions``:
+
+.. code-block:: python
+
+    from glob import glob
+    from setuptools import setup
+    from pybind11.setup_helpers import Pybind11Extension, build_ext
+
+    ext_modules = [
+        Pybind11Extension(
+            "python_example",
+            sorted(glob("src/*.cpp")),
+        ),
+    ]
+
+    setup(
+        ...,
+        cmdclass={"build_ext": build_ext},
+        ext_modules=ext_modules
+    )
+
+Since pybind11 does not require NumPy when building, a light-weight replacement
+for NumPy's parallel compilation distutils tool is included. Use it like this:
+
+.. code-block:: python
+
+    from pybind11.setup_helpers import ParallelCompile
+
+    # Optional multithreaded build
+    ParallelCompile("NPY_NUM_BUILD_JOBS").install()
+
+    setup(...)
+
+The argument is the name of an environment variable to control the number of
+threads, such as ``NPY_NUM_BUILD_JOBS`` (as used by NumPy), though you can set
+something different if you want. You can also pass ``default=N`` to set the
+default number of threads (0 will take the number of threads available) and
+``max=N``, the maximum number of threads; if you have a large extension you may
+want set this to a memory dependent number.
+
+.. _setup_helpers-pep518:
+
+PEP 518 requirements (Pip 10+ required)
+---------------------------------------
+
+If you use `PEP 518's <https://www.python.org/dev/peps/pep-0518/>`_
+``pyproject.toml`` file, you can ensure that ``pybind11`` is available during
+the compilation of your project.  When this file exists, Pip will make a new
+virtual environment, download just the packages listed here in ``requires=``,
+and build a wheel (binary Python package). It will then throw away the
+environment, and install your wheel.
+
+Your ``pyproject.toml`` file will likely look something like this:
+
+.. code-block:: toml
+
+    [build-system]
+    requires = ["setuptools", "wheel", "pybind11==2.6.0"]
+    build-backend = "setuptools.build_meta"
+
+.. note::
+
+    The main drawback to this method is that a `PEP 517`_ compliant build tool,
+    such as Pip 10+, is required for this approach to work; older versions of
+    Pip completely ignore this file. If you distribute binaries (called wheels
+    in Python) using something like `cibuildwheel`_, remember that ``setup.py``
+    and ``pyproject.toml`` are not even contained in the wheel, so this high
+    Pip requirement is only for source builds, and will not affect users of
+    your binary wheels.
+
+.. _PEP 517: https://www.python.org/dev/peps/pep-0517/
+.. _cibuildwheel: https://cibuildwheel.readthedocs.io
+
+.. _setup_helpers-setup_requires:
+
+Classic ``setup_requires``
+--------------------------
+
+If you want to support old versions of Pip with the classic
+``setup_requires=["pybind11"]`` keyword argument to setup, which triggers a
+two-phase ``setup.py`` run, then you will need to use something like this to
+ensure the first pass works (which has not yet installed the ``setup_requires``
+packages, since it can't install something it does not know about):
+
+.. code-block:: python
+
+    try:
+        from pybind11.setup_helpers import Pybind11Extension
+    except ImportError:
+        from setuptools import Extension as Pybind11Extension
+
+
+It doesn't matter that the Extension class is not the enhanced subclass for the
+first pass run; and the second pass will have the ``setup_requires``
+requirements.
+
+This is obviously more of a hack than the PEP 518 method, but it supports
+ancient versions of Pip.
+
+.. _setup_helpers-copy-manually:
+
+Copy manually
+-------------
+
+You can also copy ``setup_helpers.py`` directly to your project; it was
+designed to be usable standalone, like the old example ``setup.py``. You can
+set ``include_pybind11=False`` to skip including the pybind11 package headers,
+so you can use it with git submodules and a specific git version. If you use
+this, you will need to import from a local file in ``setup.py`` and ensure the
+helper file is part of your MANIFEST.
+
+
+Closely related, if you include pybind11 as a subproject, you can run the
+``setup_helpers.py`` inplace. If loaded correctly, this should even pick up
+the correct include for pybind11, though you can turn it off as shown above if
+you want to input it manually.
+
+Suggested usage if you have pybind11 as a submodule in ``extern/pybind11``:
+
+.. code-block:: python
+
+    DIR = os.path.abspath(os.path.dirname(__file__))
+
+    sys.path.append(os.path.join(DIR, "extern", "pybind11"))
+    from pybind11.setup_helpers import Pybind11Extension  # noqa: E402
+
+    del sys.path[-1]
+
+
+.. versionchanged:: 2.6
+
+    Added ``setup_helpers`` file.
 
 Building with cppimport
 ========================
@@ -33,8 +202,8 @@ extension module can be created with just a few lines of code:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 2.8.12)
-    project(example)
+    cmake_minimum_required(VERSION 3.4...3.18)
+    project(example LANGUAGES CXX)
 
     add_subdirectory(pybind11)
     pybind11_add_module(example example.cpp)
@@ -50,6 +219,11 @@ PyPI integration, can be found in the [cmake_example]_  repository.
 
 .. [cmake_example] https://github.com/pybind/cmake_example
 
+.. versionchanged:: 2.6
+   CMake 3.4+ is required.
+
+Further information can be found at :doc:`cmake/index`.
+
 pybind11_add_module
 -------------------
 
@@ -59,7 +233,7 @@ function with the following signature:
 .. code-block:: cmake
 
     pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
-                        [NO_EXTRAS] [SYSTEM] [THIN_LTO] source1 [source2 ...])
+                        [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] source1 [source2 ...])
 
 This function behaves very much like CMake's builtin ``add_library`` (in fact,
 it's a wrapper function around that command). It will add a library target
@@ -86,49 +260,61 @@ latter optimizations are never applied in ``Debug`` mode.  If ``NO_EXTRAS`` is
 given, they will always be disabled, even in ``Release`` mode. However, this
 will result in code bloat and is generally not recommended.
 
-By default, pybind11 and Python headers will be included with ``-I``. In order
-to include pybind11 as system library, e.g. to avoid warnings in downstream
-code with warn-levels outside of pybind11's scope, set the option ``SYSTEM``.
-
 As stated above, LTO is enabled by default. Some newer compilers also support
 different flavors of LTO such as `ThinLTO`_. Setting ``THIN_LTO`` will cause
 the function to prefer this flavor if available. The function falls back to
-regular LTO if ``-flto=thin`` is not available.
+regular LTO if ``-flto=thin`` is not available. If
+``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is set (either ON or OFF), then that
+will be respected instead of the built-in flag search.
+
+The ``OPT_SIZE`` flag enables size-based optimization equivalent to the
+standard ``/Os`` or ``-Os`` compiler flags and the ``MinSizeRel`` build type,
+which avoid optimizations that that can substantially increase the size of the
+resulting binary. This flag is particularly useful in projects that are split
+into performance-critical parts and associated bindings. In this case, we can
+compile the project in release mode (and hence, optimize performance globally),
+and specify ``OPT_SIZE`` for the binding target, where size might be the main
+concern as performance is often less critical here. A ~25% size reduction has
+been observed in practice. This flag only changes the optimization behavior at
+a per-target level and takes precedence over the global CMake build type
+(``Release``, ``RelWithDebInfo``) except for ``Debug`` builds, where
+optimizations remain disabled.
 
 .. _ThinLTO: http://clang.llvm.org/docs/ThinLTO.html
 
 Configuration variables
 -----------------------
 
-By default, pybind11 will compile modules with the C++14 standard, if available
-on the target compiler, falling back to C++11 if C++14 support is not
-available.  Note, however, that this default is subject to change: future
-pybind11 releases are expected to migrate to newer C++ standards as they become
-available.  To override this, the standard flag can be given explicitly in
-`CMAKE_CXX_STANDARD <https://cmake.org/cmake/help/v3.17/variable/CMAKE_CXX_STANDARD.html>`_:
+By default, pybind11 will compile modules with the compiler default or the
+minimum standard required by pybind11, whichever is higher.  You can set the
+standard explicitly with
+`CMAKE_CXX_STANDARD <https://cmake.org/cmake/help/latest/variable/CMAKE_CXX_STANDARD.html>`_:
 
 .. code-block:: cmake
 
-    # Use just one of these:
-    set(CMAKE_CXX_STANDARD 11)
-    set(CMAKE_CXX_STANDARD 14)
-    set(CMAKE_CXX_STANDARD 17) # Experimental C++17 support
+    set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ version selection")  # or 11, 14, 17, 20
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)  # optional, ensure standard is supported
+    set(CMAKE_CXX_EXTENSIONS OFF)  # optional, keep compiler extensionsn off
 
-    add_subdirectory(pybind11)  # or find_package(pybind11)
+The variables can also be set when calling CMake from the command line using
+the ``-D<variable>=<value>`` flag. You can also manually set ``CXX_STANDARD``
+on a target or use ``target_compile_features`` on your targets - anything that
+CMake supports.
 
-Note that this and all other configuration variables must be set **before** the
-call to ``add_subdirectory`` or ``find_package``. The variables can also be set
-when calling CMake from the command line using the ``-D<variable>=<value>`` flag.
-
-The target Python version can be selected by setting ``PYBIND11_PYTHON_VERSION``
-or an exact Python installation can be specified with ``PYTHON_EXECUTABLE``.
-For example:
+Classic Python support: The target Python version can be selected by setting
+``PYBIND11_PYTHON_VERSION`` or an exact Python installation can be specified
+with ``PYTHON_EXECUTABLE``.  For example:
 
 .. code-block:: bash
 
     cmake -DPYBIND11_PYTHON_VERSION=3.6 ..
-    # or
-    cmake -DPYTHON_EXECUTABLE=path/to/python ..
+
+    # Another method:
+    cmake -DPYTHON_EXECUTABLE=/path/to/python ..
+
+    # This often is a good way to get the current Python, works in environments:
+    cmake -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") ..
+
 
 find_package vs. add_subdirectory
 ---------------------------------
@@ -139,8 +325,8 @@ See the `Config file`_ docstring for details of relevant CMake variables.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 2.8.12)
-    project(example)
+    cmake_minimum_required(VERSION 3.4...3.18)
+    project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)
     pybind11_add_module(example example.cpp)
@@ -151,11 +337,18 @@ the pybind11 repository  :
 
 .. code-block:: bash
 
+    # Classic CMake
     cd pybind11
     mkdir build
     cd build
     cmake ..
     make install
+
+    # CMake 3.15+
+    cd pybind11
+    cmake -S . -B build
+    cmake --build build -j 2  # Build on 2 cores
+    cmake --install build
 
 Once detected, the aforementioned ``pybind11_add_module`` can be employed as
 before. The function usage and configuration variables are identical no matter
@@ -165,41 +358,134 @@ can refer to the same [cmake_example]_ repository for a full sample project
 
 .. _Config file: https://github.com/pybind/pybind11/blob/master/tools/pybind11Config.cmake.in
 
-Advanced: interface library target
-----------------------------------
 
-When using a version of CMake greater than 3.0, pybind11 can additionally
-be used as a special *interface library* . The target ``pybind11::module``
-is available with pybind11 headers, Python headers and libraries as needed,
-and C++ compile definitions attached. This target is suitable for linking
-to an independently constructed (through ``add_library``, not
-``pybind11_add_module``) target in the consuming project.
+.. _find-python-mode:
+
+FindPython mode
+---------------
+
+CMake 3.12+ (3.15+ recommended) added a new module called FindPython that had a
+highly improved search algorithm and modern targets and tools. If you use
+FindPython, pybind11 will detect this and use the existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.0)
-    project(example)
+    cmake_minumum_required(VERSION 3.15...3.18)
+    project(example LANGUAGES CXX)
+
+    find_package(Python COMPONENTS Interpreter Development REQUIRED)
+    find_package(pybind11 CONFIG REQUIRED)
+    # or add_subdirectory(pybind11)
+
+    pybind11_add_module(example example.cpp)
+
+You can also use the targets (as listed below) with FindPython. If you define
+``PYBIND11_FINDPYTHON``, pybind11 will perform the FindPython step for you
+(mostly useful when building pybind11's own tests, or as a way to change search
+algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
+
+.. warning::
+
+    If you use FindPython2 and FindPython3 to dual-target Python, use the
+    individual targets listed below, and avoid targets that directly include
+    Python parts.
+
+There are `many ways to hint or force a discovery of a specific Python
+installation <https://cmake.org/cmake/help/latest/module/FindPython.html>`_),
+setting ``Python_ROOT_DIR`` may be the most common one (though with
+virtualenv/venv support, and Conda support, this tends to find the correct
+Python version more often than the old system did).
+
+.. versionadded:: 2.6
+
+Advanced: interface library targets
+-----------------------------------
+
+Pybind11 supports modern CMake usage patterns with a set of interface targets,
+available in all modes. The targets provided are:
+
+   ``pybind11::headers``
+     Just the pybind11 headers and minimum compile requirements
+
+   ``pybind11::python2_no_register``
+     Quiets the warning/error when mixing C++14 or higher and Python 2
+
+   ``pybind11::pybind11``
+     Python headers + ``pybind11::headers`` + ``pybind11::python2_no_register`` (Python 2 only)
+
+   ``pybind11::python_link_helper``
+     Just the "linking" part of pybind11:module
+
+   ``pybind11::module``
+     Everything for extension modules - ``pybind11::pybind11`` + ``Python::Module`` (FindPython CMake 3.15+) or ``pybind11::python_link_helper``
+
+   ``pybind11::embed``
+     Everything for embedding the Python interpreter - ``pybind11::pybind11`` + ``Python::Embed`` (FindPython) or Python libs
+
+   ``pybind11::lto`` / ``pybind11::thin_lto``
+     An alternative to `INTERPROCEDURAL_OPTIMIZATION` for adding link-time optimization.
+
+   ``pybind11::windows_extras``
+     ``/bigobj`` and ``/mp`` for MSVC.
+
+   ``pybind11::opt_size``
+     ``/Os`` for MSVC, ``-Os`` for other compilers. Does nothing for debug builds.
+
+Two helper functions are also provided:
+
+    ``pybind11_strip(target)``
+      Strips a target (uses ``CMAKE_STRIP`` after the target is built)
+
+    ``pybind11_extension(target)``
+      Sets the correct extension (with SOABI) for a target.
+
+You can use these targets to build complex applications. For example, the
+``add_python_module`` function is identical to:
+
+.. code-block:: cmake
+
+    cmake_minimum_required(VERSION 3.4)
+    project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
 
     add_library(example MODULE main.cpp)
-    target_link_libraries(example PRIVATE pybind11::module)
-    set_target_properties(example PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                             SUFFIX "${PYTHON_MODULE_EXTENSION}")
+
+    target_link_libraries(example PRIVATE pybind11::module pybind11::lto pybind11::windows_extras)
+
+    pybind11_extension(example)
+    pybind11_strip(example)
+
+    set_target_properties(example PROPERTIES CXX_VISIBILITY_PRESET "hidden"
+                                             CUDA_VISIBILITY_PRESET "hidden")
+
+Instead of setting properties, you can set ``CMAKE_*`` variables to initialize these correctly.
 
 .. warning::
 
     Since pybind11 is a metatemplate library, it is crucial that certain
     compiler flags are provided to ensure high quality code generation. In
     contrast to the ``pybind11_add_module()`` command, the CMake interface
-    library only provides the *minimal* set of parameters to ensure that the
-    code using pybind11 compiles, but it does **not** pass these extra compiler
-    flags (i.e. this is up to you).
+    provides a *composable* set of targets to ensure that you retain flexibility.
+    It can be expecially important to provide or set these properties; the
+    :ref:`FAQ <faq:symhidden>` contains an explanation on why these are needed.
 
-    These include Link Time Optimization (``-flto`` on GCC/Clang/ICPC, ``/GL``
-    and ``/LTCG`` on Visual Studio) and .OBJ files with many sections on Visual
-    Studio (``/bigobj``).  The :ref:`FAQ <faq:symhidden>` contains an
-    explanation on why these are needed.
+.. versionadded:: 2.6
+
+.. _nopython-mode:
+
+Advanced: NOPYTHON mode
+-----------------------
+
+If you want complete control, you can set ``PYBIND11_NOPYTHON`` to completely
+disable Python integration (this also happens if you run ``FindPython2`` and
+``FindPython3`` without running ``FindPython``). This gives you complete
+freedom to integrate into an existing system (like `Scikit-Build's
+<https://scikit-build.readthedocs.io>`_ ``PythonExtensions``).
+``pybind11_add_module`` and ``pybind11_extension`` will be unavailable, and the
+targets will be missing any Python specific behavior.
+
+.. versionadded:: 2.6
 
 Embedding the Python interpreter
 --------------------------------
@@ -213,8 +499,8 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.0)
-    project(example)
+    cmake_minimum_required(VERSION 3.4...3.18)
+    project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
 
@@ -251,7 +537,7 @@ Besides, the ``--extension-suffix`` option may or may not be available, dependin
 on the distribution; in the latter case, the module extension can be manually
 set to ``.so``.
 
-On Mac OS: the build command is almost the same but it also requires passing
+On macOS: the build command is almost the same but it also requires passing
 the ``-undefined dynamic_lookup`` flag so as to ignore missing symbols when
 building the module:
 
@@ -275,6 +561,13 @@ build system that works on all platforms including Windows.
     of possibly importing a second Python library into a process that already
     contains one (which will lead to a segfault).
 
+
+Building with Bazel
+===================
+
+You can build with the Bazel build system using the `pybind11_bazel
+<https://github.com/pybind/pybind11_bazel>`_ repository.
+
 Generating binding code automatically
 =====================================
 
@@ -291,3 +584,10 @@ extensible, and applies to very complex C++ libraries, composed of thousands of
 classes or incorporating modern meta-programming constructs.
 
 .. [AutoWIG] https://github.com/StatisKit/AutoWIG
+
+[robotpy-build]_ is a is a pure python, cross platform build tool that aims to
+simplify creation of python wheels for pybind11 projects, and provide
+cross-project dependency management. Additionally, it is able to autogenerate
+customizable pybind11-based wrappers by parsing C++ header files.
+
+.. [robotpy-build] https://robotpy-build.readthedocs.io

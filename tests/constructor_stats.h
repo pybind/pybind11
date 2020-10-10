@@ -120,7 +120,7 @@ public:
             throw py::error_already_set();
         Py_DECREF(result);
 #else
-        py::module::import("gc").attr("collect")();
+        py::module_::import("gc").attr("collect")();
 #endif
     }
 

@@ -81,7 +81,7 @@ buffer objects (e.g. a NumPy matrix).
     constexpr bool rowMajor = Matrix::Flags & Eigen::RowMajorBit;
 
     py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
-        .def("__init__", [](py::buffer b) {
+        .def(py::init([](py::buffer b) {
             typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
 
             /* Request a buffer descriptor from Python */
@@ -101,8 +101,8 @@ buffer objects (e.g. a NumPy matrix).
             auto map = Eigen::Map<Matrix, 0, Strides>(
                 static_cast<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
 
-            return Matrix(m);
-        });
+            return Matrix(map);
+        }));
 
 For reference, the ``def_buffer()`` call for this Eigen data type should look
 as follows:
@@ -274,9 +274,9 @@ simply using ``vectorize``).
 
         py::buffer_info buf3 = result.request();
 
-        double *ptr1 = (double *) buf1.ptr,
-               *ptr2 = (double *) buf2.ptr,
-               *ptr3 = (double *) buf3.ptr;
+        double *ptr1 = static_cast<double *>(buf1.ptr);
+        double *ptr2 = static_cast<double *>(buf2.ptr);
+        double *ptr3 = static_cast<double *>(buf3.ptr);
 
         for (size_t idx = 0; idx < buf1.shape[0]; idx++)
             ptr3[idx] = ptr1[idx] + ptr2[idx];
@@ -371,6 +371,8 @@ Ellipsis
 Python 3 provides a convenient ``...`` ellipsis notation that is often used to
 slice multidimensional arrays. For instance, the following snippet extracts the
 middle dimensions of a tensor with the first and last index set to zero.
+In Python 2, the syntactic sugar ``...`` is not available, but the singleton
+``Ellipsis`` (of type ``ellipsis``) can still be used directly.
 
 .. code-block:: python
 
@@ -384,6 +386,9 @@ operation on the C++ side:
 
    py::array a = /* A NumPy array */;
    py::array b = a[py::make_tuple(0, py::ellipsis(), 0)];
+
+.. versionchanged:: 2.6
+   ``py::ellipsis()`` is now also avaliable in Python 2.
 
 Memory view
 ===========
@@ -426,3 +431,6 @@ We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
 .. note::
 
     ``memoryview::from_memory`` is not available in Python 2.
+
+.. versionchanged:: 2.6
+    ``memoryview::from_memory`` added.

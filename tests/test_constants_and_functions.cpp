@@ -74,7 +74,7 @@ struct C {
 #  pragma GCC diagnostic pop
 #endif
 };
-}
+} // namespace test_exc_sp
 
 
 TEST_SUBMODULE(constants_and_functions, m) {

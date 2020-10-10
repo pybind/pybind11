@@ -41,7 +41,7 @@ TEST_SUBMODULE(local_bindings, m) {
     // should raise a runtime error from the duplicate definition attempt.  If test_class isn't
     // available it *also* throws a runtime error (with "test_class not enabled" as value).
     m.def("register_local_external", [m]() {
-        auto main = py::module::import("pybind11_tests");
+        auto main = py::module_::import("pybind11_tests");
         if (py::hasattr(main, "class_")) {
             bind_local<LocalExternal, 7>(m, "LocalExternal", py::module_local());
         }

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+import env  # noqa: F401
+
 from pybind11_tests import methods_and_attributes as m
 from pybind11_tests import ConstructorStats
 
@@ -257,8 +260,8 @@ def test_property_rvalue_policy():
     assert os.value == 1
 
 
-# https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2447
+@pytest.mark.xfail("env.PYPY")
 def test_dynamic_attributes():
     instance = m.DynamicClass()
     assert not hasattr(instance, "foo")
@@ -299,8 +302,8 @@ def test_dynamic_attributes():
         assert cstats.alive() == 0
 
 
-# https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2447
+@pytest.mark.xfail("env.PYPY")
 def test_cyclic_gc():
     # One object references itself
     instance = m.DynamicClass()
@@ -435,3 +438,25 @@ def test_ref_qualified():
     r.refQualified(17)
     assert r.value == 17
     assert r.constRefQualified(23) == 40
+
+
+def test_overload_ordering():
+    'Check to see if the normal overload order (first defined) and prepend overload order works'
+    assert m.overload_order("string") == 1
+    assert m.overload_order(0) == 4
+
+    # Different for Python 2 vs. 3
+    uni_name = type(u"").__name__
+
+    assert "1. overload_order(arg0: int) -> int" in m.overload_order.__doc__
+    assert "2. overload_order(arg0: {}) -> int".format(uni_name) in m.overload_order.__doc__
+    assert "3. overload_order(arg0: {}) -> int".format(uni_name) in m.overload_order.__doc__
+    assert "4. overload_order(arg0: int) -> int" in m.overload_order.__doc__
+
+    with pytest.raises(TypeError) as err:
+        m.overload_order(1.1)
+
+    assert "1. (arg0: int) -> int" in str(err.value)
+    assert "2. (arg0: {}) -> int".format(uni_name) in str(err.value)
+    assert "3. (arg0: {}) -> int".format(uni_name) in str(err.value)
+    assert "4. (arg0: int) -> int" in str(err.value)

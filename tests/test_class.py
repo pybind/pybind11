@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+import env  # noqa: F401
+
 from pybind11_tests import class_ as m
 from pybind11_tests import UserType, ConstructorStats
 
@@ -22,6 +24,46 @@ def test_instance(msg):
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
+
+
+def test_type():
+    assert m.check_type(1) == m.DerivedClass1
+    with pytest.raises(RuntimeError) as execinfo:
+        m.check_type(0)
+
+    assert 'pybind11::detail::get_type_info: unable to find type info' in str(execinfo.value)
+    assert 'Invalid' in str(execinfo.value)
+
+    # Currently not supported
+    # See https://github.com/pybind/pybind11/issues/2486
+    # assert m.check_type(2) == int
+
+
+def test_type_of_py():
+    assert m.get_type_of(1) == int
+    assert m.get_type_of(m.DerivedClass1()) == m.DerivedClass1
+    assert m.get_type_of(int) == type
+
+
+def test_type_of_classic():
+    assert m.get_type_classic(1) == int
+    assert m.get_type_classic(m.DerivedClass1()) == m.DerivedClass1
+    assert m.get_type_classic(int) == type
+
+
+def test_type_of_py_nodelete():
+    # If the above test deleted the class, this will segfault
+    assert m.get_type_of(m.DerivedClass1()) == m.DerivedClass1
+
+
+def test_as_type_py():
+    assert m.as_type(int) == int
+
+    with pytest.raises(TypeError):
+        assert m.as_type(1) == int
+
+    with pytest.raises(TypeError):
+        assert m.as_type(m.DerivedClass1()) == m.DerivedClass1
 
 
 def test_docstrings(doc):
@@ -110,10 +152,8 @@ def test_inheritance_init(msg):
             pass
     with pytest.raises(TypeError) as exc_info:
         Python()
-    expected = ["m.class_.Pet.__init__() must be called when overriding __init__",
-                "Pet.__init__() must be called when overriding __init__"]  # PyPy?
-    # TODO: fix PyPy error message wrt. tp_name/__qualname__?
-    assert msg(exc_info.value) in expected
+    expected = "m.class_.Pet.__init__() must be called when overriding __init__"
+    assert msg(exc_info.value) == expected
 
     # Multiple bases
     class RabbitHamster(m.Rabbit, m.Hamster):
@@ -122,9 +162,8 @@ def test_inheritance_init(msg):
 
     with pytest.raises(TypeError) as exc_info:
         RabbitHamster()
-    expected = ["m.class_.Hamster.__init__() must be called when overriding __init__",
-                "Hamster.__init__() must be called when overriding __init__"]  # PyPy
-    assert msg(exc_info.value) in expected
+    expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
+    assert msg(exc_info.value) == expected
 
 
 def test_automatic_upcasting():
@@ -261,7 +300,7 @@ def test_brace_initialization():
     assert b.vec == [123, 456]
 
 
-@pytest.unsupported_on_pypy
+@pytest.mark.xfail("env.PYPY")
 def test_class_refcount():
     """Instances must correctly increase/decrease the reference count of their types (#1029)"""
     from sys import getrefcount
@@ -307,8 +346,8 @@ def test_aligned():
         assert p % 1024 == 0
 
 
-# https://bitbucket.org/pypy/pypy/issues/2742
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2742
+@pytest.mark.xfail("env.PYPY")
 def test_final():
     with pytest.raises(TypeError) as exc_info:
         class PyFinalChild(m.IsFinal):
@@ -316,10 +355,66 @@ def test_final():
     assert str(exc_info.value).endswith("is not an acceptable base type")
 
 
-# https://bitbucket.org/pypy/pypy/issues/2742
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2742
+@pytest.mark.xfail("env.PYPY")
 def test_non_final_final():
     with pytest.raises(TypeError) as exc_info:
         class PyNonFinalFinalChild(m.IsNonFinalFinal):
             pass
     assert str(exc_info.value).endswith("is not an acceptable base type")
+
+
+# https://github.com/pybind/pybind11/issues/1878
+def test_exception_rvalue_abort():
+    with pytest.raises(RuntimeError):
+        m.PyPrintDestructor().throw_something()
+
+
+# https://github.com/pybind/pybind11/issues/1568
+def test_multiple_instances_with_same_pointer(capture):
+    n = 100
+    instances = [m.SamePointer() for _ in range(n)]
+    for i in range(n):
+        # We need to reuse the same allocated memory for with a different type,
+        # to ensure the bug in `deregister_instance_impl` is detected. Otherwise
+        # `Py_TYPE(self) == Py_TYPE(it->second)` will still succeed, even though
+        # the `instance` is already deleted.
+        instances[i] = m.Empty()
+    # No assert: if this does not trigger the error
+    #   pybind11_fail("pybind11_object_dealloc(): Tried to deallocate unregistered instance!");
+    # and just completes without crashing, we're good.
+
+
+# https://github.com/pybind/pybind11/issues/1624
+def test_base_and_derived_nested_scope():
+    assert issubclass(m.DerivedWithNested, m.BaseWithNested)
+    assert m.BaseWithNested.Nested != m.DerivedWithNested.Nested
+    assert m.BaseWithNested.Nested.get_name() == "BaseWithNested::Nested"
+    assert m.DerivedWithNested.Nested.get_name() == "DerivedWithNested::Nested"
+
+
+@pytest.mark.skip("See https://github.com/pybind/pybind11/pull/2564")
+def test_register_duplicate_class():
+    import types
+    module_scope = types.ModuleType("module_scope")
+    with pytest.raises(RuntimeError) as exc_info:
+        m.register_duplicate_class_name(module_scope)
+    expected = ('generic_type: cannot initialize type "Duplicate": '
+                'an object with that name is already defined')
+    assert str(exc_info.value) == expected
+    with pytest.raises(RuntimeError) as exc_info:
+        m.register_duplicate_class_type(module_scope)
+    expected = 'generic_type: type "YetAnotherDuplicate" is already registered!'
+    assert str(exc_info.value) == expected
+
+    class ClassScope:
+        pass
+    with pytest.raises(RuntimeError) as exc_info:
+        m.register_duplicate_nested_class_name(ClassScope)
+    expected = ('generic_type: cannot initialize type "DuplicateNested": '
+                'an object with that name is already defined')
+    assert str(exc_info.value) == expected
+    with pytest.raises(RuntimeError) as exc_info:
+        m.register_duplicate_nested_class_type(ClassScope)
+    expected = 'generic_type: type "YetAnotherDuplicateNested" is already registered!'
+    assert str(exc_info.value) == expected

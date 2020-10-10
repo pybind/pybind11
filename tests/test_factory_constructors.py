@@ -2,6 +2,8 @@
 import pytest
 import re
 
+import env  # noqa: F401
+
 from pybind11_tests import factory_constructors as m
 from pybind11_tests.factory_constructors import tag
 from pybind11_tests import ConstructorStats
@@ -39,9 +41,12 @@ def test_init_factory_basic():
     z3 = m.TestFactory3("bye")
     assert z3.value == "bye"
 
-    with pytest.raises(TypeError) as excinfo:
-        m.TestFactory3(tag.null_ptr)
-    assert str(excinfo.value) == "pybind11::init(): factory function returned nullptr"
+    for null_ptr_kind in [tag.null_ptr,
+                          tag.null_unique_ptr,
+                          tag.null_shared_ptr]:
+        with pytest.raises(TypeError) as excinfo:
+            m.TestFactory3(null_ptr_kind)
+        assert str(excinfo.value) == "pybind11::init(): factory function returned nullptr"
 
     assert [i.alive() for i in cstats] == [3, 3, 3]
     assert ConstructorStats.detail_reg_inst() == n_inst + 9
@@ -331,10 +336,10 @@ def strip_comments(s):
     return re.sub(r'\s+#.*', '', s)
 
 
-def test_reallocations(capture, msg):
+def test_reallocation_a(capture, msg):
     """When the constructor is overloaded, previous overloads can require a preallocated value.
     This test makes sure that such preallocated values only happen when they might be necessary,
-    and that they are deallocated properly"""
+    and that they are deallocated properly."""
 
     pytest.gc_collect()
 
@@ -348,6 +353,9 @@ def test_reallocations(capture, msg):
         ~NoisyAlloc()
         noisy delete
     """
+
+
+def test_reallocation_b(capture, msg):
     with capture:
         create_and_destroy(1.5)
     assert msg(capture) == strip_comments("""
@@ -360,6 +368,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_c(capture, msg):
     with capture:
         create_and_destroy(2, 3)
     assert msg(capture) == strip_comments("""
@@ -370,6 +380,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_d(capture, msg):
     with capture:
         create_and_destroy(2.5, 3)
     assert msg(capture) == strip_comments("""
@@ -381,6 +393,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_e(capture, msg):
     with capture:
         create_and_destroy(3.5, 4.5)
     assert msg(capture) == strip_comments("""
@@ -392,6 +406,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_f(capture, msg):
     with capture:
         create_and_destroy(4, 0.5)
     assert msg(capture) == strip_comments("""
@@ -404,6 +420,8 @@ def test_reallocations(capture, msg):
         noisy delete   # operator delete
     """)
 
+
+def test_reallocation_g(capture, msg):
     with capture:
         create_and_destroy(5, "hi")
     assert msg(capture) == strip_comments("""
@@ -418,7 +436,7 @@ def test_reallocations(capture, msg):
     """)
 
 
-@pytest.unsupported_on_py2
+@pytest.mark.skipif("env.PY2")
 def test_invalid_self():
     """Tests invocation of the pybind-registered base class with an invalid `self` argument.  You
     can only actually do this on Python 3: Python 2 raises an exception itself if you try."""

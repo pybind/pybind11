@@ -2,17 +2,15 @@
 import pytest
 from pybind11_tests import ConstructorStats
 
-pytestmark = pytest.requires_eigen_and_numpy
+np = pytest.importorskip("numpy")
+m = pytest.importorskip("pybind11_tests.eigen")
 
-with pytest.suppress(ImportError):
-    from pybind11_tests import eigen as m
-    import numpy as np
 
-    ref = np.array([[ 0.,  3,  0,  0,  0, 11],
-                    [22,  0,  0,  0, 17, 11],
-                    [ 7,  5,  0,  1,  0, 11],
-                    [ 0,  0,  0,  0,  0, 11],
-                    [ 0,  0, 14,  0,  8, 11]])
+ref = np.array([[ 0.,  3,  0,  0,  0, 11],
+                [22,  0,  0,  0, 17, 11],
+                [ 7,  5,  0,  1,  0, 11],
+                [ 0,  0,  0,  0,  0, 11],
+                [ 0,  0, 14,  0,  8, 11]])
 
 
 def assert_equal_ref(mat):
@@ -646,8 +644,8 @@ def test_named_arguments():
     assert str(excinfo.value) == 'Nonconformable matrices!'
 
 
-@pytest.requires_eigen_and_scipy
 def test_sparse():
+    pytest.importorskip("scipy")
     assert_sparse_equal_ref(m.sparse_r())
     assert_sparse_equal_ref(m.sparse_c())
     assert_sparse_equal_ref(m.sparse_copy_r(m.sparse_r()))
@@ -656,8 +654,8 @@ def test_sparse():
     assert_sparse_equal_ref(m.sparse_copy_c(m.sparse_r()))
 
 
-@pytest.requires_eigen_and_scipy
 def test_sparse_signature(doc):
+    pytest.importorskip("scipy")
     assert doc(m.sparse_copy_r) == """
         sparse_copy_r(arg0: scipy.sparse.csr_matrix[numpy.float32]) -> scipy.sparse.csr_matrix[numpy.float32]
     """  # noqa: E501 line too long

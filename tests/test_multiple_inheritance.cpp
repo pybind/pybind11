@@ -193,14 +193,12 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def_readwrite_static("static_value", &VanillaStaticMix2::static_value);
 
 
-#if !(defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x06000000))
     struct WithDict { };
     struct VanillaDictMix1 : Vanilla, WithDict { };
     struct VanillaDictMix2 : WithDict, Vanilla { };
     py::class_<WithDict>(m, "WithDict", py::dynamic_attr()).def(py::init<>());
     py::class_<VanillaDictMix1, Vanilla, WithDict>(m, "VanillaDictMix1").def(py::init<>());
     py::class_<VanillaDictMix2, WithDict, Vanilla>(m, "VanillaDictMix2").def(py::init<>());
-#endif
 
     // test_diamond_inheritance
     // Issue #959: segfault when constructing diamond inheritance instance

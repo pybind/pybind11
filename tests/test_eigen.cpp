@@ -87,8 +87,6 @@ TEST_SUBMODULE(eigen, m) {
     using SparseMatrixR = Eigen::SparseMatrix<float, Eigen::RowMajor>;
     using SparseMatrixC = Eigen::SparseMatrix<float>;
 
-    m.attr("have_eigen") = true;
-
     // various tests
     m.def("double_col", [](const Eigen::VectorXf &x) -> Eigen::VectorXf { return 2.0f * x; });
     m.def("double_row", [](const Eigen::RowVectorXf &x) -> Eigen::RowVectorXf { return 2.0f * x; });
@@ -319,11 +317,11 @@ TEST_SUBMODULE(eigen, m) {
     // a new array (np.ones(10)) increases the chances that the temp array will be garbage
     // collected and/or that its memory will be overridden with different values.
     m.def("get_elem_direct", [](Eigen::Ref<const Eigen::VectorXd> v) {
-        py::module::import("numpy").attr("ones")(10);
+        py::module_::import("numpy").attr("ones")(10);
         return v(5);
     });
     m.def("get_elem_indirect", [](std::vector<Eigen::Ref<const Eigen::VectorXd>> v) {
-        py::module::import("numpy").attr("ones")(10);
+        py::module_::import("numpy").attr("ones")(10);
         return v[0](5);
     });
 }

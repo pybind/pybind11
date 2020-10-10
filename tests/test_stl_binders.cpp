@@ -117,7 +117,7 @@ TEST_SUBMODULE(stl_binders, m) {
     });
 
     // The rest depends on numpy:
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_vector_buffer_numpy

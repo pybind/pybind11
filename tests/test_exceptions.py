@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import sys
+
 import pytest
 
 from pybind11_tests import exceptions as m
@@ -46,6 +48,33 @@ def test_python_call_in_catch():
     d = {}
     assert m.python_call_in_destructor(d) is True
     assert d["good"] is True
+
+
+def test_python_alreadyset_in_destructor(monkeypatch, capsys):
+    hooked = False
+    triggered = [False]  # mutable, so Python 2.7 closure can modify it
+
+    if hasattr(sys, 'unraisablehook'):  # Python 3.8+
+        hooked = True
+        default_hook = sys.unraisablehook
+
+        def hook(unraisable_hook_args):
+            exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
+            if obj == 'already_set demo':
+                triggered[0] = True
+            default_hook(unraisable_hook_args)
+            return
+
+        # Use monkeypatch so pytest can apply and remove the patch as appropriate
+        monkeypatch.setattr(sys, 'unraisablehook', hook)
+
+    assert m.python_alreadyset_in_destructor('already_set demo') is True
+    if hooked:
+        assert triggered[0] is True
+
+    _, captured_stderr = capsys.readouterr()
+    # Error message is different in Python 2 and 3, check for words that appear in both
+    assert 'ignored' in captured_stderr and 'already_set demo' in captured_stderr
 
 
 def test_exception_matches():
@@ -149,3 +178,14 @@ def test_nested_throws(capture):
     with pytest.raises(m.MyException5) as excinfo:
         m.try_catch(m.MyException, pycatch, m.MyException, m.throws5)
     assert str(excinfo.value) == "this is a helper-defined translated exception"
+
+
+# This can often happen if you wrap a pybind11 class in a Python wrapper
+def test_invalid_repr():
+
+    class MyRepr(object):
+        def __repr__(self):
+            raise AttributeError("Example error")
+
+    with pytest.raises(TypeError):
+        m.simple_bool_passthrough(MyRepr())

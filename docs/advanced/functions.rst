@@ -17,7 +17,7 @@ bindings for functions that return a non-trivial type. Just by looking at the
 type information, it is not clear whether Python should take charge of the
 returned value and eventually free its resources, or if this is handled on the
 C++ side. For this reason, pybind11 provides a several *return value policy*
-annotations that can be passed to the :func:`module::def` and
+annotations that can be passed to the :func:`module_::def` and
 :func:`class_::def` functions. The default policy is
 :enum:`return_value_policy::automatic`.
 
@@ -360,7 +360,7 @@ like so:
 .. code-block:: cpp
 
     py::class_<MyClass>("MyClass")
-        .def("myFunction", py::arg("arg") = (SomeType *) nullptr);
+        .def("myFunction", py::arg("arg") = static_cast<SomeType *>(nullptr));
 
 Keyword-only arguments
 ======================
@@ -378,17 +378,37 @@ argument in a function definition:
     f(1, b=2)    # good
     f(1, 2)      # TypeError: f() takes 1 positional argument but 2 were given
 
-Pybind11 provides a ``py::kwonly`` object that allows you to implement
+Pybind11 provides a ``py::kw_only`` object that allows you to implement
 the same behaviour by specifying the object between positional and keyword-only
 argument annotations when registering the function:
 
 .. code-block:: cpp
 
     m.def("f", [](int a, int b) { /* ... */ },
-          py::arg("a"), py::kwonly(), py::arg("b"));
+          py::arg("a"), py::kw_only(), py::arg("b"));
 
-Note that, as in Python, you cannot combine this with a ``py::args`` argument.
-This feature does *not* require Python 3 to work.
+Note that you currently cannot combine this with a ``py::args`` argument.  This
+feature does *not* require Python 3 to work.
+
+.. versionadded:: 2.6
+
+Positional-only arguments
+=========================
+
+Python 3.8 introduced a new positional-only argument syntax, using ``/`` in the
+function definition (note that this has been a convention for CPython
+positional arguments, such as in ``pow()``, since Python 2). You can
+do the same thing in any version of Python using ``py::pos_only()``:
+
+.. code-block:: cpp
+
+   m.def("f", [](int a, int b) { /* ... */ },
+          py::arg("a"), py::pos_only(), py::arg("b"));
+
+You now cannot give argument ``a`` by keyword. This can be combined with
+keyword-only arguments, as well.
+
+.. versionadded:: 2.6
 
 .. _nonconverting_arguments:
 
@@ -520,11 +540,13 @@ an explicit ``py::arg().noconvert()`` attribute in the function definition).
 If the second pass also fails a ``TypeError`` is raised.
 
 Within each pass, overloads are tried in the order they were registered with
-pybind11.
+pybind11. If the ``py::prepend()`` tag is added to the definition, a function
+can be placed at the beginning of the overload sequence instead, allowing user
+overloads to proceed built in functions.
 
 What this means in practice is that pybind11 will prefer any overload that does
-not require conversion of arguments to an overload that does, but otherwise prefers
-earlier-defined overloads to later-defined ones.
+not require conversion of arguments to an overload that does, but otherwise
+prefers earlier-defined overloads to later-defined ones.
 
 .. note::
 
@@ -533,3 +555,7 @@ earlier-defined overloads to later-defined ones.
     requiring one conversion over one requiring three, but only prioritizes
     overloads requiring no conversion at all to overloads that require
     conversion of at least one argument.
+
+.. versionadded:: 2.6
+
+    The ``py::prepend()`` tag.

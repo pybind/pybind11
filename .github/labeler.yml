@@ -1,0 +1,14 @@
+needs changelog:
+- all:
+  - '!docs/changelog.rst'
+  any:
+  - 'include/pybind11/**/*|pybind11/**/*|tools/**/*|CMakeLists.txt'
+
+docs:
+- any:
+  - 'docs/**/*.rst'
+  - '!docs/changelog.rst'
+  - '!docs/upgrade.rst'
+
+ci:
+- '.github/workflows/*.yaml'

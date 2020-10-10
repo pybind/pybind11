@@ -60,8 +60,14 @@ TEST_SUBMODULE(opaque_types, m) {
     m.def("get_null_str_value", [](char *ptr) { return reinterpret_cast<std::intptr_t>(ptr); });
 
     m.def("return_unique_ptr", []() -> std::unique_ptr<StringList> {
-        StringList *result = new StringList();
+        auto *result = new StringList();
         result->push_back("some value");
         return std::unique_ptr<StringList>(result);
     });
+
+    // test unions
+    py::class_<IntFloat>(m, "IntFloat")
+        .def(py::init<>())
+        .def_readwrite("i", &IntFloat::i)
+        .def_readwrite("f", &IntFloat::f);
 }

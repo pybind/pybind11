@@ -42,7 +42,7 @@ redirects output to the corresponding Python streams:
     m.def("noisy_func", []() {
         py::scoped_ostream_redirect stream(
             std::cout,                               // std::ostream&
-            py::module::import("sys").attr("stdout") // Python output
+            py::module_::import("sys").attr("stdout") // Python output
         );
         call_noisy_func();
     });
@@ -104,7 +104,7 @@ can be used.
     ...
 
     // Evaluate in scope of main module
-    py::object scope = py::module::import("__main__").attr("__dict__");
+    py::object scope = py::module_::import("__main__").attr("__dict__");
 
     // Evaluate an isolated expression
     int result = py::eval("my_variable + 10", scope).cast<int>();

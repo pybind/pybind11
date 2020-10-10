@@ -22,7 +22,7 @@ struct DtypeCheck {
 
 template <typename T>
 DtypeCheck get_dtype_check(const char* name) {
-    py::module np = py::module::import("numpy");
+    py::module_ np = py::module_::import("numpy");
     DtypeCheck check{};
     check.numpy = np.attr("dtype")(np.attr(name));
     check.pybind11 = py::dtype::of<T>();
@@ -133,7 +133,7 @@ template <typename T, typename T2> py::handle auxiliaries(T &&r, T2 &&r2) {
 static int data_i = 42;
 
 TEST_SUBMODULE(numpy_array, sm) {
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_dtypes
@@ -212,7 +212,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         .def(py::init<>())
         .def("numpy_view", [](py::object &obj) {
             py::print("ArrayClass::numpy_view()");
-            ArrayClass &a = obj.cast<ArrayClass&>();
+            auto &a = obj.cast<ArrayClass&>();
             return py::array_t<int>({2}, {4}, a.data, obj);
         }
     );
@@ -318,6 +318,18 @@ TEST_SUBMODULE(numpy_array, sm) {
         return auxiliaries(r, r2);
     });
 
+    sm.def("proxy_auxiliaries1_const_ref", [](py::array_t<double> a) {
+        const auto &r = a.unchecked<1>();
+        const auto &r2 = a.mutable_unchecked<1>();
+        return r(0) == r2(0) && r[0] == r2[0];
+    });
+
+    sm.def("proxy_auxiliaries2_const_ref", [](py::array_t<double> a) {
+        const auto &r = a.unchecked<2>();
+        const auto &r2 = a.mutable_unchecked<2>();
+        return r(0, 0) == r2(0, 0);
+    });
+
     // test_array_unchecked_dyn_dims
     // Same as the above, but without a compile-time dimensions specification:
     sm.def("proxy_add2_dyn", [](py::array_t<double> a, double v) {
@@ -362,7 +374,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     // test_array_resize
     // reshape array to 2D without changing size
     sm.def("array_reshape2", [](py::array_t<double> a) {
-        const ssize_t dim_sz = (ssize_t)std::sqrt(a.size());
+        const auto dim_sz = (ssize_t)std::sqrt(a.size());
         if (dim_sz * dim_sz != a.size())
             throw std::domain_error("array_reshape2: input array total size is not a squared integer");
         a.resize({dim_sz, dim_sz});
@@ -382,9 +394,45 @@ TEST_SUBMODULE(numpy_array, sm) {
         return a;
     });
 
-#if PY_MAJOR_VERSION >= 3
-        sm.def("index_using_ellipsis", [](py::array a) {
-            return a[py::make_tuple(0, py::ellipsis(), 0)];
-        });
-#endif
+    sm.def("index_using_ellipsis", [](py::array a) {
+        return a[py::make_tuple(0, py::ellipsis(), 0)];
+    });
+
+    // test_argument_conversions
+    sm.def("accept_double",
+           [](py::array_t<double, 0>) {},
+           py::arg("a"));
+    sm.def("accept_double_forcecast",
+           [](py::array_t<double, py::array::forcecast>) {},
+           py::arg("a"));
+    sm.def("accept_double_c_style",
+           [](py::array_t<double, py::array::c_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_c_style_forcecast",
+           [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_f_style",
+           [](py::array_t<double, py::array::f_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_f_style_forcecast",
+           [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_noconvert",
+           [](py::array_t<double, 0>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_c_style_noconvert",
+           [](py::array_t<double, py::array::c_style>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_c_style_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_f_style_noconvert",
+           [](py::array_t<double, py::array::f_style>) {},
+           py::arg("a").noconvert());
+    sm.def("accept_double_f_style_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
+           py::arg("a").noconvert());
 }
