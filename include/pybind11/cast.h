@@ -2172,16 +2172,26 @@ private:
     dict m_kwargs;
 };
 
+// [workaround(intel)] Separate function required here
+// We need to put this into a separate function because the Intel compiler
+// fails to compile enable_if_t<!all_of<is_positional<Args>...>::value>
+// (tested with ICC 2021.1 Beta 20200827).
+template <typename... Args>
+constexpr bool args_are_all_positional()
+{
+  return all_of<is_positional<Args>...>::value;
+}
+
 /// Collect only positional arguments for a Python function call
 template <return_value_policy policy, typename... Args,
-          typename = enable_if_t<all_of<is_positional<Args>...>::value>>
+          typename = enable_if_t<args_are_all_positional<Args...>()>>
 simple_collector<policy> collect_arguments(Args &&...args) {
     return simple_collector<policy>(std::forward<Args>(args)...);
 }
 
 /// Collect all arguments, including keywords and unpacking (only instantiated when needed)
 template <return_value_policy policy, typename... Args,
-          typename = enable_if_t<!all_of<is_positional<Args>...>::value>>
+          typename = enable_if_t<!args_are_all_positional<Args...>()>>
 unpacking_collector<policy> collect_arguments(Args &&...args) {
     // Following argument order rules for generalized unpacking according to PEP 448
     static_assert(

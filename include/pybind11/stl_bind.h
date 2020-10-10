@@ -377,8 +377,16 @@ struct vector_has_data_and_format<Vector, enable_if_t<std::is_same<decltype(form
 
 // Add the buffer interface to a vector
 template <typename Vector, typename Class_, typename... Args>
+#if defined(__INTEL_COMPILER) && defined(PYBIND11_CPP17)
+// [workaround(intel)] Separate function required here
+// Workaround as the Intel compiler does not compile the enable_if_t part below
+// (tested with icc (ICC) 2021.1 Beta 20200827)
+void vector_buffer(Class_& cl) {
+  if constexpr (detail::any_of<std::is_same<Args, buffer_protocol>...>::value) {
+#else
 enable_if_t<detail::any_of<std::is_same<Args, buffer_protocol>...>::value>
 vector_buffer(Class_& cl) {
+#endif
     using T = typename Vector::value_type;
 
     static_assert(vector_has_data_and_format<Vector>::value, "There is not an appropriate format descriptor for this vector");
@@ -413,10 +421,16 @@ vector_buffer(Class_& cl) {
     }));
 
     return;
+#if defined(__INTEL_COMPILER) && defined(PYBIND11_CPP17)
+  }
+}
+#else
 }
 
 template <typename Vector, typename Class_, typename... Args>
 enable_if_t<!detail::any_of<std::is_same<Args, buffer_protocol>...>::value> vector_buffer(Class_&) {}
+
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 

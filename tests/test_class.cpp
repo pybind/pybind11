@@ -7,6 +7,13 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#if defined(__INTEL_COMPILER) && __cplusplus >= 201703L
+// Intel compiler requires a separate header file to support aligned new operators
+// and does not set the __cpp_aligned_new feature macro.
+// This header needs to be included before pybind11.
+#include <aligned_new>
+#endif
+
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include "local_bindings.h"
@@ -324,6 +331,8 @@ TEST_SUBMODULE(class_, m) {
     class PublicistB : public ProtectedB {
     public:
         // [workaround(intel)] = default does not work here
+        // Removing or defaulting this destructor results in linking errors with the Intel compiler
+        // (in Debug builds only, tested with icpc (ICC) 2021.1 Beta 20200827)
         ~PublicistB() override {};  // NOLINT(modernize-use-equals-default)
         using ProtectedB::foo;
     };
