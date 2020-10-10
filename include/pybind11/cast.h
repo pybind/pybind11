@@ -16,6 +16,7 @@
 #include "detail/internals.h"
 #include <array>
 #include <limits>
+#include <memory>
 #include <tuple>
 #include <type_traits>
 
@@ -1491,9 +1492,50 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
+/// Helper class used by copyable_holder_caster to store its underlying holder based on
+/// whether the holder_type is default-constructable. If it is, it's stored as a field (this
+/// template), otherwise as a unique_ptr<holder_base> (the partial specialization below).
+template <typename holder_type, typename SFINAE = void>
+class copyable_holder_base {
+protected:
+    template <typename... Args>
+    void set_holder(Args&&... value) {
+        holder = holder_type(value...);
+    }
+    template <typename T>
+    void set_holder(T&& value) {
+        holder = value;
+    }
+    holder_type& get_holder() { return holder; }
+private:
+    holder_type holder;
+};
+
+template <typename holder_type>
+class copyable_holder_base<holder_type, typename std::enable_if<!std::is_default_constructible<holder_type>::value>::type> {
+protected:
+    template <typename... Args>
+    void set_holder(Args&&... value) {
+        if (holder)
+            *holder = holder_type(value...);
+        else
+            holder = std::unique_ptr<holder_type>(new holder_type(value...));
+    }
+    template <typename T>
+    void set_holder(T&& value) {
+        if (holder)
+            *holder = value;
+        else
+            holder = std::unique_ptr<holder_type>(new holder_type(value));
+    }
+    holder_type& get_holder() { return *holder; }
+private:
+    std::unique_ptr<holder_type> holder;
+};
+
 /// Type caster for holder types like std::shared_ptr, etc.
 template <typename type, typename holder_type>
-struct copyable_holder_caster : public type_caster_base<type> {
+struct copyable_holder_caster : public type_caster_base<type>, copyable_holder_base<holder_type> {
 public:
     using base = type_caster_base<type>;
     static_assert(std::is_base_of<base, type_caster<type>>::value,
@@ -1511,14 +1553,14 @@ public:
     // static_cast works around compiler error with MSVC 17 and CUDA 10.2
     // see issue #2180
     explicit operator type&() { return *(static_cast<type *>(this->value)); }
-    explicit operator holder_type*() { return std::addressof(holder); }
+    explicit operator holder_type*() { return std::addressof(this->get_holder()); }
 
     // Workaround for Intel compiler bug
     // see pybind11 issue 94
     #if defined(__ICC) || defined(__INTEL_COMPILER)
-    operator holder_type&() { return holder; }
+    operator holder_type&() { return this->get_holder(); }
     #else
-    explicit operator holder_type&() { return holder; }
+    explicit operator holder_type&() { return this->get_holder(); }
     #endif
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
@@ -1536,7 +1578,7 @@ protected:
     bool load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
-            holder = v_h.template holder<holder_type>();
+            this->set_holder(v_h.template holder<holder_type>());
             return true;
         } else {
             throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
@@ -1557,7 +1599,7 @@ protected:
             copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
-                holder = holder_type(sub_caster.holder, (type *) value);
+                this->set_holder(sub_caster.get_holder(), (type *) value);
                 return true;
             }
         }
@@ -1565,9 +1607,6 @@ protected:
     }
 
     static bool try_direct_conversions(handle) { return false; }
-
-
-    holder_type holder;
 };
 
 /// Specialize for the common std::shared_ptr, so users don't need to

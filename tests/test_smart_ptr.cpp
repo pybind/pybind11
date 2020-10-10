@@ -86,6 +86,33 @@ public:
 PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
 
 
+// Simple shared_ptr workalike that isn't default-constructable and doesn't allow nulls.
+template <typename T>
+class non_null_ptr {
+    std::shared_ptr<T> impl;
+public:
+    non_null_ptr() = delete;
+    non_null_ptr(const non_null_ptr<T>& src) = default;
+    non_null_ptr(non_null_ptr<T>&& src) = default;
+    template <typename U>
+    non_null_ptr(U&& u) : impl(std::forward<U>(u)) {
+        if (!impl)
+            throw std::logic_error("nullptr value is not allowed.");
+    }
+    template <typename U>
+    non_null_ptr<T>& operator=(U&& u) {
+        impl = std::forward<U>(u);
+        if (!impl)
+            throw std::logic_error("nullptr value is not allowed.");
+        return *this;
+    }
+    T* get() const { return impl.get(); }
+    T* release_ptr() { return impl.release(); }
+    T* operator->() { return impl.get(); }
+    operator std::shared_ptr<T>&() { return impl; }
+};
+PYBIND11_DECLARE_HOLDER_TYPE(T, non_null_ptr<T>);
+
 TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr
@@ -367,4 +394,22 @@ TEST_SUBMODULE(smart_ptr, m) {
                 list.append(py::cast(e));
             return list;
         });
+
+    // test_non_null_ptr
+    struct IntBox { // A trivial class because holders don't support primitives
+        int value;
+        IntBox(int v) : value(v) {}
+    };
+    py::class_<IntBox, std::shared_ptr<IntBox>>(m, "IntBox")
+        .def(py::init<int>())
+        .def_readwrite("value", &IntBox::value);
+    struct NonNullPointers {
+        non_null_ptr<IntBox> get() const { return std::make_shared<IntBox>(4); }
+        int echo(non_null_ptr<IntBox> box) const { return box->value; }
+    };
+    py::class_<NonNullPointers, std::shared_ptr<NonNullPointers>>(m, "NonNullPointers")
+        .def(py::init<>())
+        .def("get", &NonNullPointers::get)
+        .def("echo", &NonNullPointers::echo);
+
 }

@@ -289,3 +289,11 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
+
+
+def test_non_null_ptr():
+    ib = m.IntBox(3)
+    nnp = m.NonNullPointers()
+    ib2 = nnp.get()
+    assert ib2.value == 4
+    assert nnp.echo(ib) == 3
