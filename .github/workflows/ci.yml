@@ -409,14 +409,14 @@ jobs:
         echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
 
     - name: Add ICC & Python 3
-      run: sudo apt-get update; sudo apt-get install -y intel-oneapi-dpcpp-cpp-compiler-pro intel-oneapi-python cmake
+      run: sudo apt-get update; sudo apt-get install -y intel-oneapi-dpcpp-cpp-compiler-pro cmake python3-dev python3-numpy python3-pytest python3-pip libeigen3-dev
 
     - name: Update pip & pytest
       shell: bash
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade pytest
+        python3 -m pip install --upgrade pip
+        python3 -m pip install --upgrade pytest
 
     - name: Configure
       shell: bash
@@ -428,7 +428,7 @@ jobs:
         -DDOWNLOAD_EIGEN=OFF    \
         -DCMAKE_CXX_STANDARD=11             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
-        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
       shell: bash
