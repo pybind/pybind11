@@ -424,3 +424,10 @@ def test_memoryview_from_memory():
     assert isinstance(view, memoryview)
     assert view.format == 'B'
     assert bytes(view) == b'\xff\xe1\xab\x37'
+
+
+def test_builtin_functions():
+    assert m.get_len([i for i in range(42)]) == 42
+    with pytest.raises(TypeError) as exc_info:
+        m.get_len(i for i in range(42))
+    assert str(exc_info.value) == "object of type 'generator' has no len()"
