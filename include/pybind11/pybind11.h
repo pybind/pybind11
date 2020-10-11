@@ -466,7 +466,7 @@ protected:
             }
             if (rec->def) {
                 std::free(const_cast<char *>(rec->def->ml_doc));
-                delete rec->def;
+                //delete rec->def;
             }
             delete rec;
             rec = next;

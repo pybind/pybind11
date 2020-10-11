@@ -70,12 +70,6 @@ jobs:
             python: pypy3
             arch: x64
 
-            # TODO: renable
-            # Currently segfaults on macOS Python 3.9
-          - runs-on: macos-latest
-            python: 3.9
-            arch: x64
-
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }} ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
 
