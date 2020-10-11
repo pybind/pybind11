@@ -409,7 +409,7 @@ jobs:
         echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
 
     - name: Add ICC & Python 3
-      run: sudo apt-get update; sudo apt-get install -y intel-oneapi-dpcpp-cpp-compiler-pro intel-oneapi-python
+      run: sudo apt-get update; sudo apt-get install -y intel-oneapi-dpcpp-cpp-compiler-pro intel-oneapi-python cmake
 
     - name: Update pip & pytest
       shell: bash
@@ -417,11 +417,6 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         python -m pip install --upgrade pip
         python -m pip install --upgrade pytest
-
-    - name: Setup CMake 3.18
-      uses: jwlawson/actions-setup-cmake@v1.4
-      with:
-        cmake-version: 3.18
 
     - name: Configure
       shell: bash
