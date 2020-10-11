@@ -391,7 +391,7 @@ jobs:
 
   # Testing on ICC using the oneAPI apt repo
   icc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     strategy:
       fail-fast: false
 
