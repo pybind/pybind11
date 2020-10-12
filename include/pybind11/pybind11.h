@@ -1056,14 +1056,34 @@ protected:
 
         auto &internals = get_internals();
         auto tindex = std::type_index(*rec.type);
+        auto module_local = rec.module_local;
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
-        if (rec.module_local)
+        if (module_local)
             registered_local_types_cpp()[tindex] = tinfo;
         else
             internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[type] = { tinfo };
-        weakref(m_ptr, cpp_function([type](handle wr) {
-            get_internals().registered_types_py.erase(type);
+
+        // Clean up our internals after the Python type object gets garbage collected
+        weakref(m_ptr, cpp_function([type, tindex, module_local](handle wr) {
+            auto &internals = get_internals();
+            internals.direct_conversions.erase(tindex);
+            if (module_local)
+                registered_local_types_cpp().erase(tindex);
+            else
+                internals.registered_types_cpp.erase(tindex);
+            internals.registered_types_py.erase(type);
+            // C++20: std::erase_if(internals.inactive_override_cache,
+            //                      [type](const auto &entry) {
+            //                          return entry.first == (PyObject *) type;
+            //                      });
+            auto &cache = internals.inactive_override_cache;
+            for (auto it = cache.begin(), last = cache.end(); it != last; ) {
+                if (it->first == (PyObject *) type)
+                    it = cache.erase(it);
+                else
+                    ++it;
+            }
             wr.dec_ref();
         })).release();
 
