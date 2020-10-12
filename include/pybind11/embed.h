@@ -56,13 +56,7 @@
         try {                                                                   \
             PYBIND11_CONCAT(pybind11_init_, name)(m);                           \
             return m.ptr();                                                     \
-        } catch (::pybind11::error_already_set &e) {                            \
-            PyErr_SetString(PyExc_ImportError, e.what());                       \
-            return nullptr;                                                     \
-        } catch (const std::exception &e) {                                     \
-            PyErr_SetString(PyExc_ImportError, e.what());                       \
-            return nullptr;                                                     \
-        }                                                                       \
+        } PYBIND11_CATCH_INIT_EXCEPTIONS                                        \
     }                                                                           \
     PYBIND11_EMBEDDED_MODULE_IMPL(name)                                         \
     ::pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name) \
