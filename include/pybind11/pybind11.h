@@ -466,7 +466,15 @@ protected:
             }
             if (rec->def) {
                 std::free(const_cast<char *>(rec->def->ml_doc));
-                //delete rec->def;
+                // Python 3.9.0 decref's these in the wrong order; rec->def
+                // If loaded on 3.9.0, let these leak (use Python 3.9.1 to fix)
+                // See https://github.com/python/cpython/pull/22670
+                #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
+                    if (Py_GetVersion()[4] != '0')
+                        delete rec->def;
+                #else
+                    delete rec->def;
+                #endif
             }
             delete rec;
             rec = next;
