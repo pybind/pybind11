@@ -1512,14 +1512,7 @@ public:
     // see issue #2180
     explicit operator type&() { return *(static_cast<type *>(this->value)); }
     explicit operator holder_type*() { return std::addressof(holder); }
-
-    // Workaround for Intel compiler bug
-    // see pybind11 issue 94
-    #if defined(__ICC) || defined(__INTEL_COMPILER)
-    operator holder_type&() { return holder; }
-    #else
     explicit operator holder_type&() { return holder; }
-    #endif
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
         const auto *ptr = holder_helper<holder_type>::get(src);
