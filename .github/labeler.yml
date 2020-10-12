@@ -11,4 +11,4 @@ docs:
   - '!docs/upgrade.rst'
 
 ci:
-- '.github/workflows/*.yaml'
+- '.github/workflows/*.yml'
