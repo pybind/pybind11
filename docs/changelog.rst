@@ -48,7 +48,7 @@ New features:
   to have a member with the same name as a parent (such as an enum).
   `#2335 <https://github.com/pybind/pybind11/pull/2335>`_
 
-Assisting in writing more correct code:
+Code correctness features:
 
 * Error now thrown when ``__init__`` is forgotten on subclasses.
   `#2152 <https://github.com/pybind/pybind11/pull/2152>`_
@@ -97,7 +97,7 @@ Packaging / building improvements:
     site-packages location in your ``CMAKE_MODULE_PATH``. Or you can use the
     new ``pybind11[global]`` extra when you install ``pybind11``, which
     installs the CMake files and headers into your base environment in the
-    standard location
+    standard location.
 
   * ``pybind11-config`` is another way to write ``python -m pybind11`` if you
     have your PATH set up.
@@ -213,6 +213,8 @@ Smaller or developer focused features:
 
 * NVIDIA PGI compilers now supported and tested in CI.
   `#2475 <https://github.com/pybind/pybind11/pull/2475>`_
+
+* Intel 18 now explicitly required.
 
 * Extensive style checking in CI, with `pre-commit`_ support. Code
   modernization, checked by clang-tidy.

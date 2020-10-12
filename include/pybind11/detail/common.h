@@ -47,8 +47,8 @@
 
 // Compiler version assertions
 #if defined(__INTEL_COMPILER)
-#  if __INTEL_COMPILER < 1700
-#    error pybind11 requires Intel C++ compiler v17 or newer
+#  if __INTEL_COMPILER < 1800
+#    error pybind11 requires Intel C++ compiler v18 or newer
 #  endif
 #elif defined(__clang__) && !defined(__apple_build_version__)
 #  if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 3)
@@ -508,10 +508,10 @@ template <bool... Bs> using select_indices = typename select_indices_impl<index_
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T> struct negation : bool_constant<!T::value> { };
 
-// PGI cannot detect operator delete with the "compatible" void_t impl, so
+// PGI/Intel cannot detect operator delete with the "compatible" void_t impl, so
 // using the new one (C++14 defect, so generally works on newer compilers, even
 // if not in C++17 mode)
-#if defined(__PGIC__)
+#if defined(__PGIC__) || defined(__INTEL_COMPILER)
 template<typename... > using void_t = void;
 #else
 template <typename...> struct void_t_impl { using type = void; };
