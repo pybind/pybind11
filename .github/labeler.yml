@@ -2,7 +2,7 @@ needs changelog:
 - all:
   - '!docs/changelog.rst'
   any:
-  - 'include/pybind11/**/*|pybind11/**/*|tools/**/*|CMakeLists.txt'
+  - '(include/pybind11/**/*|pybind11/**/*|tools/**/*|CMakeLists.txt)'
 
 docs:
 - any:
