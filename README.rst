@@ -34,7 +34,7 @@ grown beyond Boost.Python in many ways, leading to dramatically simpler
 binding code in many common situations.
 
 Tutorial and reference documentation is provided at
-`pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_).
+`pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_.
 A PDF version of the manual is available
 `here <https://media.readthedocs.org/pdf/pybind11/master/pybind11.pdf>`_.
 And the source code is always available at
@@ -113,9 +113,7 @@ Supported compilers
    newer)
 2. GCC 4.8 or newer
 3. Microsoft Visual Studio 2015 Update 3 or newer
-4. Intel C++ compiler 17 or newer (16 with pybind11 v2.0 and 15 with
-   pybind11 v2.0 and a
-   `workaround <https://github.com/pybind/pybind11/issues/276>`_)
+4. Intel C++ compiler 18 or newer
 5. Cygwin/GCC (tested on 2.5.1)
 6. NVCC (CUDA 11 tested)
 7. NVIDIA PGI (20.7 and 20.9 tested)
