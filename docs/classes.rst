@@ -166,6 +166,10 @@ input for the read function.
     static variables and properties. Please also see the section on
     :ref:`static_properties` in the advanced part of the documentation.
 
+.. note::
+    
+    This can be used to bind nested types.
+
 Dynamic attributes
 ==================
 
