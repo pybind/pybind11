@@ -6,6 +6,19 @@ pybind11 — Seamless operability between C++11 and Python
 
 |Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |CI| |Build status|
 
+.. warning::
+
+   Combining older versions of pybind11 (< 2.6.0) with the brand-new Python
+   3.9.0 will trigger undefined behavior that typically manifests as crashes
+   during interpreter shutdown (but could also destroy your data. **You have been
+   warned.**)
+
+   We recommend that you wait for Python 3.9.1 slated for release in December,
+   which will include a `fix <https://github.com/python/cpython/pull/22670>`_
+   that resolves this problem.  In the meantime, please update to the latest
+   version of pybind11 (2.6.0 or newer), which includes a temporary workaround
+   specifically when Python 3.9.0 is detected at runtime.
+
 **pybind11** is a lightweight header-only library that exposes C++ types
 in Python and vice versa, mainly to create Python bindings of existing
 C++ code. Its goals and syntax are similar to the excellent
@@ -114,8 +127,9 @@ Supported compilers
 2. GCC 4.8 or newer
 3. Microsoft Visual Studio 2015 Update 3 or newer
 4. Intel C++ compiler 18 or newer
+   (`possible issue <https://github.com/pybind/pybind11/pull/2573>`_) on 20.2)
 5. Cygwin/GCC (tested on 2.5.1)
-6. NVCC (CUDA 11 tested)
+6. NVCC (CUDA 11.0 tested)
 7. NVIDIA PGI (20.7 and 20.9 tested)
 
 About

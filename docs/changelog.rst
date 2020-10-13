@@ -140,7 +140,7 @@ Packaging / building improvements:
   size quite substantially (~25% on some platforms).
   `#2463 <https://github.com/pybind/pybind11/pull/2463>`_
 
-Smaller or developer focused features:
+Smaller or developer focused features and fixes:
 
 * Moved ``mkdoc.py`` to a new repo, `pybind11-mkdoc`_. There are no longer
   submodules in the main repo.
@@ -182,6 +182,9 @@ Smaller or developer focused features:
 * Fix crash when different instances share the same pointer of the same type.
   `#2252 <https://github.com/pybind/pybind11/pull/2252>`_
 
+* Fix for ``py::len`` not clearing Python's error state when it fails and throws.
+  `#2575 <https://github.com/pybind/pybind11/pull/2575>`_
+
 * Bugfixes related to more extensive testing, new GitHub Actions CI.
   `#2321 <https://github.com/pybind/pybind11/pull/2321>`_
 
@@ -196,16 +199,22 @@ Smaller or developer focused features:
   requested ordering.
   `#2484 <https://github.com/pybind/pybind11/pull/2484>`_
 
-* PyPy fixes, PyPy 7.3.x now supported, including PyPy3.
+* Avoid a segfault on some compilers when types are removed in Python.
+  `#2564 <https://github.com/pybind/pybind11/pull/2564>`_
+
+* PyPy fixes, PyPy 7.3.x now supported, including now supporting PyPy3.
   `#2146 <https://github.com/pybind/pybind11/pull/2146>`_
 
-* CPython 3.9 fixes.
+* CPython 3.9.0 workaround for undefined behavior (macOS segfault).
+  `#2576 <https://github.com/pybind/pybind11/pull/2576>`_
+
+* CPython 3.9 warning fixes.
   `#2253 <https://github.com/pybind/pybind11/pull/2253>`_
 
-* More C++20 support.
+* Improved C++20 support.
   `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
 
-* Debug Python interpreter support.
+* Improved but still incomplete debug Python interpreter support.
   `#2025 <https://github.com/pybind/pybind11/pull/2025>`_
 
 * NVCC (CUDA 11) now supported and tested in CI.
@@ -214,7 +223,8 @@ Smaller or developer focused features:
 * NVIDIA PGI compilers now supported and tested in CI.
   `#2475 <https://github.com/pybind/pybind11/pull/2475>`_
 
-* Intel 18 now explicitly required.
+* At least Intel 18 now explicitly required when compiling with Intel.
+  `#2577 <https://github.com/pybind/pybind11/pull/2577>`_
 
 * Extensive style checking in CI, with `pre-commit`_ support. Code
   modernization, checked by clang-tidy.
