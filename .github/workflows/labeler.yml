@@ -7,12 +7,14 @@ jobs:
     name: Labeler
     runs-on: ubuntu-latest
     steps:
+
     - uses: actions/labeler@main
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         sync-labels: true
+
     - uses: actions/labeler@main
-      if: "!(github.event.action == 'closed' && github.event.pull_request.merged == false)"
+      if: "github.event.action == 'closed' && github.event.pull_request.merged == true"
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         configuration-path: .github/labeler_merged.yml
