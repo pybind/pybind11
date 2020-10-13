@@ -452,6 +452,10 @@ protected:
 
     /// When a cpp_function is GCed, release any memory allocated by pybind11
     static void destruct(detail::function_record *rec) {
+        #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
+            static bool is_zero = Py_GetVersion()[4] != '0';
+        #endif
+
         while (rec) {
             detail::function_record *next = rec->next;
             if (rec->free_data)
@@ -470,7 +474,7 @@ protected:
                 // If loaded on 3.9.0, let these leak (use Python 3.9.1 to fix)
                 // See https://github.com/python/cpython/pull/22670
                 #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
-                    if (Py_GetVersion()[4] != '0')
+                    if (is_zero)
                         delete rec->def;
                 #else
                     delete rec->def;
