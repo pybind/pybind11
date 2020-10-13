@@ -178,9 +178,8 @@ target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors c
 
 if(PYBIND11_INSTALL)
   install(DIRECTORY ${PYBIND11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-  # GNUInstallDirs "DATADIR" wrong here; CMake search path wants "share".
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
-      "share/cmake/${PROJECT_NAME}"
+      "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
       CACHE STRING "install path for pybind11Config.cmake")
 
   configure_package_config_file(
