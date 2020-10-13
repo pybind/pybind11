@@ -31,18 +31,11 @@ These are issues that hopefully will one day be fixed, but currently are
 unsolved. If you know how to help with one of these issues, contributions
 are welcome!
 
-- The test suite currently segfaults on macOS and Python 3.9.0 when exiting the
-  interpreter.  This was suspected to be related to the cross module GIL code,
-  but could be a broader Python 3.9.0 issue.
-  `#2558 <https://github.com/pybind/pybind11/issues/2558>`_
+- Intel 20.2 is currently having an issue with the test suite.
+  `#2573 <https://github.com/pybind/pybind11/pull/2573>`_
 
-- The ``cpptest`` does not run on Windows with Python 3.8 or newer, due to DLL
-  loader changes. User code that is correctly installed should not be affected.
-  `#2560 <https://github.com/pybind/pybind11/pull/2560>`_
-
-- There may be a rare issue with leakage under some compilers, exposed by
-  adding an unrelated test to the test suite.
-  `#2335 <https://github.com/pybind/pybind11/pull/2335>`_
+- Debug mode Python does not support 1-5 tests in the test suite currently.
+  `#2422 <https://github.com/pybind/pybind11/pull/2422>`_
 
 Known limitations
 ^^^^^^^^^^^^^^^^^
@@ -54,3 +47,7 @@ clean, well written patch would likely be accepted to solve them.
   `#2527 <https://github.com/pybind/pybind11/issues/2527>`_
   One consequence is that containers of ``char *`` are currently not supported.
   `#2245 <https://github.com/pybind/pybind11/issues/2245>`_
+
+- The ``cpptest`` does not run on Windows with Python 3.8 or newer, due to DLL
+  loader changes. User code that is correctly installed should not be affected.
+  `#2560 <https://github.com/pybind/pybind11/issue/2560>`_
