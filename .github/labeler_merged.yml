@@ -1,0 +1,3 @@
+needs changelog:
+- all:
+  - '!docs/changelog.rst'
