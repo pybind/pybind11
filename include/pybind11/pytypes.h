@@ -1530,13 +1530,17 @@ inline memoryview memoryview::from_buffer(
 
 /// \addtogroup python_builtins
 /// @{
+
+/// Get the length of a Python object.
 inline size_t len(handle h) {
     ssize_t result = PyObject_Length(h.ptr());
     if (result < 0)
-        pybind11_fail("Unable to compute length of object");
+        throw error_already_set();
     return (size_t) result;
 }
 
+/// Get the length hint of a Python object.
+/// Returns 0 when this cannot be determined.
 inline size_t len_hint(handle h) {
 #if PY_VERSION_HEX >= 0x03040000
     ssize_t result = PyObject_LengthHint(h.ptr(), 0);

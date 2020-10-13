@@ -407,4 +407,7 @@ TEST_SUBMODULE(pytypes, m) {
             buf, static_cast<ssize_t>(strlen(buf)));
     });
 #endif
+
+    // test_builtin_functions
+    m.def("get_len", [](py::handle h) { return py::len(h); });
 }
