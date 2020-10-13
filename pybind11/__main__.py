@@ -9,6 +9,7 @@ from .commands import get_include, get_cmake_dir
 
 
 def print_includes():
+    # type: () -> None
     dirs = [
         sysconfig.get_path("include"),
         sysconfig.get_path("platinclude"),
@@ -18,13 +19,15 @@ def print_includes():
     # Make unique but preserve order
     unique_dirs = []
     for d in dirs:
-        if d not in unique_dirs:
+        if d and d not in unique_dirs:
             unique_dirs.append(d)
 
     print(" ".join("-I" + d for d in unique_dirs))
 
 
 def main():
+    # type: () -> None
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--includes",

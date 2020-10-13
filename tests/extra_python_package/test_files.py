@@ -58,8 +58,11 @@ py_files = {
     "__init__.py",
     "__main__.py",
     "_version.py",
+    "_version.pyi",
     "commands.py",
+    "py.typed",
     "setup_helpers.py",
+    "setup_helpers.pyi",
 }
 
 headers = main_headers | detail_headers
