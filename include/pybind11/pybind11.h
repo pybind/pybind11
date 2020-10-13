@@ -452,8 +452,10 @@ protected:
 
     /// When a cpp_function is GCed, release any memory allocated by pybind11
     static void destruct(detail::function_record *rec) {
+        // If on Python 3.9, check the interpreter "MICRO" (patch) version.
+        // If this is running on 3.9.0, we have to work around a bug.
         #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
-            static bool is_zero = Py_GetVersion()[4] != '0';
+            static bool is_zero = Py_GetVersion()[4] == '0';
         #endif
 
         while (rec) {
@@ -471,10 +473,10 @@ protected:
             if (rec->def) {
                 std::free(const_cast<char *>(rec->def->ml_doc));
                 // Python 3.9.0 decref's these in the wrong order; rec->def
-                // If loaded on 3.9.0, let these leak (use Python 3.9.1 to fix)
+                // If loaded on 3.9.0, let these leak (use Python 3.9.1 at runtime to fix)
                 // See https://github.com/python/cpython/pull/22670
                 #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
-                    if (is_zero)
+                    if (!is_zero)
                         delete rec->def;
                 #else
                     delete rec->def;
