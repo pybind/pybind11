@@ -99,7 +99,7 @@ class Pybind11Extension(_Extension):
 
     def _add_lflags(self, *flags):
         for flag in flags:
-            if flag not in self.extra_compile_args:
+            if flag not in self.extra_link_args:
                 self.extra_link_args.append(flag)
 
     def __init__(self, *args, **kwargs):
