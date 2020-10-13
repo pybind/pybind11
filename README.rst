@@ -8,9 +8,16 @@ pybind11 — Seamless operability between C++11 and Python
 
 .. warning::
 
-    Python 3.9.0 sometimes segfaults on exiting after running pybind11 modules,
-    mostly on macOS. Upgrade to pybind11 2.6.0 for a workaround or Python
-    3.9.1 when it is released to fix.
+   Combining older versions of pybind11 (< 2.6.0) with the brand-new Python
+   3.9.0 will trigger undefined behavior that typically manifests as crashes
+   during interpreter shutdown (but could also destroy your data. **You have been
+   warned.**)
+
+   We recommend that you wait for Python 3.9.1 slated for release in December,
+   which will include a `fix <https://github.com/python/cpython/pull/22670>`_
+   that resolves this problem.  In the meantime, please update to the latest
+   version of pybind11 (2.6.0 or newer), which includes a temporary workaround
+   specifically when Python 3.9.0 is detected at runtime.
 
 **pybind11** is a lightweight header-only library that exposes C++ types
 in Python and vice versa, mainly to create Python bindings of existing
