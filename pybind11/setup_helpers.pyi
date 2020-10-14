@@ -1,3 +1,6 @@
+# IMPORTANT: Should stay in sync with setup_helpers.py (mostly checked by CI /
+# pre-commit).
+
 from typing import Any, Iterator, Optional, Type, TypeVar, Union
 from types import TracebackType
 
