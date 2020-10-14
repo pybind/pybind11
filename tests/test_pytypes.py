@@ -28,13 +28,16 @@ def test_list(capture, doc):
 
         lst.append("value2")
         m.print_list(lst)
-    assert capture.unordered == """
+    assert (
+        capture.unordered
+        == """
         Entry at position 0: value
         list item 0: inserted-0
         list item 1: overwritten
         list item 2: inserted-2
         list item 3: value2
     """
+    )
 
     assert doc(m.get_list) == "get_list() -> list"
     assert doc(m.print_list) == "print_list(arg0: list) -> None"
@@ -52,12 +55,15 @@ def test_set(capture, doc):
     with capture:
         s.add("key4")
         m.print_set(s)
-    assert capture.unordered == """
+    assert (
+        capture.unordered
+        == """
         key: key1
         key: key2
         key: key3
         key: key4
     """
+    )
 
     assert not m.set_contains(set([]), 42)
     assert m.set_contains({42}, 42)
@@ -74,10 +80,13 @@ def test_dict(capture, doc):
     with capture:
         d["key2"] = "value2"
         m.print_dict(d)
-    assert capture.unordered == """
+    assert (
+        capture.unordered
+        == """
         key: key, value=value
         key: key2, value=value2
     """
+    )
 
     assert not m.dict_contains({}, 42)
     assert m.dict_contains({42: None}, 42)
@@ -137,28 +146,37 @@ def test_capsule(capture):
         a = m.return_capsule_with_destructor()
         del a
         pytest.gc_collect()
-    assert capture.unordered == """
+    assert (
+        capture.unordered
+        == """
         creating capsule
         destructing capsule
     """
+    )
 
     with capture:
         a = m.return_capsule_with_destructor_2()
         del a
         pytest.gc_collect()
-    assert capture.unordered == """
+    assert (
+        capture.unordered
+        == """
         creating capsule
         destructing capsule: 1234
     """
+    )
 
     with capture:
         a = m.return_capsule_with_name_and_destructor()
         del a
         pytest.gc_collect()
-    assert capture.unordered == """
+    assert (
+        capture.unordered
+        == """
         created capsule (1234, 'pointer type description')
         destructing capsule (1234, 'pointer type description')
     """
+    )
 
 
 def test_accessors():
@@ -212,7 +230,7 @@ def test_constructors():
     assert m.default_constructors() == expected
 
     data = {
-        bytes: b'41',  # Currently no supported or working conversions.
+        bytes: b"41",  # Currently no supported or working conversions.
         str: 42,
         bool: "Not empty",
         int: "42",
@@ -221,14 +239,14 @@ def test_constructors():
         list: range(3),
         dict: [("two", 2), ("one", 1), ("three", 3)],
         set: [4, 4, 5, 6, 6, 6],
-        memoryview: b'abc'
+        memoryview: b"abc",
     }
     inputs = {k.__name__: v for k, v in data.items()}
     expected = {k.__name__: k(v) for k, v in data.items()}
     if env.PY2:  # Similar to the above. See comments above.
-        inputs["bytes"] = b'41'
+        inputs["bytes"] = b"41"
         inputs["str"] = 42
-        expected["bytes"] = b'41'
+        expected["bytes"] = b"41"
         expected["str"] = u"42"
 
     assert m.converting_constructors(inputs) == expected
@@ -255,7 +273,8 @@ def test_non_converting_constructors():
         with pytest.raises(TypeError) as excinfo:
             m.nonconverting_constructor(t, v)
         expected_error = "Object of type '{}' is not an instance of '{}'".format(
-            type(v).__name__, t)
+            type(v).__name__, t
+        )
         assert str(excinfo.value) == expected_error
 
 
@@ -263,12 +282,12 @@ def test_pybind11_str_raw_str():
     # specifically to exercise pybind11::str::raw_str
     cvt = m.convert_to_pybind11_str
     assert cvt(u"Str") == u"Str"
-    assert cvt(b'Bytes') == u"Bytes" if env.PY2 else "b'Bytes'"
+    assert cvt(b"Bytes") == u"Bytes" if env.PY2 else "b'Bytes'"
     assert cvt(None) == u"None"
     assert cvt(False) == u"False"
     assert cvt(True) == u"True"
     assert cvt(42) == u"42"
-    assert cvt(2**65) == u"36893488147419103232"
+    assert cvt(2 ** 65) == u"36893488147419103232"
     assert cvt(-1.50) == u"-1.5"
     assert cvt(()) == u"()"
     assert cvt((18,)) == u"(18,)"
@@ -283,29 +302,40 @@ def test_pybind11_str_raw_str():
     valid_utf8 = valid_orig.encode("utf-8")
     valid_cvt = cvt(valid_utf8)
     assert type(valid_cvt) == bytes  # Probably surprising.
-    assert valid_cvt == b'\xc7\xb1'
+    assert valid_cvt == b"\xc7\xb1"
 
-    malformed_utf8 = b'\x80'
+    malformed_utf8 = b"\x80"
     malformed_cvt = cvt(malformed_utf8)
     assert type(malformed_cvt) == bytes  # Probably surprising.
-    assert malformed_cvt == b'\x80'
+    assert malformed_cvt == b"\x80"
 
 
 def test_implicit_casting():
     """Tests implicit casting when assigning or appending to dicts and lists."""
     z = m.get_implicit_casting()
-    assert z['d'] == {
-        'char*_i1': 'abc', 'char*_i2': 'abc', 'char*_e': 'abc', 'char*_p': 'abc',
-        'str_i1': 'str', 'str_i2': 'str1', 'str_e': 'str2', 'str_p': 'str3',
-        'int_i1': 42, 'int_i2': 42, 'int_e': 43, 'int_p': 44
+    assert z["d"] == {
+        "char*_i1": "abc",
+        "char*_i2": "abc",
+        "char*_e": "abc",
+        "char*_p": "abc",
+        "str_i1": "str",
+        "str_i2": "str1",
+        "str_e": "str2",
+        "str_p": "str3",
+        "int_i1": 42,
+        "int_i2": 42,
+        "int_e": 43,
+        "int_p": 44,
     }
-    assert z['l'] == [3, 6, 9, 12, 15]
+    assert z["l"] == [3, 6, 9, 12, 15]
 
 
 def test_print(capture):
     with capture:
         m.print_function()
-    assert capture == """
+    assert (
+        capture
+        == """
         Hello, World!
         1 2.0 three True -- multiple args
         *args-and-a-custom-separator
@@ -313,14 +343,15 @@ def test_print(capture):
         flush
         py::print + str.format = this
     """
+    )
     assert capture.stderr == "this goes to stderr"
 
     with pytest.raises(RuntimeError) as excinfo:
         m.print_failure()
     assert str(excinfo.value) == "make_tuple(): unable to convert " + (
         "argument of type 'UnregisteredType' to Python object"
-        if debug_enabled else
-        "arguments to Python object (compile in debug mode for details)"
+        if debug_enabled
+        else "arguments to Python object (compile in debug mode for details)"
     )
 
 
@@ -342,8 +373,23 @@ def test_hash():
 
 def test_number_protocol():
     for a, b in [(1, 1), (3, 5)]:
-        li = [a == b, a != b, a < b, a <= b, a > b, a >= b, a + b,
-              a - b, a * b, a / b, a | b, a & b, a ^ b, a >> b, a << b]
+        li = [
+            a == b,
+            a != b,
+            a < b,
+            a <= b,
+            a > b,
+            a >= b,
+            a + b,
+            a - b,
+            a * b,
+            a / b,
+            a | b,
+            a & b,
+            a ^ b,
+            a >> b,
+            a << b,
+        ]
         assert m.test_number_protocol(a, b) == li
 
 
@@ -360,13 +406,16 @@ def test_issue2361():
     assert "'NoneType' object is not iterable" in str(excinfo.value)
 
 
-@pytest.mark.parametrize('method, args, fmt, expected_view', [
-    (m.test_memoryview_object, (b'red',), 'B', b'red'),
-    (m.test_memoryview_buffer_info, (b'green',), 'B', b'green'),
-    (m.test_memoryview_from_buffer, (False,), 'h', [3, 1, 4, 1, 5]),
-    (m.test_memoryview_from_buffer, (True,), 'H', [2, 7, 1, 8]),
-    (m.test_memoryview_from_buffer_nativeformat, (), '@i', [4, 7, 5]),
-])
+@pytest.mark.parametrize(
+    "method, args, fmt, expected_view",
+    [
+        (m.test_memoryview_object, (b"red",), "B", b"red"),
+        (m.test_memoryview_buffer_info, (b"green",), "B", b"green"),
+        (m.test_memoryview_from_buffer, (False,), "h", [3, 1, 4, 1, 5]),
+        (m.test_memoryview_from_buffer, (True,), "H", [2, 7, 1, 8]),
+        (m.test_memoryview_from_buffer_nativeformat, (), "@i", [4, 7, 5]),
+    ],
+)
 def test_memoryview(method, args, fmt, expected_view):
     view = method(*args)
     assert isinstance(view, memoryview)
@@ -380,12 +429,15 @@ def test_memoryview(method, args, fmt, expected_view):
 
 
 @pytest.mark.xfail("env.PYPY", reason="getrefcount is not available")
-@pytest.mark.parametrize('method', [
-    m.test_memoryview_object,
-    m.test_memoryview_buffer_info,
-])
+@pytest.mark.parametrize(
+    "method",
+    [
+        m.test_memoryview_object,
+        m.test_memoryview_buffer_info,
+    ],
+)
 def test_memoryview_refcount(method):
-    buf = b'\x0a\x0b\x0c\x0d'
+    buf = b"\x0a\x0b\x0c\x0d"
     ref_before = sys.getrefcount(buf)
     view = method(buf)
     ref_after = sys.getrefcount(buf)
@@ -396,13 +448,13 @@ def test_memoryview_refcount(method):
 def test_memoryview_from_buffer_empty_shape():
     view = m.test_memoryview_from_buffer_empty_shape()
     assert isinstance(view, memoryview)
-    assert view.format == 'B'
+    assert view.format == "B"
     if env.PY2:
         # Python 2 behavior is weird, but Python 3 (the future) is fine.
         # PyPy3 has <memoryview, while CPython 2 has <memory
-        assert bytes(view).startswith(b'<memory')
+        assert bytes(view).startswith(b"<memory")
     else:
-        assert bytes(view) == b''
+        assert bytes(view) == b""
 
 
 def test_test_memoryview_from_buffer_invalid_strides():
@@ -422,13 +474,15 @@ def test_test_memoryview_from_buffer_nullptr():
 def test_memoryview_from_memory():
     view = m.test_memoryview_from_memory()
     assert isinstance(view, memoryview)
-    assert view.format == 'B'
-    assert bytes(view) == b'\xff\xe1\xab\x37'
+    assert view.format == "B"
+    assert bytes(view) == b"\xff\xe1\xab\x37"
 
 
 def test_builtin_functions():
     assert m.get_len([i for i in range(42)]) == 42
     with pytest.raises(TypeError) as exc_info:
         m.get_len(i for i in range(42))
-    assert str(exc_info.value) in ["object of type 'generator' has no len()",
-                                   "'generator' has no length"]  # PyPy
+    assert str(exc_info.value) in [
+        "object of type 'generator' has no len()",
+        "'generator' has no length",
+    ]  # PyPy
