@@ -327,7 +327,9 @@ function(_pybind11_generate_lto target prefer_thin_lto)
 
   # Enable LTO flags if found, except for Debug builds
   if(PYBIND11_LTO_CXX_FLAGS)
-    set(not_debug "$<NOT:$<CONFIG:Debug>>")
+    # CONFIG takes multiple values in CMake 3.19+, until then we have to use OR
+    set(is_debug "$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>")
+    set(not_debug "$<NOT:${is_debug}>")
     set(cxx_lang "$<COMPILE_LANGUAGE:CXX>")
     if(MSVC AND CMAKE_VERSION VERSION_LESS 3.11)
       set(genex "${not_debug}")
