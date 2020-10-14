@@ -1073,10 +1073,7 @@ protected:
             else
                 internals.registered_types_cpp.erase(tindex);
             internals.registered_types_py.erase(type);
-            // C++20: std::erase_if(internals.inactive_override_cache,
-            //                      [type](const auto &entry) {
-            //                          return entry.first == (PyObject *) type;
-            //                      });
+            // Actually just `std::erase_if`, but that's only available in C++20
             auto &cache = internals.inactive_override_cache;
             for (auto it = cache.begin(), last = cache.end(); it != last; ) {
                 if (it->first == (PyObject *) type)
