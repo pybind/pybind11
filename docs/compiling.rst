@@ -264,8 +264,15 @@ As stated above, LTO is enabled by default. Some newer compilers also support
 different flavors of LTO such as `ThinLTO`_. Setting ``THIN_LTO`` will cause
 the function to prefer this flavor if available. The function falls back to
 regular LTO if ``-flto=thin`` is not available. If
-``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is set (either ON or OFF), then that
-will be respected instead of the built-in flag search.
+``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` is set (either ``ON`` or ``OFF``), then
+that will be respected instead of the built-in flag search.
+
+.. note::
+
+   If you want to set the property form on targets or the
+   ``CMAKE_INTERPROCEDURAL_OPTIMIZATION_<CONFIG>`` versions of this, you should
+   still use ``set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)`` (otherwise a
+   no-op) to disable pybind11's ipo flags.
 
 The ``OPT_SIZE`` flag enables size-based optimization equivalent to the
 standard ``/Os`` or ``-Os`` compiler flags and the ``MinSizeRel`` build type,
