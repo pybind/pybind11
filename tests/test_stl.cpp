@@ -321,4 +321,9 @@ TEST_SUBMODULE(stl, m) {
     py::class_<Issue1561Outer>(m, "Issue1561Outer")
         .def(py::init<>())
         .def_readwrite("list", &Issue1561Outer::list);
+
+    m.def("cast_vector_pytype", []() {
+        std::vector<int> my_floats = {1, 2, 3};
+        return py::cast<py::list>(my_floats);
+    });
 }
