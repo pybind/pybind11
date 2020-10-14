@@ -19,6 +19,7 @@ setup(
         "pybind11.share.cmake.pybind11",
     ],
     package_data={
+        "pybind11": ["py.typed", "*.pyi"],
         "pybind11.include.pybind11": ["*.h"],
         "pybind11.include.pybind11.detail": ["*.h"],
         "pybind11.share.cmake.pybind11": ["*.cmake"],

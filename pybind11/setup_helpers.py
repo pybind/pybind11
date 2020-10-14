@@ -33,6 +33,12 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+# IMPORTANT: If you change this file in the pybind11 repo, also review
+# setup_helpers.pyi for matching changes.
+#
+# If you copy this file in, you don't
+# need the .pyi file; it's just an interface file for static type checkers.
+
 import contextlib
 import os
 import shutil

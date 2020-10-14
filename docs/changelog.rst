@@ -72,7 +72,6 @@ API changes:
 * Public constructors for ``py::module_`` have been deprecated; please use
   ``pybind11::module_::create_extension_module`` if you were using the public
   constructor (fairly rare after ``PYBIND11_MODULE`` was introduced).
-  **Provisional in 2.6.0rc1.**
   `#2552 <https://github.com/pybind/pybind11/pull/2552>`_
 
 * ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function replaced by
@@ -102,6 +101,9 @@ Packaging / building improvements:
   * ``pybind11-config`` is another way to write ``python -m pybind11`` if you
     have your PATH set up.
 
+  * Added external typing support to the helper module, code from
+    ``import pybind11`` can now be type checked.
+    `#2588 <https://github.com/pybind/pybind11/pull/2588>`_
 
 * Minimum CMake required increased to 3.4.
   `#2338 <https://github.com/pybind/pybind11/pull/2338>`_ and
