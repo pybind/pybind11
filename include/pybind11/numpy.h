@@ -34,7 +34,9 @@
    whole npy_intp / ssize_t / Py_intptr_t business down to just ssize_t for all size
    and dimension types (e.g. shape, strides, indexing), instead of inflicting this
    upon the library user. */
-static_assert(sizeof(ssize_t) == sizeof(Py_intptr_t), "ssize_t != Py_intptr_t");
+static_assert(sizeof(::pybind11::ssize_t) == sizeof(Py_intptr_t), "ssize_t != Py_intptr_t");
+static_assert(std::is_signed<Py_intptr_t>::value, "Py_intptr_t must be signed");
+// We now can reinterpret_cast between py::ssize_t and Py_intptr_t (MSVC + PyPy cares)
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -590,7 +592,9 @@ public:
 
         auto &api = detail::npy_api::get();
         auto tmp = reinterpret_steal<object>(api.PyArray_NewFromDescr_(
-            api.PyArray_Type_, descr.release().ptr(), (int) ndim, shape->data(), strides->data(),
+            api.PyArray_Type_, descr.release().ptr(), (int) ndim,
+            reinterpret_cast<Py_intptr_t*>(shape->data()),
+            reinterpret_cast<Py_intptr_t*>(strides->data()),
             const_cast<void *>(ptr), flags, nullptr));
         if (!tmp)
             throw error_already_set();
@@ -762,7 +766,8 @@ public:
     /// then resize will succeed only if it makes a reshape, i.e. original size doesn't change
     void resize(ShapeContainer new_shape, bool refcheck = true) {
         detail::npy_api::PyArray_Dims d = {
-            new_shape->data(), int(new_shape->size())
+            reinterpret_cast<Py_intptr_t*>(new_shape->data()),
+            int(new_shape->size())
         };
         // try to resize, set ordering param to -1 cause it's not used anyway
         object new_array = reinterpret_steal<object>(
