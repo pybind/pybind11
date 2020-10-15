@@ -404,7 +404,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("test_memoryview_from_memory", []() {
         const char* buf = "\xff\xe1\xab\x37";
         return py::memoryview::from_memory(
-            buf, static_cast<ssize_t>(strlen(buf)));
+            buf, static_cast<py::ssize_t>(strlen(buf)));
     });
 #endif
 
