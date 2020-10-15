@@ -1021,30 +1021,6 @@ inline dict globals() {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-/// Cleanup the type-info for a pybind11-registered type.
-PYBIND11_NOINLINE inline void cleanup_type_info(detail::type_info *tinfo) {
-    auto &internals = get_internals();
-    auto tindex = std::type_index(*tinfo->cpptype);
-    internals.direct_conversions.erase(tindex);
-
-    if (tinfo->module_local)
-        registered_local_types_cpp().erase(tindex);
-    else
-        internals.registered_types_cpp.erase(tindex);
-    internals.registered_types_py.erase(tinfo->type);
-
-    // Actually just `std::erase_if`, but that's only available in C++20
-    auto &cache = internals.inactive_override_cache;
-    for (auto it = cache.begin(), last = cache.end(); it != last; ) {
-        if (it->first == (PyObject *) tinfo->type)
-            it = cache.erase(it);
-        else
-            ++it;
-    }
-
-    delete tinfo;
-}
-
 /// Generic support for creating new Python heap types
 class generic_type : public object {
     template <typename...> friend class class_;
@@ -1085,12 +1061,6 @@ protected:
         else
             internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[(PyTypeObject *) m_ptr] = { tinfo };
-
-        // Clean up our internals after the Python type object gets garbage collected
-        weakref(m_ptr, cpp_function([tinfo](handle wr) {
-            cleanup_type_info(tinfo);
-            wr.dec_ref();
-        })).release();
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
             mark_parents_nonsimple(tinfo->type);
