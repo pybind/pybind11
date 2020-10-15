@@ -204,7 +204,8 @@ Smaller or developer focused features and fixes:
 * Avoid a segfault on some compilers when types are removed in Python.
   `#2564 <https://github.com/pybind/pybind11/pull/2564>`_
 
-* PyPy fixes, PyPy 7.3.x now supported, including now supporting PyPy3.
+* PyPy fixes, PyPy 7.3.x now supported, including PyPy3. (Known issue with
+  PyPy2 and Windows `#2596 <https://github.com/pybind/pybind11/issues/2596>`_).
   `#2146 <https://github.com/pybind/pybind11/pull/2146>`_
 
 * CPython 3.9.0 workaround for undefined behavior (macOS segfault).
@@ -213,8 +214,9 @@ Smaller or developer focused features and fixes:
 * CPython 3.9 warning fixes.
   `#2253 <https://github.com/pybind/pybind11/pull/2253>`_
 
-* Improved C++20 support.
+* Improved C++20 support, now tested in CI.
   `#2489 <https://github.com/pybind/pybind11/pull/2489>`_
+  `#2599 <https://github.com/pybind/pybind11/pull/2599>`_
 
 * Improved but still incomplete debug Python interpreter support.
   `#2025 <https://github.com/pybind/pybind11/pull/2025>`_
