@@ -20,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include <functional>
+#include <type_traits>
 #include <utility>
 #include <vector>
 #include <typeindex>
@@ -326,6 +327,12 @@ template <typename T> using is_pod_struct = all_of<
     satisfies_any_of<T, std::has_trivial_copy_constructor, std::has_trivial_copy_assign>,
 #endif
     satisfies_none_of<T, std::is_reference, std::is_array, is_std_array, std::is_arithmetic, is_complex, std::is_enum>
+>;
+
+// Replacement for std::is_pod (deprecated in C++20)
+template <typename T> using is_pod = all_of<
+    std::is_standard_layout<T>,
+    std::is_trivially_constructible<T>
 >;
 
 template <ssize_t Dim = 0, typename Strides> ssize_t byte_offset_unsafe(const Strides &) { return 0; }
@@ -1448,7 +1455,7 @@ struct vectorize_arg {
     using call_type = remove_reference_t<T>;
     // Is this a vectorized argument?
     static constexpr bool vectorize =
-        satisfies_any_of<call_type, std::is_arithmetic, is_complex, std::is_pod>::value &&
+        satisfies_any_of<call_type, std::is_arithmetic, is_complex, is_pod>::value &&
         satisfies_none_of<call_type, std::is_pointer, std::is_array, is_std_array, std::is_enum>::value &&
         (!std::is_reference<T>::value ||
          (std::is_lvalue_reference<T>::value && std::is_const<call_type>::value));
