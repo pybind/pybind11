@@ -71,7 +71,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         py::tuple t(a.size());
         for (size_t i = 0; i < a.size(); i++)
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<ssize_t>(i)));
+            t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         return t;
     });
     m.def("mixed_args_refcount", [](py::object o, py::args a) {
@@ -80,7 +80,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         t[0] = o.ref_count();
         for (size_t i = 0; i < a.size(); i++)
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i + 1] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<ssize_t>(i)));
+            t[i + 1] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         return t;
     });
 

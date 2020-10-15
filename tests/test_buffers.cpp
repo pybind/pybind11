@@ -15,7 +15,7 @@ TEST_SUBMODULE(buffers, m) {
     // test_from_python / test_to_python:
     class Matrix {
     public:
-        Matrix(ssize_t rows, ssize_t cols) : m_rows(rows), m_cols(cols) {
+        Matrix(py::ssize_t rows, py::ssize_t cols) : m_rows(rows), m_cols(cols) {
             print_created(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
             m_data = new float[(size_t) (rows*cols)];
             memset(m_data, 0, sizeof(float) * (size_t) (rows * cols));
@@ -59,25 +59,25 @@ TEST_SUBMODULE(buffers, m) {
             return *this;
         }
 
-        float operator()(ssize_t i, ssize_t j) const {
+        float operator()(py::ssize_t i, py::ssize_t j) const {
             return m_data[(size_t) (i*m_cols + j)];
         }
 
-        float &operator()(ssize_t i, ssize_t j) {
+        float &operator()(py::ssize_t i, py::ssize_t j) {
             return m_data[(size_t) (i*m_cols + j)];
         }
 
         float *data() { return m_data; }
 
-        ssize_t rows() const { return m_rows; }
-        ssize_t cols() const { return m_cols; }
+        py::ssize_t rows() const { return m_rows; }
+        py::ssize_t cols() const { return m_cols; }
     private:
-        ssize_t m_rows;
-        ssize_t m_cols;
+        py::ssize_t m_rows;
+        py::ssize_t m_cols;
         float *m_data;
     };
     py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
-        .def(py::init<ssize_t, ssize_t>())
+        .def(py::init<py::ssize_t, py::ssize_t>())
         /// Construct from a buffer
         .def(py::init([](py::buffer const b) {
             py::buffer_info info = b.request();
@@ -93,12 +93,12 @@ TEST_SUBMODULE(buffers, m) {
        .def("cols", &Matrix::cols)
 
         /// Bare bones interface
-       .def("__getitem__", [](const Matrix &m, std::pair<ssize_t, ssize_t> i) {
+       .def("__getitem__", [](const Matrix &m, std::pair<py::ssize_t, py::ssize_t> i) {
             if (i.first >= m.rows() || i.second >= m.cols())
                 throw py::index_error();
             return m(i.first, i.second);
         })
-       .def("__setitem__", [](Matrix &m, std::pair<ssize_t, ssize_t> i, float v) {
+       .def("__setitem__", [](Matrix &m, std::pair<py::ssize_t, py::ssize_t> i, float v) {
             if (i.first >= m.rows() || i.second >= m.cols())
                 throw py::index_error();
             m(i.first, i.second) = v;
@@ -118,11 +118,11 @@ TEST_SUBMODULE(buffers, m) {
     // test_inherited_protocol
     class SquareMatrix : public Matrix {
     public:
-        SquareMatrix(ssize_t n) : Matrix(n, n) { }
+        SquareMatrix(py::ssize_t n) : Matrix(n, n) { }
     };
     // Derived classes inherit the buffer protocol and the buffer access function
     py::class_<SquareMatrix, Matrix>(m, "SquareMatrix")
-        .def(py::init<ssize_t>());
+        .def(py::init<py::ssize_t>());
 
 
     // test_pointer_to_member_fn
