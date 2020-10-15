@@ -1021,6 +1021,30 @@ inline dict globals() {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+/// Cleanup the type-info for a pybind11-registered type.
+PYBIND11_NOINLINE inline void cleanup_type_info(detail::type_info *tinfo) {
+    auto &internals = get_internals();
+    auto tindex = std::type_index(*tinfo->cpptype);
+    internals.direct_conversions.erase(tindex);
+
+    if (tinfo->module_local)
+        registered_local_types_cpp().erase(tindex);
+    else
+        internals.registered_types_cpp.erase(tindex);
+    internals.registered_types_py.erase(tinfo->type);
+
+    // Actually just `std::erase_if`, but that's only available in C++20
+    auto &cache = internals.inactive_override_cache;
+    for (auto it = cache.begin(), last = cache.end(); it != last; ) {
+        if (it->first == (PyObject *) tinfo->type)
+            it = cache.erase(it);
+        else
+            ++it;
+    }
+
+    delete tinfo;
+}
+
 /// Generic support for creating new Python heap types
 class generic_type : public object {
     template <typename...> friend class class_;
@@ -1037,11 +1061,10 @@ protected:
                           "\" is already registered!");
 
         m_ptr = make_new_python_type(rec);
-        auto type = (PyTypeObject *) m_ptr;
 
         /* Register supplemental type information in C++ dict */
         auto *tinfo = new detail::type_info();
-        tinfo->type = type;
+        tinfo->type = (PyTypeObject *) m_ptr;
         tinfo->cpptype = rec.type;
         tinfo->type_size = rec.type_size;
         tinfo->type_align = rec.type_align;
@@ -1056,31 +1079,16 @@ protected:
 
         auto &internals = get_internals();
         auto tindex = std::type_index(*rec.type);
-        auto module_local = rec.module_local;
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
-        if (module_local)
+        if (rec.module_local)
             registered_local_types_cpp()[tindex] = tinfo;
         else
             internals.registered_types_cpp[tindex] = tinfo;
-        internals.registered_types_py[type] = { tinfo };
+        internals.registered_types_py[(PyTypeObject *) m_ptr] = { tinfo };
 
         // Clean up our internals after the Python type object gets garbage collected
-        weakref(m_ptr, cpp_function([type, tindex, module_local](handle wr) {
-            auto &internals = get_internals();
-            internals.direct_conversions.erase(tindex);
-            if (module_local)
-                registered_local_types_cpp().erase(tindex);
-            else
-                internals.registered_types_cpp.erase(tindex);
-            internals.registered_types_py.erase(type);
-            // Actually just `std::erase_if`, but that's only available in C++20
-            auto &cache = internals.inactive_override_cache;
-            for (auto it = cache.begin(), last = cache.end(); it != last; ) {
-                if (it->first == (PyObject *) type)
-                    it = cache.erase(it);
-                else
-                    ++it;
-            }
+        weakref(m_ptr, cpp_function([tinfo](handle wr) {
+            cleanup_type_info(tinfo);
             wr.dec_ref();
         })).release();
 
