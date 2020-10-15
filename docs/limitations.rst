@@ -37,6 +37,8 @@ are welcome!
 - Debug mode Python does not support 1-5 tests in the test suite currently.
   `#2422 <https://github.com/pybind/pybind11/pull/2422>`_
 
+- PyPy3 7.3.1 and 7.3.2 have issues with several tests on 32-bit Windows.
+
 Known limitations
 ^^^^^^^^^^^^^^^^^
 
