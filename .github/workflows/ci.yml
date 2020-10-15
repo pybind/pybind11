@@ -17,7 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [ubuntu-latest, windows-latest, macos-latest]
-        arch: [x64]
         python:
         - 2.7
         - 3.5
@@ -36,41 +35,26 @@ jobs:
           # Just add a key
           - runs-on: ubuntu-latest
             python: 3.6
-            arch: x64
             args: >
               -DPYBIND11_FINDPYTHON=ON
           - runs-on: windows-latest
             python: 3.6
-            arch: x64
             args: >
               -DPYBIND11_FINDPYTHON=ON
           - runs-on: ubuntu-latest
             python: 3.8
-            arch: x64
             args: >
               -DPYBIND11_FINDPYTHON=ON
-
-          # New runs
-          - runs-on: windows-2016
-            python: 3.7
-            arch: x86
-            args2: >
-              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
-          - runs-on: windows-latest
-            python: 3.7
-            arch: x64
 
         # These items will be removed from the build matrix, keys must match.
         exclude:
             # Currently 32bit only, and we build 64bit
           - runs-on: windows-latest
             python: pypy2
-            arch: x64
           - runs-on: windows-latest
             python: pypy3
-            arch: x64
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • ${{ matrix.arch }} ${{ matrix.args }}"
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
 
     steps:
@@ -80,7 +64,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
-        architecture: ${{ matrix.arch }}
 
     - name: Setup Boost (Windows / Linux latest)
       shell: bash
@@ -98,7 +81,7 @@ jobs:
         # for ways to do this more generally
         path: ~/Library/Caches/pip
         # Look to see if there is a cache hit for the corresponding requirements file
-        key: ${{ runner.os }}-pip-${{ matrix.python }}-${{ matrix.arch }}-${{ hashFiles('tests/requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ matrix.python }}-x64-${{ hashFiles('tests/requirements.txt') }}
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
@@ -191,12 +174,19 @@ jobs:
           - 3.6
           - 3.7
           - 3.9
-          - 5
           - 7
-          - 10
           - dev
+        std:
+          - 11
+        include:
+          - clang: 5
+            std: 14
+          - clang: 10
+            std: 20
+          - clang: 10
+            std: 17
 
-    name: "🐍 3 • Clang ${{ matrix.clang }} • x64"
+    name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64"
     container: "silkeh/clang:${{ matrix.clang }}"
 
     steps:
@@ -211,6 +201,7 @@ jobs:
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
+        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -346,8 +337,13 @@ jobs:
         gcc:
           - 7
           - latest
+        std:
+          - 11
+        include:
+          - gcc: 10
+            std: 20
 
-    name: "🐍 3 • GCC ${{ matrix.gcc }} • x64"
+    name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }}• x64"
     container: "gcc:${{ matrix.gcc }}"
 
     steps:
@@ -370,7 +366,7 @@ jobs:
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
-        -DCMAKE_CXX_STANDARD=11
+        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -514,3 +510,151 @@ jobs:
         python3 -m pip install --user -U ../dist/*
         installed=$(python3 -c "import pybind11; print(pybind11.get_include() + '/pybind11')")
         diff -rq $installed ./pybind11
+
+  win32:
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+        - 3.5
+        - 3.8
+        - 3.9
+        - pypy3
+        # TODO: fix hang on pypy2
+
+        include:
+          - python: 3.9
+            args: -DCMAKE_CXX_STANDARD=20 -DDOWNLOAD_EIGEN=OFF
+          - python: 3.8
+            args: -DCMAKE_CXX_STANDARD=17
+
+    name: "🐍 ${{ matrix.python }} • MSVC 2019 • x86 ${{ matrix.args }}"
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+        architecture: x86
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.4
+
+    - name: Prepare MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x86
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt --prefer-binary
+
+    # First build - C++11 mode and inplace
+    - name: Configure ${{ matrix.args }}
+      run: >
+        cmake -S . -B build
+        -G "Visual Studio 16 2019" -A Win32
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        ${{ matrix.args }}
+    - name: Build C++11
+      run: cmake --build build -j 2
+
+    - name: Run tests
+      run: cmake --build build -t pytest
+
+  win32-msvc2015:
+    name: "🐍 ${{ matrix.python }} • MSVC 2015 • x64"
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - 2.7
+          - 3.6
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup 🐍 ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.4
+
+    - name: Prepare MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        toolset: 14.0
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt --prefer-binary
+
+    # First build - C++11 mode and inplace
+    - name: Configure
+      run: >
+        cmake -S . -B build
+        -G "Visual Studio 14 2015" -A x64
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+
+    - name: Build C++14
+      run: cmake --build build -j 2
+
+    - name: Run all checks
+      run: cmake --build build -t check
+
+
+  win32-msvc2017:
+    name: "🐍 ${{ matrix.python }} • MSVC 2017 • x64"
+    runs-on: windows-2016
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - 3.7
+        std:
+          - 14
+
+        include:
+          - python: 2.7
+            std: 17
+            args: >
+              -DCMAKE_CXX_FLAGS="/permissive- /EHsc /GR"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup 🐍 ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.4
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt --prefer-binary
+
+    # First build - C++11 mode and inplace
+    - name: Configure
+      run: >
+        cmake -S . -B build
+        -G "Visual Studio 15 2017" -A x64
+        -DPYBIND11_WERROR=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+        ${{ matrix.args }}
+
+    - name: Build ${{ matrix.std }}
+      run: cmake --build build -j 2
+
+    - name: Run all checks
+      run: cmake --build build -t check
