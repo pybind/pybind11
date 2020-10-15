@@ -69,7 +69,7 @@ if(PYBIND11_MASTER_PROJECT)
     if(NOT DEFINED PYPY_VERSION)
       execute_process(
         COMMAND ${PYTHON_EXECUTABLE} -c
-                [=[import sys; print(".".join(map(str, sys.pypy_version_info[:3])))]=]
+                [=[import sys; sys.stdout.write(".".join(map(str, sys.pypy_version_info[:3])))]=]
         OUTPUT_VARIABLE pypy_version)
       set(PYPY_VERSION
           ${pypy_version}
