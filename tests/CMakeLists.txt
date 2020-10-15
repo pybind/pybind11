@@ -174,7 +174,7 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       message(FATAL_ERROR "CMake 3.11+ required when using DOWNLOAD_EIGEN")
     endif()
 
-    set(EIGEN3_VERSION_STRING "3.3.7")
+    set(EIGEN3_VERSION_STRING "3.3.8")
 
     include(FetchContent)
     FetchContent_Declare(
