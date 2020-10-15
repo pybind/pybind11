@@ -168,7 +168,7 @@ py::list print_recarray(py::array_t<S, 0> arr) {
     const auto req = arr.request();
     const auto ptr = static_cast<S*>(req.ptr);
     auto l = py::list();
-    for (ssize_t i = 0; i < req.size; i++) {
+    for (py::ssize_t i = 0; i < req.size; i++) {
         std::stringstream ss;
         ss << ptr[i];
         l.append(py::str(ss.str()));
@@ -180,8 +180,8 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
     using arr_t = py::array_t<int32_t, 0>;
 
     std::vector<int32_t> data { 1, 2, 3, 4, 5, 6 };
-    std::vector<ssize_t> shape { 3, 2 };
-    std::vector<ssize_t> strides { 8, 4 };
+    std::vector<py::ssize_t> shape { 3, 2 };
+    std::vector<py::ssize_t> strides { 8, 4 };
 
     auto ptr = data.data();
     auto vptr = (void *) ptr;
@@ -398,7 +398,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         if (non_empty) {
             auto req = arr.request();
             auto ptr = static_cast<StringStruct*>(req.ptr);
-            for (ssize_t i = 0; i < req.size * req.itemsize; i++)
+            for (py::ssize_t i = 0; i < req.size * req.itemsize; i++)
                 static_cast<char*>(req.ptr)[i] = 0;
             ptr[1].a[0] = 'a'; ptr[1].b[0] = 'a';
             ptr[2].a[0] = 'a'; ptr[2].b[0] = 'a';
