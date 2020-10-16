@@ -154,49 +154,60 @@ struct type_info {
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
-#   define PYBIND11_BUILD_TYPE "_debug"
+#  define PYBIND11_BUILD_TYPE "_debug"
 #else
-#   define PYBIND11_BUILD_TYPE ""
+#  define PYBIND11_BUILD_TYPE ""
 #endif
 
 /// Let's assume that different compilers are ABI-incompatible.
-#if defined(_MSC_VER)
-#   define PYBIND11_COMPILER_TYPE "_msvc"
-#elif defined(__INTEL_COMPILER)
-#   define PYBIND11_COMPILER_TYPE "_icc"
-#elif defined(__clang__)
-#   define PYBIND11_COMPILER_TYPE "_clang"
-#elif defined(__PGI)
-#   define PYBIND11_COMPILER_TYPE "_pgi"
-#elif defined(__MINGW32__)
-#   define PYBIND11_COMPILER_TYPE "_mingw"
-#elif defined(__CYGWIN__)
-#   define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
-#elif defined(__GNUC__)
-#   define PYBIND11_COMPILER_TYPE "_gcc"
-#else
-#   define PYBIND11_COMPILER_TYPE "_unknown"
+/// A user can manually set this string if they know their
+/// compiler is compatible.
+#ifndef PYBIND11_COMPILER_TYPE
+#  if defined(_MSC_VER)
+#    define PYBIND11_COMPILER_TYPE "_msvc"
+#  elif defined(__INTEL_COMPILER)
+#    define PYBIND11_COMPILER_TYPE "_icc"
+#  elif defined(__clang__)
+#    define PYBIND11_COMPILER_TYPE "_clang"
+#  elif defined(__PGI)
+#    define PYBIND11_COMPILER_TYPE "_pgi"
+#  elif defined(__MINGW32__)
+#    define PYBIND11_COMPILER_TYPE "_mingw"
+#  elif defined(__CYGWIN__)
+#    define PYBIND11_COMPILER_TYPE "_gcc_cygwin"
+#  elif defined(__GNUC__)
+#    define PYBIND11_COMPILER_TYPE "_gcc"
+#  else
+#    define PYBIND11_COMPILER_TYPE "_unknown"
+#  endif
 #endif
 
-#if defined(_LIBCPP_VERSION)
-#  define PYBIND11_STDLIB "_libcpp"
-#elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
-#  define PYBIND11_STDLIB "_libstdcpp"
-#else
-#  define PYBIND11_STDLIB ""
+/// Also standard libs
+#ifndef PYBIND11_STDLIB
+#  if defined(_LIBCPP_VERSION)
+#    define PYBIND11_STDLIB "_libcpp"
+#  elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
+#    define PYBIND11_STDLIB "_libstdcpp"
+#  else
+#    define PYBIND11_STDLIB ""
+#  endif
 #endif
 
 /// On Linux/OSX, changes in __GXX_ABI_VERSION__ indicate ABI incompatibility.
-#if defined(__GXX_ABI_VERSION)
-#  define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
-#else
-#  define PYBIND11_BUILD_ABI ""
+#ifndef PYBIND11_BUILD_ABI
+#  if defined(__GXX_ABI_VERSION)
+#    define PYBIND11_BUILD_ABI "_cxxabi" PYBIND11_TOSTRING(__GXX_ABI_VERSION)
+#  else
+#    define PYBIND11_BUILD_ABI ""
+#  endif
 #endif
 
-#if defined(WITH_THREAD)
-#  define PYBIND11_INTERNALS_KIND ""
-#else
-#  define PYBIND11_INTERNALS_KIND "_without_thread"
+#ifndef PYBIND11_INTERNALS_KIND
+#  if defined(WITH_THREAD)
+#    define PYBIND11_INTERNALS_KIND ""
+#  else
+#    define PYBIND11_INTERNALS_KIND "_without_thread"
+#  endif
 #endif
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_v" \
