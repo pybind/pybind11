@@ -80,22 +80,28 @@ SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
 )
 
 
-@pytest.mark.parametrize("time1", [
-    datetime.datetime.today().time(),
-    datetime.time(0, 0, 0),
-    datetime.time(0, 0, 0, 1),
-    datetime.time(0, 28, 45, 109827),
-    datetime.time(0, 59, 59, 999999),
-    datetime.time(1, 0, 0),
-    datetime.time(5, 59, 59, 0),
-    datetime.time(5, 59, 59, 1),
-])
-@pytest.mark.parametrize("tz", [
-    None,
-    pytest.param("Europe/Brussels", marks=SKIP_TZ_ENV_ON_WIN),
-    pytest.param("Asia/Pyongyang", marks=SKIP_TZ_ENV_ON_WIN),
-    pytest.param("America/New_York", marks=SKIP_TZ_ENV_ON_WIN),
-])
+@pytest.mark.parametrize(
+    "time1",
+    [
+        datetime.datetime.today().time(),
+        datetime.time(0, 0, 0),
+        datetime.time(0, 0, 0, 1),
+        datetime.time(0, 28, 45, 109827),
+        datetime.time(0, 59, 59, 999999),
+        datetime.time(1, 0, 0),
+        datetime.time(5, 59, 59, 0),
+        datetime.time(5, 59, 59, 1),
+    ],
+)
+@pytest.mark.parametrize(
+    "tz",
+    [
+        None,
+        pytest.param("Europe/Brussels", marks=SKIP_TZ_ENV_ON_WIN),
+        pytest.param("Asia/Pyongyang", marks=SKIP_TZ_ENV_ON_WIN),
+        pytest.param("America/New_York", marks=SKIP_TZ_ENV_ON_WIN),
+    ],
+)
 def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
     if tz is not None:
         monkeypatch.setenv("TZ", "/usr/share/zoneinfo/{}".format(tz))
@@ -199,7 +205,7 @@ def test_floating_point_duration():
 def test_nano_timepoint():
     time = datetime.datetime.now()
     time1 = m.test_nano_timepoint(time, datetime.timedelta(seconds=60))
-    assert(time1 == time + datetime.timedelta(seconds=60))
+    assert time1 == time + datetime.timedelta(seconds=60)
 
 
 def test_chrono_different_resolutions():

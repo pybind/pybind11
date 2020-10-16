@@ -6,9 +6,13 @@ from pybind11_tests import ConstructorStats
 
 def test_nested_modules():
     import pybind11_tests
+
     assert pybind11_tests.__name__ == "pybind11_tests"
     assert pybind11_tests.modules.__name__ == "pybind11_tests.modules"
-    assert pybind11_tests.modules.subsubmodule.__name__ == "pybind11_tests.modules.subsubmodule"
+    assert (
+        pybind11_tests.modules.subsubmodule.__name__
+        == "pybind11_tests.modules.subsubmodule"
+    )
     assert m.__name__ == "pybind11_tests.modules"
     assert ms.__name__ == "pybind11_tests.modules.subsubmodule"
 
@@ -35,7 +39,7 @@ def test_reference_internal():
     del b
     assert astats.alive() == 0
     assert bstats.alive() == 0
-    assert astats.values() == ['1', '2', '42', '43']
+    assert astats.values() == ["1", "2", "42", "43"]
     assert bstats.values() == []
     assert astats.default_constructions == 0
     assert bstats.default_constructions == 1
@@ -54,7 +58,7 @@ def test_importing():
     from collections import OrderedDict
 
     assert OD is OrderedDict
-    assert str(OD([(1, 'a'), (2, 'b')])) == "OrderedDict([(1, 'a'), (2, 'b')])"
+    assert str(OD([(1, "a"), (2, "b")])) == "OrderedDict([(1, 'a'), (2, 'b')])"
 
 
 def test_pydoc():

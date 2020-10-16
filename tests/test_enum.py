@@ -24,18 +24,24 @@ def test_unscoped_enum():
     assert m.UnscopedEnum.EOne.name == "EOne"
 
     # __members__ property
-    assert m.UnscopedEnum.__members__ == \
-        {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo, "EThree": m.UnscopedEnum.EThree}
+    assert m.UnscopedEnum.__members__ == {
+        "EOne": m.UnscopedEnum.EOne,
+        "ETwo": m.UnscopedEnum.ETwo,
+        "EThree": m.UnscopedEnum.EThree,
+    }
     # __members__ readonly
     with pytest.raises(AttributeError):
         m.UnscopedEnum.__members__ = {}
     # __members__ returns a copy
     foo = m.UnscopedEnum.__members__
     foo["bar"] = "baz"
-    assert m.UnscopedEnum.__members__ == \
-        {"EOne": m.UnscopedEnum.EOne, "ETwo": m.UnscopedEnum.ETwo, "EThree": m.UnscopedEnum.EThree}
+    assert m.UnscopedEnum.__members__ == {
+        "EOne": m.UnscopedEnum.EOne,
+        "ETwo": m.UnscopedEnum.ETwo,
+        "EThree": m.UnscopedEnum.EThree,
+    }
 
-    for docstring_line in '''An unscoped enumeration
+    for docstring_line in """An unscoped enumeration
 
 Members:
 
@@ -43,7 +49,9 @@ Members:
 
   ETwo : Docstring for ETwo
 
-  EThree : Docstring for EThree'''.split('\n'):
+  EThree : Docstring for EThree""".split(
+        "\n"
+    ):
         assert docstring_line in m.UnscopedEnum.__doc__
 
     # Unscoped enums will accept ==/!= int comparisons
@@ -53,10 +61,10 @@ Members:
     assert y != 3
     assert 3 != y
     # Compare with None
-    assert (y != None)  # noqa: E711
+    assert y != None  # noqa: E711
     assert not (y == None)  # noqa: E711
     # Compare with an object
-    assert (y != object())
+    assert y != object()
     assert not (y == object())
     # Compare with string
     assert y != "2"
@@ -119,10 +127,10 @@ def test_scoped_enum():
     assert z != 3
     assert 3 != z
     # Compare with None
-    assert (z != None)  # noqa: E711
+    assert z != None  # noqa: E711
     assert not (z == None)  # noqa: E711
     # Compare with an object
-    assert (z != object())
+    assert z != object()
     assert not (z == object())
     # Scoped enums will *NOT* accept >, <, >= and <= int comparisons (Will throw exceptions)
     with pytest.raises(TypeError):

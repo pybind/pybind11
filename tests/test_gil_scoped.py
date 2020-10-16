@@ -21,6 +21,7 @@ def _run_in_process(target, *args, **kwargs):
 
 def _python_to_cpp_to_python():
     """Calls different C++ functions that come back to Python."""
+
     class ExtendedVirtClass(m.VirtClass):
         def virtual_func(self):
             pass
@@ -74,7 +75,9 @@ def test_python_to_cpp_to_python_from_thread_multiple_sequential():
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    assert _run_in_process(_python_to_cpp_to_python_from_threads, 8, parallel=False) == 0
+    assert (
+        _run_in_process(_python_to_cpp_to_python_from_threads, 8, parallel=False) == 0
+    )
 
 
 # TODO: FIXME on macOS Python 3.9

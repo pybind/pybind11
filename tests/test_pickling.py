@@ -42,5 +42,6 @@ def test_roundtrip_with_dict(cls_name):
 
 def test_enum_pickle():
     from pybind11_tests import enums as e
+
     data = pickle.dumps(e.EOne, 2)
     assert e.EOne == pickle.loads(data)

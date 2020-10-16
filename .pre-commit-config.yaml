@@ -36,8 +36,7 @@ repos:
   - id: black
     # By default, this ignores pyi files, though black supports them
     types: [text]
-    # Not all Python files are Blacked, yet
-    files: ^(setup.py|pybind11|tests/extra|tools).*\.pyi?$
+    files: \.pyi?$
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks

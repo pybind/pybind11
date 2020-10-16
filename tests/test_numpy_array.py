@@ -19,33 +19,36 @@ def test_dtypes():
         print(check)
         assert check.numpy == check.pybind11, check
         if check.numpy.num != check.pybind11.num:
-            print("NOTE: typenum mismatch for {}: {} != {}".format(
-                check, check.numpy.num, check.pybind11.num))
+            print(
+                "NOTE: typenum mismatch for {}: {} != {}".format(
+                    check, check.numpy.num, check.pybind11.num
+                )
+            )
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def arr():
-    return np.array([[1, 2, 3], [4, 5, 6]], '=u2')
+    return np.array([[1, 2, 3], [4, 5, 6]], "=u2")
 
 
 def test_array_attributes():
-    a = np.array(0, 'f8')
+    a = np.array(0, "f8")
     assert m.ndim(a) == 0
     assert all(m.shape(a) == [])
     assert all(m.strides(a) == [])
     with pytest.raises(IndexError) as excinfo:
         m.shape(a, 0)
-    assert str(excinfo.value) == 'invalid axis: 0 (ndim = 0)'
+    assert str(excinfo.value) == "invalid axis: 0 (ndim = 0)"
     with pytest.raises(IndexError) as excinfo:
         m.strides(a, 0)
-    assert str(excinfo.value) == 'invalid axis: 0 (ndim = 0)'
+    assert str(excinfo.value) == "invalid axis: 0 (ndim = 0)"
     assert m.writeable(a)
     assert m.size(a) == 1
     assert m.itemsize(a) == 8
     assert m.nbytes(a) == 8
     assert m.owndata(a)
 
-    a = np.array([[1, 2, 3], [4, 5, 6]], 'u2').view()
+    a = np.array([[1, 2, 3], [4, 5, 6]], "u2").view()
     a.flags.writeable = False
     assert m.ndim(a) == 2
     assert all(m.shape(a) == [2, 3])
@@ -56,10 +59,10 @@ def test_array_attributes():
     assert m.strides(a, 1) == 2
     with pytest.raises(IndexError) as excinfo:
         m.shape(a, 2)
-    assert str(excinfo.value) == 'invalid axis: 2 (ndim = 2)'
+    assert str(excinfo.value) == "invalid axis: 2 (ndim = 2)"
     with pytest.raises(IndexError) as excinfo:
         m.strides(a, 2)
-    assert str(excinfo.value) == 'invalid axis: 2 (ndim = 2)'
+    assert str(excinfo.value) == "invalid axis: 2 (ndim = 2)"
     assert not m.writeable(a)
     assert m.size(a) == 6
     assert m.itemsize(a) == 2
@@ -67,7 +70,9 @@ def test_array_attributes():
     assert not m.owndata(a)
 
 
-@pytest.mark.parametrize('args, ret', [([], 0), ([0], 0), ([1], 3), ([0, 1], 1), ([1, 2], 5)])
+@pytest.mark.parametrize(
+    "args, ret", [([], 0), ([0], 0), ([1], 3), ([0, 1], 1), ([1, 2], 5)]
+)
 def test_index_offset(arr, args, ret):
     assert m.index_at(arr, *args) == ret
     assert m.index_at_t(arr, *args) == ret
@@ -76,31 +81,46 @@ def test_index_offset(arr, args, ret):
 
 
 def test_dim_check_fail(arr):
-    for func in (m.index_at, m.index_at_t, m.offset_at, m.offset_at_t, m.data, m.data_t,
-                 m.mutate_data, m.mutate_data_t):
+    for func in (
+        m.index_at,
+        m.index_at_t,
+        m.offset_at,
+        m.offset_at_t,
+        m.data,
+        m.data_t,
+        m.mutate_data,
+        m.mutate_data_t,
+    ):
         with pytest.raises(IndexError) as excinfo:
             func(arr, 1, 2, 3)
-        assert str(excinfo.value) == 'too many indices for an array: 3 (ndim = 2)'
+        assert str(excinfo.value) == "too many indices for an array: 3 (ndim = 2)"
 
 
-@pytest.mark.parametrize('args, ret',
-                         [([], [1, 2, 3, 4, 5, 6]),
-                          ([1], [4, 5, 6]),
-                          ([0, 1], [2, 3, 4, 5, 6]),
-                          ([1, 2], [6])])
+@pytest.mark.parametrize(
+    "args, ret",
+    [
+        ([], [1, 2, 3, 4, 5, 6]),
+        ([1], [4, 5, 6]),
+        ([0, 1], [2, 3, 4, 5, 6]),
+        ([1, 2], [6]),
+    ],
+)
 def test_data(arr, args, ret):
     from sys import byteorder
+
     assert all(m.data_t(arr, *args) == ret)
-    assert all(m.data(arr, *args)[(0 if byteorder == 'little' else 1)::2] == ret)
-    assert all(m.data(arr, *args)[(1 if byteorder == 'little' else 0)::2] == 0)
+    assert all(m.data(arr, *args)[(0 if byteorder == "little" else 1) :: 2] == ret)
+    assert all(m.data(arr, *args)[(1 if byteorder == "little" else 0) :: 2] == 0)
 
 
-@pytest.mark.parametrize('dim', [0, 1, 3])
+@pytest.mark.parametrize("dim", [0, 1, 3])
 def test_at_fail(arr, dim):
     for func in m.at_t, m.mutate_at_t:
         with pytest.raises(IndexError) as excinfo:
             func(arr, *([0] * dim))
-        assert str(excinfo.value) == 'index dimension mismatch: {} (ndim = 2)'.format(dim)
+        assert str(excinfo.value) == "index dimension mismatch: {} (ndim = 2)".format(
+            dim
+        )
 
 
 def test_at(arr):
@@ -113,10 +133,14 @@ def test_at(arr):
 
 def test_mutate_readonly(arr):
     arr.flags.writeable = False
-    for func, args in (m.mutate_data, ()), (m.mutate_data_t, ()), (m.mutate_at_t, (0, 0)):
+    for func, args in (
+        (m.mutate_data, ()),
+        (m.mutate_data_t, ()),
+        (m.mutate_at_t, (0, 0)),
+    ):
         with pytest.raises(ValueError) as excinfo:
             func(arr, *args)
-        assert str(excinfo.value) == 'array is not writeable'
+        assert str(excinfo.value) == "array is not writeable"
 
 
 def test_mutate_data(arr):
@@ -134,14 +158,22 @@ def test_mutate_data(arr):
 
 
 def test_bounds_check(arr):
-    for func in (m.index_at, m.index_at_t, m.data, m.data_t,
-                 m.mutate_data, m.mutate_data_t, m.at_t, m.mutate_at_t):
+    for func in (
+        m.index_at,
+        m.index_at_t,
+        m.data,
+        m.data_t,
+        m.mutate_data,
+        m.mutate_data_t,
+        m.at_t,
+        m.mutate_at_t,
+    ):
         with pytest.raises(IndexError) as excinfo:
             func(arr, 2, 0)
-        assert str(excinfo.value) == 'index 2 is out of bounds for axis 0 with size 2'
+        assert str(excinfo.value) == "index 2 is out of bounds for axis 0 with size 2"
         with pytest.raises(IndexError) as excinfo:
             func(arr, 0, 4)
-        assert str(excinfo.value) == 'index 4 is out of bounds for axis 1 with size 3'
+        assert str(excinfo.value) == "index 4 is out of bounds for axis 1 with size 3"
 
 
 def test_make_c_f_array():
@@ -163,10 +195,11 @@ def test_make_empty_shaped_array():
 def test_wrap():
     def assert_references(a, b, base=None):
         from distutils.version import LooseVersion
+
         if base is None:
             base = a
         assert a is not b
-        assert a.__array_interface__['data'][0] == b.__array_interface__['data'][0]
+        assert a.__array_interface__["data"][0] == b.__array_interface__["data"][0]
         assert a.shape == b.shape
         assert a.strides == b.strides
         assert a.flags.c_contiguous == b.flags.c_contiguous
@@ -189,12 +222,12 @@ def test_wrap():
     a2 = m.wrap(a1)
     assert_references(a1, a2)
 
-    a1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order='F')
+    a1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order="F")
     assert a1.flags.owndata and a1.base is None
     a2 = m.wrap(a1)
     assert_references(a1, a2)
 
-    a1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order='C')
+    a1 = np.array([[1, 2], [3, 4]], dtype=np.float32, order="C")
     a1.flags.writeable = False
     a2 = m.wrap(a1)
     assert_references(a1, a2)
@@ -224,11 +257,14 @@ def test_numpy_view(capture):
         assert np.all(ac_view_1 == np.array([1, 2], dtype=np.int32))
         del ac
         pytest.gc_collect()
-    assert capture == """
+    assert (
+        capture
+        == """
         ArrayClass()
         ArrayClass::numpy_view()
         ArrayClass::numpy_view()
     """
+    )
     ac_view_1[0] = 4
     ac_view_1[1] = 3
     assert ac_view_2[0] == 4
@@ -238,9 +274,12 @@ def test_numpy_view(capture):
         del ac_view_2
         pytest.gc_collect()
         pytest.gc_collect()
-    assert capture == """
+    assert (
+        capture
+        == """
         ~ArrayClass()
     """
+    )
 
 
 def test_cast_numpy_int64_to_uint64():
@@ -271,20 +310,22 @@ def test_constructors():
 
 def test_overload_resolution(msg):
     # Exact overload matches:
-    assert m.overloaded(np.array([1], dtype='float64')) == 'double'
-    assert m.overloaded(np.array([1], dtype='float32')) == 'float'
-    assert m.overloaded(np.array([1], dtype='ushort')) == 'unsigned short'
-    assert m.overloaded(np.array([1], dtype='intc')) == 'int'
-    assert m.overloaded(np.array([1], dtype='longlong')) == 'long long'
-    assert m.overloaded(np.array([1], dtype='complex')) == 'double complex'
-    assert m.overloaded(np.array([1], dtype='csingle')) == 'float complex'
+    assert m.overloaded(np.array([1], dtype="float64")) == "double"
+    assert m.overloaded(np.array([1], dtype="float32")) == "float"
+    assert m.overloaded(np.array([1], dtype="ushort")) == "unsigned short"
+    assert m.overloaded(np.array([1], dtype="intc")) == "int"
+    assert m.overloaded(np.array([1], dtype="longlong")) == "long long"
+    assert m.overloaded(np.array([1], dtype="complex")) == "double complex"
+    assert m.overloaded(np.array([1], dtype="csingle")) == "float complex"
 
     # No exact match, should call first convertible version:
-    assert m.overloaded(np.array([1], dtype='uint8')) == 'double'
+    assert m.overloaded(np.array([1], dtype="uint8")) == "double"
 
     with pytest.raises(TypeError) as excinfo:
         m.overloaded("not an array")
-    assert msg(excinfo.value) == """
+    assert (
+        msg(excinfo.value)
+        == """
         overloaded(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[numpy.float64]) -> str
             2. (arg0: numpy.ndarray[numpy.float32]) -> str
@@ -296,15 +337,16 @@ def test_overload_resolution(msg):
 
         Invoked with: 'not an array'
     """
+    )
 
-    assert m.overloaded2(np.array([1], dtype='float64')) == 'double'
-    assert m.overloaded2(np.array([1], dtype='float32')) == 'float'
-    assert m.overloaded2(np.array([1], dtype='complex64')) == 'float complex'
-    assert m.overloaded2(np.array([1], dtype='complex128')) == 'double complex'
-    assert m.overloaded2(np.array([1], dtype='float32')) == 'float'
+    assert m.overloaded2(np.array([1], dtype="float64")) == "double"
+    assert m.overloaded2(np.array([1], dtype="float32")) == "float"
+    assert m.overloaded2(np.array([1], dtype="complex64")) == "float complex"
+    assert m.overloaded2(np.array([1], dtype="complex128")) == "double complex"
+    assert m.overloaded2(np.array([1], dtype="float32")) == "float"
 
-    assert m.overloaded3(np.array([1], dtype='float64')) == 'double'
-    assert m.overloaded3(np.array([1], dtype='intc')) == 'int'
+    assert m.overloaded3(np.array([1], dtype="float64")) == "double"
+    assert m.overloaded3(np.array([1], dtype="intc")) == "int"
     expected_exc = """
         overloaded3(): incompatible function arguments. The following argument types are supported:
             1. (arg0: numpy.ndarray[numpy.int32]) -> str
@@ -313,47 +355,49 @@ def test_overload_resolution(msg):
         Invoked with: """
 
     with pytest.raises(TypeError) as excinfo:
-        m.overloaded3(np.array([1], dtype='uintc'))
-    assert msg(excinfo.value) == expected_exc + repr(np.array([1], dtype='uint32'))
+        m.overloaded3(np.array([1], dtype="uintc"))
+    assert msg(excinfo.value) == expected_exc + repr(np.array([1], dtype="uint32"))
     with pytest.raises(TypeError) as excinfo:
-        m.overloaded3(np.array([1], dtype='float32'))
-    assert msg(excinfo.value) == expected_exc + repr(np.array([1.], dtype='float32'))
+        m.overloaded3(np.array([1], dtype="float32"))
+    assert msg(excinfo.value) == expected_exc + repr(np.array([1.0], dtype="float32"))
     with pytest.raises(TypeError) as excinfo:
-        m.overloaded3(np.array([1], dtype='complex'))
-    assert msg(excinfo.value) == expected_exc + repr(np.array([1. + 0.j]))
+        m.overloaded3(np.array([1], dtype="complex"))
+    assert msg(excinfo.value) == expected_exc + repr(np.array([1.0 + 0.0j]))
 
     # Exact matches:
-    assert m.overloaded4(np.array([1], dtype='double')) == 'double'
-    assert m.overloaded4(np.array([1], dtype='longlong')) == 'long long'
+    assert m.overloaded4(np.array([1], dtype="double")) == "double"
+    assert m.overloaded4(np.array([1], dtype="longlong")) == "long long"
     # Non-exact matches requiring conversion.  Since float to integer isn't a
     # save conversion, it should go to the double overload, but short can go to
     # either (and so should end up on the first-registered, the long long).
-    assert m.overloaded4(np.array([1], dtype='float32')) == 'double'
-    assert m.overloaded4(np.array([1], dtype='short')) == 'long long'
+    assert m.overloaded4(np.array([1], dtype="float32")) == "double"
+    assert m.overloaded4(np.array([1], dtype="short")) == "long long"
 
-    assert m.overloaded5(np.array([1], dtype='double')) == 'double'
-    assert m.overloaded5(np.array([1], dtype='uintc')) == 'unsigned int'
-    assert m.overloaded5(np.array([1], dtype='float32')) == 'unsigned int'
+    assert m.overloaded5(np.array([1], dtype="double")) == "double"
+    assert m.overloaded5(np.array([1], dtype="uintc")) == "unsigned int"
+    assert m.overloaded5(np.array([1], dtype="float32")) == "unsigned int"
 
 
 def test_greedy_string_overload():
     """Tests fix for #685 - ndarray shouldn't go to std::string overload"""
 
     assert m.issue685("abc") == "string"
-    assert m.issue685(np.array([97, 98, 99], dtype='b')) == "array"
+    assert m.issue685(np.array([97, 98, 99], dtype="b")) == "array"
     assert m.issue685(123) == "other"
 
 
 def test_array_unchecked_fixed_dims(msg):
-    z1 = np.array([[1, 2], [3, 4]], dtype='float64')
+    z1 = np.array([[1, 2], [3, 4]], dtype="float64")
     m.proxy_add2(z1, 10)
     assert np.all(z1 == [[11, 12], [13, 14]])
 
     with pytest.raises(ValueError) as excinfo:
-        m.proxy_add2(np.array([1., 2, 3]), 5.0)
-    assert msg(excinfo.value) == "array has incorrect number of dimensions: 1; expected 2"
+        m.proxy_add2(np.array([1.0, 2, 3]), 5.0)
+    assert (
+        msg(excinfo.value) == "array has incorrect number of dimensions: 1; expected 2"
+    )
 
-    expect_c = np.ndarray(shape=(3, 3, 3), buffer=np.array(range(3, 30)), dtype='int')
+    expect_c = np.ndarray(shape=(3, 3, 3), buffer=np.array(range(3, 30)), dtype="int")
     assert np.all(m.proxy_init3(3.0) == expect_c)
     expect_f = np.transpose(expect_c)
     assert np.all(m.proxy_init3F(3.0) == expect_f)
@@ -369,11 +413,11 @@ def test_array_unchecked_fixed_dims(msg):
 
 
 def test_array_unchecked_dyn_dims(msg):
-    z1 = np.array([[1, 2], [3, 4]], dtype='float64')
+    z1 = np.array([[1, 2], [3, 4]], dtype="float64")
     m.proxy_add2_dyn(z1, 10)
     assert np.all(z1 == [[11, 12], [13, 14]])
 
-    expect_c = np.ndarray(shape=(3, 3, 3), buffer=np.array(range(3, 30)), dtype='int')
+    expect_c = np.ndarray(shape=(3, 3, 3), buffer=np.array(range(3, 30)), dtype="int")
     assert np.all(m.proxy_init3_dyn(3.0) == expect_c)
 
     assert m.proxy_auxiliaries2_dyn(z1) == [11, 11, True, 2, 8, 2, 2, 4, 32]
@@ -383,15 +427,15 @@ def test_array_unchecked_dyn_dims(msg):
 def test_array_failure():
     with pytest.raises(ValueError) as excinfo:
         m.array_fail_test()
-    assert str(excinfo.value) == 'cannot create a pybind11::array from a nullptr'
+    assert str(excinfo.value) == "cannot create a pybind11::array from a nullptr"
 
     with pytest.raises(ValueError) as excinfo:
         m.array_t_fail_test()
-    assert str(excinfo.value) == 'cannot create a pybind11::array_t from a nullptr'
+    assert str(excinfo.value) == "cannot create a pybind11::array_t from a nullptr"
 
     with pytest.raises(ValueError) as excinfo:
         m.array_fail_test_negative_size()
-    assert str(excinfo.value) == 'negative dimensions are not allowed'
+    assert str(excinfo.value) == "negative dimensions are not allowed"
 
 
 def test_initializer_list():
@@ -402,35 +446,35 @@ def test_initializer_list():
 
 
 def test_array_resize(msg):
-    a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype='float64')
+    a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype="float64")
     m.array_reshape2(a)
-    assert(a.size == 9)
-    assert(np.all(a == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]))
+    assert a.size == 9
+    assert np.all(a == [[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
     # total size change should succced with refcheck off
     m.array_resize3(a, 4, False)
-    assert(a.size == 64)
+    assert a.size == 64
     # ... and fail with refcheck on
     try:
         m.array_resize3(a, 3, True)
     except ValueError as e:
-        assert(str(e).startswith("cannot resize an array"))
+        assert str(e).startswith("cannot resize an array")
     # transposed array doesn't own data
     b = a.transpose()
     try:
         m.array_resize3(b, 3, False)
     except ValueError as e:
-        assert(str(e).startswith("cannot resize this array: it does not own its data"))
+        assert str(e).startswith("cannot resize this array: it does not own its data")
     # ... but reshape should be fine
     m.array_reshape2(b)
-    assert(b.shape == (8, 8))
+    assert b.shape == (8, 8)
 
 
 @pytest.mark.xfail("env.PYPY")
 def test_array_create_and_resize(msg):
     a = m.create_and_resize(2)
-    assert(a.size == 4)
-    assert(np.all(a == 42.))
+    assert a.size == 4
+    assert np.all(a == 42.0)
 
 
 def test_index_using_ellipsis():
@@ -439,16 +483,16 @@ def test_index_using_ellipsis():
 
 
 @pytest.mark.parametrize("forcecast", [False, True])
-@pytest.mark.parametrize("contiguity", [None, 'C', 'F'])
+@pytest.mark.parametrize("contiguity", [None, "C", "F"])
 @pytest.mark.parametrize("noconvert", [False, True])
 @pytest.mark.filterwarnings(
     "ignore:Casting complex values to real discards the imaginary part:numpy.ComplexWarning"
 )
 def test_argument_conversions(forcecast, contiguity, noconvert):
     function_name = "accept_double"
-    if contiguity == 'C':
+    if contiguity == "C":
         function_name += "_c_style"
-    elif contiguity == 'F':
+    elif contiguity == "F":
         function_name += "_f_style"
     if forcecast:
         function_name += "_forcecast"
@@ -456,37 +500,39 @@ def test_argument_conversions(forcecast, contiguity, noconvert):
         function_name += "_noconvert"
     function = getattr(m, function_name)
 
-    for dtype in [np.dtype('float32'), np.dtype('float64'), np.dtype('complex128')]:
-        for order in ['C', 'F']:
+    for dtype in [np.dtype("float32"), np.dtype("float64"), np.dtype("complex128")]:
+        for order in ["C", "F"]:
             for shape in [(2, 2), (1, 3, 1, 1), (1, 1, 1), (0,)]:
                 if not noconvert:
                     # If noconvert is not passed, only complex128 needs to be truncated and
                     # "cannot be safely obtained". So without `forcecast`, the argument shouldn't
                     # be accepted.
-                    should_raise = dtype.name == 'complex128' and not forcecast
+                    should_raise = dtype.name == "complex128" and not forcecast
                 else:
                     # If noconvert is passed, only float64 and the matching order is accepted.
                     # If at most one dimension has a size greater than 1, the array is also
                     # trivially contiguous.
                     trivially_contiguous = sum(1 for d in shape if d > 1) <= 1
-                    should_raise = (
-                        dtype.name != 'float64' or
-                        (contiguity is not None and
-                         contiguity != order and
-                         not trivially_contiguous)
+                    should_raise = dtype.name != "float64" or (
+                        contiguity is not None
+                        and contiguity != order
+                        and not trivially_contiguous
                     )
 
                 array = np.zeros(shape, dtype=dtype, order=order)
                 if not should_raise:
                     function(array)
                 else:
-                    with pytest.raises(TypeError, match="incompatible function arguments"):
+                    with pytest.raises(
+                        TypeError, match="incompatible function arguments"
+                    ):
                         function(array)
 
 
 @pytest.mark.xfail("env.PYPY")
 def test_dtype_refcount_leak():
     from sys import getrefcount
+
     dtype = np.dtype(np.float_)
     a = np.array([1], dtype=dtype)
     before = getrefcount(dtype)
