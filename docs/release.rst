@@ -31,7 +31,8 @@ To release a new version of pybind11:
     fails due to a known flake issue, either ignore or restart CI.)
 - Add a release branch if this is a new minor version
   - ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
-- Update tags
+- Update tags (optional; if you skip this, the GitHub release makes a
+  non-annotated tag for you)
   - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``.
   - ``git push --tags``.
 - Update stable
@@ -43,9 +44,10 @@ To release a new version of pybind11:
   (Note: if you do not use an existing tag, this creates a new lightweight tag
   for you, so you could skip the above step).
   - GUI method: click "Create a new release" on the far right, fill in the tag
-    name, fill in a release name like "Version X.Y.Z", and optionally
-    copy-and-paste the changelog into the description (processed as markdown by
-    Pandoc). Check "pre-release" if this is a beta/RC.
+    name (if you didn't tag above, it will be made here), fill in a release
+    name like "Version X.Y.Z", and optionally copy-and-paste the changelog into
+    the description (processed as markdown by Pandoc). Check "pre-release" if
+    this is a beta/RC.
   - CLI method: with ``gh`` installed, run ``gh release create vX.Y.Z -t "Version X.Y.Z"``
     If this is a pre-release, add ``-p``.
 
