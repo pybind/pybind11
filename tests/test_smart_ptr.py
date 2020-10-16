@@ -32,9 +32,9 @@ def test_smart_ptr(capture):
             m.print_myobject1_2(o)
             m.print_myobject1_3(o)
             m.print_myobject1_4(o)
-        assert capture == "MyObject1[{i}]\n".format(i=i) * (
-            4 if isinstance(o, int) else 8
-        )
+
+        times = 4 if isinstance(o, int) else 8
+        assert capture == "MyObject1[{i}]\n".format(i=i) * times
 
     cstats = ConstructorStats.get(m.MyObject1)
     assert cstats.alive() == 0
