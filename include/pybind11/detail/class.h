@@ -193,6 +193,44 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
     return self;
 }
 
+/// Cleanup the type-info for a pybind11-registered type.
+extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
+    auto *type = (PyTypeObject *) obj;
+    auto &internals = get_internals();
+
+    // A pybind11-registered type will:
+    // 1) be found in internals.registered_types_py
+    // 2) have exactly one associated `detail::type_info`
+    auto found_type = internals.registered_types_py.find(type);
+    if (found_type != internals.registered_types_py.end() &&
+        found_type->second.size() == 1 &&
+        found_type->second[0]->type == type) {
+
+        auto *tinfo = found_type->second[0];
+        auto tindex = std::type_index(*tinfo->cpptype);
+        internals.direct_conversions.erase(tindex);
+
+        if (tinfo->module_local)
+            registered_local_types_cpp().erase(tindex);
+        else
+            internals.registered_types_cpp.erase(tindex);
+        internals.registered_types_py.erase(tinfo->type);
+
+        // Actually just `std::erase_if`, but that's only available in C++20
+        auto &cache = internals.inactive_override_cache;
+        for (auto it = cache.begin(), last = cache.end(); it != last; ) {
+            if (it->first == (PyObject *) tinfo->type)
+                it = cache.erase(it);
+            else
+                ++it;
+        }
+
+        delete tinfo;
+    }
+
+    PyType_Type.tp_dealloc(obj);
+}
+
 /** This metaclass is assigned by default to all pybind11 types and is required in order
     for static properties to function correctly. Users may override this using `py::metaclass`.
     Return value: New reference. */
@@ -224,6 +262,8 @@ inline PyTypeObject* make_default_metaclass() {
 #if PY_MAJOR_VERSION >= 3
     type->tp_getattro = pybind11_meta_getattro;
 #endif
+
+    type->tp_dealloc = pybind11_meta_dealloc;
 
     if (PyType_Ready(type) < 0)
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");

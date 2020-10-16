@@ -434,7 +434,6 @@ def test_base_and_derived_nested_scope():
     assert m.DerivedWithNested.Nested.get_name() == "DerivedWithNested::Nested"
 
 
-@pytest.mark.skip("See https://github.com/pybind/pybind11/pull/2564")
 def test_register_duplicate_class():
     import types
 
