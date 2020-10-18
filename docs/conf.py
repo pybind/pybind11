@@ -238,12 +238,23 @@ htmlhelp_basename = "pybind11doc"
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     # 'papersize': 'letterpaper',
+    #
     # The font size ('10pt', '11pt' or '12pt').
     # 'pointsize': '10pt',
+    #
     # Additional stuff for the LaTeX preamble.
+    # remove blank pages (between the title page and the TOC, etc.)
+    "classoptions": ",openany,oneside",
     "preamble": r"""
+\usepackage{fontawesome}
+\usepackage{textgreek}
 \DeclareUnicodeCharacter{00A0}{}
-\DeclareUnicodeCharacter{2194}{<->}
+\DeclareUnicodeCharacter{2194}{\faArrowsH}
+\DeclareUnicodeCharacter{1F382}{\faBirthdayCake}
+\DeclareUnicodeCharacter{1F355}{\faAdjust}
+\DeclareUnicodeCharacter{0301}{'}
+\DeclareUnicodeCharacter{03C0}{\textpi}
+
 """,
     # Latex figure (float) alignment
     # 'figure_align': 'htbp',
