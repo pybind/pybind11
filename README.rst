@@ -49,7 +49,7 @@ binding code in many common situations.
 Tutorial and reference documentation is provided at
 `pybind11.readthedocs.io <https://pybind11.readthedocs.io/en/latest>`_.
 A PDF version of the manual is available
-`here <https://media.readthedocs.org/pdf/pybind11/master/pybind11.pdf>`_.
+`here <https://pybind11.readthedocs.io/_/downloads/en/latest/pdf/>`_.
 And the source code is always available at
 `github.com/pybind/pybind11 <https://github.com/pybind/pybind11>`_.
 
