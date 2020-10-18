@@ -1,8 +1,15 @@
-.. include:: ../README.rst
 
-.. only: not latex
+.. only:: not latex
+
+    .. include:: ../README.rst
 
     Contents:
+
+.. only:: latex
+
+   Intro
+   =====
+    .. include:: ../README.rst
 
 .. toctree::
    :maxdepth: 1
