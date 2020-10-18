@@ -1,8 +1,7 @@
 .. figure:: https://github.com/pybind/pybind11/raw/master/docs/pybind11-logo.png
    :alt: pybind11 logo
 
-pybind11 — Seamless operability between C++11 and Python
-========================================================
+**pybind11 — Seamless operability between C++11 and Python**
 
 |Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |CI| |Build status|
 
@@ -53,8 +52,7 @@ A PDF version of the manual is available
 And the source code is always available at
 `github.com/pybind/pybind11 <https://github.com/pybind/pybind11>`_.
 
-Core features
--------------
+**Core features**
 
 pybind11 can map the following core C++ features to Python:
 
@@ -75,8 +73,7 @@ pybind11 can map the following core C++ features to Python:
 -  C++ classes with virtual (and pure virtual) methods can be extended
    in Python
 
-Goodies
--------
+**Goodies**
 
 In addition to the core functionality, pybind11 provides some extra
 goodies:
@@ -119,8 +116,7 @@ goodies:
 -  With little extra effort, C++ types can be pickled and unpickled
    similar to regular Python objects.
 
-Supported compilers
--------------------
+**Supported compilers**
 
 1. Clang/LLVM 3.3 or newer (for Apple Xcode’s clang, this is 5.0.0 or
    newer)
@@ -132,8 +128,7 @@ Supported compilers
 6. NVCC (CUDA 11.0 tested)
 7. NVIDIA PGI (20.7 and 20.9 tested)
 
-About
------
+**About**
 
 This project was created by `Wenzel
 Jakob <http://rgl.epfl.ch/people/wjakob>`_. Significant features and/or
@@ -143,15 +138,13 @@ Johan Mabille, Tomasz Miąsko, Dean Moldovan, Ben Pritchard, Jason
 Rhinelander, Boris Schäling, Pim Schellart, Henry Schreiner, Ivan
 Smirnov, and Patrick Stewart.
 
-Contributing
-~~~~~~~~~~~~
+*Contributing*
 
 See the `contributing
 guide <https://github.com/pybind/pybind11/blob/master/.github/CONTRIBUTING.md>`_
 for information on building and contributing to pybind11.
 
-License
-~~~~~~~
+*License*
 
 pybind11 is provided under a BSD-style license that can be found in the
 `LICENSE <https://github.com/pybind/pybind11/blob/master/LICENSE>`_
