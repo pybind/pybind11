@@ -1,6 +1,11 @@
+.. only:: latex
+
+   Intro
+   =====
+
 .. include:: ../README.rst
 
-.. only: not latex
+.. only:: not latex
 
     Contents:
 
