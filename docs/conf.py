@@ -17,6 +17,10 @@ import sys
 import os
 import shlex
 import subprocess
+from pathlib import Path
+import re
+
+DIR = Path(__file__).parent.resolve()
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -345,6 +349,29 @@ def generate_doxygen_xml(app):
         sys.stderr.write("doxygen execution failed: {}\n".format(e))
 
 
+def prepare(app):
+    with open(DIR.parent / "README.rst") as f:
+        contents = f.read()
+
+    # Filter out section titles for index.rst for LaTeX
+    if app.builder.name == "latex":
+        contents = re.sub(r"^(.*)\n[-~]{3,}$", r"**\1**", contents, flags=re.MULTILINE)
+
+    with open(DIR / "readme.rst", "w") as f:
+        f.write(contents)
+
+
+def clean_up(app, exception):
+    (DIR / "readme.rst").unlink()
+
+
 def setup(app):
-    """Add hook for building doxygen xml when needed"""
+
+    # Add hook for building doxygen xml when needed
     app.connect("builder-inited", generate_doxygen_xml)
+
+    # Copy the readme in
+    app.connect("builder-inited", prepare)
+
+    # Clean up the generated readme
+    app.connect("build-finished", clean_up)
