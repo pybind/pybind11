@@ -226,7 +226,18 @@ find_package(Boost 1.56)
 
 if(Boost_FOUND)
   if(NOT TARGET Boost::headers)
+    set(use_alias FALSE)
     if(TARGET Boost::boost)
+      get_property(
+        is_imported
+        TARGET Boost::boost
+        PROPERTY IMPORTED)
+      if(NOT ${is_imported})
+        set(use_alias TRUE)
+      endif()
+    endif()
+
+    if(${use_alias})
       # Classic FindBoost
       add_library(Boost::headers ALIAS Boost::boost)
     else()
