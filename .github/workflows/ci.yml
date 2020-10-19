@@ -24,7 +24,7 @@ jobs:
         - 3.7
         - 3.8
         - 3.9
-        - 3.10.0-alpha.1
+        # - 3.10.0-alpha.1 - need next release for pybind11 fix
         - pypy2
         - pypy3
 
@@ -56,6 +56,12 @@ jobs:
             python: pypy2
           - runs-on: windows-latest
             python: pypy3
+
+          # Let's drop a few macOS runs since that tends to be 2.7 or 3.8+
+          - runs-on: macos-latest
+            python: 3.6
+          - runs-on: macos-latest
+            python: 3.7
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
