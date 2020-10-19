@@ -226,23 +226,12 @@ find_package(Boost 1.56)
 
 if(Boost_FOUND)
   if(NOT TARGET Boost::headers)
-    set(use_alias FALSE)
+    add_library(Boost::headers IMPORTED INTERFACE)
     if(TARGET Boost::boost)
-      get_property(
-        is_imported
-        TARGET Boost::boost
-        PROPERTY IMPORTED)
-      if(NOT ${is_imported})
-        set(use_alias TRUE)
-      endif()
-    endif()
-
-    if(${use_alias})
       # Classic FindBoost
-      add_library(Boost::headers ALIAS Boost::boost)
+      set_property(TARGET Boost::boost PROPERTY INTERFACE_LINK_LIBRARIES Boost::boost)
     else()
       # Very old FindBoost, or newer Boost than CMake in older CMakes
-      add_library(Boost::headers IMPORTED INTERFACE)
       set_property(TARGET Boost::headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
                                                   ${Boost_INCLUDE_DIRS})
     endif()
