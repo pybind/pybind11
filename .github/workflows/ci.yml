@@ -20,8 +20,11 @@ jobs:
         python:
         - 2.7
         - 3.5
+        - 3.6
+        - 3.7
         - 3.8
         - 3.9
+        - 3.10.0-alpha.1
         - pypy2
         - pypy3
 
@@ -175,6 +178,7 @@ jobs:
           - 3.7
           - 3.9
           - 7
+          - 9
           - dev
         std:
           - 11
@@ -517,6 +521,8 @@ jobs:
       matrix:
         python:
         - 3.5
+        - 3.6
+        - 3.7
         - 3.8
         - 3.9
         - pypy3
@@ -575,6 +581,8 @@ jobs:
         python:
           - 2.7
           - 3.6
+          - 3.7
+          # todo: check/cpptest does not support 3.8+ yet
 
     steps:
     - uses: actions/checkout@v2
@@ -618,6 +626,8 @@ jobs:
       fail-fast: false
       matrix:
         python:
+          - 2.7
+          - 3.5
           - 3.7
         std:
           - 14
