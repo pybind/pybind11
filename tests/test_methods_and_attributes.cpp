@@ -330,12 +330,14 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.def("no_none3", &none3, py::arg().none(false));
     m.def("no_none4", &none4, py::arg().none(false));
     m.def("no_none5", &none5, py::arg().none(false));
-    m.def("no_none5_kw", &none5, py::arg("a").none(false));
     m.def("ok_none1", &none1);
     m.def("ok_none2", &none2, py::arg().none(true));
     m.def("ok_none3", &none3);
     m.def("ok_none4", &none4, py::arg().none(true));
     m.def("ok_none5", &none5);
+
+    m.def("no_none_kw", &none5, py::arg("a").none(false));
+    m.def("no_none_kw_only", &none5, py::kw_only(), py::arg("a").none(false));
 
     // test_str_issue
     // Issue #283: __str__ called on uninitialized instance when constructor arguments invalid

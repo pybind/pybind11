@@ -384,9 +384,6 @@ def test_accepts_none(msg):
     with pytest.raises(TypeError) as excinfo:
         m.no_none5(None)
     assert "incompatible function arguments" in str(excinfo.value)
-    with pytest.raises(TypeError) as excinfo:
-        m.no_none5_kw(a=None)
-    assert "incompatible function arguments" in str(excinfo.value)
 
     # The first one still raises because you can't pass None as a lvalue reference arg:
     with pytest.raises(TypeError) as excinfo:
@@ -406,6 +403,19 @@ def test_accepts_none(msg):
     assert m.ok_none3(None) == -1
     assert m.ok_none4(None) == -1
     assert m.ok_none5(None) == -1
+
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kw(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kw(a=None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kw_only(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kw_only(a=None)
+    assert "incompatible function arguments" in str(excinfo.value)
 
 
 def test_str_issue(msg):
