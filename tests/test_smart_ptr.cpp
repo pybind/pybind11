@@ -37,8 +37,8 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 // holder size to trigger the non-simple-layout internal instance layout for single inheritance with
 // large holder type:
 template <typename T> class huge_unique_ptr {
-    std::unique_ptr<T> ptr;
     uint64_t padding[10];
+    std::unique_ptr<T> ptr;
 public:
     huge_unique_ptr(T *p) : ptr(p) {};
     T *get() const { return ptr.get(); }
@@ -382,4 +382,6 @@ TEST_SUBMODULE(smart_ptr, m) {
         // Fails: `return_shared' already returned this via shared_ptr holder
         py::class_<HeldByUnique>(m, "HeldByUnique");
     });
+    // segfaults, because std::shared_ptr<MyObject5> is interpreted as huge_unique_ptr<MyObject5>
+    m.def("consume_mismatching_holder", [](std::shared_ptr<MyObject5> o) { return o->value; });
 }
