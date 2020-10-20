@@ -204,6 +204,9 @@ Smaller or developer focused features and fixes:
 * Avoid a segfault on some compilers when types are removed in Python.
   `#2564 <https://github.com/pybind/pybind11/pull/2564>`_
 
+* ``py::arg::none()`` is now also respected when passing keyword arguments.
+  `#2611 <https://github.com/pybind/pybind11/pull/2611>`_
+
 * PyPy fixes, PyPy 7.3.x now supported, including PyPy3. (Known issue with
   PyPy2 and Windows `#2596 <https://github.com/pybind/pybind11/issues/2596>`_).
   `#2146 <https://github.com/pybind/pybind11/pull/2146>`_
