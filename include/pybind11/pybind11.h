@@ -606,15 +606,15 @@ protected:
                 // 1.5. Fill in any missing pos_only args from defaults if they exist
                 if (args_copied < func.nargs_pos_only) {
                     for (; args_copied < func.nargs_pos_only; ++args_copied) {
-                        const auto &arg = func.args[args_copied];
+                        const auto &arg_rec = func.args[args_copied];
                         handle value;
 
-                        if (arg.value) {
-                            value = arg.value;
+                        if (arg_rec.value) {
+                            value = arg_rec.value;
                         }
                         if (value) {
                             call.args.push_back(value);
-                            call.args_convert.push_back(arg.convert);
+                            call.args_convert.push_back(arg_rec.convert);
                         } else
                             break;
                     }
@@ -628,11 +628,11 @@ protected:
                     bool copied_kwargs = false;
 
                     for (; args_copied < num_args; ++args_copied) {
-                        const auto &arg = func.args[args_copied];
+                        const auto &arg_rec = func.args[args_copied];
 
                         handle value;
-                        if (kwargs_in && arg.name)
-                            value = PyDict_GetItemString(kwargs.ptr(), arg.name);
+                        if (kwargs_in && arg_rec.name)
+                            value = PyDict_GetItemString(kwargs.ptr(), arg_rec.name);
 
                         if (value) {
                             // Consume a kwargs value
@@ -640,14 +640,18 @@ protected:
                                 kwargs = reinterpret_steal<dict>(PyDict_Copy(kwargs.ptr()));
                                 copied_kwargs = true;
                             }
-                            PyDict_DelItemString(kwargs.ptr(), arg.name);
-                        } else if (arg.value) {
-                            value = arg.value;
+                            PyDict_DelItemString(kwargs.ptr(), arg_rec.name);
+                        } else if (arg_rec.value) {
+                            value = arg_rec.value;
+                        }
+
+                        if (!arg_rec.none && value.is_none()) {
+                            break;
                         }
 
                         if (value) {
                             call.args.push_back(value);
-                            call.args_convert.push_back(arg.convert);
+                            call.args_convert.push_back(arg_rec.convert);
                         }
                         else
                             break;

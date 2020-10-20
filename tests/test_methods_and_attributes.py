@@ -404,6 +404,19 @@ def test_accepts_none(msg):
     assert m.ok_none4(None) == -1
     assert m.ok_none5(None) == -1
 
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kwarg(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kwarg(a=None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kwarg_kw_only(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kwarg_kw_only(a=None)
+    assert "incompatible function arguments" in str(excinfo.value)
+
 
 def test_str_issue(msg):
     """#283: __str__ called on uninitialized instance when constructor arguments invalid"""
