@@ -405,16 +405,16 @@ def test_accepts_none(msg):
     assert m.ok_none5(None) == -1
 
     with pytest.raises(TypeError) as excinfo:
-        m.no_none_kw(None)
+        m.no_none_kwarg(None)
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
-        m.no_none_kw(a=None)
+        m.no_none_kwarg(a=None)
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
-        m.no_none_kw_only(None)
+        m.no_none_kwarg_kw_only(None)
     assert "incompatible function arguments" in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
-        m.no_none_kw_only(a=None)
+        m.no_none_kwarg_kw_only(a=None)
     assert "incompatible function arguments" in str(excinfo.value)
 
 
