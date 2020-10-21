@@ -53,7 +53,7 @@ To release a new version of pybind11:
 
 - Get back to work
   - Make sure you are on master, not somewhere else: ``git checkout master``
-  - Update version macros in ``include/pybind11/common.h`` (set PATCH to
+  - Update version macros in ``include/pybind11/detail/common.h`` (set PATCH to
     ``0.dev1`` and increment MINOR).
   - Update ``_version.py`` to match
   - Add a plot for in-development updates in ``docs/changelog.rst``.
