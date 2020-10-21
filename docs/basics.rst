@@ -39,7 +39,7 @@ on various C++11 language features that break older versions of Visual Studio.
 
     To use the C++17 in Visual Studio 2017 (MSVC 14.1), pybind11 requires the flag
     ``/permissive-`` to be passed to the compiler `to enforce standard conformance`_. When
-    building with Visual Studio 2019, this is not strictly necessary, but still adviced.
+    building with Visual Studio 2019, this is not strictly necessary, but still advised.
 
 ..  _`to enforce standard conformance`: https://docs.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=vs-2017
 
