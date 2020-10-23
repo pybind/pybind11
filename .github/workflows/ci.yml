@@ -20,8 +20,11 @@ jobs:
         python:
         - 2.7
         - 3.5
+        - 3.6
+        - 3.7
         - 3.8
         - 3.9
+        # - 3.10.0-alpha.1 - need next release for pybind11 fix
         - pypy2
         - pypy3
 
@@ -53,6 +56,12 @@ jobs:
             python: pypy2
           - runs-on: windows-latest
             python: pypy3
+
+          # Let's drop a few macOS runs since that tends to be 2.7 or 3.8+
+          - runs-on: macos-latest
+            python: 3.6
+          - runs-on: macos-latest
+            python: 3.7
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -175,6 +184,7 @@ jobs:
           - 3.7
           - 3.9
           - 7
+          - 9
           - dev
         std:
           - 11
@@ -517,6 +527,8 @@ jobs:
       matrix:
         python:
         - 3.5
+        - 3.6
+        - 3.7
         - 3.8
         - 3.9
         - pypy3
@@ -575,6 +587,8 @@ jobs:
         python:
           - 2.7
           - 3.6
+          - 3.7
+          # todo: check/cpptest does not support 3.8+ yet
 
     steps:
     - uses: actions/checkout@v2
@@ -618,6 +632,8 @@ jobs:
       fail-fast: false
       matrix:
         python:
+          - 2.7
+          - 3.5
           - 3.7
         std:
           - 14
