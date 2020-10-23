@@ -31,6 +31,15 @@ object eval(str expr, object global = globals(), object local = object()) {
     if (!local)
         local = global;
 
+#if PY_VERSION_HEX < 0x03080000
+    // Running exec and eval on Python 2 and 3 adds `builtins` module under
+    // `__builtins__` key to globals if not yet present.
+    // Python 3.8 made PyRun_String behave similarly. Let's also do that for
+    // older versions, for consistency.
+    if (!global.contains("__builtins__"))
+        global["__builtins__"] = module_::import(PYBIND11_BUILTINS_MODULE);
+#endif
+
     /* PyRun_String does not accept a PyObject / encoding specifier,
        this seems to be the only alternative */
     std::string buffer = "# -*- coding: utf-8 -*-\n" + (std::string) expr;
@@ -84,6 +93,12 @@ template <eval_mode mode = eval_statements>
 object eval_file(str fname, object global = globals(), object local = object()) {
     if (!local)
         local = global;
+
+#if PY_VERSION_HEX < 0x03080000
+    // See `eval` above.
+    if (!global.contains("__builtins__"))
+        global["__builtins__"] = module_::import(PYBIND11_BUILTINS_MODULE);
+#endif
 
     int start;
     switch (mode) {

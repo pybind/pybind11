@@ -88,4 +88,12 @@ TEST_SUBMODULE(eval_, m) {
         }
         return false;
     });
+
+    // test_eval_empty_globals
+    m.def("eval_empty_globals", [](py::object global) {
+        if (global.is_none())
+            global = py::dict();
+        auto int_class = py::eval("isinstance(42, int)", global);
+        return global;
+    });
 }
