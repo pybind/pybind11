@@ -27,7 +27,19 @@ TEST_SUBMODULE(docstring_options, m) {
         m.def("test_overloaded3", [](int) {}, py::arg("i"));
         m.def("test_overloaded3", [](double) {}, py::arg("d"), "Overload docstr");
 
+        m.def("test_overloaded4", [](int a, int b)->int { return a + b; },
+            "A function which adds two numbers.\n");
+        m.def("test_overloaded4", [](float a, float b)->float { return a + b; },
+            "Internally, a simple addition is performed.");
+        m.def("test_overloaded4", [](const py::none&, const py::none&)->py::none { return py::none(); },
+            "Both numbers can be None, and None will be returned.");
+
         options.enable_function_signatures();
+
+        m.def("test_overloaded5", [](int a, int b)->int { return a + b; },
+            "Add two integers together.");
+        m.def("test_overloaded5", [](float a, float b)->float { return a + b; },
+            "Add two floating point numbers together.");
 
         m.def("test_function3", [](int, int) {}, py::arg("a"), py::arg("b"));
         m.def("test_function4", [](int, int) {}, py::arg("a"), py::arg("b"), "A custom docstring");
