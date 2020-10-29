@@ -117,7 +117,11 @@ TEST_SUBMODULE(callbacks, m) {
         }
     });
 
-    class AbstractBase { public: virtual unsigned int func() = 0; };
+    class AbstractBase {
+    public:
+        virtual ~AbstractBase() = default;
+        virtual unsigned int func() = 0;
+    };
     m.def("func_accepting_func_accepting_base", [](std::function<double(AbstractBase&)>) { });
 
     struct MovableObject {
