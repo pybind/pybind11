@@ -311,7 +311,7 @@ extern "C" {
 \endrst */
 #define PYBIND11_MODULE(name, variable)                                        \
     static ::pybind11::module_::module_def                                     \
-        PYBIND11_CONCAT(pybind11_module_def_, name);                           \
+        PYBIND11_CONCAT(pybind11_module_def_, name) PYBIND11_MAYBE_UNUSED;     \
     PYBIND11_MAYBE_UNUSED                                                      \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);  \
     PYBIND11_PLUGIN_IMPL(name) {                                               \
