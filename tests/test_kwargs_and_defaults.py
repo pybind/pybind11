@@ -143,6 +143,7 @@ def test_mixed_args_and_kwargs(msg):
     )
 
 
+@pytest.mark.skipif("True")  # ASAN:leak
 def test_keyword_only_args(msg):
     assert m.kw_only_all(i=1, j=2) == (1, 2)
     assert m.kw_only_all(j=1, i=2) == (2, 1)

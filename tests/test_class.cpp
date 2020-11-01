@@ -230,8 +230,11 @@ TEST_SUBMODULE(class_, m) {
             return py::str().release().ptr();
         };
 
-        auto def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
-        return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, nullptr, m.ptr()));
+        static bool check_once = false;
+        if (check_once) py::pybind11_fail("check_once failure.");
+        check_once = true;
+        static PyMethodDef def{"f", f, METH_VARARGS, nullptr};
+        return py::reinterpret_steal<py::object>(PyCFunction_NewEx(&def, nullptr, m.ptr()));
     }());
 
     // test_operator_new_delete

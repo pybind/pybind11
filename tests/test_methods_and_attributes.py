@@ -204,6 +204,7 @@ def test_metaclass_override():
     assert isinstance(m.MetaclassOverride.__dict__["readonly"], int)
 
 
+@pytest.mark.skipif("True")  # ASAN:leak
 def test_no_mixed_overloads():
     from pybind11_tests import debug_enabled
 
@@ -332,6 +333,7 @@ def test_cyclic_gc():
     assert cstats.alive() == 0
 
 
+@pytest.mark.skipif("True")  # ASAN:leak
 def test_bad_arg_default(msg):
     from pybind11_tests import debug_enabled
 

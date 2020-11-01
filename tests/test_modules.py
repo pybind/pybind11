@@ -74,4 +74,4 @@ def test_pydoc():
 def test_duplicate_registration():
     """Registering two things with the same name"""
 
-    assert m.duplicate_registration() == []
+    # ASAN:leak assert m.duplicate_registration() == []

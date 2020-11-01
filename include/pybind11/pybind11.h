@@ -1324,6 +1324,11 @@ public:
                 return nullptr;
             return new buffer_info(((capture *) ptr)->func(caster));
         }, ptr);
+        // Fix developed by @YannickJadoul.
+        weakref(m_ptr, cpp_function([ptr](handle wr) {
+            delete ptr;
+            wr.dec_ref();
+        })).release();
         return *this;
     }
 

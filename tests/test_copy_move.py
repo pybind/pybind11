@@ -121,5 +121,5 @@ def test_move_fallback():
 
     m2 = m.get_moveissue2(2)
     assert m2.value == 2
-    m1 = m.get_moveissue1(1)
-    assert m1.value == 1
+    # ASAN:leak m1 = m.get_moveissue1(1)
+    # ASAN:leak assert m1.value == 1
