@@ -87,6 +87,10 @@ set_property(
   APPEND
   PROPERTY INTERFACE_INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>)
 
+set(pybind11_INCLUDE_DIRS
+    "${pybind11_INCLUDE_DIR}" "${PYTHON_INCLUDE_DIRS}"
+    CACHE INTERNAL "Directories where pybind11 and possibly Python headers are located")
+
 # Python debug libraries expose slightly different objects before 3.8
 # https://docs.python.org/3.6/c-api/intro.html#debugging-builds
 # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
