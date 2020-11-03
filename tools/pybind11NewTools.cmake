@@ -130,6 +130,9 @@ if(DEFINED ${_Python}_INCLUDE_DIRS)
     TARGET pybind11::pybind11
     APPEND
     PROPERTY INTERFACE_INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${${_Python}_INCLUDE_DIRS}>)
+  set(pybind11_INCLUDE_DIRS
+      "${pybind11_INCLUDE_DIR}" "${${_Python}_INCLUDE_DIRS}"
+      CACHE INTERNAL "Directories where pybind11 and possibly Python headers are located")
 endif()
 
 if(DEFINED ${_Python}_VERSION AND ${_Python}_VERSION VERSION_LESS 3)

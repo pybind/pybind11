@@ -36,6 +36,12 @@ if(NOT is_config)
   set(optional_global GLOBAL)
 endif()
 
+# If not run in Python mode, we still would like this to at least
+# include pybind11's include directory:
+set(pybind11_INCLUDE_DIRS
+    "${pybind11_INCLUDE_DIR}"
+    CACHE INTERNAL "Include directory for pybind11 (Python not requested)")
+
 # --------------------- Shared targets ----------------------------
 
 # Build an interface library target:

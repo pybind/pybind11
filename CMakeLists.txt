@@ -142,10 +142,17 @@ endif()
 string(REPLACE "include/" "${CMAKE_CURRENT_SOURCE_DIR}/include/" PYBIND11_HEADERS
                "${PYBIND11_HEADERS}")
 
-# Cache variables so pybind11_add_module can be used in parent projects
-set(PYBIND11_INCLUDE_DIR
+# Cache variable so this can be used in parent projects
+set(pybind11_INCLUDE_DIR
     "${CMAKE_CURRENT_LIST_DIR}/include"
-    CACHE INTERNAL "")
+    CACHE INTERNAL "Directory where pybind11 headers are located")
+
+# Backward compatible variable for add_subdirectory mode
+if(NOT PYBIND11_MASTER_PROJECT)
+  set(PYBIND11_INCLUDE_DIR
+      "${pybind11_INCLUDE_DIR}"
+      CACHE INTERNAL "")
+endif()
 
 # Note: when creating targets, you cannot use if statements at configure time -
 # you need generator expressions, because those will be placed in the target file.
@@ -170,14 +177,14 @@ endif()
 
 # Fill in headers target
 target_include_directories(
-  pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${PYBIND11_INCLUDE_DIR}>
+  pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${pybind11_INCLUDE_DIR}>
                                                 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
                                                    cxx_right_angle_brackets)
 
 if(PYBIND11_INSTALL)
-  install(DIRECTORY ${PYBIND11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
       "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
       CACHE STRING "install path for pybind11Config.cmake")
@@ -259,8 +266,5 @@ endif()
 if(NOT PYBIND11_MASTER_PROJECT)
   set(pybind11_FOUND
       TRUE
-      CACHE INTERNAL "true if pybind11 and all required components found on the system")
-  set(pybind11_INCLUDE_DIR
-      "${PYBIND11_INCLUDE_DIR}"
-      CACHE INTERNAL "Directory where pybind11 headers are located")
+      CACHE INTERNAL "True if pybind11 and all required components found on the system")
 endif()
