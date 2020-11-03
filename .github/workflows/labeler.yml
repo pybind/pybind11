@@ -1,6 +1,7 @@
 name: Labeler
 on:
-  pull_request_target: [closed]
+  pull_request_target:
+    types: [closed]
 
 jobs:
   label:
