@@ -80,7 +80,7 @@ print('.'.join(str(v) for v in sys.version_info));
 print(sys.prefix);
 print(s.get_python_inc(plat_specific=True));
 print(s.get_python_lib(plat_specific=True));
-print(s.get_config_var('SO'));
+print(s.get_config_var('SO') or s.get_config_var('EXT_SUFFIX'));
 print(hasattr(sys, 'gettotalrefcount')+0);
 print(struct.calcsize('@P'));
 print(s.get_config_var('LDVERSION') or s.get_config_var('VERSION'));
