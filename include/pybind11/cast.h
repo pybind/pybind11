@@ -1491,6 +1491,27 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
+template <typename holder>
+void check_for_holder_mismatch_impl() {
+    using iholder = intrinsic_t<holder>;
+    using base_type = decltype(*holder_helper<iholder>::get(std::declval<iholder>()));
+    auto &holder_typeinfo = typeid(iholder);
+    auto ins = get_internals().holders_seen.emplace(typeid(base_type), &holder_typeinfo);
+
+    auto debug = type_id<base_type>();
+    if (!ins.second && !same_type(*ins.first->second, holder_typeinfo)) {
+#ifdef NDEBUG
+        pybind11_fail("Mismatched holders detected (compile in debug mode for details)");
+#else
+        std::string seen_holder_name(ins.first->second->name());
+        detail::clean_type_id(seen_holder_name);
+        pybind11_fail("Mismatched holders detected: "
+                " attempting to use holder type " + type_id<iholder>() + ", but " + type_id<base_type>() +
+                " was already seen using holder type " + seen_holder_name);
+#endif
+    }
+}
+
 /// Type caster for holder types like std::shared_ptr, etc.
 template <typename type, typename holder_type>
 struct copyable_holder_caster : public type_caster_base<type> {
@@ -1524,6 +1545,7 @@ protected:
     void check_holder_compat() {
         if (typeinfo->default_holder)
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
+        check_for_holder_mismatch_impl<holder_type>();
     }
 
     bool load_value(value_and_holder &&v_h) {
@@ -1615,23 +1637,7 @@ template <typename holder>
 void check_for_holder_mismatch(enable_if_t<!is_holder<holder>::value, int> = 0) {}
 template <typename holder>
 void check_for_holder_mismatch(enable_if_t<is_holder<holder>::value, int> = 0) {
-    using iholder = intrinsic_t<holder>;
-    using base_type = decltype(*holder_helper<iholder>::get(std::declval<iholder>()));
-    auto &holder_typeinfo = typeid(iholder);
-    auto ins = get_internals().holders_seen.emplace(typeid(base_type), &holder_typeinfo);
-
-    auto debug = type_id<base_type>();
-    if (!ins.second && !same_type(*ins.first->second, holder_typeinfo)) {
-#ifdef NDEBUG
-        pybind11_fail("Mismatched holders detected (compile in debug mode for details)");
-#else
-        std::string seen_holder_name(ins.first->second->name());
-        detail::clean_type_id(seen_holder_name);
-        pybind11_fail("Mismatched holders detected: "
-                " attempting to use holder type " + type_id<iholder>() + ", but " + type_id<base_type>() +
-                " was already seen using holder type " + seen_holder_name);
-#endif
-    }
+    check_for_holder_mismatch_impl<holder>();
 }
 
 template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };

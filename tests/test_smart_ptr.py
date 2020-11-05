@@ -320,4 +320,6 @@ def test_holder_mismatch():
         m.register_mismatch_class(m)
     assert "Mismatched holders detected" in str(excinfo)
 
-    assert m.consume_mismatching_holder(m.MyObject5(42)) == 42
+    with pytest.raises(RuntimeError) as excinfo:
+        m.consume_mismatching_holder(m.MyObject5(42))
+    assert "Mismatched holders detected" in str(excinfo)

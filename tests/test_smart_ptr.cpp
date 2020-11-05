@@ -382,6 +382,6 @@ TEST_SUBMODULE(smart_ptr, m) {
         // Fails: `return_shared' already returned this via shared_ptr holder
         py::class_<HeldByUnique>(m, "HeldByUnique");
     });
-    // segfaults, because std::shared_ptr<MyObject5> is interpreted as huge_unique_ptr<MyObject5>
+    // Fails: MyObject5 was declared with huge_unique_ptr as holder instead of shared_ptr
     m.def("consume_mismatching_holder", [](std::shared_ptr<MyObject5> o) { return o->value; });
 }
