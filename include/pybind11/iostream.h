@@ -43,11 +43,15 @@ private:
     // simplified to a fully qualified call.
     int _sync() {
         if (pbase() != pptr()) {
-            // This subtraction cannot be negative, so dropping the sign
-            str line(pbase(), static_cast<size_t>(pptr() - pbase()));
 
             {
                 gil_scoped_acquire tmp;
+
+                // This subtraction cannot be negative, so dropping the sign
+                // this invokes python and therefore should be included in the
+                // GIL
+                str line(pbase(), static_cast<size_t>(pptr() - pbase()));
+
                 pywrite(line);
                 pyflush();
             }
