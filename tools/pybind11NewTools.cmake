@@ -97,7 +97,7 @@ if(NOT DEFINED PYTHON_MODULE_EXTENSION)
   execute_process(
     COMMAND
       "${${_Python}_EXECUTABLE}" "-c"
-      "from distutils import sysconfig as s;print(s.get_config_var('SO') or s.get_config_var('EXT_SUFFIX'))"
+      "from distutils import sysconfig as s;print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
     OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
     ERROR_VARIABLE _PYTHON_MODULE_EXTENSION_ERR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
