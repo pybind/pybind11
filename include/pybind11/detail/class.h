@@ -129,7 +129,7 @@ extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyOb
     //   2. `Type.static_prop = other_static_prop` --> setattro:  replace existing `static_prop`
     //   3. `Type.regular_attribute = value`       --> setattro:  regular attribute assignment
     const auto static_prop = (PyObject *) get_internals().static_property_type;
-    const auto call_descr_set = descr && PyObject_IsInstance(descr, static_prop)
+    const auto call_descr_set = descr && value && PyObject_IsInstance(descr, static_prop)
                                 && !PyObject_IsInstance(value, static_prop);
     if (call_descr_set) {
         // Call `static_property.__set__()` instead of replacing the `static_property`.

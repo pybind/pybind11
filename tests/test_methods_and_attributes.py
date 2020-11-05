@@ -171,6 +171,19 @@ def test_static_properties():
     assert m.TestPropertiesOverride().def_readonly == 99
     assert m.TestPropertiesOverride.def_readonly_static == 99
 
+    # Only static attributes can be deleted
+    del m.TestPropertiesOverride.def_readonly_static
+    assert (
+        hasattr(m.TestPropertiesOverride, "def_readonly_static")
+        and m.TestPropertiesOverride.def_readonly_static
+        is m.TestProperties.def_readonly_static
+    )
+    assert "def_readonly_static" not in m.TestPropertiesOverride.__dict__
+    properties_override = m.TestPropertiesOverride()
+    with pytest.raises(AttributeError) as excinfo:
+        del properties_override.def_readonly
+    assert "can't delete attribute" in str(excinfo.value)
+
 
 def test_static_cls():
     """Static property getter and setters expect the type object as the their only argument"""
