@@ -95,8 +95,9 @@ endif()
 # required for PyPy3 (as of 7.3.1)
 if(NOT DEFINED PYTHON_MODULE_EXTENSION)
   execute_process(
-    COMMAND "${${_Python}_EXECUTABLE}" "-c"
-            "from distutils import sysconfig; print(sysconfig.get_config_var('SO'))"
+    COMMAND
+      "${${_Python}_EXECUTABLE}" "-c"
+      "from distutils import sysconfig as s;print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
     OUTPUT_VARIABLE _PYTHON_MODULE_EXTENSION
     ERROR_VARIABLE _PYTHON_MODULE_EXTENSION_ERR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
