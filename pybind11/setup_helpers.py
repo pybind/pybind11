@@ -309,7 +309,7 @@ class ParallelCompile(object):
     envvar: Set an environment variable to control the compilation threads, like NPY_NUM_BUILD_JOBS
     default: 0 will automatically multithread, or 1 will only multithread if the envvar is set.
     max: The limit for automatic multithreading if non-zero
-    lazy: Do not try to recompile up-to-date outputs if True
+    only_changed: Do not try to recompile up-to-date outputs if True
           (no effect in isolated mode; use ccache instead, see
            https://github.com/matplotlib/matplotlib/issues/1507/)
 
@@ -320,14 +320,14 @@ class ParallelCompile(object):
             setup(...)
     """
 
-    __slots__ = ("envvar", "default", "max", "old", "lazy")
+    __slots__ = ("envvar", "default", "max", "old", "only_changed")
 
-    def __init__(self, envvar=None, default=0, max=0, lazy=False):
+    def __init__(self, envvar=None, default=0, max=0, only_changed=False):
         self.envvar = envvar
         self.default = default
         self.max = max
         self.old = []
-        self.lazy = lazy
+        self.only_changed = only_changed
 
     def function(self):
         """
@@ -369,7 +369,7 @@ class ParallelCompile(object):
                     not os.path.exists(obj)
                     or os.stat(obj).st_mtime < os.stat(src).st_mtime
                 )
-                if not self.lazy or needs_recompile:
+                if not self.only_changed or needs_recompile:
                     compiler._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
 
             try:

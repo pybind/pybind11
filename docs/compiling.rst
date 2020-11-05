@@ -91,10 +91,10 @@ want set this to a memory dependent number.
 
 If you are developing and have a lot of C++ files, you may want to avoid
 rebuilding files that have not changed. For simple cases were you are using
-``pip install -e .``, you can use ``lazy=True``, which will skip the rebuild if
-a object file is newer than it's source. If you want more than this, you should
-use [CCache]_; ``CXX="cache g++" pip install -e .`` would be the way to use it
-with GCC, for example.
+``pip install -e .``, you can use ``only_changed=True``, which will skip the
+rebuild if a object file is newer than it's source. If you want more than this,
+you should use [CCache]_; ``CXX="cache g++" pip install -e .`` would be the way
+to use it with GCC, for example.
 
 .. [CCache] https://ccache.dev
 
