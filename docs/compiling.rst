@@ -89,6 +89,15 @@ default number of threads (0 will take the number of threads available) and
 ``max=N``, the maximum number of threads; if you have a large extension you may
 want set this to a memory dependent number.
 
+If you are developing and have a lot of C++ files, you may want to avoid
+rebuilding files that have not changed. For simple cases were you are using
+``pip install -e .``, you can use ``lazy=True``, which will skip the rebuild if
+a object file is newer than it's source. If you want more than this, you should
+use [CCache]_; ``CXX="cache g++" pip install -e .`` would be the way to use it
+with GCC, for example.
+
+.. [CCache] https://ccache.dev
+
 .. _setup_helpers-pep518:
 
 PEP 518 requirements (Pip 10+ required)

@@ -309,6 +309,9 @@ class ParallelCompile(object):
     envvar: Set an environment variable to control the compilation threads, like NPY_NUM_BUILD_JOBS
     default: 0 will automatically multithread, or 1 will only multithread if the envvar is set.
     max: The limit for automatic multithreading if non-zero
+    lazy: Do not try to recompile up-to-date outputs if True
+          (no effect in isolated mode; use ccache instead, see
+           https://github.com/matplotlib/matplotlib/issues/1507/)
 
     To use:
         ParallelCompile("NPY_NUM_BUILD_JOBS").install()
@@ -317,13 +320,14 @@ class ParallelCompile(object):
             setup(...)
     """
 
-    __slots__ = ("envvar", "default", "max", "old")
+    __slots__ = ("envvar", "default", "max", "old", "lazy")
 
-    def __init__(self, envvar=None, default=0, max=0):
+    def __init__(self, envvar=None, default=0, max=0, lazy=False):
         self.envvar = envvar
         self.default = default
         self.max = max
         self.old = []
+        self.lazy = lazy
 
     def function(self):
         """
@@ -360,7 +364,13 @@ class ParallelCompile(object):
                     src, ext = build[obj]
                 except KeyError:
                     return
-                compiler._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
+
+                needs_recompile = (
+                    not os.path.exists(obj)
+                    or os.stat(obj).st_mtime < os.stat(src).st_mtime
+                )
+                if not self.lazy or needs_recompile:
+                    compiler._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
 
             try:
                 import multiprocessing
