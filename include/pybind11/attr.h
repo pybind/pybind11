@@ -294,13 +294,8 @@ struct type_record {
             detail::clean_type_id(base_name);
             std::string holder_name(holder_type->name());
             detail::clean_type_id(holder_name);
-            // replace all occurences of base_name within holder_name with T
-            size_t start_pos = 0;
-            while((start_pos = holder_name.find(base_name, start_pos)) != std::string::npos) {
-                holder_name.replace(start_pos, base_name.length(), "T");
-                start_pos += 1;
-            }
-            return holder_name;
+            size_t start_pos = holder_name.find(base_name);
+            return holder_name.substr(0, start_pos-1);
         };
         std::string holder_name = clean_holder_name(holder_type, this->type);
         std::string base_holder_name = clean_holder_name(base_info->holder_type, base_info->cpptype);
