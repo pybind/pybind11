@@ -1054,7 +1054,6 @@ protected:
         tinfo->dealloc = rec.dealloc;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
-        tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
 
         auto &internals = get_internals();
@@ -1235,7 +1234,6 @@ public:
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
         set_operator_new<type>(&record);
 

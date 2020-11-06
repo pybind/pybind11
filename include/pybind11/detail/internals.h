@@ -144,8 +144,6 @@ struct type_info {
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
     bool simple_ancestors : 1;
-    /* for base vs derived holder_type checks */
-    bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
 };
