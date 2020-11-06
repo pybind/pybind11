@@ -238,6 +238,9 @@ struct type_record {
     /// What is the alignment of the underlying C++ type?
     size_t type_align = 0;
 
+    // Pointer to RTTI type_info data structure of holder type
+    const std::type_info *holder_type = nullptr;
+
     /// How large is the type's holder?
     size_t holder_size = 0;
 

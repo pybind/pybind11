@@ -1496,14 +1496,16 @@ void check_for_holder_mismatch_impl() {
     using iholder = intrinsic_t<holder>;
     using base_type = decltype(*holder_helper<iholder>::get(std::declval<iholder>()));
     auto &holder_typeinfo = typeid(iholder);
-    auto ins = get_internals().holders_seen.emplace(typeid(base_type), &holder_typeinfo);
+    auto base_info = detail::get_type_info(typeid(base_type));
+    if (!base_info)
+        return;  // Don't complain if we see this type the first time
 
     auto debug = type_id<base_type>();
-    if (!ins.second && !same_type(*ins.first->second, holder_typeinfo)) {
+    if (!same_type(*base_info->holder_type, holder_typeinfo)) {
 #ifdef NDEBUG
         pybind11_fail("Mismatched holders detected (compile in debug mode for details)");
 #else
-        std::string seen_holder_name(ins.first->second->name());
+        std::string seen_holder_name(base_info->holder_type->name());
         detail::clean_type_id(seen_holder_name);
         pybind11_fail("Mismatched holders detected: "
                 " attempting to use holder type " + type_id<iholder>() + ", but " + type_id<base_type>() +
