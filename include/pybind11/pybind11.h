@@ -157,7 +157,7 @@ protected:
         static_assert(expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
                       "The number of argument annotations does not match the number of function arguments");
 
-        // Fail if we've previously seen a different holder around the held type
+        // Fail if the type was previously registered with a different holder type
         detail::check_for_holder_mismatch<Return>();
 
         /* Dispatch code which converts function arguments and performs the actual function call */
@@ -1224,9 +1224,6 @@ public:
                 constexpr_sum(is_base<options>::value...)   == 0 && // no template option bases
                 none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
             "Error: multiple inheritance bases must be specified via class_ template options");
-
-        // Fail if we've previously seen a different holder around the type
-        detail::check_for_holder_mismatch<holder_type>();
 
         type_record record;
         record.scope = scope;

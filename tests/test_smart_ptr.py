@@ -316,8 +316,11 @@ def test_holder_mismatch():
         m.register_mismatch_return(m)
     assert "Mismatched holders detected" in str(excinfo)
 
+    with pytest.raises(TypeError) as excinfo:
+        m.return_shared()  # calling a function returning an unregistered type
+    m.register_HeldByUnique(m)  # register the type
     with pytest.raises(RuntimeError) as excinfo:
-        m.register_mismatch_class(m)
+        m.return_shared()  # calling a function returning a mismatching holder type
     assert "Mismatched holders detected" in str(excinfo)
 
     with pytest.raises(RuntimeError) as excinfo:

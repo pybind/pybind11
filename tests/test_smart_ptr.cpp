@@ -378,8 +378,7 @@ TEST_SUBMODULE(smart_ptr, m) {
         m.def("bad1", []() { return std::unique_ptr<HeldByShared>(new HeldByShared()); });
     });
     m.def("return_shared", []() { return std::make_shared<HeldByUnique>(); });
-    m.def("register_mismatch_class", [](py::module m) {
-        // Fails: `return_shared' already returned this via shared_ptr holder
+    m.def("register_HeldByUnique", [](py::module m) {
         py::class_<HeldByUnique>(m, "HeldByUnique");
     });
     // Fails: MyObject5 was declared with huge_unique_ptr as holder instead of shared_ptr

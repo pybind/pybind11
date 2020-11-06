@@ -1538,6 +1538,7 @@ public:
     explicit operator holder_type&() { return holder; }
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
+        check_for_holder_mismatch_impl<holder_type>();
         const auto *ptr = holder_helper<holder_type>::get(src);
         return type_caster_base<type>::cast_holder(ptr, &src);
     }
