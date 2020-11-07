@@ -1505,11 +1505,11 @@ void check_for_holder_mismatch_impl() {
 #ifdef NDEBUG
         pybind11_fail("Mismatched holders detected (compile in debug mode for details)");
 #else
-        std::string seen_holder_name(base_info->holder_type->name());
-        detail::clean_type_id(seen_holder_name);
+        std::string holder_name(base_info->holder_type->name());
+        detail::clean_type_id(holder_name);
         pybind11_fail("Mismatched holders detected: "
                 " attempting to use holder type " + type_id<iholder>() + ", but " + type_id<base_type>() +
-                " was already seen using holder type " + seen_holder_name);
+                " was declared using holder type " + holder_name);
 #endif
     }
 }
