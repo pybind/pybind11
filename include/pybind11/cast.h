@@ -1492,13 +1492,13 @@ struct holder_helper {
 };
 
 template <typename holder>
-void check_for_holder_mismatch_impl() {
+bool check_for_holder_mismatch_impl(bool throw_if_missing = true) {
     using iholder = intrinsic_t<holder>;
     using base_type = decltype(*holder_helper<iholder>::get(std::declval<iholder>()));
     auto &holder_typeinfo = typeid(iholder);
-    auto base_info = detail::get_type_info(typeid(base_type));
+    auto base_info = detail::get_type_info(typeid(base_type), throw_if_missing);
     if (!base_info)
-        return;  // Don't complain if we see this type the first time
+        return false;  // Return false if the type is not yet registered
 
     auto debug = type_id<base_type>();
     if (!same_type(*base_info->holder_type, holder_typeinfo)) {
@@ -1512,6 +1512,7 @@ void check_for_holder_mismatch_impl() {
                 " was declared using holder type " + holder_name);
 #endif
     }
+    return true;
 }
 
 /// Type caster for holder types like std::shared_ptr, etc.
@@ -1538,7 +1539,6 @@ public:
     explicit operator holder_type&() { return holder; }
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
-        check_for_holder_mismatch_impl<holder_type>();
         const auto *ptr = holder_helper<holder_type>::get(src);
         return type_caster_base<type>::cast_holder(ptr, &src);
     }
@@ -1635,10 +1635,10 @@ template <typename holder> using is_holder = any_of<
     is_template_base_of<copyable_holder_caster, make_caster<holder>>>;
 
 template <typename holder>
-void check_for_holder_mismatch(enable_if_t<!is_holder<holder>::value, int> = 0) {}
+bool check_for_holder_mismatch(enable_if_t<!is_holder<holder>::value, int> = 0) { return true; }
 template <typename holder>
-void check_for_holder_mismatch(enable_if_t<is_holder<holder>::value, int> = 0) {
-    check_for_holder_mismatch_impl<holder>();
+bool check_for_holder_mismatch(enable_if_t<is_holder<holder>::value, int> = 0) {
+    return check_for_holder_mismatch_impl<holder>(false);
 }
 
 template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };

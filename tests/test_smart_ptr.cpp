@@ -377,7 +377,15 @@ TEST_SUBMODULE(smart_ptr, m) {
         // Fails: the class was already registered with a shared_ptr holder
         m.def("bad1", []() { return std::unique_ptr<HeldByShared>(new HeldByShared()); });
     });
-    m.def("return_shared", []() { return std::make_shared<HeldByUnique>(); });
+    m.def("register_mismatch_class", [](py::module m) {
+        // Fails: the class was already registered with a shared_ptr holder
+        py::class_<HeldByShared, std::unique_ptr<HeldByShared>>(m, "bad");
+    });
+
+    m.def("register_return_shared", [](py::module m) {
+        // Fails if HeldByUnique is not yet registered or, if registered, due to mismatching holder
+        m.def("return_shared", []() { return std::make_shared<HeldByUnique>(); });
+    });
     m.def("register_HeldByUnique", [](py::module m) {
         py::class_<HeldByUnique>(m, "HeldByUnique");
     });

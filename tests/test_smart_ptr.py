@@ -312,12 +312,19 @@ def test_holder_mismatch():
     with pytest.raises(RuntimeError) as excinfo:
         m.register_mismatch_return(m)
     assert "Mismatched holders detected" in str(excinfo)
-
-    with pytest.raises(TypeError) as excinfo:
-        m.return_shared()  # calling a function returning an unregistered type
-    m.register_HeldByUnique(m)  # register the type
     with pytest.raises(RuntimeError) as excinfo:
-        m.return_shared()  # calling a function returning a mismatching holder type
+        m.register_mismatch_class(m)
+    assert "is already registered" in str(excinfo)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_return_shared(m)
+    expected_error = "Cannot register function with not yet registered return type"
+    assert expected_error in str(excinfo)
+
+    m.register_HeldByUnique(m)  # register the type
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_return_shared(m)
     assert "Mismatched holders detected" in str(excinfo)
 
     with pytest.raises(RuntimeError) as excinfo:
