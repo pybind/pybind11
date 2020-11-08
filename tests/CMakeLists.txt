@@ -411,3 +411,6 @@ if(NOT PYBIND11_CUDA_TESTS)
   # Test CMake build using functions and targets from subdirectory or installed location
   add_subdirectory(test_cmake_build)
 endif()
+
+add_executable(main_rhaschke main_rhaschke.cpp)
+target_link_libraries(main_rhaschke pybind11::module)
