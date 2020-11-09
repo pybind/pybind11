@@ -760,8 +760,7 @@ public:
  * Determine suitable casting operator for pointer-or-lvalue-casting type casters.  The type caster
  * needs to provide `operator T*()` and `operator T&()` operators.
  *
- * If the type supports moving the value away via an `operator T&&() &&` method, it should use
- * `movable_cast_op_type` instead.
+ * If the type supports moving, it should use `movable_cast_op_type` instead.
  */
 template <typename T>
 using cast_op_type =
@@ -769,20 +768,36 @@ using cast_op_type =
         typename std::add_pointer<intrinsic_t<T>>::type,
         typename std::add_lvalue_reference<intrinsic_t<T>>::type>;
 
+// A by-value argument will use lvalue references by default (triggering copy construction)
+// except the type is move-only and thus should use move semantics.
+template <typename T> using cast_op_type_for_byvalue =
+    conditional_t<std::is_copy_constructible<intrinsic_t<T>>::value,
+        typename std::add_lvalue_reference<intrinsic_t<T>>::type,
+        typename std::add_rvalue_reference<intrinsic_t<T>>::type >;
+
 /**
- * Determine suitable casting operator for a type caster with a movable value.  Such a type caster
- * needs to provide `operator T*()`, `operator T&()`, and `operator T&&() &&`.  The latter will be
- * called in appropriate contexts where the value can be moved rather than copied.
+ * Determine suitable casting operator for movable types.
+ * While C++ decides about copy vs. move semantics based on the type of the passed argument,
+ * Python doesn't know about lvalue and rvalue references and thus cannot decide based on the
+ * passed argument. Instead, the wrapper needs to define the desired semantics of argument passing
+ * explicitly:
+ * - By specifying an rvalue reference (T&&), move semantics is enforced.
+ * - By default, lvalue references (T&) are passed, triggering copy semantics if necessary.
+ *   An exception are move-only types: These are passed via move semantics.
  *
- * These operator are automatically provided when using the PYBIND11_TYPE_CASTER macro.
+ * The corresponding caster needs to provide the following operators:
+ * `operator T*()`, `operator T&()`, and `operator T&&()`.
+ * These operators are automatically provided when using the PYBIND11_TYPE_CASTER macro.
  */
 template <typename T>
 using movable_cast_op_type =
     conditional_t<std::is_pointer<typename std::remove_reference<T>::type>::value,
         typename std::add_pointer<intrinsic_t<T>>::type,
-    conditional_t<std::is_rvalue_reference<T>::value,
-        typename std::add_rvalue_reference<intrinsic_t<T>>::type,
-        typename std::add_lvalue_reference<intrinsic_t<T>>::type>>;
+        conditional_t<std::is_rvalue_reference<T>::value,
+            typename std::add_rvalue_reference<intrinsic_t<T>>::type,
+            conditional_t<std::is_lvalue_reference<T>::value,
+                typename std::add_lvalue_reference<intrinsic_t<T>>::type,
+                cast_op_type_for_byvalue<T> > > >;
 
 // std::is_copy_constructible isn't quite enough: it lets std::vector<T> (and similar) through when
 // T is non-copyable, but code containing such a copy constructor fails to actually compile.
@@ -917,7 +932,7 @@ public:
 
     operator itype*() { return (type *) value; }
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
-    operator itype&&() && { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
+    operator itype&&() { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
 
 protected:
     using Constructor = void *(*)(const void *);

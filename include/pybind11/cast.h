@@ -50,14 +50,15 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
 
-// Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
+// Shortcuts for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
+// cast_op operating on an lvalue-reference caster, enables moving only if required by the actual function argument
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
     return caster.operator typename make_caster<T>::template cast_op_type<T>();
 }
+// cast_op operating on an rvalue-referenced caster enforces an rvalue-reference for the cast_op type as well
 template <typename T> typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
 cast_op(make_caster<T> &&caster) {
-    return std::move(caster).operator
-        typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>();
+    return caster.operator typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
 
 template <typename type> class type_caster<std::reference_wrapper<type>> {
@@ -101,7 +102,7 @@ public:
         } \
         operator type*() { return &value; } \
         operator type&() { return value; } \
-        operator type&&() && { return std::move(value); } \
+        operator type&&() { return std::move(value); } \
         template <typename T_> using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
 
@@ -795,8 +796,8 @@ class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caste
 // - type_caster<T>::operator T&() must exist
 // - the type must be move constructible (obviously)
 // At run-time:
-// - if the type is non-copy-constructible, the object must be the sole owner of the type (i.e. it
-//   must have ref_count() == 1)h
+// - if the type is non-copy-constructible, the object must be the sole owner of the type
+//   (i.e. it must have ref_count() == 1)
 // If any of the above are not satisfied, we fall back to copying.
 template <typename T> using move_is_plain_type = satisfies_none_of<T,
     std::is_void, std::is_pointer, std::is_reference, std::is_const
@@ -1163,7 +1164,7 @@ private:
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
-        return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
+        return std::forward<Func>(f)(cast_op<Args>(std::get<Is>(argcasters))...);
     }
 
     std::tuple<make_caster<Args>...> argcasters;
