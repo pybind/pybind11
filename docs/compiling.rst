@@ -89,12 +89,28 @@ default number of threads (0 will take the number of threads available) and
 ``max=N``, the maximum number of threads; if you have a large extension you may
 want set this to a memory dependent number.
 
-If you are developing and have a lot of C++ files, you may want to avoid
-rebuilding files that have not changed. For simple cases were you are using
-``pip install -e .``, you can use ``only_changed=True``, which will skip the
-rebuild if a object file is newer than it's source. If you want more than this,
-you should use [CCache]_; ``CXX="cache g++" pip install -e .`` would be the way
-to use it with GCC, for example.
+If you are developing rapidly and have a lot of C++ files, you may want to
+avoid rebuilding files that have not changed. For simple cases were you are
+using ``pip install -e .`` and do not have local headers, you can skip the
+rebuild if a object file is newer than it's source with the following:
+
+.. code-block:: python
+
+    from pybind11.setup_helpers import ParallelCompile
+
+    class SmartCompile(ParallelCompile):
+        @staticmethod
+        def needs_recompile(obj, src):
+            return os.stat(obj).st_mtime < os.stat(src).st_mtime
+
+    SmartCompile("NPY_NUM_BUILD_JOBS").install()
+
+
+If you have a more complex build, you can implement a smarter function, or you
+can use [CCache]_ instead. ``CXX="cache g++" pip install -e .`` would be the
+way to use it with GCC, for example. Unlike the simple solution, this even
+works even when not compiling in editable mode, but it does require CCache to
+be installed.
 
 .. [CCache] https://ccache.dev
 

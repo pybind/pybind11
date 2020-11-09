@@ -322,12 +322,27 @@ class ParallelCompile(object):
 
     __slots__ = ("envvar", "default", "max", "old", "only_changed")
 
-    def __init__(self, envvar=None, default=0, max=0, only_changed=False):
+    def __init__(self, envvar=None, default=0, max=0):
         self.envvar = envvar
         self.default = default
         self.max = max
         self.old = []
-        self.only_changed = only_changed
+
+    @staticmethod
+    def needs_recompile(obj, src):
+        """
+        Checks to see if a object file needs to be recompiled, given the
+        source. By default, this assumes all files need to be recompiled.
+        This function can be overridden to be smarter. If you do not have
+        any headers that might change, a simple override could be:
+
+            return os.stat(obj).st_mtime < os.stat(src).st_mtime
+
+        If the output has not yet been generated, the compile will always run,
+        and this function is not called.
+        """
+
+        return True
 
     def function(self):
         """
@@ -365,11 +380,7 @@ class ParallelCompile(object):
                 except KeyError:
                     return
 
-                needs_recompile = (
-                    not os.path.exists(obj)
-                    or os.stat(obj).st_mtime < os.stat(src).st_mtime
-                )
-                if not self.only_changed or needs_recompile:
+                if not os.path.exists(obj) or self.needs_recompile(obj, src):
                     compiler._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
 
             try:
