@@ -432,7 +432,7 @@ public:
         if (!need_copy) {
             // We don't need a converting copy, but we also need to check whether the strides are
             // compatible with the Ref's stride requirements
-            Array aref = reinterpret_borrow<Array>(src);
+            auto aref = reinterpret_borrow<Array>(src);
 
             if (aref && (!need_writeable || aref.writeable())) {
                 fits = props::conformable(aref);

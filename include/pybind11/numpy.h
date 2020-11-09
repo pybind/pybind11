@@ -772,7 +772,7 @@ public:
             int(new_shape->size())
         };
         // try to resize, set ordering param to -1 cause it's not used anyway
-        object new_array = reinterpret_steal<object>(
+        auto new_array = reinterpret_steal<object>(
             detail::npy_api::get().PyArray_Resize_(m_ptr, &d, int(refcheck), -1)
         );
         if (!new_array) throw error_already_set();
