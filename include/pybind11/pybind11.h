@@ -160,9 +160,7 @@ protected:
         // Fail if the type was previously registered with a different holder type
         if (!detail::check_for_holder_mismatch<Return>()) {
             // If Return type was not yet registered, check_for_holder_mismatch() returns false w/o raising
-            std::string tname(typeid(Return).name());
-            detail::clean_type_id(tname);
-            pybind11_fail("Cannot register function with not yet registered return type \"" + tname + "\"");
+            pybind11_fail("Cannot register function with not yet registered return type \"" + type_id<Return>() + "\"");
         }
 
         /* Dispatch code which converts function arguments and performs the actual function call */
