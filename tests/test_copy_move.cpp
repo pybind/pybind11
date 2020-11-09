@@ -68,6 +68,20 @@ struct CopyOnlyInt {
 
 PYBIND11_NAMESPACE_BEGIN(pybind11)
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+// validate movable_cast_op_type()
+static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt&>, MoveOrCopyInt&>::value, "always keep lvalue reference");
+static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt&>, MoveOnlyInt&>::value, "always keep lvalue reference");
+static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt&>, CopyOnlyInt&>::value, "always keep lvalue reference");
+
+static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt&&>, MoveOrCopyInt&&>::value, "moving is supported");
+static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt&&>, MoveOnlyInt&&>::value, "moving is supported");
+static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt&&>, CopyOnlyInt&&>::value, "moving is supported");
+
+static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt>, MoveOrCopyInt&>::value, "lvalue reference");
+static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt>, MoveOnlyInt&>::value, "lvalue reference");
+static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt>, CopyOnlyInt&>::value, "lvalue reference");
+
 template <> struct type_caster<MoveOnlyInt> {
     PYBIND11_TYPE_CASTER(MoveOnlyInt, _("MoveOnlyInt"));
     bool load(handle src, bool) { value = MoveOnlyInt(src.cast<int>()); return true; }

@@ -763,7 +763,7 @@ public:
  * Determine suitable casting operator for pointer-or-lvalue-casting type casters.  The type caster
  * needs to provide `operator T*()` and `operator T&()` operators.
  *
- * If the type supports moving the value away via an `operator T&&() &&` method, it should use
+ * If the type supports moving the value away via an `operator T&&()` method, it should use
  * `movable_cast_op_type` instead.
  */
 template <typename T>
@@ -774,7 +774,7 @@ using cast_op_type =
 
 /**
  * Determine suitable casting operator for a type caster with a movable value.  Such a type caster
- * needs to provide `operator T*()`, `operator T&()`, and `operator T&&() &&`.  The latter will be
+ * needs to provide `operator T*()`, `operator T&()`, and `operator T&&()`.  The latter will be
  * called in appropriate contexts where the value can be moved rather than copied.
  *
  * These operator are automatically provided when using the PYBIND11_TYPE_CASTER macro.
@@ -920,7 +920,7 @@ public:
 
     operator itype*() { return (type *) value; }
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
-    operator itype&&() && { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
+    operator itype&&() { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
 
 protected:
     using Constructor = void *(*)(const void *);
@@ -948,14 +948,16 @@ protected:
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
 
-// Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
+// Shortcuts for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
+// cast_op operating on an lvalue-reference caster, enables moving only if required by the actual function argument
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
     return caster.operator typename make_caster<T>::template cast_op_type<T>();
 }
+// cast_op operating on an rvalue-referenced caster enforces an rvalue-reference for the cast_op type as well,
+// thus enforcing a move operation
 template <typename T> typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
 cast_op(make_caster<T> &&caster) {
-    return std::move(caster).operator
-        typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>();
+    return caster.operator typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
 
 template <typename type> class type_caster<std::reference_wrapper<type>> {
@@ -994,7 +996,7 @@ public:
         } \
         operator type*() { return &value; } \
         operator type&() { return value; } \
-        operator type&&() && { return std::move(value); } \
+        operator type&&() { return std::move(value); } \
         template <typename T_> using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
 
@@ -1442,9 +1444,9 @@ public:
 
 protected:
     template <size_t... Is>
-    type implicit_cast(index_sequence<Is...>) & { return type(cast_op<Ts>(std::get<Is>(subcasters))...); }
+    type implicit_cast(index_sequence<Is...>) & { return type(std::forward<Ts>(cast_op<Ts>(std::get<Is>(subcasters)))...); }
     template <size_t... Is>
-    type implicit_cast(index_sequence<Is...>) && { return type(cast_op<Ts>(std::move(std::get<Is>(subcasters)))...); }
+    type implicit_cast(index_sequence<Is...>) && { return type(std::forward<Ts>(cast_op<Ts>(std::move(std::get<Is>(subcasters))))...); }
 
     static constexpr bool load_impl(const sequence &, bool, index_sequence<>) { return true; }
 
@@ -2013,7 +2015,7 @@ private:
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
-        return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
+        return std::forward<Func>(f)(std::forward<Args>(cast_op<Args>(std::get<Is>(argcasters)))...);
     }
 
     std::tuple<make_caster<Args>...> argcasters;
