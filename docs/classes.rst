@@ -517,6 +517,21 @@ The ``name`` property returns the name of the enum value as a unicode string.
         >>> pet_type.name
         'Cat'
 
+You can also access the enumeration using a string using the enum's constructor,
+such as ``Pet('Cat')``. This makes it possible to automatically convert a string
+to an enumeration in an API if the enumeration is marked implicitly convertible
+from a string, with a line such as:
+
+.. code-block:: cpp
+
+    py::implicitly_convertible<std::string, Pet::Kind>();
+
+Now, in Python, the following code will also correctly construct a cat:
+
+.. code-block:: pycon
+
+    >>> p = Pet('Lucy', 'Cat')
+
 .. note::
 
     When the special tag ``py::arithmetic()`` is specified to the ``enum_``

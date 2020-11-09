@@ -22,6 +22,22 @@ TEST_SUBMODULE(enums, m) {
         .value("EThree", EThree, "Docstring for EThree")
         .export_values();
 
+    // test_conversion_enum
+    enum class ConversionEnum {
+        Convert1 = 1,
+        Convert2
+    };
+
+    py::enum_<ConversionEnum>(m, "ConversionEnum", py::arithmetic())
+        .value("Convert1", ConversionEnum::Convert1)
+        .value("Convert2", ConversionEnum::Convert2)
+        ;
+    py::implicitly_convertible<py::str, ConversionEnum>();
+
+    m.def("test_conversion_enum", [](ConversionEnum z) {
+        return "ConversionEnum::" + std::string(z == ConversionEnum::Convert1 ? "Convert1" : "Convert2");
+    });
+
     // test_scoped_enum
     enum class ScopedEnum {
         Two = 2,
