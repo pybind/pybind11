@@ -52,4 +52,19 @@ template <typename T> static std::string type_id() {
     return name;
 }
 
+template <typename T> static std::string full_type_id() {
+    using TR = typename std::remove_reference<T>::type;
+    std::string name(type_id<TR>());
+
+    if (std::is_const<TR>::value)
+        name += " const";
+    if (std::is_volatile<TR>::value)
+        name += " volatile";
+    if (std::is_lvalue_reference<T>::value)
+        name += "&";
+    else if (std::is_rvalue_reference<T>::value)
+        name += "&&";
+    return name;
+}
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
