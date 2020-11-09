@@ -20,9 +20,7 @@ def test_move_and_copy_casts():
 
     cstats = m.move_and_copy_cstats()
     c_m, c_mc, c_c = (
-        cstats["MoveOnlyInt"],
-        cstats["MoveOrCopyInt"],
-        cstats["CopyOnlyInt"],
+        cstats[name] for name in ["MoveOnlyInt", "MoveOrCopyInt", "CopyOnlyInt"]
     )
 
     # The type move constructions/assignments below each get incremented: the move assignment comes
@@ -48,9 +46,7 @@ def test_move_and_copy_loads():
 
     cstats = m.move_and_copy_cstats()
     c_m, c_mc, c_c = (
-        cstats["MoveOnlyInt"],
-        cstats["MoveOrCopyInt"],
-        cstats["CopyOnlyInt"],
+        cstats[name] for name in ["MoveOnlyInt", "MoveOrCopyInt", "CopyOnlyInt"]
     )
 
     assert m.move_only(10) == 10  # 1 move, c_m
@@ -74,15 +70,42 @@ def test_move_and_copy_loads():
     assert c_m.alive() + c_mc.alive() + c_c.alive() == 0
 
 
+def test_move_copy_class_loads():
+    """Call some functions that load custom type arguments and count the number of moves/copies"""
+
+    cs = m.move_and_copy_cstats()["MoveOnlyInt"]
+    o = m.MoveOnlyInt(3)
+    assert m.MoveOnlyInt.move_explicit(o) == 3
+    assert o.value == -1  # value becomes -1 after moving
+    o = m.MoveOnlyInt(4)
+    assert m.MoveOnlyInt.move_implicit(o) == 4
+    assert o.value == -1  # value becomes -1 after moving
+    assert (cs.copy_constructions, cs.move_constructions) == (0, 2)
+
+    cs = m.move_and_copy_cstats()["MoveOrCopyInt"]
+    o = m.MoveOrCopyInt(3)
+    assert m.MoveOrCopyInt.ref(o) == 3
+    assert m.MoveOrCopyInt.copy(o) == 3
+    assert m.MoveOrCopyInt.move(o) == 3
+    assert o.value == -1  # value becomes -1 after moving
+    assert (cs.copy_constructions, cs.move_constructions) == (1, 1)
+
+    cs = m.move_and_copy_cstats()["CopyOnlyInt"]
+    o = m.CopyOnlyInt(3)
+    assert m.CopyOnlyInt.lref(o) == 3
+    assert m.CopyOnlyInt.copy(o) == 3
+    assert m.CopyOnlyInt.rref(o) == 3  # copies as well
+    assert o.value == 3  # value hasn't change
+    assert (cs.copy_constructions, cs.move_constructions) == (2, 0)
+
+
 @pytest.mark.skipif(not m.has_optional, reason="no <optional>")
 def test_move_and_copy_load_optional():
     """Tests move/copy loads of std::optional arguments"""
 
     cstats = m.move_and_copy_cstats()
     c_m, c_mc, c_c = (
-        cstats["MoveOnlyInt"],
-        cstats["MoveOrCopyInt"],
-        cstats["CopyOnlyInt"],
+        cstats[name] for name in ["MoveOnlyInt", "MoveOrCopyInt", "CopyOnlyInt"]
     )
 
     # The extra move/copy constructions below come from the std::optional move (which has to move
