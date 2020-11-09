@@ -36,7 +36,9 @@ struct caster {
     caster() { printf("\ncaster<%s>:\n", pybind11::type_id<T>().c_str()); }
     operator T*() { return &value; }
     operator T&() { return value; }
-    operator T&&() { return std::move(value); }
+
+    template <typename T_ = T, std::enable_if_t<std::is_move_constructible<T_>::value && !std::is_abstract<T_>::value, int> = 0>
+    operator T_() { return std::move(value); }
 };
 
 /// Helper template to strip away type modifiers
@@ -54,13 +56,13 @@ using cast_op_type =
     py::detail::conditional_t<std::is_pointer<typename std::remove_reference<T>::type>::value,
         typename std::add_pointer<intrinsic_t<T>>::type,
         py::detail::conditional_t<std::is_rvalue_reference<T>::value,
-            typename std::add_rvalue_reference<intrinsic_t<T>>::type,
+            intrinsic_t<T>,
             typename std::add_lvalue_reference<intrinsic_t<T>>::type>>;
 
-static_assert(std::is_same<cast_op_type<CopyMove&&>, CopyMove&&>::value, "rvalue reference will be moved to new T");
+static_assert(std::is_same<cast_op_type<CopyMove&&>, CopyMove>::value, "rvalue reference will be moved to new T");
 static_assert(std::is_same<cast_op_type<CopyMove&>, CopyMove&>::value, "lvalue reference");
 static_assert(std::is_same<cast_op_type<CopyMove>, CopyMove&>::value, "lvalue reference");
-static_assert(std::is_same<cast_op_type<CopyOnly&&>, CopyOnly&&>::value, "rvalue reference will be moved to new T");
+static_assert(std::is_same<cast_op_type<CopyOnly&&>, CopyOnly>::value, "rvalue reference will be moved to new T");
 
 template <typename T>
 cast_op_type<T> cast_op(caster<intrinsic_t<T>> &caster) {
