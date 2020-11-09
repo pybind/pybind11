@@ -61,8 +61,9 @@ double get_elem(Eigen::Ref<const Eigen::MatrixXd> m) { return m(2, 1); };
 // reference is referencing rows/columns correctly).
 template <typename MatrixArgType> Eigen::MatrixXd adjust_matrix(MatrixArgType m) {
     Eigen::MatrixXd ret(m);
-    for (int c = 0; c < m.cols(); c++) for (int r = 0; r < m.rows(); r++)
-        ret(r, c) += 10*r + 100*c;
+    for (int c = 0; c < m.cols(); c++)
+        for (int r = 0; r < m.rows(); r++)
+            ret(r, c) += 10*r + 100*c;  // NOLINT(clang-analyzer-core.uninitialized.Assign)
     return ret;
 }
 
@@ -255,7 +256,7 @@ TEST_SUBMODULE(eigen, m) {
     m.def("dense_copy_r", [](const DenseMatrixR &m) -> DenseMatrixR { return m; });
     m.def("dense_copy_c", [](const DenseMatrixC &m) -> DenseMatrixC { return m; });
     // test_sparse, test_sparse_signature
-    m.def("sparse_r", [mat]() -> SparseMatrixR { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
+    m.def("sparse_r", [mat]() -> SparseMatrixR { return Eigen::SparseView<Eigen::MatrixXf>(mat); }); //NOLINT(clang-analyzer-core.uninitialized.UndefReturn)
     m.def("sparse_c", [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_copy_r", [](const SparseMatrixR &m) -> SparseMatrixR { return m; });
     m.def("sparse_copy_c", [](const SparseMatrixC &m) -> SparseMatrixC { return m; });

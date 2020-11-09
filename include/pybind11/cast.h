@@ -1240,7 +1240,7 @@ template <typename StringType, bool IsView = false> struct string_caster {
 #endif
         }
 
-        object utfNbytes = reinterpret_steal<object>(PyUnicode_AsEncodedString(
+        auto utfNbytes = reinterpret_steal<object>(PyUnicode_AsEncodedString(
             load_src.ptr(), UTF_N == 8 ? "utf-8" : UTF_N == 16 ? "utf-16" : "utf-32", nullptr));
         if (!utfNbytes) { PyErr_Clear(); return false; }
 

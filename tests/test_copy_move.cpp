@@ -116,9 +116,9 @@ TEST_SUBMODULE(copy_move_policies, m) {
         r += py::cast<MoveOrCopyInt>(o).value; /* moves */
         r += py::cast<MoveOnlyInt>(o).value; /* moves */
         r += py::cast<CopyOnlyInt>(o).value; /* copies */
-        MoveOrCopyInt m1(py::cast<MoveOrCopyInt>(o)); /* moves */
-        MoveOnlyInt m2(py::cast<MoveOnlyInt>(o)); /* moves */
-        CopyOnlyInt m3(py::cast<CopyOnlyInt>(o)); /* copies */
+        auto m1(py::cast<MoveOrCopyInt>(o)); /* moves */
+        auto m2(py::cast<MoveOnlyInt>(o)); /* moves */
+        auto m3(py::cast<CopyOnlyInt>(o)); /* copies */
         r += m1.value + m2.value + m3.value;
 
         return r;
