@@ -35,6 +35,17 @@ using NonLocalVec2 = std::vector<NonLocal2>;
 using NonLocalMap = std::unordered_map<std::string, NonLocalType>;
 using NonLocalMap2 = std::unordered_map<std::string, uint8_t>;
 
+
+// Exception that will be caught via the module local translator.
+class LocalException : public std::exception {
+public:
+    explicit LocalException(const char * m) : message{m} {}
+    const char * what() const noexcept override {return message.c_str();}
+private:
+    std::string message = "";
+};
+
+
 PYBIND11_MAKE_OPAQUE(LocalVec);
 PYBIND11_MAKE_OPAQUE(LocalVec2);
 PYBIND11_MAKE_OPAQUE(LocalMap);

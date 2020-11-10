@@ -34,11 +34,23 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("throw_pybind_value_error", []() { throw py::value_error("pybind11 value error"); });
     m.def("throw_pybind_type_error", []() { throw py::type_error("pybind11 type error"); });
     m.def("throw_stop_iteration", []() { throw py::stop_iteration(); });
+    m.def("throw_local_error", []() { throw LocalException("just local"); });
     py::register_exception_translator([](std::exception_ptr p) {
       try {
           if (p) std::rethrow_exception(p);
       } catch (const shared_exception &e) {
           PyErr_SetString(PyExc_KeyError, e.what());
+      }
+    });
+
+    // translate the local exception into a key error but only in this module
+    py::register_local_exception_translator([](std::exception_ptr p) {
+      try {
+          if (p) {
+            std::rethrow_exception(p);
+          }
+      } catch (const LocalException &e) {
+        PyErr_SetString(PyExc_KeyError, e.what());
       }
     });
 

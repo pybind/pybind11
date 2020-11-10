@@ -25,7 +25,7 @@ def test_error_already_set(msg):
     assert msg(excinfo.value) == "foo"
 
 
-def test_cross_module_exceptions():
+def test_cross_module_exceptions(msg):
     with pytest.raises(RuntimeError) as excinfo:
         cm.raise_runtime_error()
     assert str(excinfo.value) == "My runtime error"
@@ -44,6 +44,10 @@ def test_cross_module_exceptions():
 
     with pytest.raises(StopIteration) as excinfo:
         cm.throw_stop_iteration()
+
+    with pytest.raises(KeyError) as excinfo:
+        cm.throw_local_error()
+    assert msg(excinfo.value) == "just local"
 
 
 # TODO: FIXME
@@ -221,3 +225,16 @@ def test_invalid_repr():
 
     with pytest.raises(TypeError):
         m.simple_bool_passthrough(MyRepr())
+
+
+def test_local_translator(msg):
+    """Tests that a local translator works and that the local translator from
+    the cross module is not applied"""
+    with pytest.raises(RuntimeError) as excinfo:
+       m.throws6()
+    assert msg(excinfo.value) == "MyException6 only handled in this module"
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.throws_local_error()
+    assert type(excinfo) != KeyError
+    assert msg(excinfo.value) == "never caught"
