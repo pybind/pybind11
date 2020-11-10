@@ -92,18 +92,14 @@ want set this to a memory dependent number.
 If you are developing rapidly and have a lot of C++ files, you may want to
 avoid rebuilding files that have not changed. For simple cases were you are
 using ``pip install -e .`` and do not have local headers, you can skip the
-rebuild if a object file is newer than it's source with the following:
+rebuild if a object file is newer than it's source (headers are not checked!)
+with the following:
 
 .. code-block:: python
 
-    from pybind11.setup_helpers import ParallelCompile
+    from pybind11.setup_helpers import ParallelCompile, naive_recompile
 
-    class SmartCompile(ParallelCompile):
-        @staticmethod
-        def needs_recompile(obj, src):
-            return os.stat(obj).st_mtime < os.stat(src).st_mtime
-
-    SmartCompile("NPY_NUM_BUILD_JOBS").install()
+    SmartCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 
 If you have a more complex build, you can implement a smarter function, or you

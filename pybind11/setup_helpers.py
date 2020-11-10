@@ -275,7 +275,8 @@ def auto_cpp_level(compiler):
 class build_ext(_build_ext):  # noqa: N801
     """
     Customized build_ext that allows an auto-search for the highest supported
-    C++ level for Pybind11Extension.
+    C++ level for Pybind11Extension. This is only needed for the auto-search
+    for now, and is completely optional otherwise.
     """
 
     def build_extensions(self):
@@ -293,6 +294,23 @@ class build_ext(_build_ext):  # noqa: N801
         _build_ext.build_extensions(self)
 
 
+def naive_recompile(obj, src):
+    """
+    This will recompile only if the source file changes. It does not check
+    header files, so a more advanced function or CCache is better if you have
+    editable header files in your package.
+    """
+    return os.stat(obj).st_mtime < os.stat(src).st_mtime
+
+
+def no_recompile(obg, src):
+    """
+    This is the safest but slowest choice (and is the default) - will always
+    recompile sources.
+    """
+    return True
+
+
 # Optional parallel compile utility
 # inspired by: http://stackoverflow.com/questions/11013851/speeding-up-build-process-with-distutils
 # and: https://github.com/tbenthompson/cppimport/blob/stable/cppimport/build_module.py
@@ -306,43 +324,42 @@ class ParallelCompile(object):
     This takes several arguments that allow you to customize the compile
     function created:
 
-    envvar: Set an environment variable to control the compilation threads, like NPY_NUM_BUILD_JOBS
-    default: 0 will automatically multithread, or 1 will only multithread if the envvar is set.
-    max: The limit for automatic multithreading if non-zero
-    only_changed: Do not try to recompile up-to-date outputs if True
-          (no effect in isolated mode; use ccache instead, see
-           https://github.com/matplotlib/matplotlib/issues/1507/)
+    envvar:
+        Set an environment variable to control the compilation threads, like
+        NPY_NUM_BUILD_JOBS
+    default:
+        0 will automatically multithread, or 1 will only multithread if the
+        envvar is set.
+    max:
+        The limit for automatic multithreading if non-zero
+    needs_recompile:
+        A function of (obj, src) that returns True when recompile is needed.  No
+        effect in isolated mode; use ccache instead, see
+        https://github.com/matplotlib/matplotlib/issues/1507/
 
-    To use:
+    To use::
+
         ParallelCompile("NPY_NUM_BUILD_JOBS").install()
-    or:
+
+    or::
+
         with ParallelCompile("NPY_NUM_BUILD_JOBS"):
             setup(...)
+
+    By default, this assumes all files need to be recompiled. A smarter
+    function can be provided via needs_recompile.  If the output has not yet
+    been generated, the compile will always run, and this function is not
+    called.
     """
 
-    __slots__ = ("envvar", "default", "max", "old", "only_changed")
+    __slots__ = ("envvar", "default", "max", "old", "needs_recompile")
 
-    def __init__(self, envvar=None, default=0, max=0):
+    def __init__(self, envvar=None, default=0, max=0, needs_recompile=no_recompile):
         self.envvar = envvar
         self.default = default
         self.max = max
+        self.needs_recompile = needs_recompile
         self.old = []
-
-    @staticmethod
-    def needs_recompile(obj, src):
-        """
-        Checks to see if a object file needs to be recompiled, given the
-        source. By default, this assumes all files need to be recompiled.
-        This function can be overridden to be smarter. If you do not have
-        any headers that might change, a simple override could be:
-
-            return os.stat(obj).st_mtime < os.stat(src).st_mtime
-
-        If the output has not yet been generated, the compile will always run,
-        and this function is not called.
-        """
-
-        return True
 
     def function(self):
         """
