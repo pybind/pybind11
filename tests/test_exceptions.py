@@ -25,7 +25,7 @@ def test_error_already_set(msg):
     assert msg(excinfo.value) == "foo"
 
 
-def test_cross_module_exceptions(msg):
+def test_cross_module_exceptions():
     with pytest.raises(RuntimeError) as excinfo:
         cm.raise_runtime_error()
     assert str(excinfo.value) == "My runtime error"
@@ -47,7 +47,8 @@ def test_cross_module_exceptions(msg):
 
     with pytest.raises(KeyError) as excinfo:
         cm.throw_local_error()
-    assert msg(excinfo.value) == "just local"
+    # KeyError adds an extra set of quotes to the str value.
+    assert str(excinfo.value) == "'just local'"
 
 
 # TODO: FIXME
