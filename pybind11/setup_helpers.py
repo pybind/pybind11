@@ -352,14 +352,14 @@ class ParallelCompile(object):
     called.
     """
 
-    __slots__ = ("envvar", "default", "max", "old", "needs_recompile")
+    __slots__ = ("envvar", "default", "max", "_old", "needs_recompile")
 
     def __init__(self, envvar=None, default=0, max=0, needs_recompile=no_recompile):
         self.envvar = envvar
         self.default = default
         self.max = max
         self.needs_recompile = needs_recompile
-        self.old = []
+        self._old = []
 
     def function(self):
         """
@@ -429,8 +429,8 @@ class ParallelCompile(object):
         return self
 
     def __enter__(self):
-        self.old.append(distutils.ccompiler.CCompiler.compile)
+        self._old.append(distutils.ccompiler.CCompiler.compile)
         return self.install()
 
     def __exit__(self, *args):
-        distutils.ccompiler.CCompiler.compile = self.old.pop()
+        distutils.ccompiler.CCompiler.compile = self._old.pop()
