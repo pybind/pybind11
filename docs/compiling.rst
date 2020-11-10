@@ -102,11 +102,11 @@ with the following:
     SmartCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 
-If you have a more complex build, you can implement a smarter function, or you
-can use [CCache]_ instead. ``CXX="cache g++" pip install -e .`` would be the
-way to use it with GCC, for example. Unlike the simple solution, this even
-works even when not compiling in editable mode, but it does require CCache to
-be installed.
+If you have a more complex build, you can implement a smarter function and pass
+it to ``needs_recompile``, or you can use [CCache]_ instead. ``CXX="cache g++"
+pip install -e .`` would be the way to use it with GCC, for example. Unlike the
+simple solution, this even works even when not compiling in editable mode, but
+it does require CCache to be installed.
 
 .. [CCache] https://ccache.dev
 
