@@ -851,6 +851,18 @@ protected:
                 - delegate translation to the next translator by throwing a new type of exception. */
 
             auto last_exception = std::current_exception();
+
+            auto & registered_local_exception_translators = get_module_internals().registered_local_exception_translators;
+            for (auto& translator : registered_local_exception_translators) {
+                try {
+                    translator(last_exception);
+                } catch (...) {
+                    last_exception = std::current_exception();
+                    continue;
+                }
+                return nullptr;
+            }
+
             auto &registered_exception_translators = get_internals().registered_exception_translators;
             for (auto& translator : registered_exception_translators) {
                 try {
@@ -2023,6 +2035,18 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
 template <typename ExceptionTranslator>
 void register_exception_translator(ExceptionTranslator&& translator) {
     detail::get_internals().registered_exception_translators.push_front(
+        std::forward<ExceptionTranslator>(translator));
+}
+
+
+/**
+  * Add a new module-local exception translator. This function will be applied
+  * before any globally registered exception translators, which will only be
+  * invoked if the moduke-local handlers do not deal with the exception.
+  */
+template <typename ExceptionTranslator>
+void register_local_exception_translator(ExceptionTranslator&& translator) {
+    detail::get_module_internals().registered_local_exception_translators.push_front(
         std::forward<ExceptionTranslator>(translator));
 }
 
