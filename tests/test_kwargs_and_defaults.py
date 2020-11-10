@@ -244,7 +244,7 @@ def test_args_refcount():
     myval = 54321
     expected = refcount(myval)
     assert m.arg_refcount_h(myval) == expected
-    assert m.arg_refcount_o(myval) == expected + 1
+    assert m.arg_refcount_o(myval) == expected + 2
     assert m.arg_refcount_h(myval) == expected
     assert refcount(myval) == expected
 
@@ -280,6 +280,6 @@ def test_args_refcount():
     # for the `py::args`; in the previous case, we could simply inc_ref and pass on Python's input
     # tuple without having to inc_ref the individual elements, but here we can't, hence the extra
     # refs.
-    assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)
+    assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 4, exp3 + 4, exp3 + 4)
 
     assert m.class_default_argument() == "<class 'decimal.Decimal'>"

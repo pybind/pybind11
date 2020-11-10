@@ -128,10 +128,10 @@ TEST_SUBMODULE(copy_move_policies, m) {
     // test_move_and_copy_casts
     m.def("move_and_copy_casts", [](py::object o) {
         int r = 0;
-        r += py::cast<MoveOrCopyInt>(o).value; /* moves */
+        r += py::cast<MoveOrCopyInt>(o).value; /* copies */
         r += py::cast<MoveOnlyInt>(o).value; /* moves */
         r += py::cast<CopyOnlyInt>(o).value; /* copies */
-        auto m1(py::cast<MoveOrCopyInt>(o)); /* moves */
+        auto m1(py::cast<MoveOrCopyInt>(o)); /* copies */
         auto m2(py::cast<MoveOnlyInt>(o)); /* moves */
         auto m3(py::cast<CopyOnlyInt>(o)); /* copies */
         r += m1.value + m2.value + m3.value;
@@ -141,7 +141,8 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     // test_move_and_copy_loads
     m.def("move_only", [](MoveOnlyInt m) { return m.value; });
-    m.def("move_or_copy", [](MoveOrCopyInt m) { return m.value; });
+    m.def("move", [](MoveOrCopyInt&& m) { return m.value; });
+    m.def("copy", [](MoveOrCopyInt m) { return m.value; });
     m.def("copy_only", [](CopyOnlyInt m) { return m.value; });
     m.def("move_pair", [](std::pair<MoveOnlyInt, MoveOrCopyInt> p) {
         return p.first.value + p.second.value;
@@ -200,15 +201,10 @@ TEST_SUBMODULE(copy_move_policies, m) {
 #ifdef PYBIND11_HAS_OPTIONAL
     // test_move_and_copy_load_optional
     m.attr("has_optional") = true;
-    m.def("move_optional", [](std::optional<MoveOnlyInt> o) {
-        return o->value;
-    });
-    m.def("move_or_copy_optional", [](std::optional<MoveOrCopyInt> o) {
-        return o->value;
-    });
-    m.def("copy_optional", [](std::optional<CopyOnlyInt> o) {
-        return o->value;
-    });
+    m.def("move_optional", [](std::optional<MoveOnlyInt> o) { return o->value; });
+    m.def("mc_move_optional", [](std::optional<MoveOrCopyInt>&& o) { return o->value; });
+    m.def("mc_copy_optional", [](std::optional<MoveOrCopyInt> o) { return o->value; });
+    m.def("copy_optional", [](std::optional<CopyOnlyInt> o) { return o->value; });
     m.def("move_optional_tuple", [](std::optional<std::tuple<MoveOrCopyInt, MoveOnlyInt, CopyOnlyInt>> x) {
         return std::get<0>(*x).value + std::get<1>(*x).value + std::get<2>(*x).value;
     });
