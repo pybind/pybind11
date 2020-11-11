@@ -70,17 +70,20 @@ PYBIND11_NAMESPACE_BEGIN(pybind11)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // validate movable_cast_op_type()
-static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt&>, MoveOrCopyInt&>::value, "always keep lvalue reference");
-static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt&>, MoveOnlyInt&>::value, "always keep lvalue reference");
-static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt&>, CopyOnlyInt&>::value, "always keep lvalue reference");
+// copy semantics is explicitly requested by an lvalue reference argument (T&)
+static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt&>, MoveOrCopyInt&>::value, "lvalue reference requested");
+static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt&>, MoveOnlyInt&>::value, "lvalue reference requested");
+static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt&>, CopyOnlyInt&>::value, "lvalue reference requested");
 
-static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt&&>, MoveOrCopyInt&&>::value, "moving is supported");
-static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt&&>, MoveOnlyInt&&>::value, "moving is supported");
-static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt&&>, CopyOnlyInt&&>::value, "moving is supported");
+// move semantics is explicitly requested by an rvalue argument (T&&)
+static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt&&>, MoveOrCopyInt>::value, "requesting move semantics");
+static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt&&>, MoveOnlyInt>::value, "requesting move semantics");
+static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt&&>, CopyOnlyInt>::value, "requesting move semantics");
 
-static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt>, MoveOrCopyInt&>::value, "lvalue reference");
-static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt>, MoveOnlyInt&>::value, "lvalue reference");
-static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt>, CopyOnlyInt&>::value, "lvalue reference");
+// casting type for plain arguments is chose to yield copy semantics by default, but move semantics for move-only types
+static_assert(std::is_same<movable_cast_op_type<MoveOrCopyInt>, MoveOrCopyInt&>::value, "default to copy semantics");
+static_assert(std::is_same<movable_cast_op_type<MoveOnlyInt>, MoveOnlyInt>::value, "only move semantics supported");
+static_assert(std::is_same<movable_cast_op_type<CopyOnlyInt>, CopyOnlyInt&>::value, "copy semantics");
 
 template <> struct type_caster<MoveOnlyInt> {
     PYBIND11_TYPE_CASTER(MoveOnlyInt, _("MoveOnlyInt"));

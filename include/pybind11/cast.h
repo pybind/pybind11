@@ -763,7 +763,7 @@ public:
  * Determine suitable casting operator for pointer-or-lvalue-casting type casters.  The type caster
  * needs to provide `operator T*()` and `operator T&()` operators.
  *
- * If the type supports moving the value away via an `operator T&&()` method, it should use
+ * If the type supports moving the value away via an `operator T()` caster method, it should use
  * `movable_cast_op_type` instead.
  */
 template <typename T>
@@ -772,20 +772,42 @@ using cast_op_type =
         typename std::add_pointer<intrinsic_t<T>>::type,
         typename std::add_lvalue_reference<intrinsic_t<T>>::type>;
 
+template <typename T> using cast_op_type_for_moving =
+    conditional_t<std::is_move_constructible<intrinsic_t<T>>::value,
+        // return an rvalue ref via T(std::move(value)) which triggers a move construction
+        intrinsic_t<T>,
+        // this doesn't work for abstract types: cast these to an rvalue reference
+        typename std::add_rvalue_reference<intrinsic_t<T>>::type>;
+
+// A plain argument type will use lvalue references (triggering copy semantics)
+// except the type is move-only and thus should use move semantics.
+template <typename T> using cast_op_type_for_plain =
+    conditional_t<!std::is_copy_constructible<intrinsic_t<T>>::value,
+        cast_op_type_for_moving<T>,
+        typename std::add_lvalue_reference<intrinsic_t<T>>::type>;
+
 /**
  * Determine suitable casting operator for a type caster with a movable value.  Such a type caster
- * needs to provide `operator T*()`, `operator T&()`, and `operator T&&()`.  The latter will be
- * called in appropriate contexts where the value can be moved rather than copied.
+ * needs to provide `operator T*()`, `operator T&()`, `operator T()`, and `operator T&&()`.
+ * The latter two will be used for move construction and move passthrough respectively.
+ * While C++ decides about copy vs move semantics based on the type of the passed argument,
+ * Python doesn't know about lvalue and rvalue references and thus cannot decide based on the
+ * passed argument. Instead, the wrapper needs to define the desired semantics of argument passing
+ * explicitly. By specifying an rvalue reference (T&&), move semantics is enforced.
+ * By default, simple lvalue references (T&) are passed, triggering copy semantics if necessary.
+ * An exception are move-only types: These are passed via move semantics.
  *
- * These operator are automatically provided when using the PYBIND11_TYPE_CASTER macro.
+ * These operators are automatically provided when using the PYBIND11_TYPE_CASTER macro.
  */
 template <typename T>
 using movable_cast_op_type =
     conditional_t<std::is_pointer<typename std::remove_reference<T>::type>::value,
         typename std::add_pointer<intrinsic_t<T>>::type,
-    conditional_t<std::is_rvalue_reference<T>::value,
-        typename std::add_rvalue_reference<intrinsic_t<T>>::type,
-        typename std::add_lvalue_reference<intrinsic_t<T>>::type>>;
+        conditional_t<std::is_rvalue_reference<T>::value,
+            cast_op_type_for_moving<T>,
+            conditional_t<std::is_lvalue_reference<T>::value,
+                typename std::add_lvalue_reference<intrinsic_t<T>>::type,
+                cast_op_type_for_plain<T> > > >;
 
 // std::is_copy_constructible isn't quite enough: it lets std::vector<T> (and similar) through when
 // T is non-copyable, but code containing such a copy constructor fails to actually compile.
@@ -920,6 +942,10 @@ public:
 
     operator itype*() { return (type *) value; }
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
+    // move caster, actually triggering a move construction from value
+    template <typename T_ = itype, enable_if_t<std::is_move_constructible<T_>::value, int> = 0>
+    operator T_() { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
+    // fallback move caster, just passing rvalue reference as is
     operator itype&&() { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
 
 protected:
@@ -997,6 +1023,8 @@ public:
         operator type*() { return &value; } \
         operator type&() { return value; } \
         operator type&&() { return std::move(value); } \
+        template <typename T_ = type, enable_if_t<std::is_move_constructible<T_>::value, int> = 0> \
+        operator T_() { return std::move(value); } \
         template <typename T_> using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
 
@@ -2015,7 +2043,7 @@ private:
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
-        return std::forward<Func>(f)(std::forward<Args>(cast_op<Args>(std::get<Is>(argcasters)))...);
+        return std::forward<Func>(f)(cast_op<Args>(std::get<Is>(argcasters))...);
     }
 
     std::tuple<make_caster<Args>...> argcasters;
