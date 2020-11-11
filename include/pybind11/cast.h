@@ -943,8 +943,7 @@ public:
     operator itype*() { return (type *) value; }
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
     // move caster, actually triggering a move construction from value
-    template <typename T_ = itype, enable_if_t<std::is_move_constructible<T_>::value, int> = 0>
-    operator T_() { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
+    operator itype() { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
     // fallback move caster, just passing rvalue reference as is
     operator itype&&() { if (!value) throw reference_cast_error(); return std::move(*((itype *) value)); }
 
@@ -1023,8 +1022,7 @@ public:
         operator type*() { return &value; } \
         operator type&() { return value; } \
         operator type&&() { return std::move(value); } \
-        template <typename T_ = type, enable_if_t<std::is_move_constructible<T_>::value, int> = 0> \
-        operator T_() { return std::move(value); } \
+        operator type() { return std::move(value); } \
         template <typename T_> using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
 
