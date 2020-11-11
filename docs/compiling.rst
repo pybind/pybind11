@@ -103,12 +103,21 @@ with the following:
 
 
 If you have a more complex build, you can implement a smarter function and pass
-it to ``needs_recompile``, or you can use [CCache]_ instead. ``CXX="cache g++"
+it to ``needs_recompile``, or you can use [Ccache]_ instead. ``CXX="cache g++"
 pip install -e .`` would be the way to use it with GCC, for example. Unlike the
 simple solution, this even works even when not compiling in editable mode, but
-it does require CCache to be installed.
+it does require Ccache to be installed.
 
-.. [CCache] https://ccache.dev
+Keep in mind that Pip will not even attempt to rebuild if it thinks it has
+already built a copy of your code, which it deduces from the version number.
+One way to avoid this is to use [setuptools_scm]_, which will generate a
+version number that includes the number of commits since your last tag and a
+hash for a dirty directory. Another way to force a rebuild is purge your cache
+or use Pip's ``--no-cache-dir`` option.
+
+.. [Ccache] https://ccache.dev
+
+.. [setuptools_scm] https://github.com/pypa/setuptools_scm
 
 .. _setup_helpers-pep518:
 

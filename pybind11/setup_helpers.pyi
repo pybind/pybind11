@@ -1,7 +1,7 @@
 # IMPORTANT: Should stay in sync with setup_helpers.py (mostly checked by CI /
 # pre-commit).
 
-from typing import Any, Iterator, Optional, Type, TypeVar, Union, Callable
+from typing import Any, Callable, Iterator, Optional, Type, TypeVar, Union
 from types import TracebackType
 
 from distutils.command.build_ext import build_ext as _build_ext  # type: ignore

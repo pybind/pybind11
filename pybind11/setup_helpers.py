@@ -297,7 +297,7 @@ class build_ext(_build_ext):  # noqa: N801
 def naive_recompile(obj, src):
     """
     This will recompile only if the source file changes. It does not check
-    header files, so a more advanced function or CCache is better if you have
+    header files, so a more advanced function or Ccache is better if you have
     editable header files in your package.
     """
     return os.stat(obj).st_mtime < os.stat(src).st_mtime
