@@ -89,6 +89,36 @@ default number of threads (0 will take the number of threads available) and
 ``max=N``, the maximum number of threads; if you have a large extension you may
 want set this to a memory dependent number.
 
+If you are developing rapidly and have a lot of C++ files, you may want to
+avoid rebuilding files that have not changed. For simple cases were you are
+using ``pip install -e .`` and do not have local headers, you can skip the
+rebuild if a object file is newer than it's source (headers are not checked!)
+with the following:
+
+.. code-block:: python
+
+    from pybind11.setup_helpers import ParallelCompile, naive_recompile
+
+    SmartCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
+
+
+If you have a more complex build, you can implement a smarter function and pass
+it to ``needs_recompile``, or you can use [Ccache]_ instead. ``CXX="cache g++"
+pip install -e .`` would be the way to use it with GCC, for example. Unlike the
+simple solution, this even works even when not compiling in editable mode, but
+it does require Ccache to be installed.
+
+Keep in mind that Pip will not even attempt to rebuild if it thinks it has
+already built a copy of your code, which it deduces from the version number.
+One way to avoid this is to use [setuptools_scm]_, which will generate a
+version number that includes the number of commits since your last tag and a
+hash for a dirty directory. Another way to force a rebuild is purge your cache
+or use Pip's ``--no-cache-dir`` option.
+
+.. [Ccache] https://ccache.dev
+
+.. [setuptools_scm] https://github.com/pypa/setuptools_scm
+
 .. _setup_helpers-pep518:
 
 PEP 518 requirements (Pip 10+ required)

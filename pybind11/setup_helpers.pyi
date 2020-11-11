@@ -1,7 +1,7 @@
 # IMPORTANT: Should stay in sync with setup_helpers.py (mostly checked by CI /
 # pre-commit).
 
-from typing import Any, Iterator, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Iterator, Optional, Type, TypeVar, Union
 from types import TracebackType
 
 from distutils.command.build_ext import build_ext as _build_ext  # type: ignore
@@ -33,12 +33,23 @@ def auto_cpp_level(compiler: distutils.ccompiler.CCompiler) -> Union[int, str]: 
 class build_ext(_build_ext):  # type: ignore
     def build_extensions(self) -> None: ...
 
+def no_recompile(obj: str, src: str) -> bool: ...
+def naive_recompile(obj: str, src: str) -> bool: ...
+
 T = TypeVar("T", bound="ParallelCompile")
 
 class ParallelCompile:
+    envvar: Optional[str]
+    default: int
+    max: int
+    needs_recompile: Callable[[str, str], bool]
     def __init__(
-        self, envvar: Optional[str] = None, default: int = 0, max: int = 0
-    ): ...
+        self,
+        envvar: Optional[str] = None,
+        default: int = 0,
+        max: int = 0,
+        needs_recompile: Callable[[str, str], bool] = no_recompile,
+    ) -> None: ...
     def function(self) -> Any: ...
     def install(self: T) -> T: ...
     def __enter__(self: T) -> T: ...
