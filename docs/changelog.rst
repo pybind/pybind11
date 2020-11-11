@@ -6,10 +6,38 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
-v2.6.1 (TBA, not yet released)
-------------------------------
+v2.6.1 (Nov 11, 2020)
+---------------------
 
-* Details to follow here
+* ``py::exec``, ``py::eval``, and ``py::eval_file`` now add the builtins module
+  as ``"__builtins__"`` to their ``globals`` argument, better matching ``exec``
+  and ``eval`` in pure Python.
+  `#2616 <https://github.com/pybind/pybind11/pull/2616>`_
+
+* ``setup_helpers`` will no longer set a minimum macOS version lower than the
+  current version.
+  `#2622 <https://github.com/pybind/pybind11/pull/2622>`_
+
+* Allow deleting static properties.
+  `#2629 <https://github.com/pybind/pybind11/pull/2629>`_
+
+* Seal a leak in ``def_buffer``, cleaning up the ``capture`` object after the
+  ``class_`` object goes out of scope.
+  `#2634 <https://github.com/pybind/pybind11/pull/2634>`_
+
+* ``pybind11_INCLUDE_DIRS`` was incorrect, potentially causing a regression if
+  it was expected to include ``PYTHON_INCLUDE_DIRS`` (please use targets
+  instead).
+  `#2636 <https://github.com/pybind/pybind11/pull/2636>`_
+
+* Added parameter names to the ``py::enum_`` constructor and methods, avoiding
+  ``arg0`` in the generated docstrings.
+  `#2637 <https://github.com/pybind/pybind11/pull/2637>`_
+
+* Added ``needs_recompile`` optional function to the ``ParallelCompiler``
+  helper, to allow a recompile to be skipped based on a user-defined function.
+  `#2643 <https://github.com/pybind/pybind11/pull/2643>`_
+
 
 v2.6.0 (Oct 21, 2020)
 ---------------------
