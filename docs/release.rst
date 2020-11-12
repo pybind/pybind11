@@ -28,6 +28,9 @@ To release a new version of pybind11:
   - Ensure that all the information in ``setup.cfg`` is up-to-date, like
     supported Python versions.
   - Add release date in ``docs/changelog.rst``.
+      - Check to make sure
+        `needs-changelog <https://github.com/pybind/pybind11/pulls?q=is%3Apr+is%3Aclosed+label%3A%22needs+changelog%22>`_
+        issues are entered in the changelog (clear the label when done).
   - ``git add`` and ``git commit``, ``git push``. **Ensure CI passes**. (If it
     fails due to a known flake issue, either ignore or restart CI.)
 - Add a release branch if this is a new minor version
@@ -61,6 +64,15 @@ To release a new version of pybind11:
   - ``git add``, ``git commit``, ``git push``
 
 If a version branch is updated, remember to set PATCH to ``1.dev1``.
+
+If you'd like to bump homebrew, run:
+
+.. code-block::
+
+    brew bump-formula-pr --url https://github.com/pybind/pybind11/archive/vX.Y.Z.tar.gz
+
+Conda-forge should automatically make a PR in a few hours, and automatically
+merge it if there are no issues.
 
 
 Manual packaging
