@@ -25,7 +25,8 @@ To release a new version of pybind11:
   - Update ``PYBIND11_VERSION_MAJOR`` etc. in
     ``include/pybind11/detail/common.h``. PATCH should be a simple integer.
   - Update ``pybind11/_version.py`` (match above)
-  - Ensure that all the information in ``setup.py`` is up-to-date.
+  - Ensure that all the information in ``setup.cfg`` is up-to-date, like
+    supported Python versions.
   - Add release date in ``docs/changelog.rst``.
   - ``git add`` and ``git commit``, ``git push``. **Ensure CI passes**. (If it
     fails due to a known flake issue, either ignore or restart CI.)
@@ -56,7 +57,7 @@ To release a new version of pybind11:
   - Update version macros in ``include/pybind11/detail/common.h`` (set PATCH to
     ``0.dev1`` and increment MINOR).
   - Update ``_version.py`` to match
-  - Add a plot for in-development updates in ``docs/changelog.rst``.
+  - Add a spot for in-development updates in ``docs/changelog.rst``.
   - ``git add``, ``git commit``, ``git push``
 
 If a version branch is updated, remember to set PATCH to ``1.dev1``.
