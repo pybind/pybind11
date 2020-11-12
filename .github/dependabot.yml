@@ -6,6 +6,11 @@ updates:
     schedule:
       interval: "daily"
     ignore:
-      # Offical actions have moving tags like v1
+      # Official actions have moving tags like v1
       # that are used, so they don't need updates here
-      - dependency-name: "actions/*"
+      - dependency-name: "actions/checkout"
+      - dependency-name: "actions/setup-python"
+      - dependency-name: "actions/cache"
+      - dependency-name: "actions/upload-artifact"
+      - dependency-name: "actions/download-artifact"
+      - dependency-name: "actions/labeler"
