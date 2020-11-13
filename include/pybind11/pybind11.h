@@ -2121,7 +2121,12 @@ public:
                     pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             #endif
             PyThreadState_Clear(tstate);
+#if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 6) && !defined(Py_LIMITED_API)
+            if (!_Py_IsFinalizing())
+                PyThreadState_DeleteCurrent();
+#else
             PyThreadState_DeleteCurrent();
+#endif
             PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
             release = false;
         }
@@ -2153,7 +2158,14 @@ public:
     ~gil_scoped_release() {
         if (!tstate)
             return;
+#if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 6) && !defined(Py_LIMITED_API)
+        // PyEval_RestoreThread() should not be called if runtime is finilizing
+        // See https://docs.python.org/3/c-api/init.html#c.PyEval_RestoreThread
+        if (!_Py_IsFinalizing())
+            PyEval_RestoreThread(tstate);
+#else
         PyEval_RestoreThread(tstate);
+#endif
         if (disassoc) {
             auto key = detail::get_internals().tstate;
             PYBIND11_TLS_REPLACE_VALUE(key, tstate);
