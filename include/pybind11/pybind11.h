@@ -2121,7 +2121,7 @@ public:
                     pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             #endif
             PyThreadState_Clear(tstate);
-#if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 6) && !defined(Py_LIMITED_API)
+#if PY_VERSION_HEX >= 0x03070000
             if (!_Py_IsFinalizing())
                 PyThreadState_DeleteCurrent();
 #else
@@ -2158,7 +2158,7 @@ public:
     ~gil_scoped_release() {
         if (!tstate)
             return;
-#if (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 6) && !defined(Py_LIMITED_API)
+#if PY_VERSION_HEX >= 0x03070000
         // PyEval_RestoreThread() should not be called if runtime is finilizing
         // See https://docs.python.org/3/c-api/init.html#c.PyEval_RestoreThread
         if (!_Py_IsFinalizing())
