@@ -756,11 +756,11 @@ inline bool PyIterable_Check(PyObject *obj) {
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
-#ifdef PYBIND11_STR_NON_PERMISSIVE
-#define PYBIND11_STR_CHECK_FUN PyUnicode_Check
-#else
+#ifdef PYBIND11_STR_LEGACY_PERMISSIVE
 inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
 #define PYBIND11_STR_CHECK_FUN detail::PyUnicode_Check_Permissive
+#else
+#define PYBIND11_STR_CHECK_FUN PyUnicode_Check
 #endif
 
 inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }

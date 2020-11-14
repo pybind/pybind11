@@ -6,6 +6,16 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+v2.7.0 (WIP)
+------------------------------
+
+* ``py::str`` changed to exclusively hold `PyUnicodeObject`. Previously
+  ``py::str`` could also hold `bytes`, which is probably surprising, was
+  never documented, and can mask bugs (e.g. accidental use of ``py::str``
+  instead of ``py::bytes``).
+  `#2409 <https://github.com/pybind/pybind11/pull/2409>`_
+
+
 v2.6.3 (TBA, not yet released)
 ------------------------------
 

@@ -163,19 +163,18 @@
 #include <typeindex>
 #include <type_traits>
 
-#define PYBIND11_STR_NON_PERMISSIVE
-// If UNDEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
-// (probably surprising, but this is the legacy behavior). As a side-effect,
-// pybind11::isinstance<str>() is true for both pybind11::str and pybind11::bytes.
-// If DEFINED, pybind11::str can only hold PyUnicodeObject, and
-// pybind11::isinstance<str>() is true only for pybind11::str.
-
-#if PY_MAJOR_VERSION >= 3
-#define PYBIND11_STR_CASTER_NO_IMPLICIT_DECODE
-#endif
-// This macro has an effect only if PYBIND11_STR_NON_PERMISSIVE is defined.
-// If UNDEFINED, the pybind11::str caster will implicitly decode bytes to PyUnicodeObject.
-// If DEFINED, the pybind11::str caster will only accept PyUnicodeObject.
+// #define PYBIND11_STR_LEGACY_PERMISSIVE
+// If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
+//             (probably surprising and never documented, but this was the
+//             legacy behavior until and including v2.6.x). As a side-effect,
+//             pybind11::isinstance<str>() is true for both pybind11::str and
+//             pybind11::bytes.
+// If UNDEFINED, pybind11::str can only hold PyUnicodeObject, and
+//               pybind11::isinstance<str>() is true only for pybind11::str.
+//               However, for Python 2 only (!), the pybind11::str caster
+//               implicitly decodes bytes to PyUnicodeObject. This is to ease
+//               the transition from the legacy behavior to the non-permissive
+//               behavior.
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)

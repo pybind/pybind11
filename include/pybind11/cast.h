@@ -1656,7 +1656,10 @@ struct pyobject_caster {
 
     template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
     bool load(handle src, bool /* convert */) {
-#if defined(PYBIND11_STR_NON_PERMISSIVE) && !defined(PYBIND11_STR_CASTER_NO_IMPLICIT_DECODE)
+#if PY_MAJOR_VERSION < 3 && !defined(PYBIND11_STR_LEGACY_PERMISSIVE)
+        // For Python 2, without this implicit conversion, Python code would
+        // need to be cluttered with six.ensure_text() or similar, only to be
+        // un-cluttered later after Python 2 support is dropped.
         if (std::is_same<T, str>::value && isinstance<bytes>(src)) {
             PyObject *str_from_bytes = PyUnicode_FromEncodedObject(src.ptr(), "utf-8", nullptr);
             if (!str_from_bytes) throw error_already_set();

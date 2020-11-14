@@ -79,7 +79,7 @@ def test_python_alreadyset_in_destructor(monkeypatch, capsys):
         # Use monkeypatch so pytest can apply and remove the patch as appropriate
         monkeypatch.setattr(sys, "unraisablehook", hook)
 
-    assert m.python_alreadyset_in_destructor(u"already_set demo") is True
+    assert m.python_alreadyset_in_destructor("already_set demo") is True
     if hooked:
         assert triggered[0] is True
 

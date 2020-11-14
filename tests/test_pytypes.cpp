@@ -414,11 +414,8 @@ TEST_SUBMODULE(pytypes, m) {
     // test_builtin_functions
     m.def("get_len", [](py::handle h) { return py::len(h); });
 
-#ifdef PYBIND11_STR_NON_PERMISSIVE
-    m.attr("has_str_non_permissive") = true;
-#endif
-#ifdef PYBIND11_STR_CASTER_NO_IMPLICIT_DECODE
-    m.attr("has_str_caster_no_implicit_decode") = true;
+#ifdef PYBIND11_STR_LEGACY_PERMISSIVE
+    m.attr("PYBIND11_STR_LEGACY_PERMISSIVE") = true;
 #endif
 
     m.def("isinstance_pybind11_bytes", [](py::object o) { return py::isinstance<py::bytes>(o); });
