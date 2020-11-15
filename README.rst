@@ -5,6 +5,12 @@
 
 |Latest Documentation Status| |Stable Documentation Status| |Gitter chat| |CI| |Build status|
 
+|Repology| |PyPI package| |Conda-forge| |Python Versions|
+
+`Setuptools example <https://github.com/pybind/python_example>`_
+• `Scikit-build example <https://github.com/pybind/scikit_build_example>`_
+• `CMake example <https://github.com/pybind/cmake_example>`_
+
 .. warning::
 
    Combining older versions of pybind11 (< 2.6.0) with the brand-new Python
@@ -173,3 +179,11 @@ to the terms and conditions of this license.
    :target: https://github.com/pybind/pybind11/actions
 .. |Build status| image:: https://ci.appveyor.com/api/projects/status/riaj54pn4h08xy40?svg=true
    :target: https://ci.appveyor.com/project/wjakob/pybind11
+.. |PyPI package| image:: https://img.shields.io/pypi/v/pybind11
+   :target: https://pypi.org/project/pybind11/
+.. |Conda-forge| image:: https://img.shields.io/conda/vn/conda-forge/pybind11
+   :target: https://github.com/conda-forge/pybind11-feedstock
+.. |Repology| image:: https://repology.org/badge/latest-versions/python:pybind11.svg
+   :target: https://repology.org/project/python:pybind11/versions
+.. |Python Versions| image:: https://img.shields.io/pypi/pyversions/pybind11
+   :target: https://pypi.org/project/pybind11/
