@@ -144,11 +144,11 @@ if(DEFINED ${_Python}_VERSION AND ${_Python}_VERSION VERSION_LESS 3)
 endif()
 
 # In CMake 3.18+, you can find these separately, so include an if
-if(TARGET ${_Python}::${_Python})
+if(TARGET ${_Python}::Python)
   set_property(
     TARGET pybind11::embed
     APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::${_Python})
+    PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Python)
 endif()
 
 # CMake 3.15+ has this
