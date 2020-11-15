@@ -24,7 +24,7 @@ class Awaitable : public std::enable_shared_from_this<Awaitable<ResultType>>{
             this->future = std::future<ResultType>();
         };
 
-        Awaitable(std::future<ResultType>& _future){
+        Awaitable(std::future<ResultType>& _future) {
             this->future = std::move(_future);
         };
 
