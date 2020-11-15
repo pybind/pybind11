@@ -35,7 +35,7 @@ class Awaitable : public std::enable_shared_from_this<Awaitable<ResultType>>{
         std::shared_ptr<Awaitable<ResultType>> __await__(){
             return this->shared_from_this();
         };
-        
+
         void __next__(){
             auto status = this->future.wait_for(std::chrono::milliseconds(0));
 
@@ -108,7 +108,7 @@ class async_function : public cpp_function {
 
                 auto future = std::async(std::launch::async, thread_func);
                 auto awaitable = new Awaitable<void>(future);
-                
+
                 return awaitable;
             };
 
