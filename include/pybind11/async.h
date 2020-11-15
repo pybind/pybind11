@@ -20,7 +20,7 @@ namespace pybind11 {
 template<typename ResultType>
 class Awaitable : public std::enable_shared_from_this<Awaitable<ResultType>>{
     public:
-        Awaitable(){
+        Awaitable() {
             this->future = std::future<ResultType>();
         };
 
@@ -28,15 +28,15 @@ class Awaitable : public std::enable_shared_from_this<Awaitable<ResultType>>{
             this->future = std::move(_future);
         };
 
-        std::shared_ptr<Awaitable<ResultType>> __iter__(){
+        std::shared_ptr<Awaitable<ResultType>> __iter__() {
             return this->shared_from_this();
         };
 
-        std::shared_ptr<Awaitable<ResultType>> __await__(){
+        std::shared_ptr<Awaitable<ResultType>> __await__() {
             return this->shared_from_this();
         };
 
-        void __next__(){
+        void __next__() {
             auto status = this->future.wait_for(std::chrono::milliseconds(0));
 
             if (status == std::future_status::ready) {
