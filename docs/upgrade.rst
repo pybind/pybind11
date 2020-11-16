@@ -192,7 +192,7 @@ way to get and set object state. See :ref:`pickling` for details.
         ...
         .def(py::pickle(
             [](const Foo &self) { // __getstate__
-                return py::make_tuple(f.value1(), f.value2(), ...); // unchanged
+                return py::make_tuple(self.value1(), self.value2(), ...); // unchanged
             },
             [](py::tuple t) { // __setstate__, note: no `self` argument
                 return new Foo(t[0].cast<std::string>(), ...);
