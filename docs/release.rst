@@ -29,8 +29,9 @@ To release a new version of pybind11:
   - Add release date in ``docs/changelog.rst``.
   - ``git add`` and ``git commit``, ``git push``. **Ensure CI passes**. (If it
     fails due to a known flake issue, either ignore or restart CI.)
-- Add a release branch if this is a new minor version
-  - ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
+- Add a release branch if this is a new minor version, or update the existing release branch if it is a patch version
+  - New branch: ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
+  - Update branch: ``git checkout vX.Y``, ``git merge <release branch>``, ``git push``
 - Update tags (optional; if you skip this, the GitHub release makes a
   non-annotated tag for you)
   - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``.
