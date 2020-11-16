@@ -119,6 +119,73 @@ protected:
         return new detail::function_record();
     }
 
+    template<typename ContainerHandle, typename StringifierUnary>
+    static std::string join(ContainerHandle container, StringifierUnary&& f, std::string sep = ", ") {
+        std::string joined;
+        for (auto element : container) {
+            joined += f(element) + sep;
+        }
+        if (!joined.empty()) {
+            joined.erase(joined.size() - sep.size());
+        }
+        return joined;
+    }
+
+    // Generate a literal expression for default function argument values
+    static std::string compose_literal(pybind11::handle h) {
+        auto typehandle = type::handle_of(h);
+        if (detail::get_internals().registered_types_py.count(Py_TYPE(h.ptr())) > 0) {
+            if (hasattr(typehandle, "__members__") && hasattr(h, "name")) {
+                // Bound enum type, can be fully represented
+                auto descr = typehandle.attr("__module__").cast<std::string>();
+                descr += "." + typehandle.attr("__qualname__").cast<std::string>();
+                descr += "." + h.attr("name").cast<std::string>();
+                return descr;
+            }
+
+            // Use ellipsis expression instead of repr to ensure syntactic validity
+            return "...";
+        }
+
+        if (isinstance<dict>(h)) {
+            std::string literal = "{";
+            literal += join(
+                reinterpret_borrow<dict>(h),
+                [](const std::pair<handle, handle>& v) { return compose_literal(v.first) + ": " + compose_literal(v.second); }
+            );
+            literal += "}";
+            return literal;
+        }
+
+        if (isinstance<list>(h)) {
+            std::string literal = "[";
+            literal += join(reinterpret_borrow<list>(h), &compose_literal);
+            literal += "]";
+            return literal;
+        }
+
+        if (isinstance<tuple>(h)) {
+            std::string literal = "(";
+            literal += join(reinterpret_borrow<tuple>(h), &compose_literal);
+            literal += ")";
+            return literal;
+        }
+
+        if (isinstance<set>(h)) {
+            auto v = reinterpret_borrow<set>(h);
+            if (v.empty()) {
+                return "set()";
+            }
+            std::string literal = "{";
+            literal += join(v, &compose_literal);
+            literal += "}";
+            return literal;
+        }
+
+        // All other types should be terminal and well-represented by repr
+        return repr(h).cast<std::string>();
+    }
+
     /// Special internal constructor for functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Args, typename... Extra>
     void initialize(Func &&f, Return (*)(Args...), const Extra&... extra) {
@@ -235,8 +302,10 @@ protected:
                 a.name = strdup(a.name);
             if (a.descr)
                 a.descr = strdup(a.descr);
-            else if (a.value)
-                a.descr = strdup(repr(a.value).cast<std::string>().c_str());
+            else if (a.value) {
+                std::string literal = compose_literal(a.value);
+                a.descr = strdup(literal.c_str());
+            }
         }
 
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");

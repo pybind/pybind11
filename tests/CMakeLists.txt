@@ -97,6 +97,7 @@ set(PYBIND11_TEST_FILES
     test_copy_move.cpp
     test_custom_type_casters.cpp
     test_docstring_options.cpp
+    test_docstring_function_signature.cpp
     test_eigen.cpp
     test_enum.cpp
     test_eval.cpp
