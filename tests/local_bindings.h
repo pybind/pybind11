@@ -45,6 +45,14 @@ private:
     std::string message = "";
 };
 
+// Exception that will be registered with register_local_exception_translator
+class LocalSimpleException : public std::exception {
+public:
+    explicit LocalSimpleException(const char * m) : message{m} {}
+    const char * what() const noexcept override {return message.c_str();}
+private:
+    std::string message = "";
+};
 
 PYBIND11_MAKE_OPAQUE(LocalVec);
 PYBIND11_MAKE_OPAQUE(LocalVec2);

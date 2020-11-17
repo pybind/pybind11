@@ -149,6 +149,8 @@ TEST_SUBMODULE(exceptions, m) {
     // A slightly more complicated one that declares MyException5_1 as a subclass of MyException5
     py::register_exception<MyException5_1>(m, "MyException5_1", ex5.ptr());
 
+    //py::register_local_exception<LocalSimpleException>(m, "LocalSimpleException")
+
     py::register_local_exception_translator([](std::exception_ptr p) {
       try {
           if (p) {
@@ -169,6 +171,7 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("throws_logic_error", []() { throw std::logic_error("this error should fall through to the standard handler"); });
     m.def("throws_overflow_error", []() { throw std::overflow_error(""); });
     m.def("throws_local_error", []() { throw LocalException("never caught"); });
+    m.def("throws_local_simple_error", []() { throw LocalSimpleException("this mod"); });
     m.def("exception_matches", []() {
         py::dict foo;
         try {
