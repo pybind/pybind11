@@ -328,6 +328,19 @@ const char *c_str(Args &&...args) {
     return strings.front().c_str();
 }
 
+// Thread state manipulation C API should not be called while Python runtime is finalizing.
+// For more detail see https://docs.python.org/3.7/c-api/init.html#c.PyEval_RestoreThread
+// `finalization_guard()` provides a version agnostic way to check if runtime is finalizing.
+inline bool finalization_guard() {
+#if PY_MAJOR_VERSION < 3
+    return false;
+#elif PY_VERSION_HEX >= 0x03070000
+    return _Py_IsFinalizing();
+#else
+    return _Py_Finalizing;
+#endif
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Returns a named pointer that is shared among all extension modules (using the same
