@@ -2159,7 +2159,7 @@ public:
         if (!tstate)
             return;
 #if PY_VERSION_HEX >= 0x03070000
-        // PyEval_RestoreThread() should not be called if runtime is finilizing
+        // PyEval_RestoreThread() should not be called if runtime is finalizing
         // See https://docs.python.org/3/c-api/init.html#c.PyEval_RestoreThread
         if (!_Py_IsFinalizing())
             PyEval_RestoreThread(tstate);
