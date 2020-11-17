@@ -695,6 +695,19 @@ using expand_side_effects = bool[];
 #define PYBIND11_EXPAND_SIDE_EFFECTS(PATTERN) (void)pybind11::detail::expand_side_effects{ ((PATTERN), void(), false)..., false }
 #endif
 
+// Thread state manipulation C API should not be called while Python runtime is finalizing.
+// For more detail see https://docs.python.org/3.7/c-api/init.html#c.PyEval_RestoreThread
+// `is_finalizing()` provides a version agnostic way to check if runtime is finalizing.
+inline bool is_finalizing() {
+#if PY_MAJOR_VERSION < 3
+    return false;
+#elif PY_VERSION_HEX >= 0x03070000
+    return _Py_IsFinalizing();
+#else
+    return _Py_Finalizing;
+#endif
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// C++ bindings of builtin Python exceptions

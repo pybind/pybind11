@@ -2121,7 +2121,7 @@ public:
                     pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             #endif
             PyThreadState_Clear(tstate);
-            if (!detail::finalization_guard())
+            if (!detail::is_finalizing())
                 PyThreadState_DeleteCurrent();
             PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
             release = false;
@@ -2155,7 +2155,7 @@ public:
         if (!tstate)
             return;
         // `PyEval_RestoreThread()` should not be called if runtime is finalizing
-        if (!detail::finalization_guard())
+        if (!detail::is_finalizing())
             PyEval_RestoreThread(tstate);
         if (disassoc) {
             auto key = detail::get_internals().tstate;
