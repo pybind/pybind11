@@ -9,11 +9,15 @@ that will trap C++ exceptions, translate them to the corresponding Python except
 and raise them so that Python code can handle them.
 
 pybind11 defines translations for ``std::exception`` and its standard
-subclasses, and several special exception classes that translate to specific
-Python exceptions. Note that these are not actually Python exceptions, so they
+subclasses (see [translate_exception]_) and several special exception classes
+that translate to specific Python exceptions (see [PYBIND11_RUNTIME_EXCEPTION]_).
+Note that these are not actually Python exceptions, so they
 cannot be examined using the Python C API. Instead, they are pure C++ objects
 that pybind11 will translate the corresponding Python exception when they arrive
 at its exception handler.
+
+.. [translate_exception] https://github.com/pybind/pybind11/search?q=translate_exception
+.. [PYBIND11_RUNTIME_EXCEPTION] https://github.com/pybind/pybind11/blob/master/include/pybind11/detail/common.h
 
 .. tabularcolumns:: |p{0.5\textwidth}|p{0.45\textwidth}|
 
@@ -43,14 +47,22 @@ at its exception handler.
 |                                      | of bounds access in ``__getitem__``, |
 |                                      | ``__setitem__``, etc.)               |
 +--------------------------------------+--------------------------------------+
-| :class:`pybind11::value_error`       | ``ValueError`` (used to indicate     |
-|                                      | wrong value passed in                |
-|                                      | ``container.remove(...)``)           |
-+--------------------------------------+--------------------------------------+
 | :class:`pybind11::key_error`         | ``KeyError`` (used to indicate out   |
 |                                      | of bounds access in ``__getitem__``, |
 |                                      | ``__setitem__`` in dict-like         |
 |                                      | objects, etc.)                       |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::value_error`       | ``ValueError`` (used to indicate     |
+|                                      | wrong value passed in                |
+|                                      | ``container.remove(...)``)           |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::type_error`        | ``TypeError``                        |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::buffer_error`      | ``BufferError``                      |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::import_error`      | ``import_error`                      |
++--------------------------------------+--------------------------------------+
+| Any other exception                  | ``RuntimeError``                     |
 +--------------------------------------+--------------------------------------+
 
 Exception translation is not bidirectional. That is, *catching* the C++
