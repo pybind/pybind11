@@ -2114,6 +2114,32 @@ exception<CppException> &register_exception(handle scope,
     return ex;
 }
 
+/**
+ * Registers a Python exception in `m` of the given `name` and installs an exception translator to
+ * translate the C++ exception to the created Python exception using the exceptions what() method.
+ * This translator will only be used for exceptions that are thrown in this module and will be
+ * tried before global exception translators, including those registered with register_exception.
+ * This is intended for simple exception translations; for more complex translation, register the
+ * exception object and translator directly.
+ */
+template <typename CppException>
+exception<CppException> &register_local_exception(handle scope,
+                                                  const char *name,
+                                                  handle base = PyExc_Exception) {
+    auto &ex = detail::get_exception_object<CppException>();
+    if (!ex) ex = exception<CppException>(scope, name, base);
+
+    register_local_exception_translator([](std::exception_ptr p) {
+        if (!p) return;
+        try {
+            std::rethrow_exception(p);
+        } catch (const CppException &e) {
+            detail::get_exception_object<CppException>()(e.what());
+        }
+    });
+    return ex;
+}
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE inline void print(const tuple &args, const dict &kwargs) {
     auto strings = tuple(args.size());
