@@ -840,8 +840,12 @@ protected:
 #endif
         } catch (...) {
             /* When an exception is caught, give each registered exception
-               translator a chance to translate it to a Python exception
-               in reverse order of registration.
+               translator a chance to translate it to a Python exception. First
+               all module-local translators will be tried in reverse order of
+               registration. If none of the module-locale translators handle
+               the exception (or there are no module-locale translators) then
+               the global translators will be tried, also in reverse order of
+               registration.
 
                A translator may choose to do one of the following:
 
@@ -2040,9 +2044,10 @@ void register_exception_translator(ExceptionTranslator&& translator) {
 
 
 /**
-  * Add a new module-local exception translator. This function will be applied
-  * before any globally registered exception translators, which will only be
-  * invoked if the moduke-local handlers do not deal with the exception.
+  * Add a new module-local exception translator. Locally registered functions
+  * will be tried before any globally registered exception translators, which
+  * will only be invoked if the moduke-local handlers do not deal with
+  * the exception.
   */
 template <typename ExceptionTranslator>
 void register_local_exception_translator(ExceptionTranslator&& translator) {
