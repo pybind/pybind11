@@ -224,8 +224,8 @@ def test_threading():
         threads = []
 
         # start some threads
-        for j_ in range(20):
-            threads.append( m.TestThread() )
+        for _j in range(20):
+            threads.append(m.TestThread())
 
         # give the threads some time to fail
         threads[0].sleep()
