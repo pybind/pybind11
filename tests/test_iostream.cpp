@@ -7,6 +7,9 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#if defined(_MSC_VER) && _MSC_VER < 1910  // VS 2015's MSVC
+#  pragma warning(disable: 4702) // unreachable code in system header (xatomic.h(382))
+#endif
 
 #include <pybind11/iostream.h>
 #include "pybind11_tests.h"
@@ -44,7 +47,7 @@ struct TestThread {
         delete t_;
     }
 
-    void stop() { stop_ = 1; }
+    void stop() { stop_ = true; }
 
     void join() {
         py::gil_scoped_release gil_lock;
