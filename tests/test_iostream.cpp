@@ -33,7 +33,7 @@ void noisy_funct_dual(std::string msg, std::string emsg) {
 struct TestThread {
     TestThread() : t_{nullptr}, stop_{false} {
         auto thread_f = [this] {
-            while(!this->stop_) {
+            while (!stop_) {
                 std::cout << "x" << std::flush;
                 std::this_thread::sleep_for(std::chrono::microseconds(50));
             } };
