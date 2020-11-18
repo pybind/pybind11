@@ -122,8 +122,7 @@ set(PYBIND11_TEST_FILES
     test_stl_binders.cpp
     test_tagbased_polymorphic.cpp
     test_union.cpp
-    test_virtual_functions.cpp
-    test_thread.cpp)
+    test_virtual_functions.cpp)
 
 # Invoking cmake with something like:
 #     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp" ..
