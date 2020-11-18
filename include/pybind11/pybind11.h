@@ -1172,12 +1172,10 @@ inline void add_class_method(object& cls, const char *name_, const cpp_function 
 // For more detail see https://docs.python.org/3.7/c-api/init.html#c.PyEval_RestoreThread
 // `is_finalizing()` provides a version agnostic way to check if runtime is finalizing.
 inline bool is_finalizing() {
-#if PY_MAJOR_VERSION < 3
-    return false;
-#elif PY_VERSION_HEX >= 0x03070000
+#if PY_VERSION_HEX >= 0x03070000
     return _Py_IsFinalizing();
 #else
-    return _Py_Finalizing;
+    return false;
 #endif
 }
 
