@@ -48,8 +48,6 @@ private:
                 gil_scoped_acquire tmp;
 
                 // This subtraction cannot be negative, so dropping the sign.
-                // This invokes python and therefore should be included in the
-                // GIL
                 str line(pbase(), static_cast<size_t>(pptr() - pbase()));
 
                 pywrite(line);

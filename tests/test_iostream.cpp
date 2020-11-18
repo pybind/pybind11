@@ -10,9 +10,9 @@
 
 #include <pybind11/iostream.h>
 #include "pybind11_tests.h"
+#include <atomic>
 #include <iostream>
 #include <thread>
-#include <atomic>
 
 
 void noisy_function(std::string msg, bool flush) {
@@ -109,10 +109,7 @@ TEST_SUBMODULE(iostream, m) {
 
     py::class_<TestThread>(m, "TestThread")
         .def(py::init<>())
-
         .def("stop", &TestThread::stop)
-
         .def("join", &TestThread::join)
-
         .def("sleep", &TestThread::sleep);
 }
