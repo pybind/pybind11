@@ -7,6 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 #include "test_exceptions.h"
+
 #include "local_bindings.h"
 
 #include "pybind11_tests.h"
