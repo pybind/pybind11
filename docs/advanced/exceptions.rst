@@ -43,14 +43,22 @@ at its exception handler.
 |                                      | of bounds access in ``__getitem__``, |
 |                                      | ``__setitem__``, etc.)               |
 +--------------------------------------+--------------------------------------+
-| :class:`pybind11::value_error`       | ``ValueError`` (used to indicate     |
-|                                      | wrong value passed in                |
-|                                      | ``container.remove(...)``)           |
-+--------------------------------------+--------------------------------------+
 | :class:`pybind11::key_error`         | ``KeyError`` (used to indicate out   |
 |                                      | of bounds access in ``__getitem__``, |
 |                                      | ``__setitem__`` in dict-like         |
 |                                      | objects, etc.)                       |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::value_error`       | ``ValueError`` (used to indicate     |
+|                                      | wrong value passed in                |
+|                                      | ``container.remove(...)``)           |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::type_error`        | ``TypeError``                        |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::buffer_error`      | ``BufferError``                      |
++--------------------------------------+--------------------------------------+
+| :class:`pybind11::import_error`      | ``import_error``                     |
++--------------------------------------+--------------------------------------+
+| Any other exception                  | ``RuntimeError``                     |
 +--------------------------------------+--------------------------------------+
 
 Exception translation is not bidirectional. That is, *catching* the C++
