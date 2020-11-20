@@ -1,5 +1,7 @@
 #include "pybind11_tests.h"
 
+#include <pybind11/vptr_holder.h>
+
 #include <iostream>
 #include <memory>
 
@@ -66,17 +68,46 @@ inline int cpp_pattern() {
     return result;
 }
 
+} // namespace unique_ptr_member
+} // namespace pybind11_tests
+
+namespace pybind11 {
+namespace detail {
+template <>
+struct type_caster<
+    std::unique_ptr<pybind11_tests::unique_ptr_member::pointee>> {
+  public:
+    PYBIND11_TYPE_CASTER(
+        std::unique_ptr<pybind11_tests::unique_ptr_member::pointee>,
+        _("std::unique_ptr<pybind11_tests::unique_ptr_member::pointee>"));
+
+    bool load(handle /* src */, bool) {
+        throw std::runtime_error("Not implemented: load");
+    }
+
+    static handle
+    cast(std::unique_ptr<pybind11_tests::unique_ptr_member::pointee> /* src */,
+         return_value_policy /* policy */, handle /* parent */) {
+        throw std::runtime_error("Not implemented: cast");
+    }
+};
+} // namespace detail
+} // namespace pybind11
+
+namespace pybind11_tests {
+namespace unique_ptr_member {
+
 TEST_SUBMODULE(unique_ptr_member, m) {
     m.def("to_cout", to_cout);
 
-    py::class_<pointee, std::shared_ptr<pointee>>(m, "pointee")
+    py::class_<pointee, py::vptr_holder<pointee>>(m, "pointee")
         .def(py::init<>())
         .def("get_int", &pointee::get_int);
 
     m.def("make_unique_pointee", make_unique_pointee);
 
     py::class_<ptr_owner>(m, "ptr_owner")
-        //.def(py::init<std::unique_ptr<pointee>>(), py::arg("ptr"))
+        .def(py::init<std::unique_ptr<pointee>>(), py::arg("ptr"))
         .def("is_owner", &ptr_owner::is_owner)
         .def("give_up_ownership_via_unique_ptr",
              &ptr_owner::give_up_ownership_via_unique_ptr)

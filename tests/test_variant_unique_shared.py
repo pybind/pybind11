@@ -5,7 +5,7 @@ from pybind11_tests import variant_unique_shared as m
 
 
 def test_default_constructed():
-    v = m.vptr_holder_double()
+    v = m.vptr_double()
     assert v.ownership_type() == 0
     assert v.get_value() == -1
 
