@@ -1,6 +1,9 @@
 version: 1.0.{build}
 image:
 - Visual Studio 2015
+branches:
+  only:
+    - will_never_exist
 test: off
 skip_branch_with_pr: true
 build:
