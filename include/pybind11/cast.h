@@ -739,18 +739,12 @@ public:
 
 
     // Called to do type lookup and wrap the pointer and type in a pair when a dynamic_cast
-    // isn't needed or can't be used.  If the type is unknown, sets the error and returns a pair
-    // with .second = nullptr.  (p.first = nullptr is not an error: it becomes None).
+    // isn't needed or can't be used.  If the type is unknown, returns a pair of nullptr
     PYBIND11_NOINLINE static std::pair<const void *, const type_info *> src_and_type(
-            const void *src, const std::type_info &cast_type, const std::type_info *rtti_type = nullptr) {
+            const void *src, const std::type_info &cast_type) {
         if (auto *tpi = get_type_info(cast_type))
             return {src, const_cast<const type_info *>(tpi)};
 
-        // Not found, set error:
-        std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
-        detail::clean_type_id(tname);
-        std::string msg = "Unregistered type : " + tname;
-        PyErr_SetString(PyExc_TypeError, msg.c_str());
         return {nullptr, nullptr};
     }
 
@@ -898,7 +892,7 @@ public:
         }
         // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer, so
         // don't do a cast
-        return type_caster_generic::src_and_type(src, cast_type, instance_type);
+        return type_caster_generic::src_and_type(src, cast_type);
     }
 
     static handle cast(const itype *src, return_value_policy policy, handle parent) {
