@@ -16,6 +16,7 @@ class pointee { // NOT copyable.
 
     int get_int() const {
         to_cout("pointee::get_int()");
+        //TRIGGER_SEGSEV
         return 213;
     }
 
