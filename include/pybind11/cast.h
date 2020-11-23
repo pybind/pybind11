@@ -1133,7 +1133,7 @@ public:
 
     template <typename Return, typename Guard, typename Func>
     enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) && {
-        return std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});
+        return std::move(*this).template call_impl<Return>(std::forward<Func>(f), indices{}, Guard{});  // GET_INT_STACK -3
     }
 
     template <typename Return, typename Guard, typename Func>
@@ -1161,7 +1161,7 @@ private:
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
-        return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
+        return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);  // GET_INT_STACK -2
     }
 
     std::tuple<make_caster<Args>...> argcasters;
