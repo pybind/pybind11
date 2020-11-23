@@ -2,6 +2,7 @@
 
 #include <pybind11/pybind11.h>
 
+#include <iostream>
 #include <memory>
 #include <variant>
 
@@ -11,9 +12,12 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 // To enable passing of unique_ptr as in pure C++.
 template <typename T> class vptr {
   public:
-    explicit vptr(T *ptr = nullptr) : vptr_{std::unique_ptr<T>(ptr)} {}
-    explicit vptr(std::unique_ptr<T> u) : vptr_{std::move(u)} {}
-    explicit vptr(std::shared_ptr<T> s) : vptr_{s} {}
+    explicit vptr(T *ptr = nullptr) : vptr_{std::unique_ptr<T>(ptr)} {
+        std::cout << std::endl << "explicit vptr(T *ptr = nullptr)" << std::endl;
+        //TRIGGER_SEGSEV
+    }
+    explicit vptr(std::unique_ptr<T> u) : vptr_{std::move(u)} { std::cout << std::endl << "explicit vptr(std::unique_ptr<T> u)" << std::endl; }
+    explicit vptr(std::shared_ptr<T> s) : vptr_{s} { std::cout << std::endl << "explicit vptr(std::shared_ptr<T> s)" << std::endl; }
 
     int ownership_type() const {
         if (std::get_if<0>(&vptr_)) {
@@ -26,6 +30,7 @@ template <typename T> class vptr {
     }
 
     T *get() {
+        std::cout << std::endl << "vptr::get" << std::endl;
         auto u = std::get_if<0>(&vptr_);
         if (u) {
             return u->get();
@@ -64,7 +69,7 @@ template <typename T> class vptr {
 };
 
 template <typename T> class vptr_holder : public vptr<T> {
-    using vptr<T>::vptr;
+    using vptr<T>::vptr;  // GET_STACK -1
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
