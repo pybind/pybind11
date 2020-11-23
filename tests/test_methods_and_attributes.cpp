@@ -325,15 +325,15 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     // test_accepts_none
     py::class_<NoneTester, std::shared_ptr<NoneTester>>(m, "NoneTester")
         .def(py::init<>());
-    m.def("no_none1", &none1, py::arg().none(false));
-    m.def("no_none2", &none2, py::arg().none(false));
-    m.def("no_none3", &none3, py::arg().none(false));
-    m.def("no_none4", &none4, py::arg().none(false));
-    m.def("no_none5", &none5, py::arg().none(false));
+    m.def("no_none1", &none1, py::arg{}.none(false));
+    m.def("no_none2", &none2, py::arg{}.none(false));
+    m.def("no_none3", &none3, py::arg{}.none(false));
+    m.def("no_none4", &none4, py::arg{}.none(false));
+    m.def("no_none5", &none5, py::arg{}.none(false));
     m.def("ok_none1", &none1);
-    m.def("ok_none2", &none2, py::arg().none(true));
+    m.def("ok_none2", &none2, py::arg{}.none(true));
     m.def("ok_none3", &none3);
-    m.def("ok_none4", &none4, py::arg().none(true));
+    m.def("ok_none4", &none4, py::arg{}.none(true));
     m.def("ok_none5", &none5);
 
     m.def("no_none_kwarg", &none2, py::arg("a").none(false));

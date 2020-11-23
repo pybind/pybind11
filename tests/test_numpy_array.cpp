@@ -259,8 +259,8 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("overloaded2", [](py::array_t<float>) { return "float"; });
 
     // Only accept the exact types:
-    sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg().noconvert());
-    sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg().noconvert());
+    sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg{}.noconvert());
+    sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg{}.noconvert());
 
     // Make sure we don't do unsafe coercion (e.g. float to int) when not using forcecast, but
     // rather that float gets converted via the safe (conversion to double) overload:
@@ -284,7 +284,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         for (py::ssize_t i = 0; i < r.shape(0); i++)
             for (py::ssize_t j = 0; j < r.shape(1); j++)
                 r(i, j) += v;
-    }, py::arg().noconvert(), py::arg());
+    }, py::arg{}.noconvert(), py::arg());
 
     sm.def("proxy_init3", [](double start) {
         py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
@@ -338,7 +338,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         for (py::ssize_t i = 0; i < r.shape(0); i++)
             for (py::ssize_t j = 0; j < r.shape(1); j++)
                 r(i, j) += v;
-    }, py::arg().noconvert(), py::arg());
+    }, py::arg{}.noconvert(), py::arg());
     sm.def("proxy_init3_dyn", [](double start) {
         py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
         auto r = a.mutable_unchecked();
@@ -419,20 +419,20 @@ TEST_SUBMODULE(numpy_array, sm) {
            py::arg("a"));
     sm.def("accept_double_noconvert",
            [](py::array_t<double, 0>) {},
-           py::arg("a").noconvert());
+           py::arg{"a"}.noconvert());
     sm.def("accept_double_forcecast_noconvert",
            [](py::array_t<double, py::array::forcecast>) {},
-           py::arg("a").noconvert());
+           py::arg{"a"}.noconvert());
     sm.def("accept_double_c_style_noconvert",
            [](py::array_t<double, py::array::c_style>) {},
-           py::arg("a").noconvert());
+           py::arg{"a"}.noconvert());
     sm.def("accept_double_c_style_forcecast_noconvert",
            [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
-           py::arg("a").noconvert());
+           py::arg{"a"}.noconvert());
     sm.def("accept_double_f_style_noconvert",
            [](py::array_t<double, py::array::f_style>) {},
-           py::arg("a").noconvert());
+           py::arg{"a"}.noconvert());
     sm.def("accept_double_f_style_forcecast_noconvert",
            [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
-           py::arg("a").noconvert());
+           py::arg{"a"}.noconvert());
 }

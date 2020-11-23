@@ -185,7 +185,7 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_bool_caster
     m.def("bool_passthrough", [](bool arg) { return arg; });
-    m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg().noconvert());
+    m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg{}.noconvert());
 
     // test_reference_wrapper
     m.def("refwrap_builtin", [](std::reference_wrapper<int> p) { return 10 * p.get(); });
