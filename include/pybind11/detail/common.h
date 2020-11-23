@@ -27,7 +27,7 @@
 #  endif
 #endif
 
-#if !(defined(_MSC_VER) && __cplusplus == 199711L) && !defined(__INTEL_COMPILER)
+#if !(defined(_MSC_VER) && __cplusplus == 199711L)
 #  if __cplusplus >= 201402L
 #    define PYBIND11_CPP14
 #    if __cplusplus >= 201703L
@@ -49,6 +49,8 @@
 #if defined(__INTEL_COMPILER)
 #  if __INTEL_COMPILER < 1800
 #    error pybind11 requires Intel C++ compiler v18 or newer
+#  elif __INTEL_COMPILER < 1900 && defined(PYBIND11_CPP14)
+#    error pybind11 supports only C++11 with Intel C++ compiler v18. Use v19 or newer for C++14.
 #  endif
 #elif defined(__clang__) && !defined(__apple_build_version__)
 #  if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 3)
