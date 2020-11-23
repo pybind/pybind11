@@ -438,8 +438,8 @@ Python version more often than the old system did).
     When the Python libraries (i.e. ``libpythonXX.a`` and ``libpythonXX.so``
     on Unix) are not available, as is the case on a manylinux image, the
     ``Development`` component will not be resolved by ``FindPython``. When not
-    using the embedding functionality, CMake 3.18+ allows to specify
-    ``Development.Module`` instead of ``Development``, to resolve this issue.
+    using the embedding functionality, CMake 3.18+ allows you to specify
+    ``Development.Module`` instead of ``Development`` to resolve this issue.
 
 .. versionadded:: 2.6
 
