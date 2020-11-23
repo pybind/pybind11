@@ -330,12 +330,6 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def_readwrite("value", &TypeForMoveOnlyHolderWithAddressOf::value)
         .def("print_object", [](const TypeForMoveOnlyHolderWithAddressOf *obj) { py::print(obj->toString()); });
 
-    // test_smart_ptr_from_default
-    struct HeldByDefaultHolder { };
-    py::class_<HeldByDefaultHolder>(m, "HeldByDefaultHolder")
-        .def(py::init<>())
-        .def_static("load_shared_ptr", [](std::shared_ptr<HeldByDefaultHolder>) {});
-
     // test_shared_ptr_gc
     // #187: issue involving std::shared_ptr<> return value policy & garbage collection
     struct ElementBase {
@@ -372,6 +366,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     // Tests the detection of trying to use mismatched holder types around the same instance type
     struct HeldByShared {};
     struct HeldByUnique {};
+    // HeldByShared declared with shared_ptr holder, but used with unique_ptr later
     py::class_<HeldByShared, std::shared_ptr<HeldByShared>>(m, "HeldByShared");
     m.def("register_mismatch_return", [](py::module m) {
         // Fails: the class was already registered with a shared_ptr holder
@@ -382,13 +377,16 @@ TEST_SUBMODULE(smart_ptr, m) {
         py::class_<HeldByShared, std::unique_ptr<HeldByShared>>(m, "bad");
     });
 
+    // HeldByUnique declared with unique_ptr holder, but used with shared_ptr before / later
     m.def("register_return_shared", [](py::module m) {
         // Fails if HeldByUnique is not yet registered or, if registered, due to mismatching holder
-        m.def("return_shared", []() { return std::make_shared<HeldByUnique>(); });
+        m.def("bad2", []() { return std::make_shared<HeldByUnique>(); });
+    });
+    m.def("register_consume_shared", [](py::module m) {
+        // Fails if HeldByUnique is not yet registered or, if registered, due to mismatching holder
+        m.def("bad3", [](std::shared_ptr<HeldByUnique>) {});
     });
     m.def("register_HeldByUnique", [](py::module m) {
         py::class_<HeldByUnique>(m, "HeldByUnique");
     });
-    // Fails: MyObject5 was declared with huge_unique_ptr as holder instead of shared_ptr
-    m.def("consume_mismatching_holder", [](std::shared_ptr<MyObject5> o) { return o->value; });
 }

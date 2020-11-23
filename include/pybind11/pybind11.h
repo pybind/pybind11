@@ -157,11 +157,12 @@ protected:
         static_assert(expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
                       "The number of argument annotations does not match the number of function arguments");
 
-        // Fail if the type was previously registered with a different holder type
-        if (!detail::check_for_holder_mismatch<Return>()) {
-            // If Return type was not yet registered, check_for_holder_mismatch() returns false w/o raising
-            pybind11_fail("Cannot register function with not yet registered return type \"" + type_id<Return>() + "\"");
-        }
+        /* Process any user-provided function attributes */
+        process_attributes<Extra...>::init(extra..., rec);
+
+        // Fail if the return or argument types were previously registered with a different holder type
+        detail::check_for_holder_mismatch<Return>(rec->name);
+        PYBIND11_EXPAND_SIDE_EFFECTS(detail::check_for_holder_mismatch<Args>(rec->name));
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
@@ -194,9 +195,6 @@ protected:
 
             return result;
         };
-
-        /* Process any user-provided function attributes */
-        process_attributes<Extra...>::init(extra..., rec);
 
         {
             constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,

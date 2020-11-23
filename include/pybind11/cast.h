@@ -1491,30 +1491,6 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
-template <typename holder>
-bool check_for_holder_mismatch_impl(bool throw_if_missing = true) {
-    using iholder = intrinsic_t<holder>;
-    using base_type = decltype(*holder_helper<iholder>::get(std::declval<iholder>()));
-    auto &holder_typeinfo = typeid(iholder);
-    auto base_info = detail::get_type_info(typeid(base_type), throw_if_missing);
-    if (!base_info)
-        return false;  // Return false if the type is not yet registered
-
-    auto debug = type_id<base_type>();
-    if (!same_type(*base_info->holder_type, holder_typeinfo)) {
-#ifdef NDEBUG
-        pybind11_fail("Mismatched holders detected (compile in debug mode for details)");
-#else
-        std::string holder_name(base_info->holder_type->name());
-        detail::clean_type_id(holder_name);
-        pybind11_fail("Mismatched holders detected: "
-                " attempting to use holder type " + type_id<iholder>() + ", but " + type_id<base_type>() +
-                " was declared using holder type " + holder_name);
-#endif
-    }
-    return true;
-}
-
 /// Type caster for holder types like std::shared_ptr, etc.
 template <typename type, typename holder_type>
 struct copyable_holder_caster : public type_caster_base<type> {
@@ -1545,9 +1521,7 @@ public:
 
 protected:
     friend class type_caster_generic;
-    void check_holder_compat() {
-        check_for_holder_mismatch_impl<holder_type>();
-    }
+    void check_holder_compat() {}
 
     bool load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
@@ -1635,10 +1609,32 @@ template <typename holder> using is_holder = any_of<
     is_template_base_of<copyable_holder_caster, make_caster<holder>>>;
 
 template <typename holder>
-bool check_for_holder_mismatch(enable_if_t<!is_holder<holder>::value, int> = 0) { return true; }
+void check_for_holder_mismatch(const char*, enable_if_t<!is_holder<holder>::value, int> = 0) {}
 template <typename holder>
-bool check_for_holder_mismatch(enable_if_t<is_holder<holder>::value, int> = 0) {
-    return check_for_holder_mismatch_impl<holder>(false);
+void check_for_holder_mismatch(const char* func_name, enable_if_t<is_holder<holder>::value, int> = 0) {
+    using iholder = intrinsic_t<holder>;
+    using base_type = decltype(*holder_helper<iholder>::get(std::declval<iholder>()));
+    auto &holder_typeinfo = typeid(iholder);
+    auto base_info = detail::get_type_info(typeid(base_type), false);
+    if (!base_info) {
+#ifdef NDEBUG
+        pybind11_fail("Cannot register function using not yet registered type");
+#else
+        pybind11_fail("Cannot register function using not yet registered type '" + type_id<base_type>() + "'");
+#endif
+    }
+
+    if (!same_type(*base_info->holder_type, holder_typeinfo)) {
+#ifdef NDEBUG
+        pybind11_fail("Detected mismatching holder types when declaring function '" + std::string(func_name) + "'  (compile in debug mode for details)");
+#else
+        std::string holder_name(base_info->holder_type->name());
+        detail::clean_type_id(holder_name);
+        pybind11_fail("Detected mismatching holder types when declaring function '" + std::string(func_name) + "':"
+                " attempting to use holder type " + type_id<iholder>() + ", but " + type_id<base_type>() +
+                " was declared using holder type " + holder_name);
+#endif
+    }
 }
 
 template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
