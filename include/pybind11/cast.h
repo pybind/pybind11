@@ -1870,7 +1870,14 @@ private:
 #if !defined(NDEBUG)
         , type(type_id<T>())
 #endif
-    { }
+    {
+        // Workaround! See:
+        // https://github.com/pybind/pybind11/issues/2336
+        // https://github.com/pybind/pybind11/pull/2685#issuecomment-731286700
+        if (PyErr_Occurred()) {
+            PyErr_Clear();
+        }
+    }
 
 public:
     /// Direct construction with name, default, and description
