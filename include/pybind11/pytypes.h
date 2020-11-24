@@ -936,10 +936,16 @@ class str : public object {
 public:
     PYBIND11_OBJECT_CVT(str, object, detail::PyUnicode_Check_Permissive, raw_str)
 
-    str(const char *c, size_t n)
-        : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
+    str(const char *c, ssize_t n)
+        : object(PyUnicode_FromStringAndSize(c, n), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate string object!");
     }
+
+    template <typename T, typename = detail::enable_if_t<std::is_integral<T>::value>>
+    str(const char *c, T n) : str(c, ssize_t{n}) { }
+
+    // For convenience, do not emit -Wnarrowing when passing in an unsigned size_t:
+    str(const char *c, size_t n) : str(c, ssize_t(n)) { }
 
     // 'explicit' is explicitly omitted from the following constructors to allow implicit conversion to py::str from C++ string-like objects
     str(const char *c = "")
@@ -1009,10 +1015,16 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
 
-    bytes(const char *c, size_t n)
-        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, (ssize_t) n), stolen_t{}) {
+    bytes(const char *c, ssize_t n)
+        : object(PYBIND11_BYTES_FROM_STRING_AND_SIZE(c, n), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
     }
+
+    template <typename T, typename = detail::enable_if_t<std::is_integral<T>::value>>
+    bytes(const char *c, T n) : bytes(c, ssize_t{n}) { }
+
+    // For convenience, do not emit -Wnarrowing when passing in an unsigned size_t:
+    bytes(const char *c, size_t n) : bytes(c, ssize_t(n)) { }
 
     // Allow implicit conversion:
     bytes(const std::string &s) : bytes(s.data(), s.size()) { }
@@ -1260,9 +1272,13 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT_CVT(tuple, object, PyTuple_Check, PySequence_Tuple)
-    explicit tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), stolen_t{}) {
+    explicit tuple(ssize_t size = 0) : object(PyTuple_New(size), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
+    template <typename T, typename = detail::enable_if_t<std::is_integral<T>::value>>
+    tuple(T size) : tuple(ssize_t{size}) { }
+    // For convenience, do not emit -Wnarrowing when passing in an unsigned size_t:
+    tuple(size_t size) : tuple(ssize_t(size)) { }
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
@@ -1320,9 +1336,13 @@ public:
 class list : public object {
 public:
     PYBIND11_OBJECT_CVT(list, object, PyList_Check, PySequence_List)
-    explicit list(size_t size = 0) : object(PyList_New((ssize_t) size), stolen_t{}) {
+    explicit list(ssize_t size = 0) : object(PyList_New(size), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
+    template <typename T, typename = detail::enable_if_t<std::is_integral<T>::value>>
+    list(T size) : list(ssize_t{size}) { }
+    // For convenience, do not emit -Wnarrowing when passing in an unsigned size_t:
+    list(size_t size) : list(ssize_t(size)) { }
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
