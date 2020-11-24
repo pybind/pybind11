@@ -16,7 +16,7 @@ as a submodule. From your git repository, use:
 
 .. code-block:: bash
 
-    git submodule add ../../pybind/pybind11 extern/pybind11 -b stable
+    git submodule add -b stable ../../pybind/pybind11 extern/pybind11
     git submodule update --init
 
 This assumes you are placing your dependencies in ``extern/``, and that you are
