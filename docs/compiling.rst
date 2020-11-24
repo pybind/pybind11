@@ -433,6 +433,14 @@ setting ``Python_ROOT_DIR`` may be the most common one (though with
 virtualenv/venv support, and Conda support, this tends to find the correct
 Python version more often than the old system did).
 
+.. warning::
+
+    When the Python libraries (i.e. ``libpythonXX.a`` and ``libpythonXX.so``
+    on Unix) are not available, as is the case on a manylinux image, the
+    ``Development`` component will not be resolved by ``FindPython``. When not
+    using the embedding functionality, CMake 3.18+ allows you to specify
+    ``Development.Module`` instead of ``Development`` to resolve this issue.
+
 .. versionadded:: 2.6
 
 Advanced: interface library targets
