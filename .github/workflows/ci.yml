@@ -442,8 +442,7 @@ jobs:
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         sudo service apport stop
-        cmake --build build --target pytest; ls; ls /home/runner/work/pybind11/pybind11/build/tests
-        exit 1
+        cmake --build build --target check
 
     - name: C++ tests
       shell: bash
