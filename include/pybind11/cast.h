@@ -1027,6 +1027,8 @@ public:
                 return false;
         } else if (PyFloat_Check(src.ptr())) {
             return false;
+        } else if (!convert && !PyLong_Check(src.ptr())) {
+            return false;
         } else if (std::is_unsigned<py_type>::value) {
             py_value = as_unsigned<py_type>(src.ptr());
         } else { // signed integer:

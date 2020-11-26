@@ -251,6 +251,41 @@ def test_integer_casting():
         assert "incompatible function arguments" in str(excinfo.value)
 
 
+def test_int_convert():
+    class DeepThought:
+        def __int__(self):
+            return 42
+
+    class ShallowThought:
+        pass
+
+    class AlternativeThought:
+        def __index__(self):
+            return 54
+
+    class FuzzyThought:
+        def __float__(self):
+            return 41.99999
+
+    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+
+    def require_implicit(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
+    assert convert(7) == 7
+    assert noconvert(7) == 7
+    cant_convert(3.14159)
+    assert convert(DeepThought()) == 42
+    require_implicit(DeepThought())
+    cant_convert(ShallowThought())
+    assert convert(AlternativeThought()) == 54
+    require_implicit(AlternativeThought())
+    cant_convert(FuzzyThought())
+
+
 def test_tuple(doc):
     """std::pair <-> tuple & std::tuple <-> tuple"""
     assert m.pair_passthrough((True, "test")) == ("test", True)
