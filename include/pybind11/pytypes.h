@@ -348,7 +348,7 @@ public:
         restore();
         PyErr_WriteUnraisable(err_context.ptr());
     }
-    /// An alternate version of discard_as_unraisable(), where a string provides information on the 
+    /// An alternate version of `discard_as_unraisable()`, where a string provides information on the
     /// location of the error. For example, `__func__` could be helpful.
     void discard_as_unraisable(const char *err_context) {
         discard_as_unraisable(reinterpret_steal<object>(PYBIND11_FROM_STRING(err_context)));
