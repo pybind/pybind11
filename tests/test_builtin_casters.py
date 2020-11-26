@@ -259,10 +259,6 @@ def test_int_convert():
     class ShallowThought:
         pass
 
-    class AlternativeThought:
-        def __index__(self):
-            return 54
-
     class FuzzyThought:
         def __float__(self):
             return 41.99999
@@ -281,8 +277,6 @@ def test_int_convert():
     assert convert(DeepThought()) == 42
     require_implicit(DeepThought())
     cant_convert(ShallowThought())
-    assert convert(AlternativeThought()) == 54
-    require_implicit(AlternativeThought())
     cant_convert(FuzzyThought())
 
 
