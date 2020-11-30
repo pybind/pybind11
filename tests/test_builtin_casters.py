@@ -315,6 +315,7 @@ def test_reference_wrapper():
     """std::reference_wrapper for builtin and user types"""
     assert m.refwrap_builtin(42) == 420
     assert m.refwrap_usertype(UserType(42)) == 42
+    assert m.refwrap_usertype_const(UserType(42)) == 42
 
     with pytest.raises(TypeError) as excinfo:
         m.refwrap_builtin(None)
@@ -323,6 +324,15 @@ def test_reference_wrapper():
     with pytest.raises(TypeError) as excinfo:
         m.refwrap_usertype(None)
     assert "incompatible function arguments" in str(excinfo.value)
+
+    assert m.refwrap_lvalue_const().value == 1
+    # const-ness is not propagated.
+    # m.refwrap_lvalue_const().value =2
+    # assert m.refwrap_lvalue_const().value == 1
+
+    assert m.refwrap_lvalue().value == 1
+    m.refwrap_lvalue().value = 4
+    assert m.refwrap_lvalue().value == 4
 
     a1 = m.refwrap_list(copy=True)
     a2 = m.refwrap_list(copy=True)

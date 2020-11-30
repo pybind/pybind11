@@ -958,18 +958,17 @@ cast_op(make_caster<T> &&caster) {
 
 template <typename type> class type_caster<std::reference_wrapper<type>> {
 private:
- using reference_t = typename std::add_lvalue_reference<type>::type;
- using caster_t = make_caster<reference_t>;
- caster_t subcaster;
- using subcaster_cast_op_type =
-     typename caster_t::template cast_op_type<reference_t>;
+    using caster_t = make_caster<type>;
+    caster_t subcaster;
+    using reference_t = typename std::add_lvalue_reference<type>::type;
+    using subcaster_cast_op_type =
+        typename caster_t::template cast_op_type<reference_t>;
 
- static_assert((std::is_same<typename std::remove_const<type>::type &,
+    static_assert((std::is_same<typename std::remove_const<type>::type &,
                              subcaster_cast_op_type>::value ||
                 std::is_same<reference_t, subcaster_cast_op_type>::value),
                "std::reference_wrapper<T> caster requires T to have a caster "
                "with an `T &` operator or `const T&` operator");
-
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
     static constexpr auto name = caster_t::name;
