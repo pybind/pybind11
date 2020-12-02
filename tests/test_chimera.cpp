@@ -16,6 +16,15 @@
 
 #include "pybind11_tests.h"
 
+#if PY_VERSION_HEX > 0x03000000
+#define PyInt_Check PyLong_Check
+#define PyInt_AsLong PyLong_AsLongLong
+#endif
+
+#if !defined(CYTHON_COMPILING_IN_PYPY)
+#define CYTHON_COMPILING_IN_PYPY 0
+#endif
+
 /// C++ type
 class Chimera {
  public:
@@ -65,25 +74,20 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
   }
 #endif
   if (attr != nullptr && strcmp(attr, "x") == 0) {
-    if (!PyLong_Check(value)
-#if PY_MAJOR_VERSION < 3
-        || !PyInt_Check(value)
-#endif
-) {
-      PyErr_Format(PyExc_ValueError, "Cannot set a non-numeric value");
+    if (!PyLong_Check(value) && !PyInt_Check(value)) {
+      // "Cannot set a non-numeric value of type %s"
+      PyErr_SetObject(PyExc_ValueError, value);
       return -1;
     }
     if (custom->is_immutable) {
       PyErr_Format(PyExc_ValueError, "Instance is immutable; cannot set values");
       return -1;
     }
-#if PY_MAJOR_VERSION < 3
-    if (PyInt_Check(value)) {
+    if (PyLong_Check(value)) {
+      custom->value->x = static_cast<int64_t>(PyLong_AsLongLong(value));
+    }  else {
       custom->value->x = static_cast<int64_t>(PyInt_AsLong(value));
-      return 0;
-    } 
-#endif
-    custom->value->x = static_cast<int64_t>(PyLong_AsLongLong(value));
+    }
     return 0;
   }
 
@@ -98,11 +102,7 @@ static PyTypeObject PyChimera_Type{
         sizeof(PyChimera),                      /* tp_basicsize */
     0,                                          /* tp_itemsize */
     &PyChimera_dealloc,                         /* tp_dealloc */
-#if PY_VERSION_HEX < 0x03080000
-    nullptr, /* tp_print */
-#else
-    0, /* tp_vectorcall_offset */
-#endif
+    0,                                          /* tp_print | tp_vectorcall_offset */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
     0,                                          /* tp_as_async */
@@ -144,14 +144,17 @@ static PyTypeObject PyChimera_Type{
     0,                                          /* tp_weaklist */
     0,                                          /* tp_del */
     0,                                          /* tp_version_tag */
-#if PY_VERSION_HEX > 0x03040000
+#if PY_VERSION_HEX >= 0x030400a1
     0,                                          /* tp_finalize */
 #endif
-#if PY_VERSION_HEX > 0x03080000
+#if PY_VERSION_HEX >= 0x030800b1
     0,                                          /* tp_vectorcall */
 #endif
-#if PY_VERSION_HEX > 0x03090000
-    0,                                          /* tp_am_send */
+#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03090000
+    0,                                          /* tp_print */
+#endif
+#if CYTHON_COMPILING_IN_PYPY && PYPY_VERSION_NUM+0 >= 0x06000000
+    0,                                          /* tp_pypy_flags */
 #endif
 };
 
