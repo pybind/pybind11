@@ -34,8 +34,8 @@ typedef struct PyChimera {
 } PyChimera;
 
 PyObject* PyChimera_getattro(PyObject* self, PyObject* name) {
-  auto* custom = reinterpret_cast<PyChimera*>(self);
-  assert(custom != nullptr);
+  auto* chimera = reinterpret_cast<PyChimera*>(self);
+  assert(chimera != nullptr);
 
   const char* attr = nullptr;
   if (PyBytes_Check(name)) {
@@ -47,14 +47,14 @@ PyObject* PyChimera_getattro(PyObject* self, PyObject* name) {
   }
 #endif
   if (attr != nullptr && strcmp(attr, "x") == 0) {
-    return PyLong_FromLongLong(static_cast<long long>(custom->value->x));
+    return PyLong_FromLongLong(static_cast<long long>(chimera->value->x));
   }
   return PyObject_GenericGetAttr(self, name);
 }
 
 int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
-  auto* custom = reinterpret_cast<PyChimera*>(self);
-  assert(custom != nullptr);
+  auto* chimera = reinterpret_cast<PyChimera*>(self);
+  assert(chimera != nullptr);
 
   const char* attr = nullptr;
   if (PyBytes_Check(name)) {
@@ -66,18 +66,18 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
   }
 #endif
   if (attr != nullptr && strcmp(attr, "x") == 0) {
-    if (custom->is_immutable) {
+    if (chimera->is_immutable) {
       PyErr_Format(PyExc_ValueError, "Instance is immutable; cannot set values");
       return -1;
     }
 
     if (PyLong_Check(value)) {
-      custom->value->x = static_cast<int64_t>(PyLong_AsLongLong(value));
+      chimera->value->x = static_cast<int64_t>(PyLong_AsLongLong(value));
       return 0;
     }
 #if PY_VERSION_HEX < 0x03000000
     if (PyInt_Check(value)) {
-      custom->value->x = static_cast<int64_t>(PyInt_AsLong(value));
+      chimera->value->x = static_cast<int64_t>(PyInt_AsLong(value));
       return 0;
     }
 #endif
@@ -171,18 +171,18 @@ static std::unordered_map<Chimera*, void*>* mapping =
     new std::unordered_map<Chimera*, void*>();
 
 void PyChimera_dealloc(PyObject* self) {
-  auto* custom = reinterpret_cast<PyChimera*>(self);
-  auto it = mapping->find(custom->value);
+  auto* chimera = reinterpret_cast<PyChimera*>(self);
+  auto it = mapping->find(chimera->value);
   if (it != mapping->end()) {
     mapping->erase(it);
   }
-  if (custom->is_owned) {
-    delete custom->value;
+  if (chimera->is_owned) {
+    delete chimera->value;
   }
   Py_TYPE(self)->tp_free(self);
 }
 
-PyObject* PyChimera_new(Chimera* value, bool is_owned, bool is_immutable) {
+PyObject* PyChimera_new(Chimera* value, bool is_immutable) {
   if (PyType_Ready(&PyChimera_Type) != 0) {
     return nullptr;
   }
@@ -192,26 +192,38 @@ PyObject* PyChimera_new(Chimera* value, bool is_owned, bool is_immutable) {
   }
   mapping->emplace(value, self);
   self->value = value;
-  self->is_owned = is_owned;
+  self->is_owned = false;
   self->is_immutable = is_immutable;
   return reinterpret_cast<PyObject*>(self);
 }
 
+PyObject* PyChimera_new(std::unique_ptr<Chimera> value) {
+  PyObject* self = PyChimera_new(value.get(), false);
+  if (self != nullptr) {
+    auto* chimera = reinterpret_cast<PyChimera*>(self);
+    chimera->value = value.release();
+    chimera->is_owned = true;
+  }
+  return self;
+}
+
+
 PyObject* PyChimera_reference(Chimera* value, bool is_immutable) {
   auto it = mapping->find(value);
   if (it != mapping->end()) {
-    PyChimera* self = static_cast<PyChimera*>(it->second);
+    auto* chimera = static_cast<PyChimera*>(it->second);
     if (!is_immutable) {
-      self->is_immutable = false;
+      chimera->is_immutable = false;
     }
-    Py_INCREF(self);
-    return reinterpret_cast<PyObject*>(self);
+    Py_INCREF(chimera);
+    return reinterpret_cast<PyObject*>(chimera);
   }
-  return PyChimera_new(value, false, is_immutable);
+  return PyChimera_new(value, is_immutable);
 }
 
-/// pybind11 typecaster which returns python wrapper type.
-
+/// pybind11 type_caster which returns custom PyChimera python wrapper instead
+/// of a pybind11 generated type; this is used to make const* and const& immutable
+/// in python.
 namespace pybind11 {
 namespace detail {
 
@@ -244,9 +256,7 @@ struct type_caster<Chimera> {
   // construct a mutable python type owning src.
   static handle cast(Chimera&& src, return_value_policy, handle) {
     std::unique_ptr<Chimera> ptr(new Chimera(std::move(src)));
-    handle h = PyChimera_new(ptr.get(), true, false);
-    if (h.ptr() != nullptr) ptr.release();
-    return h;
+    return PyChimera_new(std::move(ptr));
   }
 
   // Convert Python->C++.
