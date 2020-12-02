@@ -13,6 +13,7 @@
 #include <map>
 #include <type_traits>
 #include <unordered_map>
+#include <cstring>
 
 #include "pybind11_tests.h"
 
@@ -39,11 +40,14 @@ PyObject* PyChimera_getattro(PyObject* self, PyObject* name) {
   const char* attr = nullptr;
   if (PyBytes_Check(name)) {
     attr = PyBytes_AsString(name);
-  } else if (PyUnicode_Check(name)) {
+  }
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 3
+  if (PyUnicode_Check(name)) {
     attr = PyUnicode_AsUTF8(name);
   }
-  if (std::string_view(attr) == "x") {
-    return PyLong_FromLong(custom->value->x);
+#endif
+  if (attr != nullptr && strcmp(attr, "x") == 0) {
+    return PyLong_FromLongLong(static_cast<long long>(custom->value->x));
   }
   return PyObject_GenericGetAttr(self, name);
 }
@@ -55,10 +59,13 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
   const char* attr = nullptr;
   if (PyBytes_Check(name)) {
     attr = PyBytes_AsString(name);
-  } else if (PyUnicode_Check(name)) {
+  }
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 3
+  if (PyUnicode_Check(name)) {
     attr = PyUnicode_AsUTF8(name);
   }
-  if (std::string_view(attr) == "x") {
+#endif
+  if (attr != nullptr && strcmp(attr, "x") == 0) {
     if (!PyLong_Check(value)) {
       PyErr_Format(PyExc_ValueError, "Cannot set a non-numeric value");
       return -1;
@@ -67,7 +74,7 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
       PyErr_Format(PyExc_ValueError, "Instance is immutable; cannot set values");
       return -1;
     }
-    custom->value->x = static_cast<int64_t>(PyLong_AsLong(value));
+    custom->value->x = static_cast<int64_t>(PyLong_AsLongLong(value));
     return 0;
   }
 
@@ -76,17 +83,19 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
 
 void PyChimera_dealloc(PyObject* self);
 
-static PyTypeObject PyChimera_Type = {
-    .ob_base = PyVarObject_HEAD_INIT(nullptr, 0) /**/
-                   .tp_name =
-        "google3.experimental.users.lar.python.test_custom.Chimera",
-    .tp_basicsize = sizeof(PyChimera),
-    .tp_dealloc = &PyChimera_dealloc,
-    .tp_getattro = &PyChimera_getattro,
-    .tp_setattro = &PyChimera_setattro,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "Chimera objects",
-};
+static PyTypeObject PyChimera_Type = []{
+    PyTypeObject tmp{
+        PyVarObject_HEAD_INIT(nullptr, 0) /**/
+        "pybind11_tests.test_chimera.Chimera",
+        sizeof(PyChimera),
+    };
+    tmp.tp_dealloc = &PyChimera_dealloc;
+    tmp.tp_getattro = &PyChimera_getattro;
+    tmp.tp_setattro = &PyChimera_setattro;
+    tmp.tp_flags = Py_TPFLAGS_DEFAULT;
+    tmp.tp_doc = "Chimera objects";
+    return tmp;
+}();
 
 static std::unordered_map<Chimera*, void*>* mapping =
     new std::unordered_map<Chimera*, void*>();
@@ -221,6 +230,8 @@ static Chimera* shared = new Chimera();
 static Chimera* shared_const = new Chimera();
 
 TEST_SUBMODULE(test_chimera, m) {
+
+
   Py_INCREF(&PyChimera_Type);
 
   m.def("make", []() -> Chimera { return Chimera{}; });
