@@ -261,9 +261,24 @@ struct type_caster<Chimera> {
     return PyChimera_new(std::move(ptr));
   }
 
+  type_caster() = default;
+  type_caster(type_caster&&) = default;
+  type_caster(const type_caster& other) : chimera(other.chimera) {
+    if (chimera) Py_INCREF(chimera);
+  }
+
+  type_caster& operator=(type_caster&&) = default;
+  type_caster& operator=(const type_caster& other) {
+    if (chimera) Py_DECREF(chimera);
+    chimera = other.chimera;
+    if (chimera) Py_INCREF(chimera);
+    return *this;
+  }
+
   ~type_caster() {
     if (chimera) Py_DECREF(chimera);
   }
+
   // Convert Python->C++.
   // ... Merely capture the PyChimera pointer and do additional work in the
   // conversion operator.
