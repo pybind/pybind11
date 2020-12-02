@@ -96,6 +96,7 @@ set(PYBIND11_TEST_FILES
     test_constants_and_functions.cpp
     test_copy_move.cpp
     test_custom_type_casters.cpp
+    test_chimera.cpp
     test_docstring_options.cpp
     test_eigen.cpp
     test_enum.cpp
