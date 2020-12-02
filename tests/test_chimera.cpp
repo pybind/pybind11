@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <cstring>
+#include <memory>
 
 #include "pybind11_tests.h"
 
@@ -33,7 +34,7 @@ typedef struct PyChimera {
 } PyChimera;
 
 PyObject* PyChimera_getattro(PyObject* self, PyObject* name) {
-  PyChimera* custom = reinterpret_cast<PyChimera*>(self);
+  auto* custom = reinterpret_cast<PyChimera*>(self);
   assert(custom != nullptr);
 
   const char* attr = nullptr;
@@ -52,7 +53,7 @@ PyObject* PyChimera_getattro(PyObject* self, PyObject* name) {
 }
 
 int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
-  PyChimera* custom = reinterpret_cast<PyChimera*>(self);
+  auto* custom = reinterpret_cast<PyChimera*>(self);
   assert(custom != nullptr);
 
   const char* attr = nullptr;
@@ -170,7 +171,7 @@ static std::unordered_map<Chimera*, void*>* mapping =
     new std::unordered_map<Chimera*, void*>();
 
 void PyChimera_dealloc(PyObject* self) {
-  PyChimera* custom = reinterpret_cast<PyChimera*>(self);
+  auto* custom = reinterpret_cast<PyChimera*>(self);
   auto it = mapping->find(custom->value);
   if (it != mapping->end()) {
     mapping->erase(it);
@@ -242,7 +243,10 @@ struct type_caster<Chimera> {
 
   // construct a mutable python type owning src.
   static handle cast(Chimera&& src, return_value_policy, handle) {
-    return PyChimera_new(new Chimera(std::move(src)), true, false);
+    std::unique_ptr<Chimera> ptr(new Chimera(std::move(src)));
+    handle h = PyChimera_new(ptr.get(), true, false);
+    if (h.ptr() != nullptr) ptr.release();
+    return h;
   }
 
   // Convert Python->C++.
