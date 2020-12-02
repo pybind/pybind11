@@ -6,8 +6,6 @@
     All rights reserved. Use of this source code is governed by a
     BSD-style license that can be found in the LICENSE file.
 */
-#include <Python.h>
-
 #include <pybind11/pybind11.h>
 
 #include <deque>
@@ -67,7 +65,11 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
   }
 #endif
   if (attr != nullptr && strcmp(attr, "x") == 0) {
-    if (!PyLong_Check(value)) {
+    if (!PyLong_Check(value)
+#if PY_MAJOR_VERSION < 3
+        || !PyInt_Check(value)
+#endif
+) {
       PyErr_Format(PyExc_ValueError, "Cannot set a non-numeric value");
       return -1;
     }
@@ -75,6 +77,12 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
       PyErr_Format(PyExc_ValueError, "Instance is immutable; cannot set values");
       return -1;
     }
+#if PY_MAJOR_VERSION < 3
+    if (PyInt_Check(value)) {
+      custom->value->x = static_cast<int64_t>(PyInt_AsLong(value));
+      return 0;
+    } 
+#endif
     custom->value->x = static_cast<int64_t>(PyLong_AsLongLong(value));
     return 0;
   }
@@ -138,9 +146,12 @@ static PyTypeObject PyChimera_Type{
     0,                                          /* tp_version_tag */
 #if PY_VERSION_HEX > 0x03040000
     0,                                          /* tp_finalize */
+#endif
 #if PY_VERSION_HEX > 0x03080000
     0,                                          /* tp_vectorcall */
 #endif
+#if PY_VERSION_HEX > 0x03090000
+    0,                                          /* tp_am_send */
 #endif
 };
 
