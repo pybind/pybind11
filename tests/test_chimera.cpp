@@ -24,7 +24,7 @@ class Chimera {
 
 /// Python wrapper for C++ type which supports mutable/immutable variants.
 typedef struct PyChimera {
-  PyObject_HEAD;
+  PyObject_HEAD
 
   Chimera* value;
 
@@ -90,6 +90,14 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
 
 void PyChimera_dealloc(PyObject* self);
 
+
+/* https://github.com/cython/cython/issues/3474 */
+#if defined(__GNUC__) || defined(__clang__) && PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03090000
+#define PY38_WARNING_WORKAROUND_ENABLED 1
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 static PyTypeObject PyChimera_Type{
         PyVarObject_HEAD_INIT(nullptr, 0) /**/
         "pybind11_tests.test_chimera.Chimera",  /* tp_name */
@@ -144,7 +152,7 @@ static PyTypeObject PyChimera_Type{
 #if PY_VERSION_HEX >= 0x030800b1
     0,                                          /* tp_vectorcall */
 #endif
-#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03080600
+#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03090000
     0,                                          /* tp_print */
 #endif
 #if defined(PYPY_VERSION)
@@ -152,6 +160,11 @@ static PyTypeObject PyChimera_Type{
 #endif
 };
 
+
+#if defined(PY38_WARNING_WORKAROUND_ENABLED)
+#undef PY38_WARNING_WORKAROUND_ENABLED
+#pragma GCC diagnostic pop
+#endif
 
 static std::unordered_map<Chimera*, void*>* mapping =
     new std::unordered_map<Chimera*, void*>();
