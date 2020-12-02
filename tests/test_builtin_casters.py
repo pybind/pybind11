@@ -325,14 +325,14 @@ def test_reference_wrapper():
         m.refwrap_usertype(None)
     assert "incompatible function arguments" in str(excinfo.value)
 
-    assert m.refwrap_lvalue_const().value == 1
-    # const-ness is not propagated.
-    # m.refwrap_lvalue_const().value =2
-    # assert m.refwrap_lvalue_const().value == 1
-
     assert m.refwrap_lvalue().value == 1
     m.refwrap_lvalue().value = 4
     assert m.refwrap_lvalue().value == 4
+
+    # const-ness is not propagated.
+    assert m.refwrap_lvalue_const().value == 1
+    m.refwrap_lvalue_const().value = 2
+    assert m.refwrap_lvalue_const().value == 2
 
     a1 = m.refwrap_list(copy=True)
     a2 = m.refwrap_list(copy=True)

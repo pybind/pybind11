@@ -256,13 +256,13 @@ TEST_SUBMODULE(test_chimera, m) {
   m.def("get_ref", []() -> Chimera& { return *shared; });
   m.def("get_wrap",
         []() -> std::reference_wrapper<Chimera> { return std::ref(*shared); });
-  m.def("get_const_ptr", []() -> const Chimera* { 
-    shared_const->x++; 
-    return shared_const; 
+  m.def("get_const_ptr", []() -> const Chimera* {
+    shared_const->x++;
+    return shared_const;
   });
-  m.def("get_const_ref", []() -> const Chimera& { 
-    shared_const->x++; 
-    return *shared_const; 
+  m.def("get_const_ref", []() -> const Chimera& {
+    shared_const->x++;
+    return *shared_const;
   });
   m.def("get_const_wrap", []() -> std::reference_wrapper<const Chimera> {
     shared_const->x++;

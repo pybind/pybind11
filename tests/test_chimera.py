@@ -6,7 +6,6 @@ import env  # noqa: F401
 from pybind11_tests import test_chimera as m
 
 
-
 def test_make():
     assert m.make().x == 1
 
@@ -76,5 +75,4 @@ def test_roundtrip_const():
 
     # by reference, so it's not converted.
     with pytest.raises(TypeError) as excinfo:
-      assert m.roundtrip_ref(m.get_const_ref()).x == 4
-
+        assert m.roundtrip_ref(m.get_const_ref()).x == 4
