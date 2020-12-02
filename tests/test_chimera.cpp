@@ -213,6 +213,8 @@ PyObject* PyChimera_reference(Chimera* value, bool is_immutable) {
   if (it != mapping->end()) {
     auto* chimera = static_cast<PyChimera*>(it->second);
     if (!is_immutable) {
+      // We have a single cache of C++ pointer to python object, so if any of the
+      // objects becomes immutable, they all become immutable.
       chimera->is_immutable = false;
     }
     Py_INCREF(chimera);
@@ -253,19 +255,25 @@ struct type_caster<Chimera> {
     return cast(&src, policy, parent);
   }
 
-  // construct a mutable python type owning src.
+  // ... construct a mutable python type owning src.
   static handle cast(Chimera&& src, return_value_policy, handle) {
     std::unique_ptr<Chimera> ptr(new Chimera(std::move(src)));
     return PyChimera_new(std::move(ptr));
   }
 
+  ~type_caster() {
+    if (chimera) PyDECREF(chimera);
+  }
   // Convert Python->C++.
+  // ... Merely capture the PyChimera pointer and do additional work in the
+  // conversion operator.
   bool load(handle src, bool) {
-    // ... either reference a wrapped c++ type or construct a new one.
     if (!PyObject_TypeCheck(src.ptr(), &PyChimera_Type)) {
       return false;
     }
-    custom = reinterpret_cast<PyChimera*>(src.ptr());
+    assert(chimera == nullptr);
+    chimera = reinterpret_cast<PyChimera*>(src.ptr());
+    Py_INCREF(chimera);
     return true;
   }
 
@@ -281,39 +289,41 @@ struct type_caster<Chimera> {
                                       /*default is T&&*/ T_>>>>;
 
   // PYBIND11_TYPE_CASTER
-  operator const Chimera*() { return custom->value; }
+  operator const Chimera*() { return chimera->value; }
   operator const Chimera&() {
-    if (!custom || !custom->value) throw reference_cast_error();
-    return *custom->value;
+    if (!chimera || !chimera->value) throw reference_cast_error();
+    return *chimera->value;
   }
   operator Chimera*() {
-    if (custom->is_immutable) throw reference_cast_error();
-    return custom->value;
+    if (chimera->is_immutable) throw reference_cast_error();
+    return chimera->value;
   }
   operator Chimera&() {
-    if (!custom || !custom->value) throw reference_cast_error();
-    if (custom->is_immutable) throw reference_cast_error();
-    return *custom->value;
+    if (!chimera || !chimera->value) throw reference_cast_error();
+    if (chimera->is_immutable) throw reference_cast_error();
+    return *chimera->value;
   }
   operator Chimera&&() && {
-    if (!custom || !custom->value) throw reference_cast_error();
-    owned = *custom->value;
+    if (!chimera || !chimera->value) throw reference_cast_error();
+    owned = *chimera->value;
     return std::move(owned);
   }
 
  protected:
-  const PyChimera* custom;
+  const PyChimera* chimera = nullptr;
   Chimera owned;
 };
 
 }  // namespace detail
 }  // namespace pybind11
 
+/// C++ module using pybind11 type_caster<Chimera> returning mutable/immutable
+/// objects.
+
 static Chimera* shared = new Chimera();
 static Chimera* shared_const = new Chimera();
 
 TEST_SUBMODULE(test_chimera, m) {
-
 
   Py_INCREF(&PyChimera_Type);
 
