@@ -53,7 +53,7 @@ def test_get_const():
     assert m.get_const_wrap().x == 7
     assert v.x == 7
 
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError):
         v.x = 1  # immutable
 
 
@@ -74,5 +74,5 @@ def test_roundtrip_const():
     assert m.roundtrip(m.get_const_ref()).x == 3
 
     # by reference, so it's not converted.
-    with pytest.raises(TypeError) as excinfo:
+    with pytest.raises(TypeError):
         assert m.roundtrip_ref(m.get_const_ref()).x == 4

@@ -7,6 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 #include <Python.h>
+
 #include <pybind11/pybind11.h>
 
 #include <deque>
@@ -41,7 +42,7 @@ PyObject* PyChimera_getattro(PyObject* self, PyObject* name) {
   if (PyBytes_Check(name)) {
     attr = PyBytes_AsString(name);
   }
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 3
+#if PY_VERSION_HEX > 0x03030000
   if (PyUnicode_Check(name)) {
     attr = PyUnicode_AsUTF8(name);
   }
@@ -60,7 +61,7 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
   if (PyBytes_Check(name)) {
     attr = PyBytes_AsString(name);
   }
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 3
+#if PY_VERSION_HEX > 0x03030000
   if (PyUnicode_Check(name)) {
     attr = PyUnicode_AsUTF8(name);
   }
@@ -83,19 +84,66 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
 
 void PyChimera_dealloc(PyObject* self);
 
-static PyTypeObject PyChimera_Type = []{
-    PyTypeObject tmp{
+static PyTypeObject PyChimera_Type{
         PyVarObject_HEAD_INIT(nullptr, 0) /**/
-        "pybind11_tests.test_chimera.Chimera",
-        sizeof(PyChimera),
-    };
-    tmp.tp_dealloc = &PyChimera_dealloc;
-    tmp.tp_getattro = &PyChimera_getattro;
-    tmp.tp_setattro = &PyChimera_setattro;
-    tmp.tp_flags = Py_TPFLAGS_DEFAULT;
-    tmp.tp_doc = "Chimera objects";
-    return tmp;
-}();
+        "pybind11_tests.test_chimera.Chimera",  /* tp_name */
+        sizeof(PyChimera),                      /* tp_basicsize */
+    0,                                          /* tp_itemsize */
+    &PyChimera_dealloc,                         /* tp_dealloc */
+#if PY_VERSION_HEX < 0x03080000
+    nullptr, /* tp_print */
+#else
+    0, /* tp_vectorcall_offset */
+#endif
+    0,                                          /* tp_getattr */
+    0,                                          /* tp_setattr */
+    0,                                          /* tp_as_async */
+    0,                                          /* tp_repr */
+    0,                                          /* tp_as_number */
+    0,                                          /* tp_as_sequence */
+    0,                                          /* tp_as_mapping */
+    0,                                          /* tp_hash */
+    0,                                          /* tp_call */
+    0,                                          /* tp_str */
+    &PyChimera_getattro,                        /* tp_getattro */
+    &PyChimera_setattro,                        /* tp_setattro */
+    0,                                          /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,                         /* tp_flags */
+    "Chimera objects",                          /* tp_doc */
+    0,                                          /* tp_traverse */
+    0,                                          /* tp_clear */
+    0,                                          /* tp_richcompare */
+    0,                                          /* tp_weaklistoffset */
+    0,                                          /* tp_iter */
+    0,                                          /* tp_iternext */
+    0,                                          /* tp_methods */
+    0,                                          /* tp_members */
+    0,                                          /* tp_getset */
+    0,                                          /* tp_base */
+    0,                                          /* tp_dict */
+    0,                                          /* tp_descr_get */
+    0,                                          /* tp_descr_set */
+    0,                                          /* tp_dictoffset */
+    0,                                          /* tp_init */
+    0,                                          /* tp_alloc */
+    0,                                          /* tp_new */
+    0,                                          /* tp_free */
+    0,                                          /* tp_is_gc */
+    0,                                          /* tp_bases */
+    0,                                          /* tp_mro */
+    0,                                          /* tp_cache */
+    0,                                          /* tp_subclasses */
+    0,                                          /* tp_weaklist */
+    0,                                          /* tp_del */
+    0,                                          /* tp_version_tag */
+#if PY_VERSION_HEX > 0x03040000
+    0,                                          /* tp_finalize */
+#if PY_VERSION_HEX > 0x03080000
+    0,                                          /* tp_vectorcall */
+#endif
+#endif
+};
+
 
 static std::unordered_map<Chimera*, void*>* mapping =
     new std::unordered_map<Chimera*, void*>();
