@@ -16,11 +16,6 @@
 
 #include "pybind11_tests.h"
 
-#if PY_VERSION_HEX > 0x03000000
-#define PyInt_Check PyLong_Check
-#define PyInt_AsLong PyLong_AsLongLong
-#endif
-
 /// C++ type
 class Chimera {
  public:
@@ -70,21 +65,24 @@ int PyChimera_setattro(PyObject* self, PyObject* name, PyObject* value) {
   }
 #endif
   if (attr != nullptr && strcmp(attr, "x") == 0) {
-    if (!PyLong_Check(value) && !PyInt_Check(value)) {
-      // "Cannot set a non-numeric value of type %s"
-      PyErr_SetObject(PyExc_ValueError, value);
-      return -1;
-    }
     if (custom->is_immutable) {
       PyErr_Format(PyExc_ValueError, "Instance is immutable; cannot set values");
       return -1;
     }
+
     if (PyLong_Check(value)) {
       custom->value->x = static_cast<int64_t>(PyLong_AsLongLong(value));
-    }  else {
-      custom->value->x = static_cast<int64_t>(PyInt_AsLong(value));
+      return 0;
     }
-    return 0;
+#if PY_VERSION_HEX < 0x03000000
+    if (PyInt_Check(value)) {
+      custom->value->x = static_cast<int64_t>(PyInt_AsLong(value));
+      return 0;
+    }
+#endif
+    // "Cannot set a non-numeric value of type %s"
+    PyErr_SetObject(PyExc_ValueError, value);
+    return -1;
   }
 
   return PyObject_GenericSetAttr(self, name, value);
@@ -146,10 +144,10 @@ static PyTypeObject PyChimera_Type{
 #if PY_VERSION_HEX >= 0x030800b1
     0,                                          /* tp_vectorcall */
 #endif
-#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03090000
+#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03080600
     0,                                          /* tp_print */
 #endif
-#if defined(PYPY_VERSION) && PYPY_VERSION_NUM+0 >= 0x06000000
+#if defined(PYPY_VERSION)
     0,                                          /* tp_pypy_flags */
 #endif
 };
