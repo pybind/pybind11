@@ -262,7 +262,7 @@ struct type_caster<Chimera> {
   }
 
   ~type_caster() {
-    if (chimera) PyDECREF(chimera);
+    if (chimera) Py_DECREF(chimera);
   }
   // Convert Python->C++.
   // ... Merely capture the PyChimera pointer and do additional work in the
@@ -310,7 +310,7 @@ struct type_caster<Chimera> {
   }
 
  protected:
-  const PyChimera* chimera = nullptr;
+  PyChimera* chimera = nullptr;
   Chimera owned;
 };
 
