@@ -45,7 +45,6 @@ PyObject* PyChimera_getattro(PyObject* self, PyObject* name) {
   if (std::string_view(attr) == "x") {
     return PyLong_FromLong(custom->value->x);
   }
-
   return PyObject_GenericGetAttr(self, name);
 }
 
@@ -225,6 +224,7 @@ TEST_SUBMODULE(test_chimera, m) {
   Py_INCREF(&PyChimera_Type);
 
   m.def("make", []() -> Chimera { return Chimera{}; });
+  m.def("reset", [](int x) { shared->x = x; shared_const->x = x; });
 
   // it takes and it takes and it takes
   m.def("take", [](Chimera c) {

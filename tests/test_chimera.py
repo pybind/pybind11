@@ -29,6 +29,7 @@ def test_take():
 
 def test_get():
     """The get calls all return a variant of the same shared pointer."""
+    m.reset(1)
     assert m.get().x == 1
     v = m.get_ptr()
     assert v.x == 1
@@ -43,6 +44,7 @@ def test_get():
 
 
 def test_get_const():
+    m.reset(1)
     v = m.get_const_ptr()
     assert v.x == 2
     assert m.get_const_ref().x == 3
@@ -66,4 +68,13 @@ def test_roundtrip():
     assert m.roundtrip_ref(c).x == 3
     assert m.roundtrip_wrap(c).x == 4
 
+
+def test_roundtrip_const():
+    m.reset(1)
+    # by value, so the const ref is converted.
+    assert m.roundtrip(m.get_const_ref()).x == 3
+
+    # by reference, so it's not converted.
+    with pytest.raises(TypeError) as excinfo:
+      assert m.roundtrip_ref(m.get_const_ref()).x == 4
 
