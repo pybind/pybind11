@@ -410,4 +410,9 @@ TEST_SUBMODULE(test_freezable_type_caster, m) {
           c.get().x++;
           return c;
         });
+
+  m.def("roundtrip_const_ref", [](const FreezableInt& c) -> std::reference_wrapper<const FreezableInt> {
+    return std::cref(c);
+  });
+
 }

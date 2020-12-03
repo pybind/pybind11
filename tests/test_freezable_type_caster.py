@@ -70,9 +70,20 @@ def test_roundtrip():
 
 def test_roundtrip_const():
     m.reset(1)
-    # by value, so the const ref is converted.
-    assert m.roundtrip(m.get_const_ref()).x == 3
 
-    # by reference, so it's not converted.
+    # NOTE: each call to get_const_ref increments x.
+    # by reference, the const ref is not converted.
     with pytest.raises(TypeError):
-        assert m.roundtrip_ref(m.get_const_ref()).x == 4
+        m.roundtrip_ref(m.get_const_ref())
+
+    with pytest.raises(TypeError):
+        m.roundtrip_ptr(m.get_const_ref())
+
+    with pytest.raises(TypeError):
+        m.roundtrip_wrap(m.get_const_ref())
+
+    # by value, so the const ref is converted.
+    assert m.roundtrip(m.get_const_ref()).x == 6  # x + 1
+
+    # by const ref, so the conversion is ok.
+    assert m.roundtrip_const_ref(m.get_const_ref()).x == 6
