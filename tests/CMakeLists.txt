@@ -96,13 +96,13 @@ set(PYBIND11_TEST_FILES
     test_constants_and_functions.cpp
     test_copy_move.cpp
     test_custom_type_casters.cpp
-    test_chimera.cpp
     test_docstring_options.cpp
     test_eigen.cpp
     test_enum.cpp
     test_eval.cpp
     test_exceptions.cpp
     test_factory_constructors.cpp
+    test_freezable_type_caster.cpp
     test_gil_scoped.cpp
     test_iostream.cpp
     test_kwargs_and_defaults.cpp

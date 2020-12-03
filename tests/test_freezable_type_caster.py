@@ -3,7 +3,7 @@ import pytest
 
 import env  # noqa: F401
 
-from pybind11_tests import test_chimera as m
+from pybind11_tests import test_freezable_type_caster as m
 
 
 def test_make():

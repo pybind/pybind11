@@ -968,7 +968,7 @@ private:
                              subcaster_cast_op_type>::value ||
                 std::is_same<reference_t, subcaster_cast_op_type>::value),
                "std::reference_wrapper<T> caster requires T to have a caster "
-               "with an `T &` operator or `const T&` operator");
+               "with an operator `T &` or `const T&`");
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
     static constexpr auto name = caster_t::name;
