@@ -247,7 +247,7 @@ def test_function_with_string_and_vector_string_arg():
 
 def test_bytes_to_vector_uint8_t():
     """Check if a bytes is implicitly converted to std::vector<uint8_t>, issue #1807"""
-    assert m.func_with_vector_uint8_t_arg(b'abc') == 3
+    assert m.func_with_vector_uint8_t_arg([ord(c) for c in b'abc']) == 3
     with pytest.raises(TypeError):
         m.func_with_vector_uint8_t_arg('stringval')
 
