@@ -40,8 +40,13 @@ TEST_SUBMODULE(variant_unique_shared, m) {
                  v.get_unique();
                  return;
              })
-        .def("get_shared", [](vptr<double> &v) {
-            v.get_shared();
+        .def("get_shared",
+             [](vptr<double> &v) {
+                 v.get_shared();
+                 return;
+             })
+        .def("disown_unique", [](vptr<double> &v) {
+            v.get_unique().reset();
             return;
         });
 }

@@ -48,3 +48,14 @@ def test_shared_from_birth():
         v.get_unique()
     assert str(exc_info.value) == "get_unique failure."
     v.get_shared()  # Still works.
+
+
+def test_promotion_of_disowned_to_shared():
+    v = m.from_unique()
+    assert v.get_value() == 5
+    v.disown_unique()
+    assert v.ownership_type() == 0
+    assert v.get_value() == -1
+    v.get_shared()  # Promotion of disowned to shared_ptr.
+    assert v.ownership_type() == 1
+    assert v.get_value() == -1
