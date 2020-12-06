@@ -2191,7 +2191,20 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::operator()(Args &&...args) const {
-    return detail::collect_arguments<policy>(std::forward<Args>(args)...).call(derived().ptr());
+    if constexpr(all_of<is_positional<Args>...>::value)
+        // Collect only positional arguments for a Python function call
+        return simple_collector<policy>(std::forward<Args>(args)...).call(derived().ptr());
+    else {
+        // Following argument order rules for generalized unpacking according to PEP 448
+        static_assert(
+            constexpr_last<is_positional, Args...>() < constexpr_first<is_keyword_or_ds, Args...>()
+            && constexpr_last<is_s_unpacking, Args...>() < constexpr_first<is_ds_unpacking, Args...>(),
+            "Invalid function call: positional args must precede keywords and ** unpacking; "
+            "* unpacking must precede ** unpacking"
+        );
+        // Collect all arguments, including keywords and unpacking (only instantiated when needed)
+        return unpacking_collector<policy>(std::forward<Args>(args)...).call(derived().ptr());
+    }
 }
 
 template <typename Derived>
