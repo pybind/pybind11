@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+import threading
 
 import env  # noqa: F401
 
@@ -217,3 +218,33 @@ def test_call_guard():
     if hasattr(m, "with_gil"):
         assert m.with_gil() == "GIL held"
         assert m.without_gil() == "GIL released"
+
+
+@pytest.mark.parametrize(
+    "test_func",
+    ["guard_without_gil_implicit_conversion", "without_gil_implicit_conversion"],
+)
+def test_without_gil_implicit_conversion(test_func):
+    try:
+        func = getattr(m, test_func)
+    except AttributeError:
+        return
+
+    num_threads = 16
+
+    def check(results, i):
+        results[i] = func(42) == 42
+
+    results = [None] * num_threads
+    for _ in range(int(1e4)):
+        threads = []
+        for i in range(num_threads):
+            thread = threading.Thread(target=check, args=(results, i))
+            thread.start()
+            threads.append(thread)
+        for thread in threads:
+            thread.join()
+
+        ok = all(results)
+        if not ok:
+            raise AssertionError(results)

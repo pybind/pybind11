@@ -97,5 +97,31 @@ TEST_SUBMODULE(call_policies, m) {
 
     m.def("with_gil", report_gil_status);
     m.def("without_gil", report_gil_status, py::call_guard<py::gil_scoped_release>());
+
+    class MyInt {
+    public:
+        MyInt(int i)
+            : i_(i)
+        {}
+
+        int i_;
+    };
+    py::class_<MyInt>(m, "MyInt")
+        .def(py::init<int>());
+    py::implicitly_convertible<int, MyInt>();
+
+    // This function races
+    m.def("guard_without_gil_implicit_conversion",
+          [](MyInt my_int) {
+              return my_int.i_;
+          },
+          py::call_guard<py::gil_scoped_release>());
+
+    // This function works fine
+    m.def("without_gil_implicit_conversion",
+          [](MyInt my_int) {
+              py::gil_scoped_release gil_release;
+              return my_int.i_;
+          });
 #endif
 }
