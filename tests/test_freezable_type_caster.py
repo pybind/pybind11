@@ -91,6 +91,7 @@ def test_roundtrip():
     assert m.roundtrip_const_ref(c).addr == c.addr
     assert m.roundtrip_const_wrap(c).addr == c.addr
 
+
 def test_roundtrip_const():
     m.reset(1)
 
@@ -105,7 +106,6 @@ def test_roundtrip_const():
     with pytest.raises(TypeError):
         m.roundtrip_wrap(m.get_const_ref())
 
-
     # by value, so the const ref is converted.
     assert m.roundtrip(m.get_const_ref()).x == 6  # x + 1
 
@@ -114,4 +114,3 @@ def test_roundtrip_const():
     assert m.roundtrip_const_wrap(m.get_const_wrap()).is_immutable
     assert m.roundtrip_const_wrap(m.get_const_ref()).is_immutable
     assert m.roundtrip_const_ref(m.get_const_wrap()).is_immutable
-
