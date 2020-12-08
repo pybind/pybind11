@@ -150,8 +150,10 @@ NumPy array containing double precision values.
 
 When it is invoked with a different type (e.g. an integer or a list of
 integers), the binding code will attempt to cast the input into a NumPy array
-of the requested type. Note that this feature requires the
-:file:`pybind11/numpy.h` header to be included.
+of the requested type. This feature requires the :file:`pybind11/numpy.h`
+header to be included. Note that :file:`pybind11/numpy.h` does not depend on
+the NumPy headers, and thus can be used without declaring a build-time
+dependency on NumPy; NumPy>=1.7.0 is a runtime dependency.
 
 Data in NumPy arrays is not guaranteed to packed in a dense manner;
 furthermore, entries can be separated by arbitrary column and row strides.
