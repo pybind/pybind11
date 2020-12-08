@@ -980,8 +980,12 @@ public:
         For Python 3, ``def`` should point to a staticly allocated module_def.
         For Python 2, ``def`` can be a nullptr and is completely ignored.
     \endrst */
-    static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
+    static module_ create_extension_module(const char *name, const char *doc = nullptr, module_def *def = nullptr) {
 #if PY_MAJOR_VERSION >= 3
+        if (!def) {
+            def = new module_def;
+        }
+
         // module_def is PyModuleDef
         def = new (def) PyModuleDef {  // Placement new (not an allocation).
             /* m_base */     PyModuleDef_HEAD_INIT,
