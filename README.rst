@@ -13,16 +13,16 @@
 
 .. warning::
 
-   Combining older versions of pybind11 (< 2.6.0) with the brand-new Python
-   3.9.0 will trigger undefined behavior that typically manifests as crashes
-   during interpreter shutdown (but could also destroy your data. **You have been
+   Combining older versions of pybind11 (< 2.6.0) with Python 3.9.0 will
+   trigger undefined behavior that typically manifests as crashes during
+   interpreter shutdown (but could also destroy your data. **You have been
    warned.**)
 
-   We recommend that you wait for Python 3.9.1 slated for release in December,
-   which will include a `fix <https://github.com/python/cpython/pull/22670>`_
-   that resolves this problem.  In the meantime, please update to the latest
-   version of pybind11 (2.6.0 or newer), which includes a temporary workaround
-   specifically when Python 3.9.0 is detected at runtime.
+   We recommend that you update to the latest patch release of Python (3.9.1),
+   which includes a `fix <https://github.com/python/cpython/pull/22670>`_
+   that resolves this problem. If you do use Python 3.9.0, please update to
+   the latest version of pybind11 (2.6.0 or newer), which includes a temporary
+   workaround specifically when Python 3.9.0 is detected at runtime.
 
 **pybind11** is a lightweight header-only library that exposes C++ types
 in Python and vice versa, mainly to create Python bindings of existing
