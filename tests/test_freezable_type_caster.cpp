@@ -54,6 +54,12 @@ PyObject* PyFreezableInt_getattro(PyObject* self, PyObject* name) {
   if (attr != nullptr && strcmp(attr, "x") == 0) {
     return PyLong_FromLongLong(static_cast<long long>(freezable->value->x));
   }
+  if (attr != nullptr && strcmp(attr, "is_immutable") == 0) {
+    return PyBool_FromLong((freezable->is_immutable) ? 1 : 0);
+  }
+  if (attr != nullptr && strcmp(attr, "addr") == 0) {
+    return PyLong_FromLongLong(reinterpret_cast<long long>(freezable->value));
+  }
   return PyObject_GenericGetAttr(self, name);
 }
 
@@ -305,7 +311,8 @@ struct type_caster<FreezableInt> {
           std::is_same<remove_reference_t<T_>, FreezableInt*>::value, FreezableInt*,
           conditional_t<std::is_same<T_, const FreezableInt&>::value, const FreezableInt&,
                         conditional_t<std::is_same<T_, FreezableInt&>::value, FreezableInt&,
-                                      /*default is T&&*/ T_>>>>;
+                                      conditional_t<std::is_same<T_, FreezableInt&&>::value, FreezableInt&&,
+                                      /* by-value is a reasonable default */ FreezableInt>>>>>;
 
   // PYBIND11_TYPE_CASTER
   operator const FreezableInt*() { return freezable->value; }
@@ -326,6 +333,11 @@ struct type_caster<FreezableInt> {
     if (!freezable || !freezable->value) throw reference_cast_error();
     owned = *freezable->value;
     return std::move(owned);
+  }
+  operator FreezableInt() {
+    if (!freezable || !freezable->value) throw reference_cast_error();
+    FreezableInt v = *freezable->value;
+    return v;
   }
 
  protected:
@@ -410,9 +422,11 @@ TEST_SUBMODULE(test_freezable_type_caster, m) {
           c.get().x++;
           return c;
         });
-
-  m.def("roundtrip_const_ref", [](const FreezableInt& c) -> std::reference_wrapper<const FreezableInt> {
-    return std::cref(c);
+  m.def("roundtrip_const_ref", [](const FreezableInt& c) -> const FreezableInt& {
+    return c;
+  });
+  m.def("roundtrip_const_wrap", [](std::reference_wrapper<const FreezableInt> c) -> std::reference_wrapper<const FreezableInt> {
+    return c;
   });
 
 }

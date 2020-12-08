@@ -32,6 +32,7 @@ def test_get():
     assert m.get().x == 1
     v = m.get_ptr()
     assert v.x == 1
+    assert not v.is_immutable
     v.x = 10
     assert m.get_ptr().x == 10
     v.x = 11
@@ -46,6 +47,7 @@ def test_get_const():
     m.reset(1)
     v = m.get_const_ptr()
     assert v.x == 2
+    assert v.is_immutable
     assert m.get_const_ref().x == 3
     assert m.get_const_wrap().x == 4
     assert m.get_const_ptr().x == 5
@@ -53,8 +55,23 @@ def test_get_const():
     assert m.get_const_wrap().x == 7
     assert v.x == 7
 
+    assert m.get_const_ref().is_immutable
+    assert m.get_const_wrap().is_immutable
+    assert m.get_const_ptr().is_immutable
+
+    assert m.get_const_wrap().addr == m.get_const_ref().addr
+    assert m.get_const_wrap().addr == m.get_const_ptr().addr
+    assert m.get_const_ref().addr == m.get_const_ptr().addr
+
+    # immutable
     with pytest.raises(ValueError):
-        v.x = 1  # immutable
+        v.x = 1
+    with pytest.raises(ValueError):
+        m.get_const_ref().x = 1
+    with pytest.raises(ValueError):
+        m.get_const_wrap().x = 1
+    with pytest.raises(ValueError):
+        m.get_const_ptr().x = 1
 
 
 def test_roundtrip():
@@ -67,6 +84,12 @@ def test_roundtrip():
     assert m.roundtrip_ref(c).x == 3
     assert m.roundtrip_wrap(c).x == 4
 
+    assert m.roundtrip_ptr(m.get_ref()).x == 2
+    assert m.roundtrip_ref(m.get_wrap()).x == 3
+    assert m.roundtrip_wrap(m.get_ptr()).x == 4
+
+    assert m.roundtrip_const_ref(c).addr == c.addr
+    assert m.roundtrip_const_wrap(c).addr == c.addr
 
 def test_roundtrip_const():
     m.reset(1)
@@ -82,8 +105,13 @@ def test_roundtrip_const():
     with pytest.raises(TypeError):
         m.roundtrip_wrap(m.get_const_ref())
 
+
     # by value, so the const ref is converted.
     assert m.roundtrip(m.get_const_ref()).x == 6  # x + 1
 
     # by const ref, so the conversion is ok.
     assert m.roundtrip_const_ref(m.get_const_ref()).x == 6
+    assert m.roundtrip_const_wrap(m.get_const_wrap()).is_immutable
+    assert m.roundtrip_const_wrap(m.get_const_ref()).is_immutable
+    assert m.roundtrip_const_ref(m.get_const_wrap()).is_immutable
+
