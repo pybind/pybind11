@@ -39,6 +39,10 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+/// HACK: Declare inline function defined in class.h to be called in move_only_holder_caster's destructor
+/// Correct solution would be to move that function into a common header
+void clear_instance(PyObject *self);
+
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {
@@ -1564,6 +1568,14 @@ public:
     using base::typeinfo;
     using base::value;
 
+    ~move_only_holder_caster() {
+        if (!holder_helper<holder_type>::get(*holder_ptr)) {
+            // if held object was actually moved, unregister it
+            clear_instance(reinterpret_cast<PyObject*>(v_h.inst));
+            v_h.value_ptr() = nullptr; // mark value as moved
+        }
+    }
+
     bool load(handle& src, bool convert) {
         bool success = base::template load_impl<move_only_holder_caster<type, holder_type>>(src, convert);
         if (success) // On success, remember src pointer to withdraw later
@@ -1578,16 +1590,7 @@ public:
     #if !defined(__ICC) && !defined(__INTEL_COMPILER)
     explicit
     #endif
-    operator holder_type&&() {
-        // In load_value() value_ptr was still valid. If it's invalid now, another argument consumed the same value before.
-        if (!v_h.value_ptr())
-            throw cast_error("Multiple access to moved argument");
-        v_h.value_ptr() = nullptr;
-        // TODO: release object instance in python
-        // clear_instance(src_handle->ptr()); ???
-
-        return std::move(*holder_ptr);
-    }
+    operator holder_type&&() { return std::move(*holder_ptr); }
 
     static handle cast(const holder_type &src, return_value_policy, handle) {
         const auto *ptr = holder_helper<holder_type>::get(src);
