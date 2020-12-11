@@ -130,9 +130,9 @@ if(DEFINED ${_Python}_INCLUDE_DIRS)
   # Only add Python for build - must be added during the import for config
   # since it has to be re-discovered.
   #
-  # This needs to be an target to it is included after the local pybind11
-  # directory, just in case there are multiple versions of pybind11, we want
-  # the one we expect.
+  # This needs to be a target to be included after the local pybind11
+  # directory, just in case there there is an installed pybind11 sitting
+  # next to Python's includes. It also ensures Python is a SYSTEM library.
   add_library(pybind11::python_headers INTERFACE IMPORTED)
   set_property(
     TARGET pybind11::python_headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
