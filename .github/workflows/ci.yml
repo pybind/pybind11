@@ -51,8 +51,8 @@ jobs:
           - runs-on: windows-latest
             python: pypy3
 
-          # PyPy2 7.3.3 segfaults, while 7.3.2 was fine. TODO: investigate
-          - runs-on: unbuntu-latest
+          # TODO: PyPy2 7.3.3 segfaults, while 7.3.2 was fine.
+          - runs-on: ubuntu-latest
             python: pypy2
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
@@ -109,7 +109,7 @@ jobs:
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
       run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -137,7 +137,7 @@ jobs:
 
     - name: C++ tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
       run: cmake --build build2 --target cpptest
 
     - name: Interface test
