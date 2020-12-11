@@ -21,10 +21,8 @@ jobs:
         - 2.7
         - 3.5
         - 3.6
-        - 3.7
-        - 3.8
         - 3.9
-        # - 3.10.0-alpha.1 - need next release for pybind11 fix
+        - 3.10-dev
         - pypy2
         - pypy3
 
@@ -44,10 +42,6 @@ jobs:
             python: 3.6
             args: >
               -DPYBIND11_FINDPYTHON=ON
-          - runs-on: ubuntu-latest
-            python: 3.8
-            args: >
-              -DPYBIND11_FINDPYTHON=ON
 
         # These items will be removed from the build matrix, keys must match.
         exclude:
@@ -57,11 +51,9 @@ jobs:
           - runs-on: windows-latest
             python: pypy3
 
-          # Let's drop a few macOS runs since that tends to be 2.7 or 3.8+
-          - runs-on: macos-latest
-            python: 3.6
-          - runs-on: macos-latest
-            python: 3.7
+          # PyPy2 7.3.3 segfaults, while 7.3.2 was fine. TODO: investigate
+          - runs-on: unbuntu-latest
+            python: pypy2
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
