@@ -102,7 +102,6 @@ set(PYBIND11_TEST_FILES
     test_eval.cpp
     test_exceptions.cpp
     test_factory_constructors.cpp
-    test_freezable_type_caster.cpp
     test_gil_scoped.cpp
     test_iostream.cpp
     test_kwargs_and_defaults.cpp
