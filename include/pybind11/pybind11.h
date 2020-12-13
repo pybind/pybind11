@@ -2185,38 +2185,55 @@ private:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
-    if (!nurse || !patient) {
-        pybind11_fail("Could not activate keep_alive!");
+
+PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient, size_t placement) {
+    // Keeping alive without placement
+    if (placement == KEEP_ALIVE_NO_PLACEMENT) {
+        if (!nurse || !patient)
+            pybind11_fail("Could not activate keep_alive!");
+
+        if (patient.is_none() || nurse.is_none())
+            return; /* Nothing to keep alive or nothing to be kept alive by */
+
+        auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
+        if (!tinfo.empty()) {
+            /* It's a pybind-registered type, so we can store the patient in the
+            * internal list. */
+            add_patient(nurse.ptr(), patient.ptr());
+        }
+        else {    
+            /* Fall back to clever approach based on weak references taken from
+            * Boost.Python. This is not used for pybind-registered types because
+            * the objects can be destroyed out-of-order in a GC pass. */
+            cpp_function disable_lifesupport([patient](handle weakref) {
+                patient.dec_ref();
+                weakref.dec_ref();
+            });
+        }
     }
 
-    if (patient.is_none() || nurse.is_none()) {
-        return; /* Nothing to keep alive or nothing to be kept alive by */
-    }
+    // Keeping alive with placement
+    else {
+        // Patient can be None.
+        if (!nurse)
+            pybind11_fail("Could not activate keep_alive with placement!");
+        if (nurse.is_none())
+            return;
 
-    auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
-    if (!tinfo.empty()) {
-        /* It's a pybind-registered type, so we can store the patient in the
-         * internal list. */
-        add_patient(nurse.ptr(), patient.ptr());
-    } else {
-        /* Fall back to clever approach based on weak references taken from
-         * Boost.Python. This is not used for pybind-registered types because
-         * the objects can be destroyed out-of-order in a GC pass. */
-        cpp_function disable_lifesupport([patient](handle weakref) {
-            patient.dec_ref();
-            weakref.dec_ref();
-        });
-
-        weakref wr(nurse, disable_lifesupport);
-
-        patient.inc_ref(); /* reference patient and leak the weak reference */
-        (void) wr.release();
+        auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
+        if (!tinfo.empty()) {
+            /* It's a pybind-registered type, so we can store the patient in the
+            * internal list. */
+            add_patient(nurse.ptr(), patient && !patient.is_none() ? patient.ptr() : nullptr, placement);
+        }
+        else {
+            pybind11_fail("Could not activate keep_alive with placement and Nurse of a non pybind-registered type!");
+        }
     }
 }
 
 PYBIND11_NOINLINE void
-keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+keep_alive_impl(size_t Nurse, size_t Patient, size_t placement, function_call &call, handle ret) {
     auto get_arg = [&](size_t n) {
         if (n == 0) {
             return ret;
@@ -2230,7 +2247,7 @@ keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
         return handle();
     };
 
-    keep_alive_impl(get_arg(Nurse), get_arg(Patient));
+    keep_alive_impl(get_arg(Nurse), get_arg(Patient), placement);
 }
 
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool>

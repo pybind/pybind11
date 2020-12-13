@@ -58,6 +58,55 @@ def test_keep_alive_argument(capture):
     assert str(excinfo.value) == "Could not activate keep_alive!"
 
 
+def test_keep_alive_with_placement(capture):
+    n_inst = ConstructorStats.detail_reg_inst()
+    # allocate parent
+    with capture:
+        p = m.Parent()
+    assert capture == "Allocating parent."
+    # allocate child and set
+    with capture:
+        p.setChildKeepAliveWithPlacement(m.Child())
+        assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    assert (
+        capture
+        == """
+        Allocating child.
+    """
+    )
+    # allocate another child and replace the existing
+    with capture:
+        p.setChildKeepAliveWithPlacement(m.Child())
+        assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    assert (
+        capture
+        == """
+        Allocating child.
+        Releasing child.
+    """
+    )
+    # pass None
+    with capture:
+        p.setChildKeepAliveWithPlacement(None)
+        assert ConstructorStats.detail_reg_inst() == n_inst + 1
+    assert (
+        capture
+        == """
+        Releasing child.
+    """
+    )
+    # delete parent
+    with capture:
+        del p
+        assert ConstructorStats.detail_reg_inst() == n_inst
+    assert (
+        capture
+        == """
+        Releasing parent.
+    """
+    )
+
+
 def test_keep_alive_return_value(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:

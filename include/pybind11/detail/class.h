@@ -369,28 +369,67 @@ extern "C" inline int pybind11_object_init(PyObject *self, PyObject *, PyObject 
     return -1;
 }
 
-inline void add_patient(PyObject *nurse, PyObject *patient) {
+inline void add_patient(PyObject *nurse, PyObject *patient, size_t placement = detail::KEEP_ALIVE_NO_PLACEMENT) {
     auto &internals = get_internals();
     auto *instance = reinterpret_cast<detail::instance *>(nurse);
-    instance->has_patients = true;
-    Py_INCREF(patient);
-    internals.patients[nurse].push_back(patient);
+
+    // add patient without placement
+    if (placement == KEEP_ALIVE_NO_PLACEMENT) {
+        instance->has_patients = true;
+        Py_INCREF(patient);
+        internals.patients[nurse].push_back(patient);
+    }
+
+    // add patient with placement
+    else {
+        // check if the placement is already taken
+        auto& patients_with_placements = internals.patients_with_placements[nurse];
+        auto existing = patients_with_placements.find(placement);
+        if (existing == patients_with_placements.end()) {
+            // no patient at a given placement: put the new one
+            if (patient) {
+                patients_with_placements.emplace(placement, patient);
+                Py_XINCREF(patient);
+                instance->has_patients = true;
+            }
+        }
+        else if (existing->second != patient) {
+            // a patient is already there and differs from the new one; exchange
+            auto previous_patient = existing->second;
+            existing->second = patient;
+            Py_XDECREF(previous_patient);
+            Py_XINCREF(patient);
+        }
+    }
 }
 
 inline void clear_patients(PyObject *self) {
     auto *instance = reinterpret_cast<detail::instance *>(self);
     auto &internals = get_internals();
+
+    // Clear patients without placements
     auto pos = internals.patients.find(self);
-    assert(pos != internals.patients.end());
-    // Clearing the patients can cause more Python code to run, which
-    // can invalidate the iterator. Extract the vector of patients
-    // from the unordered_map first.
-    auto patients = std::move(pos->second);
-    internals.patients.erase(pos);
-    instance->has_patients = false;
-    for (PyObject *&patient : patients) {
-        Py_CLEAR(patient);
+    if (pos != internals.patients.end()) {
+        // Clearing the patients can cause more Python code to run, which
+        // can invalidate the iterator. Extract the vector of patients
+        // from the unordered_map first.
+        auto patients = std::move(pos->second);
+        internals.patients.erase(pos);
+
+        for (PyObject *&patient : patients)
+            Py_CLEAR(patient);
     }
+
+    // Clear patients with placements, if any, in the same way.
+    auto pos_pl = internals.patients_with_placements.find(self);
+    if (pos_pl != internals.patients_with_placements.end()) {
+        auto patients = std::move(pos_pl->second);
+        internals.patients_with_placements.erase(pos_pl);
+        for (auto placement_record : patients)
+            Py_CLEAR(placement_record.second);
+    }
+
+    instance->has_patients = false;
 }
 
 /// Clears all internal data from the instance and removes it from registered instances in

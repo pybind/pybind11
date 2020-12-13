@@ -66,7 +66,7 @@ struct base {
 };
 
 /// Keep patient alive while nurse lives
-template <size_t Nurse, size_t Patient>
+template <size_t Nurse, size_t Patient, size_t Placement = detail::KEEP_ALIVE_NO_PLACEMENT>
 struct keep_alive {};
 
 /// Annotation indicating that a class is involved in a multiple inheritance relationship
@@ -169,7 +169,7 @@ enum op_type : int;
 struct undefined_t;
 template <op_id id, op_type ot, typename L = undefined_t, typename R = undefined_t>
 struct op_;
-void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
+void keep_alive_impl(size_t Nurse, size_t Patient, size_t Placement, function_call &call, handle ret);
 
 /// Internal data structure which holds metadata about a keyword argument
 struct argument_record {
@@ -609,12 +609,13 @@ struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_gua
  * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
  * otherwise
  */
-template <size_t Nurse, size_t Patient>
-struct process_attribute<keep_alive<Nurse, Patient>>
-    : public process_attribute_default<keep_alive<Nurse, Patient>> {
+template <size_t Nurse, size_t Patient, size_t Placement>
+struct process_attribute<keep_alive<Nurse, Patient, Placement>>
+    : public process_attribute_default<keep_alive<Nurse, Patient, Placement>>
+{
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
     static void precall(function_call &call) {
-        keep_alive_impl(Nurse, Patient, call, handle());
+        keep_alive_impl(Nurse, Patient, Placement, call, handle());
     }
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
     static void postcall(function_call &, handle) {}
@@ -622,7 +623,7 @@ struct process_attribute<keep_alive<Nurse, Patient>>
     static void precall(function_call &) {}
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void postcall(function_call &call, handle ret) {
-        keep_alive_impl(Nurse, Patient, call, ret);
+        keep_alive_impl(Nurse, Patient, Placement, call, ret);
     }
 };
 

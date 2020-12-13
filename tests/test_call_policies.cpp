@@ -47,7 +47,8 @@ TEST_SUBMODULE(call_policies, m) {
         Parent() { py::print("Allocating parent."); }
         Parent(const Parent &parent) = default;
         ~Parent() { py::print("Releasing parent."); }
-        void addChild(Child *) {}
+        void addChild(Child *) { }
+        void setChild(Child *) { }
         Child *returnChild() { return new Child(); }
         Child *returnNullChild() { return nullptr; }
         static Child *staticFunction(Parent *) { return new Child(); }
@@ -61,8 +62,8 @@ TEST_SUBMODULE(call_policies, m) {
         .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveChild", &Parent::returnNullChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>())
+        .def("setChildKeepAliveWithPlacement", &Parent::setChild, py::keep_alive<1, 2, 1>())
         .def_static("staticFunction", &Parent::staticFunction, py::keep_alive<1, 0>());
-
     m.def(
         "free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
     m.def(

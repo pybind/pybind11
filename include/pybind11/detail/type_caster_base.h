@@ -491,8 +491,11 @@ inline PyThreadState *get_thread_state_unchecked() {
 #endif
 }
 
+/// Default placement value for keep_alive. When passed, the patient is kept alive indefinitely.
+constexpr size_t KEEP_ALIVE_NO_PLACEMENT = (size_t)-1;
+
 // Forward declarations
-void keep_alive_impl(handle nurse, handle patient);
+void keep_alive_impl(handle nurse, handle patient, size_t placement = KEEP_ALIVE_NO_PLACEMENT);
 inline PyObject *make_new_instance(PyTypeObject *type);
 
 class type_caster_generic {
