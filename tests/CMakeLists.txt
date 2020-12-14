@@ -93,7 +93,6 @@ set(PYBIND11_TEST_FILES
     test_callbacks.cpp
     test_chrono.cpp
     test_class.cpp
-    test_const_ref_caster.cpp
     test_constants_and_functions.cpp
     test_copy_move.cpp
     test_custom_type_casters.cpp

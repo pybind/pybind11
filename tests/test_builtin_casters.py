@@ -425,3 +425,20 @@ def test_int_long():
 
 def test_void_caster_2():
     assert m.test_void_caster()
+
+
+def test_const_ref_caster():
+    """Verifies that const-ref is propagated through type_caster cast_op.
+    The returned ConstRefCasted type is a mimimal type that is constructed to
+    reference the casting mode used.
+    """
+    x = False
+    assert m.takes(x)
+
+    assert m.takes_ptr(x)
+    assert m.takes_ref(x)
+    assert m.takes_ref_wrap(x)
+
+    assert m.takes_const_ptr(x)
+    assert m.takes_const_ref(x)
+    assert m.takes_const_ref_wrap(x)
