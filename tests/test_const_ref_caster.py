@@ -7,12 +7,13 @@ from pybind11_tests import const_ref_caster as m
 
 
 def test_takes():
-	assert m.takes(m.ConstRefCasted())
+	x = False
+	assert m.takes(x)
 
-	assert m.takes_ptr(m.ConstRefCasted())
-	assert m.takes_ref(m.ConstRefCasted())
-	assert m.takes_ref_wrap(m.ConstRefCasted())
+	assert m.takes_ptr(x)
+	assert m.takes_ref(x)
+	assert m.takes_ref_wrap(x)
 
-	assert m.takes_const_ptr(m.ConstRefCasted())
-	assert m.takes_const_ref(m.ConstRefCasted())
-	assert m.takes_const_ref_wrap(m.ConstRefCasted())
+	assert m.takes_const_ptr(x)
+	assert m.takes_const_ref(x)
+	assert m.takes_const_ref_wrap(x)
