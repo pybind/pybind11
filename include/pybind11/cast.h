@@ -978,7 +978,7 @@ public:
         return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
-    operator std::reference_wrapper<type>() { return subcaster.operator subcaster_cast_op_type(); } 
+    operator std::reference_wrapper<type>() { return subcaster.operator subcaster_cast_op_type(); }
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name) \
