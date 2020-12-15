@@ -433,12 +433,13 @@ def test_const_ref_caster():
     reference the casting mode used.
     """
     x = False
-    assert m.takes(x)
+    assert m.takes(x) == 1
+    assert m.takes_move(x) == 1
 
-    assert m.takes_ptr(x)
-    assert m.takes_ref(x)
-    assert m.takes_ref_wrap(x)
+    assert m.takes_ptr(x) == 3
+    assert m.takes_ref(x) == 2
+    assert m.takes_ref_wrap(x) == 2
 
-    assert m.takes_const_ptr(x)
-    assert m.takes_const_ref(x)
-    assert m.takes_const_ref_wrap(x)
+    assert m.takes_const_ptr(x) == 5
+    assert m.takes_const_ref(x) == 4
+    assert m.takes_const_ref_wrap(x) == 4

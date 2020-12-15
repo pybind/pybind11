@@ -16,8 +16,7 @@
 #endif
 
 struct ConstRefCasted {
-  bool is_const;
-  bool is_ref;
+  int tag;
 };
 
 PYBIND11_NAMESPACE_BEGIN(pybind11)
@@ -31,12 +30,12 @@ class type_caster<ConstRefCasted> {
   // cast operator.
   bool load(handle, bool) { return true; }
 
-  operator ConstRefCasted&&() { value = {false, false}; return std::move(value); }
-  operator ConstRefCasted&() { value = {false, true}; return value; }
-  operator ConstRefCasted*() { value = {false, false}; return &value; }
+  operator ConstRefCasted&&() { value = {1}; return std::move(value); }
+  operator ConstRefCasted&() { value = {2}; return value; }
+  operator ConstRefCasted*() { value = {3}; return &value; }
 
-  operator const ConstRefCasted&() { value = {true, true}; return value; }
-  operator const ConstRefCasted*() { value = {true, false}; return &value; }
+  operator const ConstRefCasted&() { value = {4}; return value; }
+  operator const ConstRefCasted*() { value = {5}; return &value; }
 
   // custom cast_op to explicitly propagate types to the conversion operators.
   template <typename T_>
@@ -54,7 +53,7 @@ class type_caster<ConstRefCasted> {
           /* else */ConstRefCasted&&>>>>;
 
  private:
-  ConstRefCasted value = {false, false};
+  ConstRefCasted value = {0};
 };
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(pybind11)
@@ -246,11 +245,12 @@ TEST_SUBMODULE(builtin_casters, m) {
     });
 
     // Tests const/non-const propagation in cast_op.
-    m.def("takes", [](ConstRefCasted x) { return !x.is_const && !x.is_ref; });
-    m.def("takes_ptr", [](ConstRefCasted* x) { return !x->is_const && !x->is_ref; });
-    m.def("takes_ref", [](ConstRefCasted& x) { return !x.is_const && x.is_ref; });
-    m.def("takes_ref_wrap", [](std::reference_wrapper<ConstRefCasted> x) { return !x.get().is_const && x.get().is_ref; });
-    m.def("takes_const_ptr", [](const ConstRefCasted* x) { return x->is_const && !x->is_ref; });
-    m.def("takes_const_ref", [](const ConstRefCasted& x) { return x.is_const && x.is_ref; });
-    m.def("takes_const_ref_wrap", [](std::reference_wrapper<const ConstRefCasted> x) { return x.get().is_const && x.get().is_ref; });
+    m.def("takes", [](ConstRefCasted x) { return x.tag; });
+    m.def("takes_move", [](ConstRefCasted&& x) { return x.tag; });
+    m.def("takes_ptr", [](ConstRefCasted* x) { return x->tag; });
+    m.def("takes_ref", [](ConstRefCasted& x) { return x.tag; });
+    m.def("takes_ref_wrap", [](std::reference_wrapper<ConstRefCasted> x) { return x.get().tag; });
+    m.def("takes_const_ptr", [](const ConstRefCasted* x) { return x->tag; });
+    m.def("takes_const_ref", [](const ConstRefCasted& x) { return x.tag; });
+    m.def("takes_const_ref_wrap", [](std::reference_wrapper<const ConstRefCasted> x) { return x.get().tag; });
 }
