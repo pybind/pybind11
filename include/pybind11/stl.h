@@ -144,11 +144,11 @@ template <typename Type, typename Value> struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<sequence>(src) || isinstance<str>(src))
+        if (!isinstance<iterable>(src) || isinstance<str>(src))
             return false;
-        auto s = reinterpret_borrow<sequence>(src);
+        auto s = reinterpret_borrow<iterable>(src);
         value.clear();
-        reserve_maybe(s, &value);
+        reserve_maybe(s);
         for (auto it : s) {
             value_conv conv;
             if (!conv.load(it, convert))
@@ -159,10 +159,12 @@ template <typename Type, typename Value> struct list_caster {
     }
 
 private:
-    template <typename T = Type,
-              enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
-    void reserve_maybe(sequence s, Type *) { value.reserve(s.size()); }
-    void reserve_maybe(sequence, void *) { }
+    template <typename T = Type>
+    void reserve_maybe(decltype(std::declval<T>().reserve(0), iterable{}) it) {
+      if (hasattr(it, "__len__"))
+          value.reserve(len(it));
+    }
+    void reserve_maybe(handle) { } // always a worse match, no ambiguity
 
 public:
     template <typename T>
