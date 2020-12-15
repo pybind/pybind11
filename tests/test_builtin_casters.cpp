@@ -20,7 +20,6 @@ struct ConstRefCasted {
   bool is_ref;
 };
 
-
 PYBIND11_NAMESPACE_BEGIN(pybind11)
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <>
@@ -28,6 +27,8 @@ class type_caster<ConstRefCasted> {
  public:
   static constexpr auto name = _<ConstRefCasted>();
 
+  // Input is unimportant, a new value will always be constructed based on the
+  // cast operator.
   bool load(handle, bool) { return true; }
 
   operator ConstRefCasted&&() { value = {false, false}; return std::move(value); }
@@ -244,7 +245,7 @@ TEST_SUBMODULE(builtin_casters, m) {
         return py::cast<void *>(o) == v;
     });
 
-    // Tests const/non-const propagation in cast_op
+    // Tests const/non-const propagation in cast_op.
     m.def("takes", [](ConstRefCasted x) { return !x.is_const && !x.is_ref; });
     m.def("takes_ptr", [](ConstRefCasted* x) { return !x->is_const && !x->is_ref; });
     m.def("takes_ref", [](ConstRefCasted& x) { return !x.is_const && x.is_ref; });
