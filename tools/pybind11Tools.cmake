@@ -81,11 +81,19 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
-# Only add Python for build - must be added during the import for config since it has to be re-discovered.
+# Only add Python for build - must be added during the import for config since
+# it has to be re-discovered.
+#
+# This needs to be an target to it is included after the local pybind11
+# directory, just in case there are multiple versions of pybind11, we want the
+# one we expect.
+add_library(pybind11::python_headers INTERFACE IMPORTED)
+set_property(TARGET pybind11::python_headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                                                      "$<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>")
 set_property(
   TARGET pybind11::pybind11
   APPEND
-  PROPERTY INTERFACE_INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>)
+  PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_headers)
 
 set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}" "${PYTHON_INCLUDE_DIRS}"
