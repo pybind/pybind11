@@ -340,8 +340,6 @@ inline PyObject *make_new_instance(PyTypeObject *type) {
     // Allocate the value/holder internals:
     inst->allocate_layout();
 
-    inst->owned = true;
-
     return self;
 }
 
