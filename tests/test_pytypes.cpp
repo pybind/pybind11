@@ -254,15 +254,18 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("convert_to_pybind11_str", [](py::object o) { return py::str(o); });
 
-    m.def("nonconverting_constructor", [](std::string type, py::object value) -> py::object {
+    m.def("nonconverting_constructor", [](std::string type, py::object value, bool move) -> py::object {
         if (type == "bytes") {
-            return py::bytes(value);
+            return move ? py::bytes(std::move(value)) : py::bytes(value);
         }
         else if (type == "none") {
-            return py::none(value);
+            return move ? py::none(std::move(value)) : py::none(value);
         }
         else if (type == "ellipsis") {
-            return py::ellipsis(value);
+            return move ? py::ellipsis(std::move(value)) : py::ellipsis(value);
+        }
+        else if (type == "type") {
+            return move ? py::type(std::move(value)) : py::type(value);
         }
         throw std::runtime_error("Invalid type");
     });
