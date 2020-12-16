@@ -1168,17 +1168,6 @@ inline void add_class_method(object& cls, const char *name_, const cpp_function 
     }
 }
 
-// Thread state manipulation C API should not be called while Python runtime is finalizing.
-// For more detail see https://docs.python.org/3.7/c-api/init.html#c.PyEval_RestoreThread
-// `is_finalizing()` provides a version agnostic way to check if runtime is finalizing.
-inline bool is_finalizing() {
-#if PY_VERSION_HEX >= 0x03070000
-    return _Py_IsFinalizing();
-#else
-    return false;
-#endif
-}
-
 PYBIND11_NAMESPACE_END(detail)
 
 /// Given a pointer to a member function, cast it to its `Derived` version.
@@ -2132,11 +2121,19 @@ public:
                     pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             #endif
             PyThreadState_Clear(tstate);
-            if (!detail::is_finalizing())
+            if (active)
                 PyThreadState_DeleteCurrent();
             PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
             release = false;
         }
+    }
+
+    /// This method will disable the PyThreadState_DeleteCurrent call. This
+    /// should be called if the interpreter is shutting down, as the thread
+    /// deletion is not allowed during shutdown.
+    /// (_Py_IsFinalizing() on Python 3.7+)
+    PYBIND11_NOINLINE void disarm() {
+        active = false;
     }
 
     PYBIND11_NOINLINE ~gil_scoped_acquire() {
@@ -2147,6 +2144,7 @@ public:
 private:
     PyThreadState *tstate = nullptr;
     bool release = true;
+    bool active = true;
 };
 
 class gil_scoped_release {
@@ -2162,11 +2160,20 @@ public:
             PYBIND11_TLS_DELETE_VALUE(key);
         }
     }
+    //
+    /// This method will disable the PyThreadState_DeleteCurrent call. This
+    /// should be called if the interpreter is shutting down, as the thread
+    /// deletion is not allowed during shutdown.
+    /// (_Py_IsFinalizing() on Python 3.7+)
+    PYBIND11_NOINLINE void disarm() {
+        active = false;
+    }
+
     ~gil_scoped_release() {
         if (!tstate)
             return;
         // `PyEval_RestoreThread()` should not be called if runtime is finalizing
-        if (!detail::is_finalizing())
+        if (active)
             PyEval_RestoreThread(tstate);
         if (disassoc) {
             auto key = detail::get_internals().tstate;
@@ -2176,6 +2183,7 @@ public:
 private:
     PyThreadState *tstate;
     bool disassoc;
+    bool active = true;
 };
 #elif defined(PYPY_VERSION)
 class gil_scoped_acquire {
@@ -2183,6 +2191,7 @@ class gil_scoped_acquire {
 public:
     gil_scoped_acquire() { state = PyGILState_Ensure(); }
     ~gil_scoped_acquire() { PyGILState_Release(state); }
+    void disarm() {}
 };
 
 class gil_scoped_release {
@@ -2190,10 +2199,15 @@ class gil_scoped_release {
 public:
     gil_scoped_release() { state = PyEval_SaveThread(); }
     ~gil_scoped_release() { PyEval_RestoreThread(state); }
+    void disarm() {}
 };
 #else
-class gil_scoped_acquire { };
-class gil_scoped_release { };
+class gil_scoped_acquire {
+    void disarm() {}
+};
+class gil_scoped_release {
+    void disarm() {}
+};
 #endif
 
 error_already_set::~error_already_set() {
