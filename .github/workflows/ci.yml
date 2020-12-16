@@ -21,10 +21,8 @@ jobs:
         - 2.7
         - 3.5
         - 3.6
-        - 3.7
-        - 3.8
         - 3.9
-        # - 3.10.0-alpha.1 - need next release for pybind11 fix
+        - 3.10-dev
         - pypy2
         - pypy3
 
@@ -44,10 +42,6 @@ jobs:
             python: 3.6
             args: >
               -DPYBIND11_FINDPYTHON=ON
-          - runs-on: ubuntu-latest
-            python: 3.8
-            args: >
-              -DPYBIND11_FINDPYTHON=ON
 
         # These items will be removed from the build matrix, keys must match.
         exclude:
@@ -57,11 +51,9 @@ jobs:
           - runs-on: windows-latest
             python: pypy3
 
-          # Let's drop a few macOS runs since that tends to be 2.7 or 3.8+
-          - runs-on: macos-latest
-            python: 3.6
-          - runs-on: macos-latest
-            python: 3.7
+          # TODO: PyPy2 7.3.3 segfaults, while 7.3.2 was fine.
+          - runs-on: ubuntu-latest
+            python: pypy2
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
@@ -117,7 +109,7 @@ jobs:
 
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
       run: cmake --build .  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -145,7 +137,7 @@ jobs:
 
     - name: C++ tests
       # TODO: Figure out how to load the DLL on Python 3.8+
-      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9))"
+      if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
       run: cmake --build build2 --target cpptest
 
     - name: Interface test
@@ -250,44 +242,48 @@ jobs:
       run: cmake --build build --target pytest
 
 
-  # Testing CentOS 8 + PGI compilers
-  centos-nvhpc8:
-    runs-on: ubuntu-latest
-    name: "🐍 3 • CentOS8 / PGI 20.7 • x64"
-    container: centos:8
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Add Python 3 and a few requirements
-      run: yum update -y && yum install -y git python3-devel python3-numpy python3-pytest make environment-modules
-
-    - name: Install CMake with pip
-      run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install cmake --prefer-binary
-
-    - name: Install NVidia HPC SDK
-      run: yum -y install https://developer.download.nvidia.com/hpc-sdk/nvhpc-20-7-20.7-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/nvhpc-2020-20.7-1.x86_64.rpm
-
-    - name: Configure
-      shell: bash
-      run: |
-        source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.7
-        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
-
-    - name: Build
-      run: cmake --build build -j 2 --verbose
-
-    - name: Python tests
-      run: cmake --build build --target pytest
-
-    - name: C++ tests
-      run: cmake --build build --target cpptest
-
-    - name: Interface test
-      run: cmake --build build --target test_cmake_build
+# TODO: Internal compiler error - report to NVidia
+#  # Testing CentOS 8 + PGI compilers
+#  centos-nvhpc8:
+#    runs-on: ubuntu-latest
+#    name: "🐍 3 • CentOS8 / PGI 20.11 • x64"
+#    container: centos:8
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#
+#    - name: Add Python 3 and a few requirements
+#      run: yum update -y && yum install -y git python3-devel python3-numpy python3-pytest make environment-modules
+#
+#    - name: Install CMake with pip
+#      run: |
+#        python3 -m pip install --upgrade pip
+#        python3 -m pip install cmake --prefer-binary
+#
+#    - name: Install NVidia HPC SDK
+#      run: >
+#        yum -y install
+#        https://developer.download.nvidia.com/hpc-sdk/20.11/nvhpc-20-11-20.11-1.x86_64.rpm
+#        https://developer.download.nvidia.com/hpc-sdk/20.11/nvhpc-2020-20.11-1.x86_64.rpm
+#
+#    - name: Configure
+#      shell: bash
+#      run: |
+#        source /etc/profile.d/modules.sh
+#        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.11
+#        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+#
+#    - name: Build
+#      run: cmake --build build -j 2 --verbose
+#
+#    - name: Python tests
+#      run: cmake --build build --target pytest
+#
+#    - name: C++ tests
+#      run: cmake --build build --target cpptest
+#
+#    - name: Interface test
+#      run: cmake --build build --target test_cmake_build
 
 
   # Testing on CentOS 7 + PGI compilers, which seems to require more workarounds
