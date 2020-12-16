@@ -9,7 +9,9 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.6.2 (TBA, not yet released)
 ------------------------------
 
-* Details to follow here
+* `type_caster<std::reference_wrapper<T>>` was adjusted to support
+  const/non-const propagation in `cast_op`.
+  `#2705 <https://github.com/pybind/pybind11/pull/2705>`_
 
 
 v2.6.1 (Nov 11, 2020)
