@@ -315,6 +315,7 @@ def test_reference_wrapper():
     """std::reference_wrapper for builtin and user types"""
     assert m.refwrap_builtin(42) == 420
     assert m.refwrap_usertype(UserType(42)) == 42
+    assert m.refwrap_usertype_const(UserType(42)) == 42
 
     with pytest.raises(TypeError) as excinfo:
         m.refwrap_builtin(None)
@@ -323,6 +324,9 @@ def test_reference_wrapper():
     with pytest.raises(TypeError) as excinfo:
         m.refwrap_usertype(None)
     assert "incompatible function arguments" in str(excinfo.value)
+
+    assert m.refwrap_lvalue().value == 1
+    assert m.refwrap_lvalue_const().value == 1
 
     a1 = m.refwrap_list(copy=True)
     a2 = m.refwrap_list(copy=True)
@@ -421,3 +425,21 @@ def test_int_long():
 
 def test_void_caster_2():
     assert m.test_void_caster()
+
+
+def test_const_ref_caster():
+    """Verifies that const-ref is propagated through type_caster cast_op.
+    The returned ConstRefCasted type is a mimimal type that is constructed to
+    reference the casting mode used.
+    """
+    x = False
+    assert m.takes(x) == 1
+    assert m.takes_move(x) == 1
+
+    assert m.takes_ptr(x) == 3
+    assert m.takes_ref(x) == 2
+    assert m.takes_ref_wrap(x) == 2
+
+    assert m.takes_const_ptr(x) == 5
+    assert m.takes_const_ref(x) == 4
+    assert m.takes_const_ref_wrap(x) == 4

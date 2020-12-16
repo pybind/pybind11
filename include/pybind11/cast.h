@@ -960,9 +960,14 @@ template <typename type> class type_caster<std::reference_wrapper<type>> {
 private:
     using caster_t = make_caster<type>;
     caster_t subcaster;
-    using subcaster_cast_op_type = typename caster_t::template cast_op_type<type>;
-    static_assert(std::is_same<typename std::remove_const<type>::type &, subcaster_cast_op_type>::value,
-            "std::reference_wrapper<T> caster requires T to have a caster with an `T &` operator");
+    using reference_t = type&;
+    using subcaster_cast_op_type =
+        typename caster_t::template cast_op_type<reference_t>;
+
+    static_assert(std::is_same<typename std::remove_const<type>::type &, subcaster_cast_op_type>::value ||
+                  std::is_same<reference_t, subcaster_cast_op_type>::value,
+                  "std::reference_wrapper<T> caster requires T to have a caster with an "
+                  "`operator T &()` or `operator const T &()`");
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
     static constexpr auto name = caster_t::name;
@@ -973,7 +978,7 @@ public:
         return caster_t::cast(&src.get(), policy, parent);
     }
     template <typename T> using cast_op_type = std::reference_wrapper<type>;
-    operator std::reference_wrapper<type>() { return subcaster.operator subcaster_cast_op_type&(); }
+    operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name) \
