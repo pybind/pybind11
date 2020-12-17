@@ -238,6 +238,12 @@ TEST_SUBMODULE(stl, m) {
         .def("member_initialized", &opt_exp_holder::member_initialized);
 #endif
 
+#ifdef PYBIND11_HAS_FILESYSTEM
+    // test_fs_path
+    m.attr("has_filesystem") = true;
+    m.def("parent_path", [](const std::filesystem::path& p) { return p.parent_path(); });
+#endif
+
 #ifdef PYBIND11_HAS_VARIANT
     static_assert(std::is_same<py::detail::variant_caster_visitor::result_type, py::handle>::value,
                   "visitor::result_type is required by boost::variant in C++11 mode");
