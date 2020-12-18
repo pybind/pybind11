@@ -602,7 +602,6 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.4
       with:
         cmake-version: 3.19.1
-      
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1
