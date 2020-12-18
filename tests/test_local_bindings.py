@@ -193,7 +193,7 @@ def test_stl_caster_vs_stl_bind(msg):
     v2 = [1, 2, 3]
     assert m.load_vector_via_caster(v2) == 6
     with pytest.raises(TypeError) as excinfo:
-        cm.load_vector_via_binding(v2) == 6
+        cm.load_vector_via_binding(v2)
     assert (
         msg(excinfo.value)
         == """

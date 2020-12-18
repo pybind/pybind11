@@ -73,25 +73,25 @@ Members:
     assert not (y == "2")
 
     with pytest.raises(TypeError):
-        y < object()
+        y < object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y <= object()
+        y <= object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y > object()
+        y > object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y >= object()
+        y >= object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y | object()
+        y | object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y & object()
+        y & object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y ^ object()
+        y ^ object()  # noqa: B015
 
     assert int(m.UnscopedEnum.ETwo) == 2
     assert str(m.UnscopedEnum(2)) == "UnscopedEnum.ETwo"
@@ -134,13 +134,13 @@ def test_scoped_enum():
     assert not (z == object())
     # Scoped enums will *NOT* accept >, <, >= and <= int comparisons (Will throw exceptions)
     with pytest.raises(TypeError):
-        z > 3
+        z > 3  # noqa: B015
     with pytest.raises(TypeError):
-        z < 3
+        z < 3  # noqa: B015
     with pytest.raises(TypeError):
-        z >= 3
+        z >= 3  # noqa: B015
     with pytest.raises(TypeError):
-        z <= 3
+        z <= 3  # noqa: B015
 
     # order
     assert m.ScopedEnum.Two < m.ScopedEnum.Three
