@@ -2128,10 +2128,11 @@ public:
         }
     }
 
-    /// This method will disable the PyThreadState_DeleteCurrent call. This
-    /// should be called if the interpreter is shutting down, as the thread
-    /// deletion is not allowed during shutdown.
-    /// (_Py_IsFinalizing() on Python 3.7+)
+    /// This method will disable the PyThreadState_DeleteCurrent call and the
+    /// GIL won't be acquired. This method should be used if the interpreter
+    /// could be shutting down when this is called, as thread deletion is not
+    /// allowed during shutdown. Check _Py_IsFinalizing() on Python 3.7+, and
+    /// protect subsequent code.
     PYBIND11_NOINLINE void disarm() {
         active = false;
     }
@@ -2160,11 +2161,12 @@ public:
             PYBIND11_TLS_DELETE_VALUE(key);
         }
     }
-    //
-    /// This method will disable the PyThreadState_DeleteCurrent call. This
-    /// should be called if the interpreter is shutting down, as the thread
-    /// deletion is not allowed during shutdown.
-    /// (_Py_IsFinalizing() on Python 3.7+)
+
+    /// This method will disable the PyThreadState_DeleteCurrent call and the
+    /// GIL won't be acquired. This method should be used if the interpreter
+    /// could be shutting down when this is called, as thread deletion is not
+    /// allowed during shutdown. Check _Py_IsFinalizing() on Python 3.7+, and
+    /// protect subsequent code.
     PYBIND11_NOINLINE void disarm() {
         active = false;
     }
