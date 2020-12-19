@@ -323,7 +323,7 @@ TEST_SUBMODULE(class_, m) {
 
     class PublicistB : public ProtectedB {
     public:
-    ~PublicistB() override {};
+        ~PublicistB() override {};  // NOLINT(modernize-use-equals-default) breaks ICPC
         using ProtectedB::foo;
     };
 
