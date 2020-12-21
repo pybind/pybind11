@@ -232,7 +232,8 @@ def has_flag(compiler, flag):
     with tmp_chdir():
         fname = "flagcheck.cpp"
         with open(fname, "w") as f:
-            f.write("int main (int argc, char **argv) { return 0; }")
+            # Don't trigger -Wunused-parameter.
+            f.write("int main (int, char **) { return 0; }")
 
         try:
             compiler.compile([fname], extra_postargs=[flag])
