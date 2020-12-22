@@ -6,10 +6,35 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
+
 v2.6.2 (TBA, not yet released)
 ------------------------------
 
-* Details to follow here
+
+* Fixed segfault in multithreaded environments when using ``scoped_ostream_redirect``.
+  `#2675 <https://github.com/pybind/pybind11/pull/2675>`_
+
+* CMake: mixing local and installed pybind11's would prioritize the installed one over the local one (regression in 2.6.0).
+  `#2716 <https://github.com/pybind/pybind11/pull/2716>`_
+
+* Fix bug where the constructor of `object` subclasses would not throw on being passed a Python object of the wrong type.
+  `#2701 <https://github.com/pybind/pybind11/pull/2701>`_
+
+* Fixed assertion error related to unhandled (later overwritten) exception in CPython 3.8 and 3.9 debug builds.
+  `#2685 <https://github.com/pybind/pybind11/pull/2685>`_
+
+* Fix ``py::gil_scoped_acquire`` assert with CPython 3.9 debug build.
+  `#2683 <https://github.com/pybind/pybind11/pull/2683>`_
+
+* Fixes segfaults in multithreaded environments when using ``scoped_ostream_redirect``.
+  `#2675 <https://github.com/pybind/pybind11/pull/2675>`_
+
+* Fix issue with FindPython2/FindPython3 not working with ``pybind11::embed``.
+  `#2662 <https://github.com/pybind/pybind11/pull/2662>`_
+
+* Allow thread termination to be avoided during shutdown for CPython 3.7+ via ``.disarm``.
+  `#2657 <https://github.com/pybind/pybind11/pull/2657>`_
+
 
 
 v2.6.1 (Nov 11, 2020)
