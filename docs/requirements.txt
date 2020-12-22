@@ -1,7 +1,7 @@
-breathe==4.20.0
+breathe==4.25.1
 commonmark==0.9.1
-recommonmark==0.6.0
-sphinx==3.2.1
+recommonmark==0.7.1
+sphinx==3.3.1
 sphinx_rtd_theme==0.5.0
-sphinxcontrib-moderncmakedomain==3.13
+sphinxcontrib-moderncmakedomain==3.17
 sphinxcontrib-svg2pdfconverter==1.1.0
