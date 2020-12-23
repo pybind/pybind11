@@ -409,7 +409,7 @@ jobs:
         echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
 
     - name: Add ICC & Python 3
-      run: sudo apt-get update; sudo apt-get install -y intel-oneapi-dpcpp-cpp-compiler-pro cmake python3-dev python3-numpy python3-pytest python3-pip
+      run: sudo apt-get update; sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic cmake python3-dev python3-numpy python3-pytest python3-pip
 
     - name: Update pip & pytest
       shell: bash
