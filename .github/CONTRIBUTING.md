@@ -126,13 +126,25 @@ cmake --build build --target check
 `--target` can be spelled `-t` in CMake 3.15+. You can also run individual
 tests with these targets:
 
-* `pytest`: Python tests only
+* `pytest`: Python tests only, using the
+[pytest](https://docs.pytest.org/en/stable/) framework
 * `cpptest`: C++ tests only
 * `test_cmake_build`: Install / subdirectory tests
 
 If you want to build just a subset of tests, use
 `-DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp"`. If this is
 empty, all tests will be built.
+
+You may also pass flags to the `pytest` target by editing `tests/pytest.ini` or
+by using the `PYTEST_ADDOPTS` environment variable
+(see [`pytest` docs](https://docs.pytest.org/en/2.7.3/customize.html#adding-default-options)). As an example:
+
+```bash
+env PYTEST_ADDOPTS="--capture=no --exitfirst" \
+    cmake --build build --target pytest
+# Or using abbreviated flags
+env PYTEST_ADDOPTS="-s -x" cmake --build build --target pytest
+```
 
 ### Formatting
 
