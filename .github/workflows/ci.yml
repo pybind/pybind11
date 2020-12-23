@@ -416,7 +416,7 @@ jobs:
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         python3 -m pip install --upgrade pip
-        python3 -m pip install --upgrade pytest
+        python3 -m pip install --upgrade pytest==5.4.3
 
     - name: Configure
       shell: bash
