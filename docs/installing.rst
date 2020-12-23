@@ -28,10 +28,6 @@ From here, you can now include ``extern/pybind11/include``, or you can use
 the various integration tools (see :ref:`compiling`) pybind11 provides directly
 from the local folder.
 
-You may also need to ``export PYTHONPATH='PATH_TO/extern/pybind11'``. This
-updates your Python module search path, which is required for commands such as
-``python3 -m pybind11 --includes`` to find and use the pybind11 git submodule.
-
 Include with PyPI
 =================
 
