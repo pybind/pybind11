@@ -46,6 +46,7 @@
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
+#include "detail/typeid.h"
 
 #include <memory>
 #include <vector>
@@ -1569,6 +1570,23 @@ inline str enum_name(handle arg) {
     return "???";
 }
 
+template <typename Type, typename Scalar, bool is_convertible = true>
+struct enum_value {
+    static Scalar run(handle arg) {
+        Type value = pybind11::cast<Type>(arg);
+        return static_cast<Scalar>(value);
+    }
+};
+
+template <typename Type, typename Scalar>
+struct enum_value<Type, Scalar, false> {
+    static Scalar run(handle) {
+      throw pybind11::cast_error(
+            "Enum for " + type_id<Type>() + " is not convertible to " +
+            type_id<Scalar>());
+    }
+};
+
 struct enum_base {
     enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
 
@@ -1728,7 +1746,13 @@ public:
       : class_<Type>(scope, name, extra...), m_base(*this, scope) {
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Scalar>::value;
+        auto property = handle((PyObject *) &PyProperty_Type);
         m_base.init(is_arithmetic, is_convertible);
+
+        attr("value") = property(
+            cpp_function(
+                &detail::enum_value<Type, Scalar, is_convertible>::run,
+                pybind11::name("value"), is_method(*this)));
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
         def("__int__", [](Type value) { return (Scalar) value; });
