@@ -1719,7 +1719,6 @@ public:
     using Base = class_<Type>;
     using Base::def;
     using Base::attr;
-    using Base::def_property;
     using Base::def_property_readonly;
     using Base::def_property_readonly_static;
     using Scalar = typename std::underlying_type<Type>::type;
@@ -1732,7 +1731,7 @@ public:
         m_base.init(is_arithmetic, is_convertible);
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
-        def_property("value", [](Type value) { return (Scalar) value; }, nullptr);
+        def_property_readonly("value", [](Type value) { return (Scalar) value; });
         def("__int__", [](Type value) { return (Scalar) value; });
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
