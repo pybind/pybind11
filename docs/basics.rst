@@ -140,7 +140,7 @@ On Linux, the above example can be compiled using the following command:
 
 .. note::
 
-    If you used :ref:`include-as-a-submodule` to install the pybind11 source,
+    If you used :ref:`include_as_a_submodule` to install the pybind11 source,
     then use ``$(python3-config --includes) -Iextern/pybind11/include``
     instead of ``$(python3 -m pybind11 --includes)`` in the above compilation.
 
