@@ -33,3 +33,8 @@ def test_eval_empty_globals():
     g = {}
     assert "__builtins__" in m.eval_empty_globals(g)
     assert "__builtins__" in g
+
+
+def test_eval_closure():
+    local = m.test_eval_closure()
+    assert local["func"]() == 10

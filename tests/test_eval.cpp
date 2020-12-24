@@ -15,6 +15,7 @@ TEST_SUBMODULE(eval_, m) {
     // test_evals
 
     auto global = py::dict(py::module_::import("__main__").attr("__dict__"));
+    py::handle copy = py::module::import("copy").attr("copy");
 
     m.def("test_eval_statements", [global]() {
         auto local = py::dict();
@@ -95,5 +96,16 @@ TEST_SUBMODULE(eval_, m) {
             global = py::dict();
         auto int_class = py::eval("isinstance(42, int)", global);
         return global;
+    });
+
+    m.def("test_eval_closure", [global, copy]() {
+        py::dict local = copy(global);
+        py::exec(R"(
+            closure_value = 10
+
+            def func():
+                return closure_value
+            )", local, local);
+        return local;
     });
 }
