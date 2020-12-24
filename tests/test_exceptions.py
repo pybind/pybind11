@@ -50,7 +50,15 @@ def test_python_call_in_catch():
     assert d["good"] is True
 
 
-@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+if hasattr(pytest, "PytestUnraisableExceptionWarning"):  # Python >= 3.8 and pytest >= 6
+    ignore_pytest_unraisable_warning = pytest.mark.filterwarnings(
+        "ignore::pytest.PytestUnraisableExceptionWarning"
+    )
+else:
+    ignore_pytest_unraisable_warning = lambda f: f  # NOQA: E731
+
+
+@ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     hooked = False
     triggered = [False]  # mutable, so Python 2.7 closure can modify it
