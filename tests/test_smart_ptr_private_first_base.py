@@ -12,7 +12,7 @@ def test_make_drvd_pass_base():
 
 def test_make_drvd_up_cast_pass_drvd():
     b = m.make_shared_drvd_up_cast()
-    # the base return is up-cast immediately.
+    # the base return is down-cast immediately.
     assert b.__class__.__name__ == "drvd"
     i = m.pass_shared_drvd(b)
     assert i == 200
