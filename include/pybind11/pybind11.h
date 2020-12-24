@@ -1569,6 +1569,59 @@ inline str enum_name(handle arg) {
     return "???";
 }
 
+class enum_meta_info {
+public:
+    static pybind11::object enum_meta_cls() {
+        return get().enum_meta_cls_;
+    }
+
+    static pybind11::object enum_base_cls() {
+        return get().enum_base_cls_;
+    }
+
+private:
+    template <typename T>
+    friend T& pybind11::get_or_create_shared_data(const std::string&);
+
+    static const enum_meta_info& get() {
+        return pybind11::get_or_create_shared_data<enum_meta_info>(
+            "_pybind11_enum_meta_info");
+    }
+
+    enum_meta_info() {
+        handle copy = pybind11::module::import("copy").attr("copy");
+        locals_ = copy(pybind11::globals());
+        locals_["pybind11_meta_cls"] = reinterpret_borrow<object>(
+            reinterpret_cast<PyObject*>(get_internals().default_metaclass));
+        locals_["pybind11_base_cls"] = reinterpret_borrow<object>(
+            get_internals().instance_base);
+        // TODO: Make the base class work.
+        const char code[] = R"""(
+pybind11_enum_base_cls = None
+
+class pybind11_enum_meta_cls(pybind11_meta_cls):
+    is_pybind11_enum = True
+
+    def __iter__(cls):
+        return iter(cls.__members__.values())
+
+    def __len__(cls):
+        return len(cls.__members__)
+)""";
+        PyObject *result = PyRun_String(
+            code, Py_file_input, locals_.ptr(), locals_.ptr());
+        if (result == nullptr) {
+            throw error_already_set();
+        }
+        enum_meta_cls_ = locals_["pybind11_enum_meta_cls"];
+        enum_base_cls_ = locals_["pybind11_enum_base_cls"];
+    }
+
+    pybind11::object enum_meta_cls_;
+    pybind11::object enum_base_cls_;
+    pybind11::dict locals_;
+};
+
 struct enum_base {
     enum_base(handle base, handle parent) : m_base(base), m_parent(parent) { }
 
@@ -1725,7 +1778,13 @@ public:
 
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra&... extra)
-      : class_<Type>(scope, name, extra...), m_base(*this, scope) {
+      : class_<Type>(
+            scope, name,
+            // Can't re-declare base type???
+            // detail::enum_meta_info::enum_base_cls(),
+            pybind11::metaclass(detail::enum_meta_info::enum_meta_cls()),
+            extra...),
+        m_base(*this, scope) {
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Scalar>::value;
         m_base.init(is_arithmetic, is_convertible);
