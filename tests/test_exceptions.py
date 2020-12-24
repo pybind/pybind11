@@ -50,12 +50,13 @@ def test_python_call_in_catch():
     assert d["good"] is True
 
 
-if hasattr(pytest, "PytestUnraisableExceptionWarning"):  # Python >= 3.8 and pytest >= 6
-    ignore_pytest_unraisable_warning = pytest.mark.filterwarnings(
-        "ignore::pytest.PytestUnraisableExceptionWarning"
-    )
-else:
-    ignore_pytest_unraisable_warning = lambda f: f  # NOQA: E731
+def ignore_pytest_unraisable_warning(f):
+    unraisable = "PytestUnraisableExceptionWarning"
+    if hasattr(pytest, unraisable):  # Python >= 3.8 and pytest >= 6
+        dec = pytest.mark.filterwarnings("ignore::pytest.{}".format(unraisable))
+        return dec(f)
+    else:
+        return f
 
 
 @ignore_pytest_unraisable_warning
