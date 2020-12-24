@@ -565,7 +565,7 @@ On Linux, you can compile an example such as the one given in
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
 The flags given here assume that you're using Python 3. For Python 2, just
 change the executable appropriately (to ``python`` or ``python2``).
@@ -577,7 +577,7 @@ using ``pip`` or ``conda``. If it hasn't, you can also manually specify
 ``python3-config --includes``.
 
 Note that Python 2.7 modules don't use a special suffix, so you should simply
-use ``example.so`` instead of ``example`python3-config --extension-suffix```.
+use ``example.so`` instead of ``example$(python3-config --extension-suffix)``.
 Besides, the ``--extension-suffix`` option may or may not be available, depending
 on the distribution; in the latter case, the module extension can be manually
 set to ``.so``.
@@ -588,7 +588,7 @@ building the module:
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` example.cpp -o example`python3-config --extension-suffix`
+    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section

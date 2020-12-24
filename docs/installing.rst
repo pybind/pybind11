@@ -8,6 +8,8 @@ There are several ways to get the pybind11 source, which lives at
 developers recommend one of the first three ways listed here, submodule, PyPI,
 or conda-forge, for obtaining pybind11.
 
+.. _include_as_a_submodule:
+
 Include as a submodule
 ======================
 
