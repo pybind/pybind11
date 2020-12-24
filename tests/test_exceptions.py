@@ -50,13 +50,24 @@ def test_python_call_in_catch():
     assert d["good"] is True
 
 
+def ignore_pytest_unraisable_warning(f):
+    unraisable = "PytestUnraisableExceptionWarning"
+    if hasattr(pytest, unraisable):  # Python >= 3.8 and pytest >= 6
+        dec = pytest.mark.filterwarnings("ignore::pytest.{}".format(unraisable))
+        return dec(f)
+    else:
+        return f
+
+
+@ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     hooked = False
     triggered = [False]  # mutable, so Python 2.7 closure can modify it
 
     if hasattr(sys, "unraisablehook"):  # Python 3.8+
         hooked = True
-        default_hook = sys.unraisablehook
+        # Don't take `sys.unraisablehook`, as that's overwritten by pytest
+        default_hook = sys.__unraisablehook__
 
         def hook(unraisable_hook_args):
             exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
