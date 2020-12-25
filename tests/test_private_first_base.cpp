@@ -28,19 +28,16 @@ struct base {
   base() : base_id(100) {}
   virtual ~base() = default;
   virtual int id() const { return base_id; }
-  base(const base&) = default;
+  base(const base&) = delete;
   int base_id;
 };
 
 struct private_first_base {  // Any class with a virtual function will do.
-  private_first_base() {}
   virtual void some_other_virtual_function() const {}
   virtual ~private_first_base() = default;
-  private_first_base(const private_first_base&) = default;
 };
 
 struct drvd : private private_first_base, public base {
-  drvd() {}
   int id() const override { return 2 * base_id; }
 };
 
