@@ -439,9 +439,14 @@ protected:
 
         /* Install docstring */
         auto *func = (PyCFunctionObject *) m_ptr;
-        if (func->m_ml->ml_doc)
+        // Free and reset previous docstring if it exists
+        if (func->m_ml->ml_doc) {
             std::free(const_cast<char *>(func->m_ml->ml_doc));
-        func->m_ml->ml_doc = strdup(signatures.c_str());
+            func->m_ml->ml_doc = nullptr;
+        }
+        // Then install new one if it's non-empty (when at least one option is enabled)
+        if (!signatures.empty())
+            func->m_ml->ml_doc = strdup(signatures.c_str());
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
@@ -472,7 +477,9 @@ protected:
                 arg.value.dec_ref();
             }
             if (rec->def) {
-                std::free(const_cast<char *>(rec->def->ml_doc));
+                if (rec->def->ml_doc) {
+                    std::free(const_cast<char *>(rec->def->ml_doc));
+                }
                 // Python 3.9.0 decref's these in the wrong order; rec->def
                 // If loaded on 3.9.0, let these leak (use Python 3.9.1 at runtime to fix)
                 // See https://github.com/python/cpython/pull/22670
