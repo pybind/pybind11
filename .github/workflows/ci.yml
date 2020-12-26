@@ -172,9 +172,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # deadsnakes/action@v2.0.2 does not support pythonX.Y-dbg, yet
     - name: Install debug Python
-      uses: YannickJadoul/deadsnakes-action@dbg-versions
+      uses: deadsnakes/action@v2.1.0
       with:
         python-version: 3.9
         debug: true
