@@ -214,6 +214,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
     };
     py::class_<MoveIssue2>(m, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
 
-    m.def("get_moveissue1", [](int i) { return new MoveIssue1(i); }, py::return_value_policy::move);
+    // #2742: Don't expect ownership of raw pointer to `new`ed object to be transferred with `py::return_value_policy::move`
+    m.def("get_moveissue1", [](int i) { return std::unique_ptr<MoveIssue1>(new MoveIssue1(i)); }, py::return_value_policy::move);
     m.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
 }

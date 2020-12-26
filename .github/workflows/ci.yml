@@ -220,6 +220,7 @@ jobs:
         --error-exitcode=1
         --read-var-info=yes
         --track-origins=yes
+        --suppressions=tests/valgrind.supp
         --gen-suppressions=all
         python -m pytest tests
 
