@@ -439,12 +439,9 @@ protected:
 
         /* Install docstring */
         auto *func = (PyCFunctionObject *) m_ptr;
-        // Free and reset previous docstring if it exists
-        if (func->m_ml->ml_doc) {
-            std::free(const_cast<char *>(func->m_ml->ml_doc));
-            func->m_ml->ml_doc = nullptr;
-        }
-        // Then install new one if it's non-empty (when at least one option is enabled)
+        std::free(const_cast<char *>(func->m_ml->ml_doc));
+        func->m_ml->ml_doc = nullptr;
+        // Install docstring if it's non-empty (when at least one option is enabled)
         if (!signatures.empty())
             func->m_ml->ml_doc = strdup(signatures.c_str());
 
@@ -477,9 +474,7 @@ protected:
                 arg.value.dec_ref();
             }
             if (rec->def) {
-                if (rec->def->ml_doc) {
-                    std::free(const_cast<char *>(rec->def->ml_doc));
-                }
+                std::free(const_cast<char *>(rec->def->ml_doc));
                 // Python 3.9.0 decref's these in the wrong order; rec->def
                 // If loaded on 3.9.0, let these leak (use Python 3.9.1 at runtime to fix)
                 // See https://github.com/python/cpython/pull/22670
