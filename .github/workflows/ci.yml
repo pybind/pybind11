@@ -222,7 +222,7 @@ jobs:
         --track-origins=yes
         --suppressions=tests/valgrind.supp
         --gen-suppressions=all
-        python -m pytest tests
+        python -m pytest tests/test_builtin_casters.py
 
 
 #   # Testing on clang using the excellent silkeh clang docker images
