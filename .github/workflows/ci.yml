@@ -164,6 +164,69 @@ jobs:
     - name: Setuptools helpers test
       run: pytest tests/extra_setuptools
 
+  valgrind:
+    runs-on: ubuntu-latest
+    name: "🐍 3.9 debug • Valgrind"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install debug Python
+      uses: deadsnakes/action@v2.1.0
+      with:
+        python-version: 3.9
+        debug: true
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.5
+
+    - name: Valgrind cache
+      uses: actions/cache@v2
+      id: cache-valgrind
+      with:
+        path: valgrind
+        key: 3.16.1 # Valgrind version
+
+    - name: Compile and install Valgrind
+      if: steps.cache-valgrind.outputs.cache-hit != 'true'
+      run: |
+        VALGRIND_VERSION=3.16.1
+        curl https://sourceware.org/pub/valgrind/valgrind-$VALGRIND_VERSION.tar.bz2 -o - | tar xj
+        mv valgrind-$VALGRIND_VERSION valgrind
+        pushd valgrind
+        ./configure && make -j 2 > /dev/null && sudo make install
+        popd
+        sudo apt-get update && sudo apt-get install libc6-dbg  # Needed by Valgrind
+
+    - name: Install Valgrind
+      if: steps.cache-valgrind.outputs.cache-hit == 'true'
+      run: |
+        pushd valgrind
+        sudo make install
+        popd
+        sudo apt-get update && sudo apt-get install libc6-dbg  # Needed by Valgrind
+
+    - name: Prepare env
+      run: python -m pip install -r tests/requirements.txt --prefer-binary
+
+    - name: Configure
+      run: >
+        cmake -S . -B build
+        -DCMAKE_BUILD_TYPE=Debug
+        -DPYBIND11_WERROR=ON
+        -DPYBIND11_MEMCHECK=ON
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_STANDARD=17
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
+
+    - name: Run Valgrind on Python tests
+      run: cmake --build build --target memcheck
 
   deadsnakes:
     strategy:
