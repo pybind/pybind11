@@ -115,6 +115,9 @@ jobs:
     - name: Interface test C++11
       run: cmake --build . --target test_cmake_build
 
+    - name: codecov
+      run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} codecov --name testing_testing_one_two_3
+
     - name: Clean directory
       run: git clean -fdx
 

@@ -1,0 +1,12 @@
+codecov:
+  notify:
+    after_n_builds: 1
+
+coverage:
+  precision: 2
+  round: down
+  range: 70...100
+
+comment:
+  layout: "header, diff, changes, uncovered"
+  behavior: default  # update if exists else create new

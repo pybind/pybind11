@@ -5,4 +5,7 @@ numpy==1.19.3; (platform_python_implementation!="PyPy" or sys_platform=="linux")
 pytest==4.6.9; python_version<"3.5"
 pytest==5.4.3; python_version>="3.5"
 scipy==1.2.3; (platform_python_implementation!="PyPy" or sys_platform=="linux") and python_version<"3.6"
-scipy==1.5.2; (platform_python_implementation!="PyPy" or sys_platform=="linux") and python_version>="3.6" and python_version<"3.9"
+scipy==1.5.4; (platform_python_implementation!="PyPy" or sys_platform=="linux") and python_version>="3.6"
+codecov>=2.0.5
+pytest-cov
+coverage>=4.2
