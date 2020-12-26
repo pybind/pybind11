@@ -172,20 +172,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install pyenv
+    # deadsnakes/action@v2.0.2 does not support pythonX.Y-dbg
+    - name: Install debug Python
       run: |
-        export PATH="$HOME/.pyenv/bin:$PATH"
-        curl https://pyenv.run | bash
-        eval "$(pyenv init -)"
-        echo "PATH=$PATH" >> $GITHUB_ENV
-
-    # gabrielfalcao/pyenv-action@v7 currently can't install 3.9.1 since it uses pyenv 1.2.21
-    - name: Build and install debug Python
-      run: |
-        PYTHON_VERSION=3.9.1
-        export PYTHON_CONFIGURE_OPTS="--with-pydebug --enable-shared --with-assertions"
-        pyenv install ${PYTHON_VERSION}
-        pyenv global ${PYTHON_VERSION}
+        sudo add-apt-repository --yes ppa:deadsnakes/ppa
+        sudo apt-get install -y --no-install-recommends python3.9-dev python3.9-venv python3.9-distutils python3.9-dbg
+        python3.9-dbg -mvenv ~/venv-python3.9
+        ~/venv-python3.9/bin/pip install --upgrade pip setuptools wheel
+        echo "$HOME/venv-python3.9/bin" >> $GITHUB_PATH
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.5
@@ -230,7 +224,7 @@ jobs:
         --read-var-info=yes
         --track-origins=yes
         --gen-suppressions=all
-        $(pyenv which python) -m pytest tests
+        python -m pytest tests
 
 
 #   # Testing on clang using the excellent silkeh clang docker images
