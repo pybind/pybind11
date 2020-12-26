@@ -183,7 +183,7 @@ jobs:
     - name: Build and install debug Python
       run: |
         PYTHON_VERSION=3.9.1
-        export PYTHON_CONFIGURE_OPTS="--with-pydebug --enable-shared"
+        export PYTHON_CONFIGURE_OPTS="--with-pydebug --enable-shared --with-assertions"
         pyenv install ${PYTHON_VERSION}
         pyenv global ${PYTHON_VERSION}
 
