@@ -1,0 +1,16 @@
+# Valgrind suppression file to run pybind11's tests
+#
+# Copyright (c) 2020 Boris Staletic <boris.staletic@gmail.com>
+# Copyright (c) 2020 Yannick Jadoul <yannick.jadoul@belgacom.net>
+#
+# All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+# Taken from https://github.com/python/cpython/blob/3.9/Misc/valgrind-python.supp
+{
+   Uninitialised byte(s) false alarm, see bpo-35561
+   Memcheck:Param
+   epoll_ctl(event)
+   fun:epoll_ctl
+   fun:pyepoll_internal_ctl
+}
