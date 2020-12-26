@@ -172,14 +172,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # deadsnakes/action@v2.0.2 does not support pythonX.Y-dbg
+    # deadsnakes/action@v2.0.2 does not support pythonX.Y-dbg, yet
     - name: Install debug Python
-      run: |
-        sudo add-apt-repository --yes ppa:deadsnakes/ppa
-        sudo apt-get install -y --no-install-recommends python3.9-dev python3.9-venv python3.9-distutils python3.9-dbg
-        python3.9-dbg -mvenv ~/venv-python3.9
-        ~/venv-python3.9/bin/pip install --upgrade pip setuptools wheel
-        echo "$HOME/venv-python3.9/bin" >> $GITHUB_PATH
+      uses: YannickJadoul/deadsnakes-action@dbg-versions
+      with:
+        python-version: 3.9-dbg
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.5
