@@ -176,7 +176,8 @@ jobs:
     - name: Install debug Python
       uses: YannickJadoul/deadsnakes-action@dbg-versions
       with:
-        python-version: 3.9-dbg
+        python-version: 3.9
+        debug: true
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.5
