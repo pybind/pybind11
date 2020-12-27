@@ -225,10 +225,7 @@ jobs:
         --suppressions=tests/valgrind-misc.supp
         --gen-suppressions=all
         python -m pytest
-        tests/test_[abcdefhijklmnopqrtuwxyz]*.py
-        tests/test_sequences_and_iterators.py
-        tests/test_stl.py
-        tests/test_stl_binders.py
+        tests/test_[abcdefhijklmnopqrstuwxyz]*.py
 
 
 #   # Testing on clang using the excellent silkeh clang docker images

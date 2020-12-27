@@ -176,33 +176,59 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     // test_unique_nodelete
     // Object with a private destructor
+    class MyObject4;
+    static std::unordered_set<MyObject4 *> myobject4_instances;
     class MyObject4 {
     public:
-        MyObject4(int value) : value{value} { print_created(this); }
+        MyObject4(int value) : value{value} {
+            print_created(this);
+            myobject4_instances.insert(this);
+        }
         int value;
+
+        static void cleanupAllInstances() {
+            for (auto o : std::exchange(myobject4_instances, {}))
+                delete o;
+        }
     private:
-        ~MyObject4() { print_destroyed(this); }
+        ~MyObject4() {
+            myobject4_instances.erase(this);
+            print_destroyed(this);
+        }
     };
     py::class_<MyObject4, std::unique_ptr<MyObject4, py::nodelete>>(m, "MyObject4")
         .def(py::init<int>())
-        .def_readwrite("value", &MyObject4::value);
+        .def_readwrite("value", &MyObject4::value)
+        .def_static("cleanup_all_instances", &MyObject4::cleanupAllInstances);
 
     // test_unique_deleter
     // Object with std::unique_ptr<T, D> where D is not matching the base class
     // Object with a protected destructor
+    class MyObject4a;
+    static std::unordered_set<MyObject4a *> myobject4a_instances;
     class MyObject4a {
     public:
         MyObject4a(int i) {
             value = i;
             print_created(this);
+            myobject4a_instances.insert(this);
         };
         int value;
+
+        static void cleanupAllInstances() {
+            for (auto o : std::exchange(myobject4a_instances, {}))
+                delete o;
+        }
     protected:
-        virtual ~MyObject4a() { print_destroyed(this); }
+        virtual ~MyObject4a() {
+            myobject4a_instances.erase(this);
+            print_destroyed(this);
+        }
     };
     py::class_<MyObject4a, std::unique_ptr<MyObject4a, py::nodelete>>(m, "MyObject4a")
         .def(py::init<int>())
-        .def_readwrite("value", &MyObject4a::value);
+        .def_readwrite("value", &MyObject4a::value)
+        .def_static("cleanup_all_instances", &MyObject4a::cleanupAllInstances);
 
     // Object derived but with public destructor and no Deleter in default holder
     class MyObject4b : public MyObject4a {
