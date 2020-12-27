@@ -92,6 +92,8 @@ def test_readonly_buffer():
     view = memoryview(buf)
     assert view[0] == b"d" if env.PY2 else 0x64
     assert view.readonly
+    with pytest.raises(TypeError):
+        view[0] = b"\0" if env.PY2 else 0
 
 
 def test_selective_readonly_buffer():
