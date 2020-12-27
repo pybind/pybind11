@@ -224,21 +224,41 @@ protected:
         }
     }
 
+    class strdup_guard {
+    public:
+        ~strdup_guard() {
+            for (auto s : strings)
+                std::free(s);
+        }
+        char *operator()(const char *s) {
+            auto t = strdup(s);
+            strings.emplace_back(t);
+            return t;
+        }
+        void release() {
+            strings.clear();
+        }
+    private:
+        std::vector<char *> strings;
+    };
+
     /// Register a function call with Python (generic non-templated code goes here)
     void initialize_generic(std::unique_ptr<detail::function_record> &&unique_rec, const char *text,
                             const std::type_info *const *types, size_t args) {
         auto rec = unique_rec.get();
 
+        strdup_guard guarded_strdup;
+
         /* Create copies of all referenced C-style strings */
-        rec->name = strdup(rec->name ? rec->name : "");
-        if (rec->doc) rec->doc = strdup(rec->doc);
+        rec->name = guarded_strdup(rec->name ? rec->name : "");
+        if (rec->doc) rec->doc = guarded_strdup(rec->doc);
         for (auto &a: rec->args) {
             if (a.name)
-                a.name = strdup(a.name);
+                a.name = guarded_strdup(a.name);
             if (a.descr)
-                a.descr = strdup(a.descr);
+                a.descr = guarded_strdup(a.descr);
             else if (a.value)
-                a.descr = strdup(repr(a.value).cast<std::string>().c_str());
+                a.descr = guarded_strdup(repr(a.value).cast<std::string>().c_str());
         }
 
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
@@ -321,13 +341,13 @@ protected:
 #if PY_MAJOR_VERSION < 3
         if (strcmp(rec->name, "__next__") == 0) {
             std::free(rec->name);
-            rec->name = strdup("next");
+            rec->name = guarded_strdup("next");
         } else if (strcmp(rec->name, "__bool__") == 0) {
             std::free(rec->name);
-            rec->name = strdup("__nonzero__");
+            rec->name = guarded_strdup("__nonzero__");
         }
 #endif
-        rec->signature = strdup(signature.c_str());
+        rec->signature = guarded_strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->nargs = (std::uint16_t) args;
 
@@ -361,6 +381,7 @@ protected:
             capsule rec_capsule(unique_rec.release(), [](void *ptr) {
                 destruct((detail::function_record *) ptr);
             });
+            guarded_strdup.release();
 
             object scope_module;
             if (rec->scope) {
@@ -396,12 +417,14 @@ protected:
                 rec->next = chain;
                 auto rec_capsule = reinterpret_borrow<capsule>(((PyCFunctionObject *) m_ptr)->m_self);
                 rec_capsule.set_pointer(unique_rec.release());
+                guarded_strdup.release();
             } else {
                 // Or end of chain (normal behavior)
                 chain_start = chain;
                 while (chain->next)
                     chain = chain->next;
                 chain->next = unique_rec.release();
+                guarded_strdup.release();
             }
         }
 
