@@ -115,8 +115,8 @@ public:
 
 protected:
     /// Space optimization: don't inline this frequently instantiated fragment
-    PYBIND11_NOINLINE detail::function_record *make_function_record() {
-        return new detail::function_record();
+    PYBIND11_NOINLINE std::unique_ptr<detail::function_record> make_function_record() {
+        return std::unique_ptr<detail::function_record>(new detail::function_record());
     }
 
     /// Special internal constructor for functors, lambda functions, etc.
@@ -126,7 +126,8 @@ protected:
         struct capture { remove_reference_t<Func> f; };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
-        auto rec = make_function_record();
+        auto unique_rec = make_function_record();
+        auto rec = unique_rec.get();
 
         /* Store the capture object directly in the function record if there is enough space */
         if (sizeof(capture) <= sizeof(rec->data)) {
@@ -207,7 +208,7 @@ protected:
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */
-        initialize_generic(rec, signature.text, types.data(), sizeof...(Args));
+        initialize_generic(std::move(unique_rec), signature.text, types.data(), sizeof...(Args));
 
         if (cast_in::has_args) rec->has_args = true;
         if (cast_in::has_kwargs) rec->has_kwargs = true;
@@ -224,8 +225,9 @@ protected:
     }
 
     /// Register a function call with Python (generic non-templated code goes here)
-    void initialize_generic(detail::function_record *rec, const char *text,
+    void initialize_generic(std::unique_ptr<detail::function_record> &&unique_rec, const char *text,
                             const std::type_info *const *types, size_t args) {
+        auto rec = unique_rec.get();
 
         /* Create copies of all referenced C-style strings */
         rec->name = strdup(rec->name ? rec->name : "");
@@ -356,7 +358,7 @@ protected:
             rec->def->ml_meth = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*) (void)>(*dispatcher));
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
-            capsule rec_capsule(rec, [](void *ptr) {
+            capsule rec_capsule(unique_rec.release(), [](void *ptr) {
                 destruct((detail::function_record *) ptr);
             });
 
@@ -393,13 +395,13 @@ protected:
                 chain_start = rec;
                 rec->next = chain;
                 auto rec_capsule = reinterpret_borrow<capsule>(((PyCFunctionObject *) m_ptr)->m_self);
-                rec_capsule.set_pointer(rec);
+                rec_capsule.set_pointer(unique_rec.release());
             } else {
                 // Or end of chain (normal behavior)
                 chain_start = chain;
                 while (chain->next)
                     chain = chain->next;
-                chain->next = rec;
+                chain->next = unique_rec.release();
             }
         }
 
