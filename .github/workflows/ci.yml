@@ -226,7 +226,7 @@ jobs:
         --gen-suppressions=all
         python -m pytest
         tests/test_multiple_inheritance.py
-        tests/test_[abcdefilop]*.py
+        tests/test_[abcdefhijklop]*.py
         tests/test_sequences_and_iterators.py
         tests/test_stl.py
         tests/test_tagbased_polymorphic.py
