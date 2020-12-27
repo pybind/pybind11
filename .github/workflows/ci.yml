@@ -226,7 +226,8 @@ jobs:
         --gen-suppressions=all
         python -m pytest
         tests/test_builtin_casters.py
-        tests/test_[acde]*.py
+        tests/test_multiple_inheritance.py
+        tests/test_[acdeilo]*.py
 
 
 #   # Testing on clang using the excellent silkeh clang docker images
