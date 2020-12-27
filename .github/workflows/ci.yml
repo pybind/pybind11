@@ -225,9 +225,8 @@ jobs:
         --suppressions=tests/valgrind-misc.supp
         --gen-suppressions=all
         python -m pytest
-        tests/test_builtin_casters.py
         tests/test_multiple_inheritance.py
-        tests/test_[acdeilop]*.py
+        tests/test_[abcdeilop]*.py
         tests/test_sequences_and_iterators.py
         tests/test_stl.py
         tests/test_tagbased_polymorphic.py
