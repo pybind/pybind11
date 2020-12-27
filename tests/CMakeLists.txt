@@ -86,16 +86,16 @@ endif()
 
 # Full set of test files (you can override these; see below)
 set(PYBIND11_TEST_FILES
-    # test_async.cpp
+    test_async.cpp
     # test_buffers.cpp
     test_builtin_casters.cpp
-    # test_call_policies.cpp
-    # test_callbacks.cpp
-    # test_chrono.cpp
-    # test_class.cpp
-    # test_constants_and_functions.cpp
-    # test_copy_move.cpp
-    # test_custom_type_casters.cpp
+    test_call_policies.cpp
+    test_callbacks.cpp
+    test_chrono.cpp
+    test_class.cpp
+    test_constants_and_functions.cpp
+    test_copy_move.cpp
+    test_custom_type_casters.cpp
     # test_docstring_options.cpp
     # test_eigen.cpp
     # test_enum.cpp
