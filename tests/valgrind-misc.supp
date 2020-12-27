@@ -1,0 +1,24 @@
+# Valgrind suppression file for misc leaks and errors
+#
+# Copyright (c) 2020 Boris Staletic <boris.staletic@gmail.com>
+# Copyright (c) 2020 Yannick Jadoul <yannick.jadoul@belgacom.net>
+#
+# All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+{
+   dlopen leak (https://stackoverflow.com/questions/1542457/memory-leak-reported-by-valgrind-in-dlopen)
+   Memcheck:Leak
+   fun:malloc
+   fun:_dl_map_object_deps
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+   fun:_dlerror_run
+   fun:dlopen@@GLIBC_2.2.5
+   fun:_PyImport_FindSharedFuncptr
+   fun:_PyImport_LoadDynamicModuleWithSpec
+}

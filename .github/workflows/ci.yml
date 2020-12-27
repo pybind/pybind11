@@ -222,8 +222,18 @@ jobs:
         --track-origins=yes
         --suppressions=tests/valgrind-python.supp
         --suppressions=tests/valgrind-numpy.supp
+        --suppressions=tests/valgrind-misc.supp
         --gen-suppressions=all
-        python -m pytest tests/test_builtin_casters.py
+        python -m pytest
+        tests/test_async.py
+        tests/test_builtin_casters.py
+        tests/test_call_policies.py
+        tests/test_callbacks.py
+        tests/test_chrono.py
+        tests/test_class.py
+        tests/test_constants_and_functions.py
+        tests/test_copy_move.py
+        tests/test_custom_type_casters.py
 
 
 #   # Testing on clang using the excellent silkeh clang docker images
