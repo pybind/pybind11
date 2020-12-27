@@ -1,13 +1,7 @@
-# Valgrind suppression file for NumPy
-#
-# Copyright (c) 2020 Boris Staletic <boris.staletic@gmail.com>
-# Copyright (c) 2020 Yannick Jadoul <yannick.jadoul@belgacom.net>
-#
-# All rights reserved. Use of this source code is governed by a
-# BSD-style license that can be found in the LICENSE file.
+# Valgrind suppression file for NumPy & SciPy errors and leaks in pybind11 tests
 
 {
-   Leaks present when just importing NumPy
+   Leaks when importing NumPy
    Memcheck:Leak
    fun:malloc
    fun:_PyMem_RawMalloc
@@ -22,7 +16,7 @@
 }
 
 {
-   Leaks present when just importing NumPy (bis)
+   Leaks when importing NumPy (bis)
    Memcheck:Leak
    fun:malloc
    fun:_PyMem_RawMalloc
@@ -35,7 +29,7 @@
 }
 
 {
-   Leaks present when just importing NumPy (tris)
+   Leaks when importing NumPy (tris)
    Memcheck:Leak
    fun:malloc
    fun:_PyMem_RawMalloc
@@ -56,7 +50,7 @@
 }
 
 {
-   Leaks present when just importing NumPy (quater)
+   Leaks when importing NumPy (quater)
    Memcheck:Leak
    fun:malloc
    fun:_PyMem_RawMalloc
@@ -73,7 +67,7 @@
 }
 
 {
-   Leaks present when just importing NumPy (quinquies)
+   Leaks when importing NumPy (quinquies)
    Memcheck:Leak
    fun:malloc
    fun:_PyMem_RawMalloc
@@ -87,4 +81,22 @@
    fun:list_extend
    fun:_PyList_Extend
    fun:PySequence_List
+}
+
+{
+   Leak when importing scipy.fft
+   Memcheck:Leak
+   fun:_Znwm
+   fun:PyInit_pypocketfft
+   fun:_PyImport_LoadDynamicModuleWithSpec
+   fun:_imp_create_dynamic_impl.constprop.3
+   fun:_imp_create_dynamic
+   fun:cfunction_vectorcall_FASTCALL
+   fun:PyVectorcall_Call
+   fun:_PyObject_Call
+   fun:PyObject_Call
+   fun:do_call_core
+   fun:_PyEval_EvalFrameDefault
+   fun:_PyEval_EvalFrame
+   fun:_PyEval_EvalCode
 }

@@ -1,10 +1,4 @@
-# Valgrind suppression file for Python
-#
-# Copyright (c) 2020 Boris Staletic <boris.staletic@gmail.com>
-# Copyright (c) 2020 Yannick Jadoul <yannick.jadoul@belgacom.net>
-#
-# All rights reserved. Use of this source code is governed by a
-# BSD-style license that can be found in the LICENSE file.
+# Valgrind suppression file for Python errors and leaks in pybind11 tests
 
 # Taken from https://github.com/python/cpython/blob/3.9/Misc/valgrind-python.supp
 {
