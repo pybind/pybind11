@@ -220,7 +220,8 @@ jobs:
         --error-exitcode=1
         --read-var-info=yes
         --track-origins=yes
-        --suppressions=tests/valgrind.supp
+        --suppressions=tests/valgrind-python.supp
+        --suppressions=tests/valgrind-numpy.supp
         --gen-suppressions=all
         python -m pytest tests/test_builtin_casters.py
 
