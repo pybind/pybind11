@@ -1,4 +1,4 @@
-# Valgrind suppression file to run pybind11's tests
+# Valgrind suppression file for Python
 #
 # Copyright (c) 2020 Boris Staletic <boris.staletic@gmail.com>
 # Copyright (c) 2020 Yannick Jadoul <yannick.jadoul@belgacom.net>
