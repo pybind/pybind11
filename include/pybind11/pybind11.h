@@ -439,9 +439,9 @@ protected:
 
         /* Install docstring */
         auto *func = (PyCFunctionObject *) m_ptr;
-        if (func->m_ml->ml_doc)
-            std::free(const_cast<char *>(func->m_ml->ml_doc));
-        func->m_ml->ml_doc = strdup(signatures.c_str());
+        std::free(const_cast<char *>(func->m_ml->ml_doc));
+        // Install docstring if it's non-empty (when at least one option is enabled)
+        func->m_ml->ml_doc = signatures.empty() ? nullptr : strdup(signatures.c_str());
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
