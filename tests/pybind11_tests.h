@@ -1,5 +1,6 @@
 #pragma once
 #include <pybind11/pybind11.h>
+#include <pybind11/eval.h>
 
 #if defined(_MSC_VER) && _MSC_VER < 1910
 // We get some really long type names here which causes MSVC 2015 to emit warnings
@@ -70,16 +71,14 @@ public:
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(pybind11)
 
-/// Simplified ``with warnigns.catch_warnings()`` wrapper
 template <typename F>
 void ignoreOldStyleInitWarnings(F &&body) {
-    auto message = "pybind11-bound class '.+' is using an old-style placement-new '(?:__init__|__setstate__)' which has been deprecated";
-    auto category = py::reinterpret_borrow<py::object>(PyExc_FutureWarning);
-    auto warnings = py::module_::import("warnings");
-    auto context_mgr = warnings.attr("catch_warnings")();
-    context_mgr.attr("__enter__")();
-    warnings.attr("filterwarnings")("ignore", py::arg("message")=message, py::arg("category")=category);
-    body();
-    // Exceptions in `body` not handled; see PEP 343 when these would need to be added
-    context_mgr.attr("__exit__")(py::none(), py::none(), py::none());
+    py::exec(R"(
+    message = "pybind11-bound class '.+' is using an old-style placement-new '(?:__init__|__setstate__)' which has been deprecated"
+
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=message, category=FutureWarning)
+        body()
+    )", py::dict(py::arg("body") = py::cpp_function(body)));
 }
