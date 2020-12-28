@@ -126,6 +126,7 @@ protected:
         struct capture { remove_reference_t<Func> f; };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
+        // The unique_ptr makes sure nothing is leaked in case of an exception.
         auto unique_rec = make_function_record();
         auto rec = unique_rec.get();
 
@@ -208,6 +209,7 @@ protected:
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */
+        // Pass on the ownership over the `unique_rec` to `initialize_generic`. `rec` stays valid.
         initialize_generic(std::move(unique_rec), signature.text, types.data(), sizeof...(Args));
 
         if (cast_in::has_args) rec->has_args = true;
@@ -224,6 +226,8 @@ protected:
         }
     }
 
+    // Utility class that keeps track of all duplicated strings, and cleans them up in its destructor,
+    // unless they are released. Basically a RAII-solution to deal with exceptions along the way.
     class strdup_guard {
     public:
         ~strdup_guard() {
@@ -247,6 +251,11 @@ protected:
                             const std::type_info *const *types, size_t args) {
         auto rec = unique_rec.get();
 
+        // Keep track of strdup'ed strings, and clean them up as long as the function's capsule
+        // has not taken ownership yet (when `unique_rec.release()` is called).
+        // Note: This cannot easily be fixed by a `unique_ptr` with custom deleter, because the strings
+        // are only referenced before strdup'ing. So only *after* the following block could `destruct`
+        // safely be called, but even then, `repr` could still throw in the middle of copying all strings.
         strdup_guard guarded_strdup;
 
         /* Create copies of all referenced C-style strings */
