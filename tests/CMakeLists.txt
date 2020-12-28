@@ -370,10 +370,28 @@ endif()
 string(REPLACE "test_" "${CMAKE_CURRENT_SOURCE_DIR}/test_" PYBIND11_ABS_PYTEST_FILES
                "${PYBIND11_PYTEST_FILES}")
 
+if(NOT PYBIND11_MEMCHECK)
+  set(PYBIND11_TEST_PREFIX_COMMAND "")
+else()
+  set(PYBIND11_TEST_PREFIX_COMMAND 
+	  PYTHONMALLOC=malloc valgrind
+          --leak-check=full
+          --show-leak-kinds=definite,indirect
+          --errors-for-leak-kinds=definite,indirect
+          --error-exitcode=1
+          --read-var-info=yes
+          --track-origins=yes
+	  --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp
+	  --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp
+	  --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-misc.supp
+	  --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-multiprocessing.supp
+          --gen-suppressions=all)
+endif()
+
 # A single command to compile and run the tests
 add_custom_target(
   pytest
-  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
+  COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL)
@@ -385,6 +403,11 @@ if(PYBIND11_TEST_OVERRIDE)
     COMMAND ${CMAKE_COMMAND} -E echo
             "Note: not all tests run: -DPYBIND11_TEST_OVERRIDE is in effect")
 endif()
+
+add_custom_target(
+  memcheck
+  DEPENDS pytest
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add a check target to run all the tests, starting with pytest (we add dependencies to this below)
 add_custom_target(check DEPENDS pytest)
