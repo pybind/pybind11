@@ -187,7 +187,9 @@ TEST_SUBMODULE(smart_ptr, m) {
         int value;
 
         static void cleanupAllInstances() {
-            for (auto o : std::exchange(myobject4_instances, {}))
+            auto tmp = std::move(myobject4_instances);
+            myobject4_instances.clear();
+            for (auto o : tmp)
                 delete o;
         }
     private:
@@ -216,7 +218,9 @@ TEST_SUBMODULE(smart_ptr, m) {
         int value;
 
         static void cleanupAllInstances() {
-            for (auto o : std::exchange(myobject4a_instances, {}))
+            auto tmp = std::move(myobject4a_instances);
+            myobject4a_instances.clear();
+            for (auto o : tmp)
                 delete o;
         }
     protected:
