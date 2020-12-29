@@ -289,8 +289,8 @@ def test_int_convert():
     require_implicit(DeepThought())
     cant_convert(ShallowThought())
     cant_convert(FuzzyThought())
-    if not env.PY2:
-        # I have no clue why __index__ is not picked up by Python 2's PyIndex_check
+    if env.PY >= (3, 8):
+        # Before Python 3.8, `int(obj)` does not pick up on `obj.__index__`
         assert convert(IndexedThought()) == 42
         assert noconvert(IndexedThought()) == 42
         cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises

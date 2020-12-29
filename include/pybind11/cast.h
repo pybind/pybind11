@@ -1027,7 +1027,7 @@ public:
                 return false;
         } else if (PyFloat_Check(src.ptr())) {
             return false;
-        } else if (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !PyIndex_Check(src.ptr())) {
+        } else if (!convert && !PyIndex_Check(src.ptr()) && !PYBIND11_LONG_CHECK(src.ptr())) {
             return false;
         } else if (std::is_unsigned<py_type>::value) {
             py_value = as_unsigned<py_type>(src.ptr());
