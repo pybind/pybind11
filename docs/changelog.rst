@@ -23,6 +23,10 @@ v2.6.2 (TBA, not yet released)
   ``scoped_ostream_redirect``.
   `#2675 <https://github.com/pybind/pybind11/pull/2675>`_
 
+* Leave docstring unset when all docstring-related options are disabled, rather
+  than set an empty string.
+  `#2745 <https://github.com/pybind/pybind11/pull/2745>`_
+
 * Fixed assertion error related to unhandled (later overwritten) exception in
   CPython 3.8 and 3.9 debug builds.
   `#2685 <https://github.com/pybind/pybind11/pull/2685>`_
@@ -36,6 +40,12 @@ v2.6.2 (TBA, not yet released)
 * CMake: mixing local and installed pybind11's would prioritize the installed
   one over the local one (regression in 2.6.0).
   `#2716 <https://github.com/pybind/pybind11/pull/2716>`_
+
+* Don't trigger unused parameter warning in ``setup_helpers.py``.
+  `#2735 <https://github.com/pybind/pybind11/pull/2735>`_
+
+* Fix issue with a test failing on PyTest 6.2.
+  `#2741 <https://github.com/pybind/pybind11/pull/2741>`_
 
 
 
