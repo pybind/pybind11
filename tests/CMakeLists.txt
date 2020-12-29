@@ -378,8 +378,7 @@ else()
       --errors-for-leak-kinds=definite,indirect --error-exitcode=1 --read-var-info=yes
       --track-origins=yes --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp
       --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp
-      --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-misc.supp
-      --gen-suppressions=all)
+      --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-misc.supp --gen-suppressions=all)
 endif()
 
 # A single command to compile and run the tests
