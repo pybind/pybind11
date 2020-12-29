@@ -280,6 +280,22 @@ def test_int_convert():
     cant_convert(FuzzyThought())
 
 
+def test_numpy_int_convert():
+    np = pytest.importorskip("numpy")
+
+    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+
+    def require_implicit(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    # `np.intc` is an alias that corresponds to a C++ `int`
+    assert convert(np.intc(42)) == 42
+    assert noconvert(np.intc(42)) == 42
+
+    assert convert(np.float32(3.14159)) == 3  # This might be wrong/unwanted?
+    require_implicit(np.float32(3.14159))
+
+
 def test_tuple(doc):
     """std::pair <-> tuple & std::tuple <-> tuple"""
     assert m.pair_passthrough((True, "test")) == ("test", True)
