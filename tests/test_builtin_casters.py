@@ -252,14 +252,14 @@ def test_integer_casting():
 
 
 def test_int_convert():
-    class DeepThought:
+    class DeepThought(object):
         def __int__(self):
             return 42
 
-    class ShallowThought:
+    class ShallowThought(object):
         pass
 
-    class FuzzyThought:
+    class FuzzyThought(object):
         def __float__(self):
             return 41.99999
 
