@@ -263,6 +263,17 @@ def test_int_convert():
         def __float__(self):
             return 41.99999
 
+    class IndexedThought(object):
+        def __index__(self):
+            return 42
+
+    class RaisingThought(object):
+        def __index__(self):
+            raise ValueError
+
+        def __int__(self):
+            return 42
+
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
 
     def require_implicit(v):
@@ -278,6 +289,11 @@ def test_int_convert():
     require_implicit(DeepThought())
     cant_convert(ShallowThought())
     cant_convert(FuzzyThought())
+    if not env.PY2:
+        # I have no clue why __index__ is not picked up by Python 2's PyIndex_check
+        assert convert(IndexedThought()) == 42
+        assert noconvert(IndexedThought()) == 42
+        cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises
 
 
 def test_numpy_int_convert():
