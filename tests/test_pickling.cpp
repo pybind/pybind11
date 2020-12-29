@@ -31,20 +31,22 @@ TEST_SUBMODULE(pickling, m) {
         using Pickleable::Pickleable;
     };
 
-    ignoreOldStyleInitWarnings([&]() {
-        py::class_<Pickleable>(m, "Pickleable")
-            .def(py::init<std::string>())
-            .def("value", &Pickleable::value)
-            .def("extra1", &Pickleable::extra1)
-            .def("extra2", &Pickleable::extra2)
-            .def("setExtra1", &Pickleable::setExtra1)
-            .def("setExtra2", &Pickleable::setExtra2)
-            // For details on the methods below, refer to
-            // http://docs.python.org/3/library/pickle.html#pickling-class-instances
-            .def("__getstate__", [](const Pickleable &p) {
-                /* Return a tuple that fully encodes the state of the object */
-                return py::make_tuple(p.value(), p.extra1(), p.extra2());
-            })
+    py::class_<Pickleable> pyPickleable(m, "Pickleable");
+    pyPickleable
+        .def(py::init<std::string>())
+        .def("value", &Pickleable::value)
+        .def("extra1", &Pickleable::extra1)
+        .def("extra2", &Pickleable::extra2)
+        .def("setExtra1", &Pickleable::setExtra1)
+        .def("setExtra2", &Pickleable::setExtra2)
+        // For details on the methods below, refer to
+        // http://docs.python.org/3/library/pickle.html#pickling-class-instances
+        .def("__getstate__", [](const Pickleable &p) {
+            /* Return a tuple that fully encodes the state of the object */
+            return py::make_tuple(p.value(), p.extra1(), p.extra2());
+        });
+    ignoreOldStyleInitWarnings([&pyPickleable]() {
+        pyPickleable
             .def("__setstate__", [](Pickleable &p, py::tuple t) {
                 if (t.size() != 3)
                     throw std::runtime_error("Invalid state!");
@@ -89,15 +91,17 @@ TEST_SUBMODULE(pickling, m) {
         using PickleableWithDict::PickleableWithDict;
     };
 
-    ignoreOldStyleInitWarnings([&]() {
-        py::class_<PickleableWithDict>(m, "PickleableWithDict", py::dynamic_attr())
-            .def(py::init<std::string>())
-            .def_readwrite("value", &PickleableWithDict::value)
-            .def_readwrite("extra", &PickleableWithDict::extra)
-            .def("__getstate__", [](py::object self) {
-                /* Also include __dict__ in state */
-                return py::make_tuple(self.attr("value"), self.attr("extra"), self.attr("__dict__"));
-            })
+    py::class_<PickleableWithDict> pyPickleableWithDict(m, "PickleableWithDict", py::dynamic_attr());
+    pyPickleableWithDict
+        .def(py::init<std::string>())
+        .def_readwrite("value", &PickleableWithDict::value)
+        .def_readwrite("extra", &PickleableWithDict::extra)
+        .def("__getstate__", [](py::object self) {
+            /* Also include __dict__ in state */
+            return py::make_tuple(self.attr("value"), self.attr("extra"), self.attr("__dict__"));
+        });
+    ignoreOldStyleInitWarnings([&pyPickleableWithDict]() {
+        pyPickleableWithDict
             .def("__setstate__", [](py::object self, py::tuple t) {
                 if (t.size() != 3)
                     throw std::runtime_error("Invalid state!");
