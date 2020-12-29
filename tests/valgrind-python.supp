@@ -92,4 +92,3 @@
    fun:_PyEval_EvalCode
    fun:_PyFunction_Vectorcall
 }
-
