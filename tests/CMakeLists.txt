@@ -379,7 +379,6 @@ else()
       --track-origins=yes --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp
       --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp
       --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-misc.supp
-      --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-multiprocessing.supp
       --gen-suppressions=all)
 endif()
 

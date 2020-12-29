@@ -100,3 +100,18 @@
    fun:_PyEval_EvalFrame
    fun:_PyEval_EvalCode
 }
+{
+   Numpy leaks when spawning a subprocess
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:_buffer_get_info
+   fun:array_getbuffer
+   fun:PyObject_GetBuffer
+   fun:__Pyx__GetBufferAndValidate*
+   fun:__pyx_f_5numpy_6random_13bit_generator_12SeedSequence_mix_entropy
+   fun:__pyx_pw_5numpy_6random_13bit_generator_12SeedSequence_1__init__
+   fun:type_call
+   fun:__Pyx__PyObject_CallOneArg
+   fun:__pyx_pw_5numpy_6random_13bit_generator_12BitGenerator_1__init__
+}
