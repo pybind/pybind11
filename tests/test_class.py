@@ -68,6 +68,15 @@ def test_as_type_py():
         assert m.as_type(m.DerivedClass1()) == m.DerivedClass1
 
 
+def test_type_name():
+    class PurePythonClass(object):
+        pass
+
+    assert m.get_instance_type_name(1) == "int"
+    assert m.get_instance_type_name(PurePythonClass()) == "PurePythonClass"
+    assert m.get_instance_type_name(m.DerivedClass1()) == "DerivedClass1"
+
+
 def test_docstrings(doc):
     assert doc(UserType) == "A `py::class_` type for testing"
     assert UserType.__name__ == "UserType"

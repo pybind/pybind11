@@ -923,6 +923,9 @@ public:
     /// See https://github.com/pybind/pybind11/issues/2486
     template<typename T>
     static type of() {return type(type::handle_of<T>(), borrowed_t{}); }
+
+    /// Return the type name
+    object name() const { return attr("__name__"); }
 };
 
 class iterable : public object {
