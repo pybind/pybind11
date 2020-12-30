@@ -77,10 +77,10 @@ class Thing {
     std::vector<int> data {{1,2,3,4}};
 
 public:
-    Thing() {}
-    int& get_item(size_t i) {return data.at(i);}
-    const int& get_item(size_t i) const {return data.at(i);}
-    size_t size() const {return data.size();}
+    Thing() = default;
+    int& get_item(size_t i) { return data.at(i); }
+    const int& get_item(size_t i) const { return data.at(i); }
+    size_t size() const { return data.size(); }
 };
 
 py::list get_item_list(Thing &t, py::slice slice) {
