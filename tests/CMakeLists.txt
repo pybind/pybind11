@@ -124,6 +124,7 @@ set(PYBIND11_TEST_FILES
     # test_tagbased_polymorphic.cpp
     # test_union.cpp
     # test_virtual_functions.cpp)
+    test_keep_alive.cpp
     )
 # cmake-format: on
 
