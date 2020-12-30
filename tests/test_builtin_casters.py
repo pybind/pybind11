@@ -308,7 +308,8 @@ def test_numpy_int_convert():
     assert convert(np.intc(42)) == 42
     assert noconvert(np.intc(42)) == 42
 
-    assert convert(np.float32(3.14159)) == 3  # This might be wrong/unwanted?
+    # The implicit conversion from np.float32 is undesirable but currently accepted.
+    assert convert(np.float32(3.14159)) == 3
     require_implicit(np.float32(3.14159))
 
 
