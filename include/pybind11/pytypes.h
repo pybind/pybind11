@@ -1171,21 +1171,20 @@ public:
 class slice : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
-    slice(object start_, object stop_, object step_) {
-        m_ptr = PySlice_New(start_.ptr(),
-                            stop_.ptr(),
-                            step_.ptr());
-        if (!m_ptr) pybind11_fail("Could not allocate slice object!");
+
+    slice(handle start, handle stop, handle step) {
+        m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
+        if (!m_ptr)
+            pybind11_fail("Could not allocate slice object!");
     }
 
-    slice(ssize_t start_, ssize_t stop_, ssize_t step_) : slice(int_(start_), int_(stop_), int_(step_)) {}
-    slice(object start_ , ssize_t stop_, ssize_t step_) : slice(     start_ , int_(stop_), int_(step_)) {}
-    slice(ssize_t start_, object stop_ , ssize_t step_) : slice(int_(start_),      stop_ , int_(step_)) {}
-    slice(ssize_t start_, ssize_t stop_, object step_ ) : slice(int_(start_), int_(stop_),      step_ ) {}
-    slice(object start_ , object stop_ , ssize_t step_) : slice(     start_ ,      stop_ , int_(step_)) {}
-    slice(ssize_t start_, object stop_ , object step_ ) : slice(int_(start_),      stop_ ,      step_ ) {}
-    slice(object start_ , ssize_t stop_, object step_ ) : slice(     start_ , int_(stop_),      step_ ) {}
-
+#ifdef PYBIND11_HAS_OPTIONAL
+    slice(std::optional<ssize_t> start, std::optional<ssize_t> stop, std::optional<ssize_t> step)
+        : slice(indexToObject(start), indexToObject(stop), indexToObject(step)) {}
+#else
+    slice(ssize_t start_, ssize_t stop_, ssize_t step_)
+        : slice(int_(start_), int_(stop_), int_(step_)) {}
+#endif
 
 
     bool compute(size_t length, size_t *start, size_t *stop, size_t *step,
@@ -1201,6 +1200,12 @@ public:
           length, start,
           stop, step,
           slicelength) == 0;
+    }
+
+private:
+    template <typename T>
+    static object indexToObject(T index) {
+        return index ? object(int_(*index)) : object(none());
     }
 };
 

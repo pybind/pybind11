@@ -127,7 +127,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         .def("reverse",
                 [](Thing &t) -> py::list {
                     py::slice ordinary_indices(0, static_cast<ssize_t>(t.size()), 1);
-                    py::slice reversed_slice(py::none(), py::none(), -1);
+                    py::slice reversed_slice(py::none(), py::none(), py::int_(-1));
                     py::list reversed = get_item_list(t, reversed_slice);
                     return reversed;
                 }
