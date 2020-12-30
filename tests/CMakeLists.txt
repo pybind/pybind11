@@ -84,45 +84,48 @@ if(PYBIND11_CUDA_TESTS)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
+# cmake-format: off
 # Full set of test files (you can override these; see below)
 set(PYBIND11_TEST_FILES
-    test_async.cpp
-    test_buffers.cpp
-    test_builtin_casters.cpp
-    test_call_policies.cpp
-    test_callbacks.cpp
-    test_chrono.cpp
-    test_class.cpp
-    test_constants_and_functions.cpp
-    test_copy_move.cpp
-    test_custom_type_casters.cpp
-    test_docstring_options.cpp
-    test_eigen.cpp
-    test_enum.cpp
-    test_eval.cpp
-    test_exceptions.cpp
-    test_factory_constructors.cpp
-    test_gil_scoped.cpp
-    test_iostream.cpp
-    test_kwargs_and_defaults.cpp
-    test_local_bindings.cpp
-    test_methods_and_attributes.cpp
-    test_modules.cpp
-    test_multiple_inheritance.cpp
-    test_numpy_array.cpp
-    test_numpy_dtypes.cpp
-    test_numpy_vectorize.cpp
-    test_opaque_types.cpp
-    test_operator_overloading.cpp
-    test_pickling.cpp
-    test_pytypes.cpp
-    test_sequences_and_iterators.cpp
-    test_smart_ptr.cpp
-    test_stl.cpp
-    test_stl_binders.cpp
-    test_tagbased_polymorphic.cpp
-    test_union.cpp
-    test_virtual_functions.cpp)
+    # test_async.cpp
+    # test_buffers.cpp
+    # test_builtin_casters.cpp
+    # test_call_policies.cpp
+    # test_callbacks.cpp
+    # test_chrono.cpp
+    # test_class.cpp
+    # test_constants_and_functions.cpp
+    # test_copy_move.cpp
+    # test_custom_type_casters.cpp
+    # test_docstring_options.cpp
+    # test_eigen.cpp
+    # test_enum.cpp
+    # test_eval.cpp
+    # test_exceptions.cpp
+    # test_factory_constructors.cpp
+    # test_gil_scoped.cpp
+    # test_iostream.cpp
+    # test_kwargs_and_defaults.cpp
+    # test_local_bindings.cpp
+    # test_methods_and_attributes.cpp
+    # test_modules.cpp
+    # test_multiple_inheritance.cpp
+    # test_numpy_array.cpp
+    # test_numpy_dtypes.cpp
+    # test_numpy_vectorize.cpp
+    # test_opaque_types.cpp
+    # test_operator_overloading.cpp
+    # test_pickling.cpp
+    # test_pytypes.cpp
+    # test_sequences_and_iterators.cpp
+    # test_smart_ptr.cpp
+    # test_stl.cpp
+    # test_stl_binders.cpp
+    # test_tagbased_polymorphic.cpp
+    # test_union.cpp
+    # test_virtual_functions.cpp)
+    )
+# cmake-format: on
 
 # Invoking cmake with something like:
 #     cmake -DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp" ..
