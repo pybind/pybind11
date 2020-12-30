@@ -373,12 +373,20 @@ string(REPLACE "test_" "${CMAKE_CURRENT_SOURCE_DIR}/test_" PYBIND11_ABS_PYTEST_F
 if(NOT PYBIND11_MEMCHECK)
   set(PYBIND11_TEST_PREFIX_COMMAND "")
 else()
+  # cmake-format: off
   set(PYBIND11_TEST_PREFIX_COMMAND
-      PYTHONMALLOC=malloc valgrind --leak-check=full --show-leak-kinds=definite,indirect
-      --errors-for-leak-kinds=definite,indirect --error-exitcode=1 --read-var-info=yes
-      --track-origins=yes --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp
-      --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp
-      --suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind-misc.supp --gen-suppressions=all)
+      PYTHONMALLOC=malloc
+      valgrind
+      --leak-check=full
+      --show-leak-kinds=definite,indirect
+      --errors-for-leak-kinds=definite,indirect
+      --error-exitcode=1
+      --read-var-info=yes
+      --track-origins=yes
+      --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp"
+      --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp"
+      --gen-suppressions=all)
+  # cmake-format: on
 endif()
 
 # A single command to compile and run the tests

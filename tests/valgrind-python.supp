@@ -1,6 +1,6 @@
-# Valgrind suppression file for Python errors and leaks in pybind11 tests
+# Valgrind suppression file for CPython errors and leaks in pybind11 tests
 
-# Taken from https://github.com/python/cpython/blob/3.9/Misc/valgrind-python.supp
+# Taken verbatim from https://github.com/python/cpython/blob/3.9/Misc/valgrind-python.supp#L266-L272
 {
    Uninitialised byte(s) false alarm, see bpo-35561
    Memcheck:Param
@@ -8,6 +8,7 @@
    fun:epoll_ctl
    fun:pyepoll_internal_ctl
 }
+
 {
    Python leaks when spawning a subprocess
    Memcheck:Leak
@@ -23,6 +24,7 @@
    fun:pymain_init
    fun:pymain_main
 }
+
 {
    Python leaks when spawning a subprocess
    Memcheck:Leak
@@ -39,6 +41,7 @@
    fun:pymain_main
    fun:Py_BytesMain
 }
+
 {
    Python leaks when spawning a subprocess
    Memcheck:Leak
@@ -57,6 +60,7 @@
    fun:_PyEval_EvalFrame
    fun:function_code_fastcall
 }
+
 {
    Python leaks when spawning a subprocess
    Memcheck:Leak
@@ -75,6 +79,7 @@
    fun:function_code_fastcall
    fun:_PyFunction_Vectorcall
 }
+
 {
    Python leaks when spawning a subprocess
    Memcheck:Leak
@@ -91,4 +96,22 @@
    fun:_PyEval_EvalFrame
    fun:_PyEval_EvalCode
    fun:_PyFunction_Vectorcall
+}
+
+# Not really CPython-specific, see link
+{
+   dlopen leak (https://stackoverflow.com/questions/1542457/memory-leak-reported-by-valgrind-in-dlopen)
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+   fun:_dlerror_run
+   fun:dlopen@@GLIBC_2.2.5
+   fun:_PyImport_FindSharedFuncptr
+   fun:_PyImport_LoadDynamicModuleWithSpec
 }

@@ -100,6 +100,7 @@
    fun:_PyEval_EvalFrame
    fun:_PyEval_EvalCode
 }
+
 {
    NumPy leaks when spawning a subprocess
    Memcheck:Leak
