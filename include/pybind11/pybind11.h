@@ -1731,6 +1731,7 @@ public:
         m_base.init(is_arithmetic, is_convertible);
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
+        def_property_readonly("value", [](Type value) { return (Scalar) value; });
         def("__int__", [](Type value) { return (Scalar) value; });
         #if PY_MAJOR_VERSION < 3
             def("__long__", [](Type value) { return (Scalar) value; });
