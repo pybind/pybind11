@@ -925,7 +925,17 @@ public:
     static type of() {return type(type::handle_of<T>(), borrowed_t{}); }
 
     /// Return the type name
-    object name() const { return attr("__name__"); }
+    std::string name() const {
+        // Copied from CPython source code
+        const char* full_name = ((PyTypeObject*) ptr())->tp_name;
+        const char* name = strrchr(full_name, '.');
+        if (name == nullptr) {
+            name = full_name;
+        } else {
+            name++;
+        }
+        return std::string(name);
+    }
 };
 
 class iterable : public object {
