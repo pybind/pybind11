@@ -926,11 +926,12 @@ public:
 
     /// Return the type name
     std::string name() const {
-        // Copied from CPython source code
         const char* full_name = ((PyTypeObject*) ptr())->tp_name;
         const char* name = strrchr(full_name, '.');
+        // Full name only contains type name, e.g. "T"
         if (name == nullptr) {
             name = full_name;
+        // Full name contains type and module names, e.g. "P.M.T"
         } else {
             name++;
         }
