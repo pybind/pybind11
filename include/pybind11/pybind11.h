@@ -118,9 +118,10 @@ protected:
 
     /// Space optimization: don't inline this frequently instantiated fragment
     PYBIND11_NOINLINE unique_function_record make_function_record() {
-        // `destruct<true>(function_record)`: `initialize_generic` copies strings and
-        // takes care of cleaning up in case of exceptions.
-        return unique_function_record(new detail::function_record(), destruct<false>);
+        // `destruct(function_record, false)`: `initialize_generic` copies strings and
+        // takes care of cleaning up in case of exceptions. So set `free_srings` to `false`.
+        auto destruct_no_free_strings = [](detail::function_record * rec) { destruct(rec, false); };
+        return unique_function_record(new detail::function_record(), destruct_no_free_strings);
     }
 
     /// Special internal constructor for functors, lambda functions, etc.
@@ -490,8 +491,7 @@ protected:
     }
 
     /// When a cpp_function is GCed, release any memory allocated by pybind11
-    template <bool DeleteStrings = true>
-    static void destruct(detail::function_record *rec) {
+    static void destruct(detail::function_record *rec, bool free_strings = true) {
         // If on Python 3.9, check the interpreter "MICRO" (patch) version.
         // If this is running on 3.9.0, we have to work around a bug.
         #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
@@ -504,7 +504,8 @@ protected:
                 rec->free_data(rec);
             // During initialization, these strings might not have been copied yet,
             // so they cannot be freed. Once the function has been created, they can.
-            if (DeleteStrings) {
+            // Check `make_function_record` for more details.
+            if (free_strings) {
                 std::free((char *) rec->name);
                 std::free((char *) rec->doc);
                 std::free((char *) rec->signature);
