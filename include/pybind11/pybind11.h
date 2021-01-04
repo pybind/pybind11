@@ -114,14 +114,16 @@ public:
     object name() const { return attr("__name__"); }
 
 protected:
-    using unique_function_record = std::unique_ptr<detail::function_record, void (*)(detail::function_record *)>;
+    struct InitializingFunctionRecordDeleter {
+        // `destruct(function_record, false)`: `initialize_generic` copies strings and
+        // takes care of cleaning up in case of exceptions. So pass `false` to `free_strings`.
+        void operator()(detail::function_record * rec) { destruct(rec, false); }
+    };
+    using unique_function_record = std::unique_ptr<detail::function_record, InitializingFunctionRecordDeleter>;
 
     /// Space optimization: don't inline this frequently instantiated fragment
     PYBIND11_NOINLINE unique_function_record make_function_record() {
-        // `destruct(function_record, false)`: `initialize_generic` copies strings and
-        // takes care of cleaning up in case of exceptions. So set `free_srings` to `false`.
-        auto destruct_no_free_strings = [](detail::function_record * rec) { destruct(rec, false); };
-        return unique_function_record(new detail::function_record(), destruct_no_free_strings);
+        return unique_function_record(new detail::function_record());
     }
 
     /// Special internal constructor for functors, lambda functions, etc.
