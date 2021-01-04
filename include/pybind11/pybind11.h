@@ -114,9 +114,13 @@ public:
     object name() const { return attr("__name__"); }
 
 protected:
+    using unique_function_record = std::unique_ptr<detail::function_record, void (*)(detail::function_record *)>;
+
     /// Space optimization: don't inline this frequently instantiated fragment
-    PYBIND11_NOINLINE std::unique_ptr<detail::function_record> make_function_record() {
-        return std::unique_ptr<detail::function_record>(new detail::function_record());
+    PYBIND11_NOINLINE unique_function_record make_function_record() {
+        // `destruct<true>(function_record)`: `initialize_generic` copies strings and
+        // takes care of cleaning up in case of exceptions.
+        return unique_function_record(new detail::function_record(), destruct<false>);
     }
 
     /// Special internal constructor for functors, lambda functions, etc.
@@ -247,7 +251,7 @@ protected:
     };
 
     /// Register a function call with Python (generic non-templated code goes here)
-    void initialize_generic(std::unique_ptr<detail::function_record> &&unique_rec, const char *text,
+    void initialize_generic(unique_function_record &&unique_rec, const char *text,
                             const std::type_info *const *types, size_t args) {
         auto rec = unique_rec.get();
 
@@ -486,6 +490,7 @@ protected:
     }
 
     /// When a cpp_function is GCed, release any memory allocated by pybind11
+    template <bool DeleteStrings = true>
     static void destruct(detail::function_record *rec) {
         // If on Python 3.9, check the interpreter "MICRO" (patch) version.
         // If this is running on 3.9.0, we have to work around a bug.
@@ -497,14 +502,19 @@ protected:
             detail::function_record *next = rec->next;
             if (rec->free_data)
                 rec->free_data(rec);
-            std::free((char *) rec->name);
-            std::free((char *) rec->doc);
-            std::free((char *) rec->signature);
-            for (auto &arg: rec->args) {
-                std::free(const_cast<char *>(arg.name));
-                std::free(const_cast<char *>(arg.descr));
-                arg.value.dec_ref();
+            // During initialization, these strings might not have been copied yet,
+            // so they cannot be freed. Once the function has been created, they can.
+            if (DeleteStrings) {
+                std::free((char *) rec->name);
+                std::free((char *) rec->doc);
+                std::free((char *) rec->signature);
+                for (auto &arg: rec->args) {
+                    std::free(const_cast<char *>(arg.name));
+                    std::free(const_cast<char *>(arg.descr));
+                }
             }
+            for (auto &arg: rec->args)
+                arg.value.dec_ref();
             if (rec->def) {
                 std::free(const_cast<char *>(rec->def->ml_doc));
                 // Python 3.9.0 decref's these in the wrong order; rec->def
