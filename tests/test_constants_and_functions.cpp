@@ -124,4 +124,19 @@ TEST_SUBMODULE(constants_and_functions, m) {
     m.def("f2", f2);
     m.def("f3", f3);
     m.def("f4", f4);
+
+    // test_function_record_leaks
+    struct LargeCapture {
+        // This should always be enough to trigger the alternative branch
+        // where `sizeof(capture) > sizeof(rec->data)`
+        uint64_t zeros[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    };
+    m.def("register_large_capture_with_invalid_arguments", [](py::module_ m) {
+        LargeCapture capture;  // VS 2015's MSVC is acting up if we create the array here
+        m.def("should_raise", [capture](int) { return capture.zeros[9] + 33; }, py::kw_only(), py::arg());
+    });
+    m.def("register_with_raising_repr", [](py::module_ m, py::object default_value) {
+        m.def("should_raise", [](int, int, py::object) { return 42; }, "some docstring",
+              py::arg_v("x", 42), py::arg_v("y", 42, "<the answer>"), py::arg_v("z", default_value));
+    });
 }
