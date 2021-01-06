@@ -17,9 +17,9 @@ struct functor_builtin_delete {
 
 inline void exercise() {
   to_cout("");
-  namespace py = pybind11;
+  using pybindit::memory::smart_holder;
   {
-    py::smart_holder hld;
+    smart_holder hld;
     hld.from_raw_ptr_owned(new int(13));
     to_cout(hld.rtti_held->name());
     {
@@ -33,24 +33,24 @@ inline void exercise() {
   }  // namespace ;
   {
     std::unique_ptr<int> val(new int(13));
-    py::smart_holder hld;
+    smart_holder hld;
     hld.from_raw_ptr_unowned(val.get());
     to_cout(std::to_string(*hld.as_raw_ptr_unowned<int>()));
   }
   {
     std::unique_ptr<int> val(new int(13));
-    py::smart_holder hld;
+    smart_holder hld;
     hld.from_unique_ptr(std::move(val));
     to_cout(std::to_string(*hld.as_raw_ptr_unowned<int>()));
   }
   {
-    py::smart_holder hld;
+    smart_holder hld;
     hld.from_raw_ptr_owned(new int(13));
     to_cout(std::to_string(*hld.as_unique_ptr<int>()));
   }
   {
     std::unique_ptr<int, functor_builtin_delete<int>> unq_ptr(new int(13));
-    py::smart_holder hld;
+    smart_holder hld;
     hld.from_unique_ptr_with_deleter(std::move(unq_ptr));
     to_cout(std::to_string(unq_ptr.get() == nullptr));
     to_cout(std::to_string(*hld.as_raw_ptr_unowned<int>()));
@@ -58,6 +58,12 @@ inline void exercise() {
         hld.as_unique_ptr_with_deleter<int, functor_builtin_delete<int>>();
     to_cout(std::to_string(hld.vptr.get() == nullptr));
     to_cout(std::to_string(*unq_ptr_retrieved));
+  }
+  {
+    std::shared_ptr<int> val(new int(13));
+    smart_holder hld;
+    hld.from_shared_ptr(val);
+    to_cout(std::to_string(*hld.as_raw_ptr_unowned<int>()));
   }
 }
 
