@@ -33,18 +33,21 @@ struct smart_holder {
   const std::type_info* rtti_uqp_del;
   std::shared_ptr<void> vptr;
   bool vptr_deleter_guard_flag;
+  bool vptr_is_using_builtin_delete;
 
   void clear() {
-    vptr.reset();
-    vptr_deleter_guard_flag = false;
     rtti_held = nullptr;
     rtti_uqp_del = nullptr;
+    vptr.reset();
+    vptr_deleter_guard_flag = false;
+    vptr_is_using_builtin_delete = false;
   }
 
   smart_holder()
       : rtti_held{nullptr},
         rtti_uqp_del{nullptr},
-        vptr_deleter_guard_flag{false} {}
+        vptr_deleter_guard_flag{false},
+        vptr_is_using_builtin_delete{false} {}
 
   bool has_pointee() const { return vptr.get() != nullptr; }
 
@@ -52,7 +55,7 @@ struct smart_holder {
   void ensure_compatible_rtti_held(const char* context) const {
     const std::type_info* rtti_requested = &typeid(T);
     if (!(*rtti_requested == *rtti_held)) {
-      throw std::runtime_error(std::string("Incompatible RTTI (") + context +
+      throw std::runtime_error(std::string("Incompatible type (") + context +
                                ").");
     }
   }
@@ -73,9 +76,9 @@ struct smart_holder {
     }
   }
 
-  void ensure_vptr_deleter_guard_flag_true(const char* context) const {
-    if (rtti_uqp_del != nullptr) {
-      throw std::runtime_error(std::string("Cannot disown this shared_ptr (") +
+  void ensure_vptr_is_using_builtin_delete(const char* context) const {
+    if (!vptr_is_using_builtin_delete) {
+      throw std::runtime_error(std::string("Cannot disown custom deleter (") +
                                context + ").");
     }
   }
@@ -100,6 +103,7 @@ struct smart_holder {
     clear();
     rtti_held = &typeid(T);
     vptr_deleter_guard_flag = true;
+    vptr_is_using_builtin_delete = true;
     vptr.reset(raw_ptr, guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
   }
 
@@ -107,7 +111,6 @@ struct smart_holder {
   void from_raw_ptr_unowned(T* raw_ptr) {
     clear();
     rtti_held = &typeid(T);
-    vptr_deleter_guard_flag = false;
     vptr.reset(raw_ptr, guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
   }
 
@@ -115,7 +118,7 @@ struct smart_holder {
   T* as_raw_ptr_release_ownership(
       const char* context = "as_raw_ptr_release_ownership") {
     ensure_compatible_rtti_held<T>(context);
-    ensure_vptr_deleter_guard_flag_true(context);
+    ensure_vptr_is_using_builtin_delete(context);
     ensure_use_count_1(context);
     T* raw_ptr = static_cast<T*>(vptr.get());
     vptr_deleter_guard_flag = false;
@@ -135,6 +138,7 @@ struct smart_holder {
     clear();
     rtti_held = &typeid(T);
     vptr_deleter_guard_flag = true;
+    vptr_is_using_builtin_delete = true;
     vptr.reset(unq_ptr.get(),
                guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
     unq_ptr.release();
