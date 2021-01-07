@@ -1,3 +1,38 @@
+/* Proof-of-Concept for smart pointer interoperability.
+
+High-level aspects:
+
+* Support all `unique_ptr`, `shared_ptr` interops that are feasible.
+
+* Cleanly and clearly report all interops that are infeasible.
+
+* Meant to fit into a `PyObject`, as a holder for C++ objects.
+
+* Support a system design that makes it impossible to trigger
+  C++ Undefined Behavior, especially from Python.
+
+* Support a system design with clean runtime inheritance casting. From this
+  it follows that the `smart_holder` needs to be type-erased (`void*`, RTTI).
+
+Details:
+
+* The "root holder" chosen here is a `shared_ptr<void>` (named `vptr` in this
+  implementation). This choice is practically inevitable because `shared_ptr`
+  has only very limited support for inspecting and accessing its deleter.
+
+* If created from a raw pointer, or a `unique_ptr` without a custom deleter,
+  `vptr` always uses a custom deleter, to support `unique_ptr`-like disowning.
+  The custom deleters can be extended to included life-time managment for
+  external objects (e.g. `PyObject`).
+
+* If created from an external `shared_ptr`, or a `unique_ptr` with a custom
+  deleter, including life-time management for external objects is infeasible.
+
+* The `typename T` between `from` and `as` calls must match exactly.
+  Inheritance casting needs to be handled in a different layer (similar
+  to the code organization in boost/python/object/inheritance.hpp).
+*/
+
 #pragma once
 
 #include <memory>
@@ -5,6 +40,9 @@
 #include <string>
 #include <typeinfo>
 
+// pybindit = Python Bindings Innovation Track.
+// Currently not in pybind11 namespace to signal that this POC does not depend
+// on any existing pybind11 functionality.
 namespace pybindit {
 namespace memory {
 
