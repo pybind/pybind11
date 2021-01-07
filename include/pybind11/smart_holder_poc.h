@@ -33,26 +33,36 @@ struct smart_holder {
   const std::type_info* rtti_uqp_del;
   std::shared_ptr<void> vptr;
   bool vptr_deleter_guard_flag;
-  bool vptr_is_using_builtin_delete;
+  bool vptr_is_using_noop_deleter : 1;
+  bool vptr_is_using_builtin_delete : 1;
+  bool vptr_is_external_shared_ptr : 1;
 
   void clear() {
     rtti_held = nullptr;
     rtti_uqp_del = nullptr;
     vptr.reset();
     vptr_deleter_guard_flag = false;
+    vptr_is_using_noop_deleter = false;
     vptr_is_using_builtin_delete = false;
+    vptr_is_external_shared_ptr = false;
   }
 
   smart_holder()
       : rtti_held{nullptr},
         rtti_uqp_del{nullptr},
         vptr_deleter_guard_flag{false},
-        vptr_is_using_builtin_delete{false} {}
+        vptr_is_using_noop_deleter{false},
+        vptr_is_using_builtin_delete{false},
+        vptr_is_external_shared_ptr{false} {}
 
   bool has_pointee() const { return vptr.get() != nullptr; }
 
   template <typename T>
   void ensure_compatible_rtti_held(const char* context) const {
+    if (!rtti_held) {
+      throw std::runtime_error(std::string("Unpopulated holder (") + context +
+                               ").");
+    }
     const std::type_info* rtti_requested = &typeid(T);
     if (!(*rtti_requested == *rtti_held)) {
       throw std::runtime_error(std::string("Incompatible type (") + context +
@@ -62,6 +72,10 @@ struct smart_holder {
 
   template <typename D>
   void ensure_compatible_rtti_uqp_del(const char* context) const {
+    if (!rtti_uqp_del) {
+      throw std::runtime_error(std::string("Missing unique_ptr deleter (") +
+                               context + ").");
+    }
     const std::type_info* rtti_requested = &typeid(D);
     if (!(*rtti_requested == *rtti_uqp_del)) {
       throw std::runtime_error(
@@ -77,6 +91,14 @@ struct smart_holder {
   }
 
   void ensure_vptr_is_using_builtin_delete(const char* context) const {
+    if (vptr_is_external_shared_ptr) {
+      throw std::runtime_error(
+          std::string("Cannot disown external shared_ptr (") + context + ").");
+    }
+    if (vptr_is_using_noop_deleter) {
+      throw std::runtime_error(
+          std::string("Cannot disown non-owning holder (") + context + ").");
+    }
     if (!vptr_is_using_builtin_delete) {
       throw std::runtime_error(std::string("Cannot disown custom deleter (") +
                                context + ").");
@@ -94,6 +116,7 @@ struct smart_holder {
   void from_raw_ptr_unowned(T* raw_ptr) {
     clear();
     rtti_held = &typeid(T);
+    vptr_is_using_noop_deleter = true;
     vptr.reset(raw_ptr, guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
   }
 
@@ -176,6 +199,7 @@ struct smart_holder {
   void from_shared_ptr(std::shared_ptr<T> shd_ptr) {
     clear();
     rtti_held = &typeid(T);
+    vptr_is_external_shared_ptr = true;
     vptr = std::static_pointer_cast<void>(shd_ptr);
   }
 
