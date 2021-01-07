@@ -310,3 +310,25 @@ TEST_CASE("from_shared_ptr+as_shared_ptr", "[S]") {
   hld.from_shared_ptr(orig_owner);
   REQUIRE(*hld.as_shared_ptr<int>() == 19);
 }
+
+TEST_CASE("error_unpopulated_holder", "[E]") {
+  smart_holder hld;
+  REQUIRE_THROWS_WITH(hld.as_raw_ptr_unowned<int>(),
+                      "Unpopulated holder (as_raw_ptr_unowned).");
+}
+
+TEST_CASE("error_incompatible_type", "[E]") {
+  static int value = 19;
+  smart_holder hld;
+  hld.from_raw_ptr_unowned(&value);
+  REQUIRE_THROWS_WITH(hld.as_unique_ptr<std::string>(),
+                      "Incompatible type (as_unique_ptr).");
+}
+
+TEST_CASE("error_disowned_holder", "[E]") {
+  smart_holder hld;
+  hld.from_raw_ptr_take_ownership(new int(19));
+  hld.as_unique_ptr<int>();
+  REQUIRE_THROWS_WITH(hld.const_value_ref<int>(),
+                      "Disowned holder (const_value_ref).");
+}
