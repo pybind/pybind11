@@ -14,7 +14,7 @@ struct functor_builtin_delete {
 
 }  // namespace helpers
 
-TEST_CASE("from_raw_ptr_take_ownership=const_value_ref") {
+TEST_CASE("from_raw_ptr_take_ownership+const_value_ref", "[feasible]") {
   smart_holder hld;
   REQUIRE(!hld.has_pointee());
   hld.from_raw_ptr_take_ownership(new int(19));
@@ -22,14 +22,14 @@ TEST_CASE("from_raw_ptr_take_ownership=const_value_ref") {
   REQUIRE(hld.const_value_ref<int>() == 19);
 }
 
-TEST_CASE("from_raw_ptr_unowned=const_value_ref") {
+TEST_CASE("from_raw_ptr_unowned+const_value_ref", "[feasible]") {
   static int value = 19;
   smart_holder hld;
   hld.from_raw_ptr_unowned(&value);
   REQUIRE(hld.const_value_ref<int>() == 19);
 }
 
-TEST_CASE("as_raw_ptr_release_ownership") {
+TEST_CASE("from_raw_ptr_take_ownership+as_raw_ptr_release_ownership", "[feasible]") {
   smart_holder hld;
   hld.from_raw_ptr_take_ownership(new int(19));
   auto new_owner =
@@ -37,7 +37,7 @@ TEST_CASE("as_raw_ptr_release_ownership") {
   REQUIRE(!hld.has_pointee());
 }
 
-TEST_CASE("as_raw_ptr_unowned") {
+TEST_CASE("from_raw_ptr_take_ownership+as_raw_ptr_unowned", "[feasible]") {
   smart_holder hld;
   hld.from_raw_ptr_take_ownership(new int(19));
   int* raw_ptr = hld.as_raw_ptr_unowned<int>();
@@ -45,7 +45,7 @@ TEST_CASE("as_raw_ptr_unowned") {
   REQUIRE(*raw_ptr == 19);
 }
 
-TEST_CASE("from_unique_ptr=const_value_ref") {
+TEST_CASE("from_unique_ptr+const_value_ref+const_value_ref", "[feasible]") {
   std::unique_ptr<int> orig_owner(new int(19));
   smart_holder hld;
   hld.from_unique_ptr(std::move(orig_owner));
@@ -53,7 +53,7 @@ TEST_CASE("from_unique_ptr=const_value_ref") {
   REQUIRE(hld.const_value_ref<int>() == 19);
 }
 
-TEST_CASE("as_unique_ptr") {
+TEST_CASE("from_raw_ptr_take_ownership+as_unique_ptr", "[feasible]") {
   smart_holder hld;
   hld.from_raw_ptr_take_ownership(new int(19));
   auto new_owner = hld.as_unique_ptr<int>();
@@ -61,7 +61,7 @@ TEST_CASE("as_unique_ptr") {
   REQUIRE(*new_owner == 19);
 }
 
-TEST_CASE("from_unique_ptr_with_deleter=const_value_ref") {
+TEST_CASE("from_unique_ptr_with_deleter+const_value_ref", "[feasible]") {
   std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(
       new int(19));
   smart_holder hld;
@@ -70,7 +70,7 @@ TEST_CASE("from_unique_ptr_with_deleter=const_value_ref") {
   REQUIRE(hld.const_value_ref<int>() == 19);
 }
 
-TEST_CASE("as_unique_ptr_with_deleter") {
+TEST_CASE("from_unique_ptr_with_deleter+as_unique_ptr_with_deleter", "[feasible]") {
   std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(
       new int(19));
   smart_holder hld;
@@ -82,7 +82,7 @@ TEST_CASE("as_unique_ptr_with_deleter") {
   REQUIRE(*new_owner == 19);
 }
 
-TEST_CASE("from_shared_ptr=const_value_ref") {
+TEST_CASE("from_shared_ptr+const_value_ref", "[feasible]") {
   std::shared_ptr<int> orig_owner(new int(19));
   smart_holder hld;
   hld.from_shared_ptr(orig_owner);
@@ -90,7 +90,7 @@ TEST_CASE("from_shared_ptr=const_value_ref") {
   REQUIRE(hld.const_value_ref<int>() == 19);
 }
 
-TEST_CASE("as_shared_ptr") {
+TEST_CASE("from_raw_ptr_take_ownership+as_shared_ptr", "[feasible]") {
   smart_holder hld;
   hld.from_raw_ptr_take_ownership(new int(19));
   auto new_owner = hld.as_shared_ptr<int>();
