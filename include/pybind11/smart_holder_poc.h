@@ -75,16 +75,6 @@ struct smart_holder {
   bool vptr_is_using_builtin_delete : 1;
   bool vptr_is_external_shared_ptr : 1;
 
-  void clear() {
-    rtti_held = nullptr;
-    rtti_uqp_del = nullptr;
-    vptr.reset();
-    vptr_deleter_guard_flag = false;
-    vptr_is_using_noop_deleter = false;
-    vptr_is_using_builtin_delete = false;
-    vptr_is_external_shared_ptr = false;
-  }
-
   smart_holder()
       : rtti_held{nullptr},
         rtti_uqp_del{nullptr},
@@ -151,11 +141,13 @@ struct smart_holder {
   }
 
   template <typename T>
-  void from_raw_ptr_unowned(T* raw_ptr) {
-    clear();
-    rtti_held = &typeid(T);
-    vptr_is_using_noop_deleter = true;
-    vptr.reset(raw_ptr, guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
+  static smart_holder from_raw_ptr_unowned(T* raw_ptr) {
+    smart_holder hld;
+    hld.rtti_held = &typeid(T);
+    hld.vptr_is_using_noop_deleter = true;
+    hld.vptr.reset(raw_ptr,
+                   guarded_builtin_delete<T>(&hld.vptr_deleter_guard_flag));
+    return hld;
   }
 
   template <typename T>
@@ -174,12 +166,14 @@ struct smart_holder {
   }
 
   template <typename T>
-  void from_raw_ptr_take_ownership(T* raw_ptr) {
-    clear();
-    rtti_held = &typeid(T);
-    vptr_deleter_guard_flag = true;
-    vptr_is_using_builtin_delete = true;
-    vptr.reset(raw_ptr, guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
+  static smart_holder from_raw_ptr_take_ownership(T* raw_ptr) {
+    smart_holder hld;
+    hld.rtti_held = &typeid(T);
+    hld.vptr_deleter_guard_flag = true;
+    hld.vptr_is_using_builtin_delete = true;
+    hld.vptr.reset(raw_ptr,
+                   guarded_builtin_delete<T>(&hld.vptr_deleter_guard_flag));
+    return hld;
   }
 
   template <typename T>
@@ -195,14 +189,15 @@ struct smart_holder {
   }
 
   template <typename T>
-  void from_unique_ptr(std::unique_ptr<T>&& unq_ptr) {
-    clear();
-    rtti_held = &typeid(T);
-    vptr_deleter_guard_flag = true;
-    vptr_is_using_builtin_delete = true;
-    vptr.reset(unq_ptr.get(),
-               guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
+  static smart_holder from_unique_ptr(std::unique_ptr<T>&& unq_ptr) {
+    smart_holder hld;
+    hld.rtti_held = &typeid(T);
+    hld.vptr_deleter_guard_flag = true;
+    hld.vptr_is_using_builtin_delete = true;
+    hld.vptr.reset(unq_ptr.get(),
+                   guarded_builtin_delete<T>(&hld.vptr_deleter_guard_flag));
     unq_ptr.release();
+    return hld;
   }
 
   template <typename T>
@@ -211,14 +206,16 @@ struct smart_holder {
   }
 
   template <typename T, typename D>
-  void from_unique_ptr_with_deleter(std::unique_ptr<T, D>&& unq_ptr) {
-    clear();
-    rtti_held = &typeid(T);
-    rtti_uqp_del = &typeid(D);
-    vptr_deleter_guard_flag = true;
-    vptr.reset(unq_ptr.get(),
-               guarded_custom_deleter<T, D>(&vptr_deleter_guard_flag));
+  static smart_holder from_unique_ptr_with_deleter(
+      std::unique_ptr<T, D>&& unq_ptr) {
+    smart_holder hld;
+    hld.rtti_held = &typeid(T);
+    hld.rtti_uqp_del = &typeid(D);
+    hld.vptr_deleter_guard_flag = true;
+    hld.vptr.reset(unq_ptr.get(),
+                   guarded_custom_deleter<T, D>(&hld.vptr_deleter_guard_flag));
     unq_ptr.release();
+    return hld;
   }
 
   template <typename T, typename D>
@@ -234,11 +231,12 @@ struct smart_holder {
   }
 
   template <typename T>
-  void from_shared_ptr(std::shared_ptr<T> shd_ptr) {
-    clear();
-    rtti_held = &typeid(T);
-    vptr_is_external_shared_ptr = true;
-    vptr = std::static_pointer_cast<void>(shd_ptr);
+  static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {
+    smart_holder hld;
+    hld.rtti_held = &typeid(T);
+    hld.vptr_is_external_shared_ptr = true;
+    hld.vptr = std::static_pointer_cast<void>(shd_ptr);
+    return hld;
   }
 
   template <typename T>
