@@ -91,6 +91,20 @@ struct smart_holder {
   }
 
   template <typename T>
+  void from_raw_ptr_unowned(T* raw_ptr) {
+    clear();
+    rtti_held = &typeid(T);
+    vptr.reset(raw_ptr, guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
+  }
+
+  template <typename T>
+  T* as_raw_ptr_unowned() const {
+    static const char* context = "as_raw_ptr_unowned";
+    ensure_compatible_rtti_held<T>(context);
+    return static_cast<T*>(vptr.get());
+  }
+
+  template <typename T>
   const T& const_value_ref() const {
     static const char* context = "const_value_ref";
     ensure_compatible_rtti_held<T>(context);
@@ -108,13 +122,6 @@ struct smart_holder {
   }
 
   template <typename T>
-  void from_raw_ptr_unowned(T* raw_ptr) {
-    clear();
-    rtti_held = &typeid(T);
-    vptr.reset(raw_ptr, guarded_builtin_delete<T>(&vptr_deleter_guard_flag));
-  }
-
-  template <typename T>
   T* as_raw_ptr_release_ownership(
       const char* context = "as_raw_ptr_release_ownership") {
     ensure_compatible_rtti_held<T>(context);
@@ -124,13 +131,6 @@ struct smart_holder {
     vptr_deleter_guard_flag = false;
     vptr.reset();
     return raw_ptr;
-  }
-
-  template <typename T>
-  T* as_raw_ptr_unowned() const {
-    static const char* context = "as_raw_ptr_unowned";
-    ensure_compatible_rtti_held<T>(context);
-    return static_cast<T*>(vptr.get());
   }
 
   template <typename T>
