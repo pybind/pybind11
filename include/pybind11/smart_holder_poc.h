@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <typeinfo>
 
 namespace pybindit {
@@ -44,8 +46,10 @@ struct smart_holder {
         rtti_uqp_del{nullptr},
         vptr_deleter_guard_flag{false} {}
 
+  bool has_pointee() const { return vptr.get() != nullptr; }
+
   template <typename T>
-  void ensure_compatible_rtti_held(const char* context) {
+  void ensure_compatible_rtti_held(const char* context) const {
     const std::type_info* rtti_requested = &typeid(T);
     if (!(*rtti_requested == *rtti_held)) {
       throw std::runtime_error(std::string("Incompatible RTTI (") + context +
@@ -54,7 +58,7 @@ struct smart_holder {
   }
 
   template <typename D>
-  void ensure_compatible_rtti_uqp_del(const char* context) {
+  void ensure_compatible_rtti_uqp_del(const char* context) const {
     const std::type_info* rtti_requested = &typeid(D);
     if (!(*rtti_requested == *rtti_uqp_del)) {
       throw std::runtime_error(
@@ -62,14 +66,21 @@ struct smart_holder {
     }
   }
 
-  void ensure_vptr_deleter_guard_flag_true(const char* context) {
+  void ensure_has_pointee(const char* context) const {
+    if (!has_pointee()) {
+      throw std::runtime_error(std::string("Disowned holder (") + context +
+                               ").");
+    }
+  }
+
+  void ensure_vptr_deleter_guard_flag_true(const char* context) const {
     if (rtti_uqp_del != nullptr) {
       throw std::runtime_error(std::string("Cannot disown this shared_ptr (") +
                                context + ").");
     }
   }
 
-  void ensure_use_count_1(const char* context) {
+  void ensure_use_count_1(const char* context) const {
     if (vptr.use_count() != 1) {
       throw std::runtime_error(std::string("Cannot disown use_count != 1 (") +
                                context + ").");
@@ -77,7 +88,15 @@ struct smart_holder {
   }
 
   template <typename T>
-  void from_raw_ptr_owned(T* raw_ptr) {
+  const T& const_value_ref() const {
+    static const char* context = "const_value_ref";
+    ensure_compatible_rtti_held<T>(context);
+    ensure_has_pointee(context);
+    return *static_cast<T*>(vptr.get());
+  }
+
+  template <typename T>
+  void from_raw_ptr_take_ownership(T* raw_ptr) {
     clear();
     rtti_held = &typeid(T);
     vptr_deleter_guard_flag = true;
@@ -93,7 +112,8 @@ struct smart_holder {
   }
 
   template <typename T>
-  T* as_raw_ptr_owned(const char* context = "as_raw_ptr_owned") {
+  T* as_raw_ptr_release_ownership(
+      const char* context = "as_raw_ptr_release_ownership") {
     ensure_compatible_rtti_held<T>(context);
     ensure_vptr_deleter_guard_flag_true(context);
     ensure_use_count_1(context);
@@ -104,7 +124,7 @@ struct smart_holder {
   }
 
   template <typename T>
-  T* as_raw_ptr_unowned() {
+  T* as_raw_ptr_unowned() const {
     static const char* context = "as_raw_ptr_unowned";
     ensure_compatible_rtti_held<T>(context);
     return static_cast<T*>(vptr.get());
@@ -122,7 +142,7 @@ struct smart_holder {
 
   template <typename T>
   std::unique_ptr<T> as_unique_ptr() {
-    return std::unique_ptr<T>(as_raw_ptr_owned<T>("as_unique_ptr"));
+    return std::unique_ptr<T>(as_raw_ptr_release_ownership<T>("as_unique_ptr"));
   }
 
   template <typename T, typename D>
@@ -156,7 +176,7 @@ struct smart_holder {
   }
 
   template <typename T>
-  std::shared_ptr<T> as_shared_ptr() {
+  std::shared_ptr<T> as_shared_ptr() const {
     static const char* context = "as_shared_ptr";
     ensure_compatible_rtti_held<T>(context);
     return std::static_pointer_cast<T>(vptr);
