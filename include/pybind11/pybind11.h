@@ -2221,7 +2221,7 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
     if (!self)
         return function();
     handle type = type::handle_of(self);
-    std::string full_name = type.attr("__qualname__").cast<std::string>() + "." + name;
+    std::string full_name = get_fully_qualified_tp_name((PyTypeObject*) type.ptr()) + "." + name;
     auto key = std::make_pair(type.ptr(), full_name);
 
     /* Cache functions that aren't overridden in Python to avoid

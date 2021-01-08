@@ -82,10 +82,16 @@ struct type_equal_to {
 template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
+// Adapted from boost::hash_combine(). See also:
+// https://stackoverflow.com/a/27952689/7829525.
+inline void hash_combine(size_t& lhs, size_t rhs ) {
+    lhs ^= rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2);
+}
+
 struct override_hash {
     inline size_t operator()(const std::pair<const PyObject *, std::string>& v) const {
         size_t value = std::hash<const void *>()(v.first);
-        value ^= std::hash<std::string>()(v.second);
+        hash_combine(value, std::hash<std::string>()(v.second));
         return value;
     }
 };
@@ -150,7 +156,7 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 4
+#define PYBIND11_INTERNALS_VERSION 5
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
