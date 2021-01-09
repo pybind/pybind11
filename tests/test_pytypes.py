@@ -92,6 +92,16 @@ def test_dict(capture, doc):
     assert m.dict_contains({42: None}, 42)
     assert m.dict_contains({"foo": None}, "foo")
 
+    d2 = {True: 42, 3: "abc", "abc": 3}
+    assert m.dict_get(d2, True) == 42
+    assert m.dict_get(d2, False) is None
+    assert m.dict_get(d2, 3, "def") == "abc"
+    assert m.dict_get(d2, 5, "def") == "def"
+    assert m.dict_get(d2, "abc") == 3
+    assert m.dict_get(d2, "def") is None
+    assert m.dict_get(d2, "abc", 5) == 3
+    assert m.dict_get(d2, "def", 5) == 5
+
     assert doc(m.get_dict) == "get_dict() -> dict"
     assert doc(m.print_dict) == "print_dict(arg0: dict) -> None"
 

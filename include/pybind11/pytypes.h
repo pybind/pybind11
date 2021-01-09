@@ -1292,6 +1292,25 @@ public:
         return PyDict_Contains(m_ptr, detail::object_or_cast(std::forward<T>(key)).ptr()) == 1;
     }
 
+    object get(handle key, handle default_) const {
+        if (PyObject *result = PyDict_GetItem(m_ptr, key.ptr())) {
+            return reinterpret_borrow<object>(result);
+        } else {
+            return reinterpret_borrow<object>(default_);
+        }
+    }
+
+    object get(const char *key, handle default_) const {
+        if (PyObject *result = PyDict_GetItemString(m_ptr, key)) {
+            return reinterpret_borrow<object>(result);
+        } else {
+            return reinterpret_borrow<object>(default_);
+        }
+    }
+
+    object get(handle key) const { return get(key, none()); }
+    object get(const char *key) const { return get(key, none()); }
+
 private:
     /// Call the `dict` Python type -- always returns a new reference
     static PyObject *raw_dict(PyObject *op) {

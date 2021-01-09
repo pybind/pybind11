@@ -74,6 +74,18 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("dict_contains", [](py::dict dict, const char* val) {
         return dict.contains(val);
     });
+    m.def("dict_get", [](py::dict dict, py::object key, py::object default_) {
+        return dict.get(key, default_);
+    });
+    m.def("dict_get", [](py::dict dict, const char* key, py::object default_) {
+        return dict.get(key, default_);
+    });
+    m.def("dict_get", [](py::dict dict, py::object key) {
+        return dict.get(key);
+    });
+    m.def("dict_get", [](py::dict dict, const char* key) {
+        return dict.get(key);
+    });
 
     // test_str
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
