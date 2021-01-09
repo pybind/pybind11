@@ -1910,7 +1910,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
 template <typename InputType, typename OutputType> void implicitly_convertible() {
     struct set_flag {
         bool &flag;
-        set_flag(bool &my_flag) : flag(my_flag) { my_flag = true; }
+        set_flag(bool &flag_) : flag(flag_) { flag_ = true; }
         ~set_flag() { flag = false; }
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
