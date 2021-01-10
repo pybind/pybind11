@@ -544,7 +544,7 @@ template <typename... Extra,
           size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
           size_t self  = constexpr_sum(std::is_same<is_method, Extra>::value...)>
 constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
-    return named == 0 || (self + named + has_args + has_kwargs) == nargs;
+    return named == 0 || (self + named + (has_args ? 1 : 0) + (has_kwargs ? 1 : 0)) == nargs;
 }
 
 PYBIND11_NAMESPACE_END(detail)
