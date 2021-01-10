@@ -27,6 +27,12 @@ std::shared_ptr<mpty const> rtrn_mpty_shcp() { return std::shared_ptr<mpty const
 const char* pass_mpty_shmp(std::shared_ptr<mpty>)       { return "load_shmp"; }
 const char* pass_mpty_shcp(std::shared_ptr<mpty const>) { return "load_shcp"; }
 
+std::unique_ptr<mpty>       rtrn_mpty_uqmp() { return std::unique_ptr<mpty>(new mpty); }
+std::unique_ptr<mpty const> rtrn_mpty_uqcp() { return std::unique_ptr<mpty const>(new mpty); }
+
+const char* pass_mpty_uqmp(std::unique_ptr<mpty>)       { return "load_uqmp"; }
+const char* pass_mpty_uqcp(std::unique_ptr<mpty const>) { return "load_uqcp"; }
+
 }  // namespace type_caster_bare_interface_demo
 }  // namespace pybind11_tests
 
@@ -135,6 +141,44 @@ struct type_caster<std::shared_ptr<mpty const>> {
     }
 };
 
+template <>
+struct type_caster<std::unique_ptr<mpty>> {
+    static constexpr auto name = _<std::unique_ptr<mpty>>();
+
+    static handle cast(std::unique_ptr<mpty>&& /*src*/,
+                       return_value_policy /*policy*/,
+                       handle /*parent*/) {
+        return str("cast_uqmp").release();
+    }
+
+    template <typename> using cast_op_type = std::unique_ptr<mpty>;
+
+    operator std::unique_ptr<mpty>() { return rtrn_mpty_uqmp(); }
+
+    bool load(handle /*src*/, bool /*convert*/) {
+        return true;
+    }
+};
+
+template <>
+struct type_caster<std::unique_ptr<mpty const>> {
+    static constexpr auto name = _<std::unique_ptr<mpty const>>();
+
+    static handle cast(std::unique_ptr<mpty const>&& /*src*/,
+                       return_value_policy /*policy*/,
+                       handle /*parent*/) {
+        return str("cast_uqcp").release();
+    }
+
+    template <typename> using cast_op_type = std::unique_ptr<mpty const>;
+
+    operator std::unique_ptr<mpty const>() { return rtrn_mpty_uqcp(); }
+
+    bool load(handle /*src*/, bool /*convert*/) {
+        return true;
+    }
+};
+
 }  // namespace detail
 }  // namespace pybind11
 
@@ -161,6 +205,12 @@ TEST_SUBMODULE(type_caster_bare_interface_demo, m) {
 
     m.def("pass_mpty_shmp", pass_mpty_shmp);
     m.def("pass_mpty_shcp", pass_mpty_shcp);
+
+    m.def("rtrn_mpty_uqmp", rtrn_mpty_uqmp);
+    m.def("rtrn_mpty_uqcp", rtrn_mpty_uqcp);
+
+    m.def("pass_mpty_uqmp", pass_mpty_uqmp);
+    m.def("pass_mpty_uqcp", pass_mpty_uqcp);
 }
 
 }  // namespace type_caster_bare_interface_demo
