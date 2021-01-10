@@ -20,3 +20,13 @@ def test_load():
     assert m.pass_mpty_mref(None) == "load_mref"
     assert m.pass_mpty_cptr(None) == "load_cptr"
     assert m.pass_mpty_mptr(None) == "load_mptr"
+
+
+def test_cast_shared_ptr():
+    assert m.rtrn_mpty_shmp() == "cast_shmp"
+    assert m.rtrn_mpty_shcp() == "cast_shcp"
+
+
+def test_load_shared_ptr():
+    assert m.pass_mpty_shmp(None) == "load_shmp"
+    assert m.pass_mpty_shcp(None) == "load_shcp"
