@@ -196,7 +196,7 @@ For example:
     } catch (py::error_already_set &e) {
         if (e.matches(PyExc_FileNotFoundError)) {
             py::print("missing.txt not found");
-        } else if (e.match(PyExc_PermissionError)) {
+        } else if (e.matches(PyExc_PermissionError)) {
             py::print("missing.txt found but not accessible");
         } else {
             throw;
