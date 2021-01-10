@@ -30,3 +30,13 @@ def test_cast_shared_ptr():
 def test_load_shared_ptr():
     assert m.pass_mpty_shmp(None) == "load_shmp"
     assert m.pass_mpty_shcp(None) == "load_shcp"
+
+
+def test_cast_unique_ptr():
+    assert m.rtrn_mpty_uqmp() == "cast_uqmp"
+    assert m.rtrn_mpty_uqcp() == "cast_uqcp"
+
+
+def test_load_unique_ptr():
+    assert m.pass_mpty_uqmp(None) == "load_uqmp"
+    assert m.pass_mpty_uqcp(None) == "load_uqcp"
