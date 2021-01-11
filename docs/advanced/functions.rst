@@ -524,6 +524,8 @@ The default behaviour when the tag is unspecified is to allow ``None``.
     not allow ``None`` as argument.  To pass optional argument of these copied types consider
     using ``std::optional<T>``
 
+.. _overload_resolution:
+
 Overload resolution order
 =========================
 
