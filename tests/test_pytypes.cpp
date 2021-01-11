@@ -68,22 +68,22 @@ TEST_SUBMODULE(pytypes, m) {
         auto d2 = py::dict("z"_a=3, **d1);
         return d2;
     });
-    m.def("dict_contains", [](py::dict dict, py::object val) {
-        return dict.contains(val);
-    });
     m.def("dict_contains", [](py::dict dict, const char* val) {
         return dict.contains(val);
     });
-    m.def("dict_get", [](py::dict dict, py::object key, py::object default_) {
-        return dict.get(key, default_);
+    m.def("dict_contains", [](py::dict dict, py::object val) {
+        return dict.contains(val);
     });
     m.def("dict_get", [](py::dict dict, const char* key, py::object default_) {
         return dict.get(key, default_);
     });
-    m.def("dict_get", [](py::dict dict, py::object key) {
-        return dict.get(key);
+    m.def("dict_get", [](py::dict dict, py::object key, py::object default_) {
+        return dict.get(key, default_);
     });
     m.def("dict_get", [](py::dict dict, const char* key) {
+        return dict.get(key);
+    });
+    m.def("dict_get", [](py::dict dict, py::object key) {
         return dict.get(key);
     });
 

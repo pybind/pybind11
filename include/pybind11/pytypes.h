@@ -35,6 +35,7 @@ namespace accessor_policies {
     struct sequence_item;
     struct list_item;
     struct tuple_item;
+    struct dict_item;
 } // namespace accessor_policies
 using obj_attr_accessor = accessor<accessor_policies::obj_attr>;
 using str_attr_accessor = accessor<accessor_policies::str_attr>;
@@ -42,6 +43,7 @@ using item_accessor = accessor<accessor_policies::generic_item>;
 using sequence_accessor = accessor<accessor_policies::sequence_item>;
 using list_accessor = accessor<accessor_policies::list_item>;
 using tuple_accessor = accessor<accessor_policies::tuple_item>;
+using dict_accessor = accessor<accessor_policies::dict_item>;
 
 /// Tag and check to identify a class which implements the Python object API
 class pyobject_tag { };
@@ -609,6 +611,31 @@ struct tuple_item {
     static void set(handle obj, size_t index, handle val) {
         // PyTuple_SetItem steals a reference to 'val'
         if (PyTuple_SetItem(obj.ptr(), static_cast<ssize_t>(index), val.inc_ref().ptr()) != 0) {
+            throw error_already_set();
+        }
+    }
+};
+
+struct dict_item {
+    using key_type = object;
+
+    static object get(handle obj, handle key) {
+#if PY_MAJOR_VERSION >= 3
+        if (PyObject *result = PyDict_GetItemWithError(obj.ptr(), key.ptr())) {
+            return reinterpret_borrow<object>(result);
+        } else {
+            if (!PyErr_Occurred())
+                if (PyObject* key_repr = PyObject_Repr(key.ptr()))
+                    PyErr_SetObject(PyExc_KeyError, key_repr);
+            throw error_already_set();
+        }
+#else
+        return generic_item::get(obj, key);
+#endif
+    }
+
+    static void set(handle obj, handle key, handle val) {
+        if (PyDict_SetItem(obj.ptr(), key.ptr(), val.ptr()) != 0) {
             throw error_already_set();
         }
     }
@@ -1285,6 +1312,8 @@ public:
 
     size_t size() const { return (size_t) PyDict_Size(m_ptr); }
     bool empty() const { return size() == 0; }
+    detail::dict_accessor operator[](const char *key) const { return {*this, pybind11::str(key)}; }
+    detail::dict_accessor operator[](handle h) const { return {*this, reinterpret_borrow<object>(h)}; }
     detail::dict_iterator begin() const { return {*this, 0}; }
     detail::dict_iterator end() const { return {}; }
     void clear() const { PyDict_Clear(ptr()); }
@@ -1293,19 +1322,30 @@ public:
     }
 
     object get(handle key, handle default_ = none()) const {
-        if (PyObject *result = PyDict_GetItem(m_ptr, key.ptr())) {
+#if PY_MAJOR_VERSION >= 3
+        if (PyObject *result = PyDict_GetItemWithError(m_ptr, key.ptr())) {
             return reinterpret_borrow<object>(result);
         } else {
-            return reinterpret_borrow<object>(default_);
+            if (PyErr_Occurred())
+                throw error_already_set();
+            else
+                return reinterpret_borrow<object>(default_);
         }
+#else
+        try {
+            return object::operator[](key);
+        } catch (const error_already_set& e) {
+            if (e.type().ptr() == PyExc_KeyError) {
+                return reinterpret_borrow<object>(default_);
+            } else {
+                throw;
+            }
+        }
+#endif
     }
 
     object get(const char *key, handle default_ = none()) const {
-        if (PyObject *result = PyDict_GetItemString(m_ptr, key)) {
-            return reinterpret_borrow<object>(result);
-        } else {
-            return reinterpret_borrow<object>(default_);
-        }
+        return get(pybind11::str(key), default_);
     }
 
 private:
