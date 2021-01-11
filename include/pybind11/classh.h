@@ -1,23 +1,23 @@
 #pragma once
 
+#include "smart_holder_poc.h"
 #include "pybind11.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 template <typename type_, typename... options>
 class classh : public detail::generic_type {
-    template <typename T> using is_holder = detail::is_holder_type<type_, T>;
     template <typename T> using is_subtype = detail::is_strict_base_of<type_, T>;
     template <typename T> using is_base = detail::is_strict_base_of<T, type_>;
     // struct instead of using here to help MSVC:
     template <typename T> struct is_valid_class_option :
-        detail::any_of<is_holder<T>, is_subtype<T>, is_base<T>> {};
+        detail::any_of<is_subtype<T>, is_base<T>> {};
 
 public:
     using type = type_;
     using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type = detail::exactly_one_t<is_holder, std::unique_ptr<type>, options...>;
+    using holder_type = pybindit::memory::smart_holder;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
             "Unknown/invalid classh template parameters provided");
@@ -48,7 +48,7 @@ public:
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
+        record.default_holder = false;
 
         set_operator_new<type>(&record);
 
@@ -271,7 +271,7 @@ private:
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
             const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
         try {
-            auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(
+            auto sh = std::dynamic_pointer_cast<type>(  // Was: typename holder_type::element_type
                     v_h.value_ptr<type>()->shared_from_this());
             if (sh) {
                 new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(sh));
@@ -285,24 +285,15 @@ private:
         }
     }
 
-    static void init_holder_from_existing(const detail::value_and_holder &v_h,
-            const holder_type *holder_ptr, std::true_type /*is_copy_constructible*/) {
-        new (std::addressof(v_h.holder<holder_type>())) holder_type(*reinterpret_cast<const holder_type *>(holder_ptr));
-    }
-
-    static void init_holder_from_existing(const detail::value_and_holder &v_h,
-            const holder_type *holder_ptr, std::false_type /*is_copy_constructible*/) {
-        new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*const_cast<holder_type *>(holder_ptr)));
-    }
-
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
             const holder_type *holder_ptr, const void * /* dummy -- not enable_shared_from_this<T>) */) {
         if (holder_ptr) {
-            init_holder_from_existing(v_h, holder_ptr, std::is_copy_constructible<holder_type>());
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(*reinterpret_cast<const holder_type *>(holder_ptr));
             v_h.set_holder_constructed();
         } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(
+                std::move(holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<type>())));
             v_h.set_holder_constructed();
         }
     }
