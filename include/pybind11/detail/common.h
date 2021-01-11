@@ -185,6 +185,7 @@
 #define PYBIND11_BOOL_ATTR "__bool__"
 #define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_bool)
 #define PYBIND11_BUILTINS_MODULE "builtins"
+#define PYBIND11_DICT_GET_ITEM_WITH_ERROR PyDict_GetItemWithError
 // Providing a separate declaration to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
 #define PYBIND11_PLUGIN_IMPL(name) \
@@ -213,6 +214,7 @@
 #define PYBIND11_BOOL_ATTR "__nonzero__"
 #define PYBIND11_NB_BOOL(ptr) ((ptr)->nb_nonzero)
 #define PYBIND11_BUILTINS_MODULE "__builtin__"
+#define PYBIND11_DICT_GET_ITEM_WITH_ERROR _PyDict_GetItemWithError
 // Providing a separate PyInit decl to make Clang's -Wmissing-prototypes happy.
 // See comment for PYBIND11_MODULE below for why this is marked "maybe unused".
 #define PYBIND11_PLUGIN_IMPL(name) \

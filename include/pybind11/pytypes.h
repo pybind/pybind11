@@ -620,18 +620,17 @@ struct dict_item {
     using key_type = object;
 
     static object get(handle obj, handle key) {
-#if PY_MAJOR_VERSION >= 3
-        if (PyObject *result = PyDict_GetItemWithError(obj.ptr(), key.ptr())) {
+        if (PyObject *result = PYBIND11_DICT_GET_ITEM_WITH_ERROR(obj.ptr(), key.ptr())) {
             return reinterpret_borrow<object>(result);
         } else {
+            // NULL with an exception means exception occurred when calling
+            // "__hash__" or "__eq__" on the key
+            // NULL without an exception means the key wasn’t present
             if (!PyErr_Occurred())
-                if (PyObject* key_repr = PyObject_Repr(key.ptr()))
-                    PyErr_SetObject(PyExc_KeyError, key_repr);
+                // Synthesize a KeyError with the key
+                PyErr_SetObject(PyExc_KeyError, key.inc_ref().ptr());
             throw error_already_set();
         }
-#else
-        return generic_item::get(obj, key);
-#endif
     }
 
     static void set(handle obj, handle key, handle val) {
@@ -1322,26 +1321,17 @@ public:
     }
 
     object get(handle key, handle default_ = none()) const {
-#if PY_MAJOR_VERSION >= 3
-        if (PyObject *result = PyDict_GetItemWithError(m_ptr, key.ptr())) {
+        if (PyObject *result = PYBIND11_DICT_GET_ITEM_WITH_ERROR(m_ptr, key.ptr())) {
             return reinterpret_borrow<object>(result);
         } else {
+            // NULL with an exception means exception occurred when calling
+            // "__hash__" or "__eq__" on the key
             if (PyErr_Occurred())
                 throw error_already_set();
+            // NULL without an exception means the key wasn’t present
             else
                 return reinterpret_borrow<object>(default_);
         }
-#else
-        try {
-            return object::operator[](key);
-        } catch (const error_already_set& e) {
-            if (e.type().ptr() == PyExc_KeyError) {
-                return reinterpret_borrow<object>(default_);
-            } else {
-                throw;
-            }
-        }
-#endif
     }
 
     object get(const char *key, handle default_ = none()) const {
