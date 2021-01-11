@@ -1,5 +1,11 @@
+#pragma once
+
+#include "pybind11.h"
+
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
 template <typename type_, typename... options>
-class class_ : public detail::generic_type {
+class classh : public detail::generic_type {
     template <typename T> using is_holder = detail::is_holder_type<type_, T>;
     template <typename T> using is_subtype = detail::is_strict_base_of<type_, T>;
     template <typename T> using is_base = detail::is_strict_base_of<T, type_>;
@@ -14,24 +20,24 @@ public:
     using holder_type = detail::exactly_one_t<is_holder, std::unique_ptr<type>, options...>;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
-            "Unknown/invalid class_ template parameters provided");
+            "Unknown/invalid classh template parameters provided");
 
     static_assert(!has_alias || std::is_polymorphic<type>::value,
             "Cannot use an alias class with a non-polymorphic type");
 
-    PYBIND11_OBJECT(class_, generic_type, PyType_Check)
+    PYBIND11_OBJECT(classh, generic_type, PyType_Check)
 
     template <typename... Extra>
-    class_(handle scope, const char *name, const Extra &... extra) {
+    classh(handle scope, const char *name, const Extra &... extra) {
         using namespace detail;
 
-        // MI can only be specified via class_ template options, not constructor parameters
+        // MI can only be specified via classh template options, not constructor parameters
         static_assert(
             none_of<is_pyobject<Extra>...>::value || // no base class arguments, or:
             (   constexpr_sum(is_pyobject<Extra>::value...) == 1 && // Exactly one base
                 constexpr_sum(is_base<options>::value...)   == 0 && // no template option bases
                 none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
-            "Error: multiple inheritance bases must be specified via class_ template options");
+            "Error: multiple inheritance bases must be specified via classh template options");
 
         type_record record;
         record.scope = scope;
@@ -46,7 +52,7 @@ public:
 
         set_operator_new<type>(&record);
 
-        /* Register base classes specified via template arguments to class_, if any */
+        /* Register base classes specified via template arguments to classh, if any */
         PYBIND11_EXPAND_SIDE_EFFECTS(add_base<options>(record));
 
         /* Process optional arguments, if any */
@@ -71,14 +77,14 @@ public:
     static void add_base(detail::type_record &) { }
 
     template <typename Func, typename... Extra>
-    class_ &def(const char *name_, Func&& f, const Extra&... extra) {
+    classh &def(const char *name_, Func&& f, const Extra&... extra) {
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)), name(name_), is_method(*this),
                         sibling(getattr(*this, name_, none())), extra...);
         add_class_method(*this, name_, cf);
         return *this;
     }
 
-    template <typename Func, typename... Extra> class_ &
+    template <typename Func, typename... Extra> classh &
     def_static(const char *name_, Func &&f, const Extra&... extra) {
         static_assert(!std::is_member_function_pointer<Func>::value,
                 "def_static(...) called with a non-static member function pointer");
@@ -89,43 +95,43 @@ public:
     }
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
-    class_ &def(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
+    classh &def(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
         op.execute(*this, extra...);
         return *this;
     }
 
     template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
-    class_ & def_cast(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
+    classh & def_cast(const detail::op_<id, ot, L, R> &op, const Extra&... extra) {
         op.execute_cast(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(const detail::initimpl::constructor<Args...> &init, const Extra&... extra) {
+    classh &def(const detail::initimpl::constructor<Args...> &init, const Extra&... extra) {
         init.execute(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(const detail::initimpl::alias_constructor<Args...> &init, const Extra&... extra) {
+    classh &def(const detail::initimpl::alias_constructor<Args...> &init, const Extra&... extra) {
         init.execute(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(detail::initimpl::factory<Args...> &&init, const Extra&... extra) {
+    classh &def(detail::initimpl::factory<Args...> &&init, const Extra&... extra) {
         std::move(init).execute(*this, extra...);
         return *this;
     }
 
     template <typename... Args, typename... Extra>
-    class_ &def(detail::initimpl::pickle_factory<Args...> &&pf, const Extra &...extra) {
+    classh &def(detail::initimpl::pickle_factory<Args...> &&pf, const Extra &...extra) {
         std::move(pf).execute(*this, extra...);
         return *this;
     }
 
     template <typename Func>
-    class_& def_buffer(Func &&func) {
+    classh& def_buffer(Func &&func) {
         struct capture { Func func; };
         auto *ptr = new capture { std::forward<Func>(func) };
         install_buffer_funcs([](PyObject *obj, void *ptr) -> buffer_info* {
@@ -142,17 +148,17 @@ public:
     }
 
     template <typename Return, typename Class, typename... Args>
-    class_ &def_buffer(Return (Class::*func)(Args...)) {
+    classh &def_buffer(Return (Class::*func)(Args...)) {
         return def_buffer([func] (type &obj) { return (obj.*func)(); });
     }
 
     template <typename Return, typename Class, typename... Args>
-    class_ &def_buffer(Return (Class::*func)(Args...) const) {
+    classh &def_buffer(Return (Class::*func)(Args...) const) {
         return def_buffer([func] (const type &obj) { return (obj.*func)(); });
     }
 
     template <typename C, typename D, typename... Extra>
-    class_ &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
+    classh &def_readwrite(const char *name, D C::*pm, const Extra&... extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readwrite() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this)),
                      fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
@@ -161,7 +167,7 @@ public:
     }
 
     template <typename C, typename D, typename... Extra>
-    class_ &def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
+    classh &def_readonly(const char *name, const D C::*pm, const Extra& ...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value, "def_readonly() requires a class member (or base class member)");
         cpp_function fget([pm](const type &c) -> const D &{ return c.*pm; }, is_method(*this));
         def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
@@ -169,7 +175,7 @@ public:
     }
 
     template <typename D, typename... Extra>
-    class_ &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
+    classh &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
         cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this)),
                      fset([pm](object, const D &value) { *pm = value; }, scope(*this));
         def_property_static(name, fget, fset, return_value_policy::reference, extra...);
@@ -177,7 +183,7 @@ public:
     }
 
     template <typename D, typename... Extra>
-    class_ &def_readonly_static(const char *name, const D *pm, const Extra& ...extra) {
+    classh &def_readonly_static(const char *name, const D *pm, const Extra& ...extra) {
         cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this));
         def_property_readonly_static(name, fget, return_value_policy::reference, extra...);
         return *this;
@@ -185,55 +191,55 @@ public:
 
     /// Uses return_value_policy::reference_internal by default
     template <typename Getter, typename... Extra>
-    class_ &def_property_readonly(const char *name, const Getter &fget, const Extra& ...extra) {
+    classh &def_property_readonly(const char *name, const Getter &fget, const Extra& ...extra) {
         return def_property_readonly(name, cpp_function(method_adaptor<type>(fget)),
                                      return_value_policy::reference_internal, extra...);
     }
 
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
-    class_ &def_property_readonly(const char *name, const cpp_function &fget, const Extra& ...extra) {
+    classh &def_property_readonly(const char *name, const cpp_function &fget, const Extra& ...extra) {
         return def_property(name, fget, nullptr, extra...);
     }
 
     /// Uses return_value_policy::reference by default
     template <typename Getter, typename... Extra>
-    class_ &def_property_readonly_static(const char *name, const Getter &fget, const Extra& ...extra) {
+    classh &def_property_readonly_static(const char *name, const Getter &fget, const Extra& ...extra) {
         return def_property_readonly_static(name, cpp_function(fget), return_value_policy::reference, extra...);
     }
 
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
-    class_ &def_property_readonly_static(const char *name, const cpp_function &fget, const Extra& ...extra) {
+    classh &def_property_readonly_static(const char *name, const cpp_function &fget, const Extra& ...extra) {
         return def_property_static(name, fget, nullptr, extra...);
     }
 
     /// Uses return_value_policy::reference_internal by default
     template <typename Getter, typename Setter, typename... Extra>
-    class_ &def_property(const char *name, const Getter &fget, const Setter &fset, const Extra& ...extra) {
+    classh &def_property(const char *name, const Getter &fget, const Setter &fset, const Extra& ...extra) {
         return def_property(name, fget, cpp_function(method_adaptor<type>(fset)), extra...);
     }
     template <typename Getter, typename... Extra>
-    class_ &def_property(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
+    classh &def_property(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
         return def_property(name, cpp_function(method_adaptor<type>(fget)), fset,
                             return_value_policy::reference_internal, extra...);
     }
 
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
-    class_ &def_property(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
+    classh &def_property(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
         return def_property_static(name, fget, fset, is_method(*this), extra...);
     }
 
     /// Uses return_value_policy::reference by default
     template <typename Getter, typename... Extra>
-    class_ &def_property_static(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
+    classh &def_property_static(const char *name, const Getter &fget, const cpp_function &fset, const Extra& ...extra) {
         return def_property_static(name, cpp_function(fget), fset, return_value_policy::reference, extra...);
     }
 
     /// Uses cpp_function's return_value_policy by default
     template <typename... Extra>
-    class_ &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
+    classh &def_property_static(const char *name, const cpp_function &fget, const cpp_function &fset, const Extra& ...extra) {
         static_assert( 0 == detail::constexpr_sum(std::is_base_of<arg, Extra>::value...),
                       "Argument annotations are not allowed for properties");
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
@@ -342,3 +348,5 @@ private:
                  : nullptr;
     }
 };
+
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
