@@ -4,8 +4,12 @@ import pytest
 from pybind11_tests import classh_wip as m
 
 
-def test_mpty():
+def test_mpty_constructors():
     e = m.mpty()
+    assert e.__class__.__name__ == "mpty"
+    e = m.mpty("")
+    assert e.__class__.__name__ == "mpty"
+    e = m.mpty("txtm")
     assert e.__class__.__name__ == "mpty"
 
 
