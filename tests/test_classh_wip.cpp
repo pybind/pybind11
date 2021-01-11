@@ -3,11 +3,12 @@
 #include <pybind11/classh.h>
 
 #include <memory>
+#include <string>
 
 namespace pybind11_tests {
 namespace classh_wip {
 
-struct mpty {};
+struct mpty { std::string mtxt; };
 
 mpty        rtrn_mpty_valu() { mpty obj; return obj; }
 mpty&&      rtrn_mpty_rref() { mpty obj; return std::move(obj); }
@@ -192,6 +193,8 @@ TEST_SUBMODULE(classh_wip, m) {
 
     py::classh<mpty>(m, "mpty")
         .def(py::init<>())
+        .def(py::init([](const std::string& mtxt) {
+            mpty obj; obj.mtxt = mtxt; return obj; }))
     ;
 
     m.def("rtrn_mpty_valu", rtrn_mpty_valu);
