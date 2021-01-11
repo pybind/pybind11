@@ -628,7 +628,7 @@ struct dict_item {
             // NULL without an exception means the key wasn’t present
             if (!PyErr_Occurred())
                 // Synthesize a KeyError with the key
-                PyErr_SetObject(PyExc_KeyError, key.inc_ref().ptr());
+                PyErr_SetObject(PyExc_KeyError, key.ptr());
             throw error_already_set();
         }
     }
