@@ -37,8 +37,8 @@ def test_cast_shared_ptr():
 
 
 def test_load_shared_ptr():
-    assert m.pass_mpty_shmp(m.mpty()) == "load_shmp"
-    assert m.pass_mpty_shcp(m.mpty()) == "load_shcp"
+    assert m.pass_mpty_shmp(m.mpty("Shmp")) == "pass_shmp:Shmp"
+    assert m.pass_mpty_shcp(m.mpty("Shcp")) == "pass_shcp:Shcp"
 
 
 def test_cast_unique_ptr():
