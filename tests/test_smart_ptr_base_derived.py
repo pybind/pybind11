@@ -7,6 +7,7 @@ CBASE_GET_INT_RESULT = 90146438
 CDERIVED_GET_INT_RESULT = 31607978
 VDERIVED_GET_INT_RESULT = 29852452
 
+
 def test_concrete():
     m.to_cout("")
     m.to_cout("")
@@ -21,6 +22,7 @@ def test_concrete():
     with pytest.raises(TypeError):
         m.pass_shared_cderived(cb)
     m.to_cout("")
+
 
 def test_virtual():
     m.to_cout("")
