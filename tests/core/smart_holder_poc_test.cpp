@@ -317,3 +317,10 @@ TEST_CASE("error_disowned_holder", "[E]") {
   hld.as_unique_ptr<int>();
   REQUIRE_THROWS_WITH(hld.lvalue_ref<int>(), "Disowned holder (lvalue_ref).");
 }
+
+TEST_CASE("error_cannot_disown_nullptr", "[E]") {
+  auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
+  hld.as_unique_ptr<int>();
+  REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(),
+                      "Cannot disown nullptr (as_unique_ptr).");
+}
