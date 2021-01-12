@@ -16,10 +16,10 @@ def test_mpty_constructors():
 def test_cast():
     assert m.rtrn_mpty_valu() == "cast_rref"
     assert m.rtrn_mpty_rref() == "cast_rref"
-    assert m.rtrn_mpty_cref() == "cast_cref"
-    assert m.rtrn_mpty_mref() == "cast_mref"
+    assert m.get_mtxt(m.rtrn_mpty_cref()) == "rtrn_cref"
+    assert m.get_mtxt(m.rtrn_mpty_mref()) == "rtrn_mref"
     assert m.get_mtxt(m.rtrn_mpty_cptr()) == "rtrn_cptr"
-    assert m.rtrn_mpty_mptr() == "cast_mptr"
+    assert m.get_mtxt(m.rtrn_mpty_mptr()) == "rtrn_mptr"
 
 
 def test_load():
