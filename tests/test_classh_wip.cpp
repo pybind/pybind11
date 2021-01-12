@@ -78,12 +78,18 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
         return str("cast_rref").release();
     }
 
-    static handle cast(mpty const & /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
-        return str("cast_cref").release();
+    static handle cast(mpty const &src, return_value_policy policy, handle parent) {
+        // type_caster_base BEGIN
+        // clang-format off
+        if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+            policy = return_value_policy::copy;
+        return cast(&src, policy, parent);
+        // clang-format on
+        // type_caster_base END
     }
 
-    static handle cast(mpty & /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
-        return str("cast_mref").release();
+    static handle cast(mpty &src, return_value_policy policy, handle parent) {
+        return cast(const_cast<mpty const &>(src), policy, parent); // Mtbl2Const
     }
 
     static handle cast(mpty const *src, return_value_policy policy, handle parent) {
@@ -97,8 +103,8 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
         // type_caster_base END
     }
 
-    static handle cast(mpty * /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
-        return str("cast_mptr").release();
+    static handle cast(mpty *src, return_value_policy policy, handle parent) {
+        return cast(const_cast<mpty const *>(src), policy, parent); // Mtbl2Const
     }
 
     template <typename T_>
