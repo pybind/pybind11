@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pytest
 
 from pybind11_tests import type_caster_bare_interface_demo as m
 
