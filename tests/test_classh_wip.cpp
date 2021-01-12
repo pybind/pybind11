@@ -14,12 +14,12 @@ struct mpty {
 
 // clang-format off
 
-mpty        rtrn_mpty_valu() { mpty obj; return obj; }
-mpty&&      rtrn_mpty_rref() { mpty obj; return std::move(obj); }
-mpty const& rtrn_mpty_cref() { static mpty obj; return obj; }
-mpty&       rtrn_mpty_mref() { static mpty obj; return obj; }
-mpty const* rtrn_mpty_cptr() { static mpty obj; return &obj; }
-mpty*       rtrn_mpty_mptr() { static mpty obj; return &obj; }
+mpty        rtrn_mpty_valu() { mpty obj{"rtrn_valu"}; return obj; }
+mpty&&      rtrn_mpty_rref() { mpty obj{"rtrn_rref"}; return std::move(obj); }
+mpty const& rtrn_mpty_cref() { static mpty obj; obj.mtxt = "rtrn_cref"; return obj; }
+mpty&       rtrn_mpty_mref() { static mpty obj; obj.mtxt = "rtrn_mref"; return obj; }
+mpty const* rtrn_mpty_cptr() { static mpty obj; obj.mtxt = "rtrn_cptr"; return &obj; }
+mpty*       rtrn_mpty_mptr() { static mpty obj; obj.mtxt = "rtrn_mptr"; return &obj; }
 
 std::string pass_mpty_valu(mpty obj)        { return "pass_valu:" + obj.mtxt; }
 std::string pass_mpty_rref(mpty&& obj)      { return "pass_rref:" + obj.mtxt; }
@@ -28,16 +28,16 @@ std::string pass_mpty_mref(mpty& obj)       { return "pass_mref:" + obj.mtxt; }
 std::string pass_mpty_cptr(mpty const* obj) { return "pass_cptr:" + obj->mtxt; }
 std::string pass_mpty_mptr(mpty* obj)       { return "pass_mptr:" + obj->mtxt; }
 
-std::shared_ptr<mpty>       rtrn_mpty_shmp() { return std::shared_ptr<mpty>(new mpty); }
-std::shared_ptr<mpty const> rtrn_mpty_shcp() { return std::shared_ptr<mpty const>(new mpty); }
+std::shared_ptr<mpty>       rtrn_mpty_shmp() { return std::shared_ptr<mpty      >(new mpty{"rtrn_shmp"}); }
+std::shared_ptr<mpty const> rtrn_mpty_shcp() { return std::shared_ptr<mpty const>(new mpty{"rtrn_shcp"}); }
 
-std::string pass_mpty_shmp(std::shared_ptr<mpty> obj)       { return "pass_shmp:" + obj->mtxt; }
+std::string pass_mpty_shmp(std::shared_ptr<mpty>       obj) { return "pass_shmp:" + obj->mtxt; }
 std::string pass_mpty_shcp(std::shared_ptr<mpty const> obj) { return "pass_shcp:" + obj->mtxt; }
 
-std::unique_ptr<mpty>       rtrn_mpty_uqmp() { return std::unique_ptr<mpty>(new mpty); }
-std::unique_ptr<mpty const> rtrn_mpty_uqcp() { return std::unique_ptr<mpty const>(new mpty); }
+std::unique_ptr<mpty>       rtrn_mpty_uqmp() { return std::unique_ptr<mpty      >(new mpty{"rtrn_uqmp"}); }
+std::unique_ptr<mpty const> rtrn_mpty_uqcp() { return std::unique_ptr<mpty const>(new mpty{"rtrn_uqmp"}); }
 
-std::string pass_mpty_uqmp(std::unique_ptr<mpty> obj)       { return "pass_uqmp:" + obj->mtxt; }
+std::string pass_mpty_uqmp(std::unique_ptr<mpty      > obj) { return "pass_uqmp:" + obj->mtxt; }
 std::string pass_mpty_uqcp(std::unique_ptr<mpty const> obj) { return "pass_uqcp:" + obj->mtxt; }
 
 // clang-format on
