@@ -8,7 +8,11 @@
 namespace pybind11_tests {
 namespace classh_wip {
 
-struct mpty { std::string mtxt; };
+struct mpty {
+    std::string mtxt;
+};
+
+// clang-format off
 
 mpty        rtrn_mpty_valu() { mpty obj; return obj; }
 mpty&&      rtrn_mpty_rref() { mpty obj; return std::move(obj); }
@@ -36,8 +40,10 @@ std::unique_ptr<mpty const> rtrn_mpty_uqcp() { return std::unique_ptr<mpty const
 std::string pass_mpty_uqmp(std::unique_ptr<mpty> obj)       { return "pass_uqmp:" + obj->mtxt; }
 std::string pass_mpty_uqcp(std::unique_ptr<mpty const> obj) { return "pass_uqcp:" + obj->mtxt; }
 
-}  // namespace classh_wip
-}  // namespace pybind11_tests
+// clang-format on
+
+} // namespace classh_wip
+} // namespace pybind11_tests
 
 namespace pybind11 {
 namespace detail {
@@ -47,15 +53,16 @@ using namespace pybind11_tests::classh_wip;
 template <typename T>
 struct smart_holder_type_caster_load {
     bool load(handle src, bool /*convert*/) {
-        if (!isinstance<T>(src)) return false;
-        auto inst = reinterpret_cast<instance *>(src.ptr());
-        auto v_h = inst->get_value_and_holder(get_type_info(typeid(T)));
+        if (!isinstance<T>(src))
+            return false;
+        auto inst  = reinterpret_cast<instance *>(src.ptr());
+        auto v_h   = inst->get_value_and_holder(get_type_info(typeid(T)));
         smhldr_ptr = &v_h.holder<pybindit::memory::smart_holder>();
         return true;
     }
 
-  protected:
-    pybindit::memory::smart_holder* smhldr_ptr = nullptr;
+protected:
+    pybindit::memory::smart_holder *smhldr_ptr = nullptr;
 };
 
 template <>
@@ -65,48 +72,41 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     // static handle cast(mpty, ...)
     // is redundant (leads to ambiguous overloads).
 
-    static handle cast(mpty&& /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
+    static handle cast(mpty && /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
         return str("cast_rref").release();
     }
 
-    static handle cast(mpty const& /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
+    static handle cast(mpty const & /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
         return str("cast_cref").release();
     }
 
-    static handle cast(mpty& /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
+    static handle cast(mpty & /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
         return str("cast_mref").release();
     }
 
-    static handle cast(mpty const* /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
+    static handle cast(mpty const * /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
         return str("cast_cptr").release();
     }
 
-    static handle cast(mpty* /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
+    static handle cast(mpty * /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
         return str("cast_mptr").release();
     }
 
     template <typename T_>
     using cast_op_type = conditional_t<
-        std::is_same<remove_reference_t<T_>, mpty const*>::value, mpty const*,
+        std::is_same<remove_reference_t<T_>, mpty const *>::value,
+        mpty const *,
         conditional_t<
-            std::is_same<remove_reference_t<T_>, mpty*>::value, mpty*,
+            std::is_same<remove_reference_t<T_>, mpty *>::value,
+            mpty *,
             conditional_t<
-                std::is_same<T_, mpty const&>::value, mpty const&,
-                conditional_t<
-                    std::is_same<T_, mpty&>::value, mpty&,
-                    conditional_t<
-                        std::is_same<T_, mpty&&>::value, mpty&&,
-                        mpty>>>>>;
+                std::is_same<T_, mpty const &>::value,
+                mpty const &,
+                conditional_t<std::is_same<T_, mpty &>::value,
+                              mpty &,
+                              conditional_t<std::is_same<T_, mpty &&>::value, mpty &&, mpty>>>>>;
+
+    // clang-format off
 
     operator mpty()        { return smhldr_ptr->lvalue_ref<mpty>(); }
     operator mpty&&() &&   { return smhldr_ptr->rvalue_ref<mpty>(); }
@@ -114,19 +114,22 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     operator mpty&()       { return smhldr_ptr->lvalue_ref<mpty>(); }
     operator mpty const*() { return smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
     operator mpty*()       { return smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
+
+    // clang-format on
 };
 
 template <>
 struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::shared_ptr<mpty>>();
 
-    static handle cast(const std::shared_ptr<mpty>& /*src*/,
+    static handle cast(const std::shared_ptr<mpty> & /*src*/,
                        return_value_policy /*policy*/,
                        handle /*parent*/) {
         return str("cast_shmp").release();
     }
 
-    template <typename> using cast_op_type = std::shared_ptr<mpty>;
+    template <typename>
+    using cast_op_type = std::shared_ptr<mpty>;
 
     operator std::shared_ptr<mpty>() { return smhldr_ptr->as_shared_ptr<mpty>(); }
 };
@@ -135,13 +138,14 @@ template <>
 struct type_caster<std::shared_ptr<mpty const>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::shared_ptr<mpty const>>();
 
-    static handle cast(const std::shared_ptr<mpty const>& /*src*/,
+    static handle cast(const std::shared_ptr<mpty const> & /*src*/,
                        return_value_policy /*policy*/,
                        handle /*parent*/) {
         return str("cast_shcp").release();
     }
 
-    template <typename> using cast_op_type = std::shared_ptr<mpty const>;
+    template <typename>
+    using cast_op_type = std::shared_ptr<mpty const>;
 
     operator std::shared_ptr<mpty const>() { return smhldr_ptr->as_shared_ptr<mpty>(); }
 };
@@ -150,13 +154,13 @@ template <>
 struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::unique_ptr<mpty>>();
 
-    static handle cast(std::unique_ptr<mpty>&& /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
+    static handle
+    cast(std::unique_ptr<mpty> && /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
         return str("cast_uqmp").release();
     }
 
-    template <typename> using cast_op_type = std::unique_ptr<mpty>;
+    template <typename>
+    using cast_op_type = std::unique_ptr<mpty>;
 
     operator std::unique_ptr<mpty>() { return smhldr_ptr->as_unique_ptr<mpty>(); }
 };
@@ -165,19 +169,20 @@ template <>
 struct type_caster<std::unique_ptr<mpty const>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::unique_ptr<mpty const>>();
 
-    static handle cast(std::unique_ptr<mpty const>&& /*src*/,
+    static handle cast(std::unique_ptr<mpty const> && /*src*/,
                        return_value_policy /*policy*/,
                        handle /*parent*/) {
         return str("cast_uqcp").release();
     }
 
-    template <typename> using cast_op_type = std::unique_ptr<mpty const>;
+    template <typename>
+    using cast_op_type = std::unique_ptr<mpty const>;
 
     operator std::unique_ptr<mpty const>() { return smhldr_ptr->as_unique_ptr<mpty>(); }
 };
 
-}  // namespace detail
-}  // namespace pybind11
+} // namespace detail
+} // namespace pybind11
 
 namespace pybind11_tests {
 namespace classh_wip {
@@ -185,11 +190,11 @@ namespace classh_wip {
 TEST_SUBMODULE(classh_wip, m) {
     namespace py = pybind11;
 
-    py::classh<mpty>(m, "mpty")
-        .def(py::init<>())
-        .def(py::init([](const std::string& mtxt) {
-            mpty obj; obj.mtxt = mtxt; return obj; }))
-    ;
+    py::classh<mpty>(m, "mpty").def(py::init<>()).def(py::init([](const std::string &mtxt) {
+        mpty obj;
+        obj.mtxt = mtxt;
+        return obj;
+    }));
 
     m.def("rtrn_mpty_valu", rtrn_mpty_valu);
     m.def("rtrn_mpty_rref", rtrn_mpty_rref);
@@ -218,5 +223,5 @@ TEST_SUBMODULE(classh_wip, m) {
     m.def("pass_mpty_uqcp", pass_mpty_uqcp);
 }
 
-}  // namespace classh_wip
-}  // namespace pybind11_tests
+} // namespace classh_wip
+} // namespace pybind11_tests
