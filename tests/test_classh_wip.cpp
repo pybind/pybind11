@@ -44,8 +44,22 @@ namespace detail {
 
 using namespace pybind11_tests::classh_wip;
 
+template <typename T>
+struct smart_holder_type_caster_load {
+    bool load(handle src, bool /*convert*/) {
+        if (!isinstance<T>(src)) return false;
+        auto inst = reinterpret_cast<instance *>(src.ptr());
+        auto v_h = inst->get_value_and_holder(get_type_info(typeid(T)));
+        smhldr_ptr = &v_h.holder<pybindit::memory::smart_holder>();
+        return true;
+    }
+
+  protected:
+    pybindit::memory::smart_holder* smhldr_ptr = nullptr;
+};
+
 template <>
-struct type_caster<mpty> {
+struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<mpty>();
 
     // static handle cast(mpty, ...)
@@ -100,17 +114,6 @@ struct type_caster<mpty> {
     operator mpty&()       { return smhldr_ptr->lvalue_ref<mpty>(); }
     operator mpty const*() { return smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
     operator mpty*()       { return smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
-
-    bool load(handle src, bool /*convert*/) {
-        if (!isinstance<mpty>(src)) return false;
-        auto inst = reinterpret_cast<instance *>(src.ptr());
-        auto v_h = inst->get_value_and_holder(get_type_info(typeid(mpty)));
-        smhldr_ptr = &v_h.holder<pybindit::memory::smart_holder>();
-        return true;
-    }
-
-  private:
-    pybindit::memory::smart_holder* smhldr_ptr = nullptr;
 };
 
 template <>
