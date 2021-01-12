@@ -14,12 +14,19 @@ def test_mpty_constructors():
 
 
 def test_cast():
-    assert m.rtrn_mpty_valu() == "cast_rref"
-    assert m.rtrn_mpty_rref() == "cast_rref"
+    assert m.get_mtxt(m.rtrn_mpty_valu()) == "rtrn_valu"
+    #                                         rtrn_rref exercised separately.
     assert m.get_mtxt(m.rtrn_mpty_cref()) == "rtrn_cref"
     assert m.get_mtxt(m.rtrn_mpty_mref()) == "rtrn_mref"
     assert m.get_mtxt(m.rtrn_mpty_cptr()) == "rtrn_cptr"
     assert m.get_mtxt(m.rtrn_mpty_mptr()) == "rtrn_mptr"
+
+
+def test_cast_rref():
+    e = m.rtrn_mpty_rref()
+    assert e.__class__.__name__ == "mpty"
+    with pytest.raises(RuntimeError):
+        m.get_mtxt(e)  # E.g. basic_string::_M_construct null not valid
 
 
 def test_load():
