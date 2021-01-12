@@ -23,12 +23,12 @@ def test_cast():
 
 
 def test_load():
-    assert m.pass_mpty_valu(m.mpty()) == "load_valu"
-    assert m.pass_mpty_rref(m.mpty()) == "load_rref"
-    assert m.pass_mpty_cref(m.mpty()) == "load_cref"
-    assert m.pass_mpty_mref(m.mpty()) == "load_mref"
-    assert m.pass_mpty_cptr(m.mpty()) == "load_cptr"
-    assert m.pass_mpty_mptr(m.mpty()) == "load_mptr"
+    assert m.pass_mpty_valu(m.mpty("Valu")) == "pass_valu:Valu"
+    assert m.pass_mpty_rref(m.mpty("Rref")) == "pass_rref:Rref"
+    assert m.pass_mpty_cref(m.mpty("Cref")) == "pass_cref:Cref"
+    assert m.pass_mpty_mref(m.mpty("Mref")) == "pass_mref:Mref"
+    assert m.pass_mpty_cptr(m.mpty("Cptr")) == "pass_cptr:Cptr"
+    assert m.pass_mpty_mptr(m.mpty("Mptr")) == "pass_mptr:Mptr"
 
 
 def test_cast_shared_ptr():
