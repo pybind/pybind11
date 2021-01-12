@@ -27,8 +27,8 @@ std::string pass_mpty_mptr(mpty* obj)       { return "pass_mptr:" + obj->mtxt; }
 std::shared_ptr<mpty>       rtrn_mpty_shmp() { return std::shared_ptr<mpty>(new mpty); }
 std::shared_ptr<mpty const> rtrn_mpty_shcp() { return std::shared_ptr<mpty const>(new mpty); }
 
-const char* pass_mpty_shmp(std::shared_ptr<mpty>)       { return "load_shmp"; }
-const char* pass_mpty_shcp(std::shared_ptr<mpty const>) { return "load_shcp"; }
+std::string pass_mpty_shmp(std::shared_ptr<mpty> obj)       { return "pass_shmp:" + obj->mtxt; }
+std::string pass_mpty_shcp(std::shared_ptr<mpty const> obj) { return "pass_shcp:" + obj->mtxt; }
 
 std::unique_ptr<mpty>       rtrn_mpty_uqmp() { return std::unique_ptr<mpty>(new mpty); }
 std::unique_ptr<mpty const> rtrn_mpty_uqcp() { return std::unique_ptr<mpty const>(new mpty); }
@@ -117,7 +117,7 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
 };
 
 template <>
-struct type_caster<std::shared_ptr<mpty>> {
+struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::shared_ptr<mpty>>();
 
     static handle cast(const std::shared_ptr<mpty>& /*src*/,
@@ -128,16 +128,11 @@ struct type_caster<std::shared_ptr<mpty>> {
 
     template <typename> using cast_op_type = std::shared_ptr<mpty>;
 
-    operator std::shared_ptr<mpty>() { return rtrn_mpty_shmp(); }
-
-    bool load(handle src, bool /*convert*/) {
-        if (!isinstance<mpty>(src)) return false;
-        return true;
-    }
+    operator std::shared_ptr<mpty>() { return smhldr_ptr->as_shared_ptr<mpty>(); }
 };
 
 template <>
-struct type_caster<std::shared_ptr<mpty const>> {
+struct type_caster<std::shared_ptr<mpty const>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::shared_ptr<mpty const>>();
 
     static handle cast(const std::shared_ptr<mpty const>& /*src*/,
@@ -148,12 +143,7 @@ struct type_caster<std::shared_ptr<mpty const>> {
 
     template <typename> using cast_op_type = std::shared_ptr<mpty const>;
 
-    operator std::shared_ptr<mpty const>() { return rtrn_mpty_shcp(); }
-
-    bool load(handle src, bool /*convert*/) {
-        if (!isinstance<mpty>(src)) return false;
-        return true;
-    }
+    operator std::shared_ptr<mpty const>() { return smhldr_ptr->as_shared_ptr<mpty>(); }
 };
 
 template <>
