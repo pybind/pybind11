@@ -74,8 +74,12 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     // static handle cast(mpty, ...)
     // is redundant (leads to ambiguous overloads).
 
-    static handle cast(mpty && /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
-        return str("cast_rref").release();
+    static handle cast(mpty &&src, return_value_policy /*policy*/, handle parent) {
+        // type_caster_base BEGIN
+        // clang-format off
+        return cast(&src, return_value_policy::move, parent);
+        // clang-format on
+        // type_caster_base END
     }
 
     static handle cast(mpty const &src, return_value_policy policy, handle parent) {
