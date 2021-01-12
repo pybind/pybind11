@@ -134,6 +134,10 @@ struct smart_holder {
   }
 
   void ensure_use_count_1(const char* context) const {
+    if (vptr.get() == nullptr) {
+      throw std::runtime_error(std::string("Cannot disown nullptr (") +
+                               context + ").");
+    }
     if (vptr.use_count() != 1) {
       throw std::runtime_error(std::string("Cannot disown use_count != 1 (") +
                                context + ").");
