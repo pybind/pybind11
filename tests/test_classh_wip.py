@@ -47,5 +47,20 @@ def test_cast_unique_ptr():
 
 
 def test_load_unique_ptr():
-    assert m.pass_mpty_uqmp(m.mpty()) == "load_uqmp"
-    assert m.pass_mpty_uqcp(m.mpty()) == "load_uqcp"
+    assert m.pass_mpty_uqmp(m.mpty("Uqmp")) == "pass_uqmp:Uqmp"
+    assert m.pass_mpty_uqcp(m.mpty("Uqcp")) == "pass_uqcp:Uqcp"
+
+
+@pytest.mark.parametrize(
+    "pass_mpty, argm, rtrn",
+    [
+        (m.pass_mpty_uqmp, "Uqmp", "pass_uqmp:Uqmp"),
+        (m.pass_mpty_uqcp, "Uqcp", "pass_uqcp:Uqcp"),
+    ],
+)
+def test_pass_unique_ptr_disowns(pass_mpty, argm, rtrn):
+    obj = m.mpty(argm)
+    assert pass_mpty(obj) == rtrn
+    with pytest.raises(RuntimeError) as exc_info:
+        m.pass_mpty_uqmp(obj)
+    assert str(exc_info.value) == "Cannot disown nullptr (as_unique_ptr)."
