@@ -17,12 +17,12 @@ mpty&       rtrn_mpty_mref() { static mpty obj; return obj; }
 mpty const* rtrn_mpty_cptr() { static mpty obj; return &obj; }
 mpty*       rtrn_mpty_mptr() { static mpty obj; return &obj; }
 
-const char* pass_mpty_valu(mpty)        { return "load_valu"; }
-const char* pass_mpty_rref(mpty&&)      { return "load_rref"; }
-const char* pass_mpty_cref(mpty const&) { return "load_cref"; }
-const char* pass_mpty_mref(mpty&)       { return "load_mref"; }
-const char* pass_mpty_cptr(mpty const*) { return "load_cptr"; }
-const char* pass_mpty_mptr(mpty*)       { return "load_mptr"; }
+std::string pass_mpty_valu(mpty obj)        { return "pass_valu:" + obj.mtxt; }
+std::string pass_mpty_rref(mpty&& obj)      { return "pass_rref:" + obj.mtxt; }
+std::string pass_mpty_cref(mpty const& obj) { return "pass_cref:" + obj.mtxt; }
+std::string pass_mpty_mref(mpty& obj)       { return "pass_mref:" + obj.mtxt; }
+std::string pass_mpty_cptr(mpty const* obj) { return "pass_cptr:" + obj->mtxt; }
+std::string pass_mpty_mptr(mpty* obj)       { return "pass_mptr:" + obj->mtxt; }
 
 std::shared_ptr<mpty>       rtrn_mpty_shmp() { return std::shared_ptr<mpty>(new mpty); }
 std::shared_ptr<mpty const> rtrn_mpty_shcp() { return std::shared_ptr<mpty const>(new mpty); }
@@ -94,17 +94,23 @@ struct type_caster<mpty> {
                         std::is_same<T_, mpty&&>::value, mpty&&,
                         mpty>>>>>;
 
-    operator mpty()        { return rtrn_mpty_valu(); }
-    operator mpty&&() &&   { return rtrn_mpty_rref(); }
-    operator mpty const&() { return rtrn_mpty_cref(); }
-    operator mpty&()       { return rtrn_mpty_mref(); }
-    operator mpty const*() { return rtrn_mpty_cptr(); }
-    operator mpty*()       { return rtrn_mpty_mptr(); }
+    operator mpty()        { return smhldr_ptr->lvalue_ref<mpty>(); }
+    operator mpty&&() &&   { return smhldr_ptr->rvalue_ref<mpty>(); }
+    operator mpty const&() { return smhldr_ptr->lvalue_ref<mpty>(); }
+    operator mpty&()       { return smhldr_ptr->lvalue_ref<mpty>(); }
+    operator mpty const*() { return smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
+    operator mpty*()       { return smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
 
     bool load(handle src, bool /*convert*/) {
         if (!isinstance<mpty>(src)) return false;
+        auto inst = reinterpret_cast<instance *>(src.ptr());
+        auto v_h = inst->get_value_and_holder(get_type_info(typeid(mpty)));
+        smhldr_ptr = &v_h.holder<pybindit::memory::smart_holder>();
         return true;
     }
+
+  private:
+    pybindit::memory::smart_holder* smhldr_ptr = nullptr;
 };
 
 template <>
