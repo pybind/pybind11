@@ -101,7 +101,8 @@ struct type_caster<mpty> {
     operator mpty const*() { return rtrn_mpty_cptr(); }
     operator mpty*()       { return rtrn_mpty_mptr(); }
 
-    bool load(handle /*src*/, bool /*convert*/) {
+    bool load(handle src, bool /*convert*/) {
+        if (!isinstance<mpty>(src)) return false;
         return true;
     }
 };
@@ -120,7 +121,8 @@ struct type_caster<std::shared_ptr<mpty>> {
 
     operator std::shared_ptr<mpty>() { return rtrn_mpty_shmp(); }
 
-    bool load(handle /*src*/, bool /*convert*/) {
+    bool load(handle src, bool /*convert*/) {
+        if (!isinstance<mpty>(src)) return false;
         return true;
     }
 };
@@ -139,7 +141,8 @@ struct type_caster<std::shared_ptr<mpty const>> {
 
     operator std::shared_ptr<mpty const>() { return rtrn_mpty_shcp(); }
 
-    bool load(handle /*src*/, bool /*convert*/) {
+    bool load(handle src, bool /*convert*/) {
+        if (!isinstance<mpty>(src)) return false;
         return true;
     }
 };
@@ -158,7 +161,8 @@ struct type_caster<std::unique_ptr<mpty>> {
 
     operator std::unique_ptr<mpty>() { return rtrn_mpty_uqmp(); }
 
-    bool load(handle /*src*/, bool /*convert*/) {
+    bool load(handle src, bool /*convert*/) {
+        if (!isinstance<mpty>(src)) return false;
         return true;
     }
 };
@@ -177,7 +181,8 @@ struct type_caster<std::unique_ptr<mpty const>> {
 
     operator std::unique_ptr<mpty const>() { return rtrn_mpty_uqcp(); }
 
-    bool load(handle /*src*/, bool /*convert*/) {
+    bool load(handle src, bool /*convert*/) {
+        if (!isinstance<mpty>(src)) return false;
         return true;
     }
 };

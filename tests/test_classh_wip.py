@@ -23,12 +23,12 @@ def test_cast():
 
 
 def test_load():
-    assert m.pass_mpty_valu(None) == "load_valu"
-    assert m.pass_mpty_rref(None) == "load_rref"
-    assert m.pass_mpty_cref(None) == "load_cref"
-    assert m.pass_mpty_mref(None) == "load_mref"
-    assert m.pass_mpty_cptr(None) == "load_cptr"
-    assert m.pass_mpty_mptr(None) == "load_mptr"
+    assert m.pass_mpty_valu(m.mpty()) == "load_valu"
+    assert m.pass_mpty_rref(m.mpty()) == "load_rref"
+    assert m.pass_mpty_cref(m.mpty()) == "load_cref"
+    assert m.pass_mpty_mref(m.mpty()) == "load_mref"
+    assert m.pass_mpty_cptr(m.mpty()) == "load_cptr"
+    assert m.pass_mpty_mptr(m.mpty()) == "load_mptr"
 
 
 def test_cast_shared_ptr():
@@ -37,8 +37,8 @@ def test_cast_shared_ptr():
 
 
 def test_load_shared_ptr():
-    assert m.pass_mpty_shmp(None) == "load_shmp"
-    assert m.pass_mpty_shcp(None) == "load_shcp"
+    assert m.pass_mpty_shmp(m.mpty()) == "load_shmp"
+    assert m.pass_mpty_shcp(m.mpty()) == "load_shcp"
 
 
 def test_cast_unique_ptr():
@@ -47,5 +47,5 @@ def test_cast_unique_ptr():
 
 
 def test_load_unique_ptr():
-    assert m.pass_mpty_uqmp(None) == "load_uqmp"
-    assert m.pass_mpty_uqcp(None) == "load_uqcp"
+    assert m.pass_mpty_uqmp(m.mpty()) == "load_uqmp"
+    assert m.pass_mpty_uqcp(m.mpty()) == "load_uqcp"
