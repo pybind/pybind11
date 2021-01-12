@@ -158,11 +158,19 @@ struct smart_holder {
   }
 
   template <typename T>
-  const T& const_value_ref() const {
-    static const char* context = "const_value_ref";
+  T& lvalue_ref() const {
+    static const char* context = "lvalue_ref";
     ensure_compatible_rtti_held<T>(context);
     ensure_has_pointee(context);
     return *static_cast<T*>(vptr.get());
+  }
+
+  template <typename T>
+  T&& rvalue_ref() const {
+    static const char* context = "rvalue_ref";
+    ensure_compatible_rtti_held<T>(context);
+    ensure_has_pointee(context);
+    return std::move(*static_cast<T*>(vptr.get()));
   }
 
   template <typename T>
