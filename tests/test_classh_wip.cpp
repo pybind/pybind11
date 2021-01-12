@@ -33,8 +33,8 @@ std::string pass_mpty_shcp(std::shared_ptr<mpty const> obj) { return "pass_shcp:
 std::unique_ptr<mpty>       rtrn_mpty_uqmp() { return std::unique_ptr<mpty>(new mpty); }
 std::unique_ptr<mpty const> rtrn_mpty_uqcp() { return std::unique_ptr<mpty const>(new mpty); }
 
-const char* pass_mpty_uqmp(std::unique_ptr<mpty>)       { return "load_uqmp"; }
-const char* pass_mpty_uqcp(std::unique_ptr<mpty const>) { return "load_uqcp"; }
+std::string pass_mpty_uqmp(std::unique_ptr<mpty> obj)       { return "pass_uqmp:" + obj->mtxt; }
+std::string pass_mpty_uqcp(std::unique_ptr<mpty const> obj) { return "pass_uqcp:" + obj->mtxt; }
 
 }  // namespace classh_wip
 }  // namespace pybind11_tests
@@ -147,7 +147,7 @@ struct type_caster<std::shared_ptr<mpty const>> : smart_holder_type_caster_load<
 };
 
 template <>
-struct type_caster<std::unique_ptr<mpty>> {
+struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::unique_ptr<mpty>>();
 
     static handle cast(std::unique_ptr<mpty>&& /*src*/,
@@ -158,16 +158,11 @@ struct type_caster<std::unique_ptr<mpty>> {
 
     template <typename> using cast_op_type = std::unique_ptr<mpty>;
 
-    operator std::unique_ptr<mpty>() { return rtrn_mpty_uqmp(); }
-
-    bool load(handle src, bool /*convert*/) {
-        if (!isinstance<mpty>(src)) return false;
-        return true;
-    }
+    operator std::unique_ptr<mpty>() { return smhldr_ptr->as_unique_ptr<mpty>(); }
 };
 
 template <>
-struct type_caster<std::unique_ptr<mpty const>> {
+struct type_caster<std::unique_ptr<mpty const>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::unique_ptr<mpty const>>();
 
     static handle cast(std::unique_ptr<mpty const>&& /*src*/,
@@ -178,12 +173,7 @@ struct type_caster<std::unique_ptr<mpty const>> {
 
     template <typename> using cast_op_type = std::unique_ptr<mpty const>;
 
-    operator std::unique_ptr<mpty const>() { return rtrn_mpty_uqcp(); }
-
-    bool load(handle src, bool /*convert*/) {
-        if (!isinstance<mpty>(src)) return false;
-        return true;
-    }
+    operator std::unique_ptr<mpty const>() { return smhldr_ptr->as_unique_ptr<mpty>(); }
 };
 
 }  // namespace detail
