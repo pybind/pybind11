@@ -18,7 +18,7 @@ def test_cast():
     assert m.rtrn_mpty_rref() == "cast_rref"
     assert m.rtrn_mpty_cref() == "cast_cref"
     assert m.rtrn_mpty_mref() == "cast_mref"
-    assert m.rtrn_mpty_cptr() == "cast_cptr"
+    assert m.get_mtxt(m.rtrn_mpty_cptr()) == "rtrn_cptr"
     assert m.rtrn_mpty_mptr() == "cast_mptr"
 
 
