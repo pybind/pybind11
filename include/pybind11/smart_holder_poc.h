@@ -131,6 +131,10 @@ struct smart_holder {
             throw std::runtime_error(std::string("Cannot disown nullptr (") + context + ").");
         }
         if (vptr.use_count() != 1) {
+            // In multithreaded environments accessing use_count is racy,
+            // but in the context of Python it is a bug (elsewhere) if the
+            // Global Interpreter Lock (GIL) is not being held when this code
+            // is reached.
             throw std::runtime_error(std::string("Cannot disown use_count != 1 (") + context
                                      + ").");
         }
