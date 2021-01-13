@@ -49,8 +49,8 @@ def test_load_shared_ptr():
 
 
 def test_cast_unique_ptr():
-    assert m.rtrn_mpty_uqmp() == "cast_uqmp"
-    assert m.rtrn_mpty_uqcp() == "cast_uqcp"
+    assert m.get_mtxt(m.rtrn_mpty_uqmp()) == "rtrn_uqmp"
+    assert m.get_mtxt(m.rtrn_mpty_uqcp()) == "rtrn_uqcp"
 
 
 def test_load_unique_ptr():
