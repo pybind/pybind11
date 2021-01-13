@@ -100,7 +100,7 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
         // type_caster_base BEGIN
         // clang-format off
         auto st = src_and_type(src);
-        return type_caster_generic::cast(
+        return cast( // Originally type_caster_generic::cast.
             st.first, policy, parent, st.second,
             make_copy_constructor(src), make_move_constructor(src));
         // clang-format on
@@ -188,6 +188,99 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
 
     // clang-format on
     // type_caster_base END
+
+    // Originally type_caster_generic::cast.
+    // clang-format off
+    PYBIND11_NOINLINE static handle cast(const void *_src, return_value_policy policy, handle parent,
+                                         const detail::type_info *tinfo,
+                                         void *(*copy_constructor)(const void *),
+                                         void *(*move_constructor)(const void *),
+                                         const void *existing_holder = nullptr) {
+        if (!tinfo) // no type info: error will be set already
+            return handle();
+
+        void *src = const_cast<void *>(_src);
+        if (src == nullptr)
+            return none().release();
+
+        auto it_instances = get_internals().registered_instances.equal_range(src);
+        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
+                    return handle((PyObject *) it_i->second).inc_ref();
+            }
+        }
+
+        auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        auto wrapper = reinterpret_cast<instance *>(inst.ptr());
+        wrapper->owned = false;
+        void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
+
+        switch (policy) {
+            case return_value_policy::automatic:
+            case return_value_policy::take_ownership:
+                valueptr = src;
+                wrapper->owned = true;
+                break;
+
+            case return_value_policy::automatic_reference:
+            case return_value_policy::reference:
+                valueptr = src;
+                wrapper->owned = false;
+                break;
+
+            case return_value_policy::copy:
+                if (copy_constructor)
+                    valueptr = copy_constructor(src);
+                else {
+#if defined(NDEBUG)
+                    throw cast_error("return_value_policy = copy, but type is "
+                                     "non-copyable! (compile in debug mode for details)");
+#else
+                    std::string type_name(tinfo->cpptype->name());
+                    detail::clean_type_id(type_name);
+                    throw cast_error("return_value_policy = copy, but type " +
+                                     type_name + " is non-copyable!");
+#endif
+                }
+                wrapper->owned = true;
+                break;
+
+            case return_value_policy::move:
+                if (move_constructor)
+                    valueptr = move_constructor(src);
+                else if (copy_constructor)
+                    valueptr = copy_constructor(src);
+                else {
+#if defined(NDEBUG)
+                    throw cast_error("return_value_policy = move, but type is neither "
+                                     "movable nor copyable! "
+                                     "(compile in debug mode for details)");
+#else
+                    std::string type_name(tinfo->cpptype->name());
+                    detail::clean_type_id(type_name);
+                    throw cast_error("return_value_policy = move, but type " +
+                                     type_name + " is neither movable nor copyable!");
+#endif
+                }
+                wrapper->owned = true;
+                break;
+
+            case return_value_policy::reference_internal:
+                valueptr = src;
+                wrapper->owned = false;
+                keep_alive_impl(inst, parent);
+                break;
+
+            default:
+                throw cast_error("unhandled return_value_policy: should not happen!");
+        }
+
+        tinfo->init_instance(wrapper, existing_holder);
+
+        return inst.release();
+    }
+    // clang-format on
 };
 
 template <>
