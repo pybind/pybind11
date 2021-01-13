@@ -35,7 +35,7 @@ std::string pass_mpty_shmp(std::shared_ptr<mpty>       obj) { return "pass_shmp:
 std::string pass_mpty_shcp(std::shared_ptr<mpty const> obj) { return "pass_shcp:" + obj->mtxt; }
 
 std::unique_ptr<mpty>       rtrn_mpty_uqmp() { return std::unique_ptr<mpty      >(new mpty{"rtrn_uqmp"}); }
-std::unique_ptr<mpty const> rtrn_mpty_uqcp() { return std::unique_ptr<mpty const>(new mpty{"rtrn_uqmp"}); }
+std::unique_ptr<mpty const> rtrn_mpty_uqcp() { return std::unique_ptr<mpty const>(new mpty{"rtrn_uqcp"}); }
 
 std::string pass_mpty_uqmp(std::unique_ptr<mpty      > obj) { return "pass_uqmp:" + obj->mtxt; }
 std::string pass_mpty_uqcp(std::unique_ptr<mpty const> obj) { return "pass_uqcp:" + obj->mtxt; }
@@ -354,9 +354,41 @@ template <>
 struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::unique_ptr<mpty>>();
 
-    static handle
-    cast(std::unique_ptr<mpty> && /*src*/, return_value_policy /*policy*/, handle /*parent*/) {
-        return str("cast_uqmp").release();
+    static handle cast(std::unique_ptr<mpty> &&src, return_value_policy policy, handle parent) {
+        if (policy != return_value_policy::automatic
+            && policy != return_value_policy::reference_internal) {
+            // IMPROVEABLE: Error message.
+            throw cast_error("Invalid return_value_policy for unique_ptr.");
+        }
+
+        auto src_raw_ptr = src.get();
+        auto st          = type_caster<mpty>::src_and_type(src_raw_ptr);
+        if (st.first == nullptr)
+            return none().release(); // PyErr was set already.
+
+        void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
+        const detail::type_info *tinfo = st.second;
+        auto it_instances = get_internals().registered_instances.equal_range(src_raw_void_ptr);
+        // Loop copied from type_caster_generic::cast.
+        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
+                    throw cast_error(
+                        "Invalid unique_ptr: another instance owns this pointer already.");
+            }
+        }
+
+        object inst            = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        instance *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
+        inst_raw_ptr->owned    = false; // Not actually used.
+
+        auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(src));
+        tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
+
+        if (policy == return_value_policy::reference_internal)
+            keep_alive_impl(inst, parent);
+
+        return inst.release();
     }
 
     template <typename>
@@ -372,10 +404,12 @@ template <>
 struct type_caster<std::unique_ptr<mpty const>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::unique_ptr<mpty const>>();
 
-    static handle cast(std::unique_ptr<mpty const> && /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
-        return str("cast_uqcp").release();
+    static handle
+    cast(std::unique_ptr<mpty const> &&src, return_value_policy policy, handle parent) {
+        return type_caster<std::unique_ptr<mpty>>::cast(
+            std::unique_ptr<mpty>(const_cast<mpty *>(src.release())), // Const2Mutbl
+            policy,
+            parent);
     }
 
     template <typename>
