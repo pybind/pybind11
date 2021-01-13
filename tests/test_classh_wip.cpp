@@ -362,7 +362,10 @@ struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
     template <typename>
     using cast_op_type = std::unique_ptr<mpty>;
 
-    operator std::unique_ptr<mpty>() { return smhldr_ptr->as_unique_ptr<mpty>(); }
+    operator std::unique_ptr<mpty>() {
+        // MISSING: value_and_holder value_ptr reset,  deregister_instance.
+        return smhldr_ptr->as_unique_ptr<mpty>();
+    }
 };
 
 template <>
@@ -378,7 +381,10 @@ struct type_caster<std::unique_ptr<mpty const>> : smart_holder_type_caster_load<
     template <typename>
     using cast_op_type = std::unique_ptr<mpty const>;
 
-    operator std::unique_ptr<mpty const>() { return smhldr_ptr->as_unique_ptr<mpty>(); }
+    operator std::unique_ptr<mpty const>() {
+        // MISSING: value_and_holder value_ptr reset,  deregister_instance.
+        return smhldr_ptr->as_unique_ptr<mpty>();
+    }
 };
 
 } // namespace detail
