@@ -58,7 +58,7 @@ jobs:
           - runs-on: ubuntu-latest
             python: pypy2
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
+    name: "🐍 ${{ matrix.python }} ${{ matrix.nightly && '(nightly)' || '' }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
 
     steps:
