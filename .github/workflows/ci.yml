@@ -71,9 +71,7 @@ jobs:
       run: echo "BOOST_ROOT=$BOOST_ROOT_1_72_0" >> $GITHUB_ENV
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.5
-      with:
-        cmake-version: 3.19.2
+      uses: jwlawson/actions-setup-cmake@v1.6
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -363,10 +361,8 @@ jobs:
     - name: Update pip
       run: python3 -m pip install --upgrade pip
 
-    - name: Setup CMake 3.18
-      uses: jwlawson/actions-setup-cmake@v1.5
-      with:
-        cmake-version: 3.18
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.6
 
     - name: Configure
       shell: bash
@@ -551,9 +547,7 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.5
-      with:
-        cmake-version: 3.19.2
+      uses: jwlawson/actions-setup-cmake@v1.6
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -599,9 +593,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.5
-      with:
-        cmake-version: 3.19.2
+      uses: jwlawson/actions-setup-cmake@v1.6
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -655,9 +647,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.5
-      with:
-        cmake-version: 3.19.2
+      uses: jwlawson/actions-setup-cmake@v1.6
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
