@@ -182,7 +182,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Setup Python ${{ matrix.python.version }} (deadsnakes)
-      uses: deadsnakes/action@v2.1.0
+      uses: YannickJadoul/deadsnakes-action@fix-input-boolean
       with:
         python-version: ${{ matrix.python.version }}
         debug: ${{ matrix.python.debug }}
