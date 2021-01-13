@@ -72,6 +72,8 @@ jobs:
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.5
+      with:
+        cmake-version: 3.19.2
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -550,6 +552,8 @@ jobs:
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.5
+      with:
+        cmake-version: 3.19.2
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -596,6 +600,8 @@ jobs:
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.5
+      with:
+        cmake-version: 3.19.2
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -650,6 +656,8 @@ jobs:
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.5
+      with:
+        cmake-version: 3.19.2
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
