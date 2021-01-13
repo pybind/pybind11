@@ -31,7 +31,7 @@ endif()
 
 # A user can set versions manually too
 set(Python_ADDITIONAL_VERSIONS
-    "3.9;3.8;3.7;3.6;3.5;3.4"
+    "3.10;3.9;3.8;3.7;3.6;3.5;3.4"
     CACHE INTERNAL "")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")

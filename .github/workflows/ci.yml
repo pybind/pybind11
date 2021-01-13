@@ -181,11 +181,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup Python ${{ matrix.python.version }}
+    - name: Setup Python ${{ matrix.python.version }} (deadsnakes)
       uses: deadsnakes/action@v2.1.0
       with:
         python-version: ${{ matrix.python.version }}
-        debug: ${{ matrix.python.version.debug }}
+        debug: ${{ matrix.python.debug }}
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
