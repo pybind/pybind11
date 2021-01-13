@@ -42,9 +42,6 @@ jobs:
             python: 3.6
             args: >
               -DPYBIND11_FINDPYTHON=ON
-          - runs-on: ubuntu-latest
-            python: 3.10-dev
-            nightly: true
 
         # These items will be removed from the build matrix, keys must match.
         exclude:
@@ -58,21 +55,14 @@ jobs:
           - runs-on: ubuntu-latest
             python: pypy2
 
-    name: "🐍 ${{ matrix.python }} ${{ matrix.nightly && '(nightly)' || '' }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
     runs-on: ${{ matrix.runs-on }}
 
     steps:
     - uses: actions/checkout@v2
 
     - name: Setup Python ${{ matrix.python }}
-      if: "!matrix.nightly"
       uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python }}
-
-    - name: Setup Python ${{ matrix.python }} (nightly)
-      if: matrix.nightly
-      uses: deadsnakes/action@v2.1.0
       with:
         python-version: ${{ matrix.python }}
 
