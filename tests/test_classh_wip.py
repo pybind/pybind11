@@ -39,8 +39,8 @@ def test_load():
 
 
 def test_cast_shared_ptr():
-    assert m.rtrn_mpty_shmp() == "cast_shmp"
-    assert m.rtrn_mpty_shcp() == "cast_shcp"
+    assert m.get_mtxt(m.rtrn_mpty_shmp()) == "rtrn_shmp"
+    assert m.get_mtxt(m.rtrn_mpty_shcp()) == "rtrn_shcp"
 
 
 def test_load_shared_ptr():
