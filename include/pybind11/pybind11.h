@@ -256,6 +256,9 @@ protected:
     /// Register a function call with Python (generic non-templated code goes here)
     void initialize_generic(unique_function_record &&unique_rec, const char *text,
                             const std::type_info *const *types, size_t args) {
+        // Do NOT receive `unique_rec` by value. If this function fails to move out the unique_ptr,
+        // we do not want this to destuct the pointer. `initialize` (the caller) still relies on the
+        // pointee being alive after this call. Only move out if a `capsule` is going to keep it alive.
         auto rec = unique_rec.get();
 
         // Keep track of strdup'ed strings, and clean them up as long as the function's capsule
