@@ -268,30 +268,18 @@ public:
 private:
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
-    static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
+    static void init_holder(detail::value_and_holder &/*v_h*/,
             const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
-        try {
-            auto sh = std::dynamic_pointer_cast<type>(  // Was: typename holder_type::element_type
-                    v_h.value_ptr<type>()->shared_from_this());
-            if (sh) {
-                new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(sh));
-                v_h.set_holder_constructed();
-            }
-        } catch (const std::bad_weak_ptr &) {}
-
-        if (!v_h.holder_constructed() && inst->owned) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
-            v_h.set_holder_constructed();
-        }
+        throw std::runtime_error("Not implemented: classh::init_holder enable_shared_from_this.");
     }
 
     /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
-    static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
+    static void init_holder(detail::value_and_holder &v_h,
             const holder_type *holder_ptr, const void * /* dummy -- not enable_shared_from_this<T>) */) {
         if (holder_ptr) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(*reinterpret_cast<const holder_type *>(holder_ptr));
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*holder_ptr));
             v_h.set_holder_constructed();
-        } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
+        } else { // Was: if (inst->owned || detail::always_construct_holder<holder_type>::value)
             new (std::addressof(v_h.holder<holder_type>())) holder_type(
                 std::move(holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<type>())));
             v_h.set_holder_constructed();
@@ -308,7 +296,7 @@ private:
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
         }
-        init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
+        init_holder(v_h, static_cast<const holder_type *>(holder_ptr), v_h.value_ptr<type>());
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.

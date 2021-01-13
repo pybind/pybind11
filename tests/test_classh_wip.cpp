@@ -93,7 +93,7 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     }
 
     static handle cast(mpty &src, return_value_policy policy, handle parent) {
-        return cast(const_cast<mpty const &>(src), policy, parent); // Mtbl2Const
+        return cast(const_cast<mpty const &>(src), policy, parent); // Mutbl2Const
     }
 
     static handle cast(mpty const *src, return_value_policy policy, handle parent) {
@@ -108,7 +108,7 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     }
 
     static handle cast(mpty *src, return_value_policy policy, handle parent) {
-        return cast(const_cast<mpty const *>(src), policy, parent); // Mtbl2Const
+        return cast(const_cast<mpty const *>(src), policy, parent); // Mutbl2Const
     }
 
     template <typename T_>
@@ -287,10 +287,43 @@ template <>
 struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::shared_ptr<mpty>>();
 
-    static handle cast(const std::shared_ptr<mpty> & /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
-        return str("cast_shmp").release();
+    static handle
+    cast(const std::shared_ptr<mpty> &src, return_value_policy policy, handle parent) {
+        if (policy != return_value_policy::automatic
+            && policy != return_value_policy::reference_internal) {
+            // IMPROVEABLE: Error message.
+            throw cast_error("Invalid return_value_policy for shared_ptr.");
+        }
+
+        auto src_raw_ptr = src.get();
+        auto st          = type_caster<mpty>::src_and_type(src_raw_ptr);
+        if (st.first == nullptr)
+            return none().release(); // PyErr was set already.
+
+        void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
+        const detail::type_info *tinfo = st.second;
+        auto it_instances = get_internals().registered_instances.equal_range(src_raw_void_ptr);
+        // Loop copied from type_caster_generic::cast.
+        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
+                    // MISSING: Enforcement of consistency with existing smart_holder.
+                    // MISSING: keep_alive.
+                    return handle((PyObject *) it_i->second).inc_ref();
+            }
+        }
+
+        object inst            = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        instance *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
+        inst_raw_ptr->owned    = false; // Not actually used.
+
+        auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(src);
+        tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
+
+        if (policy == return_value_policy::reference_internal)
+            keep_alive_impl(inst, parent);
+
+        return inst.release();
     }
 
     template <typename>
@@ -303,10 +336,12 @@ template <>
 struct type_caster<std::shared_ptr<mpty const>> : smart_holder_type_caster_load<mpty> {
     static constexpr auto name = _<std::shared_ptr<mpty const>>();
 
-    static handle cast(const std::shared_ptr<mpty const> & /*src*/,
-                       return_value_policy /*policy*/,
-                       handle /*parent*/) {
-        return str("cast_shcp").release();
+    static handle
+    cast(const std::shared_ptr<mpty const> &src, return_value_policy policy, handle parent) {
+        return type_caster<std::shared_ptr<mpty>>::cast(
+            std::const_pointer_cast<mpty>(src), // Const2Mutbl
+            policy,
+            parent);
     }
 
     template <typename>
