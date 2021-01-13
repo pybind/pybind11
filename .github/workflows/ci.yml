@@ -22,7 +22,7 @@ jobs:
         - 3.5
         - 3.6
         - 3.9
-        - 3.10-dev
+        # - 3.10-dev  # Re-enable once 3.10.0a5 is released
         - pypy2
         - pypy3
 
@@ -42,6 +42,9 @@ jobs:
             python: 3.6
             args: >
               -DPYBIND11_FINDPYTHON=ON
+          - runs-on: ubuntu-latest
+            python: 3.10-dev
+            nightly: true
 
         # These items will be removed from the build matrix, keys must match.
         exclude:
@@ -62,7 +65,14 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Setup Python ${{ matrix.python }}
+      if: "!matrix.nightly"
       uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Setup Python ${{ matrix.python }} (nightly)
+      if: matrix.nightly
+      uses: deadsnakes/action@v2.1.0
       with:
         python-version: ${{ matrix.python }}
 
