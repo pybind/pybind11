@@ -243,7 +243,7 @@ protected:
         }
         char *operator()(const char *s) {
             auto t = strdup(s);
-            strings.emplace_back(t);
+            strings.push_back(t);
             return t;
         }
         void release() {
