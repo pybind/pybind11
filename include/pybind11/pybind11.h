@@ -114,9 +114,16 @@ public:
     object name() const { return attr("__name__"); }
 
 protected:
+    struct InitializingFunctionRecordDeleter {
+        // `destruct(function_record, false)`: `initialize_generic` copies strings and
+        // takes care of cleaning up in case of exceptions. So pass `false` to `free_strings`.
+        void operator()(detail::function_record * rec) { destruct(rec, false); }
+    };
+    using unique_function_record = std::unique_ptr<detail::function_record, InitializingFunctionRecordDeleter>;
+
     /// Space optimization: don't inline this frequently instantiated fragment
-    PYBIND11_NOINLINE detail::function_record *make_function_record() {
-        return new detail::function_record();
+    PYBIND11_NOINLINE unique_function_record make_function_record() {
+        return unique_function_record(new detail::function_record());
     }
 
     /// Special internal constructor for functors, lambda functions, etc.
@@ -126,7 +133,9 @@ protected:
         struct capture { remove_reference_t<Func> f; };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture object) */
-        auto rec = make_function_record();
+        // The unique_ptr makes sure nothing is leaked in case of an exception.
+        auto unique_rec = make_function_record();
+        auto rec = unique_rec.get();
 
         /* Store the capture object directly in the function record if there is enough space */
         if (sizeof(capture) <= sizeof(rec->data)) {
@@ -207,7 +216,8 @@ protected:
         PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
 
         /* Register the function with Python from generic (non-templated) code */
-        initialize_generic(rec, signature.text, types.data(), sizeof...(Args));
+        // Pass on the ownership over the `unique_rec` to `initialize_generic`. `rec` stays valid.
+        initialize_generic(std::move(unique_rec), signature.text, types.data(), sizeof...(Args));
 
         if (cast_in::has_args) rec->has_args = true;
         if (cast_in::has_kwargs) rec->has_kwargs = true;
@@ -223,20 +233,51 @@ protected:
         }
     }
 
+    // Utility class that keeps track of all duplicated strings, and cleans them up in its destructor,
+    // unless they are released. Basically a RAII-solution to deal with exceptions along the way.
+    class strdup_guard {
+    public:
+        ~strdup_guard() {
+            for (auto s : strings)
+                std::free(s);
+        }
+        char *operator()(const char *s) {
+            auto t = strdup(s);
+            strings.push_back(t);
+            return t;
+        }
+        void release() {
+            strings.clear();
+        }
+    private:
+        std::vector<char *> strings;
+    };
+
     /// Register a function call with Python (generic non-templated code goes here)
-    void initialize_generic(detail::function_record *rec, const char *text,
+    void initialize_generic(unique_function_record &&unique_rec, const char *text,
                             const std::type_info *const *types, size_t args) {
+        // Do NOT receive `unique_rec` by value. If this function fails to move out the unique_ptr,
+        // we do not want this to destuct the pointer. `initialize` (the caller) still relies on the
+        // pointee being alive after this call. Only move out if a `capsule` is going to keep it alive.
+        auto rec = unique_rec.get();
+
+        // Keep track of strdup'ed strings, and clean them up as long as the function's capsule
+        // has not taken ownership yet (when `unique_rec.release()` is called).
+        // Note: This cannot easily be fixed by a `unique_ptr` with custom deleter, because the strings
+        // are only referenced before strdup'ing. So only *after* the following block could `destruct`
+        // safely be called, but even then, `repr` could still throw in the middle of copying all strings.
+        strdup_guard guarded_strdup;
 
         /* Create copies of all referenced C-style strings */
-        rec->name = strdup(rec->name ? rec->name : "");
-        if (rec->doc) rec->doc = strdup(rec->doc);
+        rec->name = guarded_strdup(rec->name ? rec->name : "");
+        if (rec->doc) rec->doc = guarded_strdup(rec->doc);
         for (auto &a: rec->args) {
             if (a.name)
-                a.name = strdup(a.name);
+                a.name = guarded_strdup(a.name);
             if (a.descr)
-                a.descr = strdup(a.descr);
+                a.descr = guarded_strdup(a.descr);
             else if (a.value)
-                a.descr = strdup(repr(a.value).cast<std::string>().c_str());
+                a.descr = guarded_strdup(repr(a.value).cast<std::string>().c_str());
         }
 
         rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
@@ -319,13 +360,13 @@ protected:
 #if PY_MAJOR_VERSION < 3
         if (strcmp(rec->name, "__next__") == 0) {
             std::free(rec->name);
-            rec->name = strdup("next");
+            rec->name = guarded_strdup("next");
         } else if (strcmp(rec->name, "__bool__") == 0) {
             std::free(rec->name);
-            rec->name = strdup("__nonzero__");
+            rec->name = guarded_strdup("__nonzero__");
         }
 #endif
-        rec->signature = strdup(signature.c_str());
+        rec->signature = guarded_strdup(signature.c_str());
         rec->args.shrink_to_fit();
         rec->nargs = (std::uint16_t) args;
 
@@ -356,9 +397,10 @@ protected:
             rec->def->ml_meth = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*) (void)>(*dispatcher));
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
-            capsule rec_capsule(rec, [](void *ptr) {
+            capsule rec_capsule(unique_rec.release(), [](void *ptr) {
                 destruct((detail::function_record *) ptr);
             });
+            guarded_strdup.release();
 
             object scope_module;
             if (rec->scope) {
@@ -393,13 +435,15 @@ protected:
                 chain_start = rec;
                 rec->next = chain;
                 auto rec_capsule = reinterpret_borrow<capsule>(((PyCFunctionObject *) m_ptr)->m_self);
-                rec_capsule.set_pointer(rec);
+                rec_capsule.set_pointer(unique_rec.release());
+                guarded_strdup.release();
             } else {
                 // Or end of chain (normal behavior)
                 chain_start = chain;
                 while (chain->next)
                     chain = chain->next;
-                chain->next = rec;
+                chain->next = unique_rec.release();
+                guarded_strdup.release();
             }
         }
 
@@ -452,7 +496,7 @@ protected:
     }
 
     /// When a cpp_function is GCed, release any memory allocated by pybind11
-    static void destruct(detail::function_record *rec) {
+    static void destruct(detail::function_record *rec, bool free_strings = true) {
         // If on Python 3.9, check the interpreter "MICRO" (patch) version.
         // If this is running on 3.9.0, we have to work around a bug.
         #if !defined(PYPY_VERSION) && PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
@@ -463,14 +507,20 @@ protected:
             detail::function_record *next = rec->next;
             if (rec->free_data)
                 rec->free_data(rec);
-            std::free((char *) rec->name);
-            std::free((char *) rec->doc);
-            std::free((char *) rec->signature);
-            for (auto &arg: rec->args) {
-                std::free(const_cast<char *>(arg.name));
-                std::free(const_cast<char *>(arg.descr));
-                arg.value.dec_ref();
+            // During initialization, these strings might not have been copied yet,
+            // so they cannot be freed. Once the function has been created, they can.
+            // Check `make_function_record` for more details.
+            if (free_strings) {
+                std::free((char *) rec->name);
+                std::free((char *) rec->doc);
+                std::free((char *) rec->signature);
+                for (auto &arg: rec->args) {
+                    std::free(const_cast<char *>(arg.name));
+                    std::free(const_cast<char *>(arg.descr));
+                }
             }
+            for (auto &arg: rec->args)
+                arg.value.dec_ref();
             if (rec->def) {
                 std::free(const_cast<char *>(rec->def->ml_doc));
                 // Python 3.9.0 decref's these in the wrong order; rec->def
