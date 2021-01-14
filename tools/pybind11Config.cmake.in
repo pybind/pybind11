@@ -87,7 +87,7 @@ you can either use the basic targets, or use the FindPython tools:
   target_link_libraries(MyModule2 pybind11::headers)
   set_target_properties(MyModule2 PROPERTIES
                                   INTERPROCEDURAL_OPTIMIZATION ON
-                                  CXX__VISIBILITY_PRESET ON
+                                  CXX_VISIBILITY_PRESET ON
                                   VISIBLITY_INLINES_HIDDEN ON)
 
 If you build targets yourself, you may be interested in stripping the output
