@@ -166,19 +166,19 @@ jobs:
 
   valgrind:
     runs-on: ubuntu-latest
-    name: "🐍 3.9 debug • Valgrind"
+    name: "🐍 3.9 (debug) • Valgrind"
 
     steps:
     - uses: actions/checkout@v2
 
     - name: Install debug Python
-      uses: deadsnakes/action@v2.1.0
+      uses: deadsnakes/action@v2.1.1
       with:
         python-version: 3.9
         debug: true
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.5
+      uses: jwlawson/actions-setup-cmake@v1.6
 
     - name: Valgrind cache
       uses: actions/cache@v2
