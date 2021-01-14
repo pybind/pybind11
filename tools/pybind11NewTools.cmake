@@ -181,26 +181,26 @@ function(pybind11_add_module target_name)
                         "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI" "" "")
 
   if(ARG_STATIC)
-    set(type STATIC)
+    set(lib_type STATIC)
   elseif(ARG_SHARED)
-    set(type SHARED)
+    set(lib_type SHARED)
   else()
-    set(type MODULE)
+    set(lib_type MODULE)
   endif()
 
   if("${_Python}" STREQUAL "Python")
-    python_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
+    python_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
-    python3_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
+    python3_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python2")
-    python2_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
+    python2_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
   else()
     message(FATAL_ERROR "Cannot detect FindPython version: ${_Python}")
   endif()
 
   target_link_libraries(${target_name} PRIVATE pybind11::headers)
 
-  if(type STREQUAL "MODULE")
+  if(lib_type STREQUAL "MODULE")
     target_link_libraries(${target_name} PRIVATE pybind11::module)
   else()
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
@@ -228,8 +228,7 @@ function(pybind11_add_module target_name)
   endif()
 
   # If we don't pass a WITH_SOABI or WITHOUT_SOABI, use our own default handling of extensions
-  if("${type}" STREQUAL "MODULE" AND (NOT ARG_WITHOUT_SOABI OR NOT "WITH_SOABI" IN_LIST
-                                                               ARG_UNPARSED_ARGUMENTS))
+  if(NOT ARG_WITHOUT_SOABI OR NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
     pybind11_extension(${target_name})
   endif()
 
