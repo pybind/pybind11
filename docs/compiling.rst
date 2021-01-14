@@ -84,7 +84,7 @@ for NumPy's parallel compilation distutils tool is included. Use it like this:
 
 The argument is the name of an environment variable to control the number of
 threads, such as ``NPY_NUM_BUILD_JOBS`` (as used by NumPy), though you can set
-something different if you want; CMAKE_BUILD_PARALLEL_LEVEL is another choice
+something different if you want; ``CMAKE_BUILD_PARALLEL_LEVEL`` is another choice
 a user might expect. You can also pass ``default=N`` to set the default number
 of threads (0 will take the number of threads available) and ``max=N``, the
 maximum number of threads; if you have a large extension you may want set this
