@@ -322,6 +322,8 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         m.def("should_fail", [](int, UnregisteredType) {}, py::arg(), py::arg() = UnregisteredType());
     });
 
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
+
     // test_accepts_none
     py::class_<NoneTester, std::shared_ptr<NoneTester>>(m, "NoneTester")
         .def(py::init<>());
@@ -336,8 +338,8 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.def("ok_none4", &none4, py::arg{}.none(true));
     m.def("ok_none5", &none5);
 
-    m.def("no_none_kwarg", &none2, py::arg{"a"}.none(false));
-    m.def("no_none_kwarg_kw_only", &none2, py::kw_only(), py::arg{"a"}.none(false));
+    m.def("no_none_kwarg", &none2, "a"_a.none(false));
+    m.def("no_none_kwarg_kw_only", &none2, py::kw_only(), "a"_a.none(false));
 
     // test_str_issue
     // Issue #283: __str__ called on uninitialized instance when constructor arguments invalid

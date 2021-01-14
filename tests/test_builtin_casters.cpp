@@ -183,6 +183,8 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
     m.def("cast_nullptr_t", []() { return std::nullptr_t{}; });
 
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
+
     // test_bool_caster
     m.def("bool_passthrough", [](bool arg) { return arg; });
     m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg{}.noconvert());

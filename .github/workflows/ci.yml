@@ -418,6 +418,7 @@ jobs:
         python3 -m pip install --upgrade pip
 
     - name: Install dependencies
+      run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         python3 -m pip install -r tests/requirements.txt --prefer-binary
 

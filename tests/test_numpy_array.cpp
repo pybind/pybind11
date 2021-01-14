@@ -258,6 +258,8 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("overloaded2", [](py::array_t<std::complex<float>>) { return "float complex"; });
     sm.def("overloaded2", [](py::array_t<float>) { return "float"; });
 
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
+
     // Only accept the exact types:
     sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg{}.noconvert());
     sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg{}.noconvert());
@@ -419,20 +421,20 @@ TEST_SUBMODULE(numpy_array, sm) {
            py::arg("a"));
     sm.def("accept_double_noconvert",
            [](py::array_t<double, 0>) {},
-           py::arg{"a"}.noconvert());
+           "a"_a.noconvert());
     sm.def("accept_double_forcecast_noconvert",
            [](py::array_t<double, py::array::forcecast>) {},
-           py::arg{"a"}.noconvert());
+           "a"_a.noconvert());
     sm.def("accept_double_c_style_noconvert",
            [](py::array_t<double, py::array::c_style>) {},
-           py::arg{"a"}.noconvert());
+           "a"_a.noconvert());
     sm.def("accept_double_c_style_forcecast_noconvert",
            [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
-           py::arg{"a"}.noconvert());
+           "a"_a.noconvert());
     sm.def("accept_double_f_style_noconvert",
            [](py::array_t<double, py::array::f_style>) {},
-           py::arg{"a"}.noconvert());
+           "a"_a.noconvert());
     sm.def("accept_double_f_style_forcecast_noconvert",
            [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
-           py::arg{"a"}.noconvert());
+           "a"_a.noconvert());
 }

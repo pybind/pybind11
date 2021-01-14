@@ -273,6 +273,7 @@ TEST_SUBMODULE(eigen, m) {
     m.def("cpp_ref_r", [](py::handle m) { return m.cast<Eigen::Ref<MatrixXdR>>()(1, 0); });
     m.def("cpp_ref_any", [](py::handle m) { return m.cast<py::EigenDRef<Eigen::MatrixXd>>()(1, 0); });
 
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // test_nocopy_wrapper
     // Test that we can prevent copying into an argument that would normally copy: First a version

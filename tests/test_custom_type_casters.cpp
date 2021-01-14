@@ -99,6 +99,7 @@ TEST_SUBMODULE(custom_type_casters, m) {
         }
         static ArgInspector2 h(ArgInspector2 a, ArgAlwaysConverts) { return a; }
     };
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
     py::class_<ArgInspector>(m, "ArgInspector")
         .def(py::init<>())
         .def("f", &ArgInspector::f, py::arg(), py::arg() = ArgAlwaysConverts())
@@ -108,10 +109,10 @@ TEST_SUBMODULE(custom_type_casters, m) {
     m.def("arg_inspect_func", [](ArgInspector2 a, ArgInspector1 b, ArgAlwaysConverts) { return a.arg + "\n" + b.arg; },
             py::arg{}.noconvert(false), py::arg_v(nullptr, ArgInspector1()).noconvert(true), py::arg() = ArgAlwaysConverts());
 
-    m.def("floats_preferred", [](double f) { return 0.5 * f; }, py::arg("f"));
-    m.def("floats_only", [](double f) { return 0.5 * f; }, py::arg{"f"}.noconvert());
-    m.def("ints_preferred", [](int i) { return i / 2; }, py::arg("i"));
-    m.def("ints_only", [](int i) { return i / 2; }, py::arg{"i"}.noconvert());
+    m.def("floats_preferred", [](double f) { return 0.5 * f; }, "f"_a);
+    m.def("floats_only", [](double f) { return 0.5 * f; }, "f"_a.noconvert());
+    m.def("ints_preferred", [](int i) { return i / 2; }, "i"_a);
+    m.def("ints_only", [](int i) { return i / 2; }, "i"_a.noconvert());
 
     // test_custom_caster_destruction
     // Test that `take_ownership` works on types with a custom type caster when given a pointer
