@@ -72,6 +72,17 @@ The ``visit_helper`` specialization is not required if your ``name::variant`` pr
 a ``name::visit()`` function. For any other function name, the specialization must be
 included to tell pybind11 how to visit the variant.
 
+.. warning::
+
+    When converting a ``variant`` type, pybind11 follows the same rules as when
+    determining which function overload to call (:ref:`overload_resolution`), and
+    so the same caveats hold. In particular, the order in which the ``variant``'s
+    alternatives are listed is important, since pybind11 will try conversions in
+    this order. This means that, for example, when converting ``variant<int, bool>``,
+    the ``bool`` variant will never be selected, as any Python ``bool`` is already
+    an ``int`` and is convertible to a C++ ``int``. Changing the order of alternatives
+    (and using ``variant<bool, int>``, in this example) provides a solution.
+
 .. note::
 
     pybind11 only supports the modern implementation of ``boost::variant``
