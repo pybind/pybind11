@@ -180,9 +180,9 @@ function(pybind11_add_module target_name)
   cmake_parse_arguments(PARSE_ARGV 1 ARG
                         "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI" "" "")
 
-  if(ARG_ADD_LIBRARY_STATIC)
+  if(ARG_STATIC)
     set(type STATIC)
-  elseif(ARG_ADD_LIBRARY_SHARED)
+  elseif(ARG_SHARED)
     set(type SHARED)
   else()
     set(type MODULE)
