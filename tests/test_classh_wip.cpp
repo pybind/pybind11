@@ -15,11 +15,11 @@ struct mpty {
 // clang-format off
 
 mpty        rtrn_mpty_valu() { mpty obj{"rtrn_valu"}; return obj; }
-mpty&&      rtrn_mpty_rref() { mpty obj{"rtrn_rref"}; return std::move(obj); }
+mpty&&      rtrn_mpty_rref() { static mpty obj; obj.mtxt = "rtrn_rref"; return std::move(obj); }
 mpty const& rtrn_mpty_cref() { static mpty obj; obj.mtxt = "rtrn_cref"; return obj; }
 mpty&       rtrn_mpty_mref() { static mpty obj; obj.mtxt = "rtrn_mref"; return obj; }
-mpty const* rtrn_mpty_cptr() { static mpty obj; obj.mtxt = "rtrn_cptr"; return &obj; }
-mpty*       rtrn_mpty_mptr() { static mpty obj; obj.mtxt = "rtrn_mptr"; return &obj; }
+mpty const* rtrn_mpty_cptr() { return new mpty{"rtrn_cptr"}; }
+mpty*       rtrn_mpty_mptr() { return new mpty{"rtrn_mptr"}; }
 
 std::string pass_mpty_valu(mpty obj)        { return "pass_valu:" + obj.mtxt; }
 std::string pass_mpty_rref(mpty&& obj)      { return "pass_rref:" + obj.mtxt; }
@@ -315,7 +315,9 @@ struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
 
         object inst            = reinterpret_steal<object>(make_new_instance(tinfo->type));
         instance *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
-        inst_raw_ptr->owned    = false; // Not actually used.
+        inst_raw_ptr->owned    = true;
+        void *&valueptr        = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+        valueptr               = src_raw_void_ptr;
 
         auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(src);
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
@@ -380,7 +382,9 @@ struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
 
         object inst            = reinterpret_steal<object>(make_new_instance(tinfo->type));
         instance *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
-        inst_raw_ptr->owned    = false; // Not actually used.
+        inst_raw_ptr->owned    = true;
+        void *&valueptr        = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+        valueptr               = src_raw_void_ptr;
 
         auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(src));
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));

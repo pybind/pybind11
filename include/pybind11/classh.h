@@ -266,37 +266,37 @@ public:
     }
 
 private:
-    /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
-    static void init_holder(detail::value_and_holder &/*v_h*/,
-            const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
+    static void init_holder(bool /*owned*/, detail::value_and_holder &/*v_h*/,
+            holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
         throw std::runtime_error("Not implemented: classh::init_holder enable_shared_from_this.");
     }
 
-    /// Initialize holder object, variant 2: try to construct from existing holder object, if possible
-    static void init_holder(detail::value_and_holder &v_h,
-            const holder_type *holder_ptr, const void * /* dummy -- not enable_shared_from_this<T>) */) {
+    static void init_holder(bool owned, detail::value_and_holder &v_h,
+            holder_type *holder_ptr, const void * /* dummy -- not enable_shared_from_this<T>) */) {
         if (holder_ptr) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*holder_ptr));
-            v_h.set_holder_constructed();
-        } else { // Was: if (inst->owned || detail::always_construct_holder<holder_type>::value)
             new (std::addressof(v_h.holder<holder_type>())) holder_type(
-                std::move(holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<type>())));
-            v_h.set_holder_constructed();
+                std::move(*holder_ptr));
+        } else if (owned) {
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(
+                holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<type>()));
         }
+        else {
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(
+                holder_type::from_raw_ptr_unowned(v_h.value_ptr<type>()));
+        }
+        v_h.set_holder_constructed();
     }
 
-    /// Performs instance initialization including constructing a holder and registering the known
-    /// instance.  Should be called as soon as the `type` value_ptr is set for an instance.  Takes an
-    /// optional pointer to an existing holder to use; if not specified and the instance is
-    /// `.owned`, a new holder will be constructed to manage the value pointer.
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
         }
-        init_holder(v_h, static_cast<const holder_type *>(holder_ptr), v_h.value_ptr<type>());
+        // Need for const_cast is a consequence of the type_info::init_instance type:
+        // void (*init_instance)(instance *, const void *);
+        init_holder(inst->owned, v_h, static_cast<holder_type *>(const_cast<void *>(holder_ptr)), v_h.value_ptr<type>());
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
