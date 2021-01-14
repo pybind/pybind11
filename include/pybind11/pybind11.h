@@ -977,7 +977,7 @@ public:
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
-        For Python 3, ``def`` should point to a staticly allocated module_def.
+        For Python 3, ``def`` should point to a statically allocated module_def.
         For Python 2, ``def`` can be a nullptr and is completely ignored.
     \endrst */
     static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
@@ -1005,7 +1005,7 @@ public:
                 throw error_already_set();
             pybind11_fail("Internal error in module_::create_extension_module()");
         }
-        // TODO: Sould be reinterpret_steal for Python 3, but Python also steals it again when returned from PyInit_...
+        // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when returned from PyInit_...
         //       For Python 2, reinterpret_borrow is correct.
         return reinterpret_borrow<module_>(m);
     }
@@ -2277,7 +2277,7 @@ PYBIND11_NAMESPACE_END(detail)
 /** \rst
   Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
 
-  :this_ptr: The pointer to the object the overriden method should be retrieved for. This should be
+  :this_ptr: The pointer to the object the overridden method should be retrieved for. This should be
              the first non-trampoline class encountered in the inheritance chain.
   :name: The name of the overridden Python method to retrieve.
   :return: The Python method by this name from the object or an empty function wrapper.
