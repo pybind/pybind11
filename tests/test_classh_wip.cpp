@@ -184,14 +184,13 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     // type_caster_base END
 
     // Originally type_caster_generic::cast.
-    PYBIND11_NOINLINE static handle cast_const_raw_ptr(
-                                         const void *_src,
-                                         return_value_policy policy,
-                                         handle parent,
-                                         const detail::type_info *tinfo,
-                                         void *(*copy_constructor)(const void *),
-                                         void *(*move_constructor)(const void *),
-                                         const void *existing_holder = nullptr) {
+    PYBIND11_NOINLINE static handle cast_const_raw_ptr(const void *_src,
+                                                       return_value_policy policy,
+                                                       handle parent,
+                                                       const detail::type_info *tinfo,
+                                                       void *(*copy_constructor)(const void *),
+                                                       void *(*move_constructor)(const void *),
+                                                       const void *existing_holder = nullptr) {
         if (!tinfo) // no type info: error will be set already
             return handle();
 
