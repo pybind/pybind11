@@ -54,17 +54,35 @@ using namespace pybind11_tests::classh_wip;
 
 template <typename T>
 struct smart_holder_type_caster_load {
+    using holder_type = pybindit::memory::smart_holder;
+
     bool load(handle src, bool /*convert*/) {
         if (!isinstance<T>(src))
             return false;
         auto inst  = reinterpret_cast<instance *>(src.ptr());
-        auto v_h   = inst->get_value_and_holder(get_type_info(typeid(T)));
-        smhldr_ptr = &v_h.holder<pybindit::memory::smart_holder>();
+        loaded_v_h = inst->get_value_and_holder(get_type_info(typeid(T)));
+        if (!loaded_v_h.holder_constructed()) {
+            // IMPROVEABLE: Error message.
+            throw std::runtime_error("Missing value for wrapped C++ type:"
+                                     " Python instance is uninitialized or was disowned.");
+        }
+        loaded_smhldr_ptr = &loaded_v_h.holder<holder_type>();
         return true;
     }
 
+    std::unique_ptr<T> loaded_as_unique_ptr() {
+        void *value_void_ptr = loaded_v_h.value_ptr();
+        auto unq_ptr         = loaded_smhldr_ptr->as_unique_ptr<mpty>();
+        loaded_v_h.holder<holder_type>().~holder_type();
+        loaded_v_h.set_holder_constructed(false);
+        loaded_v_h.value_ptr() = nullptr;
+        deregister_instance(loaded_v_h.inst, value_void_ptr, loaded_v_h.type);
+        return unq_ptr;
+    }
+
 protected:
-    pybindit::memory::smart_holder *smhldr_ptr = nullptr;
+    value_and_holder loaded_v_h;
+    holder_type *loaded_smhldr_ptr = nullptr;
 };
 
 template <>
@@ -127,12 +145,12 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
 
     // clang-format off
 
-    operator mpty()        { return smhldr_ptr->lvalue_ref<mpty>(); }
-    operator mpty&&() &&   { return smhldr_ptr->rvalue_ref<mpty>(); }
-    operator mpty const&() { return smhldr_ptr->lvalue_ref<mpty>(); }
-    operator mpty&()       { return smhldr_ptr->lvalue_ref<mpty>(); }
-    operator mpty const*() { return smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
-    operator mpty*()       { return smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
+    operator mpty()        { return loaded_smhldr_ptr->lvalue_ref<mpty>(); }
+    operator mpty&&() &&   { return loaded_smhldr_ptr->rvalue_ref<mpty>(); }
+    operator mpty const&() { return loaded_smhldr_ptr->lvalue_ref<mpty>(); }
+    operator mpty&()       { return loaded_smhldr_ptr->lvalue_ref<mpty>(); }
+    operator mpty const*() { return loaded_smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
+    operator mpty*()       { return loaded_smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
 
     // clang-format on
 
@@ -331,7 +349,7 @@ struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
     template <typename>
     using cast_op_type = std::shared_ptr<mpty>;
 
-    operator std::shared_ptr<mpty>() { return smhldr_ptr->as_shared_ptr<mpty>(); }
+    operator std::shared_ptr<mpty>() { return loaded_smhldr_ptr->as_shared_ptr<mpty>(); }
 };
 
 template <>
@@ -349,7 +367,7 @@ struct type_caster<std::shared_ptr<mpty const>> : smart_holder_type_caster_load<
     template <typename>
     using cast_op_type = std::shared_ptr<mpty const>;
 
-    operator std::shared_ptr<mpty const>() { return smhldr_ptr->as_shared_ptr<mpty>(); }
+    operator std::shared_ptr<mpty const>() { return loaded_smhldr_ptr->as_shared_ptr<mpty>(); }
 };
 
 template <>
@@ -398,10 +416,7 @@ struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
     template <typename>
     using cast_op_type = std::unique_ptr<mpty>;
 
-    operator std::unique_ptr<mpty>() {
-        // MISSING: value_and_holder value_ptr reset,  deregister_instance.
-        return smhldr_ptr->as_unique_ptr<mpty>();
-    }
+    operator std::unique_ptr<mpty>() { return loaded_as_unique_ptr(); }
 };
 
 template <>
@@ -419,10 +434,7 @@ struct type_caster<std::unique_ptr<mpty const>> : smart_holder_type_caster_load<
     template <typename>
     using cast_op_type = std::unique_ptr<mpty const>;
 
-    operator std::unique_ptr<mpty const>() {
-        // MISSING: value_and_holder value_ptr reset,  deregister_instance.
-        return smhldr_ptr->as_unique_ptr<mpty>();
-    }
+    operator std::unique_ptr<mpty const>() { return loaded_as_unique_ptr(); }
 };
 
 } // namespace detail
@@ -466,7 +478,10 @@ TEST_SUBMODULE(classh_wip, m) {
     m.def("pass_mpty_uqmp", pass_mpty_uqmp);
     m.def("pass_mpty_uqcp", pass_mpty_uqcp);
 
-    m.def("get_mtxt", get_mtxt); // Requires pass_mpty_cref to work properly.
+    // Helpers, these require selected functions above to work, as indicated:
+    m.def("get_mtxt", get_mtxt); // pass_mpty_cref
+    m.def("unique_ptr_roundtrip",
+          [](std::unique_ptr<mpty> obj) { return obj; }); // pass_mpty_uqmp, rtrn_mpty_uqmp
 }
 
 } // namespace classh_wip
