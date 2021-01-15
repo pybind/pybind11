@@ -63,4 +63,14 @@ def test_pass_unique_ptr_disowns(pass_mpty, argm, rtrn):
     assert pass_mpty(obj) == rtrn
     with pytest.raises(RuntimeError) as exc_info:
         m.pass_mpty_uqmp(obj)
-    assert str(exc_info.value) == "Cannot disown nullptr (as_unique_ptr)."
+    assert str(exc_info.value) == (
+        "Missing value for wrapped C++ type:"
+        " Python instance is uninitialized or was disowned."
+    )
+
+
+def test_unique_ptr_roundtrip(num_round_trips=1000):
+    recycled = m.mpty("passenger")
+    for _ in range(num_round_trips):
+        recycled = m.unique_ptr_roundtrip(recycled)
+        assert m.get_mtxt(recycled) == "passenger"
