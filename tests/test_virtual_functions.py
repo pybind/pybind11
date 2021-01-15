@@ -251,7 +251,8 @@ def test_dispatch_issue(msg):
                 == 'Tried to call pure virtual function "Base::dispatch"'
             )
 
-            return m.dispatch_issue_go(PyClass1())
+            p = PyClass1()
+            return m.dispatch_issue_go(p)
 
     b = PyClass2()
     assert m.dispatch_issue_go(b) == "Yay.."
