@@ -370,24 +370,9 @@ endif()
 string(REPLACE "test_" "${CMAKE_CURRENT_SOURCE_DIR}/test_" PYBIND11_ABS_PYTEST_FILES
                "${PYBIND11_PYTEST_FILES}")
 
-if(NOT PYBIND11_MEMCHECK)
-  set(PYBIND11_TEST_PREFIX_COMMAND "")
-else()
-  # cmake-format: off
-  set(PYBIND11_TEST_PREFIX_COMMAND
-      PYTHONMALLOC=malloc
-      valgrind
-      --leak-check=full
-      --show-leak-kinds=definite,indirect
-      --errors-for-leak-kinds=definite,indirect
-      --error-exitcode=1
-      --read-var-info=yes
-      --track-origins=yes
-      --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp"
-      --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp"
-      --gen-suppressions=all)
-  # cmake-format: on
-endif()
+set(PYBIND11_TEST_PREFIX_COMMAND
+    ""
+    CACHE STRING "Put this before pytest, use for checkers and such")
 
 # A single command to compile and run the tests
 add_custom_target(
@@ -395,7 +380,7 @@ add_custom_target(
   COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest
           ${PYBIND11_ABS_PYTEST_FILES}
   DEPENDS ${test_targets}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)
 
 if(PYBIND11_TEST_OVERRIDE)
@@ -406,10 +391,26 @@ if(PYBIND11_TEST_OVERRIDE)
             "Note: not all tests run: -DPYBIND11_TEST_OVERRIDE is in effect")
 endif()
 
+# cmake-format: off
 add_custom_target(
   memcheck
-  DEPENDS pytest
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  COMMAND
+    PYTHONMALLOC=malloc
+    valgrind
+    --leak-check=full
+    --show-leak-kinds=definite,indirect
+    --errors-for-leak-kinds=definite,indirect
+    --error-exitcode=1
+    --read-var-info=yes
+    --track-origins=yes
+    --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-python.supp"
+    --suppressions="${CMAKE_CURRENT_SOURCE_DIR}/valgrind-numpy-scipy.supp"
+    --gen-suppressions=all
+    ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
+  DEPENDS ${test_targets}
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  USES_TERMINAL)
+# cmake-format: on
 
 # Add a check target to run all the tests, starting with pytest (we add dependencies to this below)
 add_custom_target(check DEPENDS pytest)
