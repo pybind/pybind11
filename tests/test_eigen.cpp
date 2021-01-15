@@ -273,6 +273,7 @@ TEST_SUBMODULE(eigen, m) {
     m.def("cpp_ref_r", [](py::handle m) { return m.cast<Eigen::Ref<MatrixXdR>>()(1, 0); });
     m.def("cpp_ref_any", [](py::handle m) { return m.cast<py::EigenDRef<Eigen::MatrixXd>>()(1, 0); });
 
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // test_nocopy_wrapper
     // Test that we can prevent copying into an argument that would normally copy: First a version
@@ -280,17 +281,17 @@ TEST_SUBMODULE(eigen, m) {
     m.def("get_elem", &get_elem);
     // Now this alternative that calls the tells pybind to fail rather than copy:
     m.def("get_elem_nocopy", [](Eigen::Ref<const Eigen::MatrixXd> m) -> double { return get_elem(m); },
-            py::arg().noconvert());
+            py::arg{}.noconvert());
     // Also test a row-major-only no-copy const ref:
     m.def("get_elem_rm_nocopy", [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long { return m(2, 1); },
-            py::arg().noconvert());
+            py::arg{}.noconvert());
 
     // test_issue738
     // Issue #738: 1xN or Nx1 2D matrices were neither accepted nor properly copied with an
     // incompatible stride value on the length-1 dimension--but that should be allowed (without
     // requiring a copy!) because the stride value can be safely ignored on a size-1 dimension.
-    m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg().noconvert());
-    m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg().noconvert());
+    m.def("iss738_f1", &adjust_matrix<const Eigen::Ref<const Eigen::MatrixXd> &>, py::arg{}.noconvert());
+    m.def("iss738_f2", &adjust_matrix<const Eigen::Ref<const Eigen::Matrix<double, -1, -1, Eigen::RowMajor>> &>, py::arg{}.noconvert());
 
     // test_issue1105
     // Issue #1105: when converting from a numpy two-dimensional (Nx1) or (1xN) value into a dense

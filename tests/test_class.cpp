@@ -323,6 +323,8 @@ TEST_SUBMODULE(class_, m) {
 
     class PublicistB : public ProtectedB {
     public:
+        // [workaround(intel)] = default does not work here
+        ~PublicistB() override {};  // NOLINT(modernize-use-equals-default)
         using ProtectedB::foo;
     };
 

@@ -119,7 +119,8 @@ TEST_SUBMODULE(callbacks, m) {
 
     class AbstractBase {
     public:
-        virtual ~AbstractBase() = default;
+        // [workaround(intel)] = default does not work here
+        virtual ~AbstractBase() {};  // NOLINT(modernize-use-equals-default)
         virtual unsigned int func() = 0;
     };
     m.def("func_accepting_func_accepting_base", [](std::function<double(AbstractBase&)>) { });
