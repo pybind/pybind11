@@ -187,24 +187,24 @@ jobs:
         path: valgrind
         key: 3.16.1 # Valgrind version
 
-    - name: Compile and install Valgrind
+    - name: Compile Valgrind
       if: steps.cache-valgrind.outputs.cache-hit != 'true'
       run: |
         VALGRIND_VERSION=3.16.1
         curl https://sourceware.org/pub/valgrind/valgrind-$VALGRIND_VERSION.tar.bz2 -o - | tar xj
         mv valgrind-$VALGRIND_VERSION valgrind
-        pushd valgrind
-        ./configure && make -j 2 > /dev/null && sudo make install
-        popd
-        sudo apt-get update && sudo apt-get install libc6-dbg  # Needed by Valgrind
+        cd valgrind
+        ./configure
+        make -j 2 > /dev/null
 
     - name: Install Valgrind
-      if: steps.cache-valgrind.outputs.cache-hit == 'true'
+      working-directory: valgrind
+      run: sudo make install
+
+    - name: Install requirement for Valgrind
       run: |
-        pushd valgrind
-        sudo make install
-        popd
-        sudo apt-get update && sudo apt-get install libc6-dbg  # Needed by Valgrind
+        sudo apt-get update
+        sudo apt-get install libc6-dbg
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
@@ -214,7 +214,6 @@ jobs:
         cmake -S . -B build
         -DCMAKE_BUILD_TYPE=Debug
         -DPYBIND11_WERROR=ON
-        -DPYBIND11_MEMCHECK=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=17
