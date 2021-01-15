@@ -117,14 +117,14 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     }
 
     static handle cast(mpty const *src, return_value_policy policy, handle parent) {
-        // type_caster_base BEGIN
-        // clang-format off
-        auto st = src_and_type(src);
-        return cast( // Originally type_caster_generic::cast.
-            st.first, policy, parent, st.second,
-            make_copy_constructor(src), make_move_constructor(src));
-        // clang-format on
-        // type_caster_base END
+        auto st = type_caster_base<mpty>::src_and_type(src);
+        return cast_const_raw_ptr( // Originally type_caster_generic::cast.
+            st.first,
+            policy,
+            parent,
+            st.second,
+            make_copy_constructor(src),
+            make_move_constructor(src));
     }
 
     static handle cast(mpty *src, return_value_policy policy, handle parent) {
@@ -156,34 +156,8 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
 
     // clang-format on
 
-    using itype = mpty;
-
     // type_caster_base BEGIN
     // clang-format off
-
-    // Returns a (pointer, type_info) pair taking care of necessary type lookup for a
-    // polymorphic type (using RTTI by default, but can be overridden by specializing
-    // polymorphic_type_hook). If the instance isn't derived, returns the base version.
-    static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        auto &cast_type = typeid(itype);
-        const std::type_info *instance_type = nullptr;
-        const void *vsrc = polymorphic_type_hook<itype>::get(src, instance_type);
-        if (instance_type && !same_type(cast_type, *instance_type)) {
-            // This is a base pointer to a derived type. If the derived type is registered
-            // with pybind11, we want to make the full derived object available.
-            // In the typical case where itype is polymorphic, we get the correct
-            // derived pointer (which may be != base pointer) by a dynamic_cast to
-            // most derived type. If itype is not polymorphic, we won't get here
-            // except via a user-provided specialization of polymorphic_type_hook,
-            // and the user has promised that no this-pointer adjustment is
-            // required in that case, so it's OK to use static_cast.
-            if (const auto *tpi = get_type_info(*instance_type))
-                return {vsrc, tpi};
-        }
-        // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer, so
-        // don't do a cast
-        return type_caster_generic::src_and_type(src, cast_type, instance_type);
-    }
 
     using Constructor = void *(*)(const void *);
 
@@ -210,7 +184,8 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     // type_caster_base END
 
     // Originally type_caster_generic::cast.
-    PYBIND11_NOINLINE static handle cast(const void *_src,
+    PYBIND11_NOINLINE static handle cast_const_raw_ptr(
+                                         const void *_src,
                                          return_value_policy policy,
                                          handle parent,
                                          const detail::type_info *tinfo,
@@ -316,7 +291,7 @@ struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
         }
 
         auto src_raw_ptr = src.get();
-        auto st          = type_caster<mpty>::src_and_type(src_raw_ptr);
+        auto st          = type_caster_base<mpty>::src_and_type(src_raw_ptr);
         if (st.first == nullptr)
             return none().release(); // PyErr was set already.
 
@@ -384,7 +359,7 @@ struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
         }
 
         auto src_raw_ptr = src.get();
-        auto st          = type_caster<mpty>::src_and_type(src_raw_ptr);
+        auto st          = type_caster_base<mpty>::src_and_type(src_raw_ptr);
         if (st.first == nullptr)
             return none().release(); // PyErr was set already.
 
