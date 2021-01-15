@@ -42,7 +42,9 @@ std::string pass_mpty_uqcp(std::unique_ptr<mpty const> obj) { return "pass_uqcp:
 
 // clang-format on
 
+// Helpers for testing.
 std::string get_mtxt(mpty const &obj) { return obj.mtxt; }
+std::unique_ptr<mpty> unique_ptr_roundtrip(std::unique_ptr<mpty> obj) { return obj; }
 
 } // namespace classh_wip
 } // namespace pybind11_tests
@@ -478,10 +480,10 @@ TEST_SUBMODULE(classh_wip, m) {
     m.def("pass_mpty_uqmp", pass_mpty_uqmp);
     m.def("pass_mpty_uqcp", pass_mpty_uqcp);
 
-    // Helpers, these require selected functions above to work, as indicated:
-    m.def("get_mtxt", get_mtxt); // pass_mpty_cref
-    m.def("unique_ptr_roundtrip",
-          [](std::unique_ptr<mpty> obj) { return obj; }); // pass_mpty_uqmp, rtrn_mpty_uqmp
+    // Helpers for testing.
+    // These require selected functions above to work first, as indicated:
+    m.def("get_mtxt", get_mtxt);                         // pass_mpty_cref
+    m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_mpty_uqmp, rtrn_mpty_uqmp
 }
 
 } // namespace classh_wip
