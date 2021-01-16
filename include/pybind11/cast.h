@@ -824,6 +824,30 @@ template <typename Container> struct is_copy_assignable<Container, enable_if_t<a
 template <typename T1, typename T2> struct is_copy_assignable<std::pair<T1, T2>>
     : all_of<is_copy_assignable<T1>, is_copy_assignable<T2>> {};
 
+// Helper for type_caster_base.
+struct make_constructor {
+    using Constructor = void *(*)(const void *);
+
+    /* Only enabled when the types are {copy,move}-constructible *and* when the type
+       does not have a private operator new implementation. */
+    template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
+    static auto make_copy_constructor(const T *x) -> decltype(new T(*x), Constructor{}) {
+        return [](const void *arg) -> void * {
+            return new T(*reinterpret_cast<const T *>(arg));
+        };
+    }
+
+    template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
+    static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*const_cast<T *>(x))), Constructor{}) {
+        return [](const void *arg) -> void * {
+            return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
+        };
+    }
+
+    static Constructor make_copy_constructor(...) { return nullptr; }
+    static Constructor make_move_constructor(...) { return nullptr; }
+};
+
 PYBIND11_NAMESPACE_END(detail)
 
 // polymorphic_type_hook<itype>::get(src, tinfo) determines whether the object pointed
@@ -866,7 +890,8 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Generic type caster for objects stored on the heap
-template <typename type> class type_caster_base : public type_caster_generic {
+template <typename type> class type_caster_base : public type_caster_generic,
+                                                  protected make_constructor {
     using itype = intrinsic_t<type>;
 
 public:
@@ -927,28 +952,6 @@ public:
 
     operator itype*() { return (type *) value; }
     operator itype&() { if (!value) throw reference_cast_error(); return *((itype *) value); }
-
-protected:
-    using Constructor = void *(*)(const void *);
-
-    /* Only enabled when the types are {copy,move}-constructible *and* when the type
-       does not have a private operator new implementation. */
-    template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
-    static auto make_copy_constructor(const T *x) -> decltype(new T(*x), Constructor{}) {
-        return [](const void *arg) -> void * {
-            return new T(*reinterpret_cast<const T *>(arg));
-        };
-    }
-
-    template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
-    static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*const_cast<T *>(x))), Constructor{}) {
-        return [](const void *arg) -> void * {
-            return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
-        };
-    }
-
-    static Constructor make_copy_constructor(...) { return nullptr; }
-    static Constructor make_move_constructor(...) { return nullptr; }
 };
 
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
