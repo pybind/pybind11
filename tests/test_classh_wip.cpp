@@ -64,7 +64,8 @@ struct smart_holder_type_caster_load {
         auto inst  = reinterpret_cast<instance *>(src.ptr());
         loaded_v_h = inst->get_value_and_holder(get_type_info(typeid(T)));
         if (!loaded_v_h.holder_constructed()) {
-            // IMPROVEABLE: Error message.
+            // IMPROVEABLE: Error message. A change to the existing internals is
+            // needed to cleanly distinguish between uninitialized or disowned.
             throw std::runtime_error("Missing value for wrapped C++ type:"
                                      " Python instance is uninitialized or was disowned.");
         }
