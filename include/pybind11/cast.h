@@ -1042,12 +1042,30 @@ public:
             return false;
         } else if (!convert && !index_check(src.ptr()) && !PYBIND11_LONG_CHECK(src.ptr())) {
             return false;
-        } else if (std::is_unsigned<py_type>::value) {
-            py_value = as_unsigned<py_type>(src.ptr());
-        } else { // signed integer:
-            py_value = sizeof(T) <= sizeof(long)
-                ? (py_type) PyLong_AsLong(src.ptr())
-                : (py_type) PYBIND11_LONG_AS_LONGLONG(src.ptr());
+        } else {
+            handle obj = src;
+#if PY_VERSION_HEX < 0x03080000
+            bool do_decref = false;
+            if (PyIndex_Check(src.ptr())) {
+                PyObject *tmp = PyNumber_Index(src.ptr());
+                if (!tmp) {
+                    py_value = (py_type) -1;
+                }
+                do_decref = true;
+                obj = tmp;
+            }
+#endif
+            if (std::is_unsigned<py_type>::value) {
+                py_value = as_unsigned<py_type>(obj.ptr());
+            } else { // signed integer:
+                py_value = sizeof(T) <= sizeof(long)
+                    ? (py_type) PyLong_AsLong(obj.ptr())
+                    : (py_type) PYBIND11_LONG_AS_LONGLONG(obj.ptr());
+            }
+#if PY_VERSION_HEX < 0x03080000
+            if (do_decref)
+                obj.dec_ref();
+#endif
         }
 
         // Python API reported an error

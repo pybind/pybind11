@@ -289,11 +289,12 @@ def test_int_convert():
     require_implicit(DeepThought())
     cant_convert(ShallowThought())
     cant_convert(FuzzyThought())
-    if env.PY >= (3, 8):
-        # Before Python 3.8, `int(obj)` does not pick up on `obj.__index__`
-        assert convert(IndexedThought()) == 42
-        assert noconvert(IndexedThought()) == 42
-        cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises
+
+    # Before Python 3.8, `int(obj)` does not pick up on `obj.__index__`, but pybind11
+    # "backports" this behavior.
+    assert convert(IndexedThought()) == 42
+    assert noconvert(IndexedThought()) == 42
+    cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises
 
 
 def test_numpy_int_convert():
