@@ -383,10 +383,10 @@ constexpr bool args_any_are_buffer() {
     return detail::any_of<std::is_same<Args, buffer_protocol>...>::value;
 }
 
+
 // Add the buffer interface to a vector
 template <typename Vector, typename Class_, typename... Args>
-enable_if_t<args_any_are_buffer<Args...>()>
-vector_buffer(Class_& cl) {
+void vector_buffer_impl(Class_& cl, std::true_type) {
     using T = typename Vector::value_type;
 
     static_assert(vector_has_data_and_format<Vector>::value, "There is not an appropriate format descriptor for this vector");
@@ -424,8 +424,12 @@ vector_buffer(Class_& cl) {
 }
 
 template <typename Vector, typename Class_, typename... Args>
-enable_if_t<!args_any_are_buffer<Args...>()> vector_buffer(Class_&) {}
+void vector_buffer_impl(Class_&, std::false_type) {}
 
+template <typename Vector, typename Class_, typename... Args>
+void vector_buffer(Class_& cl) {
+    vector_buffer_impl<Vector, Class_, Args...>(cl, detail::any_of<std::is_same<Args, buffer_protocol>...>{});
+}
 
 PYBIND11_NAMESPACE_END(detail)
 
