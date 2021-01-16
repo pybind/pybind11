@@ -1061,6 +1061,21 @@ inline str::str(const bytes& b) {
 
 /// \addtogroup pytypes
 /// @{
+class bytearray : public object {
+public:
+    PYBIND11_OBJECT(bytearray, object, PyByteArray_Check)
+
+    bytearray(const char *c, size_t n)
+        : object(PyByteArray_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
+        if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
+    }
+};
+// Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
+// are included in the doxygen group; close here and reopen after as a workaround
+/// @} pytypes
+
+/// \addtogroup pytypes
+/// @{
 class none : public object {
 public:
     PYBIND11_OBJECT(none, object, detail::PyNone_Check)
