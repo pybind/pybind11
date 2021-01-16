@@ -70,7 +70,13 @@ def test_pass_unique_ptr_disowns(pass_mpty, argm, rtrn):
 
 
 def test_unique_ptr_roundtrip(num_round_trips=1000):
+    # Multiple roundtrips to stress-test instance registration/deregistration.
     recycled = m.mpty("passenger")
     for _ in range(num_round_trips):
+        id_orig = id(recycled)
         recycled = m.unique_ptr_roundtrip(recycled)
         assert m.get_mtxt(recycled) == "passenger"
+        id_rtrn = id(recycled)
+        # Ensure the returned object is a different Python instance.
+        assert id_rtrn != id_orig
+        id_orig = id_rtrn
