@@ -123,8 +123,8 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
             policy,
             parent,
             st.second,
-            make_copy_constructor(src),
-            make_move_constructor(src));
+            make_constructor::make_copy_constructor(src),
+            make_constructor::make_move_constructor(src));
     }
 
     static handle cast(mpty *src, return_value_policy policy, handle parent) {
@@ -155,33 +155,6 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     operator mpty*()       { return loaded_smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
 
     // clang-format on
-
-    // type_caster_base BEGIN
-    // clang-format off
-
-    using Constructor = void *(*)(const void *);
-
-    /* Only enabled when the types are {copy,move}-constructible *and* when the type
-       does not have a private operator new implementation. */
-    template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
-    static auto make_copy_constructor(const T *x) -> decltype(new T(*x), Constructor{}) {
-        return [](const void *arg) -> void * {
-            return new T(*reinterpret_cast<const T *>(arg));
-        };
-    }
-
-    template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
-    static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*const_cast<T *>(x))), Constructor{}) {
-        return [](const void *arg) -> void * {
-            return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
-        };
-    }
-
-    static Constructor make_copy_constructor(...) { return nullptr; }
-    static Constructor make_move_constructor(...) { return nullptr; }
-
-    // clang-format on
-    // type_caster_base END
 
     // Originally type_caster_generic::cast.
     PYBIND11_NOINLINE static handle cast_const_raw_ptr(const void *_src,
