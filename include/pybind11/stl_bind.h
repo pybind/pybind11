@@ -383,6 +383,8 @@ constexpr bool args_any_are_buffer() {
     return detail::any_of<std::is_same<Args, buffer_protocol>...>::value;
 }
 
+// [workaround(intel)] Separate function required here
+// [workaround(msvc)] Can't use constexpr bool in return type
 
 // Add the buffer interface to a vector
 template <typename Vector, typename Class_, typename... Args>

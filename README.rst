@@ -136,11 +136,10 @@ Supported compilers
    newer)
 2. GCC 4.8 or newer
 3. Microsoft Visual Studio 2015 Update 3 or newer
-4. Intel C++ compiler 18 or newer
-   (`possible issue <https://github.com/pybind/pybind11/pull/2573>`_ on 20.2)
+4. Intel classic C++ compiler 18 or newer (ICC 20.2 tested in CI)
 5. Cygwin/GCC (previously tested on 2.5.1)
-6. NVCC (CUDA 11.0 tested)
-7. NVIDIA PGI (20.9 tested)
+6. NVCC (CUDA 11.0 tested in CI)
+7. NVIDIA PGI (20.9 tested in CI)
 
 About
 -----
