@@ -1067,7 +1067,15 @@ public:
 
     bytearray(const char *c, size_t n)
         : object(PyByteArray_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate bytes object!");
+        if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
+    }
+
+    // Allow implicit conversion:
+    bytearray(const std::string &s) : bytearray(s.data(), s.size()) { }
+
+    operator std::string() const {
+        char *buffer = PyByteArray_AsString(m_ptr);
+        return std::string(buffer);
     }
 };
 // Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
