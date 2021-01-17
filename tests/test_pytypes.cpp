@@ -270,6 +270,7 @@ TEST_SUBMODULE(pytypes, m) {
         throw std::runtime_error("Invalid type");
     });
 
+    // test_implicit_casting
     m.def("get_implicit_casting", []() {
         py::dict d;
         d["char*_i1"] = "abc";
@@ -306,6 +307,10 @@ TEST_SUBMODULE(pytypes, m) {
             "l"_a=l
         );
     });
+
+    // (see also test_builtin_casters)
+    m.def("implicitly_cast_to_int32", [](py::int_ value) { return int32_t{value}; });
+    m.def("implicitly_cast_to_uint32", [](py::int_ value) { return uint32_t{value}; });
 
     // test_print
     m.def("print_function", []() {

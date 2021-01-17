@@ -331,6 +331,14 @@ def test_implicit_casting():
     }
     assert z["l"] == [3, 6, 9, 12, 15]
 
+    assert m.implicitly_cast_to_int32(42) == 42
+    assert m.implicitly_cast_to_int32(2 ** 31 - 1) == 2 ** 31 - 1
+    assert m.implicitly_cast_to_int32(2 ** 31)
+
+    assert m.implicitly_cast_to_uint32(42) == 42
+    assert m.implicitly_cast_to_uint32(2 ** 32 - 1) == 2 ** 32 - 1
+    assert m.implicitly_cast_to_uint32(2 ** 32)
+
 
 def test_print(capture):
     with capture:
