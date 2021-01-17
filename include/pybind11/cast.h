@@ -1014,9 +1014,7 @@ template <typename CharT> using is_std_char_type = any_of<
 
 template <typename T>
 struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
-    using _py_type_0 = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
-    using _py_type_1 = conditional_t<std::is_signed<T>::value, _py_type_0, typename std::make_unsigned<_py_type_0>::type>;
-    using py_type = conditional_t<std::is_floating_point<T>::value, double, _py_type_1>;
+    using py_type = conditional_t<std::is_floating_point<T>::value, double, py_int_type_for<T>>;
 public:
 
     bool load(handle src, bool convert) {
@@ -1042,12 +1040,8 @@ public:
             return false;
         } else if (!convert && !index_check(src.ptr()) && !PYBIND11_LONG_CHECK(src.ptr())) {
             return false;
-        } else if (std::is_unsigned<py_type>::value) {
-            py_value = as_unsigned<py_type>(src.ptr());
-        } else { // signed integer:
-            py_value = sizeof(T) <= sizeof(long)
-                ? (py_type) PyLong_AsLong(src.ptr())
-                : (py_type) PYBIND11_LONG_AS_LONGLONG(src.ptr());
+        } else {
+            py_value = as_integer<py_type>(src.ptr());
         }
 
         // Python API reported an error

@@ -10,6 +10,7 @@
 #pragma once
 
 #include "detail/common.h"
+#include "detail/typeid.h"
 #include "buffer_info.h"
 #include <utility>
 #include <type_traits>
@@ -1091,23 +1092,36 @@ private:
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+template <typename T>
+using py_signed_int_type_for = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
+
+template <typename T>
+using py_unsigned_int_type_for = typename std::make_unsigned<py_signed_int_type_for<T>>::type;
+
+template <typename T>
+using py_int_type_for = conditional_t<std::is_signed<T>::value, py_signed_int_type_for<T>, py_unsigned_int_type_for<T>>;
+
 // Converts a value to the given unsigned type.  If an error occurs, you get back (Unsigned) -1;
 // otherwise you get back the unsigned long or unsigned long long value cast to (Unsigned).
 // (The distinction is critically important when casting a returned -1 error value to some other
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    if (sizeof(Unsigned) <= sizeof(unsigned long)
-#if PY_VERSION_HEX < 0x03000000
-            || PyInt_Check(o)
-#endif
-    ) {
-        unsigned long v = PyLong_AsUnsignedLong(o);
-        return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
+    py_unsigned_int_type_for<Unsigned> v = (sizeof(Unsigned) <= sizeof(unsigned long))
+        ? PyLong_AsUnsignedLong(o)
+        : PYBIND11_LONG_AS_UNSIGNED_LONGLONG(o);
+    return v == (py_unsigned_int_type_for<Unsigned>) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
+}
+
+template <typename Int>
+Int as_integer(PyObject *o) {
+    if (std::is_unsigned<Int>::value) {
+        return as_unsigned<Int>(o);
     }
     else {
-        unsigned long long v = PyLong_AsUnsignedLongLong(o);
-        return v == (unsigned long long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
+        return sizeof(Int) <= sizeof(long)
+            ? (Int) PyLong_AsLong(o)
+            : (Int) PYBIND11_LONG_AS_LONGLONG(o);
     }
 }
 PYBIND11_NAMESPACE_END(detail)
@@ -1137,11 +1151,18 @@ public:
     template <typename T,
               detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     operator T() const {
-        return std::is_unsigned<T>::value
-            ? detail::as_unsigned<T>(m_ptr)
-            : sizeof(T) <= sizeof(long)
-              ? (T) PyLong_AsLong(m_ptr)
-              : (T) PYBIND11_LONG_AS_LONGLONG(m_ptr);
+        using py_type = detail::py_int_type_for<T>;
+        auto value = detail::as_integer<py_type>(m_ptr);
+        if (PyErr_Occurred())
+            throw error_already_set();
+        if (sizeof(py_type) != sizeof(T) && value != (py_type) (T) value)
+#if defined(NDEBUG)
+            throw cast_error("Unable to cast Python instance to C++ type (compile in debug mode for details)");
+#else
+            throw cast_error("Unable to cast Python instance of type " +
+                (std::string) pybind11::str(type::handle_of(*this)) + " to C++ type '" + type_id<T>() + "'");
+#endif
+        return (T) value;
     }
 };
 
