@@ -251,6 +251,68 @@ def test_integer_casting():
         assert "incompatible function arguments" in str(excinfo.value)
 
 
+def test_int_convert():
+    class DeepThought(object):
+        def __int__(self):
+            return 42
+
+    class ShallowThought(object):
+        pass
+
+    class FuzzyThought(object):
+        def __float__(self):
+            return 41.99999
+
+    class IndexedThought(object):
+        def __index__(self):
+            return 42
+
+    class RaisingThought(object):
+        def __index__(self):
+            raise ValueError
+
+        def __int__(self):
+            return 42
+
+    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+
+    def require_implicit(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
+    assert convert(7) == 7
+    assert noconvert(7) == 7
+    cant_convert(3.14159)
+    assert convert(DeepThought()) == 42
+    require_implicit(DeepThought())
+    cant_convert(ShallowThought())
+    cant_convert(FuzzyThought())
+    if env.PY >= (3, 8):
+        # Before Python 3.8, `int(obj)` does not pick up on `obj.__index__`
+        assert convert(IndexedThought()) == 42
+        assert noconvert(IndexedThought()) == 42
+        cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises
+
+
+def test_numpy_int_convert():
+    np = pytest.importorskip("numpy")
+
+    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+
+    def require_implicit(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    # `np.intc` is an alias that corresponds to a C++ `int`
+    assert convert(np.intc(42)) == 42
+    assert noconvert(np.intc(42)) == 42
+
+    # The implicit conversion from np.float32 is undesirable but currently accepted.
+    assert convert(np.float32(3.14159)) == 3
+    require_implicit(np.float32(3.14159))
+
+
 def test_tuple(doc):
     """std::pair <-> tuple & std::tuple <-> tuple"""
     assert m.pair_passthrough((True, "test")) == ("test", True)
