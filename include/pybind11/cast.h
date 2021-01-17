@@ -1046,10 +1046,11 @@ public:
             handle obj = src;
 #if PY_VERSION_HEX < 0x03080000
             bool do_decref = false;
-            if (PyIndex_Check(src.ptr())) {
+            if (index_check(src.ptr())) {
                 PyObject *tmp = PyNumber_Index(src.ptr());
                 if (!tmp) {
-                    py_value = (py_type) -1;
+                    PyErr_Clear();
+                    return false;
                 }
                 do_decref = true;
                 obj = tmp;
