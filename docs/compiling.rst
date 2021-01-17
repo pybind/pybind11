@@ -84,10 +84,11 @@ for NumPy's parallel compilation distutils tool is included. Use it like this:
 
 The argument is the name of an environment variable to control the number of
 threads, such as ``NPY_NUM_BUILD_JOBS`` (as used by NumPy), though you can set
-something different if you want. You can also pass ``default=N`` to set the
-default number of threads (0 will take the number of threads available) and
-``max=N``, the maximum number of threads; if you have a large extension you may
-want set this to a memory dependent number.
+something different if you want; ``CMAKE_BUILD_PARALLEL_LEVEL`` is another choice
+a user might expect. You can also pass ``default=N`` to set the default number
+of threads (0 will take the number of threads available) and ``max=N``, the
+maximum number of threads; if you have a large extension you may want set this
+to a memory dependent number.
 
 If you are developing rapidly and have a lot of C++ files, you may want to
 avoid rebuilding files that have not changed. For simple cases were you are
@@ -136,7 +137,7 @@ Your ``pyproject.toml`` file will likely look something like this:
 .. code-block:: toml
 
     [build-system]
-    requires = ["setuptools", "wheel", "pybind11==2.6.0"]
+    requires = ["setuptools>=42", "wheel", "pybind11~=2.6.1"]
     build-backend = "setuptools.build_meta"
 
 .. note::
@@ -147,10 +148,12 @@ Your ``pyproject.toml`` file will likely look something like this:
     in Python) using something like `cibuildwheel`_, remember that ``setup.py``
     and ``pyproject.toml`` are not even contained in the wheel, so this high
     Pip requirement is only for source builds, and will not affect users of
-    your binary wheels.
+    your binary wheels. If you are building SDists and wheels, then
+    `pypa-build`_ is the recommended offical tool.
 
 .. _PEP 517: https://www.python.org/dev/peps/pep-0517/
 .. _cibuildwheel: https://cibuildwheel.readthedocs.io
+.. _pypa-build: https://pypa-build.readthedocs.io/en/latest/
 
 .. _setup_helpers-setup_requires:
 
@@ -401,13 +404,14 @@ can refer to the same [cmake_example]_ repository for a full sample project
 FindPython mode
 ---------------
 
-CMake 3.12+ (3.15+ recommended) added a new module called FindPython that had a
-highly improved search algorithm and modern targets and tools. If you use
-FindPython, pybind11 will detect this and use the existing targets instead:
+CMake 3.12+ (3.15+ recommended, 3.18.2+ ideal) added a new module called
+FindPython that had a highly improved search algorithm and modern targets
+and tools. If you use FindPython, pybind11 will detect this and use the
+existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minumum_required(VERSION 3.15...3.18)
+    cmake_minumum_required(VERSION 3.15...3.19)
     project(example LANGUAGES CXX)
 
     find_package(Python COMPONENTS Interpreter Development REQUIRED)
