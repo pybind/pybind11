@@ -54,6 +54,20 @@ namespace detail {
 
 using namespace pybind11_tests::classh_wip;
 
+inline std::pair<bool, handle> find_existing_python_instance(void *src_void_ptr,
+                                                             const detail::type_info *tinfo) {
+    // Loop copied from type_caster_generic::cast.
+    // IMPROVEABLE: Factor out of type_caster_generic::cast.
+    auto it_instances = get_internals().registered_instances.equal_range(src_void_ptr);
+    for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+        for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+            if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
+                return std::make_pair(true, handle((PyObject *) it_i->second).inc_ref());
+        }
+    }
+    return std::make_pair(false, handle());
+}
+
 template <typename T>
 struct smart_holder_type_caster_load {
     using holder_type = pybindit::memory::smart_holder;
@@ -172,13 +186,9 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
         if (src == nullptr)
             return none().release();
 
-        auto it_instances = get_internals().registered_instances.equal_range(src);
-        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
-                    return handle((PyObject *) it_i->second).inc_ref();
-            }
-        }
+        auto existing_inst = find_existing_python_instance(src, tinfo);
+        if (existing_inst.first)
+            return existing_inst.second;
 
         auto inst       = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto wrapper    = reinterpret_cast<instance *>(inst.ptr());
@@ -270,16 +280,11 @@ struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
-        auto it_instances = get_internals().registered_instances.equal_range(src_raw_void_ptr);
-        // Loop copied from type_caster_generic::cast.
-        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
-                    // MISSING: Enforcement of consistency with existing smart_holder.
-                    // MISSING: keep_alive.
-                    return handle((PyObject *) it_i->second).inc_ref();
-            }
-        }
+        auto existing_inst             = find_existing_python_instance(src_raw_void_ptr, tinfo);
+        if (existing_inst.first)
+            // MISSING: Enforcement of consistency with existing smart_holder.
+            // MISSING: keep_alive.
+            return existing_inst.second;
 
         object inst            = reinterpret_steal<object>(make_new_instance(tinfo->type));
         instance *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
@@ -338,15 +343,9 @@ struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
-        auto it_instances = get_internals().registered_instances.equal_range(src_raw_void_ptr);
-        // Loop copied from type_caster_generic::cast.
-        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
-                    throw cast_error(
-                        "Invalid unique_ptr: another instance owns this pointer already.");
-            }
-        }
+        auto existing_inst             = find_existing_python_instance(src_raw_void_ptr, tinfo);
+        if (existing_inst.first)
+            throw cast_error("Invalid unique_ptr: another instance owns this pointer already.");
 
         object inst            = reinterpret_steal<object>(make_new_instance(tinfo->type));
         instance *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
