@@ -1,7 +1,19 @@
+#pragma once
+
+#include "../pytypes.h"
+#include "../smart_holder_poc.h"
+#include "common.h"
+#include "descr.h"
+#include "internals.h"
+
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <utility>
+
 namespace pybind11 {
 namespace detail {
-
-using namespace pybind11_tests::classh_wip;
 
 inline std::pair<bool, handle> find_existing_python_instance(void *src_void_ptr,
                                                              const detail::type_info *tinfo) {
@@ -38,7 +50,7 @@ struct smart_holder_type_caster_load {
 
     std::unique_ptr<T> loaded_as_unique_ptr() {
         void *value_void_ptr = loaded_v_h.value_ptr();
-        auto unq_ptr         = loaded_smhldr_ptr->as_unique_ptr<mpty>();
+        auto unq_ptr         = loaded_smhldr_ptr->as_unique_ptr<T>();
         loaded_v_h.holder<holder_type>().~holder_type();
         loaded_v_h.set_holder_constructed(false);
         loaded_v_h.value_ptr() = nullptr;
@@ -79,14 +91,14 @@ struct make_constructor {
 // clang-format on
 // type_caster_base END
 
-template <>
-struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
-    static constexpr auto name = _<mpty>();
+template <typename T>
+struct classh_type_caster : smart_holder_type_caster_load<T> {
+    static constexpr auto name = _<T>();
 
-    // static handle cast(mpty, ...)
+    // static handle cast(T, ...)
     // is redundant (leads to ambiguous overloads).
 
-    static handle cast(mpty &&src, return_value_policy /*policy*/, handle parent) {
+    static handle cast(T &&src, return_value_policy /*policy*/, handle parent) {
         // type_caster_base BEGIN
         // clang-format off
         return cast(&src, return_value_policy::move, parent);
@@ -94,7 +106,7 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
         // type_caster_base END
     }
 
-    static handle cast(mpty const &src, return_value_policy policy, handle parent) {
+    static handle cast(T const &src, return_value_policy policy, handle parent) {
         // type_caster_base BEGIN
         // clang-format off
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
@@ -104,12 +116,12 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
         // type_caster_base END
     }
 
-    static handle cast(mpty &src, return_value_policy policy, handle parent) {
-        return cast(const_cast<mpty const &>(src), policy, parent); // Mutbl2Const
+    static handle cast(T &src, return_value_policy policy, handle parent) {
+        return cast(const_cast<T const &>(src), policy, parent); // Mutbl2Const
     }
 
-    static handle cast(mpty const *src, return_value_policy policy, handle parent) {
-        auto st = type_caster_base<mpty>::src_and_type(src);
+    static handle cast(T const *src, return_value_policy policy, handle parent) {
+        auto st = type_caster_base<T>::src_and_type(src);
         return cast_const_raw_ptr( // Originally type_caster_generic::cast.
             st.first,
             policy,
@@ -119,32 +131,31 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
             make_constructor::make_move_constructor(src));
     }
 
-    static handle cast(mpty *src, return_value_policy policy, handle parent) {
-        return cast(const_cast<mpty const *>(src), policy, parent); // Mutbl2Const
+    static handle cast(T *src, return_value_policy policy, handle parent) {
+        return cast(const_cast<T const *>(src), policy, parent); // Mutbl2Const
     }
 
     template <typename T_>
     using cast_op_type = conditional_t<
-        std::is_same<remove_reference_t<T_>, mpty const *>::value,
-        mpty const *,
+        std::is_same<remove_reference_t<T_>, T const *>::value,
+        T const *,
         conditional_t<
-            std::is_same<remove_reference_t<T_>, mpty *>::value,
-            mpty *,
-            conditional_t<
-                std::is_same<T_, mpty const &>::value,
-                mpty const &,
-                conditional_t<std::is_same<T_, mpty &>::value,
-                              mpty &,
-                              conditional_t<std::is_same<T_, mpty &&>::value, mpty &&, mpty>>>>>;
+            std::is_same<remove_reference_t<T_>, T *>::value,
+            T *,
+            conditional_t<std::is_same<T_, T const &>::value,
+                          T const &,
+                          conditional_t<std::is_same<T_, T &>::value,
+                                        T &,
+                                        conditional_t<std::is_same<T_, T &&>::value, T &&, T>>>>>;
 
     // clang-format off
 
-    operator mpty()        { return loaded_smhldr_ptr->lvalue_ref<mpty>(); }
-    operator mpty&&() &&   { return loaded_smhldr_ptr->rvalue_ref<mpty>(); }
-    operator mpty const&() { return loaded_smhldr_ptr->lvalue_ref<mpty>(); }
-    operator mpty&()       { return loaded_smhldr_ptr->lvalue_ref<mpty>(); }
-    operator mpty const*() { return loaded_smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
-    operator mpty*()       { return loaded_smhldr_ptr->as_raw_ptr_unowned<mpty>(); }
+    operator T()        { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
+    operator T&&() &&   { return this->loaded_smhldr_ptr->template rvalue_ref<T>(); }
+    operator T const&() { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
+    operator T&()       { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
+    operator T const*() { return this->loaded_smhldr_ptr->template as_raw_ptr_unowned<T>(); }
+    operator T*()       { return this->loaded_smhldr_ptr->template as_raw_ptr_unowned<T>(); }
 
     // clang-format on
 
@@ -238,12 +249,11 @@ struct type_caster<mpty> : smart_holder_type_caster_load<mpty> {
     }
 };
 
-template <>
-struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> {
-    static constexpr auto name = _<std::shared_ptr<mpty>>();
+template <typename T>
+struct classh_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T> {
+    static constexpr auto name = _<std::shared_ptr<T>>();
 
-    static handle
-    cast(const std::shared_ptr<mpty> &src, return_value_policy policy, handle parent) {
+    static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
             && policy != return_value_policy::reference_internal) {
             // IMPROVEABLE: Error message.
@@ -251,7 +261,7 @@ struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
         }
 
         auto src_raw_ptr = src.get();
-        auto st          = type_caster_base<mpty>::src_and_type(src_raw_ptr);
+        auto st          = type_caster_base<T>::src_and_type(src_raw_ptr);
         if (st.first == nullptr)
             return none().release(); // PyErr was set already.
 
@@ -279,34 +289,36 @@ struct type_caster<std::shared_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
     }
 
     template <typename>
-    using cast_op_type = std::shared_ptr<mpty>;
+    using cast_op_type = std::shared_ptr<T>;
 
-    operator std::shared_ptr<mpty>() { return loaded_smhldr_ptr->as_shared_ptr<mpty>(); }
+    operator std::shared_ptr<T>() { return this->loaded_smhldr_ptr->template as_shared_ptr<T>(); }
 };
 
-template <>
-struct type_caster<std::shared_ptr<mpty const>> : smart_holder_type_caster_load<mpty> {
-    static constexpr auto name = _<std::shared_ptr<mpty const>>();
+template <typename T>
+struct classh_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_load<T> {
+    static constexpr auto name = _<std::shared_ptr<T const>>();
 
     static handle
-    cast(const std::shared_ptr<mpty const> &src, return_value_policy policy, handle parent) {
-        return type_caster<std::shared_ptr<mpty>>::cast(
-            std::const_pointer_cast<mpty>(src), // Const2Mutbl
+    cast(const std::shared_ptr<T const> &src, return_value_policy policy, handle parent) {
+        return type_caster<std::shared_ptr<T>>::cast(
+            std::const_pointer_cast<T>(src), // Const2Mutbl
             policy,
             parent);
     }
 
     template <typename>
-    using cast_op_type = std::shared_ptr<mpty const>;
+    using cast_op_type = std::shared_ptr<T const>;
 
-    operator std::shared_ptr<mpty const>() { return loaded_smhldr_ptr->as_shared_ptr<mpty>(); }
+    operator std::shared_ptr<T const>() {
+        return this->loaded_smhldr_ptr->template as_shared_ptr<T>();
+    }
 };
 
-template <>
-struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> {
-    static constexpr auto name = _<std::unique_ptr<mpty>>();
+template <typename T>
+struct classh_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_load<T> {
+    static constexpr auto name = _<std::unique_ptr<T>>();
 
-    static handle cast(std::unique_ptr<mpty> &&src, return_value_policy policy, handle parent) {
+    static handle cast(std::unique_ptr<T> &&src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
             && policy != return_value_policy::reference_internal) {
             // IMPROVEABLE: Error message.
@@ -314,7 +326,7 @@ struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
         }
 
         auto src_raw_ptr = src.get();
-        auto st          = type_caster_base<mpty>::src_and_type(src_raw_ptr);
+        auto st          = type_caster_base<T>::src_and_type(src_raw_ptr);
         if (st.first == nullptr)
             return none().release(); // PyErr was set already.
 
@@ -340,27 +352,26 @@ struct type_caster<std::unique_ptr<mpty>> : smart_holder_type_caster_load<mpty> 
     }
 
     template <typename>
-    using cast_op_type = std::unique_ptr<mpty>;
+    using cast_op_type = std::unique_ptr<T>;
 
-    operator std::unique_ptr<mpty>() { return loaded_as_unique_ptr(); }
+    operator std::unique_ptr<T>() { return this->loaded_as_unique_ptr(); }
 };
 
-template <>
-struct type_caster<std::unique_ptr<mpty const>> : smart_holder_type_caster_load<mpty> {
-    static constexpr auto name = _<std::unique_ptr<mpty const>>();
+template <typename T>
+struct classh_type_caster<std::unique_ptr<T const>> : smart_holder_type_caster_load<T> {
+    static constexpr auto name = _<std::unique_ptr<T const>>();
 
-    static handle
-    cast(std::unique_ptr<mpty const> &&src, return_value_policy policy, handle parent) {
-        return type_caster<std::unique_ptr<mpty>>::cast(
-            std::unique_ptr<mpty>(const_cast<mpty *>(src.release())), // Const2Mutbl
+    static handle cast(std::unique_ptr<T const> &&src, return_value_policy policy, handle parent) {
+        return type_caster<std::unique_ptr<T>>::cast(
+            std::unique_ptr<T>(const_cast<T *>(src.release())), // Const2Mutbl
             policy,
             parent);
     }
 
     template <typename>
-    using cast_op_type = std::unique_ptr<mpty const>;
+    using cast_op_type = std::unique_ptr<T const>;
 
-    operator std::unique_ptr<mpty const>() { return loaded_as_unique_ptr(); }
+    operator std::unique_ptr<T const>() { return this->loaded_as_unique_ptr(); }
 };
 
 } // namespace detail
