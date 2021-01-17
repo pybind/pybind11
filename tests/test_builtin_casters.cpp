@@ -100,7 +100,7 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_int_convert
     m.def("int_passthrough", [](int arg) { return arg; });
-    m.def("int_passthrough_noconvert", [](int arg) { return arg; }, py::arg().noconvert());
+    m.def("int_passthrough_noconvert", [](int arg) { return arg; }, py::arg{}.noconvert());
 
     // test_tuple
     m.def("pair_passthrough", [](std::pair<bool, std::string> input) {
