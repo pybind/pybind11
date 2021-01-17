@@ -1020,6 +1020,14 @@ public:
         if (!src)
             return false;
 
+#if !defined(PYPY_VERSION)
+        auto index_check = [](PyObject *o) { return PyIndex_Check(o); };
+#else
+        // In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
+        // while CPython only considers the existence of `nb_index`/`__index__`.
+        auto index_check = [](PyObject *o) { return hasattr(o, "__index__"); };
+#endif
+
         if (std::is_floating_point<T>::value) {
             if (convert || PyFloat_Check(src.ptr()))
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
@@ -1027,7 +1035,7 @@ public:
                 return false;
         } else if (PyFloat_Check(src.ptr())) {
             return false;
-        } else if (!convert && !PyIndex_Check(src.ptr()) && !PYBIND11_LONG_CHECK(src.ptr())) {
+        } else if (!convert && !index_check(src.ptr()) && !PYBIND11_LONG_CHECK(src.ptr())) {
             return false;
         } else if (std::is_unsigned<py_type>::value) {
             py_value = as_unsigned<py_type>(src.ptr());
