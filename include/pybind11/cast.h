@@ -882,8 +882,7 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Generic type caster for objects stored on the heap
-template <typename type> class type_caster_base : public type_caster_generic,
-                                                  protected make_constructor {
+template <typename type> class type_caster_base : public type_caster_generic {
     using itype = intrinsic_t<type>;
 
 public:
@@ -930,7 +929,8 @@ public:
         auto st = src_and_type(src);
         return type_caster_generic::cast(
             st.first, policy, parent, st.second,
-            make_copy_constructor(src), make_move_constructor(src));
+            make_constructor::make_copy_constructor(src),
+            make_constructor::make_move_constructor(src));
     }
 
     static handle cast_holder(const itype *src, const void *holder) {
