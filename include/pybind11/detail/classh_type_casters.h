@@ -374,5 +374,23 @@ struct classh_type_caster<std::unique_ptr<T const>> : smart_holder_type_caster_l
     operator std::unique_ptr<T const>() { return this->loaded_as_unique_ptr(); }
 };
 
+#define PYBIND11_CLASSH_TYPE_CASTERS(T)                                                           \
+    namespace pybind11 {                                                                          \
+    namespace detail {                                                                            \
+    template <>                                                                                   \
+    class type_caster<T> : public classh_type_caster<T> {};                                       \
+    template <>                                                                                   \
+    class type_caster<std::shared_ptr<T>> : public classh_type_caster<std::shared_ptr<T>> {};     \
+    template <>                                                                                   \
+    class type_caster<std::shared_ptr<T const>>                                                   \
+        : public classh_type_caster<std::shared_ptr<T const>> {};                                 \
+    template <>                                                                                   \
+    class type_caster<std::unique_ptr<T>> : public classh_type_caster<std::unique_ptr<T>> {};     \
+    template <>                                                                                   \
+    class type_caster<std::unique_ptr<T const>>                                                   \
+        : public classh_type_caster<std::unique_ptr<T const>> {};                                 \
+    }                                                                                             \
+    }
+
 } // namespace detail
 } // namespace pybind11

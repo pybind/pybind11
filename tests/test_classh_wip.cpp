@@ -49,26 +49,7 @@ std::unique_ptr<mpty> unique_ptr_roundtrip(std::unique_ptr<mpty> obj) { return o
 } // namespace classh_wip
 } // namespace pybind11_tests
 
-namespace pybind11 {
-namespace detail {
-
-using mpty = pybind11_tests::classh_wip::mpty;
-
-template <>
-class type_caster<mpty> : public classh_type_caster<mpty> {};
-template <>
-class type_caster<std::shared_ptr<mpty>> : public classh_type_caster<std::shared_ptr<mpty>> {};
-template <>
-class type_caster<std::shared_ptr<mpty const>>
-    : public classh_type_caster<std::shared_ptr<mpty const>> {};
-template <>
-class type_caster<std::unique_ptr<mpty>> : public classh_type_caster<std::unique_ptr<mpty>> {};
-template <>
-class type_caster<std::unique_ptr<mpty const>>
-    : public classh_type_caster<std::unique_ptr<mpty const>> {};
-
-} // namespace detail
-} // namespace pybind11
+PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_wip::mpty)
 
 namespace pybind11_tests {
 namespace classh_wip {
