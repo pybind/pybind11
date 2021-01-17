@@ -1,5 +1,6 @@
 #pragma once
 
+#include "detail/classh_type_casters.h"
 #include "pybind11.h"
 #include "smart_holder_poc.h"
 
