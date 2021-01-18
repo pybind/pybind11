@@ -226,7 +226,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("converting_constructors", [](py::dict d) {
         return py::dict(
             "bytes"_a=py::bytes(d["bytes"]),
-            "bytearray"_a=py::bytes(d["bytearray"]),
+            "bytearray"_a=py::bytearray(d["bytearray"]),
             "str"_a=py::str(d["str"]),
             "bool"_a=py::bool_(d["bool"]),
             "int"_a=py::int_(d["int"]),
