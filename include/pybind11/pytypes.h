@@ -1065,6 +1065,11 @@ class bytearray : public object {
 public:
     PYBIND11_OBJECT(bytearray, object, PyByteArray_Check)
 
+    bytearray()
+        : object(PyByteArray_FromStringAndSize("", (ssize_t) 0), stolen_t{}) {
+        if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
+    }
+
     bytearray(const char *c, size_t n)
         : object(PyByteArray_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");

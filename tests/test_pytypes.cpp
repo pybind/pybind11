@@ -90,6 +90,7 @@ TEST_SUBMODULE(pytypes, m) {
 
     // test_bytes
     m.def("bytes_from_string", []() { return py::bytes(std::string("foo")); });
+    m.def("bytearray_from_string", []() { return py::bytearray(std::string("foo")); });
     m.def("bytes_from_str", []() { return py::bytes(py::str("bar", 3)); });
 
     // test_capsule
@@ -210,6 +211,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("default_constructors", []() {
         return py::dict(
             "bytes"_a=py::bytes(),
+            "bytearray"_a=py::bytearray(),
             "str"_a=py::str(),
             "bool"_a=py::bool_(),
             "int"_a=py::int_(),
@@ -224,6 +226,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("converting_constructors", [](py::dict d) {
         return py::dict(
             "bytes"_a=py::bytes(d["bytes"]),
+            "bytearray"_a=py::bytes(d["bytearray"]),
             "str"_a=py::str(d["str"]),
             "bool"_a=py::bool_(d["bool"]),
             "int"_a=py::int_(d["int"]),
@@ -240,6 +243,7 @@ TEST_SUBMODULE(pytypes, m) {
         // When converting between Python types, obj.cast<T>() should be the same as T(obj)
         return py::dict(
             "bytes"_a=d["bytes"].cast<py::bytes>(),
+            "bytearray"_a=d["bytearray"].cast<py::bytearray>(),
             "str"_a=d["str"].cast<py::str>(),
             "bool"_a=d["bool"].cast<py::bool_>(),
             "int"_a=d["int"].cast<py::int_>(),
@@ -257,6 +261,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("nonconverting_constructor", [](std::string type, py::object value) -> py::object {
         if (type == "bytes") {
             return py::bytes(value);
+        }
+        if (type == "bytearray") {
+            return py::bytearray(value);
         }
         else if (type == "none") {
             return py::none(value);
