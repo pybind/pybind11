@@ -25,7 +25,7 @@ function(pybind11_add_build_test name)
   endif()
 
   if(NOT ARG_INSTALL)
-    list(APPEND build_options "-DPYBIND11_PROJECT_DIR=${pybind11_SOURCE_DIR}")
+    list(APPEND build_options "-Dpybind11_SOURCE_DIR=${pybind11_SOURCE_DIR}")
   else()
     list(APPEND build_options "-DCMAKE_PREFIX_PATH=${pybind11_BINARY_DIR}/mock_install")
   endif()
@@ -77,3 +77,6 @@ if(PYBIND11_INSTALL)
 endif()
 
 add_dependencies(check test_cmake_build)
+
+add_subdirectory(subdirectory_target EXCLUDE_FROM_ALL)
+add_subdirectory(subdirectory_embed EXCLUDE_FROM_ALL)

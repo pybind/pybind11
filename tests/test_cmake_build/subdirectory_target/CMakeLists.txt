@@ -11,7 +11,7 @@ endif()
 
 project(test_subdirectory_target CXX)
 
-add_subdirectory(${PYBIND11_PROJECT_DIR} pybind11)
+add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 
 add_library(test_subdirectory_target MODULE ../main.cpp)
 set_target_properties(test_subdirectory_target PROPERTIES OUTPUT_NAME test_cmake_build)

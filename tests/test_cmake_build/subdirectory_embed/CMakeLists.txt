@@ -16,7 +16,7 @@ set(PYBIND11_INSTALL
     CACHE BOOL "")
 set(PYBIND11_EXPORT_NAME test_export)
 
-add_subdirectory(${PYBIND11_PROJECT_DIR} pybind11)
+add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 
 # Test basic target functionality
 add_executable(test_subdirectory_embed ../embed.cpp)
@@ -24,7 +24,7 @@ target_link_libraries(test_subdirectory_embed PRIVATE pybind11::embed)
 set_target_properties(test_subdirectory_embed PROPERTIES OUTPUT_NAME test_cmake_build)
 
 add_custom_target(check_subdirectory_embed $<TARGET_FILE:test_subdirectory_embed>
-                                           ${PROJECT_SOURCE_DIR}/../test.py)
+                                           "${PROJECT_SOURCE_DIR}/../test.py")
 
 # Test custom export group -- PYBIND11_EXPORT_NAME
 add_library(test_embed_lib ../embed.cpp)

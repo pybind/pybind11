@@ -45,8 +45,13 @@ if(NOT pybind11_FIND_QUIETLY)
   message(STATUS "pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}")
 endif()
 
+# Avoid infinite recursion if tests include this as a subdirectory
+if(DEFINED PYBIND11_MASTER_PROJECT)
+  set(PYBIND11_TEST OFF)
+endif()
+
 # Check if pybind11 is being used directly or via add_subdirectory
-if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR AND NOT DEFINED PYBIND11_MASTER_PROJECT)
   ### Warn if not an out-of-source builds
   if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     set(lines
@@ -159,12 +164,24 @@ endif()
 # You can also place ifs *in* the Config.in, but not here.
 
 # This section builds targets, but does *not* touch Python
+# Non-IMPORT targets cannot be defined twice
+if(NOT TARGET pybind11_headers)
+  # Build the headers-only target (no Python included):
+  # (long name used here to keep this from clashing in subdirectory mode)
+  add_library(pybind11_headers INTERFACE)
+  add_library(pybind11::pybind11_headers ALIAS pybind11_headers) # to match exported target
+  add_library(pybind11::headers ALIAS pybind11_headers) # easier to use/remember
 
-# Build the headers-only target (no Python included):
-# (long name used here to keep this from clashing in subdirectory mode)
-add_library(pybind11_headers INTERFACE)
-add_library(pybind11::pybind11_headers ALIAS pybind11_headers) # to match exported target
-add_library(pybind11::headers ALIAS pybind11_headers) # easier to use/remember
+  target_include_directories(
+    pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${pybind11_INCLUDE_DIR}>
+                                                  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
+  target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
+                                                     cxx_right_angle_brackets)
+else()
+  # It is invalid to install a target twice, too.
+  set(PYBIND11_INSTALL OFF)
+endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11Common.cmake")
 
@@ -174,14 +191,6 @@ if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
 elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED PYTHON_INCLUDE_DIR)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
 endif()
-
-# Fill in headers target
-target_include_directories(
-  pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${pybind11_INCLUDE_DIR}>
-                                                $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-
-target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
-                                                   cxx_right_angle_brackets)
 
 if(PYBIND11_INSTALL)
   install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
