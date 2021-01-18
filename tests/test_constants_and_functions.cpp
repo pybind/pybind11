@@ -46,7 +46,14 @@ std::string print_bytes(py::bytes bytes) {
 // Test that we properly handle C++17 exception specifiers (which are part of the function signature
 // in C++17).  These should all still work before C++17, but don't affect the function signature.
 namespace test_exc_sp {
+// [workaround(intel)] Unable to use noexcept instead of noexcept(true)
+// Make the f1 test basically the same as the f2 test in C++17 mode for the Intel compiler as
+// it fails to compile with a plain noexcept (tested with icc (ICC) 2021.1 Beta 20200827).
+#if defined(__INTEL_COMPILER) && defined(PYBIND11_CPP17)
+int f1(int x) noexcept(true) { return x+1; }
+#else
 int f1(int x) noexcept { return x+1; }
+#endif
 int f2(int x) noexcept(true) { return x+2; }
 int f3(int x) noexcept(false) { return x+3; }
 #if defined(__GNUG__)

@@ -665,6 +665,10 @@ template <typename T> using is_function_pointer = bool_constant<
     std::is_pointer<T>::value && std::is_function<typename std::remove_pointer<T>::type>::value>;
 
 template <typename F> struct strip_function_object {
+    // If you are encountering an
+    // 'error: name followed by "::" must be a class or namespace name'
+    // with the Intel compiler and a noexcept function here,
+    // try to use noexcept(true) instead of plain noexcept.
     using type = typename remove_class<decltype(&F::operator())>::type;
 };
 
@@ -689,8 +693,10 @@ template <typename T> using is_lambda = satisfies_none_of<remove_reference_t<T>,
 /// Ignore that a variable is unused in compiler warnings
 inline void ignore_unused(const int *) { }
 
+// [workaround(intel)] Internal error on fold expression
 /// Apply a function over each element of a parameter pack
-#ifdef __cpp_fold_expressions
+#if defined(__cpp_fold_expressions) && !defined(__INTEL_COMPILER)
+// Intel compiler produces an internal error on this fold expression (tested with ICC 19.0.2)
 #define PYBIND11_EXPAND_SIDE_EFFECTS(PATTERN) (((PATTERN), void()), ...)
 #else
 using expand_side_effects = bool[];

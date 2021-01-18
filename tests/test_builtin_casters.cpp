@@ -193,6 +193,15 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("bool_passthrough", [](bool arg) { return arg; });
     m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg{}.noconvert());
 
+    // TODO: This should be disabled and fixed in future Intel compilers
+#if !defined(__INTEL_COMPILER)
+    // Test "bool_passthrough_noconvert" again, but using () instead of {} to construct py::arg
+    // When compiled with the Intel compiler, this results in segmentation faults when importing
+    // the module. Tested with icc (ICC) 2021.1 Beta 20200827, this should be tested again when
+    // a newer version of icc is available.
+    m.def("bool_passthrough_noconvert2", [](bool arg) { return arg; }, py::arg().noconvert());
+#endif
+
     // test_reference_wrapper
     m.def("refwrap_builtin", [](std::reference_wrapper<int> p) { return 10 * p.get(); });
     m.def("refwrap_usertype", [](std::reference_wrapper<UserType> p) { return p.get().value(); });

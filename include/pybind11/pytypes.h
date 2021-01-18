@@ -1271,6 +1271,15 @@ public:
     detail::tuple_iterator end() const { return {*this, PyTuple_GET_SIZE(m_ptr)}; }
 };
 
+// We need to put this into a separate function because the Intel compiler
+// fails to compile enable_if_t<all_of<is_keyword_or_ds<Args>...>::value> part below
+// (tested with ICC 2021.1 Beta 20200827).
+template <typename... Args>
+constexpr bool args_are_all_keyword_or_ds()
+{
+  return detail::all_of<detail::is_keyword_or_ds<Args>...>::value;
+}
+
 class dict : public object {
 public:
     PYBIND11_OBJECT_CVT(dict, object, PyDict_Check, raw_dict)
@@ -1278,7 +1287,7 @@ public:
         if (!m_ptr) pybind11_fail("Could not allocate dict object!");
     }
     template <typename... Args,
-              typename = detail::enable_if_t<detail::all_of<detail::is_keyword_or_ds<Args>...>::value>,
+              typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>,
               // MSVC workaround: it can't compile an out-of-line definition, so defer the collector
               typename collector = detail::deferred_t<detail::unpacking_collector<>, Args...>>
     explicit dict(Args &&...args) : dict(collector(std::forward<Args>(args)...).kwargs()) { }

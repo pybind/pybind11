@@ -474,7 +474,7 @@ jobs:
     name: "🐍 3 • ICC latest • x64"
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - name: Add apt repo
       run: |
@@ -488,7 +488,6 @@ jobs:
       run: sudo apt-get update; sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic cmake python3-dev python3-numpy python3-pytest python3-pip
 
     - name: Update pip
-      shell: bash
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         python3 -m pip install --upgrade pip
@@ -498,43 +497,69 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         python3 -m pip install -r tests/requirements.txt --prefer-binary
 
-    - name: Configure
-      shell: bash
+    - name: Configure C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake -S . -B build     \
+        cmake -S . -B build-11     \
         -DPYBIND11_WERROR=ON    \
         -DDOWNLOAD_CATCH=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
         -DCMAKE_CXX_STANDARD=11             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
-        -DCMAKE_VERBOSE_MAKEFILE=ON         \
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
-    - name: Build
-      shell: bash
+    - name: Build C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build -j 2
+        cmake --build build-11 -j 2 -v
 
-    - name: Python tests
-      shell: bash
+    - name: Python tests C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         sudo service apport stop
-        cmake --build build --target check
+        cmake --build build-11 --target check
 
-    - name: C++ tests
-      shell: bash
+    - name: C++ tests C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build --target cpptest
+        cmake --build build-11 --target cpptest
 
-    - name: Interface test
-      shell: bash
+    - name: Interface test C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build --target test_cmake_build
+        cmake --build build-11 --target test_cmake_build
+
+    - name: Configure C++17
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake -S . -B build-17     \
+        -DPYBIND11_WERROR=ON    \
+        -DDOWNLOAD_CATCH=ON     \
+        -DDOWNLOAD_EIGEN=OFF    \
+        -DCMAKE_CXX_STANDARD=17             \
+        -DCMAKE_CXX_COMPILER=$(which icpc)  \
+        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+
+    - name: Build C++17
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build-17 -j 2 -v
+
+    - name: Python tests C++17
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        sudo service apport stop
+        cmake --build build-17 --target check
+
+    - name: C++ tests C++17
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build-17 --target cpptest
+
+    - name: Interface test C++17
+      run: |
+        set +e; source /opt/intel/oneapi/setvars.sh; set -e
+        cmake --build build-17 --target test_cmake_build
 
 
   # Testing on CentOS (manylinux uses a centos base, and this is an easy way

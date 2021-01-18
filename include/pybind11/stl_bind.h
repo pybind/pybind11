@@ -375,10 +375,20 @@ struct vector_has_data_and_format : std::false_type {};
 template <typename Vector>
 struct vector_has_data_and_format<Vector, enable_if_t<std::is_same<decltype(format_descriptor<typename Vector::value_type>::format(), std::declval<Vector>().data()), typename Vector::value_type*>::value>> : std::true_type {};
 
+// [workaround(intel)] Separate function required here
+// Workaround as the Intel compiler does not compile the enable_if_t part below
+// (tested with icc (ICC) 2021.1 Beta 20200827)
+template <typename... Args>
+constexpr bool args_any_are_buffer() {
+    return detail::any_of<std::is_same<Args, buffer_protocol>...>::value;
+}
+
+// [workaround(intel)] Separate function required here
+// [workaround(msvc)] Can't use constexpr bool in return type
+
 // Add the buffer interface to a vector
 template <typename Vector, typename Class_, typename... Args>
-enable_if_t<detail::any_of<std::is_same<Args, buffer_protocol>...>::value>
-vector_buffer(Class_& cl) {
+void vector_buffer_impl(Class_& cl, std::true_type) {
     using T = typename Vector::value_type;
 
     static_assert(vector_has_data_and_format<Vector>::value, "There is not an appropriate format descriptor for this vector");
@@ -416,7 +426,12 @@ vector_buffer(Class_& cl) {
 }
 
 template <typename Vector, typename Class_, typename... Args>
-enable_if_t<!detail::any_of<std::is_same<Args, buffer_protocol>...>::value> vector_buffer(Class_&) {}
+void vector_buffer_impl(Class_&, std::false_type) {}
+
+template <typename Vector, typename Class_, typename... Args>
+void vector_buffer(Class_& cl) {
+    vector_buffer_impl<Vector, Class_, Args...>(cl, detail::any_of<std::is_same<Args, buffer_protocol>...>{});
+}
 
 PYBIND11_NAMESPACE_END(detail)
 
