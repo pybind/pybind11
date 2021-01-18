@@ -311,6 +311,8 @@ TEST_SUBMODULE(pytypes, m) {
     // (see also test_builtin_casters)
     m.def("implicitly_cast_to_int32", [](py::int_ value) { return int32_t{value}; });
     m.def("implicitly_cast_to_uint32", [](py::int_ value) { return uint32_t{value}; });
+    m.def("implicitly_cast_to_int64", [](py::int_ value) { return int64_t{value}; });
+    m.def("implicitly_cast_to_uint64", [](py::int_ value) { return uint64_t{value}; });
 
     // test_print
     m.def("print_function", []() {

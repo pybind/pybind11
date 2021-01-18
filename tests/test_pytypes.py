@@ -341,6 +341,16 @@ def test_implicit_casting():
     with pytest.raises(RuntimeError, match="Unable to cast Python instance"):
         m.implicitly_cast_to_uint32(2 ** 32)
 
+    assert m.implicitly_cast_to_int64(42) == 42
+    assert m.implicitly_cast_to_int64(2 ** 63 - 1) == 2 ** 63 - 1
+    with pytest.raises(RuntimeError, match="Unable to cast Python instance"):
+        m.implicitly_cast_to_int64(2 ** 63)
+
+    assert m.implicitly_cast_to_uint64(42) == 42
+    assert m.implicitly_cast_to_uint64(2 ** 64 - 1) == 2 ** 64 - 1
+    with pytest.raises(RuntimeError, match="Unable to cast Python instance"):
+        m.implicitly_cast_to_uint64(2 ** 64)
+
 
 def test_print(capture):
     with capture:
