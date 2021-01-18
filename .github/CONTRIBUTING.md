@@ -176,10 +176,35 @@ name, pre-commit):
 pre-commit install
 ```
 
+### Clang-Format
+
+As of v2.6.2, pybind11 ships with a [`clang-format`][clang-format]
+configuration file at the top level of the repo (the filename is
+`.clang-format`). Currently, formatting is NOT applied automatically, but
+manually using `clang-format` for newly developed files is highly encouraged.
+To check if a file needs formatting:
+
+```bash
+clang-format -style=file --dry-run some.cpp
+```
+
+The output will show things to be fixed, if any. To actually format the file:
+
+```bash
+clang-format -style=file -i some.cpp
+```
+
+Note that the `-style-file` option searches the parent directories for the
+`.clang-format` file, i.e. the commands above can be run in any subdirectory
+of the pybind11 repo.
+
 ### Clang-Tidy
 
-To run Clang tidy, the following recipe should work. Files will be modified in
-place, so you can use git to monitor the changes.
+[`clang-tidy`][clang-tidy] performs deeper static code analyses and is
+more complex to run, compared to `clang-format`, but support for `clang-tidy`
+is built into the pybind11 CMake configuration. To run `clang-tidy`, the
+following recipe should work. Files will be modified in place, so you can
+use git to monitor the changes.
 
 ```bash
 docker run --rm -v $PWD:/pybind11 -it silkeh/clang:10
@@ -198,7 +223,7 @@ cmake -S . -B build-iwyu -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=$(which include-what-y
 cmake --build build
 ```
 
-The report is sent to stderr; you can pip it into a file if you wish.
+The report is sent to stderr; you can pipe it into a file if you wish.
 
 ### Build recipes
 
@@ -325,6 +350,8 @@ if you really want to.
 
 
 [pre-commit]: https://pre-commit.com
+[clang-format]: https://clang.llvm.org/docs/ClangFormat.html
+[clang-tidy]: https://clang.llvm.org/extra/clang-tidy/
 [pybind11.readthedocs.org]: http://pybind11.readthedocs.org/en/latest
 [issue tracker]: https://github.com/pybind/pybind11/issues
 [gitter]: https://gitter.im/pybind/Lobby
