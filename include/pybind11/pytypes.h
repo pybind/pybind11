@@ -1107,9 +1107,10 @@ using py_int_type_for = conditional_t<std::is_signed<T>::value, py_signed_int_ty
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    py_unsigned_int_type_for<Unsigned> v = (sizeof(Unsigned) <= sizeof(unsigned long))
-        ? PyLong_AsUnsignedLong(o)
-        : PYBIND11_LONG_AS_UNSIGNED_LONGLONG(o);
+    using py_type = py_unsigned_int_type_for<Unsigned>;
+    py_type v = (sizeof(Unsigned) <= sizeof(unsigned long))
+        ? (py_type) PyLong_AsUnsignedLong(o)
+        : (py_type) PYBIND11_LONG_AS_UNSIGNED_LONGLONG(o);
     return v == (py_unsigned_int_type_for<Unsigned>) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
 }
 
