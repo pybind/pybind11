@@ -57,6 +57,8 @@ endif()
 
 if(PythonLibsNew_FIND_QUIETLY)
   set(_pythonlibs_quiet QUIET)
+else()
+  set(_pythonlibs_quiet "")
 endif()
 
 if(PythonLibsNew_FIND_REQUIRED)

@@ -1,4 +1,13 @@
+# Avoid uninitialized variables
+if(NOT DEFINED PYTHON_MODULE_EXTENSION)
+  set(PYTHON_MODULE_EXTENSION "")
+endif()
+if(NOT DEFINED Python_INTERPRETER_ID)
+  set(Python_INTERPRETER_ID "")
+endif()
+
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy")
+  message(STATUS "Skipping embed test on PyPy")
   add_custom_target(cpptest) # Dummy target on PyPy. Embedding is not supported.
   set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()

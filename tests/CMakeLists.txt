@@ -67,7 +67,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   find_package(pybind11 REQUIRED CONFIG)
 endif()
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+if(NOT CMAKE_BUILD_TYPE AND NOT DEFINED CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting tests build type to MinSizeRel as none was specified")
   set(CMAKE_BUILD_TYPE
       MinSizeRel
@@ -345,11 +345,14 @@ foreach(target ${test_targets})
   if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
     set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                "${CMAKE_CURRENT_BINARY_DIR}")
-    foreach(config ${CMAKE_CONFIGURATION_TYPES})
-      string(TOUPPER ${config} config)
-      set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
-                                                 "${CMAKE_CURRENT_BINARY_DIR}")
-    endforeach()
+
+    if(DEFINED CMAKE_CONFIGURATION_TYPES)
+      foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${config} config)
+        set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                   "${CMAKE_CURRENT_BINARY_DIR}")
+      endforeach()
+    endif()
   endif()
 endforeach()
 

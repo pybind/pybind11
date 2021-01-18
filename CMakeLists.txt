@@ -73,6 +73,8 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     set(CMAKE_CXX_EXTENSIONS OFF)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
   endif()
+
+  set(pybind11_system "")
 else()
   set(PYBIND11_MASTER_PROJECT OFF)
   set(pybind11_system SYSTEM)
