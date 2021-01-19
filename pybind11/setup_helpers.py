@@ -99,15 +99,14 @@ class Pybind11Extension(_Extension):
     this is an ugly old-style class due to Distutils.
     """
 
-    def _add_cflags(self, *flags):
-        for flag in flags:
-            if flag not in self.extra_compile_args:
-                self.extra_compile_args.append(flag)
+    # flags are prepended, so that they can be further overridden, e.g. by
+    # ``extra_compile_args=["-g"]``.
 
-    def _add_lflags(self, *flags):
-        for flag in flags:
-            if flag not in self.extra_link_args:
-                self.extra_link_args.append(flag)
+    def _add_cflags(self, flags):
+        self.extra_compile_args[:0] = flags
+
+    def _add_ldflags(self, flags):
+        self.extra_link_args[:0] = flags
 
     def __init__(self, *args, **kwargs):
 
@@ -139,13 +138,17 @@ class Pybind11Extension(_Extension):
         # Have to use the accessor manually to support Python 2 distutils
         Pybind11Extension.cxx_std.__set__(self, cxx_std)
 
+        cflags = []
+        ldflags = []
         if WIN:
-            self._add_cflags("/EHsc", "/bigobj")
+            cflags += ["/EHsc", "/bigobj"]
         else:
-            self._add_cflags("-fvisibility=hidden", "-g0")
+            cflags += ["-fvisibility=hidden", "-g0"]
             if MACOS:
-                self._add_cflags("-stdlib=libc++")
-                self._add_lflags("-stdlib=libc++")
+                cflags += ["-stdlib=libc++"]
+                ldflags += ["-stdlib=libc++"]
+        self._add_cflags(cflags)
+        self._add_ldflags(ldflags)
 
     @property
     def cxx_std(self):
@@ -174,7 +177,8 @@ class Pybind11Extension(_Extension):
         if not level:
             return
 
-        self.extra_compile_args.append(STD_TMPL.format(level))
+        cflags = [STD_TMPL.format(level)]
+        ldflags = []
 
         if MACOS and "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
             # C++17 requires a higher min version of macOS. An earlier version
@@ -186,18 +190,21 @@ class Pybind11Extension(_Extension):
             desired_macos = (10, 9) if level < 17 else (10, 14)
             macos_string = ".".join(str(x) for x in min(current_macos, desired_macos))
             macosx_min = "-mmacosx-version-min=" + macos_string
-            self.extra_compile_args.append(macosx_min)
-            self.extra_link_args.append(macosx_min)
+            cflags += [macosx_min]
+            ldflags += [macosx_min]
 
         if PY2:
             if WIN:
                 # Will be ignored on MSVC 2015, where C++17 is not supported so
                 # this flag is not valid.
-                self.extra_compile_args.append("/wd5033")
+                cflags += ["/wd5033"]
             elif level >= 17:
-                self.extra_compile_args.append("-Wno-register")
+                cflags += ["-Wno-register"]
             elif level >= 14:
-                self.extra_compile_args.append("-Wno-deprecated-register")
+                cflags += ["-Wno-deprecated-register"]
+
+        self._add_cflags(cflags)
+        self._add_ldflags(ldflags)
 
 
 # Just in case someone clever tries to multithread
