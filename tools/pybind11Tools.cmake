@@ -10,6 +10,8 @@ include(CMakeParseArguments)
 
 if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
+else()
+  set(_pybind11_quiet "")
 endif()
 
 # If this is the first run, PYTHON_VERSION can stand in for PYBIND11_PYTHON_VERSION
@@ -22,10 +24,15 @@ if(NOT DEFINED PYBIND11_PYTHON_VERSION AND DEFINED PYTHON_VERSION)
       CACHE STRING "Python version to use for compiling modules")
   unset(PYTHON_VERSION)
   unset(PYTHON_VERSION CACHE)
-else()
-  # If this is set as a normal variable, promote it, otherwise, make an empty cache variable.
+elseif(DEFINED PYBIND11_PYTHON_VERSION)
+  # If this is set as a normal variable, promote it
   set(PYBIND11_PYTHON_VERSION
       "${PYBIND11_PYTHON_VERSION}"
+      CACHE STRING "Python version to use for compiling modules")
+else()
+  # Make an empty cache variable.
+  set(PYBIND11_PYTHON_VERSION
+      ""
       CACHE STRING "Python version to use for compiling modules")
 endif()
 

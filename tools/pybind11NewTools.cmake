@@ -12,6 +12,8 @@ get_property(
 
 if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
+else()
+  set(_pybind11_quiet "")
 endif()
 
 if(CMAKE_VERSION VERSION_LESS 3.12)
