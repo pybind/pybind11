@@ -55,13 +55,7 @@ function(pybind11_add_build_test name)
   add_dependencies(test_cmake_build test_build_${name})
 endfunction()
 
-# Avoid uninitialized variables
-if(NOT DEFINED PYTHON_MODULE_EXTENSION)
-  set(PYTHON_MODULE_EXTENSION "")
-endif()
-if(NOT DEFINED Python_INTERPRETER_ID)
-  set(Python_INTERPRETER_ID "")
-endif()
+possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 
 pybind11_add_build_test(subdirectory_function)
 pybind11_add_build_test(subdirectory_target)

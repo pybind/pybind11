@@ -24,7 +24,7 @@ include(CMakeParseArguments)
 # Usage:
 #   pybind11_filter_tests(LISTNAME file1.cpp file2.cpp ... MESSAGE "")
 #
-macro(PYBIND11_FILTER_TESTS LISTNAME)
+macro(pybind11_filter_tests LISTNAME)
   cmake_parse_arguments(ARG "" "MESSAGE" "" ${ARGN})
   set(PYBIND11_FILTER_TESTS_FOUND OFF)
   foreach(filename IN LISTS ARG_UNPARSED_ARGUMENTS)
@@ -37,6 +37,14 @@ macro(PYBIND11_FILTER_TESTS LISTNAME)
   if(PYBIND11_FILTER_TESTS_FOUND AND ARG_MESSAGE)
     message(STATUS "${ARG_MESSAGE}")
   endif()
+endmacro()
+
+macro(possibly_uninitialized)
+  foreach(VARNAME ${ARGN})
+    if(NOT DEFINED "${VARNAME}")
+      set("${VARNAME}" "")
+    endif()
+  endforeach()
 endmacro()
 
 # New Python support

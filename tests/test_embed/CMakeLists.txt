@@ -1,10 +1,4 @@
-# Avoid uninitialized variables
-if(NOT DEFINED PYTHON_MODULE_EXTENSION)
-  set(PYTHON_MODULE_EXTENSION "")
-endif()
-if(NOT DEFINED Python_INTERPRETER_ID)
-  set(Python_INTERPRETER_ID "")
-endif()
+possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy")
   message(STATUS "Skipping embed test on PyPy")
