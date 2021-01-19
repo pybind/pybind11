@@ -39,6 +39,7 @@ detail_headers = {
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
     "include/pybind11/detail/descr.h",
+    "include/pybind11/detail/function.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/typeid.h",
