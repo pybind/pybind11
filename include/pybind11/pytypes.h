@@ -1079,8 +1079,9 @@ public:
     bytearray(const std::string &s) : bytearray(s.data(), s.size()) { }
 
     operator std::string() const {
-        char *buffer = PyByteArray_AsString(m_ptr);
-        return std::string(buffer);
+        char *buffer = PyByteArray_AS_STRING(m_ptr);
+        Py_ssize_t size = PyByteArray_GET_SIZE(m_ptr);
+        return std::string(buffer, size);
     }
 };
 // Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
