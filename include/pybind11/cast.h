@@ -1043,30 +1043,25 @@ public:
         } else if (!convert && !index_check(src.ptr()) && !PYBIND11_LONG_CHECK(src.ptr())) {
             return false;
         } else {
-            handle obj = src;
+            handle src_or_index = src;
 #if PY_VERSION_HEX < 0x03080000
-            bool do_decref = false;
+            object index;
             if (index_check(src.ptr())) {
-                PyObject *tmp = PyNumber_Index(src.ptr());
-                if (!tmp) {
+                index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
+                if (!index) {
                     PyErr_Clear();
                     return false;
                 }
-                do_decref = true;
-                obj = tmp;
+                src_or_index = index;
             }
 #endif
             if (std::is_unsigned<py_type>::value) {
-                py_value = as_unsigned<py_type>(obj.ptr());
+                py_value = as_unsigned<py_type>(src_or_index.ptr());
             } else { // signed integer:
                 py_value = sizeof(T) <= sizeof(long)
-                    ? (py_type) PyLong_AsLong(obj.ptr())
-                    : (py_type) PYBIND11_LONG_AS_LONGLONG(obj.ptr());
+                    ? (py_type) PyLong_AsLong(src_or_index.ptr())
+                    : (py_type) PYBIND11_LONG_AS_LONGLONG(src_or_index.ptr());
             }
-#if PY_VERSION_HEX < 0x03080000
-            if (do_decref)
-                obj.dec_ref();
-#endif
         }
 
         // Python API reported an error

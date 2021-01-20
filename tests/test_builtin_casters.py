@@ -251,6 +251,7 @@ def test_integer_casting():
         assert "incompatible function arguments" in str(excinfo.value)
 
 
+@pytest.mark.filterwarnings("ignore:an integer is required:DeprecationWarning")
 def test_int_convert():
     class DeepThought(object):
         def __int__(self):
@@ -297,6 +298,7 @@ def test_int_convert():
     cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises
 
 
+@pytest.mark.filterwarnings("ignore:an integer is required:DeprecationWarning")
 def test_numpy_int_convert():
     np = pytest.importorskip("numpy")
 
