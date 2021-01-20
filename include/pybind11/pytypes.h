@@ -1080,8 +1080,8 @@ public:
 
     operator std::string() const {
         char *buffer = PyByteArray_AS_STRING(m_ptr);
-        Py_ssize_t size = PyByteArray_GET_SIZE(m_ptr);
-        return std::string(buffer, size);
+        ssize_t size = PyByteArray_GET_SIZE(m_ptr);
+        return std::string(buffer, static_cast<size_t>(size));
     }
 };
 // Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
