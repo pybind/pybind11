@@ -35,7 +35,7 @@ public:
     PYBIND11_NOINLINE modified_type_caster_generic_load_impl(const std::type_info &type_info)
         : typeinfo(get_type_info(type_info)), cpptype(&type_info) { }
 
-    modified_type_caster_generic_load_impl(const type_info *typeinfo)
+    explicit modified_type_caster_generic_load_impl(const type_info *typeinfo = nullptr)
         : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) { }
 
     bool load(handle src, bool convert) {
@@ -133,7 +133,7 @@ public:
         }
         // Case 2: We have a derived class
         else if (PyType_IsSubtype(srctype, typeinfo->type)) {
-            auto &bases = all_type_info(srctype);
+            auto &bases = all_type_info(srctype); // subtype bases
             bool no_cpp_mi = typeinfo->simple_type;
 
             // Case 2a: the python type is a Python-inherited derived class that inherits from just
@@ -144,6 +144,8 @@ public:
             // pointer lookup overhead)
             if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
                 this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+                subtype_typeinfo = bases.front();
+                reinterpret_cast_ok = true;
                 return true;
             }
             // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see if
@@ -153,6 +155,8 @@ public:
                 for (auto base : bases) {
                     if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
                         this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
+                        subtype_typeinfo = base;
+                        reinterpret_cast_ok = true;
                         return true;
                     }
                 }
@@ -161,8 +165,9 @@ public:
             // Case 2c: C++ multiple inheritance is involved and we couldn't find an exact type match
             // in the registered bases, above, so try implicit casting (needed for proper C++ casting
             // when MI is involved).
-            if (this_.try_implicit_casts(src, convert))
+            if (this_.try_implicit_casts(src, convert)) {
                 return true;
+            }
         }
 
         // Perform an implicit conversion
@@ -192,7 +197,9 @@ public:
 
     const type_info *typeinfo = nullptr;
     const std::type_info *cpptype = nullptr;
+    const type_info *subtype_typeinfo = nullptr;
     value_and_holder loaded_v_h;
+    bool reinterpret_cast_ok = false;
 };
 // clang-format on
 
@@ -203,25 +210,32 @@ struct smart_holder_type_caster_load {
     bool load(handle src, bool convert) {
         if (!isinstance<T>(src))
             return false;
-        modified_type_caster_generic_load_impl tcgli(typeid(T));
-        tcgli.load(src, convert);
-        loaded_v_h        = tcgli.loaded_v_h;
-        loaded_smhldr_ptr = &loaded_v_h.holder<holder_type>();
+        load_impl = modified_type_caster_generic_load_impl(typeid(T));
+        if (!load_impl.load(src, convert))
+            return false;
+        loaded_smhldr_ptr = &load_impl.loaded_v_h.holder<holder_type>();
         return true;
     }
 
+    T *as_raw_ptr_unowned() {
+        if (load_impl.subtype_typeinfo != nullptr && load_impl.reinterpret_cast_ok) {
+            return reinterpret_cast<T *>(loaded_smhldr_ptr->vptr.get());
+        }
+        return loaded_smhldr_ptr->as_raw_ptr_unowned<T>();
+    }
+
     std::unique_ptr<T> loaded_as_unique_ptr() {
-        void *value_void_ptr = loaded_v_h.value_ptr();
+        void *value_void_ptr = load_impl.loaded_v_h.value_ptr();
         auto unq_ptr         = loaded_smhldr_ptr->as_unique_ptr<T>();
-        loaded_v_h.holder<holder_type>().~holder_type();
-        loaded_v_h.set_holder_constructed(false);
-        loaded_v_h.value_ptr() = nullptr;
-        deregister_instance(loaded_v_h.inst, value_void_ptr, loaded_v_h.type);
+        load_impl.loaded_v_h.holder<holder_type>().~holder_type();
+        load_impl.loaded_v_h.set_holder_constructed(false);
+        load_impl.loaded_v_h.value_ptr() = nullptr;
+        deregister_instance(load_impl.loaded_v_h.inst, value_void_ptr, load_impl.loaded_v_h.type);
         return unq_ptr;
     }
 
 protected:
-    value_and_holder loaded_v_h;
+    modified_type_caster_generic_load_impl load_impl;
     holder_type *loaded_smhldr_ptr = nullptr;
 };
 
@@ -316,8 +330,8 @@ struct classh_type_caster : smart_holder_type_caster_load<T> {
     operator T&&() &&   { return this->loaded_smhldr_ptr->template rvalue_ref<T>(); }
     operator T const&() { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
     operator T&()       { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
-    operator T const*() { return this->loaded_smhldr_ptr->template as_raw_ptr_unowned<T>(); }
-    operator T*()       { return this->loaded_smhldr_ptr->template as_raw_ptr_unowned<T>(); }
+    operator T const*() { return this->as_raw_ptr_unowned(); }
+    operator T*()       { return this->as_raw_ptr_unowned(); }
 
     // clang-format on
 
