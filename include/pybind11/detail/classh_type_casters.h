@@ -52,17 +52,23 @@ public:
                                      " Python instance is uninitialized or was disowned.");
         }
         if (v_h.value_ptr() == nullptr) {
-            pybind11_fail("Unexpected v_h.value_ptr() nullptr.");
+            pybind11_fail("classh_type_casters: Unexpected v_h.value_ptr() nullptr.");
         }
         loaded_v_h.type = typeinfo;
     }
 
     bool try_implicit_casts(handle src, bool convert) {
+        pybind11_fail("classh_type_casters: try_implicit_casts UNTESTED.");
         for (auto &cast : typeinfo->implicit_casts) {
             modified_type_caster_generic_load_impl sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
-                pybind11_fail("Not Implemented: classh try_implicit_casts.");
-                // value = cast.second(sub_caster.value); TODO:value_and_holder
+                if (loaded_v_h_cpptype != nullptr) {
+                    pybind11_fail("classh_type_casters: try_implicit_casts failure.");
+                }
+                loaded_v_h = sub_caster.loaded_v_h;
+                loaded_v_h_cpptype = cast.first;
+                implicit_cast = cast.second;
+                reinterpret_cast_ok = sub_caster.reinterpret_cast_ok;
                 return true;
             }
         }
@@ -78,10 +84,14 @@ public:
     }
 
     PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
-        auto caster = modified_type_caster_generic_load_impl(ti);
-        if (caster.load(src, false))
-            pybind11_fail("Not Implemented: classh local_load.");
-            // return caster.value; TODO:value_and_holder
+        pybind11_fail("classh_type_casters: local_load UNTESTED.");
+        // Not thread safe. But the GIL needs to be held anyway in the context of this code.
+        static modified_type_caster_generic_load_impl caster;
+        caster = modified_type_caster_generic_load_impl(ti);
+        if (caster.load(src, false)) {
+            // Trick to work with the existing pybind11 internals.
+            return &caster; // Any pointer except nullptr;
+        }
         return nullptr;
     }
 
@@ -99,9 +109,17 @@ public:
             || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype)))
             return false;
 
-        if (auto result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
-            pybind11_fail("Not Implemented: classh try_load_foreign_module_local.");
-            // value = result; TODO:value_and_holder
+        void* void_ptr = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo);
+        if (void_ptr != nullptr) {
+            pybind11_fail("classh_type_casters: try_load_foreign_module_local UNTESTED.");
+            auto foreign_load_impl = static_cast<modified_type_caster_generic_load_impl *>(void_ptr);
+            if (loaded_v_h_cpptype != nullptr) {
+                pybind11_fail("classh_type_casters: try_load_foreign_module_local failure.");
+            }
+            loaded_v_h = foreign_load_impl->loaded_v_h;
+            loaded_v_h_cpptype = foreign_load_impl->loaded_v_h_cpptype;
+            implicit_cast = foreign_load_impl->implicit_cast;
+            reinterpret_cast_ok = foreign_load_impl->reinterpret_cast_ok;
             return true;
         }
         return false;
@@ -144,7 +162,7 @@ public:
             // pointer lookup overhead)
             if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
                 this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
-                subtype_typeinfo = bases.front();
+                loaded_v_h_cpptype = bases.front()->cpptype;
                 reinterpret_cast_ok = true;
                 return true;
             }
@@ -152,10 +170,11 @@ public:
             // we can find an exact match (or, for a simple C++ type, an inherited match); if so, we
             // can safely reinterpret_cast to the relevant pointer.
             else if (bases.size() > 1) {
+                pybind11_fail("classh_type_casters: Case 2b UNTESTED.");
                 for (auto base : bases) {
                     if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
                         this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
-                        subtype_typeinfo = base;
+                        loaded_v_h_cpptype = base->cpptype;
                         reinterpret_cast_ok = true;
                         return true;
                     }
@@ -197,7 +216,8 @@ public:
 
     const type_info *typeinfo = nullptr;
     const std::type_info *cpptype = nullptr;
-    const type_info *subtype_typeinfo = nullptr;
+    const std::type_info *loaded_v_h_cpptype = nullptr;
+    void *(*implicit_cast)(void *) = nullptr;
     value_and_holder loaded_v_h;
     bool reinterpret_cast_ok = false;
 };
@@ -218,7 +238,7 @@ struct smart_holder_type_caster_load {
     }
 
     T *as_raw_ptr_unowned() {
-        if (load_impl.subtype_typeinfo != nullptr && load_impl.reinterpret_cast_ok) {
+        if (load_impl.loaded_v_h_cpptype != nullptr && load_impl.reinterpret_cast_ok) {
             return reinterpret_cast<T *>(loaded_smhldr_ptr->vptr.get());
         }
         return loaded_smhldr_ptr->as_raw_ptr_unowned<T>();

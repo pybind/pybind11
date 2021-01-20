@@ -1128,7 +1128,7 @@ protected:
 
         if (rec.module_local) {
             // Stash the local typeinfo and loader so that external modules can access it.
-            tinfo->module_local_load = &type_caster_generic::local_load;
+            tinfo->module_local_load = &type_caster_generic::local_load; // TODO classh_type_casters local_load
             setattr(m_ptr, PYBIND11_MODULE_LOCAL_ID, capsule(tinfo));
         }
     }
