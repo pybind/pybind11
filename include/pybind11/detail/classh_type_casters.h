@@ -29,21 +29,183 @@ inline std::pair<bool, handle> find_existing_python_instance(void *src_void_ptr,
     return std::make_pair(false, handle());
 }
 
-template <typename T>
-struct smart_holder_type_caster_load {
-    using holder_type = pybindit::memory::smart_holder;
+// clang-format off
+class modified_type_caster_generic_load_impl {
+public:
+    PYBIND11_NOINLINE modified_type_caster_generic_load_impl(const std::type_info &type_info)
+        : typeinfo(get_type_info(type_info)), cpptype(&type_info) { }
 
-    bool load(handle src, bool /*convert*/) {
-        if (!isinstance<T>(src))
-            return false;
-        auto inst  = reinterpret_cast<instance *>(src.ptr());
-        loaded_v_h = inst->get_value_and_holder(get_type_info(typeid(T)));
+    modified_type_caster_generic_load_impl(const type_info *typeinfo)
+        : typeinfo(typeinfo), cpptype(typeinfo ? typeinfo->cpptype : nullptr) { }
+
+    bool load(handle src, bool convert) {
+        return load_impl<modified_type_caster_generic_load_impl>(src, convert);
+    }
+
+    // Base methods for generic caster; there are overridden in copyable_holder_caster
+    void load_value_and_holder(value_and_holder &&v_h) {
+        loaded_v_h = std::move(v_h);
         if (!loaded_v_h.holder_constructed()) {
             // IMPROVEABLE: Error message. A change to the existing internals is
             // needed to cleanly distinguish between uninitialized or disowned.
             throw std::runtime_error("Missing value for wrapped C++ type:"
                                      " Python instance is uninitialized or was disowned.");
         }
+        if (v_h.value_ptr() == nullptr) {
+            pybind11_fail("Unexpected v_h.value_ptr() nullptr.");
+        }
+        loaded_v_h.type = typeinfo;
+    }
+
+    bool try_implicit_casts(handle src, bool convert) {
+        for (auto &cast : typeinfo->implicit_casts) {
+            modified_type_caster_generic_load_impl sub_caster(*cast.first);
+            if (sub_caster.load(src, convert)) {
+                pybind11_fail("Not Implemented: classh try_implicit_casts.");
+                // value = cast.second(sub_caster.value); TODO:value_and_holder
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool try_direct_conversions(handle src) {
+        for (auto &converter : *typeinfo->direct_conversions) {
+            if (converter(src.ptr(), loaded_v_h.value_ptr()))
+                return true;
+        }
+        return false;
+    }
+
+    PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
+        auto caster = modified_type_caster_generic_load_impl(ti);
+        if (caster.load(src, false))
+            pybind11_fail("Not Implemented: classh local_load.");
+            // return caster.value; TODO:value_and_holder
+        return nullptr;
+    }
+
+    /// Try to load with foreign typeinfo, if available. Used when there is no
+    /// native typeinfo, or when the native one wasn't able to produce a value.
+    PYBIND11_NOINLINE bool try_load_foreign_module_local(handle src) {
+        constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
+        const auto pytype = type::handle_of(src);
+        if (!hasattr(pytype, local_key))
+            return false;
+
+        type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
+        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp type
+        if (foreign_typeinfo->module_local_load == &local_load
+            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype)))
+            return false;
+
+        if (auto result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
+            pybind11_fail("Not Implemented: classh try_load_foreign_module_local.");
+            // value = result; TODO:value_and_holder
+            return true;
+        }
+        return false;
+    }
+
+    // Implementation of `load`; this takes the type of `this` so that it can dispatch the relevant
+    // bits of code between here and copyable_holder_caster where the two classes need different
+    // logic (without having to resort to virtual inheritance).
+    template <typename ThisT>
+    PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
+        if (!src) return false;
+        if (!typeinfo) return try_load_foreign_module_local(src);
+        if (src.is_none()) {
+            // Defer accepting None to other overloads (if we aren't in convert mode):
+            if (!convert) return false;
+            loaded_v_h = value_and_holder();
+            return true;
+        }
+
+        auto &this_ = static_cast<ThisT &>(*this);
+
+        PyTypeObject *srctype = Py_TYPE(src.ptr());
+
+        // Case 1: If src is an exact type match for the target type then we can reinterpret_cast
+        // the instance's value pointer to the target type:
+        if (srctype == typeinfo->type) {
+            this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+            return true;
+        }
+        // Case 2: We have a derived class
+        else if (PyType_IsSubtype(srctype, typeinfo->type)) {
+            auto &bases = all_type_info(srctype);
+            bool no_cpp_mi = typeinfo->simple_type;
+
+            // Case 2a: the python type is a Python-inherited derived class that inherits from just
+            // one simple (no MI) pybind11 class, or is an exact match, so the C++ instance is of
+            // the right type and we can use reinterpret_cast.
+            // (This is essentially the same as case 2b, but because not using multiple inheritance
+            // is extremely common, we handle it specially to avoid the loop iterator and type
+            // pointer lookup overhead)
+            if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
+                this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+                return true;
+            }
+            // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see if
+            // we can find an exact match (or, for a simple C++ type, an inherited match); if so, we
+            // can safely reinterpret_cast to the relevant pointer.
+            else if (bases.size() > 1) {
+                for (auto base : bases) {
+                    if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
+                        this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
+                        return true;
+                    }
+                }
+            }
+
+            // Case 2c: C++ multiple inheritance is involved and we couldn't find an exact type match
+            // in the registered bases, above, so try implicit casting (needed for proper C++ casting
+            // when MI is involved).
+            if (this_.try_implicit_casts(src, convert))
+                return true;
+        }
+
+        // Perform an implicit conversion
+        if (convert) {
+            for (auto &converter : typeinfo->implicit_conversions) {
+                auto temp = reinterpret_steal<object>(converter(src.ptr(), typeinfo->type));
+                if (load_impl<ThisT>(temp, false)) {
+                    loader_life_support::add_patient(temp);
+                    return true;
+                }
+            }
+            if (this_.try_direct_conversions(src))
+                return true;
+        }
+
+        // Failed to match local typeinfo. Try again with global.
+        if (typeinfo->module_local) {
+            if (auto gtype = get_global_type_info(*typeinfo->cpptype)) {
+                typeinfo = gtype;
+                return load(src, false);
+            }
+        }
+
+        // Global typeinfo has precedence over foreign module_local
+        return try_load_foreign_module_local(src);
+    }
+
+    const type_info *typeinfo = nullptr;
+    const std::type_info *cpptype = nullptr;
+    value_and_holder loaded_v_h;
+};
+// clang-format on
+
+template <typename T>
+struct smart_holder_type_caster_load {
+    using holder_type = pybindit::memory::smart_holder;
+
+    bool load(handle src, bool convert) {
+        if (!isinstance<T>(src))
+            return false;
+        modified_type_caster_generic_load_impl tcgli(typeid(T));
+        tcgli.load(src, convert);
+        loaded_v_h        = tcgli.loaded_v_h;
         loaded_smhldr_ptr = &loaded_v_h.holder<holder_type>();
         return true;
     }
