@@ -60,7 +60,7 @@ public:
         /* Process optional arguments, if any */
         process_attributes<Extra...>::init(extra..., &record);
 
-        generic_type::initialize(record);
+        generic_type::initialize(record, &modified_type_caster_generic_load_impl::local_load);
 
         if (has_alias) {
             auto &instances = record.module_local ? registered_local_types_cpp() : get_internals().registered_types_cpp;
