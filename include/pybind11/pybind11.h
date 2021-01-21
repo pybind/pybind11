@@ -1082,7 +1082,8 @@ class generic_type : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(generic_type, object, PyType_Check)
 protected:
-    void initialize(const type_record &rec) {
+    void initialize(const type_record &rec,
+                    void *(*type_caster_module_local_load)(PyObject *, const type_info *)) {
         if (rec.scope && hasattr(rec.scope, "__dict__") && rec.scope.attr("__dict__").contains(rec.name))
             pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name) +
                           "\": an object with that name is already defined");
@@ -1128,7 +1129,7 @@ protected:
 
         if (rec.module_local) {
             // Stash the local typeinfo and loader so that external modules can access it.
-            tinfo->module_local_load = &type_caster_generic::local_load; // TODO classh_type_casters local_load
+            tinfo->module_local_load = type_caster_module_local_load;
             setattr(m_ptr, PYBIND11_MODULE_LOCAL_ID, capsule(tinfo));
         }
     }
@@ -1295,7 +1296,7 @@ public:
         /* Process optional arguments, if any */
         process_attributes<Extra...>::init(extra..., &record);
 
-        generic_type::initialize(record);
+        generic_type::initialize(record, &type_caster_generic::local_load);
 
         if (has_alias) {
             auto &instances = record.module_local ? registered_local_types_cpp() : get_internals().registered_types_cpp;
