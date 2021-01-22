@@ -1049,18 +1049,22 @@ public:
             if (index_check(src.ptr())) {
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
                 if (!index) {
-                    PyErr_Clear();
-                    return false;
+                    src_or_index = handle();
+                    py_value = (py_type) -1;
                 }
-                src_or_index = index;
+                else {
+                    src_or_index = index;
+                }
             }
 #endif
-            if (std::is_unsigned<py_type>::value) {
-                py_value = as_unsigned<py_type>(src_or_index.ptr());
-            } else { // signed integer:
-                py_value = sizeof(T) <= sizeof(long)
-                    ? (py_type) PyLong_AsLong(src_or_index.ptr())
-                    : (py_type) PYBIND11_LONG_AS_LONGLONG(src_or_index.ptr());
+            if (src_or_index) {
+                if (std::is_unsigned<py_type>::value) {
+                    py_value = as_unsigned<py_type>(src_or_index.ptr());
+                } else { // signed integer:
+                    py_value = sizeof(T) <= sizeof(long)
+                        ? (py_type) PyLong_AsLong(src_or_index.ptr())
+                        : (py_type) PYBIND11_LONG_AS_LONGLONG(src_or_index.ptr());
+                }
             }
         }
 
