@@ -82,4 +82,9 @@ def test_builtinsKeyType():
 
     Previous versions of pybind11 would add a unicode key in python 2.
     """
-    assert {type(k) for k in __builtins__.keys()} == {str}
+    if hasattr(__builtins__, 'keys'):
+        keys = __builtins__.keys()
+    else: # this is to make pypy happy since builtins is different there.
+        keys = __builtins__.__dict__.keys()
+
+    assert {type(k) for k in keys} == {str}
