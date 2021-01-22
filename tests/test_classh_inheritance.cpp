@@ -67,8 +67,8 @@ TEST_SUBMODULE(classh_inheritance, m) {
     m.def("pass_base", pass_base);
     m.def("pass_drvd", pass_drvd);
 
-    py::classh<base1>(m, "base1");
-    py::classh<base2>(m, "base2");
+    py::classh<base1>(m, "base1").def(py::init<>()); // __init__ needed for Python inheritance.
+    py::classh<base2>(m, "base2").def(py::init<>());
     py::classh<drvd2, base1, base2>(m, "drvd2");
 
     m.def("make_drvd2", make_drvd2, py::return_value_policy::take_ownership);

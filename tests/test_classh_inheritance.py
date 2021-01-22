@@ -34,3 +34,16 @@ def test_make_drvd2_up_casts_pass_drvd2():
     assert b2.__class__.__name__ == "drvd2"
     i2 = m.pass_drvd2(b2)
     assert i2 == 3 * 110 + 4 * 120 + 23
+
+
+def test_python_drvd2():
+    class Drvd2(m.base1, m.base2):
+        def __init__(self):
+            m.base1.__init__(self)
+            m.base2.__init__(self)
+
+    d = Drvd2()
+    i1 = m.pass_base1(d)  # load_impl Case 2b
+    assert i1 == 110 + 21
+    i2 = m.pass_base2(d)
+    assert i2 == 120 + 22
