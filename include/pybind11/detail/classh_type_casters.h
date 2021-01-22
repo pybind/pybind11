@@ -58,7 +58,6 @@ public:
     }
 
     bool try_implicit_casts(handle src, bool convert) {
-        pybind11_fail("classh_type_casters: try_implicit_casts UNTESTED.");
         for (auto &cast : typeinfo->implicit_casts) {
             modified_type_caster_generic_load_impl sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
@@ -68,7 +67,6 @@ public:
                 loaded_v_h = sub_caster.loaded_v_h;
                 loaded_v_h_cpptype = cast.first;
                 implicit_cast = cast.second;
-                reinterpret_cast_ok = sub_caster.reinterpret_cast_ok;
                 return true;
             }
         }
@@ -119,7 +117,6 @@ public:
             loaded_v_h = foreign_load_impl->loaded_v_h;
             loaded_v_h_cpptype = foreign_load_impl->loaded_v_h_cpptype;
             implicit_cast = foreign_load_impl->implicit_cast;
-            reinterpret_cast_ok = foreign_load_impl->reinterpret_cast_ok;
             return true;
         }
         return false;
@@ -163,7 +160,7 @@ public:
             if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
                 this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
                 loaded_v_h_cpptype = bases.front()->cpptype;
-                reinterpret_cast_ok = true;
+                reinterpret_cast_deemed_ok = true;
                 return true;
             }
             // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see if
@@ -175,7 +172,7 @@ public:
                     if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
                         this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
                         loaded_v_h_cpptype = base->cpptype;
-                        reinterpret_cast_ok = true;
+                        reinterpret_cast_deemed_ok = true;
                         return true;
                     }
                 }
@@ -219,7 +216,7 @@ public:
     const std::type_info *loaded_v_h_cpptype = nullptr;
     void *(*implicit_cast)(void *) = nullptr;
     value_and_holder loaded_v_h;
-    bool reinterpret_cast_ok = false;
+    bool reinterpret_cast_deemed_ok = false;
 };
 // clang-format on
 
@@ -238,8 +235,14 @@ struct smart_holder_type_caster_load {
     }
 
     T *as_raw_ptr_unowned() {
-        if (load_impl.loaded_v_h_cpptype != nullptr && load_impl.reinterpret_cast_ok) {
-            return reinterpret_cast<T *>(loaded_smhldr_ptr->vptr.get());
+        if (load_impl.loaded_v_h_cpptype != nullptr) {
+            if (load_impl.reinterpret_cast_deemed_ok) {
+                return static_cast<T *>(loaded_smhldr_ptr->vptr.get());
+            }
+            if (load_impl.implicit_cast != nullptr) {
+                void *implicit_casted = load_impl.implicit_cast(loaded_smhldr_ptr->vptr.get());
+                return static_cast<T *>(implicit_casted);
+            }
         }
         return loaded_smhldr_ptr->as_raw_ptr_unowned<T>();
     }
