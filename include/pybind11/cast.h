@@ -1044,17 +1044,12 @@ public:
             return false;
         } else {
             handle src_or_index = src;
+            py_value = (py_type) -1;
 #if PY_VERSION_HEX < 0x03080000
             object index;
-            if (index_check(src.ptr())) {
+            if (!PYBIND11_LONG_CHECK(src.ptr()) && index_check(src.ptr())) {
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
-                if (!index) {
-                    src_or_index = handle();
-                    py_value = (py_type) -1;
-                }
-                else {
-                    src_or_index = index;
-                }
+                src_or_index = index ? index : handle();
             }
 #endif
             if (src_or_index) {
