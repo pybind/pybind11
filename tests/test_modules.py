@@ -75,3 +75,11 @@ def test_duplicate_registration():
     """Registering two things with the same name"""
 
     assert m.duplicate_registration() == []
+
+
+def test_builtinsKeyType():
+    """Test that all the keys in the builtin modules have type str.
+
+    Previous versions of pybind11 would add a unicode key in python 2.
+    """
+    assert {type(k) for k in __builtins__.keys()} == {str}
