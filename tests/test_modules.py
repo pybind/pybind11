@@ -77,14 +77,14 @@ def test_duplicate_registration():
     assert m.duplicate_registration() == []
 
 
-def test_builtinsKeyType():
+def test_builtin_key_type():
     """Test that all the keys in the builtin modules have type str.
 
     Previous versions of pybind11 would add a unicode key in python 2.
     """
-    if hasattr(__builtins__, 'keys'):
+    if hasattr(__builtins__, "keys"):
         keys = __builtins__.keys()
-    else: # this is to make pypy happy since builtins is different there.
+    else:  # this is to make pypy happy since builtins is different there.
         keys = __builtins__.__dict__.keys()
 
     assert {type(k) for k in keys} == {str}
