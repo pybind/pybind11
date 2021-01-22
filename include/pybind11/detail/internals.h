@@ -266,7 +266,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         const PyGILState_STATE state;
     } gil;
 
-    constexpr auto *id = PYBIND11_INTERNALS_ID;
+    PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
     auto builtins = handle(PyEval_GetBuiltins());
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
         internals_pp = static_cast<internals **>(capsule(builtins[id]));
