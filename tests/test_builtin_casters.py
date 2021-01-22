@@ -268,6 +268,13 @@ def test_int_convert():
         def __index__(self):
             return 42
 
+    class TypeErrorThought(object):
+        def __index__(self):
+            raise TypeError
+
+        def __int__(self):
+            return 42
+
     class RaisingThought(object):
         def __index__(self):
             raise ValueError
@@ -295,6 +302,8 @@ def test_int_convert():
     # "backports" this behavior.
     assert convert(IndexedThought()) == 42
     assert noconvert(IndexedThought()) == 42
+    assert convert(TypeErrorThought()) == 42
+    require_implicit(TypeErrorThought())
     cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises
 
 
