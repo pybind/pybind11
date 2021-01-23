@@ -10,6 +10,14 @@
 
 #pragma once
 
+#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
+#  define PYBIND11_STD_LAUNDER std::launder
+#  define PYBIND11_HAS_STD_LAUNDER 1
+#else
+#  define PYBIND11_STD_LAUNDER
+#  define PYBIND11_HAS_STD_LAUNDER 0
+#endif
+
 #if defined(__INTEL_COMPILER)
 #  pragma warning push
 #  pragma warning disable 68    // integer conversion resulted in a change of sign
@@ -35,7 +43,9 @@
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#  pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#  if !PYBIND11_HAS_STD_LAUNDER
+#    pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#  endif
 #  pragma GCC diagnostic ignored "-Wattributes"
 #  if __GNUC__ >= 7
 #    pragma GCC diagnostic ignored "-Wnoexcept-type"
@@ -48,6 +58,7 @@
 #include "detail/init.h"
 
 #include <memory>
+#include <new>
 #include <vector>
 #include <string>
 #include <utility>
@@ -151,7 +162,7 @@ protected:
 #  pragma GCC diagnostic pop
 #endif
             if (!std::is_trivially_destructible<Func>::value)
-                rec->free_data = [](function_record *r) { ((capture *) &r->data)->~capture(); };
+                rec->free_data = [](function_record *r) { PYBIND11_STD_LAUNDER((capture *) &r->data)->~capture(); };
         } else {
             rec->data[0] = new capture { std::forward<Func>(f) };
             rec->free_data = [](function_record *r) { delete ((capture *) r->data[0]); };
