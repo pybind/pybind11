@@ -353,10 +353,10 @@ struct classh_type_caster : smart_holder_type_caster_load<T> {
 
     // clang-format off
 
-    operator T()        { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
-    operator T&&() &&   { return this->loaded_smhldr_ptr->template rvalue_ref<T>(); }
-    operator T const&() { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
-    operator T&()       { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
+    operator T()        { return this->loaded_smhldr_ptr->template as_lvalue_ref<T>(); }
+    operator T&&() &&   { return this->loaded_smhldr_ptr->template as_rvalue_ref<T>(); }
+    operator T const&() { return this->loaded_smhldr_ptr->template as_lvalue_ref<T>(); }
+    operator T&()       { return this->loaded_smhldr_ptr->template as_lvalue_ref<T>(); }
     operator T const*() { return this->loaded_as_raw_ptr_unowned(); }
     operator T*()       { return this->loaded_as_raw_ptr_unowned(); }
 
