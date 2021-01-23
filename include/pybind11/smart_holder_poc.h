@@ -12,7 +12,13 @@ High-level aspects:
   C++ Undefined Behavior, especially from Python.
 
 * Support a system design with clean runtime inheritance casting. From this
-  it follows that the `smart_holder` needs to be type-erased (`void*`, RTTI).
+  it follows that the `smart_holder` needs to be type-erased (`void*`).
+
+* Handling of RTTI for the type-erased held pointer is NOT implemented here.
+  It is the responsibility of the caller to ensure that `static_cast<T *>`
+  is well-formed when calling `as_*` member functions. Inheritance casting
+  needs to be handled in a different layer (similar to the code organization
+  in boost/python/object/inheritance.hpp).
 
 Details:
 
@@ -27,10 +33,6 @@ Details:
 
 * If created from an external `shared_ptr`, or a `unique_ptr` with a custom
   deleter, including life-time management for external objects is infeasible.
-
-* The `typename T` between `from` and `as` calls must match exactly.
-  Inheritance casting needs to be handled in a different layer (similar
-  to the code organization in boost/python/object/inheritance.hpp).
 
 * The smart_holder is movable but not copyable, as a consequence of using
   unique_ptr for the vptr_deleter_armed_flag_ptr. Note that the bool for
@@ -72,34 +74,29 @@ struct guarded_custom_deleter {
 };
 
 struct smart_holder {
-    const std::type_info *rtti_held;
     const std::type_info *rtti_uqp_del;
     std::unique_ptr<bool> vptr_deleter_armed_flag_ptr;
     std::shared_ptr<void> vptr;
     bool vptr_is_using_noop_deleter : 1;
     bool vptr_is_using_builtin_delete : 1;
     bool vptr_is_external_shared_ptr : 1;
+    bool is_populated : 1;
 
     smart_holder()
-        : rtti_held{nullptr}, rtti_uqp_del{nullptr}, vptr_is_using_noop_deleter{false},
-          vptr_is_using_builtin_delete{false}, vptr_is_external_shared_ptr{false} {}
+        : rtti_uqp_del{nullptr}, vptr_is_using_noop_deleter{false},
+          vptr_is_using_builtin_delete{false}, vptr_is_external_shared_ptr{false}, is_populated{
+                                                                                       false} {}
 
     explicit smart_holder(bool vptr_deleter_armed_flag)
-        : rtti_held{nullptr}, rtti_uqp_del{nullptr}, vptr_deleter_armed_flag_ptr{new bool{
-                                                         vptr_deleter_armed_flag}},
+        : rtti_uqp_del{nullptr}, vptr_deleter_armed_flag_ptr{new bool{vptr_deleter_armed_flag}},
           vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
-          vptr_is_external_shared_ptr{false} {}
+          vptr_is_external_shared_ptr{false}, is_populated{false} {}
 
     bool has_pointee() const { return vptr.get() != nullptr; }
 
-    template <typename T>
-    void ensure_compatible_rtti_held(const char *context) const {
-        if (!rtti_held) {
+    void ensure_is_populated(const char *context) const {
+        if (!is_populated) {
             throw std::runtime_error(std::string("Unpopulated holder (") + context + ").");
-        }
-        const std::type_info *rtti_requested = &typeid(T);
-        if (!(*rtti_requested == *rtti_held)) {
-            throw std::runtime_error(std::string("Incompatible type (") + context + ").");
         }
     }
 
@@ -153,50 +150,47 @@ struct smart_holder {
     template <typename T>
     static smart_holder from_raw_ptr_unowned(T *raw_ptr) {
         smart_holder hld(false);
-        hld.rtti_held = &typeid(T);
         hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
         hld.vptr_is_using_noop_deleter = true;
+        hld.is_populated               = true;
         return hld;
     }
 
     template <typename T>
     T *as_raw_ptr_unowned() const {
-        static const char *context = "as_raw_ptr_unowned";
-        ensure_compatible_rtti_held<T>(context);
         return static_cast<T *>(vptr.get());
     }
 
     template <typename T>
-    T &lvalue_ref() const {
-        static const char *context = "lvalue_ref";
-        ensure_compatible_rtti_held<T>(context);
+    T &as_lvalue_ref() const {
+        static const char *context = "as_lvalue_ref";
+        ensure_is_populated(context);
         ensure_has_pointee(context);
-        return *static_cast<T *>(vptr.get());
+        return *as_raw_ptr_unowned<T>();
     }
 
     template <typename T>
-    T &&rvalue_ref() const {
-        static const char *context = "rvalue_ref";
-        ensure_compatible_rtti_held<T>(context);
+    T &&as_rvalue_ref() const {
+        static const char *context = "as_rvalue_ref";
+        ensure_is_populated(context);
         ensure_has_pointee(context);
-        return std::move(*static_cast<T *>(vptr.get()));
+        return std::move(*as_raw_ptr_unowned<T>());
     }
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr) {
         smart_holder hld(true);
-        hld.rtti_held = &typeid(T);
         hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
         hld.vptr_is_using_builtin_delete = true;
+        hld.is_populated                 = true;
         return hld;
     }
 
     template <typename T>
     T *as_raw_ptr_release_ownership(const char *context = "as_raw_ptr_release_ownership") {
-        ensure_compatible_rtti_held<T>(context);
         ensure_vptr_is_using_builtin_delete(context);
         ensure_use_count_1(context);
-        T *raw_ptr                   = static_cast<T *>(vptr.get());
+        T *raw_ptr                   = as_raw_ptr_unowned<T>();
         *vptr_deleter_armed_flag_ptr = false;
         vptr.reset();
         return raw_ptr;
@@ -205,11 +199,11 @@ struct smart_holder {
     template <typename T>
     static smart_holder from_unique_ptr(std::unique_ptr<T> &&unq_ptr) {
         smart_holder hld(true);
-        hld.rtti_held = &typeid(T);
         hld.vptr.reset(unq_ptr.get(),
                        guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
         unq_ptr.release();
         hld.vptr_is_using_builtin_delete = true;
+        hld.is_populated                 = true;
         return hld;
     }
 
@@ -221,21 +215,20 @@ struct smart_holder {
     template <typename T, typename D>
     static smart_holder from_unique_ptr_with_deleter(std::unique_ptr<T, D> &&unq_ptr) {
         smart_holder hld(true);
-        hld.rtti_held    = &typeid(T);
         hld.rtti_uqp_del = &typeid(D);
         hld.vptr.reset(unq_ptr.get(),
                        guarded_custom_deleter<T, D>(hld.vptr_deleter_armed_flag_ptr.get()));
         unq_ptr.release();
+        hld.is_populated = true;
         return hld;
     }
 
     template <typename T, typename D>
     std::unique_ptr<T, D> as_unique_ptr_with_deleter() {
         static const char *context = "as_unique_ptr_with_deleter";
-        ensure_compatible_rtti_held<T>(context);
         ensure_compatible_rtti_uqp_del<D>(context);
         ensure_use_count_1(context);
-        T *raw_ptr                   = static_cast<T *>(vptr.get());
+        T *raw_ptr                   = as_raw_ptr_unowned<T>();
         *vptr_deleter_armed_flag_ptr = false;
         vptr.reset();
         return std::unique_ptr<T, D>(raw_ptr);
@@ -244,16 +237,14 @@ struct smart_holder {
     template <typename T>
     static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {
         smart_holder hld;
-        hld.rtti_held                   = &typeid(T);
         hld.vptr                        = std::static_pointer_cast<void>(shd_ptr);
         hld.vptr_is_external_shared_ptr = true;
+        hld.is_populated                = true;
         return hld;
     }
 
     template <typename T>
     std::shared_ptr<T> as_shared_ptr() const {
-        static const char *context = "as_shared_ptr";
-        ensure_compatible_rtti_held<T>(context);
         return std::static_pointer_cast<T>(vptr);
     }
 };
