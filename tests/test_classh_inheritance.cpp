@@ -2,6 +2,8 @@
 
 #include <pybind11/classh.h>
 
+#include <memory>
+
 namespace pybind11_tests {
 namespace classh_inheritance {
 
@@ -25,6 +27,12 @@ inline base *rtrn_mptr_drvd_up_cast() { return new drvd; }
 
 inline int pass_cptr_base(base const *b) { return b->id() + 11; }
 inline int pass_cptr_drvd(drvd const *d) { return d->id() + 12; }
+
+inline std::shared_ptr<drvd> rtrn_shmp_drvd()         { return std::shared_ptr<drvd>(new drvd); }
+inline std::shared_ptr<base> rtrn_shmp_drvd_up_cast() { return std::shared_ptr<drvd>(new drvd); }
+
+inline int pass_shcp_base(std::shared_ptr<base const> b) { return b->id() + 21; }
+inline int pass_shcp_drvd(std::shared_ptr<drvd const> d) { return d->id() + 22; }
 // clang-format on
 
 using base1 = base_template<110>;
@@ -68,6 +76,11 @@ TEST_SUBMODULE(classh_inheritance, m) {
     m.def("rtrn_mptr_drvd_up_cast", rtrn_mptr_drvd_up_cast, rvto);
     m.def("pass_cptr_base", pass_cptr_base);
     m.def("pass_cptr_drvd", pass_cptr_drvd);
+
+    m.def("rtrn_shmp_drvd", rtrn_shmp_drvd);
+    m.def("rtrn_shmp_drvd_up_cast", rtrn_shmp_drvd_up_cast);
+    m.def("pass_shcp_base", pass_shcp_base);
+    m.def("pass_shcp_drvd", pass_shcp_drvd);
 
     py::classh<base1>(m, "base1").def(py::init<>()); // __init__ needed for Python inheritance.
     py::classh<base2>(m, "base2").def(py::init<>());

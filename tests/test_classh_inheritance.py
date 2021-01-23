@@ -9,12 +9,26 @@ def test_rtrn_mptr_drvd_pass_cptr_base():
     assert i == 2 * 100 + 11
 
 
+def test_rtrn_shmp_drvd_pass_shcp_base():
+    d = m.rtrn_shmp_drvd()
+    i = m.pass_shcp_base(d)  # load_impl Case 2a
+    assert i == 2 * 100 + 21
+
+
 def test_rtrn_mptr_drvd_up_cast_pass_cptr_drvd():
     b = m.rtrn_mptr_drvd_up_cast()
     # the base return is down-cast immediately.
     assert b.__class__.__name__ == "drvd"
     i = m.pass_cptr_drvd(b)
     assert i == 2 * 100 + 12
+
+
+def test_rtrn_shmp_drvd_up_cast_pass_shcp_drvd():
+    b = m.rtrn_shmp_drvd_up_cast()
+    # the base return is down-cast immediately.
+    assert b.__class__.__name__ == "drvd"
+    i = m.pass_shcp_drvd(b)
+    assert i == 2 * 100 + 22
 
 
 def test_rtrn_mptr_drvd2_pass_cptr_bases():
