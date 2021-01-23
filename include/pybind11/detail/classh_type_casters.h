@@ -1,7 +1,9 @@
 #pragma once
 
+#include "../cast.h"
 #include "../pytypes.h"
 #include "../smart_holder_poc.h"
+#include "class.h"
 #include "common.h"
 #include "descr.h"
 #include "internals.h"
@@ -224,8 +226,6 @@ struct smart_holder_type_caster_load {
     using holder_type = pybindit::memory::smart_holder;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<T>(src))
-            return false;
         load_impl = modified_type_caster_generic_load_impl(typeid(T));
         if (!load_impl.load(src, convert))
             return false;
