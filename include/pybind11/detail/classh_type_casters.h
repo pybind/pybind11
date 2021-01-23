@@ -227,36 +227,41 @@ struct smart_holder_type_caster_load {
         load_impl = modified_type_caster_generic_load_impl(typeid(T));
         if (!load_impl.load(src, convert))
             return false;
-        loaded_smhldr_ptr = &load_impl.loaded_v_h.holder<holder_type>();
         return true;
     }
 
-    T *convert_type(void *void_ptr) {
-        if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr
-            && !load_impl.reinterpret_cast_deemed_ok && load_impl.implicit_cast != nullptr) {
-            void_ptr = load_impl.implicit_cast(void_ptr);
-        }
-        return static_cast<T *>(void_ptr);
+    T *loaded_as_raw_ptr_unowned() const {
+        return convert_type(holder().template as_raw_ptr_unowned<void>());
     }
 
-    T *loaded_as_raw_ptr_unowned() {
-        return convert_type(loaded_smhldr_ptr->as_raw_ptr_unowned<void>());
+    T &loaded_as_lvalue_ref() const {
+        static const char *context = "loaded_as_lvalue_ref";
+        holder().ensure_is_populated(context);
+        holder().ensure_has_pointee(context);
+        return *loaded_as_raw_ptr_unowned();
+    }
+
+    T &&loaded_as_rvalue_ref() const {
+        static const char *context = "loaded_as_rvalue_ref";
+        holder().ensure_is_populated(context);
+        holder().ensure_has_pointee(context);
+        return std::move(*loaded_as_raw_ptr_unowned());
     }
 
     std::shared_ptr<T> loaded_as_shared_ptr() {
-        std::shared_ptr<void> void_ptr = loaded_smhldr_ptr->as_shared_ptr<void>();
+        std::shared_ptr<void> void_ptr = holder().template as_shared_ptr<void>();
         return std::shared_ptr<T>(void_ptr, convert_type(void_ptr.get()));
     }
 
     std::unique_ptr<T> loaded_as_unique_ptr() {
-        loaded_smhldr_ptr->ensure_can_release_ownership();
-        auto raw_void_ptr = loaded_smhldr_ptr->as_raw_ptr_unowned<void>();
+        holder().ensure_can_release_ownership();
+        auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
         // MISSING: Safety checks for type conversions
         // (T must be polymorphic or meet certain other conditions).
         T *raw_type_ptr = convert_type(raw_void_ptr);
 
         // Critical transfer-of-ownership section. This must stay together.
-        loaded_smhldr_ptr->release_ownership();
+        holder().release_ownership();
         auto result = std::unique_ptr<T>(raw_type_ptr);
 
         void *value_void_ptr
@@ -269,9 +274,18 @@ struct smart_holder_type_caster_load {
         return result;
     }
 
-protected:
+private:
     modified_type_caster_generic_load_impl load_impl;
-    holder_type *loaded_smhldr_ptr = nullptr;
+
+    holder_type &holder() const { return load_impl.loaded_v_h.holder<holder_type>(); }
+
+    T *convert_type(void *void_ptr) const {
+        if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr
+            && !load_impl.reinterpret_cast_deemed_ok && load_impl.implicit_cast != nullptr) {
+            void_ptr = load_impl.implicit_cast(void_ptr);
+        }
+        return static_cast<T *>(void_ptr);
+    }
 };
 
 // type_caster_base BEGIN
@@ -361,10 +375,10 @@ struct classh_type_caster : smart_holder_type_caster_load<T> {
 
     // clang-format off
 
-    operator T()        { return this->loaded_smhldr_ptr->template as_lvalue_ref<T>(); }
-    operator T&&() &&   { return this->loaded_smhldr_ptr->template as_rvalue_ref<T>(); }
-    operator T const&() { return this->loaded_smhldr_ptr->template as_lvalue_ref<T>(); }
-    operator T&()       { return this->loaded_smhldr_ptr->template as_lvalue_ref<T>(); }
+    operator T()        { return this->loaded_as_lvalue_ref(); }
+    operator T&&() &&   { return this->loaded_as_rvalue_ref(); }
+    operator T const&() { return this->loaded_as_lvalue_ref(); }
+    operator T&()       { return this->loaded_as_lvalue_ref(); }
     operator T const*() { return this->loaded_as_raw_ptr_unowned(); }
     operator T*()       { return this->loaded_as_raw_ptr_unowned(); }
 
