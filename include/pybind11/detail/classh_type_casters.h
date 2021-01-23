@@ -232,23 +232,18 @@ struct smart_holder_type_caster_load {
     }
 
     T *loaded_as_raw_ptr_unowned() {
-        // BYPASSES smart_holder type checking completely.
-        if (load_impl.loaded_v_h_cpptype != nullptr) {
-            if (load_impl.reinterpret_cast_deemed_ok) {
-                return static_cast<T *>(loaded_smhldr_ptr->vptr.get());
-            }
-            if (load_impl.implicit_cast != nullptr) {
-                void *implicit_casted = load_impl.implicit_cast(loaded_smhldr_ptr->vptr.get());
-                return static_cast<T *>(implicit_casted);
-            }
+        void *void_ptr = loaded_smhldr_ptr->as_raw_ptr_unowned<void>();
+        if (load_impl.loaded_v_h_cpptype == nullptr || load_impl.reinterpret_cast_deemed_ok
+            || load_impl.implicit_cast == nullptr) {
+            return static_cast<T *>(void_ptr);
         }
-        return static_cast<T *>(loaded_smhldr_ptr->vptr.get());
+        void *implicit_casted = load_impl.implicit_cast(void_ptr);
+        return static_cast<T *>(implicit_casted);
     }
 
     std::shared_ptr<T> loaded_as_shared_ptr() {
         T *raw_ptr = loaded_as_raw_ptr_unowned();
-        // BYPASSES smart_holder shared_ptr tracking completely.
-        return std::shared_ptr<T>(loaded_smhldr_ptr->vptr, raw_ptr);
+        return std::shared_ptr<T>(loaded_smhldr_ptr->as_shared_ptr<void>(), raw_ptr);
     }
 
     std::unique_ptr<T> loaded_as_unique_ptr() {
