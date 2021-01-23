@@ -6,28 +6,28 @@
 namespace pybind11_tests {
 namespace classh_module_local {
 
-struct bottle {
-    std::string msg;
+struct atyp { // Short for "any type".
+    std::string mtxt;
 };
 
-std::string get_msg(const bottle &b) { return b.msg; }
+std::string get_mtxt(const atyp &obj) { return obj.mtxt; }
 
 } // namespace classh_module_local
 } // namespace pybind11_tests
 
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_module_local::bottle)
+PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_module_local::atyp)
 
 PYBIND11_MODULE(classh_module_local_2, m) {
     namespace py = pybind11;
     using namespace pybind11_tests::classh_module_local;
 
-    py::classh<bottle>(m, "bottle", py::module_local())
-        .def(py::init([](const std::string &msg) {
-            bottle obj;
-            obj.msg = msg;
+    py::classh<atyp>(m, "atyp", py::module_local())
+        .def(py::init([](const std::string &mtxt) {
+            atyp obj;
+            obj.mtxt = mtxt;
             return obj;
         }))
-        .def("tag", [](const bottle &) { return 2; });
+        .def("tag", [](const atyp &) { return 2; });
 
-    m.def("get_msg", get_msg);
+    m.def("get_mtxt", get_mtxt);
 }
