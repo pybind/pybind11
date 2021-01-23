@@ -231,29 +231,42 @@ struct smart_holder_type_caster_load {
         return true;
     }
 
-    T *loaded_as_raw_ptr_unowned() {
-        void *void_ptr = loaded_smhldr_ptr->as_raw_ptr_unowned<void>();
-        if (load_impl.loaded_v_h_cpptype == nullptr || load_impl.reinterpret_cast_deemed_ok
-            || load_impl.implicit_cast == nullptr) {
-            return static_cast<T *>(void_ptr);
+    T *convert_type(void *void_ptr) {
+        if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr
+            && !load_impl.reinterpret_cast_deemed_ok && load_impl.implicit_cast != nullptr) {
+            void_ptr = load_impl.implicit_cast(void_ptr);
         }
-        void *implicit_casted = load_impl.implicit_cast(void_ptr);
-        return static_cast<T *>(implicit_casted);
+        return static_cast<T *>(void_ptr);
+    }
+
+    T *loaded_as_raw_ptr_unowned() {
+        return convert_type(loaded_smhldr_ptr->as_raw_ptr_unowned<void>());
     }
 
     std::shared_ptr<T> loaded_as_shared_ptr() {
-        T *raw_ptr = loaded_as_raw_ptr_unowned();
-        return std::shared_ptr<T>(loaded_smhldr_ptr->as_shared_ptr<void>(), raw_ptr);
+        std::shared_ptr<void> void_ptr = loaded_smhldr_ptr->as_shared_ptr<void>();
+        return std::shared_ptr<T>(void_ptr, convert_type(void_ptr.get()));
     }
 
     std::unique_ptr<T> loaded_as_unique_ptr() {
-        void *value_void_ptr = load_impl.loaded_v_h.value_ptr();
-        auto unq_ptr         = loaded_smhldr_ptr->as_unique_ptr<T>();
+        loaded_smhldr_ptr->ensure_can_release_ownership();
+        auto raw_void_ptr = loaded_smhldr_ptr->as_raw_ptr_unowned<void>();
+        // MISSING: Safety checks for type conversions
+        // (T must be polymorphic or meet certain other conditions).
+        T *raw_type_ptr = convert_type(raw_void_ptr);
+
+        // Critical transfer-of-ownership section. This must stay together.
+        loaded_smhldr_ptr->release_ownership();
+        auto result = std::unique_ptr<T>(raw_type_ptr);
+
+        void *value_void_ptr
+            = load_impl.loaded_v_h.value_ptr(); // Expected to be identical to raw_void_ptr.
         load_impl.loaded_v_h.holder<holder_type>().~holder_type();
         load_impl.loaded_v_h.set_holder_constructed(false);
         load_impl.loaded_v_h.value_ptr() = nullptr;
         deregister_instance(load_impl.loaded_v_h.inst, value_void_ptr, load_impl.loaded_v_h.type);
-        return unq_ptr;
+
+        return result;
     }
 
 protected:
