@@ -84,7 +84,6 @@ public:
     }
 
     PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
-        pybind11_fail("classh_type_casters: local_load UNTESTED.");
         // Not thread safe. But the GIL needs to be held anyway in the context of this code.
         static modified_type_caster_generic_load_impl caster;
         caster = modified_type_caster_generic_load_impl(ti);
@@ -111,7 +110,6 @@ public:
 
         void* void_ptr = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo);
         if (void_ptr != nullptr) {
-            pybind11_fail("classh_type_casters: try_load_foreign_module_local UNTESTED.");
             auto foreign_load_impl = static_cast<modified_type_caster_generic_load_impl *>(void_ptr);
             if (loaded_v_h_cpptype != nullptr) {
                 pybind11_fail("classh_type_casters: try_load_foreign_module_local failure.");
