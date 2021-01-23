@@ -186,13 +186,22 @@ struct smart_holder {
         return hld;
     }
 
-    template <typename T>
-    T *as_raw_ptr_release_ownership(const char *context = "as_raw_ptr_release_ownership") {
+    void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") {
         ensure_vptr_is_using_builtin_delete(context);
         ensure_use_count_1(context);
-        T *raw_ptr                   = as_raw_ptr_unowned<T>();
+    }
+
+    // Caller is responsible for calling ensure_can_release_ownership().
+    void release_ownership() {
         *vptr_deleter_armed_flag_ptr = false;
         vptr.reset();
+    }
+
+    template <typename T>
+    T *as_raw_ptr_release_ownership(const char *context = "as_raw_ptr_release_ownership") {
+        ensure_can_release_ownership(context);
+        T *raw_ptr = as_raw_ptr_unowned<T>();
+        release_ownership();
         return raw_ptr;
     }
 
