@@ -251,11 +251,17 @@ def test_integer_casting():
         assert "incompatible function arguments" in str(excinfo.value)
 
 
-@pytest.mark.filterwarnings("ignore:an integer is required:DeprecationWarning")
 def test_int_convert():
     class DeepThought(object):
         def __int__(self):
             return 42
+
+    class DoubleThought(object):
+        def __int__(self):
+            return 42
+
+        def __index__(self):
+            return 0
 
     class ShallowThought(object):
         pass
@@ -284,7 +290,7 @@ def test_int_convert():
 
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
 
-    def require_implicit(v):
+    def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
 
     def cant_convert(v):
@@ -294,20 +300,22 @@ def test_int_convert():
     assert noconvert(7) == 7
     cant_convert(3.14159)
     assert convert(DeepThought()) == 42
-    require_implicit(DeepThought())
+    requires_conversion(DeepThought())
+    assert convert(DoubleThought()) == 0  # Fishy; `int(DoubleThought)` == 42
+    assert noconvert(DoubleThought()) == 0
     cant_convert(ShallowThought())
     cant_convert(FuzzyThought())
 
-    # Before Python 3.8, `int(obj)` does not pick up on `obj.__index__`, but pybind11
-    # "backports" this behavior.
+    # Before Python 3.8, `PyLong_AsLong` does not pick up on `obj.__index__`,
+    # but pybind11 "backports" this behavior.
     assert convert(IndexedThought()) == 42
     assert noconvert(IndexedThought()) == 42
     assert convert(TypeErrorThought()) == 42
-    require_implicit(TypeErrorThought())
-    cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises
+    requires_conversion(TypeErrorThought())
+    assert convert(RaisingThought()) == 42
+    requires_conversion(RaisingThought())
 
 
-@pytest.mark.filterwarnings("ignore:an integer is required:DeprecationWarning")
 def test_numpy_int_convert():
     np = pytest.importorskip("numpy")
 
