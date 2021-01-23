@@ -231,7 +231,8 @@ struct smart_holder_type_caster_load {
         return true;
     }
 
-    T *as_raw_ptr_unowned() {
+    T *loaded_as_raw_ptr_unowned() {
+        // BYPASSES smart_holder type checking completely.
         if (load_impl.loaded_v_h_cpptype != nullptr) {
             if (load_impl.reinterpret_cast_deemed_ok) {
                 return static_cast<T *>(loaded_smhldr_ptr->vptr.get());
@@ -241,7 +242,13 @@ struct smart_holder_type_caster_load {
                 return static_cast<T *>(implicit_casted);
             }
         }
-        return loaded_smhldr_ptr->as_raw_ptr_unowned<T>();
+        return static_cast<T *>(loaded_smhldr_ptr->vptr.get());
+    }
+
+    std::shared_ptr<T> loaded_as_shared_ptr() {
+        T *raw_ptr = loaded_as_raw_ptr_unowned();
+        // BYPASSES smart_holder shared_ptr tracking completely.
+        return std::shared_ptr<T>(loaded_smhldr_ptr->vptr, raw_ptr);
     }
 
     std::unique_ptr<T> loaded_as_unique_ptr() {
@@ -350,8 +357,8 @@ struct classh_type_caster : smart_holder_type_caster_load<T> {
     operator T&&() &&   { return this->loaded_smhldr_ptr->template rvalue_ref<T>(); }
     operator T const&() { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
     operator T&()       { return this->loaded_smhldr_ptr->template lvalue_ref<T>(); }
-    operator T const*() { return this->as_raw_ptr_unowned(); }
-    operator T*()       { return this->as_raw_ptr_unowned(); }
+    operator T const*() { return this->loaded_as_raw_ptr_unowned(); }
+    operator T*()       { return this->loaded_as_raw_ptr_unowned(); }
 
     // clang-format on
 
@@ -487,7 +494,7 @@ struct classh_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T>
     template <typename>
     using cast_op_type = std::shared_ptr<T>;
 
-    operator std::shared_ptr<T>() { return this->loaded_smhldr_ptr->template as_shared_ptr<T>(); }
+    operator std::shared_ptr<T>() { return this->loaded_as_shared_ptr(); }
 };
 
 template <typename T>
@@ -505,9 +512,7 @@ struct classh_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_l
     template <typename>
     using cast_op_type = std::shared_ptr<T const>;
 
-    operator std::shared_ptr<T const>() {
-        return this->loaded_smhldr_ptr->template as_shared_ptr<T>();
-    }
+    operator std::shared_ptr<T const>() { return this->loaded_as_shared_ptr(); } // Mutbl2Const
 };
 
 template <typename T>
