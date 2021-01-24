@@ -31,6 +31,9 @@ inline std::pair<bool, handle> find_existing_python_instance(void *src_void_ptr,
     return std::make_pair(false, handle());
 }
 
+// The modified_type_caster_generic_load_impl could replace type_caster_generic::load_impl but not
+// vice versa. The main difference is that the original code only propagates a reference to the
+// held value, while the modified implementation propagates value_and_holder.
 // clang-format off
 class modified_type_caster_generic_load_impl {
 public:
@@ -84,12 +87,14 @@ public:
     }
 
     PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
-        // Not thread safe. But the GIL needs to be held anyway in the context of this code.
-        static modified_type_caster_generic_load_impl caster;
-        caster = modified_type_caster_generic_load_impl(ti);
-        if (caster.load(src, false)) {
+        std::unique_ptr<modified_type_caster_generic_load_impl> loader(
+            new modified_type_caster_generic_load_impl(ti));
+        if (loader->load(src, false)) {
             // Trick to work with the existing pybind11 internals.
-            return &caster; // Any pointer except nullptr;
+            // The void pointer is immediately captured in a new unique_ptr in
+            // try_load_foreign_module_local. If this assumption is violated sanitizers
+            // will most likely flag a leak (verified to be the case with ASAN).
+            return static_cast<void *>(loader.release());
         }
         return nullptr;
     }
@@ -108,15 +113,23 @@ public:
             || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype)))
             return false;
 
-        void* void_ptr = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo);
-        if (void_ptr != nullptr) {
-            auto foreign_load_impl = static_cast<modified_type_caster_generic_load_impl *>(void_ptr);
+        void* foreign_loader_void_ptr =
+            foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo);
+        if (foreign_loader_void_ptr != nullptr) {
+            auto foreign_loader = std::unique_ptr<modified_type_caster_generic_load_impl>(
+                static_cast<modified_type_caster_generic_load_impl *>(foreign_loader_void_ptr));
+            // Magic number intentionally hard-coded for simplicity and maximum robustness.
+            if (foreign_loader->local_load_safety_guard != 37726257887406645) {
+                pybind11_fail(
+                    "Unexpected local_load_safety_guard,"
+                    " possibly due to py::class_ vs py::classh mixup.");
+            }
             if (loaded_v_h_cpptype != nullptr) {
                 pybind11_fail("classh_type_casters: try_load_foreign_module_local failure.");
             }
-            loaded_v_h = foreign_load_impl->loaded_v_h;
-            loaded_v_h_cpptype = foreign_load_impl->loaded_v_h_cpptype;
-            implicit_cast = foreign_load_impl->implicit_cast;
+            loaded_v_h = foreign_loader->loaded_v_h;
+            loaded_v_h_cpptype = foreign_loader->loaded_v_h_cpptype;
+            implicit_cast = foreign_loader->implicit_cast;
             return true;
         }
         return false;
@@ -216,6 +229,9 @@ public:
     void *(*implicit_cast)(void *) = nullptr;
     value_and_holder loaded_v_h;
     bool reinterpret_cast_deemed_ok = false;
+    // Magic number intentionally hard-coded, to guard against class_ vs classh mixups.
+    // Ideally type_caster_generic would have a similar guard, but this requires a change there.
+    std::size_t local_load_safety_guard = 37726257887406645;
 };
 // clang-format on
 
