@@ -57,8 +57,6 @@
 #  include <cxxabi.h>
 #endif
 
-#define TRIGGER_SEGSEV { unsigned long *bad = nullptr; *bad = -1; }
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
@@ -100,7 +98,7 @@ public:
     /// Construct a cpp_function from a class method (const, no ref-qualifier)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
     cpp_function(Return (Class::*f)(Arg...) const, const Extra&... extra) {
-        initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },  // GET_INT_STACK -1
+        initialize([f](const Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return (*)(const Class *, Arg ...)) nullptr, extra...);
     }
 
@@ -170,7 +168,7 @@ protected:
                       "The number of argument annotations does not match the number of function arguments");
 
         /* Dispatch code which converts function arguments and performs the actual function call */
-        rec->impl = [](function_call &call) -> handle {  // GET_INT_STACK -5
+        rec->impl = [](function_call &call) -> handle {
             cast_in args_converter;
 
             /* Try to cast the function arguments into the C++ domain */
@@ -193,7 +191,7 @@ protected:
 
             /* Perform the function call */
             handle result = cast_out::cast(
-                std::move(args_converter).template call<Return, Guard>(cap->f), policy, call.parent);  // GET_INT_STACK -4
+                std::move(args_converter).template call<Return, Guard>(cap->f), policy, call.parent);
 
             /* Invoke call policy post-call hook */
             process_attributes<Extra...>::postcall(call, result);
@@ -555,7 +553,7 @@ protected:
         handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
 
-        auto self_value_and_holder = value_and_holder(); // cast.h
+        auto self_value_and_holder = value_and_holder();
         if (overloads->is_constructor) {
             if (!PyObject_TypeCheck(parent.ptr(), (PyTypeObject *) overloads->scope.ptr())) {
                 PyErr_SetString(PyExc_TypeError, "__init__(self, ...) called with invalid `self` argument");
@@ -767,7 +765,7 @@ protected:
                 // 6. Call the function.
                 try {
                     loader_life_support guard{};
-                    result = func.impl(call);  // GET_INT_STACK -6
+                    result = func.impl(call);
                 } catch (reference_cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
                 }
@@ -933,7 +931,7 @@ protected:
         } else {
             if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
                 auto *pi = reinterpret_cast<instance *>(parent.ptr());
-                self_value_and_holder.type->init_instance(pi, nullptr);  // GET_STACK -4
+                self_value_and_holder.type->init_instance(pi, nullptr);
             }
             return result.ptr();
         }
@@ -1540,7 +1538,7 @@ private:
             init_holder_from_existing(v_h, holder_ptr, std::is_copy_constructible<holder_type>());
             v_h.set_holder_constructed();
         } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());  // GET_STACK -2
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
             v_h.set_holder_constructed();
         }
     }
@@ -1555,7 +1553,7 @@ private:
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
         }
-        init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());  // GET_STACK -3
+        init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
