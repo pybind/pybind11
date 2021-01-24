@@ -46,7 +46,9 @@ namespace pybind11_tests {
 namespace unique_ptr_member {
 
 TEST_SUBMODULE(unique_ptr_member, m) {
-    py::classh<pointee>(m, "pointee").def(py::init<>()).def("get_int", &pointee::get_int);
+    py::class_<pointee, py::smart_holder>(m, "pointee")
+        .def(py::init<>())
+        .def("get_int", &pointee::get_int);
 
     m.def("make_unique_pointee", make_unique_pointee);
 

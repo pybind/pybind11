@@ -1628,6 +1628,7 @@ using type_caster_holder = conditional_t<is_copy_constructible<holder_type>::val
                                          copyable_holder_caster<type, holder_type>,
                                          move_only_holder_caster<type, holder_type>>;
 
+template <typename T, bool Value = false> struct is_smart_holder { static constexpr bool value = Value; };
 template <typename T, bool Value = false> struct always_construct_holder { static constexpr bool value = Value; };
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
@@ -1642,7 +1643,8 @@ template <typename T, bool Value = false> struct always_construct_holder { stati
 
 // PYBIND11_DECLARE_HOLDER_TYPE holder types:
 template <typename base, typename holder> struct is_holder_type :
-    std::is_base_of<detail::type_caster_holder<base, holder>, detail::type_caster<holder>> {};
+    detail::any_of<std::is_base_of<detail::type_caster_holder<base, holder>, detail::type_caster<holder>>,
+                   detail::is_smart_holder<holder>> {};
 // Specialization for always-supported unique_ptr holders:
 template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
     std::true_type {};
