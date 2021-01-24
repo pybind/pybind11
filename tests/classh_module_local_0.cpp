@@ -1,4 +1,5 @@
 #include <pybind11/classh.h>
+#include <pybind11/pybind11.h>
 
 #include <string>
 
