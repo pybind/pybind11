@@ -57,11 +57,13 @@ namespace classh_wip {
 TEST_SUBMODULE(classh_wip, m) {
     namespace py = pybind11;
 
-    py::classh<atyp>(m, "atyp").def(py::init<>()).def(py::init([](const std::string &mtxt) {
-        atyp obj;
-        obj.mtxt = mtxt;
-        return obj;
-    }));
+    py::class_<atyp, py::smart_holder>(m, "atyp")
+        .def(py::init<>())
+        .def(py::init([](const std::string &mtxt) {
+            atyp obj;
+            obj.mtxt = mtxt;
+            return obj;
+        }));
 
     m.def("rtrn_valu_atyp", rtrn_valu_atyp);
     m.def("rtrn_rref_atyp", rtrn_rref_atyp);

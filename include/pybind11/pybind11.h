@@ -1295,7 +1295,7 @@ public:
         /* Process optional arguments, if any */
         process_attributes<Extra...>::init(extra..., &record);
 
-        generic_type::initialize(record, &type_caster_generic::local_load);
+        generic_type_initialize(record);
 
         if (has_alias) {
             auto &instances = record.module_local ? registered_local_types_cpp() : get_internals().registered_types_cpp;
@@ -1503,6 +1503,16 @@ public:
     }
 
 private:
+    template <typename H = holder_type, detail::enable_if_t<!detail::is_smart_holder<H>::value, int> = 0>
+    void generic_type_initialize(const detail::type_record &record) {
+        generic_type::initialize(record, &detail::type_caster_generic::local_load);
+    }
+
+    template <typename H = holder_type, detail::enable_if_t<detail::is_smart_holder<H>::value, int> = 0>
+    void generic_type_initialize(const detail::type_record &record) {
+        generic_type::initialize(record, detail::is_smart_holder<H>::get_type_caster_local_load_function_ptr());
+    }
+
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
@@ -1547,6 +1557,7 @@ private:
     /// instance.  Should be called as soon as the `type` value_ptr is set for an instance.  Takes an
     /// optional pointer to an existing holder to use; if not specified and the instance is
     /// `.owned`, a new holder will be constructed to manage the value pointer.
+    template <typename H = holder_type, detail::enable_if_t<!detail::is_smart_holder<H>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
@@ -1554,6 +1565,11 @@ private:
             v_h.set_instance_registered();
         }
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
+    }
+
+    template <typename H = holder_type, detail::enable_if_t<detail::is_smart_holder<H>::value, int> = 0>
+    static void init_instance(detail::instance *inst, const void *holder_ptr) {
+        detail::is_smart_holder<H>::template init_instance_for_type<type>(inst, holder_ptr);
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
