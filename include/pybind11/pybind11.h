@@ -162,11 +162,12 @@ protected:
 #  pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
             // UB without std::launder, but without breaking ABI and/or
-            // a significant refactoring it's "impossible" to solve'
+            // a significant refactoring it's "impossible" to solve.
             if (!std::is_trivially_destructible<Func>::value)
                 rec->free_data = [](function_record *r) {
-                    auto cap = PYBIND11_STD_LAUNDER((capture *) &r->data);
-                    cap->~capture();
+                    auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
+                    (void) data;
+                    data->~capture();
                 };
 #if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER
 #  pragma GCC diagnostic pop
