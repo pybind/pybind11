@@ -7,8 +7,8 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
 
-v2.6.2 (TBA, not yet released)
-------------------------------
+v2.6.2 (Jan 26, 2021)
+---------------------
 
 
 Minor missing functionality added:
@@ -62,6 +62,10 @@ Bug fixes:
   overloads.
   `#2698 <https://github.com/pybind/pybind11/pull/2698>`_
 
+* When casting to a C++ integer, ``__index__`` is always called and not
+  considered as conversion, consistent with Python 3.8+.
+  `#2801 <https://github.com/pybind/pybind11/pull/2801>`_
+
 * Fix bug where the constructor of ``object`` subclasses would not throw on
   being passed a Python object of the wrong type.
   `#2701 <https://github.com/pybind/pybind11/pull/2701>`_
@@ -73,6 +77,11 @@ Bug fixes:
 * Leave docstring unset when all docstring-related options are disabled, rather
   than set an empty string.
   `#2745 <https://github.com/pybind/pybind11/pull/2745>`_
+
+* The module key in builtins that pybind11 uses to store its internals changed
+  from std::string to a python str type (more natural on Python 2, no change on
+  Python 3).
+  `#2814 <https://github.com/pybind/pybind11/pull/2814>`_
 
 * Fixed assertion error related to unhandled (later overwritten) exception in
   CPython 3.8 and 3.9 debug builds.
