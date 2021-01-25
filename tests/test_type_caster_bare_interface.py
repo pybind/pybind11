@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from pybind11_tests import type_caster_bare_interface_demo as m
+from pybind11_tests import type_caster_bare_interface as m
 
 
 def test_cast():
