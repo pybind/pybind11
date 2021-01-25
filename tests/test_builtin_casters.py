@@ -252,22 +252,36 @@ def test_integer_casting():
 
 
 def test_int_convert():
-    class DeepThought(object):
+    class Int(object):
         def __int__(self):
             return 42
 
-    class ShallowThought(object):
+    class NotInt(object):
         pass
 
-    class FuzzyThought(object):
+    class Float(object):
         def __float__(self):
             return 41.99999
 
-    class IndexedThought(object):
+    class Index(object):
         def __index__(self):
             return 42
 
-    class RaisingThought(object):
+    class IntAndIndex(object):
+        def __int__(self):
+            return 42
+
+        def __index__(self):
+            return 0
+
+    class RaisingTypeErrorOnIndex(object):
+        def __index__(self):
+            raise TypeError
+
+        def __int__(self):
+            return 42
+
+    class RaisingValueErrorOnIndex(object):
         def __index__(self):
             raise ValueError
 
@@ -276,7 +290,7 @@ def test_int_convert():
 
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
 
-    def require_implicit(v):
+    def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
 
     def cant_convert(v):
@@ -285,15 +299,21 @@ def test_int_convert():
     assert convert(7) == 7
     assert noconvert(7) == 7
     cant_convert(3.14159)
-    assert convert(DeepThought()) == 42
-    require_implicit(DeepThought())
-    cant_convert(ShallowThought())
-    cant_convert(FuzzyThought())
-    if env.PY >= (3, 8):
-        # Before Python 3.8, `int(obj)` does not pick up on `obj.__index__`
-        assert convert(IndexedThought()) == 42
-        assert noconvert(IndexedThought()) == 42
-        cant_convert(RaisingThought())  # no fall-back to `__int__`if `__index__` raises
+    assert convert(Int()) == 42
+    requires_conversion(Int())
+    cant_convert(NotInt())
+    cant_convert(Float())
+
+    # Before Python 3.8, `PyLong_AsLong` does not pick up on `obj.__index__`,
+    # but pybind11 "backports" this behavior.
+    assert convert(Index()) == 42
+    assert noconvert(Index()) == 42
+    assert convert(IntAndIndex()) == 0  # Fishy; `int(DoubleThought)` == 42
+    assert noconvert(IntAndIndex()) == 0
+    assert convert(RaisingTypeErrorOnIndex()) == 42
+    requires_conversion(RaisingTypeErrorOnIndex())
+    assert convert(RaisingValueErrorOnIndex()) == 42
+    requires_conversion(RaisingValueErrorOnIndex())
 
 
 def test_numpy_int_convert():

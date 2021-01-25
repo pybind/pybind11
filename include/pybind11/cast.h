@@ -1040,14 +1040,31 @@ public:
                 return false;
         } else if (PyFloat_Check(src.ptr())) {
             return false;
-        } else if (!convert && !index_check(src.ptr()) && !PYBIND11_LONG_CHECK(src.ptr())) {
+        } else if (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr())) {
             return false;
-        } else if (std::is_unsigned<py_type>::value) {
-            py_value = as_unsigned<py_type>(src.ptr());
-        } else { // signed integer:
-            py_value = sizeof(T) <= sizeof(long)
-                ? (py_type) PyLong_AsLong(src.ptr())
-                : (py_type) PYBIND11_LONG_AS_LONGLONG(src.ptr());
+        } else {
+            handle src_or_index = src;
+#if PY_VERSION_HEX < 0x03080000
+            object index;
+            if (!PYBIND11_LONG_CHECK(src.ptr())) {  // So: index_check(src.ptr())
+                index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
+                if (!index) {
+                    PyErr_Clear();
+                    if (!convert)
+                        return false;
+                }
+                else {
+                    src_or_index = index;
+                }
+            }
+#endif
+            if (std::is_unsigned<py_type>::value) {
+                py_value = as_unsigned<py_type>(src_or_index.ptr());
+            } else { // signed integer:
+                py_value = sizeof(T) <= sizeof(long)
+                    ? (py_type) PyLong_AsLong(src_or_index.ptr())
+                    : (py_type) PYBIND11_LONG_AS_LONGLONG(src_or_index.ptr());
+            }
         }
 
         // Python API reported an error
@@ -1056,15 +1073,8 @@ public:
         // Check to see if the conversion is valid (integers should match exactly)
         // Signed/unsigned checks happen elsewhere
         if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) && py_value != (py_type) (T) py_value)) {
-            bool type_error = py_err && PyErr_ExceptionMatches(
-#if PY_VERSION_HEX < 0x03000000 && !defined(PYPY_VERSION)
-                PyExc_SystemError
-#else
-                PyExc_TypeError
-#endif
-            );
             PyErr_Clear();
-            if (type_error && convert && PyNumber_Check(src.ptr())) {
+            if (py_err && convert && PyNumber_Check(src.ptr())) {
                 auto tmp = reinterpret_steal<object>(std::is_floating_point<T>::value
                                                      ? PyNumber_Float(src.ptr())
                                                      : PyNumber_Long(src.ptr()));
