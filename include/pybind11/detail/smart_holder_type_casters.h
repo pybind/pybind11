@@ -122,7 +122,7 @@ public:
             auto foreign_loader = std::unique_ptr<modified_type_caster_generic_load_impl>(
                 static_cast<modified_type_caster_generic_load_impl *>(foreign_loader_void_ptr));
             // Magic number intentionally hard-coded for simplicity and maximum robustness.
-            if (foreign_loader->local_load_safety_guard != 37726257887406645) {
+            if (foreign_loader->local_load_safety_guard != 1887406645) {
                 pybind11_fail(
                     "smart_holder_type_casters: Unexpected local_load_safety_guard,"
                     " possibly due to py::class_ holder mixup.");
@@ -234,7 +234,7 @@ public:
     bool reinterpret_cast_deemed_ok = false;
     // Magic number intentionally hard-coded, to guard against class_ holder mixups.
     // Ideally type_caster_generic would have a similar guard, but this requires a change there.
-    std::size_t local_load_safety_guard = 37726257887406645;
+    std::size_t local_load_safety_guard = 1887406645; // 32-bit compatible value for portability.
 };
 // clang-format on
 
