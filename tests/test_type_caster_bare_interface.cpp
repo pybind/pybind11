@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace pybind11_tests {
-namespace type_caster_bare_interface_demo {
+namespace type_caster_bare_interface {
 
 struct mpty {};
 
@@ -37,13 +37,13 @@ const char* pass_mpty_uqcp(std::unique_ptr<mpty const>) { return "load_uqcp"; }
 
 // clang-format on
 
-} // namespace type_caster_bare_interface_demo
+} // namespace type_caster_bare_interface
 } // namespace pybind11_tests
 
 namespace pybind11 {
 namespace detail {
 
-using namespace pybind11_tests::type_caster_bare_interface_demo;
+using namespace pybind11_tests::type_caster_bare_interface;
 
 template <>
 struct type_caster<mpty> {
@@ -177,9 +177,9 @@ struct type_caster<std::unique_ptr<mpty const>> {
 } // namespace pybind11
 
 namespace pybind11_tests {
-namespace type_caster_bare_interface_demo {
+namespace type_caster_bare_interface {
 
-TEST_SUBMODULE(type_caster_bare_interface_demo, m) {
+TEST_SUBMODULE(type_caster_bare_interface, m) {
     m.def("rtrn_mpty_valu", rtrn_mpty_valu);
     m.def("rtrn_mpty_rref", rtrn_mpty_rref);
     m.def("rtrn_mpty_cref", rtrn_mpty_cref);
@@ -207,5 +207,5 @@ TEST_SUBMODULE(type_caster_bare_interface_demo, m) {
     m.def("pass_mpty_uqcp", pass_mpty_uqcp);
 }
 
-} // namespace type_caster_bare_interface_demo
+} // namespace type_caster_bare_interface
 } // namespace pybind11_tests
