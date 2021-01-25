@@ -16,7 +16,7 @@ std::string get_mtxt(const atyp &obj) { return obj.mtxt; }
 } // namespace classh_module_local
 } // namespace pybind11_tests
 
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_module_local::atyp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_module_local::atyp)
 
 PYBIND11_MODULE(classh_module_local_1, m) {
     namespace py = pybind11;

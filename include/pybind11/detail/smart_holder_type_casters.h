@@ -60,7 +60,7 @@ public:
                                      " Python instance is uninitialized or was disowned.");
         }
         if (v_h.value_ptr() == nullptr) {
-            pybind11_fail("classh_type_casters: Unexpected v_h.value_ptr() nullptr.");
+            pybind11_fail("smart_holder_type_casters: Unexpected v_h.value_ptr() nullptr.");
         }
         loaded_v_h.type = typeinfo;
     }
@@ -70,7 +70,7 @@ public:
             modified_type_caster_generic_load_impl sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 if (loaded_v_h_cpptype != nullptr) {
-                    pybind11_fail("classh_type_casters: try_implicit_casts failure.");
+                    pybind11_fail("smart_holder_type_casters: try_implicit_casts failure.");
                 }
                 loaded_v_h = sub_caster.loaded_v_h;
                 loaded_v_h_cpptype = cast.first;
@@ -124,11 +124,11 @@ public:
             // Magic number intentionally hard-coded for simplicity and maximum robustness.
             if (foreign_loader->local_load_safety_guard != 37726257887406645) {
                 pybind11_fail(
-                    "Unexpected local_load_safety_guard,"
-                    " possibly due to py::class_ vs py::classh mixup.");
+                    "smart_holder_type_casters: Unexpected local_load_safety_guard,"
+                    " possibly due to py::class_ holder mixup.");
             }
             if (loaded_v_h_cpptype != nullptr) {
-                pybind11_fail("classh_type_casters: try_load_foreign_module_local failure.");
+                pybind11_fail("smart_holder_type_casters: try_load_foreign_module_local failure.");
             }
             loaded_v_h = foreign_loader->loaded_v_h;
             loaded_v_h_cpptype = foreign_loader->loaded_v_h_cpptype;
@@ -232,7 +232,7 @@ public:
     void *(*implicit_cast)(void *) = nullptr;
     value_and_holder loaded_v_h;
     bool reinterpret_cast_deemed_ok = false;
-    // Magic number intentionally hard-coded, to guard against class_ vs classh mixups.
+    // Magic number intentionally hard-coded, to guard against class_ holder mixups.
     // Ideally type_caster_generic would have a similar guard, but this requires a change there.
     std::size_t local_load_safety_guard = 37726257887406645;
 };
@@ -336,7 +336,7 @@ struct make_constructor {
 // type_caster_base END
 
 template <typename T>
-struct classh_type_caster : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster : smart_holder_type_caster_load<T> {
     static constexpr auto name = _<T>();
 
     // static handle cast(T, ...)
@@ -494,7 +494,7 @@ struct classh_type_caster : smart_holder_type_caster_load<T> {
 };
 
 template <typename T>
-struct classh_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T> {
     static constexpr auto name = _<std::shared_ptr<T>>();
 
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
@@ -539,7 +539,7 @@ struct classh_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T>
 };
 
 template <typename T>
-struct classh_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_load<T> {
     static constexpr auto name = _<std::shared_ptr<T const>>();
 
     static handle
@@ -557,7 +557,7 @@ struct classh_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_l
 };
 
 template <typename T>
-struct classh_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_load<T> {
     static constexpr auto name = _<std::unique_ptr<T>>();
 
     static handle cast(std::unique_ptr<T> &&src, return_value_policy policy, handle parent) {
@@ -600,7 +600,7 @@ struct classh_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_load<T>
 };
 
 template <typename T>
-struct classh_type_caster<std::unique_ptr<T const>> : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster<std::unique_ptr<T const>> : smart_holder_type_caster_load<T> {
     static constexpr auto name = _<std::unique_ptr<T const>>();
 
     static handle cast(std::unique_ptr<T const> &&src, return_value_policy policy, handle parent) {
@@ -616,21 +616,23 @@ struct classh_type_caster<std::unique_ptr<T const>> : smart_holder_type_caster_l
     operator std::unique_ptr<T const>() { return this->loaded_as_unique_ptr(); }
 };
 
-#define PYBIND11_CLASSH_TYPE_CASTERS(T)                                                           \
+#define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)                                                     \
     namespace pybind11 {                                                                          \
     namespace detail {                                                                            \
     template <>                                                                                   \
-    class type_caster<T> : public classh_type_caster<T> {};                                       \
+    class type_caster<T> : public smart_holder_type_caster<T> {};                                 \
     template <>                                                                                   \
-    class type_caster<std::shared_ptr<T>> : public classh_type_caster<std::shared_ptr<T>> {};     \
+    class type_caster<std::shared_ptr<T>> : public smart_holder_type_caster<std::shared_ptr<T>> { \
+    };                                                                                            \
     template <>                                                                                   \
     class type_caster<std::shared_ptr<T const>>                                                   \
-        : public classh_type_caster<std::shared_ptr<T const>> {};                                 \
+        : public smart_holder_type_caster<std::shared_ptr<T const>> {};                           \
     template <>                                                                                   \
-    class type_caster<std::unique_ptr<T>> : public classh_type_caster<std::unique_ptr<T>> {};     \
+    class type_caster<std::unique_ptr<T>> : public smart_holder_type_caster<std::unique_ptr<T>> { \
+    };                                                                                            \
     template <>                                                                                   \
     class type_caster<std::unique_ptr<T const>>                                                   \
-        : public classh_type_caster<std::unique_ptr<T const>> {};                                 \
+        : public smart_holder_type_caster<std::unique_ptr<T const>> {};                           \
     }                                                                                             \
     }
 

@@ -49,7 +49,7 @@ std::unique_ptr<atyp> unique_ptr_roundtrip(std::unique_ptr<atyp> obj) { return o
 } // namespace classh_wip
 } // namespace pybind11_tests
 
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_wip::atyp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_wip::atyp)
 
 namespace pybind11_tests {
 namespace classh_wip {
