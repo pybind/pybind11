@@ -2,11 +2,11 @@
 
 #include "../cast.h"
 #include "../pytypes.h"
-#include "../smart_holder_poc.h"
 #include "class.h"
 #include "common.h"
 #include "descr.h"
 #include "internals.h"
+#include "smart_holder_poc.h"
 
 #include <memory>
 #include <stdexcept>
@@ -15,6 +15,9 @@
 #include <utility>
 
 namespace pybind11 {
+
+using pybindit::memory::smart_holder;
+
 namespace detail {
 
 inline std::pair<bool, handle> find_existing_python_instance(void *src_void_ptr,

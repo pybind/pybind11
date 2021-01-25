@@ -1,4 +1,4 @@
-#include "pybind11/smart_holder_poc.h"
+#include "pybind11/detail/smart_holder_poc.h"
 
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
