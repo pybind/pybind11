@@ -517,11 +517,11 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
             // MISSING: keep_alive.
             return existing_inst.second;
 
-        object inst            = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        instance *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
-        inst_raw_ptr->owned    = true;
-        void *&valueptr        = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-        valueptr               = src_raw_void_ptr;
+        auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());
+        inst_raw_ptr->owned = true;
+        void *&valueptr     = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+        valueptr            = src_raw_void_ptr;
 
         auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(src);
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
@@ -578,11 +578,11 @@ struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_l
         if (existing_inst.first)
             throw cast_error("Invalid unique_ptr: another instance owns this pointer already.");
 
-        object inst            = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        instance *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
-        inst_raw_ptr->owned    = true;
-        void *&valueptr        = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-        valueptr               = src_raw_void_ptr;
+        auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());
+        inst_raw_ptr->owned = true;
+        void *&valueptr     = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+        valueptr            = src_raw_void_ptr;
 
         auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(src));
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
