@@ -56,12 +56,12 @@ inline int pass_cptr_drvd2(drvd2 const *d) { return d->id() + 23; }
 } // namespace classh_inheritance
 } // namespace pybind11_tests
 
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_inheritance::base)
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_inheritance::drvd)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::base)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::drvd)
 
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_inheritance::base1)
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_inheritance::base2)
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_inheritance::drvd2)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::base1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::base2)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::drvd2)
 
 namespace pybind11_tests {
 namespace classh_inheritance {
