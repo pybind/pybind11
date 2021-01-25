@@ -15,7 +15,6 @@ TEST_SUBMODULE(eval_, m) {
     // test_evals
 
     auto global = py::dict(py::module_::import("__main__").attr("__dict__"));
-    py::handle copy = py::module::import("copy").attr("copy");
 
     m.def("test_eval_statements", [global]() {
         auto local = py::dict();
@@ -98,14 +97,21 @@ TEST_SUBMODULE(eval_, m) {
         return global;
     });
 
-    m.def("test_eval_closure", [global, copy]() {
-        py::dict local = copy(global);
+    // test_eval_closure
+    m.def("test_eval_closure", []() {
+        py::dict global;
+        global["closure_value"] = 42;
+        py::dict local;
+        local["closure_value"] = 0;
         py::exec(R"(
-            closure_value = 10
+            local_value = closure_value
 
-            def func():
+            def func_global():
                 return closure_value
-            )", local, local);
-        return local;
+
+            def func_local():
+                return local_value
+            )", global, local);
+        return std::make_pair(global, local);
     });
 }
