@@ -17,7 +17,7 @@ atyp rtrn_valu_atyp() { return atyp(); }
 } // namespace classh_module_local
 } // namespace pybind11_tests
 
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::classh_module_local::atyp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_module_local::atyp)
 
 PYBIND11_MODULE(classh_module_local_0, m) {
     using namespace pybind11_tests::classh_module_local;

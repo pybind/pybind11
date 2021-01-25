@@ -40,7 +40,7 @@ private:
 } // namespace unique_ptr_member
 } // namespace pybind11_tests
 
-PYBIND11_CLASSH_TYPE_CASTERS(pybind11_tests::unique_ptr_member::pointee)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::unique_ptr_member::pointee)
 
 namespace pybind11_tests {
 namespace unique_ptr_member {
