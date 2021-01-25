@@ -71,7 +71,7 @@ jobs:
       run: echo "BOOST_ROOT=$BOOST_ROOT_1_72_0" >> $GITHUB_ENV
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.6
+      uses: jwlawson/actions-setup-cmake@v1.7
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -189,7 +189,7 @@ jobs:
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.6
+      uses: jwlawson/actions-setup-cmake@v1.7
 
     - name: Valgrind cache
       if: matrix.valgrind
@@ -441,7 +441,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.6
+      uses: jwlawson/actions-setup-cmake@v1.7
 
     - name: Configure
       shell: bash
@@ -723,7 +723,7 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.6
+      uses: jwlawson/actions-setup-cmake@v1.7
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -769,7 +769,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.6
+      uses: jwlawson/actions-setup-cmake@v1.7
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -823,7 +823,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.6
+      uses: jwlawson/actions-setup-cmake@v1.7
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary
