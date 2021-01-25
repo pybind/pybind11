@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from pybind11_tests import unique_ptr_member as m
+from pybind11_tests import class_sh_unique_ptr_member as m
 
 
 def test_make_unique_pointee():

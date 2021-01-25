@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from pybind11_tests import classh_inheritance as m
+from pybind11_tests import class_sh_inheritance as m
 
 
 def test_rtrn_mptr_drvd_pass_cptr_base():

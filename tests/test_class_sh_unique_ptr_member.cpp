@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace pybind11_tests {
-namespace unique_ptr_member {
+namespace class_sh_unique_ptr_member {
 
 class pointee { // NOT copyable.
 public:
@@ -37,15 +37,15 @@ private:
     std::unique_ptr<pointee> ptr_;
 };
 
-} // namespace unique_ptr_member
+} // namespace class_sh_unique_ptr_member
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::unique_ptr_member::pointee)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_unique_ptr_member::pointee)
 
 namespace pybind11_tests {
-namespace unique_ptr_member {
+namespace class_sh_unique_ptr_member {
 
-TEST_SUBMODULE(unique_ptr_member, m) {
+TEST_SUBMODULE(class_sh_unique_ptr_member, m) {
     py::class_<pointee, py::smart_holder>(m, "pointee")
         .def(py::init<>())
         .def("get_int", &pointee::get_int);
@@ -59,5 +59,5 @@ TEST_SUBMODULE(unique_ptr_member, m) {
         .def("give_up_ownership_via_shared_ptr", &ptr_owner::give_up_ownership_via_shared_ptr);
 }
 
-} // namespace unique_ptr_member
+} // namespace class_sh_unique_ptr_member
 } // namespace pybind11_tests
