@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace pybind11_tests {
-namespace classh_inheritance {
+namespace class_sh_inheritance {
 
 template <int Id>
 struct base_template {
@@ -53,20 +53,20 @@ inline int pass_cptr_base2(base2 const *b) { return b->id() + 22; }
 inline int pass_cptr_drvd2(drvd2 const *d) { return d->id() + 23; }
 // clang-format on
 
-} // namespace classh_inheritance
+} // namespace class_sh_inheritance
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::base)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::drvd)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::base)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::drvd)
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::base1)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::base2)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_inheritance::drvd2)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::base1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::base2)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_inheritance::drvd2)
 
 namespace pybind11_tests {
-namespace classh_inheritance {
+namespace class_sh_inheritance {
 
-TEST_SUBMODULE(classh_inheritance, m) {
+TEST_SUBMODULE(class_sh_inheritance, m) {
     py::class_<base, py::smart_holder>(m, "base");
     py::class_<drvd, base, py::smart_holder>(m, "drvd");
 
@@ -95,5 +95,5 @@ TEST_SUBMODULE(classh_inheritance, m) {
     m.def("pass_cptr_drvd2", pass_cptr_drvd2);
 }
 
-} // namespace classh_inheritance
+} // namespace class_sh_inheritance
 } // namespace pybind11_tests

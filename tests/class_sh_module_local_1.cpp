@@ -1,11 +1,11 @@
-// Identical to classh_module_local_2.cpp, except 2 replaced with 1.
+// Identical to class_sh_module_local_2.cpp, except 2 replaced with 1.
 #include <pybind11/pybind11.h>
 #include <pybind11/smart_holder.h>
 
 #include <string>
 
 namespace pybind11_tests {
-namespace classh_module_local {
+namespace class_sh_module_local {
 
 struct atyp { // Short for "any type".
     std::string mtxt;
@@ -13,14 +13,14 @@ struct atyp { // Short for "any type".
 
 std::string get_mtxt(const atyp &obj) { return obj.mtxt; }
 
-} // namespace classh_module_local
+} // namespace class_sh_module_local
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_module_local::atyp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_module_local::atyp)
 
-PYBIND11_MODULE(classh_module_local_1, m) {
+PYBIND11_MODULE(class_sh_module_local_1, m) {
     namespace py = pybind11;
-    using namespace pybind11_tests::classh_module_local;
+    using namespace pybind11_tests::class_sh_module_local;
 
     py::class_<atyp, py::smart_holder>(m, "atyp", py::module_local())
         .def(py::init([](const std::string &mtxt) {

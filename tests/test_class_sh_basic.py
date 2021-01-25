@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from pybind11_tests import classh_wip as m
+from pybind11_tests import class_sh_basic as m
 
 
 def test_atyp_constructors():

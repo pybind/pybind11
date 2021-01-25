@@ -6,7 +6,7 @@
 #include <string>
 
 namespace pybind11_tests {
-namespace classh_wip {
+namespace class_sh_basic {
 
 struct atyp { // Short for "any type".
     std::string mtxt;
@@ -46,15 +46,15 @@ std::string pass_uqcp_atyp(std::unique_ptr<atyp const> obj) { return "pass_uqcp:
 std::string get_mtxt(atyp const &obj) { return obj.mtxt; }
 std::unique_ptr<atyp> unique_ptr_roundtrip(std::unique_ptr<atyp> obj) { return obj; }
 
-} // namespace classh_wip
+} // namespace class_sh_basic
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::classh_wip::atyp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::atyp)
 
 namespace pybind11_tests {
-namespace classh_wip {
+namespace class_sh_basic {
 
-TEST_SUBMODULE(classh_wip, m) {
+TEST_SUBMODULE(class_sh_basic, m) {
     namespace py = pybind11;
 
     py::class_<atyp, py::smart_holder>(m, "atyp")
@@ -97,5 +97,5 @@ TEST_SUBMODULE(classh_wip, m) {
     m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp_atyp, rtrn_uqmp_atyp
 }
 
-} // namespace classh_wip
+} // namespace class_sh_basic
 } // namespace pybind11_tests
