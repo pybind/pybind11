@@ -5,7 +5,7 @@ name: Format
 
 on:
   workflow_dispatch:
-  # pull_request:
+  pull_request:
   push:
     branches:
     - master

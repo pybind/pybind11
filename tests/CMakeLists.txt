@@ -101,6 +101,9 @@ set(PYBIND11_TEST_FILES
     test_callbacks.cpp
     test_chrono.cpp
     test_class.cpp
+    test_class_sh_basic.cpp
+    test_class_sh_inheritance.cpp
+    test_class_sh_unique_ptr_member.cpp
     test_constants_and_functions.cpp
     test_copy_move.cpp
     test_custom_type_casters.cpp
@@ -129,6 +132,7 @@ set(PYBIND11_TEST_FILES
     test_stl.cpp
     test_stl_binders.cpp
     test_tagbased_polymorphic.cpp
+    test_type_caster_bare_interface.cpp
     test_union.cpp
     test_virtual_functions.cpp)
 
@@ -168,6 +172,8 @@ set(PYBIND11_CROSS_MODULE_TESTS test_exceptions.py test_local_bindings.py test_s
                                 test_stl_binders.py)
 
 set(PYBIND11_CROSS_MODULE_GIL_TESTS test_gil_scoped.py)
+
+set(PYBIND11_CLASS_SH_MODULE_LOCAL_TESTS test_class_sh_module_local.py)
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
@@ -299,6 +305,16 @@ foreach(t ${PYBIND11_CROSS_MODULE_GIL_TESTS})
   list(FIND PYBIND11_PYTEST_FILES ${t} i)
   if(i GREATER -1)
     list(APPEND test_targets cross_module_gil_utils)
+    break()
+  endif()
+endforeach()
+
+foreach(t ${PYBIND11_CLASS_SH_MODULE_LOCAL_TESTS})
+  list(FIND PYBIND11_PYTEST_FILES ${t} i)
+  if(i GREATER -1)
+    list(APPEND test_targets class_sh_module_local_0)
+    list(APPEND test_targets class_sh_module_local_1)
+    list(APPEND test_targets class_sh_module_local_2)
     break()
   endif()
 endforeach()
