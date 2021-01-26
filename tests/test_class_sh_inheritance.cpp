@@ -13,6 +13,12 @@ struct base_template {
     virtual ~base_template() = default;
     virtual int id() const { return base_id; }
     int base_id;
+
+    // Some compilers complain about implicitly defined versions of some of the following:
+    base_template(const base_template &) = default;
+    base_template(base_template &&)      = default;
+    base_template &operator=(const base_template &) = default;
+    base_template &operator=(base_template &&) = default;
 };
 
 using base = base_template<100>;
