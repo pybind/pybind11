@@ -460,6 +460,9 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
 
 if(NOT PYBIND11_CUDA_TESTS)
+  # Test pure C++ code (not depending on Python). Provides the `test_pure_cpp` target.
+  add_subdirectory(pure_cpp)
+
   # Test embedding the interpreter. Provides the `cpptest` target.
   add_subdirectory(test_embed)
 
