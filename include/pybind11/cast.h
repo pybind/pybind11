@@ -207,6 +207,19 @@ PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool t
     return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
 }
 
+// Searches all_type_info for a registered instance, i.e. moving up the inheritance hierarchy.
+PYBIND11_NOINLINE inline handle find_registered_python_instance(void *src,
+                                                                const detail::type_info *tinfo) {
+    auto it_instances = get_internals().registered_instances.equal_range(src);
+    for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+        for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+            if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
+                return handle((PyObject *) it_i->second).inc_ref();
+        }
+    }
+    return handle();
+}
+
 struct value_and_holder {
     instance *inst = nullptr;
     size_t index = 0u;
@@ -508,13 +521,9 @@ public:
         if (src == nullptr)
             return none().release();
 
-        auto it_instances = get_internals().registered_instances.equal_range(src);
-        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-                if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
-                    return handle((PyObject *) it_i->second).inc_ref();
-            }
-        }
+        handle registered_inst = find_registered_python_instance(src, tinfo);
+        if (registered_inst)
+            return registered_inst;
 
         auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto wrapper = reinterpret_cast<instance *>(inst.ptr());
