@@ -165,7 +165,7 @@ endif()
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
 list(APPEND PYBIND11_PYTEST_FILES test_class_sh_module_local.py)
-list(SORT PYBIND11_PYTEST_FILES COMPARE NATURAL)
+list(SORT PYBIND11_PYTEST_FILES)
 
 # Contains the set of test files that require pybind11_cross_module_tests to be
 # built; if none of these are built (i.e. because TEST_OVERRIDE is used and
