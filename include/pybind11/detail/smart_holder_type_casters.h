@@ -23,7 +23,7 @@ namespace detail {
 inline std::pair<bool, handle> find_existing_python_instance(void *src_void_ptr,
                                                              const detail::type_info *tinfo) {
     // Loop copied from type_caster_generic::cast.
-    // IMPROVEABLE: Factor out of type_caster_generic::cast.
+    // IMPROVABLE: Factor out of type_caster_generic::cast.
     auto it_instances = get_internals().registered_instances.equal_range(src_void_ptr);
     for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
         for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
@@ -54,7 +54,7 @@ public:
     void load_value_and_holder(value_and_holder &&v_h) {
         loaded_v_h = std::move(v_h);
         if (!loaded_v_h.holder_constructed()) {
-            // IMPROVEABLE: Error message. A change to the existing internals is
+            // IMPROVABLE: Error message. A change to the existing internals is
             // needed to cleanly distinguish between uninitialized or disowned.
             throw std::runtime_error("Missing value for wrapped C++ type:"
                                      " Python instance is uninitialized or was disowned.");
@@ -307,33 +307,12 @@ private:
     }
 };
 
-// type_caster_base BEGIN
-// clang-format off
-// Helper factored out of type_caster_base.
-struct make_constructor {
-    using Constructor = void *(*)(const void *);
-
-    /* Only enabled when the types are {copy,move}-constructible *and* when the type
-       does not have a private operator new implementation. */
-    template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
-    static auto make_copy_constructor(const T *x) -> decltype(new T(*x), Constructor{}) {
-        return [](const void *arg) -> void * {
-            return new T(*reinterpret_cast<const T *>(arg));
-        };
-    }
-
-    template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
-    static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*const_cast<T *>(x))), Constructor{}) {
-        return [](const void *arg) -> void * {
-            return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
-        };
-    }
-
-    static Constructor make_copy_constructor(...) { return nullptr; }
-    static Constructor make_move_constructor(...) { return nullptr; }
+// IMPROVABLE: Formally factor out of type_caster_base.
+struct make_constructor : private type_caster_base<int> { // Any type, nothing special about int.
+    using type_caster_base<int>::Constructor;
+    using type_caster_base<int>::make_copy_constructor;
+    using type_caster_base<int>::make_move_constructor;
 };
-// clang-format on
-// type_caster_base END
 
 template <typename T>
 struct smart_holder_type_caster : smart_holder_type_caster_load<T> {
@@ -500,7 +479,7 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
             && policy != return_value_policy::reference_internal) {
-            // IMPROVEABLE: Error message.
+            // IMPROVABLE: Error message.
             throw cast_error("Invalid return_value_policy for shared_ptr.");
         }
 
@@ -563,7 +542,7 @@ struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_l
     static handle cast(std::unique_ptr<T> &&src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
             && policy != return_value_policy::reference_internal) {
-            // IMPROVEABLE: Error message.
+            // IMPROVABLE: Error message.
             throw cast_error("Invalid return_value_policy for unique_ptr.");
         }
 
