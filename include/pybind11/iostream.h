@@ -52,9 +52,11 @@ private:
 
                 pywrite(line);
                 pyflush();
+
+                // Placed inside gil_scoped_aquire as a mutex to avoid a race
+                setp(pbase(), epptr());
             }
 
-            setp(pbase(), epptr());
         }
         return 0;
     }
