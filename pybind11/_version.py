@@ -8,5 +8,5 @@ def _to_int(s):
         return s
 
 
-__version__ = "2.6.3.dev"
+__version__ = "2.6.3.dev1"
 version_info = tuple(_to_int(s) for s in __version__.split("."))
