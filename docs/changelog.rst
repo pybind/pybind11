@@ -10,7 +10,6 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.6.2 (Jan 26, 2021)
 ---------------------
 
-
 Minor missing functionality added:
 
 * enum: add missing Enum.value property.
@@ -20,6 +19,20 @@ Minor missing functionality added:
   ``.disarm`` for ``gil_scoped_acquire``/``gil_scoped_release``.
   `#2657 <https://github.com/pybind/pybind11/pull/2657>`_
 
+Fixed or improved behavior in a few special cases:
+
+* Fix bug where the constructor of ``object`` subclasses would not throw on
+  being passed a Python object of the wrong type.
+  `#2701 <https://github.com/pybind/pybind11/pull/2701>`_
+
+* The ``type_caster`` for integers does not convert Python objects with
+  ``__int__`` anymore with ``noconvert`` or during the first round of trying
+  overloads.
+  `#2698 <https://github.com/pybind/pybind11/pull/2698>`_
+
+* When casting to a C++ integer, ``__index__`` is always called and not
+  considered as conversion, consistent with Python 3.8+.
+  `#2801 <https://github.com/pybind/pybind11/pull/2801>`_
 
 Build improvements:
 
@@ -52,23 +65,6 @@ Build improvements:
 
 
 Bug fixes:
-
-* Fix invalid access when calling a pybind11 ``__init__`` on a non-pybind11
-  class instance.
-  `#2755 <https://github.com/pybind/pybind11/pull/2755>`_
-
-* The ``type_caster`` for integers does not convert Python objects with
-  ``__int__`` anymore with ``noconvert`` or during the first round of trying
-  overloads.
-  `#2698 <https://github.com/pybind/pybind11/pull/2698>`_
-
-* When casting to a C++ integer, ``__index__`` is always called and not
-  considered as conversion, consistent with Python 3.8+.
-  `#2801 <https://github.com/pybind/pybind11/pull/2801>`_
-
-* Fix bug where the constructor of ``object`` subclasses would not throw on
-  being passed a Python object of the wrong type.
-  `#2701 <https://github.com/pybind/pybind11/pull/2701>`_
 
 * Fixed segfault in multithreaded environments when using
   ``scoped_ostream_redirect``.
@@ -104,6 +100,10 @@ Warning fixes:
   `#2759 <https://github.com/pybind/pybind11/pull/2759>`_
 
 Valgrind work:
+
+* Fix invalid access when calling a pybind11 ``__init__`` on a non-pybind11
+  class instance.
+  `#2755 <https://github.com/pybind/pybind11/pull/2755>`_
 
 * Fixed various minor memory leaks in pybind11's test suite.
   `#2758 <https://github.com/pybind/pybind11/pull/2758>`_
