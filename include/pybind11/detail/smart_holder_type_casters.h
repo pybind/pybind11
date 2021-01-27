@@ -582,26 +582,6 @@ struct smart_holder_type_caster<std::unique_ptr<T const>> : smart_holder_type_ca
     operator std::unique_ptr<T const>() { return this->loaded_as_unique_ptr(); }
 };
 
-#define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)                                                     \
-    namespace pybind11 {                                                                          \
-    namespace detail {                                                                            \
-    template <>                                                                                   \
-    class type_caster<T> : public smart_holder_type_caster<T> {};                                 \
-    template <>                                                                                   \
-    class type_caster<std::shared_ptr<T>> : public smart_holder_type_caster<std::shared_ptr<T>> { \
-    };                                                                                            \
-    template <>                                                                                   \
-    class type_caster<std::shared_ptr<T const>>                                                   \
-        : public smart_holder_type_caster<std::shared_ptr<T const>> {};                           \
-    template <>                                                                                   \
-    class type_caster<std::unique_ptr<T>> : public smart_holder_type_caster<std::unique_ptr<T>> { \
-    };                                                                                            \
-    template <>                                                                                   \
-    class type_caster<std::unique_ptr<T const>>                                                   \
-        : public smart_holder_type_caster<std::unique_ptr<T const>> {};                           \
-    }                                                                                             \
-    }
-
 template <>
 struct is_smart_holder<pybindit::memory::smart_holder>
     : is_smart_holder<pybindit::memory::smart_holder, true> {
@@ -637,6 +617,26 @@ struct is_smart_holder<pybindit::memory::smart_holder>
         v_h.set_holder_constructed();
     }
 };
+
+#define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)                                                     \
+    namespace pybind11 {                                                                          \
+    namespace detail {                                                                            \
+    template <>                                                                                   \
+    class type_caster<T> : public smart_holder_type_caster<T> {};                                 \
+    template <>                                                                                   \
+    class type_caster<std::shared_ptr<T>> : public smart_holder_type_caster<std::shared_ptr<T>> { \
+    };                                                                                            \
+    template <>                                                                                   \
+    class type_caster<std::shared_ptr<T const>>                                                   \
+        : public smart_holder_type_caster<std::shared_ptr<T const>> {};                           \
+    template <>                                                                                   \
+    class type_caster<std::unique_ptr<T>> : public smart_holder_type_caster<std::unique_ptr<T>> { \
+    };                                                                                            \
+    template <>                                                                                   \
+    class type_caster<std::unique_ptr<T const>>                                                   \
+        : public smart_holder_type_caster<std::unique_ptr<T const>> {};                           \
+    }                                                                                             \
+    }
 
 } // namespace detail
 } // namespace pybind11
