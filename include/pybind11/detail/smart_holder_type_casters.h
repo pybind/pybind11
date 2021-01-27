@@ -24,20 +24,6 @@ using pybindit::memory::smart_holder;
 
 namespace detail {
 
-inline std::pair<bool, handle> find_existing_python_instance(void *src_void_ptr,
-                                                             const detail::type_info *tinfo) {
-    // Loop copied from type_caster_generic::cast.
-    // IMPROVABLE: Factor out of type_caster_generic::cast.
-    auto it_instances = get_internals().registered_instances.equal_range(src_void_ptr);
-    for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-        for (auto instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
-            if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype))
-                return std::make_pair(true, handle((PyObject *) it_i->second).inc_ref());
-        }
-    }
-    return std::make_pair(false, handle());
-}
-
 // The modified_type_caster_generic_load_impl could replace type_caster_generic::load_impl but not
 // vice versa. The main difference is that the original code only propagates a reference to the
 // held value, while the modified implementation propagates value_and_holder.
@@ -401,9 +387,8 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T> {
         if (src == nullptr)
             return none().release();
 
-        auto existing_inst = find_existing_python_instance(src, tinfo);
-        if (existing_inst.first)
-            return existing_inst.second;
+        if (handle existing_inst = find_registered_python_instance(src, tinfo))
+            return existing_inst;
 
         auto inst       = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto wrapper    = reinterpret_cast<instance *>(inst.ptr());
@@ -494,11 +479,10 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
-        auto existing_inst             = find_existing_python_instance(src_raw_void_ptr, tinfo);
-        if (existing_inst.first)
+        if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo))
             // MISSING: Enforcement of consistency with existing smart_holder.
             // MISSING: keep_alive.
-            return existing_inst.second;
+            return existing_inst;
 
         auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());
@@ -557,8 +541,7 @@ struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_l
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
-        auto existing_inst             = find_existing_python_instance(src_raw_void_ptr, tinfo);
-        if (existing_inst.first)
+        if (find_registered_python_instance(src_raw_void_ptr, tinfo))
             throw cast_error("Invalid unique_ptr: another instance owns this pointer already.");
 
         auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
