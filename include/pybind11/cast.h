@@ -207,7 +207,7 @@ PYBIND11_NOINLINE inline handle get_type_handle(const std::type_info &tp, bool t
     return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
 }
 
-// Searches all_type_info for a registered instance, i.e. moving up the inheritance hierarchy.
+// Searches the inheritance graph for a registered Python instance, using all_type_info().
 PYBIND11_NOINLINE inline handle find_registered_python_instance(void *src,
                                                                 const detail::type_info *tinfo) {
     auto it_instances = get_internals().registered_instances.equal_range(src);
@@ -521,8 +521,7 @@ public:
         if (src == nullptr)
             return none().release();
 
-        handle registered_inst = find_registered_python_instance(src, tinfo);
-        if (registered_inst)
+        if (handle registered_inst = find_registered_python_instance(src, tinfo))
             return registered_inst;
 
         auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
