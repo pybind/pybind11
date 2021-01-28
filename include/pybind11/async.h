@@ -151,6 +151,34 @@ class async_function : public cpp_function {
                 );
         }
 
+        template <typename Func, typename... Args, typename... Extra>
+        void initialize(Func &&f, void (*)(Args...), const Extra&... extra) {
+            // create a new lambda which spawns an async thread running the original function
+            auto proxy = [f](Args... args) -> Awaitable* {
+                auto thread_func = [f](Args... args) {
+                    f(std::forward<Args>(args) ...);
+
+                    py::gil_scoped_acquire gil;
+                    
+                    auto py_result = py::cast(Py_None);
+                    return py_result;
+                };
+                auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
+
+                auto future = std::async(std::launch::async, bound_thread_func);
+                auto awaitable = new Awaitable(future);
+
+                return awaitable;
+            };
+
+            // initialize using the new lambda function
+            cpp_function::initialize(
+                std::forward<decltype(proxy)>(proxy),
+                (detail::function_signature_t<decltype(proxy)> *) nullptr,
+                extra...
+                );
+        }
+
 };
 
 template <typename type_, typename... options>
