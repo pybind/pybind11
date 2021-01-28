@@ -279,8 +279,10 @@ protected:
     struct borrowed_t { };
     struct stolen_t { };
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
     template <typename T> friend T reinterpret_borrow(handle);
     template <typename T> friend T reinterpret_steal(handle);
+#endif
 
 public:
     // Only accessible from derived classes and the reinterpret_* functions
