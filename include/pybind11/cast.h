@@ -39,6 +39,10 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+/// HACK: Declare inline function defined in class.h to be called in move_only_holder_caster's destructor
+/// Correct solution would be to move that function into a common header
+void clear_instance(PyObject *self);
+
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {
@@ -594,25 +598,11 @@ public:
         return inst.release();
     }
 
-    // Base methods for generic caster; there are overridden in copyable_holder_caster
+    // Base methods for generic caster; they are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
-        auto *&vptr = v_h.value_ptr();
-        // Lazy allocation for unallocated values:
-        if (vptr == nullptr) {
-            auto *type = v_h.type ? v_h.type : typeinfo;
-            if (type->operator_new) {
-                vptr = type->operator_new(type->type_size);
-            } else {
-                #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-                    if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
-                        vptr = ::operator new(type->type_size,
-                                              std::align_val_t(type->type_align));
-                    else
-                #endif
-                vptr = ::operator new(type->type_size);
-            }
-        }
-        value = vptr;
+        value = v_h.value_ptr();
+        if (value == nullptr)
+            throw cast_error("Invalid object instance");
     }
     bool try_implicit_casts(handle src, bool convert) {
         for (auto &cast : typeinfo->implicit_casts) {
@@ -1601,15 +1591,80 @@ template <typename T>
 class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> { };
 
 template <typename type, typename holder_type>
-struct move_only_holder_caster {
-    static_assert(std::is_base_of<type_caster_base<type>, type_caster<type>>::value,
+struct move_only_holder_caster : public type_caster_base<type> {
+public:
+    using base = type_caster_base<type>;
+    static_assert(std::is_base_of<base, type_caster<type>>::value,
             "Holder classes are only supported for custom types");
+    using base::base;
+    using base::cast;
+    using base::typeinfo;
+    using base::value;
 
-    static handle cast(holder_type &&src, return_value_policy, handle) {
-        auto *ptr = holder_helper<holder_type>::get(src);
-        return type_caster_base<type>::cast_holder(ptr, std::addressof(src));
+    ~move_only_holder_caster() {
+        if (!holder_helper<holder_type>::get(*holder_ptr)) {
+            // if held object was actually moved, unregister it
+            clear_instance(reinterpret_cast<PyObject*>(v_h.inst));
+            v_h.value_ptr() = nullptr; // mark value as moved
+        }
     }
-    static constexpr auto name = type_caster_base<type>::name;
+
+    bool load(handle& src, bool convert) {
+        bool success = base::template load_impl<move_only_holder_caster<type, holder_type>>(src, convert);
+        if (success) // On success, remember src pointer to withdraw later
+            this->v_h = reinterpret_cast<instance *>(src.ptr())->get_value_and_holder();
+        return success;
+    }
+
+    template <typename T> using cast_op_type = detail::movable_cast_op_type<T>;
+
+    // Workaround for Intel compiler bug
+    // see pybind11 issue 94
+    #if !defined(__ICC) && !defined(__INTEL_COMPILER)
+    explicit
+    #endif
+    operator holder_type&&() { return std::move(*holder_ptr); }
+
+    static handle cast(const holder_type &src, return_value_policy, handle) {
+        const auto *ptr = holder_helper<holder_type>::get(src);
+        return type_caster_base<type>::cast_holder(ptr, &src);
+    }
+
+protected:
+    friend class type_caster_generic;
+    void check_holder_compat() {
+//        if (typeinfo->default_holder)
+//            throw cast_error("Unable to load a custom holder type from a default-holder instance");
+    }
+
+    bool load_value(value_and_holder &&v_h) {
+        if (v_h.holder_constructed()) {
+            holder_ptr = std::addressof(v_h.template holder<holder_type>());
+            value = const_cast<void*>(reinterpret_cast<const void*>(holder_helper<holder_type>::get(*holder_ptr)));
+            if (!value)
+                throw cast_error("Invalid object instance");
+            return true;
+        } else {
+            throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
+#if defined(NDEBUG)
+                             "(compile in debug mode for type information)");
+#else
+                             "of type '" + type_id<holder_type>() + "''");
+#endif
+        }
+    }
+
+    template <typename T = holder_type, detail::enable_if_t<!std::is_constructible<T, const T &, type*>::value, int> = 0>
+    bool try_implicit_casts(handle, bool) { return false; }
+
+    template <typename T = holder_type, detail::enable_if_t<std::is_constructible<T, const T &, type*>::value, int> = 0>
+    bool try_implicit_casts(handle, bool) { return false; }
+
+    static bool try_direct_conversions(handle) { return false; }
+
+
+    holder_type* holder_ptr = nullptr;
+    value_and_holder v_h;
 };
 
 template <typename type, typename deleter>
@@ -2038,6 +2093,8 @@ private:
         if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])))
             return false;
 #else
+        // BUG: When loading the arguments, the actual argument type (pointer, lvalue reference, rvalue reference)
+        // is already lost (argcasters only know the intrinsic type), while the behaviour should differ for them, e.g. for rvalue references.
         for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...})
             if (!r)
                 return false;
