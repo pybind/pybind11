@@ -57,13 +57,11 @@ namespace class_sh_basic {
 TEST_SUBMODULE(class_sh_basic, m) {
     namespace py = pybind11;
 
-    py::class_<atyp, py::smart_holder>(m, "atyp")
-        .def(py::init<>())
-        .def(py::init([](const std::string &mtxt) {
-            atyp obj;
-            obj.mtxt = mtxt;
-            return obj;
-        }));
+    py::classh<atyp>(m, "atyp").def(py::init<>()).def(py::init([](const std::string &mtxt) {
+        atyp obj;
+        obj.mtxt = mtxt;
+        return obj;
+    }));
 
     m.def("rtrn_valu_atyp", rtrn_valu_atyp);
     m.def("rtrn_rref_atyp", rtrn_rref_atyp);

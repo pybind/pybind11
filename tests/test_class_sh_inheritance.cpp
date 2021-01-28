@@ -73,8 +73,8 @@ namespace pybind11_tests {
 namespace class_sh_inheritance {
 
 TEST_SUBMODULE(class_sh_inheritance, m) {
-    py::class_<base, py::smart_holder>(m, "base");
-    py::class_<drvd, base, py::smart_holder>(m, "drvd");
+    py::classh<base>(m, "base");
+    py::classh<drvd, base>(m, "drvd");
 
     auto rvto = py::return_value_policy::take_ownership;
 
@@ -89,9 +89,9 @@ TEST_SUBMODULE(class_sh_inheritance, m) {
     m.def("pass_shcp_drvd", pass_shcp_drvd);
 
     // __init__ needed for Python inheritance.
-    py::class_<base1, py::smart_holder>(m, "base1").def(py::init<>());
-    py::class_<base2, py::smart_holder>(m, "base2").def(py::init<>());
-    py::class_<drvd2, base1, base2, py::smart_holder>(m, "drvd2");
+    py::classh<base1>(m, "base1").def(py::init<>());
+    py::classh<base2>(m, "base2").def(py::init<>());
+    py::classh<drvd2, base1, base2>(m, "drvd2");
 
     m.def("rtrn_mptr_drvd2", rtrn_mptr_drvd2, rvto);
     m.def("rtrn_mptr_drvd2_up_cast1", rtrn_mptr_drvd2_up_cast1, rvto);
