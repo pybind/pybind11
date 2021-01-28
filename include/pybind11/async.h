@@ -2,17 +2,9 @@
 
 #include <memory>
 #include <future>
-#include <map>
-#include <algorithm>
-#include <sstream>
-
 #include <chrono>
-#include <iostream>
 
 #include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
-#include "pybind11/embed.h"
-#include "pybind11/operators.h"
 
 
 namespace py = pybind11;
