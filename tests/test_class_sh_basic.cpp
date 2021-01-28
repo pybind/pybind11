@@ -93,6 +93,10 @@ TEST_SUBMODULE(class_sh_basic, m) {
     // These require selected functions above to work first, as indicated:
     m.def("get_mtxt", get_mtxt);                         // pass_cref_atyp
     m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp_atyp, rtrn_uqmp_atyp
+
+    m.def("py_type_handle_of_atyp", []() {
+        return py::type::handle_of<atyp>(); // Exercises static_cast in this function.
+    });
 }
 
 } // namespace class_sh_basic
