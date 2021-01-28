@@ -28,7 +28,7 @@ class StopIteration : public py::stop_iteration {
             this->result = result;
         }
         void set_error() const override {
-            PyErr_SetObject(PyExc_StopIteration, this->result.ptr()); 
+            PyErr_SetObject(PyExc_StopIteration, this->result.ptr());
         }
     private:
         py::object result;
@@ -131,7 +131,7 @@ class async_function : public cpp_function {
                     auto result = f(std::forward<Args>(args) ...);
 
                     py::gil_scoped_acquire gil;
-                    
+
                     auto py_result = py::cast(result);
                     return py_result;
                 };
@@ -159,7 +159,7 @@ class async_function : public cpp_function {
                     f(std::forward<Args>(args) ...);
 
                     py::gil_scoped_acquire gil;
-                    
+
                     auto py_result = py::cast(Py_None);
                     return py_result;
                 };
