@@ -70,6 +70,19 @@ that is supported via a ``build_ext`` command override; it will only affect
         ext_modules=ext_modules
     )
 
+If you have single-file extension modules that are directly stored in the
+Python source tree (``foo.cpp`` in the same directory as where a ``foo.py``
+would be located), you can also generate ``Pybind11Extensions`` using
+``setup_helpers.intree_extensions``: ``intree_extensions(["path/to/foo.cpp",
+...])`` returns a list of ``Pybind11Extensions`` which can be passed to
+``ext_modules``, possibly after further customizing their attributes
+(``libraries``, ``include_dirs``, etc.).  By doing so, a ``foo.*.so`` extension
+module will be generated and made available upon installation.
+
+``intree_extension`` will automatically detect if you are using a ``src``-style
+layout (as long as no namespace packages are involved), but you can also
+explicitly pass ``package_dir`` to it (as in ``setuptools.setup``).
+
 Since pybind11 does not require NumPy when building, a light-weight replacement
 for NumPy's parallel compilation distutils tool is included. Use it like this:
 
