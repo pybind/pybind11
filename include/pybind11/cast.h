@@ -1628,7 +1628,6 @@ using type_caster_holder = conditional_t<is_copy_constructible<holder_type>::val
                                          copyable_holder_caster<type, holder_type>,
                                          move_only_holder_caster<type, holder_type>>;
 
-template <typename T, bool Value = false> struct is_smart_holder { static constexpr bool value = Value; };
 template <typename T, bool Value = false> struct always_construct_holder { static constexpr bool value = Value; };
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
@@ -1643,8 +1642,7 @@ template <typename T, bool Value = false> struct always_construct_holder { stati
 
 // PYBIND11_DECLARE_HOLDER_TYPE holder types:
 template <typename base, typename holder> struct is_holder_type :
-    detail::any_of<std::is_base_of<detail::type_caster_holder<base, holder>, detail::type_caster<holder>>,
-                   detail::is_smart_holder<holder>> {};
+    std::is_base_of<detail::type_caster_holder<base, holder>, detail::type_caster<holder>> {};
 // Specialization for always-supported unique_ptr holders:
 template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
     std::true_type {};
@@ -2263,15 +2261,22 @@ object object_api<Derived>::call(Args &&...args) const {
     return operator()<policy>(std::forward<Args>(args)...);
 }
 
+template <typename T, typename SFINAE = void>
+struct is_smart_holder_type_caster : std::false_type {};
+template <typename T>
+struct is_smart_holder_type_caster<
+    T,
+    enable_if_t<type_caster<T>::is_smart_holder_type_caster::value, void>> : std::true_type {};
+
 PYBIND11_NAMESPACE_END(detail)
 
 
 template<typename T>
 handle type::handle_of() {
-   static_assert(
-      std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
-      "py::type::of<T> only supports the case where T is a registered C++ types."
-    );
+    static_assert(
+        detail::any_of<std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>,
+                       detail::is_smart_holder_type_caster<T>>::value,
+        "py::type::of<T> only supports the case where T is a registered C++ types.");
 
     return detail::get_type_handle(typeid(T), true);
 }
