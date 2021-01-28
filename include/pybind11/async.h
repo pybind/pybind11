@@ -45,15 +45,15 @@ class Awaitable : public std::enable_shared_from_this<Awaitable>{
             this->future = std::move(_future);
         };
 
-        std::shared_ptr<Awaitable> __iter__() {
+        std::shared_ptr<Awaitable> iter() {
             return this->shared_from_this();
         };
 
-        std::shared_ptr<Awaitable> __await__() {
+        std::shared_ptr<Awaitable> await() {
             return this->shared_from_this();
         };
 
-        void __next__() {
+        void next() {
             // check future status (zero timeout)
             auto status = this->future.wait_for(std::chrono::milliseconds(0));
 
