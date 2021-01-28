@@ -5,12 +5,12 @@ from pybind11_tests import class_sh_basic as m
 
 
 def test_atyp_constructors():
-    e = m.atyp()
-    assert e.__class__.__name__ == "atyp"
-    e = m.atyp("")
-    assert e.__class__.__name__ == "atyp"
-    e = m.atyp("txtm")
-    assert e.__class__.__name__ == "atyp"
+    obj = m.atyp()
+    assert obj.__class__.__name__ == "atyp"
+    obj = m.atyp("")
+    assert obj.__class__.__name__ == "atyp"
+    obj = m.atyp("txtm")
+    assert obj.__class__.__name__ == "atyp"
 
 
 def test_cast():
@@ -80,3 +80,8 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
         # Ensure the returned object is a different Python instance.
         assert id_rtrn != id_orig
         id_orig = id_rtrn
+
+
+def test_py_type_handle_of_atyp():
+    obj = m.py_type_handle_of_atyp()
+    assert obj.__class__.__name__ == "pybind11_type"

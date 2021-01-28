@@ -228,6 +228,41 @@ public:
 };
 // clang-format on
 
+struct smart_holder_type_caster_class_hooks {
+    using is_smart_holder_type_caster = std::true_type;
+
+    static decltype(&modified_type_caster_generic_load_impl::local_load)
+    get_local_load_function_ptr() {
+        return &modified_type_caster_generic_load_impl::local_load;
+    }
+
+    template <typename T>
+    static void init_instance_for_type(detail::instance *inst, const void *holder_const_void_ptr) {
+        // Need for const_cast is a consequence of the type_info::init_instance type:
+        // void (*init_instance)(instance *, const void *);
+        auto holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
+
+        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(T)));
+        if (!v_h.instance_registered()) {
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+            v_h.set_instance_registered();
+        }
+        using holder_type = pybindit::memory::smart_holder;
+        if (holder_void_ptr) {
+            // Note: inst->owned ignored.
+            auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*holder_ptr));
+        } else if (inst->owned) {
+            new (std::addressof(v_h.holder<holder_type>()))
+                holder_type(holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<T>()));
+        } else {
+            new (std::addressof(v_h.holder<holder_type>()))
+                holder_type(holder_type::from_raw_ptr_unowned(v_h.value_ptr<T>()));
+        }
+        v_h.set_holder_constructed();
+    }
+};
+
 template <typename T>
 struct smart_holder_type_caster_load {
     using holder_type = pybindit::memory::smart_holder;
@@ -305,7 +340,8 @@ struct make_constructor : private type_caster_base<int> { // Any type, nothing s
 };
 
 template <typename T>
-struct smart_holder_type_caster : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
+                                  smart_holder_type_caster_class_hooks {
     static constexpr auto name = _<T>();
 
     // static handle cast(T, ...)
@@ -462,7 +498,8 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T> {
 };
 
 template <typename T>
-struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_load<T>,
+                                                      smart_holder_type_caster_class_hooks {
     static constexpr auto name = _<std::shared_ptr<T>>();
 
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
@@ -506,7 +543,8 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
 };
 
 template <typename T>
-struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_caster_load<T>,
+                                                            smart_holder_type_caster_class_hooks {
     static constexpr auto name = _<std::shared_ptr<T const>>();
 
     static handle
@@ -524,7 +562,8 @@ struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_ca
 };
 
 template <typename T>
-struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_load<T>,
+                                                      smart_holder_type_caster_class_hooks {
     static constexpr auto name = _<std::unique_ptr<T>>();
 
     static handle cast(std::unique_ptr<T> &&src, return_value_policy policy, handle parent) {
@@ -566,7 +605,8 @@ struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_l
 };
 
 template <typename T>
-struct smart_holder_type_caster<std::unique_ptr<T const>> : smart_holder_type_caster_load<T> {
+struct smart_holder_type_caster<std::unique_ptr<T const>> : smart_holder_type_caster_load<T>,
+                                                            smart_holder_type_caster_class_hooks {
     static constexpr auto name = _<std::unique_ptr<T const>>();
 
     static handle cast(std::unique_ptr<T const> &&src, return_value_policy policy, handle parent) {
@@ -580,42 +620,6 @@ struct smart_holder_type_caster<std::unique_ptr<T const>> : smart_holder_type_ca
     using cast_op_type = std::unique_ptr<T const>;
 
     operator std::unique_ptr<T const>() { return this->loaded_as_unique_ptr(); }
-};
-
-template <>
-struct is_smart_holder<pybindit::memory::smart_holder>
-    : is_smart_holder<pybindit::memory::smart_holder, true> {
-
-    static decltype(&modified_type_caster_generic_load_impl::local_load)
-    get_type_caster_local_load_function_ptr() {
-        return &modified_type_caster_generic_load_impl::local_load;
-    }
-
-    template <typename T>
-    static void init_instance_for_type(detail::instance *inst, const void *holder_const_void_ptr) {
-        // Need for const_cast is a consequence of the type_info::init_instance type:
-        // void (*init_instance)(instance *, const void *);
-        auto holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
-
-        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(T)));
-        if (!v_h.instance_registered()) {
-            register_instance(inst, v_h.value_ptr(), v_h.type);
-            v_h.set_instance_registered();
-        }
-        using holder_type = pybindit::memory::smart_holder;
-        if (holder_void_ptr) {
-            // Note: inst->owned ignored.
-            auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*holder_ptr));
-        } else if (inst->owned) {
-            new (std::addressof(v_h.holder<holder_type>()))
-                holder_type(holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<T>()));
-        } else {
-            new (std::addressof(v_h.holder<holder_type>()))
-                holder_type(holder_type::from_raw_ptr_unowned(v_h.value_ptr<T>()));
-        }
-        v_h.set_holder_constructed();
-    }
 };
 
 #define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)                                                     \
