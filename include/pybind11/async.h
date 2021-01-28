@@ -15,38 +15,61 @@
 #include "pybind11/operators.h"
 
 
+namespace py = pybind11;
 namespace pybind11 {
 
-template<typename ResultType>
-class Awaitable : public std::enable_shared_from_this<Awaitable<ResultType>>{
+
+class StopIteration : public py::stop_iteration {
+    public:
+        StopIteration(py::object result) : stop_iteration("--"), result(result) {};
+        //using py::stop_iteration::stop_iteration;
+        /// Set the error using the Python C API
+        void set_result(py::object result) {
+            this->result = result;
+        }
+        void set_error() const override {
+            PyErr_SetObject(PyExc_StopIteration, this->result.ptr()); 
+        }
+    private:
+        py::object result;
+};
+
+
+class Awaitable : public std::enable_shared_from_this<Awaitable>{
     public:
         Awaitable() {
-            this->future = std::future<ResultType>();
+            this->future = std::future<py::object>();
         };
 
-        Awaitable(std::future<ResultType>& _future) {
+        Awaitable(std::future<py::object>& _future) {
             this->future = std::move(_future);
         };
 
-        std::shared_ptr<Awaitable<ResultType>> __iter__() {
+        std::shared_ptr<Awaitable> __iter__() {
             return this->shared_from_this();
         };
 
-        std::shared_ptr<Awaitable<ResultType>> __await__() {
+        std::shared_ptr<Awaitable> __await__() {
             return this->shared_from_this();
         };
 
         void __next__() {
+            // check future status (zero timeout)
             auto status = this->future.wait_for(std::chrono::milliseconds(0));
 
             if (status == std::future_status::ready) {
-                throw pybind11::stop_iteration();
+                // future is ready -> raise StopInteration with the future result set
+                auto exception = StopIteration(this->future.get());
+                //exception.set_result(this->future.get());
+
+                throw exception;
             }
         };
 
     private:
-        std::future<ResultType> future;
+        std::future<py::object> future;
 };
+
 
 class async_function : public cpp_function {
     public:
@@ -103,11 +126,19 @@ class async_function : public cpp_function {
         template <typename Func, typename Return, typename... Args, typename... Extra>
         void initialize(Func &&f, Return (*)(Args...), const Extra&... extra) {
             // create a new lambda which spawns an async thread running the original function
-            auto proxy = [f](Args... args) -> Awaitable<void>* {
-                auto thread_func = std::bind(f, std::forward<Args>(args)...);
+            auto proxy = [f](Args... args) -> Awaitable* {
+                auto thread_func = [f](Args... args) {
+                    auto result = f(std::forward<Args>(args) ...);
 
-                auto future = std::async(std::launch::async, thread_func);
-                auto awaitable = new Awaitable<void>(future);
+                    py::gil_scoped_acquire gil;
+                    
+                    auto py_result = py::cast(result);
+                    return py_result;
+                };
+                auto bound_thread_func = std::bind(thread_func, std::forward<Args>(args)...);
+
+                auto future = std::async(std::launch::async, bound_thread_func);
+                auto awaitable = new Awaitable(future);
 
                 return awaitable;
             };
@@ -119,6 +150,7 @@ class async_function : public cpp_function {
                 extra...
                 );
         }
+
 };
 
 template <typename type_, typename... options>
