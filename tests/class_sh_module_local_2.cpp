@@ -22,7 +22,7 @@ PYBIND11_MODULE(class_sh_module_local_2, m) {
     namespace py = pybind11;
     using namespace pybind11_tests::class_sh_module_local;
 
-    py::class_<atyp, py::smart_holder>(m, "atyp", py::module_local())
+    py::classh<atyp>(m, "atyp", py::module_local())
         .def(py::init([](const std::string &mtxt) {
             atyp obj;
             obj.mtxt = mtxt;
