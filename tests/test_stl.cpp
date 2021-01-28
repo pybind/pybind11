@@ -291,6 +291,9 @@ TEST_SUBMODULE(stl, m) {
     m.def("func_with_string_or_vector_string_arg_overload", [](std::list<std::string>) { return 2; });
     m.def("func_with_string_or_vector_string_arg_overload", [](std::string) { return 3; });
 
+    // #1807: 2.3.0 regression: <class 'bytes'> is not converted to std::vector<uint8_t> anymore
+    m.def("func_with_vector_uint8_t_arg", [](std::vector<uint8_t> v) { return v.size(); });
+
     class Placeholder {
     public:
         Placeholder() { print_created(this); }
