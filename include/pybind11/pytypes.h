@@ -1168,10 +1168,15 @@ public:
 
 class weakref : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(weakref, object, PyWeakref_Check)
+    PYBIND11_OBJECT_CVT(weakref, object, PyWeakref_Check, raw_weakref)
     explicit weakref(handle obj, handle callback = {})
         : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate weak reference!");
+    }
+
+private:
+    static PyObject *raw_weakref(PyObject *o) {
+        return PyWeakref_NewRef(o, nullptr);
     }
 };
 
