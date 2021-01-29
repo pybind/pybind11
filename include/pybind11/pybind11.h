@@ -1507,17 +1507,16 @@ public:
     }
 
 private:
-    template <typename T = type,
-              detail::enable_if_t<
-                  std::is_base_of<detail::type_caster_generic, detail::type_caster<T>>::value,
-                  int> = 0>
+    template <
+        typename T = type,
+        detail::enable_if_t<!detail::is_smart_holder_type_caster<T>::value, int> = 0>
     void generic_type_initialize(const detail::type_record &record) {
         generic_type::initialize(record, &detail::type_caster_generic::local_load);
     }
 
     template <
         typename T = type,
-        detail::enable_if_t<detail::type_caster<T>::is_smart_holder_type_caster::value, int> = 0>
+        detail::enable_if_t<detail::is_smart_holder_type_caster<T>::value, int> = 0>
     void generic_type_initialize(const detail::type_record &record) {
         generic_type::initialize(record, detail::type_caster<T>::get_local_load_function_ptr());
     }
@@ -1566,10 +1565,9 @@ private:
     /// instance.  Should be called as soon as the `type` value_ptr is set for an instance.  Takes an
     /// optional pointer to an existing holder to use; if not specified and the instance is
     /// `.owned`, a new holder will be constructed to manage the value pointer.
-    template <typename T = type,
-              detail::enable_if_t<
-                  std::is_base_of<detail::type_caster_generic, detail::type_caster<T>>::value,
-                  int> = 0>
+    template <
+        typename T = type,
+        detail::enable_if_t<!detail::is_smart_holder_type_caster<T>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
@@ -1581,7 +1579,7 @@ private:
 
     template <
         typename T = type,
-        detail::enable_if_t<detail::type_caster<T>::is_smart_holder_type_caster::value, int> = 0>
+        detail::enable_if_t<detail::is_smart_holder_type_caster<T>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         detail::type_caster<T>::template init_instance_for_type<type>(inst, holder_ptr);
     }
