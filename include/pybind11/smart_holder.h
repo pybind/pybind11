@@ -19,4 +19,12 @@ public:
     using class_<type_, smart_holder, options...>::class_;
 };
 
+// Similar in idea to `py::classh`, but for `std::unique_ptr<U>` holder, to support
+// an easier transition to `py::smart_holder` as default holder.
+template <typename type_, typename... options>
+class classu : public class_<type_, std::unique_ptr<type_>, options...> {
+public:
+    using class_<type_, std::unique_ptr<type_>, options...>::class_;
+};
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
