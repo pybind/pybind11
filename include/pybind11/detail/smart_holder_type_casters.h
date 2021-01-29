@@ -549,7 +549,7 @@ struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_ca
 
     static handle
     cast(const std::shared_ptr<T const> &src, return_value_policy policy, handle parent) {
-        return type_caster<std::shared_ptr<T>>::cast(
+        return smart_holder_type_caster<std::shared_ptr<T>>::cast(
             std::const_pointer_cast<T>(src), // Const2Mutbl
             policy,
             parent);
@@ -610,7 +610,7 @@ struct smart_holder_type_caster<std::unique_ptr<T const>> : smart_holder_type_ca
     static constexpr auto name = _<std::unique_ptr<T const>>();
 
     static handle cast(std::unique_ptr<T const> &&src, return_value_policy policy, handle parent) {
-        return type_caster<std::unique_ptr<T>>::cast(
+        return smart_holder_type_caster<std::unique_ptr<T>>::cast(
             std::unique_ptr<T>(const_cast<T *>(src.release())), // Const2Mutbl
             policy,
             parent);
