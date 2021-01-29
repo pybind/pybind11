@@ -1257,7 +1257,13 @@ public:
     using type = type_;
     using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type = detail::exactly_one_t<is_holder, std::unique_ptr<type>, options...>;
+    using holder_type = detail::exactly_one_t<is_holder,
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+        std::unique_ptr<type>
+#else
+        smart_holder
+#endif
+        , options...>;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
             "Unknown/invalid class_ template parameters provided");
