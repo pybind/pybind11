@@ -8,7 +8,10 @@
 
 
 namespace py = pybind11;
-namespace pybind11 {
+
+
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(async)
 
 
 class StopIteration : public py::stop_iteration {
@@ -51,10 +54,11 @@ class Awaitable : public std::enable_shared_from_this<Awaitable>{
 
             if (status == std::future_status::ready) {
                 // future is ready -> raise StopInteration with the future result set
-                auto exception = StopIteration(this->future.get());
+                //auto exception = StopIteration(this->future.get());
                 //exception.set_result(this->future.get());
+                PyErr_SetObject(PyExc_StopIteration, this->future.get().ptr());
 
-                throw exception;
+                //throw exception;
             }
         };
 
@@ -62,6 +66,14 @@ class Awaitable : public std::enable_shared_from_this<Awaitable>{
         std::future<py::object> future;
 };
 
+
+py::class_<Awaitable, std::shared_ptr<Awaitable>>enable_async(py::module m) {
+    return py::class_<Awaitable, std::shared_ptr<Awaitable>>(m, "Awaitable")
+        .def(py::init<>())
+        .def("__iter__", &Awaitable::iter)
+        .def("__await__", &Awaitable::await)
+        .def("__next__", &Awaitable::next);
+};
 
 class async_function : public cpp_function {
     public:
@@ -191,4 +203,6 @@ class class_async : public class_<type_, options...> {
 
 };
 
-}
+
+PYBIND11_NAMESPACE_END(async)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
