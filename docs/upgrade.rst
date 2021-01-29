@@ -18,10 +18,10 @@ and ``py::isinstance<str>()`` is ``true`` for both ``py::str`` and
 ``py::bytes``. Starting with v2.7, ``py::str`` exclusively holds
 ``PyUnicodeObject`` (`#2409 <https://github.com/pybind/pybind11/pull/2409>`_),
 and ``py::isinstance<str>()`` is ``true`` only for ``py::str``. To help in
-the transition of client code, the ``PYBIND11_STR_LEGACY_PERMISSIVE`` macro
+the transition of user code, the ``PYBIND11_STR_LEGACY_PERMISSIVE`` macro
 is provided as an escape hatch to go back to the legacy behavior. This macro
-will be removed in future releases. Two types of required client-code fixes
-are expected to be common:
+will be removed in future releases. Two types of required fixes are expected
+to be common:
 
 * Accidental use of ``py::str`` instead of ``py::bytes``, masked by the legacy
   behavior. These are probably very easy to fix, by changing from
