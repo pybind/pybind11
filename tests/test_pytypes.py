@@ -541,3 +541,45 @@ def test_pass_bytes_or_unicode_to_string_types():
     else:
         with pytest.raises(TypeError):
             m.pass_to_pybind11_str(malformed_utf8)
+
+
+def test_weakref():
+    from weakref import getweakrefcount
+
+    # Apparently, you cannot weakly reference an object()
+    class WeaklyReferenced(object):
+        pass
+
+    called = [0]
+
+    def callback(wr):
+        # No `nonlocal` in Python 2
+        called[0] += 1
+
+    obj = WeaklyReferenced()
+    assert getweakrefcount(obj) == 0
+    wr = m.weakref_from_handle(obj)  # noqa: F841
+    assert getweakrefcount(obj) == 1
+
+    obj = WeaklyReferenced()
+    assert getweakrefcount(obj) == 0
+    wr = m.weakref_from_handle_and_function(obj, callback)  # noqa: F841
+    assert getweakrefcount(obj) == 1
+    assert called[0] == 0
+    del obj
+    pytest.gc_collect()
+    assert called[0] == 1
+
+    obj = WeaklyReferenced()
+    assert getweakrefcount(obj) == 0
+    wr = m.weakref_from_object(obj)  # noqa: F841
+    assert getweakrefcount(obj) == 1
+
+    obj = WeaklyReferenced()
+    assert getweakrefcount(obj) == 0
+    wr = m.weakref_from_object_and_function(obj, callback)  # noqa: F841
+    assert getweakrefcount(obj) == 1
+    assert called[0] == 1
+    del obj
+    pytest.gc_collect()
+    assert called[0] == 2

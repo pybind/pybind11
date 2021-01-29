@@ -424,4 +424,14 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("pass_to_pybind11_bytes", [](py::bytes b) { return py::len(b); });
     m.def("pass_to_pybind11_str", [](py::str s) { return py::len(s); });
     m.def("pass_to_std_string", [](std::string s) { return s.size(); });
+
+    // test_weakref
+    m.def("weakref_from_handle",
+          [](py::handle h) { return py::weakref(h); });
+    m.def("weakref_from_handle_and_function",
+          [](py::handle h, py::function f) { return py::weakref(h, f); });
+    m.def("weakref_from_object",
+          [](py::object o) { return py::weakref(o); });
+    m.def("weakref_from_object_and_function",
+          [](py::object o, py::function f) { return py::weakref(o, f); });
 }
