@@ -50,7 +50,8 @@ TEST_SUBMODULE(class_sh_unique_ptr_member, m) {
 
     m.def("make_unique_pointee", make_unique_pointee);
 
-    py::class_<ptr_owner>(m, "ptr_owner")
+    // Could also be class_, but can conveniently be used for testing classu.
+    py::classu<ptr_owner>(m, "ptr_owner")
         .def(py::init<std::unique_ptr<pointee>>(), py::arg("ptr"))
         .def("is_owner", &ptr_owner::is_owner)
         .def("give_up_ownership_via_unique_ptr", &ptr_owner::give_up_ownership_via_unique_ptr)
