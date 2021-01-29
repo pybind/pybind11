@@ -504,7 +504,14 @@ CHECK_BASE(1); CHECK_BASE(2); CHECK_BASE(3); CHECK_BASE(4); CHECK_BASE(5); CHECK
 CHECK_ALIAS(1); CHECK_ALIAS(2); CHECK_NOALIAS(3); CHECK_ALIAS(4); CHECK_NOALIAS(5); CHECK_ALIAS(6); CHECK_ALIAS(7); CHECK_NOALIAS(8);
 #define CHECK_HOLDER(N, TYPE) static_assert(std::is_same<typename DoesntBreak##N::holder_type, std::TYPE##_ptr<BreaksBase<N>>>::value, \
         "DoesntBreak" #N " has wrong holder_type!")
-CHECK_HOLDER(1, unique); CHECK_HOLDER(2, unique); CHECK_HOLDER(3, unique); CHECK_HOLDER(4, unique); CHECK_HOLDER(5, unique);
+#define CHECK_SMART_HOLDER(N) static_assert(std::is_same<typename DoesntBreak##N::holder_type, smart_holder, \
+        "DoesntBreak" #N " has wrong holder_type!")
+CHECK_HOLDER(1, unique); CHECK_HOLDER(2, unique); CHECK_HOLDER(3, unique);
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+CHECK_HOLDER(4, unique); CHECK_HOLDER(5, unique);
+#else
+CHECK_SMART_HOLDER(4); CHECK_SMART_HOLDER(5);
+#endif
 CHECK_HOLDER(6, shared); CHECK_HOLDER(7, shared); CHECK_HOLDER(8, shared);
 
 // There's no nice way to test that these fail because they fail to compile; leave them here,
