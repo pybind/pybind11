@@ -1525,7 +1525,11 @@ struct holder_helper {
 };
 
 /// Type caster for holder types like std::shared_ptr, etc.
-template <typename type, typename holder_type>
+/// The SFINAE hook is provided to help work around the current lack of support
+/// for smart-pointer interoperability. Please consider it an implementation
+/// detail that may change in the future, as formal support for smart-pointer
+/// interoperability is added into pybind11.
+template <typename type, typename holder_type, typename SFINAE = void>
 struct copyable_holder_caster : public type_caster_base<type> {
 public:
     using base = type_caster_base<type>;
@@ -1600,7 +1604,10 @@ protected:
 template <typename T>
 class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> { };
 
-template <typename type, typename holder_type>
+/// Type caster for holder types like std::unique_ptr.
+/// Please consider the SFINAE hook an implementation detail, as explained
+/// in the comment for the copyable_holder_caster.
+template <typename type, typename holder_type, typename SFINAE = void>
 struct move_only_holder_caster {
     static_assert(std::is_base_of<type_caster_base<type>, type_caster<type>>::value,
             "Holder classes are only supported for custom types");
