@@ -162,6 +162,11 @@
 #include <memory>
 #include <typeindex>
 #include <type_traits>
+#if defined(__has_include)
+#  if __has_include(<version>)
+#    include <version>
+#  endif
+#endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
 // If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
@@ -869,6 +874,24 @@ public:
 
 // Forward-declaration; see detail/class.h
 std::string get_fully_qualified_tp_name(PyTypeObject*);
+
+template <typename T>
+inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_from_this<T> *holder_value_ptr) {
+// Pre C++17, this code path exploits undefined behavior, but is known to work on many platforms.
+// Use at your own risk!
+// See also https://en.cppreference.com/w/cpp/memory/enable_shared_from_this, and in particular
+// the `std::shared_ptr<Good> gp1 = not_so_good.getptr();` and `try`-`catch` parts of the example.
+#if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+    return holder_value_ptr->weak_from_this().lock();
+#else
+    try {
+        return holder_value_ptr->shared_from_this();
+    }
+    catch (const std::bad_weak_ptr &) {
+        return nullptr;
+    }
+#endif
+}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
