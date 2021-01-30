@@ -1505,7 +1505,7 @@ private:
     template <typename T>
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
             const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
-#if defined(PYBIND11_CPP17)
+#if defined(__cpp_lib_enable_shared_from_this)
         if (!v_h.value_ptr<type>()->weak_from_this().expired()) {
 #else
         try {
@@ -1516,7 +1516,7 @@ private:
                 new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(sh));
                 v_h.set_holder_constructed();
             }
-#if defined(PYBIND11_CPP17)
+#if defined(__cpp_lib_enable_shared_from_this)
         }
 #else
         } catch (const std::bad_weak_ptr &) {}
