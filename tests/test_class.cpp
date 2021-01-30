@@ -504,7 +504,7 @@ CHECK_BASE(1); CHECK_BASE(2); CHECK_BASE(3); CHECK_BASE(4); CHECK_BASE(5); CHECK
 CHECK_ALIAS(1); CHECK_ALIAS(2); CHECK_NOALIAS(3); CHECK_ALIAS(4); CHECK_NOALIAS(5); CHECK_ALIAS(6); CHECK_ALIAS(7); CHECK_NOALIAS(8);
 #define CHECK_HOLDER(N, TYPE) static_assert(std::is_same<typename DoesntBreak##N::holder_type, std::TYPE##_ptr<BreaksBase<N>>>::value, \
         "DoesntBreak" #N " has wrong holder_type!")
-#define CHECK_SMART_HOLDER(N) static_assert(std::is_same<typename DoesntBreak##N::holder_type, smart_holder, \
+#define CHECK_SMART_HOLDER(N) static_assert(std::is_same<typename DoesntBreak##N::holder_type, py::smart_holder>::value, \
         "DoesntBreak" #N " has wrong holder_type!")
 CHECK_HOLDER(1, unique); CHECK_HOLDER(2, unique); CHECK_HOLDER(3, unique);
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
