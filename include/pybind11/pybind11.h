@@ -1505,7 +1505,7 @@ private:
     template <typename T>
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
             const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
-#if defined(__cpp_lib_enable_shared_from_this)
+#if (__cpp_lib_enable_shared_from_this >= 201603L) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
         if (!v_h.value_ptr<type>()->weak_from_this().expired()) {
 #else
         try {
