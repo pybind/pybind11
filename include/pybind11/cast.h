@@ -1717,6 +1717,13 @@ template <typename T> struct move_if_unreferenced<T, enable_if_t<all_of<
 >::value>> : std::true_type {};
 template <typename T> using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
 
+template <typename T, typename SFINAE = void>
+struct is_smart_holder_type_caster : std::false_type {};
+template <typename T>
+struct is_smart_holder_type_caster<
+    T,
+    enable_if_t<type_caster<T>::is_smart_holder_type_caster::value, void>> : std::true_type {};
+
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
 // reference or pointer to a local variable of the type_caster.  Basically, only
 // non-reference/pointer `type`s and reference/pointers from a type_caster_generic are safe;
@@ -1724,7 +1731,8 @@ template <typename T> using move_never = none_of<move_always<T>, move_if_unrefer
 template <typename type> using cast_is_temporary_value_reference = bool_constant<
     (std::is_reference<type>::value || std::is_pointer<type>::value) &&
     !std::is_base_of<type_caster_generic, make_caster<type>>::value &&
-    !std::is_same<intrinsic_t<type>, void>::value
+    !std::is_same<intrinsic_t<type>, void>::value &&
+    !is_smart_holder_type_caster<intrinsic_t<type>>::value
 >;
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
@@ -2260,13 +2268,6 @@ template <return_value_policy policy, typename... Args>
 object object_api<Derived>::call(Args &&...args) const {
     return operator()<policy>(std::forward<Args>(args)...);
 }
-
-template <typename T, typename SFINAE = void>
-struct is_smart_holder_type_caster : std::false_type {};
-template <typename T>
-struct is_smart_holder_type_caster<
-    T,
-    enable_if_t<type_caster<T>::is_smart_holder_type_caster::value, void>> : std::true_type {};
 
 PYBIND11_NAMESPACE_END(detail)
 
