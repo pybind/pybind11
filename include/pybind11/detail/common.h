@@ -869,10 +869,7 @@ inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_fro
 // See also https://en.cppreference.com/w/cpp/memory/enable_shared_from_this, and in particular
 // the `std::shared_ptr<Good> gp1 = not_so_good.getptr();` and `try`-`catch` parts of the example.
 #if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-    if (!holder_value_ptr->weak_from_this().expired())
-        return holder_value_ptr->shared_from_this();
-    else
-        return nullptr;
+    return holder_value_ptr->weak_from_this().lock();
 #else
     try {
         return holder_value_ptr->shared_from_this();
