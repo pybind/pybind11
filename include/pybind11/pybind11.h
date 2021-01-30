@@ -1501,30 +1501,13 @@ public:
     }
 
 private:
-    template <typename T>
-    inline static std::shared_ptr<T> get_shared_from_this(std::enable_shared_from_this<T> *holder_value_ptr) {
-#if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-        if (!holder_value_ptr->weak_from_this().expired())
-            return holder_value_ptr->shared_from_this();
-        else
-            return nullptr;
-#else
-        try {
-            return holder_value_ptr->shared_from_this();
-        }
-        catch (const std::bad_weak_ptr &) {
-            return nullptr;
-        }
-#endif
-    }
-
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
             const holder_type * /* unused */, const std::enable_shared_from_this<T> * /* dummy */) {
 
         auto sh = std::dynamic_pointer_cast<typename holder_type::element_type>(
-                get_shared_from_this(v_h.value_ptr<type>()));
+                detail::try_get_shared_from_this(v_h.value_ptr<type>()));
         if (sh) {
             new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(sh));
             v_h.set_holder_constructed();
