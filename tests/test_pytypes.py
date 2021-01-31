@@ -543,7 +543,14 @@ def test_pass_bytes_or_unicode_to_string_types():
             m.pass_to_pybind11_str(malformed_utf8)
 
 
-def test_weakref():
+@pytest.mark.parametrize(
+    "create_weakref, create_weakref_with_callback",
+    [
+        (m.weakref_from_handle, m.weakref_from_handle_and_function),
+        (m.weakref_from_object, m.weakref_from_object_and_function),
+    ],
+)
+def test_weakref(create_weakref, create_weakref_with_callback):
     from weakref import getweakrefcount
 
     # Apparently, you cannot weakly reference an object()
@@ -552,34 +559,19 @@ def test_weakref():
 
     def callback(wr):
         # No `nonlocal` in Python 2
-        callback.called += 1
-
-    callback.called = 0
+        callback.called = True
 
     obj = WeaklyReferenced()
     assert getweakrefcount(obj) == 0
-    wr = m.weakref_from_handle(obj)  # noqa: F841
+    wr = create_weakref(obj)  # noqa: F841
     assert getweakrefcount(obj) == 1
 
     obj = WeaklyReferenced()
     assert getweakrefcount(obj) == 0
-    wr = m.weakref_from_handle_and_function(obj, callback)  # noqa: F841
+    callback.called = False
+    wr = create_weakref_with_callback(obj, callback)  # noqa: F841
     assert getweakrefcount(obj) == 1
-    assert callback.called == 0
+    assert not callback.called
     del obj
     pytest.gc_collect()
-    assert callback.called == 1
-
-    obj = WeaklyReferenced()
-    assert getweakrefcount(obj) == 0
-    wr = m.weakref_from_object(obj)  # noqa: F841
-    assert getweakrefcount(obj) == 1
-
-    obj = WeaklyReferenced()
-    assert getweakrefcount(obj) == 0
-    wr = m.weakref_from_object_and_function(obj, callback)  # noqa: F841
-    assert getweakrefcount(obj) == 1
-    assert callback.called == 1
-    del obj
-    pytest.gc_collect()
-    assert callback.called == 2
+    assert callback.called
