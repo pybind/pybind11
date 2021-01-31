@@ -300,7 +300,7 @@ def test_int_convert():
     assert noconvert(7) == 7
     cant_convert(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    if env.PY >= (3, 8):
+    if (3, 8) <= env.PY < (3, 10):
         with pytest.deprecated_call():
             assert convert(Int()) == 42
     else:
@@ -335,7 +335,7 @@ def test_numpy_int_convert():
 
     # The implicit conversion from np.float32 is undesirable but currently accepted.
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    if env.PY >= (3, 8):
+    if (3, 8) <= env.PY < (3, 10):
         with pytest.deprecated_call():
             assert convert(np.float32(3.14159)) == 3
     else:
