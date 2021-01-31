@@ -819,6 +819,10 @@ PYBIND11_NAMESPACE_END(detail)
     : Parent(check_(o) ? o.release().ptr() : ConvertFun(o.ptr()), stolen_t{}) \
     { if (!m_ptr) throw error_already_set(); }
 
+#define PYBIND11_OBJECT_CVT_DEFAULT(Name, Parent, CheckFun, ConvertFun) \
+    PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun) \
+    Name() : Parent() { }
+
 #define PYBIND11_OBJECT_CHECK_FAILED(Name, o_ptr) \
     ::pybind11::type_error("Object of type '" + \
                            ::pybind11::detail::get_fully_qualified_tp_name(Py_TYPE(o_ptr)) + \
@@ -1168,7 +1172,7 @@ public:
 
 class weakref : public object {
 public:
-    PYBIND11_OBJECT_CVT(weakref, object, PyWeakref_Check, raw_weakref)
+    PYBIND11_OBJECT_CVT_DEFAULT(weakref, object, PyWeakref_Check, raw_weakref)
     explicit weakref(handle obj, handle callback = {})
         : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate weak reference!");
