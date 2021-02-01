@@ -40,6 +40,15 @@ std::unique_ptr<atyp const> rtrn_uqcp_atyp() { return std::unique_ptr<atyp const
 std::string pass_uqmp_atyp(std::unique_ptr<atyp      > obj) { return "pass_uqmp:" + obj->mtxt; }
 std::string pass_uqcp_atyp(std::unique_ptr<atyp const> obj) { return "pass_uqcp:" + obj->mtxt; }
 
+struct uqmd : std::default_delete<atyp      > {};
+struct uqcd : std::default_delete<atyp const> {};
+
+std::unique_ptr<atyp,       uqmd> rtrn_uqmp_del_atyp() { return std::unique_ptr<atyp,       uqmd>(new atyp{"rtrn_uqmp_del"}); }
+std::unique_ptr<atyp const, uqcd> rtrn_uqcp_del_atyp() { return std::unique_ptr<atyp const, uqcd>(new atyp{"rtrn_uqcp_del"}); }
+
+std::string pass_uqmp_del_atyp(std::unique_ptr<atyp,       uqmd> obj) { return "pass_uqmp_del:" + obj->mtxt; }
+std::string pass_uqcp_del_atyp(std::unique_ptr<atyp const, uqcd> obj) { return "pass_uqcp_del:" + obj->mtxt; }
+
 // clang-format on
 
 // Helpers for testing.
@@ -88,6 +97,12 @@ TEST_SUBMODULE(class_sh_basic, m) {
 
     m.def("pass_uqmp_atyp", pass_uqmp_atyp);
     m.def("pass_uqcp_atyp", pass_uqcp_atyp);
+
+    m.def("rtrn_uqmp_del_atyp", rtrn_uqmp_del_atyp);
+    m.def("rtrn_uqcp_del_atyp", rtrn_uqcp_del_atyp);
+
+    m.def("pass_uqmp_del_atyp", pass_uqmp_del_atyp);
+    m.def("pass_uqcp_del_atyp", pass_uqcp_del_atyp);
 
     // Helpers for testing.
     // These require selected functions above to work first, as indicated:
