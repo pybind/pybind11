@@ -894,7 +894,7 @@ public:
 
     /// Create a new top-level Python module with the given name and docstring
     explicit module_(const char *name, const char *doc = nullptr) {
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x07030400)
         m_ptr = PyModule_New(const_cast<char *>(name));
 #else
         m_ptr = PyModule_New(name);
