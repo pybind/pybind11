@@ -51,6 +51,16 @@ def test_load_unique_ptr():
     assert m.pass_uqcp_atyp(m.atyp("Uqcp")) == "pass_uqcp:Uqcp"
 
 
+def test_cast_unique_ptr_with_deleter():
+    assert m.get_mtxt(m.rtrn_uqmp_del_atyp()) == "rtrn_uqmp_del"
+    assert m.get_mtxt(m.rtrn_uqcp_del_atyp()) == "rtrn_uqcp_del"
+
+
+def test_load_unique_ptr_with_deleter():
+    assert m.pass_uqmp_del_atyp(m.rtrn_uqmp_del_atyp()) == "pass_uqmp_del:rtrn_uqmp_del"
+    assert m.pass_uqcp_del_atyp(m.rtrn_uqcp_del_atyp()) == "pass_uqcp_del:rtrn_uqcp_del"
+
+
 @pytest.mark.parametrize(
     "pass_atyp, argm, rtrn",
     [
