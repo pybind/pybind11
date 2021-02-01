@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "gil.h"
 #include "pytypes.h"
 #include "detail/common.h"
 #include "detail/descr.h"
@@ -620,6 +621,42 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
+/// Another helper class for holders that helps construct derivative holders from
+/// the original holder
+template <typename T>
+struct holder_retriever {
+    static auto get_derivative_holder(const value_and_holder &v_h) -> decltype(v_h.template holder<T>()) {
+        return v_h.template holder<T>();
+    }
+};
+
+template <typename T>
+struct holder_retriever<std::shared_ptr<T>> {
+    struct shared_ptr_deleter {
+        // Note: deleter destructor fails on MSVC 2015 and GCC 4.8, so we manually
+        // call dec_ref here instead
+        handle ref;
+        void operator()(T *) {
+            gil_scoped_acquire gil;
+            ref.dec_ref();
+        }
+    };
+
+    static auto get_derivative_holder(const value_and_holder &v_h) -> std::shared_ptr<T> {
+        // The shared_ptr is always given to C++ code, so construct a new shared_ptr
+        // that is given a custom deleter. The custom deleter increments the python
+        // reference count to bind the python instance lifetime with the lifetime
+        // of the shared_ptr.
+        //
+        // This enables things like passing the last python reference of a subclass to a
+        // C++ function without the python reference dying.
+        //
+        // Reference cycles will cause a leak, but this is a limitation of shared_ptr
+        return std::shared_ptr<T>((T*)v_h.value_ptr(),
+            shared_ptr_deleter{handle((PyObject*)v_h.inst).inc_ref()});
+    }
+};
+
 /// Type caster for holder types like std::shared_ptr, etc.
 /// The SFINAE hook is provided to help work around the current lack of support
 /// for smart-pointer interoperability. Please consider it an implementation
@@ -662,7 +699,7 @@ protected:
     bool load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
-            holder = v_h.template holder<holder_type>();
+            holder = holder_retriever<holder_type>::get_derivative_holder(v_h);
             return true;
         } else {
             throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
