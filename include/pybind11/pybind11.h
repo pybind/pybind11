@@ -899,8 +899,8 @@ public:
 #else
         m_ptr = PyModule_New(name);
 #endif
-        if (m_ptr == nullptr)
-            pybind11_fail("Internal error in module_::module_()");
+        if (!m_ptr)
+            pybind11_fail("Could not allocate module object!");
         if (doc && options::show_user_defined_docstrings()) {
 #if PY_MAJOR_VERSION >= 3 && !defined(PYPY_VERSION)
             if (PyModule_SetDocString(m_ptr, doc) != 0)
