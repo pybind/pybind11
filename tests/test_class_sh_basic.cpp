@@ -40,14 +40,14 @@ std::unique_ptr<atyp const> rtrn_uqcp_atyp() { return std::unique_ptr<atyp const
 std::string pass_uqmp_atyp(std::unique_ptr<atyp      > obj) { return "pass_uqmp:" + obj->mtxt; }
 std::string pass_uqcp_atyp(std::unique_ptr<atyp const> obj) { return "pass_uqcp:" + obj->mtxt; }
 
-struct uqmd : std::default_delete<atyp      > {};
-struct uqcd : std::default_delete<atyp const> {};
+struct sddm : std::default_delete<atyp      > {};
+struct sddc : std::default_delete<atyp const> {};
 
-std::unique_ptr<atyp,       uqmd> rtrn_uqmp_del_atyp() { return std::unique_ptr<atyp,       uqmd>(new atyp{"rtrn_uqmp_del"}); }
-std::unique_ptr<atyp const, uqcd> rtrn_uqcp_del_atyp() { return std::unique_ptr<atyp const, uqcd>(new atyp{"rtrn_uqcp_del"}); }
+std::unique_ptr<atyp,       sddm> rtrn_udmp_atyp() { return std::unique_ptr<atyp,       sddm>(new atyp{"rtrn_udmp"}); }
+std::unique_ptr<atyp const, sddc> rtrn_udcp_atyp() { return std::unique_ptr<atyp const, sddc>(new atyp{"rtrn_udcp"}); }
 
-std::string pass_uqmp_del_atyp(std::unique_ptr<atyp,       uqmd> obj) { return "pass_uqmp_del:" + obj->mtxt; }
-std::string pass_uqcp_del_atyp(std::unique_ptr<atyp const, uqcd> obj) { return "pass_uqcp_del:" + obj->mtxt; }
+std::string pass_udmp_atyp(std::unique_ptr<atyp,       sddm> obj) { return "pass_udmp:" + obj->mtxt; }
+std::string pass_udcp_atyp(std::unique_ptr<atyp const, sddc> obj) { return "pass_udcp:" + obj->mtxt; }
 
 // clang-format on
 
@@ -98,11 +98,11 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("pass_uqmp_atyp", pass_uqmp_atyp);
     m.def("pass_uqcp_atyp", pass_uqcp_atyp);
 
-    m.def("rtrn_uqmp_del_atyp", rtrn_uqmp_del_atyp);
-    m.def("rtrn_uqcp_del_atyp", rtrn_uqcp_del_atyp);
+    m.def("rtrn_udmp_atyp", rtrn_udmp_atyp);
+    m.def("rtrn_udcp_atyp", rtrn_udcp_atyp);
 
-    m.def("pass_uqmp_del_atyp", pass_uqmp_del_atyp);
-    m.def("pass_uqcp_del_atyp", pass_uqcp_del_atyp);
+    m.def("pass_udmp_atyp", pass_udmp_atyp);
+    m.def("pass_udcp_atyp", pass_udcp_atyp);
 
     // Helpers for testing.
     // These require selected functions above to work first, as indicated:
