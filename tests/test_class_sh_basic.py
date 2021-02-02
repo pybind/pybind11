@@ -52,24 +52,26 @@ def test_load_unique_ptr():
 
 
 def test_cast_unique_ptr_with_deleter():
-    assert m.get_mtxt(m.rtrn_uqmp_del_atyp()) == "rtrn_uqmp_del"
-    assert m.get_mtxt(m.rtrn_uqcp_del_atyp()) == "rtrn_uqcp_del"
+    assert m.get_mtxt(m.rtrn_udmp_atyp()) == "rtrn_udmp"
+    assert m.get_mtxt(m.rtrn_udcp_atyp()) == "rtrn_udcp"
 
 
 def test_load_unique_ptr_with_deleter():
-    assert m.pass_uqmp_del_atyp(m.rtrn_uqmp_del_atyp()) == "pass_uqmp_del:rtrn_uqmp_del"
-    assert m.pass_uqcp_del_atyp(m.rtrn_uqcp_del_atyp()) == "pass_uqcp_del:rtrn_uqcp_del"
+    assert m.pass_udmp_atyp(m.rtrn_udmp_atyp()) == "pass_udmp:rtrn_udmp"
+    assert m.pass_udcp_atyp(m.rtrn_udcp_atyp()) == "pass_udcp:rtrn_udcp"
 
 
 @pytest.mark.parametrize(
-    "pass_atyp, argm, rtrn",
+    "rtrn_atyp, pass_atyp, rtrn",
     [
-        (m.pass_uqmp_atyp, "Uqmp", "pass_uqmp:Uqmp"),
-        (m.pass_uqcp_atyp, "Uqcp", "pass_uqcp:Uqcp"),
+        (m.rtrn_uqmp_atyp, m.pass_uqmp_atyp, "pass_uqmp:rtrn_uqmp"),
+        (m.rtrn_uqcp_atyp, m.pass_uqcp_atyp, "pass_uqcp:rtrn_uqcp"),
+        (m.rtrn_udmp_atyp, m.pass_udmp_atyp, "pass_udmp:rtrn_udmp"),
+        (m.rtrn_udcp_atyp, m.pass_udcp_atyp, "pass_udcp:rtrn_udcp"),
     ],
 )
-def test_pass_unique_ptr_disowns(pass_atyp, argm, rtrn):
-    obj = m.atyp(argm)
+def test_pass_unique_ptr_disowns(rtrn_atyp, pass_atyp, rtrn):
+    obj = rtrn_atyp()
     assert pass_atyp(obj) == rtrn
     with pytest.raises(RuntimeError) as exc_info:
         m.pass_uqmp_atyp(obj)
