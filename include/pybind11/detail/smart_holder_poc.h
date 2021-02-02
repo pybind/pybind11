@@ -104,24 +104,6 @@ struct smart_holder {
         }
     }
 
-    template <typename D>
-    void ensure_compatible_rtti_uqp_del(const char *context) const {
-        if (!rtti_uqp_del) {
-            throw std::runtime_error(std::string("Missing unique_ptr deleter (") + context + ").");
-        }
-        const std::type_info *rtti_requested = &typeid(D);
-        if (!(*rtti_requested == *rtti_uqp_del)) {
-            throw std::runtime_error(std::string("Incompatible unique_ptr deleter (") + context
-                                     + ").");
-        }
-    }
-
-    void ensure_has_pointee(const char *context) const {
-        if (!has_pointee()) {
-            throw std::runtime_error(std::string("Disowned holder (") + context + ").");
-        }
-    }
-
     void ensure_vptr_is_using_builtin_delete(const char *context) const {
         if (vptr_is_external_shared_ptr) {
             throw std::runtime_error(std::string("Cannot disown external shared_ptr (") + context
@@ -134,6 +116,29 @@ struct smart_holder {
         if (!vptr_is_using_builtin_delete) {
             throw std::runtime_error(std::string("Cannot disown custom deleter (") + context
                                      + ").");
+        }
+    }
+
+    template <typename T, typename D>
+    void ensure_compatible_rtti_uqp_del(const char *context) const {
+        const std::type_info *rtti_requested = &typeid(D);
+        if (!rtti_uqp_del) {
+            // IMPROVABLE: const-correctness.
+            if (!(*rtti_requested == typeid(std::default_delete<T>)
+                  || *rtti_requested == typeid(std::default_delete<T const>))) {
+                throw std::runtime_error(std::string("Missing unique_ptr deleter (") + context
+                                         + ").");
+            }
+            ensure_vptr_is_using_builtin_delete(context);
+        } else if (!(*rtti_requested == *rtti_uqp_del)) {
+            throw std::runtime_error(std::string("Incompatible unique_ptr deleter (") + context
+                                     + ").");
+        }
+    }
+
+    void ensure_has_pointee(const char *context) const {
+        if (!has_pointee()) {
+            throw std::runtime_error(std::string("Disowned holder (") + context + ").");
         }
     }
 
@@ -209,41 +214,30 @@ struct smart_holder {
         return raw_ptr;
     }
 
-    template <typename T>
-    static smart_holder from_unique_ptr(std::unique_ptr<T> &&unq_ptr) {
+    template <typename T, typename D = std::default_delete<T>>
+    static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr) {
         smart_holder hld(true);
-        hld.vptr.reset(unq_ptr.get(),
-                       guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
-        unq_ptr.release();
-        hld.vptr_is_using_builtin_delete = true;
-        hld.is_populated                 = true;
-        return hld;
-    }
-
-    template <typename T>
-    std::unique_ptr<T> as_unique_ptr() {
-        return std::unique_ptr<T>(as_raw_ptr_release_ownership<T>("as_unique_ptr"));
-    }
-
-    template <typename T, typename D>
-    static smart_holder from_unique_ptr_with_deleter(std::unique_ptr<T, D> &&unq_ptr) {
-        smart_holder hld(true);
-        hld.rtti_uqp_del = &typeid(D);
-        hld.vptr.reset(unq_ptr.get(),
-                       guarded_custom_deleter<T, D>(hld.vptr_deleter_armed_flag_ptr.get()));
+        hld.rtti_uqp_del                 = &typeid(D);
+        hld.vptr_is_using_builtin_delete = (*hld.rtti_uqp_del == typeid(std::default_delete<T>));
+        if (hld.vptr_is_using_builtin_delete) {
+            hld.vptr.reset(unq_ptr.get(),
+                           guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
+        } else {
+            hld.vptr.reset(unq_ptr.get(),
+                           guarded_custom_deleter<T, D>(hld.vptr_deleter_armed_flag_ptr.get()));
+        }
         unq_ptr.release();
         hld.is_populated = true;
         return hld;
     }
 
-    template <typename T, typename D>
-    std::unique_ptr<T, D> as_unique_ptr_with_deleter() {
-        static const char *context = "as_unique_ptr_with_deleter";
-        ensure_compatible_rtti_uqp_del<D>(context);
+    template <typename T, typename D = std::default_delete<T>>
+    std::unique_ptr<T, D> as_unique_ptr() {
+        static const char *context = "as_unique_ptr";
+        ensure_compatible_rtti_uqp_del<T, D>(context);
         ensure_use_count_1(context);
-        T *raw_ptr                   = as_raw_ptr_unowned<T>();
-        *vptr_deleter_armed_flag_ptr = false;
-        vptr.reset();
+        T *raw_ptr = as_raw_ptr_unowned<T>();
+        release_ownership();
         return std::unique_ptr<T, D>(raw_ptr);
     }
 
