@@ -297,31 +297,10 @@ struct smart_holder_type_caster_load {
         return std::shared_ptr<T>(void_ptr, convert_type(void_ptr.get()));
     }
 
-    std::unique_ptr<T> loaded_as_unique_ptr() {
-        holder().ensure_can_release_ownership();
-        auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
-        // MISSING: Safety checks for type conversions
-        // (T must be polymorphic or meet certain other conditions).
-        T *raw_type_ptr = convert_type(raw_void_ptr);
-
-        // Critical transfer-of-ownership section. This must stay together.
-        holder().release_ownership();
-        auto result = std::unique_ptr<T>(raw_type_ptr);
-
-        void *value_void_ptr
-            = load_impl.loaded_v_h.value_ptr(); // Expected to be identical to raw_void_ptr.
-        load_impl.loaded_v_h.holder<holder_type>().~holder_type();
-        load_impl.loaded_v_h.set_holder_constructed(false);
-        load_impl.loaded_v_h.value_ptr() = nullptr;
-        deregister_instance(load_impl.loaded_v_h.inst, value_void_ptr, load_impl.loaded_v_h.type);
-
-        return result;
-    }
-
-    template <typename D>
-    std::unique_ptr<T, D> loaded_as_unique_ptr_with_deleter() {
-        holder().template ensure_compatible_rtti_uqp_del<D>("loaded_as_unique_ptr_with_deleter");
-        holder().ensure_use_count_1("loaded_as_unique_ptr_with_deleter");
+    template <typename D = std::default_delete<T>>
+    std::unique_ptr<T, D> loaded_as_unique_ptr(const char *context = "loaded_as_unique_ptr") {
+        holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
+        holder().ensure_use_count_1(context);
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
         // MISSING: Safety checks for type conversions
         // (T must be polymorphic or meet certain other conditions).
@@ -584,12 +563,12 @@ struct smart_holder_type_caster<std::shared_ptr<T const>> : smart_holder_type_ca
     operator std::shared_ptr<T const>() { return this->loaded_as_shared_ptr(); } // Mutbl2Const
 };
 
-template <typename T>
-struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_load<T>,
-                                                      smart_holder_type_caster_class_hooks {
-    static constexpr auto name = _<std::unique_ptr<T>>();
+template <typename T, typename D>
+struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caster_load<T>,
+                                                         smart_holder_type_caster_class_hooks {
+    static constexpr auto name = _<std::unique_ptr<T, D>>();
 
-    static handle cast(std::unique_ptr<T> &&src, return_value_policy policy, handle parent) {
+    static handle cast(std::unique_ptr<T, D> &&src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
             && policy != return_value_policy::reference_internal) {
             // IMPROVABLE: Error message.
@@ -622,72 +601,9 @@ struct smart_holder_type_caster<std::unique_ptr<T>> : smart_holder_type_caster_l
     }
 
     template <typename>
-    using cast_op_type = std::unique_ptr<T>;
-
-    operator std::unique_ptr<T>() { return this->loaded_as_unique_ptr(); }
-};
-
-template <typename T>
-struct smart_holder_type_caster<std::unique_ptr<T const>> : smart_holder_type_caster_load<T>,
-                                                            smart_holder_type_caster_class_hooks {
-    static constexpr auto name = _<std::unique_ptr<T const>>();
-
-    static handle cast(std::unique_ptr<T const> &&src, return_value_policy policy, handle parent) {
-        return smart_holder_type_caster<std::unique_ptr<T>>::cast(
-            std::unique_ptr<T>(const_cast<T *>(src.release())), // Const2Mutbl
-            policy,
-            parent);
-    }
-
-    template <typename>
-    using cast_op_type = std::unique_ptr<T const>;
-
-    operator std::unique_ptr<T const>() { return this->loaded_as_unique_ptr(); }
-};
-
-template <typename T, typename D>
-struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caster_load<T>,
-                                                         smart_holder_type_caster_class_hooks {
-    static constexpr auto name = _<std::unique_ptr<T, D>>();
-
-    static handle cast(std::unique_ptr<T, D> &&src, return_value_policy policy, handle parent) {
-        if (policy != return_value_policy::automatic
-            && policy != return_value_policy::reference_internal) {
-            // IMPROVABLE: Error message.
-            throw cast_error("Invalid return_value_policy for unique_ptr.");
-        }
-
-        auto src_raw_ptr = src.get();
-        auto st          = type_caster_base<T>::src_and_type(src_raw_ptr);
-        if (st.first == nullptr)
-            return none().release(); // PyErr was set already.
-
-        void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
-        const detail::type_info *tinfo = st.second;
-        if (find_registered_python_instance(src_raw_void_ptr, tinfo))
-            throw cast_error("Invalid unique_ptr: another instance owns this pointer already.");
-
-        auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());
-        inst_raw_ptr->owned = true;
-        void *&valueptr     = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-        valueptr            = src_raw_void_ptr;
-
-        auto smhldr = pybindit::memory::smart_holder::from_unique_ptr_with_deleter(std::move(src));
-        tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
-
-        if (policy == return_value_policy::reference_internal)
-            keep_alive_impl(inst, parent);
-
-        return inst.release();
-    }
-
-    template <typename>
     using cast_op_type = std::unique_ptr<T, D>;
 
-    operator std::unique_ptr<T, D>() {
-        return this->template loaded_as_unique_ptr_with_deleter<D>();
-    }
+    operator std::unique_ptr<T, D>() { return this->template loaded_as_unique_ptr<D>(); }
 };
 
 template <typename T, typename D>
@@ -706,9 +622,7 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     template <typename>
     using cast_op_type = std::unique_ptr<T const, D>;
 
-    operator std::unique_ptr<T const, D>() {
-        return this->template loaded_as_unique_ptr_with_deleter<D>();
-    }
+    operator std::unique_ptr<T const, D>() { return this->template loaded_as_unique_ptr<D>(); }
 };
 
 #define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)                                                     \
@@ -722,12 +636,6 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     template <>                                                                                   \
     class type_caster<std::shared_ptr<T const>>                                                   \
         : public smart_holder_type_caster<std::shared_ptr<T const>> {};                           \
-    template <>                                                                                   \
-    class type_caster<std::unique_ptr<T>> : public smart_holder_type_caster<std::unique_ptr<T>> { \
-    };                                                                                            \
-    template <>                                                                                   \
-    class type_caster<std::unique_ptr<T const>>                                                   \
-        : public smart_holder_type_caster<std::unique_ptr<T const>> {};                           \
     template <typename D>                                                                         \
     class type_caster<std::unique_ptr<T, D>>                                                      \
         : public smart_holder_type_caster<std::unique_ptr<T, D>> {};                              \
