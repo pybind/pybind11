@@ -52,4 +52,13 @@ TEST_SUBMODULE(trampoline_shared_ptr_cpp_arg, m) {
         .def("set_object", &SpBaseTester::set_object)
         .def("is_base_used", &SpBaseTester::is_base_used)
         .def_readwrite("obj", &SpBaseTester::m_obj);
+
+    // For testing that a C++ class without an alias does not retain the python
+    // portion of the object
+
+    py::class_<SpGoAway, std::shared_ptr<SpGoAway>>(m, "SpGoAway").def(py::init<>());
+
+    py::class_<SpGoAwayTester>(m, "SpGoAwayTester")
+        .def(py::init<>())
+        .def_readwrite("obj", &SpGoAwayTester::m_obj);
 }

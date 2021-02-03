@@ -1630,6 +1630,7 @@ private:
     /// optional pointer to an existing holder to use; if not specified and the instance is
     /// `.owned`, a new holder will be constructed to manage the value pointer.
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
+        inst->has_alias = has_alias;
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
             register_instance(inst, v_h.value_ptr(), v_h.type);
