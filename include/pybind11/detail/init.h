@@ -168,6 +168,42 @@ void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
     v_h.value_ptr() = new Alias<Class>(std::move(result));
 }
 
+//DETAIL/SMART_HOLDER_INIT_H/BEGIN/////////////////////////////////////////////////////////////////
+
+template <typename Class, typename D = std::default_delete<Cpp<Class>>,
+          detail::enable_if_t<detail::is_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
+void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, bool need_alias) {
+    auto *ptr = unq_ptr.get();
+    no_nullptr(ptr);
+    // If we need an alias, check that the held pointer is actually an alias instance
+    if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
+        throw type_error("pybind11::init(): construction failed: returned holder-wrapped instance "
+                         "is not an alias instance");
+
+    auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(unq_ptr));
+
+    v_h.value_ptr() = ptr;
+    v_h.type->init_instance(v_h.inst, &smhldr);
+}
+
+template <typename Class,
+          detail::enable_if_t<detail::is_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
+void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, bool need_alias) {
+    auto *ptr = shd_ptr.get();
+    no_nullptr(ptr);
+    // If we need an alias, check that the held pointer is actually an alias instance
+    if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
+        throw type_error("pybind11::init(): construction failed: returned holder-wrapped instance "
+                         "is not an alias instance");
+
+    auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(std::move(shd_ptr));
+
+    v_h.value_ptr() = ptr;
+    v_h.type->init_instance(v_h.inst, &smhldr);
+}
+
+//DETAIL/SMART_HOLDER_INIT_H/END///////////////////////////////////////////////////////////////////
+
 // Implementing class for py::init<...>()
 template <typename... Args>
 struct constructor {
