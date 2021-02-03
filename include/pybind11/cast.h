@@ -643,6 +643,14 @@ struct holder_retriever<std::shared_ptr<T>> {
     };
 
     static auto get_derivative_holder(const value_and_holder &v_h) -> std::shared_ptr<T> {
+        // If there's no trampoline class, nothing special needed
+        if (!v_h.inst->has_alias) {
+            return v_h.template holder<std::shared_ptr<T>>();
+        }
+
+        // If there's a trampoline class, ensure the python side of the object doesn't
+        // die until the C++ portion also dies
+        //
         // The shared_ptr is always given to C++ code, so construct a new shared_ptr
         // that is given a custom deleter. The custom deleter increments the python
         // reference count to bind the python instance lifetime with the lifetime

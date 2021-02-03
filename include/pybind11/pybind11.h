@@ -1282,7 +1282,11 @@ public:
         record.type_size = sizeof(conditional_t<has_alias, type_alias, type>);
         record.type_align = alignof(conditional_t<has_alias, type_alias, type>&);
         record.holder_size = sizeof(holder_type);
-        record.init_instance = init_instance;
+        if (has_alias) {
+            record.init_instance = init_alias_instance;
+        } else {
+            record.init_instance = init_instance;
+        }
         record.dealloc = dealloc;
         record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
@@ -1553,6 +1557,12 @@ private:
             v_h.set_instance_registered();
         }
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
+    }
+
+    /// Sets the `has_alias` flag in the instance and calls init_instance
+    static void init_alias_instance(detail::instance *inst, const void *holder_ptr) {
+        inst->has_alias = true;
+        init_instance(inst, holder_ptr);
     }
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.

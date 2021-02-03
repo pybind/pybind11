@@ -378,3 +378,23 @@ def test_shared_ptr_arg_identity():
     tester.set_object(None)
     pytest.gc_collect()
     assert objref() is None
+
+
+def test_shared_ptr_goaway():
+    import weakref
+
+    tester = m.SpGoAwayTester()
+
+    obj = m.SpGoAway()
+    objref = weakref.ref(obj)
+
+    assert tester.obj is None
+
+    tester.obj = obj
+    del obj
+    pytest.gc_collect()
+
+    # python reference is no longer around
+    assert objref() is None
+    # C++ reference is still around
+    assert tester.obj is not None
