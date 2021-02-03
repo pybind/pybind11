@@ -63,11 +63,11 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constru
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_mref)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_cptr)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_mptr)
-// PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_shmp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_shmp)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_shcp)
-// PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_uqmp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_uqmp)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_uqcp)
-// PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_udmp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_udmp)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_udcp)
 
 TEST_SUBMODULE(class_sh_factory_constructors, m) {
@@ -103,23 +103,18 @@ TEST_SUBMODULE(class_sh_factory_constructors, m) {
         .def(py::init(&rtrn_mptr))
         .def("get_mtxt", get_mtxt<atyp_mptr>);
 
-    // NEEDED FOR FEATURE PARITY: shmp
-    py::class_<atyp_shmp, std::shared_ptr<atyp_shmp>>(m, "atyp_shmp")
-        // py::classh<atyp_shmp>(m, "atyp_shmp")
-        // classh: ... cannot pass object of non-trivial type ...
+    py::classh<atyp_shmp>(m, "atyp_shmp")
         .def(py::init(&rtrn_shmp))
         .def("get_mtxt", get_mtxt<atyp_shmp>);
 
-    // py::class_<atyp_shcp, std::shared_ptr<atyp_shcp>>(m, "atyp_shcp")
     py::classh<atyp_shcp>(m, "atyp_shcp")
+        // py::class_<atyp_shcp, std::shared_ptr<atyp_shcp>>(m, "atyp_shcp")
         // class_: ... must return a compatible ...
         // classh: ... cannot pass object of non-trivial type ...
         // .def(py::init(&rtrn_shcp))
         .def("get_mtxt", get_mtxt<atyp_shcp>);
 
-    // NEEDED FOR FEATURE PARITY: uqmp
-    py::class_<atyp_uqmp>(m, "atyp_uqmp")
-        // classh: ... cannot pass object of non-trivial type ...
+    py::classh<atyp_uqmp>(m, "atyp_uqmp")
         .def(py::init(&rtrn_uqmp))
         .def("get_mtxt", get_mtxt<atyp_uqmp>);
 
@@ -129,15 +124,12 @@ TEST_SUBMODULE(class_sh_factory_constructors, m) {
         // .def(py::init(&rtrn_uqcp))
         .def("get_mtxt", get_mtxt<atyp_uqcp>);
 
-    // NEEDED FOR FEATURE PARITY: udmp
-    py::class_<atyp_udmp, std::unique_ptr<atyp_udmp, sddm>>(m, "atyp_udmp")
-        // py::classh<atyp_udmp>(m, "atyp_udmp")
-        // classh: ... cannot pass object of non-trivial type ...
+    py::classh<atyp_udmp>(m, "atyp_udmp")
         .def(py::init(&rtrn_udmp))
         .def("get_mtxt", get_mtxt<atyp_udmp>);
 
-    // py::class_<atyp_udcp, std::unique_ptr<atyp_udcp, sddc>>(m, "atyp_udcp")
     py::classh<atyp_udcp>(m, "atyp_udcp")
+        // py::class_<atyp_udcp, std::unique_ptr<atyp_udcp, sddc>>(m, "atyp_udcp")
         // class_: ... must return a compatible ...
         // classh: ... cannot pass object of non-trivial type ...
         // .def(py::init(&rtrn_udcp))
