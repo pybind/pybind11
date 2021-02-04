@@ -131,7 +131,8 @@ void construct(value_and_holder &v_h, Alias<Class> *alias_ptr, bool) {
 // Holder return: copy its pointer, and move or copy the returned holder into the new instance's
 // holder.  This also handles types like std::shared_ptr<T> and std::unique_ptr<T> where T is a
 // derived type (through those holder's implicit conversion from derived class holder constructors).
-template <typename Class>
+template <typename Class,
+          detail::enable_if_t<!detail::is_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
 void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
     auto *ptr = holder_helper<Holder<Class>>::get(holder);
     no_nullptr(ptr);
@@ -161,7 +162,8 @@ void construct(value_and_holder &v_h, Cpp<Class> &&result, bool need_alias) {
 // return-by-value version 2: returning a value of the alias type itself.  We move-construct an
 // Alias instance (even if no the python-side inheritance is involved).  The is intended for
 // cases where Alias initialization is always desired.
-template <typename Class>
+template <typename Class,
+          detail::enable_if_t<!detail::is_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
 void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
     static_assert(std::is_move_constructible<Alias<Class>>::value,
         "pybind11::init() return-by-alias-value factory function requires a movable alias class");
