@@ -1235,7 +1235,7 @@ struct smart_holder_type_caster_load {
         return std::shared_ptr<T>(void_ptr, convert_type(void_ptr.get()));
     }
 
-    template <typename D = std::default_delete<T>>
+    template <typename D>
     std::unique_ptr<T, D> loaded_as_unique_ptr(const char *context = "loaded_as_unique_ptr") {
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
