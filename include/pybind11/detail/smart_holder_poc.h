@@ -77,6 +77,12 @@ struct guarded_custom_deleter {
     }
 };
 
+template <typename T>
+inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
+    return rtti_deleter == typeid(std::default_delete<T>)
+           || rtti_deleter == typeid(std::default_delete<T const>);
+}
+
 struct smart_holder {
     const std::type_info *rtti_uqp_del;
     std::unique_ptr<bool> vptr_deleter_armed_flag_ptr;
@@ -123,9 +129,7 @@ struct smart_holder {
     void ensure_compatible_rtti_uqp_del(const char *context) const {
         const std::type_info *rtti_requested = &typeid(D);
         if (!rtti_uqp_del) {
-            // IMPROVABLE: const-correctness.
-            if (!(*rtti_requested == typeid(std::default_delete<T>)
-                  || *rtti_requested == typeid(std::default_delete<T const>))) {
+            if (!is_std_default_delete<T>(*rtti_requested)) {
                 throw std::runtime_error(std::string("Missing unique_ptr deleter (") + context
                                          + ").");
             }
@@ -214,11 +218,11 @@ struct smart_holder {
         return raw_ptr;
     }
 
-    template <typename T, typename D = std::default_delete<T>>
+    template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr) {
         smart_holder hld(true);
         hld.rtti_uqp_del                 = &typeid(D);
-        hld.vptr_is_using_builtin_delete = (*hld.rtti_uqp_del == typeid(std::default_delete<T>));
+        hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
         if (hld.vptr_is_using_builtin_delete) {
             hld.vptr.reset(unq_ptr.get(),
                            guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
