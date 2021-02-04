@@ -955,7 +955,7 @@ protected:
     static Constructor make_move_constructor(...) { return nullptr; }
 };
 
-//DETAIL/SMART_HOLDER_TYPE_CASTERS_H///////////////////////////////////////////////////////////////
+//DETAIL/SMART_HOLDER_TYPE_CASTERS_H/BEGIN/////////////////////////////////////////////////////////
 
 //FWD begin
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
@@ -1585,13 +1585,25 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     }
 #endif
 
-//DETAIL/SMART_HOLDER_TYPE_CASTERS_H///////////////////////////////////////////////////////////////
+//DETAIL/SMART_HOLDER_TYPE_CASTERS_H/END///////////////////////////////////////////////////////////
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+
+#define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, H)
 
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
 
 #else
+
+#define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, H)                                          \
+    namespace pybind11 {                                                                          \
+    namespace detail {                                                                            \
+    template <>                                                                                   \
+    class type_caster<T> : public type_caster_base<T> {};                                         \
+    template <>                                                                                   \
+    class type_caster<H> : public type_caster_holder<T, H> {};                                    \
+    }                                                                                             \
+    }
 
 template <typename type, typename SFINAE = void> class type_caster : public smart_holder_type_caster<type> {};
 
