@@ -271,6 +271,29 @@ namespace {
     };
 }
 
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Object, ref<Object>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject1, ref<MyObject1>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject2, std::shared_ptr<MyObject2>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject3, std::shared_ptr<MyObject3>)
+using unique_ptr_myobject4_nodelete = std::unique_ptr<MyObject4, py::nodelete>;
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject4, unique_ptr_myobject4_nodelete)
+using unique_ptr_myobject4a_nodelete = std::unique_ptr<MyObject4a, py::nodelete>;
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject4a, unique_ptr_myobject4a_nodelete)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject4b, std::unique_ptr<MyObject4b>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject5, huge_unique_ptr<MyObject5>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SharedPtrRef::A, std::shared_ptr<SharedPtrRef::A>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SharedPtrRef, std::unique_ptr<SharedPtrRef>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SharedFromThisRef::B, std::shared_ptr<SharedFromThisRef::B>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SharedFromThisRef, std::unique_ptr<SharedFromThisRef>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SharedFromThisVirt, std::shared_ptr<SharedFromThisVirt>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(C, custom_unique_ptr<C>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(TypeForHolderWithAddressOf, shared_ptr_with_addressof_operator<TypeForHolderWithAddressOf>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(TypeForMoveOnlyHolderWithAddressOf, unique_ptr_with_addressof_operator<TypeForMoveOnlyHolderWithAddressOf>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(HeldByDefaultHolder, std::unique_ptr<HeldByDefaultHolder>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(ElementBase, std::shared_ptr<ElementBase>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(ElementA, std::shared_ptr<ElementA>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(ElementList, std::shared_ptr<ElementList>)
+
 TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr
@@ -338,7 +361,7 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def_readwrite("value", &MyObject4a::value)
         .def_static("cleanup_all_instances", &MyObject4a::cleanupAllInstances);
 
-    py::class_<MyObject4b, MyObject4a>(m, "MyObject4b")
+    py::class_<MyObject4b, MyObject4a, std::unique_ptr<MyObject4b>>(m, "MyObject4b")
         .def(py::init<int>());
 
     py::class_<MyObject5, huge_unique_ptr<MyObject5>>(m, "MyObject5")
@@ -347,7 +370,7 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     using A = SharedPtrRef::A;
     py::class_<A, std::shared_ptr<A>>(m, "A");
-    py::class_<SharedPtrRef>(m, "SharedPtrRef")
+    py::class_<SharedPtrRef, std::unique_ptr<SharedPtrRef>>(m, "SharedPtrRef")
         .def(py::init<>())
         .def_readonly("ref", &SharedPtrRef::value)
         .def_property_readonly("copy", [](const SharedPtrRef &s) { return s.value; },
@@ -360,7 +383,7 @@ TEST_SUBMODULE(smart_ptr, m) {
 
     using B = SharedFromThisRef::B;
     py::class_<B, std::shared_ptr<B>>(m, "B");
-    py::class_<SharedFromThisRef>(m, "SharedFromThisRef")
+    py::class_<SharedFromThisRef, std::unique_ptr<SharedFromThisRef>>(m, "SharedFromThisRef")
         .def(py::init<>())
         .def_readonly("bad_wp", &SharedFromThisRef::value)
         .def_property_readonly("ref", [](const SharedFromThisRef &s) -> const B & { return *s.shared; })
@@ -395,7 +418,7 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def_readwrite("value", &TypeForMoveOnlyHolderWithAddressOf::value)
         .def("print_object", [](const TypeForMoveOnlyHolderWithAddressOf *obj) { py::print(obj->toString()); });
 
-    py::class_<HeldByDefaultHolder>(m, "HeldByDefaultHolder")
+    py::class_<HeldByDefaultHolder, std::unique_ptr<HeldByDefaultHolder>>(m, "HeldByDefaultHolder")
         .def(py::init<>())
         .def_static("load_shared_ptr", [](std::shared_ptr<HeldByDefaultHolder>) {});
 
