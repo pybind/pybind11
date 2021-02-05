@@ -302,10 +302,9 @@ def test_smart_ptr_from_default():
     instance = m.HeldByDefaultHolder()
     with pytest.raises(RuntimeError) as excinfo:
         m.HeldByDefaultHolder.load_shared_ptr(instance)
-    assert (
-        "Unable to load a custom holder type from a "
-        "default-holder instance" in str(excinfo.value)
-    )
+    assert str(excinfo.value) in (
+        "Unable to load a smart-pointer type from a non-smart_holder instance.",
+        "Unable to load a custom holder type from a default-holder instance")
 
 
 def test_shared_ptr_gc():

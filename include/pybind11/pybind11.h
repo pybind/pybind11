@@ -1308,11 +1308,10 @@ public:
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+
+        // A better name would be uses_unique_ptr_holder.
         record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
-#else
-        record.default_holder = holder_is_smart_holder;
-#endif
+
         set_operator_new<type>(&record);
 
         /* Register base classes specified via template arguments to class_, if any */
