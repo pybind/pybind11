@@ -1596,19 +1596,19 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 
-#define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, H)
+#define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)
 
 template <typename T> class type_caster_for_class_ : public type_caster_base<T> {};
 
 #else
 
-#define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, H)                                          \
+#define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)                                        \
     namespace pybind11 {                                                                          \
     namespace detail {                                                                            \
     template <>                                                                                   \
     class type_caster<T> : public type_caster_base<T> {};                                         \
     template <>                                                                                   \
-    class type_caster<H> : public type_caster_holder<T, H> {};                                    \
+    class type_caster<__VA_ARGS__> : public type_caster_holder<T, __VA_ARGS__> {};                \
     }                                                                                             \
     }
 
