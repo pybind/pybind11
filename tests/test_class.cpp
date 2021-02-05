@@ -32,6 +32,20 @@ struct NoBraceInitialization {
     std::vector<int> vec;
 };
 
+struct MismatchBase1 { };
+struct MismatchDerived1 : MismatchBase1 { };
+
+struct MismatchBase2 { };
+struct MismatchDerived2 : MismatchBase2 { };
+
+struct SamePointer {};
+
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchBase1, std::shared_ptr<MismatchBase1>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchDerived1, std::unique_ptr<MismatchDerived1>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchBase2, std::unique_ptr<MismatchBase2>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchDerived2, std::shared_ptr<MismatchDerived2>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SamePointer, std::unique_ptr<SamePointer>)
+
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
@@ -168,20 +182,15 @@ TEST_SUBMODULE(class_, m) {
     });
 
     // test_mismatched_holder
-    struct MismatchBase1 { };
-    struct MismatchDerived1 : MismatchBase1 { };
-
-    struct MismatchBase2 { };
-    struct MismatchDerived2 : MismatchBase2 { };
-
     m.def("mismatched_holder_1", []() {
         auto mod = py::module_::import("__main__");
         py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(mod, "MismatchBase1");
-        py::class_<MismatchDerived1, MismatchBase1>(mod, "MismatchDerived1");
+        py::class_<MismatchDerived1, std::unique_ptr<MismatchDerived1>,
+                   MismatchBase1>(mod, "MismatchDerived1");
     });
     m.def("mismatched_holder_2", []() {
         auto mod = py::module_::import("__main__");
-        py::class_<MismatchBase2>(mod, "MismatchBase2");
+        py::class_<MismatchBase2, std::unique_ptr<MismatchBase2>>(mod, "MismatchBase2");
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>,
                    MismatchBase2>(mod, "MismatchDerived2");
     });
@@ -431,7 +440,6 @@ TEST_SUBMODULE(class_, m) {
         .def("throw_something", &PyPrintDestructor::throw_something);
 
     // test_multiple_instances_with_same_pointer
-    struct SamePointer {};
     static SamePointer samePointer;
     py::class_<SamePointer, std::unique_ptr<SamePointer, py::nodelete>>(m, "SamePointer")
         .def(py::init([]() { return &samePointer; }));
