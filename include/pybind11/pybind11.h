@@ -1302,9 +1302,10 @@ public:
         record.default_holder = holder_is_smart_holder;
 #if 0
         static constexpr bool type_caster_type_is_smart_holder_type_caster = detail::is_smart_holder_type_caster<type>::value;
+        static constexpr bool type_caster_type_is_type_caster_base_subtype = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
         static_assert(!(detail::is_instantiation<std::unique_ptr, holder_type>::value && type_caster_type_is_smart_holder_type_caster));
         static_assert(!(detail::is_instantiation<std::shared_ptr, holder_type>::value && type_caster_type_is_smart_holder_type_caster));
-        static_assert(holder_is_smart_holder == type_caster_type_is_smart_holder_type_caster);
+        static_assert(!(holder_is_smart_holder && type_caster_type_is_type_caster_base_subtype));
 #endif
 #endif
         set_operator_new<type>(&record);
