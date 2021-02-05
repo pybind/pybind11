@@ -139,6 +139,11 @@ public:
     static std::shared_ptr<TestFactory3> construct3(int a) { return std::shared_ptr<TestFactory3>(new TestFactory3(a)); }
 };
 
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(TestFactory3, std::shared_ptr<TestFactory3>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(TestFactory4, std::shared_ptr<TestFactory4>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(TestFactory5, std::shared_ptr<TestFactory5>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(TestFactory7, std::shared_ptr<TestFactory7>)
+
 TEST_SUBMODULE(factory_constructors, m) {
 
     // Define various trivial types to allow simpler overload resolution:
