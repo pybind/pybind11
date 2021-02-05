@@ -1202,10 +1202,17 @@ struct smart_holder_type_caster_class_hooks {
 };
 
 template <typename T>
+inline bool check_is_smart_holder_type_caster();
+
+template <typename T>
 struct smart_holder_type_caster_load {
     using holder_type = pybindit::memory::smart_holder;
 
     bool load(handle src, bool convert) {
+        if (!check_is_smart_holder_type_caster<T>()) {
+            throw cast_error(
+                "Unable to load a smart-pointer type from a non-smart_holder instance.");
+        }
         load_impl = modified_type_caster_generic_load_impl(typeid(T));
         if (!load_impl.load(src, convert))
             return false;
@@ -2403,6 +2410,11 @@ template <typename T>
 struct is_smart_holder_type_caster<
     T,
     enable_if_t<type_caster<T>::is_smart_holder_type_caster::value, void>> : std::true_type {};
+
+template <typename T>
+inline bool check_is_smart_holder_type_caster() {
+    return detail::is_smart_holder_type_caster<T>::value;
+}
 
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
 // reference or pointer to a local variable of the type_caster.  Basically, only
