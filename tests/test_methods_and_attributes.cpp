@@ -150,6 +150,8 @@ struct RefQualified {
     int constRefQualified(int other) const & { return value + other; }
 };
 
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(NoneTester, std::shared_ptr<NoneTester>)
+
 TEST_SUBMODULE(methods_and_attributes, m) {
     // test_methods_and_attributes
     py::class_<ExampleMandA> emna(m, "ExampleMandA");

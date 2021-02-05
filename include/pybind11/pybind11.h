@@ -1287,6 +1287,18 @@ public:
                 none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
             "Error: multiple inheritance bases must be specified via class_ template options");
 
+        static constexpr bool holder_is_smart_holder = std::is_same<holder_type, smart_holder>::value;
+        static constexpr bool type_caster_type_is_smart_holder_type_caster = detail::is_smart_holder_type_caster<type>::value;
+        static constexpr bool type_caster_type_is_type_caster_base_subtype = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
+        // Necessary conditions, but not strict.
+        static_assert(!(detail::is_instantiation<std::unique_ptr, holder_type>::value && type_caster_type_is_smart_holder_type_caster));
+        static_assert(!(detail::is_instantiation<std::shared_ptr, holder_type>::value && type_caster_type_is_smart_holder_type_caster));
+        static_assert(!(holder_is_smart_holder && type_caster_type_is_type_caster_base_subtype));
+#ifdef PYBIND11_STRICT_ASSERTS_CLASS_HOLDER_VS_TYPE_CASTER_MIX
+        // Strict conditions cannot be enforced universally at the moment (PR #2836).
+        static_assert(holder_is_smart_holder == type_caster_type_is_smart_holder_type_caster);
+        static_assert(!holder_is_smart_holder == type_caster_type_is_type_caster_base_subtype);
+#endif
         type_record record;
         record.scope = scope;
         record.name = name;
@@ -1299,15 +1311,7 @@ public:
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
         record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 #else
-        static constexpr bool holder_is_smart_holder = std::is_same<holder_type, smart_holder>::value;
         record.default_holder = holder_is_smart_holder;
-#if 0
-        static constexpr bool type_caster_type_is_smart_holder_type_caster = detail::is_smart_holder_type_caster<type>::value;
-        static constexpr bool type_caster_type_is_type_caster_base_subtype = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
-        static_assert(!(detail::is_instantiation<std::unique_ptr, holder_type>::value && type_caster_type_is_smart_holder_type_caster));
-        static_assert(!(detail::is_instantiation<std::shared_ptr, holder_type>::value && type_caster_type_is_smart_holder_type_caster));
-        static_assert(!(holder_is_smart_holder && type_caster_type_is_type_caster_base_subtype));
-#endif
 #endif
         set_operator_new<type>(&record);
 
