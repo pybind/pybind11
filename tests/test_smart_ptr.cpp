@@ -275,10 +275,8 @@ PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Object, ref<Object>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject1, ref<MyObject1>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject2, std::shared_ptr<MyObject2>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject3, std::shared_ptr<MyObject3>)
-using unique_ptr_myobject4_nodelete = std::unique_ptr<MyObject4, py::nodelete>;
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject4, unique_ptr_myobject4_nodelete)
-using unique_ptr_myobject4a_nodelete = std::unique_ptr<MyObject4a, py::nodelete>;
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject4a, unique_ptr_myobject4a_nodelete)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject4, std::unique_ptr<MyObject4, py::nodelete>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject4a, std::unique_ptr<MyObject4a, py::nodelete>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject4b, std::unique_ptr<MyObject4b>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject5, huge_unique_ptr<MyObject5>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SharedPtrRef::A, std::shared_ptr<SharedPtrRef::A>)
