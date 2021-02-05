@@ -1241,6 +1241,13 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
     return pmf;
 }
 
+template <typename T>
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+using default_holder_type = std::unique_ptr<T>;
+#else
+using default_holder_type = smart_holder;
+#endif
+
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T> using is_subtype = detail::is_strict_base_of<type_, T>;
@@ -1258,13 +1265,7 @@ public:
     using type = type_;
     using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type = detail::exactly_one_t<is_holder,
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
-        std::unique_ptr<type>
-#else
-        smart_holder
-#endif
-        , options...>;
+    using holder_type = detail::exactly_one_t<is_holder, default_holder_type<type>, options...>;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
             "Unknown/invalid class_ template parameters provided");
@@ -1298,14 +1299,15 @@ public:
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
         record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 #else
-        record.default_holder = std::is_same<holder_type, smart_holder>::value;
+        static constexpr bool holder_is_smart_holder = std::is_same<holder_type, smart_holder>::value;
+        record.default_holder = holder_is_smart_holder;
 #if 0
-        static_assert(!(detail::is_instantiation<std::unique_ptr, holder_type>::value && detail::is_smart_holder_type_caster<type>::value));
-        static_assert(!(detail::is_instantiation<std::shared_ptr, holder_type>::value && detail::is_smart_holder_type_caster<type>::value));
-        static_assert(detail::is_smart_holder_type_caster<type>::value == std::is_same<holder_type, smart_holder>::value);
+        static constexpr bool type_caster_type_is_smart_holder_type_caster = detail::is_smart_holder_type_caster<type>::value;
+        static_assert(!(detail::is_instantiation<std::unique_ptr, holder_type>::value && type_caster_type_is_smart_holder_type_caster));
+        static_assert(!(detail::is_instantiation<std::shared_ptr, holder_type>::value && type_caster_type_is_smart_holder_type_caster));
+        static_assert(holder_is_smart_holder == type_caster_type_is_smart_holder_type_caster);
 #endif
 #endif
-
         set_operator_new<type>(&record);
 
         /* Register base classes specified via template arguments to class_, if any */
