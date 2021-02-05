@@ -41,6 +41,9 @@ private:
 } // namespace pybind11_tests
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_unique_ptr_member::pointee)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(
+    pybind11_tests::class_sh_unique_ptr_member::ptr_owner,
+    std::unique_ptr<pybind11_tests::class_sh_unique_ptr_member::ptr_owner>)
 
 namespace pybind11_tests {
 namespace class_sh_unique_ptr_member {

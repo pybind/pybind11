@@ -1591,7 +1591,7 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
 
 #define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, H)
 
-template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
+template <typename T> class type_caster_for_class_ : public type_caster_base<T> {};
 
 #else
 
@@ -1605,26 +1605,28 @@ template <typename type, typename SFINAE = void> class type_caster : public type
     }                                                                                             \
     }
 
-template <typename type, typename SFINAE = void> class type_caster : public smart_holder_type_caster<type> {};
+template <typename T> class type_caster_for_class_ : public smart_holder_type_caster<T> {};
 
 template <typename T>
-class type_caster<std::shared_ptr<T>> : public smart_holder_type_caster<std::shared_ptr<T>> {};
+class type_caster_for_class_<std::shared_ptr<T>> : public smart_holder_type_caster<std::shared_ptr<T>> {};
 
 template <typename T>
-class type_caster<std::shared_ptr<T const>>
+class type_caster_for_class_<std::shared_ptr<T const>>
     : public smart_holder_type_caster<std::shared_ptr<T const>> {};
 
 template <typename T, typename D>
-class type_caster<std::unique_ptr<T, D>>
+class type_caster_for_class_<std::unique_ptr<T, D>>
     : public smart_holder_type_caster<std::unique_ptr<T, D>> {};
 
 template <typename T, typename D>
-class type_caster<std::unique_ptr<T const, D>>
+class type_caster_for_class_<std::unique_ptr<T const, D>>
     : public smart_holder_type_caster<std::unique_ptr<T const, D>> {};
 
 #define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)
 
 #endif
+
+template <typename type, typename SFINAE = void> class type_caster : public type_caster_for_class_<type> { };
 
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
 
@@ -2963,7 +2965,7 @@ handle type::handle_of() {
 
 #define PYBIND11_MAKE_OPAQUE(...) \
     namespace pybind11 { namespace detail { \
-        template<> class type_caster<__VA_ARGS__> : public type_caster_base<__VA_ARGS__> { }; \
+        template<> class type_caster<__VA_ARGS__> : public type_caster_for_class_<__VA_ARGS__> { }; \
     }}
 
 /// Lets you pass a type containing a `,` through a macro parameter without needing a separate
