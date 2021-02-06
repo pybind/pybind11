@@ -1011,8 +1011,9 @@ public:
 
     bool try_direct_conversions(handle src) {
         for (auto &converter : *typeinfo->direct_conversions) {
-            if (converter(src.ptr(), loaded_v_h.value_ptr()))
+            if (converter(src.ptr(), unowned_void_ptr_from_direct_conversion)) {
                 return true;
+            }
         }
         return false;
     }
@@ -1156,6 +1157,7 @@ public:
 
     const type_info *typeinfo = nullptr;
     const std::type_info *cpptype = nullptr;
+    void *unowned_void_ptr_from_direct_conversion = nullptr;
     const std::type_info *loaded_v_h_cpptype = nullptr;
     void *(*implicit_cast)(void *) = nullptr;
     value_and_holder loaded_v_h;
@@ -1220,12 +1222,18 @@ struct smart_holder_type_caster_load {
     }
 
     T *loaded_as_raw_ptr_unowned() const {
-        if (!have_value()) return nullptr;
+        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
+            // UNTESTED.
+            return convert_type(load_impl.unowned_void_ptr_from_direct_conversion);
+        if (!have_holder()) return nullptr;
         return convert_type(holder().template as_raw_ptr_unowned<void>());
     }
 
     T &loaded_as_lvalue_ref() const {
-        if (!have_value()) throw reference_cast_error();
+        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
+            // UNTESTED.
+            return *convert_type(load_impl.unowned_void_ptr_from_direct_conversion);
+        if (!have_holder()) throw reference_cast_error();
         static const char *context = "loaded_as_lvalue_ref";
         holder().ensure_is_populated(context);
         holder().ensure_has_pointee(context);
@@ -1233,7 +1241,10 @@ struct smart_holder_type_caster_load {
     }
 
     T &&loaded_as_rvalue_ref() const {
-        if (!have_value()) throw reference_cast_error();
+        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
+            // UNTESTED.
+            return std::move(*convert_type(load_impl.unowned_void_ptr_from_direct_conversion));
+        if (!have_holder()) throw reference_cast_error();
         static const char *context = "loaded_as_rvalue_ref";
         holder().ensure_is_populated(context);
         holder().ensure_has_pointee(context);
@@ -1241,14 +1252,20 @@ struct smart_holder_type_caster_load {
     }
 
     std::shared_ptr<T> loaded_as_shared_ptr() {
-        if (!have_value()) return nullptr;
+        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
+            throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
+                             " std::shared_ptr."); // UNTESTED.
+        if (!have_holder()) return nullptr;
         std::shared_ptr<void> void_ptr = holder().template as_shared_ptr<void>();
         return std::shared_ptr<T>(void_ptr, convert_type(void_ptr.get()));
     }
 
     template <typename D>
     std::unique_ptr<T, D> loaded_as_unique_ptr(const char *context = "loaded_as_unique_ptr") {
-        if (!have_value()) return nullptr;
+        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
+            throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
+                             " std::unique_ptr."); // UNTESTED.
+        if (!have_holder()) return nullptr;
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
@@ -1273,7 +1290,7 @@ struct smart_holder_type_caster_load {
 private:
     modified_type_caster_generic_load_impl load_impl;
 
-    bool have_value() const { return load_impl.loaded_v_h.vh != nullptr; }
+    bool have_holder() const { return load_impl.loaded_v_h.vh != nullptr; }
 
     holder_type &holder() const { return load_impl.loaded_v_h.holder<holder_type>(); }
 
