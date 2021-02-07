@@ -22,7 +22,7 @@ jobs:
         - 3.5
         - 3.6
         - 3.9
-        # - 3.10-dev  # Re-enable once 3.10.0a5 is released
+        - 3.10-dev
         - pypy2
         - pypy3
 
