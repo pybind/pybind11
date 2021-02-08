@@ -115,28 +115,32 @@ endif()
 
 add_library(pybind11::windows_extras IMPORTED INTERFACE ${optional_global})
 
-if(MSVC)
-  # /MP enables multithreaded builds (relevant when there are many files), /bigobj is
-  # needed for bigger binding projects due to the limit to 64k addressable sections
+if(MSVC) # That's also clang-cl
+  # /bigobj is needed for bigger binding projects due to the limit to 64k
+  # addressable sections
   set_property(
     TARGET pybind11::windows_extras
     APPEND
     PROPERTY INTERFACE_COMPILE_OPTIONS /bigobj)
 
-  if(CMAKE_VERSION VERSION_LESS 3.11)
-    set_property(
-      TARGET pybind11::windows_extras
-      APPEND
-      PROPERTY INTERFACE_COMPILE_OPTIONS $<$<NOT:$<CONFIG:Debug>>:/MP>)
-  else()
-    # Only set these options for C++ files.  This is important so that, for
-    # instance, projects that include other types of source files like CUDA
-    # .cu files don't get these options propagated to nvcc since that would
-    # cause the build to fail.
-    set_property(
-      TARGET pybind11::windows_extras
-      APPEND
-      PROPERTY INTERFACE_COMPILE_OPTIONS $<$<NOT:$<CONFIG:Debug>>:$<$<COMPILE_LANGUAGE:CXX>:/MP>>)
+  # /MP enables multithreaded builds (relevant when there are many files) for MSVC
+  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC") # no Clang no Intel
+    if(CMAKE_VERSION VERSION_LESS 3.11)
+      set_property(
+        TARGET pybind11::windows_extras
+        APPEND
+        PROPERTY INTERFACE_COMPILE_OPTIONS $<$<NOT:$<CONFIG:Debug>>:/MP>)
+    else()
+      # Only set these options for C++ files.  This is important so that, for
+      # instance, projects that include other types of source files like CUDA
+      # .cu files don't get these options propagated to nvcc since that would
+      # cause the build to fail.
+      set_property(
+        TARGET pybind11::windows_extras
+        APPEND
+        PROPERTY INTERFACE_COMPILE_OPTIONS
+                 $<$<NOT:$<CONFIG:Debug>>:$<$<COMPILE_LANGUAGE:CXX>:/MP>>)
+    endif()
   endif()
 endif()
 
