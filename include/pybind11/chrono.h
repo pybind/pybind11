@@ -161,9 +161,16 @@ public:
         // > If std::time_t has lower precision, it is implementation-defined whether the value is rounded or truncated.
         // (https://en.cppreference.com/w/cpp/chrono/system_clock/to_time_t)
         std::time_t tt = system_clock::to_time_t(time_point_cast<system_clock::duration>(src - us));
+
+        // std::localtime returns a pointer to a static internal std::tm object on success,
+        // or null pointer otherwise
+        std::tm *localtime_ptr = std::localtime(&tt);
+        if (!localtime_ptr)
+            throw cast_error("Unable to represent system_clock in local time");
+
         // this function uses static memory so it's best to copy it out asap just in case
         // otherwise other code that is using localtime may break this (not just python code)
-        std::tm localtime = *std::localtime(&tt);
+        std::tm localtime = *localtime_ptr;
 
         return PyDateTime_FromDateAndTime(localtime.tm_year + 1900,
                                           localtime.tm_mon + 1,
