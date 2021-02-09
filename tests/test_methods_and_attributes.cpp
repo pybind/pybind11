@@ -112,10 +112,8 @@ UserType TestPropRVP::sv2(1);
 class NoneTester { public: int answer = 42; };
 int none1(const NoneTester &obj) { return obj.answer; }
 int none2(NoneTester *obj) { return obj ? obj->answer : -1; }
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
-int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
-int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
-#endif
+int none3(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
+int none4(const std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
 int none5(std::shared_ptr<NoneTester> obj) { return obj ? obj->answer : -1; }
 
 struct StrIssue {
@@ -333,17 +331,13 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def(py::init<>());
     m.def("no_none1", &none1, py::arg{}.none(false));
     m.def("no_none2", &none2, py::arg{}.none(false));
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
     m.def("no_none3", &none3, py::arg{}.none(false));
     m.def("no_none4", &none4, py::arg{}.none(false));
-#endif
     m.def("no_none5", &none5, py::arg{}.none(false));
     m.def("ok_none1", &none1);
     m.def("ok_none2", &none2, py::arg{}.none(true));
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
     m.def("ok_none3", &none3);
     m.def("ok_none4", &none4, py::arg{}.none(true));
-#endif
     m.def("ok_none5", &none5);
 
     m.def("no_none_kwarg", &none2, "a"_a.none(false));
