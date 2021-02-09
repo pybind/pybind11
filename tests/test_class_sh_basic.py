@@ -76,8 +76,7 @@ def test_pass_unique_ptr_disowns(rtrn_atyp, pass_atyp, rtrn):
     with pytest.raises(RuntimeError) as exc_info:
         m.pass_uqmp_atyp(obj)
     assert str(exc_info.value) == (
-        "Missing value for wrapped C++ type:"
-        " Python instance was disowned."
+        "Missing value for wrapped C++ type: Python instance was disowned."
     )
 
 

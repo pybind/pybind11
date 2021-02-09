@@ -304,7 +304,8 @@ def test_smart_ptr_from_default():
         m.HeldByDefaultHolder.load_shared_ptr(instance)
     assert str(excinfo.value) in (
         "Unable to load a smart-pointer type from a non-smart_holder instance.",
-        "Unable to load a custom holder type from a default-holder instance")
+        "Unable to load a custom holder type from a default-holder instance",
+    )
 
 
 def test_shared_ptr_gc():
