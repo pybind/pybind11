@@ -21,7 +21,7 @@ def test_pointee_and_ptr_owner(give_up_ownership_via):
         obj.get_int()
     assert (
         str(exc_info.value)
-        == "Missing value for wrapped C++ type: Python instance is uninitialized or was disowned."
+        == "Missing value for wrapped C++ type: Python instance was disowned."
     )
     assert owner.is_owner()
     reclaimed = getattr(owner, give_up_ownership_via)()
