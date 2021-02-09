@@ -1565,7 +1565,8 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
 
     static handle cast(std::unique_ptr<T, D> &&src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
-            && policy != return_value_policy::reference_internal) {
+            && policy != return_value_policy::reference_internal
+            && policy != return_value_policy::move) {
             // IMPROVABLE: Error message.
             throw cast_error("Invalid return_value_policy for unique_ptr.");
         }
