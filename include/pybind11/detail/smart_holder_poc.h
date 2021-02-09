@@ -208,6 +208,7 @@ struct smart_holder {
     void release_ownership() {
         *vptr_deleter_armed_flag_ptr = false;
         vptr.reset();
+        vptr_deleter_armed_flag_ptr.reset();
     }
 
     template <typename T>

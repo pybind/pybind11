@@ -77,7 +77,7 @@ def test_pass_unique_ptr_disowns(rtrn_atyp, pass_atyp, rtrn):
         m.pass_uqmp_atyp(obj)
     assert str(exc_info.value) == (
         "Missing value for wrapped C++ type:"
-        " Python instance is uninitialized or was disowned."
+        " Python instance was disowned."
     )
 
 

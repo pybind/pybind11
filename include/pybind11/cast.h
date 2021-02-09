@@ -980,16 +980,29 @@ public:
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value_and_holder(value_and_holder &&v_h) {
+        if (!v_h.holder_constructed()) {
+            // This is needed for old-style __init__.
+            // type_caster_generic::load_value BEGIN
+            auto *&vptr = v_h.value_ptr();
+            // Lazy allocation for unallocated values:
+            if (vptr == nullptr) {
+                // Lazy allocation for unallocated values:
+                auto *type = v_h.type ? v_h.type : typeinfo;
+                if (type->operator_new) {
+                    vptr = type->operator_new(type->type_size);
+                } else {
+                    #if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+                        if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+                            vptr = ::operator new(type->type_size,
+                                                  std::align_val_t(type->type_align));
+                        else
+                    #endif
+                    vptr = ::operator new(type->type_size);
+                }
+            }
+            // type_caster_generic::load_value END
+        }
         loaded_v_h = std::move(v_h);
-        if (!loaded_v_h.holder_constructed()) {
-            // IMPROVABLE: Error message. A change to the existing internals is
-            // needed to cleanly distinguish between uninitialized or disowned.
-            throw std::runtime_error("Missing value for wrapped C++ type:"
-                                     " Python instance is uninitialized or was disowned.");
-        }
-        if (v_h.value_ptr() == nullptr) {
-            pybind11_fail("smart_holder_type_casters: Unexpected v_h.value_ptr() nullptr.");
-        }
         loaded_v_h.type = typeinfo;
     }
 
@@ -1222,40 +1235,37 @@ struct smart_holder_type_caster_load {
     }
 
     T *loaded_as_raw_ptr_unowned() const {
-        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
-            // UNTESTED.
-            return convert_type(load_impl.unowned_void_ptr_from_direct_conversion);
-        if (!have_holder()) return nullptr;
-        return convert_type(holder().template as_raw_ptr_unowned<void>());
+        void *void_ptr = load_impl.unowned_void_ptr_from_direct_conversion; // UNTESTED.
+        if (void_ptr == nullptr) {
+            if (have_holder()) {
+                throw_if_uninitialized_or_disowned_holder();
+                void_ptr = holder().template as_raw_ptr_unowned<void>();
+            } else if (load_impl.loaded_v_h.vh != nullptr)
+                void_ptr = load_impl.loaded_v_h.value_ptr();
+            if (void_ptr == nullptr)
+                return nullptr;
+        }
+        return convert_type(void_ptr);
     }
 
     T &loaded_as_lvalue_ref() const {
-        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
-            // UNTESTED.
-            return *convert_type(load_impl.unowned_void_ptr_from_direct_conversion);
-        if (!have_holder()) throw reference_cast_error();
-        static const char *context = "loaded_as_lvalue_ref";
-        holder().ensure_is_populated(context);
-        holder().ensure_has_pointee(context);
-        return *loaded_as_raw_ptr_unowned();
+        T *raw_ptr = loaded_as_raw_ptr_unowned();
+        if (raw_ptr == nullptr) throw reference_cast_error();
+        return *raw_ptr;
     }
 
     T &&loaded_as_rvalue_ref() const {
-        if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
-            // UNTESTED.
-            return std::move(*convert_type(load_impl.unowned_void_ptr_from_direct_conversion));
-        if (!have_holder()) throw reference_cast_error();
-        static const char *context = "loaded_as_rvalue_ref";
-        holder().ensure_is_populated(context);
-        holder().ensure_has_pointee(context);
-        return std::move(*loaded_as_raw_ptr_unowned());
+        T *raw_ptr = loaded_as_raw_ptr_unowned();
+        if (raw_ptr == nullptr) throw reference_cast_error();
+        return std::move(*raw_ptr);
     }
 
-    std::shared_ptr<T> loaded_as_shared_ptr() {
+    std::shared_ptr<T> loaded_as_shared_ptr() const {
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
                              " std::shared_ptr."); // UNTESTED.
         if (!have_holder()) return nullptr;
+        throw_if_uninitialized_or_disowned_holder();
         std::shared_ptr<void> void_ptr = holder().template as_shared_ptr<void>();
         return std::shared_ptr<T>(void_ptr, convert_type(void_ptr.get()));
     }
@@ -1266,6 +1276,7 @@ struct smart_holder_type_caster_load {
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
                              " std::unique_ptr."); // UNTESTED.
         if (!have_holder()) return nullptr;
+        throw_if_uninitialized_or_disowned_holder();
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
@@ -1277,10 +1288,11 @@ struct smart_holder_type_caster_load {
         holder().release_ownership();
         auto result = std::unique_ptr<T, D>(raw_type_ptr);
 
-        void *value_void_ptr
-            = load_impl.loaded_v_h.value_ptr(); // Expected to be identical to raw_void_ptr.
-        load_impl.loaded_v_h.holder<holder_type>().~holder_type();
-        load_impl.loaded_v_h.set_holder_constructed(false);
+        void *value_void_ptr = load_impl.loaded_v_h.value_ptr();
+        if (value_void_ptr != raw_void_ptr) {
+            pybind11_fail("smart_holder_type_casters: loaded_as_unique_ptr failure:"
+                          " value_void_ptr != raw_void_ptr");
+        }
         load_impl.loaded_v_h.value_ptr() = nullptr;
         deregister_instance(load_impl.loaded_v_h.inst, value_void_ptr, load_impl.loaded_v_h.type);
 
@@ -1290,9 +1302,23 @@ struct smart_holder_type_caster_load {
 private:
     modified_type_caster_generic_load_impl load_impl;
 
-    bool have_holder() const { return load_impl.loaded_v_h.vh != nullptr; }
+    bool have_holder() const {
+        return load_impl.loaded_v_h.vh != nullptr && load_impl.loaded_v_h.holder_constructed();
+    }
 
     holder_type &holder() const { return load_impl.loaded_v_h.holder<holder_type>(); }
+
+    // have_holder() must be true or this function will fail.
+    void throw_if_uninitialized_or_disowned_holder() const {
+        if (!holder().is_populated) {
+            pybind11_fail("Missing value for wrapped C++ type:"
+                          " Python instance is uninitialized.");
+        }
+        if (!holder().has_pointee()) {
+            throw cast_error("Missing value for wrapped C++ type:"
+                             " Python instance was disowned.");
+        }
+    }
 
     T *convert_type(void *void_ptr) const {
         if (void_ptr != nullptr && load_impl.loaded_v_h_cpptype != nullptr
