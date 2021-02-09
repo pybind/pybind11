@@ -54,11 +54,11 @@ class Awaitable : public std::enable_shared_from_this<Awaitable>{
 
             if (status == std::future_status::ready) {
                 // future is ready -> raise StopInteration with the future result set
-                //auto exception = StopIteration(this->future.get());
+                auto exception = StopIteration(this->future.get());
                 //exception.set_result(this->future.get());
-                PyErr_SetObject(PyExc_StopIteration, this->future.get().ptr());
+                //PyErr_SetObject(PyExc_StopIteration, this->future.get().ptr());
 
-                //throw exception;
+                throw exception;
             }
         };
 
