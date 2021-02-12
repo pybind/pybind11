@@ -269,7 +269,7 @@ namespace {
         void add(std::shared_ptr<ElementBase> e) { l.push_back(e); }
         std::vector<std::shared_ptr<ElementBase>> l;
     };
-}
+} // namespace
 
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Object, ref<Object>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject1, ref<MyObject1>)
