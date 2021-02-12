@@ -162,8 +162,7 @@ void construct(value_and_holder &v_h, Cpp<Class> &&result, bool need_alias) {
 // return-by-value version 2: returning a value of the alias type itself.  We move-construct an
 // Alias instance (even if no the python-side inheritance is involved).  The is intended for
 // cases where Alias initialization is always desired.
-template <typename Class,
-          detail::enable_if_t<!detail::is_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
+template <typename Class>
 void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
     static_assert(std::is_move_constructible<Alias<Class>>::value,
         "pybind11::init() return-by-alias-value factory function requires a movable alias class");

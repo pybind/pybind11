@@ -177,10 +177,10 @@ def test_init_factory_alias():
     assert f.has_alias()
 
     assert ConstructorStats.detail_reg_inst() == n_inst + 6
-    assert [i.alive() for i in cstats] in ([6, 4], [6, 2])  # SMART_HOLDER_WIP
+    assert [i.alive() for i in cstats] == [6, 4]
 
     del a, b, e
-    assert [i.alive() for i in cstats] in ([3, 3], [3, 2])  # SMART_HOLDER_WIP
+    assert [i.alive() for i in cstats] == [3, 3]
     assert ConstructorStats.detail_reg_inst() == n_inst + 3
     del f, c, d
     assert [i.alive() for i in cstats] == [0, 0]
@@ -214,10 +214,10 @@ def test_init_factory_alias():
     assert [i.alive() for i in cstats] == [0, 0]
     assert ConstructorStats.detail_reg_inst() == n_inst
 
-    line1 = ["1", "8", "3", "4", "5", "6", "123", "10", "47"]
-    line2 = ["hi there", "3", "4", "6", "move", "123", "why hello!", "move", "47"]
-    line2b = line2[:-2] + ["move", "10"] + line2[-2:]  # SMART_HOLDER_WIP
-    assert [i.values() for i in cstats] in ([line1, line2], [line1, line2b])
+    assert [i.values() for i in cstats] == [
+        ["1", "8", "3", "4", "5", "6", "123", "10", "47"],
+        ["hi there", "3", "4", "6", "move", "123", "why hello!", "move", "47"],
+    ]
 
 
 def test_init_factory_dual():
