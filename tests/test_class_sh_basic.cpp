@@ -10,6 +10,10 @@ namespace class_sh_basic {
 
 struct atyp { // Short for "any type".
     std::string mtxt;
+    atyp() : mtxt("DefaultConstructor") {}
+    atyp(const std::string &mtxt_) : mtxt(mtxt_) {}
+    atyp(const atyp &other) { mtxt = other.mtxt + ".CpCtor"; }
+    atyp(atyp &&other) { mtxt = other.mtxt + ".MvCtor"; }
 };
 
 // clang-format off
