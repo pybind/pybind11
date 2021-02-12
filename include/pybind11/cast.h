@@ -11,7 +11,7 @@
 #pragma once
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
-// #define PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+#define PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 #endif
 
 #include "pytypes.h"
