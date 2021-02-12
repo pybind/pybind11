@@ -23,8 +23,8 @@ def test_cast():
 
 
 def test_load():
-    assert m.pass_valu_atyp(m.atyp("Valu")) == "pass_valu:Valu.MvCtor.MvCtor"
-    assert m.pass_rref_atyp(m.atyp("Rref")) == "pass_rref:Rref.MvCtor"
+    assert m.pass_valu_atyp(m.atyp("Valu")) == "pass_valu:Valu.MvCtor.CpCtor"
+    assert m.pass_rref_atyp(m.atyp("Rref")) == "pass_rref:Rref.MvCtor.CpCtor"
     assert m.pass_cref_atyp(m.atyp("Cref")) == "pass_cref:Cref.MvCtor"
     assert m.pass_mref_atyp(m.atyp("Mref")) == "pass_mref:Mref.MvCtor"
     assert m.pass_cptr_atyp(m.atyp("Cptr")) == "pass_cptr:Cptr.MvCtor"

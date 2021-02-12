@@ -1385,19 +1385,15 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
     using cast_op_type = conditional_t<
         std::is_same<remove_reference_t<T_>, T const *>::value,
         T const *,
-        conditional_t<
-            std::is_same<remove_reference_t<T_>, T *>::value,
-            T *,
-            conditional_t<std::is_same<T_, T const &>::value,
-                          T const &,
-                          conditional_t<std::is_same<T_, T &>::value,
-                                        T &,
-                                        conditional_t<std::is_same<T_, T &&>::value, T &&, T>>>>>;
+        conditional_t<std::is_same<remove_reference_t<T_>, T *>::value,
+                      T *,
+                      conditional_t<std::is_same<T_, T const &>::value,
+                                    T const &,
+                                    conditional_t<std::is_same<T_, T &>::value, T &, T>>>>;
 
     // clang-format off
 
     operator T()        { return this->loaded_as_lvalue_ref(); }
-    operator T&&() &&   { return this->loaded_as_rvalue_ref(); }
     operator T const&() { return this->loaded_as_lvalue_ref(); }
     operator T&()       { return this->loaded_as_lvalue_ref(); }
     operator T const*() { return this->loaded_as_raw_ptr_unowned(); }
