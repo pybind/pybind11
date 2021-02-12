@@ -26,7 +26,6 @@ atyp const* rtrn_cptr() { return new atyp{"rtrn_cptr"}; }
 atyp*       rtrn_mptr() { return new atyp{"rtrn_mptr"}; }
 
 std::string pass_valu(atyp obj)        { return "pass_valu:" + obj.mtxt; }
-std::string pass_rref(atyp&& obj)      { return "pass_rref:" + obj.mtxt; }
 std::string pass_cref(atyp const& obj) { return "pass_cref:" + obj.mtxt; }
 std::string pass_mref(atyp& obj)       { return "pass_mref:" + obj.mtxt; }
 std::string pass_cptr(atyp const* obj) { return "pass_cptr:" + obj->mtxt; }
@@ -84,7 +83,6 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("rtrn_mptr", rtrn_mptr);
 
     m.def("pass_valu", pass_valu);
-    m.def("pass_rref", pass_rref);
     m.def("pass_cref", pass_cref);
     m.def("pass_mref", pass_mref);
     m.def("pass_cptr", pass_cptr);
