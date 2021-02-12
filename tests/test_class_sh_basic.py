@@ -39,7 +39,6 @@ def test_cast(rtrn_f, expected):
     "pass_f, mtxt, expected",
     [
         (m.pass_valu, "Valu", "pass_valu:Valu(_MvCtor)*_CpCtor"),
-        (m.pass_rref, "Rref", "pass_rref:Rref(_MvCtor)*_CpCtor"),
         (m.pass_cref, "Cref", "pass_cref:Cref(_MvCtor)*_MvCtor"),
         (m.pass_mref, "Mref", "pass_mref:Mref(_MvCtor)*_MvCtor"),
         (m.pass_cptr, "Cptr", "pass_cptr:Cptr(_MvCtor)*_MvCtor"),

@@ -10,6 +10,10 @@
 
 #pragma once
 
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+// #define PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+#endif
+
 #include "pytypes.h"
 #include "detail/common.h"
 #include "detail/descr.h"
@@ -1388,6 +1392,8 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
         return cast(const_cast<T const *>(src), policy, parent); // Mutbl2Const
     }
 
+    // clang-format off
+
     template <typename T_>
     using cast_op_type = conditional_t<
         std::is_same<remove_reference_t<T_>, T const *>::value,
@@ -1396,11 +1402,8 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                       T *,
                       conditional_t<std::is_same<T_, T const &>::value,
                                     T const &,
-                                    conditional_t<std::is_same<T_, T &>::value, T &, T>>>>;
+                                    T &>>>;
 
-    // clang-format off
-
-    operator T()        { return this->loaded_as_lvalue_ref(); }
     operator T const&() { return this->loaded_as_lvalue_ref(); }
     operator T&()       { return this->loaded_as_lvalue_ref(); }
     operator T const*() { return this->loaded_as_raw_ptr_unowned(); }
