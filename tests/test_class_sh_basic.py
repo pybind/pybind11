@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-import pytest
+# Importing re before pytest after observing a PyPy CI flake when importing pytest first.
 import re
+
+import pytest
 
 from pybind11_tests import class_sh_basic as m
 
