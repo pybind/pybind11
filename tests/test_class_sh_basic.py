@@ -16,18 +16,18 @@ def test_atyp_constructors():
 @pytest.mark.parametrize(
     "rtrn_f, expected",
     [
-        (m.rtrn_valu_atyp, "rtrn_valu.MvCtor"),
-        (m.rtrn_rref_atyp, "rtrn_rref.MvCtor"),
-        (m.rtrn_cref_atyp, "rtrn_cref.CpCtor"),
-        (m.rtrn_mref_atyp, "rtrn_mref.CpCtor"),
-        (m.rtrn_cptr_atyp, "rtrn_cptr"),
-        (m.rtrn_mptr_atyp, "rtrn_mptr"),
-        (m.rtrn_shmp_atyp, "rtrn_shmp"),
-        (m.rtrn_shcp_atyp, "rtrn_shcp"),
-        (m.rtrn_uqmp_atyp, "rtrn_uqmp"),
-        (m.rtrn_uqcp_atyp, "rtrn_uqcp"),
-        (m.rtrn_udmp_atyp, "rtrn_udmp"),
-        (m.rtrn_udcp_atyp, "rtrn_udcp"),
+        (m.rtrn_valu, "rtrn_valu.MvCtor"),
+        (m.rtrn_rref, "rtrn_rref.MvCtor"),
+        (m.rtrn_cref, "rtrn_cref.CpCtor"),
+        (m.rtrn_mref, "rtrn_mref.CpCtor"),
+        (m.rtrn_cptr, "rtrn_cptr"),
+        (m.rtrn_mptr, "rtrn_mptr"),
+        (m.rtrn_shmp, "rtrn_shmp"),
+        (m.rtrn_shcp, "rtrn_shcp"),
+        (m.rtrn_uqmp, "rtrn_uqmp"),
+        (m.rtrn_uqcp, "rtrn_uqcp"),
+        (m.rtrn_udmp, "rtrn_udmp"),
+        (m.rtrn_udcp, "rtrn_udcp"),
     ],
 )
 def test_cast(rtrn_f, expected):
@@ -37,16 +37,16 @@ def test_cast(rtrn_f, expected):
 @pytest.mark.parametrize(
     "pass_f, mtxt, expected",
     [
-        (m.pass_valu_atyp, "Valu", "pass_valu:Valu.MvCtor.CpCtor"),
-        (m.pass_rref_atyp, "Rref", "pass_rref:Rref.MvCtor.CpCtor"),
-        (m.pass_cref_atyp, "Cref", "pass_cref:Cref.MvCtor"),
-        (m.pass_mref_atyp, "Mref", "pass_mref:Mref.MvCtor"),
-        (m.pass_cptr_atyp, "Cptr", "pass_cptr:Cptr.MvCtor"),
-        (m.pass_mptr_atyp, "Mptr", "pass_mptr:Mptr.MvCtor"),
-        (m.pass_shmp_atyp, "Shmp", "pass_shmp:Shmp.MvCtor"),
-        (m.pass_shcp_atyp, "Shcp", "pass_shcp:Shcp.MvCtor"),
-        (m.pass_uqmp_atyp, "Uqmp", "pass_uqmp:Uqmp.MvCtor"),
-        (m.pass_uqcp_atyp, "Uqcp", "pass_uqcp:Uqcp.MvCtor"),
+        (m.pass_valu, "Valu", "pass_valu:Valu.MvCtor.CpCtor"),
+        (m.pass_rref, "Rref", "pass_rref:Rref.MvCtor.CpCtor"),
+        (m.pass_cref, "Cref", "pass_cref:Cref.MvCtor"),
+        (m.pass_mref, "Mref", "pass_mref:Mref.MvCtor"),
+        (m.pass_cptr, "Cptr", "pass_cptr:Cptr.MvCtor"),
+        (m.pass_mptr, "Mptr", "pass_mptr:Mptr.MvCtor"),
+        (m.pass_shmp, "Shmp", "pass_shmp:Shmp.MvCtor"),
+        (m.pass_shcp, "Shcp", "pass_shcp:Shcp.MvCtor"),
+        (m.pass_uqmp, "Uqmp", "pass_uqmp:Uqmp.MvCtor"),
+        (m.pass_uqcp, "Uqcp", "pass_uqcp:Uqcp.MvCtor"),
     ],
 )
 def test_load_with_mtxt(pass_f, mtxt, expected):
@@ -56,8 +56,8 @@ def test_load_with_mtxt(pass_f, mtxt, expected):
 @pytest.mark.parametrize(
     "pass_f, rtrn_f, expected",
     [
-        (m.pass_udmp_atyp, m.rtrn_udmp_atyp, "pass_udmp:rtrn_udmp"),
-        (m.pass_udcp_atyp, m.rtrn_udcp_atyp, "pass_udcp:rtrn_udcp"),
+        (m.pass_udmp, m.rtrn_udmp, "pass_udmp:rtrn_udmp"),
+        (m.pass_udcp, m.rtrn_udcp, "pass_udcp:rtrn_udcp"),
     ],
 )
 def test_load_with_rtrn_f(pass_f, rtrn_f, expected):
@@ -67,10 +67,10 @@ def test_load_with_rtrn_f(pass_f, rtrn_f, expected):
 @pytest.mark.parametrize(
     "pass_f, rtrn_f, expected",
     [
-        (m.pass_uqmp_atyp, m.rtrn_uqmp_atyp, "pass_uqmp:rtrn_uqmp"),
-        (m.pass_uqcp_atyp, m.rtrn_uqcp_atyp, "pass_uqcp:rtrn_uqcp"),
-        (m.pass_udmp_atyp, m.rtrn_udmp_atyp, "pass_udmp:rtrn_udmp"),
-        (m.pass_udcp_atyp, m.rtrn_udcp_atyp, "pass_udcp:rtrn_udcp"),
+        (m.pass_uqmp, m.rtrn_uqmp, "pass_uqmp:rtrn_uqmp"),
+        (m.pass_uqcp, m.rtrn_uqcp, "pass_uqcp:rtrn_uqcp"),
+        (m.pass_udmp, m.rtrn_udmp, "pass_udmp:rtrn_udmp"),
+        (m.pass_udcp, m.rtrn_udcp, "pass_udcp:rtrn_udcp"),
     ],
 )
 def test_pass_unique_ptr_disowns(pass_f, rtrn_f, expected):
