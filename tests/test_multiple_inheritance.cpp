@@ -64,7 +64,7 @@ namespace {
     struct I801C : I801B1, I801B2 {};
     struct I801D : I801C {}; // Indirect MI
 
-} // namespace anonymous
+} // namespace
 
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Base1a, std::shared_ptr<Base1a>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Base2a, std::shared_ptr<Base2a>)
