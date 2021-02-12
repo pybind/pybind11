@@ -13,68 +13,71 @@ def test_atyp_constructors():
     assert obj.__class__.__name__ == "atyp"
 
 
-def test_cast():
-    assert m.get_mtxt(m.rtrn_valu_atyp()) == "rtrn_valu.MvCtor"
-    assert m.get_mtxt(m.rtrn_rref_atyp()) == "rtrn_rref.MvCtor"
-    assert m.get_mtxt(m.rtrn_cref_atyp()) == "rtrn_cref.CpCtor"
-    assert m.get_mtxt(m.rtrn_mref_atyp()) == "rtrn_mref.CpCtor"
-    assert m.get_mtxt(m.rtrn_cptr_atyp()) == "rtrn_cptr"
-    assert m.get_mtxt(m.rtrn_mptr_atyp()) == "rtrn_mptr"
-
-
-def test_load():
-    assert m.pass_valu_atyp(m.atyp("Valu")) == "pass_valu:Valu.MvCtor.CpCtor"
-    assert m.pass_rref_atyp(m.atyp("Rref")) == "pass_rref:Rref.MvCtor.CpCtor"
-    assert m.pass_cref_atyp(m.atyp("Cref")) == "pass_cref:Cref.MvCtor"
-    assert m.pass_mref_atyp(m.atyp("Mref")) == "pass_mref:Mref.MvCtor"
-    assert m.pass_cptr_atyp(m.atyp("Cptr")) == "pass_cptr:Cptr.MvCtor"
-    assert m.pass_mptr_atyp(m.atyp("Mptr")) == "pass_mptr:Mptr.MvCtor"
-
-
-def test_cast_shared_ptr():
-    assert m.get_mtxt(m.rtrn_shmp_atyp()) == "rtrn_shmp"
-    assert m.get_mtxt(m.rtrn_shcp_atyp()) == "rtrn_shcp"
-
-
-def test_load_shared_ptr():
-    assert m.pass_shmp_atyp(m.atyp("Shmp")) == "pass_shmp:Shmp.MvCtor"
-    assert m.pass_shcp_atyp(m.atyp("Shcp")) == "pass_shcp:Shcp.MvCtor"
-
-
-def test_cast_unique_ptr():
-    assert m.get_mtxt(m.rtrn_uqmp_atyp()) == "rtrn_uqmp"
-    assert m.get_mtxt(m.rtrn_uqcp_atyp()) == "rtrn_uqcp"
-
-
-def test_load_unique_ptr():
-    assert m.pass_uqmp_atyp(m.atyp("Uqmp")) == "pass_uqmp:Uqmp.MvCtor"
-    assert m.pass_uqcp_atyp(m.atyp("Uqcp")) == "pass_uqcp:Uqcp.MvCtor"
-
-
-def test_cast_unique_ptr_with_deleter():
-    assert m.get_mtxt(m.rtrn_udmp_atyp()) == "rtrn_udmp"
-    assert m.get_mtxt(m.rtrn_udcp_atyp()) == "rtrn_udcp"
-
-
-def test_load_unique_ptr_with_deleter():
-    assert m.pass_udmp_atyp(m.rtrn_udmp_atyp()) == "pass_udmp:rtrn_udmp"
-    assert m.pass_udcp_atyp(m.rtrn_udcp_atyp()) == "pass_udcp:rtrn_udcp"
+@pytest.mark.parametrize(
+    "rtrn_f, expected",
+    [
+        (m.rtrn_valu_atyp, "rtrn_valu.MvCtor"),
+        (m.rtrn_rref_atyp, "rtrn_rref.MvCtor"),
+        (m.rtrn_cref_atyp, "rtrn_cref.CpCtor"),
+        (m.rtrn_mref_atyp, "rtrn_mref.CpCtor"),
+        (m.rtrn_cptr_atyp, "rtrn_cptr"),
+        (m.rtrn_mptr_atyp, "rtrn_mptr"),
+        (m.rtrn_shmp_atyp, "rtrn_shmp"),
+        (m.rtrn_shcp_atyp, "rtrn_shcp"),
+        (m.rtrn_uqmp_atyp, "rtrn_uqmp"),
+        (m.rtrn_uqcp_atyp, "rtrn_uqcp"),
+        (m.rtrn_udmp_atyp, "rtrn_udmp"),
+        (m.rtrn_udcp_atyp, "rtrn_udcp"),
+    ],
+)
+def test_cast(rtrn_f, expected):
+    assert m.get_mtxt(rtrn_f()) == expected
 
 
 @pytest.mark.parametrize(
-    "rtrn_atyp, pass_atyp, rtrn",
+    "pass_f, mtxt, expected",
     [
-        (m.rtrn_uqmp_atyp, m.pass_uqmp_atyp, "pass_uqmp:rtrn_uqmp"),
-        (m.rtrn_uqcp_atyp, m.pass_uqcp_atyp, "pass_uqcp:rtrn_uqcp"),
-        (m.rtrn_udmp_atyp, m.pass_udmp_atyp, "pass_udmp:rtrn_udmp"),
-        (m.rtrn_udcp_atyp, m.pass_udcp_atyp, "pass_udcp:rtrn_udcp"),
+        (m.pass_valu_atyp, "Valu", "pass_valu:Valu.MvCtor.CpCtor"),
+        (m.pass_rref_atyp, "Rref", "pass_rref:Rref.MvCtor.CpCtor"),
+        (m.pass_cref_atyp, "Cref", "pass_cref:Cref.MvCtor"),
+        (m.pass_mref_atyp, "Mref", "pass_mref:Mref.MvCtor"),
+        (m.pass_cptr_atyp, "Cptr", "pass_cptr:Cptr.MvCtor"),
+        (m.pass_mptr_atyp, "Mptr", "pass_mptr:Mptr.MvCtor"),
+        (m.pass_shmp_atyp, "Shmp", "pass_shmp:Shmp.MvCtor"),
+        (m.pass_shcp_atyp, "Shcp", "pass_shcp:Shcp.MvCtor"),
+        (m.pass_uqmp_atyp, "Uqmp", "pass_uqmp:Uqmp.MvCtor"),
+        (m.pass_uqcp_atyp, "Uqcp", "pass_uqcp:Uqcp.MvCtor"),
     ],
 )
-def test_pass_unique_ptr_disowns(rtrn_atyp, pass_atyp, rtrn):
-    obj = rtrn_atyp()
-    assert pass_atyp(obj) == rtrn
+def test_load_with_mtxt(pass_f, mtxt, expected):
+    assert pass_f(m.atyp(mtxt)) == expected
+
+
+@pytest.mark.parametrize(
+    "pass_f, rtrn_f, expected",
+    [
+        (m.pass_udmp_atyp, m.rtrn_udmp_atyp, "pass_udmp:rtrn_udmp"),
+        (m.pass_udcp_atyp, m.rtrn_udcp_atyp, "pass_udcp:rtrn_udcp"),
+    ],
+)
+def test_load_with_rtrn_f(pass_f, rtrn_f, expected):
+    assert pass_f(rtrn_f()) == expected
+
+
+@pytest.mark.parametrize(
+    "pass_f, rtrn_f, expected",
+    [
+        (m.pass_uqmp_atyp, m.rtrn_uqmp_atyp, "pass_uqmp:rtrn_uqmp"),
+        (m.pass_uqcp_atyp, m.rtrn_uqcp_atyp, "pass_uqcp:rtrn_uqcp"),
+        (m.pass_udmp_atyp, m.rtrn_udmp_atyp, "pass_udmp:rtrn_udmp"),
+        (m.pass_udcp_atyp, m.rtrn_udcp_atyp, "pass_udcp:rtrn_udcp"),
+    ],
+)
+def test_pass_unique_ptr_disowns(pass_f, rtrn_f, expected):
+    obj = rtrn_f()
+    assert pass_f(obj) == expected
     with pytest.raises(RuntimeError) as exc_info:
-        m.pass_uqmp_atyp(obj)
+        pass_f(obj)
     assert str(exc_info.value) == (
         "Missing value for wrapped C++ type: Python instance was disowned."
     )
