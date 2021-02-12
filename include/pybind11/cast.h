@@ -2466,7 +2466,7 @@ struct is_smart_holder_type_caster : std::false_type {};
 template <typename T>
 struct is_smart_holder_type_caster<
     T,
-    enable_if_t<type_caster<T>::is_smart_holder_type_caster::value, void>> : std::true_type {};
+    typename std::enable_if<type_caster<T>::is_smart_holder_type_caster::value, void>::type> : std::true_type {};
 
 template <typename T>
 inline bool check_is_smart_holder_type_caster() {
