@@ -14,21 +14,21 @@ def test_atyp_constructors():
 
 
 def test_cast():
-    assert m.get_mtxt(m.rtrn_valu_atyp()) == "rtrn_valu"
-    assert m.get_mtxt(m.rtrn_rref_atyp()) == "rtrn_rref"
-    assert m.get_mtxt(m.rtrn_cref_atyp()) == "rtrn_cref"
-    assert m.get_mtxt(m.rtrn_mref_atyp()) == "rtrn_mref"
+    assert m.get_mtxt(m.rtrn_valu_atyp()) == "rtrn_valu.MvCtor"
+    assert m.get_mtxt(m.rtrn_rref_atyp()) == "rtrn_rref.MvCtor"
+    assert m.get_mtxt(m.rtrn_cref_atyp()) == "rtrn_cref.CpCtor"
+    assert m.get_mtxt(m.rtrn_mref_atyp()) == "rtrn_mref.CpCtor"
     assert m.get_mtxt(m.rtrn_cptr_atyp()) == "rtrn_cptr"
     assert m.get_mtxt(m.rtrn_mptr_atyp()) == "rtrn_mptr"
 
 
 def test_load():
-    assert m.pass_valu_atyp(m.atyp("Valu")) == "pass_valu:Valu"
-    assert m.pass_rref_atyp(m.atyp("Rref")) == "pass_rref:Rref"
-    assert m.pass_cref_atyp(m.atyp("Cref")) == "pass_cref:Cref"
-    assert m.pass_mref_atyp(m.atyp("Mref")) == "pass_mref:Mref"
-    assert m.pass_cptr_atyp(m.atyp("Cptr")) == "pass_cptr:Cptr"
-    assert m.pass_mptr_atyp(m.atyp("Mptr")) == "pass_mptr:Mptr"
+    assert m.pass_valu_atyp(m.atyp("Valu")) == "pass_valu:Valu.MvCtor.MvCtor"
+    assert m.pass_rref_atyp(m.atyp("Rref")) == "pass_rref:Rref.MvCtor"
+    assert m.pass_cref_atyp(m.atyp("Cref")) == "pass_cref:Cref.MvCtor"
+    assert m.pass_mref_atyp(m.atyp("Mref")) == "pass_mref:Mref.MvCtor"
+    assert m.pass_cptr_atyp(m.atyp("Cptr")) == "pass_cptr:Cptr.MvCtor"
+    assert m.pass_mptr_atyp(m.atyp("Mptr")) == "pass_mptr:Mptr.MvCtor"
 
 
 def test_cast_shared_ptr():
@@ -37,8 +37,8 @@ def test_cast_shared_ptr():
 
 
 def test_load_shared_ptr():
-    assert m.pass_shmp_atyp(m.atyp("Shmp")) == "pass_shmp:Shmp"
-    assert m.pass_shcp_atyp(m.atyp("Shcp")) == "pass_shcp:Shcp"
+    assert m.pass_shmp_atyp(m.atyp("Shmp")) == "pass_shmp:Shmp.MvCtor"
+    assert m.pass_shcp_atyp(m.atyp("Shcp")) == "pass_shcp:Shcp.MvCtor"
 
 
 def test_cast_unique_ptr():
@@ -47,8 +47,8 @@ def test_cast_unique_ptr():
 
 
 def test_load_unique_ptr():
-    assert m.pass_uqmp_atyp(m.atyp("Uqmp")) == "pass_uqmp:Uqmp"
-    assert m.pass_uqcp_atyp(m.atyp("Uqcp")) == "pass_uqcp:Uqcp"
+    assert m.pass_uqmp_atyp(m.atyp("Uqmp")) == "pass_uqmp:Uqmp.MvCtor"
+    assert m.pass_uqcp_atyp(m.atyp("Uqcp")) == "pass_uqcp:Uqcp.MvCtor"
 
 
 def test_cast_unique_ptr_with_deleter():
@@ -86,7 +86,7 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
     for _ in range(num_round_trips):
         id_orig = id(recycled)
         recycled = m.unique_ptr_roundtrip(recycled)
-        assert m.get_mtxt(recycled) == "passenger"
+        assert m.get_mtxt(recycled) == "passenger.MvCtor"
         id_rtrn = id(recycled)
         # Ensure the returned object is a different Python instance.
         assert id_rtrn != id_orig
