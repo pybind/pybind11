@@ -225,7 +225,8 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
   else()
     list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
-    message(STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN on CMake 3.11+ to download")
+    message(
+      STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN=ON on CMake 3.11+ to download")
   endif()
 endif()
 
