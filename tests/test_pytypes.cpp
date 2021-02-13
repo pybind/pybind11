@@ -265,9 +265,6 @@ TEST_SUBMODULE(pytypes, m) {
         if (type == "bytes") {
             return py::bytes(value);
         }
-        if (type == "bytearray") {
-            return py::bytearray(value);
-        }
         else if (type == "none") {
             return py::none(value);
         }

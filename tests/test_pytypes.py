@@ -272,7 +272,6 @@ def test_constructors():
 def test_non_converting_constructors():
     non_converting_test_cases = [
         ("bytes", range(10)),
-        ("bytearray", range(10)),
         ("none", 42),
         ("ellipsis", 42),
     ]

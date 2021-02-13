@@ -1063,24 +1063,22 @@ inline str::str(const bytes& b) {
 /// @{
 class bytearray : public object {
 public:
-    PYBIND11_OBJECT(bytearray, object, PyByteArray_Check)
-
-    bytearray()
-        : object(PyByteArray_FromStringAndSize("", (ssize_t) 0), stolen_t{}) {
-        if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
-    }
+    PYBIND11_OBJECT_CVT(bytearray, object, PyByteArray_Check, PyByteArray_FromObject)
 
     bytearray(const char *c, size_t n)
         : object(PyByteArray_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
     }
 
+    bytearray()
+        : bytearray("", 0) {}
+
     // Allow implicit conversion:
     bytearray(const std::string &s) : bytearray(s.data(), s.size()) { }
 
     size_t size() const { return static_cast<size_t>(PyByteArray_Size(m_ptr)); }
 
-    operator std::string() const {
+    explicit operator std::string() const {
         char *buffer = PyByteArray_AS_STRING(m_ptr);
         ssize_t size = PyByteArray_GET_SIZE(m_ptr);
         return std::string(buffer, static_cast<size_t>(size));
