@@ -1289,6 +1289,7 @@ public:
         static constexpr bool holder_is_smart_holder = std::is_same<holder_type, smart_holder>::value;
         static constexpr bool type_caster_type_is_smart_holder_type_caster = detail::is_smart_holder_type_caster<type>::value;
         static constexpr bool type_caster_type_is_type_caster_base_subtype = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
+# if 0
         // Necessary conditions, but not strict.
         static_assert(!(detail::is_instantiation<std::unique_ptr, holder_type>::value &&
                         type_caster_type_is_smart_holder_type_caster),
@@ -1301,6 +1302,7 @@ public:
         static_assert(!(holder_is_smart_holder && type_caster_type_is_type_caster_base_subtype),
                       "py::class_ holder vs type_caster mismatch:"
                       " missing PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)?");
+#endif
 #ifdef PYBIND11_STRICT_ASSERTS_CLASS_HOLDER_VS_TYPE_CASTER_MIX
         // Strict conditions cannot be enforced universally at the moment (PR #2836).
         static_assert(holder_is_smart_holder == type_caster_type_is_smart_holder_type_caster,
