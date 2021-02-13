@@ -1387,6 +1387,7 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
 
     // clang-format off
 
+#if 0
     template <typename T_>
     using cast_op_type = conditional_t<
         std::is_same<remove_reference_t<T_>, T const *>::value,
@@ -1396,10 +1397,13 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                       conditional_t<std::is_same<T_, T const &>::value,
                                     T const &,
                                     T &>>>;
+#else
+    template <typename T_> using cast_op_type = detail::cast_op_type<T_>;
+#endif
 
-    operator T const&() { return this->loaded_as_lvalue_ref(); }
+    // rator T const&() { return this->loaded_as_lvalue_ref(); }
     operator T&()       { return this->loaded_as_lvalue_ref(); }
-    operator T const*() { return this->loaded_as_raw_ptr_unowned(); }
+    // rator T const*() { return this->loaded_as_raw_ptr_unowned(); }
     operator T*()       { return this->loaded_as_raw_ptr_unowned(); }
 
     // clang-format on
