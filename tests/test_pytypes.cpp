@@ -90,8 +90,11 @@ TEST_SUBMODULE(pytypes, m) {
 
     // test_bytes
     m.def("bytes_from_string", []() { return py::bytes(std::string("foo")); });
-    m.def("bytearray_from_string", []() { return py::bytearray(std::string("foo")); });
     m.def("bytes_from_str", []() { return py::bytes(py::str("bar", 3)); });
+
+    // test bytearray
+    m.def("bytearray_from_string", []() { return py::bytearray(std::string("foo")); });
+    m.def("bytearray_size", []() { return py::bytearray("foo").size(); });
 
     // test_capsule
     m.def("return_capsule_with_destructor", []() {

@@ -1078,6 +1078,8 @@ public:
     // Allow implicit conversion:
     bytearray(const std::string &s) : bytearray(s.data(), s.size()) { }
 
+    size_t size() const { return PyByteArray_Size(m_ptr); }
+
     operator std::string() const {
         char *buffer = PyByteArray_AS_STRING(m_ptr);
         ssize_t size = PyByteArray_GET_SIZE(m_ptr);

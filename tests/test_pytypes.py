@@ -142,6 +142,7 @@ def test_bytes(doc):
 
 def test_bytearray(doc):
     assert m.bytearray_from_string().decode() == "foo"
+    assert m.bytearray_size() == len("foo")
 
 
 def test_capsule(capture):
