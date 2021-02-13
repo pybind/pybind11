@@ -1186,8 +1186,6 @@ public:
 // clang-format on
 
 struct smart_holder_type_caster_class_hooks {
-    struct is_smart_holder_type_caster { static constexpr bool value = true; };
-
     static decltype(&modified_type_caster_generic_load_impl::local_load)
     get_local_load_function_ptr() {
         return &modified_type_caster_generic_load_impl::local_load;
@@ -1221,7 +1219,18 @@ struct smart_holder_type_caster_class_hooks {
 };
 
 template <typename T>
-inline bool check_is_smart_holder_type_caster();
+struct is_smart_holder_type_caster {
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+    static constexpr bool value = false;
+#else
+    static constexpr bool value = true;
+#endif
+};
+
+template <typename T>
+inline bool check_is_smart_holder_type_caster() {
+    return detail::is_smart_holder_type_caster<T>::value;
+}
 
 template <typename T>
 struct smart_holder_type_caster_load {
@@ -1629,6 +1638,8 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     namespace pybind11 {                                                                          \
     namespace detail {                                                                            \
     template <>                                                                                   \
+    struct is_smart_holder_type_caster<T> { static constexpr bool value = true; };                \
+    template <>                                                                                   \
     class type_caster<T> : public smart_holder_type_caster<T> {};                                 \
     template <>                                                                                   \
     class type_caster<std::shared_ptr<T>> : public smart_holder_type_caster<std::shared_ptr<T>> { \
@@ -1659,6 +1670,8 @@ template <typename T> class type_caster_for_class_ : public type_caster_base<T> 
 #define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)                                        \
     namespace pybind11 {                                                                          \
     namespace detail {                                                                            \
+    template <>                                                                                   \
+    struct is_smart_holder_type_caster<T> { static constexpr bool value = false; };               \
     template <>                                                                                   \
     class type_caster<T> : public type_caster_base<T> {};                                         \
     template <>                                                                                   \
@@ -2457,18 +2470,6 @@ template <typename T> struct move_if_unreferenced<T, enable_if_t<all_of<
     std::is_same<decltype(std::declval<make_caster<T>>().operator T&()), T&>
 >::value>> : std::true_type {};
 template <typename T> using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
-
-template <typename T, typename SFINAE = void>
-struct is_smart_holder_type_caster { static constexpr bool value = false; };
-template <typename T>
-struct is_smart_holder_type_caster<
-    T,
-    typename std::enable_if<type_caster<T>::is_smart_holder_type_caster::value, void>::type> { static constexpr bool value = true; };
-
-template <typename T>
-inline bool check_is_smart_holder_type_caster() {
-    return detail::is_smart_holder_type_caster<T>::value;
-}
 
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
 // reference or pointer to a local variable of the type_caster.  Basically, only
