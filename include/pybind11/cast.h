@@ -2520,7 +2520,7 @@ T cast(const handle &handle) {
     using namespace detail;
     static_assert(!cast_is_temporary_value_reference<T>::value,
             "Unable to cast type to reference: value is local to type caster");
-    return cast_op<T>(load_type<T>(handle));
+    return cast_op<T>(load_type<T>(handle)); // HEERE 2
 }
 
 // pytype -> pytype (calls converting constructor)
@@ -2575,7 +2575,7 @@ template <typename T> detail::enable_if_t<detail::move_if_unreferenced<T>::value
         return move<T>(std::move(object));
 }
 template <typename T> detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
-    return cast<T>(object);
+    return cast<T>(object); // HERE 2
 }
 
 template <typename T> T object::cast() const & { return pybind11::cast<T>(*this); }
@@ -2605,7 +2605,7 @@ template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, 
 // though if it's in dead code, so we provide a "trampoline" to pybind11::cast that only does anything in
 // cases where pybind11::cast is valid.
 template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&o) {
-    return pybind11::cast<T>(std::move(o)); }
+    return pybind11::cast<T>(std::move(o)); } // HEERE 1
 template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&) {
     pybind11_fail("Internal error: cast_safe fallback invoked"); }
 template <> inline void cast_safe<void>(object &&) {}

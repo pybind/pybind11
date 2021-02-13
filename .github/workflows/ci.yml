@@ -755,8 +755,8 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - 2.7
-          - 3.6
+          #- 2.7
+          #- 3.6
           - 3.7
           # todo: check/cpptest does not support 3.8+ yet
 
@@ -789,7 +789,7 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
 
     - name: Build C++14
-      run: cmake --build build -j 2
+      run: cmake --build build -j 1
 
     - name: Run all checks
       run: cmake --build build -t check
