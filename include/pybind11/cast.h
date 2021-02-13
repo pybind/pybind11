@@ -1186,7 +1186,7 @@ public:
 // clang-format on
 
 struct smart_holder_type_caster_class_hooks {
-    using is_smart_holder_type_caster = std::true_type;
+    struct is_smart_holder_type_caster { static constexpr bool value = true; };
 
     static decltype(&modified_type_caster_generic_load_impl::local_load)
     get_local_load_function_ptr() {
