@@ -2459,11 +2459,11 @@ template <typename T> struct move_if_unreferenced<T, enable_if_t<all_of<
 template <typename T> using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
 
 template <typename T, typename SFINAE = void>
-struct is_smart_holder_type_caster : std::false_type {};
+struct is_smart_holder_type_caster { static constexpr bool value = false; };
 template <typename T>
 struct is_smart_holder_type_caster<
     T,
-    typename std::enable_if<type_caster<T>::is_smart_holder_type_caster::value, void>::type> : std::true_type {};
+    typename std::enable_if<type_caster<T>::is_smart_holder_type_caster::value, void>::type> { static constexpr bool value = true; };
 
 template <typename T>
 inline bool check_is_smart_holder_type_caster() {
