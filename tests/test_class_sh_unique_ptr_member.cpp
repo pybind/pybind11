@@ -41,9 +41,6 @@ private:
 } // namespace pybind11_tests
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_unique_ptr_member::pointee)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(
-    pybind11_tests::class_sh_unique_ptr_member::ptr_owner,
-    std::unique_ptr<pybind11_tests::class_sh_unique_ptr_member::ptr_owner>)
 
 namespace pybind11_tests {
 namespace class_sh_unique_ptr_member {
@@ -53,8 +50,7 @@ TEST_SUBMODULE(class_sh_unique_ptr_member, m) {
 
     m.def("make_unique_pointee", make_unique_pointee);
 
-    // Could also be class_, but can conveniently be used for testing classu.
-    py::classu<ptr_owner>(m, "ptr_owner")
+    py::class_<ptr_owner>(m, "ptr_owner")
         .def(py::init<std::unique_ptr<pointee>>(), py::arg("ptr"))
         .def("is_owner", &ptr_owner::is_owner)
         .def("give_up_ownership_via_unique_ptr", &ptr_owner::give_up_ownership_via_unique_ptr)
