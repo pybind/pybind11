@@ -1386,7 +1386,8 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
     // clang-format off
 
 #if defined(_MSC_VER) && _MSC_VER < 1910
-    // Working around MSVC 2015 bug.
+    // Working around MSVC 2015 bug. `const` sensitivity is lost.
+    // SMART_HOLDER_WIP: IMPROVABLE: make common code work with MSVC 2015.
     template <typename T_> using cast_op_type = detail::cast_op_type<T_>;
 #else
     template <typename T_>
