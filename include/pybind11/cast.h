@@ -1218,19 +1218,11 @@ struct smart_holder_type_caster_class_hooks {
     }
 };
 
-template <typename T>
-struct is_smart_holder_type_caster {
-#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
-    static constexpr bool value = false;
-#else
-    static constexpr bool value = true;
-#endif
-};
+template <typename T, typename SFINAE = void>
+struct is_smart_holder_type_caster { static constexpr bool value = false; };
 
 template <typename T>
-inline bool check_is_smart_holder_type_caster() {
-    return detail::is_smart_holder_type_caster<T>::value;
-}
+inline bool check_is_smart_holder_type_caster();
 
 template <typename T>
 struct smart_holder_type_caster_load {
@@ -1638,8 +1630,6 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
     namespace pybind11 {                                                                          \
     namespace detail {                                                                            \
     template <>                                                                                   \
-    struct is_smart_holder_type_caster<T> { static constexpr bool value = true; };                \
-    template <>                                                                                   \
     class type_caster<T> : public smart_holder_type_caster<T> {};                                 \
     template <>                                                                                   \
     class type_caster<std::shared_ptr<T>> : public smart_holder_type_caster<std::shared_ptr<T>> { \
@@ -1671,8 +1661,6 @@ template <typename T> class type_caster_for_class_ : public type_caster_base<T> 
     namespace pybind11 {                                                                          \
     namespace detail {                                                                            \
     template <>                                                                                   \
-    struct is_smart_holder_type_caster<T> { static constexpr bool value = false; };               \
-    template <>                                                                                   \
     class type_caster<T> : public type_caster_base<T> {};                                         \
     template <>                                                                                   \
     class type_caster<__VA_ARGS__> : public type_caster_holder<T, __VA_ARGS__> {};                \
@@ -1703,6 +1691,19 @@ class type_caster_for_class_<std::unique_ptr<T const, D>>
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_for_class_<type> { };
 
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
+
+template <typename T>
+struct is_smart_holder_type_caster<
+    T,
+    typename std::enable_if<
+        std::is_base_of<smart_holder_type_caster_class_hooks, make_caster<T>>::value>::type> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+inline bool check_is_smart_holder_type_caster() {
+    return detail::is_smart_holder_type_caster<T>::value;
+}
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {

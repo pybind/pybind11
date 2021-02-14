@@ -1286,7 +1286,7 @@ public:
                 none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
             "Error: multiple inheritance bases must be specified via class_ template options");
 
-# if 0
+# if 1
         static constexpr bool holder_is_smart_holder = std::is_same<holder_type, smart_holder>::value;
         static constexpr bool type_caster_type_is_smart_holder_type_caster = detail::is_smart_holder_type_caster<type>::value;
         static constexpr bool type_caster_type_is_type_caster_base_subtype = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
