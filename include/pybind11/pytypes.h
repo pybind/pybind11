@@ -1073,8 +1073,7 @@ public:
     bytearray()
         : bytearray("", 0) {}
 
-    // Allow implicit conversion:
-    bytearray(const std::string &s) : bytearray(s.data(), s.size()) { }
+    explicit bytearray(const std::string &s) : bytearray(s.data(), s.size()) { }
 
     size_t size() const { return static_cast<size_t>(PyByteArray_Size(m_ptr)); }
 
