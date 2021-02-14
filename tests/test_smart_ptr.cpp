@@ -292,6 +292,18 @@ PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(ElementBase, std::shared_ptr<ElementB
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(ElementA, std::shared_ptr<ElementA>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(ElementList, std::shared_ptr<ElementList>)
 
+#ifdef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+// To prevent triggering a static_assert in the smart_holder code.
+// This is a very special case, because the associated test exercises a holder mismatch.
+namespace pybind11 {
+namespace detail {
+template <>
+class type_caster<std::shared_ptr<HeldByDefaultHolder>>
+    : public copyable_holder_caster<HeldByDefaultHolder, std::shared_ptr<HeldByDefaultHolder>> {};
+} // namespace detail
+} // namespace pybind11
+#endif
+
 TEST_SUBMODULE(smart_ptr, m) {
 
     // test_smart_ptr
