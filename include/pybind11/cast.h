@@ -1193,8 +1193,6 @@ public:
 // clang-format on
 
 struct smart_holder_type_caster_class_hooks {
-    using is_smart_holder_type_caster = std::true_type;
-
     static decltype(&modified_type_caster_generic_load_impl::local_load)
     get_local_load_function_ptr() {
         return &modified_type_caster_generic_load_impl::local_load;
@@ -2463,14 +2461,17 @@ template <typename T> using move_never = none_of<move_always<T>, move_if_unrefer
 
 template <typename T, typename SFINAE = void>
 struct is_smart_holder_type_caster : std::false_type {};
+
 template <typename T>
 struct is_smart_holder_type_caster<
     T,
-    typename std::enable_if<type_caster<T>::is_smart_holder_type_caster::value, void>::type> : std::true_type {};
+    typename std::enable_if<
+        std::is_base_of<smart_holder_type_caster_class_hooks, make_caster<T>>::value>::type>
+    : std::true_type {};
 
 template <typename T>
 inline bool check_is_smart_holder_type_caster() {
-    return detail::is_smart_holder_type_caster<T>::value;
+    return is_smart_holder_type_caster<T>::value;
 }
 
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
