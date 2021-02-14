@@ -1256,12 +1256,6 @@ struct smart_holder_type_caster_load {
         return *raw_ptr;
     }
 
-    T &&loaded_as_rvalue_ref() const {
-        T *raw_ptr = loaded_as_raw_ptr_unowned();
-        if (raw_ptr == nullptr) throw reference_cast_error();
-        return std::move(*raw_ptr);
-    }
-
     std::shared_ptr<T> loaded_as_shared_ptr() const {
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
