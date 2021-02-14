@@ -1429,8 +1429,7 @@ public:
 
     template <typename Return, typename Class, typename... Args>
     class_ &def_buffer(Return (Class::*func)(Args...) const) {
-        // NEEDED: Explanation why the const needs to be removed, or fix elsewhere.
-        return def_buffer([func] (/*const*/ type &obj) { return (obj.*func)(); });
+        return def_buffer([func] (const type &obj) { return (obj.*func)(); });
     }
 
     template <typename C, typename D, typename... Extra>
