@@ -966,6 +966,12 @@ protected:
     static Constructor make_move_constructor(...) { return nullptr; }
 };
 
+// Tag to be used as base class, inspected by is_smart_holder_type_caster<T> test.
+struct is_smart_holder_type_caster_base_tag {};
+
+template <typename T>
+struct is_smart_holder_type_caster;
+
 //DETAIL/SMART_HOLDER_TYPE_CASTERS_H/BEGIN/////////////////////////////////////////////////////////
 
 //FWD begin
@@ -1192,7 +1198,7 @@ public:
 };
 // clang-format on
 
-struct smart_holder_type_caster_class_hooks {
+struct smart_holder_type_caster_class_hooks : is_smart_holder_type_caster_base_tag {
     static decltype(&modified_type_caster_generic_load_impl::local_load)
     get_local_load_function_ptr() {
         return &modified_type_caster_generic_load_impl::local_load;
@@ -1226,17 +1232,11 @@ struct smart_holder_type_caster_class_hooks {
 };
 
 template <typename T>
-inline bool check_is_smart_holder_type_caster();
-
-template <typename T>
 struct smart_holder_type_caster_load {
     using holder_type = pybindit::memory::smart_holder;
 
     bool load(handle src, bool convert) {
-        if (!check_is_smart_holder_type_caster<T>()) {
-            throw cast_error(
-                "Unable to load a smart-pointer type from a non-smart_holder instance.");
-        }
+        static_assert(is_smart_holder_type_caster<T>::value, "Internal consistency error.");
         load_impl = modified_type_caster_generic_load_impl(typeid(T));
         if (!load_impl.load(src, convert))
             return false;
@@ -1691,6 +1691,13 @@ class type_caster_for_class_<std::unique_ptr<T const, D>>
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_for_class_<type> { };
 
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
+
+template <typename T>
+struct is_smart_holder_type_caster {
+    static constexpr bool value = std::is_base_of<
+        is_smart_holder_type_caster_base_tag,
+        make_caster<T>>::value;
+};
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
@@ -2458,21 +2465,6 @@ template <typename T> struct move_if_unreferenced<T, enable_if_t<all_of<
     std::is_same<decltype(std::declval<make_caster<T>>().operator T&()), T&>
 >::value>> : std::true_type {};
 template <typename T> using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
-
-template <typename T, typename SFINAE = void>
-struct is_smart_holder_type_caster : std::false_type {};
-
-template <typename T>
-struct is_smart_holder_type_caster<
-    T,
-    typename std::enable_if<
-        std::is_base_of<smart_holder_type_caster_class_hooks, make_caster<T>>::value>::type>
-    : std::true_type {};
-
-template <typename T>
-inline bool check_is_smart_holder_type_caster() {
-    return is_smart_holder_type_caster<T>::value;
-}
 
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
 // reference or pointer to a local variable of the type_caster.  Basically, only
