@@ -78,7 +78,7 @@ public:
     // We can return reference types for compatibility with C++ virtual interfaces that do so, but
     // note they have some significant limitations (see the documentation).
     const std::string &get_string1() override {
-        PYBIND11_OVERRIDE( // HEERE 0
+        PYBIND11_OVERRIDE(
             const std::string &, /* Return type */
             ExampleVirt,         /* Parent class */
             get_string1,         /* Name of function */

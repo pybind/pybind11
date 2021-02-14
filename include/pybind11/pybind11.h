@@ -1286,7 +1286,6 @@ public:
                 none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
             "Error: multiple inheritance bases must be specified via class_ template options");
 
-# if 1
         static constexpr bool holder_is_smart_holder = std::is_same<holder_type, smart_holder>::value;
         static constexpr bool type_caster_type_is_smart_holder_type_caster = detail::is_smart_holder_type_caster<type>::value;
         static constexpr bool type_caster_type_is_type_caster_base_subtype = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
@@ -1312,7 +1311,6 @@ public:
                       "py::class_ holder vs type_caster mismatch:"
                       " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)"
                       " or collision with custom py::detail::type_caster<T>?");
-#endif
 #endif
         type_record record;
         record.scope = scope;

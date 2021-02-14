@@ -1218,9 +1218,6 @@ struct smart_holder_type_caster_class_hooks {
     }
 };
 
-template <typename T, typename SFINAE = void>
-struct is_smart_holder_type_caster { static constexpr bool value = false; };
-
 template <typename T>
 inline bool check_is_smart_holder_type_caster();
 
@@ -1388,7 +1385,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
 
     // clang-format off
 
-#if 0
     template <typename T_>
     using cast_op_type = conditional_t<
         std::is_same<remove_reference_t<T_>, T const *>::value,
@@ -1398,13 +1394,10 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                       conditional_t<std::is_same<T_, T const &>::value,
                                     T const &,
                                     T &>>>;
-#else
-    template <typename T_> using cast_op_type = detail::cast_op_type<T_>;
-#endif
 
-    // rator T const&() { return this->loaded_as_lvalue_ref(); }
+    operator T const&() { return this->loaded_as_lvalue_ref(); }
     operator T&()       { return this->loaded_as_lvalue_ref(); }
-    // rator T const*() { return this->loaded_as_raw_ptr_unowned(); }
+    operator T const*() { return this->loaded_as_raw_ptr_unowned(); }
     operator T*()       { return this->loaded_as_raw_ptr_unowned(); }
 
     // clang-format on
@@ -1691,19 +1684,6 @@ class type_caster_for_class_<std::unique_ptr<T const, D>>
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_for_class_<type> { };
 
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
-
-template <typename T>
-struct is_smart_holder_type_caster<
-    T,
-    typename std::enable_if<
-        std::is_base_of<smart_holder_type_caster_class_hooks, make_caster<T>>::value>::type> {
-    static constexpr bool value = true;
-};
-
-template <typename T>
-inline bool check_is_smart_holder_type_caster() {
-    return detail::is_smart_holder_type_caster<T>::value;
-}
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
@@ -2472,6 +2452,21 @@ template <typename T> struct move_if_unreferenced<T, enable_if_t<all_of<
 >::value>> : std::true_type {};
 template <typename T> using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
 
+template <typename T, typename SFINAE = void>
+struct is_smart_holder_type_caster : std::false_type {};
+
+template <typename T>
+struct is_smart_holder_type_caster<
+    T,
+    typename std::enable_if<
+        std::is_base_of<smart_holder_type_caster_class_hooks, make_caster<T>>::value>::type>
+    : std::true_type {};
+
+template <typename T>
+inline bool check_is_smart_holder_type_caster() {
+    return is_smart_holder_type_caster<T>::value;
+}
+
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
 // reference or pointer to a local variable of the type_caster.  Basically, only
 // non-reference/pointer `type`s and reference/pointers from a type_caster_generic are safe;
@@ -2526,7 +2521,7 @@ T cast(const handle &handle) {
     using namespace detail;
     static_assert(!cast_is_temporary_value_reference<T>::value,
             "Unable to cast type to reference: value is local to type caster");
-    return cast_op<T>(load_type<T>(handle)); // HEERE 2
+    return cast_op<T>(load_type<T>(handle));
 }
 
 // pytype -> pytype (calls converting constructor)
@@ -2581,7 +2576,7 @@ template <typename T> detail::enable_if_t<detail::move_if_unreferenced<T>::value
         return move<T>(std::move(object));
 }
 template <typename T> detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
-    return cast<T>(object); // HERE 2
+    return cast<T>(object);
 }
 
 template <typename T> T object::cast() const & { return pybind11::cast<T>(*this); }
@@ -2611,7 +2606,7 @@ template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, 
 // though if it's in dead code, so we provide a "trampoline" to pybind11::cast that only does anything in
 // cases where pybind11::cast is valid.
 template <typename T> enable_if_t<!cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&o) {
-    return pybind11::cast<T>(std::move(o)); } // HEERE 1
+    return pybind11::cast<T>(std::move(o)); }
 template <typename T> enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&) {
     pybind11_fail("Internal error: cast_safe fallback invoked"); }
 template <> inline void cast_safe<void>(object &&) {}
