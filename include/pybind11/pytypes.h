@@ -1072,6 +1072,34 @@ inline str::str(const bytes& b) {
 
 /// \addtogroup pytypes
 /// @{
+class bytearray : public object {
+public:
+    PYBIND11_OBJECT_CVT(bytearray, object, PyByteArray_Check, PyByteArray_FromObject)
+
+    bytearray(const char *c, size_t n)
+        : object(PyByteArray_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
+        if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
+    }
+
+    bytearray()
+        : bytearray("", 0) {}
+
+    explicit bytearray(const std::string &s) : bytearray(s.data(), s.size()) { }
+
+    size_t size() const { return static_cast<size_t>(PyByteArray_Size(m_ptr)); }
+
+    explicit operator std::string() const {
+        char *buffer = PyByteArray_AS_STRING(m_ptr);
+        ssize_t size = PyByteArray_GET_SIZE(m_ptr);
+        return std::string(buffer, static_cast<size_t>(size));
+    }
+};
+// Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
+// are included in the doxygen group; close here and reopen after as a workaround
+/// @} pytypes
+
+/// \addtogroup pytypes
+/// @{
 class none : public object {
 public:
     PYBIND11_OBJECT(none, object, detail::PyNone_Check)
