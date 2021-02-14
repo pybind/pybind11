@@ -1256,12 +1256,6 @@ struct smart_holder_type_caster_load {
         return *raw_ptr;
     }
 
-    T &&loaded_as_rvalue_ref() const {
-        T *raw_ptr = loaded_as_raw_ptr_unowned();
-        if (raw_ptr == nullptr) throw reference_cast_error();
-        return std::move(*raw_ptr);
-    }
-
     std::shared_ptr<T> loaded_as_shared_ptr() const {
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
@@ -1383,12 +1377,11 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
         return cast(const_cast<T const *>(src), policy, parent); // Mutbl2Const
     }
 
-    // clang-format off
-
 #if defined(_MSC_VER) && _MSC_VER < 1910
-    // Working around MSVC 2015 bug. `const` sensitivity is lost.
+    // Working around MSVC 2015 bug. const-correctness is lost.
     // SMART_HOLDER_WIP: IMPROVABLE: make common code work with MSVC 2015.
-    template <typename T_> using cast_op_type = detail::cast_op_type<T_>;
+    template <typename T_>
+    using cast_op_type = detail::cast_op_type<T_>;
 #else
     template <typename T_>
     using cast_op_type = conditional_t<
@@ -1396,17 +1389,20 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
         T const *,
         conditional_t<std::is_same<remove_reference_t<T_>, T *>::value,
                       T *,
-                      conditional_t<std::is_same<T_, T const &>::value,
-                                    T const &,
-                                    T &>>>;
+                      conditional_t<std::is_same<T_, T const &>::value, T const &, T &>>>;
 #endif
 
-    operator T const&() { return this->loaded_as_lvalue_ref(); }
-    operator T&()       { return this->loaded_as_lvalue_ref(); }
-    operator T const*() { return this->loaded_as_raw_ptr_unowned(); }
-    operator T*()       { return this->loaded_as_raw_ptr_unowned(); }
-
-    // clang-format on
+    // The const operators here prove that the existing type_caster mechanism already supports
+    // const-correctness. However, fully implementing const-correctness inside this type_caster
+    // is still a major project.
+    operator T const &() const {
+        return const_cast<smart_holder_type_caster *>(this)->loaded_as_lvalue_ref();
+    }
+    operator T const *() const {
+        return const_cast<smart_holder_type_caster *>(this)->loaded_as_raw_ptr_unowned();
+    }
+    operator T &() { return this->loaded_as_lvalue_ref(); }
+    operator T *() { return this->loaded_as_raw_ptr_unowned(); }
 
     // Originally type_caster_generic::cast.
     PYBIND11_NOINLINE static handle cast_const_raw_ptr(const void *_src,
