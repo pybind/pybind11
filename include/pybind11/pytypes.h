@@ -1078,8 +1078,6 @@ public:
     size_t size() const { return static_cast<size_t>(PyByteArray_Size(m_ptr)); }
 
     explicit operator std::string() const {
-        if (!m_ptr) pybind11_fail("Bytearray object is null!");
-
         char *buffer = PyByteArray_AS_STRING(m_ptr);
         ssize_t size = PyByteArray_GET_SIZE(m_ptr);
         return std::string(buffer, static_cast<size_t>(size));
