@@ -54,6 +54,15 @@ std::unique_ptr<atyp_udcp const, sddc> rtrn_udcp() { return std::unique_ptr<atyp
 
 // clang-format on
 
+// Minimalistic approach to achieve full coverage of construct() overloads for constructing
+// smart_holder from unique_ptr and shared_ptr returns.
+struct with_alias {
+    int val               = 0;
+    virtual ~with_alias() = default;
+};
+struct with_alias_alias : with_alias {};
+struct sddwaa : std::default_delete<with_alias_alias> {};
+
 } // namespace test_class_sh_factory_constructors
 } // namespace pybind11_tests
 
@@ -69,6 +78,7 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constru
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_uqcp)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_udmp)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::atyp_udcp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_factory_constructors::with_alias)
 
 TEST_SUBMODULE(class_sh_factory_constructors, m) {
     using namespace pybind11_tests::test_class_sh_factory_constructors;
@@ -134,4 +144,31 @@ TEST_SUBMODULE(class_sh_factory_constructors, m) {
         // classh: ... cannot pass object of non-trivial type ...
         // .def(py::init(&rtrn_udcp))
         .def("get_mtxt", get_mtxt<atyp_udcp>);
+
+    py::classh<with_alias, with_alias_alias>(m, "with_alias")
+        .def_readonly("val", &with_alias::val)
+        .def(py::init([](int i) {
+            auto p = std::unique_ptr<with_alias_alias, sddwaa>(new with_alias_alias);
+            p->val = i * 100;
+            return p;
+        }))
+        .def(py::init([](int i, int j) {
+            auto p = std::unique_ptr<with_alias_alias>(new with_alias_alias);
+            p->val = i * 100 + j * 10;
+            return p;
+        }))
+        .def(py::init([](int i, int j, int k) {
+            auto p = std::shared_ptr<with_alias_alias>(new with_alias_alias);
+            p->val = i * 100 + j * 10 + k;
+            return p;
+        }))
+        .def(py::init(
+            [](int, int, int, int) { return std::unique_ptr<with_alias>(new with_alias); },
+            [](int, int, int, int) {
+                return std::unique_ptr<with_alias>(new with_alias); // Invalid alias factory.
+            }))
+        .def(py::init([](int, int, int, int, int) { return std::make_shared<with_alias>(); },
+                      [](int, int, int, int, int) {
+                          return std::make_shared<with_alias>(); // Invalid alias factory.
+                      }));
 }
