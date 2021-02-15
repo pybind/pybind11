@@ -1,3 +1,4 @@
+// clang-format off
 /*
     pybind11/pybind11.h: Main header file of the C++11 python
     binding generator library
@@ -1241,22 +1242,26 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
     return pmf;
 }
 
+// clang-format on
 template <typename T>
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 using default_holder_type = std::unique_ptr<T>;
 #else
 using default_holder_type = smart_holder;
 #endif
+// clang-format off
 
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T> using is_subtype = detail::is_strict_base_of<type_, T>;
     template <typename T> using is_base = detail::is_strict_base_of<T, type_>;
     template <typename T>
+    // clang-format on
     using is_holder = detail::any_of<detail::is_holder_type<type_, T>,
                                      detail::all_of<detail::negation<is_base<T>>,
                                                     detail::negation<is_subtype<T>>,
                                                     detail::is_smart_holder_type_caster<type_>>>;
+    // clang-format off
     // struct instead of using here to help MSVC:
     template <typename T> struct is_valid_class_option :
         detail::any_of<is_holder<T>, is_subtype<T>, is_base<T>> {};
@@ -1287,18 +1292,24 @@ public:
                 none_of<std::is_same<multiple_inheritance, Extra>...>::value), // no multiple_inheritance attr
             "Error: multiple inheritance bases must be specified via class_ template options");
 
-        static constexpr bool holder_is_smart_holder = std::is_same<holder_type, smart_holder>::value;
-        static constexpr bool type_caster_type_is_smart_holder_type_caster = detail::is_smart_holder_type_caster<type>::value;
-        static constexpr bool type_caster_type_is_type_caster_base_subtype = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
+        // clang-format on
+        static constexpr bool holder_is_smart_holder
+            = std::is_same<holder_type, smart_holder>::value;
+        static constexpr bool type_caster_type_is_smart_holder_type_caster
+            = detail::is_smart_holder_type_caster<type>::value;
+        static constexpr bool type_caster_type_is_type_caster_base_subtype
+            = std::is_base_of<detail::type_caster_base<type>, detail::type_caster<type>>::value;
         // Necessary conditions, but not strict.
-        static_assert(!(detail::is_instantiation<std::unique_ptr, holder_type>::value &&
-                        type_caster_type_is_smart_holder_type_caster),
-                      "py::class_ holder vs type_caster mismatch:"
-                      " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, std::unique_ptr<T>)?");
-        static_assert(!(detail::is_instantiation<std::shared_ptr, holder_type>::value &&
-                        type_caster_type_is_smart_holder_type_caster),
-                      "py::class_ holder vs type_caster mismatch:"
-                      " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, std::shared_ptr<T>)?");
+        static_assert(
+            !(detail::is_instantiation<std::unique_ptr, holder_type>::value
+              && type_caster_type_is_smart_holder_type_caster),
+            "py::class_ holder vs type_caster mismatch:"
+            " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, std::unique_ptr<T>)?");
+        static_assert(
+            !(detail::is_instantiation<std::shared_ptr, holder_type>::value
+              && type_caster_type_is_smart_holder_type_caster),
+            "py::class_ holder vs type_caster mismatch:"
+            " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, std::shared_ptr<T>)?");
         static_assert(!(holder_is_smart_holder && type_caster_type_is_type_caster_base_subtype),
                       "py::class_ holder vs type_caster mismatch:"
                       " missing PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)?");
@@ -1313,6 +1324,7 @@ public:
                       " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)"
                       " or collision with custom py::detail::type_caster<T>?");
 #endif
+        // clang-format off
         type_record record;
         record.scope = scope;
         record.name = name;
@@ -1323,7 +1335,7 @@ public:
         record.init_instance = init_instance;
         record.dealloc = dealloc;
 
-        // A better name would be uses_unique_ptr_holder.
+        // A more fitting name would be uses_unique_ptr_holder.
         record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
         set_operator_new<type>(&record);
@@ -1542,19 +1554,19 @@ public:
     }
 
 private:
-    template <
-        typename T = type,
-        detail::enable_if_t<!detail::is_smart_holder_type_caster<T>::value, int> = 0>
+    // clang-format on
+    template <typename T                                                               = type,
+              detail::enable_if_t<!detail::is_smart_holder_type_caster<T>::value, int> = 0>
     void generic_type_initialize(const detail::type_record &record) {
         generic_type::initialize(record, &detail::type_caster_generic::local_load);
     }
 
-    template <
-        typename T = type,
-        detail::enable_if_t<detail::is_smart_holder_type_caster<T>::value, int> = 0>
+    template <typename T                                                              = type,
+              detail::enable_if_t<detail::is_smart_holder_type_caster<T>::value, int> = 0>
     void generic_type_initialize(const detail::type_record &record) {
         generic_type::initialize(record, detail::type_caster<T>::get_local_load_function_ptr());
     }
+    // clang-format off
 
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
@@ -1612,12 +1624,13 @@ private:
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
-    template <
-        typename T = type,
-        detail::enable_if_t<detail::is_smart_holder_type_caster<T>::value, int> = 0>
+    // clang-format on
+    template <typename T                                                              = type,
+              detail::enable_if_t<detail::is_smart_holder_type_caster<T>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         detail::type_caster<T>::template init_instance_for_type<type>(inst, holder_ptr);
     }
+    // clang-format off
 
     /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
     static void dealloc(detail::value_and_holder &v_h) {
