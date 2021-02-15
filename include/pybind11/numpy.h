@@ -513,7 +513,7 @@ public:
     }
 
     /// Single-character for dtype's type (ex: float is 'f' and double 'd')
-    char type() const {
+    char char_() const {
         return detail::array_descriptor_proxy(m_ptr)->type;
     }
 

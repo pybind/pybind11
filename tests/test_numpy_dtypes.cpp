@@ -278,7 +278,7 @@ py::list test_dtype_type() {
                      py::dtype("float64"), // double
                      py::dtype("float128") // long double
                     }) {
-        list.append(dt.type());
+        list.append(dt.char_());
     }
     return list;
 }
