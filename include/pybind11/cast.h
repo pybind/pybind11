@@ -1237,7 +1237,7 @@ struct smart_holder_type_caster_load {
     }
 
     T *loaded_as_raw_ptr_unowned() const {
-        void *void_ptr = load_impl.unowned_void_ptr_from_direct_conversion; // UNTESTED.
+        void *void_ptr = load_impl.unowned_void_ptr_from_direct_conversion;
         if (void_ptr == nullptr) {
             if (have_holder()) {
                 throw_if_uninitialized_or_disowned_holder();
@@ -1259,7 +1259,7 @@ struct smart_holder_type_caster_load {
     std::shared_ptr<T> loaded_as_shared_ptr() const {
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
-                             " std::shared_ptr."); // UNTESTED.
+                             " std::shared_ptr.");
         if (!have_holder()) return nullptr;
         throw_if_uninitialized_or_disowned_holder();
         std::shared_ptr<void> void_ptr = holder().template as_shared_ptr<void>();
@@ -1270,13 +1270,13 @@ struct smart_holder_type_caster_load {
     std::unique_ptr<T, D> loaded_as_unique_ptr(const char *context = "loaded_as_unique_ptr") {
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
-                             " std::unique_ptr."); // UNTESTED.
+                             " std::unique_ptr.");
         if (!have_holder()) return nullptr;
         throw_if_uninitialized_or_disowned_holder();
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
-        // MISSING: Safety checks for type conversions
+        // SMART_HOLDER_WIP: MISSING: Safety checks for type conversions
         // (T must be polymorphic or meet certain other conditions).
         T *raw_type_ptr = convert_type(raw_void_ptr);
 
@@ -1325,7 +1325,7 @@ private:
     }
 };
 
-// IMPROVABLE: Formally factor out of type_caster_base.
+// SMART_HOLDER_WIP: IMPROVABLE: Formally factor out of type_caster_base.
 struct make_constructor : private type_caster_base<int> { // Any type, nothing special about int.
     using type_caster_base<int>::Constructor;
     using type_caster_base<int>::make_copy_constructor;
@@ -1501,7 +1501,7 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
         if (policy != return_value_policy::automatic
             && policy != return_value_policy::reference_internal) {
-            // IMPROVABLE: Error message.
+            // SMART_HOLDER_WIP: IMPROVABLE: Error message.
             throw cast_error("Invalid return_value_policy for shared_ptr.");
         }
 
@@ -1513,8 +1513,8 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
         if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo))
-            // MISSING: Enforcement of consistency with existing smart_holder.
-            // MISSING: keep_alive.
+            // SMART_HOLDER_WIP: MISSING: Enforcement of consistency with existing smart_holder.
+            // SMART_HOLDER_WIP: MISSING: keep_alive.
             return existing_inst;
 
         auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
@@ -1566,7 +1566,7 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
         if (policy != return_value_policy::automatic
             && policy != return_value_policy::reference_internal
             && policy != return_value_policy::move) {
-            // IMPROVABLE: Error message.
+            // SMART_HOLDER_WIP: IMPROVABLE: Error message.
             throw cast_error("Invalid return_value_policy for unique_ptr.");
         }
 
