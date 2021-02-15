@@ -507,9 +507,14 @@ public:
         return detail::array_descriptor_proxy(m_ptr)->names != nullptr;
     }
 
-    /// Single-character type code.
+    /// Single-character for dtype's kind (ex: float and double are 'f' or int and long int are 'i')
     char kind() const {
         return detail::array_descriptor_proxy(m_ptr)->kind;
+    }
+
+    /// Single-character for dtype's type (ex: float is 'f' and double 'd')
+    char type() const {
+        return detail::array_descriptor_proxy(m_ptr)->type;
     }
 
 private:

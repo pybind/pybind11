@@ -251,6 +251,38 @@ py::list test_dtype_ctors() {
     return list;
 }
 
+py::list test_dtype_kind() {
+    py::list list;
+    for (auto& dt : {
+                     py::dtype("bool8"),   // bool
+                     py::dtype("int16"),   // short
+                     py::dtype("int32"),   // int
+                     py::dtype("int64"),   // long int
+                     py::dtype("float32"), // float
+                     py::dtype("float64"), // double
+                     py::dtype("float128") // long double
+                    }) {
+        list.append(dt.kind());
+    }
+    return list;
+}
+
+py::list test_dtype_type() {
+    py::list list;
+    for (auto& dt : {
+                     py::dtype("bool8"),   // bool
+                     py::dtype("int16"),   // short
+                     py::dtype("int32"),   // int
+                     py::dtype("int64"),   // long int
+                     py::dtype("float32"), // float
+                     py::dtype("float64"), // double
+                     py::dtype("float128") // long double
+                    }) {
+        list.append(dt.type());
+    }
+    return list;
+}
+
 struct A {};
 struct B {};
 
@@ -376,6 +408,8 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         return l;
     });
     m.def("test_dtype_ctors", &test_dtype_ctors);
+    m.def("test_dtype_kind", &test_dtype_kind);
+    m.def("test_dtype_type", &test_dtype_type);
     m.def("test_dtype_methods", []() {
         py::list list;
         auto dt1 = py::dtype::of<int32_t>();
