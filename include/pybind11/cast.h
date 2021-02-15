@@ -1,3 +1,4 @@
+// clang-format off
 /*
     pybind11/cast.h: Partial template specializations to cast between
     C++ and Python types
@@ -955,6 +956,7 @@ protected:
     static Constructor make_move_constructor(...) { return nullptr; }
 };
 
+// clang-format on
 // Tag to be used as base class, inspected by is_smart_holder_type_caster<T> test.
 struct is_smart_holder_type_caster_base_tag {};
 
@@ -974,26 +976,29 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 
-#define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)
+#    define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)
 
-template <typename T> class type_caster_for_class_ : public type_caster_base<T> {};
+template <typename T>
+class type_caster_for_class_ : public type_caster_base<T> {};
 
 #else
 
-#define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)                                        \
-    namespace pybind11 {                                                                          \
-    namespace detail {                                                                            \
-    template <>                                                                                   \
-    class type_caster<T> : public type_caster_base<T> {};                                         \
-    template <>                                                                                   \
-    class type_caster<__VA_ARGS__> : public type_caster_holder<T, __VA_ARGS__> {};                \
-    }                                                                                             \
-    }
-
-template <typename T> class type_caster_for_class_ : public smart_holder_type_caster<T> {};
+#    define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)                                    \
+        namespace pybind11 {                                                                      \
+        namespace detail {                                                                        \
+        template <>                                                                               \
+        class type_caster<T> : public type_caster_base<T> {};                                     \
+        template <>                                                                               \
+        class type_caster<__VA_ARGS__> : public type_caster_holder<T, __VA_ARGS__> {};            \
+        }                                                                                         \
+        }
 
 template <typename T>
-class type_caster_for_class_<std::shared_ptr<T>> : public smart_holder_type_caster<std::shared_ptr<T>> {};
+class type_caster_for_class_ : public smart_holder_type_caster<T> {};
+
+template <typename T>
+class type_caster_for_class_<std::shared_ptr<T>>
+    : public smart_holder_type_caster<std::shared_ptr<T>> {};
 
 template <typename T>
 class type_caster_for_class_<std::shared_ptr<T const>>
@@ -1007,20 +1012,22 @@ template <typename T, typename D>
 class type_caster_for_class_<std::unique_ptr<T const, D>>
     : public smart_holder_type_caster<std::unique_ptr<T const, D>> {};
 
-#define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)
+#    define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)
 
 #endif
 
-template <typename type, typename SFINAE = void> class type_caster : public type_caster_for_class_<type> { };
+template <typename type, typename SFINAE = void>
+class type_caster : public type_caster_for_class_<type> {};
 
-template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
+template <typename type>
+using make_caster = type_caster<intrinsic_t<type>>;
 
 template <typename T>
 struct is_smart_holder_type_caster {
-    static constexpr bool value = std::is_base_of<
-        is_smart_holder_type_caster_base_tag,
-        make_caster<T>>::value;
+    static constexpr bool value
+        = std::is_base_of<is_smart_holder_type_caster_base_tag, make_caster<T>>::value;
 };
+// clang-format off
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
