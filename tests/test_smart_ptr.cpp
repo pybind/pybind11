@@ -15,23 +15,7 @@
 #include "pybind11_tests.h"
 #include "object.h"
 
-// Make pybind aware of the ref-counted wrapper type (s):
-
-// ref<T> is a wrapper for 'Object' which uses intrusive reference counting
-// It is always possible to construct a ref<T> from an Object* pointer without
-// possible inconsistencies, hence the 'true' argument at the end.
-PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
-// Make pybind11 aware of the non-standard getter member function
-namespace pybind11 { namespace detail {
-    template <typename T>
-    struct holder_helper<ref<T>> {
-        static const T *get(const ref<T> &p) { return p.get_ptr(); }
-    };
-} // namespace detail
-} // namespace pybind11
-
-// The following is not required anymore for std::shared_ptr, but it should compile without error:
-PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+namespace {
 
 // This is just a wrapper around unique_ptr, but with extra fields to deliberately bloat up the
 // holder size to trigger the non-simple-layout internal instance layout for single inheritance with
@@ -43,7 +27,6 @@ public:
     huge_unique_ptr(T *p) : ptr(p) {};
     T *get() { return ptr.get(); }
 };
-PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>);
 
 // Simple custom holder that works like unique_ptr
 template <typename T>
@@ -54,7 +37,6 @@ public:
     T* get() const { return impl.get(); }
     T* release_ptr() { return impl.release(); }
 };
-PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
 
 // Simple custom holder that works like shared_ptr and has operator& overload
 // To obtain address of an instance of this holder pybind should use std::addressof
@@ -68,7 +50,6 @@ public:
     T* get() const { return impl.get(); }
     T** operator&() { throw std::logic_error("Call of overloaded operator& is not expected"); }
 };
-PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>);
 
 // Simple custom holder that works like unique_ptr and has operator& overload
 // To obtain address of an instance of this holder pybind should use std::addressof
@@ -83,193 +64,213 @@ public:
     T* release_ptr() { return impl.release(); }
     T** operator&() { throw std::logic_error("Call of overloaded operator& is not expected"); }
 };
-PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
 
-namespace {
-    // Custom object with builtin reference counting (see 'object.h' for the implementation)
-    class MyObject1 : public Object {
-    public:
-        MyObject1(int value) : value(value) { print_created(this, toString()); }
-        std::string toString() const override { return "MyObject1[" + std::to_string(value) + "]"; }
-    protected:
-        ~MyObject1() override { print_destroyed(this); }
-    private:
-        int value;
+// Custom object with builtin reference counting (see 'object.h' for the implementation)
+class MyObject1 : public Object {
+public:
+    MyObject1(int value) : value(value) { print_created(this, toString()); }
+    std::string toString() const override { return "MyObject1[" + std::to_string(value) + "]"; }
+protected:
+    ~MyObject1() override { print_destroyed(this); }
+private:
+    int value;
+};
+
+// Object managed by a std::shared_ptr<>
+class MyObject2 {
+public:
+    MyObject2(const MyObject2 &) = default;
+    MyObject2(int value) : value(value) { print_created(this, toString()); }
+    std::string toString() const { return "MyObject2[" + std::to_string(value) + "]"; }
+    virtual ~MyObject2() { print_destroyed(this); }
+private:
+    int value;
+};
+
+// Object managed by a std::shared_ptr<>, additionally derives from std::enable_shared_from_this<>
+class MyObject3 : public std::enable_shared_from_this<MyObject3> {
+public:
+    MyObject3(const MyObject3 &) = default;
+    MyObject3(int value) : value(value) { print_created(this, toString()); }
+    std::string toString() const { return "MyObject3[" + std::to_string(value) + "]"; }
+    virtual ~MyObject3() { print_destroyed(this); }
+private:
+    int value;
+};
+
+// test_unique_nodelete
+// Object with a private destructor
+class MyObject4;
+static std::unordered_set<MyObject4 *> myobject4_instances;
+class MyObject4 {
+public:
+    MyObject4(int value) : value{value} {
+        print_created(this);
+        myobject4_instances.insert(this);
+    }
+    int value;
+
+    static void cleanupAllInstances() {
+        auto tmp = std::move(myobject4_instances);
+        myobject4_instances.clear();
+        for (auto o : tmp)
+            delete o;
+    }
+private:
+    ~MyObject4() {
+        myobject4_instances.erase(this);
+        print_destroyed(this);
+    }
+};
+
+// test_unique_deleter
+// Object with std::unique_ptr<T, D> where D is not matching the base class
+// Object with a protected destructor
+class MyObject4a;
+static std::unordered_set<MyObject4a *> myobject4a_instances;
+class MyObject4a {
+public:
+    MyObject4a(int i) {
+        value = i;
+        print_created(this);
+        myobject4a_instances.insert(this);
+    };
+    int value;
+
+    static void cleanupAllInstances() {
+        auto tmp = std::move(myobject4a_instances);
+        myobject4a_instances.clear();
+        for (auto o : tmp)
+            delete o;
+    }
+protected:
+    virtual ~MyObject4a() {
+        myobject4a_instances.erase(this);
+        print_destroyed(this);
+    }
+};
+
+// Object derived but with public destructor and no Deleter in default holder
+class MyObject4b : public MyObject4a {
+public:
+    MyObject4b(int i) : MyObject4a(i) { print_created(this); }
+    ~MyObject4b() override { print_destroyed(this); }
+};
+
+// test_large_holder
+class MyObject5 { // managed by huge_unique_ptr
+public:
+    MyObject5(int value) : value{value} { print_created(this); }
+    ~MyObject5() { print_destroyed(this); }
+    int value;
+};
+
+// test_shared_ptr_and_references
+struct SharedPtrRef {
+    struct A {
+        A() { print_created(this); }
+        A(const A &) { print_copy_created(this); }
+        A(A &&) { print_move_created(this); }
+        ~A() { print_destroyed(this); }
     };
 
-    // Object managed by a std::shared_ptr<>
-    class MyObject2 {
-    public:
-        MyObject2(const MyObject2 &) = default;
-        MyObject2(int value) : value(value) { print_created(this, toString()); }
-        std::string toString() const { return "MyObject2[" + std::to_string(value) + "]"; }
-        virtual ~MyObject2() { print_destroyed(this); }
-    private:
-        int value;
+    A value = {};
+    std::shared_ptr<A> shared = std::make_shared<A>();
+};
+
+// test_shared_ptr_from_this_and_references
+struct SharedFromThisRef {
+    struct B : std::enable_shared_from_this<B> {
+        B() { print_created(this); }
+        B(const B &) : std::enable_shared_from_this<B>() { print_copy_created(this); }
+        B(B &&) : std::enable_shared_from_this<B>() { print_move_created(this); }
+        ~B() { print_destroyed(this); }
     };
 
-    // Object managed by a std::shared_ptr<>, additionally derives from std::enable_shared_from_this<>
-    class MyObject3 : public std::enable_shared_from_this<MyObject3> {
-    public:
-        MyObject3(const MyObject3 &) = default;
-        MyObject3(int value) : value(value) { print_created(this, toString()); }
-        std::string toString() const { return "MyObject3[" + std::to_string(value) + "]"; }
-        virtual ~MyObject3() { print_destroyed(this); }
-    private:
-        int value;
-    };
+    B value = {};
+    std::shared_ptr<B> shared = std::make_shared<B>();
+};
 
-    // test_unique_nodelete
-    // Object with a private destructor
-    class MyObject4;
-    static std::unordered_set<MyObject4 *> myobject4_instances;
-    class MyObject4 {
-    public:
-        MyObject4(int value) : value{value} {
-            print_created(this);
-            myobject4_instances.insert(this);
-        }
-        int value;
+// Issue #865: shared_from_this doesn't work with virtual inheritance
+struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
+    SharedFromThisVBase() = default;
+    SharedFromThisVBase(const SharedFromThisVBase &) = default;
+    virtual ~SharedFromThisVBase() = default;
+};
+struct SharedFromThisVirt : virtual SharedFromThisVBase {};
 
-        static void cleanupAllInstances() {
-            auto tmp = std::move(myobject4_instances);
-            myobject4_instances.clear();
-            for (auto o : tmp)
-                delete o;
-        }
-    private:
-        ~MyObject4() {
-            myobject4_instances.erase(this);
-            print_destroyed(this);
-        }
-    };
+// test_move_only_holder
+struct C {
+    C() { print_created(this); }
+    ~C() { print_destroyed(this); }
+};
 
-    // test_unique_deleter
-    // Object with std::unique_ptr<T, D> where D is not matching the base class
-    // Object with a protected destructor
-    class MyObject4a;
-    static std::unordered_set<MyObject4a *> myobject4a_instances;
-    class MyObject4a {
-    public:
-        MyObject4a(int i) {
-            value = i;
-            print_created(this);
-            myobject4a_instances.insert(this);
-        };
-        int value;
+// test_holder_with_addressof_operator
+struct TypeForHolderWithAddressOf {
+    TypeForHolderWithAddressOf() { print_created(this); }
+    TypeForHolderWithAddressOf(const TypeForHolderWithAddressOf &) { print_copy_created(this); }
+    TypeForHolderWithAddressOf(TypeForHolderWithAddressOf &&) { print_move_created(this); }
+    ~TypeForHolderWithAddressOf() { print_destroyed(this); }
+    std::string toString() const {
+        return "TypeForHolderWithAddressOf[" + std::to_string(value) + "]";
+    }
+    int value = 42;
+};
 
-        static void cleanupAllInstances() {
-            auto tmp = std::move(myobject4a_instances);
-            myobject4a_instances.clear();
-            for (auto o : tmp)
-                delete o;
-        }
-    protected:
-        virtual ~MyObject4a() {
-            myobject4a_instances.erase(this);
-            print_destroyed(this);
-        }
-    };
+// test_move_only_holder_with_addressof_operator
+struct TypeForMoveOnlyHolderWithAddressOf {
+    TypeForMoveOnlyHolderWithAddressOf(int value) : value{value} { print_created(this); }
+    ~TypeForMoveOnlyHolderWithAddressOf() { print_destroyed(this); }
+    std::string toString() const {
+        return "MoveOnlyHolderWithAddressOf[" + std::to_string(value) + "]";
+    }
+    int value;
+};
 
-    // Object derived but with public destructor and no Deleter in default holder
-    class MyObject4b : public MyObject4a {
-    public:
-        MyObject4b(int i) : MyObject4a(i) { print_created(this); }
-        ~MyObject4b() override { print_destroyed(this); }
-    };
+// test_smart_ptr_from_default
+struct HeldByDefaultHolder { };
 
-    // test_large_holder
-    class MyObject5 { // managed by huge_unique_ptr
-    public:
-        MyObject5(int value) : value{value} { print_created(this); }
-        ~MyObject5() { print_destroyed(this); }
-        int value;
-    };
+// test_shared_ptr_gc
+// #187: issue involving std::shared_ptr<> return value policy & garbage collection
+struct ElementBase {
+    virtual ~ElementBase() = default; /* Force creation of virtual table */
+    ElementBase() = default;
+    ElementBase(const ElementBase&) = delete;
+};
 
-    // test_shared_ptr_and_references
-    struct SharedPtrRef {
-        struct A {
-            A() { print_created(this); }
-            A(const A &) { print_copy_created(this); }
-            A(A &&) { print_move_created(this); }
-            ~A() { print_destroyed(this); }
-        };
+struct ElementA : ElementBase {
+    ElementA(int v) : v(v) { }
+    int value() { return v; }
+    int v;
+};
 
-        A value = {};
-        std::shared_ptr<A> shared = std::make_shared<A>();
-    };
+struct ElementList {
+    void add(std::shared_ptr<ElementBase> e) { l.push_back(e); }
+    std::vector<std::shared_ptr<ElementBase>> l;
+};
 
-    // test_shared_ptr_from_this_and_references
-    struct SharedFromThisRef {
-        struct B : std::enable_shared_from_this<B> {
-            B() { print_created(this); }
-            B(const B &) : std::enable_shared_from_this<B>() { print_copy_created(this); }
-            B(B &&) : std::enable_shared_from_this<B>() { print_move_created(this); }
-            ~B() { print_destroyed(this); }
-        };
-
-        B value = {};
-        std::shared_ptr<B> shared = std::make_shared<B>();
-    };
-
-    // Issue #865: shared_from_this doesn't work with virtual inheritance
-    struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
-        SharedFromThisVBase() = default;
-        SharedFromThisVBase(const SharedFromThisVBase &) = default;
-        virtual ~SharedFromThisVBase() = default;
-    };
-    struct SharedFromThisVirt : virtual SharedFromThisVBase {};
-
-    // test_move_only_holder
-    struct C {
-        C() { print_created(this); }
-        ~C() { print_destroyed(this); }
-    };
-
-    // test_holder_with_addressof_operator
-    struct TypeForHolderWithAddressOf {
-        TypeForHolderWithAddressOf() { print_created(this); }
-        TypeForHolderWithAddressOf(const TypeForHolderWithAddressOf &) { print_copy_created(this); }
-        TypeForHolderWithAddressOf(TypeForHolderWithAddressOf &&) { print_move_created(this); }
-        ~TypeForHolderWithAddressOf() { print_destroyed(this); }
-        std::string toString() const {
-            return "TypeForHolderWithAddressOf[" + std::to_string(value) + "]";
-        }
-        int value = 42;
-    };
-
-    // test_move_only_holder_with_addressof_operator
-    struct TypeForMoveOnlyHolderWithAddressOf {
-        TypeForMoveOnlyHolderWithAddressOf(int value) : value{value} { print_created(this); }
-        ~TypeForMoveOnlyHolderWithAddressOf() { print_destroyed(this); }
-        std::string toString() const {
-            return "MoveOnlyHolderWithAddressOf[" + std::to_string(value) + "]";
-        }
-        int value;
-    };
-
-    // test_smart_ptr_from_default
-    struct HeldByDefaultHolder { };
-
-    // test_shared_ptr_gc
-    // #187: issue involving std::shared_ptr<> return value policy & garbage collection
-    struct ElementBase {
-        virtual ~ElementBase() = default; /* Force creation of virtual table */
-        ElementBase() = default;
-        ElementBase(const ElementBase&) = delete;
-    };
-
-    struct ElementA : ElementBase {
-        ElementA(int v) : v(v) { }
-        int value() { return v; }
-        int v;
-    };
-
-    struct ElementList {
-        void add(std::shared_ptr<ElementBase> e) { l.push_back(e); }
-        std::vector<std::shared_ptr<ElementBase>> l;
-    };
 } // namespace
+
+// ref<T> is a wrapper for 'Object' which uses intrusive reference counting
+// It is always possible to construct a ref<T> from an Object* pointer without
+// possible inconsistencies, hence the 'true' argument at the end.
+// Make pybind11 aware of the non-standard getter member function
+namespace pybind11 { namespace detail {
+    template <typename T>
+    struct holder_helper<ref<T>> {
+        static const T *get(const ref<T> &p) { return p.get_ptr(); }
+    };
+} // namespace detail
+} // namespace pybind11
+
+// Make pybind aware of the ref-counted wrapper type (s):
+PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true);
+// The following is not required anymore for std::shared_ptr, but it should compile without error:
+PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>);
 
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Object, ref<Object>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MyObject1, ref<MyObject1>)
@@ -295,8 +296,7 @@ PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(ElementList, std::shared_ptr<ElementL
 #ifdef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 // To prevent triggering a static_assert in the smart_holder code.
 // This is a very special case, because the associated test exercises a holder mismatch.
-namespace pybind11 {
-namespace detail {
+namespace pybind11 { namespace detail {
 template <>
 class type_caster<std::shared_ptr<HeldByDefaultHolder>>
     : public copyable_holder_caster<HeldByDefaultHolder, std::shared_ptr<HeldByDefaultHolder>> {};

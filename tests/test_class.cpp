@@ -23,6 +23,8 @@
 #  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
 #endif
 
+namespace {
+
 // test_brace_initialization
 struct NoBraceInitialization {
     NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
@@ -32,13 +34,16 @@ struct NoBraceInitialization {
     std::vector<int> vec;
 };
 
+// test_mismatched_holder
 struct MismatchBase1 { };
 struct MismatchDerived1 : MismatchBase1 { };
-
 struct MismatchBase2 { };
 struct MismatchDerived2 : MismatchBase2 { };
 
+// test_multiple_instances_with_same_pointer
 struct SamePointer {};
+
+} // namespace
 
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchBase1, std::shared_ptr<MismatchBase1>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchDerived1, std::unique_ptr<MismatchDerived1>)
