@@ -11,6 +11,8 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
+namespace {
+
 // Many bases for testing that multiple inheritance from many classes (i.e. requiring extra
 // space for holder constructed flags) works.
 template <int N> struct BaseN {
@@ -43,26 +45,27 @@ int WithStatic2::static_value2 = 2;
 int VanillaStaticMix1::static_value = 12;
 int VanillaStaticMix2::static_value = 12;
 
-namespace {
+// test_multiple_inheritance_virtbase
+struct Base1a {
+    Base1a(int i) : i(i) { }
+    int foo() { return i; }
+    int i;
+};
+struct Base2a {
+    Base2a(int i) : i(i) { }
+    int bar() { return i; }
+    int i;
+};
+struct Base12a : Base1a, Base2a {
+    Base12a(int i, int j) : Base1a(i), Base2a(j) { }
+};
 
-    struct Base1a {
-        Base1a(int i) : i(i) { }
-        int foo() { return i; }
-        int i;
-    };
-    struct Base2a {
-        Base2a(int i) : i(i) { }
-        int bar() { return i; }
-        int i;
-    };
-    struct Base12a : Base1a, Base2a {
-        Base12a(int i, int j) : Base1a(i), Base2a(j) { }
-    };
-
-    struct I801B1 { int a = 1; I801B1() = default; I801B1(const I801B1 &) = default; virtual ~I801B1() = default; };
-    struct I801B2 { int b = 2; I801B2() = default; I801B2(const I801B2 &) = default; virtual ~I801B2() = default; };
-    struct I801C : I801B1, I801B2 {};
-    struct I801D : I801C {}; // Indirect MI
+// test_mi_unaligned_base
+// test_mi_base_return
+struct I801B1 { int a = 1; I801B1() = default; I801B1(const I801B1 &) = default; virtual ~I801B1() = default; };
+struct I801B2 { int b = 2; I801B2() = default; I801B2(const I801B2 &) = default; virtual ~I801B2() = default; };
+struct I801C : I801B1, I801B2 {};
+struct I801D : I801C {}; // Indirect MI
 
 } // namespace
 
