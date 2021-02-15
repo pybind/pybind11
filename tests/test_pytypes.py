@@ -143,6 +143,11 @@ def test_bytes(doc):
     )
 
 
+def test_bytearray(doc):
+    assert m.bytearray_from_string().decode() == "foo"
+    assert m.bytearray_size() == len("foo")
+
+
 def test_capsule(capture):
     pytest.gc_collect()
     with capture:
@@ -223,7 +228,7 @@ def test_accessors():
 
 def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
-    types = [bytes, str, bool, int, float, tuple, list, dict, set]
+    types = [bytes, bytearray, str, bool, int, float, tuple, list, dict, set]
     expected = {t.__name__: t() for t in types}
     if env.PY2:
         # Note that bytes.__name__ == 'str' in Python 2.
@@ -234,6 +239,7 @@ def test_constructors():
 
     data = {
         bytes: b"41",  # Currently no supported or working conversions.
+        bytearray: bytearray(b"41"),
         str: 42,
         bool: "Not empty",
         int: "42",
