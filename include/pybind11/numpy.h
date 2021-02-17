@@ -507,12 +507,20 @@ public:
         return detail::array_descriptor_proxy(m_ptr)->names != nullptr;
     }
 
-    /// Single-character for dtype's kind (ex: float and double are 'f' or int and long int are 'i')
+    /**
+     * Single-character for dtype's kind
+     * ex: float and double are 'f' or int and long int are 'i',
+     *     i.e. "float and double" could be "floating point types",
+     *     and "int and long" could be "integral types")
+     */
     char kind() const {
         return detail::array_descriptor_proxy(m_ptr)->kind;
     }
 
-    /// Single-character for dtype's type (ex: float is 'f' and double 'd')
+    /** Single-character for dtype's type (ex: float is 'f' and double 'd').
+     *  NB: Following the Python API (i.e., dtype.char) is preferred here
+     *      rather than NumPy's internal C API (PyArray_Descr::type)
+     */
     char char_() const {
         return detail::array_descriptor_proxy(m_ptr)->type;
     }

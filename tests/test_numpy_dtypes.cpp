@@ -267,7 +267,7 @@ py::list test_dtype_kind() {
     return list;
 }
 
-py::list test_dtype_type() {
+py::list test_dtype_char_() {
     py::list list;
     for (auto& dt : {
                      py::dtype("bool8"),   // bool
@@ -409,7 +409,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     });
     m.def("test_dtype_ctors", &test_dtype_ctors);
     m.def("test_dtype_kind", &test_dtype_kind);
-    m.def("test_dtype_type", &test_dtype_type);
+    m.def("test_dtype_char_", &test_dtype_char_);
     m.def("test_dtype_methods", []() {
         py::list list;
         auto dt1 = py::dtype::of<int32_t>();
