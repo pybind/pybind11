@@ -251,35 +251,25 @@ py::list test_dtype_ctors() {
     return list;
 }
 
+auto dtype_names = {
+    "byte", "short", "intc", "int_", "longlong",
+    "ubyte", "ushort", "uintc", "uint", "ulonglong",
+    "half", "single", "double", "longdouble",
+    "csingle", "cdouble", "clongdouble",
+    "bool_", "datetime64", "timedelta64", "object_"
+};
+
 py::list test_dtype_kind() {
     py::list list;
-    for (auto& dt : {
-                     py::dtype("bool8"),   // bool
-                     py::dtype("int16"),   // short
-                     py::dtype("int32"),   // int
-                     py::dtype("int64"),   // long int
-                     py::dtype("float32"), // float
-                     py::dtype("float64"), // double
-                     py::dtype("float128") // long double
-                    }) {
-        list.append(dt.kind());
-    }
+    for (auto& dt_name : dtype_names)
+        list.append(py::dtype(dt_name).kind());
     return list;
 }
 
 py::list test_dtype_char_() {
     py::list list;
-    for (auto& dt : {
-                     py::dtype("bool8"),   // bool
-                     py::dtype("int16"),   // short
-                     py::dtype("int32"),   // int
-                     py::dtype("int64"),   // long int
-                     py::dtype("float32"), // float
-                     py::dtype("float64"), // double
-                     py::dtype("float128") // long double
-                    }) {
-        list.append(dt.char_());
-    }
+    for (auto& dt_name : dtype_names)
+        list.append(py::dtype(dt_name).char_());
     return list;
 }
 
