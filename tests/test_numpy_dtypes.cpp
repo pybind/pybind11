@@ -358,7 +358,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     });
 
     // test_dtype
-    auto dtype_names = {
+    std::vector<const char *> dtype_names{
         "byte", "short", "intc", "int_", "longlong",
         "ubyte", "ushort", "uintc", "uint", "ulonglong",
         "half", "single", "double", "longdouble",
