@@ -11,9 +11,16 @@
 
 #pragma once
 
+// clang-format on
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 // #define PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+// Currently the main purpose of this switch is to enable non-intrusive comprehensive testing. If
+// and when `smart_holder` will actually become the released default is currently open. In the
+// meantime, the full functionality is easily available by using `py::classh`, which is just a
+// handy shortcut for `py::class_<T, py::smart_holder>` (see `pybind11/smart_holder.h`). Classes
+// wrapped in this way are fully compatible with everything existing.
 #endif
+// clang-format off
 
 #include "pytypes.h"
 #include "detail/common.h"

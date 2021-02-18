@@ -154,6 +154,7 @@ struct smart_holder {
         // race conditions, but in the context of Python it is a bug (elsewhere)
         // if the Global Interpreter Lock (GIL) is not being held when this code
         // is reached.
+        // SMART_HOLDER_WIP: IMPROVABLE: assert(GIL is held).
         if (vptr.use_count() != 1) {
             throw std::runtime_error(std::string("Cannot disown use_count != 1 (") + context
                                      + ").");
