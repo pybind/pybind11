@@ -229,6 +229,8 @@ public:
     bool reinterpret_cast_deemed_ok = false;
     // Magic number intentionally hard-coded, to guard against class_ holder mixups.
     // Ideally type_caster_generic would have a similar guard, but this requires a change there.
+    // SMART_HOLDER_WIP: If it is decided that this guard is useful long term, potentially
+    // set/reset this value in ctor/dtor, mark volatile.
     std::size_t local_load_safety_guard = 1887406645; // 32-bit compatible value for portability.
 };
 // clang-format on
