@@ -169,7 +169,7 @@ can be changed, but even if it isn't it is not always enough to guarantee
 complete independence of the symbols involved when not using
 ``-fvisibility=hidden``.
 
-Additionally, ``-fvisiblity=hidden`` can deliver considerably binary size
+Additionally, ``-fvisibility=hidden`` can deliver considerably binary size
 savings.  (See the following section for more details).
 
 
