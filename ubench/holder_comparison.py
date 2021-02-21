@@ -11,6 +11,8 @@ import collections
 import sys
 import time
 
+number_bucket_pc = None
+
 
 def pflush(*args, **kwargs):
     result = print(*args, **kwargs)
@@ -28,7 +30,7 @@ def run(args):
         call_repetitions_first_pass = 100
         call_repetitions_target_elapsed_secs = 0.1
         num_samples = 10
-        selected_holder_type = "*"
+        selected_holder_type = "all"
     else:
         assert len(args) == 7, (
             "size_exponent_min size_exponent_max size_exponent_step"
@@ -67,8 +69,11 @@ def run(args):
                 ("sp", m.number_bucket_sp),
                 ("pu", m.number_bucket_pu),
                 ("sh", m.number_bucket_sh),
+                ("pc", number_bucket_pc),
             ]:
-                if selected_holder_type != "*" and nb_label != selected_holder_type:
+                if nb_label == "pc" and nb_type is None:
+                    continue
+                if selected_holder_type != "all" and nb_label != selected_holder_type:
                     continue
                 nb1 = nb_type(data_size)
                 nb2 = nb_type(data_size)
