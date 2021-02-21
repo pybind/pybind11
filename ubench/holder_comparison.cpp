@@ -1,53 +1,16 @@
 #include <pybind11/smart_holder.h>
 
+#include "number_bucket.h"
+
 #include <cstddef>
 #include <memory>
-#include <vector>
 
 namespace hc { // holder comparison
 
-template <int Serial>
-struct number_bucket {
-    std::vector<double> data;
-
-    explicit number_bucket(std::size_t data_size = 0) : data(data_size, 1.0) {}
-
-    double sum() const {
-        std::size_t n   = 0;
-        double s        = 0;
-        const double *a = &*data.begin();
-        const double *e = &*data.end();
-        while (a != e) {
-            s += *a++;
-            n++;
-        }
-        if (n != data.size()) {
-            throw std::runtime_error("Internal consistency failure (sum).");
-        }
-        return s;
-    }
-
-    std::size_t add(const number_bucket &other) {
-        if (other.data.size() != data.size()) {
-            throw std::runtime_error("Incompatible data sizes.");
-        }
-        std::size_t n   = 0;
-        double *a       = &*data.begin();
-        const double *e = &*data.end();
-        const double *b = &*other.data.begin();
-        while (a != e) {
-            *a++ += *b++;
-            n++;
-        }
-        return n;
-    }
-
-private:
-    number_bucket(const number_bucket &) = delete;
-    number_bucket(number_bucket &&)      = delete;
-    number_bucket &operator=(const number_bucket &) = delete;
-    number_bucket &operator=(number_bucket &&) = delete;
-};
+using nb_up = pybind11_ubench::number_bucket<1>;
+using nb_sp = pybind11_ubench::number_bucket<2>;
+using nb_pu = pybind11_ubench::number_bucket<3>;
+using nb_sh = pybind11_ubench::number_bucket<4>;
 
 namespace py = pybind11;
 
@@ -68,11 +31,6 @@ public:
     padded_unique_ptr(T *p) : ptr(p) {}
     T *get() { return ptr.get(); }
 };
-
-using nb_up = number_bucket<0>;
-using nb_sp = number_bucket<1>;
-using nb_pu = number_bucket<2>;
-using nb_sh = number_bucket<3>;
 
 static_assert(sizeof(padded_unique_ptr<nb_pu>) == sizeof(py::smart_holder),
               "Unexpected sizeof mismatch.");
