@@ -208,6 +208,28 @@ ties the lifetime of the constructor element to the constructed object:
     Patient != 0) and ``with_custodian_and_ward_postcall`` (if Nurse/Patient ==
     0) policies from Boost.Python.
 
+Keep alive with placement
+-------------------------
+
+When ``keep_alive<Nurse, Patient>`` is supplied in a method binding, the Patient
+object is kept alive unconditionally until the Nurse is destroyed. This implies
+that every call of the method adds a possibly new Patient. If the method is called
+in a loop, the number of Patients keeps growing and their underlying resources are
+not freed until the Nurse object is garbage-collected.
+
+``keep_alive<Nurse, Patient, Placement>`` adds a Patient and attributes a positive
+integer index to it (Placement). Whenever a method is called for the same Nurse and
+Placement, the reference to a previously hold Patient is removed (which causes its
+destruction if it is not referred elsewhere), and newly passed Patient takes its
+place.
+
+The same Placement index may be used across multiple methods. It is allowed to pass
+``None`` as patients to explicitly clear the Placement.
+
+This technique is convenient for binding regular setter methods that replace a
+referred resource with another resource and allows to keep the reference records
+up-to-date.
+
 Call guard
 ----------
 

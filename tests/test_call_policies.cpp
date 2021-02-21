@@ -49,6 +49,7 @@ TEST_SUBMODULE(call_policies, m) {
         Parent(const Parent& parent) = default;
         ~Parent() { py::print("Releasing parent."); }
         void addChild(Child *) { }
+        void setChild(Child *) { }
         Child *returnChild() { return new Child(); }
         Child *returnNullChild() { return nullptr; }
     };
@@ -60,7 +61,8 @@ TEST_SUBMODULE(call_policies, m) {
         .def("returnChild", &Parent::returnChild)
         .def("returnChildKeepAlive", &Parent::returnChild, py::keep_alive<1, 0>())
         .def("returnNullChildKeepAliveChild", &Parent::returnNullChild, py::keep_alive<1, 0>())
-        .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>());
+        .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>())
+        .def("setChildKeepAliveWithPlacement", &Parent::setChild, py::keep_alive<1, 2, 1>());
 
 #if !defined(PYPY_VERSION)
     // test_alive_gc
