@@ -2258,6 +2258,21 @@ class gil_scoped_release {
 };
 #endif
 
+#if PY_VERSION_HEX >= 0x03020000
+/// Release the underlying buffer exposed by the memoryview object when this
+/// object goes out of scope. Any further operation on the view raises a
+/// ValueError.
+///
+/// Only available in Python 3.2+
+class memoryview_scoped_release {
+public:
+    explicit memoryview_scoped_release(memoryview view) : m_view(view) {}
+    ~memoryview_scoped_release() { m_view.attr("release")(); }
+private:
+    memoryview m_view;
+};
+#endif
+
 error_already_set::~error_already_set() {
     if (m_type) {
         gil_scoped_acquire gil;

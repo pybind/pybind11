@@ -441,4 +441,14 @@ TEST_SUBMODULE(pytypes, m) {
           [](py::object o) { return py::weakref(o); });
     m.def("weakref_from_object_and_function",
           [](py::object o, py::function f) { return py::weakref(o, f); });
+
+#if PY_VERSION_HEX >= 0x03020000
+    m.def("test_memoryview_scoped_release", [](py::function f) {
+        const char* buf = "\x42";
+        auto view = py::memoryview::from_memory(buf, 1);
+        py::memoryview_scoped_release release(view);
+        f(view);
+    });
+#endif
+
 }
