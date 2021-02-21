@@ -46,6 +46,7 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(hc::nb_sh)
 
 PYBIND11_MODULE(pybind11_ubench_holder_comparison, m) {
     using namespace hc;
+    m.def("sizeof_smart_holder", []() { return sizeof(py::smart_holder); });
     wrap_number_bucket<nb_up, std::unique_ptr<nb_up>>(m, "number_bucket_up");
     wrap_number_bucket<nb_sp, std::shared_ptr<nb_sp>>(m, "number_bucket_sp");
     wrap_number_bucket<nb_pu, padded_unique_ptr<nb_pu>>(m, "number_bucket_pu");
