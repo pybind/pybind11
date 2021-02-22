@@ -10,30 +10,18 @@
 #pragma once
 
 #include "../pytypes.h"
-#include "typeid.h"
+#include "common.h"
 #include "descr.h"
 #include "internals.h"
-#include <array>
-#include <limits>
-#include <tuple>
+#include "typeid.h"
+#include <cstring>
+#include <new>
+#include <string>
+#include <typeindex>
+#include <typeinfo>
 #include <type_traits>
-
-#if defined(PYBIND11_CPP17)
-#  if defined(__has_include)
-#    if __has_include(<string_view>)
-#      define PYBIND11_HAS_STRING_VIEW
-#    endif
-#  elif defined(_MSC_VER)
-#    define PYBIND11_HAS_STRING_VIEW
-#  endif
-#endif
-#ifdef PYBIND11_HAS_STRING_VIEW
-#include <string_view>
-#endif
-
-#if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
-#  define PYBIND11_HAS_U8STRING
-#endif
+#include <utility>
+#include <vector>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

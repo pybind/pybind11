@@ -10,7 +10,32 @@
 
 #pragma once
 
+#include "pytypes.h"
 #include "detail/type_caster_base.h"
+#include "detail/typeid.h"
+#include "detail/descr.h"
+#include "detail/internals.h"
+#include <array>
+#include <limits>
+#include <tuple>
+#include <type_traits>
+
+#if defined(PYBIND11_CPP17)
+#  if defined(__has_include)
+#    if __has_include(<string_view>)
+#      define PYBIND11_HAS_STRING_VIEW
+#    endif
+#  elif defined(_MSC_VER)
+#    define PYBIND11_HAS_STRING_VIEW
+#  endif
+#endif
+#ifdef PYBIND11_HAS_STRING_VIEW
+#include <string_view>
+#endif
+
+#if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
+#  define PYBIND11_HAS_U8STRING
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
