@@ -14,12 +14,14 @@
 #include "descr.h"
 #include "internals.h"
 #include "typeid.h"
-#include <cstring>
+#include <cstdint>
+#include <iterator>
 #include <new>
 #include <string>
+#include <type_traits>
 #include <typeindex>
 #include <typeinfo>
-#include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -245,7 +247,7 @@ struct value_and_holder {
         else if (v)
             inst->nonsimple.status[index] |= instance::status_holder_constructed;
         else
-            inst->nonsimple.status[index] &= (uint8_t) ~instance::status_holder_constructed;
+            inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_holder_constructed;
     }
     bool instance_registered() const {
         return inst->simple_layout
@@ -258,7 +260,7 @@ struct value_and_holder {
         else if (v)
             inst->nonsimple.status[index] |= instance::status_instance_registered;
         else
-            inst->nonsimple.status[index] &= (uint8_t) ~instance::status_instance_registered;
+            inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_instance_registered;
     }
 };
 
@@ -390,7 +392,7 @@ PYBIND11_NOINLINE inline void instance::allocate_layout() {
         if (!nonsimple.values_and_holders) throw std::bad_alloc();
         std::memset(nonsimple.values_and_holders, 0, space * sizeof(void *));
 #endif
-        nonsimple.status = reinterpret_cast<uint8_t *>(&nonsimple.values_and_holders[flags_at]);
+        nonsimple.status = reinterpret_cast<std::uint8_t *>(&nonsimple.values_and_holders[flags_at]);
     }
     owned = true;
 }

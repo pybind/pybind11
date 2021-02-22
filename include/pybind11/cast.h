@@ -11,14 +11,21 @@
 #pragma once
 
 #include "pytypes.h"
+#include "detail/common.h"
+#include "detail/descr.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
-#include "detail/descr.h"
-#include "detail/internals.h"
 #include <array>
-#include <limits>
+#include <cstring>
+#include <functional>
+#include <iosfwd>
+#include <iterator>
+#include <memory>
+#include <string>
 #include <tuple>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #if defined(PYBIND11_CPP17)
 #  if defined(__has_include)
@@ -284,7 +291,7 @@ public:
         if (!src) return false;
         else if (src.ptr() == Py_True) { value = true; return true; }
         else if (src.ptr() == Py_False) { value = false; return true; }
-        else if (convert || !strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
+        else if (convert || !std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
             // (allow non-implicit conversion for numpy booleans)
 
             Py_ssize_t res = -1;
