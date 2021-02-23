@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "detail/smart_holder_type_casters.h"
 #include "pybind11.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)

@@ -1,14 +1,18 @@
-#ifndef PYBIND11_CAST_H_SMART_HOLDER_TYPE_CASTERS_INLINE_INCLUDE_SAFETY_GUARD
-#    error "THIS FILE MUST ONLY BE INCLUDED FROM pybind11/cast.h"
-#endif
+#pragma once
+#define PYBIND11_SMART_HOLDER_TYPE_CASTERS_H_IS_INCLUDED
 
+#include "is_smart_holder_type_caster.h"
 #include "smart_holder_poc.h"
+#include "type_caster_base.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using pybindit::memory::smart_holder;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <>
+struct is_smart_holder_type<smart_holder> : std::true_type {};
 
 // SMART_HOLDER_WIP: Needs refactoring of existing pybind11 code.
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
@@ -265,6 +269,16 @@ struct smart_holder_type_caster_class_hooks : is_smart_holder_type_caster_base_t
                 holder_type(holder_type::from_raw_ptr_unowned(v_h.value_ptr<T>()));
         }
         v_h.set_holder_constructed();
+    }
+
+    template <typename T, typename D>
+    static smart_holder smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr) {
+        return pybindit::memory::smart_holder::from_unique_ptr(std::move(unq_ptr));
+    }
+
+    template <typename T>
+    static smart_holder smart_holder_from_shared_ptr(std::shared_ptr<T> shd_ptr) {
+        return pybindit::memory::smart_holder::from_shared_ptr(shd_ptr);
     }
 };
 
@@ -668,6 +682,7 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
 };
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+
 #    define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)                                                 \
         namespace pybind11 {                                                                      \
         namespace detail {                                                                        \
@@ -687,6 +702,29 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
             : public smart_holder_type_caster<std::unique_ptr<T const, D>> {};                    \
         }                                                                                         \
         }
+#else
+
+#    define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)
+
+template <typename T>
+class type_caster_for_class_ : public smart_holder_type_caster<T> {};
+
+template <typename T>
+class type_caster_for_class_<std::shared_ptr<T>>
+    : public smart_holder_type_caster<std::shared_ptr<T>> {};
+
+template <typename T>
+class type_caster_for_class_<std::shared_ptr<T const>>
+    : public smart_holder_type_caster<std::shared_ptr<T const>> {};
+
+template <typename T, typename D>
+class type_caster_for_class_<std::unique_ptr<T, D>>
+    : public smart_holder_type_caster<std::unique_ptr<T, D>> {};
+
+template <typename T, typename D>
+class type_caster_for_class_<std::unique_ptr<T const, D>>
+    : public smart_holder_type_caster<std::unique_ptr<T const, D>> {};
+
 #endif
 
 PYBIND11_NAMESPACE_END(detail)

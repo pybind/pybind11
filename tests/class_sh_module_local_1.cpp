@@ -1,5 +1,4 @@
 // Identical to class_sh_module_local_2.cpp, except 2 replaced with 1.
-#include <pybind11/pybind11.h>
 #include <pybind11/smart_holder.h>
 
 #include <string>

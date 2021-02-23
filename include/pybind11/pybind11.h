@@ -1245,9 +1245,27 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
 // clang-format on
 template <typename T>
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+
 using default_holder_type = std::unique_ptr<T>;
+
+#    define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)
+
 #else
+
 using default_holder_type = smart_holder;
+
+// This define could be hidden away inside detail/smart_holder_type_casters.h, but is kept here
+// for clarity.
+#    define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)                                    \
+        namespace pybind11 {                                                                      \
+        namespace detail {                                                                        \
+        template <>                                                                               \
+        class type_caster<T> : public type_caster_base<T> {};                                     \
+        template <>                                                                               \
+        class type_caster<__VA_ARGS__> : public type_caster_holder<T, __VA_ARGS__> {};            \
+        }                                                                                         \
+        }
+
 #endif
 // clang-format off
 
@@ -1294,7 +1312,7 @@ public:
 
         // clang-format on
         static constexpr bool holder_is_smart_holder
-            = std::is_same<holder_type, smart_holder>::value;
+            = detail::is_smart_holder_type<holder_type>::value;
         static constexpr bool type_caster_type_is_smart_holder_type_caster
             = detail::is_smart_holder_type_caster<type>::value;
         static constexpr bool type_caster_type_is_type_caster_base_subtype
