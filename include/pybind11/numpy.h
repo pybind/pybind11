@@ -507,9 +507,19 @@ public:
         return detail::array_descriptor_proxy(m_ptr)->names != nullptr;
     }
 
-    /// Single-character type code.
+    /// Single-character code for dtype's kind.
+    /// For example, floating point types are 'f' and integral types are 'i'.
     char kind() const {
         return detail::array_descriptor_proxy(m_ptr)->kind;
+    }
+
+    /// Single-character for dtype's type.
+    /// For example, ``float`` is 'f', ``double`` 'd', ``int`` 'i', and ``long`` 'd'.
+    char char_() const {
+        // Note: The signature, `dtype::char_` follows the naming of NumPy's
+        // public Python API (i.e., ``dtype.char``), rather than its internal
+        // C API (``PyArray_Descr::type``).
+        return detail::array_descriptor_proxy(m_ptr)->type;
     }
 
 private:

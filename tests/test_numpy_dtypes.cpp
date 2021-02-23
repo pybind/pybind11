@@ -358,6 +358,14 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     });
 
     // test_dtype
+    std::vector<const char *> dtype_names{
+        "byte", "short", "intc", "int_", "longlong",
+        "ubyte", "ushort", "uintc", "uint", "ulonglong",
+        "half", "single", "double", "longdouble",
+        "csingle", "cdouble", "clongdouble",
+        "bool_", "datetime64", "timedelta64", "object_"
+    };
+
     m.def("print_dtypes", []() {
         py::list l;
         for (const py::handle &d : {
@@ -376,6 +384,18 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         return l;
     });
     m.def("test_dtype_ctors", &test_dtype_ctors);
+    m.def("test_dtype_kind", [dtype_names]() {
+        py::list list;
+        for (auto& dt_name : dtype_names)
+            list.append(py::dtype(dt_name).kind());
+        return list;
+    });
+    m.def("test_dtype_char_", [dtype_names]() {
+        py::list list;
+        for (auto& dt_name : dtype_names)
+            list.append(py::dtype(dt_name).char_());
+        return list;
+    });
     m.def("test_dtype_methods", []() {
         py::list list;
         auto dt1 = py::dtype::of<int32_t>();
