@@ -1,8 +1,8 @@
 #pragma once
 #define PYBIND11_SMART_HOLDER_TYPE_CASTERS_H_IS_INCLUDED
 
-#include "is_smart_holder_type_caster.h"
 #include "smart_holder_poc.h"
+#include "smart_holder_sfinae_hooks_only.h"
 #include "type_caster_base.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)

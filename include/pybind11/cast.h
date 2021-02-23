@@ -14,7 +14,7 @@
 #include "pytypes.h"
 #include "detail/common.h"
 #include "detail/descr.h"
-#include "detail/is_smart_holder_type_caster.h"
+#include "detail/smart_holder_sfinae_hooks_only.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
 #include <array>
