@@ -20,7 +20,7 @@ template <typename T>
 struct is_smart_holder_type : std::false_type {};
 
 // Tag to be used as base class, inspected by type_uses_smart_holder_type_caster<T> test.
-struct is_smart_holder_type_caster_base_tag {};
+struct smart_holder_type_caster_base_tag {};
 
 template <typename T>
 struct type_uses_smart_holder_type_caster;

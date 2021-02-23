@@ -68,7 +68,7 @@ using make_caster = type_caster<intrinsic_t<type>>;
 template <typename T>
 struct type_uses_smart_holder_type_caster {
     static constexpr bool value
-        = std::is_base_of<is_smart_holder_type_caster_base_tag, make_caster<T>>::value;
+        = std::is_base_of<smart_holder_type_caster_base_tag, make_caster<T>>::value;
 };
 // clang-format off
 

@@ -239,7 +239,7 @@ public:
 };
 // clang-format on
 
-struct smart_holder_type_caster_class_hooks : is_smart_holder_type_caster_base_tag {
+struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag {
     static decltype(&modified_type_caster_generic_load_impl::local_load)
     get_local_load_function_ptr() {
         return &modified_type_caster_generic_load_impl::local_load;
