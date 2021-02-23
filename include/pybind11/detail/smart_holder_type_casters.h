@@ -1,5 +1,8 @@
+// Copyright (c) 2021 The Pybind Development Team.
+// All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
 #pragma once
-#define PYBIND11_SMART_HOLDER_TYPE_CASTERS_H_IS_INCLUDED
 
 #include "smart_holder_poc.h"
 #include "smart_holder_sfinae_hooks_only.h"
