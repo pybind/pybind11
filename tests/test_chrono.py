@@ -140,9 +140,13 @@ def test_chrono_duration_roundtrip():
 
     cpp_diff = m.test_chrono3(diff)
 
-    assert cpp_diff.days == diff.days
-    assert cpp_diff.seconds == diff.seconds
-    assert cpp_diff.microseconds == diff.microseconds
+    assert cpp_diff == diff
+
+    # Negative timedelta roundtrip
+    diff = datetime.timedelta(microseconds=-1)
+    cpp_diff = m.test_chrono3(diff)
+
+    assert cpp_diff == diff
 
 
 def test_chrono_duration_subtraction_equivalence():
