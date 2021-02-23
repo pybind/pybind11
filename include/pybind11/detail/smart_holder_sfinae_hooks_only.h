@@ -19,11 +19,11 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename T>
 struct is_smart_holder_type : std::false_type {};
 
-// Tag to be used as base class, inspected by is_smart_holder_type_caster<T> test.
+// Tag to be used as base class, inspected by type_uses_smart_holder_type_caster<T> test.
 struct is_smart_holder_type_caster_base_tag {};
 
 template <typename T>
-struct is_smart_holder_type_caster;
+struct type_uses_smart_holder_type_caster;
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

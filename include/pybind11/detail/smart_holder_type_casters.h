@@ -287,7 +287,7 @@ struct smart_holder_type_caster_load {
     using holder_type = pybindit::memory::smart_holder;
 
     bool load(handle src, bool convert) {
-        static_assert(is_smart_holder_type_caster<T>::value, "Internal consistency error.");
+        static_assert(type_uses_smart_holder_type_caster<T>::value, "Internal consistency error.");
         load_impl = modified_type_caster_generic_load_impl(typeid(T));
         if (!load_impl.load(src, convert))
             return false;

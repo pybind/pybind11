@@ -66,7 +66,7 @@ template <typename type>
 using make_caster = type_caster<intrinsic_t<type>>;
 
 template <typename T>
-struct is_smart_holder_type_caster {
+struct type_uses_smart_holder_type_caster {
     static constexpr bool value
         = std::is_base_of<is_smart_holder_type_caster_base_tag, make_caster<T>>::value;
 };
@@ -846,7 +846,7 @@ template <typename T> using move_never = none_of<move_always<T>, move_if_unrefer
 template <typename type> using cast_is_temporary_value_reference = bool_constant<
     (std::is_reference<type>::value || std::is_pointer<type>::value) &&
     !std::is_base_of<type_caster_generic, make_caster<type>>::value &&
-    !is_smart_holder_type_caster<intrinsic_t<type>>::value &&
+    !type_uses_smart_holder_type_caster<intrinsic_t<type>>::value &&
     !std::is_same<intrinsic_t<type>, void>::value
 >;
 
@@ -1391,7 +1391,7 @@ template<typename T>
 handle type::handle_of() {
     static_assert(
         detail::any_of<std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>,
-                       detail::is_smart_holder_type_caster<T>>::value,
+                       detail::type_uses_smart_holder_type_caster<T>>::value,
         "py::type::of<T> only supports the case where T is a registered C++ types.");
 
     return detail::get_type_handle(typeid(T), true);
