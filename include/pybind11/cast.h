@@ -665,7 +665,7 @@ struct holder_retriever<std::shared_ptr<T>> {
 
     static auto get_derivative_holder(const value_and_holder &v_h) -> std::shared_ptr<T> {
         // If there's no trampoline class, nothing special needed
-        if (!v_h.inst->has_alias) {
+        if (!v_h.inst->is_alias) {
             return v_h.template holder<std::shared_ptr<T>>();
         }
 

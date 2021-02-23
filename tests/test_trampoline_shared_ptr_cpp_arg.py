@@ -41,7 +41,9 @@ def test_shared_ptr_cpp_prop():
 
     # python reference is still around since C++ has it now
     assert tester.is_base_used() is False
+    assert tester.has_python_instance() is True
     assert tester.obj.is_base_used() is False
+    assert tester.obj.has_python_instance() is True
 
 
 def test_shared_ptr_arg_identity():
@@ -59,11 +61,54 @@ def test_shared_ptr_arg_identity():
     # python reference is still around since C++ has it
     assert objref() is not None
     assert tester.get_object() is objref()
+    assert tester.has_python_instance() is True
 
     # python reference disappears once the C++ object releases it
     tester.set_object(None)
     pytest.gc_collect()
     assert objref() is None
+
+
+def test_shared_ptr_alias_nonpython():
+    tester = m.SpBaseTester()
+
+    # C++ creates the object, a python instance shouldn't exist
+    tester.set_nonpython_instance()
+    assert tester.is_base_used() is True
+    assert tester.has_instance() is True
+    assert tester.has_python_instance() is False
+
+    # Now a python instance exists
+    cobj = tester.get_object()
+    assert cobj.has_python_instance()
+    assert tester.has_instance() is True
+    assert tester.has_python_instance() is True
+
+    # Now it's gone
+    del cobj
+    pytest.gc_collect()
+    assert tester.has_instance() is True
+    assert tester.has_python_instance() is False
+
+    # When we pass it as an arg to a new tester the python instance should
+    # disappear because it wasn't created with an alias
+    new_tester = m.SpBaseTester()
+
+    cobj = tester.get_object()
+    assert cobj.has_python_instance()
+
+    new_tester.set_object(cobj)
+    assert tester.has_python_instance() is True
+    assert new_tester.has_python_instance() is True
+
+    del cobj
+    pytest.gc_collect()
+
+    # Gone!
+    assert tester.has_instance() is True
+    assert tester.has_python_instance() is False
+    assert new_tester.has_instance() is True
+    assert new_tester.has_python_instance() is False
 
 
 def test_shared_ptr_goaway():

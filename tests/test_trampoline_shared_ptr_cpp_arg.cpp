@@ -12,6 +12,12 @@ struct SpBase {
     // returns true if the base virtual function is called
     virtual bool is_base_used() { return true; }
 
+    // returns true if there's an associated python instance
+    bool has_python_instance() {
+        auto tinfo = py::detail::get_type_info(typeid(SpBase));
+        return (bool)py::detail::get_object_handle(this, tinfo);
+    }
+
     SpBase()               = default;
     SpBase(const SpBase &) = delete;
     virtual ~SpBase()      = default;
@@ -25,6 +31,11 @@ struct SpBaseTester {
     std::shared_ptr<SpBase> get_object() const { return m_obj; }
     void set_object(std::shared_ptr<SpBase> obj) { m_obj = std::move(obj); }
     bool is_base_used() { return m_obj->is_base_used(); }
+    bool has_instance() { return (bool)m_obj; }
+    bool has_python_instance() { return m_obj && m_obj->has_python_instance(); }
+    void set_nonpython_instance() {
+        m_obj = std::make_shared<SpBase>();
+    }
     std::shared_ptr<SpBase> m_obj;
 };
 
@@ -44,13 +55,17 @@ TEST_SUBMODULE(trampoline_shared_ptr_cpp_arg, m) {
 
     py::class_<SpBase, std::shared_ptr<SpBase>, PySpBase>(m, "SpBase")
         .def(py::init<>())
-        .def("is_base_used", &SpBase::is_base_used);
+        .def("is_base_used", &SpBase::is_base_used)
+        .def("has_python_instance", &SpBase::has_python_instance);
 
     py::class_<SpBaseTester>(m, "SpBaseTester")
         .def(py::init<>())
         .def("get_object", &SpBaseTester::get_object)
         .def("set_object", &SpBaseTester::set_object)
         .def("is_base_used", &SpBaseTester::is_base_used)
+        .def("has_instance", &SpBaseTester::has_instance)
+        .def("has_python_instance", &SpBaseTester::has_python_instance)
+        .def("set_nonpython_instance", &SpBaseTester::set_nonpython_instance)
         .def_readwrite("obj", &SpBaseTester::m_obj);
 
     // For testing that a C++ class without an alias does not retain the python

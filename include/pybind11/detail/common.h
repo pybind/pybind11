@@ -580,8 +580,10 @@ struct instance {
     bool simple_instance_registered : 1;
     /// If true, get_internals().patients has an entry for this object
     bool has_patients : 1;
-    /// If true, created with an associated alias class (set via `init_instance`)
+    /// If true, the type of this instance has an associated alias class (set via `init_instance`)
     bool has_alias : 1;
+    /// If true, this instance has an associated alias class and was constructed by Python
+    bool is_alias : 1;
 
     /// Initializes all of the above type/values/holders data (but not the instance values themselves)
     void allocate_layout();
