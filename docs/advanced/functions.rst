@@ -50,7 +50,7 @@ implied transfer of ownership, i.e.:
 
 .. code-block:: cpp
 
-    m.def("get_data", &get_data, return_value_policy::reference);
+    m.def("get_data", &get_data, py::return_value_policy::reference);
 
 On the other hand, this is not the right policy for many other situations,
 where ignoring ownership could lead to resource leaks.
