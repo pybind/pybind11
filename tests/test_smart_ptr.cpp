@@ -305,6 +305,9 @@ class type_caster<std::shared_ptr<HeldByDefaultHolder>>
 #endif
 
 TEST_SUBMODULE(smart_ptr, m) {
+    // Please do not interleave `struct` and `class` definitions with bindings code,
+    // but implement `struct`s and `class`es in the anonymous namespace above.
+    // This helps keeping the smart_holder branch in sync with master.
 
     // test_smart_ptr
 
@@ -361,11 +364,13 @@ TEST_SUBMODULE(smart_ptr, m) {
         return good;
     });
 
+    // test_unique_nodelete
     py::class_<MyObject4, std::unique_ptr<MyObject4, py::nodelete>>(m, "MyObject4")
         .def(py::init<int>())
         .def_readwrite("value", &MyObject4::value)
         .def_static("cleanup_all_instances", &MyObject4::cleanupAllInstances);
 
+    // test_unique_deleter
     py::class_<MyObject4a, std::unique_ptr<MyObject4a, py::nodelete>>(m, "MyObject4a")
         .def(py::init<int>())
         .def_readwrite("value", &MyObject4a::value)
@@ -374,10 +379,12 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<MyObject4b, MyObject4a, std::unique_ptr<MyObject4b>>(m, "MyObject4b")
         .def(py::init<int>());
 
+    // test_large_holder
     py::class_<MyObject5, huge_unique_ptr<MyObject5>>(m, "MyObject5")
         .def(py::init<int>())
         .def_readwrite("value", &MyObject5::value);
 
+    // test_shared_ptr_and_references
     using A = SharedPtrRef::A;
     py::class_<A, std::shared_ptr<A>>(m, "A");
     py::class_<SharedPtrRef, std::unique_ptr<SharedPtrRef>>(m, "SharedPtrRef")
@@ -391,6 +398,7 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def("set_ref", [](SharedPtrRef &, const A &) { return true; })
         .def("set_holder", [](SharedPtrRef &, std::shared_ptr<A>) { return true; });
 
+    // test_shared_ptr_from_this_and_references
     using B = SharedFromThisRef::B;
     py::class_<B, std::shared_ptr<B>>(m, "B");
     py::class_<SharedFromThisRef, std::unique_ptr<SharedFromThisRef>>(m, "SharedFromThisRef")
@@ -405,14 +413,17 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def("set_ref", [](SharedFromThisRef &, const B &) { return true; })
         .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; });
 
+    // Issue #865: shared_from_this doesn't work with virtual inheritance
     static std::shared_ptr<SharedFromThisVirt> sft(new SharedFromThisVirt());
     py::class_<SharedFromThisVirt, std::shared_ptr<SharedFromThisVirt>>(m, "SharedFromThisVirt")
         .def_static("get", []() { return sft.get(); });
 
+    // test_move_only_holder
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")
         .def_static("make", []() { return custom_unique_ptr<C>(new C); })
         .def_static("make_as_object", []() { return py::cast(custom_unique_ptr<C>(new C)); });
 
+    // test_holder_with_addressof_operator
     using HolderWithAddressOf = shared_ptr_with_addressof_operator<TypeForHolderWithAddressOf>;
     py::class_<TypeForHolderWithAddressOf, HolderWithAddressOf>(m, "TypeForHolderWithAddressOf")
         .def_static("make", []() { return HolderWithAddressOf(new TypeForHolderWithAddressOf); })
@@ -422,16 +433,20 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def("print_object_3", [](const HolderWithAddressOf &obj) { py::print(obj.get()->toString()); })
         .def("print_object_4", [](const HolderWithAddressOf *obj) { py::print((*obj).get()->toString()); });
 
+    // test_move_only_holder_with_addressof_operator
     using MoveOnlyHolderWithAddressOf = unique_ptr_with_addressof_operator<TypeForMoveOnlyHolderWithAddressOf>;
     py::class_<TypeForMoveOnlyHolderWithAddressOf, MoveOnlyHolderWithAddressOf>(m, "TypeForMoveOnlyHolderWithAddressOf")
         .def_static("make", []() { return MoveOnlyHolderWithAddressOf(new TypeForMoveOnlyHolderWithAddressOf(0)); })
         .def_readwrite("value", &TypeForMoveOnlyHolderWithAddressOf::value)
         .def("print_object", [](const TypeForMoveOnlyHolderWithAddressOf *obj) { py::print(obj->toString()); });
 
+    // test_smart_ptr_from_default
     py::class_<HeldByDefaultHolder, std::unique_ptr<HeldByDefaultHolder>>(m, "HeldByDefaultHolder")
         .def(py::init<>())
         .def_static("load_shared_ptr", [](std::shared_ptr<HeldByDefaultHolder>) {});
 
+    // test_shared_ptr_gc
+    // #187: issue involving std::shared_ptr<> return value policy & garbage collection
     py::class_<ElementBase, std::shared_ptr<ElementBase>>(m, "ElementBase");
 
     py::class_<ElementA, ElementBase, std::shared_ptr<ElementA>>(m, "ElementA")
