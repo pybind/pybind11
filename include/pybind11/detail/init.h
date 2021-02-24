@@ -1,3 +1,4 @@
+// clang-format off
 /*
     pybind11/detail/init.h: init factory function implementation and support code.
 
@@ -10,6 +11,7 @@
 #pragma once
 
 #include "class.h"
+#include "smart_holder_sfinae_hooks_only.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -105,11 +107,13 @@ void construct(value_and_holder &v_h, Cpp<Class> *ptr, bool need_alias) {
         // the holder and destruction happens when we leave the C++ scope, and the holder
         // class gets to handle the destruction however it likes.
         v_h.value_ptr() = ptr;
-        v_h.set_instance_registered(true); // To prevent init_instance from registering it
+        v_h.set_instance_registered(true); // SHORTCUT To prevent init_instance from registering it
+        // DANGER ZONE BEGIN: exceptions will leave v_h in an invalid state.
         v_h.type->init_instance(v_h.inst, nullptr); // Set up the holder
         Holder<Class> temp_holder(std::move(v_h.holder<Holder<Class>>())); // Steal the holder
         v_h.type->dealloc(v_h); // Destroys the moved-out holder remains, resets value ptr to null
         v_h.set_instance_registered(false);
+        // DANGER ZONE END.
 
         construct_alias_from_cpp<Class>(is_alias_constructible<Class>{}, v_h, std::move(*ptr));
     } else {
@@ -129,7 +133,8 @@ void construct(value_and_holder &v_h, Alias<Class> *alias_ptr, bool) {
 // Holder return: copy its pointer, and move or copy the returned holder into the new instance's
 // holder.  This also handles types like std::shared_ptr<T> and std::unique_ptr<T> where T is a
 // derived type (through those holder's implicit conversion from derived class holder constructors).
-template <typename Class>
+template <typename Class,
+          detail::enable_if_t<!detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
 void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
     auto *ptr = holder_helper<Holder<Class>>::get(holder);
     no_nullptr(ptr);
@@ -165,6 +170,66 @@ void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
         "pybind11::init() return-by-alias-value factory function requires a movable alias class");
     v_h.value_ptr() = new Alias<Class>(std::move(result));
 }
+
+// clang-format on
+template <
+    typename Class,
+    typename D = std::default_delete<Cpp<Class>>,
+    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
+void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, bool need_alias) {
+    auto *ptr = unq_ptr.get();
+    no_nullptr(ptr);
+    if (Class::has_alias && need_alias)
+        throw type_error("pybind11::init(): construction failed: returned std::unique_ptr pointee "
+                         "is not an alias instance");
+    auto smhldr
+        = type_caster<Cpp<Class>>::template smart_holder_from_unique_ptr(std::move(unq_ptr));
+    v_h.value_ptr() = ptr;
+    v_h.type->init_instance(v_h.inst, &smhldr);
+}
+
+template <
+    typename Class,
+    typename D = std::default_delete<Alias<Class>>,
+    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Alias<Class>>::value, int> = 0>
+void construct(value_and_holder &v_h,
+               std::unique_ptr<Alias<Class>, D> &&unq_ptr,
+               bool /*need_alias*/) {
+    auto *ptr = unq_ptr.get();
+    no_nullptr(ptr);
+    auto smhldr
+        = type_caster<Alias<Class>>::template smart_holder_from_unique_ptr(std::move(unq_ptr));
+    v_h.value_ptr() = ptr;
+    v_h.type->init_instance(v_h.inst, &smhldr);
+}
+
+template <
+    typename Class,
+    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
+void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, bool need_alias) {
+    auto *ptr = shd_ptr.get();
+    no_nullptr(ptr);
+    if (Class::has_alias && need_alias)
+        throw type_error("pybind11::init(): construction failed: returned std::shared_ptr pointee "
+                         "is not an alias instance");
+    auto smhldr     = type_caster<Cpp<Class>>::template smart_holder_from_shared_ptr(shd_ptr);
+    v_h.value_ptr() = ptr;
+    v_h.type->init_instance(v_h.inst, &smhldr);
+}
+
+template <
+    typename Class,
+    detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Alias<Class>>::value, int> = 0>
+void construct(value_and_holder &v_h,
+               std::shared_ptr<Alias<Class>> &&shd_ptr,
+               bool /*need_alias*/) {
+    auto *ptr = shd_ptr.get();
+    no_nullptr(ptr);
+    auto smhldr     = type_caster<Alias<Class>>::template smart_holder_from_shared_ptr(shd_ptr);
+    v_h.value_ptr() = ptr;
+    v_h.type->init_instance(v_h.inst, &smhldr);
+}
+// clang-format off
 
 // Implementing class for py::init<...>()
 template <typename... Args>

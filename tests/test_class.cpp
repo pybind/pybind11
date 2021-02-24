@@ -23,6 +23,8 @@
 #  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
 #endif
 
+namespace {
+
 // test_brace_initialization
 struct NoBraceInitialization {
     NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
@@ -31,6 +33,23 @@ struct NoBraceInitialization {
 
     std::vector<int> vec;
 };
+
+// test_mismatched_holder
+struct MismatchBase1 { };
+struct MismatchDerived1 : MismatchBase1 { };
+struct MismatchBase2 { };
+struct MismatchDerived2 : MismatchBase2 { };
+
+// test_multiple_instances_with_same_pointer
+struct SamePointer {};
+
+} // namespace
+
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchBase1, std::shared_ptr<MismatchBase1>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchDerived1, std::unique_ptr<MismatchDerived1>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchBase2, std::unique_ptr<MismatchBase2>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchDerived2, std::shared_ptr<MismatchDerived2>)
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SamePointer, std::unique_ptr<SamePointer>)
 
 TEST_SUBMODULE(class_, m) {
     // test_instance
@@ -168,20 +187,15 @@ TEST_SUBMODULE(class_, m) {
     });
 
     // test_mismatched_holder
-    struct MismatchBase1 { };
-    struct MismatchDerived1 : MismatchBase1 { };
-
-    struct MismatchBase2 { };
-    struct MismatchDerived2 : MismatchBase2 { };
-
     m.def("mismatched_holder_1", []() {
         auto mod = py::module_::import("__main__");
         py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(mod, "MismatchBase1");
-        py::class_<MismatchDerived1, MismatchBase1>(mod, "MismatchDerived1");
+        py::class_<MismatchDerived1, std::unique_ptr<MismatchDerived1>,
+                   MismatchBase1>(mod, "MismatchDerived1");
     });
     m.def("mismatched_holder_2", []() {
         auto mod = py::module_::import("__main__");
-        py::class_<MismatchBase2>(mod, "MismatchBase2");
+        py::class_<MismatchBase2, std::unique_ptr<MismatchBase2>>(mod, "MismatchBase2");
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>,
                    MismatchBase2>(mod, "MismatchDerived2");
     });
@@ -431,7 +445,6 @@ TEST_SUBMODULE(class_, m) {
         .def("throw_something", &PyPrintDestructor::throw_something);
 
     // test_multiple_instances_with_same_pointer
-    struct SamePointer {};
     static SamePointer samePointer;
     py::class_<SamePointer, std::unique_ptr<SamePointer, py::nodelete>>(m, "SamePointer")
         .def(py::init([]() { return &samePointer; }));
@@ -504,7 +517,14 @@ CHECK_BASE(1); CHECK_BASE(2); CHECK_BASE(3); CHECK_BASE(4); CHECK_BASE(5); CHECK
 CHECK_ALIAS(1); CHECK_ALIAS(2); CHECK_NOALIAS(3); CHECK_ALIAS(4); CHECK_NOALIAS(5); CHECK_ALIAS(6); CHECK_ALIAS(7); CHECK_NOALIAS(8);
 #define CHECK_HOLDER(N, TYPE) static_assert(std::is_same<typename DoesntBreak##N::holder_type, std::TYPE##_ptr<BreaksBase<N>>>::value, \
         "DoesntBreak" #N " has wrong holder_type!")
-CHECK_HOLDER(1, unique); CHECK_HOLDER(2, unique); CHECK_HOLDER(3, unique); CHECK_HOLDER(4, unique); CHECK_HOLDER(5, unique);
+#define CHECK_SMART_HOLDER(N) static_assert(std::is_same<typename DoesntBreak##N::holder_type, py::smart_holder>::value, \
+        "DoesntBreak" #N " has wrong holder_type!")
+CHECK_HOLDER(1, unique); CHECK_HOLDER(2, unique); CHECK_HOLDER(3, unique);
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+CHECK_HOLDER(4, unique); CHECK_HOLDER(5, unique);
+#else
+CHECK_SMART_HOLDER(4); CHECK_SMART_HOLDER(5);
+#endif
 CHECK_HOLDER(6, shared); CHECK_HOLDER(7, shared); CHECK_HOLDER(8, shared);
 
 // There's no nice way to test that these fail because they fail to compile; leave them here,

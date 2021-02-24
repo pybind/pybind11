@@ -1,3 +1,4 @@
+// clang-format off
 /*
     pybind11/cast.h: Partial template specializations to cast between
     C++ and Python types
@@ -13,6 +14,7 @@
 #include "pytypes.h"
 #include "detail/common.h"
 #include "detail/descr.h"
+#include "detail/smart_holder_sfinae_hooks_only.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
 #include <array>
@@ -26,6 +28,10 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#ifdef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+#include "detail/smart_holder_type_casters.h"
+#endif
 
 #if defined(PYBIND11_CPP17)
 #  if defined(__has_include)
@@ -47,8 +53,24 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
-template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
+// clang-format on
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+template <typename T>
+class type_caster_for_class_ : public type_caster_base<T> {};
+#endif
+
+template <typename type, typename SFINAE = void>
+class type_caster : public type_caster_for_class_<type> {};
+
+template <typename type>
+using make_caster = type_caster<intrinsic_t<type>>;
+
+template <typename T>
+struct type_uses_smart_holder_type_caster {
+    static constexpr bool value
+        = std::is_base_of<smart_holder_type_caster_base_tag, make_caster<T>>::value;
+};
+// clang-format off
 
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
@@ -696,9 +718,11 @@ protected:
     holder_type holder;
 };
 
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 /// Specialize for the common std::shared_ptr, so users don't need to
 template <typename T>
 class type_caster<std::shared_ptr<T>> : public copyable_holder_caster<T, std::shared_ptr<T>> { };
+#endif
 
 /// Type caster for holder types like std::unique_ptr.
 /// Please consider the SFINAE hook an implementation detail, as explained
@@ -715,9 +739,11 @@ struct move_only_holder_caster {
     static constexpr auto name = type_caster_base<type>::name;
 };
 
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 template <typename type, typename deleter>
 class type_caster<std::unique_ptr<type, deleter>>
     : public move_only_holder_caster<type, std::unique_ptr<type, deleter>> { };
+#endif
 
 template <typename type, typename holder_type>
 using type_caster_holder = conditional_t<is_copy_constructible<holder_type>::value,
@@ -820,6 +846,7 @@ template <typename T> using move_never = none_of<move_always<T>, move_if_unrefer
 template <typename type> using cast_is_temporary_value_reference = bool_constant<
     (std::is_reference<type>::value || std::is_pointer<type>::value) &&
     !std::is_base_of<type_caster_generic, make_caster<type>>::value &&
+    !type_uses_smart_holder_type_caster<intrinsic_t<type>>::value &&
     !std::is_same<intrinsic_t<type>, void>::value
 >;
 
@@ -1362,10 +1389,10 @@ PYBIND11_NAMESPACE_END(detail)
 
 template<typename T>
 handle type::handle_of() {
-   static_assert(
-      std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
-      "py::type::of<T> only supports the case where T is a registered C++ types."
-    );
+    static_assert(
+        detail::any_of<std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>,
+                       detail::type_uses_smart_holder_type_caster<T>>::value,
+        "py::type::of<T> only supports the case where T is a registered C++ types.");
 
     return detail::get_type_handle(typeid(T), true);
 }
@@ -1373,7 +1400,7 @@ handle type::handle_of() {
 
 #define PYBIND11_MAKE_OPAQUE(...) \
     namespace pybind11 { namespace detail { \
-        template<> class type_caster<__VA_ARGS__> : public type_caster_base<__VA_ARGS__> { }; \
+        template<> class type_caster<__VA_ARGS__> : public type_caster_for_class_<__VA_ARGS__> { }; \
     }}
 
 /// Lets you pass a type containing a `,` through a macro parameter without needing a separate

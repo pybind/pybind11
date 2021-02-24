@@ -112,8 +112,8 @@ UserType TestPropRVP::sv2(1);
 class NoneTester { public: int answer = 42; };
 int none1(const NoneTester &obj) { return obj.answer; }
 int none2(NoneTester *obj) { return obj ? obj->answer : -1; }
-int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
-int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
+int none3(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
+int none4(const std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
 int none5(std::shared_ptr<NoneTester> obj) { return obj ? obj->answer : -1; }
 
 struct StrIssue {
@@ -147,6 +147,8 @@ struct RefQualified {
     void refQualified(int other) & { value += other; }
     int constRefQualified(int other) const & { return value + other; }
 };
+
+PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(NoneTester, std::shared_ptr<NoneTester>)
 
 TEST_SUBMODULE(methods_and_attributes, m) {
     // test_methods_and_attributes

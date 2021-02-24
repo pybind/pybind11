@@ -101,6 +101,10 @@ set(PYBIND11_TEST_FILES
     test_callbacks.cpp
     test_chrono.cpp
     test_class.cpp
+    test_class_sh_basic.cpp
+    test_class_sh_factory_constructors.cpp
+    test_class_sh_inheritance.cpp
+    test_class_sh_unique_ptr_member.cpp
     test_constants_and_functions.cpp
     test_copy_move.cpp
     test_custom_type_casters.cpp
@@ -160,6 +164,8 @@ if(PYBIND11_CUDA_TESTS)
 endif()
 
 string(REPLACE ".cpp" ".py" PYBIND11_PYTEST_FILES "${PYBIND11_TEST_FILES}")
+list(APPEND PYBIND11_PYTEST_FILES test_class_sh_module_local.py)
+list(SORT PYBIND11_PYTEST_FILES)
 
 # Contains the set of test files that require pybind11_cross_module_tests to be
 # built; if none of these are built (i.e. because TEST_OVERRIDE is used and
@@ -168,6 +174,8 @@ set(PYBIND11_CROSS_MODULE_TESTS test_exceptions.py test_local_bindings.py test_s
                                 test_stl_binders.py)
 
 set(PYBIND11_CROSS_MODULE_GIL_TESTS test_gil_scoped.py)
+
+set(PYBIND11_CLASS_SH_MODULE_LOCAL_TESTS test_class_sh_module_local.py)
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
@@ -300,6 +308,16 @@ foreach(t ${PYBIND11_CROSS_MODULE_GIL_TESTS})
   list(FIND PYBIND11_PYTEST_FILES ${t} i)
   if(i GREATER -1)
     list(APPEND test_targets cross_module_gil_utils)
+    break()
+  endif()
+endforeach()
+
+foreach(t ${PYBIND11_CLASS_SH_MODULE_LOCAL_TESTS})
+  list(FIND PYBIND11_PYTEST_FILES ${t} i)
+  if(i GREATER -1)
+    list(APPEND test_targets class_sh_module_local_0)
+    list(APPEND test_targets class_sh_module_local_1)
+    list(APPEND test_targets class_sh_module_local_2)
     break()
   endif()
 endforeach()
@@ -443,6 +461,9 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
 
 if(NOT PYBIND11_CUDA_TESTS)
+  # Test pure C++ code (not depending on Python). Provides the `test_pure_cpp` target.
+  add_subdirectory(pure_cpp)
+
   # Test embedding the interpreter. Provides the `cpptest` target.
   add_subdirectory(test_embed)
 

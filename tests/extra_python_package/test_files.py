@@ -32,6 +32,7 @@ main_headers = {
     "include/pybind11/options.h",
     "include/pybind11/pybind11.h",
     "include/pybind11/pytypes.h",
+    "include/pybind11/smart_holder.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
 }
@@ -42,6 +43,9 @@ detail_headers = {
     "include/pybind11/detail/descr.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
+    "include/pybind11/detail/smart_holder_poc.h",
+    "include/pybind11/detail/smart_holder_sfinae_hooks_only.h",
+    "include/pybind11/detail/smart_holder_type_casters.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
 }

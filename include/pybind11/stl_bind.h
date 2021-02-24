@@ -438,7 +438,7 @@ PYBIND11_NAMESPACE_END(detail)
 //
 // std::vector
 //
-template <typename Vector, typename holder_type = std::unique_ptr<Vector>, typename... Args>
+template <typename Vector, typename holder_type = default_holder_type<Vector>, typename... Args>
 class_<Vector, holder_type> bind_vector(handle scope, std::string const &name, Args&&... args) {
     using Class_ = class_<Vector, holder_type>;
 
@@ -599,7 +599,7 @@ template <typename Map, typename Class_> auto map_if_insertion_operator(Class_ &
 
 PYBIND11_NAMESPACE_END(detail)
 
-template <typename Map, typename holder_type = std::unique_ptr<Map>, typename... Args>
+template <typename Map, typename holder_type = default_holder_type<Map>, typename... Args>
 class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&... args) {
     using KeyType = typename Map::key_type;
     using MappedType = typename Map::mapped_type;
