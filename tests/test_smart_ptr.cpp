@@ -37,11 +37,11 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
 // holder size to trigger the non-simple-layout internal instance layout for single inheritance with
 // large holder type:
 template <typename T> class huge_unique_ptr {
-    std::unique_ptr<T> ptr;
     uint64_t padding[10];
+    std::unique_ptr<T> ptr;
 public:
     huge_unique_ptr(T *p) : ptr(p) {};
-    T *get() { return ptr.get(); }
+    T *get() const { return ptr.get(); }
 };
 PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>);
 
@@ -360,12 +360,6 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def_readwrite("value", &TypeForMoveOnlyHolderWithAddressOf::value)
         .def("print_object", [](const TypeForMoveOnlyHolderWithAddressOf *obj) { py::print(obj->toString()); });
 
-    // test_smart_ptr_from_default
-    struct HeldByDefaultHolder { };
-    py::class_<HeldByDefaultHolder>(m, "HeldByDefaultHolder")
-        .def(py::init<>())
-        .def_static("load_shared_ptr", [](std::shared_ptr<HeldByDefaultHolder>) {});
-
     // test_shared_ptr_gc
     // #187: issue involving std::shared_ptr<> return value policy & garbage collection
     struct ElementBase {
@@ -397,4 +391,32 @@ TEST_SUBMODULE(smart_ptr, m) {
                 list.append(py::cast(e));
             return list;
         });
+
+    // test_holder_mismatch
+    // Tests the detection of trying to use mismatched holder types around the same instance type
+    struct HeldByShared {};
+    struct HeldByUnique {};
+    // HeldByShared declared with shared_ptr holder, but used with unique_ptr later
+    py::class_<HeldByShared, std::shared_ptr<HeldByShared>>(m, "HeldByShared");
+    m.def("register_mismatch_return", [](py::module m) {
+        // Fails: the class was already registered with a shared_ptr holder
+        m.def("bad1", []() { return std::unique_ptr<HeldByShared>(new HeldByShared()); });
+    });
+    m.def("register_mismatch_class", [](py::module m) {
+        // Fails: the class was already registered with a shared_ptr holder
+        py::class_<HeldByShared, std::unique_ptr<HeldByShared>>(m, "bad");
+    });
+
+    // HeldByUnique declared with unique_ptr holder, but used with shared_ptr before / later
+    m.def("register_return_shared", [](py::module m) {
+        // Fails if HeldByUnique is not yet registered or, if registered, due to mismatching holder
+        m.def("bad2", []() { return std::make_shared<HeldByUnique>(); });
+    });
+    m.def("register_consume_shared", [](py::module m) {
+        // Fails if HeldByUnique is not yet registered or, if registered, due to mismatching holder
+        m.def("bad3", [](std::shared_ptr<HeldByUnique>) {});
+    });
+    m.def("register_HeldByUnique", [](py::module m) {
+        py::class_<HeldByUnique>(m, "HeldByUnique");
+    });
 }

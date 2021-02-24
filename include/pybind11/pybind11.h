@@ -167,6 +167,13 @@ protected:
         static_assert(expected_num_args<Extra...>(sizeof...(Args), cast_in::has_args, cast_in::has_kwargs),
                       "The number of argument annotations does not match the number of function arguments");
 
+        /* Process any user-provided function attributes */
+        process_attributes<Extra...>::init(extra..., rec);
+
+        // Fail if the return or argument types were previously registered with a different holder type
+        detail::check_for_holder_mismatch<Return>(rec->name);
+        PYBIND11_EXPAND_SIDE_EFFECTS(detail::check_for_holder_mismatch<Args>(rec->name));
+
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
             cast_in args_converter;
@@ -198,9 +205,6 @@ protected:
 
             return result;
         };
-
-        /* Process any user-provided function attributes */
-        process_attributes<Extra...>::init(extra..., rec);
 
         {
             constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,
@@ -1096,6 +1100,7 @@ protected:
         auto *tinfo = new detail::type_info();
         tinfo->type = (PyTypeObject *) m_ptr;
         tinfo->cpptype = rec.type;
+        tinfo->holder_type = rec.holder_type;
         tinfo->type_size = rec.type_size;
         tinfo->type_align = rec.type_align;
         tinfo->operator_new = rec.operator_new;
@@ -1104,7 +1109,6 @@ protected:
         tinfo->dealloc = rec.dealloc;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
-        tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
 
         auto &internals = get_internals();
@@ -1281,10 +1285,10 @@ public:
         record.type = &typeid(type);
         record.type_size = sizeof(conditional_t<has_alias, type_alias, type>);
         record.type_align = alignof(conditional_t<has_alias, type_alias, type>&);
+        record.holder_type = &typeid(holder_type);
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
         record.dealloc = dealloc;
-        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
 
         set_operator_new<type>(&record);
 

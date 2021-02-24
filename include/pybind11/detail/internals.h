@@ -128,6 +128,7 @@ struct internals {
 struct type_info {
     PyTypeObject *type;
     const std::type_info *cpptype;
+    const std::type_info *holder_type = nullptr;
     size_t type_size, type_align, holder_size_in_ptrs;
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
@@ -143,14 +144,12 @@ struct type_info {
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
     bool simple_ancestors : 1;
-    /* for base vs derived holder_type checks */
-    bool default_holder : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
-#define PYBIND11_INTERNALS_VERSION 4
+#define PYBIND11_INTERNALS_VERSION 5
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)

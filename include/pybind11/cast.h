@@ -654,10 +654,7 @@ public:
 
 protected:
     friend class type_caster_generic;
-    void check_holder_compat() {
-        if (typeinfo->default_holder)
-            throw cast_error("Unable to load a custom holder type from a default-holder instance");
-    }
+    void check_holder_compat() {}
 
     bool load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
@@ -742,6 +739,39 @@ template <typename base, typename holder> struct is_holder_type :
 // Specialization for always-supported unique_ptr holders:
 template <typename base, typename deleter> struct is_holder_type<base, std::unique_ptr<base, deleter>> :
     std::true_type {};
+
+template <typename holder> using is_holder = any_of<
+    is_template_base_of<move_only_holder_caster, make_caster<holder>>,
+    is_template_base_of<copyable_holder_caster, make_caster<holder>>>;
+
+template <typename holder>
+void check_for_holder_mismatch(const char*, enable_if_t<!is_holder<holder>::value, int> = 0) {}
+template <typename holder>
+void check_for_holder_mismatch(const char* func_name, enable_if_t<is_holder<holder>::value, int> = 0) {
+    using iholder = intrinsic_t<holder>;
+    using base_type = decltype(*holder_helper<iholder>::get(std::declval<iholder>()));
+    auto &holder_typeinfo = typeid(iholder);
+    auto base_info = detail::get_type_info(typeid(base_type), false);
+    if (!base_info) {
+#ifdef NDEBUG
+        pybind11_fail("Cannot register function using not yet registered type");
+#else
+        pybind11_fail("Cannot register function using not yet registered type '" + type_id<base_type>() + "'");
+#endif
+    }
+
+    if (!same_type(*base_info->holder_type, holder_typeinfo)) {
+#ifdef NDEBUG
+        pybind11_fail("Detected mismatching holder types when declaring function '" + std::string(func_name) + "'  (compile in debug mode for details)");
+#else
+        std::string holder_name(base_info->holder_type->name());
+        detail::clean_type_id(holder_name);
+        pybind11_fail("Detected mismatching holder types when declaring function '" + std::string(func_name) + "':"
+                " attempting to use holder type " + type_id<iholder>() + ", but " + type_id<base_type>() +
+                " was declared using holder type " + holder_name);
+#endif
+    }
+}
 
 template <typename T> struct handle_type_name { static constexpr auto name = _<T>(); };
 template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };

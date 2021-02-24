@@ -219,16 +219,16 @@ def test_mismatched_holder():
     with pytest.raises(RuntimeError) as excinfo:
         m.mismatched_holder_1()
     assert re.match(
-        'generic_type: type ".*MismatchDerived1" does not have a non-default '
-        'holder type while its base ".*MismatchBase1" does',
+        'generic_type: type ".*MismatchDerived1" uses different holder '
+        'than its base ".*MismatchBase1"',
         str(excinfo.value),
     )
 
     with pytest.raises(RuntimeError) as excinfo:
         m.mismatched_holder_2()
     assert re.match(
-        'generic_type: type ".*MismatchDerived2" has a non-default holder type '
-        'while its base ".*MismatchBase2" does not',
+        'generic_type: type ".*MismatchDerived2" uses different holder '
+        'than its base ".*MismatchBase2"',
         str(excinfo.value),
     )
 

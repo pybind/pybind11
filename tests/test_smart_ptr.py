@@ -298,16 +298,6 @@ def test_move_only_holder_with_addressof_operator():
     assert stats.alive() == 0
 
 
-def test_smart_ptr_from_default():
-    instance = m.HeldByDefaultHolder()
-    with pytest.raises(RuntimeError) as excinfo:
-        m.HeldByDefaultHolder.load_shared_ptr(instance)
-    assert (
-        "Unable to load a custom holder type from a "
-        "default-holder instance" in str(excinfo.value)
-    )
-
-
 def test_shared_ptr_gc():
     """#187: issue involving std::shared_ptr<> return value policy & garbage collection"""
     el = m.ElementList()
@@ -316,3 +306,32 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
+
+
+def test_holder_mismatch():
+    """#1138: segfault if mixing holder types"""
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_mismatch_return(m)
+    assert "Detected mismatching holder types" in str(excinfo)
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_mismatch_class(m)
+    assert "is already registered" in str(excinfo)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_return_shared(m)
+    expected_error = "Cannot register function using not yet registered type"
+    assert expected_error in str(excinfo)
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_consume_shared(m)
+    expected_error = "Cannot register function using not yet registered type"
+    assert expected_error in str(excinfo)
+
+    m.register_HeldByUnique(m)  # register the type
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_return_shared(m)
+    assert "Detected mismatching holder types" in str(excinfo)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        m.register_consume_shared(m)
+    assert "Detected mismatching holder types" in str(excinfo)

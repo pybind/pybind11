@@ -221,7 +221,7 @@ struct function_record {
 struct type_record {
     PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          default_holder(true), module_local(false), is_final(false) { }
+          module_local(false), is_final(false) { }
 
     /// Handle to the parent scope
     handle scope;
@@ -237,6 +237,9 @@ struct type_record {
 
     /// What is the alignment of the underlying C++ type?
     size_t type_align = 0;
+
+    // Pointer to RTTI type_info data structure of holder type
+    const std::type_info *holder_type = nullptr;
 
     /// How large is the type's holder?
     size_t holder_size = 0;
@@ -268,9 +271,6 @@ struct type_record {
     /// Does the class implement the buffer protocol?
     bool buffer_protocol : 1;
 
-    /// Is the default (unique_ptr) holder type used?
-    bool default_holder : 1;
-
     /// Is the class definition local to the module shared object?
     bool module_local : 1;
 
@@ -286,13 +286,24 @@ struct type_record {
                           "\" referenced unknown base type \"" + tname + "\"");
         }
 
-        if (default_holder != base_info->default_holder) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name) + "\" " +
-                    (default_holder ? "does not have" : "has") +
-                    " a non-default holder type while its base \"" + tname + "\" " +
-                    (base_info->default_holder ? "does not" : "does"));
+        // Check for holder compatibility
+        // We cannot simply check for same_type(*holder_type, *base_info->holder_type)
+        // as the typeids naturally differ as the base type differs from this type
+        auto clean_holder_name = [](const std::type_info* holder_type, const std::type_info* base_type) -> std::string {
+            std::string base_name(base_type->name());
+            detail::clean_type_id(base_name);
+            std::string holder_name(holder_type->name());
+            detail::clean_type_id(holder_name);
+            size_t start_pos = holder_name.find(base_name);
+            return holder_name.substr(0, start_pos-1);
+        };
+        std::string holder_name = clean_holder_name(holder_type, this->type);
+        std::string base_holder_name = clean_holder_name(base_info->holder_type, base_info->cpptype);
+        if (holder_name != base_holder_name) {
+            std::string base_name(base.name());
+            detail::clean_type_id(base_name);
+            pybind11_fail("generic_type: type \"" + std::string(name) +
+                    "\" uses different holder than its base \"" + base_name + "\" (" + base_holder_name + " vs " + holder_name + ")");
         }
 
         bases.append((PyObject *) base_info->type);
