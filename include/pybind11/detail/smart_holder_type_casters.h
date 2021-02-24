@@ -4,9 +4,22 @@
 
 #pragma once
 
+#include "../pytypes.h"
+#include "common.h"
+#include "descr.h"
+#include "internals.h"
 #include "smart_holder_poc.h"
 #include "smart_holder_sfinae_hooks_only.h"
 #include "type_caster_base.h"
+#include "typeid.h"
+
+#include <cstddef>
+#include <memory>
+#include <new>
+#include <string>
+#include <type_traits>
+#include <typeinfo>
+#include <utility>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 

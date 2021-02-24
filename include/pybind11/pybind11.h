@@ -48,6 +48,7 @@
 #include "options.h"
 #include "detail/class.h"
 #include "detail/init.h"
+#include "detail/smart_holder_sfinae_hooks_only.h"
 
 #include <memory>
 #include <vector>

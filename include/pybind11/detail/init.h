@@ -11,6 +11,7 @@
 #pragma once
 
 #include "class.h"
+#include "smart_holder_sfinae_hooks_only.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
