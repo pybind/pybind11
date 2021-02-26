@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-import pybind11_tests.trampoline_shared_ptr_return as m
+import pybind11_tests.trampoline_shared_ptr_cpp_arg as m
 
 
 def test_shared_ptr_cpp_arg():

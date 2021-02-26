@@ -38,7 +38,7 @@ struct SpGoAwayTester {
 
 } // namespace
 
-TEST_SUBMODULE(trampoline_shared_ptr_return, m) {
+TEST_SUBMODULE(trampoline_shared_ptr_cpp_arg, m) {
     // For testing whether a python subclass of a C++ object dies when the
     // last python reference is lost
 
