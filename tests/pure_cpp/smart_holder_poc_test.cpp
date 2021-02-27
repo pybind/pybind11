@@ -24,6 +24,14 @@ struct functor_builtin_delete {
 template <typename T>
 struct functor_other_delete : functor_builtin_delete<T> {};
 
+struct indestructible_int {
+    int valu;
+    indestructible_int(int v) : valu{v} {}
+
+private:
+    ~indestructible_int() = default;
+};
+
 } // namespace helpers
 
 TEST_CASE("from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
@@ -278,4 +286,19 @@ TEST_CASE("error_cannot_disown_nullptr", "[E]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     hld.as_unique_ptr<int>();
     REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(), "Cannot disown nullptr (as_unique_ptr).");
+}
+
+TEST_CASE("indestructible_int-from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
+    using zombie = helpers::indestructible_int;
+    // Using placement new instead of plain new, to not trigger leak sanitizer errors.
+    static char memory_block[sizeof(zombie)];
+    auto *value = new (memory_block) zombie(19);
+    auto hld    = smart_holder::from_raw_ptr_unowned(value);
+    REQUIRE(hld.as_raw_ptr_unowned<zombie>()->valu == 19);
+}
+
+TEST_CASE("indestructible_int-from_raw_ptr_take_ownership", "[E]") {
+    helpers::indestructible_int *value = nullptr;
+    REQUIRE_THROWS_WITH(smart_holder::from_raw_ptr_take_ownership(value),
+                        "Pointee is not destructible (from_raw_ptr_take_ownership).");
 }

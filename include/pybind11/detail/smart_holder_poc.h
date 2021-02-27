@@ -32,7 +32,7 @@ Details:
 
 * If created from a raw pointer, or a `unique_ptr` without a custom deleter,
   `vptr` always uses a custom deleter, to support `unique_ptr`-like disowning.
-  The custom deleters can be extended to included life-time managment for
+  The custom deleters could be extended to included life-time managment for
   external objects (e.g. `PyObject`).
 
 * If created from an external `shared_ptr`, or a `unique_ptr` with a custom
@@ -49,6 +49,7 @@ Details:
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <typeinfo>
 
 // pybindit = Python Bindings Innovation Track.
@@ -61,9 +62,19 @@ template <typename T>
 struct guarded_builtin_delete {
     bool *flag_ptr;
     explicit guarded_builtin_delete(bool *armed_flag_ptr) : flag_ptr{armed_flag_ptr} {}
+    template <typename T_                                                         = T,
+              typename std::enable_if<std::is_destructible<T_>::value, int>::type = 0>
     void operator()(T *raw_ptr) {
         if (*flag_ptr)
             delete raw_ptr;
+    }
+    template <typename T_                                                          = T,
+              typename std::enable_if<!std::is_destructible<T_>::value, int>::type = 0>
+    void operator()(T *) {
+        // This noop operator is needed to avoid a compilation error (for `delete raw_ptr;`), but
+        // throwing an exception from here could std::terminate the process. Therefore the runtime
+        // check for lifetime-management correctness is implemented elsewhere (in
+        // ensure_pointee_is_destructible()).
     }
 };
 
@@ -103,6 +114,13 @@ struct smart_holder {
           vptr_is_external_shared_ptr{false}, is_populated{false} {}
 
     bool has_pointee() const { return vptr.get() != nullptr; }
+
+    template <typename T>
+    static void ensure_pointee_is_destructible(const char *context) {
+        if (!std::is_destructible<T>::value)
+            throw std::runtime_error(std::string("Pointee is not destructible (") + context
+                                     + ").");
+    }
 
     void ensure_is_populated(const char *context) const {
         if (!is_populated) {
@@ -193,6 +211,7 @@ struct smart_holder {
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr) {
+        ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld(true);
         hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
         hld.vptr_is_using_builtin_delete = true;
