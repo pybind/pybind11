@@ -292,8 +292,8 @@ TEST_CASE("indestructible_int-from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
     using zombie = helpers::indestructible_int;
     // Using placement new instead of plain new, to not trigger leak sanitizer errors.
     static char memory_block[sizeof(zombie)];
-    zombie *value = new (memory_block) zombie(19);
-    auto hld      = smart_holder::from_raw_ptr_unowned(value);
+    auto *value = new (memory_block) zombie(19);
+    auto hld    = smart_holder::from_raw_ptr_unowned(value);
     REQUIRE(hld.as_raw_ptr_unowned<zombie>()->valu == 19);
 }
 
