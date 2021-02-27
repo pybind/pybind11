@@ -9,7 +9,7 @@
 #include <type_traits>
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
-// #define PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
+#define PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 // Currently the main purpose of this switch is to enable non-intrusive comprehensive testing. If
 // and when `smart_holder` will actually become the released default is currently open. In the
 // meantime, the full functionality is easily available by using `py::classh`, which is just a
