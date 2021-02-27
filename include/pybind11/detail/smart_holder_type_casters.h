@@ -388,8 +388,8 @@ private:
                           " Python instance is uninitialized.");
         }
         if (!holder().has_pointee()) {
-            throw cast_error("Missing value for wrapped C++ type:"
-                             " Python instance was disowned.");
+            throw value_error("Missing value for wrapped C++ type:"
+                              " Python instance was disowned.");
         }
     }
 

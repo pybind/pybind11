@@ -78,7 +78,7 @@ def test_load_with_rtrn_f(pass_f, rtrn_f, expected):
 def test_pass_unique_ptr_disowns(pass_f, rtrn_f, expected):
     obj = rtrn_f()
     assert pass_f(obj) == expected
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         pass_f(obj)
     assert str(exc_info.value) == (
         "Missing value for wrapped C++ type: Python instance was disowned."
