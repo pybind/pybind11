@@ -302,3 +302,24 @@ TEST_CASE("indestructible_int-from_raw_ptr_take_ownership", "[E]") {
     REQUIRE_THROWS_WITH(smart_holder::from_raw_ptr_take_ownership(value),
                         "Pointee is not destructible (from_raw_ptr_take_ownership).");
 }
+
+TEST_CASE("from_raw_ptr_take_ownership+as_shared_ptr-outliving_smart_holder", "[S]") {
+    // Exercises guarded_builtin_delete flag_ptr validity past destruction of smart_holder.
+    std::shared_ptr<int> longer_living;
+    {
+        auto hld      = smart_holder::from_raw_ptr_take_ownership(new int(19));
+        longer_living = hld.as_shared_ptr<int>();
+    }
+    REQUIRE(*longer_living == 19);
+}
+
+TEST_CASE("from_unique_ptr_with_deleter+as_shared_ptr-outliving_smart_holder", "[S]") {
+    // Exercises guarded_custom_deleter flag_ptr validity past destruction of smart_holder.
+    std::shared_ptr<int> longer_living;
+    {
+        std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(new int(19));
+        auto hld      = smart_holder::from_unique_ptr(std::move(orig_owner));
+        longer_living = hld.as_shared_ptr<int>();
+    }
+    REQUIRE(*longer_living == 19);
+}
