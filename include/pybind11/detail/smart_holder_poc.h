@@ -104,7 +104,7 @@ struct smart_holder {
     bool is_populated : 1;
 
     // Design choice: smart_holder is movable but not copyable.
-    smart_holder(smart_holder &&) = default;
+    smart_holder(smart_holder &&)      = default;
     smart_holder(const smart_holder &) = delete;
     smart_holder &operator=(smart_holder &&) = default;
     smart_holder &operator=(const smart_holder &) = delete;
@@ -124,8 +124,8 @@ struct smart_holder {
     template <typename T>
     static void ensure_pointee_is_destructible(const char *context) {
         if (!std::is_destructible<T>::value)
-            throw std::runtime_error(std::string("Pointee is not destructible (") + context
-                                     + ").");
+            throw std::invalid_argument(std::string("Pointee is not destructible (") + context
+                                        + ").");
     }
 
     void ensure_is_populated(const char *context) const {
@@ -136,16 +136,16 @@ struct smart_holder {
 
     void ensure_vptr_is_using_builtin_delete(const char *context) const {
         if (vptr_is_external_shared_ptr) {
-            throw std::runtime_error(std::string("Cannot disown external shared_ptr (") + context
-                                     + ").");
+            throw std::invalid_argument(std::string("Cannot disown external shared_ptr (")
+                                        + context + ").");
         }
         if (vptr_is_using_noop_deleter) {
-            throw std::runtime_error(std::string("Cannot disown non-owning holder (") + context
-                                     + ").");
+            throw std::invalid_argument(std::string("Cannot disown non-owning holder (") + context
+                                        + ").");
         }
         if (!vptr_is_using_builtin_delete) {
-            throw std::runtime_error(std::string("Cannot disown custom deleter (") + context
-                                     + ").");
+            throw std::invalid_argument(std::string("Cannot disown custom deleter (") + context
+                                        + ").");
         }
     }
 
@@ -154,25 +154,25 @@ struct smart_holder {
         const std::type_info *rtti_requested = &typeid(D);
         if (!rtti_uqp_del) {
             if (!is_std_default_delete<T>(*rtti_requested)) {
-                throw std::runtime_error(std::string("Missing unique_ptr deleter (") + context
-                                         + ").");
+                throw std::invalid_argument(std::string("Missing unique_ptr deleter (") + context
+                                            + ").");
             }
             ensure_vptr_is_using_builtin_delete(context);
         } else if (!(*rtti_requested == *rtti_uqp_del)) {
-            throw std::runtime_error(std::string("Incompatible unique_ptr deleter (") + context
-                                     + ").");
+            throw std::invalid_argument(std::string("Incompatible unique_ptr deleter (") + context
+                                        + ").");
         }
     }
 
     void ensure_has_pointee(const char *context) const {
         if (!has_pointee()) {
-            throw std::runtime_error(std::string("Disowned holder (") + context + ").");
+            throw std::invalid_argument(std::string("Disowned holder (") + context + ").");
         }
     }
 
     void ensure_use_count_1(const char *context) const {
         if (vptr.get() == nullptr) {
-            throw std::runtime_error(std::string("Cannot disown nullptr (") + context + ").");
+            throw std::invalid_argument(std::string("Cannot disown nullptr (") + context + ").");
         }
         // In multithreaded environments accessing use_count can lead to
         // race conditions, but in the context of Python it is a bug (elsewhere)
@@ -180,8 +180,8 @@ struct smart_holder {
         // is reached.
         // SMART_HOLDER_WIP: IMPROVABLE: assert(GIL is held).
         if (vptr.use_count() != 1) {
-            throw std::runtime_error(std::string("Cannot disown use_count != 1 (") + context
-                                     + ").");
+            throw std::invalid_argument(std::string("Cannot disown use_count != 1 (") + context
+                                        + ").");
         }
     }
 
