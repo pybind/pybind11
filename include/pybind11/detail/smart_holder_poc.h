@@ -104,10 +104,10 @@ struct smart_holder {
     bool is_populated : 1;
 
     // Design choice: smart_holder is movable but not copyable.
-    smart_holder(smart_holder &&other) = default;
+    smart_holder(smart_holder &&) = default;
     smart_holder(const smart_holder &) = delete;
-    smart_holder &operator=(smart_holder &&other) = default;
-    smart_holder &operator=(const smart_holder &other) = delete;
+    smart_holder &operator=(smart_holder &&) = default;
+    smart_holder &operator=(const smart_holder &) = delete;
 
     smart_holder()
         : rtti_uqp_del{nullptr}, vptr_is_using_noop_deleter{false},
