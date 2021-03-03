@@ -104,7 +104,9 @@ set(PYBIND11_TEST_FILES
     test_class_sh_basic.cpp
     test_class_sh_factory_constructors.cpp
     test_class_sh_inheritance.cpp
+    test_class_sh_trampoline_shared_ptr_cpp_arg.cpp
     test_class_sh_unique_ptr_member.cpp
+    test_class_sh_with_alias.cpp
     test_constants_and_functions.cpp
     test_copy_move.cpp
     test_custom_type_casters.cpp
