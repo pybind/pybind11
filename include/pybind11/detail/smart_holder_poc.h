@@ -38,10 +38,8 @@ Details:
 * If created from an external `shared_ptr`, or a `unique_ptr` with a custom
   deleter, including life-time management for external objects is infeasible.
 
-* The smart_holder is movable but not copyable, as a consequence of using
-  unique_ptr for the vptr_deleter_armed_flag_ptr. Note that the bool for
-  the flag has to live on the heap, for the smart_holder to be movable.
-  unique_ptr is a great fit for this situation.
+* By choice, the smart_holder is movable but not copyable, to keep the design
+  simple, and to guard against accidental copying overhead.
 */
 
 #pragma once
@@ -60,8 +58,9 @@ namespace memory {
 
 template <typename T>
 struct guarded_builtin_delete {
-    bool *flag_ptr;
-    explicit guarded_builtin_delete(bool *armed_flag_ptr) : flag_ptr{armed_flag_ptr} {}
+    std::shared_ptr<bool> flag_ptr;
+    explicit guarded_builtin_delete(std::shared_ptr<bool> armed_flag_ptr)
+        : flag_ptr{armed_flag_ptr} {}
     template <typename T_                                                         = T,
               typename std::enable_if<std::is_destructible<T_>::value, int>::type = 0>
     void operator()(T *raw_ptr) {
@@ -80,8 +79,9 @@ struct guarded_builtin_delete {
 
 template <typename T, typename D>
 struct guarded_custom_deleter {
-    bool *flag_ptr;
-    explicit guarded_custom_deleter(bool *armed_flag_ptr) : flag_ptr{armed_flag_ptr} {}
+    std::shared_ptr<bool> flag_ptr;
+    explicit guarded_custom_deleter(std::shared_ptr<bool> armed_flag_ptr)
+        : flag_ptr{armed_flag_ptr} {}
     void operator()(T *raw_ptr) {
         if (*flag_ptr)
             D()(raw_ptr);
@@ -96,12 +96,18 @@ inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
 
 struct smart_holder {
     const std::type_info *rtti_uqp_del;
-    std::unique_ptr<bool> vptr_deleter_armed_flag_ptr;
+    std::shared_ptr<bool> vptr_deleter_armed_flag_ptr;
     std::shared_ptr<void> vptr;
     bool vptr_is_using_noop_deleter : 1;
     bool vptr_is_using_builtin_delete : 1;
     bool vptr_is_external_shared_ptr : 1;
     bool is_populated : 1;
+
+    // Design choice: smart_holder is movable but not copyable.
+    smart_holder(smart_holder &&) = default;
+    smart_holder(const smart_holder &) = delete;
+    smart_holder &operator=(smart_holder &&) = default;
+    smart_holder &operator=(const smart_holder &) = delete;
 
     smart_holder()
         : rtti_uqp_del{nullptr}, vptr_is_using_noop_deleter{false},
@@ -182,7 +188,7 @@ struct smart_holder {
     template <typename T>
     static smart_holder from_raw_ptr_unowned(T *raw_ptr) {
         smart_holder hld(false);
-        hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
+        hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr));
         hld.vptr_is_using_noop_deleter = true;
         hld.is_populated               = true;
         return hld;
@@ -213,7 +219,7 @@ struct smart_holder {
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr) {
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld(true);
-        hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
+        hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr));
         hld.vptr_is_using_builtin_delete = true;
         hld.is_populated                 = true;
         return hld;
@@ -246,10 +252,10 @@ struct smart_holder {
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
         if (hld.vptr_is_using_builtin_delete) {
             hld.vptr.reset(unq_ptr.get(),
-                           guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr.get()));
+                           guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr));
         } else {
             hld.vptr.reset(unq_ptr.get(),
-                           guarded_custom_deleter<T, D>(hld.vptr_deleter_armed_flag_ptr.get()));
+                           guarded_custom_deleter<T, D>(hld.vptr_deleter_armed_flag_ptr));
         }
         unq_ptr.release();
         hld.is_populated = true;
