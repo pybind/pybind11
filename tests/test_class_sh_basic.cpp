@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace pybind11_tests {
 namespace class_sh_basic {
@@ -57,11 +58,16 @@ std::string pass_udcp(std::unique_ptr<atyp const, sddc> obj) { return "pass_udcp
 // Helpers for testing.
 std::string get_mtxt(atyp const &obj) { return obj.mtxt; }
 std::unique_ptr<atyp> unique_ptr_roundtrip(std::unique_ptr<atyp> obj) { return obj; }
+struct SharedPtrStash {
+    std::vector<std::shared_ptr<const atyp>> stash;
+    void Add(std::shared_ptr<const atyp> obj) { stash.push_back(obj); }
+};
 
 } // namespace class_sh_basic
 } // namespace pybind11_tests
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::atyp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::SharedPtrStash)
 
 namespace pybind11_tests {
 namespace class_sh_basic {
@@ -110,6 +116,9 @@ TEST_SUBMODULE(class_sh_basic, m) {
     // These require selected functions above to work first, as indicated:
     m.def("get_mtxt", get_mtxt);                         // pass_cref
     m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
+    py::classh<SharedPtrStash>(m, "SharedPtrStash")
+        .def(py::init<>())
+        .def("Add", &SharedPtrStash::Add, py::arg("obj"));
 
     m.def("py_type_handle_of_atyp", []() {
         return py::type::handle_of<atyp>(); // Exercises static_cast in this function.

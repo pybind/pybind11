@@ -85,6 +85,26 @@ def test_pass_unique_ptr_disowns(pass_f, rtrn_f, expected):
     )
 
 
+@pytest.mark.parametrize(
+    "pass_f, rtrn_f",
+    [
+        (m.pass_uqmp, m.rtrn_uqmp),
+        (m.pass_uqcp, m.rtrn_uqcp),
+        (m.pass_udmp, m.rtrn_udmp),
+        (m.pass_udcp, m.rtrn_udcp),
+    ],
+)
+def test_cannot_disown_use_count_ne_1(pass_f, rtrn_f):
+    obj = rtrn_f()
+    stash = m.SharedPtrStash()
+    stash.Add(obj)
+    with pytest.raises(ValueError) as exc_info:
+        pass_f(obj)
+    assert str(exc_info.value) == (
+        "Cannot disown use_count != 1 (loaded_as_unique_ptr)."
+    )
+
+
 def test_unique_ptr_roundtrip(num_round_trips=1000):
     # Multiple roundtrips to stress-test instance registration/deregistration.
     recycled = m.atyp("passenger")
