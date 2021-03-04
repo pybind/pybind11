@@ -15,6 +15,49 @@
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
+struct ConstRefCasted {
+  int tag;
+};
+
+PYBIND11_NAMESPACE_BEGIN(pybind11)
+PYBIND11_NAMESPACE_BEGIN(detail)
+template <>
+class type_caster<ConstRefCasted> {
+ public:
+  static constexpr auto name = _<ConstRefCasted>();
+
+  // Input is unimportant, a new value will always be constructed based on the
+  // cast operator.
+  bool load(handle, bool) { return true; }
+
+  operator ConstRefCasted&&() { value = {1}; return std::move(value); }
+  operator ConstRefCasted&() { value = {2}; return value; }
+  operator ConstRefCasted*() { value = {3}; return &value; }
+
+  operator const ConstRefCasted&() { value = {4}; return value; }
+  operator const ConstRefCasted*() { value = {5}; return &value; }
+
+  // custom cast_op to explicitly propagate types to the conversion operators.
+  template <typename T_>
+  using cast_op_type =
+      /// const
+      conditional_t<
+          std::is_same<remove_reference_t<T_>, const ConstRefCasted*>::value, const ConstRefCasted*,
+      conditional_t<
+          std::is_same<T_, const ConstRefCasted&>::value, const ConstRefCasted&,
+      /// non-const
+      conditional_t<
+          std::is_same<remove_reference_t<T_>, ConstRefCasted*>::value, ConstRefCasted*,
+      conditional_t<
+          std::is_same<T_, ConstRefCasted&>::value, ConstRefCasted&,
+          /* else */ConstRefCasted&&>>>>;
+
+ private:
+  ConstRefCasted value = {0};
+};
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(pybind11)
+
 TEST_SUBMODULE(builtin_casters, m) {
     // test_simple_string
     m.def("string_roundtrip", [](const char *s) { return s; });
@@ -98,6 +141,10 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("i64_str", [](std::int64_t v) { return std::to_string(v); });
     m.def("u64_str", [](std::uint64_t v) { return std::to_string(v); });
 
+    // test_int_convert
+    m.def("int_passthrough", [](int arg) { return arg; });
+    m.def("int_passthrough_noconvert", [](int arg) { return arg; }, py::arg{}.noconvert());
+
     // test_tuple
     m.def("pair_passthrough", [](std::pair<bool, std::string> input) {
         return std::make_pair(input.second, input.first);
@@ -140,13 +187,35 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
     m.def("cast_nullptr_t", []() { return std::nullptr_t{}; });
 
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
+
     // test_bool_caster
     m.def("bool_passthrough", [](bool arg) { return arg; });
-    m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg().noconvert());
+    m.def("bool_passthrough_noconvert", [](bool arg) { return arg; }, py::arg{}.noconvert());
+
+    // TODO: This should be disabled and fixed in future Intel compilers
+#if !defined(__INTEL_COMPILER)
+    // Test "bool_passthrough_noconvert" again, but using () instead of {} to construct py::arg
+    // When compiled with the Intel compiler, this results in segmentation faults when importing
+    // the module. Tested with icc (ICC) 2021.1 Beta 20200827, this should be tested again when
+    // a newer version of icc is available.
+    m.def("bool_passthrough_noconvert2", [](bool arg) { return arg; }, py::arg().noconvert());
+#endif
 
     // test_reference_wrapper
     m.def("refwrap_builtin", [](std::reference_wrapper<int> p) { return 10 * p.get(); });
     m.def("refwrap_usertype", [](std::reference_wrapper<UserType> p) { return p.get().value(); });
+    m.def("refwrap_usertype_const", [](std::reference_wrapper<const UserType> p) { return p.get().value(); });
+
+    m.def("refwrap_lvalue", []() -> std::reference_wrapper<UserType> {
+        static UserType x(1);
+        return std::ref(x);
+    });
+    m.def("refwrap_lvalue_const", []() -> std::reference_wrapper<const UserType> {
+        static UserType x(1);
+        return std::cref(x);
+    });
+
     // Not currently supported (std::pair caster has return-by-value cast operator);
     // triggers static_assert failure.
     //m.def("refwrap_pair", [](std::reference_wrapper<std::pair<int, int>>) { });
@@ -189,6 +258,16 @@ TEST_SUBMODULE(builtin_casters, m) {
         py::object o = py::cast(v);
         return py::cast<void *>(o) == v;
     });
+
+    // Tests const/non-const propagation in cast_op.
+    m.def("takes", [](ConstRefCasted x) { return x.tag; });
+    m.def("takes_move", [](ConstRefCasted&& x) { return x.tag; });
+    m.def("takes_ptr", [](ConstRefCasted* x) { return x->tag; });
+    m.def("takes_ref", [](ConstRefCasted& x) { return x.tag; });
+    m.def("takes_ref_wrap", [](std::reference_wrapper<ConstRefCasted> x) { return x.get().tag; });
+    m.def("takes_const_ptr", [](const ConstRefCasted* x) { return x->tag; });
+    m.def("takes_const_ref", [](const ConstRefCasted& x) { return x.tag; });
+    m.def("takes_const_ref_wrap", [](std::reference_wrapper<const ConstRefCasted> x) { return x.get().tag; });
 
     // For Drake issue: https://github.com/RobotLocomotion/drake/issues/9398
     m.def("test_pointer_caster", []() -> bool {

@@ -18,10 +18,10 @@ def test_docstring_options():
     assert m.test_overloaded3.__doc__ == "Overload docstr"
 
     # options.enable_function_signatures()
-    assert m.test_function3.__doc__ .startswith("test_function3(a: int, b: int) -> None")
+    assert m.test_function3.__doc__.startswith("test_function3(a: int, b: int) -> None")
 
-    assert m.test_function4.__doc__ .startswith("test_function4(a: int, b: int) -> None")
-    assert m.test_function4.__doc__ .endswith("A custom docstring\n")
+    assert m.test_function4.__doc__.startswith("test_function4(a: int, b: int) -> None")
+    assert m.test_function4.__doc__.endswith("A custom docstring\n")
 
     # options.disable_function_signatures()
     # options.disable_user_defined_docstrings()
@@ -31,8 +31,11 @@ def test_docstring_options():
     assert m.test_function6.__doc__ == "A custom docstring"
 
     # RAII destructor
-    assert m.test_function7.__doc__ .startswith("test_function7(a: int, b: int) -> None")
-    assert m.test_function7.__doc__ .endswith("A custom docstring\n")
+    assert m.test_function7.__doc__.startswith("test_function7(a: int, b: int) -> None")
+    assert m.test_function7.__doc__.endswith("A custom docstring\n")
+
+    # when all options are disabled, no docstring (instead of an empty one) should be generated
+    assert m.test_function8.__doc__ is None
 
     # Suppression of user-defined docstrings for non-function objects
     assert not m.DocstringTestFoo.__doc__

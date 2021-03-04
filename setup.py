@@ -3,128 +3,113 @@
 
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
 
-from setuptools import setup
-from distutils.command.install_headers import install_headers
-from distutils.command.build_py import build_py
-from pybind11 import __version__
+import contextlib
 import os
+import re
+import shutil
+import string
+import subprocess
+import sys
+import tempfile
 
-package_data = [
-    'include/pybind11/detail/class.h',
-    'include/pybind11/detail/common.h',
-    'include/pybind11/detail/descr.h',
-    'include/pybind11/detail/init.h',
-    'include/pybind11/detail/internals.h',
-    'include/pybind11/detail/typeid.h',
-    'include/pybind11/attr.h',
-    'include/pybind11/buffer_info.h',
-    'include/pybind11/cast.h',
-    'include/pybind11/chrono.h',
-    'include/pybind11/common.h',
-    'include/pybind11/complex.h',
-    'include/pybind11/eigen.h',
-    'include/pybind11/embed.h',
-    'include/pybind11/eval.h',
-    'include/pybind11/functional.h',
-    'include/pybind11/iostream.h',
-    'include/pybind11/numpy.h',
-    'include/pybind11/operators.h',
-    'include/pybind11/options.h',
-    'include/pybind11/pybind11.h',
-    'include/pybind11/pytypes.h',
-    'include/pybind11/stl.h',
-    'include/pybind11/stl_bind.h',
-]
+import setuptools.command.sdist
 
-# Prevent installation of pybind11 headers by setting
-# PYBIND11_USE_CMAKE.
-if os.environ.get('PYBIND11_USE_CMAKE'):
-    headers = []
-else:
-    headers = package_data
+DIR = os.path.abspath(os.path.dirname(__file__))
+VERSION_REGEX = re.compile(
+    r"^\s*#\s*define\s+PYBIND11_VERSION_([A-Z]+)\s+(.*)$", re.MULTILINE
+)
 
+# PYBIND11_GLOBAL_SDIST will build a different sdist, with the python-headers
+# files, and the sys.prefix files (CMake and headers).
 
-class InstallHeaders(install_headers):
-    """Use custom header installer because the default one flattens subdirectories"""
-    def run(self):
-        if not self.distribution.headers:
-            return
+global_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
 
-        for header in self.distribution.headers:
-            subdir = os.path.dirname(os.path.relpath(header, 'include/pybind11'))
-            install_dir = os.path.join(self.install_dir, subdir)
-            self.mkpath(install_dir)
+setup_py = "tools/setup_global.py.in" if global_sdist else "tools/setup_main.py.in"
+extra_cmd = 'cmdclass["sdist"] = SDist\n'
 
-            (out, _) = self.copy_file(header, install_dir)
-            self.outfiles.append(out)
+to_src = (
+    ("pyproject.toml", "tools/pyproject.toml"),
+    ("setup.py", setup_py),
+)
+
+# Read the listed version
+with open("pybind11/_version.py") as f:
+    code = compile(f.read(), "pybind11/_version.py", "exec")
+loc = {}
+exec(code, loc)
+version = loc["__version__"]
+
+# Verify that the version matches the one in C++
+with open("include/pybind11/detail/common.h") as f:
+    matches = dict(VERSION_REGEX.findall(f.read()))
+cpp_version = "{MAJOR}.{MINOR}.{PATCH}".format(**matches)
+if version != cpp_version:
+    msg = "Python version {} does not match C++ version {}!".format(
+        version, cpp_version
+    )
+    raise RuntimeError(msg)
 
 
-# Install the headers inside the package as well
-class BuildPy(build_py):
-    def build_package_data(self):
-        build_py.build_package_data(self)
-        for header in package_data:
-            target = os.path.join(self.build_lib, 'pybind11', header)
-            self.mkpath(os.path.dirname(target))
-            self.copy_file(header, target, preserve_mode=False)
-
-    def get_outputs(self, include_bytecode=1):
-        outputs = build_py.get_outputs(self, include_bytecode=include_bytecode)
-        for header in package_data:
-            target = os.path.join(self.build_lib, 'pybind11', header)
-            outputs.append(target)
-        return outputs
+def get_and_replace(filename, binary=False, **opts):
+    with open(filename, "rb" if binary else "r") as f:
+        contents = f.read()
+    # Replacement has to be done on text in Python 3 (both work in Python 2)
+    if binary:
+        return string.Template(contents.decode()).substitute(opts).encode()
+    else:
+        return string.Template(contents).substitute(opts)
 
 
-setup(
-    name='pybind11',
-    version=__version__,
-    description='Seamless operability between C++11 and Python',
-    author='Wenzel Jakob',
-    author_email='wenzel.jakob@epfl.ch',
-    url='https://github.com/pybind/pybind11',
-    download_url='https://github.com/pybind/pybind11/tarball/v' + __version__,
-    packages=['pybind11'],
-    license='BSD',
-    headers=headers,
-    zip_safe=False,
-    cmdclass=dict(install_headers=InstallHeaders, build_py=BuildPy),
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Utilities',
-        'Programming Language :: C++',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'License :: OSI Approved :: BSD License'
-    ],
-    keywords='C++11, Python bindings',
-    long_description="""pybind11 is a lightweight header-only library that
-exposes C++ types in Python and vice versa, mainly to create Python bindings of
-existing C++ code. Its goals and syntax are similar to the excellent
-Boost.Python by David Abrahams: to minimize boilerplate code in traditional
-extension modules by inferring type information using compile-time
-introspection.
+# Use our input files instead when making the SDist (and anything that depends
+# on it, like a wheel)
+class SDist(setuptools.command.sdist.sdist):
+    def make_release_tree(self, base_dir, files):
+        setuptools.command.sdist.sdist.make_release_tree(self, base_dir, files)
 
-The main issue with Boost.Python-and the reason for creating such a similar
-project-is Boost. Boost is an enormously large and complex suite of utility
-libraries that works with almost every C++ compiler in existence. This
-compatibility has its cost: arcane template tricks and workarounds are
-necessary to support the oldest and buggiest of compiler specimens. Now that
-C++11-compatible compilers are widely available, this heavy machinery has
-become an excessively large and unnecessary dependency.
+        for to, src in to_src:
+            txt = get_and_replace(src, binary=True, version=version, extra_cmd="")
 
-Think of this library as a tiny self-contained version of Boost.Python with
-everything stripped away that isn't relevant for binding generation. Without
-comments, the core header files only require ~4K lines of code and depend on
-Python (2.7 or 3.x, or PyPy2.7 >= 5.7) and the C++ standard library. This
-compact implementation was possible thanks to some of the new C++11 language
-features (specifically: tuples, lambda functions and variadic templates). Since
-its creation, this library has grown beyond Boost.Python in many ways, leading
-to dramatically simpler binding code in many common situations.""")
+            dest = os.path.join(base_dir, to)
+
+            # This is normally linked, so unlink before writing!
+            os.unlink(dest)
+            with open(dest, "wb") as f:
+                f.write(txt)
+
+
+# Backport from Python 3
+@contextlib.contextmanager
+def TemporaryDirectory():  # noqa: N802
+    "Prepare a temporary directory, cleanup when done"
+    try:
+        tmpdir = tempfile.mkdtemp()
+        yield tmpdir
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+# Remove the CMake install directory when done
+@contextlib.contextmanager
+def remove_output(*sources):
+    try:
+        yield
+    finally:
+        for src in sources:
+            shutil.rmtree(src)
+
+
+with remove_output("pybind11/include", "pybind11/share"):
+    # Generate the files if they are not present.
+    with TemporaryDirectory() as tmpdir:
+        cmd = ["cmake", "-S", ".", "-B", tmpdir] + [
+            "-DCMAKE_INSTALL_PREFIX=pybind11",
+            "-DBUILD_TESTING=OFF",
+            "-DPYBIND11_NOPYTHON=ON",
+        ]
+        cmake_opts = dict(cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)
+        subprocess.check_call(cmd, **cmake_opts)
+        subprocess.check_call(["cmake", "--install", tmpdir], **cmake_opts)
+
+    txt = get_and_replace(setup_py, version=version, extra_cmd=extra_cmd)
+    code = compile(txt, setup_py, "exec")
+    exec(code, {"SDist": SDist})

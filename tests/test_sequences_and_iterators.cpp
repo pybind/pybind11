@@ -13,6 +13,8 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
+#include <algorithm>
+
 template<typename T>
 class NonZeroIterator {
     const T* ptr_;
@@ -81,7 +83,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     py::class_<Sliceable>(m,"Sliceable")
         .def(py::init<int>())
         .def("__getitem__",[](const Sliceable &s, py::slice slice) {
-          ssize_t start, stop, step, slicelength;
+          py::ssize_t start, stop, step, slicelength;
           if (!slice.compute(s.size, &start, &stop, &step, &slicelength))
               throw py::error_already_set();
           int istart = static_cast<int>(start);
@@ -198,7 +200,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
             size_t start, stop, step, slicelength;
             if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
                 throw py::error_already_set();
-            Sequence *seq = new Sequence(slicelength);
+            auto *seq = new Sequence(slicelength);
             for (size_t i = 0; i < slicelength; ++i) {
                 (*seq)[i] = s[start]; start += step;
             }

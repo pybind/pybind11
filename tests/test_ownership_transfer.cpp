@@ -95,27 +95,27 @@ class DefinePyBaseWrapped : public py::wrapper<DefineBase<label>> {
 };
 
 // BaseBad - No wrapper alias.
-typedef DefineBase<BaseBadLabel> BaseBad;
-typedef DefineBaseContainer<BaseBadLabel> BaseBadContainer;
-typedef Stats<ChildBadLabel> ChildBadStats;
+using BaseBad = DefineBase<BaseBadLabel>;
+using BaseBadContainer = DefineBaseContainer<BaseBadLabel>;
+using ChildBadStats = Stats<ChildBadLabel>;
 
 // Base - wrapper alias used in pybind definition.
-typedef DefineBase<BaseLabel> Base;
-typedef DefinePyBase<BaseLabel> PyBase;
-typedef DefineBaseContainer<BaseLabel> BaseContainer;
-typedef Stats<ChildLabel> ChildStats;
+using Base = DefineBase<BaseLabel>;
+using PyBase = DefinePyBase<BaseLabel>;
+using BaseContainer = DefineBaseContainer<BaseLabel>;
+using ChildStats = Stats<ChildLabel>;
 
 // - Unique Ptr
 // BaseBad - No wrapper alias.
-typedef DefineBase<BaseBadUniqueLabel> BaseBadUnique;
-typedef DefineBaseUniqueContainer<BaseBadUniqueLabel> BaseBadUniqueContainer;
-typedef Stats<ChildBadUniqueLabel> ChildBadUniqueStats;
+using BaseBadUnique = DefineBase<BaseBadUniqueLabel>;
+using BaseBadUniqueContainer = DefineBaseUniqueContainer<BaseBadUniqueLabel>;
+using ChildBadUniqueStats = Stats<ChildBadUniqueLabel>;
 
 // Base - wrapper alias used directly.
-typedef DefineBase<BaseUniqueLabel> BaseUnique;
-typedef DefinePyBaseWrapped<BaseUniqueLabel> PyBaseUnique;
-typedef DefineBaseUniqueContainer<BaseUniqueLabel> BaseUniqueContainer;
-typedef Stats<ChildUniqueLabel> ChildUniqueStats;
+using BaseUnique = DefineBase<BaseUniqueLabel>;
+using PyBaseUnique = DefinePyBaseWrapped<BaseUniqueLabel>;
+using BaseUniqueContainer = DefineBaseUniqueContainer<BaseUniqueLabel>;
+using ChildUniqueStats = Stats<ChildUniqueLabel>;
 
 class PyInstanceStats {
  public:

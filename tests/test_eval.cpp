@@ -14,7 +14,7 @@
 TEST_SUBMODULE(eval_, m) {
     // test_evals
 
-    auto global = py::dict(py::module::import("__main__").attr("__dict__"));
+    auto global = py::dict(py::module_::import("__main__").attr("__dict__"));
 
     m.def("test_eval_statements", [global]() {
         auto local = py::dict();
@@ -87,5 +87,13 @@ TEST_SUBMODULE(eval_, m) {
             return true;
         }
         return false;
+    });
+
+    // test_eval_empty_globals
+    m.def("eval_empty_globals", [](py::object global) {
+        if (global.is_none())
+            global = py::dict();
+        auto int_class = py::eval("isinstance(42, int)", global);
+        return global;
     });
 }

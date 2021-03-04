@@ -86,13 +86,13 @@ TEST_SUBMODULE(stl_binders, m) {
 
     // test_noncopyable_containers
     py::bind_vector<std::vector<E_nc>>(m, "VectorENC");
-    m.def("get_vnc", &one_to_n<std::vector<E_nc>>, py::return_value_policy::reference);
+    m.def("get_vnc", &one_to_n<std::vector<E_nc>>);
     py::bind_vector<std::deque<E_nc>>(m, "DequeENC");
-    m.def("get_dnc", &one_to_n<std::deque<E_nc>>, py::return_value_policy::reference);
+    m.def("get_dnc", &one_to_n<std::deque<E_nc>>);
     py::bind_map<std::map<int, E_nc>>(m, "MapENC");
-    m.def("get_mnc", &times_ten<std::map<int, E_nc>>, py::return_value_policy::reference);
+    m.def("get_mnc", &times_ten<std::map<int, E_nc>>);
     py::bind_map<std::unordered_map<int, E_nc>>(m, "UmapENC");
-    m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>, py::return_value_policy::reference);
+    m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>);
     // Issue #1885: binding nested std::map<X, Container<E>> with E non-copyable
     py::bind_map<std::map<int, std::vector<E_nc>>>(m, "MapVecENC");
     m.def("get_nvnc", [](int n)
@@ -102,11 +102,11 @@ TEST_SUBMODULE(stl_binders, m) {
                 for (int j = 1; j <= n; j++)
                     (*m)[i].emplace_back(j);
             return m;
-        }, py::return_value_policy::reference);
+        });
     py::bind_map<std::map<int, std::map<int, E_nc>>>(m, "MapMapENC");
-    m.def("get_nmnc", &times_hundred<std::map<int, std::map<int, E_nc>>>, py::return_value_policy::reference);
+    m.def("get_nmnc", &times_hundred<std::map<int, std::map<int, E_nc>>>);
     py::bind_map<std::unordered_map<int, std::unordered_map<int, E_nc>>>(m, "UmapUmapENC");
-    m.def("get_numnc", &times_hundred<std::unordered_map<int, std::unordered_map<int, E_nc>>>, py::return_value_policy::reference);
+    m.def("get_numnc", &times_hundred<std::unordered_map<int, std::unordered_map<int, E_nc>>>);
 
     // test_vector_buffer
     py::bind_vector<std::vector<unsigned char>>(m, "VectorUChar", py::buffer_protocol());
@@ -117,7 +117,7 @@ TEST_SUBMODULE(stl_binders, m) {
     });
 
     // The rest depends on numpy:
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_vector_buffer_numpy

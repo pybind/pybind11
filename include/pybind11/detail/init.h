@@ -132,6 +132,7 @@ void construct(value_and_holder &v_h, Alias<Class> *alias_ptr, bool) {
 template <typename Class>
 void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
     auto *ptr = holder_helper<Holder<Class>>::get(holder);
+    no_nullptr(ptr);
     // If we need an alias, check that the held pointer is actually an alias instance
     if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
         throw type_error("pybind11::init(): construction failed: returned holder-wrapped instance "

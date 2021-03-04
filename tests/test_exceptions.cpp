@@ -13,7 +13,7 @@
 class MyException : public std::exception {
 public:
     explicit MyException(const char * m) : message{m} {}
-    virtual const char * what() const noexcept override {return message.c_str();}
+    const char * what() const noexcept override {return message.c_str();}
 private:
     std::string message = "";
 };
@@ -22,7 +22,7 @@ private:
 class MyException2 : public std::exception {
 public:
     explicit MyException2(const char * m) : message{m} {}
-    virtual const char * what() const noexcept override {return message.c_str();}
+    const char * what() const noexcept override {return message.c_str();}
 private:
     std::string message = "";
 };
@@ -32,6 +32,13 @@ class MyException3 {
 public:
     explicit MyException3(const char * m) : message{m} {}
     virtual const char * what() const noexcept {return message.c_str();}
+    // Rule of 5 BEGIN: to preempt compiler warnings.
+    MyException3(const MyException3&) = default;
+    MyException3(MyException3&&) = default;
+    MyException3& operator=(const MyException3&) = default;
+    MyException3& operator=(MyException3&&) = default;
+    virtual ~MyException3() = default;
+    // Rule of 5 END.
 private:
     std::string message = "";
 };
@@ -41,7 +48,7 @@ private:
 class MyException4 : public std::exception {
 public:
     explicit MyException4(const char * m) : message{m} {}
-    virtual const char * what() const noexcept override {return message.c_str();}
+    const char * what() const noexcept override {return message.c_str();}
 private:
     std::string message = "";
 };
@@ -64,6 +71,25 @@ struct PythonCallInDestructor {
 
     py::dict d;
 };
+
+
+
+struct PythonAlreadySetInDestructor {
+    PythonAlreadySetInDestructor(const py::str &s) : s(s) {}
+    ~PythonAlreadySetInDestructor() {
+        py::dict foo;
+        try {
+            // Assign to a py::object to force read access of nonexistent dict entry
+            py::object o = foo["bar"];
+        }
+        catch (py::error_already_set& ex) {
+            ex.discard_as_unraisable(s);
+        }
+    }
+
+    py::str s;
+};
+
 
 TEST_SUBMODULE(exceptions, m) {
     m.def("throw_std_exception", []() {
@@ -144,7 +170,7 @@ TEST_SUBMODULE(exceptions, m) {
     m.def("modulenotfound_exception_matches_base", []() {
         try {
             // On Python >= 3.6, this raises a ModuleNotFoundError, a subclass of ImportError
-            py::module::import("nonexistent");
+            py::module_::import("nonexistent");
         }
         catch (py::error_already_set &ex) {
             if (!ex.matches(PyExc_ImportError)) throw;
@@ -183,6 +209,11 @@ TEST_SUBMODULE(exceptions, m) {
         return false;
     });
 
+    m.def("python_alreadyset_in_destructor", [](py::str s) {
+        PythonAlreadySetInDestructor alreadyset_in_destructor(s);
+        return true;
+    });
+
     // test_nested_throws
     m.def("try_catch", [m](py::object exc_type, py::function f, py::args args) {
         try { f(*args); }
@@ -193,5 +224,8 @@ TEST_SUBMODULE(exceptions, m) {
                 throw;
         }
     });
+
+    // Test repr that cannot be displayed
+    m.def("simple_bool_passthrough", [](bool x) {return x;});
 
 }

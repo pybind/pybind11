@@ -117,7 +117,7 @@ namespace pybind11 {
         static const void *get(const itype *src, const std::type_info*& type)
         { type = src ? Animal::type_of_kind(src->kind) : nullptr; return src; }
     };
-}
+} // namespace pybind11
 
 TEST_SUBMODULE(tagbased_polymorphic, m) {
     py::class_<Animal>(m, "Animal")

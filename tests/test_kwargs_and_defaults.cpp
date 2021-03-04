@@ -71,7 +71,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         py::tuple t(a.size());
         for (size_t i = 0; i < a.size(); i++)
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<ssize_t>(i)));
+            t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         return t;
     });
     m.def("mixed_args_refcount", [](py::object o, py::args a) {
@@ -80,7 +80,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         t[0] = o.ref_count();
         for (size_t i = 0; i < a.size(); i++)
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i + 1] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<ssize_t>(i)));
+            t[i + 1] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         return t;
     });
 
@@ -95,28 +95,39 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 //    m.def("bad_args7", [](py::kwargs, py::kwargs) {});
 
     // test_keyword_only_args
-    m.def("kwonly_all", [](int i, int j) { return py::make_tuple(i, j); },
-            py::kwonly(), py::arg("i"), py::arg("j"));
-    m.def("kwonly_some", [](int i, int j, int k) { return py::make_tuple(i, j, k); },
-            py::arg(), py::kwonly(), py::arg("j"), py::arg("k"));
-    m.def("kwonly_with_defaults", [](int i, int j, int k, int z) { return py::make_tuple(i, j, k, z); },
-            py::arg() = 3, "j"_a = 4, py::kwonly(), "k"_a = 5, "z"_a);
-    m.def("kwonly_mixed", [](int i, int j) { return py::make_tuple(i, j); },
-            "i"_a, py::kwonly(), "j"_a);
-    m.def("kwonly_plus_more", [](int i, int j, int k, py::kwargs kwargs) {
+    m.def("kw_only_all", [](int i, int j) { return py::make_tuple(i, j); },
+            py::kw_only(), py::arg("i"), py::arg("j"));
+    m.def("kw_only_some", [](int i, int j, int k) { return py::make_tuple(i, j, k); },
+            py::arg(), py::kw_only(), py::arg("j"), py::arg("k"));
+    m.def("kw_only_with_defaults", [](int i, int j, int k, int z) { return py::make_tuple(i, j, k, z); },
+            py::arg() = 3, "j"_a = 4, py::kw_only(), "k"_a = 5, "z"_a);
+    m.def("kw_only_mixed", [](int i, int j) { return py::make_tuple(i, j); },
+            "i"_a, py::kw_only(), "j"_a);
+    m.def("kw_only_plus_more", [](int i, int j, int k, py::kwargs kwargs) {
             return py::make_tuple(i, j, k, kwargs); },
-            py::arg() /* positional */, py::arg("j") = -1 /* both */, py::kwonly(), py::arg("k") /* kw-only */);
+            py::arg() /* positional */, py::arg("j") = -1 /* both */, py::kw_only(), py::arg("k") /* kw-only */);
 
-    m.def("register_invalid_kwonly", [](py::module m) {
-        m.def("bad_kwonly", [](int i, int j) { return py::make_tuple(i, j); },
-                py::kwonly(), py::arg() /* invalid unnamed argument */, "j"_a);
+    m.def("register_invalid_kw_only", [](py::module_ m) {
+        m.def("bad_kw_only", [](int i, int j) { return py::make_tuple(i, j); },
+                py::kw_only(), py::arg() /* invalid unnamed argument */, "j"_a);
     });
 
+    // test_positional_only_args
+    m.def("pos_only_all", [](int i, int j) { return py::make_tuple(i, j); },
+            py::arg("i"), py::arg("j"), py::pos_only());
+    m.def("pos_only_mix", [](int i, int j) { return py::make_tuple(i, j); },
+            py::arg("i"), py::pos_only(), py::arg("j"));
+    m.def("pos_kw_only_mix", [](int i, int j, int k) { return py::make_tuple(i, j, k); },
+            py::arg("i"), py::pos_only(), py::arg("j"), py::kw_only(), py::arg("k"));
+    m.def("pos_only_def_mix", [](int i, int j, int k) { return py::make_tuple(i, j, k); },
+            py::arg("i"), py::arg("j") = 2, py::pos_only(), py::arg("k") = 3);
+
+
     // These should fail to compile:
-    // argument annotations are required when using kwonly
-//    m.def("bad_kwonly1", [](int) {}, py::kwonly());
-    // can't specify both `py::kwonly` and a `py::args` argument
-//    m.def("bad_kwonly2", [](int i, py::args) {}, py::kwonly(), "i"_a);
+    // argument annotations are required when using kw_only
+//    m.def("bad_kw_only1", [](int) {}, py::kw_only());
+    // can't specify both `py::kw_only` and a `py::args` argument
+//    m.def("bad_kw_only2", [](int i, py::args) {}, py::kw_only(), "i"_a);
 
     // test_function_signatures (along with most of the above)
     struct KWClass { void foo(int, float) {} };
@@ -127,5 +138,5 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     // Make sure a class (not an instance) can be used as a default argument.
     // The return value doesn't matter, only that the module is importable.
     m.def("class_default_argument", [](py::object a) { return py::repr(a); },
-        "a"_a = py::module::import("decimal").attr("Decimal"));
+        "a"_a = py::module_::import("decimal").attr("Decimal"));
 }
