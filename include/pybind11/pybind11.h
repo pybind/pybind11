@@ -1489,7 +1489,12 @@ public:
         // This should be called when the item is *actually* being deleted
         // TODO(eric.cousineau): Do we care about use cases where the user manually calls this?
         auto *inst = (detail::instance *) self.ptr();
-        const detail::type_info *lowest_type = detail::get_lowest_type(self);
+        const detail::type_info *lowest_type = detail::get_lowest_type(self, false);
+        if (!lowest_type) {
+            // This should only happen in a multi-inheritance case (which is
+            // not yet supported for this fork's ownership transfer setup).
+            return;
+        }
         auto& release_info = lowest_type->release_info;
         // The references are as follows:
         //   1. When Python calls __del__ via tp_del (default slot)
