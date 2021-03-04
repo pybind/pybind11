@@ -37,10 +37,10 @@ jobs:
             python: 3.6
             args: >
               -DPYBIND11_FINDPYTHON=ON
-          - runs-on: windows-latest
-            python: 3.6
-            args: >
-              -DPYBIND11_FINDPYTHON=ON
+          # - runs-on: windows-latest
+          #   python: 3.6
+          #   args: >
+          #     -DPYBIND11_FINDPYTHON=ON
 
         # # These items will be removed from the build matrix, keys must match.
         # exclude:
