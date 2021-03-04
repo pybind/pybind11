@@ -117,7 +117,14 @@ TEST_SUBMODULE(callbacks, m) {
         }
     });
 
-    class AbstractBase { public: virtual unsigned int func() = 0; };
+    class AbstractBase {
+    public:
+        // [workaround(intel)] = default does not work here
+        // Defaulting this destructor results in linking errors with the Intel compiler
+        // (in Debug builds only, tested with icpc (ICC) 2021.1 Beta 20200827)
+        virtual ~AbstractBase() {};  // NOLINT(modernize-use-equals-default)
+        virtual unsigned int func() = 0;
+    };
     m.def("func_accepting_func_accepting_base", [](std::function<double(AbstractBase&)>) { });
 
     struct MovableObject {

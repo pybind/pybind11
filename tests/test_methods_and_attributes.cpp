@@ -207,12 +207,12 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         // test_no_mixed_overloads
         // Raise error if trying to mix static/non-static overloads on the same name:
         .def_static("add_mixed_overloads1", []() {
-            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
+            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module_::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
             emna.def       ("overload_mixed1", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded))
                 .def_static("overload_mixed1", static_cast<py::str (              *)(float   )>(&ExampleMandA::overloaded));
         })
         .def_static("add_mixed_overloads2", []() {
-            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
+            auto emna = py::reinterpret_borrow<py::class_<ExampleMandA>>(py::module_::import("pybind11_tests.methods_and_attributes").attr("ExampleMandA"));
             emna.def_static("overload_mixed2", static_cast<py::str (              *)(float   )>(&ExampleMandA::overloaded))
                 .def       ("overload_mixed2", static_cast<py::str (ExampleMandA::*)(int, int)>(&ExampleMandA::overloaded));
         })
@@ -284,6 +284,12 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
         .def_property_readonly_static("readonly", [](py::object) { return 1; });
 
+    // test_overload_ordering
+    m.def("overload_order", [](std::string) { return 1; });
+    m.def("overload_order", [](std::string) { return 2; });
+    m.def("overload_order", [](int) { return 3; });
+    m.def("overload_order", [](int) { return 4; }, py::prepend{});
+
 #if !defined(PYPY_VERSION)
     // test_dynamic_attributes
     class DynamicClass {
@@ -308,27 +314,32 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.attr("debug_enabled") = false;
 #endif
     m.def("bad_arg_def_named", []{
-        auto m = py::module::import("pybind11_tests");
+        auto m = py::module_::import("pybind11_tests");
         m.def("should_fail", [](int, UnregisteredType) {}, py::arg(), py::arg("a") = UnregisteredType());
     });
     m.def("bad_arg_def_unnamed", []{
-        auto m = py::module::import("pybind11_tests");
+        auto m = py::module_::import("pybind11_tests");
         m.def("should_fail", [](int, UnregisteredType) {}, py::arg(), py::arg() = UnregisteredType());
     });
+
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // test_accepts_none
     py::class_<NoneTester, std::shared_ptr<NoneTester>>(m, "NoneTester")
         .def(py::init<>());
-    m.def("no_none1", &none1, py::arg().none(false));
-    m.def("no_none2", &none2, py::arg().none(false));
-    m.def("no_none3", &none3, py::arg().none(false));
-    m.def("no_none4", &none4, py::arg().none(false));
-    m.def("no_none5", &none5, py::arg().none(false));
+    m.def("no_none1", &none1, py::arg{}.none(false));
+    m.def("no_none2", &none2, py::arg{}.none(false));
+    m.def("no_none3", &none3, py::arg{}.none(false));
+    m.def("no_none4", &none4, py::arg{}.none(false));
+    m.def("no_none5", &none5, py::arg{}.none(false));
     m.def("ok_none1", &none1);
-    m.def("ok_none2", &none2, py::arg().none(true));
+    m.def("ok_none2", &none2, py::arg{}.none(true));
     m.def("ok_none3", &none3);
-    m.def("ok_none4", &none4, py::arg().none(true));
+    m.def("ok_none4", &none4, py::arg{}.none(true));
     m.def("ok_none5", &none5);
+
+    m.def("no_none_kwarg", &none2, "a"_a.none(false));
+    m.def("no_none_kwarg_kw_only", &none2, py::kw_only(), "a"_a.none(false));
 
     // test_str_issue
     // Issue #283: __str__ called on uninitialized instance when constructor arguments invalid

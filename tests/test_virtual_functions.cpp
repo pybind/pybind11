@@ -47,7 +47,7 @@ public:
 
     int run(int value) override {
         /* Generate wrapping code that enables native function overloading */
-        PYBIND11_OVERLOAD(
+        PYBIND11_OVERRIDE(
             int,         /* Return type */
             ExampleVirt, /* Parent class */
             run,         /* Name of function */
@@ -56,7 +56,7 @@ public:
     }
 
     bool run_bool() override {
-        PYBIND11_OVERLOAD_PURE(
+        PYBIND11_OVERRIDE_PURE(
             bool,         /* Return type */
             ExampleVirt,  /* Parent class */
             run_bool,     /* Name of function */
@@ -66,7 +66,7 @@ public:
     }
 
     void pure_virtual() override {
-        PYBIND11_OVERLOAD_PURE(
+        PYBIND11_OVERRIDE_PURE(
             void,         /* Return type */
             ExampleVirt,  /* Parent class */
             pure_virtual, /* Name of function */
@@ -78,7 +78,7 @@ public:
     // We can return reference types for compatibility with C++ virtual interfaces that do so, but
     // note they have some significant limitations (see the documentation).
     const std::string &get_string1() override {
-        PYBIND11_OVERLOAD(
+        PYBIND11_OVERRIDE(
             const std::string &, /* Return type */
             ExampleVirt,         /* Parent class */
             get_string1,         /* Name of function */
@@ -87,7 +87,7 @@ public:
     }
 
     const std::string *get_string2() override {
-        PYBIND11_OVERLOAD(
+        PYBIND11_OVERRIDE(
             const std::string *, /* Return type */
             ExampleVirt,         /* Parent class */
             get_string2,         /* Name of function */
@@ -129,7 +129,7 @@ private:
 
 class NCVirt {
 public:
-    virtual ~NCVirt() { }
+    virtual ~NCVirt() = default;
     NCVirt() = default;
     NCVirt(const NCVirt&) = delete;
     virtual NonCopyable get_noncopyable(int a, int b) { return NonCopyable(a, b); }
@@ -139,13 +139,13 @@ public:
     std::string print_movable(int a, int b) { return get_movable(a, b).get_value(); }
 };
 class NCVirtTrampoline : public NCVirt {
-#if !defined(__INTEL_COMPILER)
+#if !defined(__INTEL_COMPILER) && !defined(__CUDACC__) && !defined(__PGIC__)
     NonCopyable get_noncopyable(int a, int b) override {
-        PYBIND11_OVERLOAD(NonCopyable, NCVirt, get_noncopyable, a, b);
+        PYBIND11_OVERRIDE(NonCopyable, NCVirt, get_noncopyable, a, b);
     }
 #endif
     Movable get_movable(int a, int b) override {
-        PYBIND11_OVERLOAD_PURE(Movable, NCVirt, get_movable, a, b);
+        PYBIND11_OVERRIDE_PURE(Movable, NCVirt, get_movable, a, b);
     }
 };
 
@@ -158,8 +158,8 @@ struct Base {
 };
 
 struct DispatchIssue : Base {
-    virtual std::string dispatch() const {
-        PYBIND11_OVERLOAD_PURE(std::string, Base, dispatch, /* no arguments */);
+    std::string dispatch() const override {
+        PYBIND11_OVERRIDE_PURE(std::string, Base, dispatch, /* no arguments */);
     }
 };
 
@@ -187,7 +187,7 @@ static void test_gil_from_thread() {
 
 // Forward declaration (so that we can put the main tests here; the inherited virtual approaches are
 // rather long).
-void initialize_inherited_virtuals(py::module &m);
+void initialize_inherited_virtuals(py::module_ &m);
 
 TEST_SUBMODULE(virtual_functions, m) {
     // test_override
@@ -205,7 +205,7 @@ TEST_SUBMODULE(virtual_functions, m) {
         .def(py::init<int, int>());
 
     // test_move_support
-#if !defined(__INTEL_COMPILER)
+#if !defined(__INTEL_COMPILER) && !defined(__CUDACC__) && !defined(__PGIC__)
     py::class_<NCVirt, NCVirtTrampoline>(m, "NCVirt")
         .def(py::init<>())
         .def("get_noncopyable", &NCVirt::get_noncopyable)
@@ -227,20 +227,20 @@ TEST_SUBMODULE(virtual_functions, m) {
     struct A {
         A() = default;
         A(const A&) = delete;
-        virtual ~A() {}
+        virtual ~A() = default;
         virtual void f() { py::print("A.f()"); }
     };
 
     struct PyA : A {
         PyA() { py::print("PyA.PyA()"); }
         PyA(const PyA&) = delete;
-        ~PyA() { py::print("PyA.~PyA()"); }
+        ~PyA() override { py::print("PyA.~PyA()"); }
 
         void f() override {
             py::print("PyA.f()");
             // This convolution just gives a `void`, but tests that PYBIND11_TYPE() works to protect
             // a type containing a ,
-            PYBIND11_OVERLOAD(PYBIND11_TYPE(typename std::enable_if<true, void>::type), A, f);
+            PYBIND11_OVERRIDE(PYBIND11_TYPE(typename std::enable_if<true, void>::type), A, f);
         }
     };
 
@@ -255,17 +255,17 @@ TEST_SUBMODULE(virtual_functions, m) {
     struct A2 {
         A2() = default;
         A2(const A2&) = delete;
-        virtual ~A2() {}
+        virtual ~A2() = default;
         virtual void f() { py::print("A2.f()"); }
     };
 
     struct PyA2 : A2 {
         PyA2() { py::print("PyA2.PyA2()"); }
         PyA2(const PyA2&) = delete;
-        ~PyA2() { py::print("PyA2.~PyA2()"); }
+        ~PyA2() override { py::print("PyA2.~PyA2()"); }
         void f() override {
             py::print("PyA2.f()");
-            PYBIND11_OVERLOAD(void, A2, f);
+            PYBIND11_OVERRIDE(void, A2, f);
         }
     };
 
@@ -304,19 +304,19 @@ TEST_SUBMODULE(virtual_functions, m) {
     class PyOverrideTest : public OverrideTest {
     public:
         using OverrideTest::OverrideTest;
-        std::string str_value() override { PYBIND11_OVERLOAD(std::string, OverrideTest, str_value); }
+        std::string str_value() override { PYBIND11_OVERRIDE(std::string, OverrideTest, str_value); }
         // Not allowed (uncommenting should hit a static_assert failure): we can't get a reference
         // to a python numeric value, since we only copy values in the numeric type caster:
-//      std::string &str_ref() override { PYBIND11_OVERLOAD(std::string &, OverrideTest, str_ref); }
+//      std::string &str_ref() override { PYBIND11_OVERRIDE(std::string &, OverrideTest, str_ref); }
         // But we can work around it like this:
     private:
         std::string _tmp;
-        std::string str_ref_helper() { PYBIND11_OVERLOAD(std::string, OverrideTest, str_ref); }
+        std::string str_ref_helper() { PYBIND11_OVERRIDE(std::string, OverrideTest, str_ref); }
     public:
         std::string &str_ref() override { return _tmp = str_ref_helper(); }
 
-        A A_value() override { PYBIND11_OVERLOAD(A, OverrideTest, A_value); }
-        A &A_ref() override { PYBIND11_OVERLOAD(A &, OverrideTest, A_ref); }
+        A A_value() override { PYBIND11_OVERRIDE(A, OverrideTest, A_value); }
+        A &A_ref() override { PYBIND11_OVERRIDE(A &, OverrideTest, A_ref); }
     };
 
     py::class_<OverrideTest::A>(m, "OverrideTest_A")
@@ -393,29 +393,29 @@ class D_Tpl : public C_Tpl { D_METHODS };
 class PyA_Repeat : public A_Repeat {
 public:
     using A_Repeat::A_Repeat;
-    int unlucky_number() override { PYBIND11_OVERLOAD_PURE(int, A_Repeat, unlucky_number, ); }
-    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, A_Repeat, say_something, times); }
+    int unlucky_number() override { PYBIND11_OVERRIDE_PURE(int, A_Repeat, unlucky_number, ); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERRIDE(std::string, A_Repeat, say_something, times); }
 };
 class PyB_Repeat : public B_Repeat {
 public:
     using B_Repeat::B_Repeat;
-    int unlucky_number() override { PYBIND11_OVERLOAD(int, B_Repeat, unlucky_number, ); }
-    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, B_Repeat, say_something, times); }
-    double lucky_number() override { PYBIND11_OVERLOAD(double, B_Repeat, lucky_number, ); }
+    int unlucky_number() override { PYBIND11_OVERRIDE(int, B_Repeat, unlucky_number, ); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERRIDE(std::string, B_Repeat, say_something, times); }
+    double lucky_number() override { PYBIND11_OVERRIDE(double, B_Repeat, lucky_number, ); }
 };
 class PyC_Repeat : public C_Repeat {
 public:
     using C_Repeat::C_Repeat;
-    int unlucky_number() override { PYBIND11_OVERLOAD(int, C_Repeat, unlucky_number, ); }
-    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, C_Repeat, say_something, times); }
-    double lucky_number() override { PYBIND11_OVERLOAD(double, C_Repeat, lucky_number, ); }
+    int unlucky_number() override { PYBIND11_OVERRIDE(int, C_Repeat, unlucky_number, ); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERRIDE(std::string, C_Repeat, say_something, times); }
+    double lucky_number() override { PYBIND11_OVERRIDE(double, C_Repeat, lucky_number, ); }
 };
 class PyD_Repeat : public D_Repeat {
 public:
     using D_Repeat::D_Repeat;
-    int unlucky_number() override { PYBIND11_OVERLOAD(int, D_Repeat, unlucky_number, ); }
-    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, D_Repeat, say_something, times); }
-    double lucky_number() override { PYBIND11_OVERLOAD(double, D_Repeat, lucky_number, ); }
+    int unlucky_number() override { PYBIND11_OVERRIDE(int, D_Repeat, unlucky_number, ); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERRIDE(std::string, D_Repeat, say_something, times); }
+    double lucky_number() override { PYBIND11_OVERRIDE(double, D_Repeat, lucky_number, ); }
 };
 
 // Inheritance approach 2: templated trampoline classes.
@@ -436,15 +436,15 @@ template <class Base = A_Tpl>
 class PyA_Tpl : public Base {
 public:
     using Base::Base; // Inherit constructors
-    int unlucky_number() override { PYBIND11_OVERLOAD_PURE(int, Base, unlucky_number, ); }
-    std::string say_something(unsigned times) override { PYBIND11_OVERLOAD(std::string, Base, say_something, times); }
+    int unlucky_number() override { PYBIND11_OVERRIDE_PURE(int, Base, unlucky_number, ); }
+    std::string say_something(unsigned times) override { PYBIND11_OVERRIDE(std::string, Base, say_something, times); }
 };
 template <class Base = B_Tpl>
 class PyB_Tpl : public PyA_Tpl<Base> {
 public:
     using PyA_Tpl<Base>::PyA_Tpl; // Inherit constructors (via PyA_Tpl's inherited constructors)
-    int unlucky_number() override { PYBIND11_OVERLOAD(int, Base, unlucky_number, ); }
-    double lucky_number() override { PYBIND11_OVERLOAD(double, Base, lucky_number, ); }
+    int unlucky_number() override { PYBIND11_OVERRIDE(int, Base, unlucky_number, ); }
+    double lucky_number() override { PYBIND11_OVERRIDE(double, Base, lucky_number, ); }
 };
 // Since C_Tpl and D_Tpl don't declare any new virtual methods, we don't actually need these (we can
 // use PyB_Tpl<C_Tpl> and PyB_Tpl<D_Tpl> for the trampoline classes instead):
@@ -459,7 +459,7 @@ public:
 };
 */
 
-void initialize_inherited_virtuals(py::module &m) {
+void initialize_inherited_virtuals(py::module_ &m) {
     // test_inherited_virtuals
 
     // Method 1: repeat

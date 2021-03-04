@@ -17,7 +17,7 @@ double my_func(int x, float y, double z) {
 }
 
 TEST_SUBMODULE(numpy_vectorize, m) {
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_vectorize, test_docs, test_array_collapse
@@ -37,7 +37,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     ));
 
     // test_type_selection
-    // Numpy function which only accepts specific data types
+    // NumPy function which only accepts specific data types
     m.def("selective_func", [](py::array_t<int, py::array::c_style>) { return "Int branch taken."; });
     m.def("selective_func", [](py::array_t<float, py::array::c_style>) { return "Float branch taken."; });
     m.def("selective_func", [](py::array_t<std::complex<float>, py::array::c_style>) { return "Complex float branch taken."; });
@@ -50,7 +50,9 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         NonPODClass(int v) : value{v} {}
         int value;
     };
-    py::class_<NonPODClass>(m, "NonPODClass").def(py::init<int>());
+    py::class_<NonPODClass>(m, "NonPODClass")
+        .def(py::init<int>())
+        .def_readwrite("value", &NonPODClass::value);
     m.def("vec_passthrough", py::vectorize(
         [](double *a, double b, py::array_t<double> c, const int &d, int &e, NonPODClass f, const double g) {
             return *a + b + c.at(0) + d + e + f.value + g;
@@ -81,9 +83,11 @@ TEST_SUBMODULE(numpy_vectorize, m) {
                 py::array_t<float, py::array::forcecast> arg2,
                 py::array_t<double, py::array::forcecast> arg3
                 ) {
-        ssize_t ndim;
-        std::vector<ssize_t> shape;
+        py::ssize_t ndim;
+        std::vector<py::ssize_t> shape;
         std::array<py::buffer_info, 3> buffers {{ arg1.request(), arg2.request(), arg3.request() }};
         return py::detail::broadcast(buffers, ndim, shape);
     });
+
+    m.def("add_to", py::vectorize([](NonPODClass& x, int a) { x.value += a; }));
 }

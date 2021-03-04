@@ -22,7 +22,7 @@ struct DtypeCheck {
 
 template <typename T>
 DtypeCheck get_dtype_check(const char* name) {
-    py::module np = py::module::import("numpy");
+    py::module_ np = py::module_::import("numpy");
     DtypeCheck check{};
     check.numpy = np.attr("dtype")(np.attr(name));
     check.pybind11 = py::dtype::of<T>();
@@ -89,23 +89,23 @@ template<typename... Ix> arr data_t(const arr_t& a, Ix... index) {
 
 template<typename... Ix> arr& mutate_data(arr& a, Ix... index) {
     auto ptr = (uint8_t *) a.mutable_data(index...);
-    for (ssize_t i = 0; i < a.nbytes() - a.offset_at(index...); i++)
+    for (py::ssize_t i = 0; i < a.nbytes() - a.offset_at(index...); i++)
         ptr[i] = (uint8_t) (ptr[i] * 2);
     return a;
 }
 
 template<typename... Ix> arr_t& mutate_data_t(arr_t& a, Ix... index) {
     auto ptr = a.mutable_data(index...);
-    for (ssize_t i = 0; i < a.size() - a.index_at(index...); i++)
+    for (py::ssize_t i = 0; i < a.size() - a.index_at(index...); i++)
         ptr[i]++;
     return a;
 }
 
-template<typename... Ix> ssize_t index_at(const arr& a, Ix... idx) { return a.index_at(idx...); }
-template<typename... Ix> ssize_t index_at_t(const arr_t& a, Ix... idx) { return a.index_at(idx...); }
-template<typename... Ix> ssize_t offset_at(const arr& a, Ix... idx) { return a.offset_at(idx...); }
-template<typename... Ix> ssize_t offset_at_t(const arr_t& a, Ix... idx) { return a.offset_at(idx...); }
-template<typename... Ix> ssize_t at_t(const arr_t& a, Ix... idx) { return a.at(idx...); }
+template<typename... Ix> py::ssize_t index_at(const arr& a, Ix... idx) { return a.index_at(idx...); }
+template<typename... Ix> py::ssize_t index_at_t(const arr_t& a, Ix... idx) { return a.index_at(idx...); }
+template<typename... Ix> py::ssize_t offset_at(const arr& a, Ix... idx) { return a.offset_at(idx...); }
+template<typename... Ix> py::ssize_t offset_at_t(const arr_t& a, Ix... idx) { return a.offset_at(idx...); }
+template<typename... Ix> py::ssize_t at_t(const arr_t& a, Ix... idx) { return a.at(idx...); }
 template<typename... Ix> arr_t& mutate_at_t(arr_t& a, Ix... idx) { a.mutable_at(idx...)++; return a; }
 
 #define def_index_fn(name, type) \
@@ -133,7 +133,7 @@ template <typename T, typename T2> py::handle auxiliaries(T &&r, T2 &&r2) {
 static int data_i = 42;
 
 TEST_SUBMODULE(numpy_array, sm) {
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_dtypes
@@ -159,9 +159,9 @@ TEST_SUBMODULE(numpy_array, sm) {
     // test_array_attributes
     sm.def("ndim", [](const arr& a) { return a.ndim(); });
     sm.def("shape", [](const arr& a) { return arr(a.ndim(), a.shape()); });
-    sm.def("shape", [](const arr& a, ssize_t dim) { return a.shape(dim); });
+    sm.def("shape", [](const arr& a, py::ssize_t dim) { return a.shape(dim); });
     sm.def("strides", [](const arr& a) { return arr(a.ndim(), a.strides()); });
-    sm.def("strides", [](const arr& a, ssize_t dim) { return a.strides(dim); });
+    sm.def("strides", [](const arr& a, py::ssize_t dim) { return a.strides(dim); });
     sm.def("writeable", [](const arr& a) { return a.writeable(); });
     sm.def("size", [](const arr& a) { return a.size(); });
     sm.def("itemsize", [](const arr& a) { return a.itemsize(); });
@@ -212,7 +212,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         .def(py::init<>())
         .def("numpy_view", [](py::object &obj) {
             py::print("ArrayClass::numpy_view()");
-            ArrayClass &a = obj.cast<ArrayClass&>();
+            auto &a = obj.cast<ArrayClass&>();
             return py::array_t<int>({2}, {4}, a.data, obj);
         }
     );
@@ -258,9 +258,11 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("overloaded2", [](py::array_t<std::complex<float>>) { return "float complex"; });
     sm.def("overloaded2", [](py::array_t<float>) { return "float"; });
 
+    // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
+
     // Only accept the exact types:
-    sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg().noconvert());
-    sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg().noconvert());
+    sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg{}.noconvert());
+    sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg{}.noconvert());
 
     // Make sure we don't do unsafe coercion (e.g. float to int) when not using forcecast, but
     // rather that float gets converted via the safe (conversion to double) overload:
@@ -281,33 +283,33 @@ TEST_SUBMODULE(numpy_array, sm) {
     // test_array_unchecked_fixed_dims
     sm.def("proxy_add2", [](py::array_t<double> a, double v) {
         auto r = a.mutable_unchecked<2>();
-        for (ssize_t i = 0; i < r.shape(0); i++)
-            for (ssize_t j = 0; j < r.shape(1); j++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+            for (py::ssize_t j = 0; j < r.shape(1); j++)
                 r(i, j) += v;
-    }, py::arg().noconvert(), py::arg());
+    }, py::arg{}.noconvert(), py::arg());
 
     sm.def("proxy_init3", [](double start) {
         py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
         auto r = a.mutable_unchecked<3>();
-        for (ssize_t i = 0; i < r.shape(0); i++)
-        for (ssize_t j = 0; j < r.shape(1); j++)
-        for (ssize_t k = 0; k < r.shape(2); k++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+        for (py::ssize_t j = 0; j < r.shape(1); j++)
+        for (py::ssize_t k = 0; k < r.shape(2); k++)
             r(i, j, k) = start++;
         return a;
     });
     sm.def("proxy_init3F", [](double start) {
         py::array_t<double, py::array::f_style> a({ 3, 3, 3 });
         auto r = a.mutable_unchecked<3>();
-        for (ssize_t k = 0; k < r.shape(2); k++)
-        for (ssize_t j = 0; j < r.shape(1); j++)
-        for (ssize_t i = 0; i < r.shape(0); i++)
+        for (py::ssize_t k = 0; k < r.shape(2); k++)
+        for (py::ssize_t j = 0; j < r.shape(1); j++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
             r(i, j, k) = start++;
         return a;
     });
     sm.def("proxy_squared_L2_norm", [](py::array_t<double> a) {
         auto r = a.unchecked<1>();
         double sumsq = 0;
-        for (ssize_t i = 0; i < r.shape(0); i++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
             sumsq += r[i] * r(i); // Either notation works for a 1D array
         return sumsq;
     });
@@ -318,22 +320,34 @@ TEST_SUBMODULE(numpy_array, sm) {
         return auxiliaries(r, r2);
     });
 
+    sm.def("proxy_auxiliaries1_const_ref", [](py::array_t<double> a) {
+        const auto &r = a.unchecked<1>();
+        const auto &r2 = a.mutable_unchecked<1>();
+        return r(0) == r2(0) && r[0] == r2[0];
+    });
+
+    sm.def("proxy_auxiliaries2_const_ref", [](py::array_t<double> a) {
+        const auto &r = a.unchecked<2>();
+        const auto &r2 = a.mutable_unchecked<2>();
+        return r(0, 0) == r2(0, 0);
+    });
+
     // test_array_unchecked_dyn_dims
     // Same as the above, but without a compile-time dimensions specification:
     sm.def("proxy_add2_dyn", [](py::array_t<double> a, double v) {
         auto r = a.mutable_unchecked();
         if (r.ndim() != 2) throw std::domain_error("error: ndim != 2");
-        for (ssize_t i = 0; i < r.shape(0); i++)
-            for (ssize_t j = 0; j < r.shape(1); j++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+            for (py::ssize_t j = 0; j < r.shape(1); j++)
                 r(i, j) += v;
-    }, py::arg().noconvert(), py::arg());
+    }, py::arg{}.noconvert(), py::arg());
     sm.def("proxy_init3_dyn", [](double start) {
         py::array_t<double, py::array::c_style> a({ 3, 3, 3 });
         auto r = a.mutable_unchecked();
         if (r.ndim() != 3) throw std::domain_error("error: ndim != 3");
-        for (ssize_t i = 0; i < r.shape(0); i++)
-        for (ssize_t j = 0; j < r.shape(1); j++)
-        for (ssize_t k = 0; k < r.shape(2); k++)
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+        for (py::ssize_t j = 0; j < r.shape(1); j++)
+        for (py::ssize_t k = 0; k < r.shape(2); k++)
             r(i, j, k) = start++;
         return a;
     });
@@ -362,7 +376,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     // test_array_resize
     // reshape array to 2D without changing size
     sm.def("array_reshape2", [](py::array_t<double> a) {
-        const ssize_t dim_sz = (ssize_t)std::sqrt(a.size());
+        const auto dim_sz = (py::ssize_t)std::sqrt(a.size());
         if (dim_sz * dim_sz != a.size())
             throw std::domain_error("array_reshape2: input array total size is not a squared integer");
         a.resize({dim_sz, dim_sz});
@@ -382,9 +396,45 @@ TEST_SUBMODULE(numpy_array, sm) {
         return a;
     });
 
-#if PY_MAJOR_VERSION >= 3
-        sm.def("index_using_ellipsis", [](py::array a) {
-            return a[py::make_tuple(0, py::ellipsis(), 0)];
-        });
-#endif
+    sm.def("index_using_ellipsis", [](py::array a) {
+        return a[py::make_tuple(0, py::ellipsis(), 0)];
+    });
+
+    // test_argument_conversions
+    sm.def("accept_double",
+           [](py::array_t<double, 0>) {},
+           py::arg("a"));
+    sm.def("accept_double_forcecast",
+           [](py::array_t<double, py::array::forcecast>) {},
+           py::arg("a"));
+    sm.def("accept_double_c_style",
+           [](py::array_t<double, py::array::c_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_c_style_forcecast",
+           [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_f_style",
+           [](py::array_t<double, py::array::f_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_f_style_forcecast",
+           [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
+           py::arg("a"));
+    sm.def("accept_double_noconvert",
+           [](py::array_t<double, 0>) {},
+           "a"_a.noconvert());
+    sm.def("accept_double_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast>) {},
+           "a"_a.noconvert());
+    sm.def("accept_double_c_style_noconvert",
+           [](py::array_t<double, py::array::c_style>) {},
+           "a"_a.noconvert());
+    sm.def("accept_double_c_style_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
+           "a"_a.noconvert());
+    sm.def("accept_double_f_style_noconvert",
+           [](py::array_t<double, py::array::f_style>) {},
+           "a"_a.noconvert());
+    sm.def("accept_double_f_style_forcecast_noconvert",
+           [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
+           "a"_a.noconvert());
 }

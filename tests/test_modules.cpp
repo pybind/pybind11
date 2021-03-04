@@ -13,6 +13,7 @@
 
 TEST_SUBMODULE(modules, m) {
     // test_nested_modules
+    // This is intentionally "py::module" to verify it still can be used in place of "py::module_"
     py::module m_sub = m.def_submodule("subsubmodule");
     m_sub.def("submodule_func", []() { return "submodule_func()"; });
 
@@ -50,6 +51,7 @@ TEST_SUBMODULE(modules, m) {
         .def_readwrite("a1", &B::a1)  // def_readonly uses an internal reference return policy by default
         .def_readwrite("a2", &B::a2);
 
+    // This is intentionally "py::module" to verify it still can be used in place of "py::module_"
     m.attr("OD") = py::module::import("collections").attr("OrderedDict");
 
     // test_duplicate_registration
@@ -60,7 +62,8 @@ TEST_SUBMODULE(modules, m) {
         class Dupe3 { };
         class DupeException { };
 
-        auto dm = py::module("dummy");
+        // Go ahead and leak, until we have a non-leaking py::module_ constructor
+        auto dm = py::module_::create_extension_module("dummy", nullptr, new py::module_::module_def);
         auto failures = py::list();
 
         py::class_<Dupe1>(dm, "Dupe1");

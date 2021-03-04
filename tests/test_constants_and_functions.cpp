@@ -46,7 +46,14 @@ std::string print_bytes(py::bytes bytes) {
 // Test that we properly handle C++17 exception specifiers (which are part of the function signature
 // in C++17).  These should all still work before C++17, but don't affect the function signature.
 namespace test_exc_sp {
+// [workaround(intel)] Unable to use noexcept instead of noexcept(true)
+// Make the f1 test basically the same as the f2 test in C++17 mode for the Intel compiler as
+// it fails to compile with a plain noexcept (tested with icc (ICC) 2021.1 Beta 20200827).
+#if defined(__INTEL_COMPILER) && defined(PYBIND11_CPP17)
+int f1(int x) noexcept(true) { return x+1; }
+#else
 int f1(int x) noexcept { return x+1; }
+#endif
 int f2(int x) noexcept(true) { return x+2; }
 int f3(int x) noexcept(false) { return x+3; }
 #if defined(__GNUG__)
@@ -74,7 +81,7 @@ struct C {
 #  pragma GCC diagnostic pop
 #endif
 };
-}
+} // namespace test_exc_sp
 
 
 TEST_SUBMODULE(constants_and_functions, m) {
@@ -124,4 +131,19 @@ TEST_SUBMODULE(constants_and_functions, m) {
     m.def("f2", f2);
     m.def("f3", f3);
     m.def("f4", f4);
+
+    // test_function_record_leaks
+    struct LargeCapture {
+        // This should always be enough to trigger the alternative branch
+        // where `sizeof(capture) > sizeof(rec->data)`
+        uint64_t zeros[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    };
+    m.def("register_large_capture_with_invalid_arguments", [](py::module_ m) {
+        LargeCapture capture;  // VS 2015's MSVC is acting up if we create the array here
+        m.def("should_raise", [capture](int) { return capture.zeros[9] + 33; }, py::kw_only(), py::arg());
+    });
+    m.def("register_with_raising_repr", [](py::module_ m, py::object default_value) {
+        m.def("should_raise", [](int, int, py::object) { return 42; }, "some docstring",
+              py::arg_v("x", 42), py::arg_v("y", 42, "<the answer>"), py::arg_v("z", default_value));
+    });
 }

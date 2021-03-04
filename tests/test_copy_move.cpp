@@ -19,14 +19,14 @@ struct empty {
 };
 
 struct lacking_copy_ctor : public empty<lacking_copy_ctor> {
-    lacking_copy_ctor() {}
+    lacking_copy_ctor() = default;
     lacking_copy_ctor(const lacking_copy_ctor& other) = delete;
 };
 
 template <> lacking_copy_ctor empty<lacking_copy_ctor>::instance_ = {};
 
 struct lacking_move_ctor : public empty<lacking_move_ctor> {
-    lacking_move_ctor() {}
+    lacking_move_ctor() = default;
     lacking_move_ctor(const lacking_move_ctor& other) = delete;
     lacking_move_ctor(lacking_move_ctor&& other) = delete;
 };
@@ -116,9 +116,9 @@ TEST_SUBMODULE(copy_move_policies, m) {
         r += py::cast<MoveOrCopyInt>(o).value; /* moves */
         r += py::cast<MoveOnlyInt>(o).value; /* moves */
         r += py::cast<CopyOnlyInt>(o).value; /* copies */
-        MoveOrCopyInt m1(py::cast<MoveOrCopyInt>(o)); /* moves */
-        MoveOnlyInt m2(py::cast<MoveOnlyInt>(o)); /* moves */
-        CopyOnlyInt m3(py::cast<CopyOnlyInt>(o)); /* copies */
+        auto m1(py::cast<MoveOrCopyInt>(o)); /* moves */
+        auto m2(py::cast<MoveOnlyInt>(o)); /* moves */
+        auto m3(py::cast<CopyOnlyInt>(o)); /* copies */
         r += m1.value + m2.value + m3.value;
 
         return r;
@@ -175,14 +175,20 @@ TEST_SUBMODULE(copy_move_policies, m) {
     m.attr("has_optional") = false;
 #endif
 
-    // #70 compilation issue if operator new is not public
+    // #70 compilation issue if operator new is not public - simple body added
+    // but not needed on most compilers; MSVC and nvcc don't like a local
+    // struct not having a method defined when declared, since it can not be
+    // added later.
     struct PrivateOpNew {
         int value = 1;
     private:
-#if defined(_MSC_VER)
-#  pragma warning(disable: 4822) // warning C4822: local class member function does not have a body
-#endif
-        void *operator new(size_t bytes);
+        void *operator new(size_t bytes) {
+            void *ptr = std::malloc(bytes);
+            if (ptr)
+                return ptr;
+            else
+                throw std::bad_alloc{};
+        }
     };
     py::class_<PrivateOpNew>(m, "PrivateOpNew").def_readonly("value", &PrivateOpNew::value);
     m.def("private_op_new_value", []() { return PrivateOpNew(); });
@@ -208,6 +214,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
     };
     py::class_<MoveIssue2>(m, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
 
-    m.def("get_moveissue1", [](int i) { return new MoveIssue1(i); }, py::return_value_policy::move);
+    // #2742: Don't expect ownership of raw pointer to `new`ed object to be transferred with `py::return_value_policy::move`
+    m.def("get_moveissue1", [](int i) { return std::unique_ptr<MoveIssue1>(new MoveIssue1(i)); }, py::return_value_policy::move);
     m.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
 }

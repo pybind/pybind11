@@ -8,6 +8,139 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+.. _upgrade-guide-2.6:
+
+v2.7
+====
+
+*Before* v2.7, ``py::str`` can hold ``PyUnicodeObject`` or ``PyBytesObject``,
+and ``py::isinstance<str>()`` is ``true`` for both ``py::str`` and
+``py::bytes``. Starting with v2.7, ``py::str`` exclusively holds
+``PyUnicodeObject`` (`#2409 <https://github.com/pybind/pybind11/pull/2409>`_),
+and ``py::isinstance<str>()`` is ``true`` only for ``py::str``. To help in
+the transition of user code, the ``PYBIND11_STR_LEGACY_PERMISSIVE`` macro
+is provided as an escape hatch to go back to the legacy behavior. This macro
+will be removed in future releases. Two types of required fixes are expected
+to be common:
+
+* Accidental use of ``py::str`` instead of ``py::bytes``, masked by the legacy
+  behavior. These are probably very easy to fix, by changing from
+  ``py::str`` to ``py::bytes``.
+
+* Reliance on py::isinstance<str>(obj) being ``true`` for
+  ``py::bytes``. This is likely to be easy to fix in most cases by adding
+  ``|| py::isinstance<bytes>(obj)``, but a fix may be more involved, e.g. if
+  ``py::isinstance<T>`` appears in a template. Such situations will require
+  careful review and custom fixes.
+
+
+
+v2.6
+====
+
+Usage of the ``PYBIND11_OVERLOAD*`` macros and ``get_overload`` function should
+be replaced by ``PYBIND11_OVERRIDE*`` and ``get_override``. In the future, the
+old macros may be deprecated and removed.
+
+``py::module`` has been renamed ``py::module_``, but a backward compatible
+typedef has been included. This change was to avoid a language change in C++20
+that requires unqualified ``module`` not be placed at the start of a logical
+line. Qualified usage is unaffected and the typedef will remain unless the
+C++ language rules change again.
+
+The public constructors of ``py::module_`` have been deprecated. Use
+``PYBIND11_MODULE`` or ``module_::create_extension_module`` instead.
+
+An error is now thrown when ``__init__`` is forgotten on subclasses. This was
+incorrect before, but was not checked. Add a call to ``__init__`` if it is
+missing.
+
+A ``py::type_error`` is now thrown when casting to a subclass (like
+``py::bytes`` from ``py::object``) if the conversion is not valid. Make a valid
+conversion instead.
+
+The undocumented ``h.get_type()`` method has been deprecated and replaced by
+``py::type::of(h)``.
+
+Enums now have a ``__str__`` method pre-defined; if you want to override it,
+the simplest fix is to add the new ``py::prepend()`` tag when defining
+``"__str__"``.
+
+If ``__eq__`` defined but not ``__hash__``, ``__hash__`` is now set to
+``None``, as in normal CPython. You should add ``__hash__`` if you intended the
+class to be hashable, possibly using the new ``py::hash`` shortcut.
+
+The constructors for ``py::array`` now always take signed integers for size,
+for consistency. This may lead to compiler warnings on some systems. Cast to
+``py::ssize_t`` instead of ``std::size_t``.
+
+The ``tools/clang`` submodule and ``tools/mkdoc.py`` have been moved to a
+standalone package, `pybind11-mkdoc`_. If you were using those tools, please
+use them via a pip install from the new location.
+
+The ``pybind11`` package on PyPI no longer fills the wheel "headers" slot - if
+you were using the headers from this slot, they are available by requesting the
+``global`` extra, that is, ``pip install "pybind11[global]"``. (Most users will
+be unaffected, as the ``pybind11/include`` location is reported by ``python -m
+pybind11 --includes`` and ``pybind11.get_include()`` is still correct and has
+not changed since 2.5).
+
+.. _pybind11-mkdoc: https://github.com/pybind/pybind11-mkdoc
+
+CMake support:
+--------------
+
+The minimum required version of CMake is now 3.4.  Several details of the CMake
+support have been deprecated; warnings will be shown if you need to change
+something. The changes are:
+
+* ``PYBIND11_CPP_STANDARD=<platform-flag>`` is deprecated, please use
+  ``CMAKE_CXX_STANDARD=<number>`` instead, or any other valid CMake CXX or CUDA
+  standard selection method, like ``target_compile_features``.
+
+* If you do not request a standard, pybind11 targets will compile with the
+  compiler default, but not less than C++11, instead of forcing C++14 always.
+  If you depend on the old behavior, please use ``set(CMAKE_CXX_STANDARD 14 CACHE STRING "")``
+  instead.
+
+* Direct ``pybind11::module`` usage should always be accompanied by at least
+  ``set(CMAKE_CXX_VISIBILITY_PRESET hidden)`` or similar - it used to try to
+  manually force this compiler flag (but not correctly on all compilers or with
+  CUDA).
+
+* ``pybind11_add_module``'s ``SYSTEM`` argument is deprecated and does nothing;
+  linking now behaves like other imported libraries consistently in both
+  config and submodule mode, and behaves like a ``SYSTEM`` library by
+  default.
+
+* If ``PYTHON_EXECUTABLE`` is not set, virtual environments (``venv``,
+  ``virtualenv``, and ``conda``) are prioritized over the standard search
+  (similar to the new FindPython mode).
+
+In addition, the following changes may be of interest:
+
+* ``CMAKE_INTERPROCEDURAL_OPTIMIZATION`` will be respected by
+  ``pybind11_add_module`` if set instead of linking to ``pybind11::lto`` or
+  ``pybind11::thin_lto``.
+
+* Using ``find_package(Python COMPONENTS Interpreter Development)`` before
+  pybind11 will cause pybind11 to use the new Python mechanisms instead of its
+  own custom search, based on a patched version of classic ``FindPythonInterp``
+  / ``FindPythonLibs``. In the future, this may become the default. A recent
+  (3.15+ or 3.18.2+) version of CMake is recommended.
+
+
+
+v2.5
+====
+
+The Python package now includes the headers as data in the package itself, as
+well as in the "headers" wheel slot. ``pybind11 --includes`` and
+``pybind11.get_include()`` report the new location, which is always correct
+regardless of how pybind11 was installed, making the old ``user=`` argument
+meaningless. If you are not using the function to get the location already, you
+are encouraged to switch to the package location.
+
 
 v2.2
 ====
@@ -84,7 +217,7 @@ way to get and set object state. See :ref:`pickling` for details.
         ...
         .def(py::pickle(
             [](const Foo &self) { // __getstate__
-                return py::make_tuple(f.value1(), f.value2(), ...); // unchanged
+                return py::make_tuple(self.value1(), self.value2(), ...); // unchanged
             },
             [](py::tuple t) { // __setstate__, note: no `self` argument
                 return new Foo(t[0].cast<std::string>(), ...);

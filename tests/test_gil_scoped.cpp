@@ -22,10 +22,10 @@ public:
 
 class PyVirtClass : public VirtClass {
     void virtual_func() override {
-        PYBIND11_OVERLOAD(void, VirtClass, virtual_func,);
+        PYBIND11_OVERRIDE(void, VirtClass, virtual_func,);
     }
     void pure_virtual_func() override {
-        PYBIND11_OVERLOAD_PURE(void, VirtClass, pure_virtual_func,);
+        PYBIND11_OVERRIDE_PURE(void, VirtClass, pure_virtual_func,);
     }
 };
 
@@ -45,7 +45,7 @@ TEST_SUBMODULE(gil_scoped, m) {
           [](VirtClass &virt) { virt.pure_virtual_func(); });
     m.def("test_cross_module_gil",
           []() {
-              auto cm = py::module::import("cross_module_gil_utils");
+              auto cm = py::module_::import("cross_module_gil_utils");
               auto gil_acquire = reinterpret_cast<void (*)()>(
                   PyLong_AsVoidPtr(cm.attr("gil_acquire_funcaddr").ptr()));
               py::gil_scoped_release gil_release;

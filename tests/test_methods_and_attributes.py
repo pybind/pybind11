@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+import env  # noqa: F401
+
 from pybind11_tests import methods_and_attributes as m
 from pybind11_tests import ConstructorStats
 
@@ -37,17 +40,17 @@ def test_methods_and_attributes():
     assert instance1.overloaded(0) == "(int)"
     assert instance1.overloaded(1, 1.0) == "(int, float)"
     assert instance1.overloaded(2.0, 2) == "(float, int)"
-    assert instance1.overloaded(3,   3) == "(int, int)"
-    assert instance1.overloaded(4., 4.) == "(float, float)"
+    assert instance1.overloaded(3, 3) == "(int, int)"
+    assert instance1.overloaded(4.0, 4.0) == "(float, float)"
     assert instance1.overloaded_const(-3) == "(int) const"
     assert instance1.overloaded_const(5, 5.0) == "(int, float) const"
     assert instance1.overloaded_const(6.0, 6) == "(float, int) const"
-    assert instance1.overloaded_const(7,   7) == "(int, int) const"
-    assert instance1.overloaded_const(8., 8.) == "(float, float) const"
+    assert instance1.overloaded_const(7, 7) == "(int, int) const"
+    assert instance1.overloaded_const(8.0, 8.0) == "(float, float) const"
     assert instance1.overloaded_float(1, 1) == "(float, float)"
-    assert instance1.overloaded_float(1, 1.) == "(float, float)"
-    assert instance1.overloaded_float(1., 1) == "(float, float)"
-    assert instance1.overloaded_float(1., 1.) == "(float, float)"
+    assert instance1.overloaded_float(1, 1.0) == "(float, float)"
+    assert instance1.overloaded_float(1.0, 1) == "(float, float)"
+    assert instance1.overloaded_float(1.0, 1.0) == "(float, float)"
 
     assert instance1.value == 320
     instance1.value = 100
@@ -168,6 +171,19 @@ def test_static_properties():
     assert m.TestPropertiesOverride().def_readonly == 99
     assert m.TestPropertiesOverride.def_readonly_static == 99
 
+    # Only static attributes can be deleted
+    del m.TestPropertiesOverride.def_readonly_static
+    assert (
+        hasattr(m.TestPropertiesOverride, "def_readonly_static")
+        and m.TestPropertiesOverride.def_readonly_static
+        is m.TestProperties.def_readonly_static
+    )
+    assert "def_readonly_static" not in m.TestPropertiesOverride.__dict__
+    properties_override = m.TestPropertiesOverride()
+    with pytest.raises(AttributeError) as excinfo:
+        del properties_override.def_readonly
+    assert "can't delete attribute" in str(excinfo.value)
+
 
 def test_static_cls():
     """Static property getter and setters expect the type object as the their only argument"""
@@ -190,7 +206,10 @@ def test_metaclass_override():
     assert type(m.MetaclassOverride).__name__ == "type"
 
     assert m.MetaclassOverride.readonly == 1
-    assert type(m.MetaclassOverride.__dict__["readonly"]).__name__ == "pybind11_static_property"
+    assert (
+        type(m.MetaclassOverride.__dict__["readonly"]).__name__
+        == "pybind11_static_property"
+    )
 
     # Regular `type` replaces the property instead of calling `__set__()`
     m.MetaclassOverride.readonly = 2
@@ -203,22 +222,26 @@ def test_no_mixed_overloads():
 
     with pytest.raises(RuntimeError) as excinfo:
         m.ExampleMandA.add_mixed_overloads1()
-    assert (str(excinfo.value) ==
-            "overloading a method with both static and instance methods is not supported; " +
-            ("compile in debug mode for more details" if not debug_enabled else
-             "error while attempting to bind static method ExampleMandA.overload_mixed1"
-             "(arg0: float) -> str")
-            )
+    assert str(
+        excinfo.value
+    ) == "overloading a method with both static and instance methods is not supported; " + (
+        "compile in debug mode for more details"
+        if not debug_enabled
+        else "error while attempting to bind static method ExampleMandA.overload_mixed1"
+        "(arg0: float) -> str"
+    )
 
     with pytest.raises(RuntimeError) as excinfo:
         m.ExampleMandA.add_mixed_overloads2()
-    assert (str(excinfo.value) ==
-            "overloading a method with both static and instance methods is not supported; " +
-            ("compile in debug mode for more details" if not debug_enabled else
-             "error while attempting to bind instance method ExampleMandA.overload_mixed2"
-             "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: int, arg1: int)"
-             " -> str")
-            )
+    assert str(
+        excinfo.value
+    ) == "overloading a method with both static and instance methods is not supported; " + (
+        "compile in debug mode for more details"
+        if not debug_enabled
+        else "error while attempting to bind instance method ExampleMandA.overload_mixed2"
+        "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: int, arg1: int)"
+        " -> str"
+    )
 
 
 @pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])
@@ -257,8 +280,8 @@ def test_property_rvalue_policy():
     assert os.value == 1
 
 
-# https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2447
+@pytest.mark.xfail("env.PYPY")
 def test_dynamic_attributes():
     instance = m.DynamicClass()
     assert not hasattr(instance, "foo")
@@ -299,8 +322,8 @@ def test_dynamic_attributes():
         assert cstats.alive() == 0
 
 
-# https://bitbucket.org/pypy/pypy/issues/2447
-@pytest.unsupported_on_pypy
+# https://foss.heptapod.net/pypy/pypy/-/issues/2447
+@pytest.mark.xfail("env.PYPY")
 def test_cyclic_gc():
     # One object references itself
     instance = m.DynamicClass()
@@ -330,8 +353,8 @@ def test_bad_arg_default(msg):
     assert msg(excinfo.value) == (
         "arg(): could not convert default argument 'a: UnregisteredType' in function "
         "'should_fail' into a Python object (type not registered yet?)"
-        if debug_enabled else
-        "arg(): could not convert default argument into a Python object (type not registered "
+        if debug_enabled
+        else "arg(): could not convert default argument into a Python object (type not registered "
         "yet?). Compile in debug mode for more information."
     )
 
@@ -340,8 +363,8 @@ def test_bad_arg_default(msg):
     assert msg(excinfo.value) == (
         "arg(): could not convert default argument 'UnregisteredType' in function "
         "'should_fail' into a Python object (type not registered yet?)"
-        if debug_enabled else
-        "arg(): could not convert default argument into a Python object (type not registered "
+        if debug_enabled
+        else "arg(): could not convert default argument into a Python object (type not registered "
         "yet?). Compile in debug mode for more information."
     )
 
@@ -378,18 +401,34 @@ def test_accepts_none(msg):
     # The first one still raises because you can't pass None as a lvalue reference arg:
     with pytest.raises(TypeError) as excinfo:
         assert m.ok_none1(None) == -1
-    assert msg(excinfo.value) == """
+    assert (
+        msg(excinfo.value)
+        == """
         ok_none1(): incompatible function arguments. The following argument types are supported:
             1. (arg0: m.methods_and_attributes.NoneTester) -> int
 
         Invoked with: None
     """
+    )
 
     # The rest take the argument as pointer or holder, and accept None:
     assert m.ok_none2(None) == -1
     assert m.ok_none3(None) == -1
     assert m.ok_none4(None) == -1
     assert m.ok_none5(None) == -1
+
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kwarg(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kwarg(a=None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kwarg_kw_only(None)
+    assert "incompatible function arguments" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        m.no_none_kwarg_kw_only(a=None)
+    assert "incompatible function arguments" in str(excinfo.value)
 
 
 def test_str_issue(msg):
@@ -399,13 +438,16 @@ def test_str_issue(msg):
 
     with pytest.raises(TypeError) as excinfo:
         str(m.StrIssue("no", "such", "constructor"))
-    assert msg(excinfo.value) == """
+    assert (
+        msg(excinfo.value)
+        == """
         __init__(): incompatible constructor arguments. The following argument types are supported:
             1. m.methods_and_attributes.StrIssue(arg0: int)
             2. m.methods_and_attributes.StrIssue()
 
         Invoked with: 'no', 'such', 'constructor'
     """
+    )
 
 
 def test_unregistered_base_implementations():
@@ -435,3 +477,31 @@ def test_ref_qualified():
     r.refQualified(17)
     assert r.value == 17
     assert r.constRefQualified(23) == 40
+
+
+def test_overload_ordering():
+    "Check to see if the normal overload order (first defined) and prepend overload order works"
+    assert m.overload_order("string") == 1
+    assert m.overload_order(0) == 4
+
+    # Different for Python 2 vs. 3
+    uni_name = type(u"").__name__
+
+    assert "1. overload_order(arg0: int) -> int" in m.overload_order.__doc__
+    assert (
+        "2. overload_order(arg0: {}) -> int".format(uni_name)
+        in m.overload_order.__doc__
+    )
+    assert (
+        "3. overload_order(arg0: {}) -> int".format(uni_name)
+        in m.overload_order.__doc__
+    )
+    assert "4. overload_order(arg0: int) -> int" in m.overload_order.__doc__
+
+    with pytest.raises(TypeError) as err:
+        m.overload_order(1.1)
+
+    assert "1. (arg0: int) -> int" in str(err.value)
+    assert "2. (arg0: {}) -> int".format(uni_name) in str(err.value)
+    assert "3. (arg0: {}) -> int".format(uni_name) in str(err.value)
+    assert "4. (arg0: int) -> int" in str(err.value)

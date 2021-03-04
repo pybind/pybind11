@@ -1,3 +1,12 @@
 # -*- coding: utf-8 -*-
-version_info = (2, 5, 'dev1')
-__version__ = '.'.join(map(str, version_info))
+
+
+def _to_int(s):
+    try:
+        return int(s)
+    except ValueError:
+        return s
+
+
+__version__ = "2.6.3.dev1"
+version_info = tuple(_to_int(s) for s in __version__.split("."))

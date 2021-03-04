@@ -11,6 +11,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <cmath>
+#include <new>
 
 // Classes for testing python construction via C++ factory function:
 // Not publicly constructible, copyable, or movable:
@@ -57,13 +58,13 @@ class TestFactory4 : public TestFactory3 {
 public:
     TestFactory4() : TestFactory3() { print_default_created(this); }
     TestFactory4(int v) : TestFactory3(v) { print_created(this, v); }
-    virtual ~TestFactory4() { print_destroyed(this); }
+    ~TestFactory4() override { print_destroyed(this); }
 };
 // Another class for an invalid downcast test
 class TestFactory5 : public TestFactory3 {
 public:
     TestFactory5(int i) : TestFactory3(i) { print_created(this, i); }
-    virtual ~TestFactory5() { print_destroyed(this); }
+    ~TestFactory5() override { print_destroyed(this); }
 };
 
 class TestFactory6 {
@@ -87,8 +88,8 @@ public:
     PyTF6(PyTF6 &&f) : TestFactory6(std::move(f)) { print_move_created(this); }
     PyTF6(const PyTF6 &f) : TestFactory6(f) { print_copy_created(this); }
     PyTF6(std::string s) : TestFactory6((int) s.size()) { alias = true; print_created(this, s); }
-    virtual ~PyTF6() { print_destroyed(this); }
-    int get() override { PYBIND11_OVERLOAD(int, TestFactory6, get, /*no args*/); }
+    ~PyTF6() override { print_destroyed(this); }
+    int get() override { PYBIND11_OVERRIDE(int, TestFactory6, get, /*no args*/); }
 };
 
 class TestFactory7 {
@@ -108,8 +109,8 @@ public:
     PyTF7(int i) : TestFactory7(i) { alias = true; print_created(this, i); }
     PyTF7(PyTF7 &&f) : TestFactory7(std::move(f)) { print_move_created(this); }
     PyTF7(const PyTF7 &f) : TestFactory7(f) { print_copy_created(this); }
-    virtual ~PyTF7() { print_destroyed(this); }
-    int get() override { PYBIND11_OVERLOAD(int, TestFactory7, get, /*no args*/); }
+    ~PyTF7() override { print_destroyed(this); }
+    int get() override { PYBIND11_OVERRIDE(int, TestFactory7, get, /*no args*/); }
 };
 
 
@@ -141,7 +142,7 @@ public:
 TEST_SUBMODULE(factory_constructors, m) {
 
     // Define various trivial types to allow simpler overload resolution:
-    py::module m_tag = m.def_submodule("tag");
+    py::module_ m_tag = m.def_submodule("tag");
 #define MAKE_TAG_TYPE(Name) \
     struct Name##_tag {}; \
     py::class_<Name##_tag>(m_tag, #Name "_tag").def(py::init<>()); \
@@ -154,6 +155,8 @@ TEST_SUBMODULE(factory_constructors, m) {
     MAKE_TAG_TYPE(TF4);
     MAKE_TAG_TYPE(TF5);
     MAKE_TAG_TYPE(null_ptr);
+    MAKE_TAG_TYPE(null_unique_ptr);
+    MAKE_TAG_TYPE(null_shared_ptr);
     MAKE_TAG_TYPE(base);
     MAKE_TAG_TYPE(invalid_base);
     MAKE_TAG_TYPE(alias);
@@ -180,11 +183,14 @@ TEST_SUBMODULE(factory_constructors, m) {
     auto c4a = [c](pointer_tag, TF4_tag, int a) { (void) c; return new TestFactory4(a);};
 
     // test_init_factory_basic, test_init_factory_casting
-    py::class_<TestFactory3, std::shared_ptr<TestFactory3>>(m, "TestFactory3")
+    py::class_<TestFactory3, std::shared_ptr<TestFactory3>> pyTestFactory3(m, "TestFactory3");
+    pyTestFactory3
         .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct3(v); }))
-        .def(py::init([](shared_ptr_tag) { return TestFactoryHelper::construct3(); }))
-        .def("__init__", [](TestFactory3 &self, std::string v) { new (&self) TestFactory3(v); }) // placement-new ctor
-
+        .def(py::init([](shared_ptr_tag) { return TestFactoryHelper::construct3(); }));
+    ignoreOldStyleInitWarnings([&pyTestFactory3]() {
+        pyTestFactory3.def("__init__", [](TestFactory3 &self, std::string v) { new (&self) TestFactory3(v); }); // placement-new ctor
+    });
+    pyTestFactory3
         // factories returning a derived type:
         .def(py::init(c4a)) // derived ptr
         .def(py::init([](pointer_tag, TF5_tag, int a) { return new TestFactory5(a); }))
@@ -194,6 +200,8 @@ TEST_SUBMODULE(factory_constructors, m) {
 
         // Returns nullptr:
         .def(py::init([](null_ptr_tag) { return (TestFactory3 *) nullptr; }))
+        .def(py::init([](null_unique_ptr_tag) { return std::unique_ptr<TestFactory3>(); }))
+        .def(py::init([](null_shared_ptr_tag) { return std::shared_ptr<TestFactory3>(); }))
 
         .def_readwrite("value", &TestFactory3::value)
         ;
@@ -299,24 +307,32 @@ TEST_SUBMODULE(factory_constructors, m) {
         static void operator delete(void *p) { py::print("noisy delete"); ::operator delete(p); }
 #endif
     };
-    py::class_<NoisyAlloc>(m, "NoisyAlloc")
+
+
+    py::class_<NoisyAlloc> pyNoisyAlloc(m, "NoisyAlloc");
         // Since these overloads have the same number of arguments, the dispatcher will try each of
         // them until the arguments convert.  Thus we can get a pre-allocation here when passing a
         // single non-integer:
-        .def("__init__", [](NoisyAlloc *a, int i) { new (a) NoisyAlloc(i); }) // Regular constructor, runs first, requires preallocation
-        .def(py::init([](double d) { return new NoisyAlloc(d); }))
+    ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
+        pyNoisyAlloc.def("__init__", [](NoisyAlloc *a, int i) { new (a) NoisyAlloc(i); }); // Regular constructor, runs first, requires preallocation
+    });
 
-        // The two-argument version: first the factory pointer overload.
-        .def(py::init([](int i, int) { return new NoisyAlloc(i); }))
-        // Return-by-value:
-        .def(py::init([](double d, int) { return NoisyAlloc(d); }))
-        // Old-style placement new init; requires preallocation
-        .def("__init__", [](NoisyAlloc &a, double d, double) { new (&a) NoisyAlloc(d); })
-        // Requires deallocation of previous overload preallocated value:
-        .def(py::init([](int i, double) { return new NoisyAlloc(i); }))
-        // Regular again: requires yet another preallocation
-        .def("__init__", [](NoisyAlloc &a, int i, std::string) { new (&a) NoisyAlloc(i); })
-        ;
+    pyNoisyAlloc.def(py::init([](double d) { return new NoisyAlloc(d); }));
+
+    // The two-argument version: first the factory pointer overload.
+    pyNoisyAlloc.def(py::init([](int i, int) { return new NoisyAlloc(i); }));
+    // Return-by-value:
+    pyNoisyAlloc.def(py::init([](double d, int) { return NoisyAlloc(d); }));
+    // Old-style placement new init; requires preallocation
+    ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
+        pyNoisyAlloc.def("__init__", [](NoisyAlloc &a, double d, double) { new (&a) NoisyAlloc(d); });
+    });
+    // Requires deallocation of previous overload preallocated value:
+    pyNoisyAlloc.def(py::init([](int i, double) { return new NoisyAlloc(i); }));
+    // Regular again: requires yet another preallocation
+    ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
+        pyNoisyAlloc.def("__init__", [](NoisyAlloc &a, int i, std::string) { new (&a) NoisyAlloc(i); });
+    });
 
 
 
