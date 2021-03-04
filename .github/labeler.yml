@@ -1,8 +1,0 @@
-docs:
-- any:
-  - 'docs/**/*.rst'
-  - '!docs/changelog.rst'
-  - '!docs/upgrade.rst'
-
-ci:
-- '.github/workflows/*.yml'
