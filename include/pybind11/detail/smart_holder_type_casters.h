@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "../gil.h"
 #include "../pytypes.h"
 #include "common.h"
 #include "descr.h"
@@ -262,7 +263,9 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
     }
 
     template <typename T>
-    static void init_instance_for_type(detail::instance *inst, const void *holder_const_void_ptr) {
+    static void init_instance_for_type(detail::instance *inst,
+                                       const void *holder_const_void_ptr,
+                                       bool has_alias) {
         // Need for const_cast is a consequence of the type_info::init_instance type:
         // void (*init_instance)(instance *, const void *);
         auto holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
@@ -284,6 +287,7 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
             new (std::addressof(v_h.holder<holder_type>()))
                 holder_type(holder_type::from_raw_ptr_unowned(v_h.value_ptr<T>()));
         }
+        v_h.holder<holder_type>().pointee_depends_on_holder_owner = has_alias;
         v_h.set_holder_constructed();
     }
 
@@ -331,6 +335,16 @@ struct smart_holder_type_caster_load {
         return *raw_ptr;
     }
 
+    struct shared_ptr_dec_ref_deleter {
+        // Note: deleter destructor fails on MSVC 2015 and GCC 4.8, so we manually call dec_ref
+        // here instead.
+        handle ref;
+        void operator()(void *) {
+            gil_scoped_acquire gil;
+            ref.dec_ref();
+        }
+    };
+
     std::shared_ptr<T> loaded_as_shared_ptr() const {
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
@@ -338,8 +352,17 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
-        std::shared_ptr<void> void_ptr = holder().template as_shared_ptr<void>();
-        return std::shared_ptr<T>(void_ptr, convert_type(void_ptr.get()));
+        auto void_raw_ptr = holder().template as_raw_ptr_unowned<void>();
+        auto type_raw_ptr = convert_type(void_raw_ptr);
+        if (holder().pointee_depends_on_holder_owner) {
+            // Tie lifetime of trampoline Python part to C++ part (PR #2839).
+            return std::shared_ptr<T>(
+                type_raw_ptr,
+                shared_ptr_dec_ref_deleter{
+                    handle((PyObject *) load_impl.loaded_v_h.inst).inc_ref()});
+        }
+        std::shared_ptr<void> void_shd_ptr = holder().template as_shared_ptr<void>();
+        return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
     }
 
     template <typename D>
@@ -352,6 +375,10 @@ struct smart_holder_type_caster_load {
         throw_if_uninitialized_or_disowned_holder();
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
+        if (holder().pointee_depends_on_holder_owner) {
+            throw value_error("Ownership of instance with virtual overrides in Python cannot be "
+                              "transferred to C++.");
+        }
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
         // SMART_HOLDER_WIP: MISSING: Safety checks for type conversions
         // (T must be polymorphic or meet certain other conditions).
