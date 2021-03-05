@@ -70,7 +70,7 @@ This example obtains a reference to the Python ``Decimal`` class.
 Loading related native modules
 ==============================
 
-You can use an import of the form `py::module::import("some_other_module");`
+You can use an import of the form ``py::module::import("some_other_module");``
 to import a native module that defines types you use in the current module.
 
 This will remove Python run-time errors of the form
