@@ -161,6 +161,7 @@ public:
 class MyObject5 { // managed by huge_unique_ptr
 public:
     MyObject5(int value) : value{value} { print_created(this); }
+    MyObject5(const MyObject5&) = default;
     ~MyObject5() { print_destroyed(this); }
     int value;
 };
@@ -220,6 +221,7 @@ struct TypeForHolderWithAddressOf {
 // test_move_only_holder_with_addressof_operator
 struct TypeForMoveOnlyHolderWithAddressOf {
     TypeForMoveOnlyHolderWithAddressOf(int value) : value{value} { print_created(this); }
+    TypeForMoveOnlyHolderWithAddressOf(const TypeForMoveOnlyHolderWithAddressOf&) = default;
     ~TypeForMoveOnlyHolderWithAddressOf() { print_destroyed(this); }
     std::string toString() const {
         return "MoveOnlyHolderWithAddressOf[" + std::to_string(value) + "]";
