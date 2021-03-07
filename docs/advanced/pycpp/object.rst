@@ -75,7 +75,7 @@ to import a native module that defines types you use in the current module.
 
 This will remove Python run-time errors of the form
 
-.. code-block:: Python
+::
 
     TypeError: Unable to convert function return value to a Python type! The signature was
             (arg0: some_module.Cat) -> some_other_module.Name
