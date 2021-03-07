@@ -78,6 +78,9 @@ PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(I801C, std::shared_ptr<I801C>)
 PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(I801D, std::shared_ptr<I801D>)
 
 TEST_SUBMODULE(multiple_inheritance, m) {
+    // Please do not interleave `struct` and `class` definitions with bindings code,
+    // but implement `struct`s and `class`es in the anonymous namespace above.
+    // This helps keeping the smart_holder branch in sync with master.
 
     // test_multiple_inheritance_mix1
     // test_multiple_inheritance_mix2
