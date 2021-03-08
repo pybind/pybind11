@@ -32,11 +32,11 @@ features, first try to make a descriptive upstream issue to see if it is
 something desirable for upstream, and make a PR for the community to see and
 possibly review. Then continue developing here.
 
-Review should happen using Reviewable.
+Reviewable for non-upstream updates should happen using Reviewable.
 
-Please avoid superfluous (non-functional) changes to the original `pybind11`
-source code (e.g. no whitespace reflowing), and try to stay relatively close to
-`pybind11`s style for consistency.
+Please do not make superfluous (non-functional) changes to the original
+`pybind11` source code (e.g. no whitespace reflowing), and try to stay
+relatively close to `pybind11`s style for consistency.
 
 ## Continuous Integration
 
@@ -102,7 +102,6 @@ review.
 experimental CI passes, and be sure to include macOS. An example of requesting
 macOS testing in Drake:
 
-        @drake-jenkins-bot mac-mojave-clang-bazel-experimental-release please
         @drake-jenkins-bot mac-catalina-clang-bazel-experimental-everything-release please
 
 * Once your PR is reviewed, accepted, and CI passes, merge your
@@ -115,7 +114,7 @@ merge commit for the fork:
 
 * Merge the Drake PR once it passes CI and review is finished.
 
-## Pulling Upstream Changes
+### Pulling Upstream Changes
 
 This repository should be merged with upstream (the official repository) about
 every 3 months. We use a merge strategy (not rebase) with Git so that updates
@@ -131,9 +130,62 @@ To update the repository, first checkout the branch and merge:
     git merge upstream/master  # Resolve conflicts and commit
     git push --set-upstream origin <new-branch-name>
 
-Then create a `RobotLocomotion/pybind11` PR with your branch. Title the PR as
-`Merge 'upstream/master' (<sha_new>) from previous merge-base (<sha_old>)`,
-where `<sha_new>` is the short-form SHA of the current `upstream/master`, and
-`<sha_old>` is the short-form SHA of prior merge-base you recorded.
+If you need to make non-trivial merge-conflict resolutions, please do so as
+additional commits so that reviewers can easily separate these more acute
+changes from the merge itself. (This is so that reviewers only review *novel*
+code, rather than code that upstream reviewers already looked at.)
 
-Afterward, follow the normal PR process as outlined above.
+Then create a `RobotLocomotion/pybind11` PR with your branch. Title the PR as
+`Merge 'upstream/master' (<sha_new>)`,
+where `<sha_new>` is the short-form SHA of the current `upstream/master`.
+
+In the PR's overview, please add the following checklist for both you and the
+reviewer (replacing anything in brackets `<...>` with the appropriate values:
+
+```md
+For the author:
+
+- [ ] Ensure downstream CI passes (including Mac): <link to Drake PR>
+
+For the reviewer:
+
+- [ ] Does the commit title look correct? (does it only contain up to
+`<sha_new>` of upstream?)
+- Are the canary builds "correct"?  (look at the
+[checks](#partial-pull-merging); for each CI configuration, expand the output
+under `Python tests` (which are for C++17) - we shouldn't be accidentally
+missing tests, etc.)
+  - [ ] `CI / 🐍 3.6 • ubuntu-latest • x64 [...]`: [base](<link>) vs. this PR's results for
+  `CI / 🐍 3.6 • ubuntu-latest • x64`
+  - [ ] `CI / 🐍 3.9 • macos-latest • x64`: [base](<link>) vs. this PR's results for
+  `CI / 🐍 3.9 • macos-latest • x64`
+- [ ] Do the drake-specific changes look good? (all commits after the merge
+commit)
+```
+
+To get `<link>` for the given base CI results:
+
+* Use the most recent result from the following link:
+[workflow: CI, branch: drake](https://github.com/RobotLocomotion/pybind11/actions?query=workflow%3ACI+branch%3Adrake+is%3Acompleted)
+* Click on the relevant job (i.e.
+`🐍 3.6 • ubuntu-latest • x64` or `🐍 3.9 • macos-latest • x64`)
+* Expand `Python tests C++17`, and click on the the line number where
+`short test summary info` is printed
+
+Example:
+<https://github.com/RobotLocomotion/pybind11/runs/2036808833?check_suite_focus=true#step:17:63> (this link may
+expire, hence the screenshot)
+
+<img src="./docs/drake-github-ci-example.png"/>
+
+### Cherry-Pick Upstream Changes
+
+This should only be done when there is an acute feature needed, but there is
+high overhead in incorporating all upstream changes.
+
+Follow the same procedure as above, but name your PR as
+`Cherry pick <shas> from upstream/master`, and be sure to reference the
+upstream PRs.
+
+Any non-trivial changes should still happen as separate commits to simplify
+review.
