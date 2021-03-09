@@ -138,3 +138,22 @@
    fun:__Pyx__PyObject_CallOneArg
    fun:__pyx_pw_5numpy_6random_13bit_generator_12BitGenerator_1__init__
 }
+
+{
+   pypocketfft leaks on import
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:PyInit_pypocketfft
+   fun:_PyImport_LoadDynamicModuleWithSpec
+   fun:_imp_create_dynamic_impl.constprop.0
+   fun:_imp_create_dynamic
+   fun:cfunction_vectorcall_FASTCALL
+   fun:PyVectorcall_Call
+   fun:_PyObject_Call
+   fun:PyObject_Call
+   fun:do_call_core
+   fun:_PyEval_EvalFrameDefault
+   fun:_PyEval_EvalFrame
+   fun:_PyEval_EvalCode
+}
