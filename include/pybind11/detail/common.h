@@ -10,8 +10,8 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 6
-#define PYBIND11_VERSION_PATCH 3.dev1
+#define PYBIND11_VERSION_MINOR 7
+#define PYBIND11_VERSION_PATCH 0.dev1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
