@@ -21,7 +21,7 @@ struct Abase {
     Abase &operator=(Abase &&) = default;
 };
 
-struct AbaseAlias : Abase {
+struct AbaseAlias : Abase, py::detail::virtual_overrider_self_life_support {
     using Abase::Abase;
 
     int Add(int other_val) const override {

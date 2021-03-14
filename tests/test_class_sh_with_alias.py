@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pytest
 
 from pybind11_tests import class_sh_with_alias as m
 
@@ -23,15 +22,14 @@ def test_add_in_cpp_raw_ptr():
 
 
 def test_add_in_cpp_shared_ptr():
-    drvd = PyDrvd(36)
-    assert m.AddInCppSharedPtr(drvd, 56) == ((36 * 10 + 3) * 100 + 56) * 100 + 11
+    while True:
+        drvd = PyDrvd(36)
+        assert m.AddInCppSharedPtr(drvd, 56) == ((36 * 10 + 3) * 100 + 56) * 100 + 11
+        return  # Comment out for manual leak checking (use `top` command).
 
 
 def test_add_in_cpp_unique_ptr():
-    drvd = PyDrvd(0)
-    with pytest.raises(ValueError) as exc_info:
-        m.AddInCppUniquePtr(drvd, 0)
-    assert (
-        str(exc_info.value)
-        == "Ownership of instance with virtual overrides in Python cannot be transferred to C++."
-    )
+    while True:
+        drvd = PyDrvd(25)
+        assert m.AddInCppUniquePtr(drvd, 83) == ((25 * 10 + 3) * 100 + 83) * 100 + 13
+        return  # Comment out for manual leak checking (use `top` command).

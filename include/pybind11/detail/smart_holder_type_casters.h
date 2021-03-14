@@ -35,6 +35,39 @@ struct is_smart_holder_type<smart_holder> : std::true_type {};
 inline void register_instance(instance *self, void *valptr, const type_info *tinfo);
 inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
+// The original core idea for this struct goes back to PyCLIF:
+// https://github.com/google/clif/blob/07f95d7e69dca2fcf7022978a55ef3acff506c19/clif/python/runtime.cc#L37
+// URL provided here mainly to give proper credit. To fully explain the `HoldPyObj` feature, more
+// context is needed (SMART_HOLDER_WIP).
+struct virtual_overrider_self_life_support {
+    value_and_holder loaded_v_h;
+    ~virtual_overrider_self_life_support() {
+        if (loaded_v_h.inst != nullptr && loaded_v_h.vh != nullptr) {
+            void *value_void_ptr = loaded_v_h.value_ptr();
+            if (value_void_ptr != nullptr) {
+                PyGILState_STATE threadstate = PyGILState_Ensure();
+                Py_DECREF((PyObject *) loaded_v_h.inst);
+                loaded_v_h.value_ptr() = nullptr;
+                loaded_v_h.holder<smart_holder>().release_disowned();
+                deregister_instance(loaded_v_h.inst, value_void_ptr, loaded_v_h.type);
+                PyGILState_Release(threadstate);
+            }
+        }
+    }
+};
+
+template <typename T, detail::enable_if_t<!std::is_polymorphic<T>::value, int> = 0>
+virtual_overrider_self_life_support *
+dynamic_cast_virtual_overrider_self_life_support_ptr(T * /*raw_type_ptr*/) {
+    return nullptr;
+}
+
+template <typename T, detail::enable_if_t<std::is_polymorphic<T>::value, int> = 0>
+virtual_overrider_self_life_support *
+dynamic_cast_virtual_overrider_self_life_support_ptr(T *raw_type_ptr) {
+    return dynamic_cast<virtual_overrider_self_life_support *>(raw_type_ptr);
+}
+
 // The modified_type_caster_generic_load_impl could replace type_caster_generic::load_impl but not
 // vice versa. The main difference is that the original code only propagates a reference to the
 // held value, while the modified implementation propagates value_and_holder.
@@ -375,26 +408,41 @@ struct smart_holder_type_caster_load {
         throw_if_uninitialized_or_disowned_holder();
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
-        if (holder().pointee_depends_on_holder_owner) {
-            throw value_error("Ownership of instance with virtual overrides in Python cannot be "
-                              "transferred to C++.");
-        }
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
-        // SMART_HOLDER_WIP: MISSING: Safety checks for type conversions
-        // (T must be polymorphic or meet certain other conditions).
-        T *raw_type_ptr = convert_type(raw_void_ptr);
-
-        // Critical transfer-of-ownership section. This must stay together.
-        holder().release_ownership();
-        auto result = std::unique_ptr<T, D>(raw_type_ptr);
 
         void *value_void_ptr = load_impl.loaded_v_h.value_ptr();
         if (value_void_ptr != raw_void_ptr) {
             pybind11_fail("smart_holder_type_casters: loaded_as_unique_ptr failure:"
                           " value_void_ptr != raw_void_ptr");
         }
-        load_impl.loaded_v_h.value_ptr() = nullptr;
-        deregister_instance(load_impl.loaded_v_h.inst, value_void_ptr, load_impl.loaded_v_h.type);
+
+        // SMART_HOLDER_WIP: MISSING: Safety checks for type conversions
+        // (T must be polymorphic or meet certain other conditions).
+        T *raw_type_ptr = convert_type(raw_void_ptr);
+
+        auto *self_life_support
+            = dynamic_cast_virtual_overrider_self_life_support_ptr(raw_type_ptr);
+        if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
+            throw value_error("Ownership of instance with virtual overrides in Python cannot be "
+                              "transferred to C++.");
+        }
+
+        // Critical transfer-of-ownership section. This must stay together.
+        if (self_life_support != nullptr) {
+            holder().disown();
+        } else {
+            holder().release_ownership();
+        }
+        auto result = std::unique_ptr<T, D>(raw_type_ptr);
+        if (self_life_support != nullptr) {
+            Py_INCREF((PyObject *) load_impl.loaded_v_h.inst);
+            self_life_support->loaded_v_h = load_impl.loaded_v_h;
+        } else {
+            load_impl.loaded_v_h.value_ptr() = nullptr;
+            deregister_instance(
+                load_impl.loaded_v_h.inst, value_void_ptr, load_impl.loaded_v_h.type);
+        }
+        // Critical section end.
 
         return result;
     }

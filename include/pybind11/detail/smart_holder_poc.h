@@ -95,13 +95,14 @@ inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
 }
 
 struct smart_holder {
-    const std::type_info *rtti_uqp_del;
+    const std::type_info *rtti_uqp_del = nullptr;
     std::shared_ptr<bool> vptr_deleter_armed_flag_ptr;
     std::shared_ptr<void> vptr;
     bool vptr_is_using_noop_deleter : 1;
     bool vptr_is_using_builtin_delete : 1;
     bool vptr_is_external_shared_ptr : 1;
     bool is_populated : 1;
+    bool was_disowned : 1;
     bool pointee_depends_on_holder_owner : 1; // SMART_HOLDER_WIP: See PR #2839.
 
     // Design choice: smart_holder is movable but not copyable.
@@ -111,15 +112,15 @@ struct smart_holder {
     smart_holder &operator=(const smart_holder &) = delete;
 
     smart_holder()
-        : rtti_uqp_del{nullptr}, vptr_is_using_noop_deleter{false},
-          vptr_is_using_builtin_delete{false}, vptr_is_external_shared_ptr{false},
-          is_populated{false}, pointee_depends_on_holder_owner{false} {}
+        : vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
+          vptr_is_external_shared_ptr{false}, is_populated{false}, was_disowned{false},
+          pointee_depends_on_holder_owner{false} {}
 
     explicit smart_holder(bool vptr_deleter_armed_flag)
-        : rtti_uqp_del{nullptr}, vptr_deleter_armed_flag_ptr{new bool{vptr_deleter_armed_flag}},
+        : vptr_deleter_armed_flag_ptr{new bool{vptr_deleter_armed_flag}},
           vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
-          vptr_is_external_shared_ptr{false}, is_populated{false}, pointee_depends_on_holder_owner{
-                                                                       false} {}
+          vptr_is_external_shared_ptr{false}, is_populated{false}, was_disowned{false},
+          pointee_depends_on_holder_owner{false} {}
 
     bool has_pointee() const { return vptr.get() != nullptr; }
 
@@ -133,6 +134,12 @@ struct smart_holder {
     void ensure_is_populated(const char *context) const {
         if (!is_populated) {
             throw std::runtime_error(std::string("Unpopulated holder (") + context + ").");
+        }
+    }
+    void ensure_was_not_disowned(const char *context) const {
+        if (was_disowned) {
+            throw std::runtime_error(std::string("Holder was disowned already (") + context
+                                     + ").");
         }
     }
 
@@ -227,16 +234,29 @@ struct smart_holder {
         return hld;
     }
 
+    // Caller is responsible for ensuring preconditions (TODO: details).
+    void disown() {
+        *vptr_deleter_armed_flag_ptr = false;
+        was_disowned                 = true;
+    }
+
+    // Caller is responsible for ensuring preconditions (TODO: details).
+    void release_disowned() {
+        vptr.reset();
+        vptr_deleter_armed_flag_ptr.reset();
+    }
+
+    // TODO: review this function.
     void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") {
+        ensure_was_not_disowned(context);
         ensure_vptr_is_using_builtin_delete(context);
         ensure_use_count_1(context);
     }
 
-    // Caller is responsible for calling ensure_can_release_ownership().
+    // Caller is responsible for ensuring preconditions (TODO: details).
     void release_ownership() {
         *vptr_deleter_armed_flag_ptr = false;
-        vptr.reset();
-        vptr_deleter_armed_flag_ptr.reset();
+        release_disowned();
     }
 
     template <typename T>
