@@ -56,6 +56,7 @@ struct virtual_overrider_self_life_support {
     }
 
     // Some compilers complain about implicitly defined versions of some of the following:
+    virtual_overrider_self_life_support()                                            = default;
     virtual_overrider_self_life_support(const virtual_overrider_self_life_support &) = default;
     virtual_overrider_self_life_support(virtual_overrider_self_life_support &&)      = default;
     virtual_overrider_self_life_support &operator=(const virtual_overrider_self_life_support &)
