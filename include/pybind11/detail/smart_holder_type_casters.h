@@ -394,6 +394,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
+        holder().ensure_was_not_disowned("loaded_as_shared_ptr");
         auto void_raw_ptr = holder().template as_raw_ptr_unowned<void>();
         auto type_raw_ptr = convert_type(void_raw_ptr);
         if (holder().pointee_depends_on_holder_owner) {
@@ -415,6 +416,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
+        holder().ensure_was_not_disowned(context);
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
