@@ -133,6 +133,14 @@ def test_str(doc):
     else:
         assert m.str_from_handle(malformed_utf8) == "b'\\x80'"
 
+    assert m.str_from_string_from_str("this is a str") == "this is a str"
+    ucs_surrogates_str = "\udcc3"
+    if env.PY2:
+        assert u"\udcc3" == m.str_from_string_from_str(ucs_surrogates_str)
+    else:
+        with pytest.raises(UnicodeEncodeError):
+            m.str_from_string_from_str(ucs_surrogates_str)
+
 
 def test_bytes(doc):
     assert m.bytes_from_string().decode() == "foo"
