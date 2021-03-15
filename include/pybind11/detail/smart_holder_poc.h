@@ -234,26 +234,26 @@ struct smart_holder {
         return hld;
     }
 
-    // Caller is responsible for ensuring preconditions (TODO: details).
+    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
     void disown() {
         *vptr_deleter_armed_flag_ptr = false;
         was_disowned                 = true;
     }
 
-    // Caller is responsible for ensuring preconditions (TODO: details).
+    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
     void release_disowned() {
         vptr.reset();
         vptr_deleter_armed_flag_ptr.reset();
     }
 
-    // TODO: review this function.
+    // SMART_HOLDER_WIP: review this function.
     void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") {
         ensure_was_not_disowned(context);
         ensure_vptr_is_using_builtin_delete(context);
         ensure_use_count_1(context);
     }
 
-    // Caller is responsible for ensuring preconditions (TODO: details).
+    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
     void release_ownership() {
         *vptr_deleter_armed_flag_ptr = false;
         release_disowned();
