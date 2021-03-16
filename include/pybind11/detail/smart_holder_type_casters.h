@@ -13,6 +13,7 @@
 #include "smart_holder_sfinae_hooks_only.h"
 #include "type_caster_base.h"
 #include "typeid.h"
+#include "virtual_overrider_self_life_support.h"
 
 #include <cstddef>
 #include <memory>
@@ -352,6 +353,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
+        holder().ensure_was_not_disowned("loaded_as_shared_ptr");
         auto void_raw_ptr = holder().template as_raw_ptr_unowned<void>();
         auto type_raw_ptr = convert_type(void_raw_ptr);
         if (holder().pointee_depends_on_holder_owner) {
@@ -373,28 +375,44 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
+        holder().ensure_was_not_disowned(context);
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
-        if (holder().pointee_depends_on_holder_owner) {
-            throw value_error("Ownership of instance with virtual overrides in Python cannot be "
-                              "transferred to C++.");
-        }
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
-        // SMART_HOLDER_WIP: MISSING: Safety checks for type conversions
-        // (T must be polymorphic or meet certain other conditions).
-        T *raw_type_ptr = convert_type(raw_void_ptr);
-
-        // Critical transfer-of-ownership section. This must stay together.
-        holder().release_ownership();
-        auto result = std::unique_ptr<T, D>(raw_type_ptr);
 
         void *value_void_ptr = load_impl.loaded_v_h.value_ptr();
         if (value_void_ptr != raw_void_ptr) {
             pybind11_fail("smart_holder_type_casters: loaded_as_unique_ptr failure:"
                           " value_void_ptr != raw_void_ptr");
         }
-        load_impl.loaded_v_h.value_ptr() = nullptr;
-        deregister_instance(load_impl.loaded_v_h.inst, value_void_ptr, load_impl.loaded_v_h.type);
+
+        // SMART_HOLDER_WIP: MISSING: Safety checks for type conversions
+        // (T must be polymorphic or meet certain other conditions).
+        T *raw_type_ptr = convert_type(raw_void_ptr);
+
+        auto *self_life_support
+            = dynamic_cast_virtual_overrider_self_life_support_ptr(raw_type_ptr);
+        if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
+            throw value_error("Ownership of instance with virtual overrides in Python cannot be "
+                              "transferred to C++.");
+        }
+
+        // Critical transfer-of-ownership section. This must stay together.
+        if (self_life_support != nullptr) {
+            holder().disown();
+        } else {
+            holder().release_ownership();
+        }
+        auto result = std::unique_ptr<T, D>(raw_type_ptr);
+        if (self_life_support != nullptr) {
+            Py_INCREF((PyObject *) load_impl.loaded_v_h.inst);
+            self_life_support->loaded_v_h = load_impl.loaded_v_h;
+        } else {
+            load_impl.loaded_v_h.value_ptr() = nullptr;
+            deregister_instance(
+                load_impl.loaded_v_h.inst, value_void_ptr, load_impl.loaded_v_h.type);
+        }
+        // Critical section end.
 
         return result;
     }

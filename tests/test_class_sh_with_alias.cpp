@@ -7,6 +7,7 @@
 namespace pybind11_tests {
 namespace test_class_sh_with_alias {
 
+template <int SerNo> // Using int as a trick to easily generate a series of types.
 struct Abase {
     int val          = 0;
     virtual ~Abase() = default;
@@ -21,41 +22,65 @@ struct Abase {
     Abase &operator=(Abase &&) = default;
 };
 
-struct AbaseAlias : Abase {
-    using Abase::Abase;
+template <int SerNo>
+struct AbaseAlias : Abase<SerNo> {
+    using Abase<SerNo>::Abase;
 
     int Add(int other_val) const override {
-        PYBIND11_OVERRIDE_PURE(int,   /* Return type */
-                               Abase, /* Parent class */
-                               Add,   /* Name of function in C++ (must match Python name) */
+        PYBIND11_OVERRIDE_PURE(int,          /* Return type */
+                               Abase<SerNo>, /* Parent class */
+                               Add,          /* Name of function in C++ (must match Python name) */
                                other_val);
     }
 };
 
-int AddInCppRawPtr(const Abase *obj, int other_val) { return obj->Add(other_val) * 10 + 7; }
+template <>
+struct AbaseAlias<1> : Abase<1>, py::detail::virtual_overrider_self_life_support {
+    using Abase<1>::Abase;
 
-int AddInCppSharedPtr(std::shared_ptr<Abase> obj, int other_val) {
+    int Add(int other_val) const override {
+        PYBIND11_OVERRIDE_PURE(int,      /* Return type */
+                               Abase<1>, /* Parent class */
+                               Add,      /* Name of function in C++ (must match Python name) */
+                               other_val);
+    }
+};
+
+template <int SerNo>
+int AddInCppRawPtr(const Abase<SerNo> *obj, int other_val) {
+    return obj->Add(other_val) * 10 + 7;
+}
+
+template <int SerNo>
+int AddInCppSharedPtr(std::shared_ptr<Abase<SerNo>> obj, int other_val) {
     return obj->Add(other_val) * 100 + 11;
 }
 
-int AddInCppUniquePtr(std::unique_ptr<Abase> obj, int other_val) {
+template <int SerNo>
+int AddInCppUniquePtr(std::unique_ptr<Abase<SerNo>> obj, int other_val) {
     return obj->Add(other_val) * 100 + 13;
+}
+
+template <int SerNo>
+void wrap(py::module_ m, const char *py_class_name) {
+    py::classh<Abase<SerNo>, AbaseAlias<SerNo>>(m, py_class_name)
+        .def(py::init<int>(), py::arg("val"))
+        .def("Get", &Abase<SerNo>::Get)
+        .def("Add", &Abase<SerNo>::Add, py::arg("other_val"));
+
+    m.def("AddInCppRawPtr", AddInCppRawPtr<SerNo>, py::arg("obj"), py::arg("other_val"));
+    m.def("AddInCppSharedPtr", AddInCppSharedPtr<SerNo>, py::arg("obj"), py::arg("other_val"));
+    m.def("AddInCppUniquePtr", AddInCppUniquePtr<SerNo>, py::arg("obj"), py::arg("other_val"));
 }
 
 } // namespace test_class_sh_with_alias
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_with_alias::Abase)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_with_alias::Abase<0>)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_with_alias::Abase<1>)
 
 TEST_SUBMODULE(class_sh_with_alias, m) {
     using namespace pybind11_tests::test_class_sh_with_alias;
-
-    py::classh<Abase, AbaseAlias>(m, "Abase")
-        .def(py::init<int>(), py::arg("val"))
-        .def("Get", &Abase::Get)
-        .def("Add", &Abase::Add, py::arg("other_val"));
-
-    m.def("AddInCppRawPtr", AddInCppRawPtr, py::arg("obj"), py::arg("other_val"));
-    m.def("AddInCppSharedPtr", AddInCppSharedPtr, py::arg("obj"), py::arg("other_val"));
-    m.def("AddInCppUniquePtr", AddInCppUniquePtr, py::arg("obj"), py::arg("other_val"));
+    wrap<0>(m, "Abase0");
+    wrap<1>(m, "Abase1");
 }

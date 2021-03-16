@@ -110,6 +110,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/smart_holder_type_casters.h
     include/pybind11/detail/type_caster_base.h
     include/pybind11/detail/typeid.h
+    include/pybind11/detail/virtual_overrider_self_life_support.h
     include/pybind11/attr.h
     include/pybind11/buffer_info.h
     include/pybind11/cast.h
