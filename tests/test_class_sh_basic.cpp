@@ -17,6 +17,17 @@ struct atyp { // Short for "any type".
     atyp(atyp &&other) { mtxt = other.mtxt + "_MvCtor"; }
 };
 
+struct uconsumer {  // unique_ptr consumer
+    std::unique_ptr<atyp> held;
+    bool valid() const { return static_cast<bool>(held); }
+
+    void pass_valu(std::unique_ptr<atyp> obj) { held = std::move(obj); }
+    void pass_rref(std::unique_ptr<atyp> &&obj) { held = std::move(obj); }
+    std::unique_ptr<atyp> rtrn_valu() { return std::move(held); }
+    std::unique_ptr<atyp>& rtrn_lref() { return held; }
+    const std::unique_ptr<atyp> &rtrn_cref() { return held; }
+};
+
 // clang-format off
 
 atyp        rtrn_valu() { atyp obj{"rtrn_valu"}; return obj; }
@@ -57,7 +68,11 @@ std::string pass_udcp(std::unique_ptr<atyp const, sddc> obj) { return "pass_udcp
 
 // Helpers for testing.
 std::string get_mtxt(atyp const &obj) { return obj.mtxt; }
+std::ptrdiff_t get_ptr(atyp const &obj) { return reinterpret_cast<std::ptrdiff_t>(&obj); }
+
 std::unique_ptr<atyp> unique_ptr_roundtrip(std::unique_ptr<atyp> obj) { return obj; }
+const std::unique_ptr<atyp>& unique_ptr_cref_roundtrip(const std::unique_ptr<atyp>& obj) { return obj; }
+
 struct SharedPtrStash {
     std::vector<std::shared_ptr<const atyp>> stash;
     void Add(std::shared_ptr<const atyp> obj) { stash.push_back(obj); }
@@ -67,6 +82,7 @@ struct SharedPtrStash {
 } // namespace pybind11_tests
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::atyp)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::uconsumer)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::SharedPtrStash)
 
 namespace pybind11_tests {
@@ -112,10 +128,23 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("pass_udmp", pass_udmp);
     m.def("pass_udcp", pass_udcp);
 
+    py::classh<uconsumer>(m, "uconsumer")
+        .def(py::init<>())
+        .def("valid", &uconsumer::valid)
+        .def("pass_valu", &uconsumer::pass_valu)
+        .def("pass_rref", &uconsumer::pass_rref)
+        .def("rtrn_valu", &uconsumer::rtrn_valu)
+        .def("rtrn_lref", &uconsumer::rtrn_lref)
+        .def("rtrn_cref", &uconsumer::rtrn_cref);
+
     // Helpers for testing.
     // These require selected functions above to work first, as indicated:
     m.def("get_mtxt", get_mtxt);                         // pass_cref
+    m.def("get_ptr", get_ptr);                           // pass_cref
+
     m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
+    m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
+
     py::classh<SharedPtrStash>(m, "SharedPtrStash")
         .def(py::init<>())
         .def("Add", &SharedPtrStash::Add, py::arg("obj"));
