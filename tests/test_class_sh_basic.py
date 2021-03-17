@@ -118,6 +118,48 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
         id_orig = id_rtrn
 
 
+# This currently fails, because a unique_ptr is always loaded by value
+# due to pybind11/detail/smart_holder_type_casters.h:689
+# I think, we need to provide more cast operators.
+@pytest.mark.skip
+def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
+    orig = m.atyp("passenger")
+    id_orig = id(orig)
+    mtxt_orig = m.get_mtxt(orig)
+
+    recycled = m.unique_ptr_cref_roundtrip(orig)
+    assert m.get_mtxt(orig) == mtxt_orig
+    assert m.get_mtxt(recycled) == mtxt_orig
+    assert id(recycled) == id_orig
+
+
+@pytest.mark.parametrize(
+    "pass_f, rtrn_f, moved_out, moved_in",
+    [
+        (m.uconsumer.pass_valu, m.uconsumer.rtrn_valu, True, True),
+        (m.uconsumer.pass_rref, m.uconsumer.rtrn_valu, True, True),
+        (m.uconsumer.pass_valu, m.uconsumer.rtrn_lref, True, False),
+        (m.uconsumer.pass_valu, m.uconsumer.rtrn_cref, True, False),
+    ],
+)
+def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
+    c = m.uconsumer()
+    assert not c.valid()
+    recycled = m.atyp("passenger")
+    mtxt_orig = m.get_mtxt(recycled)
+    assert re.match("passenger_(MvCtor){1,2}", mtxt_orig)
+
+    pass_f(c, recycled)
+    if moved_out:
+        with pytest.raises(ValueError) as excinfo:
+            m.get_mtxt(recycled)
+        assert "Python instance was disowned" in str(excinfo.value)
+
+    recycled = rtrn_f(c)
+    assert c.valid() != moved_in
+    assert m.get_mtxt(recycled) == mtxt_orig
+
+
 def test_py_type_handle_of_atyp():
     obj = m.py_type_handle_of_atyp()
     assert obj.__class__.__name__ == "pybind11_type"
