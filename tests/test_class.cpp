@@ -45,11 +45,11 @@ struct SamePointer {};
 
 } // namespace
 
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchBase1, std::shared_ptr<MismatchBase1>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchDerived1, std::unique_ptr<MismatchDerived1>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchBase2, std::unique_ptr<MismatchBase2>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(MismatchDerived2, std::shared_ptr<MismatchDerived2>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(SamePointer, std::unique_ptr<SamePointer>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(MismatchBase1, std::shared_ptr<MismatchBase1>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(MismatchDerived1, std::unique_ptr<MismatchDerived1>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(MismatchBase2, std::unique_ptr<MismatchBase2>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(MismatchDerived2, std::shared_ptr<MismatchDerived2>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(SamePointer, std::unique_ptr<SamePointer>)
 
 TEST_SUBMODULE(class_, m) {
     // test_instance
