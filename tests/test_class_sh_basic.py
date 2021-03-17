@@ -3,6 +3,7 @@
 import re
 
 import pytest
+import sys
 
 from pybind11_tests import class_sh_basic as m
 
@@ -144,10 +145,13 @@ def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
 )
 def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
     c = m.uconsumer()
-    assert not c.valid()
     recycled = m.atyp("passenger")
     mtxt_orig = m.get_mtxt(recycled)
+    ptr_orig = m.get_ptr(recycled)
     assert re.match("passenger_(MvCtor){1,2}", mtxt_orig)
+
+    __copy = recycled  # noqa: F841
+    assert sys.getrefcount(recycled) == 3
 
     pass_f(c, recycled)
     if moved_out:
@@ -156,8 +160,9 @@ def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
         assert "Python instance was disowned" in str(excinfo.value)
 
     recycled = rtrn_f(c)
-    assert c.valid() != moved_in
-    assert m.get_mtxt(recycled) == mtxt_orig
+    assert c.valid() != moved_in  # consumer gave up ownership?
+    assert m.get_ptr(recycled) == ptr_orig  # underlying C++ object never changes
+    assert m.get_mtxt(recycled) == mtxt_orig  # object was not moved or copied
 
 
 def test_py_type_handle_of_atyp():
