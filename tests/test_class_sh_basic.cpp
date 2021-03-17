@@ -17,14 +17,14 @@ struct atyp { // Short for "any type".
     atyp(atyp &&other) { mtxt = other.mtxt + "_MvCtor"; }
 };
 
-struct uconsumer {  // unique_ptr consumer
+struct uconsumer { // unique_ptr consumer
     std::unique_ptr<atyp> held;
     bool valid() const { return static_cast<bool>(held); }
 
     void pass_valu(std::unique_ptr<atyp> obj) { held = std::move(obj); }
     void pass_rref(std::unique_ptr<atyp> &&obj) { held = std::move(obj); }
     std::unique_ptr<atyp> rtrn_valu() { return std::move(held); }
-    std::unique_ptr<atyp>& rtrn_lref() { return held; }
+    std::unique_ptr<atyp> &rtrn_lref() { return held; }
     const std::unique_ptr<atyp> &rtrn_cref() { return held; }
 };
 
@@ -71,7 +71,9 @@ std::string get_mtxt(atyp const &obj) { return obj.mtxt; }
 std::ptrdiff_t get_ptr(atyp const &obj) { return reinterpret_cast<std::ptrdiff_t>(&obj); }
 
 std::unique_ptr<atyp> unique_ptr_roundtrip(std::unique_ptr<atyp> obj) { return obj; }
-const std::unique_ptr<atyp>& unique_ptr_cref_roundtrip(const std::unique_ptr<atyp>& obj) { return obj; }
+const std::unique_ptr<atyp> &unique_ptr_cref_roundtrip(const std::unique_ptr<atyp> &obj) {
+    return obj;
+}
 
 struct SharedPtrStash {
     std::vector<std::shared_ptr<const atyp>> stash;
@@ -139,8 +141,8 @@ TEST_SUBMODULE(class_sh_basic, m) {
 
     // Helpers for testing.
     // These require selected functions above to work first, as indicated:
-    m.def("get_mtxt", get_mtxt);                         // pass_cref
-    m.def("get_ptr", get_ptr);                           // pass_cref
+    m.def("get_mtxt", get_mtxt); // pass_cref
+    m.def("get_ptr", get_ptr);   // pass_cref
 
     m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
     m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);

@@ -716,7 +716,8 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
 
         return inst.release();
     }
-    static handle cast(const std::unique_ptr<T, D> &src, return_value_policy policy, handle parent) {
+    static handle
+    cast(const std::unique_ptr<T, D> &src, return_value_policy policy, handle parent) {
         if (!src)
             return none().release();
         if (policy == return_value_policy::automatic)
