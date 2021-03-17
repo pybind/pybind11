@@ -1,3 +1,7 @@
+// clang-format off
+// Please consider `clang-format`ting this file before starting with significant
+// changes, ideally in a separate commit. See also: .github/CONTRIBUTING.md
+
 /*
     tests/test_constants_and_functions.cpp -- global constants and functions, enumerations, raw byte strings
 

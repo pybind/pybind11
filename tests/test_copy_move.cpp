@@ -1,3 +1,7 @@
+// clang-format off
+// Please consider `clang-format`ting this file before starting with significant
+// changes, ideally in a separate commit. See also: .github/CONTRIBUTING.md
+
 /*
     tests/test_copy_move_policies.cpp -- 'copy' and 'move' return value policies
                                          and related tests

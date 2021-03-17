@@ -1,3 +1,7 @@
+// clang-format off
+// Please consider `clang-format`ting this file before starting with significant
+// changes, ideally in a separate commit. See also: .github/CONTRIBUTING.md
+
 /*
     tests/test_local_bindings.cpp -- tests the py::module_local class feature which makes a class
                                      binding local to the module in which it is defined.

@@ -1,3 +1,7 @@
+// clang-format off
+// Please consider `clang-format`ting this file before starting with significant
+// changes, ideally in a separate commit. See also: .github/CONTRIBUTING.md
+
 /*
     tests/test_methods_and_attributes.cpp -- constructors, deconstructors, attribute access,
     __str__, argument and return value conventions

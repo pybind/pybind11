@@ -1,3 +1,7 @@
+// clang-format off
+// Please consider `clang-format`ting this file before starting with significant
+// changes, ideally in a separate commit. See also: .github/CONTRIBUTING.md
+
 /*
     tests/test_sequences_and_iterators.cpp -- supporting Pythons' sequence protocol, iterators,
     etc.

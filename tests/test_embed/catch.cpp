@@ -1,3 +1,7 @@
+// clang-format off
+// Please consider `clang-format`ting this file before starting with significant
+// changes, ideally in a separate commit. See also: .github/CONTRIBUTING.md
+
 // The Catch implementation is compiled here. This is a standalone
 // translation unit to avoid recompiling it for every test change.
 
