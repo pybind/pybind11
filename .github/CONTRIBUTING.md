@@ -180,9 +180,13 @@ pre-commit install
 
 As of v2.6.2, pybind11 ships with a [`clang-format`][clang-format]
 configuration file at the top level of the repo (the filename is
-`.clang-format`). Currently, formatting is NOT applied automatically, but
-manually using `clang-format` for newly developed files is highly encouraged.
-To check if a file needs formatting:
+`.clang-format`). Formatting is checked automatically as part of
+`pre-commit run`, but many source files were grandfathered in by adding
+`// clang-format off` at the top. Please consider `clang-format`ing these
+files before starting with major changes, ideally in a separate commit, or even
+a separate PR, to keep development changes separate from `clang-format` cleanup.
+
+To quickly check if a certain file needs formatting:
 
 ```bash
 clang-format -style=file --dry-run some.cpp

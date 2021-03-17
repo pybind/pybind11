@@ -98,3 +98,15 @@ repos:
     types:
     - c++
     entry: ./tools/check-style.sh
+
+- repo: local
+  hooks:
+  - id: docker-clang-format
+    name: Docker Clang Format
+    language: docker_image
+    types:
+    - c++
+    entry: unibeautify/clang-format:latest
+    args:
+    - -style=file
+    - -i
