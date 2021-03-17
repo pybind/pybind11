@@ -39,9 +39,9 @@ static_assert(sizeof(padded_unique_ptr<nb_pu>) == sizeof(py::smart_holder),
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, hc::padded_unique_ptr<T>);
 
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(hc::nb_up, std::unique_ptr<hc::nb_up>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(hc::nb_sp, std::shared_ptr<hc::nb_sp>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(hc::nb_pu, hc::padded_unique_ptr<hc::nb_pu>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(hc::nb_up, std::unique_ptr<hc::nb_up>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(hc::nb_sp, std::shared_ptr<hc::nb_sp>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(hc::nb_pu, hc::padded_unique_ptr<hc::nb_pu>)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(hc::nb_sh)
 
 PYBIND11_MODULE(pybind11_ubench_holder_comparison, m) {

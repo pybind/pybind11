@@ -1217,7 +1217,7 @@ template <typename T>
 
 using default_holder_type = std::unique_ptr<T>;
 
-#    define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)
+#    define PYBIND11_TYPE_CASTER_BASE_HOLDER(T, ...)
 
 #else
 
@@ -1225,7 +1225,7 @@ using default_holder_type = smart_holder;
 
 // This define could be hidden away inside detail/smart_holder_type_casters.h, but is kept here
 // for clarity.
-#    define PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)                                    \
+#    define PYBIND11_TYPE_CASTER_BASE_HOLDER(T, ...)                                    \
         namespace pybind11 {                                                                      \
         namespace detail {                                                                        \
         template <>                                                                               \
@@ -1292,12 +1292,12 @@ public:
             !(detail::is_instantiation<std::unique_ptr, holder_type>::value
               && wrapped_type_uses_smart_holder_type_caster),
             "py::class_ holder vs type_caster mismatch:"
-            " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, std::unique_ptr<T>)?");
+            " missing PYBIND11_TYPE_CASTER_BASE_HOLDER(T, std::unique_ptr<T>)?");
         static_assert(
             !(detail::is_instantiation<std::shared_ptr, holder_type>::value
               && wrapped_type_uses_smart_holder_type_caster),
             "py::class_ holder vs type_caster mismatch:"
-            " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, std::shared_ptr<T>)?");
+            " missing PYBIND11_TYPE_CASTER_BASE_HOLDER(T, std::shared_ptr<T>)?");
         static_assert(!(holder_is_smart_holder && type_caster_type_is_type_caster_base_subtype),
                       "py::class_ holder vs type_caster mismatch:"
                       " missing PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)?");
@@ -1309,7 +1309,7 @@ public:
                       " or collision with custom py::detail::type_caster<T>?");
         static_assert(!holder_is_smart_holder == type_caster_type_is_type_caster_base_subtype,
                       "py::class_ holder vs type_caster mismatch:"
-                      " missing PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(T, ...)"
+                      " missing PYBIND11_TYPE_CASTER_BASE_HOLDER(T, ...)"
                       " or collision with custom py::detail::type_caster<T>?");
 #endif
         // clang-format off

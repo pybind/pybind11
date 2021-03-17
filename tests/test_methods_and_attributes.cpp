@@ -148,7 +148,7 @@ struct RefQualified {
     int constRefQualified(int other) const & { return value + other; }
 };
 
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(NoneTester, std::shared_ptr<NoneTester>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(NoneTester, std::shared_ptr<NoneTester>)
 
 TEST_SUBMODULE(methods_and_attributes, m) {
     // test_methods_and_attributes

@@ -69,13 +69,13 @@ struct I801D : I801C {}; // Indirect MI
 
 } // namespace
 
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Base1a, std::shared_ptr<Base1a>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Base2a, std::shared_ptr<Base2a>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(Base12a, std::shared_ptr<Base12a>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(I801B1, std::shared_ptr<I801B1>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(I801B2, std::shared_ptr<I801B2>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(I801C, std::shared_ptr<I801C>)
-PYBIND11_SMART_POINTER_HOLDER_TYPE_CASTERS(I801D, std::shared_ptr<I801D>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(Base1a, std::shared_ptr<Base1a>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(Base2a, std::shared_ptr<Base2a>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(Base12a, std::shared_ptr<Base12a>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(I801B1, std::shared_ptr<I801B1>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(I801B2, std::shared_ptr<I801B2>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(I801C, std::shared_ptr<I801C>)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(I801D, std::shared_ptr<I801D>)
 
 TEST_SUBMODULE(multiple_inheritance, m) {
     // Please do not interleave `struct` and `class` definitions with bindings code,
