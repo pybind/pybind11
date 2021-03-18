@@ -40,13 +40,8 @@ def test_drvd0_add_in_cpp_shared_ptr():
 def test_drvd0_add_in_cpp_unique_ptr():
     while True:
         drvd = PyDrvd0(0)
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(RuntimeError):
             m.AddInCppUniquePtr(drvd, 0)
-        assert (
-            str(exc_info.value)
-            == "Ownership of instance with virtual overrides in Python"
-            " cannot be transferred to C++."
-        )
         return  # Comment out for manual leak checking (use `top` command).
 
 

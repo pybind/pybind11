@@ -22,16 +22,16 @@ int get_from_cpp_plainc_ptr(const Base *b) { return b->get() + 4000; }
 
 int get_from_cpp_unique_ptr(std::unique_ptr<Base> b) { return b->get() + 5000; }
 
-class BaseVirtualOverrider : public Base, py::detail::virtual_overrider_self_life_support {
-public:
+struct BaseVirtualOverrider : Base, py::detail::virtual_overrider_self_life_support {
     using Base::Base;
 
     int get() const override { PYBIND11_OVERRIDE(int, Base, get); }
 };
 
-class CppDerivedVirtualOverrider : public CppDerived, BaseVirtualOverrider {
-public:
+struct CppDerivedVirtualOverrider : CppDerived, py::detail::virtual_overrider_self_life_support {
     using CppDerived::CppDerived;
+
+    int get() const override { PYBIND11_OVERRIDE(int, CppDerived, get); }
 };
 
 } // namespace test_class_sh_virtual_py_cpp_mix

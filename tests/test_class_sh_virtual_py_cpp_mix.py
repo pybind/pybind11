@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import pytest
 
 from pybind11_tests import class_sh_virtual_py_cpp_mix as m
 
 
-class PyDerived(m.Base):
+class PyBase(m.Base):  # Avoiding name PyDerived, for more systematic naming.
     def __init__(self):
         m.Base.__init__(self)
 
@@ -11,31 +12,51 @@ class PyDerived(m.Base):
         return 323
 
 
-def test_py_derived_get():
-    d = PyDerived()
-    assert d.get() == 323
+class PyCppDerived(m.CppDerived):
+    def __init__(self):
+        m.CppDerived.__init__(self)
+
+    def get(self):
+        return 434
 
 
-def test_get_from_cpp_plainc_ptr_passing_py_derived():
-    d = PyDerived()
-    assert m.get_from_cpp_plainc_ptr(d) == 4323
+@pytest.mark.parametrize(
+    "ctor, expected",
+    [
+        (m.Base, 101),
+        (PyBase, 323),
+        (m.CppDerived, 212),
+        (PyCppDerived, 434),
+    ],
+)
+def test_base_get(ctor, expected):
+    obj = ctor()
+    assert obj.get() == expected
 
 
-def test_get_from_cpp_unique_ptr_passing_py_derived():
-    d = PyDerived()
-    assert m.get_from_cpp_unique_ptr(d) == 5323
+@pytest.mark.parametrize(
+    "ctor, expected",
+    [
+        (m.Base, 4101),
+        (PyBase, 4323),
+        (m.CppDerived, 4212),
+        (PyCppDerived, 4434),
+    ],
+)
+def test_get_from_cpp_plainc_ptr(ctor, expected):
+    obj = ctor()
+    assert m.get_from_cpp_plainc_ptr(obj) == expected
 
 
-def test_cpp_derived_get():
-    d = m.CppDerived()
-    assert d.get() == 212
-
-
-def test_get_from_cpp_plainc_ptr_passing_cpp_derived():
-    d = m.CppDerived()
-    assert m.get_from_cpp_plainc_ptr(d) == 4212
-
-
-def test_get_from_cpp_unique_ptr_passing_cpp_derived():
-    d = m.CppDerived()
-    assert m.get_from_cpp_unique_ptr(d) == 5212
+@pytest.mark.parametrize(
+    "ctor, expected",
+    [
+        (m.Base, 5101),
+        (PyBase, 5323),
+        (m.CppDerived, 5212),
+        (PyCppDerived, 5434),
+    ],
+)
+def test_get_from_cpp_unique_ptr(ctor, expected):
+    obj = ctor()
+    assert m.get_from_cpp_unique_ptr(obj) == expected

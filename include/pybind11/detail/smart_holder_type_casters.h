@@ -392,10 +392,6 @@ struct smart_holder_type_caster_load {
 
         auto *self_life_support
             = dynamic_cast_virtual_overrider_self_life_support_ptr(raw_type_ptr);
-        if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
-            throw value_error("Ownership of instance with virtual overrides in Python cannot be "
-                              "transferred to C++.");
-        }
 
         // Critical transfer-of-ownership section. This must stay together.
         if (self_life_support != nullptr) {
