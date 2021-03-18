@@ -46,16 +46,18 @@ struct virtual_overrider_self_life_support {
         = default;
 };
 
-template <typename T, detail::enable_if_t<!std::is_polymorphic<T>::value, int> = 0>
-virtual_overrider_self_life_support *
-dynamic_cast_virtual_overrider_self_life_support_ptr(T * /*raw_type_ptr*/) {
+template <typename To,
+          typename From,
+          detail::enable_if_t<!(std::is_polymorphic<From>::value), int> = 0>
+To *dynamic_raw_ptr_cast_if_possible(From * /*ptr*/) {
     return nullptr;
 }
 
-template <typename T, detail::enable_if_t<std::is_polymorphic<T>::value, int> = 0>
-virtual_overrider_self_life_support *
-dynamic_cast_virtual_overrider_self_life_support_ptr(T *raw_type_ptr) {
-    return dynamic_cast<virtual_overrider_self_life_support *>(raw_type_ptr);
+template <typename To,
+          typename From,
+          detail::enable_if_t<std::is_polymorphic<From>::value, int> = 0>
+To *dynamic_raw_ptr_cast_if_possible(From *ptr) {
+    return dynamic_cast<To *>(ptr);
 }
 
 PYBIND11_NAMESPACE_END(detail)

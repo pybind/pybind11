@@ -263,15 +263,13 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
         return &modified_type_caster_generic_load_impl::local_load;
     }
 
-    template <typename T>
-    static void init_instance_for_type(detail::instance *inst,
-                                       const void *holder_const_void_ptr,
-                                       bool has_alias) {
+    template <typename WrappedType, typename AliasType>
+    static void init_instance_for_type(detail::instance *inst, const void *holder_const_void_ptr) {
         // Need for const_cast is a consequence of the type_info::init_instance type:
         // void (*init_instance)(instance *, const void *);
         auto holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
 
-        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(T)));
+        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(WrappedType)));
         if (!v_h.instance_registered()) {
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
@@ -282,13 +280,14 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
             auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
             new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*holder_ptr));
         } else if (inst->owned) {
-            new (std::addressof(v_h.holder<holder_type>()))
-                holder_type(holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<T>()));
+            new (std::addressof(v_h.holder<holder_type>())) holder_type(
+                holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<WrappedType>()));
         } else {
             new (std::addressof(v_h.holder<holder_type>()))
-                holder_type(holder_type::from_raw_ptr_unowned(v_h.value_ptr<T>()));
+                holder_type(holder_type::from_raw_ptr_unowned(v_h.value_ptr<WrappedType>()));
         }
-        v_h.holder<holder_type>().pointee_depends_on_holder_owner = has_alias;
+        v_h.holder<holder_type>().pointee_depends_on_holder_owner
+            = dynamic_raw_ptr_cast_if_possible<AliasType>(v_h.value_ptr<WrappedType>()) != nullptr;
         v_h.set_holder_constructed();
     }
 
@@ -391,7 +390,12 @@ struct smart_holder_type_caster_load {
         T *raw_type_ptr = convert_type(raw_void_ptr);
 
         auto *self_life_support
-            = dynamic_cast_virtual_overrider_self_life_support_ptr(raw_type_ptr);
+            = dynamic_raw_ptr_cast_if_possible<virtual_overrider_self_life_support>(raw_type_ptr);
+        if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
+            throw value_error("Alias class (also known as trampoline) does not inherit from "
+                              "py::detail::virtual_overrider_self_life_support, therefore the "
+                              "ownership of this instance cannot safely be transferred to C++.");
+        }
 
         // Critical transfer-of-ownership section. This must stay together.
         if (self_life_support != nullptr) {
