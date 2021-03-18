@@ -12,6 +12,12 @@
 #
 # See https://github.com/pre-commit/pre-commit
 
+# If we enable pre-commit.ci, this will be useful:
+ci:
+  skip:
+  - docker-clang-format
+  # check-style maybe too?
+
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
