@@ -45,7 +45,7 @@ def test_drvd0_add_in_cpp_unique_ptr():
         assert (
             str(exc_info.value)
             == "Alias class (also known as trampoline) does not inherit from"
-            " py::detail::virtual_overrider_self_life_support, therefore the ownership of this"
+            " py::virtual_overrider_self_life_support, therefore the ownership of this"
             " instance cannot safely be transferred to C++."
         )
         return  # Comment out for manual leak checking (use `top` command).

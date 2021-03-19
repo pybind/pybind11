@@ -111,7 +111,6 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/smart_holder_type_casters.h
     include/pybind11/detail/type_caster_base.h
     include/pybind11/detail/typeid.h
-    include/pybind11/detail/virtual_overrider_self_life_support.h
     include/pybind11/attr.h
     include/pybind11/buffer_info.h
     include/pybind11/cast.h
@@ -131,7 +130,8 @@ set(PYBIND11_HEADERS
     include/pybind11/pytypes.h
     include/pybind11/smart_holder.h
     include/pybind11/stl.h
-    include/pybind11/stl_bind.h)
+    include/pybind11/stl_bind.h
+    include/pybind11/virtual_overrider_self_life_support.h)
 
 # Compare with grep and warn if mismatched
 if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)

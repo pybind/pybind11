@@ -31,13 +31,13 @@ int get_from_cpp_plainc_ptr(const Base *b) { return b->get() + 4000; }
 
 int get_from_cpp_unique_ptr(std::unique_ptr<Base> b) { return b->get() + 5000; }
 
-struct BaseVirtualOverrider : Base, py::detail::virtual_overrider_self_life_support {
+struct BaseVirtualOverrider : Base, py::virtual_overrider_self_life_support {
     using Base::Base;
 
     int get() const override { PYBIND11_OVERRIDE(int, Base, get); }
 };
 
-struct CppDerivedVirtualOverrider : CppDerived, py::detail::virtual_overrider_self_life_support {
+struct CppDerivedVirtualOverrider : CppDerived, py::virtual_overrider_self_life_support {
     using CppDerived::CppDerived;
 
     int get() const override { PYBIND11_OVERRIDE(int, CppDerived, get); }

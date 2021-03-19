@@ -35,6 +35,7 @@ main_headers = {
     "include/pybind11/smart_holder.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
+    "include/pybind11/virtual_overrider_self_life_support.h",
 }
 
 detail_headers = {
@@ -49,7 +50,6 @@ detail_headers = {
     "include/pybind11/detail/smart_holder_type_casters.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
-    "include/pybind11/detail/virtual_overrider_self_life_support.h",
 }
 
 cmake_files = {

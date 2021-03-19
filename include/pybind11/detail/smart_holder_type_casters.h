@@ -6,6 +6,7 @@
 
 #include "../gil.h"
 #include "../pytypes.h"
+#include "../virtual_overrider_self_life_support.h"
 #include "common.h"
 #include "descr.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
@@ -14,7 +15,6 @@
 #include "smart_holder_sfinae_hooks_only.h"
 #include "type_caster_base.h"
 #include "typeid.h"
-#include "virtual_overrider_self_life_support.h"
 
 #include <cstddef>
 #include <memory>
@@ -394,7 +394,7 @@ struct smart_holder_type_caster_load {
             = dynamic_raw_ptr_cast_if_possible<virtual_overrider_self_life_support>(raw_type_ptr);
         if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
             throw value_error("Alias class (also known as trampoline) does not inherit from "
-                              "py::detail::virtual_overrider_self_life_support, therefore the "
+                              "py::virtual_overrider_self_life_support, therefore the "
                               "ownership of this instance cannot safely be transferred to C++.");
         }
 
