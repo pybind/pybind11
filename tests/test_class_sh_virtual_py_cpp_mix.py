@@ -25,6 +25,7 @@ class PyCppDerived(m.CppDerived):
     [
         (m.Base, 101),
         (PyBase, 323),
+        (m.CppDerivedPlain, 202),
         (m.CppDerived, 212),
         (PyCppDerived, 434),
     ],
@@ -39,6 +40,7 @@ def test_base_get(ctor, expected):
     [
         (m.Base, 4101),
         (PyBase, 4323),
+        (m.CppDerivedPlain, 4202),
         (m.CppDerived, 4212),
         (PyCppDerived, 4434),
     ],
@@ -53,6 +55,7 @@ def test_get_from_cpp_plainc_ptr(ctor, expected):
     [
         (m.Base, 5101),
         (PyBase, 5323),
+        (m.CppDerivedPlain, 5202),
         (m.CppDerived, 5212),
         (PyCppDerived, 5434),
     ],

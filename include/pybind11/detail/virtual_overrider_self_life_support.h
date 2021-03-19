@@ -8,8 +8,6 @@
 #include "smart_holder_poc.h"
 #include "type_caster_base.h"
 
-#include <type_traits>
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -45,20 +43,6 @@ struct virtual_overrider_self_life_support {
     virtual_overrider_self_life_support &operator=(virtual_overrider_self_life_support &&)
         = default;
 };
-
-template <typename To,
-          typename From,
-          detail::enable_if_t<!(std::is_polymorphic<From>::value), int> = 0>
-To *dynamic_raw_ptr_cast_if_possible(From * /*ptr*/) {
-    return nullptr;
-}
-
-template <typename To,
-          typename From,
-          detail::enable_if_t<std::is_polymorphic<From>::value, int> = 0>
-To *dynamic_raw_ptr_cast_if_possible(From *ptr) {
-    return dynamic_cast<To *>(ptr);
-}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

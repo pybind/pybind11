@@ -8,6 +8,7 @@
 #include "../pytypes.h"
 #include "common.h"
 #include "descr.h"
+#include "dynamic_raw_ptr_cast_if_possible.h"
 #include "internals.h"
 #include "smart_holder_poc.h"
 #include "smart_holder_sfinae_hooks_only.h"

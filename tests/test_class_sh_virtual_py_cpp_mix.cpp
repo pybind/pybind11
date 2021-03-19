@@ -17,6 +17,11 @@ public:
     Base(const Base &) = default;
 };
 
+class CppDerivedPlain : public Base {
+public:
+    int get() const override { return 202; }
+};
+
 class CppDerived : public Base {
 public:
     int get() const override { return 212; }
@@ -42,12 +47,16 @@ struct CppDerivedVirtualOverrider : CppDerived, py::detail::virtual_overrider_se
 } // namespace pybind11_tests
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_virtual_py_cpp_mix::Base)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(
+    pybind11_tests::test_class_sh_virtual_py_cpp_mix::CppDerivedPlain)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_virtual_py_cpp_mix::CppDerived)
 
 TEST_SUBMODULE(class_sh_virtual_py_cpp_mix, m) {
     using namespace pybind11_tests::test_class_sh_virtual_py_cpp_mix;
 
     py::classh<Base, BaseVirtualOverrider>(m, "Base").def(py::init<>()).def("get", &Base::get);
+
+    py::classh<CppDerivedPlain, Base>(m, "CppDerivedPlain").def(py::init<>());
 
     py::classh<CppDerived, Base, CppDerivedVirtualOverrider>(m, "CppDerived").def(py::init<>());
 
