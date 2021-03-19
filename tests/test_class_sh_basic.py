@@ -22,7 +22,7 @@ def test_atyp_constructors():
         (m.rtrn_valu, "rtrn_valu(_MvCtor)*_MvCtor"),
         (m.rtrn_rref, "rtrn_rref(_MvCtor)*_MvCtor"),
         (m.rtrn_cref, "rtrn_cref(_MvCtor)*_CpCtor"),
-        (m.rtrn_mref, "rtrn_mref(_MvCtor)*_CpCtor"),
+        (m.rtrn_mref, "rtrn_mref"),
         (m.rtrn_cptr, "rtrn_cptr"),
         (m.rtrn_mptr, "rtrn_mptr"),
         (m.rtrn_shmp, "rtrn_shmp"),
