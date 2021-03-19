@@ -102,7 +102,7 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("rtrn_valu", rtrn_valu);
     m.def("rtrn_rref", rtrn_rref);
     m.def("rtrn_cref", rtrn_cref);
-    m.def("rtrn_mref", rtrn_mref);
+    m.def("rtrn_mref", rtrn_mref, py::return_value_policy::reference);
     m.def("rtrn_cptr", rtrn_cptr);
     m.def("rtrn_mptr", rtrn_mptr);
 
