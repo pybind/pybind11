@@ -1612,9 +1612,10 @@ private:
 
     // clang-format on
     template <typename T = type,
+              typename A = type_alias,
               detail::enable_if_t<detail::type_uses_smart_holder_type_caster<T>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
-        detail::type_caster<T>::template init_instance_for_type<type>(inst, holder_ptr, has_alias);
+        detail::type_caster<T>::template init_instance_for_type<T, A>(inst, holder_ptr);
     }
     // clang-format off
 

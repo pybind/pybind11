@@ -58,15 +58,10 @@ def test_shared_ptr_arg_identity():
     del obj
     pytest.gc_collect()
 
-    # python reference is still around since C++ has it
-    assert objref() is not None
-    assert tester.get_object() is objref()
-    assert tester.has_python_instance() is True
-
-    # python reference disappears once the C++ object releases it
-    tester.set_object(None)
-    pytest.gc_collect()
+    # SMART_HOLDER_WIP: the behavior below is DIFFERENT from PR #2839
+    # python reference is gone because it is not an Alias instance
     assert objref() is None
+    assert tester.has_python_instance() is False
 
 
 def test_shared_ptr_alias_nonpython():
@@ -90,7 +85,6 @@ def test_shared_ptr_alias_nonpython():
     assert tester.has_instance() is True
     assert tester.has_python_instance() is False
 
-    # SMART_HOLDER_WIP: the behavior below is DIFFERENT from PR #2839
     # When we pass it as an arg to a new tester the python instance should
     # disappear because it wasn't created with an alias
     new_tester = m.SpBaseTester()
@@ -107,9 +101,9 @@ def test_shared_ptr_alias_nonpython():
 
     # Gone!
     assert tester.has_instance() is True
-    assert tester.has_python_instance() is True  # False in PR #2839
+    assert tester.has_python_instance() is False
     assert new_tester.has_instance() is True
-    assert new_tester.has_python_instance() is True  # False in PR #2839
+    assert new_tester.has_python_instance() is False
 
 
 def test_shared_ptr_goaway():
