@@ -11,6 +11,10 @@ class Base {
 public:
     virtual ~Base() = default;
     virtual int get() const { return 101; }
+
+    // Some compilers complain about implicitly defined versions of some of the following:
+    Base()             = default;
+    Base(const Base &) = default;
 };
 
 class CppDerived : public Base {
