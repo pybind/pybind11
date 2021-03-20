@@ -732,6 +732,11 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
     using cast_op_type = std::unique_ptr<T, D>;
 
     operator std::unique_ptr<T, D>() { return this->template loaded_as_unique_ptr<D>(); }
+    // TODO: To allow passing unique_ptr const-references from Python to C++,
+    // we need to add another cast operator for const std::unique_ptr<T, D>&().
+    // The above cast operator always moves the held raw pointer, even if the argument only
+    // asked for a (const!) reference.
+    // See test_class_sh_basic.py::test_unique_ptr_cref_store_roundtrip
 };
 
 template <typename T, typename D>
