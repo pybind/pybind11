@@ -2,6 +2,7 @@
 
 #include <pybind11/smart_holder.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -21,17 +22,23 @@ struct consumer { // unique_ptr consumer
     std::unique_ptr<atyp> held;
     bool valid() const { return static_cast<bool>(held); }
 
-    std::string pass_uq_valu(std::unique_ptr<atyp> obj) { held = std::move(obj); return held->mtxt; }
-    std::string pass_uq_rref(std::unique_ptr<atyp> &&obj) { held = std::move(obj);  return held->mtxt; }
+    std::string pass_uq_valu(std::unique_ptr<atyp> obj) {
+        held = std::move(obj);
+        return held->mtxt;
+    }
+    std::string pass_uq_rref(std::unique_ptr<atyp> &&obj) {
+        held = std::move(obj);
+        return held->mtxt;
+    }
     std::string pass_uq_cref(const std::unique_ptr<atyp> &obj) { return obj->mtxt; }
     std::string pass_cptr(const atyp *obj) { return obj->mtxt; }
     std::string pass_cref(const atyp &obj) { return obj.mtxt; }
 
-    std::unique_ptr<atyp>        rtrn_uq_valu() { return std::move(held); }
-    std::unique_ptr<atyp>&       rtrn_uq_lref() { return held; }
-    const std::unique_ptr<atyp>& rtrn_uq_cref() { return held; }
-    const atyp* rtrn_cptr() { return held.get(); }
-    const atyp& rtrn_cref() { return *held; }
+    std::unique_ptr<atyp> rtrn_uq_valu() { return std::move(held); }
+    std::unique_ptr<atyp> &rtrn_uq_lref() { return held; }
+    const std::unique_ptr<atyp> &rtrn_uq_cref() { return held; }
+    const atyp *rtrn_cptr() { return held.get(); }
+    const atyp &rtrn_cref() { return *held; }
 };
 
 // clang-format off
@@ -74,7 +81,7 @@ std::string pass_udcp(std::unique_ptr<atyp const, sddc> obj) { return "pass_udcp
 
 // Helpers for testing.
 std::string get_mtxt(atyp const &obj) { return obj.mtxt; }
-std::ptrdiff_t get_ptr(atyp const &obj) { return reinterpret_cast<std::ptrdiff_t>(&obj); }
+std::uintptr_t get_ptr(atyp const &obj) { return reinterpret_cast<std::uintptr_t>(&obj); }
 
 std::unique_ptr<atyp> unique_ptr_roundtrip(std::unique_ptr<atyp> obj) { return obj; }
 const std::unique_ptr<atyp> &unique_ptr_cref_roundtrip(const std::unique_ptr<atyp> &obj) {
@@ -150,21 +157,21 @@ TEST_SUBMODULE(class_sh_basic, m) {
         .def("rtrn_cptr", &consumer::rtrn_cptr, py::return_value_policy::reference_internal)
         .def("rtrn_cref", &consumer::rtrn_cref, py::return_value_policy::reference_internal);
 
-        // Helpers for testing.
-        // These require selected functions above to work first, as indicated:
-        m.def("get_mtxt", get_mtxt); // pass_cref
-        m.def("get_ptr", get_ptr);   // pass_cref
+    // Helpers for testing.
+    // These require selected functions above to work first, as indicated:
+    m.def("get_mtxt", get_mtxt); // pass_cref
+    m.def("get_ptr", get_ptr);   // pass_cref
 
-        m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
-        m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
+    m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
+    m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
 
-        py::classh<SharedPtrStash>(m, "SharedPtrStash")
-            .def(py::init<>())
-            .def("Add", &SharedPtrStash::Add, py::arg("obj"));
+    py::classh<SharedPtrStash>(m, "SharedPtrStash")
+        .def(py::init<>())
+        .def("Add", &SharedPtrStash::Add, py::arg("obj"));
 
-        m.def("py_type_handle_of_atyp", []() {
-            return py::type::handle_of<atyp>(); // Exercises static_cast in this function.
-        });
+    m.def("py_type_handle_of_atyp", []() {
+        return py::type::handle_of<atyp>(); // Exercises static_cast in this function.
+    });
 }
 
 } // namespace class_sh_basic
