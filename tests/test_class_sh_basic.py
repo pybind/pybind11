@@ -121,14 +121,14 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
 @pytest.mark.parametrize(
     "pass_f, rtrn_f, moved_out, moved_in",
     [
-        (m.uconsumer.pass_uq_valu, m.uconsumer.rtrn_uq_valu, True, True),
-        (m.uconsumer.pass_uq_rref, m.uconsumer.rtrn_uq_valu, True, True),
-        (m.uconsumer.pass_uq_valu, m.uconsumer.rtrn_uq_lref, True, False),
-        (m.uconsumer.pass_uq_valu, m.uconsumer.rtrn_uq_cref, True, False),
+        (m.consumer.pass_uq_valu, m.consumer.rtrn_uq_valu, True, True),
+        (m.consumer.pass_uq_rref, m.consumer.rtrn_uq_valu, True, True),
+        (m.consumer.pass_uq_valu, m.consumer.rtrn_uq_lref, True, False),
+        (m.consumer.pass_uq_valu, m.consumer.rtrn_uq_cref, True, False),
     ],
 )
 def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
-    c = m.uconsumer()
+    c = m.consumer()
     recycled = m.atyp("passenger")
     mtxt_orig = m.get_mtxt(recycled)
     ptr_orig = m.get_ptr(recycled)
@@ -148,7 +148,7 @@ def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
 
 @pytest.mark.parametrize(
     "rtrn_f",
-    [m.uconsumer.rtrn_uq_cref, m.uconsumer.rtrn_cref, m.uconsumer.rtrn_cptr],
+    [m.consumer.rtrn_uq_cref, m.consumer.rtrn_cref, m.consumer.rtrn_cptr],
 )
 @pytest.mark.parametrize(
     "pass_f",
@@ -160,13 +160,13 @@ def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
         # and is thus (correctly) suppressed.
         # To fix this, smart_holder would need to store the (original) unique_ptr reference,
         # e.g. using a union of unique_ptr + shared_ptr.
-        pytest.param(m.uconsumer.pass_uq_cref, marks=pytest.mark.xfail),
-        m.uconsumer.pass_cptr,
-        m.uconsumer.pass_cref,
+        pytest.param(m.consumer.pass_uq_cref, marks=pytest.mark.xfail),
+        m.consumer.pass_cptr,
+        m.consumer.pass_cref,
     ],
 )
 def test_unique_ptr_cref_consumer_roundtrip(rtrn_f, pass_f):
-    c = m.uconsumer()
+    c = m.consumer()
     passenger = m.atyp("passenger")
     mtxt_orig = m.get_mtxt(passenger)
     ptr_orig = m.get_ptr(passenger)

@@ -17,7 +17,7 @@ struct atyp { // Short for "any type".
     atyp(atyp &&other) { mtxt = other.mtxt + "_MvCtor"; }
 };
 
-struct uconsumer { // unique_ptr consumer
+struct consumer { // unique_ptr consumer
     std::unique_ptr<atyp> held;
     bool valid() const { return static_cast<bool>(held); }
 
@@ -90,7 +90,7 @@ struct SharedPtrStash {
 } // namespace pybind11_tests
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::atyp)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::uconsumer)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::consumer)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_basic::SharedPtrStash)
 
 namespace pybind11_tests {
@@ -136,19 +136,19 @@ TEST_SUBMODULE(class_sh_basic, m) {
     m.def("pass_udmp", pass_udmp);
     m.def("pass_udcp", pass_udcp);
 
-    py::classh<uconsumer>(m, "uconsumer")
+    py::classh<consumer>(m, "consumer")
         .def(py::init<>())
-        .def("valid", &uconsumer::valid)
-        .def("pass_uq_valu", &uconsumer::pass_uq_valu)
-        .def("pass_uq_rref", &uconsumer::pass_uq_rref)
-        .def("pass_uq_cref", &uconsumer::pass_uq_cref)
-        .def("pass_cptr", &uconsumer::pass_cptr)
-        .def("pass_cref", &uconsumer::pass_cref)
-        .def("rtrn_uq_valu", &uconsumer::rtrn_uq_valu)
-        .def("rtrn_uq_lref", &uconsumer::rtrn_uq_lref)
-        .def("rtrn_uq_cref", &uconsumer::rtrn_uq_cref)
-        .def("rtrn_cptr", &uconsumer::rtrn_cptr, py::return_value_policy::reference_internal)
-        .def("rtrn_cref", &uconsumer::rtrn_cref, py::return_value_policy::reference_internal);
+        .def("valid", &consumer::valid)
+        .def("pass_uq_valu", &consumer::pass_uq_valu)
+        .def("pass_uq_rref", &consumer::pass_uq_rref)
+        .def("pass_uq_cref", &consumer::pass_uq_cref)
+        .def("pass_cptr", &consumer::pass_cptr)
+        .def("pass_cref", &consumer::pass_cref)
+        .def("rtrn_uq_valu", &consumer::rtrn_uq_valu)
+        .def("rtrn_uq_lref", &consumer::rtrn_uq_lref)
+        .def("rtrn_uq_cref", &consumer::rtrn_uq_cref)
+        .def("rtrn_cptr", &consumer::rtrn_cptr, py::return_value_policy::reference_internal)
+        .def("rtrn_cref", &consumer::rtrn_cref, py::return_value_policy::reference_internal);
 
         // Helpers for testing.
         // These require selected functions above to work first, as indicated:
