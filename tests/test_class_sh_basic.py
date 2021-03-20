@@ -118,46 +118,85 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
         id_orig = id_rtrn
 
 
-# This currently fails, because a unique_ptr is always loaded by value
-# due to pybind11/detail/smart_holder_type_casters.h:689
-# I think, we need to provide more cast operators.
-@pytest.mark.skip
-def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
-    orig = m.atyp("passenger")
-    id_orig = id(orig)
-    mtxt_orig = m.get_mtxt(orig)
-
-    recycled = m.unique_ptr_cref_roundtrip(orig)
-    assert m.get_mtxt(orig) == mtxt_orig
-    assert m.get_mtxt(recycled) == mtxt_orig
-    assert id(recycled) == id_orig
-
-
 @pytest.mark.parametrize(
     "pass_f, rtrn_f, moved_out, moved_in",
     [
-        (m.uconsumer.pass_valu, m.uconsumer.rtrn_valu, True, True),
-        (m.uconsumer.pass_rref, m.uconsumer.rtrn_valu, True, True),
-        (m.uconsumer.pass_valu, m.uconsumer.rtrn_lref, True, False),
-        (m.uconsumer.pass_valu, m.uconsumer.rtrn_cref, True, False),
+        (m.uconsumer.pass_uq_valu, m.uconsumer.rtrn_uq_valu, True, True),
+        (m.uconsumer.pass_uq_rref, m.uconsumer.rtrn_uq_valu, True, True),
+        (m.uconsumer.pass_uq_valu, m.uconsumer.rtrn_uq_lref, True, False),
+        (m.uconsumer.pass_uq_valu, m.uconsumer.rtrn_uq_cref, True, False),
     ],
 )
 def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
     c = m.uconsumer()
-    assert not c.valid()
     recycled = m.atyp("passenger")
     mtxt_orig = m.get_mtxt(recycled)
+    ptr_orig = m.get_ptr(recycled)
     assert re.match("passenger_(MvCtor){1,2}", mtxt_orig)
 
-    pass_f(c, recycled)
-    if moved_out:
+    pass_f(c, recycled)  # pass object to C++ consumer c
+    if moved_out:  # if moved (always), ensure it is flagged as disowned
         with pytest.raises(ValueError) as excinfo:
             m.get_mtxt(recycled)
         assert "Python instance was disowned" in str(excinfo.value)
 
     recycled = rtrn_f(c)
-    assert c.valid() != moved_in
+    assert c.valid() != moved_in  # consumer gave up ownership?
+    assert m.get_ptr(recycled) == ptr_orig  # underlying C++ object never changes
+    assert m.get_mtxt(recycled) == mtxt_orig  # object was not moved or copied
+
+
+@pytest.mark.parametrize(
+    "rtrn_f",
+    [m.uconsumer.rtrn_uq_cref, m.uconsumer.rtrn_cref, m.uconsumer.rtrn_cptr],
+)
+@pytest.mark.parametrize(
+    "pass_f",
+    [
+        # This fails with: ValueError: Cannot disown non-owning holder (loaded_as_unique_ptr).
+        #
+        # smart_holder_type_caster_load<T>::loaded_as_unique_ptr() attempts to pass
+        # the not-owned cref as a new unique_ptr, which would eventually destroy the object,
+        # and is thus (correctly) suppressed.
+        # To fix this, smart_holder would need to store the (original) unique_ptr reference,
+        # e.g. using a union of unique_ptr + shared_ptr.
+        pytest.param(m.uconsumer.pass_uq_cref, marks=pytest.mark.xfail),
+        m.uconsumer.pass_cptr,
+        m.uconsumer.pass_cref,
+    ],
+)
+def test_unique_ptr_cref_consumer_roundtrip(rtrn_f, pass_f):
+    c = m.uconsumer()
+    passenger = m.atyp("passenger")
+    mtxt_orig = m.get_mtxt(passenger)
+    ptr_orig = m.get_ptr(passenger)
+
+    c.pass_uq_valu(passenger)  # moves passenger to C++  (checked above)
+
+    for _ in range(10):
+        cref = rtrn_f(c)  # fetches const reference, should keep-alive parent c
+        assert pass_f(c, cref) == mtxt_orig
+        assert m.get_ptr(cref) == ptr_orig
+
+
+# This fails with: ValueError: Missing value for wrapped C++ type: Python instance was disowned
+# when accessing the orig object after passing it into m.unique_ptr_cref_roundtrip().
+# This is because smart_holder_type_caster_load<T>::loaded_as_unique_ptr() always moves.
+@pytest.mark.xfail
+def test_unique_ptr_cref_roundtrip():
+    orig = m.atyp("passenger")
+    id_orig = id(orig)
+    ptr_orig = m.get_ptr(orig)
+    mtxt_orig = m.get_mtxt(orig)
+
+    recycled = m.unique_ptr_cref_roundtrip(orig)
+    # passing by reference shouldn't change pointer
+    assert m.get_ptr(orig) == ptr_orig
+    assert m.get_ptr(recycled) == ptr_orig
+    # nor apply any copy or move construction
+    assert m.get_mtxt(orig) == mtxt_orig
     assert m.get_mtxt(recycled) == mtxt_orig
+    assert id(recycled) == id_orig
 
 
 def test_py_type_handle_of_atyp():

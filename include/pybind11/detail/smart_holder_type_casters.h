@@ -731,6 +731,9 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
     template <typename>
     using cast_op_type = std::unique_ptr<T, D>;
 
+    // TODO: This always returns a new, moving unique_ptr instance to the raw pointer,
+    // even if argument should be passed as reference.
+    // See test_class_sh_basic.py::test_unique_ptr_cref_roundtrip
     operator std::unique_ptr<T, D>() { return this->template loaded_as_unique_ptr<D>(); }
 };
 

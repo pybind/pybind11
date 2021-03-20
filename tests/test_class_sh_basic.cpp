@@ -21,11 +21,17 @@ struct uconsumer { // unique_ptr consumer
     std::unique_ptr<atyp> held;
     bool valid() const { return static_cast<bool>(held); }
 
-    void pass_valu(std::unique_ptr<atyp> obj) { held = std::move(obj); }
-    void pass_rref(std::unique_ptr<atyp> &&obj) { held = std::move(obj); }
-    std::unique_ptr<atyp> rtrn_valu() { return std::move(held); }
-    std::unique_ptr<atyp> &rtrn_lref() { return held; }
-    const std::unique_ptr<atyp> &rtrn_cref() { return held; }
+    std::string pass_uq_valu(std::unique_ptr<atyp> obj) { held = std::move(obj); return held->mtxt; }
+    std::string pass_uq_rref(std::unique_ptr<atyp> &&obj) { held = std::move(obj);  return held->mtxt; }
+    std::string pass_uq_cref(const std::unique_ptr<atyp> &obj) { return obj->mtxt; }
+    std::string pass_cptr(const atyp *obj) { return obj->mtxt; }
+    std::string pass_cref(const atyp &obj) { return obj.mtxt; }
+
+    std::unique_ptr<atyp>        rtrn_uq_valu() { return std::move(held); }
+    std::unique_ptr<atyp>&       rtrn_uq_lref() { return held; }
+    const std::unique_ptr<atyp>& rtrn_uq_cref() { return held; }
+    const atyp* rtrn_cptr() { return held.get(); }
+    const atyp& rtrn_cref() { return *held; }
 };
 
 // clang-format off
@@ -133,27 +139,32 @@ TEST_SUBMODULE(class_sh_basic, m) {
     py::classh<uconsumer>(m, "uconsumer")
         .def(py::init<>())
         .def("valid", &uconsumer::valid)
-        .def("pass_valu", &uconsumer::pass_valu)
-        .def("pass_rref", &uconsumer::pass_rref)
-        .def("rtrn_valu", &uconsumer::rtrn_valu)
-        .def("rtrn_lref", &uconsumer::rtrn_lref)
-        .def("rtrn_cref", &uconsumer::rtrn_cref);
+        .def("pass_uq_valu", &uconsumer::pass_uq_valu)
+        .def("pass_uq_rref", &uconsumer::pass_uq_rref)
+        .def("pass_uq_cref", &uconsumer::pass_uq_cref)
+        .def("pass_cptr", &uconsumer::pass_cptr)
+        .def("pass_cref", &uconsumer::pass_cref)
+        .def("rtrn_uq_valu", &uconsumer::rtrn_uq_valu)
+        .def("rtrn_uq_lref", &uconsumer::rtrn_uq_lref)
+        .def("rtrn_uq_cref", &uconsumer::rtrn_uq_cref)
+        .def("rtrn_cptr", &uconsumer::rtrn_cptr, py::return_value_policy::reference_internal)
+        .def("rtrn_cref", &uconsumer::rtrn_cref, py::return_value_policy::reference_internal);
 
-    // Helpers for testing.
-    // These require selected functions above to work first, as indicated:
-    m.def("get_mtxt", get_mtxt); // pass_cref
-    m.def("get_ptr", get_ptr);   // pass_cref
+        // Helpers for testing.
+        // These require selected functions above to work first, as indicated:
+        m.def("get_mtxt", get_mtxt); // pass_cref
+        m.def("get_ptr", get_ptr);   // pass_cref
 
-    m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
-    m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
+        m.def("unique_ptr_roundtrip", unique_ptr_roundtrip); // pass_uqmp, rtrn_uqmp
+        m.def("unique_ptr_cref_roundtrip", unique_ptr_cref_roundtrip);
 
-    py::classh<SharedPtrStash>(m, "SharedPtrStash")
-        .def(py::init<>())
-        .def("Add", &SharedPtrStash::Add, py::arg("obj"));
+        py::classh<SharedPtrStash>(m, "SharedPtrStash")
+            .def(py::init<>())
+            .def("Add", &SharedPtrStash::Add, py::arg("obj"));
 
-    m.def("py_type_handle_of_atyp", []() {
-        return py::type::handle_of<atyp>(); // Exercises static_cast in this function.
-    });
+        m.def("py_type_handle_of_atyp", []() {
+            return py::type::handle_of<atyp>(); // Exercises static_cast in this function.
+        });
 }
 
 } // namespace class_sh_basic
