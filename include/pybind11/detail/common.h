@@ -434,7 +434,11 @@ enum class return_value_policy : uint8_t {
         collected while Python is still using the child. More advanced
         variations of this scheme are also possible using combinations of
         return_value_policy::reference and the keep_alive call policy */
-    reference_internal
+    reference_internal,
+
+    /*  This internally-only used policy applies to C++ arguments passed
+        to virtual methods overridden in Python to allow reference passing. */
+    automatic_override
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)

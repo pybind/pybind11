@@ -472,6 +472,10 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
     }
 
     static handle cast(T const &src, return_value_policy policy, handle parent) {
+        return cast(const_cast<T &>(src), policy, parent);
+    }
+
+    static handle cast(T &src, return_value_policy policy, handle parent) {
         // type_caster_base BEGIN
         // clang-format off
         if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
@@ -481,11 +485,13 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
         // type_caster_base END
     }
 
-    static handle cast(T &src, return_value_policy policy, handle parent) {
-        return cast(const_cast<T const &>(src), policy, parent); // Mutbl2Const
+    static handle cast(T const *src, return_value_policy policy, handle parent) {
+        return cast(const_cast<T *>(src), policy, parent);
     }
 
-    static handle cast(T const *src, return_value_policy policy, handle parent) {
+    static handle cast(T *src, return_value_policy policy, handle parent) {
+        if (policy == return_value_policy::automatic_override)
+            policy = return_value_policy::reference;
         auto st = type_caster_base<T>::src_and_type(src);
         return cast_const_raw_ptr( // Originally type_caster_generic::cast.
             st.first,
@@ -494,10 +500,6 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
             st.second,
             make_constructor::make_copy_constructor(src),
             make_constructor::make_move_constructor(src));
-    }
-
-    static handle cast(T *src, return_value_policy policy, handle parent) {
-        return cast(const_cast<T const *>(src), policy, parent); // Mutbl2Const
     }
 
 #if defined(_MSC_VER) && _MSC_VER < 1910
@@ -723,7 +725,9 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
             return none().release();
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::reference_internal;
-        if (policy != return_value_policy::reference_internal)
+        else if (policy == return_value_policy::automatic_override)
+            ;
+        else if (policy != return_value_policy::reference_internal)
             throw cast_error("Invalid return_value_policy for unique_ptr&");
         return smart_holder_type_caster<T>::cast(src.get(), policy, parent);
     }

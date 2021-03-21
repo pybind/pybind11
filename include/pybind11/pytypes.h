@@ -105,9 +105,9 @@ public:
         function will throw a `cast_error` exception. When the Python function
         call fails, a `error_already_set` exception is thrown.
     \endrst */
-    template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
+    template <return_value_policy policy = return_value_policy::automatic_override, typename... Args>
     object operator()(Args &&...args) const;
-    template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
+    template <return_value_policy policy = return_value_policy::automatic_override, typename... Args>
     PYBIND11_DEPRECATED("call(...) was deprecated in favor of operator()(...)")
         object call(Args&&... args) const;
 
