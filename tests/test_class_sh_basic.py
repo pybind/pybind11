@@ -16,12 +16,18 @@ def test_atyp_constructors():
     assert obj.__class__.__name__ == "atyp"
 
 
+def check_regex(expected, actual):
+    result = re.match(expected + "$", actual)
+    if result is None:
+        pytest.fail("expected: '{}' != actual: '{}'".format(expected, actual))
+
+
 @pytest.mark.parametrize(
     "rtrn_f, expected",
     [
-        (m.rtrn_valu, "rtrn_valu(_MvCtor)*_MvCtor"),
-        (m.rtrn_rref, "rtrn_rref(_MvCtor)*_MvCtor"),
-        (m.rtrn_cref, "rtrn_cref(_MvCtor)*_CpCtor"),
+        (m.rtrn_valu, "rtrn_valu(_MvCtor){1,3}"),
+        (m.rtrn_rref, "rtrn_rref(_MvCtor){1}"),
+        (m.rtrn_cref, "rtrn_cref_CpCtor"),
         (m.rtrn_mref, "rtrn_mref"),
         (m.rtrn_cptr, "rtrn_cptr"),
         (m.rtrn_mptr, "rtrn_mptr"),
@@ -34,25 +40,25 @@ def test_atyp_constructors():
     ],
 )
 def test_cast(rtrn_f, expected):
-    assert re.match(expected, m.get_mtxt(rtrn_f()))
+    check_regex(expected, m.get_mtxt(rtrn_f()))
 
 
 @pytest.mark.parametrize(
     "pass_f, mtxt, expected",
     [
-        (m.pass_valu, "Valu", "pass_valu:Valu(_MvCtor)*_CpCtor"),
-        (m.pass_cref, "Cref", "pass_cref:Cref(_MvCtor)*_MvCtor"),
-        (m.pass_mref, "Mref", "pass_mref:Mref(_MvCtor)*_MvCtor"),
-        (m.pass_cptr, "Cptr", "pass_cptr:Cptr(_MvCtor)*_MvCtor"),
-        (m.pass_mptr, "Mptr", "pass_mptr:Mptr(_MvCtor)*_MvCtor"),
-        (m.pass_shmp, "Shmp", "pass_shmp:Shmp(_MvCtor)*_MvCtor"),
-        (m.pass_shcp, "Shcp", "pass_shcp:Shcp(_MvCtor)*_MvCtor"),
-        (m.pass_uqmp, "Uqmp", "pass_uqmp:Uqmp(_MvCtor)*_MvCtor"),
-        (m.pass_uqcp, "Uqcp", "pass_uqcp:Uqcp(_MvCtor)*_MvCtor"),
+        (m.pass_valu, "Valu", "pass_valu:Valu(_MvCtor){1,2}_CpCtor"),
+        (m.pass_cref, "Cref", "pass_cref:Cref(_MvCtor){1,2}"),
+        (m.pass_mref, "Mref", "pass_mref:Mref(_MvCtor){1,2}"),
+        (m.pass_cptr, "Cptr", "pass_cptr:Cptr(_MvCtor){1,2}"),
+        (m.pass_mptr, "Mptr", "pass_mptr:Mptr(_MvCtor){1,2}"),
+        (m.pass_shmp, "Shmp", "pass_shmp:Shmp(_MvCtor){1,2}"),
+        (m.pass_shcp, "Shcp", "pass_shcp:Shcp(_MvCtor){1,2}"),
+        (m.pass_uqmp, "Uqmp", "pass_uqmp:Uqmp(_MvCtor){1,2}"),
+        (m.pass_uqcp, "Uqcp", "pass_uqcp:Uqcp(_MvCtor){1,2}"),
     ],
 )
 def test_load_with_mtxt(pass_f, mtxt, expected):
-    assert re.match(expected, pass_f(m.atyp(mtxt)))
+    check_regex(expected, pass_f(m.atyp(mtxt)))
 
 
 @pytest.mark.parametrize(
@@ -111,7 +117,7 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
     for _ in range(num_round_trips):
         id_orig = id(recycled)
         recycled = m.unique_ptr_roundtrip(recycled)
-        assert re.match("passenger(_MvCtor)*_MvCtor", m.get_mtxt(recycled))
+        check_regex("passenger(_MvCtor){1,2}", m.get_mtxt(recycled))
         id_rtrn = id(recycled)
         # Ensure the returned object is a different Python instance.
         assert id_rtrn != id_orig
@@ -132,7 +138,7 @@ def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
     recycled = m.atyp("passenger")
     mtxt_orig = m.get_mtxt(recycled)
     ptr_orig = m.get_ptr(recycled)
-    assert re.match("passenger_(MvCtor){1,2}", mtxt_orig)
+    check_regex("passenger(_MvCtor){1,2}", mtxt_orig)
 
     pass_f(c, recycled)  # pass object to C++ consumer c
     if moved_out:  # if moved (always), ensure it is flagged as disowned
