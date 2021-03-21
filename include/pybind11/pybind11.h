@@ -555,8 +555,8 @@ protected:
 
         auto self_value_and_holder = value_and_holder();
         if (overloads->is_constructor) {
-            if (!PyObject_TypeCheck(parent.ptr(), (PyTypeObject *) overloads->scope.ptr())) {
-                PyErr_SetString(PyExc_TypeError, "__init__(self, ...) called with invalid `self` argument");
+            if (!parent || !PyObject_TypeCheck(parent.ptr(), (PyTypeObject *) overloads->scope.ptr())) {
+                PyErr_SetString(PyExc_TypeError, "__init__(self, ...) called with invalid or missing `self` argument");
                 return nullptr;
             }
 
