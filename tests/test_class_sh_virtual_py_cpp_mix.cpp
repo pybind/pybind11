@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace pybind11_tests {
-namespace test_class_sh_virtual_py_cpp_mix {
+namespace class_sh_virtual_py_cpp_mix {
 
 class Base {
 public:
@@ -43,16 +43,15 @@ struct CppDerivedVirtualOverrider : CppDerived, py::virtual_overrider_self_life_
     int get() const override { PYBIND11_OVERRIDE(int, CppDerived, get); }
 };
 
-} // namespace test_class_sh_virtual_py_cpp_mix
+} // namespace class_sh_virtual_py_cpp_mix
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_virtual_py_cpp_mix::Base)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(
-    pybind11_tests::test_class_sh_virtual_py_cpp_mix::CppDerivedPlain)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::test_class_sh_virtual_py_cpp_mix::CppDerived)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::Base)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::CppDerivedPlain)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_virtual_py_cpp_mix::CppDerived)
 
 TEST_SUBMODULE(class_sh_virtual_py_cpp_mix, m) {
-    using namespace pybind11_tests::test_class_sh_virtual_py_cpp_mix;
+    using namespace pybind11_tests::class_sh_virtual_py_cpp_mix;
 
     py::classh<Base, BaseVirtualOverrider>(m, "Base").def(py::init<>()).def("get", &Base::get);
 
