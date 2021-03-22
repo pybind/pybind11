@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+
 import pytest
 
 from pybind11_tests import class_sh_disowning as m
@@ -11,22 +13,53 @@ def test_same_twice():
         assert m.same_twice(obj1a, obj1b) == (57 * 10 + 1) * 100 + (62 * 10 + 1) * 10
         obj1c = m.Atype1(0)
         with pytest.raises(ValueError):
-            m.same_twice(obj1c, obj1c)  # 1st disowning works, 2nd fails.
+            # Disowning works for one argument, but not both.
+            m.same_twice(obj1c, obj1c)
         with pytest.raises(ValueError):
             obj1c.get()
         return  # Comment out for manual leak checking (use `top` command).
 
 
-def test_mixed():
+def test_mixed(capsys):
+    first_pass = True
     while True:
         obj1a = m.Atype1(90)
         obj2a = m.Atype2(25)
         assert m.mixed(obj1a, obj2a) == (90 * 10 + 1) * 200 + (25 * 10 + 2) * 20
+
+        # The C++ order of evaluation of function arguments is (unfortunately) unspecified:
+        # https://en.cppreference.com/w/cpp/language/eval_order
+        # Read on.
         obj1b = m.Atype1(0)
         with pytest.raises(ValueError):
+            # If the 1st argument is evaluated first, obj1b is disowned before the conversion for
+            # the already disowned obj2a fails as expected.
             m.mixed(obj1b, obj2a)
+        obj2b = m.Atype2(0)
         with pytest.raises(ValueError):
-            obj1b.get()  # obj1b was disowned even though m.mixed(obj1b, obj2a) failed.
+            # If the 2nd argument is evaluated first, obj2b is disowned before the conversion for
+            # the already disowned obj1a fails as expected.
+            m.mixed(obj1a, obj2b)
+
+        def was_disowned(obj):
+            try:
+                obj.get()
+            except ValueError:
+                return True
+            return False
+
+        # Either obj1b or obj2b was disowned in the expected failed m.mixed() calls above, but not
+        # both.
+        was_disowned_results = (was_disowned(obj1b), was_disowned(obj2b))
+        assert was_disowned_results.count(True) == 1
+        if first_pass:
+            first_pass = False
+            with capsys.disabled():
+                print(
+                    "\nC++ function argument %d is evaluated first."
+                    % (was_disowned_results.index(True) + 1)
+                )
+
         return  # Comment out for manual leak checking (use `top` command).
 
 
