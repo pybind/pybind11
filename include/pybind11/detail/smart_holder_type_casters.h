@@ -724,7 +724,9 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
             return none().release();
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::reference_internal;
-        if (policy != return_value_policy::reference_internal)
+        else if (policy == return_value_policy::reference && !parent)
+            ; // passing from trampoline dispatcher: no parent available
+        else if (policy != return_value_policy::reference_internal)
             throw cast_error(
                 "Invalid return_value_policy: unique_ptr const& expects reference_internal");
         return smart_holder_type_caster<T>::cast(src.get(), policy, parent);
