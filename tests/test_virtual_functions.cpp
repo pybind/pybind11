@@ -459,6 +459,79 @@ public:
 };
 */
 
+/* Tests passing objects by reference to Python-derived class methods */
+struct Passenger {  // object class passed around, recording its copy and move constructions
+    std::string mtxt;
+    Passenger() = default;
+    // on copy or move: keep old mtxt and augment operation as well as new pointer id
+    Passenger(const Passenger &other) { mtxt = other.mtxt + "Copy->" + std::to_string(id()); }
+    Passenger(Passenger &&other) { mtxt = other.mtxt + "Move->" + std::to_string(id()); }
+    uintptr_t id() const { return reinterpret_cast<uintptr_t>(this); }
+};
+struct ReferencePassingTest {  // virtual base class used to test reference passing
+    ReferencePassingTest()                     = default;
+    ReferencePassingTest(const ReferencePassingTest &) = default;
+    ReferencePassingTest(ReferencePassingTest &&)      = default;
+    virtual ~ReferencePassingTest()            = default;
+    // NOLINTNEXTLINE(clang-analyzer-core.StackAddrEscapeBase)
+    virtual uintptr_t pass_valu(Passenger obj) { return modify(obj); };
+    virtual uintptr_t pass_mref(Passenger &obj) { return modify(obj); };
+    virtual uintptr_t pass_mptr(Passenger *obj) { return modify(*obj); };
+    virtual uintptr_t pass_cref(const Passenger &obj) { return modify(obj); };
+    virtual uintptr_t pass_cptr(const Passenger *obj) { return modify(*obj); };
+    uintptr_t modify(const Passenger &obj) { return obj.id(); }
+    uintptr_t modify(Passenger &obj) {
+        obj.mtxt.append("_MODIFIED");
+        return obj.id();
+    }
+};
+struct PyReferencePassingTest : ReferencePassingTest {
+    using ReferencePassingTest::ReferencePassingTest;
+    uintptr_t pass_valu(Passenger obj) override {
+        PYBIND11_OVERRIDE(uintptr_t, ReferencePassingTest, pass_valu, obj);
+    }
+    uintptr_t pass_mref(Passenger &obj) override {
+        PYBIND11_OVERRIDE(uintptr_t, ReferencePassingTest, pass_mref, obj);
+    }
+    uintptr_t pass_cref(const Passenger &obj) override {
+        PYBIND11_OVERRIDE(uintptr_t, ReferencePassingTest, pass_cref, obj);
+    }
+    uintptr_t pass_mptr(Passenger *obj) override {
+        PYBIND11_OVERRIDE(uintptr_t, ReferencePassingTest, pass_mptr, obj);
+    }
+    uintptr_t pass_cptr(const Passenger *obj) override {
+        PYBIND11_OVERRIDE(uintptr_t, ReferencePassingTest, pass_cptr, obj);
+    }
+};
+
+std::string evaluate(const Passenger &orig, uintptr_t cycled) {
+    return orig.mtxt + (orig.id() == cycled ? "_REF" : "_COPY");
+}
+// Functions triggering virtual-method calls from python-derived class (caller)
+// Goal: modifications to Passenger happening in Python-code methods
+//       overriding the C++ virtual methods, should remain visible in C++.
+// TODO: Find template magic to avoid this code duplication
+std::string check_roundtrip_valu(ReferencePassingTest &caller) {
+    Passenger obj;
+    return evaluate(obj, caller.pass_valu(obj));
+}
+std::string check_roundtrip_mref(ReferencePassingTest &caller) {
+    Passenger obj;
+    return evaluate(obj, caller.pass_mref(obj));
+}
+std::string check_roundtrip_cref(ReferencePassingTest &caller) {
+    Passenger obj;
+    return evaluate(obj, caller.pass_cref(obj));
+}
+std::string check_roundtrip_mptr(ReferencePassingTest &caller) {
+    Passenger obj;
+    return evaluate(obj, caller.pass_mptr(&obj));
+}
+std::string check_roundtrip_cptr(ReferencePassingTest &caller) {
+    Passenger obj;
+    return evaluate(obj, caller.pass_cptr(&obj));
+}
+
 void initialize_inherited_virtuals(py::module_ &m) {
     // test_inherited_virtuals
 
@@ -495,4 +568,22 @@ void initialize_inherited_virtuals(py::module_ &m) {
     // Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.def("test_gil", &test_gil);
     m.def("test_gil_from_thread", &test_gil_from_thread);
+
+    py::class_<Passenger>(m, "Passenger")
+        .def_property_readonly("id", &Passenger::id)
+        .def_readwrite("mtxt", &Passenger::mtxt);
+
+    py::class_<ReferencePassingTest, PyReferencePassingTest>(m, "ReferencePassingTest")
+        .def(py::init<>())
+        .def("pass_valu", &ReferencePassingTest::pass_valu)
+        .def("pass_mref", &ReferencePassingTest::pass_mref)
+        .def("pass_cref", &ReferencePassingTest::pass_cref)
+        .def("pass_mptr", &ReferencePassingTest::pass_mptr)
+        .def("pass_cptr", &ReferencePassingTest::pass_cptr);
+
+    m.def("check_roundtrip_valu", check_roundtrip_valu);
+    m.def("check_roundtrip_mref", check_roundtrip_mref);
+    m.def("check_roundtrip_cref", check_roundtrip_cref);
+    m.def("check_roundtrip_mptr", check_roundtrip_mptr);
+    m.def("check_roundtrip_cptr", check_roundtrip_cptr);
 };
