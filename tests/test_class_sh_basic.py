@@ -167,8 +167,11 @@ def test_unique_ptr_store_roundtrip(rtrn_f, moved_in):
     c.pass_uq_valu(orig)  # pass object to C++ store c
     try:
         recycled = rtrn_f(c)  # retrieve object back from C++
-    except RuntimeError:  # expect failure for rtrn_uq_lref
-        assert moved_in is None
+    except RuntimeError as excinfo:  # expect failure for rtrn_uq_lref
+        assert (
+            moved_in is None
+            and "Passing non-const unique_ptr& is not supported" in str(excinfo)
+        )
         return
 
     assert m.get_ptr(recycled) == ptr_orig  # do we yield the same object?

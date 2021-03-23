@@ -685,12 +685,10 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
                                                          smart_holder_type_caster_class_hooks {
     static constexpr auto name = _<std::unique_ptr<T, D>>();
 
-    static handle cast(std::unique_ptr<T, D> &&src, return_value_policy policy, handle parent) {
-        if (policy != return_value_policy::automatic
-            && policy != return_value_policy::reference_internal
-            && policy != return_value_policy::move) {
+    static handle cast(std::unique_ptr<T, D> &&src, return_value_policy policy, handle) {
+        if (policy != return_value_policy::automatic && policy != return_value_policy::move) {
             // SMART_HOLDER_WIP: IMPROVABLE: Error message.
-            throw cast_error("Invalid return_value_policy for unique_ptr.");
+            throw cast_error("Invalid return_value_policy: unique_ptr&& can only move");
         }
 
         auto src_raw_ptr = src.get();
@@ -712,11 +710,14 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
         auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(src));
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
-        if (policy == return_value_policy::reference_internal)
-            keep_alive_impl(inst, parent);
-
         return inst.release();
     }
+    static handle cast(std::unique_ptr<T, D> &, return_value_policy, handle) {
+        throw cast_error("Passing non-const unique_ptr& is not supported. "
+                         "If you want to transfer ownership, use unique_ptr&&. "
+                         "If you want to return a reference, use unique_ptr const&.");
+    }
+
     static handle
     cast(const std::unique_ptr<T, D> &src, return_value_policy policy, handle parent) {
         if (!src)
@@ -724,7 +725,8 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
         if (policy == return_value_policy::automatic)
             policy = return_value_policy::reference_internal;
         if (policy != return_value_policy::reference_internal)
-            throw cast_error("Invalid return_value_policy for unique_ptr&");
+            throw cast_error(
+                "Invalid return_value_policy: unique_ptr const& expects reference_internal");
         return smart_holder_type_caster<T>::cast(src.get(), policy, parent);
     }
 
