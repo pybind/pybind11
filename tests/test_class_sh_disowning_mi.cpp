@@ -27,7 +27,23 @@ struct D : public C0, public C1 {
     int val_d = 30;
 };
 
-void disown(std::unique_ptr<B>) {}
+void disown_b(std::unique_ptr<B>) {}
+
+// test_multiple_inheritance_python
+struct Base1 {
+    Base1(int i) : i(i) {}
+    int foo() { return i; }
+    int i;
+};
+
+struct Base2 {
+    Base2(int j) : j(j) {}
+    int bar() { return j; }
+    int j;
+};
+
+int disown_base1(std::unique_ptr<Base1> b1) { return b1->i * 2000 + 1; }
+int disown_base2(std::unique_ptr<Base2> b2) { return b2->j * 2000 + 2; }
 
 } // namespace class_sh_disowning_mi
 } // namespace pybind11_tests
@@ -36,6 +52,9 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::B)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::C0)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::C1)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::D)
+
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::Base1)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_disowning_mi::Base2)
 
 TEST_SUBMODULE(class_sh_disowning_mi, m) {
     using namespace pybind11_tests::class_sh_disowning_mi;
@@ -66,5 +85,11 @@ TEST_SUBMODULE(class_sh_disowning_mi, m) {
             return self.val_b * 1000000 + self.val_c0 * 10000 + self.val_c1 * 100 + self.val_d;
         });
 
-    m.def("disown", disown);
+    m.def("disown_b", disown_b);
+
+    // test_multiple_inheritance_python
+    py::classh<Base1>(m, "Base1").def(py::init<int>()).def("foo", &Base1::foo);
+    py::classh<Base2>(m, "Base2").def(py::init<int>()).def("bar", &Base2::bar);
+    m.def("disown_base1", disown_base1);
+    m.def("disown_base2", disown_base2);
 }
