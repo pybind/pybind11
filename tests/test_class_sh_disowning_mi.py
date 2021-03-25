@@ -205,7 +205,7 @@ DISOWN_CLS_I_J_V_LIST = [
 
 
 @pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2")
+@pytest.mark.xfail("env.PYPY and not env.PY2", strict=False)
 @pytest.mark.parametrize("cls, i, j, v", DISOWN_CLS_I_J_V_LIST)
 def test_disown_base1_first(cls, i, j, v):
     obj = cls(i, j)
@@ -220,7 +220,7 @@ def test_disown_base1_first(cls, i, j, v):
 
 
 @pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2")
+@pytest.mark.xfail("env.PYPY and not env.PY2", strict=False)
 @pytest.mark.parametrize("cls, i, j, v", DISOWN_CLS_I_J_V_LIST)
 def test_disown_base2_first(cls, i, j, v):
     obj = cls(i, j)
@@ -235,7 +235,7 @@ def test_disown_base2_first(cls, i, j, v):
 
 
 @pytest.mark.skipif("env.PYPY and env.PY2")
-@pytest.mark.xfail("env.PYPY and not env.PY2")
+@pytest.mark.xfail("env.PYPY and not env.PY2", strict=False)
 @pytest.mark.parametrize(
     "cls, j, v",
     [
