@@ -334,4 +334,10 @@ TEST_SUBMODULE(stl, m) {
     py::class_<Issue1561Outer>(m, "Issue1561Outer")
         .def(py::init<>())
         .def_readwrite("list", &Issue1561Outer::list);
+
+    m.def(
+        "return_vector_bool_raw_ptr",
+        []() { return new std::vector<bool>(4513); },
+        // Without explicitly specifying `take_ownership`, this function leaks.
+        py::return_value_policy::take_ownership);
 }

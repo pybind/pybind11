@@ -283,3 +283,11 @@ def test_issue_1561():
     bar.list = [m.Issue1561Inner("bar")]
     bar.list
     assert bar.list[0].data == "bar"
+
+
+def test_return_vector_bool_raw_ptr():
+    while True:
+        v = m.return_vector_bool_raw_ptr()
+        assert isinstance(v, list)
+        assert len(v) == 4513
+        return  # Comment out for manual leak checking (use `top` command).
