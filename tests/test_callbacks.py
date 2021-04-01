@@ -152,8 +152,8 @@ def test_async_async_callbacks():
 def test_callback_num_times(capsys):
     # Super-simple micro-benchmarking related to PR #2919.
     one_million = 1000000
-    num_millions = 20  # Try 20 for actual micro-benchmarking.
-    repeats = 10  # Try 10.
+    num_millions = 1  # Try 20 for actual micro-benchmarking.
+    repeats = 2  # Try 10.
     rates = []
     for rep in range(repeats):
         t0 = time.time()
