@@ -2,6 +2,7 @@
 import pytest
 from pybind11_tests import callbacks as m
 from threading import Thread
+import time
 
 
 def test_callbacks():
@@ -146,3 +147,30 @@ def test_async_async_callbacks():
     t = Thread(target=test_async_callbacks)
     t.start()
     t.join()
+
+
+def test_callback_num_times(capsys):
+    # Super-simple micro-benchmarking related to PR #2919.
+    one_million = 1000000
+    num_millions = 20  # Try 20 for actual micro-benchmarking.
+    repeats = 10  # Try 10.
+    rates = []
+    for rep in range(repeats):
+        t0 = time.time()
+        m.callback_num_times(lambda: None, num_millions * one_million)
+        td = time.time() - t0
+        with capsys.disabled():
+            rate = num_millions / td if td else 0
+            rates.append(rate)
+            if not rep:
+                print()
+            print(
+                "callback_num_times: %d million / %.3f seconds = %.3f million / second"
+                % (num_millions, td, rate)
+            )
+    if len(rates) > 1:
+        with capsys.disabled():
+            print("Min    Mean   Max")
+            print(
+                "%6.3f %6.3f %6.3f" % (min(rates), sum(rates) / len(rates), max(rates))
+            )

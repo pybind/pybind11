@@ -172,4 +172,10 @@ TEST_SUBMODULE(callbacks, m) {
         for (auto i : work)
             start_f(py::cast<int>(i));
     });
+
+    m.def("callback_num_times", [](py::function f, std::size_t num) {
+        for (std::size_t i = 0; i < num; i++) {
+            f();
+        }
+    });
 }
