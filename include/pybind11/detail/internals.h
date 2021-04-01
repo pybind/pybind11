@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "common.h"
 #include "../pytypes.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -300,7 +301,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
                 pybind11_fail("get_internals: could not successfully initialize the TLS key!");
             PyThread_set_key_value(internals_ptr->tstate, tstate);
         #endif
-        internals_ptr->istate = tstate->interp;
+        internals_ptr->istate = PyThreadState_GetInterpreter(tstate);
 #endif
         builtins[id] = capsule(internals_pp);
         internals_ptr->registered_exception_translators.push_front(&translate_exception);

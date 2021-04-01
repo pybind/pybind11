@@ -42,6 +42,7 @@
 #  endif
 #endif
 
+#include "detail/common.h"
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
@@ -2125,14 +2126,16 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy. */
 #if !defined(PYPY_VERSION)
-    PyFrameObject *frame = PyThreadState_Get()->frame;
-    if (frame && (std::string) str(frame->f_code->co_name) == name &&
-        frame->f_code->co_argcount > 0) {
-        PyFrame_FastToLocals(frame);
-        PyObject *self_caller = PyDict_GetItem(
-            frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));
-        if (self_caller == self.ptr())
-            return function();
+    PyFrameObject *frame = _PyThreadState_GetFrameBorrow(PyThreadState_Get());
+    if (frame) {
+        PyCodeObject *code = _PyFrame_GetCodeBorrow(frame);
+        if ((std::string) str(code->co_name) == name && code->co_argcount > 0) {
+            PyFrame_FastToLocals(frame);
+            PyObject *self_caller = PyDict_GetItem(
+                frame->f_locals, PyTuple_GET_ITEM(code->co_varnames, 0));
+            if (self_caller == self.ptr())
+                return function();
+        }
     }
 #else
     /* PyPy currently doesn't provide a detailed cpyext emulation of

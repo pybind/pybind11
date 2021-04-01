@@ -121,8 +121,8 @@
 #  endif
 #endif
 
-#include <Python.h>
-#include <frameobject.h>
+// pythoncapi_compat.h includes <Python.h> and <frameobject.h>
+#include "pythoncapi_compat.h"
 #include <pythread.h>
 
 /* Python #defines overrides on all sorts of core functions, which

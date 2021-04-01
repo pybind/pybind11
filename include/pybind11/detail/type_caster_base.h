@@ -1,3 +1,4 @@
+
 /*
     pybind11/detail/type_caster_base.h (originally first part of pybind11/cast.h)
 
@@ -9,8 +10,8 @@
 
 #pragma once
 
-#include "../pytypes.h"
 #include "common.h"
+#include "../pytypes.h"
 #include "descr.h"
 #include "internals.h"
 #include "typeid.h"
@@ -444,11 +445,12 @@ PYBIND11_NOINLINE inline std::string error_string() {
         errorString += "\n\nAt:\n";
         while (frame) {
             int lineno = PyFrame_GetLineNumber(frame);
+            PyCodeObject *code = _PyFrame_GetCodeBorrow(frame);
             errorString +=
-                "  " + handle(frame->f_code->co_filename).cast<std::string>() +
+                "  " + handle(code->co_filename).cast<std::string>() +
                 "(" + std::to_string(lineno) + "): " +
-                handle(frame->f_code->co_name).cast<std::string>() + "\n";
-            frame = frame->f_back;
+                handle(code->co_name).cast<std::string>() + "\n";
+            frame = _PyFrame_GetBackBorrow(frame);
         }
     }
 #endif
