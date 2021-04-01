@@ -159,9 +159,9 @@ def test_callback_num_times(capsys):
         t0 = time.time()
         m.callback_num_times(lambda: None, num_millions * one_million)
         td = time.time() - t0
+        rate = num_millions / td if td else 0
+        rates.append(rate)
         with capsys.disabled():
-            rate = num_millions / td if td else 0
-            rates.append(rate)
             if not rep:
                 print()
             print(
