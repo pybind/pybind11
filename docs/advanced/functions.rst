@@ -100,8 +100,8 @@ The following table provides an overview of available policies:
 | :enum:`return_value_policy::automatic_reference` | As above, but use policy :enum:`return_value_policy::reference` when the   |
 |                                                  | return value is a pointer. This is the default conversion policy for       |
 |                                                  | function arguments when calling Python functions manually from C++ code    |
-|                                                  | (i.e. via handle::operator()) and the casters in ``pybind11/stl.h`. You    |
-|                                                  | probably won't need to use this explicitly.                                |
+|                                                  | (i.e. via ``handle::operator()``) and the casters in ``pybind11/stl.h``.   |
+|                                                  | You probably won't need to use this explicitly.                            |
 +--------------------------------------------------+----------------------------------------------------------------------------+
 
 Return value policies can also be applied to properties:
