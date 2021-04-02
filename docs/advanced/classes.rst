@@ -259,7 +259,7 @@ override the ``name()`` method):
 
 .. note::
 
-    Note the trailing commas in the ``PYBIND11_OVERIDE`` calls to ``name()``
+    Note the trailing commas in the ``PYBIND11_OVERRIDE`` calls to ``name()``
     and ``bark()``. These are needed to portably implement a trampoline for a
     function that does not take any arguments. For functions that take
     a nonzero number of arguments, the trailing comma must be omitted.
