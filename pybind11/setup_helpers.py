@@ -47,6 +47,7 @@ import tempfile
 import threading
 import platform
 import warnings
+import sysconfig
 
 try:
     from setuptools.command.build_ext import build_ext as _build_ext
@@ -59,7 +60,7 @@ import distutils.errors
 import distutils.ccompiler
 
 
-WIN = sys.platform.startswith("win32")
+WIN = sys.platform.startswith("win32") and sysconfig.get_platform() != "mingw"
 PY2 = sys.version_info[0] < 3
 MACOS = sys.platform.startswith("darwin")
 STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
