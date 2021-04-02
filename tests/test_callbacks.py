@@ -149,7 +149,7 @@ def test_async_async_callbacks():
     t.join()
 
 
-def test_callback_num_times(capsys):
+def test_callback_num_times():
     # Super-simple micro-benchmarking related to PR #2919.
     # Example runtimes (Intel Xeon 2.2GHz, fully optimized):
     #   num_millions  1, repeats  2:  0.1 secs
@@ -164,16 +164,17 @@ def test_callback_num_times(capsys):
         td = time.time() - t0
         rate = num_millions / td if td else 0
         rates.append(rate)
-        with capsys.disabled():
-            if not rep:
-                print()
-            print(
-                "callback_num_times: %d million / %.3f seconds = %.3f million / second"
-                % (num_millions, td, rate)
+        if not rep:
+            print()
+        print(
+            "callback_num_times: {:d} million / {:.3f} seconds = {:.3f} million / second".format(
+                num_millions, td, rate
             )
+        )
     if len(rates) > 1:
-        with capsys.disabled():
-            print("Min    Mean   Max")
-            print(
-                "%6.3f %6.3f %6.3f" % (min(rates), sum(rates) / len(rates), max(rates))
+        print("Min    Mean   Max")
+        print(
+            "{:6.3f} {:6.3f} {:6.3f}".format(
+                min(rates), sum(rates) / len(rates), max(rates)
             )
+        )
