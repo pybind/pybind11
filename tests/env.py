@@ -24,6 +24,7 @@ def deprecated_call():
     This is a narrowed reimplementation of the following PR :(
     https://github.com/pytest-dev/pytest/pull/4104
     """
+    # TODO: Remove this when testing requires pytest>=3.9.
     pieces = pytest.__version__.split(".")
     pytest_major_minor = (int(pieces[0]), int(pieces[1]))
     if pytest_major_minor < (3, 9):
