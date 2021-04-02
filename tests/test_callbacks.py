@@ -151,6 +151,9 @@ def test_async_async_callbacks():
 
 def test_callback_num_times(capsys):
     # Super-simple micro-benchmarking related to PR #2919.
+    # Example runtimes (Intel Xeon 2.2GHz, fully optimized):
+    #   num_millions  1, repeats  2:  0.1 secs
+    #   num_millions 20, repeats 10: 11.5 secs
     one_million = 1000000
     num_millions = 1  # Try 20 for actual micro-benchmarking.
     repeats = 2  # Try 10.
