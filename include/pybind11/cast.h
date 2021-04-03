@@ -1375,6 +1375,11 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::operator()(Args &&...args) const {
+#if !defined(NDEBUG) && PY_VERSION_HEX >= 0x03060000
+    if (!PyGILState_Check()) {
+        pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
+    }
+#endif
     return detail::collect_arguments<policy>(std::forward<Args>(args)...).call(derived().ptr());
 }
 
