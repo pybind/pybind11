@@ -1,6 +1,13 @@
 Smart pointers
 ##############
 
+.. Note::
+
+   This is the pybind11 **smart_holder** branch, but the information
+   below has NOT been updated accordingly yet. Please refer to
+   ``README_smart_holder.rst`` under the top-level pybind11 directory
+   for updated information about smart pointers.
+
 std::unique_ptr
 ===============
 
