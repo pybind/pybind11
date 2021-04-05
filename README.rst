@@ -13,6 +13,11 @@
 
 .. start
 
+.. Note::
+
+   This is the pybind11 **smart_holder** branch. Please refer to
+   ``README_smart_holder.rst`` for branch-specific information.
+
 .. warning::
 
    Combining older versions of pybind11 (< 2.6.0) with Python 3.9.0 will
