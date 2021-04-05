@@ -85,8 +85,8 @@ disadvantage of having to use the ``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro.
 Conservative mode
 -----------------
 
-Here is a minimal example for wrapping a C++ type with the `smart_holder`
-type as the holder:
+Here is a minimal example for wrapping a C++ type with ``py::smart_holder`` as
+holder:
 
 .. code-block:: cpp
 
@@ -106,7 +106,7 @@ There are three small differences compared to traditional pybind11:
 - ``#include <pybind11/smart_holder.h>`` is used instead of
   ``#include <pybind11/pybind11.h>``.
 
-- ``py::classh`` is used instead of `py::class_`.
+- ``py::classh`` is used instead of ``py::class_``.
 
 - The ``PYBIND11_SMART_HOLDER_TYPE_CASTERS(Foo)`` macro is needed.
 
@@ -183,7 +183,7 @@ GitHub testing of PRs against the smart_holder branch
 
 PRs against the smart_holder branch need to be tested in both
 modes (conservative, progressive), with the only difference that
-`PYBIND11_USE_SMART_HOLDER_AS_DEFAULT` is defined for progressive mode
+``PYBIND11_USE_SMART_HOLDER_AS_DEFAULT`` is defined for progressive mode
 testing. Currently this is handled simply by creating a secondary PR with a
 one-line change in ``include/pybind11/detail/smart_holder_sfinae_hooks_only.h``
 (as in e.g. `PR #2879 <https://github.com/pybind/pybind11/pull/2879>`_). It
