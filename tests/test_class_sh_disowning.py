@@ -20,7 +20,7 @@ def test_same_twice():
         return  # Comment out for manual leak checking (use `top` command).
 
 
-def test_mixed(capsys):
+def test_mixed():
     first_pass = True
     while True:
         obj1a = m.Atype1(90)
@@ -54,11 +54,10 @@ def test_mixed(capsys):
         assert was_disowned_results.count(True) == 1
         if first_pass:
             first_pass = False
-            with capsys.disabled():
-                print(
-                    "\nC++ function argument %d is evaluated first."
-                    % (was_disowned_results.index(True) + 1)
-                )
+            print(
+                "\nC++ function argument %d is evaluated first."
+                % (was_disowned_results.index(True) + 1)
+            )
 
         return  # Comment out for manual leak checking (use `top` command).
 
