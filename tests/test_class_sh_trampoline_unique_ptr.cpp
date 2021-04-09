@@ -16,6 +16,9 @@ public:
 
 protected:
     Class() = default;
+
+    // Some compilers complain about implicitly defined versions of some of the following:
+    Class(const Class &) = default;
 };
 
 } // namespace
