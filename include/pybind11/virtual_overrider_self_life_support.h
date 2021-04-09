@@ -26,10 +26,10 @@ struct virtual_overrider_self_life_support {
             void *value_void_ptr = loaded_v_h.value_ptr();
             if (value_void_ptr != nullptr) {
                 PyGILState_STATE threadstate = PyGILState_Ensure();
-                Py_DECREF((PyObject *) loaded_v_h.inst);
-                loaded_v_h.value_ptr() = nullptr;
+                loaded_v_h.value_ptr()       = nullptr;
                 loaded_v_h.holder<pybindit::memory::smart_holder>().release_disowned();
                 detail::deregister_instance(loaded_v_h.inst, value_void_ptr, loaded_v_h.type);
+                Py_DECREF((PyObject *) loaded_v_h.inst); // Must be after deregister.
                 PyGILState_Release(threadstate);
             }
         }
