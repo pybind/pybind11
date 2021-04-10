@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from pybind11_tests import class_sh_with_alias as m
+from pybind11_tests import class_sh_trampoline_basic as m
 
 
 class PyDrvd0(m.Abase0):
