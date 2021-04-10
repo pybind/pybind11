@@ -6,7 +6,7 @@
 
 #include "../gil.h"
 #include "../pytypes.h"
-#include "../virtual_overrider_self_life_support.h"
+#include "../trampoline_self_life_support.h"
 #include "common.h"
 #include "descr.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
@@ -391,11 +391,11 @@ struct smart_holder_type_caster_load {
         T *raw_type_ptr = convert_type(raw_void_ptr);
 
         auto *self_life_support
-            = dynamic_raw_ptr_cast_if_possible<virtual_overrider_self_life_support>(raw_type_ptr);
+            = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
         if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
             throw value_error("Alias class (also known as trampoline) does not inherit from "
-                              "py::virtual_overrider_self_life_support, therefore the "
-                              "ownership of this instance cannot safely be transferred to C++.");
+                              "py::trampoline_self_life_support, therefore the ownership of this "
+                              "instance cannot safely be transferred to C++.");
         }
 
         // Critical transfer-of-ownership section. This must stay together.
@@ -701,8 +701,7 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
         const detail::type_info *tinfo = st.second;
         if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
             auto *self_life_support
-                = dynamic_raw_ptr_cast_if_possible<virtual_overrider_self_life_support>(
-                    src_raw_ptr);
+                = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(src_raw_ptr);
             if (self_life_support != nullptr) {
                 value_and_holder &v_h = self_life_support->v_h;
                 if (v_h.inst != nullptr && v_h.vh != nullptr) {

@@ -35,7 +35,7 @@ struct AbaseAlias : Abase<SerNo> {
 };
 
 template <>
-struct AbaseAlias<1> : Abase<1>, py::virtual_overrider_self_life_support {
+struct AbaseAlias<1> : Abase<1>, py::trampoline_self_life_support {
     using Abase<1>::Abase;
 
     int Add(int other_val) const override {

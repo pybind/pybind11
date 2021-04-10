@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "pybind11/smart_holder.h"
-#include "pybind11/virtual_overrider_self_life_support.h"
+#include "pybind11/trampoline_self_life_support.h"
 #include "pybind11_tests.h"
 
 #include <cstdint>
@@ -36,7 +36,7 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(Class)
 
 namespace {
 
-class PyClass : public Class, public py::virtual_overrider_self_life_support {
+class PyClass : public Class, public py::trampoline_self_life_support {
 public:
     std::unique_ptr<Class> clone() const override {
         PYBIND11_OVERRIDE_PURE(std::unique_ptr<Class>, Class, clone);

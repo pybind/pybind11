@@ -19,7 +19,7 @@ PYBIND11_NAMESPACE_END(detail)
 // https://github.com/google/clif/blob/07f95d7e69dca2fcf7022978a55ef3acff506c19/clif/python/runtime.cc#L37
 // URL provided here mainly to give proper credit. To fully explain the `HoldPyObj` feature, more
 // context is needed (SMART_HOLDER_WIP).
-struct virtual_overrider_self_life_support {
+struct trampoline_self_life_support {
     detail::value_and_holder v_h;
 
     void activate_life_support(const detail::value_and_holder &v_h) {
@@ -32,7 +32,7 @@ struct virtual_overrider_self_life_support {
         v_h = detail::value_and_holder();
     }
 
-    ~virtual_overrider_self_life_support() {
+    ~trampoline_self_life_support() {
         if (v_h.inst != nullptr && v_h.vh != nullptr) {
             void *value_void_ptr = v_h.value_ptr();
             if (value_void_ptr != nullptr) {
@@ -47,13 +47,11 @@ struct virtual_overrider_self_life_support {
     }
 
     // Some compilers complain about implicitly defined versions of some of the following:
-    virtual_overrider_self_life_support()                                            = default;
-    virtual_overrider_self_life_support(const virtual_overrider_self_life_support &) = default;
-    virtual_overrider_self_life_support(virtual_overrider_self_life_support &&)      = default;
-    virtual_overrider_self_life_support &operator=(const virtual_overrider_self_life_support &)
-        = default;
-    virtual_overrider_self_life_support &operator=(virtual_overrider_self_life_support &&)
-        = default;
+    trampoline_self_life_support()                                     = default;
+    trampoline_self_life_support(const trampoline_self_life_support &) = default;
+    trampoline_self_life_support(trampoline_self_life_support &&)      = default;
+    trampoline_self_life_support &operator=(const trampoline_self_life_support &) = default;
+    trampoline_self_life_support &operator=(trampoline_self_life_support &&) = default;
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
