@@ -6,11 +6,17 @@
 #include "pybind11/virtual_overrider_self_life_support.h"
 #include "pybind11_tests.h"
 
+#include <cstdint>
+
 namespace {
 
 class Class {
 public:
-    virtual ~Class()                             = default;
+    virtual ~Class() = default;
+
+    void setVal(std::uint64_t val) { val_ = val; }
+    std::uint64_t getVal() const { return val_; }
+
     virtual std::unique_ptr<Class> clone() const = 0;
     virtual int foo() const                      = 0;
 
@@ -19,6 +25,9 @@ protected:
 
     // Some compilers complain about implicitly defined versions of some of the following:
     Class(const Class &) = default;
+
+private:
+    std::uint64_t val_ = 0;
 };
 
 } // namespace
@@ -41,8 +50,11 @@ public:
 TEST_SUBMODULE(class_sh_trampoline_unique_ptr, m) {
     py::classh<Class, PyClass>(m, "Class")
         .def(py::init<>())
+        .def("set_val", &Class::setVal)
+        .def("get_val", &Class::getVal)
         .def("clone", &Class::clone)
         .def("foo", &Class::foo);
 
+    m.def("clone", [](const Class &obj) { return obj.clone(); });
     m.def("clone_and_foo", [](const Class &obj) { return obj.clone()->foo(); });
 }

@@ -406,8 +406,7 @@ struct smart_holder_type_caster_load {
         }
         auto result = std::unique_ptr<T, D>(raw_type_ptr);
         if (self_life_support != nullptr) {
-            Py_INCREF((PyObject *) load_impl.loaded_v_h.inst);
-            self_life_support->loaded_v_h = load_impl.loaded_v_h;
+            self_life_support->activate_life_support(load_impl.loaded_v_h);
         } else {
             load_impl.loaded_v_h.value_ptr() = nullptr;
             deregister_instance(
@@ -700,8 +699,28 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
-        if (find_registered_python_instance(src_raw_void_ptr, tinfo))
+        if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
+            auto *self_life_support
+                = dynamic_raw_ptr_cast_if_possible<virtual_overrider_self_life_support>(
+                    src_raw_ptr);
+            if (self_life_support != nullptr) {
+                value_and_holder &v_h = self_life_support->v_h;
+                if (v_h.inst != nullptr && v_h.vh != nullptr) {
+                    auto &holder = v_h.holder<pybindit::memory::smart_holder>();
+                    if (!holder.was_disowned) {
+                        pybind11_fail("smart_holder_type_casters: unexpected "
+                                      "smart_holder.was_disowned failure.");
+                    }
+                    // Critical transfer-of-ownership section. This must stay together.
+                    self_life_support->deactivate_life_support();
+                    holder.reclaim_disowned();
+                    src.release();
+                    // Critical section end.
+                    return existing_inst;
+                }
+            }
             throw cast_error("Invalid unique_ptr: another instance owns this pointer already.");
+        }
 
         auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());

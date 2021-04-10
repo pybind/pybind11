@@ -241,6 +241,12 @@ struct smart_holder {
     }
 
     // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
+    void reclaim_disowned() {
+        *vptr_deleter_armed_flag_ptr = true;
+        was_disowned                 = false;
+    }
+
+    // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
     void release_disowned() {
         vptr.reset();
         vptr_deleter_armed_flag_ptr.reset();

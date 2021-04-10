@@ -20,16 +20,27 @@ PYBIND11_NAMESPACE_END(detail)
 // URL provided here mainly to give proper credit. To fully explain the `HoldPyObj` feature, more
 // context is needed (SMART_HOLDER_WIP).
 struct virtual_overrider_self_life_support {
-    detail::value_and_holder loaded_v_h;
+    detail::value_and_holder v_h;
+
+    void activate_life_support(const detail::value_and_holder &v_h) {
+        Py_INCREF((PyObject *) v_h.inst);
+        this->v_h = v_h;
+    }
+
+    void deactivate_life_support() {
+        Py_DECREF((PyObject *) v_h.inst);
+        v_h = detail::value_and_holder();
+    }
+
     ~virtual_overrider_self_life_support() {
-        if (loaded_v_h.inst != nullptr && loaded_v_h.vh != nullptr) {
-            void *value_void_ptr = loaded_v_h.value_ptr();
+        if (v_h.inst != nullptr && v_h.vh != nullptr) {
+            void *value_void_ptr = v_h.value_ptr();
             if (value_void_ptr != nullptr) {
                 PyGILState_STATE threadstate = PyGILState_Ensure();
-                loaded_v_h.value_ptr()       = nullptr;
-                loaded_v_h.holder<pybindit::memory::smart_holder>().release_disowned();
-                detail::deregister_instance(loaded_v_h.inst, value_void_ptr, loaded_v_h.type);
-                Py_DECREF((PyObject *) loaded_v_h.inst); // Must be after deregister.
+                v_h.value_ptr()              = nullptr;
+                v_h.holder<pybindit::memory::smart_holder>().release_disowned();
+                detail::deregister_instance(v_h.inst, value_void_ptr, v_h.type);
+                Py_DECREF((PyObject *) v_h.inst); // Must be after deregister.
                 PyGILState_Release(threadstate);
             }
         }

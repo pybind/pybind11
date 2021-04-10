@@ -129,6 +129,20 @@ TEST_CASE("from_raw_ptr_take_ownership+as_shared_ptr", "[S]") {
     REQUIRE(*new_owner == 19);
 }
 
+TEST_CASE("from_raw_ptr_take_ownership+disown+reclaim_disowned", "[S]") {
+    auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
+    std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
+    hld.disown();
+    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(*new_owner == 19);
+    hld.reclaim_disowned(); // Manually veriified: without this, clang++ -fsanitize=address reports
+                            // "detected memory leaks".
+    new_owner.release();    // Manually verified: without this, clang++ -fsanitize=address reports
+                            // "attempting double-free".
+    REQUIRE(hld.as_lvalue_ref<int>() == 19);
+    REQUIRE(new_owner.get() == nullptr);
+}
+
 TEST_CASE("from_raw_ptr_take_ownership+disown+release_disowned", "[S]") {
     auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
