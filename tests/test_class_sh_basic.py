@@ -16,13 +16,19 @@ def test_atyp_constructors():
     assert obj.__class__.__name__ == "atyp"
 
 
+def check_regex(expected, actual):
+    result = re.match(expected + "$", actual)
+    if result is None:
+        pytest.fail("expected: '{}' != actual: '{}'".format(expected, actual))
+
+
 @pytest.mark.parametrize(
     "rtrn_f, expected",
     [
-        (m.rtrn_valu, "rtrn_valu(_MvCtor)*_MvCtor"),
-        (m.rtrn_rref, "rtrn_rref(_MvCtor)*_MvCtor"),
-        (m.rtrn_cref, "rtrn_cref(_MvCtor)*_CpCtor"),
-        (m.rtrn_mref, "rtrn_mref(_MvCtor)*_CpCtor"),
+        (m.rtrn_valu, "rtrn_valu(_MvCtor){1,3}"),
+        (m.rtrn_rref, "rtrn_rref(_MvCtor){1}"),
+        (m.rtrn_cref, "rtrn_cref_CpCtor"),
+        (m.rtrn_mref, "rtrn_mref"),
         (m.rtrn_cptr, "rtrn_cptr"),
         (m.rtrn_mptr, "rtrn_mptr"),
         (m.rtrn_shmp, "rtrn_shmp"),
@@ -34,25 +40,25 @@ def test_atyp_constructors():
     ],
 )
 def test_cast(rtrn_f, expected):
-    assert re.match(expected, m.get_mtxt(rtrn_f()))
+    check_regex(expected, m.get_mtxt(rtrn_f()))
 
 
 @pytest.mark.parametrize(
     "pass_f, mtxt, expected",
     [
-        (m.pass_valu, "Valu", "pass_valu:Valu(_MvCtor)*_CpCtor"),
-        (m.pass_cref, "Cref", "pass_cref:Cref(_MvCtor)*_MvCtor"),
-        (m.pass_mref, "Mref", "pass_mref:Mref(_MvCtor)*_MvCtor"),
-        (m.pass_cptr, "Cptr", "pass_cptr:Cptr(_MvCtor)*_MvCtor"),
-        (m.pass_mptr, "Mptr", "pass_mptr:Mptr(_MvCtor)*_MvCtor"),
-        (m.pass_shmp, "Shmp", "pass_shmp:Shmp(_MvCtor)*_MvCtor"),
-        (m.pass_shcp, "Shcp", "pass_shcp:Shcp(_MvCtor)*_MvCtor"),
-        (m.pass_uqmp, "Uqmp", "pass_uqmp:Uqmp(_MvCtor)*_MvCtor"),
-        (m.pass_uqcp, "Uqcp", "pass_uqcp:Uqcp(_MvCtor)*_MvCtor"),
+        (m.pass_valu, "Valu", "pass_valu:Valu(_MvCtor){1,2}_CpCtor"),
+        (m.pass_cref, "Cref", "pass_cref:Cref(_MvCtor){1,2}"),
+        (m.pass_mref, "Mref", "pass_mref:Mref(_MvCtor){1,2}"),
+        (m.pass_cptr, "Cptr", "pass_cptr:Cptr(_MvCtor){1,2}"),
+        (m.pass_mptr, "Mptr", "pass_mptr:Mptr(_MvCtor){1,2}"),
+        (m.pass_shmp, "Shmp", "pass_shmp:Shmp(_MvCtor){1,2}"),
+        (m.pass_shcp, "Shcp", "pass_shcp:Shcp(_MvCtor){1,2}"),
+        (m.pass_uqmp, "Uqmp", "pass_uqmp:Uqmp(_MvCtor){1,2}"),
+        (m.pass_uqcp, "Uqcp", "pass_uqcp:Uqcp(_MvCtor){1,2}"),
     ],
 )
 def test_load_with_mtxt(pass_f, mtxt, expected):
-    assert re.match(expected, pass_f(m.atyp(mtxt)))
+    check_regex(expected, pass_f(m.atyp(mtxt)))
 
 
 @pytest.mark.parametrize(
@@ -111,53 +117,109 @@ def test_unique_ptr_roundtrip(num_round_trips=1000):
     for _ in range(num_round_trips):
         id_orig = id(recycled)
         recycled = m.unique_ptr_roundtrip(recycled)
-        assert re.match("passenger(_MvCtor)*_MvCtor", m.get_mtxt(recycled))
+        check_regex("passenger(_MvCtor){1,2}", m.get_mtxt(recycled))
         id_rtrn = id(recycled)
         # Ensure the returned object is a different Python instance.
         assert id_rtrn != id_orig
         id_orig = id_rtrn
 
 
-# This currently fails, because a unique_ptr is always loaded by value
-# due to pybind11/detail/smart_holder_type_casters.h:689
-# I think, we need to provide more cast operators.
-@pytest.mark.skip
-def test_unique_ptr_cref_roundtrip(num_round_trips=1000):
-    orig = m.atyp("passenger")
-    id_orig = id(orig)
+# Validate moving an object from Python into a C++ object store
+@pytest.mark.parametrize("pass_f", [m.store.pass_uq_valu, m.store.pass_uq_rref])
+def test_unique_ptr_moved(pass_f):
+    store = m.store()
+    orig = m.atyp("O")
     mtxt_orig = m.get_mtxt(orig)
+    ptr_orig = m.get_ptr(orig)
+    assert re.match("O(_MvCtor){1,2}", mtxt_orig)
 
-    recycled = m.unique_ptr_cref_roundtrip(orig)
-    assert m.get_mtxt(orig) == mtxt_orig
-    assert m.get_mtxt(recycled) == mtxt_orig
-    assert id(recycled) == id_orig
+    pass_f(store, orig)  # pass object to C++ store c
+    with pytest.raises(ValueError) as excinfo:
+        m.get_mtxt(orig)
+    assert "Python instance was disowned" in str(excinfo.value)
+
+    del orig
+    recycled = store.rtrn_uq_cref()
+    assert m.get_ptr(recycled) == ptr_orig  # underlying C++ object doesn't change
+    assert m.get_mtxt(recycled) == mtxt_orig  # object was not moved or copied
 
 
+# This series of roundtrip tests checks how an object instance moved from
+# Python to C++ (into store) can be later returned back to Python.
 @pytest.mark.parametrize(
-    "pass_f, rtrn_f, moved_out, moved_in",
+    "rtrn_f, moved_in",
     [
-        (m.uconsumer.pass_valu, m.uconsumer.rtrn_valu, True, True),
-        (m.uconsumer.pass_rref, m.uconsumer.rtrn_valu, True, True),
-        (m.uconsumer.pass_valu, m.uconsumer.rtrn_lref, True, False),
-        (m.uconsumer.pass_valu, m.uconsumer.rtrn_cref, True, False),
+        (m.store.rtrn_uq_valu, True),  # moved back in
+        (m.store.rtrn_uq_rref, True),  # moved back in
+        (m.store.rtrn_uq_mref, None),  # forbidden
+        (m.store.rtrn_uq_cref, False),  # fetched by reference
+        (m.store.rtrn_mref, None),  # forbidden
+        (m.store.rtrn_cref, False),  # fetched by reference
+        (m.store.rtrn_mptr, None),  # forbidden
+        (m.store.rtrn_cptr, False),  # fetched by reference
     ],
 )
-def test_unique_ptr_consumer_roundtrip(pass_f, rtrn_f, moved_out, moved_in):
-    c = m.uconsumer()
-    assert not c.valid()
-    recycled = m.atyp("passenger")
-    mtxt_orig = m.get_mtxt(recycled)
-    assert re.match("passenger_(MvCtor){1,2}", mtxt_orig)
+def test_unique_ptr_store_roundtrip(rtrn_f, moved_in):
+    c = m.store()
+    orig = m.atyp("passenger")
+    ptr_orig = m.get_ptr(orig)
 
-    pass_f(c, recycled)
-    if moved_out:
-        with pytest.raises(ValueError) as excinfo:
-            m.get_mtxt(recycled)
-        assert "Python instance was disowned" in str(excinfo.value)
+    c.pass_uq_valu(orig)  # pass object to C++ store c
+    try:
+        recycled = rtrn_f(c)  # retrieve object back from C++
+    except RuntimeError as excinfo:  # expect failure for rtrn_uq_lref
+        assert (
+            moved_in is None
+            and "Passing non-const unique_ptr& is not supported" in str(excinfo)
+        )
+        return
 
-    recycled = rtrn_f(c)
-    assert c.valid() != moved_in
-    assert m.get_mtxt(recycled) == mtxt_orig
+    assert m.get_ptr(recycled) == ptr_orig  # do we yield the same object?
+    if moved_in:  # store should have given up ownership?
+        assert c.valid() is False
+    else:  # store still helds the object
+        assert c.valid() is True
+        del recycled
+        assert c.valid() is True
+
+
+# Additionally to the above test_unique_ptr_store_roundtrip, this test
+# validates that an object initially moved from Python to C++ can be returned
+# to Python as a *const* reference/raw pointer/unique_ptr *and*, subsequently,
+# passed from Python to C++ again. There shouldn't be any copy or move operation
+# involved (We want the object to be passed by reference!)
+@pytest.mark.parametrize(
+    "rtrn_f",
+    [m.store.rtrn_uq_cref, m.store.rtrn_cref, m.store.rtrn_cptr],
+)
+@pytest.mark.parametrize(
+    "pass_f",
+    [
+        # This fails with: ValueError: Cannot disown non-owning holder (loaded_as_unique_ptr).
+        # This could, at most, work for the combination rtrn_uq_cref() + pass_uq_cref(),
+        # i.e. fetching a unique_ptr const-ref from C++ and passing the very same reference back.
+        # Currently, it is forbidden - by design - to pass a unique_ptr const-ref to C++.
+        # unique_ptrs are always moved (if possible).
+        # To allow this use case, smart_holder would need to store the unique_ptr reference,
+        # originally received from C++, e.g. using a union of unique_ptr + shared_ptr.
+        pytest.param(m.store.pass_uq_cref, marks=pytest.mark.xfail),
+        m.store.pass_cptr,
+        m.store.pass_cref,
+    ],
+)
+def test_unique_ptr_cref_store_roundtrip(rtrn_f, pass_f):
+    c = m.store()
+    passenger = m.atyp("passenger")
+    mtxt_orig = m.get_mtxt(passenger)
+    ptr_orig = m.get_ptr(passenger)
+
+    # moves passenger to C++ (checked in test_unique_ptr_store_roundtrip)
+    c.pass_uq_valu(passenger)
+
+    for _ in range(10):
+        cref = rtrn_f(c)  # fetches const reference, should keep-alive parent c
+        assert pass_f(c, cref) == mtxt_orig  # no copy/move happened?
+        assert m.get_ptr(cref) == ptr_orig  # it's still the same raw pointer
 
 
 def test_py_type_handle_of_atyp():
