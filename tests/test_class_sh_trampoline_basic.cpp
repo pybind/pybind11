@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace pybind11_tests {
-namespace class_sh_with_alias {
+namespace class_sh_trampoline_basic {
 
 template <int SerNo> // Using int as a trick to easily generate a series of types.
 struct Abase {
@@ -35,7 +35,7 @@ struct AbaseAlias : Abase<SerNo> {
 };
 
 template <>
-struct AbaseAlias<1> : Abase<1>, py::virtual_overrider_self_life_support {
+struct AbaseAlias<1> : Abase<1>, py::trampoline_self_life_support {
     using Abase<1>::Abase;
 
     int Add(int other_val) const override {
@@ -73,14 +73,14 @@ void wrap(py::module_ m, const char *py_class_name) {
     m.def("AddInCppUniquePtr", AddInCppUniquePtr<SerNo>, py::arg("obj"), py::arg("other_val"));
 }
 
-} // namespace class_sh_with_alias
+} // namespace class_sh_trampoline_basic
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_with_alias::Abase<0>)
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_with_alias::Abase<1>)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_trampoline_basic::Abase<0>)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_trampoline_basic::Abase<1>)
 
-TEST_SUBMODULE(class_sh_with_alias, m) {
-    using namespace pybind11_tests::class_sh_with_alias;
+TEST_SUBMODULE(class_sh_trampoline_basic, m) {
+    using namespace pybind11_tests::class_sh_trampoline_basic;
     wrap<0>(m, "Abase0");
     wrap<1>(m, "Abase1");
 }

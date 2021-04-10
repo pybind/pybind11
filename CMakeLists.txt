@@ -131,7 +131,7 @@ set(PYBIND11_HEADERS
     include/pybind11/smart_holder.h
     include/pybind11/stl.h
     include/pybind11/stl_bind.h
-    include/pybind11/virtual_overrider_self_life_support.h)
+    include/pybind11/trampoline_self_life_support.h)
 
 # Compare with grep and warn if mismatched
 if(PYBIND11_MASTER_PROJECT AND NOT CMAKE_VERSION VERSION_LESS 3.12)

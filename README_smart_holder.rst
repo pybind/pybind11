@@ -164,6 +164,26 @@ of interest have made the switch, because then the code will continue to
 work in either mode.
 
 
+Trampolines and std::unique_ptr
+-------------------------------
+
+A pybind11 `"trampoline"
+<https://pybind11.readthedocs.io/en/stable/advanced/classes.html#overriding-virtual-functions-in-python>`_
+is a C++ helper class with virtual function overrides that transparently
+call back from C++ into Python. To enable safely passing a ``std::unique_ptr``
+to a trampoline object between Python and C++, the trampoline class must
+inherit from ``py::trampoline_self_life_support``, for example:
+
+.. code-block:: cpp
+
+   class PyAnimal : public Animal, public py::trampoline_self_life_support {
+       ...
+   };
+
+This is the only difference compared to traditional pybind11. A fairly
+minimal but complete example is tests/test_class_sh_trampoline_unique_ptr.cpp.
+
+
 Ideas for the long-term
 -----------------------
 

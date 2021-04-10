@@ -6,7 +6,7 @@
 
 #include "../gil.h"
 #include "../pytypes.h"
-#include "../virtual_overrider_self_life_support.h"
+#include "../trampoline_self_life_support.h"
 #include "common.h"
 #include "descr.h"
 #include "dynamic_raw_ptr_cast_if_possible.h"
@@ -353,7 +353,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
-        holder().ensure_was_not_disowned("loaded_as_shared_ptr");
+        holder().ensure_is_not_disowned("loaded_as_shared_ptr");
         auto void_raw_ptr = holder().template as_raw_ptr_unowned<void>();
         auto type_raw_ptr = convert_type(void_raw_ptr);
         if (holder().pointee_depends_on_holder_owner) {
@@ -375,7 +375,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
-        holder().ensure_was_not_disowned(context);
+        holder().ensure_is_not_disowned(context);
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
@@ -391,11 +391,11 @@ struct smart_holder_type_caster_load {
         T *raw_type_ptr = convert_type(raw_void_ptr);
 
         auto *self_life_support
-            = dynamic_raw_ptr_cast_if_possible<virtual_overrider_self_life_support>(raw_type_ptr);
+            = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(raw_type_ptr);
         if (self_life_support == nullptr && holder().pointee_depends_on_holder_owner) {
             throw value_error("Alias class (also known as trampoline) does not inherit from "
-                              "py::virtual_overrider_self_life_support, therefore the "
-                              "ownership of this instance cannot safely be transferred to C++.");
+                              "py::trampoline_self_life_support, therefore the ownership of this "
+                              "instance cannot safely be transferred to C++.");
         }
 
         // Critical transfer-of-ownership section. This must stay together.
@@ -406,8 +406,7 @@ struct smart_holder_type_caster_load {
         }
         auto result = std::unique_ptr<T, D>(raw_type_ptr);
         if (self_life_support != nullptr) {
-            Py_INCREF((PyObject *) load_impl.loaded_v_h.inst);
-            self_life_support->loaded_v_h = load_impl.loaded_v_h;
+            self_life_support->activate_life_support(load_impl.loaded_v_h);
         } else {
             load_impl.loaded_v_h.value_ptr() = nullptr;
             deregister_instance(
@@ -700,8 +699,27 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
-        if (find_registered_python_instance(src_raw_void_ptr, tinfo))
+        if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
+            auto *self_life_support
+                = dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(src_raw_ptr);
+            if (self_life_support != nullptr) {
+                value_and_holder &v_h = self_life_support->v_h;
+                if (v_h.inst != nullptr && v_h.vh != nullptr) {
+                    auto &holder = v_h.holder<pybindit::memory::smart_holder>();
+                    if (!holder.is_disowned) {
+                        pybind11_fail("smart_holder_type_casters: unexpected "
+                                      "smart_holder.is_disowned failure.");
+                    }
+                    // Critical transfer-of-ownership section. This must stay together.
+                    self_life_support->deactivate_life_support();
+                    holder.reclaim_disowned();
+                    src.release();
+                    // Critical section end.
+                    return existing_inst;
+                }
+            }
             throw cast_error("Invalid unique_ptr: another instance owns this pointer already.");
+        }
 
         auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());
