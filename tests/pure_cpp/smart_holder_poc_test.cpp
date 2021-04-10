@@ -153,13 +153,13 @@ TEST_CASE("from_raw_ptr_take_ownership+disown+release_disowned", "[S]") {
     REQUIRE(!hld.has_pointee());
 }
 
-TEST_CASE("from_raw_ptr_take_ownership+disown+ensure_was_not_disowned", "[E]") {
+TEST_CASE("from_raw_ptr_take_ownership+disown+ensure_is_not_disowned", "[E]") {
     const char *context = "test_case";
     auto hld            = smart_holder::from_raw_ptr_take_ownership(new int(19));
-    hld.ensure_was_not_disowned(context); // Does not throw.
+    hld.ensure_is_not_disowned(context); // Does not throw.
     std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
     hld.disown();
-    REQUIRE_THROWS_WITH(hld.ensure_was_not_disowned(context),
+    REQUIRE_THROWS_WITH(hld.ensure_is_not_disowned(context),
                         "Holder was disowned already (test_case).");
 }
 

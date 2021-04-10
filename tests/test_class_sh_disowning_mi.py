@@ -18,7 +18,7 @@ def test_diamond_inheritance():
     assert d is d.c0().c1().b().c0().b()
 
 
-def was_disowned(callable_method):
+def is_disowned(callable_method):
     try:
         callable_method()
     except ValueError as e:
@@ -34,7 +34,7 @@ def test_disown_b():
     b = m.B()
     assert b.get() == 10
     m.disown_b(b)
-    assert was_disowned(b.get)
+    assert is_disowned(b.get)
 
 
 @pytest.mark.parametrize("var_to_disown", ["c0", "b"])
@@ -43,8 +43,8 @@ def test_disown_c0(var_to_disown):
     assert c0.get() == 1020
     b = c0.b()
     m.disown_b(locals()[var_to_disown])
-    assert was_disowned(c0.get)
-    assert was_disowned(b.get)
+    assert is_disowned(c0.get)
+    assert is_disowned(b.get)
 
 
 @pytest.mark.parametrize("var_to_disown", ["c1", "b"])
@@ -53,8 +53,8 @@ def test_disown_c1(var_to_disown):
     assert c1.get() == 1021
     b = c1.b()
     m.disown_b(locals()[var_to_disown])
-    assert was_disowned(c1.get)
-    assert was_disowned(b.get)
+    assert is_disowned(c1.get)
+    assert is_disowned(b.get)
 
 
 @pytest.mark.parametrize("var_to_disown", ["d", "c1", "c0", "b"])
@@ -65,10 +65,10 @@ def test_disown_d(var_to_disown):
     c0 = d.c0()
     c1 = d.c1()
     m.disown_b(locals()[var_to_disown])
-    assert was_disowned(d.get)
-    assert was_disowned(c1.get)
-    assert was_disowned(c0.get)
-    assert was_disowned(b.get)
+    assert is_disowned(d.get)
+    assert is_disowned(c1.get)
+    assert is_disowned(c0.get)
+    assert is_disowned(b.get)
 
 
 # Based on test_multiple_inheritance.py:test_multiple_inheritance_python.
@@ -211,10 +211,10 @@ def test_disown_base1_first(cls, i, j, v):
     obj = cls(i, j)
     assert obj.foo() == i
     assert m.disown_base1(obj) == 2000 * i + 1
-    assert was_disowned(obj.foo)
+    assert is_disowned(obj.foo)
     assert obj.bar() == j
     assert m.disown_base2(obj) == 2000 * j + 2
-    assert was_disowned(obj.bar)
+    assert is_disowned(obj.bar)
     if v is not None:
         assert obj.v() == v
 
@@ -226,10 +226,10 @@ def test_disown_base2_first(cls, i, j, v):
     obj = cls(i, j)
     assert obj.bar() == j
     assert m.disown_base2(obj) == 2000 * j + 2
-    assert was_disowned(obj.bar)
+    assert is_disowned(obj.bar)
     assert obj.foo() == i
     assert m.disown_base1(obj) == 2000 * i + 1
-    assert was_disowned(obj.foo)
+    assert is_disowned(obj.foo)
     if v is not None:
         assert obj.v() == v
 
@@ -249,5 +249,5 @@ def test_disown_base2(cls, j, v):
     obj = cls(j)
     assert obj.bar() == j
     assert m.disown_base2(obj) == 2000 * j + 2
-    assert was_disowned(obj.bar)
+    assert is_disowned(obj.bar)
     assert obj.v() == v

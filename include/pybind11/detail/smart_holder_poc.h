@@ -102,7 +102,7 @@ struct smart_holder {
     bool vptr_is_using_builtin_delete : 1;
     bool vptr_is_external_shared_ptr : 1;
     bool is_populated : 1;
-    bool was_disowned : 1;
+    bool is_disowned : 1;
     bool pointee_depends_on_holder_owner : 1; // SMART_HOLDER_WIP: See PR #2839.
 
     // Design choice: smart_holder is movable but not copyable.
@@ -113,13 +113,13 @@ struct smart_holder {
 
     smart_holder()
         : vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
-          vptr_is_external_shared_ptr{false}, is_populated{false}, was_disowned{false},
+          vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false},
           pointee_depends_on_holder_owner{false} {}
 
     explicit smart_holder(bool vptr_deleter_armed_flag)
         : vptr_deleter_armed_flag_ptr{new bool{vptr_deleter_armed_flag}},
           vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
-          vptr_is_external_shared_ptr{false}, is_populated{false}, was_disowned{false},
+          vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false},
           pointee_depends_on_holder_owner{false} {}
 
     bool has_pointee() const { return vptr.get() != nullptr; }
@@ -136,8 +136,8 @@ struct smart_holder {
             throw std::runtime_error(std::string("Unpopulated holder (") + context + ").");
         }
     }
-    void ensure_was_not_disowned(const char *context) const {
-        if (was_disowned) {
+    void ensure_is_not_disowned(const char *context) const {
+        if (is_disowned) {
             throw std::runtime_error(std::string("Holder was disowned already (") + context
                                      + ").");
         }
@@ -237,13 +237,13 @@ struct smart_holder {
     // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
     void disown() {
         *vptr_deleter_armed_flag_ptr = false;
-        was_disowned                 = true;
+        is_disowned                  = true;
     }
 
     // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
     void reclaim_disowned() {
         *vptr_deleter_armed_flag_ptr = true;
-        was_disowned                 = false;
+        is_disowned                  = false;
     }
 
     // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
@@ -254,7 +254,7 @@ struct smart_holder {
 
     // SMART_HOLDER_WIP: review this function.
     void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") {
-        ensure_was_not_disowned(context);
+        ensure_is_not_disowned(context);
         ensure_vptr_is_using_builtin_delete(context);
         ensure_use_count_1(context);
     }

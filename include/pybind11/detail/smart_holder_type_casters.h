@@ -353,7 +353,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
-        holder().ensure_was_not_disowned("loaded_as_shared_ptr");
+        holder().ensure_is_not_disowned("loaded_as_shared_ptr");
         auto void_raw_ptr = holder().template as_raw_ptr_unowned<void>();
         auto type_raw_ptr = convert_type(void_raw_ptr);
         if (holder().pointee_depends_on_holder_owner) {
@@ -375,7 +375,7 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
-        holder().ensure_was_not_disowned(context);
+        holder().ensure_is_not_disowned(context);
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
         auto raw_void_ptr = holder().template as_raw_ptr_unowned<void>();
@@ -707,9 +707,9 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
                 value_and_holder &v_h = self_life_support->v_h;
                 if (v_h.inst != nullptr && v_h.vh != nullptr) {
                     auto &holder = v_h.holder<pybindit::memory::smart_holder>();
-                    if (!holder.was_disowned) {
+                    if (!holder.is_disowned) {
                         pybind11_fail("smart_holder_type_casters: unexpected "
-                                      "smart_holder.was_disowned failure.");
+                                      "smart_holder.is_disowned failure.");
                     }
                     // Critical transfer-of-ownership section. This must stay together.
                     self_life_support->deactivate_life_support();

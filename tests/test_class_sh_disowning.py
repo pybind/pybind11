@@ -41,7 +41,7 @@ def test_mixed():
             # the already disowned obj1a fails as expected.
             m.mixed(obj1a, obj2b)
 
-        def was_disowned(obj):
+        def is_disowned(obj):
             try:
                 obj.get()
             except ValueError:
@@ -50,13 +50,13 @@ def test_mixed():
 
         # Either obj1b or obj2b was disowned in the expected failed m.mixed() calls above, but not
         # both.
-        was_disowned_results = (was_disowned(obj1b), was_disowned(obj2b))
-        assert was_disowned_results.count(True) == 1
+        is_disowned_results = (is_disowned(obj1b), is_disowned(obj2b))
+        assert is_disowned_results.count(True) == 1
         if first_pass:
             first_pass = False
             print(
                 "\nC++ function argument %d is evaluated first."
-                % (was_disowned_results.index(True) + 1)
+                % (is_disowned_results.index(True) + 1)
             )
 
         return  # Comment out for manual leak checking (use `top` command).
