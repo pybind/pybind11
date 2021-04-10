@@ -22,9 +22,9 @@ PYBIND11_NAMESPACE_END(detail)
 struct trampoline_self_life_support {
     detail::value_and_holder v_h;
 
-    void activate_life_support(const detail::value_and_holder &v_h) {
-        Py_INCREF((PyObject *) v_h.inst);
-        this->v_h = v_h;
+    void activate_life_support(const detail::value_and_holder &v_h_) {
+        Py_INCREF((PyObject *) v_h_.inst);
+        v_h = v_h_;
     }
 
     void deactivate_life_support() {
