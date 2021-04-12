@@ -22,6 +22,8 @@ PYBIND11_NAMESPACE_END(detail)
 struct trampoline_self_life_support {
     detail::value_and_holder v_h;
 
+    trampoline_self_life_support() = default;
+
     void activate_life_support(const detail::value_and_holder &v_h_) {
         Py_INCREF((PyObject *) v_h_.inst);
         v_h = v_h_;
@@ -46,12 +48,14 @@ struct trampoline_self_life_support {
         }
     }
 
-    // Some compilers complain about implicitly defined versions of some of the following:
-    trampoline_self_life_support()                                     = default;
-    trampoline_self_life_support(const trampoline_self_life_support &) = default;
-    trampoline_self_life_support(trampoline_self_life_support &&)      = default;
-    trampoline_self_life_support &operator=(const trampoline_self_life_support &) = default;
-    trampoline_self_life_support &operator=(trampoline_self_life_support &&) = default;
+    // For the next two, the default implementations generate undefined behavior (ASAN failures
+    // manually verified). The reason is that v_h needs to be kept default-initialized.
+    trampoline_self_life_support(const trampoline_self_life_support &) {}
+    trampoline_self_life_support(trampoline_self_life_support &&) {}
+
+    // These should never be needed (please provide test cases if you think they are).
+    trampoline_self_life_support &operator=(const trampoline_self_life_support &) = delete;
+    trampoline_self_life_support &operator=(trampoline_self_life_support &&) = delete;
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
