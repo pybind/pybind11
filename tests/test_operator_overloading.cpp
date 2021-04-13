@@ -221,6 +221,6 @@ TEST_SUBMODULE(operators, m) {
         .def(py::self == py::self);
 }
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
   #pragma GCC diagnostic pop
 #endif
