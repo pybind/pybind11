@@ -93,6 +93,10 @@ def test_cpp_function_roundtrip():
         m.test_dummy_function(m.roundtrip(m.dummy_function))
         == "matches dummy_function: eval(1) = 2"
     )
+    assert (
+        m.test_dummy_function(m.dummy_function_overloaded)
+        == "matches dummy_function: eval(1) = 2"
+    )
     assert m.roundtrip(None, expect_none=True) is None
     assert (
         m.test_dummy_function(lambda x: x + 2)
