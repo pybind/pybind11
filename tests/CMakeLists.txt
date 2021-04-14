@@ -273,7 +273,7 @@ function(pybind11_enable_warnings target_name)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
       target_compile_options(
         ${target_name}
-          PRIVATE
+        PRIVATE
           -Werror-all
           # "Inlining inhibited by limit max-size", "Inlining inhibited by limit max-total-size"
           -diag-disable 11074,11076)
