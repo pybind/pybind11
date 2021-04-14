@@ -174,8 +174,9 @@ jobs:
         - python-version: 3.9
           python-debug: true
           valgrind: true
-        - python-version: 3.10-dev
-          python-debug: false
+        # Broken b/o https://github.com/pytest-dev/pytest/issues/8539
+        # - python-version: 3.10-dev
+        #   python-debug: false
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
     runs-on: ubuntu-latest
