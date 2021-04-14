@@ -143,12 +143,12 @@ protected:
             /* Without these pragmas, GCC warns that there might not be
                enough space to use the placement new operator. However, the
                'if' statement above ensures that this is the case. */
-#if defined(__GNUG__) && !defined(__clang__) && __GNUC__ >= 6
+#if defined(__GNUG__) && __GNUC__ >= 6 && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wplacement-new"
 #endif
             new ((capture *) &rec->data) capture { std::forward<Func>(f) };
-#if defined(__GNUG__) && !defined(__clang__) && __GNUC__ >= 6
+#if defined(__GNUG__) && __GNUC__ >= 6 && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
             if (!std::is_trivially_destructible<Func>::value)
@@ -2283,6 +2283,6 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(pop)
-#elif defined(__GNUG__) && !defined(__clang__)
+#elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif

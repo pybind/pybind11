@@ -80,8 +80,8 @@ std::string abs(const Vector2&) {
     return "abs(Vector2)";
 }
 
-// MSVC warns about unknown pragmas, and warnings are errors.
-#ifndef _MSC_VER
+// MSVC & Intel warns about unknown pragmas, and warnings are errors.
+#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
   #pragma GCC diagnostic push
   // clang 7.0.0 and Apple LLVM 10.0.1 introduce `-Wself-assign-overloaded` to
   // `-Wall`, which is used here for overloading (e.g. `py::self += py::self `).
@@ -221,6 +221,6 @@ TEST_SUBMODULE(operators, m) {
         .def(py::self == py::self);
 }
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
   #pragma GCC diagnostic pop
 #endif
