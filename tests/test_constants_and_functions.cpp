@@ -56,12 +56,12 @@ int f1(int x) noexcept { return x+1; }
 #endif
 int f2(int x) noexcept(true) { return x+2; }
 int f3(int x) noexcept(false) { return x+3; }
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wdeprecated"
 #endif
 int f4(int x) throw() { return x+4; } // Deprecated equivalent to noexcept(true)
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
 struct C {
@@ -71,13 +71,13 @@ struct C {
     int m4(int x) const noexcept(true) { return x-4; }
     int m5(int x) noexcept(false) { return x-5; }
     int m6(int x) const noexcept(false) { return x-6; }
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wdeprecated"
 #endif
     int m7(int x) throw() { return x-7; }
     int m8(int x) const throw() { return x-8; }
-#if defined(__GNUG__)
+#if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
 };
