@@ -271,7 +271,9 @@ function(pybind11_enable_warnings target_name)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
       target_compile_options(${target_name} PRIVATE -Werror)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-      target_compile_options(${target_name} PRIVATE -Werror-all)
+      target_compile_options(${target_name} PRIVATE -Werror-all
+                                                    -no-inline-max-size
+                                                    -no-inline-max-total-size)
     endif()
   endif()
 
