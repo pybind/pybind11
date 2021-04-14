@@ -164,6 +164,17 @@ of interest have made the switch, because then the code will continue to
 work in either mode.
 
 
+Using py::classh but with fallback to classic pybind11
+------------------------------------------------------
+
+This could be viewed as super-conservative mode, for situations in which
+compatibility with classic pybind11 (without smart_holder) is needed for
+some period of time. The main idea is to enable use of ``py::classh``
+and the associated ``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro while
+still being able to build the same code with classic pybind11. Please see
+tests/test_classh_mock.cpp for an example.
+
+
 Trampolines and std::unique_ptr
 -------------------------------
 
