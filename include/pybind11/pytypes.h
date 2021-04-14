@@ -26,6 +26,11 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 class args_proxy;
 inline bool isinstance_generic(handle obj, const std::type_info &tp);
 
+// Indicates that type is generic and and does not have a specialized
+// `type_caster<>` specialization. Defined in `cast.h`.
+template <typename T, typename SFINAE = void>
+struct is_generic_type;
+
 // Accessor forward declarations
 template <typename Policy> class accessor;
 namespace accessor_policies {
@@ -380,13 +385,18 @@ private:
 /** \ingroup python_builtins
     \rst
     Return true if ``obj`` is an instance of ``T``. Type ``T`` must be a subclass of
-    `object` or a class which was exposed to Python as ``py::class_<T>``.
+    `object` or a class which was exposed to Python as ``py::class_<T>`` (generic).
 \endrst */
 template <typename T, detail::enable_if_t<std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) { return T::check_(obj); }
 
 template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
-bool isinstance(handle obj) { return detail::isinstance_generic(obj, typeid(T)); }
+bool isinstance(handle obj) {
+    static_assert(
+        detail::is_generic_type<T>::value,
+        "isisntance<T>() requires specialization for this type");
+    return detail::isinstance_generic(obj, typeid(T));
+}
 
 template <> inline bool isinstance<handle>(handle) = delete;
 template <> inline bool isinstance<object>(handle obj) { return obj.ptr() != nullptr; }
@@ -753,6 +763,39 @@ inline bool PyIterable_Check(PyObject *obj) {
     }
 }
 
+template <typename T>
+bool PyIterableT_Check(PyObject *obj) {
+    static_assert(
+        is_generic_type<T>::value || is_pyobject<T>::value,
+        "iterable_t can only be used with pyobjects and generic types "
+        "(py::class_<T>)");
+    PyObject *iter = PyObject_GetIter(obj);
+    if (iter) {
+        if (iter == obj) {
+            // If they are the same, then that's bad! For now, just throw a
+            // cast error.
+            Py_DECREF(iter);
+            throw cast_error(
+                "iterable_t<T> cannot be used with exhaustible iterables "
+                "(e.g., iterators, generators).");
+        }
+        bool good = true;
+        // Now that we know that the iterable `obj` will not be exhausted,
+        // let's check the contained types.
+        for (handle h : handle(iter)) {
+            if (!isinstance<T>(h)) {
+                good = false;
+                break;
+            }
+        }
+        Py_DECREF(iter);
+        return good;
+    } else {
+        PyErr_Clear();
+        return false;
+    }
+}
+
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
@@ -939,6 +982,20 @@ public:
 class iterable : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(iterable, object, detail::PyIterable_Check)
+};
+
+/// Provides similar interface to `iterable`, but constraining the intended
+/// type.
+/// @warning Due to technical reasons, this is constrained in two ways:
+/// - Due to how `isinstance<T>()` works, this does *not* work for iterables of
+///   type-converted values (e.g. `int`).
+/// - Because we must check the contained types within the iterable (for
+///   overloads), we must iterate through the iterable. For this reason, the
+///   iterable should *not* be exhaustible (e.g., iterator, generator).
+template <typename T>
+class iterable_t : public iterable {
+public:
+    PYBIND11_OBJECT_DEFAULT(iterable_t, iterable, detail::PyIterableT_Check<T>)
 };
 
 class bytes;

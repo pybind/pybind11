@@ -50,6 +50,18 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
 
+template <typename T>
+struct is_generic_type<
+    T,
+    enable_if_t<std::is_base_of<type_caster_generic, make_caster<T>>::value>
+    > : public std::true_type {};
+
+template <typename T>
+struct is_generic_type<
+    T,
+    enable_if_t<!std::is_base_of<type_caster_generic, make_caster<T>>::value>
+    > : public std::false_type {};
+
 // Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
     return caster.operator typename make_caster<T>::template cast_op_type<T>();
@@ -747,10 +759,15 @@ template <typename T> struct handle_type_name { static constexpr auto name = _<T
 template <> struct handle_type_name<bytes> { static constexpr auto name = _(PYBIND11_BYTES_NAME); };
 template <> struct handle_type_name<int_> { static constexpr auto name = _("int"); };
 template <> struct handle_type_name<iterable> { static constexpr auto name = _("Iterable"); };
+template <typename T>
+struct handle_type_name<iterable_t<T>> {
+    static constexpr auto name = _("Iterable[") + type_caster<T>::name + _("]");
+};
 template <> struct handle_type_name<iterator> { static constexpr auto name = _("Iterator"); };
 template <> struct handle_type_name<none> { static constexpr auto name = _("None"); };
 template <> struct handle_type_name<args> { static constexpr auto name = _("*args"); };
 template <> struct handle_type_name<kwargs> { static constexpr auto name = _("**kwargs"); };
+
 
 template <typename type>
 struct pyobject_caster {

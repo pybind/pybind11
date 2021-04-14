@@ -17,6 +17,14 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_iterator", []{return py::iterator();});
     // test_iterable
     m.def("get_iterable", []{return py::iterable();});
+    // test_iterable_t
+    m.def("get_iterable_t", []{return py::iterable_t<py::str>();});
+    // test_iterable_t_overloads
+    m.def("accept_iterable_t", [](py::iterable_t<py::str>) { return "str"; });
+    m.def("accept_iterable_t", [](py::iterable_t<py::bytes>) { return "bytes"; });
+    // // Uncomment to see compiler error.
+    // m.def("accept_iterable_t", [](py::iterable_t<int>) { return "int"; });
+
     // test_list
     m.def("get_list", []() {
         py::list list;

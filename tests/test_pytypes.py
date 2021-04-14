@@ -21,6 +21,45 @@ def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
 
 
+def test_iterable_t(doc):
+    assert doc(m.get_iterable_t) == "get_iterable_t() -> Iterable[str]"
+
+
+def test_iterable_t_overloads():
+    # Empty: First one wins.
+    list_empty = []
+    set_empty = set()
+    assert m.accept_iterable_t(list_empty) == "str"
+    assert m.accept_iterable_t(set_empty) == "str"
+    # Negative: Exhaustible iterables (e.g. iterators, generators).
+    gen_empty = (x for x in set_empty)
+    with pytest.raises(RuntimeError):
+        m.accept_iterable_t(gen_empty)
+    iter_empty = iter(list_empty)
+    with pytest.raises(RuntimeError):
+        m.accept_iterable_t(iter_empty)
+
+    # Str.
+    list_of_str = ["hey", "you"]
+    set_of_str = {"hey", "you"}
+    assert m.accept_iterable_t(list_of_str) == "str"
+    assert m.accept_iterable_t(set_of_str) == "str"
+    # - Negative: Not fully `str`.
+    list_of_str_and_then_some = ["hey", 0]
+    with pytest.raises(TypeError):
+        m.accept_iterable_t(list_of_str_and_then_some)
+
+    # Bytes.
+    list_of_bytes = [b"hey", b"you"]
+    set_of_bytes = {b"hey", b"you"}
+    assert m.accept_iterable_t(list_of_bytes) == "bytes"
+    assert m.accept_iterable_t(set_of_bytes) == "bytes"
+    # - Negative: Not fully `bytes`.
+    list_of_bytes_and_then_some = [b"hey", 0]
+    with pytest.raises(TypeError):
+        m.accept_iterable_t(list_of_bytes_and_then_some)
+
+
 def test_list(capture, doc):
     with capture:
         lst = m.get_list()
