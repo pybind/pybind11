@@ -143,3 +143,9 @@ def test_overriding_eq_reset_hash():
 
         assert hash(hashable(15)) == 15
         assert hash(hashable(15)) == hash(hashable(15))
+
+
+def test_reverse_operator_ambiguity():
+    assert int() + m.ReverseA() == 1
+    assert m.ReverseB() + m.ReverseA() == 2
+    assert m.ReverseA() + m.ReverseB() == 3

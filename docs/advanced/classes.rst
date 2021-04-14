@@ -748,7 +748,7 @@ throwing a type error.
 
     The file :file:`tests/test_operator_overloading.cpp` contains a
     complete example that demonstrates how to work with overloaded operators in
-    more detail.
+    more detail, as well of some of the nuances you may encounter.
 
 .. _pickling:
 
