@@ -33,7 +33,7 @@ Overview
 What is fundamentally different?
 --------------------------------
 
-- Traditional pybind11 has the concept of "smart-pointer is holder".
+- Classic pybind11 has the concept of "smart-pointer is holder".
   Interoperability between smart-pointers is completely missing. For
   example, when using ``std::shared_ptr`` as holder, ``return``-ing
   a ``std::unique_ptr`` leads to undefined runtime behavior
@@ -101,7 +101,7 @@ holder:
        py::classh<Foo>(m, "Foo");
    }
 
-There are three small differences compared to traditional pybind11:
+There are three small differences compared to classic pybind11:
 
 - ``#include <pybind11/smart_holder.h>`` is used instead of
   ``#include <pybind11/pybind11.h>``.
@@ -175,6 +175,49 @@ still being able to build the same code with classic pybind11. Please see
 tests/test_classh_mock.cpp for an example.
 
 
+Classic / conservative / progressive cross-module compatibility
+---------------------------------------------------------------
+
+Currently there are essentially three modes for building a pybind11 extension module:
+
+* Classic: pybind11 stable (e.g. v2.6.2) or current master
+* Conservative: pybind11 smart_holder
+* Progressive: pybind11 smart_holder with ``-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT``
+
+In environments that mix modules built with different modes, this is the compatibility
+matrix for ``py::class_``-wrapped types:
+
+.. list-table:: Compatibility matrix
+   :widths: auto
+   :header-rows: 2
+
+   * -
+     -
+     -
+     - Module 2
+     -
+   * -
+     -
+     - Classic
+     - Conservative
+     - Progressive
+   * -
+     - **Classic**
+     - full
+     - one-way
+     - isolated
+   * - **Module 1**
+     - **Conservative**
+     - one-way
+     - full
+     - isolated
+   * -
+     - **Progressive**
+     - isolated
+     - isolated
+     - full
+
+
 Trampolines and std::unique_ptr
 -------------------------------
 
@@ -191,7 +234,7 @@ inherit from ``py::trampoline_self_life_support``, for example:
        ...
    };
 
-This is the only difference compared to traditional pybind11. A fairly
+This is the only difference compared to classic pybind11. A fairly
 minimal but complete example is tests/test_class_sh_trampoline_unique_ptr.cpp.
 
 
@@ -200,7 +243,7 @@ Ideas for the long-term
 
 The macros are clearly an inconvenience in many situations. Highly
 speculative: to avoid the need for the macros, a potential approach would
-be to combine the traditional implementation (``type_caster_base``) with
+be to combine the classic implementation (``type_caster_base``) with
 the ``smart_holder_type_caster``, but this will probably be very messy and
 not great as a long-term solution. The ``type_caster_base`` code is very
 complex already. A more maintainable approach long-term could be to work
