@@ -10,10 +10,10 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-// Supports easier switching between py::class_<U> and py::class_<U, py::smart_holder>:
+// Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:
 // users can simply replace the `_` in `class_` with `h` or vice versa.
-// Note though that the PYBIND11_SMART_HOLDER_TYPE_CASTERS(U) macro also needs to be
-// added (for `classh`) or commented out (for `class_`).
+// Note though that the PYBIND11_SMART_HOLDER_TYPE_CASTERS(T) macro also needs to be
+// added (for `classh`) or commented out (when falling back to `class_`).
 template <typename type_, typename... options>
 class classh : public class_<type_, smart_holder, options...> {
 public:
