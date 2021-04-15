@@ -773,28 +773,28 @@ struct smart_holder_type_caster<std::unique_ptr<T const, D>>
 
 #ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 
-#    define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)                                                 \
+#    define PYBIND11_SMART_HOLDER_TYPE_CASTERS(...)                                               \
         namespace pybind11 {                                                                      \
         namespace detail {                                                                        \
         template <>                                                                               \
-        class type_caster<T> : public smart_holder_type_caster<T> {};                             \
+        class type_caster<__VA_ARGS__> : public smart_holder_type_caster<__VA_ARGS__> {};         \
         template <>                                                                               \
-        class type_caster<std::shared_ptr<T>>                                                     \
-            : public smart_holder_type_caster<std::shared_ptr<T>> {};                             \
+        class type_caster<std::shared_ptr<__VA_ARGS__>>                                           \
+            : public smart_holder_type_caster<std::shared_ptr<__VA_ARGS__>> {};                   \
         template <>                                                                               \
-        class type_caster<std::shared_ptr<T const>>                                               \
-            : public smart_holder_type_caster<std::shared_ptr<T const>> {};                       \
+        class type_caster<std::shared_ptr<__VA_ARGS__ const>>                                     \
+            : public smart_holder_type_caster<std::shared_ptr<__VA_ARGS__ const>> {};             \
         template <typename D>                                                                     \
-        class type_caster<std::unique_ptr<T, D>>                                                  \
-            : public smart_holder_type_caster<std::unique_ptr<T, D>> {};                          \
+        class type_caster<std::unique_ptr<__VA_ARGS__, D>>                                        \
+            : public smart_holder_type_caster<std::unique_ptr<__VA_ARGS__, D>> {};                \
         template <typename D>                                                                     \
-        class type_caster<std::unique_ptr<T const, D>>                                            \
-            : public smart_holder_type_caster<std::unique_ptr<T const, D>> {};                    \
+        class type_caster<std::unique_ptr<__VA_ARGS__ const, D>>                                  \
+            : public smart_holder_type_caster<std::unique_ptr<__VA_ARGS__ const, D>> {};          \
         }                                                                                         \
         }
 #else
 
-#    define PYBIND11_SMART_HOLDER_TYPE_CASTERS(T)
+#    define PYBIND11_SMART_HOLDER_TYPE_CASTERS(...)
 
 template <typename T>
 class type_caster_for_class_ : public smart_holder_type_caster<T> {};
