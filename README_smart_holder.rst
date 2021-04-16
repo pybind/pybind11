@@ -33,7 +33,7 @@ Overview
 What is fundamentally different?
 --------------------------------
 
-- Traditional pybind11 has the concept of "smart-pointer is holder".
+- Classic pybind11 has the concept of "smart-pointer is holder".
   Interoperability between smart-pointers is completely missing. For
   example, when using ``std::shared_ptr`` as holder, ``return``-ing
   a ``std::unique_ptr`` leads to undefined runtime behavior
@@ -76,8 +76,8 @@ Conservative or Progressive mode?
 =================================
 
 It depends. To a first approximation, for a stand-alone, new project, the
-progressive mode will be easiest to use. For larger projects or projects
-that integrate with third-party pybind11-based projects, the conservative
+Progressive mode will be easiest to use. For larger projects or projects
+that integrate with third-party pybind11-based projects, the Conservative
 mode may be more practical, at least initially, although it comes with the
 disadvantage of having to use the ``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro.
 
@@ -101,7 +101,7 @@ holder:
        py::classh<Foo>(m, "Foo");
    }
 
-There are three small differences compared to traditional pybind11:
+There are three small differences compared to classic pybind11:
 
 - ``#include <pybind11/smart_holder.h>`` is used instead of
   ``#include <pybind11/pybind11.h>``.
@@ -120,7 +120,7 @@ could probably be avoided with a little bit of template metaprogramming).
 
 To the 3rd bullet point, the macro also needs to appear in other translation
 units with pybind11 bindings that involve Python⇄C++ conversions for
-`Foo`. This is the biggest inconvenience of the conservative mode. Practially,
+`Foo`. This is the biggest inconvenience of the Conservative mode. Practically,
 at a larger scale it is best to work with a pair of `.h` and `.cpp` files
 for the bindings code, with the macros in the `.h` files.
 
@@ -128,32 +128,32 @@ for the bindings code, with the macros in the `.h` files.
 Progressive mode
 ----------------
 
-To work in progressive mode:
+To work in Progressive mode:
 
 - Add ``-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT`` to the compilation commands.
 
 - Remove any ``std::shared_ptr<...>`` holders from existing ``py::class_``
-  instantiations (#HelpAppreciated this could probably be avoided with a little
-  bit of template metaprogramming).
+  instantiations.
 
 - Only if custom smart-pointers are used: the
   `PYBIND11_TYPE_CASTER_BASE_HOLDER` macro is needed [`example
   <https://github.com/pybind/pybind11/blob/2f624af1ac8571d603df2d70cb54fc7e2e3a356a/tests/test_multiple_inheritance.cpp#L72>`_].
 
-Overall this is probably easier to work with than the conservative mode, but
+Overall this is probably easier to work with than the Conservative mode, but
 
 - the macro inconvenience is shifted from ``py::smart_holder`` to custom
   smart-pointers (but probably much more rarely needed).
 
 - it will not interoperate with other extensions built against master or
-  stable, or extensions built in conservative mode.
+  stable, or extensions built in Conservative mode (see the cross-module
+  compatibility section below).
 
 
-Transition from conservative to progressive mode
+Transition from Conservative to Progressive mode
 ------------------------------------------------
 
 This still has to be tried out more in practice, but in small-scale situations
-it may be feasible to switch directly to progressive mode in a break-fix
+it may be feasible to switch directly to Progressive mode in a break-fix
 fashion. In large-scale situations it seems more likely that an incremental
 approach is needed, which could mean incrementally converting ``py::class_``
 to ``py::classh`` including addition of the macros, then flip the switch,
@@ -175,6 +175,83 @@ still being able to build the same code with classic pybind11. Please see
 tests/test_classh_mock.cpp for an example.
 
 
+Classic / Conservative / Progressive cross-module compatibility
+---------------------------------------------------------------
+
+Currently there are essentially three modes for building a pybind11 extension
+module:
+
+- Classic: pybind11 stable (e.g. v2.6.2) or current master branch.
+
+- Conservative: pybind11 smart_holder branch.
+
+- Progressive: pybind11 smart_holder branch with
+  ``-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT``.
+
+In environments that mix extension modules built with different modes,
+this is the compatibility matrix for ``py::class_``-wrapped types:
+
+.. list-table:: Compatibility matrix
+   :widths: auto
+   :header-rows: 2
+
+   * -
+     -
+     -
+     - Module 2
+     -
+   * -
+     -
+     - Classic
+     - Conservative
+     - Progressive
+   * -
+     - **Classic**
+     - full
+     - one-and-a-half-way
+     - isolated
+   * - **Module 1**
+     - **Conservative**
+     - one-and-a-half-way
+     - full
+     - isolated
+   * -
+     - **Progressive**
+     - isolated
+     - isolated
+     - full
+
+Mixing Classic+Progressive or Conservative+Progressive is very easy to
+understand: the extension modules are essentially completely isolated from
+each other. This is in fact just the same as using pybind11 versions with
+differing `"internals version"
+<https://github.com/pybind/pybind11/blob/114be7f4ade0ad798cd4c7f5d65ebe4ba8bd892d/include/pybind11/detail/internals.h#L95>`_
+in the past. While this is easy to understand, there is also no incremental
+transition path between Classic and Progressive.
+
+The Conservative mode enables incremental transitions, but at the cost of
+more complexity. Types wrapped in a Classic module are fully compatible with
+a Conservative module. However, a type wrapped in a Conservative module is
+compatible with a Classic module only if ``py::smart_holder`` is **not** used
+(for that type). A type wrapped with ``py::smart_holder`` is incompatible with
+a Classic module. This is an important pitfall to keep in mind: attempts to use
+``py::smart_holder``-wrapped types in a Classic module will lead to undefined
+runtime behavior, such as a SEGFAULT. This is a more general flavor of the
+long-standing issue `#1138 <https://github.com/pybind/pybind11/issues/1138>`_,
+often referred to as "holder mismatch". It is important to note that the
+pybind11 smart_holder branch solves the smart-pointer interoperability issue,
+but not the more general holder mismatch issue. — Unfortunately the existing
+pybind11 internals do not track holder runtime type information, therefore
+the holder mismatch issue cannot be solved in a fashion that would allow
+an incremental transition, which is the whole point of the Conservative
+mode. Please proceed with caution.
+
+Another pitfall worth pointing out specifically, although it follows
+from the previous: mixing base and derived classes between Classic and
+Conservative modules means that neither the base nor the derived class can
+use ``py::smart_holder``.
+
+
 Trampolines and std::unique_ptr
 -------------------------------
 
@@ -191,7 +268,7 @@ inherit from ``py::trampoline_self_life_support``, for example:
        ...
    };
 
-This is the only difference compared to traditional pybind11. A fairly
+This is the only difference compared to classic pybind11. A fairly
 minimal but complete example is tests/test_class_sh_trampoline_unique_ptr.cpp.
 
 
@@ -200,7 +277,7 @@ Ideas for the long-term
 
 The macros are clearly an inconvenience in many situations. Highly
 speculative: to avoid the need for the macros, a potential approach would
-be to combine the traditional implementation (``type_caster_base``) with
+be to combine the classic implementation (``type_caster_base``) with
 the ``smart_holder_type_caster``, but this will probably be very messy and
 not great as a long-term solution. The ``type_caster_base`` code is very
 complex already. A more maintainable approach long-term could be to work
@@ -213,8 +290,8 @@ GitHub testing of PRs against the smart_holder branch
 -----------------------------------------------------
 
 PRs against the smart_holder branch need to be tested in both
-modes (conservative, progressive), with the only difference that
-``PYBIND11_USE_SMART_HOLDER_AS_DEFAULT`` is defined for progressive mode
+modes (Conservative, Progressive), with the only difference that
+``PYBIND11_USE_SMART_HOLDER_AS_DEFAULT`` is defined for Progressive mode
 testing. Currently this is handled simply by creating a secondary PR with a
 one-line change in ``include/pybind11/detail/smart_holder_sfinae_hooks_only.h``
 (as in e.g. `PR #2879 <https://github.com/pybind/pybind11/pull/2879>`_). It
@@ -230,7 +307,7 @@ primary PR as needed:
    git checkout sh_secondary_pr
    git rebase -X theirs sh_primary_pr
    git diff  # To verify that the one-line change in smart_holder_sfinae_hooks_only.h is the only diff.
-   git push --force-with-lease  # This will trigger the GitHub Actions for the progressive mode.
+   git push --force-with-lease  # This will trigger the GitHub Actions for the Progressive mode.
 
 The second time through this will only take a minute or two.
 

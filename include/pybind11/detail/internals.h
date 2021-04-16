@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../pytypes.h"
+#include "smart_holder_sfinae_hooks_only.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -150,7 +151,13 @@ struct type_info {
 };
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version
+#ifndef PYBIND11_USE_SMART_HOLDER_AS_DEFAULT
 #define PYBIND11_INTERNALS_VERSION 4
+#else
+// See README_smart_holder.rst:
+// Classic / Conservative / Progressive cross-module compatibility
+#define PYBIND11_INTERNALS_VERSION 1004
+#endif
 
 /// On MSVC, debug and release builds are not ABI-compatible!
 #if defined(_MSC_VER) && defined(_DEBUG)
