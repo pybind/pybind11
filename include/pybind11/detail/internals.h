@@ -155,7 +155,7 @@ struct type_info {
 #define PYBIND11_INTERNALS_VERSION 4
 #else
 // See README_smart_holder.rst:
-// Classic / conservative / progressive cross-module compatibility
+// Classic / Conservative / Progressive cross-module compatibility
 #define PYBIND11_INTERNALS_VERSION 1004
 #endif
 
