@@ -14,6 +14,9 @@
 #include <pybind11/stl.h>
 
 #include <algorithm>
+#ifdef PYBIND11_HAS_OPTIONAL
+#include <optional>
+#endif  // PYBIND11_HAS_OPTIONAL
 
 template<typename T>
 class NonZeroIterator {
@@ -72,30 +75,6 @@ py::list test_random_access_iterator(PythonType x) {
     return checks;
 }
 
-// Tuple creation from #1095
-class Thing {
-    std::vector<int> data {{1,2,3,4}};
-
-public:
-    Thing() = default;
-    int& get_item(size_t i) { return data.at(i); }
-    const int& get_item(size_t i) const { return data.at(i); }
-    size_t size() const { return data.size(); }
-};
-
-py::list get_item_list(Thing &t, py::slice slice) {
-     size_t start, stop, step, slicelength;
-     if (!slice.compute(t.size(), &start, &stop, &step, &slicelength))
-        throw py::error_already_set();
-     py::list result;
-     for (size_t i = 0; i < slicelength; ++i) {
-        int item = t.get_item(start);
-        result.append(item);
-        start += step;
-     }
-     return result;
-}
-
 TEST_SUBMODULE(sequences_and_iterators, m) {
     // test_sliceable
     class Sliceable{
@@ -117,22 +96,17 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         })
         ;
 
-    py::class_<Thing>(m, "Thing")
-        .def(py::init<>())
-        .def("__getitem__",
-                [](Thing &t, py::slice slice) -> py::list {
-                    return get_item_list(t, slice);
-                }
-        )
-        .def("reverse",
-                [](Thing &t) -> py::list {
-                    py::slice ordinary_indices(0, static_cast<ssize_t>(t.size()), 1);
-                    py::slice reversed_slice(py::none(), py::none(), py::int_(-1));
-                    py::list reversed = get_item_list(t, reversed_slice);
-                    return reversed;
-                }
-        )
-        ;
+    m.def("make_forward_slice_size_t", []() { return py::slice(0, -1, 1); });
+    m.def("make_reversed_slice_object", []() { return py::slice(py::none(), py::none(), py::int_(-1)); });
+#ifdef PYBIND11_HAS_OPTIONAL
+    m.attr("has_optional") = true;
+    m.def("make_reversed_slice_size_t_optional_verbose", []() { return py::slice(std::nullopt, std::nullopt, -1); });
+    // Warning: The following spelling may still compile if optional<> is not present and give wrong answers.
+    // Please use with caution.
+    m.def("make_reversed_slice_size_t_optional", []() { return py::slice({}, {}, -1); });
+#else
+    m.attr("has_optional") = false;
+#endif
 
     // test_sequence
     class Sequence {

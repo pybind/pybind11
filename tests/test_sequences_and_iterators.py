@@ -15,10 +15,15 @@ def allclose(a_list, b_list, rel_tol=1e-05, abs_tol=0.0):
     )
 
 
-def test_thing():
-    lst = m.Thing()
-    assert [1, 2, 3, 4] == lst[:]
-    assert [4, 3, 2, 1] == lst.reverse()
+def test_slice_constructors():
+    assert m.make_forward_slice_size_t() == slice(0, -1, 1)
+    assert m.make_reversed_slice_object() == slice(None, None, -1)
+
+
+@pytest.mark.skipif(not m.has_optional, reason="no <optional>")
+def test_slice_constructors_explicit_optional():
+    assert m.make_reversed_slice_size_t_optional() == slice(None, None, -1)
+    assert m.make_reversed_slice_size_t_optional_verbose() == slice(None, None, -1)
 
 
 def test_generalized_iterators():

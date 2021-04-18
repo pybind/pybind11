@@ -14,6 +14,10 @@
 #include <utility>
 #include <type_traits>
 
+#if defined(PYBIND11_HAS_OPTIONAL)
+#  include <optional>
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* A few forward declarations */
@@ -1171,7 +1175,6 @@ public:
 class slice : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(slice, object, PySlice_Check)
-
     slice(handle start, handle stop, handle step) {
         m_ptr = PySlice_New(start.ptr(), stop.ptr(), step.ptr());
         if (!m_ptr)
@@ -1185,7 +1188,6 @@ public:
     slice(ssize_t start_, ssize_t stop_, ssize_t step_)
         : slice(int_(start_), int_(stop_), int_(step_)) {}
 #endif
-
 
     bool compute(size_t length, size_t *start, size_t *stop, size_t *step,
                  size_t *slicelength) const {
