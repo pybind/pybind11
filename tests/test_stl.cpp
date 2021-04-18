@@ -34,7 +34,7 @@ struct visit_helper<boost::variant> {
     }
 };
 }} // namespace pybind11::detail
-#endif
+#endif  //  defined(PYBIND11_HAS_VARIANT)
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
 
@@ -209,6 +209,8 @@ TEST_SUBMODULE(stl, m) {
         .def(py::init<>())
         .def_readonly("member", &opt_holder::member)
         .def("member_initialized", &opt_holder::member_initialized);
+#else
+    m.attr("has_optional") = false;
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
@@ -235,9 +237,12 @@ TEST_SUBMODULE(stl, m) {
         .def(py::init<>())
         .def_readonly("member", &opt_exp_holder::member)
         .def("member_initialized", &opt_exp_holder::member_initialized);
+#else
+    m.attr("has_exp_optional") = false;
 #endif
 
 #ifdef PYBIND11_HAS_VARIANT
+    m.attr("has_variant") = true;
     static_assert(std::is_same<py::detail::variant_caster_visitor::result_type, py::handle>::value,
                   "visitor::result_type is required by boost::variant in C++11 mode");
 
@@ -261,6 +266,8 @@ TEST_SUBMODULE(stl, m) {
         using V = variant<int, std::string>;
         return py::make_tuple(V(5), V("Hello"));
     });
+#else
+    m.attr("has_variant") = false;
 #endif
 
     // #528: templated constructor

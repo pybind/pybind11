@@ -378,7 +378,7 @@ def test_error_after_conversions():
 
 
 def test_aligned():
-    if hasattr(m, "Aligned"):
+    if m.is_cpp17:
         p = m.Aligned().ptr()
         assert p % 1024 == 0
 

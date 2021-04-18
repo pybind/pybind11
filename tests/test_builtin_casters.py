@@ -17,7 +17,7 @@ def test_unicode_conversion():
     assert m.good_utf16_string() == u"b‽🎂𝐀z"
     assert m.good_utf32_string() == u"a𝐀🎂‽z"
     assert m.good_wchar_string() == u"a⸘𝐀z"
-    if hasattr(m, "has_u8string"):
+    if m.has_u8string:
         assert m.good_utf8_u8string() == u"Say utf8‽ 🎂 𝐀"
 
     with pytest.raises(UnicodeDecodeError):
@@ -27,13 +27,13 @@ def test_unicode_conversion():
         m.bad_utf16_string()
 
     # These are provided only if they actually fail (they don't when 32-bit and under Python 2.7)
-    if hasattr(m, "bad_utf32_string"):
+    if not env.PY2:
         with pytest.raises(UnicodeDecodeError):
             m.bad_utf32_string()
-    if hasattr(m, "bad_wchar_string"):
+    if not env.PY2 and m.wchar_t_size == 2:
         with pytest.raises(UnicodeDecodeError):
             m.bad_wchar_string()
-    if hasattr(m, "has_u8string"):
+    if m.has_u8string:
         with pytest.raises(UnicodeDecodeError):
             m.bad_utf8_u8string()
 
@@ -42,7 +42,7 @@ def test_unicode_conversion():
     assert m.u16_ibang() == u"‽"
     assert m.u32_mathbfA() == u"𝐀"
     assert m.wchar_heart() == u"♥"
-    if hasattr(m, "has_u8string"):
+    if m.has_u8string:
         assert m.u8_char8_Z() == "Z"
 
 
@@ -105,7 +105,7 @@ def test_single_char_arguments():
         assert m.ord_wchar(u"aa")
     assert str(excinfo.value) == toolong_message
 
-    if hasattr(m, "has_u8string"):
+    if m.has_u8string:
         assert m.ord_char8(u"a") == 0x61  # simple ASCII
         assert m.ord_char8_lv(u"b") == 0x62
         assert (
@@ -138,21 +138,21 @@ def test_bytes_to_string():
     assert m.string_length(u"💩".encode("utf8")) == 4
 
 
-@pytest.mark.skipif(not hasattr(m, "has_string_view"), reason="no <string_view>")
+@pytest.mark.skipif(not m.has_string_view, reason="no <string_view>")
 def test_string_view(capture):
     """Tests support for C++17 string_view arguments and return values"""
     assert m.string_view_chars("Hi") == [72, 105]
     assert m.string_view_chars("Hi 🎂") == [72, 105, 32, 0xF0, 0x9F, 0x8E, 0x82]
     assert m.string_view16_chars(u"Hi 🎂") == [72, 105, 32, 0xD83C, 0xDF82]
     assert m.string_view32_chars(u"Hi 🎂") == [72, 105, 32, 127874]
-    if hasattr(m, "has_u8string"):
+    if m.has_u8string:
         assert m.string_view8_chars("Hi") == [72, 105]
         assert m.string_view8_chars(u"Hi 🎂") == [72, 105, 32, 0xF0, 0x9F, 0x8E, 0x82]
 
     assert m.string_view_return() == u"utf8 secret 🎂"
     assert m.string_view16_return() == u"utf16 secret 🎂"
     assert m.string_view32_return() == u"utf32 secret 🎂"
-    if hasattr(m, "has_u8string"):
+    if m.has_u8string:
         assert m.string_view8_return() == u"utf8 secret 🎂"
 
     with capture:
@@ -169,7 +169,7 @@ def test_string_view(capture):
         utf32 🎂 7
     """
     )
-    if hasattr(m, "has_u8string"):
+    if m.has_u8string:
         with capture:
             m.string_view8_print("Hi")
             m.string_view8_print(u"utf8 🎂")
@@ -195,7 +195,7 @@ def test_string_view(capture):
         Hi, utf32 🎂 11
     """
     )
-    if hasattr(m, "has_u8string"):
+    if m.has_u8string:
         with capture:
             m.string_view8_print("Hi, ascii")
             m.string_view8_print(u"Hi, utf8 🎂")

@@ -402,12 +402,15 @@ TEST_SUBMODULE(class_, m) {
     py::implicitly_convertible<std::string, StringWrapper>();
 
     #if defined(PYBIND11_CPP17)
+        m.attr("is_cpp17") = true;
         struct alignas(1024) Aligned {
             std::uintptr_t ptr() const { return (uintptr_t) this; }
         };
         py::class_<Aligned>(m, "Aligned")
             .def(py::init<>())
             .def("ptr", &Aligned::ptr);
+    #else
+        m.attr("is_cpp17") = false;
     #endif
 
     // test_final

@@ -1,3 +1,4 @@
+
 /*
     tests/test_pytypes.cpp -- Python type casters
 
@@ -422,7 +423,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_len", [](py::handle h) { return py::len(h); });
 
 #ifdef PYBIND11_STR_LEGACY_PERMISSIVE
-    m.attr("PYBIND11_STR_LEGACY_PERMISSIVE") = true;
+    m.attr("has_str_legacy_permissive") = true;
+#else
+    m.attr("has_str_legacy_permissive") = false;
 #endif
 
     m.def("isinstance_pybind11_bytes", [](py::object o) { return py::isinstance<py::bytes>(o); });
