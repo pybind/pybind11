@@ -101,7 +101,7 @@ holder:
        py::classh<Foo>(m, "Foo");
    }
 
-There are three small differences compared to classic pybind11:
+There are three small differences compared to Classic pybind11:
 
 - ``#include <pybind11/smart_holder.h>`` is used instead of
   ``#include <pybind11/pybind11.h>``.
@@ -112,11 +112,13 @@ There are three small differences compared to classic pybind11:
 
 To the 2nd bullet point, ``py::classh<Foo>`` is simply a shortcut for
 ``py::class_<Foo, py::smart_holder>``. The shortcut makes it possible to
-switch to using ``py::smart_holder`` without messing up the indentation of
-existing code. However, when migrating code that uses ``py::class_<Foo,
-std::shared_ptr<Foo>>``, currently ``std::shared_ptr<Foo>`` needs to be
-removed manually when switching to ``py::classh`` (#HelpAppreciated this
-could probably be avoided with a little bit of template metaprogramming).
+switch to using ``py::smart_holder`` without disturbing the indentation of
+existing code.
+
+When migrating code that uses ``py::class_<Foo, std::shared_ptr<Foo>>``,
+``std::shared_ptr<Foo>`` can be replaced with ``PYBIND11_SH_AVL(Foo)``,
+which substitutes ``py::smart_holder`` in Conservative mode, but also allows
+fallback to Classic mode by substituting ``std::shared_ptr<Foo>`` instead.
 
 To the 3rd bullet point, the macro also needs to appear in other translation
 units with pybind11 bindings that involve Python⇄C++ conversions for
@@ -164,15 +166,24 @@ of interest have made the switch, because then the code will continue to
 work in either mode.
 
 
-Using py::classh but with fallback to classic pybind11
-------------------------------------------------------
+Using py::smart_holder but with fallback to Classic pybind11
+------------------------------------------------------------
 
-This could be viewed as super-conservative mode, for situations in which
-compatibility with classic pybind11 (without smart_holder) is needed for
-some period of time. The main idea is to enable use of ``py::classh``
-and the associated ``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro while
-still being able to build the same code with classic pybind11. Please see
-tests/test_classh_mock.cpp for an example.
+For situations in which compatibility with Classic pybind11 (without
+smart_holder) is needed for some period of time, fallback to Classic
+mode can be enabled by copying the ``BOILERPLATE`` code block from
+tests/test_classh_mock.cpp.
+
+Fallback from Conservative to Classic mode could be viewed as
+super-conservative mode.  The main idea is to enable use of ``py::classh``
+and the associated ``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro while still
+being able to build the same code with Classic pybind11.
+
+Fallback from Progressive to Classic mode is supported by the
+``PYBIND11_SH_DEF(...)`` macro in the BOILERPLATE code block. "SH_DEF" is
+short for "Smart_Holder if DEFault". The length of the macro is identical
+by design to ``std::shared_ptr<...>``, to not disturb the indentation of
+existing code.
 
 
 Classic / Conservative / Progressive cross-module compatibility
@@ -268,7 +279,7 @@ inherit from ``py::trampoline_self_life_support``, for example:
        ...
    };
 
-This is the only difference compared to classic pybind11. A fairly
+This is the only difference compared to Classic pybind11. A fairly
 minimal but complete example is tests/test_class_sh_trampoline_unique_ptr.cpp.
 
 
@@ -277,7 +288,7 @@ Ideas for the long-term
 
 The macros are clearly an inconvenience in many situations. Highly
 speculative: to avoid the need for the macros, a potential approach would
-be to combine the classic implementation (``type_caster_base``) with
+be to combine the Classic implementation (``type_caster_base``) with
 the ``smart_holder_type_caster``, but this will probably be very messy and
 not great as a long-term solution. The ``type_caster_base`` code is very
 complex already. A more maintainable approach long-term could be to work

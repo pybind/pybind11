@@ -9,3 +9,5 @@ def test_foobar():
     assert m.Foo0()
     assert m.Foo1()
     assert m.Foo2()
+    assert m.Foo3()
+    assert m.Foo4()

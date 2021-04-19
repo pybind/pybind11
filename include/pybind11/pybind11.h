@@ -1217,11 +1217,29 @@ template <typename T>
 
 using default_holder_type = std::unique_ptr<T>;
 
+#    ifndef PYBIND11_SH_AVL
+#        define PYBIND11_SH_AVL(...) std::shared_ptr<__VA_ARGS__> // "Smart_Holder if AVaiLable"
+// -------- std::shared_ptr(...) -- same length by design, to not disturb the indentation
+// of existing code.
+#    endif
+
+#    define PYBIND11_SH_DEF(...) std::shared_ptr<__VA_ARGS__> // "Smart_Holder if DEFault"
+// -------- std::shared_ptr(...) -- same length by design, to not disturb the indentation
+// of existing code.
+
 #    define PYBIND11_TYPE_CASTER_BASE_HOLDER(T, ...)
 
 #else
 
 using default_holder_type = smart_holder;
+
+#    ifndef PYBIND11_SH_AVL
+#        define PYBIND11_SH_AVL(...) ::pybind11::smart_holder // "Smart_Holder if AVaiLable"
+// -------- std::shared_ptr(...) -- same length by design, to not disturb the indentation
+// of existing code.
+#    endif
+
+#    define PYBIND11_SH_DEF(...) ::pybind11::smart_holder // "Smart_Holder if DEFault"
 
 // This define could be hidden away inside detail/smart_holder_type_casters.h, but is kept here
 // for clarity.
