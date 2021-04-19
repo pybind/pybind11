@@ -69,14 +69,6 @@ struct I801D : I801C {}; // Indirect MI
 
 } // namespace
 
-PYBIND11_TYPE_CASTER_BASE_HOLDER(Base1a, std::shared_ptr<Base1a>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(Base2a, std::shared_ptr<Base2a>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(Base12a, std::shared_ptr<Base12a>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(I801B1, std::shared_ptr<I801B1>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(I801B2, std::shared_ptr<I801B2>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(I801C, std::shared_ptr<I801C>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(I801D, std::shared_ptr<I801D>)
-
 TEST_SUBMODULE(multiple_inheritance, m) {
     // Please do not interleave `struct` and `class` definitions with bindings code,
     // but implement `struct`s and `class`es in the anonymous namespace above.
@@ -136,16 +128,16 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     // test_multiple_inheritance_virtbase
     // Test the case where not all base classes are specified, and where pybind11 requires the
     // py::multiple_inheritance flag to perform proper casting between types.
-    py::class_<Base1a, std::shared_ptr<Base1a>>(m, "Base1a")
+    py::class_<Base1a, PYBIND11_SH_DEF(Base1a)>(m, "Base1a")
         .def(py::init<int>())
         .def("foo", &Base1a::foo);
 
-    py::class_<Base2a, std::shared_ptr<Base2a>>(m, "Base2a")
+    py::class_<Base2a, PYBIND11_SH_DEF(Base2a)>(m, "Base2a")
         .def(py::init<int>())
         .def("bar", &Base2a::bar);
 
     py::class_<Base12a, /* Base1 missing */ Base2a,
-               std::shared_ptr<Base12a>>(m, "Base12a", py::multiple_inheritance())
+               PYBIND11_SH_DEF(Base12a)>(m, "Base12a", py::multiple_inheritance())
         .def(py::init<int, int>());
 
     m.def("bar_base2a", [](Base2a *b) { return b->bar(); });
@@ -158,10 +150,10 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     struct I801B3 { int c = 3; virtual ~I801B3() = default; };
     struct I801E : I801B3, I801D {};
 
-    py::class_<I801B1, std::shared_ptr<I801B1>>(m, "I801B1").def(py::init<>()).def_readonly("a", &I801B1::a);
-    py::class_<I801B2, std::shared_ptr<I801B2>>(m, "I801B2").def(py::init<>()).def_readonly("b", &I801B2::b);
-    py::class_<I801C, I801B1, I801B2, std::shared_ptr<I801C>>(m, "I801C").def(py::init<>());
-    py::class_<I801D, I801C, std::shared_ptr<I801D>>(m, "I801D").def(py::init<>());
+    py::class_<I801B1, PYBIND11_SH_DEF(I801B1)>(m, "I801B1").def(py::init<>()).def_readonly("a", &I801B1::a);
+    py::class_<I801B2, PYBIND11_SH_DEF(I801B2)>(m, "I801B2").def(py::init<>()).def_readonly("b", &I801B2::b);
+    py::class_<I801C, I801B1, I801B2, PYBIND11_SH_DEF(I801C)>(m, "I801C").def(py::init<>());
+    py::class_<I801D, I801C, PYBIND11_SH_DEF(I801D)>(m, "I801D").def(py::init<>());
 
     // Two separate issues here: first, we want to recognize a pointer to a base type as being a
     // known instance even when the pointer value is unequal (i.e. due to a non-first
