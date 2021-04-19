@@ -139,11 +139,6 @@ public:
     static std::shared_ptr<TestFactory3> construct3(int a) { return std::shared_ptr<TestFactory3>(new TestFactory3(a)); }
 };
 
-PYBIND11_TYPE_CASTER_BASE_HOLDER(TestFactory3, std::shared_ptr<TestFactory3>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(TestFactory4, std::shared_ptr<TestFactory4>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(TestFactory5, std::shared_ptr<TestFactory5>)
-PYBIND11_TYPE_CASTER_BASE_HOLDER(TestFactory7, std::shared_ptr<TestFactory7>)
-
 TEST_SUBMODULE(factory_constructors, m) {
 
     // Define various trivial types to allow simpler overload resolution:
@@ -188,7 +183,7 @@ TEST_SUBMODULE(factory_constructors, m) {
     auto c4a = [c](pointer_tag, TF4_tag, int a) { (void) c; return new TestFactory4(a);};
 
     // test_init_factory_basic, test_init_factory_casting
-    py::class_<TestFactory3, std::shared_ptr<TestFactory3>> pyTestFactory3(m, "TestFactory3");
+    py::class_<TestFactory3, PYBIND11_SH_DEF(TestFactory3)> pyTestFactory3(m, "TestFactory3");
     pyTestFactory3
         .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct3(v); }))
         .def(py::init([](shared_ptr_tag) { return TestFactoryHelper::construct3(); }));
@@ -212,12 +207,12 @@ TEST_SUBMODULE(factory_constructors, m) {
         ;
 
     // test_init_factory_casting
-    py::class_<TestFactory4, TestFactory3, std::shared_ptr<TestFactory4>>(m, "TestFactory4")
+    py::class_<TestFactory4, TestFactory3, PYBIND11_SH_DEF(TestFactory4)>(m, "TestFactory4")
         .def(py::init(c4a)) // pointer
         ;
 
     // Doesn't need to be registered, but registering makes getting ConstructorStats easier:
-    py::class_<TestFactory5, TestFactory3, std::shared_ptr<TestFactory5>>(m, "TestFactory5");
+    py::class_<TestFactory5, TestFactory3, PYBIND11_SH_DEF(TestFactory5)>(m, "TestFactory5");
 
     // test_init_factory_alias
     // Alias testing
@@ -238,7 +233,7 @@ TEST_SUBMODULE(factory_constructors, m) {
 
     // test_init_factory_dual
     // Separate alias constructor testing
-    py::class_<TestFactory7, PyTF7, std::shared_ptr<TestFactory7>>(m, "TestFactory7")
+    py::class_<TestFactory7, PyTF7, PYBIND11_SH_DEF(TestFactory7)>(m, "TestFactory7")
         .def(py::init(
             [](int i) { return TestFactory7(i); },
             [](int i) { return PyTF7(i); }))

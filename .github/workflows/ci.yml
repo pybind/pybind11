@@ -23,7 +23,8 @@ jobs:
         - 3.5
         - 3.6
         - 3.9
-        - 3.10-dev
+        # Broken b/o https://github.com/pytest-dev/pytest/issues/8539
+        # - 3.10-dev
         - pypy2
         - pypy3
 

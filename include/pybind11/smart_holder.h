@@ -8,6 +8,12 @@
 #include "detail/smart_holder_type_casters.h"
 #include "pybind11.h"
 
+#undef PYBIND11_SH_AVL // Undoing #define in pybind11.h
+
+#define PYBIND11_SH_AVL(...) ::pybind11::smart_holder // "Smart_Holder if AVaiLable"
+// ---- std::shared_ptr(...) -- same length by design, to not disturb the indentation
+// of existing code.
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 // Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:

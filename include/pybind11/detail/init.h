@@ -179,7 +179,7 @@ template <
 void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, bool need_alias) {
     auto *ptr = unq_ptr.get();
     no_nullptr(ptr);
-    if (Class::has_alias && need_alias)
+    if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
         throw type_error("pybind11::init(): construction failed: returned std::unique_ptr pointee "
                          "is not an alias instance");
     auto smhldr
@@ -209,7 +209,7 @@ template <
 void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, bool need_alias) {
     auto *ptr = shd_ptr.get();
     no_nullptr(ptr);
-    if (Class::has_alias && need_alias)
+    if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
         throw type_error("pybind11::init(): construction failed: returned std::shared_ptr pointee "
                          "is not an alias instance");
     auto smhldr     = type_caster<Cpp<Class>>::template smart_holder_from_shared_ptr(shd_ptr);
