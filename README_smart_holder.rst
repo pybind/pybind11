@@ -106,25 +106,43 @@ There are three small differences compared to Classic pybind11:
 - ``#include <pybind11/smart_holder.h>`` is used instead of
   ``#include <pybind11/pybind11.h>``.
 
-- ``py::classh`` is used instead of ``py::class_``.
-
 - The ``PYBIND11_SMART_HOLDER_TYPE_CASTERS(Foo)`` macro is needed.
 
-To the 2nd bullet point, ``py::classh<Foo>`` is simply a shortcut for
+- ``py::classh`` is used instead of ``py::class_``.
+
+To the 2nd bullet point, the ``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro
+needs to appear in all translation units with pybind11 bindings that involve
+Python⇄C++ conversions for `Foo`. This is the biggest inconvenience of the
+Conservative mode. Practically, at a larger scale it is best to work with a
+pair of `.h` and `.cpp` files for the bindings code, with the macros in the
+`.h` files.
+
+To the 3rd bullet point, ``py::classh<Foo>`` is simply a shortcut for
 ``py::class_<Foo, py::smart_holder>``. The shortcut makes it possible to
 switch to using ``py::smart_holder`` without disturbing the indentation of
 existing code.
 
-When migrating code that uses ``py::class_<Foo, std::shared_ptr<Foo>>``,
-``std::shared_ptr<Foo>`` can be replaced with ``PYBIND11_SH_AVL(Foo)``,
-which substitutes ``py::smart_holder`` in Conservative mode, but also allows
-fallback to Classic mode by substituting ``std::shared_ptr<Foo>`` instead.
+When migrating code that uses ``py::class_<Bar, std::shared_ptr<Bar>>``
+there are two alternatives. The first one is to use ``py::classh<Bar>``:
 
-To the 3rd bullet point, the macro also needs to appear in other translation
-units with pybind11 bindings that involve Python⇄C++ conversions for
-`Foo`. This is the biggest inconvenience of the Conservative mode. Practically,
-at a larger scale it is best to work with a pair of `.h` and `.cpp` files
-for the bindings code, with the macros in the `.h` files.
+.. code-block:: diff
+
+   - py::class_<Bar, std::shared_ptr<Bar>>(m, "Bar");
+   + py::classh<Bar>(m, "Bar");
+
+This is clean and simple, but makes it difficult to fall back to Classic
+mode if needed. The second alternative is to replace ``std::shared_ptr<Bar>``
+with ``PYBIND11_SH_AVL(Bar)``:
+
+.. code-block:: diff
+
+   - py::class_<Bar, std::shared_ptr<Bar>>(m, "Bar");
+   + py::class_<Bar, PYBIND11_SH_AVL(Bar)>(m, "Bar");
+
+The ``PYBIND11_SH_AVL`` macro substitutes ``py::smart_holder``
+in Conservative mode, or ``std::shared_ptr<Bar>`` in Classic mode.
+See tests/test_classh_mock.cpp for an example. Note that the macro is also
+designed to not disturb the indentation of existing code.
 
 
 Progressive mode
@@ -134,56 +152,63 @@ To work in Progressive mode:
 
 - Add ``-DPYBIND11_USE_SMART_HOLDER_AS_DEFAULT`` to the compilation commands.
 
-- Remove any ``std::shared_ptr<...>`` holders from existing ``py::class_``
-  instantiations.
+- Remove or replace (see below) ``std::shared_ptr<...>`` holders.
 
 - Only if custom smart-pointers are used: the
-  `PYBIND11_TYPE_CASTER_BASE_HOLDER` macro is needed [`example
-  <https://github.com/pybind/pybind11/blob/2f624af1ac8571d603df2d70cb54fc7e2e3a356a/tests/test_multiple_inheritance.cpp#L72>`_].
+  `PYBIND11_TYPE_CASTER_BASE_HOLDER` macro is needed (see
+  tests/test_smart_ptr.cpp for examples).
 
 Overall this is probably easier to work with than the Conservative mode, but
 
 - the macro inconvenience is shifted from ``py::smart_holder`` to custom
-  smart-pointers (but probably much more rarely needed).
+  smart-pointer holders (which are probably much more rare).
 
 - it will not interoperate with other extensions built against master or
   stable, or extensions built in Conservative mode (see the cross-module
   compatibility section below).
 
+When migrating code that uses ``py::class_<Bar, std::shared_ptr<Bar>>`` there
+are the same alternatives as for the Conservative mode (see previous section).
+An additional alternative is to use the ``PYBIND11_SH_DEF(...)`` macro:
 
-Transition from Conservative to Progressive mode
-------------------------------------------------
+.. code-block:: diff
+
+   - py::class_<Bar, std::shared_ptr<Bar>>(m, "Bar");
+   + py::class_<Bar, PYBIND11_SH_DEF(Bar)>(m, "Bar");
+
+The ``PYBIND11_SH_DEF`` macro substitutes ``py::smart_holder`` only in
+Progressive mode, or ``std::shared_ptr<Bar>`` in Classic or Conservative
+mode. See tests/test_classh_mock.cpp for an example. Note that the
+``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro is never needed in combination
+with the ``PYBIND11_SH_DEF`` macro, which is an advantage compared to the
+``PYBIND11_SH_AVL`` macro. Please review tests/test_classh_mock.cpp for a
+concise overview of all available options.
+
+
+Transition from Classic to Progressive mode
+-------------------------------------------
 
 This still has to be tried out more in practice, but in small-scale situations
 it may be feasible to switch directly to Progressive mode in a break-fix
 fashion. In large-scale situations it seems more likely that an incremental
 approach is needed, which could mean incrementally converting ``py::class_``
-to ``py::classh`` including addition of the macros, then flip the switch,
-and convert ``py::classh`` back to ``py:class_`` combined with removal of the
-macros if desired (at that point it will work equivalently either way). It
-may be smart to delay the final cleanup step until all third-party projects
-of interest have made the switch, because then the code will continue to
-work in either mode.
+to ``py::classh`` and using the family of related macros, then flip the switch
+to Progressive mode, and convert ``py::classh`` back to ``py:class_`` combined
+with removal of the macros if desired (at that point it will work equivalently
+either way). It may be smart to delay the final cleanup step until all
+third-party projects of interest have made the switch, because then the code
+will continue to work in all modes.
 
 
 Using py::smart_holder but with fallback to Classic pybind11
 ------------------------------------------------------------
 
-For situations in which compatibility with Classic pybind11 (without
-smart_holder) is needed for some period of time, fallback to Classic
-mode can be enabled by copying the ``BOILERPLATE`` code block from
-tests/test_classh_mock.cpp.
-
-Fallback from Conservative to Classic mode could be viewed as
-super-conservative mode.  The main idea is to enable use of ``py::classh``
-and the associated ``PYBIND11_SMART_HOLDER_TYPE_CASTERS`` macro while still
-being able to build the same code with Classic pybind11.
-
-Fallback from Progressive to Classic mode is supported by the
-``PYBIND11_SH_DEF(...)`` macro in the BOILERPLATE code block. "SH_DEF" is
-short for "Smart_Holder if DEFault". The length of the macro is identical
-by design to ``std::shared_ptr<...>``, to not disturb the indentation of
-existing code.
+For situations in which compatibility with Classic pybind11
+(without smart_holder) is needed for some period of time, fallback
+to Classic mode can be enabled by copying the ``BOILERPLATE`` code
+block from tests/test_classh_mock.cpp. This code block provides mock
+implementations of ``py::classh`` and the family of related macros
+(e.g. ``PYBIND11_SMART_HOLDER_TYPE_CASTERS``).
 
 
 Classic / Conservative / Progressive cross-module compatibility
