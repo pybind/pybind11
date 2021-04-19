@@ -319,14 +319,13 @@ template <typename T> using remove_all_extents_t = typename array_info<T>::type;
 
 template <typename T> using is_pod_struct = all_of<
     std::is_standard_layout<T>,     // since we're accessing directly in memory we need a standard layout type
-#if !defined(__GNUG__) || defined(_LIBCPP_VERSION) || defined(_GLIBCXX_USE_CXX11_ABI)
-    // _GLIBCXX_USE_CXX11_ABI indicates that we're using libstdc++ from GCC 5 or newer, independent
-    // of the actual compiler (Clang can also use libstdc++, but it always defines __GNUC__ == 4).
-    std::is_trivially_copyable<T>,
-#else
-    // GCC 4 doesn't implement is_trivially_copyable, so approximate it
+#if defined(__GLIBCXX__) && (__GLIBCXX__ < 20150422 || __GLIBCXX__ == 20150623 || __GLIBCXX__ == 20150626 || __GLIBCXX__ == 20160803)
+    // libstdc++ < 5 (including versions 4.8.5, 4.9.3 and 4.9.4 which were released after 5)
+    // don't implement is_trivially_copyable, so approximate it
     std::is_trivially_destructible<T>,
     satisfies_any_of<T, std::has_trivial_copy_constructor, std::has_trivial_copy_assign>,
+#else
+    std::is_trivially_copyable<T>,
 #endif
     satisfies_none_of<T, std::is_reference, std::is_array, is_std_array, std::is_arithmetic, is_complex, std::is_enum>
 >;
