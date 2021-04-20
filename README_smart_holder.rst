@@ -322,30 +322,17 @@ in pybind11 version ``N``, then purge ``type_caster_base`` in version
 ``N+1``. #HelpAppreciated.
 
 
-GitHub testing of PRs against the smart_holder branch
------------------------------------------------------
+Testing of PRs against the smart_holder branch
+----------------------------------------------
 
-PRs against the smart_holder branch need to be tested in both
-modes (Conservative, Progressive), with the only difference that
-``PYBIND11_USE_SMART_HOLDER_AS_DEFAULT`` is defined for Progressive mode
-testing. Currently this is handled simply by creating a secondary PR with a
-one-line change in ``include/pybind11/detail/smart_holder_sfinae_hooks_only.h``
-(as in e.g. `PR #2879 <https://github.com/pybind/pybind11/pull/2879>`_). It
-will be best to mark the secondary PR as Draft. Often it is convenient to reuse
-the same secondary PR for a series of primary PRs, simply by rebasing on a
-primary PR as needed:
+In the pybind11 GitHub Actions, PRs against the smart_holder branch are
+automatically tested in both modes (Conservative, Progressive), with the
+only difference that ``PYBIND11_USE_SMART_HOLDER_AS_DEFAULT`` is defined
+for Progressive mode testing.
 
-.. code-block:: bash
-
-   git checkout -b sh_primary_pr
-   # Code development ...
-   git push  # Create a PR as usual, selecting smart_holder from the branch pulldown.
-   git checkout sh_secondary_pr
-   git rebase -X theirs sh_primary_pr
-   git diff  # To verify that the one-line change in smart_holder_sfinae_hooks_only.h is the only diff.
-   git push --force-with-lease  # This will trigger the GitHub Actions for the Progressive mode.
-
-The second time through this will only take a minute or two.
+For interactive testing, the ``PYBIND11_USE_SMART_HOLDER_AS_DEFAULT``
+define needs to be manually added to the cmake command. See
+.github/workflows/ci_sh.yml for examples.
 
 
 Related links
