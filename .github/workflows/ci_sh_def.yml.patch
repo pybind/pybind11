@@ -1,5 +1,5 @@
---- ci.yml	2021-04-20 13:41:16.539965452 -0700
-+++ ci_sh_def.yml	2021-04-20 13:44:02.766796637 -0700
+--- ci.yml	2021-04-21 12:38:06.075756040 -0700
++++ ci_sh_def.yml	2021-04-21 12:38:47.155420465 -0700
 @@ -1,4 +1,15 @@
 -name: CI-SH-AVL
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -17,7 +17,7 @@
  
  on:
    workflow_dispatch:
-@@ -101,6 +112,7 @@
+@@ -100,6 +111,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -25,7 +25,7 @@
          ${{ matrix.args }}
  
      - name: Build C++11
-@@ -128,6 +140,7 @@
+@@ -127,6 +139,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=17
@@ -33,7 +33,7 @@
          ${{ matrix.args }}
          ${{ matrix.args2 }}
  
-@@ -285,6 +298,7 @@
+@@ -283,6 +296,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -41,7 +41,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -314,7 +328,8 @@
+@@ -312,7 +326,8 @@
        run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake git python3-dev python3-pytest python3-numpy
  
      - name: Configure
@@ -51,7 +51,7 @@
  
      - name: Build
        run: cmake --build build -j2 --verbose
-@@ -394,7 +409,7 @@
+@@ -392,7 +407,7 @@
          cmake3 -S . -B build -DDOWNLOAD_CATCH=ON \
                              -DCMAKE_CXX_STANDARD=11 \
                              -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
@@ -60,7 +60,7 @@
                              -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp;test_virtual_functions.cpp"
  
      # Building before installing Pip should produce a warning but not an error
-@@ -453,6 +468,7 @@
+@@ -451,6 +466,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
@@ -68,7 +68,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -508,6 +524,7 @@
+@@ -506,6 +522,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
          -DCMAKE_CXX_STANDARD=11             \
@@ -76,7 +76,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -540,6 +557,7 @@
+@@ -538,6 +555,7 @@
          -DDOWNLOAD_CATCH=ON     \
          -DDOWNLOAD_EIGEN=OFF    \
          -DCMAKE_CXX_STANDARD=17             \
@@ -84,7 +84,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -599,6 +617,7 @@
+@@ -597,6 +615,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -92,7 +92,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -649,6 +668,7 @@
+@@ -647,6 +666,7 @@
          cmake ../pybind11-tests
          -DDOWNLOAD_CATCH=ON
          -DPYBIND11_WERROR=ON
@@ -100,7 +100,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
        working-directory: /build-tests
  
-@@ -744,6 +764,7 @@
+@@ -742,6 +762,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -108,7 +108,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -790,6 +811,7 @@
+@@ -788,6 +809,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -116,7 +116,7 @@
  
      - name: Build C++14
        run: cmake --build build -j 2
-@@ -810,12 +832,13 @@
+@@ -808,12 +830,13 @@
            - 3.7
          std:
            - 14
