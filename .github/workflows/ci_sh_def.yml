@@ -78,9 +78,13 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
 
-    - name: Setup Boost (Windows / Linux latest)
-      shell: bash
-      run: echo "BOOST_ROOT=$BOOST_ROOT_1_72_0" >> $GITHUB_ENV
+    - name: Setup Boost (Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get install libboost-dev
+
+    - name: Setup Boost (macOS)
+      if: runner.os == 'macOS'
+      run: brew install boost
 
     - name: Update CMake
       uses: jwlawson/actions-setup-cmake@v1.8
