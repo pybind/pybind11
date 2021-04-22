@@ -280,7 +280,9 @@ but not the more general holder mismatch issue. — Unfortunately the existing
 pybind11 internals do not track holder runtime type information, therefore
 the holder mismatch issue cannot be solved in a fashion that would allow
 an incremental transition, which is the whole point of the Conservative
-mode. Please proceed with caution.
+mode. Please proceed with caution. (See `PR #2644
+<https://github.com/pybind/pybind11/pull/2644>`_ for background, which is
+labeled with "abi break".)
 
 Another pitfall worth pointing out specifically, although it follows
 from the previous: mixing base and derived classes between Classic and
