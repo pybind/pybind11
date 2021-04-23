@@ -857,6 +857,9 @@ public:
     template <typename TIn, typename = enable_if_t<std::is_convertible<TIn, T>::value>>
     any_container(const std::initializer_list<TIn> &c) : any_container(c.begin(), c.end()) { }
 
+    // So it knows which type to use in mixed cases { 2L, 3 }
+    any_container(const std::initializer_list<T> &c) : any_container(c.begin(), c.end()) { }
+
     // Avoid copying if given an rvalue vector of the correct type.
     any_container(std::vector<T> &&v) : v(std::move(v)) { }
 

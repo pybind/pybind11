@@ -183,7 +183,7 @@ TEST_SUBMODULE(numpy_array, sm) {
     def_index_fn(mutate_at_t, arr_t&);
 
     // test_make_c_f_array
-    sm.def("make_f_array", [] { return py::array_t<float>({ 2, 2 }, { 4, 8 }); });
+    sm.def("make_f_array", [] { return py::array_t<float>({ (short) 2, 2 }, { 4, 8 }); });
     sm.def("make_c_array", [] { return py::array_t<float>({ 2, 2 }, { 8, 4 }); });
 
     // test_empty_shaped_array
