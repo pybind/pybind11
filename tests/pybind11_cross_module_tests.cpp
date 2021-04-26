@@ -108,7 +108,7 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("get_mixed_lg", [](int i) { return MixedLocalGlobal(i); });
 
     // test_internal_locals_differ
-    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::get_registered_local_types_cpp(); });
+    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::get_local_internals().registered_local_types_cpp; });
 
     // test_stl_caster_vs_stl_bind
     py::bind_vector<std::vector<int>>(m, "VectorInt");

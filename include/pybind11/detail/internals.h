@@ -314,19 +314,15 @@ PYBIND11_NOINLINE inline internals &get_internals() {
 }
 
 
-struct module_internals {
+struct local_internals {
   type_map<type_info *> registered_local_types_cpp;
   std::forward_list<void (*) (std::exception_ptr)> registered_local_exception_translators;
 };
 
-inline module_internals &get_module_internals() {
-  static module_internals locals;
+/// Works like `get_internals`, but for things which are locally registered.
+inline local_internals &get_local_internals() {
+  static local_internals locals;
   return locals;
-}
-
-/// Works like `internals.registered_types_cpp`, but for module-local registered types:
-inline type_map<type_info *> &get_registered_local_types_cpp() {
-    return get_module_internals().registered_local_types_cpp;
 }
 
 
