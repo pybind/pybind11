@@ -325,7 +325,7 @@ inline module_internals &get_module_internals() {
 }
 
 /// Works like `internals.registered_types_cpp`, but for module-local registered types:
-inline type_map<type_info *> &registered_local_types_cpp() {
+inline type_map<type_info *> &get_registered_local_types_cpp() {
     return get_module_internals().registered_local_types_cpp;
 }
 
