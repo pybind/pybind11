@@ -66,6 +66,8 @@ private:
         // UTF-8 leading byte
         const auto rpend   = rbase - rpptr >= 3 ? rpptr + 3 : rbase;
         const auto leading = std::find_if(rpptr, rpend, is_leading);
+        if (leading == rbase)
+            return 0;
         const auto dist    = static_cast<size_t>(leading - rpptr);
         size_t remainder   = 0;
 
