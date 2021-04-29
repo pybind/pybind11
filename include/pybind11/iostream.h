@@ -41,7 +41,7 @@ private:
         return sync() == 0 ? traits_type::not_eof(c) : traits_type::eof();
     }
 
-    // Computes how many bytes at the end of the buffer are part of an 
+    // Computes how many bytes at the end of the buffer are part of an
     // incomplete sequence of UTF-8 bytes.
     // Precondition: pbase() < pptr()
     size_t utf8_remainder() const {
@@ -71,7 +71,7 @@ private:
         const auto dist    = static_cast<size_t>(leading - rpptr);
         size_t remainder   = 0;
 
-        if (dist == 0)  
+        if (dist == 0)
             remainder = 1; // 1-byte code point is impossible
         else if (dist == 1)
             remainder = is_leading_2b(*leading) ? 0 : dist + 1;
@@ -79,7 +79,7 @@ private:
             remainder = is_leading_3b(*leading) ? 0 : dist + 1;
         // else if (dist >= 3), at least 4 bytes before encountering an UTF-8
         // leading byte, either no remainder or invalid UTF-8.
-        // Invalid UTF-8 will cause an exception later when converting 
+        // Invalid UTF-8 will cause an exception later when converting
         // to a Python string, so that's not handled here.
         return remainder;
     }
