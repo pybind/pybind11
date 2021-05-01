@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "pragma_warning_block.h"
+
 #include "common.h"
 
 #include <type_traits>

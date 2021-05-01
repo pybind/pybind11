@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "detail/pragma_warning_block.h"
+
 #include "detail/common.h"
 #include "detail/smart_holder_poc.h"
 #include "detail/type_caster_base.h"
