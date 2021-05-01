@@ -106,7 +106,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
-    include/pybind11/detail/detail/pragma_warning_block.h
+    include/pybind11/detail/pragma_warning_block.h
     include/pybind11/detail/smart_holder_poc.h
     include/pybind11/detail/smart_holder_sfinae_hooks_only.h
     include/pybind11/detail/smart_holder_type_casters.h
