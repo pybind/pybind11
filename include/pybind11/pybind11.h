@@ -10,6 +10,10 @@
 
 #pragma once
 
+// Legacy pragma warning block moved to separate file, to enable iwyu cleanup of newly developed
+// code, without having to open up this can of worms. #HelpAppreciated cleaning this up.
+#include "detail/pragma_warning_block.h"
+
 #include "attr.h"
 #include "gil.h"
 #include "options.h"
