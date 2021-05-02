@@ -88,11 +88,10 @@ private:
     // rare MSVC test failure shows up with this version, then this should be
     // simplified to a fully qualified call.
     int _sync() {
-        if (pbase() != pptr()) {
-
-            {
-                gil_scoped_acquire tmp;
-
+        if (pbase() != pptr()) { // If buffer is not empty
+            gil_scoped_acquire tmp;
+            // Placed inside gil_scoped_acquire as a mutex to avoid a race.
+            if (pbase() != pptr()) { // Check again under the lock
                 // This subtraction cannot be negative, so dropping the sign.
                 auto size        = static_cast<size_t>(pptr() - pbase());
                 size_t remainder = utf8_remainder();
@@ -103,15 +102,12 @@ private:
                     pyflush();
                 }
 
-                // Placed inside gil_scoped_aquire as a mutex to avoid a race.
-
                 // Copy the remainder at the end of the buffer to the beginning:
                 if (remainder > 0)
                     std::memmove(pbase(), pptr() - remainder, remainder);
                 setp(pbase(), epptr());
                 pbump(static_cast<int>(remainder));
             }
-
         }
         return 0;
     }
