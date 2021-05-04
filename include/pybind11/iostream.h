@@ -16,6 +16,9 @@
 #include <string>
 #include <memory>
 #include <iostream>
+#include <cstring>
+#include <iterator>
+#include <algorithm>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -38,25 +41,73 @@ private:
         return sync() == 0 ? traits_type::not_eof(c) : traits_type::eof();
     }
 
+    // Computes how many bytes at the end of the buffer are part of an
+    // incomplete sequence of UTF-8 bytes.
+    // Precondition: pbase() < pptr()
+    size_t utf8_remainder() const {
+        const auto rbase = std::reverse_iterator<char *>(pbase());
+        const auto rpptr = std::reverse_iterator<char *>(pptr());
+        auto is_ascii = [](char c) {
+            return (static_cast<unsigned char>(c) & 0x80) == 0x00;
+        };
+        auto is_leading = [](char c) {
+            return (static_cast<unsigned char>(c) & 0xC0) == 0xC0;
+        };
+        auto is_leading_2b = [](char c) {
+            return static_cast<unsigned char>(c) <= 0xDF;
+        };
+        auto is_leading_3b = [](char c) {
+            return static_cast<unsigned char>(c) <= 0xEF;
+        };
+        // If the last character is ASCII, there are no incomplete code points
+        if (is_ascii(*rpptr))
+            return 0;
+        // Otherwise, work back from the end of the buffer and find the first
+        // UTF-8 leading byte
+        const auto rpend   = rbase - rpptr >= 3 ? rpptr + 3 : rbase;
+        const auto leading = std::find_if(rpptr, rpend, is_leading);
+        if (leading == rbase)
+            return 0;
+        const auto dist    = static_cast<size_t>(leading - rpptr);
+        size_t remainder   = 0;
+
+        if (dist == 0)
+            remainder = 1; // 1-byte code point is impossible
+        else if (dist == 1)
+            remainder = is_leading_2b(*leading) ? 0 : dist + 1;
+        else if (dist == 2)
+            remainder = is_leading_3b(*leading) ? 0 : dist + 1;
+        // else if (dist >= 3), at least 4 bytes before encountering an UTF-8
+        // leading byte, either no remainder or invalid UTF-8.
+        // Invalid UTF-8 will cause an exception later when converting
+        // to a Python string, so that's not handled here.
+        return remainder;
+    }
+
     // This function must be non-virtual to be called in a destructor. If the
     // rare MSVC test failure shows up with this version, then this should be
     // simplified to a fully qualified call.
     int _sync() {
-        if (pbase() != pptr()) {
-
-            {
-                gil_scoped_acquire tmp;
-
+        if (pbase() != pptr()) { // If buffer is not empty
+            gil_scoped_acquire tmp;
+            // Placed inside gil_scoped_acquire as a mutex to avoid a race.
+            if (pbase() != pptr()) { // Check again under the lock
                 // This subtraction cannot be negative, so dropping the sign.
-                str line(pbase(), static_cast<size_t>(pptr() - pbase()));
+                auto size        = static_cast<size_t>(pptr() - pbase());
+                size_t remainder = utf8_remainder();
 
-                pywrite(line);
-                pyflush();
+                if (size > remainder) {
+                    str line(pbase(), size - remainder);
+                    pywrite(line);
+                    pyflush();
+                }
 
-                // Placed inside gil_scoped_aquire as a mutex to avoid a race
+                // Copy the remainder at the end of the buffer to the beginning:
+                if (remainder > 0)
+                    std::memmove(pbase(), pptr() - remainder, remainder);
                 setp(pbase(), epptr());
+                pbump(static_cast<int>(remainder));
             }
-
         }
         return 0;
     }
