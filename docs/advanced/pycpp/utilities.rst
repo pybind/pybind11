@@ -47,6 +47,18 @@ redirects output to the corresponding Python streams:
         call_noisy_func();
     });
 
+.. warning::
+
+    The implementation in ``pybind11/iostream.h`` is NOT thread safe. Multiple
+    threads writing to a redirected ostream concurrently cause data races
+    and potentially buffer overflows. Therefore it is a requirement that
+    all (possibly) concurrent redirected ostream writes are locked. Note
+    that this is not expected to be an actual limitation, because without
+    synchronization output will be randomly interleaved and most likely
+    unreadable. Well-written C++ code is likely to use locking regardless of
+    this pybind11 requirement. — For more background see the discussion under
+    `PR #2982 <https://github.com/pybind/pybind11/pull/2982>`_.
+
 This method respects flushes on the output streams and will flush if needed
 when the scoped guard is destroyed. This allows the output to be redirected in
 real time, such as to a Jupyter notebook. The two arguments, the C++ stream and
