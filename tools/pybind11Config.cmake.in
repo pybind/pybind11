@@ -139,7 +139,7 @@ This module defines the following commands to assist with creating Python module
 
   pybind11_add_module(<target>
     [STATIC|SHARED|MODULE]
-    [THIN_LTO] [OPT_SIZE] [NO_EXTRAS] [WITHOUT_SOBAI]
+    [THIN_LTO] [OPT_SIZE] [NO_EXTRAS] [WITHOUT_SOABI]
     <files>...
     )
 
