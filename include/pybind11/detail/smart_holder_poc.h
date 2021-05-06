@@ -54,6 +54,9 @@ Details:
 #include <type_traits>
 #include <typeinfo>
 
+#include <iostream>
+inline void to_cout(std::string msg) { std::cout << msg << std::endl; }
+
 // pybindit = Python Bindings Innovation Track.
 // Currently not in pybind11 namespace to signal that this POC does not depend
 // on any existing pybind11 functionality.
@@ -216,6 +219,7 @@ struct smart_holder {
     }
 
     static smart_holder from_raw_ptr_unowned(void *raw_ptr) {
+        to_cout("LOOOK " + std::to_string(__LINE__));
         smart_holder hld;
         hld.vptr.reset(raw_ptr, [](void *) {});
         hld.vptr_is_using_noop_deleter = true;
@@ -246,6 +250,7 @@ struct smart_holder {
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr, bool void_cast_raw_ptr = false) {
+        to_cout("LOOOK " + std::to_string(__LINE__));
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
         auto gd = make_guarded_builtin_delete<T>(true);
@@ -297,6 +302,7 @@ struct smart_holder {
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
                                         bool void_cast_raw_ptr = false) {
+        to_cout("LOOOK " + std::to_string(__LINE__));
         smart_holder hld;
         hld.rtti_uqp_del = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
@@ -326,6 +332,7 @@ struct smart_holder {
 
     template <typename T>
     static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {
+        to_cout("LOOOK " + std::to_string(__LINE__));
         smart_holder hld;
         hld.vptr = std::static_pointer_cast<void>(shd_ptr);
         hld.vptr_is_external_shared_ptr = true;
