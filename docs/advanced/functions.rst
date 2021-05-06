@@ -182,6 +182,9 @@ relies on the ability to create a *weak reference* to the nurse object. When
 the nurse object is not a pybind11-registered type and does not support weak
 references, an exception will be thrown.
 
+If you use an incorrect argument index, you will get a ``RuntimeError`` saying
+``Could not activate keep_alive!``. You should review the indices you're using.
+
 Consider the following example: here, the binding code for a list append
 operation ties the lifetime of the newly added element to the underlying
 container:
