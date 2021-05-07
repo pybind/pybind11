@@ -298,7 +298,7 @@ void setstate(value_and_holder &v_h, std::pair<T, O> &&result, bool need_alias) 
         // Skipping setattr below, to not force use of py::dynamic_attr() for Class unnecessarily.
         return;
     }
-    setattr((PyObject *) v_h.inst, "__dict__", result.second);
+    setattr((PyObject *) v_h.inst, "__dict__", d);
 }
 
 /// Implementation for py::pickle(GetState, SetState)
