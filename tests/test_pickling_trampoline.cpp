@@ -5,6 +5,7 @@
 #include "pybind11_tests.h"
 
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 namespace {

@@ -296,6 +296,7 @@ void setstate(value_and_holder &v_h, std::pair<T, O> &&result, bool need_alias) 
     auto d = handle(result.second);
     if (PyDict_Check(d.ptr()) && PyDict_Size(d.ptr()) == 0) {
         // Skipping setattr below, to not force use of py::dynamic_attr() for Class unnecessarily.
+        // See PR #2972 for details.
         return;
     }
     setattr((PyObject *) v_h.inst, "__dict__", d);
