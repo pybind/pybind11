@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+import env  # noqa: F401
+
 from pybind11_tests import pickling_trampoline as m
 
 try:
@@ -26,9 +28,10 @@ def test_roundtrip_simple_py_derived():
 def test_roundtrip_simple_cpp_derived():
     p = m.make_SimpleCppDerivedAsBase()
     p.num = 404
-    with pytest.raises(AttributeError):
-        # To ensure that future changes do not accidentally invalidate this unit test.
-        p.__dict__
+    if not env.PYPY:
+        with pytest.raises(AttributeError):
+            # To ensure that future changes do not accidentally invalidate this unit test.
+            p.__dict__
     data = pickle.dumps(p, pickle.HIGHEST_PROTOCOL)
     p2 = pickle.loads(data)
     assert p2.num == 404
