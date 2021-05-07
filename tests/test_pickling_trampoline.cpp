@@ -12,6 +12,10 @@ namespace {
 struct SimpleBase {
     int num               = 0;
     virtual ~SimpleBase() = default;
+
+    // For compatibility with old clang versions:
+    SimpleBase()                   = default;
+    SimpleBase(const SimpleBase &) = default;
 };
 
 struct SimpleBaseTrampoline : SimpleBase {};
