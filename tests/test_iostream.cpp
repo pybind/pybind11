@@ -40,6 +40,12 @@ struct TestThread {
             static std::mutex cout_mutex;
             while (!stop_) {
                 {
+                    // #HelpAppreciated: Work on iostream.h thread safety.
+                    // Without this lock, the clang ThreadSanitizer (tsan) reliably reports a
+                    // data race, and this test is predictably flakey on Windows.
+                    // For more background see the discussion under
+                    // https://github.com/pybind/pybind11/pull/2982 and
+                    // https://github.com/pybind/pybind11/pull/2995.
                     const std::lock_guard<std::mutex> lock(cout_mutex);
                     std::cout << "x" << std::flush;
                 }

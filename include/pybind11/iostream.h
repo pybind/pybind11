@@ -7,11 +7,14 @@
     BSD-style license that can be found in the LICENSE file.
 
     WARNING: The implementation in this file is NOT thread safe. Multiple
-    threads writing to a redirected ostream concurrently cause data races and
-    potentially buffer overflows. Therefore it is a REQUIREMENT that all
-    (possibly) concurrent redirected ostream writes are locked. For more
-    background see the discussion under
-    https://github.com/pybind/pybind11/pull/2982.
+    threads writing to a redirected ostream concurrently cause data races
+    and potentially buffer overflows. Therefore it is currrently a requirement
+    that all (possibly) concurrent redirected ostream writes are protected by
+    a mutex.
+    #HelpAppreciated: Work on iostream.h thread safety.
+    For more background see the discussions under
+    https://github.com/pybind/pybind11/pull/2982 and
+    https://github.com/pybind/pybind11/pull/2995.
 */
 
 #pragma once
