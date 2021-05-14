@@ -500,7 +500,10 @@ You can use these targets to build complex applications. For example, the
 
     add_library(example MODULE main.cpp)
 
-    target_link_libraries(example PRIVATE pybind11::module pybind11::lto pybind11::windows_extras)
+    target_link_libraries(example PRIVATE pybind11::module pybind11::windows_extras)
+    if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+        target_link_libraries(example PRIVATE pybind11::lto)
+    endif()
 
     pybind11_extension(example)
     pybind11_strip(example)
