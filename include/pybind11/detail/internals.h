@@ -311,11 +311,18 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     return **internals_pp;
 }
 
-/// Works like `internals.registered_types_cpp`, but for module-local registered types:
-inline type_map<type_info *> &registered_local_types_cpp() {
-    static type_map<type_info *> locals{};
-    return locals;
+
+struct local_internals {
+  type_map<type_info *> registered_local_types_cpp;
+  std::forward_list<void (*) (std::exception_ptr)> registered_local_exception_translators;
+};
+
+/// Works like `get_internals`, but for things which are locally registered.
+inline local_internals &get_local_internals() {
+  static local_internals locals;
+  return locals;
 }
+
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
 /// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only

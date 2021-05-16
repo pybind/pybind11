@@ -160,7 +160,7 @@ PYBIND11_NOINLINE inline detail::type_info* get_type_info(PyTypeObject *type) {
 }
 
 inline detail::type_info *get_local_type_info(const std::type_index &tp) {
-    auto &locals = registered_local_types_cpp();
+    auto &locals = get_local_internals().registered_local_types_cpp;
     auto it = locals.find(tp);
     if (it != locals.end())
         return it->second;

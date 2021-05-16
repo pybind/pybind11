@@ -817,8 +817,12 @@ protected:
 #endif
         } catch (...) {
             /* When an exception is caught, give each registered exception
-               translator a chance to translate it to a Python exception
-               in reverse order of registration.
+               translator a chance to translate it to a Python exception. First
+               all module-local translators will be tried in reverse order of
+               registration. If none of the module-locale translators handle
+               the exception (or there are no module-locale translators) then
+               the global translators will be tried, also in reverse order of
+               registration.
 
                A translator may choose to do one of the following:
 
@@ -828,6 +832,18 @@ protected:
                 - delegate translation to the next translator by throwing a new type of exception. */
 
             auto last_exception = std::current_exception();
+
+            auto & registered_local_exception_translators = get_local_internals().registered_local_exception_translators;
+            for (auto& translator : registered_local_exception_translators) {
+                try {
+                    translator(last_exception);
+                } catch (...) {
+                    last_exception = std::current_exception();
+                    continue;
+                }
+                return nullptr;
+            }
+
             auto &registered_exception_translators = get_internals().registered_exception_translators;
             for (auto& translator : registered_exception_translators) {
                 try {
@@ -1111,7 +1127,7 @@ protected:
         auto tindex = std::type_index(*rec.type);
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
         if (rec.module_local)
-            registered_local_types_cpp()[tindex] = tinfo;
+            get_local_internals().registered_local_types_cpp[tindex] = tinfo;
         else
             internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[(PyTypeObject *) m_ptr] = { tinfo };
@@ -1297,7 +1313,7 @@ public:
         generic_type::initialize(record);
 
         if (has_alias) {
-            auto &instances = record.module_local ? registered_local_types_cpp() : get_internals().registered_types_cpp;
+            auto &instances = record.module_local ? get_local_internals().registered_local_types_cpp : get_internals().registered_types_cpp;
             instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
         }
     }
@@ -1994,6 +2010,19 @@ void register_exception_translator(ExceptionTranslator&& translator) {
         std::forward<ExceptionTranslator>(translator));
 }
 
+
+/**
+  * Add a new module-local exception translator. Locally registered functions
+  * will be tried before any globally registered exception translators, which
+  * will only be invoked if the moduke-local handlers do not deal with
+  * the exception.
+  */
+template <typename ExceptionTranslator>
+void register_local_exception_translator(ExceptionTranslator&& translator) {
+    detail::get_local_internals().registered_local_exception_translators.push_front(
+        std::forward<ExceptionTranslator>(translator));
+}
+
 /**
  * Wrapper to generate a new Python exception type.
  *
@@ -2043,6 +2072,32 @@ exception<CppException> &register_exception(handle scope,
     if (!ex) ex = exception<CppException>(scope, name, base);
 
     register_exception_translator([](std::exception_ptr p) {
+        if (!p) return;
+        try {
+            std::rethrow_exception(p);
+        } catch (const CppException &e) {
+            detail::get_exception_object<CppException>()(e.what());
+        }
+    });
+    return ex;
+}
+
+/**
+ * Registers a Python exception in `m` of the given `name` and installs an exception translator to
+ * translate the C++ exception to the created Python exception using the exceptions what() method.
+ * This translator will only be used for exceptions that are thrown in this module and will be
+ * tried before global exception translators, including those registered with register_exception.
+ * This is intended for simple exception translations; for more complex translation, register the
+ * exception object and translator directly.
+ */
+template <typename CppException>
+exception<CppException> &register_local_exception(handle scope,
+                                                  const char *name,
+                                                  handle base = PyExc_Exception) {
+    auto &ex = detail::get_exception_object<CppException>();
+    if (!ex) ex = exception<CppException>(scope, name, base);
+
+    register_local_exception_translator([](std::exception_ptr p) {
         if (!p) return;
         try {
             std::rethrow_exception(p);
