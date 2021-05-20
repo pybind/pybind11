@@ -625,8 +625,8 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
         auto src_raw_ptr = src.get();
         auto st          = type_caster_base<T>::src_and_type(src_raw_ptr);
-        if (st.first == nullptr)
-            return none().release(); // PyErr was set already.
+        if (st.second == nullptr)
+            return handle(); // no type info: error will be set already
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
@@ -690,8 +690,8 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
 
         auto src_raw_ptr = src.get();
         auto st          = type_caster_base<T>::src_and_type(src_raw_ptr);
-        if (st.first == nullptr)
-            return none().release(); // PyErr was set already.
+        if (st.second == nullptr)
+            return handle(); // no type info: error will be set already
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
