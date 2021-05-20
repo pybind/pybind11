@@ -623,12 +623,6 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
     static constexpr auto name = _<std::shared_ptr<T>>();
 
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
-        if (policy != return_value_policy::automatic
-            && policy != return_value_policy::reference_internal) {
-            // SMART_HOLDER_WIP: IMPROVABLE: Error message.
-            throw cast_error("Invalid return_value_policy for shared_ptr.");
-        }
-
         auto src_raw_ptr = src.get();
         auto st          = type_caster_base<T>::src_and_type(src_raw_ptr);
         if (st.first == nullptr)
