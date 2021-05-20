@@ -971,11 +971,11 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     for (size_t i = 0; i < args.size(); i++) {
         if (!args[i]) {
 #if defined(NDEBUG)
-            throw cast_error("make_tuple(): unable to convert arguments to Python object (compile in debug mode for details)");
+            throw cast_error("Unable to convert call argument to Python object (compile in debug mode for details)");
 #else
             std::array<std::string, size> argtypes { {type_id<Args>()...} };
-            throw cast_error("make_tuple(): unable to convert argument of type '" +
-                argtypes[i] + "' to Python object");
+            throw cast_error("Unable to convert call argument '" + std::to_string(i) +
+                             "' of type '" + argtypes[i] + "' to Python object");
 #endif
         }
     }
