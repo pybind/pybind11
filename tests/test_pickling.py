@@ -45,3 +45,35 @@ def test_enum_pickle():
 
     data = pickle.dumps(e.EOne, 2)
     assert e.EOne == pickle.loads(data)
+
+
+#
+# exercise_trampoline
+#
+class SimplePyDerived(m.SimpleBase):
+    pass
+
+
+def test_roundtrip_simple_py_derived():
+    p = SimplePyDerived()
+    p.num = 202
+    p.stored_in_dict = 303
+    data = pickle.dumps(p, pickle.HIGHEST_PROTOCOL)
+    p2 = pickle.loads(data)
+    assert isinstance(p2, SimplePyDerived)
+    assert p2.num == 202
+    assert p2.stored_in_dict == 303
+
+
+def test_roundtrip_simple_cpp_derived():
+    p = m.make_SimpleCppDerivedAsBase()
+    p.num = 404
+    if not env.PYPY:
+        # To ensure that this unit test is not accidentally invalidated.
+        with pytest.raises(AttributeError):
+            # Mimics the `setstate` C++ implementation.
+            setattr(p, "__dict__", {})  # noqa: B010
+    data = pickle.dumps(p, pickle.HIGHEST_PROTOCOL)
+    p2 = pickle.loads(data)
+    assert isinstance(p2, m.SimpleBase)
+    assert p2.num == 404

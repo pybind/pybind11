@@ -123,7 +123,6 @@ set(PYBIND11_TEST_FILES
     test_opaque_types.cpp
     test_operator_overloading.cpp
     test_pickling.cpp
-    test_pickling_trampoline.cpp
     test_pytypes.cpp
     test_sequences_and_iterators.cpp
     test_smart_ptr.cpp
