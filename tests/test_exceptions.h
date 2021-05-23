@@ -4,7 +4,9 @@
 
 // shared exceptions for cross_module_tests
 
-class tmp_e : public std::runtime_error {
+class PYBIND11_EXPORT tmp_e : public pybind11::builtin_exception {
 public:
-    explicit tmp_e() : std::runtime_error("") {}
+    using builtin_exception::builtin_exception;
+    explicit tmp_e() : tmp_e("") {}
+    void set_error() const override { PyErr_SetString(PyExc_RuntimeError, what()); }
 };
