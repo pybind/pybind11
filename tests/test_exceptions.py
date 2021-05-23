@@ -43,6 +43,9 @@ def test_cross_module_exceptions():
     with pytest.raises(StopIteration) as excinfo:
         cm.throw_stop_iteration()
 
+    with pytest.raises(KeyError) as excinfo:
+        m.throw_()
+
 
 def test_python_call_in_catch():
     d = {}
