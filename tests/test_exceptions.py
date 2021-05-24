@@ -44,7 +44,8 @@ def test_cross_module_exceptions():
         cm.throw_stop_iteration()
 
     with pytest.raises(KeyError) as excinfo:
-        m.throw_()
+        # translator registered in cross_module_tests
+        m.throw_should_be_translated_to_key_error()
 
 
 def test_python_call_in_catch():

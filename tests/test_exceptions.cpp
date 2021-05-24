@@ -229,5 +229,5 @@ TEST_SUBMODULE(exceptions, m) {
     // Test repr that cannot be displayed
     m.def("simple_bool_passthrough", [](bool x) {return x;});
 
-    m.def("throw_", []() { throw tmp_e(); });
+    m.def("throw_should_be_translated_to_key_error", []() { throw shared_exception(); });
 }
