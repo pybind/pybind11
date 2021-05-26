@@ -1031,8 +1031,8 @@ template <typename T>
 struct npy_format_descriptor_name<T, enable_if_t<std::is_floating_point<T>::value>> {
     static constexpr auto name = _<std::is_same<T, float>::value
                                    || std::is_same<T, const float>::value
-                                   || std::is_same<T, const double>::value
-                                   || std::is_same<T, double>::value>(
+                                   || std::is_same<T, double>::value
+                                   || std::is_same<T, const double>::value>(
         _("numpy.float") + _<sizeof(T)*8>(), _("numpy.longdouble")
     );
 };
