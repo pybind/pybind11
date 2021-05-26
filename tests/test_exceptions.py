@@ -50,10 +50,10 @@ def test_cross_module_exceptions():
 @pytest.mark.xfail(
     "env.PYPY and env.MACOS",
     raises=RuntimeError,
-    reason="Known failure with PyPy and libc++ (Issue #2847 & PR #2999)",
+    reason="Expected failure with PyPy and libc++ (Issue #2847 & PR #2999)",
 )
 def test_cross_module_exception_translator():
-    with pytest.raises(KeyError) as _:
+    with pytest.raises(KeyError):
         # translator registered in cross_module_tests
         m.throw_should_be_translated_to_key_error()
 
