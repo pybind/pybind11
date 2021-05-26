@@ -47,8 +47,9 @@ def test_cross_module_exceptions():
 
 
 # TODO: FIXME
-@pytest.mark.skipif(
+@pytest.mark.xfail(
     "env.PYPY and env.MACOS",
+    raises=RuntimeError,
     reason="Known failure with PyPy and libc++ (Issue #2847 & PR #2999)",
 )
 def test_cross_module_exception_translator():

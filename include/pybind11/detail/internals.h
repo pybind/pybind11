@@ -242,6 +242,16 @@ inline void translate_exception(std::exception_ptr p) {
     }
 }
 
+#if !defined(__GLIBCXX__)
+inline void translate_local_exception(std::exception_ptr p) {
+    try {
+        if (p) std::rethrow_exception(p);
+    } catch (error_already_set &e)       { e.restore();   return;
+    } catch (const builtin_exception &e) { e.set_error(); return;
+    }
+}
+#endif
+
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE inline internals &get_internals() {
     auto **&internals_pp = get_internals_pp();
@@ -260,6 +270,17 @@ PYBIND11_NOINLINE inline internals &get_internals() {
     auto builtins = handle(PyEval_GetBuiltins());
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
         internals_pp = static_cast<internals **>(capsule(builtins[id]));
+
+        // We loaded builtins through python's builtins, which means that our `error_already_set`
+        // and `builtin_exception` may be different local classes than the ones set up in the
+        // initial exception translator, below, so add another for our local exception classes.
+        //
+        // libstdc++ doesn't require this (types there are identified only by name)
+        // libc++ with CPython doesn't require this (types are explicitly exported)
+        // libc++ with PyPy still need it, awaiting further investigation
+#if !defined(__GLIBCXX__)
+        (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
+#endif
     } else {
         if (!internals_pp) internals_pp = new internals*();
         auto *&internals_ptr = *internals_pp;
