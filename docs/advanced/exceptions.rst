@@ -166,6 +166,7 @@ section.
 
     Libc++ `behaves differently <https://stackoverflow.com/questions/19496643/using-clang-fvisibility-hidden-and-typeinfo-and-type-erasure/28827430>`_
     with ``-fvisibility=hidden``. So you'll need to explicitly export exceptions who'll be used across ABI boundaries as ``tests/test_exceptions.h``.
+    See also section "Problems with C++ exceptions" in `GCC Wiki <https://gcc.gnu.org/wiki/Visibility>`_.
 
 .. _handling_python_exceptions_cpp:
 
