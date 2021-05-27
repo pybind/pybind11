@@ -3,6 +3,8 @@ import sys
 
 import pytest
 
+import env  # noqa: F401
+
 from pybind11_tests import exceptions as m
 import pybind11_cross_module_tests as cm
 
@@ -42,6 +44,18 @@ def test_cross_module_exceptions():
 
     with pytest.raises(StopIteration) as excinfo:
         cm.throw_stop_iteration()
+
+
+# TODO: FIXME
+@pytest.mark.xfail(
+    "env.PYPY and env.MACOS",
+    raises=RuntimeError,
+    reason="Expected failure with PyPy and libc++ (Issue #2847 & PR #2999)",
+)
+def test_cross_module_exception_translator():
+    with pytest.raises(KeyError):
+        # translator registered in cross_module_tests
+        m.throw_should_be_translated_to_key_error()
 
 
 def test_python_call_in_catch():
