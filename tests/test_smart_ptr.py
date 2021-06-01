@@ -205,11 +205,9 @@ def test_shared_ptr_from_this_and_references():
     ref = s.ref  # init_holder_helper(holder_ptr=false, owned=false, bad_wp=false)
     assert stats.alive() == 2
     assert s.set_ref(ref)
-    # assert s.set_holder(
-    #    ref
-    # )  # std::enable_shared_from_this can create a holder from a reference
-    # RuntimeError: Unable to cast from non-held to held instance (T& to Holder<T>) of type
-    # 'std::shared_ptr<(anonymous namespace)::SharedFromThisRef::B>''
+    assert s.set_holder(
+        ref
+    )  # std::enable_shared_from_this can create a holder from a reference
 
     bad_wp = s.bad_wp  # init_holder_helper(holder_ptr=false, owned=false, bad_wp=true)
     assert stats.alive() == 2
@@ -228,18 +226,14 @@ def test_shared_ptr_from_this_and_references():
     )  # init_holder_helper(holder_ptr=true, owned=false, bad_wp=false)
     assert stats.alive() == 3
     assert s.set_ref(holder_ref)
-    # assert s.set_holder(holder_ref)
-    # RuntimeError: Unable to cast from non-held to held instance (T& to Holder<T>) of type
-    # 'std::shared_ptr<(anonymous namespace)::SharedFromThisRef::B>''
+    assert s.set_holder(holder_ref)
 
     holder_copy = (
         s.holder_copy
     )  # init_holder_helper(holder_ptr=true, owned=true, bad_wp=false)
     assert stats.alive() == 3
     assert s.set_ref(holder_copy)
-    # assert s.set_holder(holder_copy)
-    # RuntimeError: Unable to cast from non-held to held instance (T& to Holder<T>) of type
-    # 'std::shared_ptr<(anonymous namespace)::SharedFromThisRef::B>''
+    assert s.set_holder(holder_copy)
 
     del ref, bad_wp, copy, holder_ref, holder_copy, s
     assert stats.alive() == 0

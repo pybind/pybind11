@@ -1577,7 +1577,6 @@ private:
     }
     // clang-format off
 
-#ifdef JUNK
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
@@ -1595,7 +1594,6 @@ private:
             v_h.set_holder_constructed();
         }
     }
-#endif
 
     static void init_holder_from_existing(const detail::value_and_holder &v_h,
             const holder_type *holder_ptr, std::true_type /*is_copy_constructible*/) {
