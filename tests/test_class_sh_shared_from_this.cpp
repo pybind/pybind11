@@ -52,7 +52,7 @@ TEST_SUBMODULE(class_sh_shared_from_this, m) {
     m.def("print_myobject3_1", [](const MyObject3 *obj) { py::print(obj->toString()); });
     m.def("print_myobject3_2", [](std::shared_ptr<MyObject3> obj) { py::print(obj->toString()); });
     m.def("print_myobject3_3", [](const std::shared_ptr<MyObject3> &obj) { py::print(obj->toString()); });
-    //m.def("print_myobject3_4", [](const std::shared_ptr<MyObject3> *obj) { py::print((*obj)->toString()); });
+    // m.def("print_myobject3_4", [](const std::shared_ptr<MyObject3> *obj) { py::print((*obj)->toString()); });
 
     using B = SharedFromThisRef::B;
     // py::classh<B>(m, "B");
@@ -69,6 +69,6 @@ TEST_SUBMODULE(class_sh_shared_from_this, m) {
         .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; });
 
     static std::shared_ptr<SharedFromThisVirt> sft(new SharedFromThisVirt());
-    py::classh<SharedFromThisVirt>(m, "SharedFromThisVirt")
-        .def_static("get", []() { return sft.get(); }, py::return_value_policy::reference);
+    // py::classh<SharedFromThisVirt>(m, "SharedFromThisVirt")
+    //     .def_static("get", []() { return sft.get(); }, py::return_value_policy::reference);
 }
