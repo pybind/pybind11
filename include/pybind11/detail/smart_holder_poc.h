@@ -235,6 +235,8 @@ struct smart_holder {
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr) {
+        static_assert(!std::is_base_of<std::enable_shared_from_this<T>, T>::value,
+                      "Ownership must not be transferred via a raw pointer.");
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
         hld.vptr.reset(raw_ptr, make_guarded_builtin_delete<T>(true));

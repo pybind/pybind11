@@ -45,8 +45,8 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(SharedFromThisRef)
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(SharedFromThisVirt)
 
 TEST_SUBMODULE(class_sh_shared_from_this, m) {
-    py::classh<MyObject3>(m, "MyObject3")
-        .def(py::init<int>());
+    // py::classh<MyObject3>(m, "MyObject3")
+    //     .def(py::init<int>());
     m.def("make_myobject3_1", []() { return new MyObject3(8); });
     m.def("make_myobject3_2", []() { return std::make_shared<MyObject3>(9); });
     m.def("print_myobject3_1", [](const MyObject3 *obj) { py::print(obj->toString()); });
@@ -55,7 +55,7 @@ TEST_SUBMODULE(class_sh_shared_from_this, m) {
     //m.def("print_myobject3_4", [](const std::shared_ptr<MyObject3> *obj) { py::print((*obj)->toString()); });
 
     using B = SharedFromThisRef::B;
-    py::classh<B>(m, "B");
+    // py::classh<B>(m, "B");
     py::classh<SharedFromThisRef>(m, "SharedFromThisRef")
         .def(py::init<>())
         .def_readonly("bad_wp", &SharedFromThisRef::value)
@@ -70,5 +70,5 @@ TEST_SUBMODULE(class_sh_shared_from_this, m) {
 
     static std::shared_ptr<SharedFromThisVirt> sft(new SharedFromThisVirt());
     py::classh<SharedFromThisVirt>(m, "SharedFromThisVirt")
-        .def_static("get", []() { return sft.get(); });
+        .def_static("get", []() { return sft.get(); }, py::return_value_policy::reference);
 }
