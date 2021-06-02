@@ -106,7 +106,7 @@ set(PYBIND11_TEST_FILES
     test_class_sh_disowning_mi.cpp
     test_class_sh_factory_constructors.cpp
     test_class_sh_inheritance.cpp
-    test_class_sh_shared_ptr_copy_move.cpp
+    test_class_sh_shared_from_this.cpp
     test_class_sh_trampoline_basic.cpp
     test_class_sh_trampoline_self_life_support.cpp
     test_class_sh_trampoline_shared_ptr_cpp_arg.cpp
