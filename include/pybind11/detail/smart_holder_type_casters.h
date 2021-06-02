@@ -270,6 +270,30 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
         return &modified_type_caster_generic_load_impl::local_load;
     }
 
+    using holder_type = pybindit::memory::smart_holder;
+
+    template <typename WrappedType>
+    static void from_raw_pointer_take_ownership_or_shared_from_this(
+        holder_type *uninitialized_location, WrappedType *value_ptr, ...) {
+        new (uninitialized_location)
+            holder_type(holder_type::from_raw_ptr_take_ownership(value_ptr));
+    }
+
+    template <typename WrappedType, typename AnyBaseOfWrappedType>
+    static void from_raw_pointer_take_ownership_or_shared_from_this(
+        holder_type *uninitialized_location,
+        WrappedType *value_ptr,
+        const std::enable_shared_from_this<AnyBaseOfWrappedType> *) {
+        auto shd_ptr
+            = std::dynamic_pointer_cast<WrappedType>(detail::try_get_shared_from_this(value_ptr));
+        if (shd_ptr) {
+            new (uninitialized_location) holder_type(holder_type::from_shared_ptr(shd_ptr));
+        } else {
+            new (uninitialized_location)
+                holder_type(holder_type::from_shared_ptr(std::shared_ptr<WrappedType>(value_ptr)));
+        }
+    }
+
     template <typename WrappedType, typename AliasType>
     static void init_instance_for_type(detail::instance *inst, const void *holder_const_void_ptr) {
         // Need for const_cast is a consequence of the type_info::init_instance type:
@@ -281,14 +305,15 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
         }
-        using holder_type = pybindit::memory::smart_holder;
         if (holder_void_ptr) {
             // Note: inst->owned ignored.
             auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
             new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*holder_ptr));
         } else if (inst->owned) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(
-                holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<WrappedType>()));
+            from_raw_pointer_take_ownership_or_shared_from_this(
+                std::addressof(v_h.holder<holder_type>()),
+                v_h.value_ptr<WrappedType>(),
+                v_h.value_ptr<WrappedType>());
         } else {
             new (std::addressof(v_h.holder<holder_type>()))
                 holder_type(holder_type::from_raw_ptr_unowned(v_h.value_ptr<WrappedType>()));
