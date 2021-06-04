@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# import pytest
+import pytest
 
 from pybind11_tests import class_sh_shared_from_this as m
 from pybind11_tests import ConstructorStats
@@ -53,10 +53,9 @@ def test_shared_from_this_bad_wp():
     bad_wp = s.bad_wp  # init_holder_helper(holder_ptr=false, owned=false, bad_wp=true)
     assert stats.alive() == 2
     assert s.set_ref(bad_wp)
-    # with pytest.raises(RuntimeError) as excinfo:
-    if 1:  # XXX XXX XXX
+    with pytest.raises(RuntimeError) as excinfo:
         assert s.set_holder(bad_wp)
-    # assert "Unable to cast from non-held to held instance" in str(excinfo.value)
+    assert str(excinfo.value) == "Non-owning holder (loaded_as_shared_ptr)."
     del bad_wp, s
     assert stats.alive() == 0
 
