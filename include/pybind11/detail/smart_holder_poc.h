@@ -101,16 +101,6 @@ inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
            || rtti_deleter == typeid(std::default_delete<T const>);
 }
 
-inline void enable_shared_from_this_from_raw_ptr_take_ownership_guard(...) {}
-
-template <typename AnyBaseOfT>
-inline void enable_shared_from_this_from_raw_ptr_take_ownership_guard(
-    const std::enable_shared_from_this<AnyBaseOfT> *) {
-    // This static_assert will always trigger if this template function is instantiated.
-    static_assert(!std::is_base_of<std::enable_shared_from_this<AnyBaseOfT>, AnyBaseOfT>::value,
-                  "Ownership must not be transferred via a raw pointer.");
-}
-
 struct smart_holder {
     const std::type_info *rtti_uqp_del = nullptr;
     std::shared_ptr<void> vptr;
@@ -245,7 +235,6 @@ struct smart_holder {
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr) {
-        enable_shared_from_this_from_raw_ptr_take_ownership_guard(raw_ptr);
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
         hld.vptr.reset(raw_ptr, make_guarded_builtin_delete<T>(true));
