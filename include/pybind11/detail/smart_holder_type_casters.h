@@ -277,12 +277,10 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
 
     using holder_type = pybindit::memory::smart_holder;
 
-#ifdef JUNK
     template <typename WrappedType>
     static bool try_initialization_using_shared_from_this(holder_type *, WrappedType *, ...) {
         return false;
     }
-#endif
 
 #ifdef JUNK
     template <typename WrappedType, typename AnyBaseOfWrappedType>
@@ -316,12 +314,10 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
             auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
             new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*holder_ptr));
         } else {
-#ifdef JUNK
             if (!try_initialization_using_shared_from_this(
                     std::addressof(v_h.holder<holder_type>()),
                     v_h.value_ptr<WrappedType>(),
                     v_h.value_ptr<WrappedType>())) {
-#endif
                 if (inst->owned) {
                     new (std::addressof(v_h.holder<holder_type>())) holder_type(
                         holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<WrappedType>()));
@@ -329,9 +325,7 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
                     new (std::addressof(v_h.holder<holder_type>())) holder_type(
                         holder_type::from_raw_ptr_unowned(v_h.value_ptr<WrappedType>()));
                 }
-#ifdef JUNK
             }
-#endif
         }
         v_h.holder<holder_type>().pointee_depends_on_holder_owner
             = dynamic_raw_ptr_cast_if_possible<AliasType>(v_h.value_ptr<WrappedType>()) != nullptr;
