@@ -26,6 +26,11 @@
 #include <typeinfo>
 #include <utility>
 
+#ifdef JUNK
+#    include <iostream>
+inline void to_cout(std::string msg) { std::cout << msg << std::endl; }
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 using pybindit::memory::smart_holder;
@@ -270,6 +275,31 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
         return &modified_type_caster_generic_load_impl::local_load;
     }
 
+    using holder_type = pybindit::memory::smart_holder;
+
+#ifdef JUNK
+    template <typename WrappedType>
+    static bool try_initialization_using_shared_from_this(holder_type *, WrappedType *, ...) {
+        return false;
+    }
+#endif
+
+#ifdef JUNK
+    template <typename WrappedType, typename AnyBaseOfWrappedType>
+    static bool try_initialization_using_shared_from_this(
+        holder_type *uninitialized_location,
+        WrappedType *value_ptr_w_t,
+        const std::enable_shared_from_this<AnyBaseOfWrappedType> *) {
+        auto shd_ptr = std::dynamic_pointer_cast<WrappedType>(
+            detail::try_get_shared_from_this(value_ptr_w_t));
+        if (!shd_ptr)
+            return false;
+        // Note: inst->owned ignored.
+        new (uninitialized_location) holder_type(holder_type::from_shared_ptr(shd_ptr));
+        return true;
+    }
+#endif
+
     template <typename WrappedType, typename AliasType>
     static void init_instance_for_type(detail::instance *inst, const void *holder_const_void_ptr) {
         // Need for const_cast is a consequence of the type_info::init_instance type:
@@ -281,17 +311,27 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
         }
-        using holder_type = pybindit::memory::smart_holder;
         if (holder_void_ptr) {
             // Note: inst->owned ignored.
             auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
             new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(*holder_ptr));
-        } else if (inst->owned) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(
-                holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<WrappedType>()));
         } else {
-            new (std::addressof(v_h.holder<holder_type>()))
-                holder_type(holder_type::from_raw_ptr_unowned(v_h.value_ptr<WrappedType>()));
+#ifdef JUNK
+            if (!try_initialization_using_shared_from_this(
+                    std::addressof(v_h.holder<holder_type>()),
+                    v_h.value_ptr<WrappedType>(),
+                    v_h.value_ptr<WrappedType>())) {
+#endif
+                if (inst->owned) {
+                    new (std::addressof(v_h.holder<holder_type>())) holder_type(
+                        holder_type::from_raw_ptr_take_ownership(v_h.value_ptr<WrappedType>()));
+                } else {
+                    new (std::addressof(v_h.holder<holder_type>())) holder_type(
+                        holder_type::from_raw_ptr_unowned(v_h.value_ptr<WrappedType>()));
+                }
+#ifdef JUNK
+            }
+#endif
         }
         v_h.holder<holder_type>().pointee_depends_on_holder_owner
             = dynamic_raw_ptr_cast_if_possible<AliasType>(v_h.value_ptr<WrappedType>()) != nullptr;
@@ -364,11 +404,20 @@ struct smart_holder_type_caster_load {
         auto type_raw_ptr = convert_type(void_raw_ptr);
         if (holder().pointee_depends_on_holder_owner) {
             // Tie lifetime of trampoline Python part to C++ part (PR #2839).
+#ifdef JUNK
+            to_cout("");
+            to_cout("LOOOK " + std::to_string(__LINE__) + " " + __FILE__);
+#endif
             return std::shared_ptr<T>(
                 type_raw_ptr,
                 shared_ptr_dec_ref_deleter{
                     handle((PyObject *) load_impl.loaded_v_h.inst).inc_ref()});
         }
+#ifdef JUNK
+        if (holder().vptr_is_using_noop_deleter) {
+            throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
+        }
+#endif
         std::shared_ptr<void> void_shd_ptr = holder().template as_shared_ptr<void>();
         return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
     }
