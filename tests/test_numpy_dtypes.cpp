@@ -31,7 +31,7 @@ std::ostream& operator<<(std::ostream& os, const SimpleStruct& v) {
 
 struct SimpleStructReordered {
     bool bool_;
-    float float_;
+    const float float_;
     uint32_t uint_;
     long double ldbl_;
 };
