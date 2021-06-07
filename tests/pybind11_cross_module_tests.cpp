@@ -9,6 +9,7 @@
 
 #include "pybind11_tests.h"
 #include "local_bindings.h"
+#include "test_exceptions.h"
 #include <pybind11/stl_bind.h>
 #include <numeric>
 
@@ -30,6 +31,13 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("throw_pybind_value_error", []() { throw py::value_error("pybind11 value error"); });
     m.def("throw_pybind_type_error", []() { throw py::type_error("pybind11 type error"); });
     m.def("throw_stop_iteration", []() { throw py::stop_iteration(); });
+    py::register_exception_translator([](std::exception_ptr p) {
+      try {
+          if (p) std::rethrow_exception(p);
+      } catch (const shared_exception &e) {
+          PyErr_SetString(PyExc_KeyError, e.what());
+      }
+    });
 
     // test_local_bindings.py
     // Local to both:
