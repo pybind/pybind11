@@ -594,7 +594,7 @@ jobs:
       matrix:
         centos:
           - 7  # GCC 4.8
-          - 8
+          # BROKEN_2021-06-03 - 8
 
     name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
     container: "centos:${{ matrix.centos }}"
