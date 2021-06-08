@@ -439,8 +439,8 @@ TEST_SUBMODULE(numpy_array, sm) {
            "a"_a.noconvert());
 
     // Check that types returns correct npy format descriptor
-    sm.def("float", [](py::array_t<float>) {});
-    sm.def("double", [](py::array_t<double>) {});
-    sm.def("const_float", [](py::array_t<const float>) {});
-    sm.def("const_double", [](py::array_t<const double>) {});
+    sm.def("test_fmt_desc_float", [](py::array_t<float>) {});
+    sm.def("test_fmt_desc_double", [](py::array_t<double>) {});
+    sm.def("test_fmt_desc_const_float", [](py::array_t<const float>) {});
+    sm.def("test_fmt_desc_const_double", [](py::array_t<const double>) {});
 }

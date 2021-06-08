@@ -483,15 +483,21 @@ def test_index_using_ellipsis():
 
 
 def test_format_descriptors_for_floating_point_types():
-    assert m.float.__doc__ == "float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
-    assert m.double.__doc__ == "double(arg0: numpy.ndarray[numpy.float64]) -> None\n"
     assert (
-        m.const_float.__doc__
-        == "const_float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
+        m.test_fmt_desc_float.__doc__
+        == "test_fmt_desc_float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
     )
     assert (
-        m.const_double.__doc__
-        == "const_double(arg0: numpy.ndarray[numpy.float64]) -> None\n"
+        m.test_fmt_desc_double.__doc__
+        == "test_fmt_desc_double(arg0: numpy.ndarray[numpy.float64]) -> None\n"
+    )
+    assert (
+        m.test_fmt_desc_const_float.__doc__
+        == "test_fmt_desc_const_float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
+    )
+    assert (
+        m.test_fmt_desc_const_double.__doc__
+        == "test_fmt_desc_const_double(arg0: numpy.ndarray[numpy.float64]) -> None\n"
     )
 
 
