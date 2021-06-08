@@ -481,9 +481,17 @@ def test_index_using_ellipsis():
     a = m.index_using_ellipsis(np.zeros((5, 6, 7)))
     assert a.shape == (6,)
 
+
 def test_format_descriptors_for_const_types():
-    assert(m.const_float.__doc__ == "const_float(arg0: numpy.ndarray[numpy.float32]) -> None\n")
-    assert(m.const_double.__doc__ == "const_double(arg0: numpy.ndarray[numpy.float64]) -> None\n")
+    assert (
+        m.const_float.__doc__
+        == "const_float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
+    )
+    assert (
+        m.const_double.__doc__
+        == "const_double(arg0: numpy.ndarray[numpy.float64]) -> None\n"
+    )
+
 
 @pytest.mark.parametrize("forcecast", [False, True])
 @pytest.mark.parametrize("contiguity", [None, "C", "F"])
