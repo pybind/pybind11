@@ -482,7 +482,9 @@ def test_index_using_ellipsis():
     assert a.shape == (6,)
 
 
-def test_format_descriptors_for_const_types():
+def test_format_descriptors_for_floating_point_types():
+    assert m.float.__doc__ == "float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
+    assert m.double.__doc__ == "double(arg0: numpy.ndarray[numpy.float64]) -> None\n"
     assert (
         m.const_float.__doc__
         == "const_float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
