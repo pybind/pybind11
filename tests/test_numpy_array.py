@@ -482,23 +482,17 @@ def test_index_using_ellipsis():
     assert a.shape == (6,)
 
 
-def test_format_descriptors_for_floating_point_types():
-    assert (
-        m.test_fmt_desc_float.__doc__
-        == "test_fmt_desc_float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
-    )
-    assert (
-        m.test_fmt_desc_double.__doc__
-        == "test_fmt_desc_double(arg0: numpy.ndarray[numpy.float64]) -> None\n"
-    )
-    assert (
-        m.test_fmt_desc_const_float.__doc__
-        == "test_fmt_desc_const_float(arg0: numpy.ndarray[numpy.float32]) -> None\n"
-    )
-    assert (
-        m.test_fmt_desc_const_double.__doc__
-        == "test_fmt_desc_const_double(arg0: numpy.ndarray[numpy.float64]) -> None\n"
-    )
+@pytest.mark.parametrize(
+    "test_func",
+    [
+        m.test_fmt_desc_float,
+        m.test_fmt_desc_double,
+        m.test_fmt_desc_const_float,
+        m.test_fmt_desc_const_double,
+    ],
+)
+def test_format_descriptors_for_floating_point_types(test_func):
+    assert "numpy.ndarray[numpy.float" in test_func.__doc__
 
 
 @pytest.mark.parametrize("forcecast", [False, True])
