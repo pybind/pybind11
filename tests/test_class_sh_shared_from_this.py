@@ -109,3 +109,15 @@ def test_shared_from_this_virt():
     z = m.SharedFromThisVirt.get()
     y = m.SharedFromThisVirt.get()
     assert y is z
+
+
+@pytest.mark.parametrize(
+    "test_func",
+    [
+        m.obj1_owns,
+        m.obj2_owns,
+        m.obj_sft_reset,
+    ],
+)
+def test_shared_from_this_custom_deleters(test_func):
+    test_func()
