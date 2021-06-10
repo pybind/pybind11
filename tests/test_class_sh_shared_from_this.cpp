@@ -77,14 +77,14 @@ void obj_sft_reset() {
     (*obj_sft).reset();
     bool got_bad_weak_ptr = false;
     try {
-        (*obj_ign)->shared_from_this();
+        static_cast<void>((*obj_ign)->shared_from_this());
     } catch (const std::bad_weak_ptr &) {
         got_bad_weak_ptr = true;
     }
     std::cout << "got_bad_weak_ptr: " << got_bad_weak_ptr << std::endl;
     std::shared_ptr<Atype> obj3(obj2.get(), labeled_delete<Atype>("SkipDelete"));
     // Working again based on the shared_ptr that was created after obj_sft was reset:
-    (*obj_ign)->shared_from_this();
+    static_cast<void>((*obj_ign)->shared_from_this());
 }
 
 } // namespace shared_from_this_custom_deleters
