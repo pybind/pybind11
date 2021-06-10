@@ -75,6 +75,11 @@ void obj_sft_reset() {
     if (obj_sft == nullptr)
         throw std::runtime_error("Unexpected `use_count`s.");
     (*obj_sft).reset();
+#if defined(_MSC_VER) && _MSC_VER < 1912
+    std::cout << "Preempting \"Windows fatal exception: access violation\": "
+                 "(*obj_ign)->shared_from_this()"
+              << std::endl;
+#else
     bool got_bad_weak_ptr = false;
     try {
         static_cast<void>((*obj_ign)->shared_from_this());
@@ -85,6 +90,7 @@ void obj_sft_reset() {
     std::shared_ptr<Atype> obj3(obj2.get(), labeled_delete<Atype>("SkipDelete"));
     // Working again based on the shared_ptr that was created after obj_sft was reset:
     static_cast<void>((*obj_ign)->shared_from_this());
+#endif
 }
 
 } // namespace shared_from_this_custom_deleters
