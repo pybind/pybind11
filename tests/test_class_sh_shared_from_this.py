@@ -121,3 +121,12 @@ def test_shared_from_this_virt():
 )
 def test_shared_from_this_custom_deleters(test_func):
     test_func()
+
+
+def test_shared_ptr_reset_and_rescue_pointee_model(loop_count_max=10 ** 6):
+    loop_count = 0
+    while True:
+        m.shared_ptr_reset_and_rescue_pointee_model_proof_of_concept()
+        loop_count += 1
+        if loop_count == loop_count_max:
+            break
