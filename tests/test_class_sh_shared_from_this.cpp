@@ -95,6 +95,62 @@ void obj_sft_reset() {
 
 } // namespace shared_from_this_custom_deleters
 
+namespace shared_ptr_reset_and_rescue_pointee_model {
+
+struct ToBeWrapped : std::enable_shared_from_this<ToBeWrapped> {};
+
+struct RescuingDeleter;
+
+struct PyWrapper {
+    std::unique_ptr<RescuingDeleter> rdel;
+    std::shared_ptr<ToBeWrapped> wobj;
+    std::shared_ptr<PyWrapper> self;
+};
+
+struct RescuingDeleter {
+    PyWrapper *pyw;
+    explicit RescuingDeleter(PyWrapper *pyw) : pyw{pyw} {}
+    void operator()(ToBeWrapped *raw_ptr) {
+        if (pyw->self.get() != nullptr) {
+            assert(raw_ptr->weak_from_this().expired()); // CRITICAL
+            pyw->wobj = std::shared_ptr<ToBeWrapped>(raw_ptr, *this);
+            pyw->self.reset();
+        } else {
+            delete raw_ptr;
+        }
+    }
+};
+
+std::shared_ptr<ToBeWrapped> release_to_cpp(const std::shared_ptr<PyWrapper> &pyw) {
+    std::shared_ptr<ToBeWrapped> return_value = pyw->wobj;
+    pyw->wobj.reset();
+    pyw->self = pyw;
+    return return_value;
+}
+
+void proof_of_concept() {
+    std::shared_ptr<PyWrapper> pyw(new PyWrapper);
+    pyw->rdel = std::unique_ptr<RescuingDeleter>(new RescuingDeleter(pyw.get()));
+    pyw->wobj = std::shared_ptr<ToBeWrapped>(new ToBeWrapped, *pyw->rdel);
+    std::shared_ptr<ToBeWrapped> cpp_owner = release_to_cpp(pyw);
+    assert(pyw->wobj.get() == nullptr);
+    assert(cpp_owner.use_count() == 1);
+    {
+        std::shared_ptr<ToBeWrapped> sft = cpp_owner->shared_from_this();
+        assert(cpp_owner.use_count() == 2);
+    }
+    assert(cpp_owner.use_count() == 1);
+    cpp_owner.reset();
+    assert(pyw->wobj.get() != nullptr);
+    assert(pyw->wobj.use_count() == 1);
+    {
+        std::shared_ptr<ToBeWrapped> sft = pyw->wobj->shared_from_this();
+        assert(pyw->wobj.use_count() == 2);
+    }
+}
+
+} // namespace shared_ptr_reset_and_rescue_pointee_model
+
 namespace test_class_sh_shared_from_this {
 
 // clang-format off
@@ -175,4 +231,7 @@ TEST_SUBMODULE(class_sh_shared_from_this, m) {
     m.def("obj1_owns", shared_from_this_custom_deleters::obj1_owns);
     m.def("obj2_owns", shared_from_this_custom_deleters::obj2_owns);
     m.def("obj_sft_reset", shared_from_this_custom_deleters::obj_sft_reset);
+
+    m.def("shared_ptr_reset_and_rescue_pointee_model_proof_of_concept",
+          shared_ptr_reset_and_rescue_pointee_model::proof_of_concept);
 }
