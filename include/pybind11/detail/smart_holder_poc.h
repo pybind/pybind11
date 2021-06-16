@@ -56,33 +56,14 @@ Details:
 namespace pybindit {
 namespace memory {
 
-struct guarded_operator_call {
+struct guarded_delete {
+    void (*del_ptr)(void *);
     bool armed_flag;
-    explicit guarded_operator_call(bool armed_flag) : armed_flag{armed_flag} {}
-    virtual void operator()(void *)  = 0;
-    virtual ~guarded_operator_call() = default;
-
-    // Some compilers complain if the implicitly defined copy constructor is used.
-    guarded_operator_call(const guarded_operator_call &) = default;
-};
-
-template <typename T>
-struct guarded_builtin_delete : guarded_operator_call {
-    explicit guarded_builtin_delete(bool armed_flag) : guarded_operator_call{armed_flag} {}
-    void operator()(void *raw_ptr) override { delete_impl<T>(raw_ptr); }
-    template <typename T_                                                         = T,
-              typename std::enable_if<std::is_destructible<T_>::value, int>::type = 0>
-    void delete_impl(void *raw_ptr) {
+    guarded_delete(void (*del_ptr)(void *), bool armed_flag)
+        : del_ptr{del_ptr}, armed_flag{armed_flag} {}
+    void operator()(void *raw_ptr) const {
         if (armed_flag)
-            delete (T *) raw_ptr;
-    }
-    template <typename T_                                                          = T,
-              typename std::enable_if<!std::is_destructible<T_>::value, int>::type = 0>
-    void delete_impl(void *) {
-        // This noop operator is needed to avoid a compilation error (for `delete raw_ptr;`), but
-        // throwing an exception from here could std::terminate the process. Therefore the runtime
-        // check for lifetime-management correctness is implemented elsewhere (in
-        // ensure_pointee_is_destructible()).
+            (*del_ptr)(raw_ptr);
     }
 };
 
@@ -105,12 +86,13 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 }
 
 template <typename T, typename D>
-struct guarded_custom_deleter : guarded_operator_call {
-    explicit guarded_custom_deleter(bool armed_flag) : guarded_operator_call{armed_flag} {}
-    void operator()(void *raw_ptr) override {
-        if (armed_flag)
-            D()((T *) raw_ptr);
-    }
+inline void custom_delete(void *raw_ptr) {
+    D()((T *) raw_ptr);
+}
+
+template <typename T, typename D>
+guarded_delete make_guarded_custom_deleter(bool armed_flag) {
+    return guarded_delete(custom_delete<T, D>, armed_flag);
 };
 
 template <typename T>
@@ -121,7 +103,6 @@ inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
 
 struct smart_holder {
     const std::type_info *rtti_uqp_del = nullptr;
-    guarded_operator_call *vptr_del    = nullptr;
     std::shared_ptr<void> vptr;
     bool vptr_is_using_noop_deleter : 1;
     bool vptr_is_using_builtin_delete : 1;
@@ -213,25 +194,20 @@ struct smart_holder {
         }
     }
 
-    template <typename T, typename D>
-    void vptr_reset(T *raw_ptr, const D &del) {
-        vptr.reset(raw_ptr, del); // Copies del.
-        // The const_cast is only for certain compilers (Ubuntu 20 GCC 6.3.0 being one).
-        vptr_del = const_cast<D *>(std::get_deleter<D>(vptr)); // Pointer to copy of del.
-    }
-
     void reset_vptr_deleter_armed_flag(bool armed_flag) const {
-        if (vptr_del == nullptr) {
+        // The const_cast is only for certain compilers (Ubuntu 20 GCC 6.3.0 being one).
+        auto vptr_del_ptr = const_cast<guarded_delete *>(std::get_deleter<guarded_delete>(vptr));
+        if (vptr_del_ptr == nullptr) {
             throw std::runtime_error(
                 "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
         }
-        vptr_del->armed_flag = armed_flag;
+        vptr_del_ptr->armed_flag = armed_flag;
     }
 
     template <typename T>
     static smart_holder from_raw_ptr_unowned(T *raw_ptr) {
         smart_holder hld;
-        hld.vptr_reset(raw_ptr, guarded_builtin_delete<T>(false));
+        hld.vptr.reset(raw_ptr, [](void *) {});
         hld.vptr_is_using_noop_deleter = true;
         hld.is_populated               = true;
         return hld;
@@ -262,7 +238,7 @@ struct smart_holder {
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr) {
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
-        hld.vptr_reset(raw_ptr, guarded_builtin_delete<T>(true));
+        hld.vptr.reset(raw_ptr, make_guarded_builtin_delete<T>(true));
         hld.vptr_is_using_builtin_delete = true;
         hld.is_populated                 = true;
         return hld;
@@ -281,10 +257,7 @@ struct smart_holder {
     }
 
     // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
-    void release_disowned() {
-        vptr.reset();
-        vptr_del = nullptr;
-    }
+    void release_disowned() { vptr.reset(); }
 
     // SMART_HOLDER_WIP: review this function.
     void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") const {
@@ -313,9 +286,10 @@ struct smart_holder {
         hld.rtti_uqp_del                 = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
         if (hld.vptr_is_using_builtin_delete) {
-            hld.vptr_reset(unq_ptr.get(), guarded_builtin_delete<T>(true));
+            hld.vptr.reset(unq_ptr.get(), make_guarded_builtin_delete<T>(true));
         } else {
-            hld.vptr_reset(unq_ptr.get(), guarded_custom_deleter<T, D>(true));
+            make_guarded_custom_deleter<T, D>(false);
+            hld.vptr.reset(unq_ptr.get(), make_guarded_custom_deleter<T, D>(true));
         }
         unq_ptr.release();
         hld.is_populated = true;
