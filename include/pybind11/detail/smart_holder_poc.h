@@ -108,7 +108,7 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 template <typename T, typename D>
 struct guarded_custom_deleter : guarded_operator_call {
     explicit guarded_custom_deleter(bool armed_flag) : guarded_operator_call{armed_flag} {}
-    virtual void operator()(void *raw_ptr) override {
+    void operator()(void *raw_ptr) override {
         if (armed_flag)
             D()((T *) raw_ptr);
     }
