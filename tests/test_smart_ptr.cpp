@@ -98,6 +98,16 @@ private:
     int value;
 };
 
+// an uncopyable object managed by a std::shared_ptr<>
+class MyObject3a {
+public:
+    MyObject3a(int value) : value(value) { print_created(this, toString()); }
+    std::string toString() const { return "MyObject3a[" + std::to_string(value) + "]"; }
+    virtual ~MyObject3a() { print_destroyed(this); }
+private:
+    int value;
+};
+
 // test_unique_nodelete
 // Object with a private destructor
 class MyObject4;
@@ -357,6 +367,15 @@ TEST_SUBMODULE(smart_ptr, m) {
     m.def("print_myobject3_3", [](const std::shared_ptr<MyObject3> &obj) { py::print(obj->toString()); });
     m.def("print_myobject3_4", [](const std::shared_ptr<MyObject3> *obj) { py::print((*obj)->toString()); });
 
+    py::class_<MyObject3a>(m, "MyObject3a");
+    m.def("make_myobject3_1", []() { return new MyObject3a(8); });
+    m.def("make_myobject3_2", []() { return std::make_shared<MyObject3a>(9); });
+    m.def("print_myobject3a_1", [](const MyObject3a *obj) { py::print(obj->toString()); });
+    m.def("print_myobject3a_2", [](std::shared_ptr<MyObject3a> obj) { py::print(obj->toString()); });
+    m.def("print_myobject3a_3", [](const std::shared_ptr<MyObject3a> &obj) { py::print(obj->toString()); });
+    // this doesn't compile, should it?
+    //m.def("print_myobject3a_4", [](const std::shared_ptr<MyObject3a> *obj) { py::print((*obj)->toString()); });
+
     // test_smart_ptr_refcounting
     m.def("test_object1_refcounting", []() {
         ref<MyObject1> o = new MyObject1(0);
@@ -480,4 +499,10 @@ TEST_SUBMODULE(smart_ptr, m) {
                 list.append(py::cast(e));
             return list;
         });
+
+    m.def("test_3011_shared_ptr", []() {
+       auto o = std::make_shared<MyObject3a>(42);
+       auto l = py::list();
+       l.append(o);
+    });
 }
