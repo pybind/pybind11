@@ -56,14 +56,32 @@ Details:
 namespace pybindit {
 namespace memory {
 
-struct guarded_delete {
-    void (*del_ptr)(void *);
-    bool armed_flag;
-    guarded_delete(void (*del_ptr)(void *), bool armed_flag)
-        : del_ptr{del_ptr}, armed_flag{armed_flag} {}
-    void operator()(void *raw_ptr) const {
-        if (armed_flag)
-            (*del_ptr)(raw_ptr);
+struct guarded_operator_call {
+    std::shared_ptr<bool> flag_ptr;
+    explicit guarded_operator_call(std::shared_ptr<bool> armed_flag_ptr)
+        : flag_ptr{armed_flag_ptr} {}
+    virtual void operator()(void *) { std::terminate(); };
+    virtual ~guarded_operator_call() = default;
+};
+
+template <typename T>
+struct guarded_builtin_delete : guarded_operator_call {
+    explicit guarded_builtin_delete(std::shared_ptr<bool> armed_flag_ptr)
+        : guarded_operator_call(armed_flag_ptr) {}
+    void operator()(void *raw_ptr) override { delete_impl<T>(raw_ptr); }
+    template <typename T_                                                         = T,
+              typename std::enable_if<std::is_destructible<T_>::value, int>::type = 0>
+    void delete_impl(void *raw_ptr) {
+        if (*flag_ptr)
+            delete (T *) raw_ptr;
+    }
+    template <typename T_                                                          = T,
+              typename std::enable_if<!std::is_destructible<T_>::value, int>::type = 0>
+    void delete_impl(void *) {
+        // This noop operator is needed to avoid a compilation error (for `delete raw_ptr;`), but
+        // throwing an exception from here could std::terminate the process. Therefore the runtime
+        // check for lifetime-management correctness is implemented elsewhere (in
+        // ensure_pointee_is_destructible()).
     }
 };
 
@@ -86,13 +104,18 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 }
 
 template <typename T, typename D>
-inline void custom_delete(void *raw_ptr) {
-    D()((T *) raw_ptr);
-}
+struct guarded_custom_deleter : guarded_operator_call {
+    explicit guarded_custom_deleter(std::shared_ptr<bool> armed_flag_ptr)
+        : guarded_operator_call(armed_flag_ptr) {}
+    virtual void operator()(void *raw_ptr) override {
+        if (*flag_ptr)
+            D()((T *) raw_ptr);
+    }
 
-template <typename T, typename D>
-guarded_delete make_guarded_custom_deleter(bool armed_flag) {
-    return guarded_delete(custom_delete<T, D>, armed_flag);
+    guarded_custom_deleter(guarded_custom_deleter &&) = default;
+    guarded_custom_deleter(guarded_custom_deleter &)  = delete;
+    guarded_custom_deleter &operator=(guarded_custom_deleter &&) = delete;
+    guarded_custom_deleter &operator=(const guarded_custom_deleter &) = delete;
 };
 
 template <typename T>
