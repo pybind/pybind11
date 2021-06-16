@@ -60,8 +60,12 @@ struct guarded_operator_call {
     std::shared_ptr<bool> flag_ptr;
     explicit guarded_operator_call(std::shared_ptr<bool> armed_flag_ptr)
         : flag_ptr{armed_flag_ptr} {}
-    virtual void operator()(void *) { std::terminate(); };
-    virtual ~guarded_operator_call() = default;
+    virtual void operator()(void *)                 = 0;
+    virtual ~guarded_operator_call()                = default;
+    guarded_operator_call(guarded_operator_call &&) = default;
+    guarded_operator_call(guarded_operator_call &)  = delete;
+    guarded_operator_call &operator=(guarded_operator_call &&) = delete;
+    guarded_operator_call &operator=(const guarded_operator_call &) = delete;
 };
 
 template <typename T>
@@ -111,11 +115,6 @@ struct guarded_custom_deleter : guarded_operator_call {
         if (*flag_ptr)
             D()((T *) raw_ptr);
     }
-
-    guarded_custom_deleter(guarded_custom_deleter &&) = default;
-    guarded_custom_deleter(guarded_custom_deleter &)  = delete;
-    guarded_custom_deleter &operator=(guarded_custom_deleter &&) = delete;
-    guarded_custom_deleter &operator=(const guarded_custom_deleter &) = delete;
 };
 
 template <typename T>
@@ -307,11 +306,17 @@ struct smart_holder {
         smart_holder hld;
         hld.rtti_uqp_del                 = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
+        guarded_operator_call *vptr_del  = nullptr;
         if (hld.vptr_is_using_builtin_delete) {
-            hld.vptr.reset(unq_ptr.get(), make_guarded_builtin_delete<T>(true));
+            hld.vptr.reset(unq_ptr.get(),
+                           guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr));
+            vptr_del = std::get_deleter<guarded_builtin_delete<T>>(hld.vptr);
         } else {
-            hld.vptr.reset(unq_ptr.get(), make_guarded_custom_deleter<T, D>(true));
+            hld.vptr.reset(unq_ptr.get(),
+                           guarded_custom_deleter<T, D>(hld.vptr_deleter_armed_flag_ptr));
+            vptr_del = std::get_deleter<guarded_custom_deleter<T, D>>(hld.vptr);
         }
+        assert(vptr_del != nullptr);
         unq_ptr.release();
         hld.is_populated = true;
         return hld;
