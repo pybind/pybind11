@@ -61,6 +61,9 @@ struct guarded_operator_call {
     explicit guarded_operator_call(bool armed_flag) : armed_flag{armed_flag} {}
     virtual void operator()(void *)  = 0;
     virtual ~guarded_operator_call() = default;
+
+    // Some compilers complain if the implicitly defined copy constructor is used.
+    guarded_operator_call(const guarded_operator_call &) = default;
 };
 
 template <typename T>
