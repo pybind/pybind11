@@ -57,26 +57,24 @@ namespace pybindit {
 namespace memory {
 
 struct guarded_operator_call {
-    std::shared_ptr<bool> flag_ptr;
-    explicit guarded_operator_call(std::shared_ptr<bool> armed_flag_ptr)
-        : flag_ptr{armed_flag_ptr} {}
+    bool armed_flag;
+    explicit guarded_operator_call(bool armed_flag) : armed_flag{armed_flag} {}
     virtual void operator()(void *)                 = 0;
     virtual ~guarded_operator_call()                = default;
     guarded_operator_call(guarded_operator_call &&) = default;
-    guarded_operator_call(guarded_operator_call &)  = delete;
+    guarded_operator_call(guarded_operator_call &)  = default;
     guarded_operator_call &operator=(guarded_operator_call &&) = delete;
     guarded_operator_call &operator=(const guarded_operator_call &) = delete;
 };
 
 template <typename T>
 struct guarded_builtin_delete : guarded_operator_call {
-    explicit guarded_builtin_delete(std::shared_ptr<bool> armed_flag_ptr)
-        : guarded_operator_call(armed_flag_ptr) {}
+    explicit guarded_builtin_delete(bool armed_flag) : guarded_operator_call{armed_flag} {}
     void operator()(void *raw_ptr) override { delete_impl<T>(raw_ptr); }
     template <typename T_                                                         = T,
               typename std::enable_if<std::is_destructible<T_>::value, int>::type = 0>
     void delete_impl(void *raw_ptr) {
-        if (*flag_ptr)
+        if (armed_flag)
             delete (T *) raw_ptr;
     }
     template <typename T_                                                          = T,
@@ -109,10 +107,9 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 
 template <typename T, typename D>
 struct guarded_custom_deleter : guarded_operator_call {
-    explicit guarded_custom_deleter(std::shared_ptr<bool> armed_flag_ptr)
-        : guarded_operator_call(armed_flag_ptr) {}
+    explicit guarded_custom_deleter(bool armed_flag) : guarded_operator_call{armed_flag} {}
     virtual void operator()(void *raw_ptr) override {
-        if (*flag_ptr)
+        if (armed_flag)
             D()((T *) raw_ptr);
     }
 };
@@ -125,6 +122,7 @@ inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
 
 struct smart_holder {
     const std::type_info *rtti_uqp_del = nullptr;
+    guarded_operator_call *vptr_del    = nullptr;
     std::shared_ptr<void> vptr;
     bool vptr_is_using_noop_deleter : 1;
     bool vptr_is_using_builtin_delete : 1;
@@ -228,7 +226,8 @@ struct smart_holder {
     template <typename T>
     static smart_holder from_raw_ptr_unowned(T *raw_ptr) {
         smart_holder hld;
-        hld.vptr.reset(raw_ptr, [](void *) {});
+        hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(false));
+        hld.vptr_del                   = std::get_deleter<guarded_builtin_delete<T>>(hld.vptr);
         hld.vptr_is_using_noop_deleter = true;
         hld.is_populated               = true;
         return hld;
@@ -259,10 +258,19 @@ struct smart_holder {
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr) {
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
-        hld.vptr.reset(raw_ptr, make_guarded_builtin_delete<T>(true));
+        hld.vptr.reset(raw_ptr, guarded_builtin_delete<T>(true));
+        hld.vptr_del                     = std::get_deleter<guarded_builtin_delete<T>>(hld.vptr);
         hld.vptr_is_using_builtin_delete = true;
         hld.is_populated                 = true;
         return hld;
+    }
+
+    void reset_vptr_deleter_armed_flag(bool armed_flag) {
+        if (vptr_del == nullptr) {
+            throw std::runtime_error(
+                "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
+        }
+        vptr_del->armed_flag = armed_flag;
     }
 
     // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
@@ -278,7 +286,10 @@ struct smart_holder {
     }
 
     // Caller is responsible for ensuring preconditions (SMART_HOLDER_WIP: details).
-    void release_disowned() { vptr.reset(); }
+    void release_disowned() {
+        vptr.reset();
+        vptr_del = nullptr;
+    }
 
     // SMART_HOLDER_WIP: review this function.
     void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") const {
@@ -306,17 +317,13 @@ struct smart_holder {
         smart_holder hld;
         hld.rtti_uqp_del                 = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
-        guarded_operator_call *vptr_del  = nullptr;
         if (hld.vptr_is_using_builtin_delete) {
-            hld.vptr.reset(unq_ptr.get(),
-                           guarded_builtin_delete<T>(hld.vptr_deleter_armed_flag_ptr));
-            vptr_del = std::get_deleter<guarded_builtin_delete<T>>(hld.vptr);
+            hld.vptr.reset(unq_ptr.get(), guarded_builtin_delete<T>(true));
+            hld.vptr_del = std::get_deleter<guarded_builtin_delete<T>>(hld.vptr);
         } else {
-            hld.vptr.reset(unq_ptr.get(),
-                           guarded_custom_deleter<T, D>(hld.vptr_deleter_armed_flag_ptr));
-            vptr_del = std::get_deleter<guarded_custom_deleter<T, D>>(hld.vptr);
+            hld.vptr.reset(unq_ptr.get(), guarded_custom_deleter<T, D>(true));
+            hld.vptr_del = std::get_deleter<guarded_custom_deleter<T, D>>(hld.vptr);
         }
-        assert(vptr_del != nullptr);
         unq_ptr.release();
         hld.is_populated = true;
         return hld;
