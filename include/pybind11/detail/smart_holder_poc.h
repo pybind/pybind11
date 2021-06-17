@@ -288,7 +288,6 @@ struct smart_holder {
         if (hld.vptr_is_using_builtin_delete) {
             hld.vptr.reset(unq_ptr.get(), make_guarded_builtin_delete<T>(true));
         } else {
-            make_guarded_custom_deleter<T, D>(false);
             hld.vptr.reset(unq_ptr.get(), make_guarded_custom_deleter<T, D>(true));
         }
         unq_ptr.release();
