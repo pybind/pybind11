@@ -592,6 +592,7 @@ jobs:
     - name: Install dependencies
       run: python3 -m pip install cmake -r tests/requirements.txt --prefer-binary
 
+    # Added Debug build type due to unexplained segfault after CentOS8 updated to GCC 8.4
     - name: Configure
       shell: bash
       run: >
@@ -600,6 +601,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
+        -DCMAKE_BUILD_TYPE=Debug
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
