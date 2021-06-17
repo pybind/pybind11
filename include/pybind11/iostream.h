@@ -196,9 +196,9 @@ public:
 \endrst */
 class scoped_estream_redirect : public scoped_ostream_redirect {
 public:
-    scoped_estream_redirect(std::ostream &costream = std::cerr,
-                            object pyostream       = module_::import("sys").attr("stderr"))
-        : scoped_ostream_redirect(costream, std::move(pyostream)) {}
+    scoped_estream_redirect(std::ostream &costream  = std::cerr,
+                            const object &pyostream = module_::import("sys").attr("stderr"))
+        : scoped_ostream_redirect(costream, pyostream) {}
 };
 
 
