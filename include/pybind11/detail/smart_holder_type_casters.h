@@ -79,7 +79,7 @@ public:
             }
             // type_caster_generic::load_value END
         }
-        loaded_v_h = std::move(v_h);
+        loaded_v_h = v_h;
         loaded_v_h.type = typeinfo;
     }
 

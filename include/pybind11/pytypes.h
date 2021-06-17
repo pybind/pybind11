@@ -503,7 +503,7 @@ class accessor : public object_api<accessor<Policy>> {
 public:
     accessor(handle obj, key_type key) : obj(obj), key(std::move(key)) { }
     accessor(const accessor &) = default;
-    accessor(accessor &&) = default;
+    accessor(accessor &&) noexcept = default;
 
     // accessor overload required to override default assignment operator (templates are not allowed
     // to replace default compiler-generated assignments).
@@ -1507,8 +1507,12 @@ public:
         const void *ptr, ssize_t itemsize, const char *format,
         detail::any_container<ssize_t> shape,
         detail::any_container<ssize_t> strides) {
-        return memoryview::from_buffer(
-            const_cast<void*>(ptr), itemsize, format, shape, strides, true);
+        return memoryview::from_buffer(const_cast<void *>(ptr),
+                                       itemsize,
+                                       format,
+                                       std::move(std::move(shape)),
+                                       std::move(std::move(strides)),
+                                       true);
     }
 
     template<typename T>

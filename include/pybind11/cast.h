@@ -1091,7 +1091,9 @@ struct kw_only {};
 struct pos_only {};
 
 template <typename T>
-arg_v arg::operator=(T &&value) const { return {std::move(*this), std::forward<T>(value)}; }
+arg_v arg::operator=(T &&value) const {
+		return {*this, std::forward<T>(value)};
+}
 
 /// Alias for backward compatibility -- to be removed in version 2.0
 template <typename /*unused*/> using arg_t = arg_v;
@@ -1313,7 +1315,7 @@ private:
                          "may be passed via py::arg() to a python function call. "
                          "(compile in debug mode for details)");
     }
-    [[noreturn]] static void nameless_argument_error(std::string type) {
+    [[noreturn]] static void nameless_argument_error(const std::string& type) {
         throw type_error("Got kwargs without a name of type '" + type + "'; only named "
                          "arguments may be passed via py::arg() to a python function call. ");
     }
@@ -1322,7 +1324,7 @@ private:
                          "(compile in debug mode for details)");
     }
 
-    [[noreturn]] static void multiple_values_error(std::string name) {
+    [[noreturn]] static void multiple_values_error(const std::string& name) {
         throw type_error("Got multiple values for keyword argument '" + name + "'");
     }
 
@@ -1331,7 +1333,7 @@ private:
                          "(compile in debug mode for details)");
     }
 
-    [[noreturn]] static void argument_cast_error(std::string name, std::string type) {
+    [[noreturn]] static void argument_cast_error(const std::string& name, const std::string& type) {
         throw cast_error("Unable to convert call argument '" + name
                          + "' of type '" + type + "' to Python object");
     }
