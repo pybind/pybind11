@@ -583,13 +583,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Add Python 3 (Centos 7)
-      if: matrix.centos == 7
+    - name: Add Python 3
       run: yum update -y && yum install -y python3-devel gcc-c++ make git
-
-    - name: Add Python 3 (Centos 8)
-      if: matrix.centos == 8
-      run: yum update -y && yum install -y python3-devel make git
 
     - name: Update pip
       run: python3 -m pip install --upgrade pip
