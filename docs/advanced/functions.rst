@@ -254,7 +254,7 @@ For instance, the following statement iterates over a Python ``dict``:
 
 .. code-block:: cpp
 
-    void print_dict(py::dict dict) {
+    void print_dict(const py::dict& dict) {
         /* Easily interact with Python types */
         for (auto item : dict)
             std::cout << "key=" << std::string(py::str(item.first)) << ", "
@@ -292,7 +292,7 @@ Such functions can also be created using pybind11:
 
 .. code-block:: cpp
 
-   void generic(py::args args, py::kwargs kwargs) {
+   void generic(py::args args, const py::kwargs& kwargs) {
        /// .. do something with args
        if (kwargs)
            /// .. do something with kwargs
