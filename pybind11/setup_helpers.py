@@ -410,7 +410,9 @@ class ParallelCompile(object):
                     compiler._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
 
             try:
-                import multiprocessing
+                # Importing .synchronize checks for platforms that have some multiprocessing
+                # capabilities but lack semaphores, such as AWS Lambda and Android Termux.
+                import multiprocessing.synchronize
                 from multiprocessing.pool import ThreadPool
             except ImportError:
                 threads = 1
