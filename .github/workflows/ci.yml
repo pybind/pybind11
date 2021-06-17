@@ -603,13 +603,13 @@ jobs:
         -DCMAKE_CXX_STANDARD=11
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
+    # Using Debug to avoid segfault that appeared around 2021-06-04,
+    # apparently when the gcc version changed from 8.3 to 8.4.
     - name: Configure 8
       if: matrix.centos == 8
       shell: bash
       run: >
         cmake -S . -B build
-        # Using Debug to avoid segfault that appeared around 2021-06-04,
-        # apparently when the gcc version changed from 8.3 to 8.4.
         -DCMAKE_BUILD_TYPE=Debug
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
