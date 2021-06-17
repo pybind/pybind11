@@ -166,9 +166,9 @@ protected:
     detail::pythonbuf buffer;
 
 public:
-    scoped_ostream_redirect(std::ostream &costream = std::cout,
-                            object pyostream       = module_::import("sys").attr("stdout"))
-        : costream(costream), buffer(std::move(pyostream)) {
+    scoped_ostream_redirect(std::ostream &costream  = std::cout,
+                            const object &pyostream = module_::import("sys").attr("stdout"))
+        : costream(costream), buffer(pyostream) {
         old = costream.rdbuf(&buffer);
     }
 
