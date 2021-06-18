@@ -1,5 +1,5 @@
---- ci.yml	2021-05-27 11:30:03.442224943 -0700
-+++ ci_sh_def.yml	2021-05-27 11:30:42.672719066 -0700
+--- ci.yml	2021-06-18 01:41:07.246849382 -0700
++++ ci_sh_def.yml	2021-06-18 01:41:47.114491643 -0700
 @@ -1,4 +1,15 @@
 -name: CI-SH-AVL
 +# PLEASE KEEP THIS GROUP OF FILES IN SYNC AT ALL TIMES:
@@ -84,7 +84,7 @@
          -DCMAKE_CXX_COMPILER=$(which icpc)  \
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
-@@ -601,6 +619,7 @@
+@@ -612,6 +630,7 @@
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
          -DCMAKE_CXX_STANDARD=11
@@ -92,7 +92,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
  
      - name: Build
-@@ -651,6 +670,7 @@
+@@ -662,6 +681,7 @@
          cmake ../pybind11-tests
          -DDOWNLOAD_CATCH=ON
          -DPYBIND11_WERROR=ON
@@ -100,7 +100,7 @@
          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
        working-directory: /build-tests
  
-@@ -746,6 +766,7 @@
+@@ -757,6 +777,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -108,7 +108,7 @@
          ${{ matrix.args }}
      - name: Build C++11
        run: cmake --build build -j 2
-@@ -792,6 +813,7 @@
+@@ -803,6 +824,7 @@
          -DPYBIND11_WERROR=ON
          -DDOWNLOAD_CATCH=ON
          -DDOWNLOAD_EIGEN=ON
@@ -116,7 +116,7 @@
  
      - name: Build C++14
        run: cmake --build build -j 2
-@@ -812,12 +834,13 @@
+@@ -823,12 +845,13 @@
            - 3.7
          std:
            - 14

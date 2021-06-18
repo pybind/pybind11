@@ -594,7 +594,7 @@ jobs:
       matrix:
         centos:
           - 7  # GCC 4.8
-          # BROKEN_2021-06-03 - 8
+          - 8
 
     name: "🐍 3 • CentOS ${{ matrix.centos }} • x64"
     container: "centos:${{ matrix.centos }}"
@@ -611,10 +611,21 @@ jobs:
     - name: Install dependencies
       run: python3 -m pip install cmake -r tests/requirements.txt --prefer-binary
 
+    - name: VAR_BUILD_TYPE 7
+      if: matrix.centos == 7
+      run: echo Release > VAR_BUILD_TYPE
+
+    # Using Debug to avoid segfault that appeared around 2021-06-04,
+    # apparently when the gcc version changed from 8.3 to 8.4.
+    - name: VAR_BUILD_TYPE 8
+      if: matrix.centos == 8
+      run: echo Debug > VAR_BUILD_TYPE
+
     - name: Configure
       shell: bash
       run: >
         cmake -S . -B build
+        -DCMAKE_BUILD_TYPE=$(cat VAR_BUILD_TYPE)
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
