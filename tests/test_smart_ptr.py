@@ -316,7 +316,3 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
-
-
-def test_3011_shared_ptr():
-    m.test_3011_shared_ptr()
