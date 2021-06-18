@@ -44,6 +44,7 @@ Details:
 
 #pragma once
 
+#include <cassert>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -56,15 +57,17 @@ Details:
 namespace pybindit {
 namespace memory {
 
+struct smart_holder;
+
 struct guarded_delete {
+    smart_holder *hld            = nullptr;
+    void (*callback_ptr)(void *) = nullptr;
+    void *callback_arg           = nullptr;
     void (*del_ptr)(void *);
     bool armed_flag;
     guarded_delete(void (*del_ptr)(void *), bool armed_flag)
         : del_ptr{del_ptr}, armed_flag{armed_flag} {}
-    void operator()(void *raw_ptr) const {
-        if (armed_flag)
-            (*del_ptr)(raw_ptr);
-    }
+    void operator()(void *raw_ptr) const;
 };
 
 template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
@@ -109,6 +112,7 @@ struct smart_holder {
     bool vptr_is_external_shared_ptr : 1;
     bool is_populated : 1;
     bool is_disowned : 1;
+    bool vptr_is_released : 1;
     bool pointee_depends_on_holder_owner : 1; // SMART_HOLDER_WIP: See PR #2839.
 
     // Design choice: smart_holder is movable but not copyable.
@@ -120,7 +124,7 @@ struct smart_holder {
     smart_holder()
         : vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
           vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false},
-          pointee_depends_on_holder_owner{false} {}
+          vptr_is_released{false}, pointee_depends_on_holder_owner{false} {}
 
     bool has_pointee() const { return vptr != nullptr; }
 
@@ -318,6 +322,17 @@ struct smart_holder {
         return std::static_pointer_cast<T>(vptr);
     }
 };
+
+inline void guarded_delete::operator()(void *raw_ptr) const {
+    if (hld) {
+        assert(armed_flag);
+        hld->vptr.reset(hld->vptr.get(), guarded_delete{del_ptr, true});
+        hld->vptr_is_released = false;
+        (*callback_ptr)(callback_arg); // Py_DECREF.
+    } else if (armed_flag) {
+        (*del_ptr)(raw_ptr);
+    }
+}
 
 } // namespace memory
 } // namespace pybindit
