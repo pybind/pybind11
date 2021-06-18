@@ -18,6 +18,7 @@
 #include "type_caster_base.h"
 #include "typeid.h"
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <new>
@@ -369,13 +370,16 @@ struct smart_holder_type_caster_load {
         return *raw_ptr;
     }
 
+    static void dec_ref_void(void *ptr) {
+        gil_scoped_acquire gil;
+        Py_DECREF(reinterpret_cast<PyObject *>(ptr));
+    }
+
     struct shared_ptr_dec_ref_deleter {
-        // Note: deleter destructor fails on MSVC 2015 and GCC 4.8, so we manually call dec_ref
-        // here instead.
-        handle ref;
+        PyObject *self;
         void operator()(void *) {
             gil_scoped_acquire gil;
-            ref.dec_ref();
+            Py_DECREF(self);
         }
     };
 
@@ -386,20 +390,34 @@ struct smart_holder_type_caster_load {
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
-        holder().ensure_is_not_disowned("loaded_as_shared_ptr");
-        auto void_raw_ptr = holder().template as_raw_ptr_unowned<void>();
+        holder_type &hld = holder();
+        hld.ensure_is_not_disowned("loaded_as_shared_ptr");
+        auto void_raw_ptr = hld.template as_raw_ptr_unowned<void>();
         auto type_raw_ptr = convert_type(void_raw_ptr);
-        if (holder().pointee_depends_on_holder_owner) {
-            // Tie lifetime of trampoline Python part to C++ part (PR #2839).
-            return std::shared_ptr<T>(
-                type_raw_ptr,
-                shared_ptr_dec_ref_deleter{
-                    handle((PyObject *) load_impl.loaded_v_h.inst).inc_ref()});
+        if (hld.pointee_depends_on_holder_owner) {
+            auto self         = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
+            auto vptr_del_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
+            if (vptr_del_ptr != nullptr) {
+                assert(!hld.vptr_is_released);
+                std::shared_ptr<void> released(hld.vptr.get(), [](void *) {});
+                // Critical transfer-of-ownership section. This must stay together.
+                vptr_del_ptr->hld          = &hld;
+                vptr_del_ptr->callback_ptr = dec_ref_void;
+                vptr_del_ptr->callback_arg = self;
+                hld.vptr.swap(released);
+                hld.vptr_is_released = true;
+                Py_INCREF(self);
+                // Critical section end.
+                return std::shared_ptr<T>(released, type_raw_ptr);
+            }
+            // XXX XXX XXX Ensure not shared_from_this.
+            Py_INCREF(self);
+            return std::shared_ptr<T>(type_raw_ptr, shared_ptr_dec_ref_deleter{self});
         }
-        if (holder().vptr_is_using_noop_deleter) {
+        if (hld.vptr_is_using_noop_deleter) {
             throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
-        std::shared_ptr<void> void_shd_ptr = holder().template as_shared_ptr<void>();
+        std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
         return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
     }
 
