@@ -1507,12 +1507,8 @@ public:
         const void *ptr, ssize_t itemsize, const char *format,
         detail::any_container<ssize_t> shape,
         detail::any_container<ssize_t> strides) {
-        return memoryview::from_buffer(const_cast<void *>(ptr),
-                                       itemsize,
-                                       format,
-                                       std::move(std::move(shape)),
-                                       std::move(std::move(strides)),
-                                       true);
+        return memoryview::from_buffer(
+            const_cast<void *>(ptr), itemsize, format, std::move(shape), std::move(strides), true);
     }
 
     template<typename T>
