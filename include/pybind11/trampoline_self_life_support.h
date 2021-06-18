@@ -53,7 +53,7 @@ struct trampoline_self_life_support {
     // For the next two, the default implementations generate undefined behavior (ASAN failures
     // manually verified). The reason is that v_h needs to be kept default-initialized.
     trampoline_self_life_support(const trampoline_self_life_support &) {}
-    trampoline_self_life_support(trampoline_self_life_support &&) {}
+    trampoline_self_life_support(trampoline_self_life_support &&) noexcept {}
 
     // These should never be needed (please provide test cases if you think they are).
     trampoline_self_life_support &operator=(const trampoline_self_life_support &) = delete;
