@@ -11,8 +11,6 @@
 
 #pragma once
 
-#include <utility>
-
 #include "pybind11.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -45,7 +43,7 @@ enum eval_mode {
 };
 
 template <eval_mode mode = eval_expr>
-object eval(const str &expr, object global = globals(), object local = object()) {
+object eval(str expr, object global = globals(), object local = object()) {
     if (!local)
         local = global;
 
@@ -77,8 +75,8 @@ object eval(const char (&s)[N], object global = globals(), object local = object
     return eval<mode>(expr, global, local);
 }
 
-inline void exec(const str &expr, object global = globals(), object local = object()) {
-    eval<eval_statements>(expr, std::move(global), std::move(local));
+inline void exec(str expr, object global = globals(), object local = object()) {
+    eval<eval_statements>(expr, global, local);
 }
 
 template <size_t N>

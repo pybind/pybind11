@@ -164,10 +164,10 @@ struct npy_api {
             NPY_ULONG_, NPY_ULONGLONG_, NPY_UINT_),
     };
 
-    using PyArray_Dims = struct {
+    typedef struct {
         Py_intptr_t *ptr;
         int len;
-    };
+    } PyArray_Dims;
 
     static npy_api& get() {
         static npy_api api = lookup();
