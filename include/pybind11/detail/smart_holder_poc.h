@@ -195,8 +195,7 @@ struct smart_holder {
     }
 
     void reset_vptr_deleter_armed_flag(bool armed_flag) const {
-        // The const_cast is only for certain compilers (Ubuntu 20 GCC 6.3.0 being one).
-        auto vptr_del_ptr = const_cast<guarded_delete *>(std::get_deleter<guarded_delete>(vptr));
+        auto vptr_del_ptr = std::get_deleter<guarded_delete>(vptr);
         if (vptr_del_ptr == nullptr) {
             throw std::runtime_error(
                 "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
