@@ -6,6 +6,7 @@
 #     patch -i ci_sh_def.yml.patch -o ci_sh_def.yml
 # To update the patch file after making changes to ci_sh.yml:
 #     diff -u ci.yml ci_sh_def.yml > ci_sh_def.yml.patch
+#     git commit -a -m 'Tracking ci.yml changes from master.'
 #
 # Thanks a lot to @rhaschke for PR #2930!
 
@@ -165,7 +166,7 @@ jobs:
     # MSVC, but for now, this action works:
     - name: Prepare compiler environment for Windows 🐍 2.7
       if: matrix.python == 2.7 && runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1.8.1
+      uses: ilammy/msvc-dev-cmd@v1.9.0
       with:
         arch: x64
 
@@ -762,7 +763,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.9
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.8.1
+      uses: ilammy/msvc-dev-cmd@v1.9.0
       with:
         arch: x86
 
@@ -809,7 +810,7 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v1.9
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1.8.1
+      uses: ilammy/msvc-dev-cmd@v1.9.0
       with:
         toolset: 14.0
 
