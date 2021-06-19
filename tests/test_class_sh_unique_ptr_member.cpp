@@ -13,7 +13,6 @@ public:
 
     int get_int() const { return 213; }
 
-private:
     pointee(const pointee &) = delete;
     pointee(pointee &&)      = delete;
     pointee &operator=(const pointee &) = delete;
