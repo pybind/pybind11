@@ -30,7 +30,11 @@ class type_caster<ConstRefCasted> {
   // cast operator.
   bool load(handle, bool) { return true; }
 
-  operator ConstRefCasted&&() { value = {1}; return std::move(value); }
+  operator ConstRefCasted &&() {
+      value = {1};
+      // NOLINTNEXTLINE(performance-move-const-arg)
+      return std::move(value);
+  }
   operator ConstRefCasted&() { value = {2}; return value; }
   operator ConstRefCasted*() { value = {3}; return &value; }
 

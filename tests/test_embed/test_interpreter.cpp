@@ -8,16 +8,17 @@
 
 #include <catch.hpp>
 
-#include <thread>
 #include <fstream>
 #include <functional>
+#include <thread>
+#include <utility>
 
 namespace py = pybind11;
 using namespace py::literals;
 
 class Widget {
 public:
-    Widget(std::string message) : message(message) { }
+    Widget(std::string message) : message(std::move(message)) {}
     virtual ~Widget() = default;
 
     std::string the_message() const { return message; }

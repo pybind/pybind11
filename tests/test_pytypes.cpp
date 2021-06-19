@@ -7,6 +7,8 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <utility>
+
 #include "pybind11_tests.h"
 
 
@@ -333,7 +335,7 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("print_failure", []() { py::print(42, UnregisteredType()); });
 
-    m.def("hash_function", [](py::object obj) { return py::hash(obj); });
+    m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });
 
     m.def("test_number_protocol", [](py::object a, py::object b) {
         py::list l;
@@ -425,20 +427,22 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("PYBIND11_STR_LEGACY_PERMISSIVE") = true;
 #endif
 
-    m.def("isinstance_pybind11_bytes", [](py::object o) { return py::isinstance<py::bytes>(o); });
-    m.def("isinstance_pybind11_str", [](py::object o) { return py::isinstance<py::str>(o); });
+    m.def("isinstance_pybind11_bytes",
+          [](py::object o) { return py::isinstance<py::bytes>(std::move(o)); });
+    m.def("isinstance_pybind11_str",
+          [](py::object o) { return py::isinstance<py::str>(std::move(o)); });
 
-    m.def("pass_to_pybind11_bytes", [](py::bytes b) { return py::len(b); });
-    m.def("pass_to_pybind11_str", [](py::str s) { return py::len(s); });
+    m.def("pass_to_pybind11_bytes", [](py::bytes b) { return py::len(std::move(b)); });
+    m.def("pass_to_pybind11_str", [](py::str s) { return py::len(std::move(s)); });
     m.def("pass_to_std_string", [](std::string s) { return s.size(); });
 
     // test_weakref
     m.def("weakref_from_handle",
           [](py::handle h) { return py::weakref(h); });
     m.def("weakref_from_handle_and_function",
-          [](py::handle h, py::function f) { return py::weakref(h, f); });
+          [](py::handle h, py::function f) { return py::weakref(h, std::move(f)); });
     m.def("weakref_from_object",
           [](py::object o) { return py::weakref(o); });
     m.def("weakref_from_object_and_function",
-          [](py::object o, py::function f) { return py::weakref(o, f); });
+          [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
 }

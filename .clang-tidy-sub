@@ -1,0 +1,2 @@
+Checks: '-*performance*,'
+InheritParentConfig: true

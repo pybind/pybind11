@@ -8,10 +8,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include "pybind11_tests.h"
 #include "constructor_stats.h"
+#include "pybind11_tests.h"
 #include <cmath>
 #include <new>
+#include <utility>
 
 // Classes for testing python construction via C++ factory function:
 // Not publicly constructible, copyable, or movable:
@@ -35,8 +36,15 @@ class TestFactory2 {
     TestFactory2(int v) : value(std::to_string(v)) { print_created(this, value); }
     TestFactory2(std::string v) : value(std::move(v)) { print_created(this, value); }
 public:
-    TestFactory2(TestFactory2 &&m) { value = std::move(m.value); print_move_created(this); }
-    TestFactory2 &operator=(TestFactory2 &&m) { value = std::move(m.value); print_move_assigned(this); return *this; }
+    TestFactory2(TestFactory2 &&m) noexcept {
+        value = std::move(m.value);
+        print_move_created(this);
+    }
+    TestFactory2 &operator=(TestFactory2 &&m) noexcept {
+        value = std::move(m.value);
+        print_move_assigned(this);
+        return *this;
+    }
     std::string value;
     ~TestFactory2() { print_destroyed(this); }
 };
@@ -48,8 +56,15 @@ protected:
     TestFactory3(int v) : value(std::to_string(v)) { print_created(this, value); }
 public:
     TestFactory3(std::string v) : value(std::move(v)) { print_created(this, value); }
-    TestFactory3(TestFactory3 &&m) { value = std::move(m.value); print_move_created(this); }
-    TestFactory3 &operator=(TestFactory3 &&m) { value = std::move(m.value); print_move_assigned(this); return *this; }
+    TestFactory3(TestFactory3 &&m) noexcept {
+        value = std::move(m.value);
+        print_move_created(this);
+    }
+    TestFactory3 &operator=(TestFactory3 &&m) noexcept {
+        value = std::move(m.value);
+        print_move_assigned(this);
+        return *this;
+    }
     std::string value;
     virtual ~TestFactory3() { print_destroyed(this); }
 };
@@ -73,7 +88,11 @@ protected:
     bool alias = false;
 public:
     TestFactory6(int i) : value{i} { print_created(this, i); }
-    TestFactory6(TestFactory6 &&f) { print_move_created(this); value = f.value; alias = f.alias; }
+    TestFactory6(TestFactory6 &&f) noexcept {
+        print_move_created(this);
+        value = f.value;
+        alias = f.alias;
+    }
     TestFactory6(const TestFactory6 &f) { print_copy_created(this); value = f.value; alias = f.alias; }
     virtual ~TestFactory6() { print_destroyed(this); }
     virtual int get() { return value; }
@@ -85,7 +104,7 @@ public:
     // when an alias is needed:
     PyTF6(TestFactory6 &&base) : TestFactory6(std::move(base)) { alias = true; print_created(this, "move", value); }
     PyTF6(int i) : TestFactory6(i) { alias = true; print_created(this, i); }
-    PyTF6(PyTF6 &&f) : TestFactory6(std::move(f)) { print_move_created(this); }
+    PyTF6(PyTF6 &&f) noexcept : TestFactory6(std::move(f)) { print_move_created(this); }
     PyTF6(const PyTF6 &f) : TestFactory6(f) { print_copy_created(this); }
     PyTF6(std::string s) : TestFactory6((int) s.size()) { alias = true; print_created(this, s); }
     ~PyTF6() override { print_destroyed(this); }
@@ -98,7 +117,11 @@ protected:
     bool alias = false;
 public:
     TestFactory7(int i) : value{i} { print_created(this, i); }
-    TestFactory7(TestFactory7 &&f) { print_move_created(this); value = f.value; alias = f.alias; }
+    TestFactory7(TestFactory7 &&f) noexcept {
+        print_move_created(this);
+        value = f.value;
+        alias = f.alias;
+    }
     TestFactory7(const TestFactory7 &f) { print_copy_created(this); value = f.value; alias = f.alias; }
     virtual ~TestFactory7() { print_destroyed(this); }
     virtual int get() { return value; }
@@ -107,7 +130,7 @@ public:
 class PyTF7 : public TestFactory7 {
 public:
     PyTF7(int i) : TestFactory7(i) { alias = true; print_created(this, i); }
-    PyTF7(PyTF7 &&f) : TestFactory7(std::move(f)) { print_move_created(this); }
+    PyTF7(PyTF7 &&f) noexcept : TestFactory7(std::move(f)) { print_move_created(this); }
     PyTF7(const PyTF7 &f) : TestFactory7(f) { print_copy_created(this); }
     ~PyTF7() override { print_destroyed(this); }
     int get() override { PYBIND11_OVERRIDE(int, TestFactory7, get, /*no args*/); }
@@ -122,7 +145,9 @@ public:
     // Holder:
     static std::unique_ptr<TestFactory1> construct1(int a) { return std::unique_ptr<TestFactory1>(new TestFactory1(a)); }
     // pointer again
-    static TestFactory1 *construct1_string(std::string a) { return new TestFactory1(a); }
+    static TestFactory1 *construct1_string(std::string a) {
+        return new TestFactory1(std::move(a));
+    }
 
     // Moveable type:
     // pointer:
@@ -130,7 +155,7 @@ public:
     // holder:
     static std::unique_ptr<TestFactory2> construct2(int a) { return std::unique_ptr<TestFactory2>(new TestFactory2(a)); }
     // by value moving:
-    static TestFactory2 construct2(std::string a) { return TestFactory2(a); }
+    static TestFactory2 construct2(std::string a) { return TestFactory2(std::move(a)); }
 
     // shared_ptr holder type:
     // pointer:
@@ -173,10 +198,11 @@ TEST_SUBMODULE(factory_constructors, m) {
         ;
     py::class_<TestFactory2>(m, "TestFactory2")
         .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct2(v); }))
-        .def(py::init([](unique_ptr_tag, std::string v) { return TestFactoryHelper::construct2(v); }))
+        .def(py::init([](unique_ptr_tag, std::string v) {
+            return TestFactoryHelper::construct2(std::move(v));
+        }))
         .def(py::init([](move_tag) { return TestFactoryHelper::construct2(); }))
-        .def_readwrite("value", &TestFactory2::value)
-        ;
+        .def_readwrite("value", &TestFactory2::value);
 
     // Stateful & reused:
     int c = 1;
@@ -188,7 +214,9 @@ TEST_SUBMODULE(factory_constructors, m) {
         .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct3(v); }))
         .def(py::init([](shared_ptr_tag) { return TestFactoryHelper::construct3(); }));
     ignoreOldStyleInitWarnings([&pyTestFactory3]() {
-        pyTestFactory3.def("__init__", [](TestFactory3 &self, std::string v) { new (&self) TestFactory3(v); }); // placement-new ctor
+        pyTestFactory3.def("__init__", [](TestFactory3 &self, std::string v) {
+            new (&self) TestFactory3(std::move(v));
+        }); // placement-new ctor
     });
     pyTestFactory3
         // factories returning a derived type:
@@ -219,17 +247,19 @@ TEST_SUBMODULE(factory_constructors, m) {
     py::class_<TestFactory6, PyTF6>(m, "TestFactory6")
         .def(py::init([](base_tag, int i) { return TestFactory6(i); }))
         .def(py::init([](alias_tag, int i) { return PyTF6(i); }))
-        .def(py::init([](alias_tag, std::string s) { return PyTF6(s); }))
+        .def(py::init([](alias_tag, std::string s) { return PyTF6(std::move(s)); }))
         .def(py::init([](alias_tag, pointer_tag, int i) { return new PyTF6(i); }))
         .def(py::init([](base_tag, pointer_tag, int i) { return new TestFactory6(i); }))
-        .def(py::init([](base_tag, alias_tag, pointer_tag, int i) { return (TestFactory6 *) new PyTF6(i); }))
+        .def(py::init(
+            [](base_tag, alias_tag, pointer_tag, int i) { return (TestFactory6 *) new PyTF6(i); }))
 
         .def("get", &TestFactory6::get)
         .def("has_alias", &TestFactory6::has_alias)
 
-        .def_static("get_cstats", &ConstructorStats::get<TestFactory6>, py::return_value_policy::reference)
-        .def_static("get_alias_cstats", &ConstructorStats::get<PyTF6>, py::return_value_policy::reference)
-        ;
+        .def_static(
+            "get_cstats", &ConstructorStats::get<TestFactory6>, py::return_value_policy::reference)
+        .def_static(
+            "get_alias_cstats", &ConstructorStats::get<PyTF6>, py::return_value_policy::reference);
 
     // test_init_factory_dual
     // Separate alias constructor testing

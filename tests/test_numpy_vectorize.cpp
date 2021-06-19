@@ -11,6 +11,8 @@
 #include "pybind11_tests.h"
 #include <pybind11/numpy.h>
 
+#include <utility>
+
 double my_func(int x, float y, double z) {
     py::print("my_func(x:int={}, y:float={:.0f}, z:float={:.0f})"_s.format(x, y, z));
     return (float) x*y*z;
@@ -25,11 +27,10 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     m.def("vectorized_func", py::vectorize(my_func));
 
     // Vectorize a lambda function with a capture object (e.g. to exclude some arguments from the vectorization)
-    m.def("vectorized_func2",
-        [](py::array_t<int> x, py::array_t<float> y, float z) {
-            return py::vectorize([z](int x, float y) { return my_func(x, y, z); })(x, y);
-        }
-    );
+    m.def("vectorized_func2", [](py::array_t<int> x, py::array_t<float> y, float z) {
+        return py::vectorize([z](int x, float y) { return my_func(x, y, z); })(std::move(x),
+                                                                               std::move(y));
+    });
 
     // Vectorize a complex-valued function
     m.def("vectorized_func3", py::vectorize(

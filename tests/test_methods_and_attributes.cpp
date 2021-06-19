@@ -22,7 +22,7 @@ public:
     ExampleMandA(int value) : value(value) { print_created(this, value); }
     ExampleMandA(const ExampleMandA &e) : value(e.value) { print_copy_created(this); }
     ExampleMandA(std::string&&) {}
-    ExampleMandA(ExampleMandA &&e) : value(e.value) { print_move_created(this); }
+    ExampleMandA(ExampleMandA &&e) noexcept : value(e.value) { print_move_created(this); }
     ~ExampleMandA() { print_destroyed(this); }
 
     std::string toString() {
@@ -30,8 +30,12 @@ public:
     }
 
     void operator=(const ExampleMandA &e) { print_copy_assigned(this); value = e.value; }
-    void operator=(ExampleMandA &&e) { print_move_assigned(this); value = e.value; }
+    void operator=(ExampleMandA &&e) noexcept {
+        print_move_assigned(this);
+        value = e.value;
+    }
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     void add1(ExampleMandA other) { value += other.value; }         // passing by value
     void add2(ExampleMandA &other) { value += other.value; }        // passing by reference
     void add3(const ExampleMandA &other) { value += other.value; }  // passing by const reference
@@ -114,7 +118,7 @@ int none1(const NoneTester &obj) { return obj.answer; }
 int none2(NoneTester *obj) { return obj ? obj->answer : -1; }
 int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
-int none5(std::shared_ptr<NoneTester> obj) { return obj ? obj->answer : -1; }
+int none5(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 
 struct StrIssue {
     int val = -1;

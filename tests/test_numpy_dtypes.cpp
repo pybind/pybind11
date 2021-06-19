@@ -266,10 +266,11 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         .def_readwrite("uint_", &SimpleStruct::uint_)
         .def_readwrite("float_", &SimpleStruct::float_)
         .def_readwrite("ldbl_", &SimpleStruct::ldbl_)
-        .def("astuple", [](const SimpleStruct& self) {
-            return py::make_tuple(self.bool_, self.uint_, self.float_, self.ldbl_);
-        })
-        .def_static("fromtuple", [](const py::tuple tup) {
+        .def("astuple",
+             [](const SimpleStruct &self) {
+                 return py::make_tuple(self.bool_, self.uint_, self.float_, self.ldbl_);
+             })
+        .def_static("fromtuple", [](const py::tuple &tup) {
             if (py::len(tup) != 4) {
                 throw py::cast_error("Invalid size");
             }

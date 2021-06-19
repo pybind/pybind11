@@ -17,15 +17,14 @@
 #include <iostream>
 #include <thread>
 
-
-void noisy_function(std::string msg, bool flush) {
+void noisy_function(const std::string &msg, bool flush) {
 
     std::cout << msg;
     if (flush)
         std::cout << std::flush;
 }
 
-void noisy_funct_dual(std::string msg, std::string emsg) {
+void noisy_funct_dual(const std::string &msg, const std::string &emsg) {
     std::cout << msg;
     std::cerr << emsg;
 }

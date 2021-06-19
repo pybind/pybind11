@@ -19,6 +19,8 @@
 #include "local_bindings.h"
 #include <pybind11/stl.h>
 
+#include <utility>
+
 #if defined(_MSC_VER)
 #  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
 #endif
@@ -155,9 +157,7 @@ TEST_SUBMODULE(class_, m) {
             return py::type::of<Invalid>();
     });
 
-    m.def("get_type_of", [](py::object ob) {
-        return py::type::of(ob);
-    });
+    m.def("get_type_of", [](py::object ob) { return py::type::of(std::move(ob)); });
 
     m.def("get_type_classic", [](py::handle h) {
         return h.get_type();

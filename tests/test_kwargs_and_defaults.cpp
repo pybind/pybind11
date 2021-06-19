@@ -11,6 +11,8 @@
 #include "constructor_stats.h"
 #include <pybind11/stl.h>
 
+#include <utility>
+
 TEST_SUBMODULE(kwargs_and_defaults, m) {
     auto kw_func = [](int x, int y) { return "x=" + std::to_string(x) + ", y=" + std::to_string(y); };
 
@@ -137,6 +139,8 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
 
     // Make sure a class (not an instance) can be used as a default argument.
     // The return value doesn't matter, only that the module is importable.
-    m.def("class_default_argument", [](py::object a) { return py::repr(a); },
+    m.def(
+        "class_default_argument",
+        [](py::object a) { return py::repr(std::move(a)); },
         "a"_a = py::module_::import("decimal").attr("Decimal"));
 }

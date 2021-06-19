@@ -13,6 +13,7 @@
 #include <pybind11/stl.h>
 
 #include <cstdint>
+#include <utility>
 
 // Size / dtype checks.
 struct DtypeCheck {
@@ -222,7 +223,8 @@ TEST_SUBMODULE(numpy_array, sm) {
 
     // test_isinstance
     sm.def("isinstance_untyped", [](py::object yes, py::object no) {
-        return py::isinstance<py::array>(yes) && !py::isinstance<py::array>(no);
+        return py::isinstance<py::array>(std::move(yes))
+               && !py::isinstance<py::array>(std::move(no));
     });
     sm.def("isinstance_typed", [](py::object o) {
         return py::isinstance<py::array_t<double>>(o) && !py::isinstance<py::array_t<int>>(o);
