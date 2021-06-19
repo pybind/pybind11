@@ -33,7 +33,7 @@ TEST_SUBMODULE(class_sh_shared_ptr_copy, m) {
     namespace py = pybind11;
 
     py::class_<FooAVL, PYBIND11_SH_AVL(FooAVL)>(m, "FooAVL");
-    py::class_<FooDEF, std::shared_ptr<FooDEF>>(m, "FooDEF");
+    py::class_<FooDEF, PYBIND11_SH_DEF(FooDEF)>(m, "FooDEF");
 
     m.def("test_avl", []() {
         auto o = std::make_shared<FooAVL>("AVL");
