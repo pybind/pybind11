@@ -164,7 +164,7 @@ struct npy_api {
             NPY_ULONG_, NPY_ULONGLONG_, NPY_UINT_),
     };
 
-    using PyArray_Dims = struct {
+    struct PyArray_Dims {
         Py_intptr_t *ptr;
         int len;
     };
