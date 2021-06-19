@@ -10,4 +10,8 @@ modernize-use-auto,
 modernize-use-emplace,
 '
 
+CheckOptions:
+- key:             performance-unnecessary-value-param.AllowedTypes
+  value:           'exception_ptr$;'
+
 HeaderFilterRegex: 'pybind11/.*h'

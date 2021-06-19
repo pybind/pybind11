@@ -1412,15 +1412,15 @@ public:
 
     template <typename D, typename... Extra>
     class_ &def_readwrite_static(const char *name, D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this)),
-                     fset([pm](object, const D &value) { *pm = value; }, scope(*this));
+        cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this)),
+            fset([pm](const object &, const D &value) { *pm = value; }, scope(*this));
         def_property_static(name, fget, fset, return_value_policy::reference, extra...);
         return *this;
     }
 
     template <typename D, typename... Extra>
     class_ &def_readonly_static(const char *name, const D *pm, const Extra& ...extra) {
-        cpp_function fget([pm](object) -> const D &{ return *pm; }, scope(*this));
+        cpp_function fget([pm](const object &) -> const D & { return *pm; }, scope(*this));
         def_property_readonly_static(name, fget, return_value_policy::reference, extra...);
         return *this;
     }
@@ -1671,30 +1671,36 @@ struct enum_base {
             }, name("__members__")), none(), none(), ""
         );
 
-        #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                     \
-            m_base.attr(op) = cpp_function(                                            \
-                [](object a, object b) {                                               \
-                    if (!type::handle_of(a).is(type::handle_of(b)))                    \
-                        strict_behavior;                                               \
-                    return expr;                                                       \
-                },                                                                     \
-                name(op), is_method(m_base), arg("other"))
+#define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                                        \
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a, const object &b) {                                                    \
+            if (!type::handle_of(a).is(type::handle_of(b)))                                       \
+                strict_behavior;                                                                  \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"))
 
-        #define PYBIND11_ENUM_OP_CONV(op, expr)                                        \
-            m_base.attr(op) = cpp_function(                                            \
-                [](object a_, object b_) {                                             \
-                    int_ a(a_), b(b_);                                                 \
-                    return expr;                                                       \
-                },                                                                     \
-                name(op), is_method(m_base), arg("other"))
+#define PYBIND11_ENUM_OP_CONV(op, expr)                                                           \
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a_, const object &b_) {                                                  \
+            int_ a(a_), b(b_);                                                                    \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"))
 
-        #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                    \
-            m_base.attr(op) = cpp_function(                                            \
-                [](object a_, object b) {                                              \
-                    int_ a(a_);                                                        \
-                    return expr;                                                       \
-                },                                                                     \
-                name(op), is_method(m_base), arg("other"))
+#define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                                       \
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a_, const object &b) {                                                   \
+            int_ a(a_);                                                                           \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"))
 
         if (is_convertible) {
             PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() &&  a.equal(b));
@@ -2054,7 +2060,7 @@ exception<CppException> &register_exception(handle scope,
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_NOINLINE inline void print(tuple args, dict kwargs) {
+PYBIND11_NOINLINE inline void print(const tuple &args, const dict &kwargs) {
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
