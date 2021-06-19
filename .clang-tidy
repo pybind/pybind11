@@ -2,12 +2,16 @@ FormatStyle: file
 
 Checks: '
 llvm-namespace-comment,
-modernize-use-override,
-readability-container-size-empty,
-modernize-use-using,
-modernize-use-equals-default,
+modernize-avoid-bind,
+modernize-replace-auto-ptr,
+modernize-replace-disallow-copy-and-assign-macro,
+modernize-shrink-to-fit,
 modernize-use-auto,
+modernize-use-equals-default,
 modernize-use-emplace,
+modernize-use-override,
+modernize-use-using,
+readability-container-size-empty,
 '
 
 CheckOptions:
@@ -15,3 +19,5 @@ CheckOptions:
   value:           'exception_ptr$;'
 
 HeaderFilterRegex: 'pybind11/.*h'
+
+WarningsAsErrors: '*'
