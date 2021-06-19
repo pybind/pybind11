@@ -128,11 +128,11 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
            arg("x"),
            "Add an item to the end of the list");
 
-    cl.def(init([](iterable it) {
+    cl.def(init([](const iterable &it) {
         auto v = std::unique_ptr<Vector>(new Vector());
         v->reserve(len_hint(it));
         for (handle h : it)
-           v->push_back(h.cast<T>());
+            v->push_back(h.cast<T>());
         return v.release();
     }));
 
@@ -151,27 +151,28 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
        "Extend the list by appending all the items in the given list"
     );
 
-    cl.def("extend",
-       [](Vector &v, iterable it) {
-           const size_t old_size = v.size();
-           v.reserve(old_size + len_hint(it));
-           try {
-               for (handle h : it) {
-                   v.push_back(h.cast<T>());
-               }
-           } catch (const cast_error &) {
-               v.erase(v.begin() + static_cast<typename Vector::difference_type>(old_size), v.end());
-               try {
-                   v.shrink_to_fit();
-               } catch (const std::exception &) {
-                   // Do nothing
-               }
-               throw;
-           }
-       },
-       arg("L"),
-       "Extend the list by appending all the items in the given list"
-    );
+    cl.def(
+        "extend",
+        [](Vector &v, const iterable &it) {
+            const size_t old_size = v.size();
+            v.reserve(old_size + len_hint(it));
+            try {
+                for (handle h : it) {
+                    v.push_back(h.cast<T>());
+                }
+            } catch (const cast_error &) {
+                v.erase(v.begin() + static_cast<typename Vector::difference_type>(old_size),
+                        v.end());
+                try {
+                    v.shrink_to_fit();
+                } catch (const std::exception &) {
+                    // Do nothing
+                }
+                throw;
+            }
+        },
+        arg("L"),
+        "Extend the list by appending all the items in the given list");
 
     cl.def("insert",
         [](Vector &v, DiffType i, const T &x) {
@@ -400,7 +401,7 @@ void vector_buffer_impl(Class_& cl, std::true_type) {
         return buffer_info(v.data(), static_cast<ssize_t>(sizeof(T)), format_descriptor<T>::format(), 1, {v.size()}, {sizeof(T)});
     });
 
-    cl.def(init([](buffer buf) {
+    cl.def(init([](const buffer &buf) {
         auto info = buf.request();
         if (info.ndim != 1 || info.strides[0] % static_cast<ssize_t>(sizeof(T)))
             throw type_error("Only valid 1D buffers can be copied to a vector");
