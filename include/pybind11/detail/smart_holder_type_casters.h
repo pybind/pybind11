@@ -627,15 +627,16 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
     static constexpr auto name = _<std::shared_ptr<T>>();
 
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
-        if (policy != return_value_policy::automatic
-            && policy != return_value_policy::automatic_reference
-            // (but not take_ownership)
-            && policy != return_value_policy::copy
-            && policy != return_value_policy::move
-            // (but not reference)
-            && policy != return_value_policy::reference_internal) {
-            // SMART_HOLDER_WIP: IMPROVABLE: Error message.
-            throw cast_error("Invalid return_value_policy for shared_ptr.");
+        switch (policy) {
+            case return_value_policy::automatic: break;
+            case return_value_policy::automatic_reference: break;
+            case return_value_policy::take_ownership:
+                throw cast_error("Invalid return_value_policy for shared_ptr (take_ownership).");
+            case return_value_policy::copy: break;
+            case return_value_policy::move: break;
+            case return_value_policy::reference:
+                throw cast_error("Invalid return_value_policy for shared_ptr (reference).");
+            case return_value_policy::reference_internal: break;
         }
         if (!src)
             return none().release();
