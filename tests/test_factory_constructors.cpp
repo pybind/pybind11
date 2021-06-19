@@ -20,12 +20,12 @@ class TestFactory1 {
     TestFactory1() : value("(empty)") { print_default_created(this); }
     TestFactory1(int v) : value(std::to_string(v)) { print_created(this, value); }
     TestFactory1(std::string v) : value(std::move(v)) { print_created(this, value); }
+public:
+    std::string value;
     TestFactory1(TestFactory1 &&) = delete;
     TestFactory1(const TestFactory1 &) = delete;
     TestFactory1 &operator=(TestFactory1 &&) = delete;
     TestFactory1 &operator=(const TestFactory1 &) = delete;
-public:
-    std::string value;
     ~TestFactory1() { print_destroyed(this); }
 };
 // Non-public construction, but moveable:
