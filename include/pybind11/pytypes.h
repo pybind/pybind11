@@ -11,6 +11,7 @@
 
 #include "detail/common.h"
 #include "buffer_info.h"
+#include <initializer_list>
 #include <utility>
 #include <type_traits>
 
@@ -1311,9 +1312,21 @@ public:
 class tuple : public object {
 public:
     PYBIND11_OBJECT_CVT(tuple, object, PyTuple_Check, PySequence_Tuple)
+    /** \rst
+        Creates an empty ``tuple`` with given ``size`` to be later filled in.
+     \endrst */
     explicit tuple(size_t size = 0) : object(PyTuple_New((ssize_t) size), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate tuple object!");
     }
+    /** \rst
+        Creates a ``tuple`` from an initializer list of object instances.
+     \endrst */
+    explicit tuple(std::initializer_list<object> init_list) : tuple(init_list.size()) {
+        detail::accessor_policies::tuple_item::key_type index{0};
+        for (const pybind11::object& item : init_list)
+            detail::tuple_accessor(*this, index++) = item;
+    }
+
     size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
@@ -1383,6 +1396,12 @@ public:
     explicit list(size_t size = 0) : object(PyList_New((ssize_t) size), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate list object!");
     }
+    explicit list(std::initializer_list<object> init_list) : list(init_list.size()) {
+        detail::accessor_policies::list_item::key_type index {0};
+        for (const pybind11::object& item : init_list)
+            detail::list_accessor(*this, index++) = item;
+    }
+
     size_t size() const { return (size_t) PyList_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
@@ -1407,6 +1426,11 @@ public:
     set() : object(PySet_New(nullptr), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate set object!");
     }
+    explicit set(std::initializer_list<object> init_list): set() {
+        for (const object& item : init_list)
+            PySet_Add(m_ptr, item.ptr());
+    }
+
     size_t size() const { return (size_t) PySet_Size(m_ptr); }
     bool empty() const { return size() == 0; }
     template <typename T> bool add(T &&val) const {

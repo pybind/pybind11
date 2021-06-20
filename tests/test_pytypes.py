@@ -271,6 +271,20 @@ def test_constructors():
     for k in noconv2:
         assert noconv2[k] is expected[k]
 
+    init_list = m.initializer_list()
+    assert init_list["tuple_ints"] == (1, 2, 3)
+    assert init_list["tuple_floats"] == (2.2, 3.1, 4.5, 5.4)
+    assert init_list["list_ints"] == [1, 2, 3]
+    assert init_list["list_floats"] == [2.2, 3.1, 4.5, 5.4]
+
+    assert init_list["tuple_objects"] == (
+        321, 123.3, "somestring", (1, 3.3), [5.5, 12], {"k_s": "v1", "k_i": 12, "k_f": 12.1}
+    )
+    assert init_list["list_objects"] == [
+        321, 123.3, "somestring", (1, 3.3), [5.5, 12], {"k_s": "v1", "k_i": 12, "k_f": 12.1}
+    ]
+    assert init_list["set_objects"] == {321, 123.3, "somestring", (1, 3.3)}
+
 
 def test_non_converting_constructors():
     non_converting_test_cases = [

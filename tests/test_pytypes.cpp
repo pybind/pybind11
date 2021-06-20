@@ -9,6 +9,13 @@
 
 #include "pybind11_tests.h"
 
+#include <array>
+#include <deque>
+#include <list>
+#include <set>
+#include <string>
+#include <vector>
+
 
 TEST_SUBMODULE(pytypes, m) {
     // test_int
@@ -256,6 +263,39 @@ TEST_SUBMODULE(pytypes, m) {
             "dict"_a=d["dict"].cast<py::dict>(),
             "set"_a=d["set"].cast<py::set>(),
             "memoryview"_a=d["memoryview"].cast<py::memoryview>()
+        );
+    });
+
+    // Some python containers can also be constructed using an initializer list
+    m.def("initializer_list", []() {
+        return py::dict(
+            "tuple_ints"_a = py::tuple{py::int_(1), py::int_(2), py::int_(3)},
+            "tuple_floats"_a = py::tuple{py::float_(2.2), py::float_(3.1), py::float_(4.5), py::float_(5.4)},
+            "list_ints"_a = py::list{py::int_(1), py::int_(2), py::int_(3)},
+            "list_floats"_a = py::list{py::float_(2.2), py::float_(3.1), py::float_(4.5), py::float_(5.4)},
+            "tuple_objects"_a = py::tuple{
+                py::int_(321),
+                py::float_(123.3),
+                "somestring"_s,
+                py::tuple({py::int_(1), py::float_(3.3)}),
+                py::list({py::float_(5.5), py::int_(12)}),
+                py::dict("k_s"_a="v1", "k_i"_a=12, "k_f"_a=12.1)
+            },
+            "list_objects"_a = py::list{
+                py::int_(321),
+                py::float_(123.3),
+                "somestring"_s,
+                py::tuple({py::int_(1), py::float_(3.3)}),
+                py::list({py::float_(5.5), py::int_(12)}),
+                py::dict("k_s"_a="v1", "k_i"_a=12, "k_f"_a=12.1)
+            },
+            // Tuples are hashable, lists and dicts are not
+            "set_objects"_a = py::set{
+                py::int_(321),
+                py::float_(123.3),
+                "somestring"_s,
+                py::tuple({py::int_(1), py::float_(3.3)})
+            }
         );
     });
 
