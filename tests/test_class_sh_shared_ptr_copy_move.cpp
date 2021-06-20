@@ -7,56 +7,70 @@
 #include <vector>
 
 namespace pybind11_tests {
-namespace class_sh_shared_ptr_copy_move {
+namespace {
 
-template<int SerNo>
+template <int SerNo>
 struct Foo {
     std::string mtxt;
-    Foo() : mtxt("DefaultConstructor") {}
     Foo(const std::string &mtxt_) : mtxt(mtxt_) {}
-    Foo(const Foo &other) { mtxt = other.mtxt + "_CpCtor"; }
-    Foo(Foo &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    Foo(const Foo &other) = delete;
+    Foo(Foo &&other) = delete;
+    std::string get_text() const {
+        std::string res = "Foo";
+        if (SerNo == 0)
+            res += "ShPtr_";
+        else if (SerNo == 1)
+            res += "SmHld_";
+        return res + mtxt;
+    }
 };
 
-using FooAVL = Foo<0>;
-using FooDEF = Foo<1>;
+using FooShPtr = Foo<0>;
+using FooSmHld = Foo<1>;
 
-} // namespace class_sh_shared_ptr_copy_move
+} // namespace
 } // namespace pybind11_tests
 
-PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::class_sh_shared_ptr_copy_move::FooAVL)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(pybind11_tests::FooShPtr)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(pybind11_tests::FooSmHld)
 
 namespace pybind11_tests {
-namespace class_sh_shared_ptr_copy_move {
+namespace {
 
 TEST_SUBMODULE(class_sh_shared_ptr_copy_move, m) {
     namespace py = pybind11;
 
-    py::class_<FooAVL, PYBIND11_SH_AVL(FooAVL)>(m, "FooAVL");
-    py::class_<FooDEF, PYBIND11_SH_DEF(FooDEF)>(m, "FooDEF");
+    py::class_<FooShPtr, std::shared_ptr<FooShPtr>>(m, "FooShPtr")
+        .def("get_text", &FooShPtr::get_text);
+    py::classh<FooSmHld>(m, "FooSmHld")
+        .def("get_text", &FooSmHld::get_text);
 
-    m.def("test_avl_copy", []() {
-        auto o = std::make_shared<FooAVL>("AVL");
+    m.def("test_ShPtr_copy", []() {
+        auto o = std::make_shared<FooShPtr>("copy");
         auto l = py::list();
         l.append(o);
+        return l;
     });
-    m.def("test_def_copy", []() {
-      auto o = std::make_shared<FooDEF>("DEF");
-      auto l = py::list();
-      l.append(o);
+    m.def("test_SmHld_copy", []() {
+        auto o = std::make_shared<FooSmHld>("copy");
+        auto l = py::list();
+        l.append(o);
+        return l;
     });
 
-    m.def("test_avl_move", []() {
-      auto o = std::make_shared<FooAVL>("AVL");
-      auto l = py::list();
-      l.append(std::move(o));
+    m.def("test_ShPtr_move", []() {
+        auto o = std::make_shared<FooShPtr>("move");
+        auto l = py::list();
+        l.append(std::move(o));
+        return l;
     });
-    m.def("test_def_move", []() {
-      auto o = std::make_shared<FooDEF>("DEF");
-      auto l = py::list();
-      l.append(std::move(o));
+    m.def("test_SmHld_move", []() {
+        auto o = std::make_shared<FooSmHld>("move");
+        auto l = py::list();
+        l.append(std::move(o));
+        return l;
     });
 }
 
-} // namespace class_sh_shared_ptr_copy_move
+} // namespace
 } // namespace pybind11_tests

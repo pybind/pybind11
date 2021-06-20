@@ -3,17 +3,21 @@
 from pybind11_tests import class_sh_shared_ptr_copy_move as m
 
 
-def test_avl_copy():
-    m.test_avl_copy()
+def test_shptr_copy():
+    txt = m.test_ShPtr_copy()[0].get_text()
+    assert txt == "FooShPtr_copy"
 
 
-def test_def_copy():
-    m.test_def_copy()
+def test_smhld_copy():
+    txt = m.test_SmHld_copy()[0].get_text()
+    assert txt == "FooSmHld_copy"
 
 
-def test_avl_move():
-    m.test_avl_move()
+def test_shptr_move():
+    txt = m.test_ShPtr_move()[0].get_text()
+    assert txt == "FooShPtr_move"
 
 
-def test_def_move():
-    m.test_def_move()
+def test_smhld_move():
+    txt = m.test_SmHld_move()[0].get_text()
+    assert txt == "FooSmHld_move"
