@@ -201,7 +201,8 @@ TEST_SUBMODULE(exceptions, m) {
         throw py::error_already_set();
     });
 
-    m.def("python_call_in_destructor", [](const py::dict &d) {
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    m.def("python_call_in_destructor", [](py::dict d) {
         try {
             PythonCallInDestructor set_dict_in_destructor(d);
             PyErr_SetString(PyExc_ValueError, "foo");
