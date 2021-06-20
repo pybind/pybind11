@@ -69,12 +69,12 @@ TEST_SUBMODULE(iostream, m) {
 
     // test_evals
 
-    m.def("captured_output_default", [](std::string msg) {
+    m.def("captured_output_default", [](const std::string &msg) {
         py::scoped_ostream_redirect redir;
         std::cout << msg << std::flush;
     });
 
-    m.def("captured_output", [](std::string msg) {
+    m.def("captured_output", [](const std::string &msg) {
         py::scoped_ostream_redirect redir(std::cout, py::module_::import("sys").attr("stdout"));
         std::cout << msg << std::flush;
     });
@@ -83,7 +83,7 @@ TEST_SUBMODULE(iostream, m) {
             py::call_guard<py::scoped_ostream_redirect>(),
             py::arg("msg"), py::arg("flush")=true);
 
-    m.def("captured_err", [](std::string msg) {
+    m.def("captured_err", [](const std::string &msg) {
         py::scoped_ostream_redirect redir(std::cerr, py::module_::import("sys").attr("stderr"));
         std::cerr << msg << std::flush;
     });
@@ -94,15 +94,11 @@ TEST_SUBMODULE(iostream, m) {
             py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>(),
             py::arg("msg"), py::arg("emsg"));
 
-    m.def("raw_output", [](std::string msg) {
-        std::cout << msg << std::flush;
-    });
+    m.def("raw_output", [](const std::string &msg) { std::cout << msg << std::flush; });
 
-    m.def("raw_err", [](std::string msg) {
-        std::cerr << msg << std::flush;
-    });
+    m.def("raw_err", [](const std::string &msg) { std::cerr << msg << std::flush; });
 
-    m.def("captured_dual", [](std::string msg, std::string emsg) {
+    m.def("captured_dual", [](const std::string &msg, const std::string &emsg) {
         py::scoped_ostream_redirect redirout(std::cout, py::module_::import("sys").attr("stdout"));
         py::scoped_ostream_redirect redirerr(std::cerr, py::module_::import("sys").attr("stderr"));
         std::cout << msg << std::flush;

@@ -264,37 +264,37 @@ TEST_SUBMODULE(factory_constructors, m) {
     // test_init_factory_dual
     // Separate alias constructor testing
     py::class_<TestFactory7, PyTF7, std::shared_ptr<TestFactory7>>(m, "TestFactory7")
-        .def(py::init(
-            [](int i) { return TestFactory7(i); },
-            [](int i) { return PyTF7(i); }))
-        .def(py::init(
-            [](pointer_tag, int i) { return new TestFactory7(i); },
-            [](pointer_tag, int i) { return new PyTF7(i); }))
-        .def(py::init(
-            [](mixed_tag, int i) { return new TestFactory7(i); },
-            [](mixed_tag, int i) { return PyTF7(i); }))
-        .def(py::init(
-            [](mixed_tag, std::string s) { return TestFactory7((int) s.size()); },
-            [](mixed_tag, std::string s) { return new PyTF7((int) s.size()); }))
-        .def(py::init(
-            [](base_tag, pointer_tag, int i) { return new TestFactory7(i); },
-            [](base_tag, pointer_tag, int i) { return (TestFactory7 *) new PyTF7(i); }))
-        .def(py::init(
-            [](alias_tag, pointer_tag, int i) { return new PyTF7(i); },
-            [](alias_tag, pointer_tag, int i) { return new PyTF7(10*i); }))
+        .def(py::init([](int i) { return TestFactory7(i); }, [](int i) { return PyTF7(i); }))
+        .def(py::init([](pointer_tag, int i) { return new TestFactory7(i); },
+                      [](pointer_tag, int i) { return new PyTF7(i); }))
+        .def(py::init([](mixed_tag, int i) { return new TestFactory7(i); },
+                      [](mixed_tag, int i) { return PyTF7(i); }))
+        .def(py::init([](mixed_tag, const std::string &s) { return TestFactory7((int) s.size()); },
+                      [](mixed_tag, const std::string &s) { return new PyTF7((int) s.size()); }))
+        .def(py::init([](base_tag, pointer_tag, int i) { return new TestFactory7(i); },
+                      [](base_tag, pointer_tag, int i) { return (TestFactory7 *) new PyTF7(i); }))
+        .def(py::init([](alias_tag, pointer_tag, int i) { return new PyTF7(i); },
+                      [](alias_tag, pointer_tag, int i) { return new PyTF7(10 * i); }))
         .def(py::init(
             [](shared_ptr_tag, base_tag, int i) { return std::make_shared<TestFactory7>(i); },
-            [](shared_ptr_tag, base_tag, int i) { auto *p = new PyTF7(i); return std::shared_ptr<TestFactory7>(p); }))
-        .def(py::init(
-            [](shared_ptr_tag, invalid_base_tag, int i) { return std::make_shared<TestFactory7>(i); },
-            [](shared_ptr_tag, invalid_base_tag, int i) { return std::make_shared<TestFactory7>(i); })) // <-- invalid alias factory
+            [](shared_ptr_tag, base_tag, int i) {
+                auto *p = new PyTF7(i);
+                return std::shared_ptr<TestFactory7>(p);
+            }))
+        .def(py::init([](shared_ptr_tag,
+                         invalid_base_tag,
+                         int i) { return std::make_shared<TestFactory7>(i); },
+                      [](shared_ptr_tag, invalid_base_tag, int i) {
+                          return std::make_shared<TestFactory7>(i);
+                      })) // <-- invalid alias factory
 
         .def("get", &TestFactory7::get)
         .def("has_alias", &TestFactory7::has_alias)
 
-        .def_static("get_cstats", &ConstructorStats::get<TestFactory7>, py::return_value_policy::reference)
-        .def_static("get_alias_cstats", &ConstructorStats::get<PyTF7>, py::return_value_policy::reference)
-        ;
+        .def_static(
+            "get_cstats", &ConstructorStats::get<TestFactory7>, py::return_value_policy::reference)
+        .def_static(
+            "get_alias_cstats", &ConstructorStats::get<PyTF7>, py::return_value_policy::reference);
 
     // test_placement_new_alternative
     // Class with a custom new operator but *without* a placement new operator (issue #948)
@@ -361,11 +361,9 @@ TEST_SUBMODULE(factory_constructors, m) {
     pyNoisyAlloc.def(py::init([](int i, double) { return new NoisyAlloc(i); }));
     // Regular again: requires yet another preallocation
     ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
-        pyNoisyAlloc.def("__init__", [](NoisyAlloc &a, int i, std::string) { new (&a) NoisyAlloc(i); });
+        pyNoisyAlloc.def(
+            "__init__", [](NoisyAlloc &a, int i, const std::string &) { new (&a) NoisyAlloc(i); });
     });
-
-
-
 
     // static_assert testing (the following def's should all fail with appropriate compilation errors):
 #if 0

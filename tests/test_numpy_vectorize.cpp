@@ -39,8 +39,11 @@ TEST_SUBMODULE(numpy_vectorize, m) {
 
     // test_type_selection
     // NumPy function which only accepts specific data types
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("selective_func", [](py::array_t<int, py::array::c_style>) { return "Int branch taken."; });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("selective_func", [](py::array_t<float, py::array::c_style>) { return "Float branch taken."; });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("selective_func", [](py::array_t<std::complex<float>, py::array::c_style>) { return "Complex float branch taken."; });
 
 
@@ -54,11 +57,16 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     py::class_<NonPODClass>(m, "NonPODClass")
         .def(py::init<int>())
         .def_readwrite("value", &NonPODClass::value);
-    m.def("vec_passthrough", py::vectorize(
-        [](double *a, double b, py::array_t<double> c, const int &d, int &e, NonPODClass f, const double g) {
-            return *a + b + c.at(0) + d + e + f.value + g;
-        }
-    ));
+    m.def("vec_passthrough",
+          py::vectorize(
+              // NOLINTNEXTLINE(performance-unnecessary-value-param)
+              [](double *a,
+                 double b,
+                 py::array_t<double> c,
+                 const int &d,
+                 int &e,
+                 NonPODClass f,
+                 const double g) { return *a + b + c.at(0) + d + e + f.value + g; }));
 
     // test_method_vectorization
     struct VectorizeTestClass {
@@ -79,16 +87,20 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         .value("f_trivial", py::detail::broadcast_trivial::f_trivial)
         .value("c_trivial", py::detail::broadcast_trivial::c_trivial)
         .value("non_trivial", py::detail::broadcast_trivial::non_trivial);
-    m.def("vectorized_is_trivial", [](
-                py::array_t<int, py::array::forcecast> arg1,
-                py::array_t<float, py::array::forcecast> arg2,
-                py::array_t<double, py::array::forcecast> arg3
-                ) {
-        py::ssize_t ndim;
-        std::vector<py::ssize_t> shape;
-        std::array<py::buffer_info, 3> buffers {{ arg1.request(), arg2.request(), arg3.request() }};
-        return py::detail::broadcast(buffers, ndim, shape);
-    });
+    m.def("vectorized_is_trivial",
+          [](
+              // NOLINTNEXTLINE(performance-unnecessary-value-param)
+              py::array_t<int, py::array::forcecast> arg1,
+              // NOLINTNEXTLINE(performance-unnecessary-value-param)
+              py::array_t<float, py::array::forcecast> arg2,
+              // NOLINTNEXTLINE(performance-unnecessary-value-param)
+              py::array_t<double, py::array::forcecast> arg3) {
+              py::ssize_t ndim;
+              std::vector<py::ssize_t> shape;
+              std::array<py::buffer_info, 3> buffers{
+                  {arg1.request(), arg2.request(), arg3.request()}};
+              return py::detail::broadcast(buffers, ndim, shape);
+          });
 
     m.def("add_to", py::vectorize([](NonPODClass& x, int a) { x.value += a; }));
 }

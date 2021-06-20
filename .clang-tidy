@@ -12,6 +12,7 @@ modernize-use-equals-delete,
 modernize-use-emplace,
 modernize-use-override,
 modernize-use-using,
+*performance*,
 readability-container-size-empty,
 '
 

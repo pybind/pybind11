@@ -39,17 +39,21 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("args_function", [](py::args args) -> py::tuple {
         return std::move(args);
     });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("args_kwargs_function", [](py::args args, py::kwargs kwargs) {
         return py::make_tuple(args, kwargs);
     });
 
     // test_mixed_args_and_kwargs
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("mixed_plus_args", [](int i, double j, py::args args) {
         return py::make_tuple(i, j, args);
     });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("mixed_plus_kwargs", [](int i, double j, py::kwargs kwargs) {
         return py::make_tuple(i, j, kwargs);
     });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     auto mixed_plus_both = [](int i, double j, py::args args, py::kwargs kwargs) {
         return py::make_tuple(i, j, args, kwargs);
     };
@@ -67,6 +71,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     #endif
     m.def("arg_refcount_h", [](py::handle h) { GC_IF_NEEDED; return h.ref_count(); });
     m.def("arg_refcount_h", [](py::handle h, py::handle, py::handle) { GC_IF_NEEDED; return h.ref_count(); });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("arg_refcount_o", [](py::object o) { GC_IF_NEEDED; return o.ref_count(); });
     m.def("args_refcount", [](py::args a) {
         GC_IF_NEEDED;
@@ -76,6 +81,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
             t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         return t;
     });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("mixed_args_refcount", [](py::object o, py::args a) {
         GC_IF_NEEDED;
         py::tuple t(a.size() + 1);
@@ -105,6 +111,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
             py::arg() = 3, "j"_a = 4, py::kw_only(), "k"_a = 5, "z"_a);
     m.def("kw_only_mixed", [](int i, int j) { return py::make_tuple(i, j); },
             "i"_a, py::kw_only(), "j"_a);
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("kw_only_plus_more", [](int i, int j, int k, py::kwargs kwargs) {
             return py::make_tuple(i, j, k, kwargs); },
             py::arg() /* positional */, py::arg("j") = -1 /* both */, py::kw_only(), py::arg("k") /* kw-only */);

@@ -262,7 +262,7 @@ add_ostream_redirect(module_ m, const std::string &name = "ostream_redirect") {
     return class_<detail::OstreamRedirect>(std::move(m), name.c_str(), module_local())
         .def(init<bool, bool>(), arg("stdout") = true, arg("stderr") = true)
         .def("__enter__", &detail::OstreamRedirect::enter)
-        .def("__exit__", [](detail::OstreamRedirect &self_, args) { self_.exit(); });
+        .def("__exit__", [](detail::OstreamRedirect &self_, const args &) { self_.exit(); });
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

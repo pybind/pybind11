@@ -232,36 +232,41 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def(py::init<>())
         .def_readonly("def_readonly", &TestProperties::value)
         .def_readwrite("def_readwrite", &TestProperties::value)
-        .def_property("def_writeonly", nullptr,
-                      [](TestProperties& s,int v) { s.value = v; } )
+        .def_property("def_writeonly", nullptr, [](TestProperties &s, int v) { s.value = v; })
         .def_property("def_property_writeonly", nullptr, &TestProperties::set)
         .def_property_readonly("def_property_readonly", &TestProperties::get)
         .def_property("def_property", &TestProperties::get, &TestProperties::set)
         .def_property("def_property_impossible", nullptr, nullptr)
         .def_readonly_static("def_readonly_static", &TestProperties::static_value)
         .def_readwrite_static("def_readwrite_static", &TestProperties::static_value)
-        .def_property_static("def_writeonly_static", nullptr,
-                             [](py::object, int v) { TestProperties::static_value = v; })
-        .def_property_readonly_static("def_property_readonly_static",
-                                      [](py::object) { return TestProperties::static_get(); })
-        .def_property_static("def_property_writeonly_static", nullptr,
-                             [](py::object, int v) { return TestProperties::static_set(v); })
-        .def_property_static("def_property_static",
-                             [](py::object) { return TestProperties::static_get(); },
-                             [](py::object, int v) { TestProperties::static_set(v); })
-        .def_property_static("static_cls",
-                             [](py::object cls) { return cls; },
-                             [](py::object cls, py::function f) { f(cls); });
+        .def_property_static("def_writeonly_static",
+                             nullptr,
+                             [](const py::object &, int v) { TestProperties::static_value = v; })
+        .def_property_readonly_static(
+            "def_property_readonly_static",
+            [](const py::object &) { return TestProperties::static_get(); })
+        .def_property_static(
+            "def_property_writeonly_static",
+            nullptr,
+            [](const py::object &, int v) { return TestProperties::static_set(v); })
+        .def_property_static(
+            "def_property_static",
+            [](const py::object &) { return TestProperties::static_get(); },
+            [](const py::object &, int v) { TestProperties::static_set(v); })
+        .def_property_static(
+            "static_cls",
+            [](py::object cls) { return cls; },
+            [](const py::object &cls, const py::function &f) { f(cls); });
 
     py::class_<TestPropertiesOverride, TestProperties>(m, "TestPropertiesOverride")
         .def(py::init<>())
         .def_readonly("def_readonly", &TestPropertiesOverride::value)
         .def_readonly_static("def_readonly_static", &TestPropertiesOverride::static_value);
 
-    auto static_get1 = [](py::object) -> const UserType & { return TestPropRVP::sv1; };
-    auto static_get2 = [](py::object) -> const UserType & { return TestPropRVP::sv2; };
-    auto static_set1 = [](py::object, int v) { TestPropRVP::sv1.set(v); };
-    auto static_set2 = [](py::object, int v) { TestPropRVP::sv2.set(v); };
+    auto static_get1 = [](const py::object &) -> const UserType & { return TestPropRVP::sv1; };
+    auto static_get2 = [](const py::object &) -> const UserType & { return TestPropRVP::sv2; };
+    auto static_set1 = [](const py::object &, int v) { TestPropRVP::sv1.set(v); };
+    auto static_set2 = [](const py::object &, int v) { TestPropRVP::sv2.set(v); };
     auto rvp_copy = py::return_value_policy::copy;
 
     // test_property_return_value_policies
@@ -272,24 +277,30 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def_property_readonly("ro_func", py::cpp_function(&TestPropRVP::get2, rvp_copy))
         .def_property("rw_ref", &TestPropRVP::get1, &TestPropRVP::set1)
         .def_property("rw_copy", &TestPropRVP::get2, &TestPropRVP::set2, rvp_copy)
-        .def_property("rw_func", py::cpp_function(&TestPropRVP::get2, rvp_copy), &TestPropRVP::set2)
+        .def_property(
+            "rw_func", py::cpp_function(&TestPropRVP::get2, rvp_copy), &TestPropRVP::set2)
         .def_property_readonly_static("static_ro_ref", static_get1)
         .def_property_readonly_static("static_ro_copy", static_get2, rvp_copy)
         .def_property_readonly_static("static_ro_func", py::cpp_function(static_get2, rvp_copy))
         .def_property_static("static_rw_ref", static_get1, static_set1)
         .def_property_static("static_rw_copy", static_get2, static_set2, rvp_copy)
-        .def_property_static("static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
+        .def_property_static(
+            "static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
         // test_property_rvalue_policy
         .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
         .def_property_readonly_static("static_rvalue", [](py::object) { return UserType(1); });
 
     // test_metaclass_override
     struct MetaclassOverride { };
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
         .def_property_readonly_static("readonly", [](py::object) { return 1; });
 
     // test_overload_ordering
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("overload_order", [](std::string) { return 1; });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("overload_order", [](std::string) { return 2; });
     m.def("overload_order", [](int) { return 3; });
     m.def("overload_order", [](int) { return 4; }, py::prepend{});

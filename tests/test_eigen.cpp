@@ -302,7 +302,7 @@ TEST_SUBMODULE(eigen, m) {
     // Issue #1105: when converting from a numpy two-dimensional (Nx1) or (1xN) value into a dense
     // eigen Vector or RowVector, the argument would fail to load because the numpy copy would
     // fail: numpy won't broadcast a Nx1 into a 1-dimensional vector. NOLINTNEXTLINE
-    // (performance-unnecessary-value-param)
+    // NOLINTNEXTLINE (performance-unnecessary-value-param)
     m.def("iss1105_col", [](Eigen::VectorXd) { return true; });
     // NOLINTNEXTLINE (performance-unnecessary-value-param)
     m.def("iss1105_row", [](Eigen::RowVectorXd) { return true; });
