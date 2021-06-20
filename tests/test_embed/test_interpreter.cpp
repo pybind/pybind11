@@ -73,8 +73,24 @@ TEST_CASE("Import error handling") {
     REQUIRE_NOTHROW(py::module_::import("widget_module"));
     REQUIRE_THROWS_WITH(py::module_::import("throw_exception"),
                         "ImportError: C++ Error");
+#if PY_VERSION_HEX >= 0x03030000
+    REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
+                        Catch::Contains("ImportError: initialization failed"));
+
+    auto locals = py::dict("is_keyerror"_a=false, "message"_a="not set");
+    py::exec(R"(
+        try:
+            import throw_error_already_set
+        except ImportError as e:
+            is_keyerror = type(e.__cause__) == KeyError
+            message = str(e.__cause__)
+    )", py::globals(), locals);
+    REQUIRE(locals["is_keyerror"].cast<bool>() == true);
+    REQUIRE(locals["message"].cast<std::string>() == "'missing'");
+#else
     REQUIRE_THROWS_WITH(py::module_::import("throw_error_already_set"),
                         Catch::Contains("ImportError: KeyError"));
+#endif
 }
 
 TEST_CASE("There can be only one interpreter") {
