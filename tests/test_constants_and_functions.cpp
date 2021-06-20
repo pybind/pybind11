@@ -61,7 +61,8 @@ int f3(int x) noexcept(false) { return x+3; }
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wdeprecated"
 #endif
-int f4(int x) noexcept { return x+4; } // Deprecated equivalent to noexcept(true)
+// NOLINTNEXTLINE(modernize-use-noexcept)
+int f4(int x) throw() { return x+4; } // Deprecated equivalent to noexcept(true)
 #if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
@@ -76,8 +77,10 @@ struct C {
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wdeprecated"
 #endif
-    int m7(int x) noexcept { return x - 7; }
-    int m8(int x) const noexcept { return x - 8; }
+    // NOLINTNEXTLINE(modernize-use-noexcept)
+    int m7(int x) throw() { return x - 7; }
+    // NOLINTNEXTLINE(modernize-use-noexcept)
+    int m8(int x) const throw() { return x - 8; }
 #if defined(__GNUG__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
