@@ -63,13 +63,16 @@ namespace memory {
 inline int shared_from_this_status(...) { return 0; }
 
 template <typename AnyBaseOfT>
-inline int shared_from_this_status(const std::enable_shared_from_this<AnyBaseOfT> *ptr) {
 #if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+inline int shared_from_this_status(const std::enable_shared_from_this<AnyBaseOfT> *ptr) {
   if (ptr->weak_from_this().lock()) return 1;
   return -1;
-#endif
+}
+#else
+inline int shared_from_this_status(const std::enable_shared_from_this<AnyBaseOfT> *) {
   return 999;
 }
+#endif
 
 struct smart_holder;
 
