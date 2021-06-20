@@ -252,7 +252,7 @@ TEST_SUBMODULE(stl, m) {
     };
 
     // test_variant
-    m.def("load_variant", [](variant<int, std::string, double, std::nullptr_t> v) {
+    m.def("load_variant", [](const variant<int, std::string, double, std::nullptr_t> &v) {
         return py::detail::visit_helper<variant>::call(visitor(), v);
     });
     m.def("load_variant_2pass", [](variant<double, int> v) {
