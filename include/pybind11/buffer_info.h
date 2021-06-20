@@ -60,7 +60,7 @@ struct buffer_info {
     }
 
     template <typename T>
-    buffer_info(T *ptr, detail::any_container<ssize_t> shape_in, const detail::any_container<ssize_t> &strides_in, bool readonly=false)
+    buffer_info(T *ptr, detail::any_container<ssize_t> shape_in, detail::any_container<ssize_t> strides_in, bool readonly=false)
     : buffer_info(private_ctr_tag(), ptr, sizeof(T), format_descriptor<T>::format(), static_cast<ssize_t>(shape_in->size()), std::move(shape_in), std::move(strides_in), readonly) { }
 
     buffer_info(void *ptr, ssize_t itemsize, const std::string &format, ssize_t size, bool readonly=false)
