@@ -240,7 +240,7 @@ struct ElementBase {
 
 struct ElementA : ElementBase {
     ElementA(int v) : v(v) { }
-    int value() { return v; }
+    int value() const { return v; }
     int v;
 };
 
