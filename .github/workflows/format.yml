@@ -27,7 +27,7 @@ jobs:
   clang-tidy:
     name: Clang-Tidy
     runs-on: ubuntu-latest
-    container: silkeh/clang:10
+    container: silkeh/clang:12
     steps:
     - uses: actions/checkout@v2
 
