@@ -13,15 +13,22 @@ namespace {
 struct Sft : std::enable_shared_from_this<Sft> {
     std::string history;
     explicit Sft(const std::string &history) : history{history} {}
-    long use_count() const { return this->shared_from_this().use_count(); }
+    long use_count() const {
+#if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+        return this->shared_from_this().use_count();
+#else
+        return -1;
+#endif
+    }
     virtual ~Sft() = default;
 
+#if defined(__clang__)
     // "Group of 4" begin.
     // This group is not meant to be used, but will leave a trace in the
     // history in case something goes wrong.
-    Sft(const Sft &other) : std::enable_shared_from_this<Sft>{} {
-        history = other.history + "_CpCtor";
-    }
+    // However, compilers other than clang have a variety of issues. It is not
+    // worth the trouble covering all platforms.
+    Sft(const Sft &other) { history = other.history + "_CpCtor"; }
 
     Sft(Sft &&other) { history = other.history + "_MvCtor"; }
 
@@ -35,6 +42,7 @@ struct Sft : std::enable_shared_from_this<Sft> {
         return *this;
     }
     // "Group of 4" end.
+#endif
 };
 
 struct SftSharedPtrStash {
