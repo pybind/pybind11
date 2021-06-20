@@ -50,14 +50,15 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename type, typename SFINAE = void> class type_caster : public type_caster_base<type> { };
 template <typename type> using make_caster = type_caster<intrinsic_t<type>>;
 
-// Shortcut for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
+// Shortcuts for calling a caster's `cast_op_type` cast operator for casting a type_caster to a T
+// cast_op operating on an lvalue-reference caster, enables moving only if required by the actual function argument
 template <typename T> typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster) {
     return caster.operator typename make_caster<T>::template cast_op_type<T>();
 }
+// cast_op operating on an rvalue-referenced caster enforces an rvalue-reference for the cast_op type as well
 template <typename T> typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
 cast_op(make_caster<T> &&caster) {
-    return std::move(caster).operator
-        typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>();
+    return caster.operator typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>();
 }
 
 template <typename type> class type_caster<std::reference_wrapper<type>> {
@@ -101,7 +102,7 @@ public:
         } \
         operator type*() { return &value; } \
         operator type&() { return value; } \
-        operator type&&() && { return std::move(value); } \
+        operator type&&() { return std::move(value); } \
         template <typename T_> using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
 
@@ -644,6 +645,10 @@ public:
     // static_cast works around compiler error with MSVC 17 and CUDA 10.2
     // see issue #2180
     explicit operator type&() { return *(static_cast<type *>(this->value)); }
+
+    // holders only support copying, not moving
+    template <typename T> using cast_op_type = detail::cast_op_type<T>;
+
     explicit operator holder_type*() { return std::addressof(holder); }
     explicit operator holder_type&() { return holder; }
 
@@ -791,8 +796,8 @@ class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caste
 // - type_caster<T>::operator T&() must exist
 // - the type must be move constructible (obviously)
 // At run-time:
-// - if the type is non-copy-constructible, the object must be the sole owner of the type (i.e. it
-//   must have ref_count() == 1)h
+// - if the type is non-copy-constructible, the object must be the sole owner of the type
+//   (i.e. it must have ref_count() == 1)
 // If any of the above are not satisfied, we fall back to copying.
 template <typename T> using move_is_plain_type = satisfies_none_of<T,
     std::is_void, std::is_pointer, std::is_reference, std::is_const
@@ -851,12 +856,6 @@ template <typename T, typename SFINAE> type_caster<T, SFINAE> &load_type(type_ca
     }
     return conv;
 }
-// Wrapper around the above that also constructs and returns a type_caster
-template <typename T> make_caster<T> load_type(const handle &handle) {
-    make_caster<T> conv;
-    load_type(conv, handle);
-    return conv;
-}
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -866,7 +865,9 @@ T cast(const handle &handle) {
     using namespace detail;
     static_assert(!cast_is_temporary_value_reference<T>::value,
             "Unable to cast type to reference: value is local to type caster");
-    return cast_op<T>(load_type<T>(handle));
+    make_caster<T> conv;
+    load_type(conv, handle);
+    return cast_op<T>(conv);
 }
 
 // pytype -> pytype (calls converting constructor)
@@ -902,7 +903,9 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
 #endif
 
     // Move into a temporary and return that, because the reference may be a local value of `conv`
-    T ret = std::move(detail::load_type<T>(obj).operator T&());
+    detail::make_caster<T> conv;
+    load_type(conv, obj);
+    T ret = std::move(conv.operator T &());
     return ret;
 }
 
@@ -1163,7 +1166,7 @@ private:
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
-        return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
+        return std::forward<Func>(f)(cast_op<Args>(std::get<Is>(argcasters))...);
     }
 
     std::tuple<make_caster<Args>...> argcasters;
