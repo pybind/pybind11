@@ -58,15 +58,14 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         .def(py::init<int>())
         .def_readwrite("value", &NonPODClass::value);
     m.def("vec_passthrough",
-          py::vectorize(
-              // NOLINTNEXTLINE(performance-unnecessary-value-param)
-              [](double *a,
-                 double b,
-                 py::array_t<double> c,
-                 const int &d,
-                 int &e,
-                 NonPODClass f,
-                 const double g) { return *a + b + c.at(0) + d + e + f.value + g; }));
+          py::vectorize([](double *a,
+                           double b,
+                           // NOLINTNEXTLINE(performance-unnecessary-value-param)
+                           py::array_t<double> c,
+                           const int &d,
+                           int &e,
+                           NonPODClass f,
+                           const double g) { return *a + b + c.at(0) + d + e + f.value + g; }));
 
     // test_method_vectorization
     struct VectorizeTestClass {
