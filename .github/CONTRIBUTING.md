@@ -93,7 +93,7 @@ The valid options are:
 * `-DPYBIND11_NOPYTHON=ON`: Disable all Python searching (disables tests)
 * `-DBUILD_TESTING=ON`: Enable the tests
 * `-DDOWNLOAD_CATCH=ON`: Download catch to build the C++ tests
-* `-DOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests
+* `-DDOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests
 * `-DPYBIND11_INSTALL=ON/OFF`: Enable the install target (on by default for the
   master project)
 * `-DUSE_PYTHON_INSTALL_DIR=ON`: Try to install into the python dir

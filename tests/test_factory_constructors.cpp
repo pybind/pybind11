@@ -171,12 +171,23 @@ TEST_SUBMODULE(factory_constructors, m) {
         .def(py::init([](py::handle, int v, py::handle) { return TestFactoryHelper::construct1(v); }))
         .def_readwrite("value", &TestFactory1::value)
         ;
-    py::class_<TestFactory2>(m, "TestFactory2")
-        .def(py::init([](pointer_tag, int v) { return TestFactoryHelper::construct2(v); }))
-        .def(py::init([](unique_ptr_tag, std::string v) { return TestFactoryHelper::construct2(v); }))
-        .def(py::init([](move_tag) { return TestFactoryHelper::construct2(); }))
-        .def_readwrite("value", &TestFactory2::value)
-        ;
+    {
+        py::options options;
+        options.disable_section_headings();
+
+        py::class_<TestFactory2>(m, "TestFactory2")
+            .def(
+                py::init([](pointer_tag, int v) { return TestFactoryHelper::construct2(v); }),
+                "This is one part of the docstring."
+            )
+            .def(py::init([](unique_ptr_tag, std::string v) { return TestFactoryHelper::construct2(v); }))
+            .def(
+                py::init([](move_tag) { return TestFactoryHelper::construct2(); }),
+                "This is the other part of the docstring."
+            )
+            .def_readwrite("value", &TestFactory2::value)
+            ;
+    }
 
     // Stateful & reused:
     int c = 1;

@@ -450,18 +450,25 @@ protected:
 
         std::string signatures;
         int index = 0;
+        bool first_user_def = true;
         /* Create a nice pydoc rec including all signatures and
            docstrings of the functions in the overload chain */
         if (chain && options::show_function_signatures()) {
-            // First a generic signature
-            signatures += rec->name;
-            signatures += "(*args, **kwargs)\n";
-            signatures += "Overloaded function.\n\n";
+            for (auto it = chain_start; it != nullptr; it = it->next) {
+                signatures += rec->name;
+                signatures += it->signature;
+                signatures += "\n";
+            }
+            if (options::show_section_headings())
+                signatures += "\nOverloaded function.\n\n";
+            else
+                first_user_def = false;
         }
         // Then specific overload signatures
-        bool first_user_def = true;
+        const bool show_signature_headings = options::show_function_signatures()
+            && options::show_section_headings();
         for (auto it = chain_start; it != nullptr; it = it->next) {
-            if (options::show_function_signatures()) {
+            if (show_signature_headings) {
                 if (index > 0) signatures += "\n";
                 if (chain)
                     signatures += std::to_string(++index) + ". ";
@@ -470,15 +477,14 @@ protected:
                 signatures += "\n";
             }
             if (it->doc && strlen(it->doc) > 0 && options::show_user_defined_docstrings()) {
-                // If we're appending another docstring, and aren't printing function signatures, we
-                // need to append a newline first:
-                if (!options::show_function_signatures()) {
-                    if (first_user_def) first_user_def = false;
-                    else signatures += "\n";
-                }
-                if (options::show_function_signatures()) signatures += "\n";
+                // If we're appending another docstring, and aren't printing signature headings,
+                // we need to append a newline first:
+                if (!show_signature_headings && first_user_def)
+                     first_user_def = false;
+                else
+                    signatures += "\n";
                 signatures += it->doc;
-                if (options::show_function_signatures()) signatures += "\n";
+                if (show_signature_headings) signatures += "\n";
             }
         }
 

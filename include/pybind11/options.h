@@ -38,11 +38,17 @@ public:
 
     options& enable_function_signatures() & { global_state().show_function_signatures = true; return *this; }
 
+    options& disable_section_headings() & { global_state().show_section_headings = false; return *this; }
+
+    options& enable_section_headings() & { global_state().show_section_headings = true; return *this; }
+
     // Getter methods (return the global state):
 
     static bool show_user_defined_docstrings() { return global_state().show_user_defined_docstrings; }
 
     static bool show_function_signatures() { return global_state().show_function_signatures; }
+
+    static bool show_section_headings() { return global_state().show_section_headings; }
 
     // This type is not meant to be allocated on the heap.
     void* operator new(size_t) = delete;
@@ -52,6 +58,7 @@ private:
     struct state {
         bool show_user_defined_docstrings = true;  //< Include user-supplied texts in docstrings.
         bool show_function_signatures = true;      //< Include auto-generated function signatures in docstrings.
+        bool show_section_headings = true;         //< Include section headings in docstrings.
     };
 
     static state &global_state() {

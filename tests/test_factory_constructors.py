@@ -88,7 +88,11 @@ def test_init_factory_signature(msg):
     assert (
         msg(m.TestFactory1.__init__.__doc__)
         == """
-        __init__(*args, **kwargs)
+        __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: int) -> None
+        __init__(self: m.factory_constructors.TestFactory1, arg0: str) -> None
+        __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.pointer_tag) -> None
+        __init__(self: m.factory_constructors.TestFactory1, arg0: handle, arg1: int, arg2: handle) -> None
+
         Overloaded function.
 
         1. __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: int) -> None
@@ -98,6 +102,18 @@ def test_init_factory_signature(msg):
         3. __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.pointer_tag) -> None
 
         4. __init__(self: m.factory_constructors.TestFactory1, arg0: handle, arg1: int, arg2: handle) -> None
+    """  # noqa: E501 line too long
+    )
+
+    assert (
+        msg(m.TestFactory2.__init__.__doc__)
+        == """
+        __init__(self: m.factory_constructors.TestFactory2, arg0: m.factory_constructors.tag.pointer_tag, arg1: int) -> None
+        __init__(self: m.factory_constructors.TestFactory2, arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: str) -> None
+        __init__(self: m.factory_constructors.TestFactory2, arg0: m.factory_constructors.tag.move_tag) -> None
+
+        This is one part of the docstring.
+        This is the other part of the docstring.
     """  # noqa: E501 line too long
     )
 

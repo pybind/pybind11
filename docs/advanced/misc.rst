@@ -302,6 +302,71 @@ Note that changes to the settings affect only function bindings created during t
 lifetime of the ``options`` instance. When it goes out of scope at the end of the module's init function,
 the default settings are restored to prevent unwanted side effects.
 
+Overloaded functions
+--------------------
+
+For overloaded functions, all function overload signatures are prepended to the
+docstring of a function, and all docstrings are concatenated together into sections
+that are separated by their function signature.
+
+For example:
+
+.. code-block:: pycon
+
+    >>> help(example.add)
+
+    add(...)
+     |      add(arg0: int, arg1: int) -> int
+     |      add(arg0: float, arg1: float) -> float
+     |
+     |      Overloaded function.
+     |
+     |      1. add(arg0: int, arg1: int) -> int
+     |
+     |      Add two integers together.
+     |
+     |      2. add(arg0: float, arg1: float) -> float
+     |
+     |      Add two floating points numbers together.
+
+Calling ``options.disable_function_signatures()`` as shown previously,
+will cause docstrings to be generated without the prepended function signatures
+and without the section headings.
+To disable only the sections headings, use ``options.disable_section_headings()``:
+
+.. code-block:: cpp
+
+    PYBIND11_MODULE(example, m) {
+        py::options options;
+        options.disable_section_headings();
+
+        m.def("add", [](int a, int b)->int { return a + b; },
+          "A function which adds two numbers.\n");  // Note the additional newline here.
+        m.def("add", [](float a, float b)->float { return a + b; },
+          "Internally, a simple addition is performed.");
+        m.def("add", [](py::none a, py::none b)->py::none { return py::none(); },
+          "Both numbers can be None, and None will be returned.");
+    }
+
+The above example would produce the following docstring:
+
+.. code-block:: pycon
+
+    >>> help(example.add)
+
+    add(...)
+     |      add(arg0: int, arg1: int) -> int
+     |      add(arg0: float, arg1: float) -> float
+     |      add(arg0: None, arg1: None) -> None
+
+     |      A function which adds two numbers.
+     |
+     |      Internally, a simple addition is performed.
+     |      Both numbers can be None, and None will be returned.
+
+Not every overload must supply a docstring.
+You may find it easier for a single overload to supply the entire docstring.
+
 .. [#f4] http://www.sphinx-doc.org
 .. [#f5] http://github.com/pybind/python_example
 
