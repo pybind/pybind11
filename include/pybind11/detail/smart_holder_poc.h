@@ -92,12 +92,12 @@ to_cout("LOOOK guarded_delete ctor " + std::to_string(__LINE__) + " " + __FILE__
 
 template <typename T>
 inline void shd_ptr_reset(std::shared_ptr<void>& shd_ptr, void *raw_ptr, guarded_delete &&gdel) {
-    shd_ptr.reset(reinterpret_cast<T *>(raw_ptr), gdel);
+    shd_ptr.reset(static_cast<T *>(raw_ptr), gdel);
 }
 
 template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
 inline void builtin_delete_if_destructible(void *raw_ptr) {
-    delete reinterpret_cast<T *>(raw_ptr);
+    delete static_cast<T *>(raw_ptr);
 }
 
 template <typename T, typename std::enable_if<!std::is_destructible<T>::value, int>::type = 0>
@@ -115,7 +115,7 @@ guarded_delete make_guarded_builtin_delete(bool armed_flag) {
 
 template <typename T, typename D>
 inline void custom_delete(void *raw_ptr) {
-    D()(reinterpret_cast<T *>(raw_ptr));
+    D()(static_cast<T *>(raw_ptr));
 }
 
 template <typename T, typename D>
@@ -245,7 +245,7 @@ to_cout("LOOOK smart_holder from_raw_ptr_unowned " + std::to_string(__LINE__) + 
 
     template <typename T>
     T *as_raw_ptr_unowned() const {
-to_cout("LOOOK smart_holder as_raw_ptr_unowned PTR" + std::to_string((unsigned long) vptr.get()) + " " + std::to_string(__LINE__) + " " + __FILE__);
+to_cout("LOOOK smart_holder as_raw_ptr_unowned " + std::to_string(__LINE__) + " " + __FILE__);
         return static_cast<T *>(vptr.get());
     }
 
