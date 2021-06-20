@@ -371,6 +371,7 @@ struct smart_holder_type_caster_load {
     }
 
     static void dec_ref_void(void *ptr) {
+to_cout("LOOOK dec_ref_void Py_REFCNT(" + std::to_string(Py_REFCNT(reinterpret_cast<PyObject *>(ptr))) + ") " + std::to_string(__LINE__) + " " + __FILE__);
         gil_scoped_acquire gil;
         Py_DECREF(reinterpret_cast<PyObject *>(ptr));
     }
@@ -378,6 +379,7 @@ struct smart_holder_type_caster_load {
     struct shared_ptr_dec_ref_deleter {
         PyObject *self;
         void operator()(void *) {
+to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " " + __FILE__);
             gil_scoped_acquire gil;
             Py_DECREF(self);
         }
@@ -399,25 +401,32 @@ struct smart_holder_type_caster_load {
             auto vptr_del_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
             if (vptr_del_ptr != nullptr) {
                 assert(!hld.vptr_is_released);
-                std::shared_ptr<void> released(hld.vptr.get(), [](void *) {});
+                std::shared_ptr<T> to_be_returned(hld.vptr, type_raw_ptr);
+int sftstat = pybindit::memory::shared_from_this_status(type_raw_ptr);
+to_cout("LOOOK loaded_as_shared_ptr return released SFT=" + std::to_string(sftstat) + " #1 " + std::to_string(__LINE__) + " " + __FILE__);
+                std::shared_ptr<void> non_owning(hld.vptr.get(), [](void *) {});
                 // Critical transfer-of-ownership section. This must stay together.
                 vptr_del_ptr->hld          = &hld;
                 vptr_del_ptr->callback_ptr = dec_ref_void;
                 vptr_del_ptr->callback_arg = self;
-                hld.vptr.swap(released);
+                hld.vptr = non_owning;
                 hld.vptr_is_released = true;
                 Py_INCREF(self);
                 // Critical section end.
-                return std::shared_ptr<T>(released, type_raw_ptr);
+sftstat = pybindit::memory::shared_from_this_status(type_raw_ptr);
+to_cout("LOOOK loaded_as_shared_ptr return released SFT=" + std::to_string(sftstat) + " #2 " + std::to_string(__LINE__) + " " + __FILE__);
+                return to_be_returned;
             }
             // XXX XXX XXX Ensure not shared_from_this.
             Py_INCREF(self);
+to_cout("LOOOK loaded_as_shared_ptr return shared_ptr_dec_ref_deleter " + std::to_string(__LINE__) + " " + __FILE__);
             return std::shared_ptr<T>(type_raw_ptr, shared_ptr_dec_ref_deleter{self});
         }
         if (hld.vptr_is_using_noop_deleter) {
             throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
         std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
+to_cout("LOOOK loaded_as_shared_ptr return hld vptr " + std::to_string(__LINE__) + " " + __FILE__);
         return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
     }
 
@@ -701,10 +710,12 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
 
         void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
-        if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo))
+        if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
             // SMART_HOLDER_WIP: MISSING: Enforcement of consistency with existing smart_holder.
             // SMART_HOLDER_WIP: MISSING: keep_alive.
+to_cout("LOOOK shtc sh return existing_inst " + std::to_string(__LINE__) + " " + __FILE__);
             return existing_inst;
+        }
 
         auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
         auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());
@@ -718,6 +729,7 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
         if (policy == return_value_policy::reference_internal)
             keep_alive_impl(inst, parent);
 
+to_cout("LOOOK shtc sh return new inst " + std::to_string(__LINE__) + " " + __FILE__);
         return inst.release();
     }
 
