@@ -8,10 +8,10 @@ modernize-replace-disallow-copy-and-assign-macro,
 modernize-shrink-to-fit,
 modernize-use-auto,
 modernize-use-equals-default,
+modernize-use-equals-delete,
 modernize-use-emplace,
 modernize-use-override,
 modernize-use-using,
-*performance*,
 readability-container-size-empty,
 '
 
