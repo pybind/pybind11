@@ -1833,7 +1833,7 @@ inline void keep_alive_impl(handle nurse, handle patient) {
     if (patient.is_none() || nurse.is_none())
         return; /* Nothing to keep alive or nothing to be kept alive by */
 
-    auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
+    const auto &tinfo = all_type_info(Py_TYPE(nurse.ptr()));
     if (!tinfo.empty()) {
         /* It's a pybind-registered type, so we can store the patient in the
          * internal list. */
