@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import env  # noqa: F401
+
 import pybind11_tests.class_sh_trampoline_shared_from_this as m
 
 import gc
@@ -13,13 +15,13 @@ class PySft(m.Sft):
 def test_pass_shared_ptr():
     obj = PySft("PySft")
     assert obj.history == "PySft"
-    assert obj.use_count() == 2
+    assert obj.use_count() in [2, -1]  # TODO: Be smarter/stricter.
     m.pass_shared_ptr(obj)
     assert obj.history == "PySft_PassSharedPtr"
-    assert obj.use_count() == 2
+    assert obj.use_count() in [2, -1]
     m.pass_shared_ptr(obj)
     assert obj.history == "PySft_PassSharedPtr_PassSharedPtr"
-    assert obj.use_count() == 2
+    assert obj.use_count() in [2, -1]
 
 
 def test_pass_shared_ptr_while_stashed():
@@ -28,19 +30,19 @@ def test_pass_shared_ptr_while_stashed():
     stash1 = m.SftSharedPtrStash(1)
     stash1.Add(obj)
     assert obj.history == "PySft_Stash1Add"
-    assert obj.use_count() == 2
+    assert obj.use_count() in [2, -1]
     m.pass_shared_ptr(obj)
     assert obj.history == "PySft_Stash1Add_PassSharedPtr"
-    assert obj.use_count() == 2
+    assert obj.use_count() in [2, -1]
     stash2 = m.SftSharedPtrStash(2)
     stash2.Add(obj)
     assert obj.history == "PySft_Stash1Add_PassSharedPtr_Stash2Add"
-    assert obj.use_count() == 2
+    assert obj.use_count() in [2, -1]
     assert stash2.history(0) == "PySft_Stash1Add_PassSharedPtr_Stash2Add"
     assert stash2.use_count(0) == 1  # TODO: this is not great.
     stash2.Add(obj)
     assert obj.history == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
-    assert obj.use_count() == 2
+    assert obj.use_count() in [2, -1]
     assert stash1.use_count(0) == 1
     assert stash1.history(0) == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
     assert stash2.use_count(0) == 1
@@ -58,7 +60,8 @@ def test_pass_shared_ptr_while_stashed():
     assert stash1.history(0) == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
     del stash1
     gc.collect()
-    assert obj_wr() is None
+    if not env.PYPY:
+        assert obj_wr() is None
 
 
 def test_pass_shared_ptr_while_stashed_with_shared_from_this():
@@ -75,4 +78,5 @@ def test_pass_shared_ptr_while_stashed_with_shared_from_this():
     del obj
     del stash1
     gc.collect()
-    assert obj_wr() is None
+    if not env.PYPY:
+        assert obj_wr() is None
