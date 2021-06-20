@@ -19,7 +19,9 @@ struct Sft : std::enable_shared_from_this<Sft> {
     // "Group of 4" begin.
     // This group is not meant to be used, but will leave a trace in the
     // history in case something goes wrong.
-    Sft(const Sft &other) { history = other.history + "_CpCtor"; }
+    Sft(const Sft &other) : std::enable_shared_from_this<Sft>{} {
+        history = other.history + "_CpCtor";
+    }
 
     Sft(Sft &&other) { history = other.history + "_MvCtor"; }
 
