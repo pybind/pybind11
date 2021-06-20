@@ -21,7 +21,7 @@ struct WithSftTrampoline : WithSft {
 void pass_shared_ptr(const std::shared_ptr<WithSft> &obj) {
     to_cout("LOOOK pass_shared_ptr entry");
     to_cout("LOOOK obj->shared_from_this();");
-    obj->shared_from_this();
+    (void) obj->shared_from_this();
     to_cout("LOOOK pass_shared_ptr return");
 }
 
