@@ -1,6 +1,6 @@
 /*
     tests/test_constants_and_functions.cpp -- global constants and functions, enumerations, raw
-   byte strings
+    byte strings
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
 
