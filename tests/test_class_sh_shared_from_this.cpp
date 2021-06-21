@@ -111,7 +111,7 @@ struct RescuingDeleter {
     PyWrapper *pyw;
     explicit RescuingDeleter(PyWrapper *pyw) : pyw{pyw} {}
     void operator()(ToBeWrapped *raw_ptr) {
-        if (pyw->self.get() != nullptr) {
+        if (pyw->self != nullptr) {
 #if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
             assert(raw_ptr->weak_from_this().expired()); // CRITICAL
 #endif
