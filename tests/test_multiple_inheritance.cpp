@@ -48,12 +48,12 @@ int VanillaStaticMix2::static_value = 12;
 // test_multiple_inheritance_virtbase
 struct Base1a {
     Base1a(int i) : i(i) { }
-    int foo() { return i; }
+    int foo() const { return i; }
     int i;
 };
 struct Base2a {
     Base2a(int i) : i(i) { }
-    int bar() { return i; }
+    int bar() const { return i; }
     int i;
 };
 struct Base12a : Base1a, Base2a {
@@ -78,7 +78,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     // test_multiple_inheritance_mix2
     struct Base1 {
         Base1(int i) : i(i) { }
-        int foo() { return i; }
+        int foo() const { return i; }
         int i;
     };
     py::class_<Base1> b1(m, "Base1");
@@ -87,7 +87,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
 
     struct Base2 {
         Base2(int i) : i(i) { }
-        int bar() { return i; }
+        int bar() const { return i; }
         int i;
     };
     py::class_<Base2> b2(m, "Base2");

@@ -62,7 +62,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     // test_method_vectorization
     struct VectorizeTestClass {
         VectorizeTestClass(int v) : value{v} {};
-        float method(int x, float y) { return y + (float) (x + value); }
+        float method(int x, float y) const { return y + (float) (x + value); }
         int value = 0;
     };
     py::class_<VectorizeTestClass> vtc(m, "VectorizeTestClass");

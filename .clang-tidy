@@ -2,17 +2,30 @@ FormatStyle: file
 
 Checks: '
 llvm-namespace-comment,
+misc-misplaced-const,
+misc-static-assert,
+misc-uniqueptr-reset-release,
 modernize-avoid-bind,
 modernize-replace-auto-ptr,
 modernize-replace-disallow-copy-and-assign-macro,
 modernize-shrink-to-fit,
 modernize-use-auto,
+modernize-use-bool-literals,
 modernize-use-equals-default,
 modernize-use-equals-delete,
+modernize-use-default-member-init,
+modernize-use-noexcept,
 modernize-use-emplace,
 modernize-use-override,
 modernize-use-using,
 readability-container-size-empty,
+readability-make-member-function-const,
+readability-redundant-function-ptr-dereference,
+readability-redundant-smartptr-get,
+readability-redundant-string-cstr,
+readability-simplify-subscript-expr,
+readability-string-compare,
+readability-uniqueptr-delete-release,
 '
 
 CheckOptions:

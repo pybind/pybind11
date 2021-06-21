@@ -23,9 +23,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /* Concatenate type signatures at compile time */
 template <size_t N, typename... Ts>
 struct descr {
-    char text[N + 1];
+    char text[N + 1]{'\0'};
 
-    constexpr descr() : text{'\0'} { }
+    constexpr descr() = default;
     constexpr descr(char const (&s)[N+1]) : descr(s, make_index_sequence<N>()) { }
 
     template <size_t... Is>
