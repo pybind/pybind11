@@ -259,7 +259,7 @@ struct smart_holder {
     void release_disowned() { vptr.reset(); }
 
     // SMART_HOLDER_WIP: review this function.
-    void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") {
+    void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") const {
         ensure_is_not_disowned(context);
         ensure_vptr_is_using_builtin_delete(context);
         ensure_use_count_1(context);

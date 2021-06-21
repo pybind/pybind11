@@ -25,7 +25,7 @@ struct uconsumer { // unique_ptr consumer
     void pass_rref(std::unique_ptr<atyp> &&obj) { held = std::move(obj); }
     std::unique_ptr<atyp> rtrn_valu() { return std::move(held); }
     std::unique_ptr<atyp> &rtrn_lref() { return held; }
-    const std::unique_ptr<atyp> &rtrn_cref() { return held; }
+    const std::unique_ptr<atyp> &rtrn_cref() const { return held; }
 };
 
 // clang-format off

@@ -29,7 +29,7 @@ struct PySpBase : SpBase {
 };
 
 struct SpBaseTester {
-    std::shared_ptr<SpBase> get_object() { return m_obj; }
+    std::shared_ptr<SpBase> get_object() const { return m_obj; }
     void set_object(std::shared_ptr<SpBase> obj) { m_obj = obj; }
     bool is_base_used() { return m_obj->is_base_used(); }
     bool has_instance() { return (bool)m_obj; }
