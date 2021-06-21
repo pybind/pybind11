@@ -70,13 +70,15 @@ struct SftSharedPtrStash {
     }
 };
 
-struct SftTrampoline : Sft {
+struct SftTrampoline : Sft, py::trampoline_self_life_support {
     using Sft::Sft;
 };
 
 void pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
     obj->shared_from_this()->history += "_PassSharedPtr";
 }
+
+void pass_unique_ptr(const std::unique_ptr<Sft> &) {}
 
 } // namespace
 
@@ -97,4 +99,5 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
         .def("use_count", &SftSharedPtrStash::use_count);
 
     m.def("pass_shared_ptr", pass_shared_ptr);
+    m.def("pass_unique_ptr", pass_unique_ptr);
 }

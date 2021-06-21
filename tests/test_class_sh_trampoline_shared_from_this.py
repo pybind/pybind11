@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pytest
 
 import env  # noqa: F401
 
@@ -80,3 +81,14 @@ def test_pass_shared_ptr_while_stashed_with_shared_from_this():
     gc.collect()
     if not env.PYPY:
         assert obj_wr() is None
+
+
+def test_pass_released_shared_ptr_as_unique_ptr():
+    obj = PySft("PySft")
+    stash1 = m.SftSharedPtrStash(1)
+    stash1.Add(obj)  # Releases shared_ptr to C++.
+    with pytest.raises(ValueError) as exc_info:
+        m.pass_unique_ptr(obj)
+    assert str(exc_info.value) == (
+        "Python instance is currently owned by a std::shared_ptr."
+    )

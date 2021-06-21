@@ -438,6 +438,7 @@ to_cout("LOOOK loaded_as_shared_ptr return hld vptr " + std::to_string(__LINE__)
         if (!have_holder())
             return nullptr;
         throw_if_uninitialized_or_disowned_holder();
+        throw_if_instance_is_currently_owned_by_shared_ptr();
         holder().ensure_is_not_disowned(context);
         holder().template ensure_compatible_rtti_uqp_del<T, D>(context);
         holder().ensure_use_count_1(context);
@@ -498,6 +499,13 @@ private:
         if (!holder().has_pointee()) {
             throw value_error("Missing value for wrapped C++ type:"
                               " Python instance was disowned.");
+        }
+    }
+
+    // have_holder() must be true or this function will fail.
+    void throw_if_instance_is_currently_owned_by_shared_ptr() const {
+        if (holder().vptr_is_released) {
+            throw value_error("Python instance is currently owned by a std::shared_ptr.");
         }
     }
 
