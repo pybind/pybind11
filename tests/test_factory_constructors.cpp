@@ -77,7 +77,7 @@ public:
     TestFactory6(const TestFactory6 &f) { print_copy_created(this); value = f.value; alias = f.alias; }
     virtual ~TestFactory6() { print_destroyed(this); }
     virtual int get() { return value; }
-    bool has_alias() { return alias; }
+    bool has_alias() const { return alias; }
 };
 class PyTF6 : public TestFactory6 {
 public:
@@ -102,7 +102,7 @@ public:
     TestFactory7(const TestFactory7 &f) { print_copy_created(this); value = f.value; alias = f.alias; }
     virtual ~TestFactory7() { print_destroyed(this); }
     virtual int get() { return value; }
-    bool has_alias() { return alias; }
+    bool has_alias() const { return alias; }
 };
 class PyTF7 : public TestFactory7 {
 public:

@@ -25,9 +25,7 @@ public:
     ExampleMandA(ExampleMandA &&e) : value(e.value) { print_move_created(this); }
     ~ExampleMandA() { print_destroyed(this); }
 
-    std::string toString() {
-        return "ExampleMandA[value=" + std::to_string(value) + "]";
-    }
+    std::string toString() const { return "ExampleMandA[value=" + std::to_string(value) + "]"; }
 
     void operator=(const ExampleMandA &e) { print_copy_assigned(this); value = e.value; }
     void operator=(ExampleMandA &&e) { print_move_assigned(this); value = e.value; }
@@ -48,13 +46,13 @@ public:
 
     ExampleMandA self1() { return *this; }                          // return by value
     ExampleMandA &self2() { return *this; }                         // return by reference
-    const ExampleMandA &self3() { return *this; }                   // return by const reference
+    const ExampleMandA &self3() const { return *this; }             // return by const reference
     ExampleMandA *self4() { return this; }                          // return by pointer
-    const ExampleMandA *self5() { return this; }                    // return by const pointer
+    const ExampleMandA *self5() const { return this; }              // return by const pointer
 
-    int internal1() { return value; }                               // return by value
+    int internal1() const { return value; }                         // return by value
     int &internal2() { return value; }                              // return by reference
-    const int &internal3() { return value; }                        // return by const reference
+    const int &internal3() const { return value; }                  // return by const reference
     int *internal4() { return &value; }                             // return by pointer
     const int *internal5() { return &value; }                       // return by const pointer
 

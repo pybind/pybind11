@@ -56,7 +56,7 @@ class Pet {
 public:
     Pet(std::string name) : name_(name) {}
     std::string name_;
-    const std::string &name() { return name_; }
+    const std::string &name() const { return name_; }
 };
 } // namespace pets
 
