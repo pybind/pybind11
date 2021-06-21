@@ -122,7 +122,7 @@ struct smart_holder {
           vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false},
           pointee_depends_on_holder_owner{false} {}
 
-    bool has_pointee() const { return vptr.get() != nullptr; }
+    bool has_pointee() const { return vptr != nullptr; }
 
     template <typename T>
     static void ensure_pointee_is_destructible(const char *context) {
@@ -180,7 +180,7 @@ struct smart_holder {
     }
 
     void ensure_use_count_1(const char *context) const {
-        if (vptr.get() == nullptr) {
+        if (vptr == nullptr) {
             throw std::invalid_argument(std::string("Cannot disown nullptr (") + context + ").");
         }
         // In multithreaded environments accessing use_count can lead to
@@ -194,7 +194,7 @@ struct smart_holder {
         }
     }
 
-    void reset_vptr_deleter_armed_flag(bool armed_flag) {
+    void reset_vptr_deleter_armed_flag(bool armed_flag) const {
         auto vptr_del_ptr = std::get_deleter<guarded_delete>(vptr);
         if (vptr_del_ptr == nullptr) {
             throw std::runtime_error(
@@ -259,7 +259,7 @@ struct smart_holder {
     void release_disowned() { vptr.reset(); }
 
     // SMART_HOLDER_WIP: review this function.
-    void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") {
+    void ensure_can_release_ownership(const char *context = "ensure_can_release_ownership") const {
         ensure_is_not_disowned(context);
         ensure_vptr_is_using_builtin_delete(context);
         ensure_use_count_1(context);
