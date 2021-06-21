@@ -44,4 +44,4 @@ jobs:
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 2 -- --keep-going
