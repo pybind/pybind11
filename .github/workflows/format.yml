@@ -25,6 +25,8 @@ jobs:
         extra_args: --hook-stage manual --all-files
 
   clang-tidy:
+    # When making changes here, please also review the "Clang-Tidy" section
+    # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy
     runs-on: ubuntu-latest
     container: silkeh/clang:12
