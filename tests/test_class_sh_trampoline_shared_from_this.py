@@ -20,7 +20,8 @@ def test_pass_shared_ptr():
     m.pass_shared_ptr(obj)
     assert obj.history == "PySft_PassSharedPtr"
     assert obj.use_count() in [2, -1]
-    m.pass_shared_ptr(obj)
+    uc = m.pass_shared_ptr(obj)
+    assert uc == 2  # +1 for passed argument, +1 for shared_from_this.
     assert obj.history == "PySft_PassSharedPtr_PassSharedPtr"
     assert obj.use_count() in [2, -1]
 
@@ -32,28 +33,33 @@ def test_pass_shared_ptr_while_stashed():
     stash1.Add(obj)
     assert obj.history == "PySft_Stash1Add"
     assert obj.use_count() in [2, -1]
-    m.pass_shared_ptr(obj)
+    assert stash1.history(0) == "PySft_Stash1Add"
+    assert stash1.use_count(0) == 1  # obj does NOT own the shared_ptr anymore.
+    uc = m.pass_shared_ptr(obj)
+    assert uc == 3  # +1 for passed argument, +1 for shared_from_this.
     assert obj.history == "PySft_Stash1Add_PassSharedPtr"
     assert obj.use_count() in [2, -1]
+    assert stash1.history(0) == "PySft_Stash1Add_PassSharedPtr"
+    assert stash1.use_count(0) == 1
     stash2 = m.SftSharedPtrStash(2)
     stash2.Add(obj)
     assert obj.history == "PySft_Stash1Add_PassSharedPtr_Stash2Add"
-    assert obj.use_count() in [2, -1]
+    assert obj.use_count() in [3, -1]
     assert stash2.history(0) == "PySft_Stash1Add_PassSharedPtr_Stash2Add"
-    assert stash2.use_count(0) == 1  # TODO: this is not great.
+    assert stash2.use_count(0) == 2
     stash2.Add(obj)
     assert obj.history == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
-    assert obj.use_count() in [2, -1]
-    assert stash1.use_count(0) == 1
+    assert obj.use_count() in [4, -1]
+    assert stash1.use_count(0) == 3
     assert stash1.history(0) == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
-    assert stash2.use_count(0) == 1
+    assert stash2.use_count(0) == 3
     assert stash2.history(0) == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
-    assert stash2.use_count(1) == 1
+    assert stash2.use_count(1) == 3
     assert stash2.history(1) == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
     del obj
-    assert stash2.use_count(0) == 1
+    assert stash2.use_count(0) == 3
     assert stash2.history(0) == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
-    assert stash2.use_count(1) == 1
+    assert stash2.use_count(1) == 3
     assert stash2.history(1) == "PySft_Stash1Add_PassSharedPtr_Stash2Add_Stash2Add"
     del stash2
     gc.collect()

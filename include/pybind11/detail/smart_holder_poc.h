@@ -123,6 +123,12 @@ guarded_delete make_guarded_custom_deleter(bool armed_flag) {
     return guarded_delete(shd_ptr_reset<T>, custom_delete<T, D>, armed_flag);
 };
 
+// Trick to keep the smart_holder memory footprint small.
+struct noop_deleter_acting_as_weak_ptr_owner {
+    std::weak_ptr<void> passenger;
+    void operator()(void *) {};
+};
+
 template <typename T>
 inline bool is_std_default_delete(const std::type_info &rtti_deleter) {
     return rtti_deleter == typeid(std::default_delete<T>)
