@@ -44,14 +44,14 @@ struct SftSharedPtrStash {
     std::vector<std::shared_ptr<Sft>> stash;
     explicit SftSharedPtrStash(int ser_no) : ser_no{ser_no} {}
     void Add(const std::shared_ptr<Sft> &obj) {
-        if (obj->history.size()) {
+        if (!obj->history.empty()) {
             obj->history += "_Stash" + std::to_string(ser_no) + "Add";
         }
         stash.push_back(obj);
     }
     void AddSharedFromThis(Sft *obj) {
         auto sft = obj->shared_from_this();
-        if (sft->history.size()) {
+        if (!sft->history.empty()) {
             sft->history += "_Stash" + std::to_string(ser_no) + "AddSharedFromThis";
         }
         stash.push_back(sft);
@@ -74,7 +74,7 @@ struct SftTrampoline : Sft, py::trampoline_self_life_support {
 
 long pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
     auto sft = obj->shared_from_this();
-    if (sft->history.size()) {
+    if (!sft->history.empty()) {
         sft->history += "_PassSharedPtr";
     }
     return sft.use_count();
