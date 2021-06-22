@@ -39,22 +39,16 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     m.def("args_function", [](py::args args) -> py::tuple {
         return std::move(args);
     });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("args_kwargs_function", [](py::args args, py::kwargs kwargs) {
+    m.def("args_kwargs_function", [](const py::args &args, const py::kwargs &kwargs) {
         return py::make_tuple(args, kwargs);
     });
 
     // test_mixed_args_and_kwargs
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("mixed_plus_args", [](int i, double j, py::args args) {
-        return py::make_tuple(i, j, args);
-    });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("mixed_plus_kwargs", [](int i, double j, py::kwargs kwargs) {
-        return py::make_tuple(i, j, kwargs);
-    });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    auto mixed_plus_both = [](int i, double j, py::args args, py::kwargs kwargs) {
+    m.def("mixed_plus_args",
+          [](int i, double j, const py::args &args) { return py::make_tuple(i, j, args); });
+    m.def("mixed_plus_kwargs",
+          [](int i, double j, const py::kwargs &kwargs) { return py::make_tuple(i, j, kwargs); });
+    auto mixed_plus_both = [](int i, double j, const py::args &args, const py::kwargs &kwargs) {
         return py::make_tuple(i, j, args, kwargs);
     };
     m.def("mixed_plus_args_kwargs", mixed_plus_both);
@@ -71,6 +65,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     #endif
     m.def("arg_refcount_h", [](py::handle h) { GC_IF_NEEDED; return h.ref_count(); });
     m.def("arg_refcount_h", [](py::handle h, py::handle, py::handle) { GC_IF_NEEDED; return h.ref_count(); });
+    // TODO replace the following nolints as appropiate
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("arg_refcount_o", [](py::object o) { GC_IF_NEEDED; return o.ref_count(); });
     m.def("args_refcount", [](py::args a) {

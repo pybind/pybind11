@@ -39,6 +39,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
 
     // test_type_selection
     // NumPy function which only accepts specific data types
+    // Alot of these no lints could be replaced with const refs, and probably should at some point.
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("selective_func", [](py::array_t<int, py::array::c_style>) { return "Int branch taken."; });
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
@@ -60,6 +61,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     m.def("vec_passthrough",
           py::vectorize([](double *a,
                            double b,
+                           // Changing this broke things
                            // NOLINTNEXTLINE(performance-unnecessary-value-param)
                            py::array_t<double> c,
                            const int &d,
