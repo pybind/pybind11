@@ -52,7 +52,8 @@ Details:
 #include <typeinfo>
 
 //#include <iostream>
-inline void to_cout(std::string /*msg*/) { /*std::cout << msg << std::endl;*/ }
+//inline void to_cout(std::string msg) { std::cout << msg << std::endl; }
+inline void to_cout(std::string) { }
 
 // pybindit = Python Bindings Innovation Track.
 // Currently not in pybind11 namespace to signal that this POC does not depend
@@ -366,7 +367,7 @@ to_cout("LOOOK smart_holder as_shared_ptr " + std::to_string(__LINE__) + " " + _
 
 inline void guarded_delete::operator()(void *raw_ptr) const {
     if (hld) {
-to_cout("LOOOK guarded_delete call hld " + std::to_string(__LINE__) + " " + __FILE__);
+to_cout("RECLAIM guarded_delete call hld " + std::to_string(__LINE__) + " " + __FILE__);
         assert(armed_flag);
         assert(hld->vptr.get() == raw_ptr);
         assert(hld->vptr_is_released);

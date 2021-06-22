@@ -13,13 +13,7 @@ namespace {
 struct Sft : std::enable_shared_from_this<Sft> {
     std::string history;
     explicit Sft(const std::string &history) : history{history} {}
-    long use_count() const {
-#if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-        return this->shared_from_this().use_count();
-#else
-        return -1;
-#endif
-    }
+    long use_count() const { return this->shared_from_this().use_count() - 1; }
     virtual ~Sft() = default;
 
 #if defined(__clang__)
@@ -50,12 +44,16 @@ struct SftSharedPtrStash {
     std::vector<std::shared_ptr<Sft>> stash;
     explicit SftSharedPtrStash(int ser_no) : ser_no{ser_no} {}
     void Add(const std::shared_ptr<Sft> &obj) {
-        obj->history += "_Stash" + std::to_string(ser_no) + "Add";
+        if (obj->history.size()) {
+            obj->history += "_Stash" + std::to_string(ser_no) + "Add";
+        }
         stash.push_back(obj);
     }
     void AddSharedFromThis(Sft *obj) {
         auto sft = obj->shared_from_this();
-        sft->history += "_Stash" + std::to_string(ser_no) + "AddSharedFromThis";
+        if (sft->history.size()) {
+            sft->history += "_Stash" + std::to_string(ser_no) + "AddSharedFromThis";
+        }
         stash.push_back(sft);
     }
     std::string history(unsigned i) {
@@ -76,7 +74,9 @@ struct SftTrampoline : Sft, py::trampoline_self_life_support {
 
 long pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
     auto sft = obj->shared_from_this();
-    sft->history += "_PassSharedPtr";
+    if (sft->history.size()) {
+        sft->history += "_PassSharedPtr";
+    }
     return sft.use_count();
 }
 
@@ -102,4 +102,5 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
 
     m.def("pass_shared_ptr", pass_shared_ptr);
     m.def("pass_unique_ptr", pass_unique_ptr);
+    m.def("to_cout", to_cout);
 }
