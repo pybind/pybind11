@@ -44,7 +44,7 @@ TEST_SUBMODULE(opaque_types, m) {
     m.def("print_opaque_list", [](const StringList &l) {
         std::string ret = "Opaque list: [";
         bool first = true;
-        for (auto entry : l) {
+        for (const auto &entry : l) {
             if (!first)
                 ret += ", ";
             ret += entry;

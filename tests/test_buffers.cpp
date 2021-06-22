@@ -27,7 +27,7 @@ TEST_SUBMODULE(buffers, m) {
             memcpy(m_data, s.m_data, sizeof(float) * (size_t) (m_rows * m_cols));
         }
 
-        Matrix(Matrix &&s) : m_rows(s.m_rows), m_cols(s.m_cols), m_data(s.m_data) {
+        Matrix(Matrix &&s) noexcept : m_rows(s.m_rows), m_cols(s.m_cols), m_data(s.m_data) {
             print_move_created(this);
             s.m_rows = 0;
             s.m_cols = 0;
@@ -49,7 +49,7 @@ TEST_SUBMODULE(buffers, m) {
             return *this;
         }
 
-        Matrix &operator=(Matrix &&s) {
+        Matrix &operator=(Matrix &&s) noexcept {
             print_move_assigned(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
             if (&s != this) {
                 delete[] m_data;
@@ -79,6 +79,7 @@ TEST_SUBMODULE(buffers, m) {
     py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
         .def(py::init<py::ssize_t, py::ssize_t>())
         /// Construct from a buffer
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
         .def(py::init([](py::buffer const b) {
             py::buffer_info info = b.request();
             if (info.format != py::format_descriptor<float>::format() || info.ndim != 2)
@@ -89,31 +90,31 @@ TEST_SUBMODULE(buffers, m) {
             return v;
         }))
 
-       .def("rows", &Matrix::rows)
-       .def("cols", &Matrix::cols)
+        .def("rows", &Matrix::rows)
+        .def("cols", &Matrix::cols)
 
         /// Bare bones interface
-       .def("__getitem__", [](const Matrix &m, std::pair<py::ssize_t, py::ssize_t> i) {
-            if (i.first >= m.rows() || i.second >= m.cols())
-                throw py::index_error();
-            return m(i.first, i.second);
-        })
-       .def("__setitem__", [](Matrix &m, std::pair<py::ssize_t, py::ssize_t> i, float v) {
-            if (i.first >= m.rows() || i.second >= m.cols())
-                throw py::index_error();
-            m(i.first, i.second) = v;
-        })
-       /// Provide buffer access
-       .def_buffer([](Matrix &m) -> py::buffer_info {
+        .def("__getitem__",
+             [](const Matrix &m, std::pair<py::ssize_t, py::ssize_t> i) {
+                 if (i.first >= m.rows() || i.second >= m.cols())
+                     throw py::index_error();
+                 return m(i.first, i.second);
+             })
+        .def("__setitem__",
+             [](Matrix &m, std::pair<py::ssize_t, py::ssize_t> i, float v) {
+                 if (i.first >= m.rows() || i.second >= m.cols())
+                     throw py::index_error();
+                 m(i.first, i.second) = v;
+             })
+        /// Provide buffer access
+        .def_buffer([](Matrix &m) -> py::buffer_info {
             return py::buffer_info(
                 m.data(),                               /* Pointer to buffer */
                 { m.rows(), m.cols() },                 /* Buffer dimensions */
                 { sizeof(float) * size_t(m.cols()),     /* Strides (in bytes) for each index */
                   sizeof(float) }
             );
-        })
-        ;
-
+        });
 
     // test_inherited_protocol
     class SquareMatrix : public Matrix {
@@ -208,7 +209,5 @@ TEST_SUBMODULE(buffers, m) {
         })
         ;
 
-    m.def("get_buffer_info", [](py::buffer buffer) {
-        return buffer.request();
-    });
+    m.def("get_buffer_info", [](const py::buffer &buffer) { return buffer.request(); });
 }

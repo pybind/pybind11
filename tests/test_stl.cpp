@@ -202,6 +202,7 @@ TEST_SUBMODULE(stl, m) {
     }, py::arg_v("x", std::nullopt, "None"));
 
     m.def("nodefer_none_optional", [](std::optional<int>) { return true; });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("nodefer_none_optional", [](py::none) { return false; });
 
     using opt_holder = OptionalHolder<std::optional, MoveOutDetector>;
@@ -245,13 +246,13 @@ TEST_SUBMODULE(stl, m) {
         using result_type = const char *;
 
         result_type operator()(int) { return "int"; }
-        result_type operator()(std::string) { return "std::string"; }
+        result_type operator()(const std::string &) { return "std::string"; }
         result_type operator()(double) { return "double"; }
         result_type operator()(std::nullptr_t) { return "std::nullptr_t"; }
     };
 
     // test_variant
-    m.def("load_variant", [](variant<int, std::string, double, std::nullptr_t> v) {
+    m.def("load_variant", [](const variant<int, std::string, double, std::nullptr_t> &v) {
         return py::detail::visit_helper<variant>::call(visitor(), v);
     });
     m.def("load_variant_2pass", [](variant<double, int> v) {
@@ -287,8 +288,11 @@ TEST_SUBMODULE(stl, m) {
     m.def("stl_pass_by_pointer", [](std::vector<int>* v) { return *v; }, "v"_a=nullptr);
 
     // #1258: pybind11/stl.h converts string to vector<string>
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("func_with_string_or_vector_string_arg_overload", [](std::vector<std::string>) { return 1; });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("func_with_string_or_vector_string_arg_overload", [](std::list<std::string>) { return 2; });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("func_with_string_or_vector_string_arg_overload", [](std::string) { return 3; });
 
     class Placeholder {

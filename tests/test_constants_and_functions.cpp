@@ -34,7 +34,7 @@ py::bytes return_bytes() {
     return std::string(data, 4);
 }
 
-std::string print_bytes(py::bytes bytes) {
+std::string print_bytes(const py::bytes &bytes) {
     std::string ret = "bytes[";
     const auto value = static_cast<std::string>(bytes);
     for (size_t i = 0; i < value.length(); ++i) {
@@ -146,8 +146,13 @@ TEST_SUBMODULE(constants_and_functions, m) {
         LargeCapture capture;  // VS 2015's MSVC is acting up if we create the array here
         m.def("should_raise", [capture](int) { return capture.zeros[9] + 33; }, py::kw_only(), py::arg());
     });
-    m.def("register_with_raising_repr", [](py::module_ m, py::object default_value) {
-        m.def("should_raise", [](int, int, py::object) { return 42; }, "some docstring",
-              py::arg_v("x", 42), py::arg_v("y", 42, "<the answer>"), py::arg_v("z", default_value));
+    m.def("register_with_raising_repr", [](py::module_ m, const py::object &default_value) {
+        m.def(
+            "should_raise",
+            [](int, int, const py::object &) { return 42; },
+            "some docstring",
+            py::arg_v("x", 42),
+            py::arg_v("y", 42, "<the answer>"),
+            py::arg_v("z", default_value));
     });
 }
