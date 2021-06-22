@@ -104,7 +104,7 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("return_self", [](LocalVec *v) { return v; });
     m.def("return_copy", [](const LocalVec &v) { return LocalVec(v); });
 
-    // Changint his broke things with pygrep. TODO fix
+    // Changing this broke things with pygrep. TODO fix
     // NOLINTNEXTLINE
     class Dog : public pets::Pet { public: Dog(std::string name) : Pet(name) {}; };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
