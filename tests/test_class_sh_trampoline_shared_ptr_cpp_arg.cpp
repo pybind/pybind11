@@ -2,8 +2,10 @@
 // All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-#include "pybind11_tests.h"
+#include <utility>
+
 #include "pybind11/smart_holder.h"
+#include "pybind11_tests.h"
 
 namespace {
 
@@ -16,7 +18,7 @@ struct SpBase {
     // returns true if there's an associated python instance
     bool has_python_instance() {
         auto tinfo = py::detail::get_type_info(typeid(SpBase));
-        return (bool)py::detail::get_object_handle(this, tinfo);
+        return (bool) py::detail::get_object_handle(this, tinfo);
     }
 
     SpBase()               = default;
@@ -30,13 +32,11 @@ struct PySpBase : SpBase {
 
 struct SpBaseTester {
     std::shared_ptr<SpBase> get_object() const { return m_obj; }
-    void set_object(std::shared_ptr<SpBase> obj) { m_obj = obj; }
+    void set_object(std::shared_ptr<SpBase> obj) { m_obj = std::move(obj); }
     bool is_base_used() { return m_obj->is_base_used(); }
-    bool has_instance() { return (bool)m_obj; }
+    bool has_instance() { return (bool) m_obj; }
     bool has_python_instance() { return m_obj && m_obj->has_python_instance(); }
-    void set_nonpython_instance() {
-        m_obj = std::make_shared<SpBase>();
-    }
+    void set_nonpython_instance() { m_obj = std::make_shared<SpBase>(); }
     std::shared_ptr<SpBase> m_obj;
 };
 

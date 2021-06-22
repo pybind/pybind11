@@ -14,7 +14,7 @@ struct atyp { // Short for "any type".
     atyp() : mtxt("DefaultConstructor") {}
     atyp(const std::string &mtxt_) : mtxt(mtxt_) {}
     atyp(const atyp &other) { mtxt = other.mtxt + "_CpCtor"; }
-    atyp(atyp &&other) { mtxt = other.mtxt + "_MvCtor"; }
+    atyp(atyp &&other) noexcept { mtxt = other.mtxt + "_MvCtor"; }
 };
 
 struct uconsumer { // unique_ptr consumer
@@ -37,7 +37,7 @@ atyp&       rtrn_mref() { static atyp obj; obj.mtxt = "rtrn_mref"; return obj; }
 atyp const* rtrn_cptr() { return new atyp{"rtrn_cptr"}; }
 atyp*       rtrn_mptr() { return new atyp{"rtrn_mptr"}; }
 
-std::string pass_valu(atyp obj)        { return "pass_valu:" + obj.mtxt; }
+std::string pass_valu(atyp obj)        { return "pass_valu:" + obj.mtxt; } // NOLINT
 std::string pass_cref(atyp const& obj) { return "pass_cref:" + obj.mtxt; }
 std::string pass_mref(atyp& obj)       { return "pass_mref:" + obj.mtxt; }
 std::string pass_cptr(atyp const* obj) { return "pass_cptr:" + obj->mtxt; }
@@ -46,8 +46,8 @@ std::string pass_mptr(atyp* obj)       { return "pass_mptr:" + obj->mtxt; }
 std::shared_ptr<atyp>       rtrn_shmp() { return std::shared_ptr<atyp      >(new atyp{"rtrn_shmp"}); }
 std::shared_ptr<atyp const> rtrn_shcp() { return std::shared_ptr<atyp const>(new atyp{"rtrn_shcp"}); }
 
-std::string pass_shmp(std::shared_ptr<atyp>       obj) { return "pass_shmp:" + obj->mtxt; }
-std::string pass_shcp(std::shared_ptr<atyp const> obj) { return "pass_shcp:" + obj->mtxt; }
+std::string pass_shmp(std::shared_ptr<atyp>       obj) { return "pass_shmp:" + obj->mtxt; } // NOLINT
+std::string pass_shcp(std::shared_ptr<atyp const> obj) { return "pass_shcp:" + obj->mtxt; } // NOLINT
 
 std::unique_ptr<atyp>       rtrn_uqmp() { return std::unique_ptr<atyp      >(new atyp{"rtrn_uqmp"}); }
 std::unique_ptr<atyp const> rtrn_uqcp() { return std::unique_ptr<atyp const>(new atyp{"rtrn_uqcp"}); }
@@ -77,7 +77,7 @@ const std::unique_ptr<atyp> &unique_ptr_cref_roundtrip(const std::unique_ptr<aty
 
 struct SharedPtrStash {
     std::vector<std::shared_ptr<const atyp>> stash;
-    void Add(std::shared_ptr<const atyp> obj) { stash.push_back(obj); }
+    void Add(const std::shared_ptr<const atyp> &obj) { stash.push_back(obj); }
 };
 
 } // namespace class_sh_basic

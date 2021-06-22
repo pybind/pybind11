@@ -16,10 +16,10 @@ struct Abase {
     virtual int Add(int other_val) const = 0;
 
     // Some compilers complain about implicitly defined versions of some of the following:
-    Abase(const Abase &) = default;
-    Abase(Abase &&)      = default;
+    Abase(const Abase &)     = default;
+    Abase(Abase &&) noexcept = default;
     Abase &operator=(const Abase &) = default;
-    Abase &operator=(Abase &&) = default;
+    Abase &operator=(Abase &&) noexcept = default;
 };
 
 template <int SerNo>

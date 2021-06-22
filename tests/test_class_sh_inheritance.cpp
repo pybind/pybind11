@@ -15,10 +15,10 @@ struct base_template {
     int base_id;
 
     // Some compilers complain about implicitly defined versions of some of the following:
-    base_template(const base_template &) = default;
-    base_template(base_template &&)      = default;
+    base_template(const base_template &)     = default;
+    base_template(base_template &&) noexcept = default;
     base_template &operator=(const base_template &) = default;
-    base_template &operator=(base_template &&) = default;
+    base_template &operator=(base_template &&) noexcept = default;
 };
 
 using base = base_template<100>;
@@ -37,8 +37,8 @@ inline int pass_cptr_drvd(drvd const *d) { return d->id() + 12; }
 inline std::shared_ptr<drvd> rtrn_shmp_drvd()         { return std::shared_ptr<drvd>(new drvd); }
 inline std::shared_ptr<base> rtrn_shmp_drvd_up_cast() { return std::shared_ptr<drvd>(new drvd); }
 
-inline int pass_shcp_base(std::shared_ptr<base const> b) { return b->id() + 21; }
-inline int pass_shcp_drvd(std::shared_ptr<drvd const> d) { return d->id() + 22; }
+inline int pass_shcp_base(const std::shared_ptr<base const>& b) { return b->id() + 21; }
+inline int pass_shcp_drvd(const std::shared_ptr<drvd const>& d) { return d->id() + 22; }
 // clang-format on
 
 using base1 = base_template<110>;

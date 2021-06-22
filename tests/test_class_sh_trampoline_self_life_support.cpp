@@ -8,24 +8,25 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 namespace {
 
 struct Big5 { // Also known as "rule of five".
     std::string history;
 
-    explicit Big5(std::string history_start) : history{history_start} {}
+    explicit Big5(std::string history_start) : history{std::move(history_start)} {}
 
     Big5(const Big5 &other) { history = other.history + "_CpCtor"; }
 
-    Big5(Big5 &&other) { history = other.history + "_MvCtor"; }
+    Big5(Big5 &&other) noexcept { history = other.history + "_MvCtor"; }
 
     Big5 &operator=(const Big5 &other) {
         history = other.history + "_OpEqLv";
         return *this;
     }
 
-    Big5 &operator=(Big5 &&other) {
+    Big5 &operator=(Big5 &&other) noexcept {
         history = other.history + "_OpEqRv";
         return *this;
     }
