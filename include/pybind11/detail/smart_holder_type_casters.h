@@ -398,35 +398,41 @@ to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " 
         auto type_raw_ptr = convert_type(void_raw_ptr);
         if (hld.pointee_depends_on_holder_owner) {
             auto self         = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
-            auto vptr_del_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
-            if (vptr_del_ptr != nullptr) {
+            auto vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
+            if (vptr_gd_ptr != nullptr) {
                 assert(!hld.vptr_is_released);
                 std::shared_ptr<T> to_be_returned(hld.vptr, type_raw_ptr);
-int sftstat = pybindit::memory::shared_from_this_status(type_raw_ptr);
-to_cout("LOOOK loaded_as_shared_ptr return released SFT=" + std::to_string(sftstat) + " #1 " + std::to_string(__LINE__) + " " + __FILE__);
-                std::shared_ptr<void> non_owning(hld.vptr.get(), [](void *) {});
+                std::shared_ptr<void> non_owning(
+                    hld.vptr.get(),
+                    pybindit::memory::noop_deleter_acting_as_weak_ptr_owner{hld.vptr});
                 // Critical transfer-of-ownership section. This must stay together.
-                vptr_del_ptr->hld          = &hld;
-                vptr_del_ptr->callback_ptr = dec_ref_void;
-                vptr_del_ptr->callback_arg = self;
+                vptr_gd_ptr->hld          = &hld;
+                vptr_gd_ptr->callback_ptr = dec_ref_void;
+                vptr_gd_ptr->callback_arg = self;
                 hld.vptr = non_owning;
                 hld.vptr_is_released = true;
                 Py_INCREF(self);
                 // Critical section end.
-sftstat = pybindit::memory::shared_from_this_status(type_raw_ptr);
-to_cout("LOOOK loaded_as_shared_ptr return released SFT=" + std::to_string(sftstat) + " #2 " + std::to_string(__LINE__) + " " + __FILE__);
                 return to_be_returned;
             }
-            // XXX XXX XXX Ensure not shared_from_this.
-            Py_INCREF(self);
-to_cout("LOOOK loaded_as_shared_ptr return shared_ptr_dec_ref_deleter " + std::to_string(__LINE__) + " " + __FILE__);
-            return std::shared_ptr<T>(type_raw_ptr, shared_ptr_dec_ref_deleter{self});
+            auto vptr_ndaawp_ptr = std::get_deleter<
+                pybindit::memory::noop_deleter_acting_as_weak_ptr_owner>(hld.vptr);
+            if (vptr_ndaawp_ptr != nullptr) {
+                assert(hld.vptr_is_released);
+                auto released_vptr = vptr_ndaawp_ptr->passenger.lock();
+                if (released_vptr != nullptr) {
+                    return std::shared_ptr<T>(released_vptr, type_raw_ptr);
+                }
+            }
+            pybind11_fail(
+                "smart_holder_type_casters: loaded_as_shared_ptr failure:"
+                " fatal internal inconsistency.");
         }
         if (hld.vptr_is_using_noop_deleter) {
             throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
+        assert(!hld.vptr_is_released);
         std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
-to_cout("LOOOK loaded_as_shared_ptr return hld vptr " + std::to_string(__LINE__) + " " + __FILE__);
         return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
     }
 

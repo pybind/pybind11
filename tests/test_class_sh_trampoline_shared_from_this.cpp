@@ -74,8 +74,10 @@ struct SftTrampoline : Sft, py::trampoline_self_life_support {
     using Sft::Sft;
 };
 
-void pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
-    obj->shared_from_this()->history += "_PassSharedPtr";
+long pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
+    auto sft = obj->shared_from_this();
+    sft->history += "_PassSharedPtr";
+    return sft.use_count();
 }
 
 void pass_unique_ptr(const std::unique_ptr<Sft> &) {}
