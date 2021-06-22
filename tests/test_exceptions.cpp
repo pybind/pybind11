@@ -8,7 +8,9 @@
 */
 
 #include "test_exceptions.h"
+
 #include "pybind11_tests.h"
+#include <utility>
 
 // A type that should be raised as an exception in Python
 class MyException : public std::exception {
@@ -199,6 +201,8 @@ TEST_SUBMODULE(exceptions, m) {
         throw py::error_already_set();
     });
 
+    // Changing this broke things. Don't know why
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("python_call_in_destructor", [](py::dict d) {
         try {
             PythonCallInDestructor set_dict_in_destructor(d);
@@ -210,21 +214,23 @@ TEST_SUBMODULE(exceptions, m) {
         return false;
     });
 
-    m.def("python_alreadyset_in_destructor", [](py::str s) {
+    m.def("python_alreadyset_in_destructor", [](const py::str &s) {
         PythonAlreadySetInDestructor alreadyset_in_destructor(s);
         return true;
     });
 
     // test_nested_throws
-    m.def("try_catch", [m](py::object exc_type, py::function f, py::args args) {
-        try { f(*args); }
-        catch (py::error_already_set &ex) {
-            if (ex.matches(exc_type))
-                py::print(ex.what());
-            else
-                throw;
-        }
-    });
+    m.def("try_catch",
+          [m](const py::object &exc_type, const py::function &f, const py::args &args) {
+              try {
+                  f(*args);
+              } catch (py::error_already_set &ex) {
+                  if (ex.matches(exc_type))
+                      py::print(ex.what());
+                  else
+                      throw;
+              }
+          });
 
     // Test repr that cannot be displayed
     m.def("simple_bool_passthrough", [](bool x) {return x;});

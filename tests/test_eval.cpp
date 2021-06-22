@@ -9,7 +9,9 @@
 
 
 #include <pybind11/eval.h>
+
 #include "pybind11_tests.h"
+#include <utility>
 
 TEST_SUBMODULE(eval_, m) {
     // test_evals
@@ -67,7 +69,7 @@ TEST_SUBMODULE(eval_, m) {
         int val_out;
         local["call_test2"] = py::cpp_function([&](int value) { val_out = value; });
 
-        auto result = py::eval_file(filename, global, local);
+        auto result = py::eval_file(std::move(filename), global, local);
         return val_out == 43 && result.is_none();
     });
 

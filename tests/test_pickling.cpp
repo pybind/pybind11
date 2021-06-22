@@ -46,17 +46,16 @@ TEST_SUBMODULE(pickling, m) {
             return py::make_tuple(p.value(), p.extra1(), p.extra2());
         });
     ignoreOldStyleInitWarnings([&pyPickleable]() {
-        pyPickleable
-            .def("__setstate__", [](Pickleable &p, py::tuple t) {
-                if (t.size() != 3)
-                    throw std::runtime_error("Invalid state!");
-                /* Invoke the constructor (need to use in-place version) */
-                new (&p) Pickleable(t[0].cast<std::string>());
+        pyPickleable.def("__setstate__", [](Pickleable &p, const py::tuple &t) {
+            if (t.size() != 3)
+                throw std::runtime_error("Invalid state!");
+            /* Invoke the constructor (need to use in-place version) */
+            new (&p) Pickleable(t[0].cast<std::string>());
 
-                /* Assign any additional state */
-                p.setExtra1(t[1].cast<int>());
-                p.setExtra2(t[2].cast<int>());
-            });
+            /* Assign any additional state */
+            p.setExtra1(t[1].cast<int>());
+            p.setExtra2(t[2].cast<int>());
+        });
     });
 
     py::class_<PickleableNew, Pickleable>(m, "PickleableNew")
@@ -65,7 +64,7 @@ TEST_SUBMODULE(pickling, m) {
             [](const PickleableNew &p) {
                 return py::make_tuple(p.value(), p.extra1(), p.extra2());
             },
-            [](py::tuple t) {
+            [](const py::tuple &t) {
                 if (t.size() != 3)
                     throw std::runtime_error("Invalid state!");
                 auto p = PickleableNew(t[0].cast<std::string>());
@@ -73,8 +72,7 @@ TEST_SUBMODULE(pickling, m) {
                 p.setExtra1(t[1].cast<int>());
                 p.setExtra2(t[2].cast<int>());
                 return p;
-            }
-        ));
+            }));
 
 #if !defined(PYPY_VERSION)
     // test_roundtrip_with_dict
@@ -92,35 +90,33 @@ TEST_SUBMODULE(pickling, m) {
     };
 
     py::class_<PickleableWithDict> pyPickleableWithDict(m, "PickleableWithDict", py::dynamic_attr());
-    pyPickleableWithDict
-        .def(py::init<std::string>())
+    pyPickleableWithDict.def(py::init<std::string>())
         .def_readwrite("value", &PickleableWithDict::value)
         .def_readwrite("extra", &PickleableWithDict::extra)
-        .def("__getstate__", [](py::object self) {
+        .def("__getstate__", [](const py::object &self) {
             /* Also include __dict__ in state */
             return py::make_tuple(self.attr("value"), self.attr("extra"), self.attr("__dict__"));
         });
     ignoreOldStyleInitWarnings([&pyPickleableWithDict]() {
-        pyPickleableWithDict
-            .def("__setstate__", [](py::object self, py::tuple t) {
-                if (t.size() != 3)
-                    throw std::runtime_error("Invalid state!");
-                /* Cast and construct */
-                auto& p = self.cast<PickleableWithDict&>();
-                new (&p) PickleableWithDict(t[0].cast<std::string>());
+        pyPickleableWithDict.def("__setstate__", [](const py::object &self, const py::tuple &t) {
+            if (t.size() != 3)
+                throw std::runtime_error("Invalid state!");
+            /* Cast and construct */
+            auto &p = self.cast<PickleableWithDict &>();
+            new (&p) PickleableWithDict(t[0].cast<std::string>());
 
-                /* Assign C++ state */
-                p.extra = t[1].cast<int>();
+            /* Assign C++ state */
+            p.extra = t[1].cast<int>();
 
-                /* Assign Python state */
-                self.attr("__dict__") = t[2];
-            });
+            /* Assign Python state */
+            self.attr("__dict__") = t[2];
+        });
     });
 
     py::class_<PickleableWithDictNew, PickleableWithDict>(m, "PickleableWithDictNew")
         .def(py::init<std::string>())
         .def(py::pickle(
-            [](py::object self) {
+            [](const py::object &self) {
                 return py::make_tuple(self.attr("value"), self.attr("extra"), self.attr("__dict__"));
             },
             [](const py::tuple &t) {
@@ -132,7 +128,6 @@ TEST_SUBMODULE(pickling, m) {
 
                 auto py_state = t[2].cast<py::dict>();
                 return std::make_pair(cpp_state, py_state);
-            }
-        ));
+            }));
 #endif
 }

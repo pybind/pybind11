@@ -7,6 +7,8 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <utility>
+
 #include "pybind11_tests.h"
 
 
@@ -27,16 +29,14 @@ TEST_SUBMODULE(pytypes, m) {
         list.insert(2, "inserted-2");
         return list;
     });
-    m.def("print_list", [](py::list list) {
+    m.def("print_list", [](const py::list &list) {
         int index = 0;
         for (auto item : list)
             py::print("list item {}: {}"_s.format(index++, item));
     });
     // test_none
     m.def("get_none", []{return py::none();});
-    m.def("print_none", [](py::none none) {
-        py::print("none: {}"_s.format(none));
-    });
+    m.def("print_none", [](const py::none &none) { py::print("none: {}"_s.format(none)); });
 
     // test_set
     m.def("get_set", []() {
@@ -46,20 +46,17 @@ TEST_SUBMODULE(pytypes, m) {
         set.add(std::string("key3"));
         return set;
     });
-    m.def("print_set", [](py::set set) {
+    m.def("print_set", [](const py::set &set) {
         for (auto item : set)
             py::print("key:", item);
     });
-    m.def("set_contains", [](py::set set, py::object key) {
-        return set.contains(key);
-    });
-    m.def("set_contains", [](py::set set, const char* key) {
-        return set.contains(key);
-    });
+    m.def("set_contains",
+          [](const py::set &set, const py::object &key) { return set.contains(key); });
+    m.def("set_contains", [](const py::set &set, const char *key) { return set.contains(key); });
 
     // test_dict
     m.def("get_dict", []() { return py::dict("key"_a="value"); });
-    m.def("print_dict", [](py::dict dict) {
+    m.def("print_dict", [](const py::dict &dict) {
         for (auto item : dict)
             py::print("key: {}, value={}"_s.format(item.first, item.second));
     });
@@ -68,12 +65,10 @@ TEST_SUBMODULE(pytypes, m) {
         auto d2 = py::dict("z"_a=3, **d1);
         return d2;
     });
-    m.def("dict_contains", [](py::dict dict, py::object val) {
-        return dict.contains(val);
-    });
-    m.def("dict_contains", [](py::dict dict, const char* val) {
-        return dict.contains(val);
-    });
+    m.def("dict_contains",
+          [](const py::dict &dict, py::object val) { return dict.contains(val); });
+    m.def("dict_contains",
+          [](const py::dict &dict, const char *val) { return dict.contains(val); });
 
     // test_str
     m.def("str_from_string", []() { return py::str(std::string("baz")); });
@@ -137,7 +132,7 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     // test_accessors
-    m.def("accessor_api", [](py::object o) {
+    m.def("accessor_api", [](const py::object &o) {
         auto d = py::dict();
 
         d["basic_attr"] = o.attr("basic_attr");
@@ -178,7 +173,7 @@ TEST_SUBMODULE(pytypes, m) {
         return d;
     });
 
-    m.def("tuple_accessor", [](py::tuple existing_t) {
+    m.def("tuple_accessor", [](const py::tuple &existing_t) {
         try {
             existing_t[0] = 1;
         } catch (const py::error_already_set &) {
@@ -226,7 +221,7 @@ TEST_SUBMODULE(pytypes, m) {
         );
     });
 
-    m.def("converting_constructors", [](py::dict d) {
+    m.def("converting_constructors", [](const py::dict &d) {
         return py::dict(
             "bytes"_a=py::bytes(d["bytes"]),
             "bytearray"_a=py::bytearray(d["bytearray"]),
@@ -242,6 +237,7 @@ TEST_SUBMODULE(pytypes, m) {
         );
     });
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("cast_functions", [](py::dict d) {
         // When converting between Python types, obj.cast<T>() should be the same as T(obj)
         return py::dict(
@@ -259,8 +255,10 @@ TEST_SUBMODULE(pytypes, m) {
         );
     });
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("convert_to_pybind11_str", [](py::object o) { return py::str(o); });
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("nonconverting_constructor", [](std::string type, py::object value, bool move) -> py::object {
         if (type == "bytes") {
             return move ? py::bytes(std::move(value)) : py::bytes(value);
@@ -333,8 +331,9 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("print_failure", []() { py::print(42, UnregisteredType()); });
 
-    m.def("hash_function", [](py::object obj) { return py::hash(obj); });
+    m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("test_number_protocol", [](py::object a, py::object b) {
         py::list l;
         l.append(a.equal(b));
@@ -355,6 +354,7 @@ TEST_SUBMODULE(pytypes, m) {
         return l;
     });
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("test_list_slicing", [](py::list a) {
         return a[py::slice(0, -1, 2)];
     });
@@ -369,10 +369,12 @@ TEST_SUBMODULE(pytypes, m) {
         return is_this_none;
     });
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("test_memoryview_object", [](py::buffer b) {
         return py::memoryview(b);
     });
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("test_memoryview_buffer_info", [](py::buffer b) {
         return py::memoryview(b.request());
     });
@@ -425,20 +427,22 @@ TEST_SUBMODULE(pytypes, m) {
     m.attr("PYBIND11_STR_LEGACY_PERMISSIVE") = true;
 #endif
 
-    m.def("isinstance_pybind11_bytes", [](py::object o) { return py::isinstance<py::bytes>(o); });
-    m.def("isinstance_pybind11_str", [](py::object o) { return py::isinstance<py::str>(o); });
+    m.def("isinstance_pybind11_bytes",
+          [](py::object o) { return py::isinstance<py::bytes>(std::move(o)); });
+    m.def("isinstance_pybind11_str",
+          [](py::object o) { return py::isinstance<py::str>(std::move(o)); });
 
-    m.def("pass_to_pybind11_bytes", [](py::bytes b) { return py::len(b); });
-    m.def("pass_to_pybind11_str", [](py::str s) { return py::len(s); });
+    m.def("pass_to_pybind11_bytes", [](py::bytes b) { return py::len(std::move(b)); });
+    m.def("pass_to_pybind11_str", [](py::str s) { return py::len(std::move(s)); });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("pass_to_std_string", [](std::string s) { return s.size(); });
 
     // test_weakref
     m.def("weakref_from_handle",
           [](py::handle h) { return py::weakref(h); });
     m.def("weakref_from_handle_and_function",
-          [](py::handle h, py::function f) { return py::weakref(h, f); });
-    m.def("weakref_from_object",
-          [](py::object o) { return py::weakref(o); });
+          [](py::handle h, py::function f) { return py::weakref(h, std::move(f)); });
+    m.def("weakref_from_object", [](const py::object &o) { return py::weakref(o); });
     m.def("weakref_from_object_and_function",
-          [](py::object o, py::function f) { return py::weakref(o, f); });
+          [](py::object o, py::function f) { return py::weakref(std::move(o), std::move(f)); });
 }

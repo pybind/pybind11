@@ -86,6 +86,8 @@ TEST_SUBMODULE(local_bindings, m) {
     m.def("return_self", [](LocalVec *v) { return v; });
     m.def("return_copy", [](const LocalVec &v) { return LocalVec(v); });
 
+    // Reformatting this class broke pygrep checks
+    // NOLINTNEXTLINE
     class Cat : public pets::Pet { public: Cat(std::string name) : Pet(name) {}; };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("get_name", &pets::Pet::name);
