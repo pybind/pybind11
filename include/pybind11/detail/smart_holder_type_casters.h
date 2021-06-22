@@ -397,7 +397,6 @@ to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " 
         auto void_raw_ptr = hld.template as_raw_ptr_unowned<void>();
         auto type_raw_ptr = convert_type(void_raw_ptr);
         if (hld.pointee_depends_on_holder_owner) {
-            auto self         = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
             auto vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
             if (vptr_gd_ptr != nullptr) {
                 assert(!hld.vptr_is_released);
@@ -405,6 +404,7 @@ to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " 
                 std::shared_ptr<void> non_owning(
                     hld.vptr.get(),
                     pybindit::memory::noop_deleter_acting_as_weak_ptr_owner{hld.vptr});
+                auto self = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
                 // Critical transfer-of-ownership section. This must stay together.
                 vptr_gd_ptr->hld          = &hld;
                 vptr_gd_ptr->callback_ptr = dec_ref_void;
@@ -413,6 +413,7 @@ to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " 
                 hld.vptr_is_released = true;
                 Py_INCREF(self);
                 // Critical section end.
+to_cout("FRESHLY released");
                 return to_be_returned;
             }
             auto vptr_ndaawp_ptr = std::get_deleter<
@@ -421,6 +422,7 @@ to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " 
                 assert(hld.vptr_is_released);
                 auto released_vptr = vptr_ndaawp_ptr->passenger.lock();
                 if (released_vptr != nullptr) {
+to_cout("retrieved released");
                     return std::shared_ptr<T>(released_vptr, type_raw_ptr);
                 }
             }
