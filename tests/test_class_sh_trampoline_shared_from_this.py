@@ -8,6 +8,7 @@ class PySft(m.Sft):
     pass
 
 
+@pytest.mark.skip("WIP")
 def test_release_and_immediate_reclaim():
     obj = PySft("PySft")
     assert obj.history == "PySft"
@@ -27,6 +28,7 @@ def test_release_and_immediate_reclaim():
         break  # Comment out for manual leak checking (use `top` command).
 
 
+@pytest.mark.skip("WIP")
 def test_release_to_cpp_stash():
     obj = PySft("PySft")
     stash1 = m.SftSharedPtrStash(1)
@@ -66,6 +68,7 @@ def test_release_to_cpp_stash():
     assert stash1.use_count(0) == 1
 
 
+@pytest.mark.skip("WIP")
 def test_release_to_cpp_stash_leak():
     obj = PySft("")
     while True:
@@ -82,6 +85,7 @@ def test_release_to_cpp_stash_leak():
         break  # Comment out for manual leak checking (use `top` command).
 
 
+@pytest.mark.skip("WIP")
 def test_release_to_cpp_stash_via_shared_from_this():
     obj = PySft("PySft")
     stash1 = m.SftSharedPtrStash(1)
@@ -94,6 +98,7 @@ def test_release_to_cpp_stash_via_shared_from_this():
     assert stash1.use_count(1) == 3
 
 
+@pytest.mark.skip("WIP")
 def test_release_to_cpp_stash_via_shared_from_this_leak_1():  # WIP
     m.to_cout("")
     m.to_cout("")
@@ -120,6 +125,7 @@ def test_release_to_cpp_stash_via_shared_from_this_leak_1():  # WIP
         break  # Comment out for manual leak checking (use `top` command).
 
 
+@pytest.mark.skip("WIP")
 def test_release_to_cpp_stash_via_shared_from_this_leak_2():  # WIP
     m.to_cout("")
     m.to_cout("AddSharedFromThis only")
