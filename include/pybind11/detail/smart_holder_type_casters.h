@@ -370,16 +370,11 @@ struct smart_holder_type_caster_load {
         return *raw_ptr;
     }
 
-    static void dec_ref_void(void *ptr) {
-to_cout("LOOOK dec_ref_void Py_REFCNT(" + std::to_string(Py_REFCNT(reinterpret_cast<PyObject *>(ptr))) + ") " + std::to_string(__LINE__) + " " + __FILE__);
-        gil_scoped_acquire gil;
-        Py_DECREF(reinterpret_cast<PyObject *>(ptr));
-    }
-
     struct shared_ptr_dec_ref_deleter {
         PyObject *self;
         void operator()(void *) {
-to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " " + __FILE__);
+            to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " "
+                    + __FILE__);
             gil_scoped_acquire gil;
             Py_DECREF(self);
         }
@@ -399,41 +394,21 @@ to_cout("LOOOK shared_ptr_dec_ref_deleter call " + std::to_string(__LINE__) + " 
         if (hld.pointee_depends_on_holder_owner) {
             auto vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(hld.vptr);
             if (vptr_gd_ptr != nullptr) {
-                assert(!hld.vptr_is_released);
-                std::shared_ptr<T> to_be_returned(hld.vptr, type_raw_ptr);
-                std::shared_ptr<void> non_owning(
-                    hld.vptr.get(),
-                    pybindit::memory::noop_deleter_acting_as_weak_ptr_owner{hld.vptr});
+                std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
+                if (released_ptr)
+                    return std::shared_ptr<T>(released_ptr, type_raw_ptr);
                 auto self = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
-                // Critical transfer-of-ownership section. This must stay together.
-                vptr_gd_ptr->hld          = &hld;
-                vptr_gd_ptr->callback_ptr = dec_ref_void;
-                vptr_gd_ptr->callback_arg = self;
-                hld.vptr = non_owning;
-                hld.vptr_is_released = true;
                 Py_INCREF(self);
-                // Critical section end.
-to_cout("FRESHLY released");
-                return to_be_returned;
+                std::shared_ptr<T> to_be_released(type_raw_ptr, shared_ptr_dec_ref_deleter{self});
+                vptr_gd_ptr->released_ptr = to_be_released;
+                return to_be_released;
             }
-            auto vptr_ndaawp_ptr = std::get_deleter<
-                pybindit::memory::noop_deleter_acting_as_weak_ptr_owner>(hld.vptr);
-            if (vptr_ndaawp_ptr != nullptr) {
-                assert(hld.vptr_is_released);
-                auto released_vptr = vptr_ndaawp_ptr->passenger.lock();
-                if (released_vptr != nullptr) {
-to_cout("retrieved released");
-                    return std::shared_ptr<T>(released_vptr, type_raw_ptr);
-                }
-            }
-            pybind11_fail(
-                "smart_holder_type_casters: loaded_as_shared_ptr failure:"
-                " fatal internal inconsistency.");
+            pybind11_fail("smart_holder_type_casters: loaded_as_shared_ptr failure: internal "
+                          "inconsistency.");
         }
         if (hld.vptr_is_using_noop_deleter) {
             throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
-        assert(!hld.vptr_is_released);
         std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
         return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
     }
@@ -512,7 +487,8 @@ private:
 
     // have_holder() must be true or this function will fail.
     void throw_if_instance_is_currently_owned_by_shared_ptr() const {
-        if (holder().vptr_is_released) {
+        auto vptr_gd_ptr = std::get_deleter<pybindit::memory::guarded_delete>(holder().vptr);
+        if (vptr_gd_ptr != nullptr && !vptr_gd_ptr->released_ptr.expired()) {
             throw value_error("Python instance is currently owned by a std::shared_ptr.");
         }
     }
@@ -729,7 +705,8 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
         if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
             // SMART_HOLDER_WIP: MISSING: Enforcement of consistency with existing smart_holder.
             // SMART_HOLDER_WIP: MISSING: keep_alive.
-to_cout("LOOOK shtc sh return existing_inst " + std::to_string(__LINE__) + " " + __FILE__);
+            to_cout("LOOOK shtc sh return existing_inst " + std::to_string(__LINE__) + " "
+                    + __FILE__);
             return existing_inst;
         }
 
@@ -745,7 +722,7 @@ to_cout("LOOOK shtc sh return existing_inst " + std::to_string(__LINE__) + " " +
         if (policy == return_value_policy::reference_internal)
             keep_alive_impl(inst, parent);
 
-to_cout("LOOOK shtc sh return new inst " + std::to_string(__LINE__) + " " + __FILE__);
+        to_cout("LOOOK shtc sh return new inst " + std::to_string(__LINE__) + " " + __FILE__);
         return inst.release();
     }
 

@@ -52,8 +52,8 @@ Details:
 #include <typeinfo>
 
 //#include <iostream>
-//inline void to_cout(std::string msg) { std::cout << msg << std::endl; }
-inline void to_cout(std::string) { }
+// inline void to_cout(const std::string &msg) { std::cout << msg << std::endl; }
+inline void to_cout(const std::string &) {}
 
 // pybindit = Python Bindings Innovation Track.
 // Currently not in pybind11 namespace to signal that this POC does not depend
@@ -66,35 +66,27 @@ inline int shared_from_this_status(...) { return 0; }
 template <typename AnyBaseOfT>
 #if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
 inline int shared_from_this_status(const std::enable_shared_from_this<AnyBaseOfT> *ptr) {
-  if (ptr->weak_from_this().lock()) return 1;
-  return -1;
+    if (ptr->weak_from_this().lock())
+        return 1;
+    return -1;
 }
 #else
 inline int shared_from_this_status(const std::enable_shared_from_this<AnyBaseOfT> *) {
-  return 999;
+    return 999;
 }
 #endif
 
-struct smart_holder;
-
 struct guarded_delete {
-    smart_holder *hld            = nullptr;
-    void (*callback_ptr)(void *) = nullptr;
-    void *callback_arg           = nullptr;
-    void (*shd_ptr_reset_fptr)(std::shared_ptr<void>&, void *, guarded_delete &&);
-    void (*del_fptr)(void *);
+    std::weak_ptr<void> released_ptr; // Trick to keep the smart_holder memory footprint small.
+    void (*del_ptr)(void *);
     bool armed_flag;
-    guarded_delete(void (*shd_ptr_reset_fptr)(std::shared_ptr<void>&, void *, guarded_delete &&), void (*del_fptr)(void *), bool armed_flag)
-        : shd_ptr_reset_fptr{shd_ptr_reset_fptr}, del_fptr{del_fptr}, armed_flag{armed_flag} {
-to_cout("LOOOK guarded_delete ctor " + std::to_string(__LINE__) + " " + __FILE__);
-        }
-    void operator()(void *raw_ptr) const;
+    guarded_delete(void (*del_ptr)(void *), bool armed_flag)
+        : del_ptr{del_ptr}, armed_flag{armed_flag} {}
+    void operator()(void *raw_ptr) const {
+        if (armed_flag)
+            (*del_ptr)(raw_ptr);
+    }
 };
-
-template <typename T>
-inline void shd_ptr_reset(std::shared_ptr<void>& shd_ptr, void *raw_ptr, guarded_delete &&gdel) {
-    shd_ptr.reset(static_cast<T *>(raw_ptr), gdel);
-}
 
 template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
 inline void builtin_delete_if_destructible(void *raw_ptr) {
@@ -111,7 +103,7 @@ inline void builtin_delete_if_destructible(void *) {
 
 template <typename T>
 guarded_delete make_guarded_builtin_delete(bool armed_flag) {
-    return guarded_delete(shd_ptr_reset<T>, builtin_delete_if_destructible<T>, armed_flag);
+    return guarded_delete(builtin_delete_if_destructible<T>, armed_flag);
 }
 
 template <typename T, typename D>
@@ -121,13 +113,7 @@ inline void custom_delete(void *raw_ptr) {
 
 template <typename T, typename D>
 guarded_delete make_guarded_custom_deleter(bool armed_flag) {
-    return guarded_delete(shd_ptr_reset<T>, custom_delete<T, D>, armed_flag);
-};
-
-// Trick to keep the smart_holder memory footprint small.
-struct noop_deleter_acting_as_weak_ptr_owner {
-    std::weak_ptr<void> passenger;
-    void operator()(void *) {};
+    return guarded_delete(custom_delete<T, D>, armed_flag);
 };
 
 template <typename T>
@@ -144,7 +130,6 @@ struct smart_holder {
     bool vptr_is_external_shared_ptr : 1;
     bool is_populated : 1;
     bool is_disowned : 1;
-    bool vptr_is_released : 1;
     bool pointee_depends_on_holder_owner : 1; // SMART_HOLDER_WIP: See PR #2839.
 
     // Design choice: smart_holder is movable but not copyable.
@@ -156,7 +141,7 @@ struct smart_holder {
     smart_holder()
         : vptr_is_using_noop_deleter{false}, vptr_is_using_builtin_delete{false},
           vptr_is_external_shared_ptr{false}, is_populated{false}, is_disowned{false},
-          vptr_is_released{false}, pointee_depends_on_holder_owner{false} {}
+          pointee_depends_on_holder_owner{false} {}
 
     bool has_pointee() const { return vptr != nullptr; }
 
@@ -231,17 +216,15 @@ struct smart_holder {
     }
 
     void reset_vptr_deleter_armed_flag(bool armed_flag) const {
-to_cout("LOOOK smart_holder reset_vptr_deleter_armed_flag " + std::to_string(__LINE__) + " " + __FILE__);
-        auto vptr_del_fptr = std::get_deleter<guarded_delete>(vptr);
-        if (vptr_del_fptr == nullptr) {
+        auto vptr_del_ptr = std::get_deleter<guarded_delete>(vptr);
+        if (vptr_del_ptr == nullptr) {
             throw std::runtime_error(
                 "smart_holder::reset_vptr_deleter_armed_flag() called in an invalid context.");
         }
-        vptr_del_fptr->armed_flag = armed_flag;
+        vptr_del_ptr->armed_flag = armed_flag;
     }
 
     static smart_holder from_raw_ptr_unowned(void *raw_ptr) {
-to_cout("LOOOK smart_holder from_raw_ptr_unowned " + std::to_string(__LINE__) + " " + __FILE__);
         smart_holder hld;
         hld.vptr.reset(raw_ptr, [](void *) {});
         hld.vptr_is_using_noop_deleter = true;
@@ -251,7 +234,6 @@ to_cout("LOOOK smart_holder from_raw_ptr_unowned " + std::to_string(__LINE__) + 
 
     template <typename T>
     T *as_raw_ptr_unowned() const {
-to_cout("LOOOK smart_holder as_raw_ptr_unowned " + std::to_string(__LINE__) + " " + __FILE__);
         return static_cast<T *>(vptr.get());
     }
 
@@ -273,8 +255,9 @@ to_cout("LOOOK smart_holder as_raw_ptr_unowned " + std::to_string(__LINE__) + " 
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr) {
-to_cout("");
-to_cout("LOOOK smart_holder from_raw_ptr_take_ownership " + std::to_string(__LINE__) + " " + __FILE__);
+        to_cout("");
+        to_cout("LOOOK smart_holder from_raw_ptr_take_ownership " + std::to_string(__LINE__) + " "
+                + __FILE__);
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
         hld.vptr.reset(static_cast<void *>(raw_ptr), make_guarded_builtin_delete<T>(true));
@@ -313,7 +296,8 @@ to_cout("LOOOK smart_holder from_raw_ptr_take_ownership " + std::to_string(__LIN
 
     template <typename T>
     T *as_raw_ptr_release_ownership(const char *context = "as_raw_ptr_release_ownership") {
-to_cout("LOOOK smart_holder as_raw_ptr_release_ownership " + std::to_string(__LINE__) + " " + __FILE__);
+        to_cout("LOOOK smart_holder as_raw_ptr_release_ownership " + std::to_string(__LINE__) + " "
+                + __FILE__);
         ensure_can_release_ownership(context);
         T *raw_ptr = as_raw_ptr_unowned<T>();
         release_ownership();
@@ -322,7 +306,7 @@ to_cout("LOOOK smart_holder as_raw_ptr_release_ownership " + std::to_string(__LI
 
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr) {
-to_cout("LOOOK smart_holder from_unique_ptr " + std::to_string(__LINE__) + " " + __FILE__);
+        to_cout("LOOOK smart_holder from_unique_ptr " + std::to_string(__LINE__) + " " + __FILE__);
         smart_holder hld;
         hld.rtti_uqp_del                 = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
@@ -340,7 +324,7 @@ to_cout("LOOOK smart_holder from_unique_ptr " + std::to_string(__LINE__) + " " +
 
     template <typename T, typename D = std::default_delete<T>>
     std::unique_ptr<T, D> as_unique_ptr() {
-to_cout("LOOOK smart_holder as_unique_ptr " + std::to_string(__LINE__) + " " + __FILE__);
+        to_cout("LOOOK smart_holder as_unique_ptr " + std::to_string(__LINE__) + " " + __FILE__);
         static const char *context = "as_unique_ptr";
         ensure_compatible_rtti_uqp_del<T, D>(context);
         ensure_use_count_1(context);
@@ -351,7 +335,7 @@ to_cout("LOOOK smart_holder as_unique_ptr " + std::to_string(__LINE__) + " " + _
 
     template <typename T>
     static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {
-to_cout("LOOOK smart_holder from_shared_ptr " + std::to_string(__LINE__) + " " + __FILE__);
+        to_cout("LOOOK smart_holder from_shared_ptr " + std::to_string(__LINE__) + " " + __FILE__);
         smart_holder hld;
         hld.vptr                        = std::static_pointer_cast<void>(shd_ptr);
         hld.vptr_is_external_shared_ptr = true;
@@ -361,27 +345,10 @@ to_cout("LOOOK smart_holder from_shared_ptr " + std::to_string(__LINE__) + " " +
 
     template <typename T>
     std::shared_ptr<T> as_shared_ptr() const {
-to_cout("LOOOK smart_holder as_shared_ptr " + std::to_string(__LINE__) + " " + __FILE__);
+        to_cout("LOOOK smart_holder as_shared_ptr " + std::to_string(__LINE__) + " " + __FILE__);
         return std::static_pointer_cast<T>(vptr);
     }
 };
-
-inline void guarded_delete::operator()(void *raw_ptr) const {
-    if (hld) {
-to_cout("RECLAIM guarded_delete call hld " + std::to_string(__LINE__) + " " + __FILE__);
-        assert(armed_flag);
-        assert(hld->vptr.get() == raw_ptr);
-        assert(hld->vptr_is_released);
-        (*shd_ptr_reset_fptr)(hld->vptr, hld->vptr.get(), guarded_delete{shd_ptr_reset_fptr, del_fptr, true});
-        hld->vptr_is_released = false;
-        (*callback_ptr)(callback_arg); // Py_DECREF.
-    } else if (armed_flag) {
-to_cout("LOOOK guarded_delete call del " + std::to_string(__LINE__) + " " + __FILE__);
-        (*del_fptr)(raw_ptr);
-    } else {
-to_cout("LOOOK guarded_delete call noop " + std::to_string(__LINE__) + " " + __FILE__);
-    }
-}
 
 } // namespace memory
 } // namespace pybindit
