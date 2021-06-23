@@ -23,14 +23,14 @@ struct Sft : std::enable_shared_from_this<Sft> {
     // worth the trouble covering all platforms.
     Sft(const Sft &other) { history = other.history + "_CpCtor"; }
 
-    Sft(Sft &&other) { history = other.history + "_MvCtor"; }
+    Sft(Sft &&other) noexcept { history = other.history + "_MvCtor"; }
 
     Sft &operator=(const Sft &other) {
         history = other.history + "_OpEqLv";
         return *this;
     }
 
-    Sft &operator=(Sft &&other) {
+    Sft &operator=(Sft &&other) noexcept {
         history = other.history + "_OpEqRv";
         return *this;
     }
