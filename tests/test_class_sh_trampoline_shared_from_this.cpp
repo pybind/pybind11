@@ -13,7 +13,6 @@ namespace {
 struct Sft : std::enable_shared_from_this<Sft> {
     std::string history;
     explicit Sft(const std::string &history) : history{history} {}
-    long use_count() const { return this->shared_from_this().use_count() - 1; }
     virtual ~Sft() = default;
 
 #if defined(__clang__)
@@ -43,6 +42,7 @@ struct SftSharedPtrStash {
     int ser_no;
     std::vector<std::shared_ptr<Sft>> stash;
     explicit SftSharedPtrStash(int ser_no) : ser_no{ser_no} {}
+    void Clear() { stash.clear(); }
     void Add(const std::shared_ptr<Sft> &obj) {
         if (!obj->history.empty()) {
             obj->history += "_Stash" + std::to_string(ser_no) + "Add";
@@ -72,11 +72,16 @@ struct SftTrampoline : Sft, py::trampoline_self_life_support {
     using Sft::Sft;
 };
 
+long use_count(const std::shared_ptr<Sft> &obj) { return obj.use_count(); }
+
 long pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
+    to_cout("pass_shared_ptr BEGIN");
     auto sft = obj->shared_from_this();
+    to_cout("pass_shared_ptr got sft");
     if (!sft->history.empty()) {
         sft->history += "_PassSharedPtr";
     }
+    to_cout("pass_shared_ptr END");
     return sft.use_count();
 }
 
@@ -90,16 +95,17 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(SftSharedPtrStash)
 TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     py::classh<Sft, SftTrampoline>(m, "Sft")
         .def(py::init<std::string>())
-        .def_readonly("history", &Sft::history)
-        .def("use_count", &Sft::use_count);
+        .def_readonly("history", &Sft::history);
 
     py::classh<SftSharedPtrStash>(m, "SftSharedPtrStash")
         .def(py::init<int>())
+        .def("Clear", &SftSharedPtrStash::Clear)
         .def("Add", &SftSharedPtrStash::Add)
         .def("AddSharedFromThis", &SftSharedPtrStash::AddSharedFromThis)
         .def("history", &SftSharedPtrStash::history)
         .def("use_count", &SftSharedPtrStash::use_count);
 
+    m.def("use_count", use_count);
     m.def("pass_shared_ptr", pass_shared_ptr);
     m.def("pass_unique_ptr", pass_unique_ptr);
     m.def("to_cout", to_cout);
