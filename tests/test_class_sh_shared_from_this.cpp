@@ -206,7 +206,7 @@ TEST_SUBMODULE(class_sh_shared_from_this, m) {
     m.def("make_myobject3_1", []() { return new MyObject3(8); });
     m.def("make_myobject3_2", []() { return std::make_shared<MyObject3>(9); });
     m.def("print_myobject3_1", [](const MyObject3 *obj) { py::print(obj->toString()); });
-    m.def("print_myobject3_2", [](std::shared_ptr<MyObject3> obj) { py::print(obj->toString()); });
+    m.def("print_myobject3_2", [](std::shared_ptr<MyObject3> obj) { py::print(obj->toString()); }); // NOLINT
     m.def("print_myobject3_3", [](const std::shared_ptr<MyObject3> &obj) { py::print(obj->toString()); });
     // m.def("print_myobject3_4", [](const std::shared_ptr<MyObject3> *obj) { py::print((*obj)->toString()); });
 
@@ -222,7 +222,7 @@ TEST_SUBMODULE(class_sh_shared_from_this, m) {
         .def_property_readonly("holder_copy", [](const SharedFromThisRef &s) { return s.shared; },
                                py::return_value_policy::automatic) // XXX XXX XXX copy)
         .def("set_ref", [](SharedFromThisRef &, const B &) { return true; })
-        .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; });
+        .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; }); // NOLINT
 
     static std::shared_ptr<SharedFromThisVirt> sft(new SharedFromThisVirt());
     py::classh<SharedFromThisVirt>(m, "SharedFromThisVirt")
