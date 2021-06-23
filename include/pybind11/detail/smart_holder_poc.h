@@ -240,8 +240,7 @@ to_cout("LOOOK smart_holder reset_vptr_deleter_armed_flag " + std::to_string(__L
         vptr_del_fptr->armed_flag = armed_flag;
     }
 
-    template <typename T>
-    static smart_holder from_raw_ptr_unowned(T *raw_ptr) {
+    static smart_holder from_raw_ptr_unowned(void *raw_ptr) {
 to_cout("LOOOK smart_holder from_raw_ptr_unowned " + std::to_string(__LINE__) + " " + __FILE__);
         smart_holder hld;
         hld.vptr.reset(raw_ptr, [](void *) {});
@@ -278,7 +277,7 @@ to_cout("");
 to_cout("LOOOK smart_holder from_raw_ptr_take_ownership " + std::to_string(__LINE__) + " " + __FILE__);
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
-        hld.vptr.reset(raw_ptr, make_guarded_builtin_delete<T>(true));
+        hld.vptr.reset(static_cast<void *>(raw_ptr), make_guarded_builtin_delete<T>(true));
         hld.vptr_is_using_builtin_delete = true;
         hld.is_populated                 = true;
         return hld;
@@ -328,9 +327,11 @@ to_cout("LOOOK smart_holder from_unique_ptr " + std::to_string(__LINE__) + " " +
         hld.rtti_uqp_del                 = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
         if (hld.vptr_is_using_builtin_delete) {
-            hld.vptr.reset(unq_ptr.get(), make_guarded_builtin_delete<T>(true));
+            hld.vptr.reset(static_cast<void *>(unq_ptr.get()),
+                           make_guarded_builtin_delete<T>(true));
         } else {
-            hld.vptr.reset(unq_ptr.get(), make_guarded_custom_deleter<T, D>(true));
+            hld.vptr.reset(static_cast<void *>(unq_ptr.get()),
+                           make_guarded_custom_deleter<T, D>(true));
         }
         unq_ptr.release();
         hld.is_populated = true;
