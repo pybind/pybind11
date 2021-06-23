@@ -128,3 +128,29 @@ def test_pass_released_shared_ptr_as_unique_ptr():
     assert str(exc_info.value) == (
         "Python instance is currently owned by a std::shared_ptr."
     )
+
+
+def test_pure_cpp_sft_raw_ptr():
+    obj = m.make_pure_cpp_sft_raw_ptr("PureCppSft")
+    with pytest.raises(RuntimeError) as exc_info:
+        assert m.pass_shared_ptr(obj) == 3  # TODO: FIX.
+    assert str(exc_info.value) == "bad_weak_ptr"
+    obj = m.make_pure_cpp_sft_raw_ptr("PureCppSft")
+    stash1 = m.SftSharedPtrStash(1)
+    with pytest.raises(RuntimeError) as exc_info:
+        stash1.AddSharedFromThis(obj)  # TODO: FIX.
+    assert str(exc_info.value) == "bad_weak_ptr"
+    stash1.Add(obj)
+    with pytest.raises(RuntimeError) as exc_info:
+        stash1.AddSharedFromThis(obj)  # TODO: FIX.
+    assert str(exc_info.value) == "bad_weak_ptr"
+
+
+def test_pure_cpp_sft_shd_ptr():
+    obj = m.make_pure_cpp_sft_shd_ptr("PureCppSft")
+    assert m.pass_shared_ptr(obj) == 3
+    assert obj.history == "PureCppSft_PassSharedPtr"
+    obj = m.make_pure_cpp_sft_shd_ptr("PureCppSft")
+    stash1 = m.SftSharedPtrStash(1)
+    stash1.AddSharedFromThis(obj)
+    assert obj.history == "PureCppSft_Stash1AddSharedFromThis"

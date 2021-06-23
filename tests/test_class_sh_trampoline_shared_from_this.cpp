@@ -12,7 +12,7 @@ namespace {
 
 struct Sft : std::enable_shared_from_this<Sft> {
     std::string history;
-    explicit Sft(const std::string &history) : history{history} {}
+    explicit Sft(const std::string &history_seed) : history{history_seed} {}
     virtual ~Sft() = default;
 
 #if defined(__clang__)
@@ -87,6 +87,12 @@ long pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
 
 void pass_unique_ptr(const std::unique_ptr<Sft> &) {}
 
+Sft *make_pure_cpp_sft_raw_ptr(const std::string &history_seed) { return new Sft{history_seed}; }
+
+std::shared_ptr<Sft> make_pure_cpp_sft_shd_ptr(const std::string &history_seed) {
+    return std::make_shared<Sft>(history_seed);
+}
+
 } // namespace
 
 PYBIND11_SMART_HOLDER_TYPE_CASTERS(Sft)
@@ -108,5 +114,7 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     m.def("use_count", use_count);
     m.def("pass_shared_ptr", pass_shared_ptr);
     m.def("pass_unique_ptr", pass_unique_ptr);
+    m.def("make_pure_cpp_sft_raw_ptr", make_pure_cpp_sft_raw_ptr);
+    m.def("make_pure_cpp_sft_shd_ptr", make_pure_cpp_sft_shd_ptr);
     m.def("to_cout", to_cout);
 }
