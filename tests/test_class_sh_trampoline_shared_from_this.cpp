@@ -89,6 +89,10 @@ void pass_unique_ptr(const std::unique_ptr<Sft> &) {}
 
 Sft *make_pure_cpp_sft_raw_ptr(const std::string &history_seed) { return new Sft{history_seed}; }
 
+std::unique_ptr<Sft> make_pure_cpp_sft_unq_ptr(const std::string &history_seed) {
+    return std::unique_ptr<Sft>(new Sft{history_seed});
+}
+
 std::shared_ptr<Sft> make_pure_cpp_sft_shd_ptr(const std::string &history_seed) {
     return std::make_shared<Sft>(history_seed);
 }
@@ -115,6 +119,7 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     m.def("pass_shared_ptr", pass_shared_ptr);
     m.def("pass_unique_ptr", pass_unique_ptr);
     m.def("make_pure_cpp_sft_raw_ptr", make_pure_cpp_sft_raw_ptr);
+    m.def("make_pure_cpp_sft_unq_ptr", make_pure_cpp_sft_unq_ptr);
     m.def("make_pure_cpp_sft_shd_ptr", make_pure_cpp_sft_shd_ptr);
     m.def("to_cout", to_cout);
 }

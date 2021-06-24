@@ -131,7 +131,12 @@ def test_pass_released_shared_ptr_as_unique_ptr():
 
 
 @pytest.mark.parametrize(
-    "make_f", [m.make_pure_cpp_sft_raw_ptr, m.make_pure_cpp_sft_shd_ptr]
+    "make_f",
+    [
+        m.make_pure_cpp_sft_raw_ptr,
+        m.make_pure_cpp_sft_unq_ptr,
+        m.make_pure_cpp_sft_shd_ptr,
+    ],
 )
 def test_pure_cpp_sft_raw_ptr(make_f):
     obj = make_f("PureCppSft")
