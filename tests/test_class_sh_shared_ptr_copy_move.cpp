@@ -9,20 +9,15 @@
 namespace pybind11_tests {
 namespace {
 
+const std::string fooNames[] = {"ShPtr_", "SmHld_"};
+
 template <int SerNo>
 struct Foo {
     std::string mtxt;
     Foo(const std::string &mtxt_) : mtxt(mtxt_) {}
     Foo(const Foo &other) = delete;
-    Foo(Foo &&other) = delete;
-    std::string get_text() const {
-        std::string res = "Foo";
-        if (SerNo == 0)
-            res += "ShPtr_";
-        else if (SerNo == 1)
-            res += "SmHld_";
-        return res + mtxt;
-    }
+    Foo(Foo &&other)      = delete;
+    std::string get_text() const { return "Foo" + fooNames[SerNo] + mtxt; }
 };
 
 using FooShPtr = Foo<0>;
