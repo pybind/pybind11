@@ -13,11 +13,11 @@ const std::string fooNames[] = {"ShPtr_", "SmHld_"};
 
 template <int SerNo>
 struct Foo {
-    std::string mtxt;
-    Foo(const std::string &mtxt_) : mtxt(mtxt_) {}
+    std::string hisotry;
+    Foo(const std::string &hisotry_) : hisotry(hisotry_) {}
     Foo(const Foo &other) = delete;
     Foo(Foo &&other)      = delete;
-    std::string get_text() const { return "Foo" + fooNames[SerNo] + mtxt; }
+    std::string get_history() const { return "Foo" + fooNames[SerNo] + hisotry; }
 };
 
 using FooShPtr = Foo<0>;
@@ -36,9 +36,9 @@ TEST_SUBMODULE(class_sh_shared_ptr_copy_move, m) {
     namespace py = pybind11;
 
     py::class_<FooShPtr, std::shared_ptr<FooShPtr>>(m, "FooShPtr")
-        .def("get_text", &FooShPtr::get_text);
+        .def("get_history", &FooShPtr::get_history);
     py::classh<FooSmHld>(m, "FooSmHld")
-        .def("get_text", &FooSmHld::get_text);
+        .def("get_history", &FooSmHld::get_history);
 
     m.def("test_ShPtr_copy", []() {
         auto o = std::make_shared<FooShPtr>("copy");
