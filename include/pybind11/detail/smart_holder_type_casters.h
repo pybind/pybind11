@@ -305,6 +305,8 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
         }
         auto uninitialized_location = std::addressof(v_h.holder<holder_type>());
         auto value_ptr_w_t          = v_h.value_ptr<WrappedType>();
+        bool pointee_depends_on_holder_owner
+            = dynamic_raw_ptr_cast_if_possible<AliasType>(value_ptr_w_t) != nullptr;
         if (holder_void_ptr) {
             // Note: inst->owned ignored.
             auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
@@ -314,7 +316,8 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
                     uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
                 if (inst->owned) {
                     new (uninitialized_location)
-                        holder_type(holder_type::from_raw_ptr_take_ownership(value_ptr_w_t, true));
+                        holder_type(holder_type::from_raw_ptr_take_ownership(
+                            value_ptr_w_t, pointee_depends_on_holder_owner));
                 } else {
                     new (uninitialized_location)
                         holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
@@ -322,13 +325,14 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
             }
         }
         v_h.holder<holder_type>().pointee_depends_on_holder_owner
-            = dynamic_raw_ptr_cast_if_possible<AliasType>(value_ptr_w_t) != nullptr;
+            = pointee_depends_on_holder_owner;
         v_h.set_holder_constructed();
     }
 
     template <typename T, typename D>
     static smart_holder smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr) {
-        return pybindit::memory::smart_holder::from_unique_ptr(std::move(unq_ptr), true);
+        return pybindit::memory::smart_holder::from_unique_ptr(
+            std::move(unq_ptr), /*TODO pointee_depends_on_holder_owner*/ true);
     }
 
     template <typename T>
@@ -801,7 +805,8 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
         void *&valueptr     = values_and_holders(inst_raw_ptr).begin()->value_ptr();
         valueptr            = src_raw_void_ptr;
 
-        auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(src), true);
+        auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(
+            std::move(src), /*TODO pointee_depends_on_holder_owner*/ true);
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
         if (policy == return_value_policy::reference_internal)
