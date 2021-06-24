@@ -13,11 +13,11 @@ const std::string fooNames[] = {"ShPtr_", "SmHld_"};
 
 template <int SerNo>
 struct Foo {
-    std::string hisotry;
-    Foo(const std::string &hisotry_) : hisotry(hisotry_) {}
+    std::string history;
+    Foo(const std::string &history_) : history(history_) {}
     Foo(const Foo &other) = delete;
     Foo(Foo &&other)      = delete;
-    std::string get_history() const { return "Foo" + fooNames[SerNo] + hisotry; }
+    std::string get_history() const { return "Foo" + fooNames[SerNo] + history; }
 };
 
 using FooShPtr = Foo<0>;
