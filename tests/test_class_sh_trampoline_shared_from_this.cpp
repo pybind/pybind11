@@ -75,13 +75,10 @@ struct SftTrampoline : Sft, py::trampoline_self_life_support {
 long use_count(const std::shared_ptr<Sft> &obj) { return obj.use_count(); }
 
 long pass_shared_ptr(const std::shared_ptr<Sft> &obj) {
-    to_cout("pass_shared_ptr BEGIN");
     auto sft = obj->shared_from_this();
-    to_cout("pass_shared_ptr got sft");
     if (!sft->history.empty()) {
         sft->history += "_PassSharedPtr";
     }
-    to_cout("pass_shared_ptr END");
     return sft.use_count();
 }
 
@@ -121,5 +118,4 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     m.def("make_pure_cpp_sft_raw_ptr", make_pure_cpp_sft_raw_ptr);
     m.def("make_pure_cpp_sft_unq_ptr", make_pure_cpp_sft_unq_ptr);
     m.def("make_pure_cpp_sft_shd_ptr", make_pure_cpp_sft_shd_ptr);
-    m.def("to_cout", to_cout);
 }

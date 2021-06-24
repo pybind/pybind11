@@ -48,37 +48,17 @@ Details:
 
 #pragma once
 
-#include <cassert>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
 
-// #include <iostream>
-// inline void to_cout(const std::string &msg) { std::cout << msg << std::endl; }
-inline void to_cout(const std::string &) {}
-
 // pybindit = Python Bindings Innovation Track.
 // Currently not in pybind11 namespace to signal that this POC does not depend
 // on any existing pybind11 functionality.
 namespace pybindit {
 namespace memory {
-
-inline int shared_from_this_status(...) { return 0; }
-
-template <typename AnyBaseOfT>
-#if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
-inline int shared_from_this_status(const std::enable_shared_from_this<AnyBaseOfT> *ptr) {
-    if (ptr->weak_from_this().lock())
-        return 1;
-    return -1;
-}
-#else
-inline int shared_from_this_status(const std::enable_shared_from_this<AnyBaseOfT> *) {
-    return 999;
-}
-#endif
 
 struct guarded_delete {
     std::weak_ptr<void> released_ptr; // Trick to keep the smart_holder memory footprint small.
@@ -259,9 +239,6 @@ struct smart_holder {
 
     template <typename T>
     static smart_holder from_raw_ptr_take_ownership(T *raw_ptr, bool void_cast_raw_ptr = false) {
-        to_cout("");
-        to_cout("LOOOK smart_holder from_raw_ptr_take_ownership " + std::to_string(__LINE__) + " "
-                + __FILE__);
         ensure_pointee_is_destructible<T>("from_raw_ptr_take_ownership");
         smart_holder hld;
         auto gd = make_guarded_builtin_delete<T>(true);
@@ -304,8 +281,6 @@ struct smart_holder {
 
     template <typename T>
     T *as_raw_ptr_release_ownership(const char *context = "as_raw_ptr_release_ownership") {
-        to_cout("LOOOK smart_holder as_raw_ptr_release_ownership " + std::to_string(__LINE__) + " "
-                + __FILE__);
         ensure_can_release_ownership(context);
         T *raw_ptr = as_raw_ptr_unowned<T>();
         release_ownership();
@@ -315,7 +290,6 @@ struct smart_holder {
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
                                         bool void_cast_raw_ptr = false) {
-        to_cout("LOOOK smart_holder from_unique_ptr " + std::to_string(__LINE__) + " " + __FILE__);
         smart_holder hld;
         hld.rtti_uqp_del                 = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
@@ -335,7 +309,6 @@ struct smart_holder {
 
     template <typename T, typename D = std::default_delete<T>>
     std::unique_ptr<T, D> as_unique_ptr() {
-        to_cout("LOOOK smart_holder as_unique_ptr " + std::to_string(__LINE__) + " " + __FILE__);
         static const char *context = "as_unique_ptr";
         ensure_compatible_rtti_uqp_del<T, D>(context);
         ensure_use_count_1(context);
@@ -346,7 +319,6 @@ struct smart_holder {
 
     template <typename T>
     static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {
-        to_cout("LOOOK smart_holder from_shared_ptr " + std::to_string(__LINE__) + " " + __FILE__);
         smart_holder hld;
         hld.vptr                        = std::static_pointer_cast<void>(shd_ptr);
         hld.vptr_is_external_shared_ptr = true;
@@ -356,7 +328,6 @@ struct smart_holder {
 
     template <typename T>
     std::shared_ptr<T> as_shared_ptr() const {
-        to_cout("LOOOK smart_holder as_shared_ptr " + std::to_string(__LINE__) + " " + __FILE__);
         return std::static_pointer_cast<T>(vptr);
     }
 };
