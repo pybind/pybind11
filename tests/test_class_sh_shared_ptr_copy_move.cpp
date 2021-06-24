@@ -16,12 +16,12 @@ struct Foo {
     std::string history;
     Foo(const std::string &history_) : history(history_) {}
     Foo(const Foo &other) : history(other.history + "_CpCtor") {}
-    Foo(Foo &&other) : history(other.history + "_MvCtor") {}
+    Foo(Foo &&other) noexcept : history(other.history + "_MvCtor") {}
     Foo &operator=(const Foo &other) {
         history = other.history + "_OpEqLv";
         return *this;
     }
-    Foo &operator=(Foo &&other) {
+    Foo &operator=(Foo &&other) noexcept {
         history = other.history + "_OpEqRv";
         return *this;
     }
