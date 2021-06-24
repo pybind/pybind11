@@ -40,6 +40,10 @@ Details:
 
 * By choice, the smart_holder is movable but not copyable, to keep the design
   simple, and to guard against accidental copying overhead.
+
+* The `void_cast_raw_ptr` option is needed to make the `smart_holder` `vptr`
+  member invisible to the `shared_from_this` mechanism, in case the lifetime
+  of a `PyObject` is tied to the pointee.
 */
 
 #pragma once
@@ -51,7 +55,7 @@ Details:
 #include <type_traits>
 #include <typeinfo>
 
-//#include <iostream>
+// #include <iostream>
 // inline void to_cout(const std::string &msg) { std::cout << msg << std::endl; }
 inline void to_cout(const std::string &) {}
 

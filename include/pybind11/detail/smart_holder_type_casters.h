@@ -317,7 +317,7 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
                 if (inst->owned) {
                     new (uninitialized_location)
                         holder_type(holder_type::from_raw_ptr_take_ownership(
-                            value_ptr_w_t, pointee_depends_on_holder_owner));
+                            value_ptr_w_t, /*void_cast_raw_ptr*/ pointee_depends_on_holder_owner));
                 } else {
                     new (uninitialized_location)
                         holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
@@ -330,9 +330,10 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
     }
 
     template <typename T, typename D>
-    static smart_holder smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr) {
-        return pybindit::memory::smart_holder::from_unique_ptr(
-            std::move(unq_ptr), /*TODO pointee_depends_on_holder_owner*/ true);
+    static smart_holder smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
+                                                     bool void_cast_raw_ptr) {
+        return pybindit::memory::smart_holder::from_unique_ptr(std::move(unq_ptr),
+                                                               void_cast_raw_ptr);
     }
 
     template <typename T>
@@ -805,8 +806,8 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
         void *&valueptr     = values_and_holders(inst_raw_ptr).begin()->value_ptr();
         valueptr            = src_raw_void_ptr;
 
-        auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(
-            std::move(src), /*TODO pointee_depends_on_holder_owner*/ true);
+        auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(src),
+                                                                      /*void_cast_raw_ptr*/ false);
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
         if (policy == return_value_policy::reference_internal)
