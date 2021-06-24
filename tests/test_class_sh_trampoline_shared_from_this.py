@@ -9,6 +9,8 @@ class PySft(m.Sft):
 
 
 def test_release_and_shared_from_this():
+    # Exercises the most direct path from building a shared_from_this-visible
+    # shared_ptr to calling shared_from_this.
     obj = PySft("PySft")
     assert obj.history == "PySft"
     assert m.use_count(obj) == 1
@@ -30,6 +32,7 @@ def test_release_and_shared_from_this_leak():
 
 
 def test_release_and_stash():
+    # Exercises correct functioning of guarded_delete weak_ptr.
     obj = PySft("PySft")
     stash1 = m.SftSharedPtrStash(1)
     stash1.Add(obj)
@@ -88,6 +91,7 @@ def test_release_and_stash_leak():
 
 
 def test_release_and_stash_via_shared_from_this():
+    # Exercises that the smart_holder vptr is invisible to the shared_from_this mechnism.
     obj = PySft("PySft")
     stash1 = m.SftSharedPtrStash(1)
     with pytest.raises(RuntimeError) as exc_info:
@@ -120,6 +124,8 @@ def test_release_and_stash_via_shared_from_this_leak():
 
 
 def test_pass_released_shared_ptr_as_unique_ptr():
+    # Exercises that returning a unique_ptr fails while a shared_from_this
+    # visible shared_ptr exists.
     obj = PySft("PySft")
     stash1 = m.SftSharedPtrStash(1)
     stash1.Add(obj)  # Releases shared_ptr to C++.
@@ -139,6 +145,7 @@ def test_pass_released_shared_ptr_as_unique_ptr():
     ],
 )
 def test_pure_cpp_sft_raw_ptr(make_f):
+    # Exercises void_cast_raw_ptr logic for different situations.
     obj = make_f("PureCppSft")
     assert m.pass_shared_ptr(obj) == 3
     assert obj.history == "PureCppSft_PassSharedPtr"
