@@ -1,4 +1,4 @@
-find_package(Catch 2.13.6)
+find_package(Catch 2.13.2)
 
 if(CATCH_FOUND)
   message(STATUS "Building pure C++ tests (not depending on Python) using Catch v${CATCH_VERSION}")
