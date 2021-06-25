@@ -60,6 +60,13 @@ Details:
 namespace pybindit {
 namespace memory {
 
+static constexpr bool type_has_shared_from_this(...) { return false; }
+
+template <typename T>
+static constexpr bool type_has_shared_from_this(const std::enable_shared_from_this<T> *) {
+    return true;
+}
+
 struct guarded_delete {
     std::weak_ptr<void> released_ptr; // Trick to keep the smart_holder memory footprint small.
     void (*del_ptr)(void *);
