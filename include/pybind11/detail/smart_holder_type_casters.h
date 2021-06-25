@@ -277,11 +277,16 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
         return false;
     }
 
-    template <typename WrappedType, typename AnyBaseOfWrappedType>
+    // Adopting existing approach used by type_caster_base, although it leads to somewhat fuzzy
+    // ownership semantics: if we deteced via shared_from_this that a shared_ptr exists already, it
+    // is reused, irrespective of the return_value_policy in effect.
+    // "SomeBaseOfWrappedType" is needed because std::enable_shared_from_this is not necessarily a
+    // direct base of WrappedType.
+    template <typename WrappedType, typename SomeBaseOfWrappedType>
     static bool try_initialization_using_shared_from_this(
         holder_type *uninitialized_location,
         WrappedType *value_ptr_w_t,
-        const std::enable_shared_from_this<AnyBaseOfWrappedType> *) {
+        const std::enable_shared_from_this<SomeBaseOfWrappedType> *) {
         auto shd_ptr = std::dynamic_pointer_cast<WrappedType>(
             detail::try_get_shared_from_this(value_ptr_w_t));
         if (!shd_ptr)
@@ -310,17 +315,14 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
             // Note: inst->owned ignored.
             auto holder_ptr = static_cast<holder_type *>(holder_void_ptr);
             new (uninitialized_location) holder_type(std::move(*holder_ptr));
-        } else {
-            if (!try_initialization_using_shared_from_this(
-                    uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
-                if (inst->owned) {
-                    new (uninitialized_location)
-                        holder_type(holder_type::from_raw_ptr_take_ownership(
-                            value_ptr_w_t, /*void_cast_raw_ptr*/ pointee_depends_on_holder_owner));
-                } else {
-                    new (uninitialized_location)
-                        holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
-                }
+        } else if (!try_initialization_using_shared_from_this(
+                       uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
+            if (inst->owned) {
+                new (uninitialized_location) holder_type(holder_type::from_raw_ptr_take_ownership(
+                    value_ptr_w_t, /*void_cast_raw_ptr*/ pointee_depends_on_holder_owner));
+            } else {
+                new (uninitialized_location)
+                    holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
             }
         }
         v_h.holder<holder_type>().pointee_depends_on_holder_owner
