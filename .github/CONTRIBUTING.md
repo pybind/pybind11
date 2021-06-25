@@ -59,6 +59,7 @@ system with CMake 3.14+:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
+pip install -U pip wheel
 pip install -r tests/requirements.txt
 cmake -S . -B build -DDOWNLOAD_CATCH=ON -DDOWNLOAD_EIGEN=ON
 cmake --build build -j4
@@ -233,7 +234,8 @@ recent CMake and Python 3):
 
 ```bash
 python3 -m venv venv
-. venv/bin/activate
+source venv/bin/activate
+pip install -U pip wheel
 pip install pytest
 cmake -S . -B build-intel -DCMAKE_CXX_COMPILER=$(which icpc) -DDOWNLOAD_CATCH=ON -DDOWNLOAD_EIGEN=ON -DPYBIND11_WERROR=ON
 ```
