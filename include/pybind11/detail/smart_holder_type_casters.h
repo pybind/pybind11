@@ -393,6 +393,9 @@ struct smart_holder_type_caster_load {
         throw_if_uninitialized_or_disowned_holder();
         holder_type &hld = holder();
         hld.ensure_is_not_disowned("loaded_as_shared_ptr");
+        if (hld.vptr_is_using_noop_deleter) {
+            throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
+        }
         auto void_raw_ptr = hld.template as_raw_ptr_unowned<void>();
         auto type_raw_ptr = convert_type(void_raw_ptr);
         if (hld.pointee_depends_on_holder_owner) {
@@ -407,11 +410,25 @@ struct smart_holder_type_caster_load {
                 vptr_gd_ptr->released_ptr = to_be_released;
                 return to_be_released;
             }
+            if (std::get_deleter<shared_ptr_dec_ref_deleter>(hld.vptr) != nullptr) {
+                // SMART_HOLDER_WIP: unit test coverage.
+                std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
+                return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
+            }
+            if (!pybindit::memory::type_has_shared_from_this(type_raw_ptr)) {
+                // SMART_HOLDER_WIP: unit test coverage.
+                // SMART_HOLDER_WIP: keep weak_ref?
+                auto self = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
+                Py_INCREF(self);
+                return std::shared_ptr<T>(type_raw_ptr, shared_ptr_dec_ref_deleter{self});
+            }
+            if (hld.vptr_is_external_shared_ptr) {
+                // SMART_HOLDER_WIP: unit test coverage.
+                pybind11_fail("smart_holder_type_casters loaded_as_shared_ptr failure: external "
+                              "shared_ptr for type with shared_from_this.");
+            }
             pybind11_fail("smart_holder_type_casters: loaded_as_shared_ptr failure: internal "
                           "inconsistency.");
-        }
-        if (hld.vptr_is_using_noop_deleter) {
-            throw std::runtime_error("Non-owning holder (loaded_as_shared_ptr).");
         }
         std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
         return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
