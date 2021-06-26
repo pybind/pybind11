@@ -433,6 +433,17 @@ def test_accepts_none(msg):
         assert m.ok_none4(None) == -1
 
 
+def test_casts_none(msg):
+    """#2778: implicit casting from None to object (not pointer)"""
+    a = m.NoneCastTester()
+    assert m.ok_obj_or_none(a) == -1
+    a = m.NoneCastTester(4)
+    assert m.ok_obj_or_none(a) == 4
+    a = m.NoneCastTester(None)
+    assert m.ok_obj_or_none(a) == -1
+    assert m.ok_obj_or_none(None) == -1
+
+
 def test_str_issue(msg):
     """#283: __str__ called on uninitialized instance when constructor arguments invalid"""
 
