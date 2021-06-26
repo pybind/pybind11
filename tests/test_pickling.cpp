@@ -37,13 +37,13 @@ void wrap(py::module m) {
         .def(py::init<>())
         .def_readwrite("num", &SimpleBase::num)
         .def(py::pickle(
-            [](const py::object& self) {
+            [](const py::object &self) {
                 py::dict d;
                 if (py::hasattr(self, "__dict__"))
                     d = self.attr("__dict__");
                 return py::make_tuple(self.attr("num"), d);
             },
-            [](const py::tuple& t) {
+            [](const py::tuple &t) {
                 if (t.size() != 2)
                     throw std::runtime_error("Invalid state!");
                 auto cpp_state = std::unique_ptr<SimpleBase>(new SimpleBaseTrampoline);
@@ -54,6 +54,9 @@ void wrap(py::module m) {
 
     m.def("make_SimpleCppDerivedAsBase",
           []() { return std::unique_ptr<SimpleBase>(new SimpleCppDerived); });
+    m.def("check_dynamic_cast_SimpleCppDerived", [](const SimpleBase *base_ptr) {
+        return dynamic_cast<const SimpleCppDerived *>(base_ptr) != nullptr;
+    });
 }
 
 } // namespace exercise_trampoline
