@@ -657,12 +657,6 @@ public:
     PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
         if (!src) return false;
         if (!typeinfo) return try_load_foreign_module_local(src);
-        if (src.is_none()) {
-            // Defer accepting None to other overloads (if we aren't in convert mode):
-            if (!convert) return false;
-            value = nullptr;
-            return true;
-        }
 
         auto &this_ = static_cast<ThisT &>(*this);
         this_.check_holder_compat();
@@ -731,7 +725,19 @@ public:
         }
 
         // Global typeinfo has precedence over foreign module_local
-        return try_load_foreign_module_local(src);
+        if (try_load_foreign_module_local(src)) {
+           return true;
+        }
+
+        // Custom converters didn't take None, now we convert None to nullptr.
+        if (src.is_none()) {
+           // Defer accepting None to other overloads (if we aren't in convert mode):
+           if (!convert) return false;
+           value = nullptr;
+           return true;
+        }
+
+        return false;
     }
 
 
