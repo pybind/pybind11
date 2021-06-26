@@ -118,6 +118,14 @@ int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
 int none5(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 
+// Issue #2778: implicit casting from None to object (not pointer)
+class NoneCastTester {
+public:
+    int answer = -1;
+    NoneCastTester() = default;
+    NoneCastTester(int v) : answer(v) {};
+};
+
 struct StrIssue {
     int val = -1;
 
@@ -353,6 +361,16 @@ TEST_SUBMODULE(methods_and_attributes, m) {
 
     m.def("no_none_kwarg", &none2, "a"_a.none(false));
     m.def("no_none_kwarg_kw_only", &none2, py::kw_only(), "a"_a.none(false));
+
+    // test_casts_none
+    // Issue #2778: implicit casting from None to object (not pointer)
+    py::class_<NoneCastTester>(m, "NoneCastTester")
+          .def(py::init<>())
+          .def(py::init<int>())
+          .def(py::init([](py::none const&) { return NoneCastTester{}; }));
+    py::implicitly_convertible<py::none, NoneCastTester>();
+    m.def("ok_obj_or_none", [](NoneCastTester const& foo) { return foo.answer; });
+
 
     // test_str_issue
     // Issue #283: __str__ called on uninitialized instance when constructor arguments invalid
