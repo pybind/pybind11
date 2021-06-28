@@ -411,7 +411,9 @@ struct smart_holder_type_caster_load {
                 return to_be_released;
             }
             if (std::get_deleter<shared_ptr_dec_ref_deleter>(hld.vptr) != nullptr) {
-                // SMART_HOLDER_WIP: unit test coverage.
+                // This code is reachable only if there are multiple registered_instances for the
+                // same pointee.
+                // SMART_HOLDER_WIP: keep weak_ref?
                 std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
                 return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
             }
