@@ -153,3 +153,21 @@ def test_pure_cpp_sft_raw_ptr(make_f):
     stash1 = m.SftSharedPtrStash(1)
     stash1.AddSharedFromThis(obj)
     assert obj.history == "PureCppSft_Stash1AddSharedFromThis"
+
+
+def test_multiple_registered_instances_for_same_pointee():
+    obj0 = PySft("PySft")
+    obj0.attachment_in_dict = "Obj0"
+    assert m.pass_through_shd_ptr(obj0) is obj0
+    while True:
+        obj = m.Sft(obj0)
+        assert obj is not obj0
+        obj_pt = m.pass_through_shd_ptr(obj)
+        # Unpredictable! Because registered_instances is as std::unordered_multimap.
+        assert obj_pt is obj0 or obj_pt is obj
+        # Multiple registered_instances for the same pointee can lead to unpredictable results:
+        if obj_pt is obj0:
+            assert obj_pt.attachment_in_dict == "Obj0"
+        else:
+            assert not hasattr(obj_pt, "attachment_in_dict")
+        break  # Comment out for manual leak checking (use `top` command).
