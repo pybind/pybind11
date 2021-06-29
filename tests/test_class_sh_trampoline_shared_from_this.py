@@ -170,6 +170,20 @@ def test_multiple_registered_instances_for_same_pointee():
             assert obj_pt.attachment_in_dict == "Obj0"
         else:
             assert not hasattr(obj_pt, "attachment_in_dict")
+        assert obj0.history == "PySft"
+        break  # Comment out for manual leak checking (use `top` command).
+
+
+def test_multiple_registered_instances_for_same_pointee_leak():
+    obj0 = PySft("")
+    while True:
+        stash1 = m.SftSharedPtrStash(1)
+        stash1.Add(m.Sft(obj0))
+        assert stash1.use_count(0) == 1
+        stash1.Add(m.Sft(obj0))
+        assert stash1.use_count(0) == 1
+        assert stash1.use_count(1) == 1
+        assert obj0.history == ""
         break  # Comment out for manual leak checking (use `top` command).
 
 

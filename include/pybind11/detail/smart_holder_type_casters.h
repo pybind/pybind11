@@ -18,6 +18,7 @@
 #include "type_caster_base.h"
 #include "typeid.h"
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <new>
@@ -343,6 +344,18 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
     }
 };
 
+struct shared_ptr_trampoline_self_life_support {
+    PyObject *self;
+    explicit shared_ptr_trampoline_self_life_support(instance *inst)
+        : self{reinterpret_cast<PyObject *>(inst)} {
+        Py_INCREF(self);
+    }
+    void operator()(void *) {
+        gil_scoped_acquire gil;
+        Py_DECREF(self);
+    }
+};
+
 template <typename T>
 struct smart_holder_type_caster_load {
     using holder_type = pybindit::memory::smart_holder;
@@ -376,14 +389,6 @@ struct smart_holder_type_caster_load {
         return *raw_ptr;
     }
 
-    struct shared_ptr_dec_ref_deleter {
-        PyObject *self;
-        void operator()(void *) {
-            gil_scoped_acquire gil;
-            Py_DECREF(self);
-        }
-    };
-
     std::shared_ptr<T> loaded_as_shared_ptr() const {
         if (load_impl.unowned_void_ptr_from_direct_conversion != nullptr)
             throw cast_error("Unowned pointer from direct conversion cannot be converted to a"
@@ -404,24 +409,26 @@ struct smart_holder_type_caster_load {
                 std::shared_ptr<void> released_ptr = vptr_gd_ptr->released_ptr.lock();
                 if (released_ptr)
                     return std::shared_ptr<T>(released_ptr, type_raw_ptr);
-                auto self = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
-                Py_INCREF(self);
-                std::shared_ptr<T> to_be_released(type_raw_ptr, shared_ptr_dec_ref_deleter{self});
+                std::shared_ptr<T> to_be_released(
+                    type_raw_ptr,
+                    shared_ptr_trampoline_self_life_support(load_impl.loaded_v_h.inst));
                 vptr_gd_ptr->released_ptr = to_be_released;
                 return to_be_released;
             }
-            if (std::get_deleter<shared_ptr_dec_ref_deleter>(hld.vptr) != nullptr) {
+            auto sptsls_ptr = std::get_deleter<shared_ptr_trampoline_self_life_support>(hld.vptr);
+            if (sptsls_ptr != nullptr) {
                 // This code is reachable only if there are multiple registered_instances for the
                 // same pointee.
-                // SMART_HOLDER_WIP: keep weak_ref
-                std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
-                return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
+                assert(reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst)
+                       != sptsls_ptr->self);
+                return std::shared_ptr<T>(
+                    type_raw_ptr,
+                    shared_ptr_trampoline_self_life_support(load_impl.loaded_v_h.inst));
             }
             if (!pybindit::memory::type_has_shared_from_this(type_raw_ptr)) {
-                // SMART_HOLDER_WIP: keep weak_ref
-                auto self = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
-                Py_INCREF(self);
-                return std::shared_ptr<T>(type_raw_ptr, shared_ptr_dec_ref_deleter{self});
+                return std::shared_ptr<T>(
+                    type_raw_ptr,
+                    shared_ptr_trampoline_self_life_support(load_impl.loaded_v_h.inst));
             }
             if (hld.vptr_is_external_shared_ptr) {
                 pybind11_fail("smart_holder_type_casters loaded_as_shared_ptr failure: not "
