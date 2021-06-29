@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+import env  # noqa: F401
+
+import weakref
+
 import pybind11_tests.class_sh_trampoline_shared_from_this as m
 
 
@@ -184,6 +188,28 @@ def test_multiple_registered_instances_for_same_pointee_leak():
         assert stash1.use_count(0) == 1
         assert stash1.use_count(1) == 1
         assert obj0.history == ""
+        break  # Comment out for manual leak checking (use `top` command).
+
+
+def test_multiple_registered_instances_for_same_pointee_recursive():
+    while True:
+        obj0 = PySft("PySft")
+        if not env.PYPY:
+            obj0_wr = weakref.ref(obj0)
+        obj = obj0
+        # This loop creates a chain of instances linked by shared_ptrs.
+        for _ in range(10):
+            obj_next = m.Sft(obj)
+            assert obj_next is not obj
+            obj = obj_next
+            del obj_next
+            assert obj.history == "PySft"
+        del obj0
+        if not env.PYPY:
+            assert obj0_wr() is not None
+        del obj  # This releases the chain recursively.
+        if not env.PYPY:
+            assert obj0_wr() is None
         break  # Comment out for manual leak checking (use `top` command).
 
 
