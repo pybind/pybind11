@@ -23,7 +23,7 @@ def test_smhld_move():
     assert txt == "FooSmHld_move"
 
 
-def _check_property(foo_typ: str, prop_typ: str, policy: str):
+def _check_property(foo_typ, prop_typ, policy):
     o = m.Outer()
     name = "{}_{}_{}".format(foo_typ, prop_typ, policy)
     history = "Foo{}_Outer".format(foo_typ)
