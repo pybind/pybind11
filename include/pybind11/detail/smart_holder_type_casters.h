@@ -18,7 +18,6 @@
 #include "type_caster_base.h"
 #include "typeid.h"
 
-#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <new>
@@ -419,8 +418,10 @@ struct smart_holder_type_caster_load {
             if (sptsls_ptr != nullptr) {
                 // This code is reachable only if there are multiple registered_instances for the
                 // same pointee.
-                assert(reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst)
-                       != sptsls_ptr->self);
+                if (reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst) == sptsls_ptr->self) {
+                    pybind11_fail("smart_holder_type_casters loaded_as_shared_ptr failure: "
+                                  "load_impl.loaded_v_h.inst == sptsls_ptr->self");
+                }
                 return std::shared_ptr<T>(
                     type_raw_ptr,
                     shared_ptr_trampoline_self_life_support(load_impl.loaded_v_h.inst));
