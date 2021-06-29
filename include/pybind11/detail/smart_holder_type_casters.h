@@ -628,15 +628,20 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
 
     static handle cast(const std::shared_ptr<T> &src, return_value_policy policy, handle parent) {
         switch (policy) {
-            case return_value_policy::automatic: break;
-            case return_value_policy::automatic_reference: break;
+            case return_value_policy::automatic:
+                break;
+            case return_value_policy::automatic_reference:
+                break;
             case return_value_policy::take_ownership:
                 throw cast_error("Invalid return_value_policy for shared_ptr (take_ownership).");
-            case return_value_policy::copy: break;
-            case return_value_policy::move: break;
+            case return_value_policy::copy:
+                break;
+            case return_value_policy::move:
+                break;
             case return_value_policy::reference:
                 throw cast_error("Invalid return_value_policy for shared_ptr (reference).");
-            case return_value_policy::reference_internal: break;
+            case return_value_policy::reference_internal:
+                break;
         }
         if (!src)
             return none().release();
