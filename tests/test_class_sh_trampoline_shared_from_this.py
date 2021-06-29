@@ -171,3 +171,20 @@ def test_multiple_registered_instances_for_same_pointee():
         else:
             assert not hasattr(obj_pt, "attachment_in_dict")
         break  # Comment out for manual leak checking (use `top` command).
+
+
+def test_std_make_shared_factory():
+    class PySftMakeShared(m.Sft):
+        def __init__(self, history):
+            super(PySftMakeShared, self).__init__(history, 0)
+
+    obj = PySftMakeShared("PySftMakeShared")
+    assert obj.history == "PySftMakeShared"
+    with pytest.raises(RuntimeError) as exc_info:
+        m.pass_through_shd_ptr(obj)
+    assert (
+        str(exc_info.value)
+        == "smart_holder_type_casters loaded_as_shared_ptr failure: not implemented:"
+        " trampoline-self-life-support for external shared_ptr to type inheriting"
+        " from std::enable_shared_from_this."
+    )

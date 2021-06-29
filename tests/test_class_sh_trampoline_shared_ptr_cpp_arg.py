@@ -131,3 +131,12 @@ def test_infinite():
     while True:
         tester.set_object(m.SpBase())
         return  # Comment out for manual leak checking (use `top` command).
+
+
+def test_std_make_shared_factory():
+    class PyChild(m.SpBase):
+        def __init__(self):
+            super(PyChild, self).__init__(0)
+
+    obj = PyChild()
+    assert m.pass_through_shd_ptr(obj) is obj

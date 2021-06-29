@@ -103,7 +103,10 @@ PYBIND11_SMART_HOLDER_TYPE_CASTERS(SftSharedPtrStash)
 
 TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
     py::classh<Sft, SftTrampoline>(m, "Sft")
-        .def(py::init<std::string>())
+        .def(py::init<const std::string &>())
+        .def(py::init([](const std::string &history, int) {
+            return std::make_shared<SftTrampoline>(history);
+        }))
         .def_readonly("history", &Sft::history)
         // This leads to multiple entries in registered_instances:
         .def(py::init([](const std::shared_ptr<Sft> &existing) { return existing; }));
