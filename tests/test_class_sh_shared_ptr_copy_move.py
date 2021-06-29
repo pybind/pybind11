@@ -21,3 +21,21 @@ def test_shptr_move():
 def test_smhld_move():
     txt = m.test_SmHld_move()[0].get_history()
     assert txt == "FooSmHld_move"
+
+
+def _check_property(foo_typ: str, prop_typ: str, policy: str):
+    o = m.Outer()
+    name = "{}_{}_{}".format(foo_typ, prop_typ, policy)
+    history = "Foo{}_Outer".format(foo_typ)
+    f = getattr(o, name)
+    assert f.get_history() == history
+    # and try again to check that o did not get changed
+    f = getattr(o, name)
+    assert f.get_history() == history
+
+
+def test_properties():
+    for prop_typ in ("readonly", "readwrite", "property_readonly"):
+        for foo_typ in ("ShPtr", "SmHld"):
+            for policy in ("default", "copy", "move"):
+                _check_property(foo_typ, prop_typ, policy)

@@ -31,6 +31,15 @@ struct Foo {
 using FooShPtr = Foo<0>;
 using FooSmHld = Foo<1>;
 
+struct Outer {
+    std::shared_ptr<FooShPtr> ShPtr;
+    std::shared_ptr<FooSmHld> SmHld;
+    Outer()
+        : ShPtr(std::make_shared<FooShPtr>("Outer")), SmHld(std::make_shared<FooSmHld>("Outer")) {}
+    std::shared_ptr<FooShPtr> getShPtr() const { return ShPtr; }
+    std::shared_ptr<FooSmHld> getSmHld() const { return SmHld; }
+};
+
 } // namespace
 } // namespace pybind11_tests
 
@@ -47,6 +56,32 @@ TEST_SUBMODULE(class_sh_shared_ptr_copy_move, m) {
     py::class_<FooShPtr, std::shared_ptr<FooShPtr>>(m, "FooShPtr")
         .def("get_history", &FooShPtr::get_history);
     py::classh<FooSmHld>(m, "FooSmHld").def("get_history", &FooSmHld::get_history);
+
+    auto outer = py::class_<Outer>(m, "Outer").def(py::init());
+#define MAKE_PROP(PropTyp)                                                                        \
+    MAKE_PROP_FOO(ShPtr, PropTyp)                                                                 \
+    MAKE_PROP_FOO(SmHld, PropTyp)
+
+#define MAKE_PROP_FOO(FooTyp, PropTyp)                                                            \
+    .def_##PropTyp(#FooTyp "_" #PropTyp "_default", &Outer::FooTyp)                               \
+        .def_##PropTyp(                                                                           \
+            #FooTyp "_" #PropTyp "_copy", &Outer::FooTyp, py::return_value_policy::copy)          \
+        .def_##PropTyp(                                                                           \
+            #FooTyp "_" #PropTyp "_move", &Outer::FooTyp, py::return_value_policy::move)
+    outer MAKE_PROP(readonly) MAKE_PROP(readwrite);
+#undef MAKE_PROP_FOO
+
+#define MAKE_PROP_FOO(FooTyp, PropTyp)                                                            \
+    .def_##PropTyp(#FooTyp "_property_" #PropTyp "_default", &Outer::FooTyp)                      \
+        .def_property_##PropTyp(#FooTyp "_property_" #PropTyp "_copy",                            \
+                                &Outer::get##FooTyp,                                              \
+                                py::return_value_policy::copy)                                    \
+        .def_property_##PropTyp(#FooTyp "_property_" #PropTyp "_move",                            \
+                                &Outer::get##FooTyp,                                              \
+                                py::return_value_policy::move)
+    outer MAKE_PROP(readonly);
+#undef MAKE_PROP_FOO
+#undef MAKE_PROP
 
     m.def("test_ShPtr_copy", []() {
         auto o = std::make_shared<FooShPtr>("copy");
