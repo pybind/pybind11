@@ -26,7 +26,10 @@ struct SpBase {
     virtual ~SpBase()      = default;
 };
 
+std::shared_ptr<SpBase> pass_through_shd_ptr(const std::shared_ptr<SpBase> &obj) { return obj; }
+
 struct PySpBase : SpBase {
+    using SpBase::SpBase;
     bool is_base_used() override { PYBIND11_OVERRIDE(bool, SpBase, is_base_used); }
 };
 
@@ -61,8 +64,11 @@ TEST_SUBMODULE(class_sh_trampoline_shared_ptr_cpp_arg, m) {
 
     py::classh<SpBase, PySpBase>(m, "SpBase")
         .def(py::init<>())
+        .def(py::init([](int) { return std::make_shared<PySpBase>(); }))
         .def("is_base_used", &SpBase::is_base_used)
         .def("has_python_instance", &SpBase::has_python_instance);
+
+    m.def("pass_through_shd_ptr", pass_through_shd_ptr);
 
     py::classh<SpBaseTester>(m, "SpBaseTester")
         .def(py::init<>())

@@ -413,21 +413,20 @@ struct smart_holder_type_caster_load {
             if (std::get_deleter<shared_ptr_dec_ref_deleter>(hld.vptr) != nullptr) {
                 // This code is reachable only if there are multiple registered_instances for the
                 // same pointee.
-                // SMART_HOLDER_WIP: keep weak_ref?
+                // SMART_HOLDER_WIP: keep weak_ref
                 std::shared_ptr<void> void_shd_ptr = hld.template as_shared_ptr<void>();
                 return std::shared_ptr<T>(void_shd_ptr, type_raw_ptr);
             }
             if (!pybindit::memory::type_has_shared_from_this(type_raw_ptr)) {
-                // SMART_HOLDER_WIP: unit test coverage.
-                // SMART_HOLDER_WIP: keep weak_ref?
+                // SMART_HOLDER_WIP: keep weak_ref
                 auto self = reinterpret_cast<PyObject *>(load_impl.loaded_v_h.inst);
                 Py_INCREF(self);
                 return std::shared_ptr<T>(type_raw_ptr, shared_ptr_dec_ref_deleter{self});
             }
             if (hld.vptr_is_external_shared_ptr) {
-                // SMART_HOLDER_WIP: unit test coverage.
-                pybind11_fail("smart_holder_type_casters loaded_as_shared_ptr failure: external "
-                              "shared_ptr for type with shared_from_this.");
+                pybind11_fail("smart_holder_type_casters loaded_as_shared_ptr failure: not "
+                              "implemented: trampoline-self-life-support for external shared_ptr "
+                              "to type inheriting from std::enable_shared_from_this.");
             }
             pybind11_fail("smart_holder_type_casters: loaded_as_shared_ptr failure: internal "
                           "inconsistency.");
