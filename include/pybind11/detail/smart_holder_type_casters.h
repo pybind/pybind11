@@ -422,11 +422,9 @@ struct smart_holder_type_caster_load {
                     pybind11_fail("smart_holder_type_casters loaded_as_shared_ptr failure: "
                                   "load_impl.loaded_v_h.inst == sptsls_ptr->self");
                 }
-                return std::shared_ptr<T>(
-                    type_raw_ptr,
-                    shared_ptr_trampoline_self_life_support(load_impl.loaded_v_h.inst));
             }
-            if (!pybindit::memory::type_has_shared_from_this(type_raw_ptr)) {
+            if (sptsls_ptr != nullptr
+                || !pybindit::memory::type_has_shared_from_this(type_raw_ptr)) {
                 return std::shared_ptr<T>(
                     type_raw_ptr,
                     shared_ptr_trampoline_self_life_support(load_impl.loaded_v_h.inst));
