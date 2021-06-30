@@ -3,7 +3,6 @@
 # clang-format --style=llvm --dump-config
 BasedOnStyle: LLVM
 AccessModifierOffset: -4
-AlignConsecutiveAssignments: true
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
 BinPackParameters: false
@@ -15,7 +14,6 @@ IndentPPDirectives: AfterHash
 IndentWidth: 4
 Language: Cpp
 SpaceAfterCStyleCast: true
-# SpaceInEmptyBlock: true # too new
 Standard: Cpp11
 TabWidth: 4
 ...
