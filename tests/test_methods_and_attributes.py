@@ -431,7 +431,7 @@ def test_accepts_none(msg):
     assert "incompatible function arguments" in str(excinfo.value)
 
 
-def test_casts_none(msg):
+def test_casts_none():
     """#2778: implicit casting from None to object (not pointer)"""
     a = m.NoneCastTester()
     assert m.ok_obj_or_none(a) == -1
