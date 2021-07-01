@@ -380,7 +380,11 @@ struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { 
 PYBIND11_NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
+#ifdef PYBIND11_HAS_STRING_VIEW
+    os << str(obj).cast<std::string_view>();
+#else
     os << (std::string) str(obj);
+#endif
     return os;
 }
 

@@ -444,7 +444,7 @@ protected:
                 signatures += it->signature;
                 signatures += "\n";
             }
-            if (it->doc && strlen(it->doc) > 0 && options::show_user_defined_docstrings()) {
+            if (it->doc && it->doc[0] != '\0' && options::show_user_defined_docstrings()) {
                 // If we're appending another docstring, and aren't printing function signatures, we
                 // need to append a newline first:
                 if (!options::show_function_signatures()) {
