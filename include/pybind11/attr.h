@@ -196,7 +196,7 @@ struct function_record {
     bool prepend : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
-    std::uint16_t nargs;
+    std::uint16_t nargs = 0;
 
     /// Number of trailing arguments (counted in `nargs`) that are keyword-only
     std::uint16_t nargs_kw_only = 0;
