@@ -14,7 +14,7 @@ public:
     int get_int() const { return 213; }
 
     pointee(const pointee &) = delete;
-    pointee(pointee &&)      = delete;
+    pointee(pointee &&) = delete;
     pointee &operator=(const pointee &) = delete;
     pointee &operator=(pointee &&) = delete;
 };

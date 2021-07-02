@@ -11,7 +11,7 @@ struct movable_int {
     int valu;
     movable_int(int v) : valu{v} {}
     movable_int(movable_int &&other) noexcept {
-        valu       = other.valu;
+        valu = other.valu;
         other.valu = 91;
     }
 };
@@ -36,13 +36,13 @@ private:
 
 TEST_CASE("from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
     static int value = 19;
-    auto hld         = smart_holder::from_raw_ptr_unowned(&value);
+    auto hld = smart_holder::from_raw_ptr_unowned(&value);
     REQUIRE(*hld.as_raw_ptr_unowned<int>() == 19);
 }
 
 TEST_CASE("from_raw_ptr_unowned+as_lvalue_ref", "[S]") {
     static int value = 19;
-    auto hld         = smart_holder::from_raw_ptr_unowned(&value);
+    auto hld = smart_holder::from_raw_ptr_unowned(&value);
     REQUIRE(hld.as_lvalue_ref<int>() == 19);
 }
 
@@ -58,28 +58,28 @@ TEST_CASE("from_raw_ptr_unowned+as_rvalue_ref", "[S]") {
 
 TEST_CASE("from_raw_ptr_unowned+as_raw_ptr_release_ownership", "[E]") {
     static int value = 19;
-    auto hld         = smart_holder::from_raw_ptr_unowned(&value);
+    auto hld = smart_holder::from_raw_ptr_unowned(&value);
     REQUIRE_THROWS_WITH(hld.as_raw_ptr_release_ownership<int>(),
                         "Cannot disown non-owning holder (as_raw_ptr_release_ownership).");
 }
 
 TEST_CASE("from_raw_ptr_unowned+as_unique_ptr", "[E]") {
     static int value = 19;
-    auto hld         = smart_holder::from_raw_ptr_unowned(&value);
+    auto hld = smart_holder::from_raw_ptr_unowned(&value);
     REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(),
                         "Cannot disown non-owning holder (as_unique_ptr).");
 }
 
 TEST_CASE("from_raw_ptr_unowned+as_unique_ptr_with_deleter", "[E]") {
     static int value = 19;
-    auto hld         = smart_holder::from_raw_ptr_unowned(&value);
+    auto hld = smart_holder::from_raw_ptr_unowned(&value);
     REQUIRE_THROWS_WITH((hld.as_unique_ptr<int, helpers::functor_builtin_delete<int>>()),
                         "Missing unique_ptr deleter (as_unique_ptr).");
 }
 
 TEST_CASE("from_raw_ptr_unowned+as_shared_ptr", "[S]") {
     static int value = 19;
-    auto hld         = smart_holder::from_raw_ptr_unowned(&value);
+    auto hld = smart_holder::from_raw_ptr_unowned(&value);
     REQUIRE(*hld.as_shared_ptr<int>() == 19);
 }
 
@@ -90,28 +90,28 @@ TEST_CASE("from_raw_ptr_take_ownership+as_lvalue_ref", "[S]") {
 }
 
 TEST_CASE("from_raw_ptr_take_ownership+as_raw_ptr_release_ownership1", "[S]") {
-    auto hld       = smart_holder::from_raw_ptr_take_ownership(new int(19));
+    auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     auto new_owner = std::unique_ptr<int>(hld.as_raw_ptr_release_ownership<int>());
     REQUIRE(!hld.has_pointee());
     REQUIRE(*new_owner == 19);
 }
 
 TEST_CASE("from_raw_ptr_take_ownership+as_raw_ptr_release_ownership2", "[E]") {
-    auto hld     = smart_holder::from_raw_ptr_take_ownership(new int(19));
+    auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     auto shd_ptr = hld.as_shared_ptr<int>();
     REQUIRE_THROWS_WITH(hld.as_raw_ptr_release_ownership<int>(),
                         "Cannot disown use_count != 1 (as_raw_ptr_release_ownership).");
 }
 
 TEST_CASE("from_raw_ptr_take_ownership+as_unique_ptr1", "[S]") {
-    auto hld                       = smart_holder::from_raw_ptr_take_ownership(new int(19));
+    auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     std::unique_ptr<int> new_owner = hld.as_unique_ptr<int>();
     REQUIRE(!hld.has_pointee());
     REQUIRE(*new_owner == 19);
 }
 
 TEST_CASE("from_raw_ptr_take_ownership+as_unique_ptr2", "[E]") {
-    auto hld     = smart_holder::from_raw_ptr_take_ownership(new int(19));
+    auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     auto shd_ptr = hld.as_shared_ptr<int>();
     REQUIRE_THROWS_WITH(hld.as_unique_ptr<int>(), "Cannot disown use_count != 1 (as_unique_ptr).");
 }
@@ -123,7 +123,7 @@ TEST_CASE("from_raw_ptr_take_ownership+as_unique_ptr_with_deleter", "[E]") {
 }
 
 TEST_CASE("from_raw_ptr_take_ownership+as_shared_ptr", "[S]") {
-    auto hld                       = smart_holder::from_raw_ptr_take_ownership(new int(19));
+    auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     std::shared_ptr<int> new_owner = hld.as_shared_ptr<int>();
     REQUIRE(hld.has_pointee());
     REQUIRE(*new_owner == 19);
@@ -155,7 +155,7 @@ TEST_CASE("from_raw_ptr_take_ownership+disown+release_disowned", "[S]") {
 
 TEST_CASE("from_raw_ptr_take_ownership+disown+ensure_is_not_disowned", "[E]") {
     const char *context = "test_case";
-    auto hld            = smart_holder::from_raw_ptr_take_ownership(new int(19));
+    auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
     hld.ensure_is_not_disowned(context); // Does not throw.
     std::unique_ptr<int> new_owner(hld.as_raw_ptr_unowned<int>());
     hld.disown();
@@ -327,7 +327,7 @@ TEST_CASE("indestructible_int-from_raw_ptr_unowned+as_raw_ptr_unowned", "[S]") {
     // Using placement new instead of plain new, to not trigger leak sanitizer errors.
     static std::aligned_storage<sizeof(zombie), alignof(zombie)>::type memory_block[1];
     auto *value = new (memory_block) zombie(19);
-    auto hld    = smart_holder::from_raw_ptr_unowned(value);
+    auto hld = smart_holder::from_raw_ptr_unowned(value);
     REQUIRE(hld.as_raw_ptr_unowned<zombie>()->valu == 19);
 }
 
@@ -341,7 +341,7 @@ TEST_CASE("from_raw_ptr_take_ownership+as_shared_ptr-outliving_smart_holder", "[
     // Exercises guarded_builtin_delete flag_ptr validity past destruction of smart_holder.
     std::shared_ptr<int> longer_living;
     {
-        auto hld      = smart_holder::from_raw_ptr_take_ownership(new int(19));
+        auto hld = smart_holder::from_raw_ptr_take_ownership(new int(19));
         longer_living = hld.as_shared_ptr<int>();
     }
     REQUIRE(*longer_living == 19);
@@ -352,7 +352,7 @@ TEST_CASE("from_unique_ptr_with_deleter+as_shared_ptr-outliving_smart_holder", "
     std::shared_ptr<int> longer_living;
     {
         std::unique_ptr<int, helpers::functor_builtin_delete<int>> orig_owner(new int(19));
-        auto hld      = smart_holder::from_unique_ptr(std::move(orig_owner));
+        auto hld = smart_holder::from_unique_ptr(std::move(orig_owner));
         longer_living = hld.as_shared_ptr<int>();
     }
     REQUIRE(*longer_living == 19);

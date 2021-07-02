@@ -21,9 +21,9 @@ struct SpBase {
         return (bool) py::detail::get_object_handle(this, tinfo);
     }
 
-    SpBase()               = default;
+    SpBase() = default;
     SpBase(const SpBase &) = delete;
-    virtual ~SpBase()      = default;
+    virtual ~SpBase() = default;
 };
 
 std::shared_ptr<SpBase> pass_through_shd_ptr(const std::shared_ptr<SpBase> &obj) { return obj; }

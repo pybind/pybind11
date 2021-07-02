@@ -9,8 +9,8 @@ namespace class_sh_disowning_mi {
 
 // Diamond inheritance (copied from test_multiple_inheritance.cpp).
 struct B {
-    int val_b    = 10;
-    B()          = default;
+    int val_b = 10;
+    B() = default;
     B(const B &) = default;
     virtual ~B() = default;
 };

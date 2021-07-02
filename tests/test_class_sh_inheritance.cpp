@@ -15,7 +15,7 @@ struct base_template {
     int base_id;
 
     // Some compilers complain about implicitly defined versions of some of the following:
-    base_template(const base_template &)     = default;
+    base_template(const base_template &) = default;
     base_template(base_template &&) noexcept = default;
     base_template &operator=(const base_template &) = default;
     base_template &operator=(base_template &&) noexcept = default;
