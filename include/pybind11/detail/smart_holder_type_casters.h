@@ -308,7 +308,7 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
             v_h.set_instance_registered();
         }
         auto uninitialized_location = std::addressof(v_h.holder<holder_type>());
-        auto value_ptr_w_t          = v_h.value_ptr<WrappedType>();
+        auto value_ptr_w_t = v_h.value_ptr<WrappedType>();
         bool pointee_depends_on_holder_owner
             = dynamic_raw_ptr_cast_if_possible<AliasType>(value_ptr_w_t) != nullptr;
         if (holder_void_ptr) {
@@ -627,21 +627,21 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
         if (handle existing_inst = find_registered_python_instance(src, tinfo))
             return existing_inst;
 
-        auto inst       = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        auto wrapper    = reinterpret_cast<instance *>(inst.ptr());
-        wrapper->owned  = false;
+        auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        auto wrapper = reinterpret_cast<instance *>(inst.ptr());
+        wrapper->owned = false;
         void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
 
         switch (policy) {
             case return_value_policy::automatic:
             case return_value_policy::take_ownership:
-                valueptr       = src;
+                valueptr = src;
                 wrapper->owned = true;
                 break;
 
             case return_value_policy::automatic_reference:
             case return_value_policy::reference:
-                valueptr       = src;
+                valueptr = src;
                 wrapper->owned = false;
                 break;
 
@@ -683,7 +683,7 @@ struct smart_holder_type_caster : smart_holder_type_caster_load<T>,
                 break;
 
             case return_value_policy::reference_internal:
-                valueptr       = src;
+                valueptr = src;
                 wrapper->owned = false;
                 keep_alive_impl(inst, parent);
                 break;
@@ -724,22 +724,22 @@ struct smart_holder_type_caster<std::shared_ptr<T>> : smart_holder_type_caster_l
             return none().release();
 
         auto src_raw_ptr = src.get();
-        auto st          = type_caster_base<T>::src_and_type(src_raw_ptr);
+        auto st = type_caster_base<T>::src_and_type(src_raw_ptr);
         if (st.second == nullptr)
             return handle(); // no type info: error will be set already
 
-        void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
+        void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
         if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo))
             // SMART_HOLDER_WIP: MISSING: Enforcement of consistency with existing smart_holder.
             // SMART_HOLDER_WIP: MISSING: keep_alive.
             return existing_inst;
 
-        auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());
+        auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
         inst_raw_ptr->owned = true;
-        void *&valueptr     = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-        valueptr            = src_raw_void_ptr;
+        void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+        valueptr = src_raw_void_ptr;
 
         auto smhldr = pybindit::memory::smart_holder::from_shared_ptr(src);
         tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
@@ -791,11 +791,11 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
             return none().release();
 
         auto src_raw_ptr = src.get();
-        auto st          = type_caster_base<T>::src_and_type(src_raw_ptr);
+        auto st = type_caster_base<T>::src_and_type(src_raw_ptr);
         if (st.second == nullptr)
             return handle(); // no type info: error will be set already
 
-        void *src_raw_void_ptr         = static_cast<void *>(src_raw_ptr);
+        void *src_raw_void_ptr = static_cast<void *>(src_raw_ptr);
         const detail::type_info *tinfo = st.second;
         if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
             auto *self_life_support
@@ -819,11 +819,11 @@ struct smart_holder_type_caster<std::unique_ptr<T, D>> : smart_holder_type_caste
             throw cast_error("Invalid unique_ptr: another instance owns this pointer already.");
         }
 
-        auto inst           = reinterpret_steal<object>(make_new_instance(tinfo->type));
-        auto *inst_raw_ptr  = reinterpret_cast<instance *>(inst.ptr());
+        auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+        auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
         inst_raw_ptr->owned = true;
-        void *&valueptr     = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-        valueptr            = src_raw_void_ptr;
+        void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+        valueptr = src_raw_void_ptr;
 
         auto smhldr = pybindit::memory::smart_holder::from_unique_ptr(std::move(src),
                                                                       /*void_cast_raw_ptr*/ false);

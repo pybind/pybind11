@@ -18,7 +18,7 @@ public:
     std::uint64_t getVal() const { return val_; }
 
     virtual std::unique_ptr<Class> clone() const = 0;
-    virtual int foo() const                      = 0;
+    virtual int foo() const = 0;
 
 protected:
     Class() = default;

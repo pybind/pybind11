@@ -57,12 +57,12 @@ std::unique_ptr<atyp_udcp const, sddc> rtrn_udcp() { return std::unique_ptr<atyp
 // Minimalistic approach to achieve full coverage of construct() overloads for constructing
 // smart_holder from unique_ptr and shared_ptr returns.
 struct with_alias {
-    int val               = 0;
+    int val = 0;
     virtual ~with_alias() = default;
     // Some compilers complain about implicitly defined versions of some of the following:
-    with_alias()                   = default;
+    with_alias() = default;
     with_alias(const with_alias &) = default;
-    with_alias(with_alias &&)      = default;
+    with_alias(with_alias &&) = default;
     with_alias &operator=(const with_alias &) = default;
     with_alias &operator=(with_alias &&) = default;
 };

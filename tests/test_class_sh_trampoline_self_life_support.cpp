@@ -68,12 +68,12 @@ TEST_SUBMODULE(class_sh_trampoline_self_life_support, m) {
                 case 2: { // operator= lvalue
                     std::unique_ptr<Big5> lv(new Big5Trampoline);
                     *lv = *obj_trampoline;
-                    o2  = py::cast(std::move(lv));
+                    o2 = py::cast(std::move(lv));
                 } break;
                 case 3: { // operator= rvalue
                     std::unique_ptr<Big5> rv(new Big5Trampoline);
                     *rv = std::move(*obj_trampoline);
-                    o2  = py::cast(std::move(rv));
+                    o2 = py::cast(std::move(rv));
                 } break;
                 default:
                     break;

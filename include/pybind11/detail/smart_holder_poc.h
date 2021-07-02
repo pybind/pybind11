@@ -124,7 +124,7 @@ struct smart_holder {
     bool pointee_depends_on_holder_owner : 1; // SMART_HOLDER_WIP: See PR #2839.
 
     // Design choice: smart_holder is movable but not copyable.
-    smart_holder(smart_holder &&)      = default;
+    smart_holder(smart_holder &&) = default;
     smart_holder(const smart_holder &) = delete;
     smart_holder &operator=(smart_holder &&) = delete;
     smart_holder &operator=(const smart_holder &) = delete;
@@ -219,7 +219,7 @@ struct smart_holder {
         smart_holder hld;
         hld.vptr.reset(raw_ptr, [](void *) {});
         hld.vptr_is_using_noop_deleter = true;
-        hld.is_populated               = true;
+        hld.is_populated = true;
         return hld;
     }
 
@@ -254,7 +254,7 @@ struct smart_holder {
         else
             hld.vptr.reset(raw_ptr, std::move(gd));
         hld.vptr_is_using_builtin_delete = true;
-        hld.is_populated                 = true;
+        hld.is_populated = true;
         return hld;
     }
 
@@ -298,7 +298,7 @@ struct smart_holder {
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
                                         bool void_cast_raw_ptr = false) {
         smart_holder hld;
-        hld.rtti_uqp_del                 = &typeid(D);
+        hld.rtti_uqp_del = &typeid(D);
         hld.vptr_is_using_builtin_delete = is_std_default_delete<T>(*hld.rtti_uqp_del);
         guarded_delete gd{nullptr, false};
         if (hld.vptr_is_using_builtin_delete)
@@ -327,9 +327,9 @@ struct smart_holder {
     template <typename T>
     static smart_holder from_shared_ptr(std::shared_ptr<T> shd_ptr) {
         smart_holder hld;
-        hld.vptr                        = std::static_pointer_cast<void>(shd_ptr);
+        hld.vptr = std::static_pointer_cast<void>(shd_ptr);
         hld.vptr_is_external_shared_ptr = true;
-        hld.is_populated                = true;
+        hld.is_populated = true;
         return hld;
     }
 

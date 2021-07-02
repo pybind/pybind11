@@ -9,14 +9,14 @@ namespace class_sh_trampoline_basic {
 
 template <int SerNo> // Using int as a trick to easily generate a series of types.
 struct Abase {
-    int val          = 0;
+    int val = 0;
     virtual ~Abase() = default;
     Abase(int val_) : val{val_} {}
     int Get() const { return val * 10 + 3; }
     virtual int Add(int other_val) const = 0;
 
     // Some compilers complain about implicitly defined versions of some of the following:
-    Abase(const Abase &)     = default;
+    Abase(const Abase &) = default;
     Abase(Abase &&) noexcept = default;
     Abase &operator=(const Abase &) = default;
     Abase &operator=(Abase &&) noexcept = default;
