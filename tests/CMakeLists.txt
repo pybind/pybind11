@@ -247,6 +247,41 @@ if(Boost_FOUND)
   endif()
 endif()
 
+# Check if we need to add -lstdc++fs or -lc++fs or nothing
+if(MSVC)
+  set(STD_FS_NO_LIB_NEEDED TRUE)
+else()
+  file(
+    WRITE ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    "#include <filesystem>\nint main(int argc, char ** argv) {\n  std::filesystem::path p(argv[0]);\n  return p.string().length();\n}"
+  )
+  try_compile(
+    STD_FS_NO_LIB_NEEDED ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17)
+  try_compile(
+    STD_FS_NEEDS_STDCXXFS ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17
+    LINK_LIBRARIES stdc++fs)
+  try_compile(
+    STD_FS_NEEDS_CXXFS ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_BINARY_DIR}/main.cpp
+    COMPILE_DEFINITIONS -std=c++17
+    LINK_LIBRARIES c++fs)
+endif()
+
+if(${STD_FS_NEEDS_STDCXXFS})
+  set(STD_FS_LIB stdc++fs)
+elseif(${STD_FS_NEEDS_CXXFS})
+  set(STD_FS_LIB c++fs)
+elseif(${STD_FS_NO_LIB_NEEDED})
+  set(STD_FS_LIB "")
+else()
+  message(WARNING "Unknown compiler - not passing -lstdc++fs")
+  set(STD_FS_LIB "")
+endif()
+
 # Compile with compiler warnings turned on
 function(pybind11_enable_warnings target_name)
   if(MSVC)
@@ -356,6 +391,8 @@ foreach(target ${test_targets})
     target_link_libraries(${target} PRIVATE Boost::headers)
     target_compile_definitions(${target} PRIVATE -DPYBIND11_TEST_BOOST)
   endif()
+
+  target_link_libraries(${target} PRIVATE ${STD_FS_LIB})
 
   # Always write the output file directly into the 'tests' directory (even on MSVC)
   if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
