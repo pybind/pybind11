@@ -485,6 +485,43 @@ inline handle get_function(handle value) {
     return value;
 }
 
+// Reimplementation of python's dict helper functions to ensure that exceptions
+// aren't swallowed (see #2862)
+
+// copied from cpython _PyDict_GetItemStringWithError
+inline PyObject * dict_getitemstring(PyObject *v, const char *key)
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *kv, *rv;
+    kv = PyUnicode_FromString(key);
+    if (kv == NULL) {
+        throw error_already_set();
+    }
+
+    rv = PyDict_GetItemWithError(v, kv);
+    Py_DECREF(kv);
+    if (rv == NULL && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    return rv;
+#else
+    return PyDict_GetItemString(v, key);
+#endif
+}
+
+inline PyObject * dict_getitem(PyObject *v, PyObject *key)
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *rv = PyDict_GetItemWithError(v, key);
+    if (rv == NULL && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    return rv;
+#else
+    return PyDict_GetItem(v, key);
+#endif
+}
+
 // Helper aliases/functions to support implicit casting of values given to python accessors/methods.
 // When given a pyobject, this simply returns the pyobject as-is; for other C++ type, the value goes
 // through pybind11::cast(obj) to convert it to an `object`.

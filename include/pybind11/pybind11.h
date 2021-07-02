@@ -636,7 +636,7 @@ protected:
                 bool bad_arg = false;
                 for (; args_copied < args_to_copy; ++args_copied) {
                     const argument_record *arg_rec = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
-                    if (kwargs_in && arg_rec && arg_rec->name && PyDict_GetItemString(kwargs_in, arg_rec->name)) {
+                    if (kwargs_in && arg_rec && arg_rec->name && dict_getitemstring(kwargs_in, arg_rec->name)) {
                         bad_arg = true;
                         break;
                     }
@@ -684,7 +684,7 @@ protected:
 
                         handle value;
                         if (kwargs_in && arg_rec.name)
-                            value = PyDict_GetItemString(kwargs.ptr(), arg_rec.name);
+                            value = dict_getitemstring(kwargs.ptr(), arg_rec.name);
 
                         if (value) {
                             // Consume a kwargs value
@@ -692,7 +692,9 @@ protected:
                                 kwargs = reinterpret_steal<dict>(PyDict_Copy(kwargs.ptr()));
                                 copied_kwargs = true;
                             }
-                            PyDict_DelItemString(kwargs.ptr(), arg_rec.name);
+                            if (PyDict_DelItemString(kwargs.ptr(), arg_rec.name) == -1) {
+                                throw error_already_set();
+                            }
                         } else if (arg_rec.value) {
                             value = arg_rec.value;
                         }
@@ -2139,7 +2141,7 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
     if (frame && (std::string) str(frame->f_code->co_name) == name &&
         frame->f_code->co_argcount > 0) {
         PyFrame_FastToLocals(frame);
-        PyObject *self_caller = PyDict_GetItem(
+        PyObject *self_caller = dict_getitem(
             frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));
         if (self_caller == self.ptr())
             return function();
