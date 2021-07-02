@@ -86,6 +86,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     // Under Python 2.7, invalid unicode UTF-32 characters don't appear to trigger UnicodeDecodeError
     if (PY_MAJOR_VERSION >= 3)
         m.def("bad_utf32_string", [=]() { return std::u32string({ a32, char32_t(0xd800), z32 }); });
+    m.attr("wchar_t_size") = (sizeof(wchar_t) == 2);
     if (PY_MAJOR_VERSION >= 3 || sizeof(wchar_t) == 2)
         m.def("bad_wchar_string", [=]() { return std::wstring({ wchar_t(0x61), wchar_t(0xd800) }); });
     m.def("u8_Z", []() -> char { return 'Z'; });
@@ -118,6 +119,8 @@ TEST_SUBMODULE(builtin_casters, m) {
     // test_single_char_arguments
     m.def("ord_char8", [](char8_t c) -> int { return static_cast<unsigned char>(c); });
     m.def("ord_char8_lv", [](char8_t &c) -> int { return static_cast<unsigned char>(c); });
+#else  // PYBIND11_HAS_U8STRING
+    m.attr("has_u8string") = false;
 #endif
 
     // test_string_view
@@ -138,6 +141,8 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("string_view8_chars",  [](std::u8string_view s) { py::list l; for (auto c : s) l.append((std::uint8_t) c); return l; });
     m.def("string_view8_return", []() { return std::u8string_view(u8"utf8 secret \U0001f382"); });
 #   endif
+#else   // PYBIND11_HAS_STRING_VIEW
+    m.attr("has_string_view") = false;
 #endif
 
     // test_integer_casting

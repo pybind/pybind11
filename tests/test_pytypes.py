@@ -120,7 +120,7 @@ def test_str(doc):
     assert s1 == s2
 
     malformed_utf8 = b"\x80"
-    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+    if m.has_str_legacy_permissive:
         assert m.str_from_object(malformed_utf8) is malformed_utf8
     elif env.PY2:
         with pytest.raises(UnicodeDecodeError):
@@ -312,7 +312,7 @@ def test_pybind11_str_raw_str():
     valid_orig = u"Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
     valid_cvt = cvt(valid_utf8)
-    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+    if m.has_str_legacy_permissive:
         assert valid_cvt is valid_utf8
     else:
         assert type(valid_cvt) is unicode if env.PY2 else str  # noqa: F821
@@ -322,7 +322,7 @@ def test_pybind11_str_raw_str():
             assert valid_cvt == "b'\\xc7\\xb1'"
 
     malformed_utf8 = b"\x80"
-    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+    if m.has_str_legacy_permissive:
         assert cvt(malformed_utf8) is malformed_utf8
     else:
         if env.PY2:
@@ -517,7 +517,7 @@ def test_isinstance_string_types():
     assert not m.isinstance_pybind11_bytes(u"")
 
     assert m.isinstance_pybind11_str(u"")
-    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+    if m.has_str_legacy_permissive:
         assert m.isinstance_pybind11_str(b"")
     else:
         assert not m.isinstance_pybind11_str(b"")
@@ -528,7 +528,7 @@ def test_pass_bytes_or_unicode_to_string_types():
     with pytest.raises(TypeError):
         m.pass_to_pybind11_bytes(u"Str")
 
-    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE") or env.PY2:
+    if m.has_str_legacy_permissive or env.PY2:
         assert m.pass_to_pybind11_str(b"Bytes") == 5
     else:
         with pytest.raises(TypeError):
@@ -539,7 +539,7 @@ def test_pass_bytes_or_unicode_to_string_types():
     assert m.pass_to_std_string(u"Str") == 3
 
     malformed_utf8 = b"\x80"
-    if hasattr(m, "PYBIND11_STR_LEGACY_PERMISSIVE"):
+    if m.has_str_legacy_permissive:
         assert m.pass_to_pybind11_str(malformed_utf8) == 1
     elif env.PY2:
         with pytest.raises(UnicodeDecodeError):

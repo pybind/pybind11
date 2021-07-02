@@ -106,7 +106,7 @@ def test_move_out_container():
     assert [x.value for x in moved_out_list] == [0, 1, 2]
 
 
-@pytest.mark.skipif(not hasattr(m, "has_optional"), reason="no <optional>")
+@pytest.mark.skipif(not m.has_optional, reason="no <optional>")
 def test_optional():
     assert m.double_or_zero(None) == 0
     assert m.double_or_zero(42) == 84
@@ -134,9 +134,7 @@ def test_optional():
     assert holder.member_initialized()
 
 
-@pytest.mark.skipif(
-    not hasattr(m, "has_exp_optional"), reason="no <experimental/optional>"
-)
+@pytest.mark.skipif(not m.has_exp_optional, reason="no <experimental/optional>")
 def test_exp_optional():
     assert m.double_or_zero_exp(None) == 0
     assert m.double_or_zero_exp(42) == 84
@@ -162,7 +160,7 @@ def test_exp_optional():
     assert holder.member_initialized()
 
 
-@pytest.mark.skipif(not hasattr(m, "load_variant"), reason="no <variant>")
+@pytest.mark.skipif(not m.has_variant, reason="no <variant>")
 def test_variant(doc):
     assert m.load_variant(1) == "int"
     assert m.load_variant("1") == "std::string"
