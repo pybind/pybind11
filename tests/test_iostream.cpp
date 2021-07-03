@@ -35,7 +35,7 @@ void noisy_funct_dual(const std::string &msg, const std::string &emsg) {
 // simply repeatedly write to std::cerr until stopped
 // redirect is called at some point to test the safety of scoped_estream_redirect
 struct TestThread {
-    TestThread() : t_{nullptr}, stop_{false} {
+    TestThread() : stop_{false} {
         auto thread_f = [this] {
             static std::mutex cout_mutex;
             while (!stop_) {
@@ -60,7 +60,7 @@ struct TestThread {
 
     void stop() { stop_ = true; }
 
-    void join() {
+    void join() const {
         py::gil_scoped_release gil_lock;
         t_->join();
     }
@@ -70,7 +70,7 @@ struct TestThread {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    std::thread * t_;
+    std::thread *t_{nullptr};
     std::atomic<bool> stop_;
 };
 
