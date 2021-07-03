@@ -104,9 +104,9 @@ struct internals {
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     std::vector<PyObject *> loader_patient_stack; // Used by `loader_life_support`
     std::forward_list<std::string> static_strings; // Stores the std::strings backing detail::c_str()
-    PyTypeObject *static_property_type;
-    PyTypeObject *default_metaclass;
-    PyObject *instance_base;
+    PyTypeObject *static_property_type = nullptr;
+    PyTypeObject *default_metaclass = nullptr;
+    PyObject *instance_base = nullptr;
 #if defined(WITH_THREAD)
     PYBIND11_TLS_KEY_INIT(tstate);
     PyInterpreterState *istate = nullptr;
@@ -126,9 +126,9 @@ struct internals {
 /// Additional type information which does not fit into the PyTypeObject.
 /// Changes to this struct also require bumping `PYBIND11_INTERNALS_VERSION`.
 struct type_info {
-    PyTypeObject *type;
-    const std::type_info *cpptype;
-    size_t type_size, type_align, holder_size_in_ptrs;
+    PyTypeObject *type = nullptr;
+    const std::type_info *cpptype = nullptr;
+    size_t type_size = 0, type_align = 0, holder_size_in_ptrs = 0;
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
     void (*dealloc)(value_and_holder &v_h);
