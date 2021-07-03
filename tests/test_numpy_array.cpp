@@ -275,10 +275,16 @@ TEST_SUBMODULE(numpy_array, sm) {
     // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // Only accept the exact types:
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg{}.noconvert());
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg{}.noconvert());
+    sm.def(
+        "overloaded3",
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
+        [](py::array_t<int>) { return "int"; },
+        py::arg{}.noconvert());
+    sm.def(
+        "overloaded3",
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
+        [](py::array_t<double>) { return "double"; },
+        py::arg{}.noconvert());
 
     // Make sure we don't do unsafe coercion (e.g. float to int) when not using forcecast, but
     // rather that float gets converted via the safe (conversion to double) overload:

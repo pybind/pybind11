@@ -151,10 +151,13 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("int_passthrough_noconvert", [](int arg) { return arg; }, py::arg{}.noconvert());
 
     // test_tuple
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("pair_passthrough", [](std::pair<bool, std::string> input) {
-        return std::make_pair(input.second, input.first);
-    }, "Return a pair in reversed order");
+    m.def(
+        "pair_passthrough",
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
+        [](std::pair<bool, std::string> input) {
+            return std::make_pair(input.second, input.first);
+        },
+        "Return a pair in reversed order");
     m.def("tuple_passthrough", [](std::tuple<bool, std::string, int> input) {
         return std::make_tuple(std::get<2>(input), std::get<1>(input), std::get<0>(input));
     }, "Return a triple in reversed order");

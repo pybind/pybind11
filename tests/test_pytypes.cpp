@@ -258,8 +258,9 @@ TEST_SUBMODULE(pytypes, m) {
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("convert_to_pybind11_str", [](py::object o) { return py::str(o); });
 
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("nonconverting_constructor", [](std::string type, py::object value, bool move) -> py::object {
+    m.def("nonconverting_constructor",
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
+        [](std::string type, py::object value, bool move) -> py::object {
         if (type == "bytes") {
             return move ? py::bytes(std::move(value)) : py::bytes(value);
         }
