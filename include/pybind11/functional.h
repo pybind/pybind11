@@ -65,6 +65,9 @@ public:
             function f;
             func_handle(function&& f_) : f(std::move(f_)) {}
             func_handle(const func_handle& f_) {
+                operator=(f_);
+            }
+            void operator=(const func_handle &f_) & {
                 gil_scoped_acquire acq;
                 f = f_.f;
             }
