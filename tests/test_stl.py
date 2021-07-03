@@ -290,4 +290,4 @@ def test_return_vector_bool_raw_ptr():
         v = m.return_vector_bool_raw_ptr()
         assert isinstance(v, list)
         assert len(v) == 4513
-        return  # Comment out for manual leak checking (use `top` command).
+        break  # Comment out for manual leak checking (use `top` command).
