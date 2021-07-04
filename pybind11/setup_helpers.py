@@ -85,7 +85,7 @@ class Pybind11Extension(_Extension):
     * ``stdlib=libc++`` on macOS
     * ``visibility=hidden`` and ``-g0`` on Unix
 
-    Finally, you can set ``cxx_std`` via constructor or afterwords to enable
+    Finally, you can set ``cxx_std`` via constructor or afterwards to enable
     flags for C++ std, and a few extra helper flags related to the C++ standard
     level. It is _highly_ recommended you either set this, or use the provided
     ``build_ext``, which will search for the highest supported extension for

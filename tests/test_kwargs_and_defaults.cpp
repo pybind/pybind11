@@ -65,7 +65,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     #endif
     m.def("arg_refcount_h", [](py::handle h) { GC_IF_NEEDED; return h.ref_count(); });
     m.def("arg_refcount_h", [](py::handle h, py::handle, py::handle) { GC_IF_NEEDED; return h.ref_count(); });
-    // TODO replace the following nolints as appropiate
+    // TODO replace the following nolints as appropriate
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("arg_refcount_o", [](py::object o) { GC_IF_NEEDED; return o.ref_count(); });
     m.def("args_refcount", [](py::args a) {
