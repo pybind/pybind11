@@ -32,7 +32,7 @@ Details:
 
 * If created from a raw pointer, or a `unique_ptr` without a custom deleter,
   `vptr` always uses a custom deleter, to support `unique_ptr`-like disowning.
-  The custom deleters could be extended to included life-time managment for
+  The custom deleters could be extended to included life-time management for
   external objects (e.g. `PyObject`).
 
 * If created from an external `shared_ptr`, or a `unique_ptr` with a custom

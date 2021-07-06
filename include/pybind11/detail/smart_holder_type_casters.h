@@ -278,7 +278,7 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
     }
 
     // Adopting existing approach used by type_caster_base, although it leads to somewhat fuzzy
-    // ownership semantics: if we deteced via shared_from_this that a shared_ptr exists already, it
+    // ownership semantics: if we detected via shared_from_this that a shared_ptr exists already, it
     // is reused, irrespective of the return_value_policy in effect.
     // "SomeBaseOfWrappedType" is needed because std::enable_shared_from_this is not necessarily a
     // direct base of WrappedType.

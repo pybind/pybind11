@@ -95,7 +95,7 @@ def test_release_and_stash_leak():
 
 
 def test_release_and_stash_via_shared_from_this():
-    # Exercises that the smart_holder vptr is invisible to the shared_from_this mechnism.
+    # Exercises that the smart_holder vptr is invisible to the shared_from_this mechanism.
     obj = PySft("PySft")
     stash1 = m.SftSharedPtrStash(1)
     with pytest.raises(RuntimeError) as exc_info:
