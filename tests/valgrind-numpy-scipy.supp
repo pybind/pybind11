@@ -2,7 +2,7 @@
 #
 # On updating a dependency, to get a list of "default" leaks in e.g. NumPy, run
 # `PYTHONMALLOC=malloc valgrind --leak-check=full --show-leak-kinds=definite,indirect python3.9-dbg -c "import numpy"`
-# To use theses suppression files, add e.g. `--suppressions=valgrind-numpy-scipy.supp`
+# To use these suppression files, add e.g. `--suppressions=valgrind-numpy-scipy.supp`
 
 {
    Leaks when importing NumPy

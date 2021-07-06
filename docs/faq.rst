@@ -180,7 +180,7 @@ How can I create smaller binaries?
 
 To do its job, pybind11 extensively relies on a programming technique known as
 *template metaprogramming*, which is a way of performing computation at compile
-time using type information. Template metaprogamming usually instantiates code
+time using type information. Template metaprogramming usually instantiates code
 involving significant numbers of deeply nested types that are either completely
 removed or reduced to just a few instructions during the compiler's optimization
 phase. However, due to the nested nature of these types, the resulting symbol

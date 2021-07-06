@@ -93,7 +93,7 @@ to a memory dependent number.
 If you are developing rapidly and have a lot of C++ files, you may want to
 avoid rebuilding files that have not changed. For simple cases were you are
 using ``pip install -e .`` and do not have local headers, you can skip the
-rebuild if a object file is newer than it's source (headers are not checked!)
+rebuild if an object file is newer than its source (headers are not checked!)
 with the following:
 
 .. code-block:: python
