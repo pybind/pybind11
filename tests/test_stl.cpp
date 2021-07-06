@@ -10,6 +10,7 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/stl.h>
+#include <pybind11/stl/filesystem.h>
 
 #include <vector>
 #include <string>
