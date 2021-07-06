@@ -21,6 +21,11 @@
 #  endif
 #endif
 
+#if !defined(PYBIND11_HAS_FILESYSTEM) && !defined(PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL)
+#    error                                                                                        \
+        "#include <filesystem> is not available. (Use -DPYBIND11_HAS_FILESYSTEM_IS_OPTIONAL to ignore.)"
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 

@@ -10,6 +10,10 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/stl.h>
+
+#ifndef PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#define PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#endif
 #include <pybind11/stl/filesystem.h>
 
 #include <vector>
