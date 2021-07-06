@@ -81,6 +81,17 @@ repos:
     stages: [manual]
     additional_dependencies: [cmake, ninja]
 
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.1.0
+  hooks:
+  - id: codespell
+    name: codespell
+    description: Checks for common misspellings in text files.
+    entry: codespell
+    language: python
+    types: [text]
+    args: ["-q", "3", "--skip", "*.supp", "-L", "nd,ot,thist,readded"]
+
 # The original pybind11 checks for a few C++ style items
 - repo: local
   hooks:
