@@ -88,9 +88,8 @@ public:
         if (PyErr_Occurred()) {
             PyErr_Clear();
             return false;
-        } else {
-            return true;
         }
+        return true;
     }
 
     PYBIND11_TYPE_CASTER(T, _("os.PathLike"));
