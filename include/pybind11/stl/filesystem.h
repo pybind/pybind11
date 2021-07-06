@@ -4,7 +4,14 @@
 
 #pragma once
 
+#include "../cast.h"
+#include "../pybind11.h"
+#include "../pytypes.h"
+
 #include "../detail/common.h"
+#include "../detail/descr.h"
+
+#include <string>
 
 #ifdef __has_include
 #  if defined(PYBIND11_CPP17) && __has_include(<filesystem>) && \
@@ -38,7 +45,7 @@ private:
 public:
     static handle cast(const T& path, return_value_policy, handle) {
         if (auto py_str = unicode_from_fs_native(path.native())) {
-            return module::import("pathlib").attr("Path")(reinterpret_steal<object>(py_str))
+            return module_::import("pathlib").attr("Path")(reinterpret_steal<object>(py_str))
                    .release();
         }
         return nullptr;
