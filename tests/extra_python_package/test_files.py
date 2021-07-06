@@ -34,7 +34,6 @@ main_headers = {
     "include/pybind11/pytypes.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
-    "include/pybind11/stl/filesystem.h",
 }
 
 detail_headers = {
@@ -45,6 +44,10 @@ detail_headers = {
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
+}
+
+stl_headers = {
+    "include/pybind11/stl/filesystem.h",
 }
 
 cmake_files = {
@@ -68,7 +71,7 @@ py_files = {
     "setup_helpers.pyi",
 }
 
-headers = main_headers | detail_headers
+headers = main_headers | detail_headers | stl_headers
 src_files = headers | cmake_files
 all_files = src_files | py_files
 
@@ -78,6 +81,7 @@ sdist_files = {
     "pybind11/include",
     "pybind11/include/pybind11",
     "pybind11/include/pybind11/detail",
+    "pybind11/include/pybind11/stl",
     "pybind11/share",
     "pybind11/share/cmake",
     "pybind11/share/cmake/pybind11",
