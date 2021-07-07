@@ -135,6 +135,7 @@ public:
 PYBIND11_NAMESPACE_END(detail)
 
 
+// clang-format off
 /** \rst
     This a move-only guard that redirects output.
 
@@ -158,7 +159,8 @@ PYBIND11_NAMESPACE_END(detail)
             py::scoped_ostream_redirect output{std::cerr, py::module::import("sys").attr("stderr")};
             std::cout << "Hello, World!";
         }
- \endrst */
+\endrst */
+// clang-format on
 class scoped_ostream_redirect {
 protected:
     std::streambuf *old;
@@ -183,6 +185,7 @@ public:
 };
 
 
+// clang-format off
 /** \rst
     Like `scoped_ostream_redirect`, but redirects cerr by default. This class
     is provided primary to make ``py::call_guard`` easier to make.
@@ -194,6 +197,7 @@ public:
                           scoped_estream_redirect>());
 
 \endrst */
+// clang-format on
 class scoped_estream_redirect : public scoped_ostream_redirect {
 public:
     scoped_estream_redirect(std::ostream &costream  = std::cerr,
@@ -230,6 +234,7 @@ public:
 
 PYBIND11_NAMESPACE_END(detail)
 
+// clang-format off
 /** \rst
     This is a helper function to add a C++ redirect context manager to Python
     instead of using a C++ guard. To use it, add the following to your binding code:
@@ -256,7 +261,8 @@ PYBIND11_NAMESPACE_END(detail)
         with m.ostream_redirect(stdout=true, stderr=true):
             m.noisy_function_with_error_printing()
 
- \endrst */
+\endrst */
+// clang-format on
 inline class_<detail::OstreamRedirect>
 add_ostream_redirect(module_ m, const std::string &name = "ostream_redirect") {
     return class_<detail::OstreamRedirect>(std::move(m), name.c_str(), module_local())
