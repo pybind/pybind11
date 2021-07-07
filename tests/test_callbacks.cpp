@@ -112,9 +112,9 @@ TEST_SUBMODULE(callbacks, m) {
         if (*result == dummy_function) {
             auto r = (*result)(1);
             return "matches dummy_function: eval(1) = " + std::to_string(r);
-        } else {
-            return "argument does NOT match dummy_function. This should never happen!";
         }
+        return "argument does NOT match dummy_function. This should never happen!";
+
     });
 
     class AbstractBase {

@@ -265,9 +265,11 @@ TEST_SUBMODULE(pytypes, m) {
         }
         if (type == "none") {
             return move ? py::none(std::move(value)) : py::none(value);
-        } else if (type == "ellipsis") {
+        }
+        if (type == "ellipsis") {
             return move ? py::ellipsis(std::move(value)) : py::ellipsis(value);
-        } else if (type == "type") {
+        }
+        if (type == "type") {
             return move ? py::type(std::move(value)) : py::type(value);
         }
         throw std::runtime_error("Invalid type");

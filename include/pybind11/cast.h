@@ -295,10 +295,12 @@ public:
         if (src.ptr() == Py_True) {
             value = true;
             return true;
-        } else if (src.ptr() == Py_False) {
+        }
+        if (src.ptr() == Py_False) {
             value = false;
             return true;
-        } else if (convert || !std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
+        }
+        if (convert || !std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
             // (allow non-implicit conversion for numpy booleans)
 
             Py_ssize_t res = -1;
@@ -322,9 +324,8 @@ public:
             if (res == 0 || res == 1) {
                 value = (bool) res;
                 return true;
-            } else {
-                PyErr_Clear();
             }
+            PyErr_Clear();
         }
         return false;
     }

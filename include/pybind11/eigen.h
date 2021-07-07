@@ -172,16 +172,15 @@ template <typename Type_> struct EigenProps {
         if (fixed) {
             // The type has a fixed size, but is not a vector: abort
             return false;
-        } else if (fixed_cols) {
+        }
+        if (fixed_cols) {
             // Since this isn't a vector, cols must be != 1.  We allow this only if it exactly
             // equals the number of elements (rows is Dynamic, and so 1 row is allowed).
             if (cols != n) return false;
             return {1, n, stride};
-        } else {
-            // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
+        } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
             if (fixed_rows && rows != n) return false;
             return {n, 1, stride};
-        }
     }
 
     static constexpr bool show_writeable = is_eigen_dense_map<Type>::value && is_eigen_mutable_map<Type>::value;

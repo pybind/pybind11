@@ -56,8 +56,8 @@ public:
         if (PyFloat_Check(src.ptr())) {
             value = type(duration_cast<duration<rep, period>>(duration<double>(PyFloat_AsDouble(src.ptr()))));
             return true;
-        } else
-            return false;
+        }
+        return false;
     }
 
     // If this is a duration just return it back
