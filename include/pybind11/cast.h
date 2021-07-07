@@ -563,7 +563,9 @@ public:
     static handle cast(T *src, return_value_policy policy, handle parent) {
         if (!src) return none().release();
         if (policy == return_value_policy::take_ownership) {
-            auto h = cast(std::move(*src), policy, parent); delete src; return h;
+            auto h = cast(std::move(*src), policy, parent);
+            delete src;
+            return h;
         }
         return cast(*src, policy, parent);
     }
