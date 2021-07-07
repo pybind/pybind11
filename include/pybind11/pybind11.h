@@ -937,7 +937,7 @@ protected:
             auto *pi = reinterpret_cast<instance *>(parent.ptr());
             self_value_and_holder.type->init_instance(pi, nullptr);
         }
-            return result.ptr();
+        return result.ptr();
     }
 };
 
