@@ -112,7 +112,9 @@ public:
     void operator=(const NonCopyable &) = delete;
     void operator=(NonCopyable &&) = delete;
     std::string get_value() const {
-        if (value) return std::to_string(*value); else return "(null)";
+        if (value)
+            return std::to_string(*value);
+        return "(null)";
     }
     ~NonCopyable() { print_destroyed(this); }
 

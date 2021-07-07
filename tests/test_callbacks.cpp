@@ -82,7 +82,7 @@ TEST_SUBMODULE(callbacks, m) {
     // Export the payload constructor statistics for testing purposes:
     m.def("payload_cstats", &ConstructorStats::get<Payload>);
     /* Test cleanup of lambda closure */
-    m.def("test_cleanup", []() -> std::function<void(void)> {
+    m.def("test_cleanup", []() -> std::function<void()> {
         Payload p;
 
         return [p]() {
@@ -108,7 +108,8 @@ TEST_SUBMODULE(callbacks, m) {
         if (!result) {
             auto r = f(1);
             return "can't convert to function pointer: eval(1) = " + std::to_string(r);
-        } else if (*result == dummy_function) {
+        }
+        if (*result == dummy_function) {
             auto r = (*result)(1);
             return "matches dummy_function: eval(1) = " + std::to_string(r);
         } else {

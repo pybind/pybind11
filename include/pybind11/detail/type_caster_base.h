@@ -670,7 +670,7 @@ public:
             return true;
         }
         // Case 2: We have a derived class
-        else if (PyType_IsSubtype(srctype, typeinfo->type)) {
+        if (PyType_IsSubtype(srctype, typeinfo->type)) {
             auto &bases = all_type_info(srctype);
             bool no_cpp_mi = typeinfo->simple_type;
 
