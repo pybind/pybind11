@@ -372,10 +372,10 @@ def test_print(capture):
 
     with pytest.raises(RuntimeError) as excinfo:
         m.print_failure()
-    assert str(excinfo.value) == "make_tuple(): unable to convert " + (
-        "argument of type 'UnregisteredType' to Python object"
+    assert str(excinfo.value) == "Unable to convert call argument " + (
+        "'1' of type 'UnregisteredType' to Python object"
         if debug_enabled
-        else "arguments to Python object (compile in debug mode for details)"
+        else "to Python object (compile in debug mode for details)"
     )
 
 

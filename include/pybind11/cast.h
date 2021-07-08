@@ -985,6 +985,21 @@ template <> inline void cast_safe<void>(object &&) {}
 
 PYBIND11_NAMESPACE_END(detail)
 
+// The overloads could coexist, i.e. the #if is not strictly speaking needed,
+// but it is an easy minor optimization.
+#if defined(NDEBUG)
+inline cast_error cast_error_unable_to_convert_call_arg() {
+    return cast_error(
+        "Unable to convert call argument to Python object (compile in debug mode for details)");
+}
+#else
+inline cast_error cast_error_unable_to_convert_call_arg(const std::string &name,
+                                                        const std::string &type) {
+    return cast_error("Unable to convert call argument '" + name + "' of type '" + type
+                      + "' to Python object");
+}
+#endif
+
 template <return_value_policy policy = return_value_policy::automatic_reference>
 tuple make_tuple() { return tuple(0); }
 
@@ -998,11 +1013,10 @@ template <return_value_policy policy = return_value_policy::automatic_reference,
     for (size_t i = 0; i < args.size(); i++) {
         if (!args[i]) {
 #if defined(NDEBUG)
-            throw cast_error("make_tuple(): unable to convert arguments to Python object (compile in debug mode for details)");
+            throw cast_error_unable_to_convert_call_arg();
 #else
             std::array<std::string, size> argtypes { {type_id<Args>()...} };
-            throw cast_error("make_tuple(): unable to convert argument of type '" +
-                argtypes[i] + "' to Python object");
+            throw cast_error_unable_to_convert_call_arg(std::to_string(i), argtypes[i]);
 #endif
         }
     }
@@ -1257,9 +1271,10 @@ private:
         auto o = reinterpret_steal<object>(detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
 #if defined(NDEBUG)
-            argument_cast_error();
+            throw cast_error_unable_to_convert_call_arg();
 #else
-            argument_cast_error(std::to_string(args_list.size()), type_id<T>());
+            throw cast_error_unable_to_convert_call_arg(
+                std::to_string(args_list.size()), type_id<T>());
 #endif
         }
         args_list.append(o);
@@ -1287,9 +1302,9 @@ private:
         }
         if (!a.value) {
 #if defined(NDEBUG)
-            argument_cast_error();
+            throw cast_error_unable_to_convert_call_arg();
 #else
-            argument_cast_error(a.name, a.type);
+            throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
         }
         m_kwargs[a.name] = a.value;
@@ -1326,17 +1341,6 @@ private:
 
     [[noreturn]] static void multiple_values_error(const std::string &name) {
         throw type_error("Got multiple values for keyword argument '" + name + "'");
-    }
-
-    [[noreturn]] static void argument_cast_error() {
-        throw cast_error("Unable to convert call argument to Python object "
-                         "(compile in debug mode for details)");
-    }
-
-    [[noreturn]] static void argument_cast_error(const std::string &name,
-                                                 const std::string &type) {
-        throw cast_error("Unable to convert call argument '" + name
-                         + "' of type '" + type + "' to Python object");
     }
 
 private:
