@@ -176,7 +176,7 @@ public:
             return true;
         }
         // Case 2: We have a derived class
-        else if (PyType_IsSubtype(srctype, typeinfo->type)) {
+        if (PyType_IsSubtype(srctype, typeinfo->type)) {
             auto &bases = all_type_info(srctype); // subtype bases
             bool no_cpp_mi = typeinfo->simple_type;
 
@@ -195,7 +195,7 @@ public:
             // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see if
             // we can find an exact match (or, for a simple C++ type, an inherited match); if so, we
             // can safely reinterpret_cast to the relevant pointer.
-            else if (bases.size() > 1) {
+            if (bases.size() > 1) {
                 for (auto base : bases) {
                     if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type) : base->type == typeinfo->type) {
                         this_.load_value_and_holder(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
@@ -278,8 +278,8 @@ struct smart_holder_type_caster_class_hooks : smart_holder_type_caster_base_tag 
     }
 
     // Adopting existing approach used by type_caster_base, although it leads to somewhat fuzzy
-    // ownership semantics: if we detected via shared_from_this that a shared_ptr exists already, it
-    // is reused, irrespective of the return_value_policy in effect.
+    // ownership semantics: if we detected via shared_from_this that a shared_ptr exists already,
+    // it is reused, irrespective of the return_value_policy in effect.
     // "SomeBaseOfWrappedType" is needed because std::enable_shared_from_this is not necessarily a
     // direct base of WrappedType.
     template <typename WrappedType, typename SomeBaseOfWrappedType>
