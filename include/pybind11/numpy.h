@@ -1340,9 +1340,8 @@ public:
             if (++m_index[i] != m_shape[i]) {
                 increment_common_iterator(i);
                 break;
-            } else {
-                m_index[i] = 0;
             }
+            m_index[i] = 0;
         }
         return *this;
     }
@@ -1493,8 +1492,7 @@ struct vectorize_returned_array {
     static Type create(broadcast_trivial trivial, const std::vector<ssize_t> &shape) {
         if (trivial == broadcast_trivial::f_trivial)
             return array_t<Return, array::f_style>(shape);
-        else
-            return array_t<Return>(shape);
+        return array_t<Return>(shape);
     }
 
     static Return *mutable_data(Type &array) {

@@ -85,25 +85,28 @@ public:
     operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
 };
 
-#define PYBIND11_TYPE_CASTER(type, py_name) \
-    protected: \
-        type value; \
-    public: \
-        static constexpr auto name = py_name; \
-        template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0> \
-        static handle cast(T_ *src, return_value_policy policy, handle parent) { \
-            if (!src) return none().release(); \
-            if (policy == return_value_policy::take_ownership) { \
-                auto h = cast(std::move(*src), policy, parent); delete src; return h; \
-            } else { \
-                return cast(*src, policy, parent); \
-            } \
-        } \
-        operator type*() { return &value; } \
-        operator type&() { return value; } \
-        operator type&&() && { return std::move(value); } \
-        template <typename T_> using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
-
+#define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
+protected:                                                                                        \
+    type value;                                                                                   \
+                                                                                                  \
+public:                                                                                           \
+    static constexpr auto name = py_name;                                                         \
+    template <typename T_, enable_if_t<std::is_same<type, remove_cv_t<T_>>::value, int> = 0>      \
+    static handle cast(T_ *src, return_value_policy policy, handle parent) {                      \
+        if (!src)                                                                                 \
+            return none().release();                                                              \
+        if (policy == return_value_policy::take_ownership) {                                      \
+            auto h = cast(std::move(*src), policy, parent);                                       \
+            delete src;                                                                           \
+            return h;                                                                             \
+        }                                                                                         \
+        return cast(*src, policy, parent);                                                        \
+    }                                                                                             \
+    operator type *() { return &value; }                                                          \
+    operator type &() { return value; }                                                           \
+    operator type &&() && { return std::move(value); }                                            \
+    template <typename T_>                                                                        \
+    using cast_op_type = pybind11::detail::movable_cast_op_type<T_>
 
 template <typename CharT> using is_std_char_type = any_of<
     std::is_same<CharT, char>, /* std::string */
@@ -247,7 +250,8 @@ public:
     bool load(handle h, bool) {
         if (!h) {
             return false;
-        } else if (h.is_none()) {
+        }
+        if (h.is_none()) {
             value = nullptr;
             return true;
         }
@@ -272,8 +276,7 @@ public:
     static handle cast(const void *ptr, return_value_policy /* policy */, handle /* parent */) {
         if (ptr)
             return capsule(ptr).release();
-        else
-            return none().inc_ref();
+        return none().inc_ref();
     }
 
     template <typename T> using cast_op_type = void*&;
@@ -289,9 +292,15 @@ template <> class type_caster<bool> {
 public:
     bool load(handle src, bool convert) {
         if (!src) return false;
-        else if (src.ptr() == Py_True) { value = true; return true; }
-        else if (src.ptr() == Py_False) { value = false; return true; }
-        else if (convert || !std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
+        if (src.ptr() == Py_True) {
+            value = true;
+            return true;
+        }
+        if (src.ptr() == Py_False) {
+            value = false;
+            return true;
+        }
+        if (convert || !std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
             // (allow non-implicit conversion for numpy booleans)
 
             Py_ssize_t res = -1;
@@ -315,9 +324,8 @@ public:
             if (res == 0 || res == 1) {
                 value = (bool) res;
                 return true;
-            } else {
-                PyErr_Clear();
             }
+            PyErr_Clear();
         }
         return false;
     }
@@ -351,7 +359,8 @@ template <typename StringType, bool IsView = false> struct string_caster {
         handle load_src = src;
         if (!src) {
             return false;
-        } else if (!PyUnicode_Check(load_src.ptr())) {
+        }
+        if (!PyUnicode_Check(load_src.ptr())) {
 #if PY_MAJOR_VERSION >= 3
             return load_bytes(load_src);
 #else
@@ -554,10 +563,11 @@ public:
     static handle cast(T *src, return_value_policy policy, handle parent) {
         if (!src) return none().release();
         if (policy == return_value_policy::take_ownership) {
-            auto h = cast(std::move(*src), policy, parent); delete src; return h;
-        } else {
-            return cast(*src, policy, parent);
+            auto h = cast(std::move(*src), policy, parent);
+            delete src;
+            return h;
         }
+        return cast(*src, policy, parent);
     }
 
     static constexpr auto name = _("Tuple[") + concat(make_caster<Ts>::name...) + _("]");
@@ -664,14 +674,14 @@ protected:
             value = v_h.value_ptr();
             holder = v_h.template holder<holder_type>();
             return true;
-        } else {
-            throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
-#if defined(NDEBUG)
-                             "(compile in debug mode for type information)");
-#else
-                             "of type '" + type_id<holder_type>() + "''");
-#endif
         }
+        throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
+#if defined(NDEBUG)
+                         "(compile in debug mode for type information)");
+#else
+                         "of type '"
+                         + type_id<holder_type>() + "''");
+#endif
     }
 
     template <typename T = holder_type, detail::enable_if_t<!std::is_constructible<T, const T &, type*>::value, int> = 0>
@@ -917,8 +927,7 @@ template <typename T> detail::enable_if_t<detail::move_always<T>::value, T> cast
 template <typename T> detail::enable_if_t<detail::move_if_unreferenced<T>::value, T> cast(object &&object) {
     if (object.ref_count() > 1)
         return cast<T>(object);
-    else
-        return move<T>(std::move(object));
+    return move<T>(std::move(object));
 }
 template <typename T> detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
     return cast<T>(object);

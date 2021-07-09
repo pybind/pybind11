@@ -278,7 +278,8 @@ template<typename T> struct optional_caster {
     bool load(handle src, bool convert) {
         if (!src) {
             return false;
-        } else if (src.is_none()) {
+        }
+        if (src.is_none()) {
             return true;  // default-constructed value is already empty
         }
         value_conv inner_caster;
