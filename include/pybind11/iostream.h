@@ -134,7 +134,6 @@ public:
 
 PYBIND11_NAMESPACE_END(detail)
 
-
 // clang-format off
 /** \rst
     This a move-only guard that redirects output.
@@ -183,7 +182,6 @@ public:
     scoped_ostream_redirect &operator=(const scoped_ostream_redirect &) = delete;
     scoped_ostream_redirect &operator=(scoped_ostream_redirect &&) = delete;
 };
-
 
 // clang-format off
 /** \rst

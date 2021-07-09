@@ -259,22 +259,22 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("convert_to_pybind11_str", [](py::object o) { return py::str(o); });
 
     m.def("nonconverting_constructor",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](std::string type, py::object value, bool move) -> py::object {
-        if (type == "bytes") {
-            return move ? py::bytes(std::move(value)) : py::bytes(value);
-        }
-        if (type == "none") {
-            return move ? py::none(std::move(value)) : py::none(value);
-        }
-        if (type == "ellipsis") {
-            return move ? py::ellipsis(std::move(value)) : py::ellipsis(value);
-        }
-        if (type == "type") {
-            return move ? py::type(std::move(value)) : py::type(value);
-        }
-        throw std::runtime_error("Invalid type");
-    });
+          // NOLINTNEXTLINE(performance-unnecessary-value-param)
+          [](std::string type, py::object value, bool move) -> py::object {
+              if (type == "bytes") {
+                  return move ? py::bytes(std::move(value)) : py::bytes(value);
+              }
+              if (type == "none") {
+                  return move ? py::none(std::move(value)) : py::none(value);
+              }
+              if (type == "ellipsis") {
+                  return move ? py::ellipsis(std::move(value)) : py::ellipsis(value);
+              }
+              if (type == "type") {
+                  return move ? py::type(std::move(value)) : py::type(value);
+              }
+              throw std::runtime_error("Invalid type");
+          });
 
     m.def("get_implicit_casting", []() {
         py::dict d;

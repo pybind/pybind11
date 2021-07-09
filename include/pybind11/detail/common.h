@@ -272,14 +272,15 @@ extern "C" {
         }                                                                      \
     }
 
-#define PYBIND11_CATCH_INIT_EXCEPTIONS \
-        catch (pybind11::error_already_set &e) {                               \
-            PyErr_SetString(PyExc_ImportError, e.what());                      \
-            return nullptr;                                                    \
-        } catch (const std::exception &e) {                                    \
-            PyErr_SetString(PyExc_ImportError, e.what());                      \
-            return nullptr;                                                    \
-        }                                                                      \
+#define PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+    catch (pybind11::error_already_set & e) {                                                     \
+        PyErr_SetString(PyExc_ImportError, e.what());                                             \
+        return nullptr;                                                                           \
+    }                                                                                             \
+    catch (const std::exception &e) {                                                             \
+        PyErr_SetString(PyExc_ImportError, e.what());                                             \
+        return nullptr;                                                                           \
+    }
 
 // clang-format off
 /** \rst
