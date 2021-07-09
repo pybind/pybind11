@@ -12,6 +12,10 @@
 #
 # See https://github.com/pre-commit/pre-commit
 
+ci:
+  skip:
+  - docker-clang-format
+
 repos:
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -107,6 +111,19 @@ repos:
     language: pygrep
     entry: PyBind|Numpy|Cmake|CCache
     exclude: .pre-commit-config.yaml
+
+- repo: local
+  hooks:
+  - id: docker-clang-format
+    name: Docker Clang Format
+    language: docker_image
+    types:
+    - c++
+    entry: silkeh/clang:12
+    args:
+    - clang-format
+    - -style=file
+    - -i
 
 - repo: local
   hooks:
