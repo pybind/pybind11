@@ -203,8 +203,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
             void *ptr = std::malloc(bytes);
             if (ptr)
                 return ptr;
-            else
-                throw std::bad_alloc{};
+            throw std::bad_alloc{};
         }
     };
     py::class_<PrivateOpNew>(m, "PrivateOpNew").def_readonly("value", &PrivateOpNew::value);

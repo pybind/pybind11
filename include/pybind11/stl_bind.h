@@ -414,13 +414,12 @@ void vector_buffer_impl(Class_& cl, std::true_type) {
         if (step == 1) {
             return Vector(p, end);
         }
-        else {
-            Vector vec;
-            vec.reserve((size_t) info.shape[0]);
-            for (; p != end; p += step)
-                vec.push_back(*p);
-            return vec;
-        }
+        Vector vec;
+        vec.reserve((size_t) info.shape[0]);
+        for (; p != end; p += step)
+            vec.push_back(*p);
+        return vec;
+
     }));
 
     return;

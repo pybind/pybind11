@@ -173,8 +173,7 @@ TEST_SUBMODULE(class_, m) {
         //     return py::type::of<int>();
         if (category == 1)
             return py::type::of<DerivedClass1>();
-        else
-            return py::type::of<Invalid>();
+        return py::type::of<Invalid>();
     });
 
     m.def("get_type_of", [](py::object ob) { return py::type::of(std::move(ob)); });

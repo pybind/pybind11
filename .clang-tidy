@@ -1,11 +1,13 @@
 FormatStyle: file
 
 Checks: '
+clang-analyzer-optin.cplusplus.VirtualCall,
 llvm-namespace-comment,
 misc-misplaced-const,
 misc-static-assert,
 misc-uniqueptr-reset-release,
 modernize-avoid-bind,
+modernize-redundant-void-arg,
 modernize-replace-auto-ptr,
 modernize-replace-disallow-copy-and-assign-macro,
 modernize-shrink-to-fit,
@@ -20,6 +22,7 @@ modernize-use-override,
 modernize-use-using,
 *performance*,
 readability-container-size-empty,
+readability-else-after-return,
 readability-make-member-function-const,
 readability-redundant-function-ptr-dereference,
 readability-redundant-smartptr-get,

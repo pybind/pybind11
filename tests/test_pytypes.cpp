@@ -263,13 +263,13 @@ TEST_SUBMODULE(pytypes, m) {
         if (type == "bytes") {
             return move ? py::bytes(std::move(value)) : py::bytes(value);
         }
-        else if (type == "none") {
+        if (type == "none") {
             return move ? py::none(std::move(value)) : py::none(value);
         }
-        else if (type == "ellipsis") {
+        if (type == "ellipsis") {
             return move ? py::ellipsis(std::move(value)) : py::ellipsis(value);
         }
-        else if (type == "type") {
+        if (type == "type") {
             return move ? py::type(std::move(value)) : py::type(value);
         }
         throw std::runtime_error("Invalid type");
@@ -385,9 +385,7 @@ TEST_SUBMODULE(pytypes, m) {
         if (is_unsigned)
             return py::memoryview::from_buffer(
                 ui16, { 4 }, { sizeof(uint16_t) });
-        else
-            return py::memoryview::from_buffer(
-                si16, { 5 }, { sizeof(int16_t) });
+        return py::memoryview::from_buffer(si16, {5}, {sizeof(int16_t)});
     });
 
     m.def("test_memoryview_from_buffer_nativeformat", []() {
