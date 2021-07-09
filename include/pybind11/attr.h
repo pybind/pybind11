@@ -18,44 +18,60 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 /// @{
 
 /// Annotation for methods
-struct is_method { handle class_; is_method(const handle &c) : class_(c) { } };
+struct is_method {
+    handle class_;
+    is_method(const handle &c) : class_(c) {}
+};
 
 /// Annotation for operators
-struct is_operator { };
+struct is_operator {};
 
 /// Annotation for classes that cannot be subclassed
-struct is_final { };
+struct is_final {};
 
 /// Annotation for parent scope
-struct scope { handle value; scope(const handle &s) : value(s) { } };
+struct scope {
+    handle value;
+    scope(const handle &s) : value(s) {}
+};
 
 /// Annotation for documentation
-struct doc { const char *value; doc(const char *value) : value(value) { } };
+struct doc {
+    const char *value;
+    doc(const char *value) : value(value) {}
+};
 
 /// Annotation for function names
-struct name { const char *value; name(const char *value) : value(value) { } };
+struct name {
+    const char *value;
+    name(const char *value) : value(value) {}
+};
 
 /// Annotation indicating that a function is an overload associated with a given "sibling"
-struct sibling { handle value; sibling(const handle &value) : value(value.ptr()) { } };
+struct sibling {
+    handle value;
+    sibling(const handle &value) : value(value.ptr()) {}
+};
 
 /// Annotation indicating that a class derives from another given type
 template <typename T> struct base {
 
-    PYBIND11_DEPRECATED("base<T>() was deprecated in favor of specifying 'T' as a template argument to class_")
-    base() { } // NOLINT(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
+    PYBIND11_DEPRECATED(
+        "base<T>() was deprecated in favor of specifying 'T' as a template argument to class_")
+    base() {} // NOLINT(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
 };
 
 /// Keep patient alive while nurse lives
-template <size_t Nurse, size_t Patient> struct keep_alive { };
+template <size_t Nurse, size_t Patient> struct keep_alive {};
 
 /// Annotation indicating that a class is involved in a multiple inheritance relationship
-struct multiple_inheritance { };
+struct multiple_inheritance {};
 
 /// Annotation which enables dynamic attributes, i.e. adds `__dict__` to a class
-struct dynamic_attr { };
+struct dynamic_attr {};
 
 /// Annotation which enables the buffer protocol for a type
-struct buffer_protocol { };
+struct buffer_protocol {};
 
 /// Annotation which requests that a special metaclass is created for a type
 struct metaclass {
@@ -66,17 +82,20 @@ struct metaclass {
     metaclass() {}
 
     /// Override pybind11's default metaclass
-    explicit metaclass(handle value) : value(value) { }
+    explicit metaclass(handle value) : value(value) {}
 };
 
 /// Annotation that marks a class as local to the module:
-struct module_local { const bool value; constexpr module_local(bool v = true) : value(v) { } };
+struct module_local {
+    const bool value;
+    constexpr module_local(bool v = true) : value(v) {}
+};
 
 /// Annotation to mark enums as an arithmetic type
-struct arithmetic { };
+struct arithmetic {};
 
 /// Mark a function for addition at the beginning of the existing overload chain instead of the end
-struct prepend { };
+struct prepend {};
 
 // clang-format off
 /** \rst
@@ -102,16 +121,14 @@ template <typename... Ts> struct call_guard;
 
 template <> struct call_guard<> { using type = detail::void_type; };
 
-template <typename T>
-struct call_guard<T> {
+template <typename T> struct call_guard<T> {
     static_assert(std::is_default_constructible<T>::value,
                   "The guard type must be default constructible");
 
     using type = T;
 };
 
-template <typename T, typename... Ts>
-struct call_guard<T, Ts...> {
+template <typename T, typename... Ts> struct call_guard<T, Ts...> {
     struct type {
         T guard{}; // Compose multiple guard types with left-to-right default-constructor order
         typename call_guard<Ts...>::type next{};
@@ -137,15 +154,16 @@ struct argument_record {
     bool none : 1;     ///< True if None is allowed when loading
 
     argument_record(const char *name, const char *descr, handle value, bool convert, bool none)
-        : name(name), descr(descr), value(value), convert(convert), none(none) { }
+        : name(name), descr(descr), value(value), convert(convert), none(none) {}
 };
 
-/// Internal data structure which holds metadata about a bound function (signature, overloads, etc.)
+/// Internal data structure which holds metadata about a bound function (signature, overloads,
+/// etc.)
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
-          is_operator(false), is_method(false), has_args(false),
-          has_kwargs(false), has_kw_only_args(false), prepend(false) { }
+          is_operator(false), is_method(false), has_args(false), has_kwargs(false),
+          has_kw_only_args(false), prepend(false) {}
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -160,13 +178,13 @@ struct function_record {
     std::vector<argument_record> args;
 
     /// Pointer to lambda function which converts arguments and performs the actual call
-    handle (*impl) (function_call &) = nullptr;
+    handle (*impl)(function_call &) = nullptr;
 
     /// Storage for the wrapped function pointer and captured data, if any
-    void *data[3] = { };
+    void *data[3] = {};
 
     /// Pointer to custom destructor for 'data' (if needed)
-    void (*free_data) (function_record *ptr) = nullptr;
+    void (*free_data)(function_record *ptr) = nullptr;
 
     /// Return value policy associated with this function
     return_value_policy policy = return_value_policy::automatic;
@@ -224,7 +242,7 @@ struct function_record {
 struct type_record {
     PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          default_holder(true), module_local(false), is_final(false) { }
+          default_holder(true), module_local(false), is_final(false) {}
 
     /// Handle to the parent scope
     handle scope;
@@ -293,12 +311,12 @@ struct type_record {
             std::string tname(base.name());
             detail::clean_type_id(tname);
             pybind11_fail("generic_type: type \"" + std::string(name) + "\" " +
-                    (default_holder ? "does not have" : "has") +
-                    " a non-default holder type while its base \"" + tname + "\" " +
-                    (base_info->default_holder ? "does not" : "does"));
+                          (default_holder ? "does not have" : "has") +
+                          " a non-default holder type while its base \"" + tname + "\" " +
+                          (base_info->default_holder ? "does not" : "does"));
         }
 
-        bases.append((PyObject *) base_info->type);
+        bases.append((PyObject *)base_info->type);
 
         if (base_info->type->tp_dictoffset != 0)
             dynamic_attr = true;
@@ -308,14 +326,13 @@ struct type_record {
     }
 };
 
-inline function_call::function_call(const function_record &f, handle p) :
-        func(f), parent(p) {
+inline function_call::function_call(const function_record &f, handle p) : func(f), parent(p) {
     args.reserve(f.nargs);
     args_convert.reserve(f.nargs);
 }
 
 /// Tag for a new-style `__init__` defined in `detail/init.h`
-struct is_new_style_constructor { };
+struct is_new_style_constructor {};
 
 /**
  * Partial template specializations to process custom attributes provided to
@@ -327,10 +344,10 @@ template <typename T, typename SFINAE = void> struct process_attribute;
 
 template <typename T> struct process_attribute_default {
     /// Default implementation: do nothing
-    static void init(const T &, function_record *) { }
-    static void init(const T &, type_record *) { }
-    static void precall(function_call &) { }
-    static void postcall(function_call &, handle) { }
+    static void init(const T &, function_record *) {}
+    static void init(const T &, type_record *) {}
+    static void precall(function_call &) {}
+    static void postcall(function_call &, handle) {}
 };
 
 /// Process an attribute specifying the function's name
@@ -348,21 +365,26 @@ template <> struct process_attribute<const char *> : process_attribute_default<c
     static void init(const char *d, function_record *r) { r->doc = const_cast<char *>(d); }
     static void init(const char *d, type_record *r) { r->doc = const_cast<char *>(d); }
 };
-template <> struct process_attribute<char *> : process_attribute<const char *> { };
+template <> struct process_attribute<char *> : process_attribute<const char *> {};
 
 /// Process an attribute indicating the function's return value policy
-template <> struct process_attribute<return_value_policy> : process_attribute_default<return_value_policy> {
+template <>
+struct process_attribute<return_value_policy> : process_attribute_default<return_value_policy> {
     static void init(const return_value_policy &p, function_record *r) { r->policy = p; }
 };
 
-/// Process an attribute which indicates that this is an overloaded function associated with a given sibling
+/// Process an attribute which indicates that this is an overloaded function associated with a
+/// given sibling
 template <> struct process_attribute<sibling> : process_attribute_default<sibling> {
     static void init(const sibling &s, function_record *r) { r->sibling = s.value; }
 };
 
 /// Process an attribute which indicates that this function is a method
 template <> struct process_attribute<is_method> : process_attribute_default<is_method> {
-    static void init(const is_method &s, function_record *r) { r->is_method = true; r->scope = s.class_; }
+    static void init(const is_method &s, function_record *r) {
+        r->is_method = true;
+        r->scope = s.class_;
+    }
 };
 
 /// Process an attribute which indicates the parent scope of a method
@@ -375,8 +397,12 @@ template <> struct process_attribute<is_operator> : process_attribute_default<is
     static void init(const is_operator &, function_record *r) { r->is_operator = true; }
 };
 
-template <> struct process_attribute<is_new_style_constructor> : process_attribute_default<is_new_style_constructor> {
-    static void init(const is_new_style_constructor &, function_record *r) { r->is_new_style_constructor = true; }
+template <>
+struct process_attribute<is_new_style_constructor>
+    : process_attribute_default<is_new_style_constructor> {
+    static void init(const is_new_style_constructor &, function_record *r) {
+        r->is_new_style_constructor = true;
+    }
 };
 
 inline void process_kw_only_arg(const arg &a, function_record *r) {
@@ -389,10 +415,12 @@ inline void process_kw_only_arg(const arg &a, function_record *r) {
 template <> struct process_attribute<arg> : process_attribute_default<arg> {
     static void init(const arg &a, function_record *r) {
         if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr, handle(), true /*convert*/, false /*none not allowed*/);
+            r->args.emplace_back("self", nullptr, handle(), true /*convert*/,
+                                 false /*none not allowed*/);
         r->args.emplace_back(a.name, nullptr, handle(), !a.flag_noconvert, a.flag_none);
 
-        if (r->has_kw_only_args) process_kw_only_arg(a, r);
+        if (r->has_kw_only_args)
+            process_kw_only_arg(a, r);
     }
 };
 
@@ -400,23 +428,26 @@ template <> struct process_attribute<arg> : process_attribute_default<arg> {
 template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
     static void init(const arg_v &a, function_record *r) {
         if (r->is_method && r->args.empty())
-            r->args.emplace_back("self", nullptr /*descr*/, handle() /*parent*/, true /*convert*/, false /*none not allowed*/);
+            r->args.emplace_back("self", nullptr /*descr*/, handle() /*parent*/, true /*convert*/,
+                                 false /*none not allowed*/);
 
         if (!a.value) {
 #if !defined(NDEBUG)
             std::string descr("'");
-            if (a.name) descr += std::string(a.name) + ": ";
+            if (a.name)
+                descr += std::string(a.name) + ": ";
             descr += a.type + "'";
             if (r->is_method) {
                 if (r->name)
-                    descr += " in method '" + (std::string) str(r->scope) + "." + (std::string) r->name + "'";
+                    descr += " in method '" + (std::string)str(r->scope) + "." +
+                             (std::string)r->name + "'";
                 else
-                    descr += " in method of '" + (std::string) str(r->scope) + "'";
+                    descr += " in method of '" + (std::string)str(r->scope) + "'";
             } else if (r->name) {
-                descr += " in function '" + (std::string) r->name + "'";
+                descr += " in function '" + (std::string)r->name + "'";
             }
-            pybind11_fail("arg(): could not convert default argument "
-                          + descr + " into a Python object (type not registered yet?)");
+            pybind11_fail("arg(): could not convert default argument " + descr +
+                          " into a Python object (type not registered yet?)");
 #else
             pybind11_fail("arg(): could not convert default argument "
                           "into a Python object (type not registered yet?). "
@@ -425,15 +456,14 @@ template <> struct process_attribute<arg_v> : process_attribute_default<arg_v> {
         }
         r->args.emplace_back(a.name, a.descr, a.value.inc_ref(), !a.flag_noconvert, a.flag_none);
 
-        if (r->has_kw_only_args) process_kw_only_arg(a, r);
+        if (r->has_kw_only_args)
+            process_kw_only_arg(a, r);
     }
 };
 
 /// Process a keyword-only-arguments-follow pseudo argument
 template <> struct process_attribute<kw_only> : process_attribute_default<kw_only> {
-    static void init(const kw_only &, function_record *r) {
-        r->has_kw_only_args = true;
-    }
+    static void init(const kw_only &, function_record *r) { r->has_kw_only_args = true; }
 };
 
 /// Process a positional-only-argument maker
@@ -443,31 +473,32 @@ template <> struct process_attribute<pos_only> : process_attribute_default<pos_o
     }
 };
 
-/// Process a parent class attribute.  Single inheritance only (class_ itself already guarantees that)
+/// Process a parent class attribute.  Single inheritance only (class_ itself already guarantees
+/// that)
 template <typename T>
-struct process_attribute<T, enable_if_t<is_pyobject<T>::value>> : process_attribute_default<handle> {
+struct process_attribute<T, enable_if_t<is_pyobject<T>::value>>
+    : process_attribute_default<handle> {
     static void init(const handle &h, type_record *r) { r->bases.append(h); }
 };
 
 /// Process a parent class attribute (deprecated, does not support multiple inheritance)
-template <typename T>
-struct process_attribute<base<T>> : process_attribute_default<base<T>> {
+template <typename T> struct process_attribute<base<T>> : process_attribute_default<base<T>> {
     static void init(const base<T> &, type_record *r) { r->add_base(typeid(T), nullptr); }
 };
 
 /// Process a multiple inheritance attribute
 template <>
 struct process_attribute<multiple_inheritance> : process_attribute_default<multiple_inheritance> {
-    static void init(const multiple_inheritance &, type_record *r) { r->multiple_inheritance = true; }
+    static void init(const multiple_inheritance &, type_record *r) {
+        r->multiple_inheritance = true;
+    }
 };
 
-template <>
-struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr> {
+template <> struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr> {
     static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
 };
 
-template <>
-struct process_attribute<is_final> : process_attribute_default<is_final> {
+template <> struct process_attribute<is_final> : process_attribute_default<is_final> {
     static void init(const is_final &, type_record *r) { r->is_final = true; }
 };
 
@@ -476,76 +507,80 @@ struct process_attribute<buffer_protocol> : process_attribute_default<buffer_pro
     static void init(const buffer_protocol &, type_record *r) { r->buffer_protocol = true; }
 };
 
-template <>
-struct process_attribute<metaclass> : process_attribute_default<metaclass> {
+template <> struct process_attribute<metaclass> : process_attribute_default<metaclass> {
     static void init(const metaclass &m, type_record *r) { r->metaclass = m.value; }
 };
 
-template <>
-struct process_attribute<module_local> : process_attribute_default<module_local> {
+template <> struct process_attribute<module_local> : process_attribute_default<module_local> {
     static void init(const module_local &l, type_record *r) { r->module_local = l.value; }
 };
 
 /// Process a 'prepend' attribute, putting this at the beginning of the overload chain
-template <>
-struct process_attribute<prepend> : process_attribute_default<prepend> {
+template <> struct process_attribute<prepend> : process_attribute_default<prepend> {
     static void init(const prepend &, function_record *r) { r->prepend = true; }
 };
 
 /// Process an 'arithmetic' attribute for enums (does nothing here)
-template <>
-struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
+template <> struct process_attribute<arithmetic> : process_attribute_default<arithmetic> {};
 
 template <typename... Ts>
-struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_guard<Ts...>> { };
+struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_guard<Ts...>> {};
 
 /**
  * Process a keep_alive call policy -- invokes keep_alive_impl during the
  * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
  * otherwise
  */
-template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurse, Patient>> : public process_attribute_default<keep_alive<Nurse, Patient>> {
+template <size_t Nurse, size_t Patient>
+struct process_attribute<keep_alive<Nurse, Patient>>
+    : public process_attribute_default<keep_alive<Nurse, Patient>> {
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void precall(function_call &call) { keep_alive_impl(Nurse, Patient, call, handle()); }
+    static void precall(function_call &call) {
+        keep_alive_impl(Nurse, Patient, call, handle());
+    }
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void postcall(function_call &, handle) { }
+    static void postcall(function_call &, handle) {}
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void precall(function_call &) { }
+    static void precall(function_call &) {}
     template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void postcall(function_call &call, handle ret) { keep_alive_impl(Nurse, Patient, call, ret); }
+    static void postcall(function_call &call, handle ret) {
+        keep_alive_impl(Nurse, Patient, call, ret);
+    }
 };
 
 /// Recursively iterate over variadic template arguments
 template <typename... Args> struct process_attributes {
-    static void init(const Args&... args, function_record *r) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
+    static void init(const Args &...args, function_record *r) {
+        int unused[] = {0,
+                        (process_attribute<typename std::decay<Args>::type>::init(args, r), 0)...};
         ignore_unused(unused);
     }
-    static void init(const Args&... args, type_record *r) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
+    static void init(const Args &...args, type_record *r) {
+        int unused[] = {0,
+                        (process_attribute<typename std::decay<Args>::type>::init(args, r), 0)...};
         ignore_unused(unused);
     }
     static void precall(function_call &call) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
+        int unused[] = {0,
+                        (process_attribute<typename std::decay<Args>::type>::precall(call), 0)...};
         ignore_unused(unused);
     }
     static void postcall(function_call &call, handle fn_ret) {
-        int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
+        int unused[] = {
+            0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0)...};
         ignore_unused(unused);
     }
 };
 
-template <typename T>
-using is_call_guard = is_instantiation<call_guard, T>;
+template <typename T> using is_call_guard = is_instantiation<call_guard, T>;
 
 /// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
 template <typename... Extra>
 using extract_guard_t = typename exactly_one_t<is_call_guard, call_guard<>, Extra...>::type;
 
 /// Check the number of named arguments at compile time
-template <typename... Extra,
-          size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
-          size_t self  = constexpr_sum(std::is_same<is_method, Extra>::value...)>
+template <typename... Extra, size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
+          size_t self = constexpr_sum(std::is_same<is_method, Extra>::value...)>
 constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
     return named == 0 || (self + named + size_t(has_args) + size_t(has_kwargs)) == nargs;
 }

@@ -15,27 +15,30 @@
 
 double my_func(int x, float y, double z) {
     py::print("my_func(x:int={}, y:float={:.0f}, z:float={:.0f})"_s.format(x, y, z));
-    return (float) x*y*z;
+    return (float)x * y * z;
 }
 
 TEST_SUBMODULE(numpy_vectorize, m) {
-    try { py::module_::import("numpy"); }
-    catch (...) { return; }
+    try {
+        py::module_::import("numpy");
+    } catch (...) {
+        return;
+    }
 
     // test_vectorize, test_docs, test_array_collapse
     // Vectorize all arguments of a function (though non-vector arguments are also allowed)
     m.def("vectorized_func", py::vectorize(my_func));
 
-    // Vectorize a lambda function with a capture object (e.g. to exclude some arguments from the vectorization)
+    // Vectorize a lambda function with a capture object (e.g. to exclude some arguments from the
+    // vectorization)
     m.def("vectorized_func2", [](py::array_t<int> x, py::array_t<float> y, float z) {
         return py::vectorize([z](int x, float y) { return my_func(x, y, z); })(std::move(x),
                                                                                std::move(y));
     });
 
     // Vectorize a complex-valued function
-    m.def("vectorized_func3", py::vectorize(
-        [](std::complex<double> c) { return c * std::complex<double>(2.f); }
-    ));
+    m.def("vectorized_func3",
+          py::vectorize([](std::complex<double> c) { return c * std::complex<double>(2.f); }));
 
     // test_type_selection
     // A lot of these no lints could be replaced with const refs,
@@ -53,8 +56,8 @@ TEST_SUBMODULE(numpy_vectorize, m) {
           });
 
     // test_passthrough_arguments
-    // Passthrough test: references and non-pod types should be automatically passed through (in the
-    // function definition below, only `b`, `d`, and `g` are vectorized):
+    // Passthrough test: references and non-pod types should be automatically passed through (in
+    // the function definition below, only `b`, `d`, and `g` are vectorized):
     struct NonPODClass {
         NonPODClass(int v) : value{v} {}
         int value;
@@ -63,25 +66,20 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         .def(py::init<int>())
         .def_readwrite("value", &NonPODClass::value);
     m.def("vec_passthrough",
-          py::vectorize([](double *a,
-                           double b,
+          py::vectorize([](double *a, double b,
                            // Changing this broke things
                            // NOLINTNEXTLINE(performance-unnecessary-value-param)
-                           py::array_t<double> c,
-                           const int &d,
-                           int &e,
-                           NonPODClass f,
+                           py::array_t<double> c, const int &d, int &e, NonPODClass f,
                            const double g) { return *a + b + c.at(0) + d + e + f.value + g; }));
 
     // test_method_vectorization
     struct VectorizeTestClass {
         VectorizeTestClass(int v) : value{v} {};
-        float method(int x, float y) const { return y + (float) (x + value); }
+        float method(int x, float y) const { return y + (float)(x + value); }
         int value = 0;
     };
     py::class_<VectorizeTestClass> vtc(m, "VectorizeTestClass");
-    vtc .def(py::init<int>())
-        .def_readwrite("value", &VectorizeTestClass::value);
+    vtc.def(py::init<int>()).def_readwrite("value", &VectorizeTestClass::value);
 
     // Automatic vectorizing of methods
     vtc.def("method", py::vectorize(&VectorizeTestClass::method));
@@ -92,20 +90,18 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         .value("f_trivial", py::detail::broadcast_trivial::f_trivial)
         .value("c_trivial", py::detail::broadcast_trivial::c_trivial)
         .value("non_trivial", py::detail::broadcast_trivial::non_trivial);
-    m.def("vectorized_is_trivial",
-          [](
-              // NOLINTNEXTLINE(performance-unnecessary-value-param)
-              py::array_t<int, py::array::forcecast> arg1,
-              // NOLINTNEXTLINE(performance-unnecessary-value-param)
-              py::array_t<float, py::array::forcecast> arg2,
-              // NOLINTNEXTLINE(performance-unnecessary-value-param)
-              py::array_t<double, py::array::forcecast> arg3) {
-              py::ssize_t ndim;
-              std::vector<py::ssize_t> shape;
-              std::array<py::buffer_info, 3> buffers{
-                  {arg1.request(), arg2.request(), arg3.request()}};
-              return py::detail::broadcast(buffers, ndim, shape);
-          });
+    m.def("vectorized_is_trivial", [](
+                                       // NOLINTNEXTLINE(performance-unnecessary-value-param)
+                                       py::array_t<int, py::array::forcecast> arg1,
+                                       // NOLINTNEXTLINE(performance-unnecessary-value-param)
+                                       py::array_t<float, py::array::forcecast> arg2,
+                                       // NOLINTNEXTLINE(performance-unnecessary-value-param)
+                                       py::array_t<double, py::array::forcecast> arg3) {
+        py::ssize_t ndim;
+        std::vector<py::ssize_t> shape;
+        std::array<py::buffer_info, 3> buffers{{arg1.request(), arg2.request(), arg3.request()}};
+        return py::detail::broadcast(buffers, ndim, shape);
+    });
 
-    m.def("add_to", py::vectorize([](NonPODClass& x, int a) { x.value += a; }));
+    m.def("add_to", py::vectorize([](NonPODClass &x, int a) { x.value += a; }));
 }
