@@ -934,7 +934,12 @@ protected:
         } else {
             if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
                 auto *pi = reinterpret_cast<instance *>(parent.ptr());
-                self_value_and_holder.type->init_instance(pi, nullptr);
+                try {
+                    self_value_and_holder.type->init_instance(pi, nullptr);
+                } catch (const std::runtime_error &e) {
+                    PyErr_SetString(PyExc_RuntimeError, e.what());
+                    return nullptr;
+                }
             }
             return result.ptr();
         }
@@ -1505,6 +1510,34 @@ public:
     }
 
 private:
+    /// Initialize holder from pointer when the underlying object is destructible (public destructor)
+    template <typename T = type>
+    detail::enable_if_t<
+        !detail::is_instantiation<std::shared_ptr, holder_type>::value ||
+        std::is_destructible<T>::value
+    , void>
+    static init_shared_holder_from_pointer(detail::value_and_holder &v_h) {
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
+        v_h.set_holder_constructed();
+    }
+
+    /// Do *not* initialize holder from pointer when the underlying object is *not* destructible
+    template <typename T = type>
+    detail::enable_if_t<
+        detail::is_instantiation<std::shared_ptr, holder_type>::value &&
+        !std::is_destructible<T>::value
+    , void>
+    static init_shared_holder_from_pointer(detail::value_and_holder &) {
+        pybind11_fail("Unable to construct C++ holder"
+#if defined(NDEBUG)
+            " (compile in debug mode for type information)"
+#else
+            ": cannot construct a `" + type_id<holder_type>() + "' holder around a non-destructible `" +
+            type_id<type>() + "' pointer"
+#endif
+        );
+    }
+
     /// Initialize holder object, variant 1: object derives from enable_shared_from_this
     template <typename T>
     static void init_holder(detail::instance *inst, detail::value_and_holder &v_h,
@@ -1518,8 +1551,7 @@ private:
         }
 
         if (!v_h.holder_constructed() && inst->owned) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
-            v_h.set_holder_constructed();
+            init_shared_holder_from_pointer(v_h);
         }
     }
 
@@ -1540,8 +1572,7 @@ private:
             init_holder_from_existing(v_h, holder_ptr, std::is_copy_constructible<holder_type>());
             v_h.set_holder_constructed();
         } else if (inst->owned || detail::always_construct_holder<holder_type>::value) {
-            new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
-            v_h.set_holder_constructed();
+            init_shared_holder_from_pointer(v_h);
         }
     }
 
