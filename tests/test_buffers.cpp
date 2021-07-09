@@ -155,7 +155,7 @@ TEST_SUBMODULE(buffers, m) {
                                    py::format_descriptor<int32_t>::format(), 1);
         }
 
-        ConstBuffer() : value(new int32_t{0}) { };
+        ConstBuffer() : value(new int32_t{0}) {}
     };
     py::class_<ConstBuffer>(m, "ConstBuffer", py::buffer_protocol())
         .def(py::init<>())

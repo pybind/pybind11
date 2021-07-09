@@ -98,12 +98,14 @@ TEST_SUBMODULE(eigen, m) {
 
     // test_eigen_ref_to_python
     // Different ways of passing via Eigen::Ref; the first and second are the Eigen-recommended
-    // NOLINTNEXTLINE (performance-unnecessary-value-param)
-    m.def("cholesky1", [](Eigen::Ref<MatrixXdR> x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
+    m.def("cholesky1",
+          // NOLINTNEXTLINE (performance-unnecessary-value-param)
+          [](Eigen::Ref<MatrixXdR> x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky2", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky3", [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
-    // NOLINTNEXTLINE (performance-unnecessary-value-param)
-    m.def("cholesky4", [](Eigen::Ref<const MatrixXdR> x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
+    m.def("cholesky4",
+          // NOLINTNEXTLINE (performance-unnecessary-value-param)
+          [](Eigen::Ref<const MatrixXdR> x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
 
     // test_eigen_ref_mutators
     // Mutators: these add some value to the given element using Eigen, but Eigen should be mapping into
@@ -260,7 +262,10 @@ TEST_SUBMODULE(eigen, m) {
     m.def("dense_copy_r", [](const DenseMatrixR &m) -> DenseMatrixR { return m; });
     m.def("dense_copy_c", [](const DenseMatrixC &m) -> DenseMatrixC { return m; });
     // test_sparse, test_sparse_signature
-    m.def("sparse_r", [mat]() -> SparseMatrixR { return Eigen::SparseView<Eigen::MatrixXf>(mat); }); //NOLINT(clang-analyzer-core.uninitialized.UndefReturn)
+    m.def("sparse_r", [mat]() -> SparseMatrixR {
+        // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
+        return Eigen::SparseView<Eigen::MatrixXf>(mat);
+    });
     m.def("sparse_c", [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_copy_r", [](const SparseMatrixR &m) -> SparseMatrixR { return m; });
     m.def("sparse_copy_c", [](const SparseMatrixC &m) -> SparseMatrixC { return m; });
@@ -284,9 +289,11 @@ TEST_SUBMODULE(eigen, m) {
     // that would allow copying (if types or strides don't match) for comparison:
     m.def("get_elem", &get_elem);
     // Now this alternative that calls the tells pybind to fail rather than copy:
-    // NOLINTNEXTLINE (performance-unnecessary-value-param)
-    m.def("get_elem_nocopy", [](Eigen::Ref<const Eigen::MatrixXd> m) -> double { return get_elem(m); },
-            py::arg{}.noconvert());
+    m.def(
+        "get_elem_nocopy",
+        // NOLINTNEXTLINE (performance-unnecessary-value-param)
+        [](Eigen::Ref<const Eigen::MatrixXd> m) -> double { return get_elem(m); },
+        py::arg{}.noconvert());
     // Also test a row-major-only no-copy const ref:
     m.def("get_elem_rm_nocopy", [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long { return m(2, 1); },
             py::arg{}.noconvert());
@@ -301,7 +308,7 @@ TEST_SUBMODULE(eigen, m) {
     // test_issue1105
     // Issue #1105: when converting from a numpy two-dimensional (Nx1) or (1xN) value into a dense
     // eigen Vector or RowVector, the argument would fail to load because the numpy copy would
-    // fail: numpy won't broadcast a Nx1 into a 1-dimensional vector. NOLINTNEXTLINE
+    // fail: numpy won't broadcast a Nx1 into a 1-dimensional vector.
     // NOLINTNEXTLINE (performance-unnecessary-value-param)
     m.def("iss1105_col", [](Eigen::VectorXd) { return true; });
     // NOLINTNEXTLINE (performance-unnecessary-value-param)
@@ -309,12 +316,18 @@ TEST_SUBMODULE(eigen, m) {
 
     // test_named_arguments
     // Make sure named arguments are working properly:
-    // NOLINTNEXTLINE (performance-unnecessary-value-param)
-    m.def("matrix_multiply", [](const py::EigenDRef<const Eigen::MatrixXd> A, const py::EigenDRef<const Eigen::MatrixXd> B)
-            -> Eigen::MatrixXd {
-        if (A.cols() != B.rows()) throw std::domain_error("Nonconformable matrices!");
-        return A * B;
-    }, py::arg("A"), py::arg("B"));
+    m.def(
+        "matrix_multiply",
+        // NOLINTNEXTLINE (performance-unnecessary-value-param)
+        [](const py::EigenDRef<const Eigen::MatrixXd> A,
+           // NOLINTNEXTLINE (performance-unnecessary-value-param)
+           const py::EigenDRef<const Eigen::MatrixXd> B) -> Eigen::MatrixXd {
+            if (A.cols() != B.rows())
+                throw std::domain_error("Nonconformable matrices!");
+            return A * B;
+        },
+        py::arg("A"),
+        py::arg("B"));
 
     // test_custom_operator_new
     py::class_<CustomOperatorNew>(m, "CustomOperatorNew")

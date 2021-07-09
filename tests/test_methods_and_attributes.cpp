@@ -123,7 +123,7 @@ class NoneCastTester {
 public:
     int answer = -1;
     NoneCastTester() = default;
-    NoneCastTester(int v) : answer(v) {};
+    NoneCastTester(int v) : answer(v) {}
 };
 
 struct StrIssue {
@@ -393,14 +393,14 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def("increase_value", &RegisteredDerived::increase_value)
         .def_readwrite("rw_value", &RegisteredDerived::rw_value)
         .def_readonly("ro_value", &RegisteredDerived::ro_value)
-        // These should trigger a static_assert if uncommented
-        //.def_readwrite("fails", &UserType::value) // should trigger a static_assert if uncommented
-        //.def_readonly("fails", &UserType::value) // should trigger a static_assert if uncommented
+        // Uncommenting the next line should trigger a static_assert:
+        // .def_readwrite("fails", &UserType::value)
+        // Uncommenting the next line should trigger a static_assert:
+        // .def_readonly("fails", &UserType::value)
         .def_property("rw_value_prop", &RegisteredDerived::get_int, &RegisteredDerived::set_int)
         .def_property_readonly("ro_value_prop", &RegisteredDerived::get_double)
         // This one is in the registered class:
-        .def("sum", &RegisteredDerived::sum)
-        ;
+        .def("sum", &RegisteredDerived::sum);
 
     using Adapted = decltype(py::method_adaptor<RegisteredDerived>(&RegisteredDerived::do_nothing));
     static_assert(std::is_same<Adapted, void (RegisteredDerived::*)() const>::value, "");

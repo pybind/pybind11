@@ -299,12 +299,15 @@ TEST_SUBMODULE(stl, m) {
     m.def("stl_pass_by_pointer", [](std::vector<int>* v) { return *v; }, "v"_a=nullptr);
 
     // #1258: pybind11/stl.h converts string to vector<string>
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::vector<std::string>) { return 1; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::list<std::string>) { return 2; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::string) { return 3; });
+    m.def("func_with_string_or_vector_string_arg_overload",
+          // NOLINTNEXTLINE(performance-unnecessary-value-param)
+          [](std::vector<std::string>) { return 1; });
+    m.def("func_with_string_or_vector_string_arg_overload",
+          // NOLINTNEXTLINE(performance-unnecessary-value-param)
+          [](std::list<std::string>) { return 2; });
+    m.def("func_with_string_or_vector_string_arg_overload",
+          // NOLINTNEXTLINE(performance-unnecessary-value-param)
+          [](std::string) { return 3; });
 
     class Placeholder {
     public:

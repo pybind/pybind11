@@ -1,4 +1,3 @@
-// clang-format off
 /*
     tests/test_pickling.cpp -- pickle support
 
@@ -10,8 +9,6 @@
 */
 
 #include "pybind11_tests.h"
-
-// clang-format on
 
 #include <memory>
 #include <stdexcept>
@@ -60,8 +57,6 @@ void wrap(py::module m) {
 }
 
 } // namespace exercise_trampoline
-
-// clang-format off
 
 TEST_SUBMODULE(pickling, m) {
     // test_roundtrip

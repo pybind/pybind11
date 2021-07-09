@@ -38,15 +38,19 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     ));
 
     // test_type_selection
-    // NumPy function which only accepts specific data types
-    // A lot of these no lints could be replaced with const refs, and probably should at some point.
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("selective_func", [](py::array_t<int, py::array::c_style>) { return "Int branch taken."; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("selective_func", [](py::array_t<float, py::array::c_style>) { return "Float branch taken."; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("selective_func", [](py::array_t<std::complex<float>, py::array::c_style>) { return "Complex float branch taken."; });
-
+    // A lot of these no lints could be replaced with const refs,
+    // and probably should at some point.
+    m.def("selective_func",
+          // NOLINTNEXTLINE(performance-unnecessary-value-param)
+          [](py::array_t<int, py::array::c_style>) { return "Int branch taken."; });
+    m.def("selective_func",
+          // NOLINTNEXTLINE(performance-unnecessary-value-param)
+          [](py::array_t<float, py::array::c_style>) { return "Float branch taken."; });
+    m.def("selective_func",
+          // NOLINTNEXTLINE(performance-unnecessary-value-param)
+          [](py::array_t<std::complex<float>, py::array::c_style>) {
+              return "Complex float branch taken.";
+          });
 
     // test_passthrough_arguments
     // Passthrough test: references and non-pod types should be automatically passed through (in the

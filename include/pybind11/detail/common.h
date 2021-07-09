@@ -272,15 +272,17 @@ extern "C" {
         }                                                                      \
     }
 
-#define PYBIND11_CATCH_INIT_EXCEPTIONS \
-        catch (pybind11::error_already_set &e) {                               \
-            PyErr_SetString(PyExc_ImportError, e.what());                      \
-            return nullptr;                                                    \
-        } catch (const std::exception &e) {                                    \
-            PyErr_SetString(PyExc_ImportError, e.what());                      \
-            return nullptr;                                                    \
-        }                                                                      \
+#define PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+    catch (pybind11::error_already_set & e) {                                                     \
+        PyErr_SetString(PyExc_ImportError, e.what());                                             \
+        return nullptr;                                                                           \
+    }                                                                                             \
+    catch (const std::exception &e) {                                                             \
+        PyErr_SetString(PyExc_ImportError, e.what());                                             \
+        return nullptr;                                                                           \
+    }
 
+// clang-format off
 /** \rst
     ***Deprecated in favor of PYBIND11_MODULE***
 
@@ -296,6 +298,7 @@ extern "C" {
             return m.ptr();
         }
 \endrst */
+// clang-format on
 #define PYBIND11_PLUGIN(name)                                                  \
     PYBIND11_DEPRECATED("PYBIND11_PLUGIN is deprecated, use PYBIND11_MODULE")  \
     static PyObject *pybind11_init();                                          \
@@ -308,6 +311,7 @@ extern "C" {
     }                                                                          \
     PyObject *pybind11_init()
 
+// clang-format off
 /** \rst
     This macro creates the entry point that will be invoked when the Python interpreter
     imports an extension module. The module name is given as the fist argument and it
@@ -329,6 +333,7 @@ extern "C" {
             });
         }
 \endrst */
+// clang-format on
 #define PYBIND11_MODULE(name, variable)                                        \
     static ::pybind11::module_::module_def                                     \
         PYBIND11_CONCAT(pybind11_module_def_, name) PYBIND11_MAYBE_UNUSED;     \
@@ -801,7 +806,7 @@ struct nodelete { template <typename T> void operator()(T*) { } };
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename... Args>
 struct overload_cast_impl {
-    constexpr overload_cast_impl() {}; // NOLINT(modernize-use-equals-default):  MSVC 2015 needs this
+    constexpr overload_cast_impl() {} // NOLINT(modernize-use-equals-default): MSVC 2015 needs this
 
     template <typename Return>
     constexpr auto operator()(Return (*pf)(Args...)) const noexcept

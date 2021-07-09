@@ -62,7 +62,8 @@ struct metaclass {
     handle value;
 
     PYBIND11_DEPRECATED("py::metaclass() is no longer required. It's turned on by default now.")
-    metaclass() { } // NOLINT(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
+    // NOLINTNEXTLINE(modernize-use-equals-default): breaks MSVC 2015 when adding an attribute
+    metaclass() {}
 
     /// Override pybind11's default metaclass
     explicit metaclass(handle value) : value(value) { }
@@ -77,6 +78,7 @@ struct arithmetic { };
 /// Mark a function for addition at the beginning of the existing overload chain instead of the end
 struct prepend { };
 
+// clang-format off
 /** \rst
     A call policy which places one or more guard variables (``Ts...``) around the function call.
 
@@ -94,7 +96,8 @@ struct prepend { };
             T scope_guard;
             return foo(args...); // forwarded arguments
         });
- \endrst */
+\endrst */
+// clang-format on
 template <typename... Ts> struct call_guard;
 
 template <> struct call_guard<> { using type = detail::void_type; };
