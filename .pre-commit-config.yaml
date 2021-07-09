@@ -103,6 +103,19 @@ repos:
 
 - repo: local
   hooks:
+  - id: docker-clang-format
+    name: Docker Clang Format
+    language: docker_image
+    types:
+    - c++
+    entry: silkeh/clang:12
+    args:
+    - clang-format
+    - -style=file
+    - -i
+
+- repo: local
+  hooks:
   - id: check-style
     name: Classic check-style
     language: system
