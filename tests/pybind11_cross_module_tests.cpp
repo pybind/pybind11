@@ -10,8 +10,11 @@
 #include "pybind11_tests.h"
 #include "local_bindings.h"
 #include "test_exceptions.h"
+
 #include <pybind11/stl_bind.h>
+
 #include <numeric>
+#include <utility>
 
 PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.doc() = "pybind11 cross-module test module";
@@ -104,9 +107,10 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("return_self", [](LocalVec *v) { return v; });
     m.def("return_copy", [](const LocalVec &v) { return LocalVec(v); });
 
-    // Changing this broke things with pygrep. TODO fix
-    // NOLINTNEXTLINE
-    class Dog : public pets::Pet { public: Dog(std::string name) : Pet(name) {}; };
+    class Dog : public pets::Pet {
+    public:
+        Dog(std::string name) : Pet(std::move(name)) {}
+    };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("name", &pets::Pet::name);
     // Binding for local extending class:
