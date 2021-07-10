@@ -213,7 +213,7 @@ def test_multiple_registered_instances_for_same_pointee_recursive():
         break  # Comment out for manual leak checking (use `top` command).
 
 
-WORKAROUND_ENABLING_ROLLBACK_OF_PR3068 = env.LINUX
+WORKAROUND_ENABLING_ROLLBACK_OF_PR3068 = False  # env.LINUX
 
 
 def test_std_make_shared_factory():
