@@ -5,7 +5,7 @@ Frequently asked questions
 ===========================================================
 
 1. Make sure that the name specified in PYBIND11_MODULE is identical to the
-filename of the extension library (without suffixes such as .so)
+filename of the extension library (without suffixes such as ``.so``).
 
 2. If the above did not fix the issue, you are likely using an incompatible
 version of Python (for instance, the extension library was compiled against
@@ -170,7 +170,7 @@ complete independence of the symbols involved when not using
 ``-fvisibility=hidden``.
 
 Additionally, ``-fvisibility=hidden`` can deliver considerably binary size
-savings.  (See the following section for more details).
+savings. (See the following section for more details.)
 
 
 .. _`faq:symhidden`:

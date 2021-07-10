@@ -804,7 +804,7 @@ to bind these two functions:
             }
         ));
 
-The ``__setstate__`` part of the ``py::picke()`` definition follows the same
+The ``__setstate__`` part of the ``py::pickle()`` definition follows the same
 rules as the single-argument version of ``py::init()``. The return type can be
 a value, pointer or holder type. See :ref:`custom_constructors` for details.
 
