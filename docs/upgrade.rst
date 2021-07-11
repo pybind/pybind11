@@ -8,6 +8,47 @@ to a new version. But it goes into more detail. This includes things like
 deprecated APIs and their replacements, build system changes, general code
 modernization and other useful information.
 
+.. _upgrade-guide-2.7:
+
+v2.7
+====
+
+The previously-deprecated constructor of ``py::module_`` now creates a Python
+module object that is *not* used as the top-level module of a C extension.
+Previous usage of the deprecated ``PYBIND11_PLUGIN`` macro using the constructor
+instead of ``py::module_::create_extension_module`` will result in the following error
+on import: ``SystemError: initialization of example did not return an extension module``.
+
+In this case, change the following doubly-deprecated, memory-leaking pattern:
+
+    .. code-block:: cpp
+
+        PYBIND11_PLUGIN(example) {
+            auto m = pybind11::module_("example", "pybind11 example plugin");
+            /// Set up bindings here
+            return m.ptr();
+        }
+
+into this:
+
+    .. code-block:: cpp
+
+        static pybind11::module_::module_def example_module_def;
+        PYBIND11_PLUGIN(example) {
+            auto m = pybind11::module_::create_extension_module(
+                "example", "pybind11 example plugin", &example_module_def);
+            /// Set up bindings here
+            return m.ptr();
+        }
+
+or, preferably, avoid the deprecated ``PYBIND11_PLUGIN`` completely:
+
+    .. code-block:: cpp
+
+        PYBIND11_MODULE(example, m) {
+            /// Set up bindings here
+        }
+
 .. _upgrade-guide-2.6:
 
 v2.7

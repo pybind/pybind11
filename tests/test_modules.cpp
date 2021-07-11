@@ -63,8 +63,7 @@ TEST_SUBMODULE(modules, m) {
         class Dupe3 { };
         class DupeException { };
 
-        // Go ahead and leak, until we have a non-leaking py::module_ constructor
-        auto dm = py::module_::create_extension_module("dummy", nullptr, new py::module_::module_def);
+        auto dm = py::module_("dummy");
         auto failures = py::list();
 
         py::class_<Dupe1>(dm, "Dupe1");
