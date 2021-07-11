@@ -221,3 +221,18 @@ def test_invalid_repr():
 
     with pytest.raises(TypeError):
         m.simple_bool_passthrough(MyRepr())
+
+
+def test_bound_exceptions():
+    """Tests throwing/catching an exception bound as a class"""
+    try:
+        m.throws_bound_exception()
+    except m.BoundException as ex:
+        assert str(ex) == "this error is a class"
+        assert ex.getErrorCode() == 42
+
+    try:
+        raise m.BoundException("raising from python", 14)
+    except m.BoundException as ex:
+        assert str(ex) == "raising from python"
+        assert ex.getErrorCode() == 14

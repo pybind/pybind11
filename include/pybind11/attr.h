@@ -77,6 +77,9 @@ struct arithmetic { };
 /// Mark a function for addition at the beginning of the existing overload chain instead of the end
 struct prepend { };
 
+// Annotation to mark a class as needing an exception base type.
+struct is_except {};
+
 /** \rst
     A call policy which places one or more guard variables (``Ts...``) around the function call.
 
@@ -221,7 +224,8 @@ struct function_record {
 struct type_record {
     PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          default_holder(true), module_local(false), is_final(false) { }
+          default_holder(true), module_local(false), is_final(false),
+          is_except(false) { }
 
     /// Handle to the parent scope
     handle scope;
@@ -276,6 +280,9 @@ struct type_record {
 
     /// Is the class inheritable from python classes?
     bool is_final : 1;
+
+    // Does the class need an exception base type?
+    bool is_except : 1;
 
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
         auto base_info = detail::get_type_info(base, false);
@@ -466,6 +473,11 @@ struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr>
 template <>
 struct process_attribute<is_final> : process_attribute_default<is_final> {
     static void init(const is_final &, type_record *r) { r->is_final = true; }
+};
+
+template <>
+struct process_attribute<is_except> : process_attribute_default<is_except> {
+    static void init(const is_except &, type_record *r) { r->is_except = true; }
 };
 
 template <>
