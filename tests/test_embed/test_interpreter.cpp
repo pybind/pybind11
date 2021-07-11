@@ -1,4 +1,5 @@
 #include <pybind11/embed.h>
+#include <pybind11/functional.h>
 
 #ifdef _MSC_VER
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to catch
@@ -12,6 +13,7 @@
 #include <functional>
 #include <thread>
 #include <utility>
+
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -282,4 +284,44 @@ TEST_CASE("Reload module from file") {
     module_.reload();
     result = module_.attr("test")().cast<int>();
     REQUIRE(result == 2);
+}
+
+class TestObject {
+ public:
+  TestObject(std::function<void()> f) : _id(++_count), _f(f) {}
+
+  ~TestObject() {
+    py::print("~TestObject(" + std::to_string(_id) + ")");
+    --_count;
+  }
+  int GetCount() { return _id; }
+
+  static int _count;
+  int _id;
+  std::function<void()> _f;
+};
+
+int TestObject::_count = 0;
+
+PYBIND11_EMBEDDED_MODULE(test_memory_leak, m) {
+  py::class_<TestObject, std::shared_ptr<TestObject>>(m, "TestObject")
+      .def(py::init<std::function<void()>>())
+      .def_property_readonly("count", &TestObject::GetCount);
+}
+
+TEST_CASE("Test that C++ objects are properly deconstructed.") {
+    {
+    auto local = py::dict();
+    local["__builtins__"] = py::globals()["__builtins__"];
+    py::exec(R"(
+from test_memory_leak import TestObject
+
+guard = TestObject(lambda: None)
+)", local, local);
+    REQUIRE(1 == TestObject::_count);
+    }
+
+    py::finalize_interpreter();
+    REQUIRE(0 == TestObject::_count);
+    py::initialize_interpreter();
 }
