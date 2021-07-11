@@ -101,7 +101,7 @@ TEST_SUBMODULE(exceptions, m) {
 
     // make a new custom exception and use it as a translation target
     static py::exception<MyException> ex(m, "MyException");
-    py::register_exception_translator([](std::exception_ptr p) {
+    py::register_exception_translator([](const std::exception_ptr &p) {
         try {
             if (p) std::rethrow_exception(p);
         } catch (const MyException &e) {
@@ -113,7 +113,7 @@ TEST_SUBMODULE(exceptions, m) {
     // register new translator for MyException2
     // no need to store anything here because this type will
     // never by visible from Python
-    py::register_exception_translator([](std::exception_ptr p) {
+    py::register_exception_translator([](const std::exception_ptr &p) {
         try {
             if (p) std::rethrow_exception(p);
         } catch (const MyException2 &e) {
@@ -125,7 +125,7 @@ TEST_SUBMODULE(exceptions, m) {
     // register new translator for MyException4
     // which will catch it and delegate to the previously registered
     // translator for MyException by throwing a new exception
-    py::register_exception_translator([](std::exception_ptr p) {
+    py::register_exception_translator([](const std::exception_ptr &p) {
         try {
             if (p) std::rethrow_exception(p);
         } catch (const MyException4 &e) {

@@ -2000,10 +2000,13 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
 }
 
-template <typename ExceptionTranslator>
-void register_exception_translator(ExceptionTranslator&& translator) {
-    detail::get_internals().registered_exception_translators.push_front(
-        std::forward<ExceptionTranslator>(translator));
+inline void register_exception_translator(void (*translator)(const std::exception_ptr &)) {
+    detail::get_internals().registered_exception_translators.push_front(translator);
+}
+
+inline void register_exception_translator(void (*)(std::exception_ptr)) {
+    pybind11_fail("Please update your exception translator.");
+    // or change internals even more
 }
 
 /**
@@ -2054,7 +2057,7 @@ exception<CppException> &register_exception(handle scope,
     auto &ex = detail::get_exception_object<CppException>();
     if (!ex) ex = exception<CppException>(scope, name, base);
 
-    register_exception_translator([](std::exception_ptr p) {
+    register_exception_translator([](const std::exception_ptr &p) {
         if (!p) return;
         try {
             std::rethrow_exception(p);

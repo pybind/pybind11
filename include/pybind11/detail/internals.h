@@ -100,7 +100,7 @@ struct internals {
     std::unordered_set<std::pair<const PyObject *, const char *>, override_hash> inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
-    std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
+    std::forward_list<void (*)(const std::exception_ptr &)> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     std::vector<PyObject *> loader_patient_stack; // Used by `loader_life_support`
     std::forward_list<std::string> static_strings; // Stores the std::strings backing detail::c_str()
@@ -223,7 +223,7 @@ inline internals **&get_internals_pp() {
     return internals_pp;
 }
 
-inline void translate_exception(std::exception_ptr p) {
+inline void translate_exception(const std::exception_ptr &p) {
     try {
         if (p) std::rethrow_exception(p);
     } catch (error_already_set &e)           { e.restore();                                    return;
@@ -243,7 +243,7 @@ inline void translate_exception(std::exception_ptr p) {
 }
 
 #if !defined(__GLIBCXX__)
-inline void translate_local_exception(std::exception_ptr p) {
+inline void translate_local_exception(const std::exception_ptr &p) {
     try {
         if (p) std::rethrow_exception(p);
     } catch (error_already_set &e)       { e.restore();   return;
