@@ -98,4 +98,22 @@ TEST_SUBMODULE(eval_, m) {
         auto int_class = py::eval("isinstance(42, int)", global);
         return global;
     });
+
+    // test_eval_closure
+    m.def("test_eval_closure", []() {
+        py::dict global;
+        global["closure_value"] = 42;
+        py::dict local;
+        local["closure_value"] = 0;
+        py::exec(R"(
+            local_value = closure_value
+
+            def func_global():
+                return closure_value
+
+            def func_local():
+                return local_value
+            )", global, local);
+        return std::make_pair(global, local);
+    });
 }
