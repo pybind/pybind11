@@ -143,3 +143,15 @@ def test_overriding_eq_reset_hash():
 
         assert hash(hashable(15)) == 15
         assert hash(hashable(15)) == hash(hashable(15))
+
+
+def test_docstring_includes_type_signature(msg):
+    """#2269: Docstring includes a type signature of the additional overload"""
+    assert msg(m.Vector2.__eq__.__doc__) == """
+        __eq__(*args, **kwargs)
+        Overloaded function.
+
+        1. __eq__(self: m.operators.Vector2, arg0: m.operators.Vector2) -> bool
+
+        2. __eq__(self: m.operators.Vector2, *args, **kwargs) -> NotImplemented
+    """
