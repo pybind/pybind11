@@ -490,7 +490,7 @@ inline handle get_function(handle value) {
 inline PyObject * dict_getitemstring(PyObject *v, const char *key)
 {
 #if PY_MAJOR_VERSION >= 3
-    PyObject *kv, *rv;
+    PyObject *kv = nullptr, *rv = nullptr;
     kv = PyUnicode_FromString(key);
     if (kv == NULL) {
         throw error_already_set();
@@ -1016,8 +1016,8 @@ public:
             if (!temp)
                 pybind11_fail("Unable to extract string contents! (encoding issue)");
         }
-        char *buffer;
-        ssize_t length;
+        char *buffer = nullptr;
+        ssize_t length = 0;
         if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
@@ -1072,8 +1072,8 @@ public:
     explicit bytes(const pybind11::str &s);
 
     operator std::string() const {
-        char *buffer;
-        ssize_t length;
+        char *buffer = nullptr;
+        ssize_t length = 0;
         if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, (size_t) length);
@@ -1090,8 +1090,8 @@ inline bytes::bytes(const pybind11::str &s) {
         if (!temp)
             pybind11_fail("Unable to extract string contents! (encoding issue)");
     }
-    char *buffer;
-    ssize_t length;
+    char *buffer = nullptr;
+    ssize_t length = 0;
     if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
         pybind11_fail("Unable to extract string contents! (invalid type)");
     auto obj = reinterpret_steal<object>(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length));
@@ -1101,8 +1101,8 @@ inline bytes::bytes(const pybind11::str &s) {
 }
 
 inline str::str(const bytes& b) {
-    char *buffer;
-    ssize_t length;
+    char *buffer = nullptr;
+    ssize_t length = 0;
     if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length))
         pybind11_fail("Unable to extract bytes contents!");
     auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, (ssize_t) length));

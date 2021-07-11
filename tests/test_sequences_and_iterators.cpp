@@ -84,7 +84,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     py::class_<Sliceable>(m, "Sliceable")
         .def(py::init<int>())
         .def("__getitem__", [](const Sliceable &s, const py::slice &slice) {
-            py::ssize_t start, stop, step, slicelength;
+            py::ssize_t start = 0, stop = 0, step = 0, slicelength = 0;
             if (!slice.compute(s.size, &start, &stop, &step, &slicelength))
                 throw py::error_already_set();
             int istart = static_cast<int>(start);
@@ -204,7 +204,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
         /// Slicing protocol (optional)
         .def("__getitem__",
              [](const Sequence &s, const py::slice &slice) -> Sequence * {
-                 size_t start, stop, step, slicelength;
+                 size_t start = 0, stop = 0, step = 0, slicelength = 0;
                  if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
                      throw py::error_already_set();
                  auto *seq = new Sequence(slicelength);
@@ -216,7 +216,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
              })
         .def("__setitem__",
              [](Sequence &s, const py::slice &slice, const Sequence &value) {
-                 size_t start, stop, step, slicelength;
+                 size_t start = 0, stop = 0, step = 0, slicelength = 0;
                  if (!slice.compute(s.size(), &start, &stop, &step, &slicelength))
                      throw py::error_already_set();
                  if (slicelength != value.size())
