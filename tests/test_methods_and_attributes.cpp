@@ -294,20 +294,17 @@ TEST_SUBMODULE(methods_and_attributes, m) {
             "static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
         // test_property_rvalue_policy
         .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        .def_property_readonly_static("static_rvalue", [](py::object) { return UserType(1); });
+        .def_property_readonly_static("static_rvalue",
+                                      [](const py::object &) { return UserType(1); });
 
     // test_metaclass_override
     struct MetaclassOverride { };
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        .def_property_readonly_static("readonly", [](py::object) { return 1; });
+        .def_property_readonly_static("readonly", [](const py::object &) { return 1; });
 
     // test_overload_ordering
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("overload_order", [](std::string) { return 1; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("overload_order", [](std::string) { return 2; });
+    m.def("overload_order", [](const std::string &) { return 1; });
+    m.def("overload_order", [](const std::string &) { return 2; });
     m.def("overload_order", [](int) { return 3; });
     m.def("overload_order", [](int) { return 4; }, py::prepend{});
 

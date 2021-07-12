@@ -131,8 +131,7 @@ TEST_SUBMODULE(class_, m) {
     m.def("return_none", []() -> BaseClass* { return nullptr; });
 
     // test_isinstance
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("check_instances", [](py::list l) {
+    m.def("check_instances", [](const py::list &l) {
         return py::make_tuple(
             py::isinstance<py::tuple>(l[0]),
             py::isinstance<py::dict>(l[1]),
@@ -217,8 +216,7 @@ TEST_SUBMODULE(class_, m) {
     py::implicitly_convertible<UserType, ConvertibleFromUserType>();
 
     m.def("implicitly_convert_argument", [](const ConvertibleFromUserType &r) { return r.i; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("implicitly_convert_variable", [](py::object o) {
+    m.def("implicitly_convert_variable", [](const py::object &o) {
         // `o` is `UserType` and `r` is a reference to a temporary created by implicit
         // conversion. This is valid when called inside a bound function because the temp
         // object is attached to the same life support system as the arguments.
@@ -396,8 +394,7 @@ TEST_SUBMODULE(class_, m) {
     struct StringWrapper { std::string str; };
     m.def("test_error_after_conversions", [](int) {});
     m.def("test_error_after_conversions",
-          // NOLINTNEXTLINE(performance-unnecessary-value-param)
-          [](StringWrapper) -> NotRegistered { return {}; });
+          [](const StringWrapper &) -> NotRegistered { return {}; });
     py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
     py::implicitly_convertible<std::string, StringWrapper>();
 
