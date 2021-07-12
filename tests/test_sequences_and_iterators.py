@@ -104,7 +104,7 @@ def test_sequence():
 
 
 def test_sequence_length():
-    """#2076: Exception raised by len(arg) should be propagated """
+    """#2076: Exception raised by len(arg) should be propagated"""
 
     class BadLen(RuntimeError):
         pass
@@ -187,7 +187,7 @@ def test_iterator_passthrough():
 
 
 def test_iterator_rvp():
-    """#388: Can't make iterators via make_iterator() with different r/v policies """
+    """#388: Can't make iterators via make_iterator() with different r/v policies"""
     import pybind11_tests.sequences_and_iterators as m
 
     assert list(m.make_iterator_1()) == [1, 2, 3]
