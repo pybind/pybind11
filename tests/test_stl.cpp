@@ -207,8 +207,7 @@ TEST_SUBMODULE(stl, m) {
     }, py::arg_v("x", std::nullopt, "None"));
 
     m.def("nodefer_none_optional", [](std::optional<int>) { return true; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("nodefer_none_optional", [](py::none) { return false; });
+    m.def("nodefer_none_optional", [](const py::none &) { return false; });
 
     using opt_holder = OptionalHolder<std::optional, MoveOutDetector>;
     py::class_<opt_holder>(m, "OptionalHolder", "Class with optional member")
@@ -299,12 +298,11 @@ TEST_SUBMODULE(stl, m) {
     m.def("stl_pass_by_pointer", [](std::vector<int>* v) { return *v; }, "v"_a=nullptr);
 
     // #1258: pybind11/stl.h converts string to vector<string>
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::vector<std::string>) { return 1; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::list<std::string>) { return 2; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("func_with_string_or_vector_string_arg_overload", [](std::string) { return 3; });
+    m.def("func_with_string_or_vector_string_arg_overload",
+          [](const std::vector<std::string> &) { return 1; });
+    m.def("func_with_string_or_vector_string_arg_overload",
+          [](const std::list<std::string> &) { return 2; });
+    m.def("func_with_string_or_vector_string_arg_overload", [](const std::string &) { return 3; });
 
     class Placeholder {
     public:

@@ -141,8 +141,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def(py::init<int, int>());
 
     m.def("bar_base2a", [](Base2a *b) { return b->bar(); });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("bar_base2a_sharedptr", [](std::shared_ptr<Base2a> b) { return b->bar(); });
+    m.def("bar_base2a_sharedptr", [](const std::shared_ptr<Base2a> &b) { return b->bar(); });
 
     // test_mi_unaligned_base
     // test_mi_base_return
