@@ -51,6 +51,11 @@ Changes:
   to a ``std::ostream``.
   `#3042 <https://github.com/pybind/pybind11/pull/3042>`_
 
+* An important warning about thread safety was added to the ``iostream.h``
+  documentation; attempts to make ``py::scoped_ostream_redirect`` thread safe
+  have been removed, as it was only partially effective.
+  `#2995 <https://github.com/pybind/pybind11/pull/2995>`_
+
 
 Fixes:
 
@@ -117,35 +122,18 @@ Build system improvements:
   `#2824 <https://github.com/pybind/pybind11/pull/2824>`_
 
 
-
 Backend and tidying up:
 
-
-* Add clang-tidy checks to further guard code style and remove all else after
-  returns for better code readability. Also encourages following llvm-style
-  (no ``else-after-returns``, proper usage of virtual functions in ctors and
-  dtors).
+* Enable clang-tidy performance, readability, and modernization checks
+  throughout the codebase to enforce best coding practices.
+  `#3046 <https://github.com/pybind/pybind11/pull/3046>`_,
+  `#3049 <https://github.com/pybind/pybind11/pull/3049>`_,
+  `#3051 <https://github.com/pybind/pybind11/pull/3051>`_,
+  `#3052 <https://github.com/pybind/pybind11/pull/3052>`_, and
   `#3080 <https://github.com/pybind/pybind11/pull/3080>`_
 
 * Checks for common misspellings were added to the pre-commit hooks.
   `#3076 <https://github.com/pybind/pybind11/pull/3076>`_
-
-* Enable and apply checks for more misc, readability, and code modernization
-  improvements to the codebase. Remove redundant function ptr dereference,
-  makes methods const, and uses member-initializers when possible to allow for
-  trivial construction.
-  `#3052 <https://github.com/pybind/pybind11/pull/3052>`_
-
-* Enable clang-tidy performance checks throughout the codebase to enforce
-  performant coding practices.
-  `#3051 <https://github.com/pybind/pybind11/pull/3051>`_
-
-* Enable more clang-tidy modernization checks.
-  `#3049 <https://github.com/pybind/pybind11/pull/3049>`_
-
-* Various performance micro-optimizations applied to the codebase using
-  clang-tidy.
-  `#3046 <https://github.com/pybind/pybind11/pull/3046>`_
 
 * Changed ``Werror`` to stricter ``Werror-all`` for Intel compiler and fixed
   minor issues.
@@ -154,7 +142,8 @@ Backend and tidying up:
 * Fixed compilation with GCC < 5 when the user defines ``_GLIBCXX_USE_CXX11_ABI``.
   `#2956 <https://github.com/pybind/pybind11/pull/2956>`_
 
-
+* Added nox support for easier local testing and linting of contributions.
+  `#3101 <https://github.com/pybind/pybind11/pull/3101>`_
 
 
 
