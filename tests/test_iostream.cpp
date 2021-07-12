@@ -15,6 +15,8 @@
 #include "pybind11_tests.h"
 #include <atomic>
 #include <iostream>
+#include <mutex>
+#include <string>
 #include <thread>
 
 void noisy_function(const std::string &msg, bool flush) {
@@ -35,8 +37,18 @@ void noisy_funct_dual(const std::string &msg, const std::string &emsg) {
 struct TestThread {
     TestThread() : stop_{false} {
         auto thread_f = [this] {
+            static std::mutex cout_mutex;
             while (!stop_) {
-                std::cout << "x" << std::flush;
+                {
+                    // #HelpAppreciated: Work on iostream.h thread safety.
+                    // Without this lock, the clang ThreadSanitizer (tsan) reliably reports a
+                    // data race, and this test is predictably flakey on Windows.
+                    // For more background see the discussion under
+                    // https://github.com/pybind/pybind11/pull/2982 and
+                    // https://github.com/pybind/pybind11/pull/2995.
+                    const std::lock_guard<std::mutex> lock(cout_mutex);
+                    std::cout << "x" << std::flush;
+                }
                 std::this_thread::sleep_for(std::chrono::microseconds(50));
             } };
         t_ = new std::thread(std::move(thread_f));
