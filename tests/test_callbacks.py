@@ -144,7 +144,7 @@ def test_async_callbacks():
     from time import sleep
 
     sleep(0.5)
-    assert sum(res) == sum([x + 3 for x in work])
+    assert sum(res) == sum(x + 3 for x in work)
 
 
 def test_async_async_callbacks():
