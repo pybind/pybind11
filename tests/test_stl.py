@@ -286,8 +286,7 @@ def test_issue_1561():
 
 
 def test_return_vector_bool_raw_ptr():
-    while True:
-        v = m.return_vector_bool_raw_ptr()
-        assert isinstance(v, list)
-        assert len(v) == 4513
-        break  # Comment out for manual leak checking (use `top` command).
+    # Add `while True:` for manual leak checking.
+    v = m.return_vector_bool_raw_ptr()
+    assert isinstance(v, list)
+    assert len(v) == 4513
