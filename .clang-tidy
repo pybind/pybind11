@@ -2,7 +2,6 @@ FormatStyle: file
 
 Checks: '
 cppcoreguidelines-init-variables,
-cppcoreguidelines-slicing,
 clang-analyzer-optin.cplusplus.VirtualCall,
 llvm-namespace-comment,
 misc-misplaced-const,
