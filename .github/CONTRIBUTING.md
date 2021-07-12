@@ -53,6 +53,33 @@ derivative works thereof, in binary and source code form.
 
 ## Development of pybind11
 
+### Quick setup
+
+To setup a quick development environment, use [`nox`](https://nox.thea.codes).
+This will allow you to do some common tasks with minimal setup effort, but will
+take more time to run and be less flexible than a full development environment.
+If you use [`pipx run nox`](https://pipx.pypa.io), you don't even need to
+install `nox`. Examples:
+
+```bash
+# List all available sessions
+nox -l
+
+# Run linters
+nox -s lint
+
+# Run tests
+nox -s tests
+
+# Build and preview docs
+nox -s docs -- serve
+
+# Build SDists and wheels
+nox -s build
+```
+
+### Full setup
+
 To setup an ideal development environment, run the following commands on a
 system with CMake 3.14+:
 

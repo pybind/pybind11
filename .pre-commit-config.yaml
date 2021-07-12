@@ -29,6 +29,7 @@ repos:
   - id: trailing-whitespace
     exclude: \.patch?$
   - id: fix-encoding-pragma
+    exclude: ^noxfile.py$
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
