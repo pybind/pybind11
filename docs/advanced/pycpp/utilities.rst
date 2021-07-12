@@ -51,7 +51,7 @@ redirects output to the corresponding Python streams:
 
     The implementation in ``pybind11/iostream.h`` is NOT thread safe. Multiple
     threads writing to a redirected ostream concurrently cause data races
-    and potentially buffer overflows. Therefore it is currrently a requirement
+    and potentially buffer overflows. Therefore it is currently a requirement
     that all (possibly) concurrent redirected ostream writes are protected by
     a mutex. #HelpAppreciated: Work on iostream.h thread safety. For more
     background see the discussions under
