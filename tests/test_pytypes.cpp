@@ -256,21 +256,22 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("convert_to_pybind11_str", [](const py::object &o) { return py::str(o); });
 
-    m.def("nonconverting_constructor", [](const std::string &type, py::object value, bool move) -> py::object {
-        if (type == "bytes") {
-            return move ? py::bytes(std::move(value)) : py::bytes(value);
-        }
-        if (type == "none") {
-            return move ? py::none(std::move(value)) : py::none(value);
-        }
-        if (type == "ellipsis") {
-            return move ? py::ellipsis(std::move(value)) : py::ellipsis(value);
-        }
-        if (type == "type") {
-            return move ? py::type(std::move(value)) : py::type(value);
-        }
-        throw std::runtime_error("Invalid type");
-    });
+    m.def("nonconverting_constructor",
+          [](const std::string &type, py::object value, bool move) -> py::object {
+              if (type == "bytes") {
+                  return move ? py::bytes(std::move(value)) : py::bytes(value);
+              }
+              if (type == "none") {
+                  return move ? py::none(std::move(value)) : py::none(value);
+              }
+              if (type == "ellipsis") {
+                  return move ? py::ellipsis(std::move(value)) : py::ellipsis(value);
+              }
+              if (type == "type") {
+                  return move ? py::type(std::move(value)) : py::type(value);
+              }
+              throw std::runtime_error("Invalid type");
+          });
 
     m.def("get_implicit_casting", []() {
         py::dict d;
@@ -350,9 +351,7 @@ TEST_SUBMODULE(pytypes, m) {
         return l;
     });
 
-    m.def("test_list_slicing", [](const py::list &a) {
-        return a[py::slice(0, -1, 2)];
-    });
+    m.def("test_list_slicing", [](const py::list &a) { return a[py::slice(0, -1, 2)]; });
 
     // See #2361
     m.def("issue2361_str_implicit_copy_none", []() {
@@ -364,13 +363,10 @@ TEST_SUBMODULE(pytypes, m) {
         return is_this_none;
     });
 
-    m.def("test_memoryview_object", [](const py::buffer &b) {
-        return py::memoryview(b);
-    });
+    m.def("test_memoryview_object", [](const py::buffer &b) { return py::memoryview(b); });
 
-    m.def("test_memoryview_buffer_info", [](const py::buffer &b) {
-        return py::memoryview(b.request());
-    });
+    m.def("test_memoryview_buffer_info",
+          [](const py::buffer &b) { return py::memoryview(b.request()); });
 
     m.def("test_memoryview_from_buffer", [](bool is_unsigned) {
         static const int16_t si16[] = { 3, 1, 4, 1, 5 };
@@ -425,7 +421,7 @@ TEST_SUBMODULE(pytypes, m) {
 
     m.def("pass_to_pybind11_bytes", [](py::bytes b) { return py::len(std::move(b)); });
     m.def("pass_to_pybind11_str", [](py::str s) { return py::len(std::move(s)); });
-    m.def("pass_to_std_string", [](const std::string& s) { return s.size(); });
+    m.def("pass_to_std_string", [](const std::string &s) { return s.size(); });
 
     // test_weakref
     m.def("weakref_from_handle",

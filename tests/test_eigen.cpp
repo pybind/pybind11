@@ -98,10 +98,13 @@ TEST_SUBMODULE(eigen, m) {
 
     // test_eigen_ref_to_python
     // Different ways of passing via Eigen::Ref; the first and second are the Eigen-recommended
-    m.def("cholesky1", [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
+    m.def("cholesky1",
+          [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky2", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
     m.def("cholesky3", [](const Eigen::Ref<MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
-    m.def("cholesky4", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd { return x.llt().matrixL(); });
+    m.def("cholesky4", [](const Eigen::Ref<const MatrixXdR> &x) -> Eigen::MatrixXd {
+        return x.llt().matrixL();
+    });
 
     // test_eigen_ref_mutators
     // Mutators: these add some value to the given element using Eigen, but Eigen should be mapping into
@@ -279,8 +282,10 @@ TEST_SUBMODULE(eigen, m) {
     // that would allow copying (if types or strides don't match) for comparison:
     m.def("get_elem", &get_elem);
     // Now this alternative that calls the tells pybind to fail rather than copy:
-    m.def("get_elem_nocopy", [](const Eigen::Ref<const Eigen::MatrixXd> &m) -> double { return get_elem(m); },
-            py::arg{}.noconvert());
+    m.def(
+        "get_elem_nocopy",
+        [](const Eigen::Ref<const Eigen::MatrixXd> &m) -> double { return get_elem(m); },
+        py::arg{}.noconvert());
     // Also test a row-major-only no-copy const ref:
     m.def("get_elem_rm_nocopy", [](Eigen::Ref<const Eigen::Matrix<long, -1, -1, Eigen::RowMajor>> &m) -> long { return m(2, 1); },
             py::arg{}.noconvert());
@@ -301,11 +306,16 @@ TEST_SUBMODULE(eigen, m) {
 
     // test_named_arguments
     // Make sure named arguments are working properly:
-    m.def("matrix_multiply", [](const py::EigenDRef<const Eigen::MatrixXd> &A, const py::EigenDRef<const Eigen::MatrixXd> &B)
-            -> Eigen::MatrixXd {
-        if (A.cols() != B.rows()) throw std::domain_error("Nonconformable matrices!");
-        return A * B;
-    }, py::arg("A"), py::arg("B"));
+    m.def(
+        "matrix_multiply",
+        [](const py::EigenDRef<const Eigen::MatrixXd> &A,
+           const py::EigenDRef<const Eigen::MatrixXd> &B) -> Eigen::MatrixXd {
+            if (A.cols() != B.rows())
+                throw std::domain_error("Nonconformable matrices!");
+            return A * B;
+        },
+        py::arg("A"),
+        py::arg("B"));
 
     // test_custom_operator_new
     py::class_<CustomOperatorNew>(m, "CustomOperatorNew")

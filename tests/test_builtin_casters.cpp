@@ -105,7 +105,7 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_bytes_to_string
     m.def("strlen", [](char *s) { return strlen(s); });
-    m.def("string_length", [](const std::string& s) { return s.length(); });
+    m.def("string_length", [](const std::string &s) { return s.length(); });
 
 #ifdef PYBIND11_HAS_U8STRING
     m.attr("has_u8string") = true;

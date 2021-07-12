@@ -294,7 +294,8 @@ TEST_SUBMODULE(methods_and_attributes, m) {
             "static_rw_func", py::cpp_function(static_get2, rvp_copy), static_set2)
         // test_property_rvalue_policy
         .def_property_readonly("rvalue", &TestPropRVP::get_rvalue)
-        .def_property_readonly_static("static_rvalue", [](const py::object &) { return UserType(1); });
+        .def_property_readonly_static("static_rvalue",
+                                      [](const py::object &) { return UserType(1); });
 
     // test_metaclass_override
     struct MetaclassOverride { };
