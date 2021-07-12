@@ -226,8 +226,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         return py::isinstance<py::array>(std::move(yes))
                && !py::isinstance<py::array>(std::move(no));
     });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("isinstance_typed", [](py::object o) {
+    sm.def("isinstance_typed", [](const py::object &o) {
         return py::isinstance<py::array_t<double>>(o) && !py::isinstance<py::array_t<int>>(o);
     });
 
@@ -248,60 +247,47 @@ TEST_SUBMODULE(numpy_array, sm) {
     });
 
     // test_overload_resolution
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded", [](py::array_t<double>) { return "double"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded", [](py::array_t<float>) { return "float"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded", [](py::array_t<int>) { return "int"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded", [](py::array_t<unsigned short>) { return "unsigned short"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded", [](py::array_t<long long>) { return "long long"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded", [](py::array_t<std::complex<double>>) { return "double complex"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded", [](py::array_t<std::complex<float>>) { return "float complex"; });
+    sm.def("overloaded", [](const py::array_t<double> &) { return "double"; });
+    sm.def("overloaded", [](const py::array_t<float> &) { return "float"; });
+    sm.def("overloaded", [](const py::array_t<int> &) { return "int"; });
+    sm.def("overloaded", [](const py::array_t<unsigned short> &) { return "unsigned short"; });
+    sm.def("overloaded", [](const py::array_t<long long> &) { return "long long"; });
+    sm.def("overloaded",
+           [](const py::array_t<std::complex<double>> &) { return "double complex"; });
+    sm.def("overloaded", [](const py::array_t<std::complex<float>> &) { return "float complex"; });
 
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded2", [](py::array_t<std::complex<double>>) { return "double complex"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded2", [](py::array_t<double>) { return "double"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded2", [](py::array_t<std::complex<float>>) { return "float complex"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded2", [](py::array_t<float>) { return "float"; });
+    sm.def("overloaded2",
+           [](const py::array_t<std::complex<double>> &) { return "double complex"; });
+    sm.def("overloaded2", [](const py::array_t<double> &) { return "double"; });
+    sm.def("overloaded2",
+           [](const py::array_t<std::complex<float>> &) { return "float complex"; });
+    sm.def("overloaded2", [](const py::array_t<float> &) { return "float"; });
 
     // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // Only accept the exact types:
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded3", [](py::array_t<int>) { return "int"; }, py::arg{}.noconvert());
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded3", [](py::array_t<double>) { return "double"; }, py::arg{}.noconvert());
+    sm.def(
+        "overloaded3", [](const py::array_t<int> &) { return "int"; }, py::arg{}.noconvert());
+    sm.def(
+        "overloaded3",
+        [](const py::array_t<double> &) { return "double"; },
+        py::arg{}.noconvert());
 
     // Make sure we don't do unsafe coercion (e.g. float to int) when not using forcecast, but
     // rather that float gets converted via the safe (conversion to double) overload:
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded4", [](py::array_t<long long, 0>) { return "long long"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded4", [](py::array_t<double, 0>) { return "double"; });
+    sm.def("overloaded4", [](const py::array_t<long long, 0> &) { return "long long"; });
+    sm.def("overloaded4", [](const py::array_t<double, 0> &) { return "double"; });
 
     // But we do allow conversion to int if forcecast is enabled (but only if no overload matches
     // without conversion)
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded5", [](py::array_t<unsigned int>) { return "unsigned int"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("overloaded5", [](py::array_t<double>) { return "double"; });
+    sm.def("overloaded5", [](const py::array_t<unsigned int> &) { return "unsigned int"; });
+    sm.def("overloaded5", [](const py::array_t<double> &) { return "double"; });
 
     // test_greedy_string_overload
     // Issue 685: ndarray shouldn't go to std::string overload
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("issue685", [](std::string) { return "string"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("issue685", [](py::array) { return "array"; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("issue685", [](py::object) { return "other"; });
+    sm.def("issue685", [](const std::string &) { return "string"; });
+    sm.def("issue685", [](const py::array &) { return "array"; });
+    sm.def("issue685", [](const py::object &) { return "other"; });
 
     // test_array_unchecked_fixed_dims
     sm.def("proxy_add2", [](py::array_t<double> a, double v) {
@@ -424,73 +410,53 @@ TEST_SUBMODULE(numpy_array, sm) {
 
     // test_argument_conversions
     sm.def(
-        "accept_double",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, 0>) {},
-        py::arg("a"));
+        "accept_double", [](const py::array_t<double, 0> &) {}, py::arg("a"));
     sm.def(
         "accept_double_forcecast",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::forcecast>) {},
+        [](const py::array_t<double, py::array::forcecast> &) {},
         py::arg("a"));
     sm.def(
         "accept_double_c_style",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::c_style>) {},
+        [](const py::array_t<double, py::array::c_style> &) {},
         py::arg("a"));
     sm.def(
         "accept_double_c_style_forcecast",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
+        [](const py::array_t<double, py::array::forcecast | py::array::c_style> &) {},
         py::arg("a"));
     sm.def(
         "accept_double_f_style",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::f_style>) {},
+        [](const py::array_t<double, py::array::f_style> &) {},
         py::arg("a"));
     sm.def(
         "accept_double_f_style_forcecast",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
+        [](const py::array_t<double, py::array::forcecast | py::array::f_style> &) {},
         py::arg("a"));
     sm.def(
-        "accept_double_noconvert",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, 0>) {},
-        "a"_a.noconvert());
+        "accept_double_noconvert", [](const py::array_t<double, 0> &) {}, "a"_a.noconvert());
     sm.def(
         "accept_double_forcecast_noconvert",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::forcecast>) {},
+        [](const py::array_t<double, py::array::forcecast> &) {},
         "a"_a.noconvert());
     sm.def(
         "accept_double_c_style_noconvert",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::c_style>) {},
+        [](const py::array_t<double, py::array::c_style> &) {},
         "a"_a.noconvert());
     sm.def(
         "accept_double_c_style_forcecast_noconvert",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::forcecast | py::array::c_style>) {},
+        [](const py::array_t<double, py::array::forcecast | py::array::c_style> &) {},
         "a"_a.noconvert());
     sm.def(
         "accept_double_f_style_noconvert",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::f_style>) {},
+        [](const py::array_t<double, py::array::f_style> &) {},
         "a"_a.noconvert());
     sm.def(
         "accept_double_f_style_forcecast_noconvert",
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [](py::array_t<double, py::array::forcecast | py::array::f_style>) {},
+        [](const py::array_t<double, py::array::forcecast | py::array::f_style> &) {},
         "a"_a.noconvert());
 
     // Check that types returns correct npy format descriptor
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("test_fmt_desc_float", [](py::array_t<float>) {});
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("test_fmt_desc_double", [](py::array_t<double>) {});
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("test_fmt_desc_const_float", [](py::array_t<const float>) {});
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    sm.def("test_fmt_desc_const_double", [](py::array_t<const double>) {});
+    sm.def("test_fmt_desc_float", [](const py::array_t<float> &) {});
+    sm.def("test_fmt_desc_double", [](const py::array_t<double> &) {});
+    sm.def("test_fmt_desc_const_float", [](const py::array_t<const float> &) {});
+    sm.def("test_fmt_desc_const_double", [](const py::array_t<const double> &) {});
 }
