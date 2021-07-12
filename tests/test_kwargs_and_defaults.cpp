@@ -65,9 +65,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
     #endif
     m.def("arg_refcount_h", [](py::handle h) { GC_IF_NEEDED; return h.ref_count(); });
     m.def("arg_refcount_h", [](py::handle h, py::handle, py::handle) { GC_IF_NEEDED; return h.ref_count(); });
-    // TODO replace the following nolints as appropriate
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("arg_refcount_o", [](py::object o) { GC_IF_NEEDED; return o.ref_count(); });
+    m.def("arg_refcount_o", [](const py::object &o) { GC_IF_NEEDED; return o.ref_count(); });
     m.def("args_refcount", [](py::args a) {
         GC_IF_NEEDED;
         py::tuple t(a.size());
@@ -76,8 +74,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
             t[i] = (int) Py_REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
         return t;
     });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("mixed_args_refcount", [](py::object o, py::args a) {
+    m.def("mixed_args_refcount", [](const py::object& o, py::args a) {
         GC_IF_NEEDED;
         py::tuple t(a.size() + 1);
         t[0] = o.ref_count();

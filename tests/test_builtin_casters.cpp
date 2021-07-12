@@ -105,8 +105,7 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_bytes_to_string
     m.def("strlen", [](char *s) { return strlen(s); });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("string_length", [](std::string s) { return s.length(); });
+    m.def("string_length", [](const std::string& s) { return s.length(); });
 
 #ifdef PYBIND11_HAS_U8STRING
     m.attr("has_u8string") = true;
@@ -185,14 +184,11 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_none_deferred
     m.def("defer_none_cstring", [](char *) { return false; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("defer_none_cstring", [](py::none) { return true; });
+    m.def("defer_none_cstring", [](const py::none &) { return true; });
     m.def("defer_none_custom", [](UserType *) { return false; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("defer_none_custom", [](py::none) { return true; });
+    m.def("defer_none_custom", [](const py::none &) { return true; });
     m.def("nodefer_none_void", [](void *) { return true; });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("nodefer_none_void", [](py::none) { return false; });
+    m.def("nodefer_none_void", [](const py::none &) { return false; });
 
     // test_void_caster
     m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
@@ -242,8 +238,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     }, "copy"_a);
 
     m.def("refwrap_iiw", [](const IncType &w) { return w.value(); });
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("refwrap_call_iiw", [](IncType &w, py::function f) {
+    m.def("refwrap_call_iiw", [](IncType &w, const py::function &f) {
         py::list l;
         l.append(f(std::ref(w)));
         l.append(f(std::cref(w)));

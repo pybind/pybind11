@@ -126,7 +126,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     // test_move_and_copy_casts
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    m.def("move_and_copy_casts", [](py::object o) {
+    m.def("move_and_copy_casts", [](const py::object &o) {
         int r = 0;
         r += py::cast<MoveOrCopyInt>(o).value; /* moves */
         r += py::cast<MoveOnlyInt>(o).value; /* moves */
@@ -141,8 +141,10 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     // test_move_and_copy_loads
     m.def("move_only", [](MoveOnlyInt m) { return m.value; });
+    // Changing this breaks the existing test: needs careful review.
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("move_or_copy", [](MoveOrCopyInt m) { return m.value; });
+    // Changing this breaks the existing test: needs careful review.
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("copy_only", [](CopyOnlyInt m) { return m.value; });
     m.def("move_pair", [](std::pair<MoveOnlyInt, MoveOrCopyInt> p) {
