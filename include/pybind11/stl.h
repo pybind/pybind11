@@ -10,42 +10,42 @@
 #pragma once
 
 #include "pybind11.h"
-#include <set>
-#include <unordered_set>
-#include <map>
-#include <unordered_map>
+#include <deque>
 #include <iostream>
 #include <list>
-#include <deque>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <valarray>
 
 #if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+#    pragma warning(push)
+#    pragma warning(disable : 4127) // warning C4127: Conditional expression is constant
 #endif
 
 #ifdef __has_include
 // std::optional (but including it in c++14 mode isn't allowed)
-#  if defined(PYBIND11_CPP17) && __has_include(<optional>)
-#    include <optional>
-#    define PYBIND11_HAS_OPTIONAL 1
-#  endif
+#    if defined(PYBIND11_CPP17) && __has_include(<optional>)
+#        include <optional>
+#        define PYBIND11_HAS_OPTIONAL 1
+#    endif
 // std::experimental::optional (but not allowed in c++11 mode)
-#  if defined(PYBIND11_CPP14) && (__has_include(<experimental/optional>) && \
+#    if defined(PYBIND11_CPP14) && (__has_include(<experimental/optional>) && \
                                  !__has_include(<optional>))
-#    include <experimental/optional>
-#    define PYBIND11_HAS_EXP_OPTIONAL 1
-#  endif
+#        include <experimental/optional>
+#        define PYBIND11_HAS_EXP_OPTIONAL 1
+#    endif
 // std::variant
-#  if defined(PYBIND11_CPP17) && __has_include(<variant>)
-#    include <variant>
-#    define PYBIND11_HAS_VARIANT 1
-#  endif
+#    if defined(PYBIND11_CPP17) && __has_include(<variant>)
+#        include <variant>
+#        define PYBIND11_HAS_VARIANT 1
+#    endif
 #elif defined(_MSC_VER) && defined(PYBIND11_CPP17)
-#  include <optional>
-#  include <variant>
-#  define PYBIND11_HAS_OPTIONAL 1
-#  define PYBIND11_HAS_VARIANT 1
+#    include <optional>
+#    include <variant>
+#    define PYBIND11_HAS_OPTIONAL 1
+#    define PYBIND11_HAS_VARIANT 1
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -54,8 +54,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /// Extracts an const lvalue reference or rvalue reference for U based on the type of T (e.g. for
 /// forwarding a container element).  Typically used indirect via forwarded_type(), below.
 template <typename T, typename U>
-using forwarded_type = conditional_t<
-    std::is_lvalue_reference<T>::value, remove_reference_t<U> &, remove_reference_t<U> &&>;
+using forwarded_type = conditional_t<std::is_lvalue_reference<T>::value,
+                                     remove_reference_t<U> &,
+                                     remove_reference_t<U> &&>;
 
 /// Forwards a value U as rvalue or lvalue according to whether T is rvalue or lvalue; typically
 /// used for forwarding a container's elements.
@@ -64,7 +65,8 @@ forwarded_type<T, U> forward_like(U &&u) {
     return std::forward<detail::forwarded_type<T, U>>(std::forward<U>(u));
 }
 
-template <typename Type, typename Key> struct set_caster {
+template <typename Type, typename Key>
+struct set_caster {
     using type = Type;
     using key_conv = make_caster<Key>;
 
@@ -88,7 +90,8 @@ template <typename Type, typename Key> struct set_caster {
             policy = return_value_policy_override<Key>::policy(policy);
         pybind11::set s;
         for (auto &&value : src) {
-            auto value_ = reinterpret_steal<object>(key_conv::cast(forward_like<T>(value), policy, parent));
+            auto value_ = reinterpret_steal<object>(
+                key_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_ || !s.add(value_))
                 return handle();
         }
@@ -98,8 +101,9 @@ template <typename Type, typename Key> struct set_caster {
     PYBIND11_TYPE_CASTER(type, _("Set[") + key_conv::name + _("]"));
 };
 
-template <typename Type, typename Key, typename Value> struct map_caster {
-    using key_conv   = make_caster<Key>;
+template <typename Type, typename Key, typename Value>
+struct map_caster {
+    using key_conv = make_caster<Key>;
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
@@ -110,8 +114,7 @@ template <typename Type, typename Key, typename Value> struct map_caster {
         for (auto it : d) {
             key_conv kconv;
             value_conv vconv;
-            if (!kconv.load(it.first.ptr(), convert) ||
-                !vconv.load(it.second.ptr(), convert))
+            if (!kconv.load(it.first.ptr(), convert) || !vconv.load(it.second.ptr(), convert))
                 return false;
             value.emplace(cast_op<Key &&>(std::move(kconv)), cast_op<Value &&>(std::move(vconv)));
         }
@@ -128,8 +131,10 @@ template <typename Type, typename Key, typename Value> struct map_caster {
             policy_value = return_value_policy_override<Value>::policy(policy_value);
         }
         for (auto &&kv : src) {
-            auto key = reinterpret_steal<object>(key_conv::cast(forward_like<T>(kv.first), policy_key, parent));
-            auto value = reinterpret_steal<object>(value_conv::cast(forward_like<T>(kv.second), policy_value, parent));
+            auto key = reinterpret_steal<object>(
+                key_conv::cast(forward_like<T>(kv.first), policy_key, parent));
+            auto value = reinterpret_steal<object>(
+                value_conv::cast(forward_like<T>(kv.second), policy_value, parent));
             if (!key || !value)
                 return handle();
             d[key] = value;
@@ -140,7 +145,8 @@ template <typename Type, typename Key, typename Value> struct map_caster {
     PYBIND11_TYPE_CASTER(Type, _("Dict[") + key_conv::name + _(", ") + value_conv::name + _("]"));
 };
 
-template <typename Type, typename Value> struct list_caster {
+template <typename Type, typename Value>
+struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
@@ -160,7 +166,7 @@ template <typename Type, typename Value> struct list_caster {
 
 private:
     template <
-        typename T                                                                          = Type,
+        typename T = Type,
         enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
     void reserve_maybe(const sequence &s, Type *) {
         value.reserve(s.size());
@@ -175,10 +181,12 @@ public:
         list l(src.size());
         size_t index = 0;
         for (auto &&value : src) {
-            auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
+            auto value_ = reinterpret_steal<object>(
+                value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(
+                l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -186,16 +194,17 @@ public:
     PYBIND11_TYPE_CASTER(Type, _("List[") + value_conv::name + _("]"));
 };
 
-template <typename Type, typename Alloc> struct type_caster<std::vector<Type, Alloc>>
- : list_caster<std::vector<Type, Alloc>, Type> { };
+template <typename Type, typename Alloc>
+struct type_caster<std::vector<Type, Alloc>> : list_caster<std::vector<Type, Alloc>, Type> {};
 
-template <typename Type, typename Alloc> struct type_caster<std::deque<Type, Alloc>>
- : list_caster<std::deque<Type, Alloc>, Type> { };
+template <typename Type, typename Alloc>
+struct type_caster<std::deque<Type, Alloc>> : list_caster<std::deque<Type, Alloc>, Type> {};
 
-template <typename Type, typename Alloc> struct type_caster<std::list<Type, Alloc>>
- : list_caster<std::list<Type, Alloc>, Type> { };
+template <typename Type, typename Alloc>
+struct type_caster<std::list<Type, Alloc>> : list_caster<std::list<Type, Alloc>, Type> {};
 
-template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0> struct array_caster {
+template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0>
+struct array_caster {
     using value_conv = make_caster<Value>;
 
 private:
@@ -232,37 +241,47 @@ public:
         list l(src.size());
         size_t index = 0;
         for (auto &&value : src) {
-            auto value_ = reinterpret_steal<object>(value_conv::cast(forward_like<T>(value), policy, parent));
+            auto value_ = reinterpret_steal<object>(
+                value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_)
                 return handle();
-            PyList_SET_ITEM(l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
+            PyList_SET_ITEM(
+                l.ptr(), (ssize_t) index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(ArrayType, _("List[") + value_conv::name + _<Resizable>(_(""), _("[") + _<Size>() + _("]")) + _("]"));
+    PYBIND11_TYPE_CASTER(ArrayType,
+                         _("List[") + value_conv::name
+                             + _<Resizable>(_(""), _("[") + _<Size>() + _("]")) + _("]"));
 };
 
-template <typename Type, size_t Size> struct type_caster<std::array<Type, Size>>
- : array_caster<std::array<Type, Size>, Type, false, Size> { };
+template <typename Type, size_t Size>
+struct type_caster<std::array<Type, Size>>
+    : array_caster<std::array<Type, Size>, Type, false, Size> {};
 
-template <typename Type> struct type_caster<std::valarray<Type>>
- : array_caster<std::valarray<Type>, Type, true> { };
+template <typename Type>
+struct type_caster<std::valarray<Type>> : array_caster<std::valarray<Type>, Type, true> {};
 
-template <typename Key, typename Compare, typename Alloc> struct type_caster<std::set<Key, Compare, Alloc>>
-  : set_caster<std::set<Key, Compare, Alloc>, Key> { };
+template <typename Key, typename Compare, typename Alloc>
+struct type_caster<std::set<Key, Compare, Alloc>>
+    : set_caster<std::set<Key, Compare, Alloc>, Key> {};
 
-template <typename Key, typename Hash, typename Equal, typename Alloc> struct type_caster<std::unordered_set<Key, Hash, Equal, Alloc>>
-  : set_caster<std::unordered_set<Key, Hash, Equal, Alloc>, Key> { };
+template <typename Key, typename Hash, typename Equal, typename Alloc>
+struct type_caster<std::unordered_set<Key, Hash, Equal, Alloc>>
+    : set_caster<std::unordered_set<Key, Hash, Equal, Alloc>, Key> {};
 
-template <typename Key, typename Value, typename Compare, typename Alloc> struct type_caster<std::map<Key, Value, Compare, Alloc>>
-  : map_caster<std::map<Key, Value, Compare, Alloc>, Key, Value> { };
+template <typename Key, typename Value, typename Compare, typename Alloc>
+struct type_caster<std::map<Key, Value, Compare, Alloc>>
+    : map_caster<std::map<Key, Value, Compare, Alloc>, Key, Value> {};
 
-template <typename Key, typename Value, typename Hash, typename Equal, typename Alloc> struct type_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>>
-  : map_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>, Key, Value> { };
+template <typename Key, typename Value, typename Hash, typename Equal, typename Alloc>
+struct type_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>>
+    : map_caster<std::unordered_map<Key, Value, Hash, Equal, Alloc>, Key, Value> {};
 
 // This type caster is intended to be used for std::optional and std::experimental::optional
-template<typename T> struct optional_caster {
+template <typename T>
+struct optional_caster {
     using value_conv = make_caster<typename T::value_type>;
 
     template <typename T_>
@@ -280,7 +299,7 @@ template<typename T> struct optional_caster {
             return false;
         }
         if (src.is_none()) {
-            return true;  // default-constructed value is already empty
+            return true; // default-constructed value is already empty
         }
         value_conv inner_caster;
         if (!inner_caster.load(src, convert))
@@ -294,18 +313,20 @@ template<typename T> struct optional_caster {
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)
-template<typename T> struct type_caster<std::optional<T>>
-    : public optional_caster<std::optional<T>> {};
+template <typename T>
+struct type_caster<std::optional<T>> : public optional_caster<std::optional<T>> {};
 
-template<> struct type_caster<std::nullopt_t>
-    : public void_caster<std::nullopt_t> {};
+template <>
+struct type_caster<std::nullopt_t> : public void_caster<std::nullopt_t> {};
 #endif
 
 #if defined(PYBIND11_HAS_EXP_OPTIONAL)
-template<typename T> struct type_caster<std::experimental::optional<T>>
+template <typename T>
+struct type_caster<std::experimental::optional<T>>
     : public optional_caster<std::experimental::optional<T>> {};
 
-template<> struct type_caster<std::experimental::nullopt_t>
+template <>
+struct type_caster<std::experimental::nullopt_t>
     : public void_caster<std::experimental::nullopt_t> {};
 #endif
 
@@ -326,7 +347,7 @@ struct variant_caster_visitor {
 /// `namespace::variant` types which provide a `namespace::visit()` function are handled here
 /// automatically using argument-dependent lookup. Users can provide specializations for other
 /// variant-like classes, e.g. `boost::variant` and `boost::apply_visitor`.
-template <template<typename...> class Variant>
+template <template <typename...> class Variant>
 struct visit_helper {
     template <typename... Args>
     static auto call(Args &&...args) -> decltype(visit(std::forward<Args>(args)...)) {
@@ -335,9 +356,10 @@ struct visit_helper {
 };
 
 /// Generic variant caster
-template <typename Variant> struct variant_caster;
+template <typename Variant>
+struct variant_caster;
 
-template <template<typename...> class V, typename... Ts>
+template <template <typename...> class V, typename... Ts>
 struct variant_caster<V<Ts...>> {
     static_assert(sizeof...(Ts) > 0, "Variant must consist of at least one alternative.");
 
@@ -375,7 +397,7 @@ struct variant_caster<V<Ts...>> {
 
 #if defined(PYBIND11_HAS_VARIANT)
 template <typename... Ts>
-struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { };
+struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> {};
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
@@ -392,5 +414,5 @@ inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER)
-#pragma warning(pop)
+#    pragma warning(pop)
 #endif

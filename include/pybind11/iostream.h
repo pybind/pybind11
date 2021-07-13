@@ -58,29 +58,21 @@ private:
     size_t utf8_remainder() const {
         const auto rbase = std::reverse_iterator<char *>(pbase());
         const auto rpptr = std::reverse_iterator<char *>(pptr());
-        auto is_ascii = [](char c) {
-            return (static_cast<unsigned char>(c) & 0x80) == 0x00;
-        };
-        auto is_leading = [](char c) {
-            return (static_cast<unsigned char>(c) & 0xC0) == 0xC0;
-        };
-        auto is_leading_2b = [](char c) {
-            return static_cast<unsigned char>(c) <= 0xDF;
-        };
-        auto is_leading_3b = [](char c) {
-            return static_cast<unsigned char>(c) <= 0xEF;
-        };
+        auto is_ascii = [](char c) { return (static_cast<unsigned char>(c) & 0x80) == 0x00; };
+        auto is_leading = [](char c) { return (static_cast<unsigned char>(c) & 0xC0) == 0xC0; };
+        auto is_leading_2b = [](char c) { return static_cast<unsigned char>(c) <= 0xDF; };
+        auto is_leading_3b = [](char c) { return static_cast<unsigned char>(c) <= 0xEF; };
         // If the last character is ASCII, there are no incomplete code points
         if (is_ascii(*rpptr))
             return 0;
         // Otherwise, work back from the end of the buffer and find the first
         // UTF-8 leading byte
-        const auto rpend   = rbase - rpptr >= 3 ? rpptr + 3 : rbase;
+        const auto rpend = rbase - rpptr >= 3 ? rpptr + 3 : rbase;
         const auto leading = std::find_if(rpptr, rpend, is_leading);
         if (leading == rbase)
             return 0;
-        const auto dist    = static_cast<size_t>(leading - rpptr);
-        size_t remainder   = 0;
+        const auto dist = static_cast<size_t>(leading - rpptr);
+        size_t remainder = 0;
 
         if (dist == 0)
             remainder = 1; // 1-byte code point is impossible
@@ -100,7 +92,7 @@ private:
         if (pbase() != pptr()) { // If buffer is not empty
             gil_scoped_acquire tmp;
             // This subtraction cannot be negative, so dropping the sign.
-            auto size        = static_cast<size_t>(pptr() - pbase());
+            auto size = static_cast<size_t>(pptr() - pbase());
             size_t remainder = utf8_remainder();
 
             if (size > remainder) {
@@ -118,9 +110,7 @@ private:
         return 0;
     }
 
-    int sync() override {
-        return _sync();
-    }
+    int sync() override { return _sync(); }
 
 public:
     pythonbuf(const object &pyostream, size_t buffer_size = 1024)
@@ -129,17 +119,15 @@ public:
         setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
     }
 
-    pythonbuf(pythonbuf&&) = default;
+    pythonbuf(pythonbuf &&) = default;
 
     /// Sync before destroy
-    ~pythonbuf() override {
-        _sync();
-    }
+    ~pythonbuf() override { _sync(); }
 };
 
 PYBIND11_NAMESPACE_END(detail)
 
-
+// clang-format off
 /** \rst
     This a move-only guard that redirects output.
 
@@ -164,6 +152,7 @@ PYBIND11_NAMESPACE_END(detail)
             std::cout << "Hello, World!";
         }
  \endrst */
+// clang-format on
 class scoped_ostream_redirect {
 protected:
     std::streambuf *old;
@@ -171,15 +160,13 @@ protected:
     detail::pythonbuf buffer;
 
 public:
-    scoped_ostream_redirect(std::ostream &costream  = std::cout,
+    scoped_ostream_redirect(std::ostream &costream = std::cout,
                             const object &pyostream = module_::import("sys").attr("stdout"))
         : costream(costream), buffer(pyostream) {
         old = costream.rdbuf(&buffer);
     }
 
-    ~scoped_ostream_redirect() {
-        costream.rdbuf(old);
-    }
+    ~scoped_ostream_redirect() { costream.rdbuf(old); }
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
     scoped_ostream_redirect(scoped_ostream_redirect &&other) = default;
@@ -187,7 +174,7 @@ public:
     scoped_ostream_redirect &operator=(scoped_ostream_redirect &&) = delete;
 };
 
-
+// clang-format off
 /** \rst
     Like `scoped_ostream_redirect`, but redirects cerr by default. This class
     is provided primary to make ``py::call_guard`` easier to make.
@@ -199,13 +186,13 @@ public:
                           scoped_estream_redirect>());
 
 \endrst */
+// clang-format on
 class scoped_estream_redirect : public scoped_ostream_redirect {
 public:
-    scoped_estream_redirect(std::ostream &costream  = std::cerr,
+    scoped_estream_redirect(std::ostream &costream = std::cerr,
                             const object &pyostream = module_::import("sys").attr("stderr"))
         : scoped_ostream_redirect(costream, pyostream) {}
 };
-
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -235,6 +222,7 @@ public:
 
 PYBIND11_NAMESPACE_END(detail)
 
+// clang-format off
 /** \rst
     This is a helper function to add a C++ redirect context manager to Python
     instead of using a C++ guard. To use it, add the following to your binding code:
@@ -262,6 +250,7 @@ PYBIND11_NAMESPACE_END(detail)
             m.noisy_function_with_error_printing()
 
  \endrst */
+// clang-format on
 inline class_<detail::OstreamRedirect>
 add_ostream_redirect(module_ m, const std::string &name = "ostream_redirect") {
     return class_<detail::OstreamRedirect>(std::move(m), name.c_str(), module_local())
