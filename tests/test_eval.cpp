@@ -66,7 +66,7 @@ TEST_SUBMODULE(eval_, m) {
         auto local = py::dict();
         local["y"] = py::int_(43);
 
-        int val_out;
+        int val_out = 0;
         local["call_test2"] = py::cpp_function([&](int value) { val_out = value; });
 
         auto result = py::eval_file(std::move(filename), global, local);

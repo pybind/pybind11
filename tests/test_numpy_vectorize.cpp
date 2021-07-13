@@ -92,7 +92,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
           [](const py::array_t<int, py::array::forcecast> &arg1,
              const py::array_t<float, py::array::forcecast> &arg2,
              const py::array_t<double, py::array::forcecast> &arg3) {
-              py::ssize_t ndim;
+              py::ssize_t ndim = 0;
               std::vector<py::ssize_t> shape;
               std::array<py::buffer_info, 3> buffers{
                   {arg1.request(), arg2.request(), arg3.request()}};

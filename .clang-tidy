@@ -1,10 +1,12 @@
 FormatStyle: file
 
 Checks: '
+cppcoreguidelines-init-variables,
 clang-analyzer-optin.cplusplus.VirtualCall,
 llvm-namespace-comment,
 misc-misplaced-const,
 misc-static-assert,
+misc-throw-by-value-catch-by-reference,
 misc-uniqueptr-reset-release,
 modernize-avoid-bind,
 modernize-redundant-void-arg,
@@ -33,6 +35,8 @@ readability-uniqueptr-delete-release,
 '
 
 CheckOptions:
+- key:             performance-for-range-copy.WarnOnAllAutoCopies
+  value:           true
 - key:             performance-unnecessary-value-param.AllowedTypes
   value:           'exception_ptr$;'
 
