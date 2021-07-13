@@ -50,7 +50,7 @@ def test_single_char_arguments():
     """Tests failures for passing invalid inputs to char-accepting functions"""
 
     def toobig_message(r):
-        return "Character code point not in range({0:#x})".format(r)
+        return "Character code point not in range({:#x})".format(r)
 
     toolong_message = "Expected a character, but multi-character string found"
 
