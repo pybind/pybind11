@@ -133,7 +133,12 @@ def run(args):
                 pflush(nb_label, " ".join(["%.3f" % v for v in row]))
         pflush("          Min  Mean   Max")
         for key, rat in ratios.items():
-            print(key, "%5.3f %5.3f %5.3f" % (min(rat), sum(rat) / len(rat), max(rat)))
+            print(
+                key,
+                "{:5.3f} {:5.3f} {:5.3f}".format(
+                    min(rat), sum(rat) / len(rat), max(rat)
+                ),
+            )
 
 
 if __name__ == "__main__":
