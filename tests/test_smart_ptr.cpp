@@ -24,7 +24,7 @@ template <typename T> class huge_unique_ptr {
     std::unique_ptr<T> ptr;
     uint64_t padding[10];
 public:
-    huge_unique_ptr(T *p) : ptr(p) {};
+    huge_unique_ptr(T *p) : ptr(p) {}
     T *get() { return ptr.get(); }
 };
 
