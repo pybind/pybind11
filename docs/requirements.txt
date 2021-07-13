@@ -1,5 +1,6 @@
 breathe==4.26.1
-sphinx==3.3.1
-sphinx_rtd_theme==0.5.0
-sphinxcontrib-moderncmakedomain==3.17
-sphinxcontrib-svg2pdfconverter==1.1.0
+furo
+sphinx==3.4.3
+sphinx-copybutton
+sphinxcontrib-moderncmakedomain==3.19
+sphinxcontrib-svg2pdfconverter==1.1.1
