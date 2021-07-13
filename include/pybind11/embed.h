@@ -30,6 +30,7 @@
       }
 #endif
 
+// clang-format off
 /** \rst
     Add a new module to the table of builtins for the interpreter. Must be
     defined in global scope. The first macro parameter is the name of the
@@ -45,6 +46,7 @@
             });
         }
  \endrst */
+// clang-format on
 #define PYBIND11_EMBEDDED_MODULE(name, variable)                                \
     static ::pybind11::module_::module_def                                      \
         PYBIND11_CONCAT(pybind11_module_def_, name);                            \
@@ -87,6 +89,7 @@ struct embedded_module {
 
 PYBIND11_NAMESPACE_END(detail)
 
+// clang-format off
 /** \rst
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
     called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
@@ -100,6 +103,7 @@ PYBIND11_NAMESPACE_END(detail)
 
     .. _Python documentation: https://docs.python.org/3/c-api/init.html#c.Py_InitializeEx
  \endrst */
+// clang-format on
 inline void initialize_interpreter(bool init_signal_handlers = true) {
     if (Py_IsInitialized())
         pybind11_fail("The interpreter is already running");
@@ -110,6 +114,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true) {
     module_::import("sys").attr("path").cast<list>().append(".");
 }
 
+// clang-format off
 /** \rst
     Shut down the Python interpreter. No pybind11 or CPython API functions can be called
     after this. In addition, pybind11 objects must not outlive the interpreter:
@@ -145,6 +150,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true) {
         freed, either due to reference cycles or user-created global data.
 
  \endrst */
+// clang-format on
 inline void finalize_interpreter() {
     handle builtins(PyEval_GetBuiltins());
     const char *id = PYBIND11_INTERNALS_ID;
@@ -165,6 +171,7 @@ inline void finalize_interpreter() {
     }
 }
 
+// clang-format off
 /** \rst
     Scope guard version of `initialize_interpreter` and `finalize_interpreter`.
     This a move-only guard and only a single instance can exist.
@@ -178,6 +185,7 @@ inline void finalize_interpreter() {
             py::print(Hello, World!);
         } // <-- interpreter shutdown
  \endrst */
+// clang-format on
 class scoped_interpreter {
 public:
     scoped_interpreter(bool init_signal_handlers = true) {

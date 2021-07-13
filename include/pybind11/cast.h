@@ -1095,9 +1095,11 @@ arg_v arg::operator=(T &&value) const {
 template <typename /*unused*/> using arg_t = arg_v;
 
 inline namespace literals {
+// clang-format off
 /** \rst
     String literal version of `arg`
  \endrst */
+// clang-format on
 constexpr arg operator"" _a(const char *name, size_t) { return arg(name); }
 } // namespace literals
 

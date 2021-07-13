@@ -956,11 +956,13 @@ public:
 #endif
     }
 
+    // clang-format off
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
         can be a plain C++ function, a function pointer, or a lambda function. For
         details on the ``Extra&& ... extra`` argument, see section :ref:`extras`.
     \endrst */
+    // clang-format on
     template <typename Func, typename... Extra>
     module_ &def(const char *name_, Func &&f, const Extra& ... extra) {
         cpp_function func(std::forward<Func>(f), name(name_), scope(*this),
@@ -971,6 +973,7 @@ public:
         return *this;
     }
 
+    // clang-format off
     /** \rst
         Create and return a new Python submodule with the given name and docstring.
         This also works recursively, i.e.
@@ -981,6 +984,7 @@ public:
             py::module_ m2 = m.def_submodule("sub", "A submodule of 'example'");
             py::module_ m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
+    // clang-format on
     module_ def_submodule(const char *name, const char *doc = nullptr) {
         std::string full_name = std::string(PyModule_GetName(m_ptr))
             + std::string(".") + std::string(name);
@@ -1007,6 +1011,7 @@ public:
         *this = reinterpret_steal<module_>(obj);
     }
 
+    // clang-format off
     /** \rst
         Adds an object to the module using the given name.  Throws if an object with the given name
         already exists.
@@ -1014,6 +1019,7 @@ public:
         ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11 has
         established will, in most cases, break things.
     \endrst */
+    // clang-format on
     PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
         if (!overwrite && hasattr(*this, name))
             pybind11_fail("Error during initialization: multiple incompatible definitions with name \"" +
@@ -1028,12 +1034,14 @@ public:
     struct module_def {};
 #endif
 
+    // clang-format off
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
         For Python 3, ``def`` should point to a statically allocated module_def.
         For Python 2, ``def`` can be a nullptr and is completely ignored.
     \endrst */
+    // clang-format on
     static module_ create_extension_module(const char *name, const char *doc, module_def *def) {
 #if PY_MAJOR_VERSION >= 3
         // module_def is PyModuleDef
@@ -2173,6 +2181,7 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
 }
 PYBIND11_NAMESPACE_END(detail)
 
+// clang-format off
 /** \rst
   Try to retrieve a python method by the provided name from the instance pointed to by the this_ptr.
 
@@ -2181,6 +2190,7 @@ PYBIND11_NAMESPACE_END(detail)
   :name: The name of the overridden Python method to retrieve.
   :return: The Python method by this name from the object or an empty function wrapper.
  \endrst */
+// clang-format on
 template <class T> function get_override(const T *this_ptr, const char *name) {
     auto tinfo = detail::get_type_info(typeid(T));
     return tinfo ? detail::get_type_override(this_ptr, tinfo, name) : function();
@@ -2201,6 +2211,7 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
         }                                                                                         \
     } while (false)
 
+// clang-format off
 /** \rst
     Macro to populate the virtual method in the trampoline class. This macro tries to look up a method named 'fn'
     from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
@@ -2218,22 +2229,26 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
         );
       }
 \endrst */
+// clang-format on
 #define PYBIND11_OVERRIDE_NAME(ret_type, cname, name, fn, ...) \
     do { \
         PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
         return cname::fn(__VA_ARGS__); \
     } while (false)
 
+// clang-format off
 /** \rst
     Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE_NAME`, except that it
     throws if no override can be found.
 \endrst */
+// clang-format on
 #define PYBIND11_OVERRIDE_PURE_NAME(ret_type, cname, name, fn, ...) \
     do { \
         PYBIND11_OVERRIDE_IMPL(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), name, __VA_ARGS__); \
         pybind11::pybind11_fail("Tried to call pure virtual function \"" PYBIND11_STRINGIFY(cname) "::" name "\""); \
     } while (false)
 
+// clang-format off
 /** \rst
     Macro to populate the virtual method in the trampoline class. This macro tries to look up the method
     from the Python side, deals with the :ref:`gil` and necessary argument conversions to call this method and return
@@ -2258,13 +2273,16 @@ template <class T> function get_override(const T *this_ptr, const char *name) {
           }
       };
 \endrst */
+// clang-format on
 #define PYBIND11_OVERRIDE(ret_type, cname, fn, ...) \
     PYBIND11_OVERRIDE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 
+// clang-format off
 /** \rst
     Macro for pure virtual functions, this function is identical to :c:macro:`PYBIND11_OVERRIDE`, except that it throws
     if no override can be found.
 \endrst */
+// clang-format on
 #define PYBIND11_OVERRIDE_PURE(ret_type, cname, fn, ...) \
     PYBIND11_OVERRIDE_PURE_NAME(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), #fn, fn, __VA_ARGS__)
 

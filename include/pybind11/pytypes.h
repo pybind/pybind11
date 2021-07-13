@@ -47,54 +47,65 @@ using tuple_accessor = accessor<accessor_policies::tuple_item>;
 class pyobject_tag { };
 template <typename T> using is_pyobject = std::is_base_of<pyobject_tag, remove_reference_t<T>>;
 
+// clang-format off
 /** \rst
     A mixin class which adds common functions to `handle`, `object` and various accessors.
     The only requirement for `Derived` is to implement ``PyObject *Derived::ptr() const``.
 \endrst */
+// clang-format on
 template <typename Derived>
 class object_api : public pyobject_tag {
     const Derived &derived() const { return static_cast<const Derived &>(*this); }
 
 public:
+    // clang-format off
     /** \rst
         Return an iterator equivalent to calling ``iter()`` in Python. The object
         must be a collection which supports the iteration protocol.
     \endrst */
+    // clang-format on
     iterator begin() const;
     /// Return a sentinel which ends iteration.
     iterator end() const;
 
+    // clang-format off
     /** \rst
         Return an internal functor to invoke the object's sequence protocol. Casting
         the returned ``detail::item_accessor`` instance to a `handle` or `object`
         subclass causes a corresponding call to ``__getitem__``. Assigning a `handle`
         or `object` subclass causes a call to ``__setitem__``.
     \endrst */
+    // clang-format on
     item_accessor operator[](handle key) const;
     /// See above (the only difference is that they key is provided as a string literal)
     item_accessor operator[](const char *key) const;
 
+    // clang-format off
     /** \rst
         Return an internal functor to access the object's attributes. Casting the
         returned ``detail::obj_attr_accessor`` instance to a `handle` or `object`
         subclass causes a corresponding call to ``getattr``. Assigning a `handle`
         or `object` subclass causes a call to ``setattr``.
     \endrst */
+    // clang-format on
     obj_attr_accessor attr(handle key) const;
     /// See above (the only difference is that they key is provided as a string literal)
     str_attr_accessor attr(const char *key) const;
 
+    // clang-format off
     /** \rst
         Matches * unpacking in Python, e.g. to unpack arguments out of a ``tuple``
         or ``list`` for a function call. Applying another * to the result yields
         ** unpacking, e.g. to unpack a dict as function keyword arguments.
         See :ref:`calling_python_functions`.
     \endrst */
+    // clang-format on
     args_proxy operator*() const;
 
     /// Check if the given item is contained within this object, i.e. ``item in obj``.
     template <typename T> bool contains(T &&item) const;
 
+    // clang-format off
     /** \rst
         Assuming the Python object is a function or implements the ``__call__``
         protocol, ``operator()`` invokes the underlying function, passing an
@@ -105,6 +116,7 @@ public:
         function will throw a `cast_error` exception. When the Python function
         call fails, a `error_already_set` exception is thrown.
     \endrst */
+    // clang-format on
     template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
     object operator()(Args &&...args) const;
     template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
@@ -162,6 +174,7 @@ private:
 
 PYBIND11_NAMESPACE_END(detail)
 
+// clang-format off
 /** \rst
     Holds a reference to a Python object (no reference counting)
 
@@ -173,6 +186,7 @@ PYBIND11_NAMESPACE_END(detail)
         The `object` class inherits from `handle` and adds automatic reference
         counting features.
 \endrst */
+// clang-format on
 class handle : public detail::object_api<handle> {
 public:
     /// The default constructor creates a handle with a ``nullptr``-valued pointer
@@ -184,31 +198,39 @@ public:
     PyObject *ptr() const { return m_ptr; }
     PyObject *&ptr() { return m_ptr; }
 
+    // clang-format off
     /** \rst
         Manually increase the reference count of the Python object. Usually, it is
         preferable to use the `object` class which derives from `handle` and calls
         this function automatically. Returns a reference to itself.
     \endrst */
+    // clang-format on
     const handle& inc_ref() const & { Py_XINCREF(m_ptr); return *this; }
 
+    // clang-format off
     /** \rst
         Manually decrease the reference count of the Python object. Usually, it is
         preferable to use the `object` class which derives from `handle` and calls
         this function automatically. Returns a reference to itself.
     \endrst */
+    // clang-format on
     const handle& dec_ref() const & { Py_XDECREF(m_ptr); return *this; }
 
+    // clang-format off
     /** \rst
         Attempt to cast the Python object into the given C++ type. A `cast_error`
         will be throw upon failure.
     \endrst */
+    // clang-format on
     template <typename T> T cast() const;
     /// Return ``true`` when the `handle` wraps a valid Python object
     explicit operator bool() const { return m_ptr != nullptr; }
+    // clang-format off
     /** \rst
         Deprecated: Check that the underlying pointers are the same.
         Equivalent to ``obj1 is obj2`` in Python.
     \endrst */
+    // clang-format on
     PYBIND11_DEPRECATED("Use obj1.is(obj2) instead")
     bool operator==(const handle &h) const { return m_ptr == h.m_ptr; }
     PYBIND11_DEPRECATED("Use !obj1.is(obj2) instead")
@@ -219,6 +241,7 @@ protected:
     PyObject *m_ptr = nullptr;
 };
 
+// clang-format off
 /** \rst
     Holds a reference to a Python object (with reference counting)
 
@@ -229,6 +252,7 @@ protected:
     scope and is destructed. When using `object` instances consistently, it is much
     easier to get reference counting right at the first attempt.
 \endrst */
+// clang-format on
 class object : public handle {
 public:
     object() = default;
@@ -241,11 +265,13 @@ public:
     /// Destructor; automatically calls `handle::dec_ref()`
     ~object() { dec_ref(); }
 
+    // clang-format off
     /** \rst
         Resets the internal pointer to ``nullptr`` without decreasing the
         object's reference count. The function returns a raw handle to the original
         Python object.
     \endrst */
+    // clang-format on
     handle release() {
       PyObject *tmp = m_ptr;
       m_ptr = nullptr;
@@ -290,6 +316,7 @@ public:
     object(handle h, stolen_t) : handle(h) { }
 };
 
+// clang-format off
 /** \rst
     Declare that a `handle` or ``PyObject *`` is a certain type and borrow the reference.
     The target type ``T`` must be `object` or one of its derived classes. The function
@@ -303,8 +330,10 @@ public:
         // or
         py::tuple t = reinterpret_borrow<py::tuple>(p); // <-- `p` must be already be a `tuple`
 \endrst */
+// clang-format on
 template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrowed_t{}}; }
 
+// clang-format off
 /** \rst
     Like `reinterpret_borrow`, but steals the reference.
 
@@ -313,6 +342,7 @@ template <typename T> T reinterpret_borrow(handle h) { return {h, object::borrow
         PyObject *p = PyObject_Str(obj);
         py::str s = reinterpret_steal<py::str>(p); // <-- `p` must be already be a `str`
 \endrst */
+// clang-format on
 template <typename T> T reinterpret_steal(handle h) { return {h, object::stolen_t{}}; }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -386,10 +416,12 @@ private:
  */
 
 /** \ingroup python_builtins
+    // clang-format off
     \rst
     Return true if ``obj`` is an instance of ``T``. Type ``T`` must be a subclass of
     `object` or a class which was exposed to Python as ``py::class_<T>``.
 \endrst */
+    // clang-format on
 template <typename T, detail::enable_if_t<std::is_base_of<object, T>::value, int> = 0>
 bool isinstance(handle obj) { return T::check_(obj); }
 
@@ -885,6 +917,7 @@ PYBIND11_NAMESPACE_END(detail)
 /// \addtogroup pytypes
 /// @{
 
+// clang-format off
 /** \rst
     Wraps a Python iterator so that it can also be used as a C++ input iterator
 
@@ -893,6 +926,7 @@ PYBIND11_NAMESPACE_END(detail)
     operator. This iterator should only be used to retrieve the current
     value using ``operator*()``.
 \endrst */
+// clang-format on
 class iterator : public object {
 public:
     using iterator_category = std::input_iterator_tag;
@@ -924,6 +958,7 @@ public:
 
     pointer operator->() const { operator*(); return &value; }
 
+    // clang-format off
     /** \rst
          The value which marks the end of the iteration. ``it == iterator::sentinel()``
          is equivalent to catching ``StopIteration`` in Python.
@@ -937,6 +972,7 @@ public:
                  }
              }
     \endrst */
+    // clang-format on
     static iterator sentinel() { return {}; }
 
     friend bool operator==(const iterator &a, const iterator &b) { return a->ptr() == b->ptr(); }
@@ -1004,10 +1040,12 @@ public:
 
     explicit str(const bytes &b);
 
+    // clang-format off
     /** \rst
         Return a string representation of the object. This is analogous to
         the ``str()`` function in Python.
     \endrst */
+    // clang-format on
     explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) { if (!m_ptr) throw error_already_set(); }
 
     operator std::string() const {
@@ -1044,9 +1082,11 @@ private:
 /// @} pytypes
 
 inline namespace literals {
+// clang-format off
 /** \rst
     String literal version of `str`
  \endrst */
+// clang-format on
 inline str operator"" _s(const char *s, size_t size) { return {s, size}; }
 } // namespace literals
 
@@ -1488,6 +1528,7 @@ class memoryview : public object {
 public:
     PYBIND11_OBJECT_CVT(memoryview, object, PyMemoryView_Check, PyMemoryView_FromObject)
 
+    // clang-format off
     /** \rst
         Creates ``memoryview`` from ``buffer_info``.
 
@@ -1497,6 +1538,7 @@ public:
         For creating a ``memoryview`` from objects that support buffer protocol,
         use ``memoryview(const object& obj)`` instead of this constructor.
      \endrst */
+    // clang-format on
     explicit memoryview(const buffer_info& info) {
         if (!info.view())
             pybind11_fail("Prohibited to create memoryview without Py_buffer");
@@ -1508,6 +1550,7 @@ public:
             pybind11_fail("Unable to create memoryview from buffer descriptor");
     }
 
+    // clang-format off
     /** \rst
         Creates ``memoryview`` from static buffer.
 
@@ -1531,6 +1574,7 @@ public:
         :param readonly: Flag to indicate if the underlying storage may be
             written to.
      \endrst */
+    // clang-format on
     static memoryview from_buffer(
         void *ptr, ssize_t itemsize, const char *format,
         detail::any_container<ssize_t> shape,
@@ -1562,6 +1606,7 @@ public:
     }
 
 #if PY_MAJOR_VERSION >= 3
+    // clang-format off
     /** \rst
         Creates ``memoryview`` from static memory.
 
@@ -1575,6 +1620,7 @@ public:
 
         .. _PyMemoryView_FromMemory: https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory
      \endrst */
+    // clang-format on
     static memoryview from_memory(void *mem, ssize_t size, bool readonly = false) {
         PyObject* ptr = PyMemoryView_FromMemory(
             reinterpret_cast<char*>(mem), size,
