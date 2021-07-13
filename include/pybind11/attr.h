@@ -377,7 +377,7 @@ template <> struct process_attribute<is_new_style_constructor> : process_attribu
 };
 
 inline void process_kw_only_arg(const arg &a, function_record *r) {
-    if (!a.name || strlen(a.name) == 0)
+    if (!a.name || a.name[0] == '\0')
         pybind11_fail("arg(): cannot specify an unnamed argument after an kw_only() annotation");
     ++r->nargs_kw_only;
 }

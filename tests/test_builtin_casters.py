@@ -50,7 +50,7 @@ def test_single_char_arguments():
     """Tests failures for passing invalid inputs to char-accepting functions"""
 
     def toobig_message(r):
-        return "Character code point not in range({0:#x})".format(r)
+        return "Character code point not in range({:#x})".format(r)
 
     toolong_message = "Expected a character, but multi-character string found"
 
@@ -299,7 +299,12 @@ def test_int_convert():
     assert convert(7) == 7
     assert noconvert(7) == 7
     cant_convert(3.14159)
-    assert convert(Int()) == 42
+    # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
+    if (3, 8) <= env.PY < (3, 10):
+        with env.deprecated_call():
+            assert convert(Int()) == 42
+    else:
+        assert convert(Int()) == 42
     requires_conversion(Int())
     cant_convert(NotInt())
     cant_convert(Float())
@@ -329,7 +334,12 @@ def test_numpy_int_convert():
     assert noconvert(np.intc(42)) == 42
 
     # The implicit conversion from np.float32 is undesirable but currently accepted.
-    assert convert(np.float32(3.14159)) == 3
+    # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
+    if (3, 8) <= env.PY < (3, 10):
+        with env.deprecated_call():
+            assert convert(np.float32(3.14159)) == 3
+    else:
+        assert convert(np.float32(3.14159)) == 3
     require_implicit(np.float32(3.14159))
 
 
@@ -511,7 +521,7 @@ def test_void_caster_2():
 
 def test_const_ref_caster():
     """Verifies that const-ref is propagated through type_caster cast_op.
-    The returned ConstRefCasted type is a mimimal type that is constructed to
+    The returned ConstRefCasted type is a minimal type that is constructed to
     reference the casting mode used.
     """
     x = False

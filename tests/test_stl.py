@@ -162,6 +162,25 @@ def test_exp_optional():
     assert holder.member_initialized()
 
 
+@pytest.mark.skipif(not hasattr(m, "has_filesystem"), reason="no <filesystem>")
+def test_fs_path():
+    from pathlib import Path
+
+    class PseudoStrPath:
+        def __fspath__(self):
+            return "foo/bar"
+
+    class PseudoBytesPath:
+        def __fspath__(self):
+            return b"foo/bar"
+
+    assert m.parent_path(Path("foo/bar")) == Path("foo")
+    assert m.parent_path("foo/bar") == Path("foo")
+    assert m.parent_path(b"foo/bar") == Path("foo")
+    assert m.parent_path(PseudoStrPath()) == Path("foo")
+    assert m.parent_path(PseudoBytesPath()) == Path("foo")
+
+
 @pytest.mark.skipif(not hasattr(m, "load_variant"), reason="no <variant>")
 def test_variant(doc):
     assert m.load_variant(1) == "int"
@@ -259,8 +278,15 @@ def test_array_cast_sequence():
 
 
 def test_issue_1561():
-    """ check fix for issue #1561 """
+    """check fix for issue #1561"""
     bar = m.Issue1561Outer()
     bar.list = [m.Issue1561Inner("bar")]
     bar.list
     assert bar.list[0].data == "bar"
+
+
+def test_return_vector_bool_raw_ptr():
+    # Add `while True:` for manual leak checking.
+    v = m.return_vector_bool_raw_ptr()
+    assert isinstance(v, list)
+    assert len(v) == 4513

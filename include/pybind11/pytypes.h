@@ -279,8 +279,10 @@ protected:
     struct borrowed_t { };
     struct stolen_t { };
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS  // Issue in breathe 4.26.1
     template <typename T> friend T reinterpret_borrow(handle);
     template <typename T> friend T reinterpret_steal(handle);
+#endif
 
 public:
     // Only accessible from derived classes and the reinterpret_* functions
@@ -317,11 +319,15 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 inline std::string error_string();
 PYBIND11_NAMESPACE_END(detail)
 
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4275 4251) // warning C4275: An exported class was derived from a class that wasn't exported. Can be ignored when derived from a STL class.
+#endif
 /// Fetch and hold an error which was already set in Python.  An instance of this is typically
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
-class error_already_set : public std::runtime_error {
+class PYBIND11_EXPORT error_already_set : public std::runtime_error {
 public:
     /// Constructs a new exception from the current Python error indicator, if any.  The current
     /// Python error indicator will be cleared.
@@ -339,16 +345,17 @@ public:
     /// error variables (but the `.what()` string is still available).
     void restore() { PyErr_Restore(m_type.release().ptr(), m_value.release().ptr(), m_trace.release().ptr()); }
 
-    /// If it is impossible to raise the currently-held error, such as in destructor, we can write
-    /// it out using Python's unraisable hook (sys.unraisablehook). The error context should be
-    /// some object whose repr() helps identify the location of the error. Python already knows the
-    /// type and value of the error, so there is no need to repeat that. For example, __func__ could
-    /// be helpful. After this call, the current object no longer stores the error variables,
-    /// and neither does Python.
+    /// If it is impossible to raise the currently-held error, such as in a destructor, we can write
+    /// it out using Python's unraisable hook (`sys.unraisablehook`). The error context should be
+    /// some object whose `repr()` helps identify the location of the error. Python already knows the
+    /// type and value of the error, so there is no need to repeat that. After this call, the current
+    /// object no longer stores the error variables, and neither does Python.
     void discard_as_unraisable(object err_context) {
         restore();
         PyErr_WriteUnraisable(err_context.ptr());
     }
+    /// An alternate version of `discard_as_unraisable()`, where a string provides information on the
+    /// location of the error. For example, `__func__` could be helpful.
     void discard_as_unraisable(const char *err_context) {
         discard_as_unraisable(reinterpret_steal<object>(PYBIND11_FROM_STRING(err_context)));
     }
@@ -369,6 +376,9 @@ public:
 private:
     object m_type, m_value, m_trace;
 };
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 /** \defgroup python_builtins _
     Unless stated otherwise, the following C++ functions behave the same
@@ -431,19 +441,17 @@ inline object getattr(handle obj, const char *name) {
 inline object getattr(handle obj, handle name, handle default_) {
     if (PyObject *result = PyObject_GetAttr(obj.ptr(), name.ptr())) {
         return reinterpret_steal<object>(result);
-    } else {
-        PyErr_Clear();
-        return reinterpret_borrow<object>(default_);
     }
+    PyErr_Clear();
+    return reinterpret_borrow<object>(default_);
 }
 
 inline object getattr(handle obj, const char *name, handle default_) {
     if (PyObject *result = PyObject_GetAttrString(obj.ptr(), name)) {
         return reinterpret_steal<object>(result);
-    } else {
-        PyErr_Clear();
-        return reinterpret_borrow<object>(default_);
     }
+    PyErr_Clear();
+    return reinterpret_borrow<object>(default_);
 }
 
 inline void setattr(handle obj, handle name, handle value) {
@@ -476,6 +484,43 @@ inline handle get_function(handle value) {
     return value;
 }
 
+// Reimplementation of python's dict helper functions to ensure that exceptions
+// aren't swallowed (see #2862)
+
+// copied from cpython _PyDict_GetItemStringWithError
+inline PyObject * dict_getitemstring(PyObject *v, const char *key)
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *kv = nullptr, *rv = nullptr;
+    kv = PyUnicode_FromString(key);
+    if (kv == NULL) {
+        throw error_already_set();
+    }
+
+    rv = PyDict_GetItemWithError(v, kv);
+    Py_DECREF(kv);
+    if (rv == NULL && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    return rv;
+#else
+    return PyDict_GetItemString(v, key);
+#endif
+}
+
+inline PyObject * dict_getitem(PyObject *v, PyObject *key)
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *rv = PyDict_GetItemWithError(v, key);
+    if (rv == NULL && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    return rv;
+#else
+    return PyDict_GetItem(v, key);
+#endif
+}
+
 // Helper aliases/functions to support implicit casting of values given to python accessors/methods.
 // When given a pyobject, this simply returns the pyobject as-is; for other C++ type, the value goes
 // through pybind11::cast(obj) to convert it to an `object`.
@@ -494,7 +539,7 @@ class accessor : public object_api<accessor<Policy>> {
 public:
     accessor(handle obj, key_type key) : obj(obj), key(std::move(key)) { }
     accessor(const accessor &) = default;
-    accessor(accessor &&) = default;
+    accessor(accessor &&) noexcept = default;
 
     // accessor overload required to override default assignment operator (templates are not allowed
     // to replace default compiler-generated assignments).
@@ -745,16 +790,20 @@ inline bool PyIterable_Check(PyObject *obj) {
     if (iter) {
         Py_DECREF(iter);
         return true;
-    } else {
-        PyErr_Clear();
-        return false;
     }
+    PyErr_Clear();
+    return false;
 }
 
 inline bool PyNone_Check(PyObject *o) { return o == Py_None; }
 inline bool PyEllipsis_Check(PyObject *o) { return o == Py_Ellipsis; }
 
+#ifdef PYBIND11_STR_LEGACY_PERMISSIVE
 inline bool PyUnicode_Check_Permissive(PyObject *o) { return PyUnicode_Check(o) || PYBIND11_BYTES_CHECK(o); }
+#define PYBIND11_STR_CHECK_FUN detail::PyUnicode_Check_Permissive
+#else
+#define PYBIND11_STR_CHECK_FUN PyUnicode_Check
+#endif
 
 inline bool PyStaticMethod_Check(PyObject *o) { return o->ob_type == &PyStaticMethod_Type; }
 
@@ -811,6 +860,10 @@ PYBIND11_NAMESPACE_END(detail)
     Name(object &&o) \
     : Parent(check_(o) ? o.release().ptr() : ConvertFun(o.ptr()), stolen_t{}) \
     { if (!m_ptr) throw error_already_set(); }
+
+#define PYBIND11_OBJECT_CVT_DEFAULT(Name, Parent, CheckFun, ConvertFun) \
+    PYBIND11_OBJECT_CVT(Name, Parent, CheckFun, ConvertFun) \
+    Name() : Parent() { }
 
 #define PYBIND11_OBJECT_CHECK_FAILED(Name, o_ptr) \
     ::pybind11::type_error("Object of type '" + \
@@ -934,7 +987,7 @@ class bytes;
 
 class str : public object {
 public:
-    PYBIND11_OBJECT_CVT(str, object, detail::PyUnicode_Check_Permissive, raw_str)
+    PYBIND11_OBJECT_CVT(str, object, PYBIND11_STR_CHECK_FUN, raw_str)
 
     str(const char *c, size_t n)
         : object(PyUnicode_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
@@ -964,8 +1017,8 @@ public:
             if (!temp)
                 pybind11_fail("Unable to extract string contents! (encoding issue)");
         }
-        char *buffer;
-        ssize_t length;
+        char *buffer = nullptr;
+        ssize_t length = 0;
         if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
             pybind11_fail("Unable to extract string contents! (invalid type)");
         return std::string(buffer, (size_t) length);
@@ -1020,8 +1073,8 @@ public:
     explicit bytes(const pybind11::str &s);
 
     operator std::string() const {
-        char *buffer;
-        ssize_t length;
+        char *buffer = nullptr;
+        ssize_t length = 0;
         if (PYBIND11_BYTES_AS_STRING_AND_SIZE(m_ptr, &buffer, &length))
             pybind11_fail("Unable to extract bytes contents!");
         return std::string(buffer, (size_t) length);
@@ -1038,8 +1091,8 @@ inline bytes::bytes(const pybind11::str &s) {
         if (!temp)
             pybind11_fail("Unable to extract string contents! (encoding issue)");
     }
-    char *buffer;
-    ssize_t length;
+    char *buffer = nullptr;
+    ssize_t length = 0;
     if (PYBIND11_BYTES_AS_STRING_AND_SIZE(temp.ptr(), &buffer, &length))
         pybind11_fail("Unable to extract string contents! (invalid type)");
     auto obj = reinterpret_steal<object>(PYBIND11_BYTES_FROM_STRING_AND_SIZE(buffer, length));
@@ -1049,8 +1102,8 @@ inline bytes::bytes(const pybind11::str &s) {
 }
 
 inline str::str(const bytes& b) {
-    char *buffer;
-    ssize_t length;
+    char *buffer = nullptr;
+    ssize_t length = 0;
     if (PYBIND11_BYTES_AS_STRING_AND_SIZE(b.ptr(), &buffer, &length))
         pybind11_fail("Unable to extract bytes contents!");
     auto obj = reinterpret_steal<object>(PyUnicode_FromStringAndSize(buffer, (ssize_t) length));
@@ -1058,6 +1111,34 @@ inline str::str(const bytes& b) {
         pybind11_fail("Could not allocate string object!");
     m_ptr = obj.release().ptr();
 }
+
+/// \addtogroup pytypes
+/// @{
+class bytearray : public object {
+public:
+    PYBIND11_OBJECT_CVT(bytearray, object, PyByteArray_Check, PyByteArray_FromObject)
+
+    bytearray(const char *c, size_t n)
+        : object(PyByteArray_FromStringAndSize(c, (ssize_t) n), stolen_t{}) {
+        if (!m_ptr) pybind11_fail("Could not allocate bytearray object!");
+    }
+
+    bytearray()
+        : bytearray("", 0) {}
+
+    explicit bytearray(const std::string &s) : bytearray(s.data(), s.size()) { }
+
+    size_t size() const { return static_cast<size_t>(PyByteArray_Size(m_ptr)); }
+
+    explicit operator std::string() const {
+        char *buffer = PyByteArray_AS_STRING(m_ptr);
+        ssize_t size = PyByteArray_GET_SIZE(m_ptr);
+        return std::string(buffer, static_cast<size_t>(size));
+    }
+};
+// Note: breathe >= 4.17.0 will fail to build docs if the below two constructors
+// are included in the doxygen group; close here and reopen after as a workaround
+/// @} pytypes
 
 /// \addtogroup pytypes
 /// @{
@@ -1105,10 +1186,8 @@ Unsigned as_unsigned(PyObject *o) {
         unsigned long v = PyLong_AsUnsignedLong(o);
         return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
     }
-    else {
-        unsigned long long v = PyLong_AsUnsignedLongLong(o);
-        return v == (unsigned long long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
-    }
+    unsigned long long v = PyLong_AsUnsignedLongLong(o);
+    return v == (unsigned long long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
 }
 PYBIND11_NAMESPACE_END(detail)
 
@@ -1161,10 +1240,15 @@ public:
 
 class weakref : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(weakref, object, PyWeakref_Check)
+    PYBIND11_OBJECT_CVT_DEFAULT(weakref, object, PyWeakref_Check, raw_weakref)
     explicit weakref(handle obj, handle callback = {})
         : object(PyWeakref_NewRef(obj.ptr(), callback.ptr()), stolen_t{}) {
         if (!m_ptr) pybind11_fail("Could not allocate weak reference!");
+    }
+
+private:
+    static PyObject *raw_weakref(PyObject *o) {
+        return PyWeakref_NewRef(o, nullptr);
     }
 };
 
@@ -1457,7 +1541,7 @@ public:
         detail::any_container<ssize_t> shape,
         detail::any_container<ssize_t> strides) {
         return memoryview::from_buffer(
-            const_cast<void*>(ptr), itemsize, format, shape, strides, true);
+            const_cast<void *>(ptr), itemsize, format, std::move(shape), std::move(strides), true);
     }
 
     template<typename T>

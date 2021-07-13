@@ -22,7 +22,7 @@ jobs:
         - 3.5
         - 3.6
         - 3.9
-        # - 3.10-dev  # Re-enable once 3.10.0a5 is released
+        - 3.10-dev
         - pypy2
         - pypy3
 
@@ -66,12 +66,16 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
 
-    - name: Setup Boost (Windows / Linux latest)
-      shell: bash
-      run: echo "BOOST_ROOT=$BOOST_ROOT_1_72_0" >> $GITHUB_ENV
+    - name: Setup Boost (Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get install libboost-dev
+
+    - name: Setup Boost (macOS)
+      if: runner.os == 'macOS'
+      run: brew install boost
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.7
+      uses: jwlawson/actions-setup-cmake@v1.9
 
     - name: Cache wheels
       if: runner.os == 'macOS'
@@ -147,7 +151,7 @@ jobs:
     # MSVC, but for now, this action works:
     - name: Prepare compiler environment for Windows 🐍 2.7
       if: matrix.python == 2.7 && runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1.9.0
       with:
         arch: x64
 
@@ -189,7 +193,7 @@ jobs:
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.7
+      uses: jwlawson/actions-setup-cmake@v1.9
 
     - name: Valgrind cache
       if: matrix.valgrind
@@ -380,7 +384,7 @@ jobs:
       run:  yum -y install https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-20-9-20.9-1.x86_64.rpm https://developer.download.nvidia.com/hpc-sdk/20.9/nvhpc-2020-20.9-1.x86_64.rpm
 
     # On CentOS 7, we have to filter a few tests (compiler internal error)
-    # and allow deeper templete recursion (not needed on CentOS 8 with a newer
+    # and allow deeper template recursion (not needed on CentOS 8 with a newer
     # standard library). On some systems, you many need further workarounds:
     # https://github.com/pybind/pybind11/pull/2475
     - name: Configure
@@ -441,7 +445,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.7
+      uses: jwlawson/actions-setup-cmake@v1.9
 
     - name: Configure
       shell: bash
@@ -588,10 +592,21 @@ jobs:
     - name: Install dependencies
       run: python3 -m pip install cmake -r tests/requirements.txt --prefer-binary
 
+    - name: VAR_BUILD_TYPE 7
+      if: matrix.centos == 7
+      run: echo Release > VAR_BUILD_TYPE
+
+    # Using Debug to avoid segfault that appeared around 2021-06-04,
+    # apparently when the gcc version changed from 8.3 to 8.4.
+    - name: VAR_BUILD_TYPE 8
+      if: matrix.centos == 8
+      run: echo Debug > VAR_BUILD_TYPE
+
     - name: Configure
       shell: bash
       run: >
         cmake -S . -B build
+        -DCMAKE_BUILD_TYPE=$(cat VAR_BUILD_TYPE)
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
@@ -723,10 +738,10 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.7
+      uses: jwlawson/actions-setup-cmake@v1.9
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1.9.0
       with:
         arch: x86
 
@@ -769,10 +784,10 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.7
+      uses: jwlawson/actions-setup-cmake@v1.9
 
     - name: Prepare MSVC
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1.9.0
       with:
         toolset: 14.0
 
@@ -823,7 +838,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.7
+      uses: jwlawson/actions-setup-cmake@v1.9
 
     - name: Prepare env
       run: python -m pip install -r tests/requirements.txt --prefer-binary

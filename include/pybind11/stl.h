@@ -144,7 +144,7 @@ template <typename Type, typename Value> struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        if (!isinstance<sequence>(src) || isinstance<str>(src))
+        if (!isinstance<sequence>(src) || isinstance<bytes>(src) || isinstance<str>(src))
             return false;
         auto s = reinterpret_borrow<sequence>(src);
         value.clear();
@@ -159,10 +159,13 @@ template <typename Type, typename Value> struct list_caster {
     }
 
 private:
-    template <typename T = Type,
-              enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
-    void reserve_maybe(sequence s, Type *) { value.reserve(s.size()); }
-    void reserve_maybe(sequence, void *) { }
+    template <
+        typename T                                                                          = Type,
+        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
+    void reserve_maybe(const sequence &s, Type *) {
+        value.reserve(s.size());
+    }
+    void reserve_maybe(const sequence &, void *) {}
 
 public:
     template <typename T>
@@ -275,7 +278,8 @@ template<typename T> struct optional_caster {
     bool load(handle src, bool convert) {
         if (!src) {
             return false;
-        } else if (src.is_none()) {
+        }
+        if (src.is_none()) {
             return true;  // default-constructed value is already empty
         }
         value_conv inner_caster;
@@ -377,7 +381,11 @@ struct type_caster<std::variant<Ts...>> : variant_caster<std::variant<Ts...>> { 
 PYBIND11_NAMESPACE_END(detail)
 
 inline std::ostream &operator<<(std::ostream &os, const handle &obj) {
+#ifdef PYBIND11_HAS_STRING_VIEW
+    os << str(obj).cast<std::string_view>();
+#else
     os << (std::string) str(obj);
+#endif
     return os;
 }
 

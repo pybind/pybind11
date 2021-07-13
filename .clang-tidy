@@ -1,13 +1,45 @@
 FormatStyle: file
 
 Checks: '
+cppcoreguidelines-init-variables,
+clang-analyzer-optin.cplusplus.VirtualCall,
 llvm-namespace-comment,
-modernize-use-override,
-readability-container-size-empty,
-modernize-use-using,
-modernize-use-equals-default,
+misc-misplaced-const,
+misc-static-assert,
+misc-throw-by-value-catch-by-reference,
+misc-uniqueptr-reset-release,
+modernize-avoid-bind,
+modernize-redundant-void-arg,
+modernize-replace-auto-ptr,
+modernize-replace-disallow-copy-and-assign-macro,
+modernize-shrink-to-fit,
 modernize-use-auto,
+modernize-use-bool-literals,
+modernize-use-equals-default,
+modernize-use-equals-delete,
+modernize-use-default-member-init,
+modernize-use-noexcept,
 modernize-use-emplace,
+modernize-use-override,
+modernize-use-using,
+*performance*,
+readability-container-size-empty,
+readability-else-after-return,
+readability-make-member-function-const,
+readability-redundant-function-ptr-dereference,
+readability-redundant-smartptr-get,
+readability-redundant-string-cstr,
+readability-simplify-subscript-expr,
+readability-string-compare,
+readability-uniqueptr-delete-release,
 '
 
+CheckOptions:
+- key:             performance-for-range-copy.WarnOnAllAutoCopies
+  value:           true
+- key:             performance-unnecessary-value-param.AllowedTypes
+  value:           'exception_ptr$;'
+
 HeaderFilterRegex: 'pybind11/.*h'
+
+WarningsAsErrors: '*'

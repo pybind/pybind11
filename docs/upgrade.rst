@@ -10,6 +10,31 @@ modernization and other useful information.
 
 .. _upgrade-guide-2.6:
 
+v2.7
+====
+
+*Before* v2.7, ``py::str`` can hold ``PyUnicodeObject`` or ``PyBytesObject``,
+and ``py::isinstance<str>()`` is ``true`` for both ``py::str`` and
+``py::bytes``. Starting with v2.7, ``py::str`` exclusively holds
+``PyUnicodeObject`` (`#2409 <https://github.com/pybind/pybind11/pull/2409>`_),
+and ``py::isinstance<str>()`` is ``true`` only for ``py::str``. To help in
+the transition of user code, the ``PYBIND11_STR_LEGACY_PERMISSIVE`` macro
+is provided as an escape hatch to go back to the legacy behavior. This macro
+will be removed in future releases. Two types of required fixes are expected
+to be common:
+
+* Accidental use of ``py::str`` instead of ``py::bytes``, masked by the legacy
+  behavior. These are probably very easy to fix, by changing from
+  ``py::str`` to ``py::bytes``.
+
+* Reliance on py::isinstance<str>(obj) being ``true`` for
+  ``py::bytes``. This is likely to be easy to fix in most cases by adding
+  ``|| py::isinstance<bytes>(obj)``, but a fix may be more involved, e.g. if
+  ``py::isinstance<T>`` appears in a template. Such situations will require
+  careful review and custom fixes.
+
+
+
 v2.6
 ====
 
@@ -256,7 +281,7 @@ Within pybind11's CMake build system, ``pybind11_add_module`` has always been
 setting the ``-fvisibility=hidden`` flag in release mode. From now on, it's
 being applied unconditionally, even in debug mode and it can no longer be opted
 out of with the ``NO_EXTRAS`` option. The ``pybind11::module`` target now also
-adds this flag to it's interface. The ``pybind11::embed`` target is unchanged.
+adds this flag to its interface. The ``pybind11::embed`` target is unchanged.
 
 The most significant change here is for the ``pybind11::module`` target. If you
 were previously relying on default visibility, i.e. if your Python module was

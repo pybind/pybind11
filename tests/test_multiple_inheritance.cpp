@@ -11,6 +11,8 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
+namespace {
+
 // Many bases for testing that multiple inheritance from many classes (i.e. requiring extra
 // space for holder constructed flags) works.
 template <int N> struct BaseN {
@@ -43,13 +45,40 @@ int WithStatic2::static_value2 = 2;
 int VanillaStaticMix1::static_value = 12;
 int VanillaStaticMix2::static_value = 12;
 
+// test_multiple_inheritance_virtbase
+struct Base1a {
+    Base1a(int i) : i(i) { }
+    int foo() const { return i; }
+    int i;
+};
+struct Base2a {
+    Base2a(int i) : i(i) { }
+    int bar() const { return i; }
+    int i;
+};
+struct Base12a : Base1a, Base2a {
+    Base12a(int i, int j) : Base1a(i), Base2a(j) { }
+};
+
+// test_mi_unaligned_base
+// test_mi_base_return
+struct I801B1 { int a = 1; I801B1() = default; I801B1(const I801B1 &) = default; virtual ~I801B1() = default; };
+struct I801B2 { int b = 2; I801B2() = default; I801B2(const I801B2 &) = default; virtual ~I801B2() = default; };
+struct I801C : I801B1, I801B2 {};
+struct I801D : I801C {}; // Indirect MI
+
+} // namespace
+
 TEST_SUBMODULE(multiple_inheritance, m) {
+    // Please do not interleave `struct` and `class` definitions with bindings code,
+    // but implement `struct`s and `class`es in the anonymous namespace above.
+    // This helps keeping the smart_holder branch in sync with master.
 
     // test_multiple_inheritance_mix1
     // test_multiple_inheritance_mix2
     struct Base1 {
         Base1(int i) : i(i) { }
-        int foo() { return i; }
+        int foo() const { return i; }
         int i;
     };
     py::class_<Base1> b1(m, "Base1");
@@ -58,7 +87,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
 
     struct Base2 {
         Base2(int i) : i(i) { }
-        int bar() { return i; }
+        int bar() const { return i; }
         int i;
     };
     py::class_<Base2> b2(m, "Base2");
@@ -99,41 +128,24 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     // test_multiple_inheritance_virtbase
     // Test the case where not all base classes are specified, and where pybind11 requires the
     // py::multiple_inheritance flag to perform proper casting between types.
-    struct Base1a {
-        Base1a(int i) : i(i) { }
-        int foo() { return i; }
-        int i;
-    };
     py::class_<Base1a, std::shared_ptr<Base1a>>(m, "Base1a")
         .def(py::init<int>())
         .def("foo", &Base1a::foo);
 
-    struct Base2a {
-        Base2a(int i) : i(i) { }
-        int bar() { return i; }
-        int i;
-    };
     py::class_<Base2a, std::shared_ptr<Base2a>>(m, "Base2a")
         .def(py::init<int>())
         .def("bar", &Base2a::bar);
 
-    struct Base12a : Base1a, Base2a {
-        Base12a(int i, int j) : Base1a(i), Base2a(j) { }
-    };
     py::class_<Base12a, /* Base1 missing */ Base2a,
                std::shared_ptr<Base12a>>(m, "Base12a", py::multiple_inheritance())
         .def(py::init<int, int>());
 
     m.def("bar_base2a", [](Base2a *b) { return b->bar(); });
-    m.def("bar_base2a_sharedptr", [](std::shared_ptr<Base2a> b) { return b->bar(); });
+    m.def("bar_base2a_sharedptr", [](const std::shared_ptr<Base2a> &b) { return b->bar(); });
 
     // test_mi_unaligned_base
     // test_mi_base_return
     // Issue #801: invalid casting to derived type with MI bases
-    struct I801B1 { int a = 1; I801B1() = default; I801B1(const I801B1 &) = default; virtual ~I801B1() = default; };
-    struct I801B2 { int b = 2; I801B2() = default; I801B2(const I801B2 &) = default; virtual ~I801B2() = default; };
-    struct I801C : I801B1, I801B2 {};
-    struct I801D : I801C {}; // Indirect MI
     // Unregistered classes:
     struct I801B3 { int c = 3; virtual ~I801B3() = default; };
     struct I801E : I801B3, I801D {};

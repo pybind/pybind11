@@ -1,4 +1,8 @@
 # Valgrind suppression file for NumPy & SciPy errors and leaks in pybind11 tests
+#
+# On updating a dependency, to get a list of "default" leaks in e.g. NumPy, run
+# `PYTHONMALLOC=malloc valgrind --leak-check=full --show-leak-kinds=definite,indirect python3.9-dbg -c "import numpy"`
+# To use these suppression files, add e.g. `--suppressions=valgrind-numpy-scipy.supp`
 
 {
    Leaks when importing NumPy
@@ -29,7 +33,7 @@
 }
 
 {
-   Leaks when importing NumPy (tris)
+   Leaks when importing NumPy (ter)
    Memcheck:Leak
    fun:malloc
    fun:_PyMem_RawMalloc
@@ -59,6 +63,24 @@
    fun:_PyObject_GC_Malloc
    fun:_PyObject_GC_NewVar
    fun:tuple_alloc
+   fun:_PyTuple_FromArray
+   fun:_PyObject_MakeTpCall
+   fun:_PyObject_VectorcallTstate
+   fun:_PyObject_CallFunctionVa
+   fun:PyObject_CallFunction
+   fun:PyImport_Import
+}
+
+{
+   Leaks when importing NumPy (quinquies)
+   Memcheck:Leak
+   fun:malloc
+   fun:_PyMem_RawMalloc
+   fun:PyObject_Malloc
+   fun:_PyObject_GC_Alloc
+   fun:_PyObject_GC_Malloc
+   fun:_PyObject_GC_NewVar
+   fun:tuple_alloc
    fun:PyTuple_New
    fun:r_object
    fun:r_object
@@ -67,7 +89,7 @@
 }
 
 {
-   Leaks when importing NumPy (quinquies)
+   Leaks when importing NumPy (sexies)
    Memcheck:Leak
    fun:malloc
    fun:_PyMem_RawMalloc
@@ -89,7 +111,7 @@
    fun:_Znwm
    fun:PyInit_pypocketfft
    fun:_PyImport_LoadDynamicModuleWithSpec
-   fun:_imp_create_dynamic_impl.constprop.3
+   fun:_imp_create_dynamic_impl*
    fun:_imp_create_dynamic
    fun:cfunction_vectorcall_FASTCALL
    fun:PyVectorcall_Call

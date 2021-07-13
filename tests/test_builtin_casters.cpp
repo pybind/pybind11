@@ -30,7 +30,11 @@ class type_caster<ConstRefCasted> {
   // cast operator.
   bool load(handle, bool) { return true; }
 
-  operator ConstRefCasted&&() { value = {1}; return std::move(value); }
+  operator ConstRefCasted &&() {
+      value = {1};
+      // NOLINTNEXTLINE(performance-move-const-arg)
+      return std::move(value);
+  }
   operator ConstRefCasted&() { value = {2}; return value; }
   operator ConstRefCasted*() { value = {3}; return &value; }
 
@@ -101,7 +105,7 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_bytes_to_string
     m.def("strlen", [](char *s) { return strlen(s); });
-    m.def("string_length", [](std::string s) { return s.length(); });
+    m.def("string_length", [](const std::string &s) { return s.length(); });
 
 #ifdef PYBIND11_HAS_U8STRING
     m.attr("has_u8string") = true;
@@ -146,9 +150,12 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("int_passthrough_noconvert", [](int arg) { return arg; }, py::arg{}.noconvert());
 
     // test_tuple
-    m.def("pair_passthrough", [](std::pair<bool, std::string> input) {
-        return std::make_pair(input.second, input.first);
-    }, "Return a pair in reversed order");
+    m.def(
+        "pair_passthrough",
+        [](const std::pair<bool, std::string> &input) {
+            return std::make_pair(input.second, input.first);
+        },
+        "Return a pair in reversed order");
     m.def("tuple_passthrough", [](std::tuple<bool, std::string, int> input) {
         return std::make_tuple(std::get<2>(input), std::get<1>(input), std::get<0>(input));
     }, "Return a triple in reversed order");
@@ -177,11 +184,11 @@ TEST_SUBMODULE(builtin_casters, m) {
 
     // test_none_deferred
     m.def("defer_none_cstring", [](char *) { return false; });
-    m.def("defer_none_cstring", [](py::none) { return true; });
+    m.def("defer_none_cstring", [](const py::none &) { return true; });
     m.def("defer_none_custom", [](UserType *) { return false; });
-    m.def("defer_none_custom", [](py::none) { return true; });
+    m.def("defer_none_custom", [](const py::none &) { return true; });
     m.def("nodefer_none_void", [](void *) { return true; });
-    m.def("nodefer_none_void", [](py::none) { return false; });
+    m.def("nodefer_none_void", [](const py::none &) { return false; });
 
     // test_void_caster
     m.def("load_nullptr_t", [](std::nullptr_t) {}); // not useful, but it should still compile
@@ -231,7 +238,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     }, "copy"_a);
 
     m.def("refwrap_iiw", [](const IncType &w) { return w.value(); });
-    m.def("refwrap_call_iiw", [](IncType &w, py::function f) {
+    m.def("refwrap_call_iiw", [](IncType &w, const py::function &f) {
         py::list l;
         l.append(f(std::ref(w)));
         l.append(f(std::cref(w)));

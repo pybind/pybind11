@@ -19,6 +19,8 @@
 #include "local_bindings.h"
 #include <pybind11/stl.h>
 
+#include <utility>
+
 #if defined(_MSC_VER)
 #  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
 #endif
@@ -129,7 +131,7 @@ TEST_SUBMODULE(class_, m) {
     m.def("return_none", []() -> BaseClass* { return nullptr; });
 
     // test_isinstance
-    m.def("check_instances", [](py::list l) {
+    m.def("check_instances", [](const py::list &l) {
         return py::make_tuple(
             py::isinstance<py::tuple>(l[0]),
             py::isinstance<py::dict>(l[1]),
@@ -151,21 +153,16 @@ TEST_SUBMODULE(class_, m) {
         //     return py::type::of<int>();
         if (category == 1)
             return py::type::of<DerivedClass1>();
-        else
-            return py::type::of<Invalid>();
+        return py::type::of<Invalid>();
     });
 
-    m.def("get_type_of", [](py::object ob) {
-        return py::type::of(ob);
-    });
+    m.def("get_type_of", [](py::object ob) { return py::type::of(std::move(ob)); });
 
     m.def("get_type_classic", [](py::handle h) {
         return h.get_type();
     });
 
-    m.def("as_type", [](py::object ob) {
-        return py::type(ob);
-    });
+    m.def("as_type", [](const py::object &ob) { return py::type(ob); });
 
     // test_mismatched_holder
     struct MismatchBase1 { };
@@ -219,7 +216,7 @@ TEST_SUBMODULE(class_, m) {
     py::implicitly_convertible<UserType, ConvertibleFromUserType>();
 
     m.def("implicitly_convert_argument", [](const ConvertibleFromUserType &r) { return r.i; });
-    m.def("implicitly_convert_variable", [](py::object o) {
+    m.def("implicitly_convert_variable", [](const py::object &o) {
         // `o` is `UserType` and `r` is a reference to a temporary created by implicit
         // conversion. This is valid when called inside a bound function because the temp
         // object is attached to the same life support system as the arguments.
@@ -397,7 +394,7 @@ TEST_SUBMODULE(class_, m) {
     struct StringWrapper { std::string str; };
     m.def("test_error_after_conversions", [](int) {});
     m.def("test_error_after_conversions",
-          [](StringWrapper) -> NotRegistered { return {}; });
+          [](const StringWrapper &) -> NotRegistered { return {}; });
     py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
     py::implicitly_convertible<std::string, StringWrapper>();
 
@@ -434,8 +431,7 @@ TEST_SUBMODULE(class_, m) {
     struct SamePointer {};
     static SamePointer samePointer;
     py::class_<SamePointer, std::unique_ptr<SamePointer, py::nodelete>>(m, "SamePointer")
-        .def(py::init([]() { return &samePointer; }))
-        .def("__del__", [](SamePointer&) { py::print("__del__ called"); });
+        .def(py::init([]() { return &samePointer; }));
 
     struct Empty {};
     py::class_<Empty>(m, "Empty")
@@ -462,19 +458,20 @@ TEST_SUBMODULE(class_, m) {
     struct OtherDuplicate {};
     struct DuplicateNested {};
     struct OtherDuplicateNested {};
-    m.def("register_duplicate_class_name", [](py::module_ m) {
+
+    m.def("register_duplicate_class_name", [](const py::module_ &m) {
         py::class_<Duplicate>(m, "Duplicate");
         py::class_<OtherDuplicate>(m, "Duplicate");
     });
-    m.def("register_duplicate_class_type", [](py::module_ m) {
+    m.def("register_duplicate_class_type", [](const py::module_ &m) {
         py::class_<OtherDuplicate>(m, "OtherDuplicate");
         py::class_<OtherDuplicate>(m, "YetAnotherDuplicate");
     });
-    m.def("register_duplicate_nested_class_name", [](py::object gt) {
+    m.def("register_duplicate_nested_class_name", [](const py::object &gt) {
         py::class_<DuplicateNested>(gt, "DuplicateNested");
         py::class_<OtherDuplicateNested>(gt, "DuplicateNested");
     });
-    m.def("register_duplicate_nested_class_type", [](py::object gt) {
+    m.def("register_duplicate_nested_class_type", [](const py::object &gt) {
         py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
         py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
     });
