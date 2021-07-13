@@ -98,6 +98,19 @@ def test_dict(capture, doc):
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
 
+def test_tuple():
+    assert m.get_tuple() == (42, None, "spam")
+
+
+@pytest.mark.skipif("env.PY2")
+def test_namespace():
+    ns = m.get_namespace()
+    assert ns.attr == 42
+    assert ns.x == "foo"
+    assert ns.right == 2
+    assert not hasattr(ns, "wrong")
+
+
 def test_str(doc):
     assert m.str_from_string().encode().decode() == "baz"
     assert m.str_from_bytes().encode().decode() == "boo"

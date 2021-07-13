@@ -20,6 +20,46 @@ Available types include :class:`handle`, :class:`object`, :class:`bool_`,
     Be sure to review the :ref:`pytypes_gotchas` before using this heavily in
     your C++ API.
 
+.. _instantiating_compound_types:
+
+Instantiating compound Python types from C++
+============================================
+
+Dictionaries can be initialized in the :class:`dict` constructor:
+
+.. code-block:: cpp
+
+    using namespace pybind11::literals; // to bring in the `_a` literal
+    py::dict d("spam"_a=py::none(), "eggs"_a=42);
+
+A tuple of python objects can be instantiated using :func:`py::make_tuple`:
+
+.. code-block:: cpp
+
+    py::tuple tup = py::make_tuple(42, py::none(), "spam");
+
+Each element is converted to a supported Python type.
+
+A `simple namespace`_ can be instantiated using :func:`py::make_namespace`:
+
+.. code-block:: cpp
+
+    using namespace pybind11::literals; // to bring in the `_a` literal
+    py::object ns = py::make_namespace("spam"_a=py::none(), "eggs"_a=42);
+
+Attributes on a namespace can be modified with the :func:`py::delattr`,
+:func:`py::getattr`, and :func:`py::setattr` functions. Namespaces can be useful
+as stand-ins for class instances.
+
+.. note::
+
+    ``make_namespace`` is not available in Python 2.
+
+.. versionchanged:: 2.7
+    ``make_namespace`` added.
+
+.. _simple namespace: https://docs.python.org/3/library/types.html#types.SimpleNamespace
+
 .. _casting_back_and_forth:
 
 Casting back and forth
@@ -30,7 +70,7 @@ types to Python, which can be done using :func:`py::cast`:
 
 .. code-block:: cpp
 
-    MyClass *cls = ..;
+    MyClass *cls = ...;
     py::object obj = py::cast(cls);
 
 The reverse direction uses the following syntax:
