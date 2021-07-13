@@ -24,7 +24,7 @@ jobs:
         - 3.9
         - 3.10-dev
         - pypy2
-        - pypy3
+        - pypy-3.7
 
         # Items in here will either be added to the build matrix (if not
         # present), or add new keys to an existing matrix element if all the
@@ -49,7 +49,7 @@ jobs:
           - runs-on: windows-latest
             python: pypy2
           - runs-on: windows-latest
-            python: pypy3
+            python: pypy-3.7
 
           # TODO: PyPy2 7.3.3 segfaults, while 7.3.2 was fine.
           - runs-on: ubuntu-latest
@@ -716,7 +716,7 @@ jobs:
         - 3.7
         - 3.8
         - 3.9
-        - pypy3
+        - pypy-3.7
         # TODO: fix hang on pypy2
 
         include:
