@@ -1,7 +1,7 @@
 # IMPORTANT: Should stay in sync with setup_helpers.py (mostly checked by CI /
 # pre-commit).
 
-from typing import Any, Callable, Iterator, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type, TypeVar, Union
 from types import TracebackType
 
 from distutils.command.build_ext import build_ext as _build_ext  # type: ignore
@@ -33,6 +33,9 @@ def auto_cpp_level(compiler: distutils.ccompiler.CCompiler) -> Union[int, str]: 
 class build_ext(_build_ext):  # type: ignore
     def build_extensions(self) -> None: ...
 
+def intree_extensions(
+    paths: Iterator[str], package_dir: Optional[Dict[str, str]] = None
+) -> List[Pybind11Extension]: ...
 def no_recompile(obj: str, src: str) -> bool: ...
 def naive_recompile(obj: str, src: str) -> bool: ...
 
