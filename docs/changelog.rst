@@ -9,11 +9,142 @@ Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 v2.7.0 (TBA, not yet released)
 ------------------------------
 
+New features:
+
+* Enable ``py::implicitly_convertible<py::none, ...>`` for
+  ``py::class_``-wrapped types.
+  `#3059 <https://github.com/pybind/pybind11/pull/3059>`_
+
+* Allow function pointer extraction from overloaded functions.
+  `#2944 <https://github.com/pybind/pybind11/pull/2944>`_
+
+* NumPy: added ``.char_()`` to type which gives the NumPy public ``char``
+  result, which also distinguishes types by bit length (unlike ``.kind()``).
+  `#2864 <https://github.com/pybind/pybind11/pull/2864>`_
+
+* Add ``pybind11::bytearray`` to manipulate ``bytearray`` similar to ``bytes``.
+  `#2799 <https://github.com/pybind/pybind11/pull/2799>`_
+
+* ``pybind11/stl/filesystem.h`` registers a type caster that, on C++17/Python
+  3.6+, converts ``std::filesystem::path`` to ``pathlib.Path`` and any
+  ``os.PathLike`` to ``std::filesystem::path``.
+  `#2730 <https://github.com/pybind/pybind11/pull/2730>`_
+
+
+Changes:
+
 * ``py::str`` changed to exclusively hold `PyUnicodeObject`. Previously
   ``py::str`` could also hold `bytes`, which is probably surprising, was
   never documented, and can mask bugs (e.g. accidental use of ``py::str``
   instead of ``py::bytes``).
   `#2409 <https://github.com/pybind/pybind11/pull/2409>`_
+
+* Add a safety guard to ensure that the Python GIL is held when C++ calls back
+  into Python via ``object_api<>::operator()`` (e.g. ``py::function``
+  ``__call__``).  (This feature is available for Python 3.6+ only.)
+  `#2919 <https://github.com/pybind/pybind11/pull/2919>`_
+
+* Catch a missing ``self`` argument in calls to ``__init__()``.
+  `#2914 <https://github.com/pybind/pybind11/pull/2914>`_
+
+* Use ``std::string_view`` if available to avoid a copy when passing an object
+  to a ``std::ostream``.
+  `#3042 <https://github.com/pybind/pybind11/pull/3042>`_
+
+* An important warning about thread safety was added to the ``iostream.h``
+  documentation; attempts to make ``py::scoped_ostream_redirect`` thread safe
+  have been removed, as it was only partially effective.
+  `#2995 <https://github.com/pybind/pybind11/pull/2995>`_
+
+
+Fixes:
+
+* Performance: avoid unnecessary strlen calls.
+  `#3058 <https://github.com/pybind/pybind11/pull/3058>`_
+
+* Fix auto-generated documentation string when using ``const T`` in
+  ``pyarray_t``.
+  `#3020 <https://github.com/pybind/pybind11/pull/3020>`_
+
+* Unify error messages thrown by ``simple_collector``/``unpacking_collector``.
+  `#3013 <https://github.com/pybind/pybind11/pull/3013>`_
+
+* ``pybind11::builtin_exception`` is now explicitly exported, which means the
+  types included/defined in different modules are identical, and exceptions
+  raised in different modules can be caught correctly. The documentation was
+  updated to explain that custom exceptions that are used across module
+  boundaries need to be explicitly exported as well.
+  `#2999 <https://github.com/pybind/pybind11/pull/2999>`_
+
+* Fixed exception when printing UTF-8 to a ``scoped_ostream_redirect``.
+  `#2982 <https://github.com/pybind/pybind11/pull/2982>`_
+
+* Pickle support enhancement: ``setstate`` implementation will attempt to
+  ``setattr`` ``__dict__`` only if the unpickled ``dict`` object is not empty,
+  to not force use of ``py::dynamic_attr()`` unnecessarily.
+  `#2972 <https://github.com/pybind/pybind11/pull/2972>`_
+
+* Allow negative timedelta values to roundtrip.
+  `#2870 <https://github.com/pybind/pybind11/pull/2870>`_
+
+* Fix unchecked errors could potentially swallow signals/other exceptions.
+  `#2863 <https://github.com/pybind/pybind11/pull/2863>`_
+
+* Add null pointer check with ``std::localtime``.
+  `#2846 <https://github.com/pybind/pybind11/pull/2846>`_
+
+* Fix the ``weakref`` constructor from ``py::object`` to create a new
+  ``weakref`` on conversion.
+  `#2832 <https://github.com/pybind/pybind11/pull/2832>`_
+
+* Avoid relying on exceptions in C++17 when getting a ``shared_ptr`` holder
+  from a ``shared_from_this`` class.
+  `#2819 <https://github.com/pybind/pybind11/pull/2819>`_
+
+
+Build system improvements:
+
+* In ``setup_helpers.py``, test for platforms that have some multiprocessing
+  features but lack semaphores, which ``ParallelCompile`` requires.
+  `#3043 <https://github.com/pybind/pybind11/pull/3043>`_
+
+* Fix ``pybind11_INCLUDE_DIR`` in case ``CMAKE_INSTALL_INCLUDEDIR`` is
+  absolute.
+  `#3005 <https://github.com/pybind/pybind11/pull/3005>`_
+
+* Fix bug not respecting ``WITH_SOABI`` or ``WITHOUT_SOABI`` to CMake.
+  `#2938 <https://github.com/pybind/pybind11/pull/2938>`_
+
+* Fix the default ``Pybind11Extension`` compilation flags with a Mingw64 python.
+  `#2921 <https://github.com/pybind/pybind11/pull/2921>`_
+
+* Clang on Windows: do not pass ``/MP`` (ignored flag).
+  `#2824 <https://github.com/pybind/pybind11/pull/2824>`_
+
+
+Backend and tidying up:
+
+* Enable clang-tidy performance, readability, and modernization checks
+  throughout the codebase to enforce best coding practices.
+  `#3046 <https://github.com/pybind/pybind11/pull/3046>`_,
+  `#3049 <https://github.com/pybind/pybind11/pull/3049>`_,
+  `#3051 <https://github.com/pybind/pybind11/pull/3051>`_,
+  `#3052 <https://github.com/pybind/pybind11/pull/3052>`_, and
+  `#3080 <https://github.com/pybind/pybind11/pull/3080>`_
+
+* Checks for common misspellings were added to the pre-commit hooks.
+  `#3076 <https://github.com/pybind/pybind11/pull/3076>`_
+
+* Changed ``Werror`` to stricter ``Werror-all`` for Intel compiler and fixed
+  minor issues.
+  `#2948 <https://github.com/pybind/pybind11/pull/2948>`_
+
+* Fixed compilation with GCC < 5 when the user defines ``_GLIBCXX_USE_CXX11_ABI``.
+  `#2956 <https://github.com/pybind/pybind11/pull/2956>`_
+
+* Added nox support for easier local testing and linting of contributions.
+  `#3101 <https://github.com/pybind/pybind11/pull/3101>`_
+
 
 
 v2.6.2 (Jan 26, 2021)
@@ -504,7 +635,7 @@ v2.4.0 (Sep 19, 2019)
   `#1888 <https://github.com/pybind/pybind11/pull/1888>`_.
 
 * ``py::details::overload_cast_impl`` is available in C++11 mode, can be used
-  like ``overload_cast`` with an additional set of parantheses.
+  like ``overload_cast`` with an additional set of parentheses.
   `#1581 <https://github.com/pybind/pybind11/pull/1581>`_.
 
 * Fixed ``get_include()`` on Conda.

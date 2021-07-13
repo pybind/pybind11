@@ -10,9 +10,12 @@
 
 #include "pybind11_tests.h"
 #include "local_bindings.h"
+
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+
 #include <numeric>
+#include <utility>
 
 TEST_SUBMODULE(local_bindings, m) {
     // test_load_external
@@ -86,7 +89,10 @@ TEST_SUBMODULE(local_bindings, m) {
     m.def("return_self", [](LocalVec *v) { return v; });
     m.def("return_copy", [](const LocalVec &v) { return LocalVec(v); });
 
-    class Cat : public pets::Pet { public: Cat(std::string name) : Pet(name) {}; };
+    class Cat : public pets::Pet {
+    public:
+        Cat(std::string name) : Pet(std::move(name)) {}
+    };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("get_name", &pets::Pet::name);
     // Binding for local extending class:

@@ -230,7 +230,7 @@ function(pybind11_add_module target_name)
   endif()
 
   # If we don't pass a WITH_SOABI or WITHOUT_SOABI, use our own default handling of extensions
-  if(NOT ARG_WITHOUT_SOABI OR NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
+  if(NOT ARG_WITHOUT_SOABI AND NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
     pybind11_extension(${target_name})
   endif()
 

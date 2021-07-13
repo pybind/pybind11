@@ -170,7 +170,7 @@ struct SharedPtrRef {
     struct A {
         A() { print_created(this); }
         A(const A &) { print_copy_created(this); }
-        A(A &&) { print_move_created(this); }
+        A(A &&) noexcept { print_move_created(this); }
         ~A() { print_destroyed(this); }
     };
 
@@ -183,7 +183,7 @@ struct SharedFromThisRef {
     struct B : std::enable_shared_from_this<B> {
         B() { print_created(this); }
         B(const B &) : std::enable_shared_from_this<B>() { print_copy_created(this); }
-        B(B &&) : std::enable_shared_from_this<B>() { print_move_created(this); }
+        B(B &&) noexcept : std::enable_shared_from_this<B>() { print_move_created(this); }
         ~B() { print_destroyed(this); }
     };
 
@@ -209,7 +209,9 @@ struct C {
 struct TypeForHolderWithAddressOf {
     TypeForHolderWithAddressOf() { print_created(this); }
     TypeForHolderWithAddressOf(const TypeForHolderWithAddressOf &) { print_copy_created(this); }
-    TypeForHolderWithAddressOf(TypeForHolderWithAddressOf &&) { print_move_created(this); }
+    TypeForHolderWithAddressOf(TypeForHolderWithAddressOf &&) noexcept {
+        print_move_created(this);
+    }
     ~TypeForHolderWithAddressOf() { print_destroyed(this); }
     std::string toString() const {
         return "TypeForHolderWithAddressOf[" + std::to_string(value) + "]";
@@ -240,12 +242,12 @@ struct ElementBase {
 
 struct ElementA : ElementBase {
     ElementA(int v) : v(v) { }
-    int value() { return v; }
+    int value() const { return v; }
     int v;
 };
 
 struct ElementList {
-    void add(std::shared_ptr<ElementBase> e) { l.push_back(e); }
+    void add(const std::shared_ptr<ElementBase> &e) { l.push_back(e); }
     std::vector<std::shared_ptr<ElementBase>> l;
 };
 
@@ -308,6 +310,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     m.def("make_myobject2_1", []() { return new MyObject2(6); });
     m.def("make_myobject2_2", []() { return std::make_shared<MyObject2>(7); });
     m.def("print_myobject2_1", [](const MyObject2 *obj) { py::print(obj->toString()); });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("print_myobject2_2", [](std::shared_ptr<MyObject2> obj) { py::print(obj->toString()); });
     m.def("print_myobject2_3", [](const std::shared_ptr<MyObject2> &obj) { py::print(obj->toString()); });
     m.def("print_myobject2_4", [](const std::shared_ptr<MyObject2> *obj) { py::print((*obj)->toString()); });
@@ -317,6 +320,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     m.def("make_myobject3_1", []() { return new MyObject3(8); });
     m.def("make_myobject3_2", []() { return std::make_shared<MyObject3>(9); });
     m.def("print_myobject3_1", [](const MyObject3 *obj) { py::print(obj->toString()); });
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("print_myobject3_2", [](std::shared_ptr<MyObject3> obj) { py::print(obj->toString()); });
     m.def("print_myobject3_3", [](const std::shared_ptr<MyObject3> &obj) { py::print(obj->toString()); });
     m.def("print_myobject3_4", [](const std::shared_ptr<MyObject3> *obj) { py::print((*obj)->toString()); });
@@ -358,12 +362,15 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<SharedPtrRef, std::unique_ptr<SharedPtrRef>>(m, "SharedPtrRef")
         .def(py::init<>())
         .def_readonly("ref", &SharedPtrRef::value)
-        .def_property_readonly("copy", [](const SharedPtrRef &s) { return s.value; },
-                               py::return_value_policy::copy)
+        .def_property_readonly(
+            "copy", [](const SharedPtrRef &s) { return s.value; }, py::return_value_policy::copy)
         .def_readonly("holder_ref", &SharedPtrRef::shared)
-        .def_property_readonly("holder_copy", [](const SharedPtrRef &s) { return s.shared; },
-                               py::return_value_policy::copy)
+        .def_property_readonly(
+            "holder_copy",
+            [](const SharedPtrRef &s) { return s.shared; },
+            py::return_value_policy::copy)
         .def("set_ref", [](SharedPtrRef &, const A &) { return true; })
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
         .def("set_holder", [](SharedPtrRef &, std::shared_ptr<A>) { return true; });
 
     // test_shared_ptr_from_this_and_references
@@ -372,13 +379,19 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<SharedFromThisRef, std::unique_ptr<SharedFromThisRef>>(m, "SharedFromThisRef")
         .def(py::init<>())
         .def_readonly("bad_wp", &SharedFromThisRef::value)
-        .def_property_readonly("ref", [](const SharedFromThisRef &s) -> const B & { return *s.shared; })
-        .def_property_readonly("copy", [](const SharedFromThisRef &s) { return s.value; },
-                               py::return_value_policy::copy)
+        .def_property_readonly("ref",
+                               [](const SharedFromThisRef &s) -> const B & { return *s.shared; })
+        .def_property_readonly(
+            "copy",
+            [](const SharedFromThisRef &s) { return s.value; },
+            py::return_value_policy::copy)
         .def_readonly("holder_ref", &SharedFromThisRef::shared)
-        .def_property_readonly("holder_copy", [](const SharedFromThisRef &s) { return s.shared; },
-                               py::return_value_policy::copy)
+        .def_property_readonly(
+            "holder_copy",
+            [](const SharedFromThisRef &s) { return s.shared; },
+            py::return_value_policy::copy)
         .def("set_ref", [](SharedFromThisRef &, const B &) { return true; })
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
         .def("set_holder", [](SharedFromThisRef &, std::shared_ptr<B>) { return true; });
 
     // Issue #865: shared_from_this doesn't work with virtual inheritance
@@ -396,10 +409,14 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<TypeForHolderWithAddressOf, HolderWithAddressOf>(m, "TypeForHolderWithAddressOf")
         .def_static("make", []() { return HolderWithAddressOf(new TypeForHolderWithAddressOf); })
         .def("get", [](const HolderWithAddressOf &self) { return self.get(); })
-        .def("print_object_1", [](const TypeForHolderWithAddressOf *obj) { py::print(obj->toString()); })
+        .def("print_object_1",
+             [](const TypeForHolderWithAddressOf *obj) { py::print(obj->toString()); })
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
         .def("print_object_2", [](HolderWithAddressOf obj) { py::print(obj.get()->toString()); })
-        .def("print_object_3", [](const HolderWithAddressOf &obj) { py::print(obj.get()->toString()); })
-        .def("print_object_4", [](const HolderWithAddressOf *obj) { py::print((*obj).get()->toString()); });
+        .def("print_object_3",
+             [](const HolderWithAddressOf &obj) { py::print(obj.get()->toString()); })
+        .def("print_object_4",
+             [](const HolderWithAddressOf *obj) { py::print((*obj).get()->toString()); });
 
     // test_move_only_holder_with_addressof_operator
     using MoveOnlyHolderWithAddressOf = unique_ptr_with_addressof_operator<TypeForMoveOnlyHolderWithAddressOf>;
@@ -411,6 +428,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     // test_smart_ptr_from_default
     py::class_<HeldByDefaultHolder, std::unique_ptr<HeldByDefaultHolder>>(m, "HeldByDefaultHolder")
         .def(py::init<>())
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
         .def_static("load_shared_ptr", [](std::shared_ptr<HeldByDefaultHolder>) {});
 
     // test_shared_ptr_gc

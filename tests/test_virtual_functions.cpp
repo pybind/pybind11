@@ -17,7 +17,10 @@ class ExampleVirt  {
 public:
     ExampleVirt(int state) : state(state) { print_created(this, state); }
     ExampleVirt(const ExampleVirt &e) : state(e.state) { print_copy_created(this); }
-    ExampleVirt(ExampleVirt &&e) : state(e.state) { print_move_created(this); e.state = 0; }
+    ExampleVirt(ExampleVirt &&e) noexcept : state(e.state) {
+        print_move_created(this);
+        e.state = 0;
+    }
     virtual ~ExampleVirt() { print_destroyed(this); }
 
     virtual int run(int value) {
@@ -100,13 +103,18 @@ public:
 class NonCopyable {
 public:
     NonCopyable(int a, int b) : value{new int(a*b)} { print_created(this, a, b); }
-    NonCopyable(NonCopyable &&o) { value = std::move(o.value); print_move_created(this); }
+    NonCopyable(NonCopyable &&o) noexcept {
+        value = std::move(o.value);
+        print_move_created(this);
+    }
     NonCopyable(const NonCopyable &) = delete;
     NonCopyable() = delete;
     void operator=(const NonCopyable &) = delete;
     void operator=(NonCopyable &&) = delete;
     std::string get_value() const {
-        if (value) return std::to_string(*value); else return "(null)";
+        if (value)
+            return std::to_string(*value);
+        return "(null)";
     }
     ~NonCopyable() { print_destroyed(this); }
 
@@ -120,7 +128,10 @@ class Movable {
 public:
     Movable(int a, int b) : value{a+b} { print_created(this, a, b); }
     Movable(const Movable &m) { value = m.value; print_copy_created(this); }
-    Movable(Movable &&m) { value = std::move(m.value); print_move_created(this); }
+    Movable(Movable &&m) noexcept {
+        value = m.value;
+        print_move_created(this);
+    }
     std::string get_value() const { return std::to_string(value); }
     ~Movable() { print_destroyed(this); }
 private:

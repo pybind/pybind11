@@ -7,7 +7,10 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include "test_exceptions.h"
+
 #include "pybind11_tests.h"
+#include <utility>
 
 // A type that should be raised as an exception in Python
 class MyException : public std::exception {
@@ -198,34 +201,38 @@ TEST_SUBMODULE(exceptions, m) {
         throw py::error_already_set();
     });
 
-    m.def("python_call_in_destructor", [](py::dict d) {
+    m.def("python_call_in_destructor", [](const py::dict &d) {
+        bool retval = false;
         try {
             PythonCallInDestructor set_dict_in_destructor(d);
             PyErr_SetString(PyExc_ValueError, "foo");
             throw py::error_already_set();
         } catch (const py::error_already_set&) {
-            return true;
+            retval = true;
         }
-        return false;
+        return retval;
     });
 
-    m.def("python_alreadyset_in_destructor", [](py::str s) {
+    m.def("python_alreadyset_in_destructor", [](const py::str &s) {
         PythonAlreadySetInDestructor alreadyset_in_destructor(s);
         return true;
     });
 
     // test_nested_throws
-    m.def("try_catch", [m](py::object exc_type, py::function f, py::args args) {
-        try { f(*args); }
-        catch (py::error_already_set &ex) {
-            if (ex.matches(exc_type))
-                py::print(ex.what());
-            else
-                throw;
-        }
-    });
+    m.def("try_catch",
+          [m](const py::object &exc_type, const py::function &f, const py::args &args) {
+              try {
+                  f(*args);
+              } catch (py::error_already_set &ex) {
+                  if (ex.matches(exc_type))
+                      py::print(ex.what());
+                  else
+                      throw;
+              }
+          });
 
     // Test repr that cannot be displayed
     m.def("simple_bool_passthrough", [](bool x) {return x;});
 
+    m.def("throw_should_be_translated_to_key_error", []() { throw shared_exception(); });
 }

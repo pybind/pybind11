@@ -65,7 +65,7 @@ def test_set(capture, doc):
     """
     )
 
-    assert not m.set_contains(set([]), 42)
+    assert not m.set_contains(set(), 42)
     assert m.set_contains({42}, 42)
     assert m.set_contains({"foo"}, "foo")
 
@@ -380,10 +380,10 @@ def test_print(capture):
 
     with pytest.raises(RuntimeError) as excinfo:
         m.print_failure()
-    assert str(excinfo.value) == "make_tuple(): unable to convert " + (
-        "argument of type 'UnregisteredType' to Python object"
+    assert str(excinfo.value) == "Unable to convert call argument " + (
+        "'1' of type 'UnregisteredType' to Python object"
         if debug_enabled
-        else "arguments to Python object (compile in debug mode for details)"
+        else "to Python object (compile in debug mode for details)"
     )
 
 
@@ -456,7 +456,7 @@ def test_memoryview(method, args, fmt, expected_view):
         view_as_list = list(view)
     else:
         # Using max to pick non-zero byte (big-endian vs little-endian).
-        view_as_list = [max([ord(c) for c in s]) for s in view]
+        view_as_list = [max(ord(c) for c in s) for s in view]
     assert view_as_list == list(expected_view)
 
 

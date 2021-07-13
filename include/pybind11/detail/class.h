@@ -162,9 +162,7 @@ extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name
         Py_INCREF(descr);
         return descr;
     }
-    else {
-        return PyType_Type.tp_getattro(obj, name);
-    }
+    return PyType_Type.tp_getattro(obj, name);
 }
 #endif
 
@@ -329,7 +327,7 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
 inline PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first inherited
-    // object is a a plain Python type (i.e. not derived from an extension type).  Fix it.
+    // object is a plain Python type (i.e. not derived from an extension type).  Fix it.
     ssize_t instance_size = static_cast<ssize_t>(sizeof(instance));
     if (type->tp_basicsize < instance_size) {
         type->tp_basicsize = instance_size;

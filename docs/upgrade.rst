@@ -281,7 +281,7 @@ Within pybind11's CMake build system, ``pybind11_add_module`` has always been
 setting the ``-fvisibility=hidden`` flag in release mode. From now on, it's
 being applied unconditionally, even in debug mode and it can no longer be opted
 out of with the ``NO_EXTRAS`` option. The ``pybind11::module`` target now also
-adds this flag to it's interface. The ``pybind11::embed`` target is unchanged.
+adds this flag to its interface. The ``pybind11::embed`` target is unchanged.
 
 The most significant change here is for the ``pybind11::module`` target. If you
 were previously relying on default visibility, i.e. if your Python module was

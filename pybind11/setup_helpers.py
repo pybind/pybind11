@@ -47,6 +47,7 @@ import tempfile
 import threading
 import platform
 import warnings
+import sysconfig
 
 try:
     from setuptools.command.build_ext import build_ext as _build_ext
@@ -59,7 +60,7 @@ import distutils.errors
 import distutils.ccompiler
 
 
-WIN = sys.platform.startswith("win32")
+WIN = sys.platform.startswith("win32") and sysconfig.get_platform() != "mingw"
 PY2 = sys.version_info[0] < 3
 MACOS = sys.platform.startswith("darwin")
 STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
@@ -84,7 +85,7 @@ class Pybind11Extension(_Extension):
     * ``stdlib=libc++`` on macOS
     * ``visibility=hidden`` and ``-g0`` on Unix
 
-    Finally, you can set ``cxx_std`` via constructor or afterwords to enable
+    Finally, you can set ``cxx_std`` via constructor or afterwards to enable
     flags for C++ std, and a few extra helper flags related to the C++ standard
     level. It is _highly_ recommended you either set this, or use the provided
     ``build_ext``, which will search for the highest supported extension for
@@ -409,7 +410,9 @@ class ParallelCompile(object):
                     compiler._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
 
             try:
-                import multiprocessing
+                # Importing .synchronize checks for platforms that have some multiprocessing
+                # capabilities but lack semaphores, such as AWS Lambda and Android Termux.
+                import multiprocessing.synchronize
                 from multiprocessing.pool import ThreadPool
             except ImportError:
                 threads = 1

@@ -276,6 +276,8 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         // initial exception translator, below, so add another for our local exception classes.
         //
         // libstdc++ doesn't require this (types there are identified only by name)
+        // libc++ with CPython doesn't require this (types are explicitly exported)
+        // libc++ with PyPy still need it, awaiting further investigation
 #if !defined(__GLIBCXX__)
         (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif
