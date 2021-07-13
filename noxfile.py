@@ -56,8 +56,7 @@ def docs(session: nox.Session) -> None:
     if "pdf" in session.posargs:
         session.run("sphinx-build", "-M", "latexpdf", ".", "_build")
         return
-    else:
-        session.run("sphinx-build", "-M", "html", ".", "_build")
+    session.run("sphinx-build", "-M", "html", ".", "_build")
 
     if "serve" in session.posargs:
         print("Launching docs at http://localhost:8000/ - use Ctrl-C to quit")
