@@ -40,7 +40,7 @@ except ImportError:
         sys.stderr = original
 
 
-NUM_RUNS = 1000
+NUM_RUNS = 1001
 
 
 def test_captured(capsys):
