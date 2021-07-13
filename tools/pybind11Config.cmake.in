@@ -87,7 +87,7 @@ you can either use the basic targets, or use the FindPython tools:
   target_link_libraries(MyModule2 pybind11::headers)
   set_target_properties(MyModule2 PROPERTIES
                                   INTERPROCEDURAL_OPTIMIZATION ON
-                                  CXX__VISIBILITY_PRESET ON
+                                  CXX_VISIBILITY_PRESET ON
                                   VISIBLITY_INLINES_HIDDEN ON)
 
 If you build targets yourself, you may be interested in stripping the output
@@ -139,7 +139,7 @@ This module defines the following commands to assist with creating Python module
 
   pybind11_add_module(<target>
     [STATIC|SHARED|MODULE]
-    [THIN_LTO] [OPT_SIZE] [NO_EXTRAS] [WITHOUT_SOBAI]
+    [THIN_LTO] [OPT_SIZE] [NO_EXTRAS] [WITHOUT_SOABI]
     <files>...
     )
 
@@ -201,7 +201,7 @@ Using ``find_package`` with version info is not recommended except for release v
 @PACKAGE_INIT@
 
 # Location of pybind11/pybind11.h
-set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@")
+set(pybind11_INCLUDE_DIR "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
 
 set(pybind11_LIBRARY "")
 set(pybind11_DEFINITIONS USING_pybind11)

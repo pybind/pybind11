@@ -53,6 +53,33 @@ derivative works thereof, in binary and source code form.
 
 ## Development of pybind11
 
+### Quick setup
+
+To setup a quick development environment, use [`nox`](https://nox.thea.codes).
+This will allow you to do some common tasks with minimal setup effort, but will
+take more time to run and be less flexible than a full development environment.
+If you use [`pipx run nox`](https://pipx.pypa.io), you don't even need to
+install `nox`. Examples:
+
+```bash
+# List all available sessions
+nox -l
+
+# Run linters
+nox -s lint
+
+# Run tests
+nox -s tests
+
+# Build and preview docs
+nox -s docs -- serve
+
+# Build SDists and wheels
+nox -s build
+```
+
+### Full setup
+
 To setup an ideal development environment, run the following commands on a
 system with CMake 3.14+:
 
@@ -126,13 +153,25 @@ cmake --build build --target check
 `--target` can be spelled `-t` in CMake 3.15+. You can also run individual
 tests with these targets:
 
-* `pytest`: Python tests only
+* `pytest`: Python tests only, using the
+[pytest](https://docs.pytest.org/en/stable/) framework
 * `cpptest`: C++ tests only
 * `test_cmake_build`: Install / subdirectory tests
 
 If you want to build just a subset of tests, use
 `-DPYBIND11_TEST_OVERRIDE="test_callbacks.cpp;test_pickling.cpp"`. If this is
 empty, all tests will be built.
+
+You may also pass flags to the `pytest` target by editing `tests/pytest.ini` or
+by using the `PYTEST_ADDOPTS` environment variable
+(see [`pytest` docs](https://docs.pytest.org/en/2.7.3/customize.html#adding-default-options)). As an example:
+
+```bash
+env PYTEST_ADDOPTS="--capture=no --exitfirst" \
+    cmake --build build --target pytest
+# Or using abbreviated flags
+env PYTEST_ADDOPTS="-s -x" cmake --build build --target pytest
+```
 
 ### Formatting
 
@@ -164,16 +203,42 @@ name, pre-commit):
 pre-commit install
 ```
 
-### Clang-Tidy
+### Clang-Format
 
-To run Clang tidy, the following recipe should work. Files will be modified in
-place, so you can use git to monitor the changes.
+As of v2.6.2, pybind11 ships with a [`clang-format`][clang-format]
+configuration file at the top level of the repo (the filename is
+`.clang-format`). Currently, formatting is NOT applied automatically, but
+manually using `clang-format` for newly developed files is highly encouraged.
+To check if a file needs formatting:
 
 ```bash
-docker run --rm -v $PWD:/pybind11 -it silkeh/clang:10
-apt-get update && apt-get install python3-dev python3-pytest
-cmake -S pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);-fix"
-cmake --build build
+clang-format -style=file --dry-run some.cpp
+```
+
+The output will show things to be fixed, if any. To actually format the file:
+
+```bash
+clang-format -style=file -i some.cpp
+```
+
+Note that the `-style-file` option searches the parent directories for the
+`.clang-format` file, i.e. the commands above can be run in any subdirectory
+of the pybind11 repo.
+
+### Clang-Tidy
+
+[`clang-tidy`][clang-tidy] performs deeper static code analyses and is
+more complex to run, compared to `clang-format`, but support for `clang-tidy`
+is built into the pybind11 CMake configuration. To run `clang-tidy`, the
+following recipe should work. Run the `docker` command from the top-level
+directory inside your pybind11 git clone. Files will be modified in place,
+so you can use git to monitor the changes.
+
+```bash
+docker run --rm -v $PWD:/mounted_pybind11 -it silkeh/clang:12
+apt-get update && apt-get install -y python3-dev python3-pytest
+cmake -S /mounted_pybind11/ -B build -DCMAKE_CXX_CLANG_TIDY="$(which clang-tidy);-fix" -DDOWNLOAD_EIGEN=ON -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=17
+cmake --build build -j 2 -- --keep-going
 ```
 
 ### Include what you use
@@ -186,7 +251,7 @@ cmake -S . -B build-iwyu -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=$(which include-what-y
 cmake --build build
 ```
 
-The report is sent to stderr; you can pip it into a file if you wish.
+The report is sent to stderr; you can pipe it into a file if you wish.
 
 ### Build recipes
 
@@ -313,6 +378,8 @@ if you really want to.
 
 
 [pre-commit]: https://pre-commit.com
+[clang-format]: https://clang.llvm.org/docs/ClangFormat.html
+[clang-tidy]: https://clang.llvm.org/extra/clang-tidy/
 [pybind11.readthedocs.org]: http://pybind11.readthedocs.org/en/latest
 [issue tracker]: https://github.com/pybind/pybind11/issues
 [gitter]: https://gitter.im/pybind/Lobby

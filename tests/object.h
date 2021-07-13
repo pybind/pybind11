@@ -81,7 +81,7 @@ public:
     }
 
     /// Move constructor
-    ref(ref &&r) : m_ptr(r.m_ptr) {
+    ref(ref &&r) noexcept : m_ptr(r.m_ptr) {
         r.m_ptr = nullptr;
 
         print_move_created(this, "with pointer", m_ptr); track_move_created((ref_tag*) this);
@@ -96,7 +96,7 @@ public:
     }
 
     /// Move another reference into the current one
-    ref& operator=(ref&& r) {
+    ref &operator=(ref &&r) noexcept {
         print_move_assigned(this, "pointer", r.m_ptr); track_move_assigned((ref_tag*) this);
 
         if (*this == r)

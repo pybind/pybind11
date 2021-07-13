@@ -13,15 +13,24 @@ def test_unscoped_enum():
 
     # name property
     assert m.UnscopedEnum.EOne.name == "EOne"
+    assert m.UnscopedEnum.EOne.value == 1
     assert m.UnscopedEnum.ETwo.name == "ETwo"
-    assert m.EOne.name == "EOne"
-    # name readonly
+    assert m.UnscopedEnum.ETwo.value == 2
+    assert m.EOne is m.UnscopedEnum.EOne
+    # name, value readonly
     with pytest.raises(AttributeError):
         m.UnscopedEnum.EOne.name = ""
-    # name returns a copy
-    foo = m.UnscopedEnum.EOne.name
-    foo = "bar"
+    with pytest.raises(AttributeError):
+        m.UnscopedEnum.EOne.value = 10
+    # name, value returns a copy
+    # TODO: Neither the name nor value tests actually check against aliasing.
+    # Use a mutable type that has reference semantics.
+    nonaliased_name = m.UnscopedEnum.EOne.name
+    nonaliased_name = "bar"  # noqa: F841
     assert m.UnscopedEnum.EOne.name == "EOne"
+    nonaliased_value = m.UnscopedEnum.EOne.value
+    nonaliased_value = 10  # noqa: F841
+    assert m.UnscopedEnum.EOne.value == 1
 
     # __members__ property
     assert m.UnscopedEnum.__members__ == {
@@ -33,8 +42,8 @@ def test_unscoped_enum():
     with pytest.raises(AttributeError):
         m.UnscopedEnum.__members__ = {}
     # __members__ returns a copy
-    foo = m.UnscopedEnum.__members__
-    foo["bar"] = "baz"
+    nonaliased_members = m.UnscopedEnum.__members__
+    nonaliased_members["bar"] = "baz"
     assert m.UnscopedEnum.__members__ == {
         "EOne": m.UnscopedEnum.EOne,
         "ETwo": m.UnscopedEnum.ETwo,
@@ -73,25 +82,25 @@ Members:
     assert not (y == "2")
 
     with pytest.raises(TypeError):
-        y < object()
+        y < object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y <= object()
+        y <= object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y > object()
+        y > object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y >= object()
+        y >= object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y | object()
+        y | object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y & object()
+        y & object()  # noqa: B015
 
     with pytest.raises(TypeError):
-        y ^ object()
+        y ^ object()  # noqa: B015
 
     assert int(m.UnscopedEnum.ETwo) == 2
     assert str(m.UnscopedEnum(2)) == "UnscopedEnum.ETwo"
@@ -134,13 +143,13 @@ def test_scoped_enum():
     assert not (z == object())
     # Scoped enums will *NOT* accept >, <, >= and <= int comparisons (Will throw exceptions)
     with pytest.raises(TypeError):
-        z > 3
+        z > 3  # noqa: B015
     with pytest.raises(TypeError):
-        z < 3
+        z < 3  # noqa: B015
     with pytest.raises(TypeError):
-        z >= 3
+        z >= 3  # noqa: B015
     with pytest.raises(TypeError):
-        z <= 3
+        z <= 3  # noqa: B015
 
     # order
     assert m.ScopedEnum.Two < m.ScopedEnum.Three

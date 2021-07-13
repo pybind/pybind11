@@ -16,9 +16,18 @@ class Vector2 {
 public:
     Vector2(float x, float y) : x(x), y(y) { print_created(this, toString()); }
     Vector2(const Vector2 &v) : x(v.x), y(v.y) { print_copy_created(this); }
-    Vector2(Vector2 &&v) : x(v.x), y(v.y) { print_move_created(this); v.x = v.y = 0; }
+    Vector2(Vector2 &&v) noexcept : x(v.x), y(v.y) {
+        print_move_created(this);
+        v.x = v.y = 0;
+    }
     Vector2 &operator=(const Vector2 &v) { x = v.x; y = v.y; print_copy_assigned(this); return *this; }
-    Vector2 &operator=(Vector2 &&v) { x = v.x; y = v.y; v.x = v.y = 0; print_move_assigned(this); return *this; }
+    Vector2 &operator=(Vector2 &&v) noexcept {
+        x   = v.x;
+        y   = v.y;
+        v.x = v.y = 0;
+        print_move_assigned(this);
+        return *this;
+    }
     ~Vector2() { print_destroyed(this); }
 
     std::string toString() const { return "[" + std::to_string(x) + ", " + std::to_string(y) + "]"; }
@@ -80,8 +89,8 @@ std::string abs(const Vector2&) {
     return "abs(Vector2)";
 }
 
-// MSVC warns about unknown pragmas, and warnings are errors.
-#ifndef _MSC_VER
+// MSVC & Intel warns about unknown pragmas, and warnings are errors.
+#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
   #pragma GCC diagnostic push
   // clang 7.0.0 and Apple LLVM 10.0.1 introduce `-Wself-assign-overloaded` to
   // `-Wall`, which is used here for overloading (e.g. `py::self += py::self `).
@@ -221,6 +230,6 @@ TEST_SUBMODULE(operators, m) {
         .def(py::self == py::self);
 }
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
   #pragma GCC diagnostic pop
 #endif

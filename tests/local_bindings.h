@@ -1,4 +1,6 @@
 #pragma once
+#include <utility>
+
 #include "pybind11_tests.h"
 
 /// Simple class used to test py::local:
@@ -54,9 +56,9 @@ py::class_<T> bind_local(Args && ...args) {
 namespace pets {
 class Pet {
 public:
-    Pet(std::string name) : name_(name) {}
+    Pet(std::string name) : name_(std::move(name)) {}
     std::string name_;
-    const std::string &name() { return name_; }
+    const std::string &name() const { return name_; }
 };
 } // namespace pets
 

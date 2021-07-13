@@ -293,7 +293,13 @@ template <typename Class, typename T, typename O,
           enable_if_t<std::is_convertible<O, handle>::value, int> = 0>
 void setstate(value_and_holder &v_h, std::pair<T, O> &&result, bool need_alias) {
     construct<Class>(v_h, std::move(result.first), need_alias);
-    setattr((PyObject *) v_h.inst, "__dict__", result.second);
+    auto d = handle(result.second);
+    if (PyDict_Check(d.ptr()) && PyDict_Size(d.ptr()) == 0) {
+        // Skipping setattr below, to not force use of py::dynamic_attr() for Class unnecessarily.
+        // See PR #2972 for details.
+        return;
+    }
+    setattr((PyObject *) v_h.inst, "__dict__", d);
 }
 
 /// Implementation for py::pickle(GetState, SetState)

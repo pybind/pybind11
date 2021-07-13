@@ -162,9 +162,7 @@ extern "C" inline PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name
         Py_INCREF(descr);
         return descr;
     }
-    else {
-        return PyType_Type.tp_getattro(obj, name);
-    }
+    return PyType_Type.tp_getattro(obj, name);
 }
 #endif
 
@@ -329,7 +327,7 @@ inline bool deregister_instance(instance *self, void *valptr, const type_info *t
 inline PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first inherited
-    // object is a a plain Python type (i.e. not derived from an extension type).  Fix it.
+    // object is a plain Python type (i.e. not derived from an extension type).  Fix it.
     ssize_t instance_size = static_cast<ssize_t>(sizeof(instance));
     if (type->tp_basicsize < instance_size) {
         type->tp_basicsize = instance_size;
@@ -339,8 +337,6 @@ inline PyObject *make_new_instance(PyTypeObject *type) {
     auto inst = reinterpret_cast<instance *>(self);
     // Allocate the value/holder internals:
     inst->allocate_layout();
-
-    inst->owned = true;
 
     return self;
 }
@@ -552,6 +548,12 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     }
     std::memset(view, 0, sizeof(Py_buffer));
     buffer_info *info = tinfo->get_buffer(obj, tinfo->get_buffer_data);
+    if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
+        delete info;
+        // view->obj = nullptr;  // Was just memset to 0, so not necessary
+        PyErr_SetString(PyExc_BufferError, "Writable buffer requested for readonly storage");
+        return -1;
+    }
     view->obj = obj;
     view->ndim = 1;
     view->internal = info;
@@ -561,12 +563,6 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     for (auto s : info->shape)
         view->len *= s;
     view->readonly = info->readonly;
-    if ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE && info->readonly) {
-        if (view)
-            view->obj = nullptr;
-        PyErr_SetString(PyExc_BufferError, "Writable buffer requested for readonly storage");
-        return -1;
-    }
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
         view->format = const_cast<char *>(info->format.c_str());
     if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {

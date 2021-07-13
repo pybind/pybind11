@@ -9,8 +9,12 @@
 
 #include "pybind11_tests.h"
 #include "local_bindings.h"
+#include "test_exceptions.h"
+
 #include <pybind11/stl_bind.h>
+
 #include <numeric>
+#include <utility>
 
 PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.doc() = "pybind11 cross-module test module";
@@ -30,6 +34,13 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("throw_pybind_value_error", []() { throw py::value_error("pybind11 value error"); });
     m.def("throw_pybind_type_error", []() { throw py::type_error("pybind11 type error"); });
     m.def("throw_stop_iteration", []() { throw py::stop_iteration(); });
+    py::register_exception_translator([](std::exception_ptr p) {
+      try {
+          if (p) std::rethrow_exception(p);
+      } catch (const shared_exception &e) {
+          PyErr_SetString(PyExc_KeyError, e.what());
+      }
+    });
 
     // test_local_bindings.py
     // Local to both:
@@ -96,7 +107,10 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("return_self", [](LocalVec *v) { return v; });
     m.def("return_copy", [](const LocalVec &v) { return LocalVec(v); });
 
-    class Dog : public pets::Pet { public: Dog(std::string name) : Pet(name) {}; };
+    class Dog : public pets::Pet {
+    public:
+        Dog(std::string name) : Pet(std::move(name)) {}
+    };
     py::class_<pets::Pet>(m, "Pet", py::module_local())
         .def("name", &pets::Pet::name);
     // Binding for local extending class:
@@ -118,6 +132,6 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     // test_missing_header_message
     // The main module already includes stl.h, but we need to test the error message
     // which appears when this header is missing.
-    m.def("missing_header_arg", [](std::vector<float>) { });
+    m.def("missing_header_arg", [](const std::vector<float> &) {});
     m.def("missing_header_return", []() { return std::vector<float>(); });
 }

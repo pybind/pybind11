@@ -10,6 +10,8 @@ include(CMakeParseArguments)
 
 if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
+else()
+  set(_pybind11_quiet "")
 endif()
 
 # If this is the first run, PYTHON_VERSION can stand in for PYBIND11_PYTHON_VERSION
@@ -22,16 +24,21 @@ if(NOT DEFINED PYBIND11_PYTHON_VERSION AND DEFINED PYTHON_VERSION)
       CACHE STRING "Python version to use for compiling modules")
   unset(PYTHON_VERSION)
   unset(PYTHON_VERSION CACHE)
-else()
-  # If this is set as a normal variable, promote it, otherwise, make an empty cache variable.
+elseif(DEFINED PYBIND11_PYTHON_VERSION)
+  # If this is set as a normal variable, promote it
   set(PYBIND11_PYTHON_VERSION
       "${PYBIND11_PYTHON_VERSION}"
+      CACHE STRING "Python version to use for compiling modules")
+else()
+  # Make an empty cache variable.
+  set(PYBIND11_PYTHON_VERSION
+      ""
       CACHE STRING "Python version to use for compiling modules")
 endif()
 
 # A user can set versions manually too
 set(Python_ADDITIONAL_VERSIONS
-    "3.9;3.8;3.7;3.6;3.5;3.4"
+    "3.10;3.9;3.8;3.7;3.6;3.5;3.4"
     CACHE INTERNAL "")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
@@ -81,11 +88,19 @@ if(PYBIND11_MASTER_PROJECT)
   endif()
 endif()
 
-# Only add Python for build - must be added during the import for config since it has to be re-discovered.
+# Only add Python for build - must be added during the import for config since
+# it has to be re-discovered.
+#
+# This needs to be an target to it is included after the local pybind11
+# directory, just in case there are multiple versions of pybind11, we want the
+# one we expect.
+add_library(pybind11::python_headers INTERFACE IMPORTED)
+set_property(TARGET pybind11::python_headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                                                      "$<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>")
 set_property(
   TARGET pybind11::pybind11
   APPEND
-  PROPERTY INTERFACE_INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>)
+  PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_headers)
 
 set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}" "${PYTHON_INCLUDE_DIRS}"
@@ -166,8 +181,13 @@ function(pybind11_add_module target_name)
   # py::module_local).  We force it on everything inside the `pybind11`
   # namespace; also turning it on for a pybind module compilation here avoids
   # potential warnings or issues from having mixed hidden/non-hidden types.
-  set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden"
-                                                  CUDA_VISIBILITY_PRESET "hidden")
+  if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
+    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+  endif()
+
+  if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
+    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
+  endif()
 
   if(ARG_NO_EXTRAS)
     return()

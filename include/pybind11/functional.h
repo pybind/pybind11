@@ -46,11 +46,17 @@ public:
             auto c = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
             auto rec = (function_record *) c;
 
-            if (rec && rec->is_stateless &&
-                    same_type(typeid(function_type), *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
-                struct capture { function_type f; };
-                value = ((capture *) &rec->data)->f;
-                return true;
+            while (rec != nullptr) {
+                if (rec->is_stateless
+                    && same_type(typeid(function_type),
+                                 *reinterpret_cast<const std::type_info *>(rec->data[1]))) {
+                    struct capture {
+                        function_type f;
+                    };
+                    value = ((capture *) &rec->data)->f;
+                    return true;
+                }
+                rec = rec->next;
             }
         }
 
@@ -92,8 +98,7 @@ public:
         auto result = f_.template target<function_type>();
         if (result)
             return cpp_function(*result, policy).release();
-        else
-            return cpp_function(std::forward<Func>(f_), policy).release();
+        return cpp_function(std::forward<Func>(f_), policy).release();
     }
 
     PYBIND11_TYPE_CASTER(type, _("Callable[[") + concat(make_caster<Args>::name...) + _("], ")

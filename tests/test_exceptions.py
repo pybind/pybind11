@@ -3,6 +3,8 @@ import sys
 
 import pytest
 
+import env  # noqa: F401
+
 from pybind11_tests import exceptions as m
 import pybind11_cross_module_tests as cm
 
@@ -44,19 +46,42 @@ def test_cross_module_exceptions():
         cm.throw_stop_iteration()
 
 
+# TODO: FIXME
+@pytest.mark.xfail(
+    "env.PYPY and env.MACOS",
+    raises=RuntimeError,
+    reason="Expected failure with PyPy and libc++ (Issue #2847 & PR #2999)",
+)
+def test_cross_module_exception_translator():
+    with pytest.raises(KeyError):
+        # translator registered in cross_module_tests
+        m.throw_should_be_translated_to_key_error()
+
+
 def test_python_call_in_catch():
     d = {}
     assert m.python_call_in_destructor(d) is True
     assert d["good"] is True
 
 
+def ignore_pytest_unraisable_warning(f):
+    unraisable = "PytestUnraisableExceptionWarning"
+    if hasattr(pytest, unraisable):  # Python >= 3.8 and pytest >= 6
+        dec = pytest.mark.filterwarnings("ignore::pytest.{}".format(unraisable))
+        return dec(f)
+    else:
+        return f
+
+
+@ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     hooked = False
     triggered = [False]  # mutable, so Python 2.7 closure can modify it
 
     if hasattr(sys, "unraisablehook"):  # Python 3.8+
         hooked = True
-        default_hook = sys.unraisablehook
+        # Don't take `sys.unraisablehook`, as that's overwritten by pytest
+        default_hook = sys.__unraisablehook__
 
         def hook(unraisable_hook_args):
             exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args

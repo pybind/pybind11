@@ -11,7 +11,7 @@
 
 #define PYBIND11_VERSION_MAJOR 2
 #define PYBIND11_VERSION_MINOR 6
-#define PYBIND11_VERSION_PATCH 2.dev1
+#define PYBIND11_VERSION_PATCH 3.dev1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -162,6 +162,24 @@
 #include <memory>
 #include <typeindex>
 #include <type_traits>
+#if defined(__has_include)
+#  if __has_include(<version>)
+#    include <version>
+#  endif
+#endif
+
+// #define PYBIND11_STR_LEGACY_PERMISSIVE
+// If DEFINED, pybind11::str can hold PyUnicodeObject or PyBytesObject
+//             (probably surprising and never documented, but this was the
+//             legacy behavior until and including v2.6.x). As a side-effect,
+//             pybind11::isinstance<str>() is true for both pybind11::str and
+//             pybind11::bytes.
+// If UNDEFINED, pybind11::str can only hold PyUnicodeObject, and
+//               pybind11::isinstance<str>() is true only for pybind11::str.
+//               However, for Python 2 only (!), the pybind11::str caster
+//               implicitly decodes bytes to PyUnicodeObject. This is to ease
+//               the transition from the legacy behavior to the non-permissive
+//               behavior.
 
 #if PY_MAJOR_VERSION >= 3 /// Compatibility macros for various Python versions
 #define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
@@ -462,7 +480,7 @@ struct instance {
     void allocate_layout();
 
     /// Destroys/deallocates all of the above
-    void deallocate_layout();
+    void deallocate_layout() const;
 
     /// Returns the value_and_holder wrapper for the given type (or the first, if `find_type`
     /// omitted).  Returns a default-constructed (with `.inst = nullptr`) object on failure if
@@ -665,6 +683,10 @@ template <typename T> using is_function_pointer = bool_constant<
     std::is_pointer<T>::value && std::is_function<typename std::remove_pointer<T>::type>::value>;
 
 template <typename F> struct strip_function_object {
+    // If you are encountering an
+    // 'error: name followed by "::" must be a class or namespace name'
+    // with the Intel compiler and a noexcept function here,
+    // try to use noexcept(true) instead of plain noexcept.
     using type = typename remove_class<decltype(&F::operator())>::type;
 };
 
@@ -689,8 +711,10 @@ template <typename T> using is_lambda = satisfies_none_of<remove_reference_t<T>,
 /// Ignore that a variable is unused in compiler warnings
 inline void ignore_unused(const int *) { }
 
+// [workaround(intel)] Internal error on fold expression
 /// Apply a function over each element of a parameter pack
-#ifdef __cpp_fold_expressions
+#if defined(__cpp_fold_expressions) && !defined(__INTEL_COMPILER)
+// Intel compiler produces an internal error on this fold expression (tested with ICC 19.0.2)
 #define PYBIND11_EXPAND_SIDE_EFFECTS(PATTERN) (((PATTERN), void()), ...)
 #else
 using expand_side_effects = bool[];
@@ -699,16 +723,23 @@ using expand_side_effects = bool[];
 
 PYBIND11_NAMESPACE_END(detail)
 
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4275) // warning C4275: An exported class was derived from a class that wasn't exported. Can be ignored when derived from a STL class.
+#endif
 /// C++ bindings of builtin Python exceptions
-class builtin_exception : public std::runtime_error {
+class PYBIND11_EXPORT builtin_exception : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
     /// Set the error using the Python C API
     virtual void set_error() const = 0;
 };
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
 
 #define PYBIND11_RUNTIME_EXCEPTION(name, type) \
-    class name : public builtin_exception { public: \
+    class PYBIND11_EXPORT name : public builtin_exception { public: \
         using builtin_exception::builtin_exception; \
         name() : name("") { } \
         void set_error() const override { PyErr_SetString(type, what()); } \
@@ -850,6 +881,24 @@ public:
 
 // Forward-declaration; see detail/class.h
 std::string get_fully_qualified_tp_name(PyTypeObject*);
+
+template <typename T>
+inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_from_this<T> *holder_value_ptr) {
+// Pre C++17, this code path exploits undefined behavior, but is known to work on many platforms.
+// Use at your own risk!
+// See also https://en.cppreference.com/w/cpp/memory/enable_shared_from_this, and in particular
+// the `std::shared_ptr<Good> gp1 = not_so_good.getptr();` and `try`-`catch` parts of the example.
+#if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+    return holder_value_ptr->weak_from_this().lock();
+#else
+    try {
+        return holder_value_ptr->shared_from_this();
+    }
+    catch (const std::bad_weak_ptr &) {
+        return nullptr;
+    }
+#endif
+}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -19,7 +19,7 @@ install:
     if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
     $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
     python -W ignore -m pip install --upgrade pip wheel
-    python -W ignore -m pip install pytest numpy --no-warn-script-location
+    python -W ignore -m pip install pytest numpy --no-warn-script-location pytest-timeout
 - ps: |
     Start-FileDownload 'https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.zip'
     7z x eigen-3.3.7.zip -y > $null

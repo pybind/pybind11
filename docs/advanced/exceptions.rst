@@ -164,6 +164,10 @@ section.
     may be explicitly (re-)thrown to delegate it to the other,
     previously-declared existing exception translators.
 
+    Note that ``libc++`` and ``libstdc++`` `behave differently <https://stackoverflow.com/questions/19496643/using-clang-fvisibility-hidden-and-typeinfo-and-type-erasure/28827430>`_
+    with ``-fvisibility=hidden``. Therefore exceptions that are used across ABI boundaries need to be explicitly exported, as exercised in ``tests/test_exceptions.h``.
+    See also: "Problems with C++ exceptions" under `GCC Wiki <https://gcc.gnu.org/wiki/Visibility>`_.
+
 .. _handling_python_exceptions_cpp:
 
 Handling exceptions from Python in C++
@@ -196,7 +200,7 @@ For example:
     } catch (py::error_already_set &e) {
         if (e.matches(PyExc_FileNotFoundError)) {
             py::print("missing.txt not found");
-        } else if (e.match(PyExc_PermissionError)) {
+        } else if (e.matches(PyExc_PermissionError)) {
             py::print("missing.txt found but not accessible");
         } else {
             throw;

@@ -112,7 +112,7 @@ struct internals {
     PyInterpreterState *istate = nullptr;
     ~internals() {
         // This destructor is called *after* Py_Finalize() in finalize_interpreter().
-        // That *SHOULD BE* fine. The following details what happens whe PyThread_tss_free is called.
+        // That *SHOULD BE* fine. The following details what happens when PyThread_tss_free is called.
         // PYBIND11_TLS_FREE is PyThread_tss_free on python 3.7+. On older python, it does nothing.
         // PyThread_tss_free calls PyThread_tss_delete and PyMem_RawFree.
         // PyThread_tss_delete just calls TlsFree (on Windows) or pthread_key_delete (on *NIX). Neither
@@ -266,7 +266,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         const PyGILState_STATE state;
     } gil;
 
-    constexpr auto *id = PYBIND11_INTERNALS_ID;
+    PYBIND11_STR_TYPE id(PYBIND11_INTERNALS_ID);
     auto builtins = handle(PyEval_GetBuiltins());
     if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
         internals_pp = static_cast<internals **>(capsule(builtins[id]));
@@ -276,6 +276,8 @@ PYBIND11_NOINLINE inline internals &get_internals() {
         // initial exception translator, below, so add another for our local exception classes.
         //
         // libstdc++ doesn't require this (types there are identified only by name)
+        // libc++ with CPython doesn't require this (types are explicitly exported)
+        // libc++ with PyPy still need it, awaiting further investigation
 #if !defined(__GLIBCXX__)
         (*internals_pp)->registered_exception_translators.push_front(&translate_local_exception);
 #endif

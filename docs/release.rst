@@ -52,7 +52,8 @@ To release a new version of pybind11:
     name (if you didn't tag above, it will be made here), fill in a release
     name like "Version X.Y.Z", and optionally copy-and-paste the changelog into
     the description (processed as markdown by Pandoc). Check "pre-release" if
-    this is a beta/RC.
+    this is a beta/RC. You can get partway there with
+    ``cat docs/changelog.rst | pandsoc -f rst -t markdown``.
   - CLI method: with ``gh`` installed, run ``gh release create vX.Y.Z -t "Version X.Y.Z"``
     If this is a pre-release, add ``-p``.
 

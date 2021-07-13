@@ -12,6 +12,8 @@ get_property(
 
 if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
+else()
+  set(_pybind11_quiet "")
 endif()
 
 if(CMAKE_VERSION VERSION_LESS 3.12)
@@ -127,10 +129,20 @@ endif()
 # Check on every access - since Python2 and Python3 could have been used - do nothing in that case.
 
 if(DEFINED ${_Python}_INCLUDE_DIRS)
+  # Only add Python for build - must be added during the import for config
+  # since it has to be re-discovered.
+  #
+  # This needs to be a target to be included after the local pybind11
+  # directory, just in case there there is an installed pybind11 sitting
+  # next to Python's includes. It also ensures Python is a SYSTEM library.
+  add_library(pybind11::python_headers INTERFACE IMPORTED)
+  set_property(
+    TARGET pybind11::python_headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                                             "$<BUILD_INTERFACE:${${_Python}_INCLUDE_DIRS}>")
   set_property(
     TARGET pybind11::pybind11
     APPEND
-    PROPERTY INTERFACE_INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${${_Python}_INCLUDE_DIRS}>)
+    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_headers)
   set(pybind11_INCLUDE_DIRS
       "${pybind11_INCLUDE_DIR}" "${${_Python}_INCLUDE_DIRS}"
       CACHE INTERNAL "Directories where pybind11 and possibly Python headers are located")
@@ -170,27 +182,27 @@ function(pybind11_add_module target_name)
   cmake_parse_arguments(PARSE_ARGV 1 ARG
                         "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI" "" "")
 
-  if(ARG_ADD_LIBRARY_STATIC)
-    set(type STATIC)
-  elseif(ARG_ADD_LIBRARY_SHARED)
-    set(type SHARED)
+  if(ARG_STATIC)
+    set(lib_type STATIC)
+  elseif(ARG_SHARED)
+    set(lib_type SHARED)
   else()
-    set(type MODULE)
+    set(lib_type MODULE)
   endif()
 
   if("${_Python}" STREQUAL "Python")
-    python_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
+    python_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
-    python3_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
+    python3_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python2")
-    python2_add_library(${target_name} ${type} ${ARG_UNPARSED_ARGUMENTS})
+    python2_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
   else()
     message(FATAL_ERROR "Cannot detect FindPython version: ${_Python}")
   endif()
 
   target_link_libraries(${target_name} PRIVATE pybind11::headers)
 
-  if(type STREQUAL "MODULE")
+  if(lib_type STREQUAL "MODULE")
     target_link_libraries(${target_name} PRIVATE pybind11::module)
   else()
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
@@ -204,12 +216,21 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::python2_no_register)
   endif()
 
-  set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden"
-                                                  CUDA_VISIBILITY_PRESET "hidden")
+  # -fvisibility=hidden is required to allow multiple modules compiled against
+  # different pybind versions to work properly, and for some features (e.g.
+  # py::module_local).  We force it on everything inside the `pybind11`
+  # namespace; also turning it on for a pybind module compilation here avoids
+  # potential warnings or issues from having mixed hidden/non-hidden types.
+  if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
+    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+  endif()
+
+  if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
+    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
+  endif()
 
   # If we don't pass a WITH_SOABI or WITHOUT_SOABI, use our own default handling of extensions
-  if("${type}" STREQUAL "MODULE" AND (NOT ARG_WITHOUT_SOABI OR NOT "WITH_SOABI" IN_LIST
-                                                               ARG_UNPARSED_ARGUMENTS))
+  if(NOT ARG_WITHOUT_SOABI AND NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
     pybind11_extension(${target_name})
   endif()
 
