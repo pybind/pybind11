@@ -95,6 +95,11 @@ repos:
     exclude: ".supp$"
     args: ["-L", "nd,ot,thist"]
 
+-   repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.7.2.1
+    hooks:
+    -   id: shellcheck
+
 # The original pybind11 checks for a few C++ style items
 - repo: local
   hooks:
