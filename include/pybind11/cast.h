@@ -887,7 +887,6 @@ T cast(const handle &handle) { return T(reinterpret_borrow<object>(handle)); }
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
 object cast(T &&value, return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
-    // using no_ref_T = PYBIND11_CPP17_CONSTEXPR std::remove_reference<T>::type;
     if (policy == return_value_policy::automatic) {
         if PYBIND11_CPP17_CONSTEXPR (std::is_pointer<std::remove_reference<T>>::value) {
             policy = return_value_policy::take_ownership;
