@@ -258,7 +258,10 @@ TEST_SUBMODULE(eigen, m) {
     m.def("dense_copy_r", [](const DenseMatrixR &m) -> DenseMatrixR { return m; });
     m.def("dense_copy_c", [](const DenseMatrixC &m) -> DenseMatrixC { return m; });
     // test_sparse, test_sparse_signature
-    m.def("sparse_r", [mat]() -> SparseMatrixR { return Eigen::SparseView<Eigen::MatrixXf>(mat); }); //NOLINT(clang-analyzer-core.uninitialized.UndefReturn)
+    m.def("sparse_r", [mat]() -> SparseMatrixR {
+        // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
+        return Eigen::SparseView<Eigen::MatrixXf>(mat);
+    });
     m.def("sparse_c", [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_copy_r", [](const SparseMatrixR &m) -> SparseMatrixR { return m; });
     m.def("sparse_copy_c", [](const SparseMatrixC &m) -> SparseMatrixC { return m; });
