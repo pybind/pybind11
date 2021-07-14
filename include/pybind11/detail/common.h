@@ -102,6 +102,12 @@
 #  define PYBIND11_MAYBE_UNUSED __attribute__ ((__unused__))
 #endif
 
+#if defined(PYBIND11_CPP17)
+#    define PYBIND11_CPP17_CONSTEXPR constexpr
+#else
+#    define PYBIND11_CPP17_CONSTEXPR
+#endif
+
 /* Don't let Python.h #define (v)snprintf as macro because they are implemented
    properly in Visual Studio since 2015. */
 #if defined(_MSC_VER) && _MSC_VER >= 1900
