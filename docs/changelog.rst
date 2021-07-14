@@ -226,7 +226,7 @@ Bug fixes:
 * Fix ``py::gil_scoped_acquire`` assert with CPython 3.9 debug build.
   `#2683 <https://github.com/pybind/pybind11/pull/2683>`_
 
-* Fix issue with a test failing on PyTest 6.2.
+* Fix issue with a test failing on pytest 6.2.
   `#2741 <https://github.com/pybind/pybind11/pull/2741>`_
 
 Warning fixes:
