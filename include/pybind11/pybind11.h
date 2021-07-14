@@ -157,7 +157,7 @@ protected:
 #if defined(__GNUG__) && !defined(__clang__) && __GNUC__ >= 6
 #  pragma GCC diagnostic pop
 #endif
-#if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER
+#if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
@@ -169,7 +169,7 @@ protected:
                     (void) data;
                     data->~capture();
                 };
-#if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER
+#if defined(__GNUG__) && !PYBIND11_HAS_STD_LAUNDER && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
         } else {
