@@ -1015,7 +1015,7 @@ public:
         if (PyUnicode_Check(m_ptr)) {
             temp = reinterpret_steal<object>(PyUnicode_AsUTF8String(m_ptr));
             if (!temp)
-                pybind11_fail("Unable to extract string contents! (encoding issue)");
+                throw error_already_set();
         }
         char *buffer = nullptr;
         ssize_t length = 0;
