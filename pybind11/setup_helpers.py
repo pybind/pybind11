@@ -303,6 +303,42 @@ class build_ext(_build_ext):  # noqa: N801
         _build_ext.build_extensions(self)
 
 
+def intree_extensions(paths, package_dir=None):
+    """
+    Generate Pybind11Extensions from source files directly located in a Python
+    source tree.
+
+    ``package_dir`` behaves as in ``setuptools.setup``.  If unset, the Python
+    package root parent is determined as the first parent directory that does
+    not contain an ``__init__.py`` file.
+    """
+    exts = []
+    for path in paths:
+        if package_dir is None:
+            parent, _ = os.path.split(path)
+            while os.path.exists(os.path.join(parent, "__init__.py")):
+                parent, _ = os.path.split(parent)
+            relname, _ = os.path.splitext(os.path.relpath(path, parent))
+            qualified_name = relname.replace(os.path.sep, ".")
+            exts.append(Pybind11Extension(qualified_name, [path]))
+        else:
+            found = False
+            for prefix, parent in package_dir.items():
+                if path.startswith(parent):
+                    found = True
+                    relname, _ = os.path.splitext(os.path.relpath(path, parent))
+                    qualified_name = relname.replace(os.path.sep, ".")
+                    if prefix:
+                        qualified_name = prefix + "." + qualified_name
+                    exts.append(Pybind11Extension(qualified_name, [path]))
+            if not found:
+                raise ValueError(
+                    "path {} is not a child of any of the directories listed "
+                    "in 'package_dir' ({})".format(path, package_dir)
+                )
+    return exts
+
+
 def naive_recompile(obj, src):
     """
     This will recompile only if the source file changes. It does not check

@@ -76,6 +76,9 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("str_from_object", [](const py::object& obj) { return py::str(obj); });
     m.def("repr_from_object", [](const py::object& obj) { return py::repr(obj); });
     m.def("str_from_handle", [](py::handle h) { return py::str(h); });
+    m.def("str_from_string_from_str", [](const py::str& obj) {
+        return py::str(static_cast<std::string>(obj));
+    });
 
     m.def("str_format", []() {
         auto s1 = "{} + {} = {}"_s.format(1, 2, 3);
