@@ -801,7 +801,7 @@ public:
         return reinterpret_steal<array>(
               detail::npy_api::get().PyArray_Newshape_(m_ptr, &d, 0));
     }
-    
+
 
     /// Ensure that the argument is a NumPy array
     /// In case of an error, nullptr is returned and the Python error is cleared.
