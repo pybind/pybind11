@@ -191,7 +191,7 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
         [](Vector &v) {
             if (v.empty())
                 throw index_error();
-            T t{ std::move(v.back()) };
+            T t = std::move(v.back());
             v.pop_back();
             return t;
         },
@@ -201,7 +201,7 @@ void vector_modifiers(enable_if_t<is_copy_constructible<typename Vector::value_t
     cl.def("pop",
         [wrap_i](Vector &v, DiffType i) {
             i = wrap_i(i, v.size());
-            T t{ std::move(v[(SizeType) i]) };
+            T t = std::move(v[(SizeType) i]);
             v.erase(std::next(v.begin(), i));
             return t;
         },
