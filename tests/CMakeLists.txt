@@ -333,7 +333,7 @@ function(pybind11_enable_warnings target_name)
     endif()
   endif()
 
-  # Needs to be readded since the ordering requires these to be after the ones above
+  # Needs to be re-added since the ordering requires these to be after the ones above
   if(CMAKE_CXX_STANDARD
      AND CMAKE_CXX_COMPILER_ID MATCHES "Clang"
      AND PYTHON_VERSION VERSION_LESS 3.0)

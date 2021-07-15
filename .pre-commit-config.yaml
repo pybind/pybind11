@@ -94,13 +94,13 @@ repos:
   rev: v2.1.0
   hooks:
   - id: codespell
-    name: codespell
-    description: Checks for common misspellings in text files.
-    entry: codespell
-    language: python
-    types: [text]
-    args: ["-q", "3", "--skip", "*.supp", "-L", "nd,ot,thist,readded",
-           "--exclude-file", ".codespell-ignorelines"]
+    exclude: ".supp$"
+    args: ["-L", "nd,ot,thist", "--exclude-file", ".codespell-ignorelines"]
+
+-   repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.7.2.1
+    hooks:
+    -   id: shellcheck
 
 # The original pybind11 checks for a few C++ style items
 - repo: local
@@ -108,7 +108,7 @@ repos:
   - id: disallow-caps
     name: Disallow improper capitalization
     language: pygrep
-    entry: PyBind|Numpy|Cmake|CCache
+    entry: PyBind|Numpy|Cmake|CCache|PyTest
     exclude: .pre-commit-config.yaml
 
 - repo: local
