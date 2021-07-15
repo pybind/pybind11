@@ -25,7 +25,6 @@
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#  pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #  pragma GCC diagnostic ignored "-Wattributes"
 #  if __GNUC__ >= 7
 #    pragma GCC diagnostic ignored "-Wnoexcept-type"
