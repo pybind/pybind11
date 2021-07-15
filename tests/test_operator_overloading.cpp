@@ -10,18 +10,29 @@
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include <pybind11/operators.h>
+#include <functional>
 
 class Vector2 {
 public:
     Vector2(float x, float y) : x(x), y(y) { print_created(this, toString()); }
     Vector2(const Vector2 &v) : x(v.x), y(v.y) { print_copy_created(this); }
-    Vector2(Vector2 &&v) : x(v.x), y(v.y) { print_move_created(this); v.x = v.y = 0; }
+    Vector2(Vector2 &&v) noexcept : x(v.x), y(v.y) {
+        print_move_created(this);
+        v.x = v.y = 0;
+    }
     Vector2 &operator=(const Vector2 &v) { x = v.x; y = v.y; print_copy_assigned(this); return *this; }
-    Vector2 &operator=(Vector2 &&v) { x = v.x; y = v.y; v.x = v.y = 0; print_move_assigned(this); return *this; }
+    Vector2 &operator=(Vector2 &&v) noexcept {
+        x   = v.x;
+        y   = v.y;
+        v.x = v.y = 0;
+        print_move_assigned(this);
+        return *this;
+    }
     ~Vector2() { print_destroyed(this); }
 
     std::string toString() const { return "[" + std::to_string(x) + ", " + std::to_string(y) + "]"; }
 
+    Vector2 operator-() const { return Vector2(-x, -y); }
     Vector2 operator+(const Vector2 &v) const { return Vector2(x + v.x, y + v.y); }
     Vector2 operator-(const Vector2 &v) const { return Vector2(x - v.x, y - v.y); }
     Vector2 operator-(float value) const { return Vector2(x - value, y - value); }
@@ -41,6 +52,13 @@ public:
     friend Vector2 operator-(float f, const Vector2 &v) { return Vector2(f - v.x, f - v.y); }
     friend Vector2 operator*(float f, const Vector2 &v) { return Vector2(f * v.x, f * v.y); }
     friend Vector2 operator/(float f, const Vector2 &v) { return Vector2(f / v.x, f / v.y); }
+
+    bool operator==(const Vector2 &v) const {
+        return x == v.x && y == v.y;
+    }
+    bool operator!=(const Vector2 &v) const {
+        return x != v.x || y != v.y;
+    }
 private:
     float x, y;
 };
@@ -52,6 +70,43 @@ int operator+(const C1 &, const C1 &) { return 11; }
 int operator+(const C2 &, const C2 &) { return 22; }
 int operator+(const C2 &, const C1 &) { return 21; }
 int operator+(const C1 &, const C2 &) { return 12; }
+
+// Note: Specializing explicit within `namespace std { ... }` is done due to a
+// bug in GCC<7. If you are supporting compilers later than this, consider
+// specializing `using template<> struct std::hash<...>` in the global
+// namespace instead, per this recommendation:
+// https://en.cppreference.com/w/cpp/language/extending_std#Adding_template_specializations
+namespace std {
+    template<>
+    struct hash<Vector2> {
+        // Not a good hash function, but easy to test
+        size_t operator()(const Vector2 &) { return 4; }
+    };
+} // namespace std
+
+// Not a good abs function, but easy to test.
+std::string abs(const Vector2&) {
+    return "abs(Vector2)";
+}
+
+// MSVC & Intel warns about unknown pragmas, and warnings are errors.
+#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+  #pragma GCC diagnostic push
+  // clang 7.0.0 and Apple LLVM 10.0.1 introduce `-Wself-assign-overloaded` to
+  // `-Wall`, which is used here for overloading (e.g. `py::self += py::self `).
+  // Here, we suppress the warning using `#pragma diagnostic`.
+  // Taken from: https://github.com/RobotLocomotion/drake/commit/aaf84b46
+  // TODO(eric): This could be resolved using a function / functor (e.g. `py::self()`).
+  #if defined(__APPLE__) && defined(__clang__)
+    #if (__clang_major__ >= 10)
+      #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
+    #endif
+  #elif defined(__clang__)
+    #if (__clang_major__ >= 7)
+      #pragma GCC diagnostic ignored "-Wself-assign-overloaded"
+    #endif
+  #endif
+#endif
 
 TEST_SUBMODULE(operators, m) {
 
@@ -76,7 +131,15 @@ TEST_SUBMODULE(operators, m) {
         .def(float() - py::self)
         .def(float() * py::self)
         .def(float() / py::self)
+        .def(-py::self)
         .def("__str__", &Vector2::toString)
+        .def("__repr__", &Vector2::toString)
+        .def(py::self == py::self)
+        .def(py::self != py::self)
+        .def(py::hash(py::self))
+        // N.B. See warning about usage of `py::detail::abs(py::self)` in
+        // `operators.h`.
+        .def("__abs__", [](const Vector2& v) { return abs(v); })
         ;
 
     m.attr("Vector") = m.attr("Vector2");
@@ -133,4 +196,40 @@ TEST_SUBMODULE(operators, m) {
         .def(py::self *= int())
         .def_readwrite("b", &NestC::b);
     m.def("get_NestC", [](const NestC &c) { return c.value; });
+
+
+    // test_overriding_eq_reset_hash
+    // #2191 Overriding __eq__ should set __hash__ to None
+    struct Comparable {
+        int value;
+        bool operator==(const Comparable& rhs) const {return value == rhs.value;}
+    };
+
+    struct Hashable : Comparable {
+        explicit Hashable(int value): Comparable{value}{};
+        size_t hash() const { return static_cast<size_t>(value); }
+    };
+
+    struct Hashable2 : Hashable {
+        using Hashable::Hashable;
+    };
+
+    py::class_<Comparable>(m, "Comparable")
+        .def(py::init<int>())
+        .def(py::self == py::self);
+
+    py::class_<Hashable>(m, "Hashable")
+        .def(py::init<int>())
+        .def(py::self == py::self)
+        .def("__hash__", &Hashable::hash);
+
+    // define __hash__ before __eq__
+    py::class_<Hashable2>(m, "Hashable2")
+        .def("__hash__", &Hashable::hash)
+        .def(py::init<int>())
+        .def(py::self == py::self);
 }
+
+#if !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+  #pragma GCC diagnostic pop
+#endif

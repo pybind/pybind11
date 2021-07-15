@@ -131,6 +131,8 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::vector<T>``                 | STL dynamic array         | :file:`pybind11/stl.h`        |
 +------------------------------------+---------------------------+-------------------------------+
+| ``std::deque<T>``                  | STL double-ended queue    | :file:`pybind11/stl.h`        |
++------------------------------------+---------------------------+-------------------------------+
 | ``std::valarray<T>``               | STL value array           | :file:`pybind11/stl.h`        |
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::list<T>``                   | STL linked list           | :file:`pybind11/stl.h`        |
@@ -149,6 +151,8 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::variant<...>``              | Type-safe union (C++17)   | :file:`pybind11/stl.h`        |
 +------------------------------------+---------------------------+-------------------------------+
+| ``std::filesystem::path<T>``       | STL path (C++17) [#]_     | :file:`pybind11/stl.h`        |
++------------------------------------+---------------------------+-------------------------------+
 | ``std::function<...>``             | STL polymorphic function  | :file:`pybind11/functional.h` |
 +------------------------------------+---------------------------+-------------------------------+
 | ``std::chrono::duration<...>``     | STL time duration         | :file:`pybind11/chrono.h`     |
@@ -161,3 +165,7 @@ as arguments and return values, refer to the section on binding :ref:`classes`.
 +------------------------------------+---------------------------+-------------------------------+
 | ``Eigen::SparseMatrix<...>``       | Eigen: sparse matrix      | :file:`pybind11/eigen.h`      |
 +------------------------------------+---------------------------+-------------------------------+
+
+.. [#] ``std::filesystem::path`` is converted to ``pathlib.Path`` and
+   ``os.PathLike`` is converted to ``std::filesystem::path``, but this requires
+   Python 3.6 (for ``__fspath__`` support).

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Gitter room
+    url: https://gitter.im/pybind/Lobby
+    about: A room for discussing pybind11 with an active community

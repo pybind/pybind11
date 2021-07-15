@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 from pybind11_tests import sequences_and_iterators as m
 from pybind11_tests import ConstructorStats
@@ -9,7 +10,9 @@ def isclose(a, b, rel_tol=1e-05, abs_tol=0.0):
 
 
 def allclose(a_list, b_list, rel_tol=1e-05, abs_tol=0.0):
-    return all(isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol) for a, b in zip(a_list, b_list))
+    return all(
+        isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol) for a, b in zip(a_list, b_list)
+    )
 
 
 def test_generalized_iterators():
@@ -33,11 +36,24 @@ def test_generalized_iterators():
             next(it)
 
 
+def test_sliceable():
+    sliceable = m.Sliceable(100)
+    assert sliceable[::] == (0, 100, 1)
+    assert sliceable[10::] == (10, 100, 1)
+    assert sliceable[:10:] == (0, 10, 1)
+    assert sliceable[::10] == (0, 100, 10)
+    assert sliceable[-10::] == (90, 100, 1)
+    assert sliceable[:-10:] == (0, 90, 1)
+    assert sliceable[::-10] == (99, -1, -10)
+    assert sliceable[50:60:1] == (50, 60, 1)
+    assert sliceable[50:60:-1] == (50, 60, -1)
+
+
 def test_sequence():
     cstats = ConstructorStats.get(m.Sequence)
 
     s = m.Sequence(5)
-    assert cstats.values() == ['of size', '5']
+    assert cstats.values() == ["of size", "5"]
 
     assert "Sequence" in repr(s)
     assert len(s) == 5
@@ -48,16 +64,16 @@ def test_sequence():
     assert isclose(s[0], 12.34) and isclose(s[3], 56.78)
 
     rev = reversed(s)
-    assert cstats.values() == ['of size', '5']
+    assert cstats.values() == ["of size", "5"]
 
     rev2 = s[::-1]
-    assert cstats.values() == ['of size', '5']
+    assert cstats.values() == ["of size", "5"]
 
     it = iter(m.Sequence(0))
     for _ in range(3):  # __next__ must continue to raise StopIteration
         with pytest.raises(StopIteration):
             next(it)
-    assert cstats.values() == ['of size', '0']
+    assert cstats.values() == ["of size", "0"]
 
     expected = [0, 56.78, 0, 0, 12.34]
     assert allclose(rev, expected)
@@ -65,7 +81,7 @@ def test_sequence():
     assert rev == rev2
 
     rev[0::2] = m.Sequence([2.0, 2.0, 2.0])
-    assert cstats.values() == ['of size', '3', 'from std::vector']
+    assert cstats.values() == ["of size", "3", "from std::vector"]
 
     assert allclose(rev, [2, 56.78, 2, 0, 2])
 
@@ -87,18 +103,38 @@ def test_sequence():
     assert cstats.move_assignments == 0
 
 
+def test_sequence_length():
+    """#2076: Exception raised by len(arg) should be propagated"""
+
+    class BadLen(RuntimeError):
+        pass
+
+    class SequenceLike:
+        def __getitem__(self, i):
+            return None
+
+        def __len__(self):
+            raise BadLen()
+
+    with pytest.raises(BadLen):
+        m.sequence_length(SequenceLike())
+
+    assert m.sequence_length([1, 2, 3]) == 3
+    assert m.sequence_length("hello") == 5
+
+
 def test_map_iterator():
-    sm = m.StringMap({'hi': 'bye', 'black': 'white'})
-    assert sm['hi'] == 'bye'
+    sm = m.StringMap({"hi": "bye", "black": "white"})
+    assert sm["hi"] == "bye"
     assert len(sm) == 2
-    assert sm['black'] == 'white'
+    assert sm["black"] == "white"
 
     with pytest.raises(KeyError):
-        assert sm['orange']
-    sm['orange'] = 'banana'
-    assert sm['orange'] == 'banana'
+        assert sm["orange"]
+    sm["orange"] = "banana"
+    assert sm["orange"] == "banana"
 
-    expected = {'hi': 'bye', 'black': 'white', 'orange': 'banana'}
+    expected = {"hi": "bye", "black": "white", "orange": "banana"}
     for k in sm:
         assert sm[k] == expected[k]
     for k, v in sm.items():
@@ -131,9 +167,9 @@ def test_python_iterator_in_cpp():
         m.iterator_to_list(iter(bad_next_call, None))
     assert str(excinfo.value) == "py::iterator::advance() should propagate errors"
 
-    l = [1, None, 0, None]
-    assert m.count_none(l) == 2
-    assert m.find_none(l) is True
+    lst = [1, None, 0, None]
+    assert m.count_none(lst) == 2
+    assert m.find_none(lst) is True
     assert m.count_nonzeros({"a": 0, "b": 1, "c": 2}) == 2
 
     r = range(5)
@@ -146,11 +182,12 @@ def test_iterator_passthrough():
     """#181: iterator passthrough did not compile"""
     from pybind11_tests.sequences_and_iterators import iterator_passthrough
 
-    assert list(iterator_passthrough(iter([3, 5, 7, 9, 11, 13, 15]))) == [3, 5, 7, 9, 11, 13, 15]
+    values = [3, 5, 7, 9, 11, 13, 15]
+    assert list(iterator_passthrough(iter(values))) == values
 
 
 def test_iterator_rvp():
-    """#388: Can't make iterators via make_iterator() with different r/v policies """
+    """#388: Can't make iterators via make_iterator() with different r/v policies"""
     import pybind11_tests.sequences_and_iterators as m
 
     assert list(m.make_iterator_1()) == [1, 2, 3]

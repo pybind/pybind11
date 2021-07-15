@@ -37,11 +37,11 @@ that maps into the source ``numpy.ndarray`` data: this requires both that the
 data types are the same (e.g. ``dtype='float64'`` and ``MatrixType::Scalar`` is
 ``double``); and that the storage is layout compatible.  The latter limitation
 is discussed in detail in the section below, and requires careful
-consideration: by default, numpy matrices and eigen matrices are *not* storage
+consideration: by default, numpy matrices and Eigen matrices are *not* storage
 compatible.
 
 If the numpy matrix cannot be used as is (either because its types differ, e.g.
-passing an array of integers to an Eigen paramater requiring doubles, or
+passing an array of integers to an Eigen parameter requiring doubles, or
 because the storage is incompatible), pybind11 makes a temporary copy and
 passes the copy instead.
 
@@ -57,7 +57,7 @@ expected:
 
 .. code-block:: cpp
 
-    void scale_by_2(Eigen::Ref<Eigen::VectorXd> m) {
+    void scale_by_2(Eigen::Ref<Eigen::VectorXd> v) {
         v *= 2;
     }
 
@@ -89,7 +89,7 @@ as dictated by the binding function's return value policy (see the
 documentation on :ref:`return_value_policies` for full details).  That means,
 without an explicit return value policy, lvalue references will be copied and
 pointers will be managed by pybind11.  In order to avoid copying, you should
-explictly specify an appropriate return value policy, as in the following
+explicitly specify an appropriate return value policy, as in the following
 example:
 
 .. code-block:: cpp
@@ -226,7 +226,7 @@ order.
 Failing rather than copying
 ===========================
 
-The default behaviour when binding ``Eigen::Ref<const MatrixType>`` eigen
+The default behaviour when binding ``Eigen::Ref<const MatrixType>`` Eigen
 references is to copy matrix values when passed a numpy array that does not
 conform to the element type of ``MatrixType`` or does not have a compatible
 stride layout.  If you want to explicitly avoid copying in such a case, you
@@ -252,11 +252,11 @@ copying to take place:
     using namespace pybind11::literals; // for "arg"_a
     py::class_<MyClass>(m, "MyClass")
         // ... other class definitions
-        .def("some_method", &MyClass::some_method, py::arg().nocopy());
+        .def("some_method", &MyClass::some_method, py::arg().noconvert());
 
     m.def("some_function", &some_function,
-        "big"_a.nocopy(), // <- Don't allow copying for this arg
-        "small"_a         // <- This one can be copied if needed
+        "big"_a.noconvert(), // <- Don't allow copying for this arg
+        "small"_a            // <- This one can be copied if needed
     );
 
 With the above binding code, attempting to call the the ``some_method(m)``
@@ -274,8 +274,8 @@ Vectors versus column/row matrices
 
 Eigen and numpy have fundamentally different notions of a vector.  In Eigen, a
 vector is simply a matrix with the number of columns or rows set to 1 at
-compile time (for a column vector or row vector, respectively).  Numpy, in
-contast, has comparable 2-dimensional 1xN and Nx1 arrays, but *also* has
+compile time (for a column vector or row vector, respectively).  NumPy, in
+contrast, has comparable 2-dimensional 1xN and Nx1 arrays, but *also* has
 1-dimensional arrays of size N.
 
 When passing a 2-dimensional 1xN or Nx1 array to Eigen, the Eigen type must
@@ -287,15 +287,15 @@ On the other hand, pybind11 allows you to pass 1-dimensional arrays of length N
 as Eigen parameters.  If the Eigen type can hold a column vector of length N it
 will be passed as such a column vector.  If not, but the Eigen type constraints
 will accept a row vector, it will be passed as a row vector.  (The column
-vector takes precendence when both are supported, for example, when passing a
+vector takes precedence when both are supported, for example, when passing a
 1D numpy array to a MatrixXd argument).  Note that the type need not be
-expicitly a vector: it is permitted to pass a 1D numpy array of size 5 to an
+explicitly a vector: it is permitted to pass a 1D numpy array of size 5 to an
 Eigen ``Matrix<double, Dynamic, 5>``: you would end up with a 1x5 Eigen matrix.
 Passing the same to an ``Eigen::MatrixXd`` would result in a 5x1 Eigen matrix.
 
-When returning an eigen vector to numpy, the conversion is ambiguous: a row
+When returning an Eigen vector to numpy, the conversion is ambiguous: a row
 vector of length 4 could be returned as either a 1D array of length 4, or as a
-2D array of size 1x4.  When encoutering such a situation, pybind11 compromises
+2D array of size 1x4.  When encountering such a situation, pybind11 compromises
 by considering the returned Eigen type: if it is a compile-time vector--that
 is, the type has either the number of rows or columns set to 1 at compile
 time--pybind11 converts to a 1D numpy array when returning the value.  For

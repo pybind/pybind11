@@ -11,11 +11,11 @@ included set of test cases.
 Compiling the test cases
 ========================
 
-Linux/MacOS
+Linux/macOS
 -----------
 
 On Linux  you'll need to install the **python-dev** or **python3-dev** packages as
-well as **cmake**. On Mac OS, the included python version works out of the box,
+well as **cmake**. On macOS, the included python version works out of the box,
 but **cmake** must still be installed.
 
 After installing the prerequisites, run
@@ -34,6 +34,14 @@ Windows
 
 On Windows, only **Visual Studio 2015** and newer are supported since pybind11 relies
 on various C++11 language features that break older versions of Visual Studio.
+
+.. Note::
+
+    To use the C++17 in Visual Studio 2017 (MSVC 14.1), pybind11 requires the flag
+    ``/permissive-`` to be passed to the compiler `to enforce standard conformance`_. When
+    building with Visual Studio 2019, this is not strictly necessary, but still advised.
+
+..  _`to enforce standard conformance`: https://docs.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=vs-2017
 
 To compile and run the tests:
 
@@ -73,6 +81,8 @@ For brevity, all code examples assume that the following two lines are present:
 
 Some features may require additional headers, but those will be specified as needed.
 
+.. _simple_example:
+
 Creating bindings for a simple function
 =======================================
 
@@ -108,8 +118,8 @@ a file named :file:`example.cpp` with the following contents:
 The :func:`PYBIND11_MODULE` macro creates a function that will be called when an
 ``import`` statement is issued from within Python. The module name (``example``)
 is given as the first macro argument (it should not be in quotes). The second
-argument (``m``) defines a variable of type :class:`py::module <module>` which
-is the main interface for creating bindings. The method :func:`module::def`
+argument (``m``) defines a variable of type :class:`py::module_ <module>` which
+is the main interface for creating bindings. The method :func:`module_::def`
 generates binding code that exposes the ``add()`` function to Python.
 
 .. note::
@@ -120,23 +130,38 @@ generates binding code that exposes the ``add()`` function to Python.
     approach and the used syntax are borrowed from Boost.Python, though the
     underlying implementation is very different.
 
-pybind11 is a header-only-library, hence it is not necessary to link against
-any special libraries (other than Python itself). On Windows, use the CMake
-build file discussed in section :ref:`cmake`. On Linux and Mac OS, the above
-example can be compiled using the following command
+pybind11 is a header-only library, hence it is not necessary to link against
+any special libraries and there are no intermediate (magic) translation steps.
+On Linux, the above example can be compiled using the following command:
 
 .. code-block:: bash
 
-    $ c++ -O3 -shared -std=c++11 -I <path-to-pybind11>/include `python-config --cflags --ldflags` example.cpp -o example.so
+    $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
-In general, it is advisable to include several additional build parameters
-that can considerably reduce the size of the created binary. Refer to section
-:ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
-build system.
+.. note::
 
-Assuming that the created file :file:`example.so` (:file:`example.pyd` on Windows)
-is located in the current directory, the following interactive Python session
-shows how to load and execute the example.
+    If you used :ref:`include_as_a_submodule` to get the pybind11 source, then
+    use ``$(python3-config --includes) -Iextern/pybind11/include`` instead of
+    ``$(python3 -m pybind11 --includes)`` in the above compilation, as
+    explained in :ref:`building_manually`.
+
+For more details on the required compiler flags on Linux and macOS, see
+:ref:`building_manually`. For complete cross-platform compilation instructions,
+refer to the :ref:`compiling` page.
+
+The `python_example`_ and `cmake_example`_ repositories are also a good place
+to start. They are both complete project examples with cross-platform build
+systems. The only difference between the two is that `python_example`_ uses
+Python's ``setuptools`` to build the module, while `cmake_example`_ uses CMake
+(which may be preferable for existing C++ projects).
+
+.. _python_example: https://github.com/pybind/python_example
+.. _cmake_example: https://github.com/pybind/cmake_example
+
+Building the above C++ code will produce a binary module file that can be
+imported to Python. Assuming that the compiled module is located in the
+current directory, the following interactive Python session shows how to
+load and execute the example:
 
 .. code-block:: pycon
 
@@ -154,7 +179,7 @@ shows how to load and execute the example.
 Keyword arguments
 =================
 
-With a simple modification code, it is possible to inform Python about the
+With a simple code modification, it is possible to inform Python about the
 names of the arguments ("i" and "j" in this case).
 
 .. code-block:: cpp
@@ -163,7 +188,7 @@ names of the arguments ("i" and "j" in this case).
           py::arg("i"), py::arg("j"));
 
 :class:`arg` is one of several special tag classes which can be used to pass
-metadata into :func:`module::def`. With this modified binding code, we can now
+metadata into :func:`module_::def`. With this modified binding code, we can now
 call the function using keyword arguments, which is a more readable alternative
 particularly for functions taking many parameters:
 
