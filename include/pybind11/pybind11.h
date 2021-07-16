@@ -33,7 +33,6 @@
 #elif defined(__GNUG__) && !defined(__clang__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-#  pragma GCC diagnostic ignored "-Wattributes"
 #  if __GNUC__ >= 7
 #    pragma GCC diagnostic ignored "-Wnoexcept-type"
 #  endif
