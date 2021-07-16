@@ -12,8 +12,16 @@ import sys
 def run(args):
     num_repeats = int(args[0])
     cmd_and_args = args[1:]
-    assert num_repeats > 0
     assert cmd_and_args
+    if num_repeats < 0:
+        # Shortcut to turn this script into a completely transparent no-op.
+        return subprocess.call(cmd_and_args)
+    if not num_repeats:
+        # Can be used as a simple trick to skip the command entirely.
+        print("REPEAT_COMMAND:SKIP", cmd_and_args)
+        print()
+        sys.stdout.flush()
+        return
     print("REPEAT_COMMAND:CMD_AND_ARGS", cmd_and_args)
     print()
     retcode_counts = collections.defaultdict(int)
