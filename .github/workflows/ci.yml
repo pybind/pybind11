@@ -106,7 +106,7 @@ jobs:
         ${{ matrix.args }}
 
     - name: Build C++11
-      run: cmake --build . -j 2
+      run: cmake --build . -j 1
 
     - name: Python tests C++11
       run: python tools/repeat_command.py 0 cmake --build . --target pytest -j 2
@@ -114,7 +114,7 @@ jobs:
     - name: C++11 tests
       # TODO: Figure out how to load the DLL on Python 3.8+
       if: "!(runner.os == 'Windows' && (matrix.python == 3.8 || matrix.python == 3.9 || matrix.python == '3.10-dev'))"
-      run: cmake --build .  --target cpptest -j 2
+      run: cmake --build .  --target cpptest -j 1
 
     - name: Interface test C++11
       run: cmake --build . --target test_cmake_build
@@ -134,7 +134,7 @@ jobs:
         ${{ matrix.args2 }}
 
     - name: Build
-      run: cmake --build build2 -j 2
+      run: cmake --build build2 -j 1
 
     - name: Python tests
       run: python tools/repeat_command.py 0 cmake --build build2 --target pytest
@@ -234,7 +234,7 @@ jobs:
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 1
 
     - name: Python tests
       run: python tools/repeat_command.py 0 cmake --build build --target pytest
@@ -289,7 +289,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 1
 
     - name: Python tests
       run: python3 tools/repeat_command.py 0 cmake --build build --target pytest
@@ -356,7 +356,7 @@ jobs:
 #        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 #
 #    - name: Build
-#      run: cmake --build build -j 2 --verbose
+#      run: cmake --build build -j 1 --verbose
 #
 #    - name: Python tests
 #      run: python3 tools/repeat_command.py 0 cmake --build build --target pytest
@@ -400,7 +400,7 @@ jobs:
 
     # Building before installing Pip should produce a warning but not an error
     - name: Build
-      run: cmake3 --build build -j 2 --verbose
+      run: cmake3 --build build -j 1 --verbose
 
     - name: Install CMake with pip
       run: |
@@ -457,7 +457,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 1
 
     - name: Python tests
       run: python3 tools/repeat_command.py 0 cmake --build build --target pytest
@@ -614,7 +614,7 @@ jobs:
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
-      run: cmake --build build -j 2
+      run: cmake --build build -j 1
 
     - name: Python tests
       run: python3 tools/repeat_command.py 0 cmake --build build --target pytest
@@ -761,7 +761,7 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
         ${{ matrix.args }}
     - name: Build C++11
-      run: cmake --build build -j 2
+      run: cmake --build build -j 1
 
     - name: Run tests
       run: python3 tools/repeat_command.py 0 cmake --build build -t pytest
@@ -807,7 +807,7 @@ jobs:
         -DDOWNLOAD_EIGEN=ON
 
     - name: Build C++14
-      run: cmake --build build -j 2
+      run: cmake --build build -j 1
 
     - name: Run all checks
       run: cmake --build build -t check
@@ -858,7 +858,7 @@ jobs:
         ${{ matrix.args }}
 
     - name: Build ${{ matrix.std }}
-      run: cmake --build build -j 2
+      run: cmake --build build -j 1
 
     - name: Run all checks
       run: cmake --build build -t check
