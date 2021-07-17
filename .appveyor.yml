@@ -1,4 +1,7 @@
 version: 1.0.{build}
+branches:
+  only:
+    - will_not_exist_ever
 image:
 - Visual Studio 2015
 test: off
