@@ -12,7 +12,6 @@
 
 #if defined(__INTEL_COMPILER)
 #  pragma warning push
-#  pragma warning disable 68    // integer conversion resulted in a change of sign
 #  pragma warning disable 186   // pointless comparison of unsigned integer with zero
 #  pragma warning disable 878   // incompatible exception specifications
 #  pragma warning disable 1334  // the "template" keyword used for syntactic disambiguation may only be used within a template
