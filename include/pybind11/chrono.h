@@ -164,7 +164,14 @@ public:
 
         // std::localtime returns a pointer to a static internal std::tm object on success,
         // or null pointer otherwise
+#if defined(_MSC_VER)
+#    pragma warning(push)
+#    pragma warning(disable : 4996) // warning C4996: The POSIX name for this item is deprecated.
+#endif
         std::tm *localtime_ptr = std::localtime(&tt);
+#if defined(_MSC_VER)
+#    pragma warning(pop)
+#endif
         if (!localtime_ptr)
             throw cast_error("Unable to represent system_clock in local time");
 
