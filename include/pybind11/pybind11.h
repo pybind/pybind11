@@ -951,19 +951,38 @@ protected:
     }
 };
 
-/// Wrapper for Python extension modules
+/// Wrapper for Python modules
 class module_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
-    /// Create a new top-level Python module with the given name and docstring
-    PYBIND11_DEPRECATED("Use PYBIND11_MODULE or module_::create_extension_module instead")
+    /** \rst
+        Create a new top-level Python module with the given name and docstring.
+
+        Note that this cannot be used as the top-level module for a C extension.
+        Use `module_::create_extension_module` to create a module object that is
+        accepted by Python as top-level C extension module, returned from the
+        extension's ``PyInit_foo`` entry point (``initfoo`` in Python 2).
+        If you do *not* need a top-level C extension module, this constructor has
+        the advantage of not needing a ``PyModuleDef`` and thus being easier to use
+        w.r.t. memory management.
+    \endrst */
     explicit module_(const char *name, const char *doc = nullptr) {
-#if PY_MAJOR_VERSION >= 3
-        *this = create_extension_module(name, doc, new PyModuleDef());
+#if defined(PYPY_VERSION) && (PYPY_VERSION_NUM < 0x07030400)
+        m_ptr = PyModule_New(const_cast<char *>(name));
 #else
-        *this = create_extension_module(name, doc, nullptr);
+        m_ptr = PyModule_New(name);
 #endif
+        if (!m_ptr)
+            pybind11_fail("Could not allocate module object!");
+        if (doc && options::show_user_defined_docstrings()) {
+#if PY_MAJOR_VERSION >= 3 && !defined(PYPY_VERSION)
+            if (PyModule_SetDocString(m_ptr, doc) != 0)
+                throw error_already_set();
+#else
+            setattr(m_ptr, "__doc__", PYBIND11_STR_TYPE(doc));
+#endif
+        }
     }
 
     /** \rst
