@@ -183,11 +183,9 @@ section.
 Local vs Global Exception Translators
 =====================================
 
-Similar to how the ``py::module_local`` flag allows uesrs to limit a bound class
-to a single compiled module to prevent name collisions. When a global exception
-translator is registered, it will be applied across all modules in the reverse
-order of registration. This can create behavior where the order of module import
-influences how exceptions are translated.
+When a global exception translator is registered, it will be applied across all
+modules in the reverse order of registration. This can create behavior where the
+order of module import influences how exceptions are translated.
 
 If module1 has the following translator:
 
@@ -223,11 +221,10 @@ standard built-in or custom) loaded into a single python instance and
 consistent error handling behavior is needed, then local translators should be
 used.
 
-Changing the previous example to use register_local_exception_translator would
-mean that when invalid_argument is thrown in the module2 code, the module2
-translator will always handle it, while in module1, the module1 translator will
-do the same.
->>>>>>> 854aa95a (Update documentation for new local exception feature)
+Changing the previous example to use ``register_local_exception_translator``
+would mean that when invalid_argument is thrown in the module2 code, the
+module2 translator will always handle it, while in module1, the module1
+translator will do the same.
 
 .. _handling_python_exceptions_cpp:
 
