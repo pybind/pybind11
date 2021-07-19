@@ -66,6 +66,30 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Apply all the extensions translators from a list
+// Return true if one of the translators completed without raising an exception
+// itself. Return of false indicates that if there are other translators
+// available, they should be tried.
+inline bool apply_exception_translators(std::forward_list<void (*) (std::exception_ptr)>& translators) {
+    auto last_exception = std::current_exception();
+
+    for (auto& translator : translators) {
+        try {
+            translator(last_exception);
+            return true;
+        } catch (...) {
+            last_exception = std::current_exception();
+        }
+    }
+    return false;
+}
+
+PYBIND11_NAMESPACE_END(detail)
+
+
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
 public:
@@ -560,6 +584,7 @@ protected:
         }
     }
 
+
     /// Main dispatch logic for calls to functions bound using pybind11
     static PyObject *dispatcher(PyObject *self, PyObject *args_in, PyObject *kwargs_in) {
         using namespace detail;
@@ -854,29 +879,15 @@ protected:
                 - do nothing and let the exception fall through to the next translator, or
                 - delegate translation to the next translator by throwing a new type of exception. */
 
-            auto last_exception = std::current_exception();
-
-            auto & registered_local_exception_translators = get_local_internals().registered_local_exception_translators;
-            for (auto& translator : registered_local_exception_translators) {
-                try {
-                    translator(last_exception);
-                } catch (...) {
-                    last_exception = std::current_exception();
-                    continue;
-                }
-                return nullptr;
+            auto &local_exception_translators = get_local_internals().registered_local_exception_translators;
+            if (apply_exception_translators(local_exception_translators)) {
+              return nullptr;
+            }
+            auto &exception_translators = get_internals().registered_exception_translators;
+            if (apply_exception_translators(exception_translators)) {
+              return nullptr;
             }
 
-            auto &registered_exception_translators = get_internals().registered_exception_translators;
-            for (auto& translator : registered_exception_translators) {
-                try {
-                    translator(last_exception);
-                } catch (...) {
-                    last_exception = std::current_exception();
-                    continue;
-                }
-                return nullptr;
-            }
             PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
             return nullptr;
         }
@@ -976,6 +987,7 @@ protected:
         return result.ptr();
     }
 };
+
 
 /// Wrapper for Python extension modules
 class module_ : public object {
@@ -2046,7 +2058,7 @@ void register_exception_translator(ExceptionTranslator&& translator) {
 /**
   * Add a new module-local exception translator. Locally registered functions
   * will be tried before any globally registered exception translators, which
-  * will only be invoked if the moduke-local handlers do not deal with
+  * will only be invoked if the module-local handlers do not deal with
   * the exception.
   */
 template <typename ExceptionTranslator>
@@ -2091,8 +2103,8 @@ exception<CppException> &get_exception_object() { static exception<CppException>
 PYBIND11_NAMESPACE_END(detail)
 
 /**
- * Registers a Python exception in `m` of the given `name` and installs an exception translator to
- * translate the C++ exception to the created Python exception using the exceptions what() method.
+ * Registers a Python exception in `m` of the given `name` and installs a translator to
+ * translate the C++ exception to the created Python exception using the what() method.
  * This is intended for simple exception translations; for more complex translation, register the
  * exception object and translator directly.
  */
@@ -2115,8 +2127,8 @@ exception<CppException> &register_exception(handle scope,
 }
 
 /**
- * Registers a Python exception in `m` of the given `name` and installs an exception translator to
- * translate the C++ exception to the created Python exception using the exceptions what() method.
+ * Registers a Python exception in `m` of the given `name` and installs a translator to
+ * translate the C++ exception to the created Python exception using the what() method.
  * This translator will only be used for exceptions that are thrown in this module and will be
  * tried before global exception translators, including those registered with register_exception.
  * This is intended for simple exception translations; for more complex translation, register the
