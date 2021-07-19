@@ -76,7 +76,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 inline bool apply_exception_translators(std::forward_list<void (*) (std::exception_ptr)>& translators) {
     auto last_exception = std::current_exception();
 
-    for (auto& translator : translators) {
+    for (auto &translator : translators) {
         try {
             translator(last_exception);
             return true;
@@ -881,11 +881,11 @@ protected:
 
             auto &local_exception_translators = get_local_internals().registered_local_exception_translators;
             if (detail::apply_exception_translators(local_exception_translators)) {
-              return nullptr;
+                return nullptr;
             }
             auto &exception_translators = get_internals().registered_exception_translators;
             if (detail::apply_exception_translators(exception_translators)) {
-              return nullptr;
+                return nullptr;
             }
 
             PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
@@ -2050,7 +2050,7 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
 
 
 template <typename ExceptionTranslator>
-void register_exception_translator(ExceptionTranslator&& translator) {
+void register_exception_translator(ExceptionTranslator &&translator) {
     detail::get_internals().registered_exception_translators.push_front(
         std::forward<ExceptionTranslator>(translator));
 }
@@ -2063,7 +2063,7 @@ void register_exception_translator(ExceptionTranslator&& translator) {
   * the exception.
   */
 template <typename ExceptionTranslator>
-void register_local_exception_translator(ExceptionTranslator&& translator) {
+void register_local_exception_translator(ExceptionTranslator &&translator) {
     detail::get_local_internals().registered_local_exception_translators.push_front(
         std::forward<ExceptionTranslator>(translator));
 }
@@ -2102,7 +2102,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 template <typename CppException>
 exception<CppException> &get_exception_object() { static exception<CppException> ex; return ex; }
 
-using BasicTranslator = void(*)(std::exception_ptr);
+using BasicTranslator = void (*)(std::exception_ptr);
 
 // Helper function for register_exception and register_local_exception
 template <typename CppException>
@@ -2113,7 +2113,8 @@ exception<CppException> &register_exception_impl(handle scope,
     auto &ex = detail::get_exception_object<CppException>();
     if (!ex) ex = exception<CppException>(scope, name, base);
 
-    auto register_func = isLocal ? &register_local_exception_translator<BasicTranslator> : &register_exception_translator<BasicTranslator>;
+    auto register_func = isLocal ? &register_local_exception_translator<BasicTranslator>
+                                 : &register_exception_translator<BasicTranslator>;
 
     register_func([](std::exception_ptr p) {
         if (!p) return;
