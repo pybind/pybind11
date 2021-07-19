@@ -12,7 +12,11 @@
 #include "../pytypes.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+using ExceptionTranslator = void (*)(std::exception_ptr);
+
 PYBIND11_NAMESPACE_BEGIN(detail)
+
 // Forward declarations
 inline PyTypeObject *make_static_property_type();
 inline PyTypeObject *make_default_metaclass();
@@ -100,7 +104,7 @@ struct internals {
     std::unordered_set<std::pair<const PyObject *, const char *>, override_hash> inactive_override_cache;
     type_map<std::vector<bool (*)(PyObject *, void *&)>> direct_conversions;
     std::unordered_map<const PyObject *, std::vector<PyObject *>> patients;
-    std::forward_list<void (*) (std::exception_ptr)> registered_exception_translators;
+    std::forward_list<ExceptionTranslator> registered_exception_translators;
     std::unordered_map<std::string, void *> shared_data; // Custom data to be shared across extensions
     std::vector<PyObject *> loader_patient_stack; // Used by `loader_life_support`
     std::forward_list<std::string> static_strings; // Stores the std::strings backing detail::c_str()
@@ -316,7 +320,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
 
 struct local_internals {
   type_map<type_info *> registered_local_types_cpp;
-  std::forward_list<void (*) (std::exception_ptr)> registered_local_exception_translators;
+  std::forward_list<ExceptionTranslator> registered_local_exception_translators;
 };
 
 /// Works like `get_internals`, but for things which are locally registered.
