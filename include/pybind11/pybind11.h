@@ -880,11 +880,11 @@ protected:
                 - delegate translation to the next translator by throwing a new type of exception. */
 
             auto &local_exception_translators = get_local_internals().registered_local_exception_translators;
-            if (apply_exception_translators(local_exception_translators)) {
+            if (detail::apply_exception_translators(local_exception_translators)) {
               return nullptr;
             }
             auto &exception_translators = get_internals().registered_exception_translators;
-            if (apply_exception_translators(exception_translators)) {
+            if (detail::apply_exception_translators(exception_translators)) {
               return nullptr;
             }
 
@@ -2048,6 +2048,7 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
 }
 
+
 template <typename ExceptionTranslator>
 void register_exception_translator(ExceptionTranslator&& translator) {
     detail::get_internals().registered_exception_translators.push_front(
@@ -2100,6 +2101,31 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // directly in register_exception, but that makes clang <3.5 segfault - issue #1349).
 template <typename CppException>
 exception<CppException> &get_exception_object() { static exception<CppException> ex; return ex; }
+
+using BasicTranslator = void(*)(std::exception_ptr);
+
+// Helper function for register_exception and register_local_exception
+template <typename CppException>
+exception<CppException> &register_exception_impl(handle scope,
+                                                const char *name,
+                                                handle base,
+                                                bool isLocal) {
+    auto &ex = detail::get_exception_object<CppException>();
+    if (!ex) ex = exception<CppException>(scope, name, base);
+
+    auto register_func = isLocal ? &register_local_exception_translator<BasicTranslator> : &register_exception_translator<BasicTranslator>;
+
+    register_func([](std::exception_ptr p) {
+        if (!p) return;
+        try {
+            std::rethrow_exception(p);
+        } catch (const CppException &e) {
+            detail::get_exception_object<CppException>()(e.what());
+        }
+    });
+    return ex;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /**
@@ -2112,18 +2138,7 @@ template <typename CppException>
 exception<CppException> &register_exception(handle scope,
                                             const char *name,
                                             handle base = PyExc_Exception) {
-    auto &ex = detail::get_exception_object<CppException>();
-    if (!ex) ex = exception<CppException>(scope, name, base);
-
-    register_exception_translator([](std::exception_ptr p) {
-        if (!p) return;
-        try {
-            std::rethrow_exception(p);
-        } catch (const CppException &e) {
-            detail::get_exception_object<CppException>()(e.what());
-        }
-    });
-    return ex;
+    return detail::register_exception_impl<CppException>(scope, name, base, false /* isLocal */);
 }
 
 /**
@@ -2138,18 +2153,7 @@ template <typename CppException>
 exception<CppException> &register_local_exception(handle scope,
                                                   const char *name,
                                                   handle base = PyExc_Exception) {
-    auto &ex = detail::get_exception_object<CppException>();
-    if (!ex) ex = exception<CppException>(scope, name, base);
-
-    register_local_exception_translator([](std::exception_ptr p) {
-        if (!p) return;
-        try {
-            std::rethrow_exception(p);
-        } catch (const CppException &e) {
-            detail::get_exception_object<CppException>()(e.what());
-        }
-    });
-    return ex;
+    return detail::register_exception_impl<CppException>(scope, name, base, true /* isLocal */);
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
