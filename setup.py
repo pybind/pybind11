@@ -63,14 +63,14 @@ to_src = (
 )
 
 # Read the listed version
-with open("pybind11/_version.py") as f:
+with open("pybind11/_version.py", encoding="utf8") as f:
     code = compile(f.read(), "pybind11/_version.py", "exec")
 loc = {}
 exec(code, loc)
 version = loc["__version__"]
 
 # Verify that the version matches the one in C++
-with open("include/pybind11/detail/common.h") as f:
+with open("include/pybind11/detail/common.h", encoding="utf8") as f:
     matches = dict(VERSION_REGEX.findall(f.read()))
 cpp_version = "{MAJOR}.{MINOR}.{PATCH}".format(**matches)
 if version != cpp_version:
