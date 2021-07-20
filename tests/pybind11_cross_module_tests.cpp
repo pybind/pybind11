@@ -16,6 +16,10 @@
 #include <numeric>
 #include <utility>
 
+#if defined(__INTEL_COMPILER)
+#    pragma warning push
+#    pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
+#endif
 PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.doc() = "pybind11 cross-module test module";
 
@@ -149,3 +153,6 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("missing_header_arg", [](const std::vector<float> &) {});
     m.def("missing_header_return", []() { return std::vector<float>(); });
 }
+#if defined(__INTEL_COMPILER)
+#    pragma warning pop
+#endif

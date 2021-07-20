@@ -15,7 +15,6 @@
 //
 #if defined(__INTEL_COMPILER)
 #  pragma warning push
-#  pragma warning disable 878   // incompatible exception specifications
 #  pragma warning disable 2196  // warning #2196: routine is both "inline" and "noinline"
 #elif defined(_MSC_VER)
 #  pragma warning(push)
