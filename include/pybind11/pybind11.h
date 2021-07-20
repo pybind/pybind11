@@ -10,6 +10,9 @@
 
 #pragma once
 
+//
+// THE `push` HERE NEED TO BE KEPT IN SYNC WITH THE CORRESPONDING `pop` AT THE BOTTOM OF THIS FILE.
+//
 #if defined(__INTEL_COMPILER)
 #  pragma warning push
 #  pragma warning disable 878   // incompatible exception specifications
@@ -2376,8 +2379,13 @@ inline function get_overload(const T *this_ptr, const char *name) {
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-#  pragma warning(pop)
+//
+// THE `pop` HERE NEED TO BE KEPT IN SYNC WITH THE CORRESPONDING `push` AT THE TOP OF THIS FILE.
+//
+#if defined(__INTEL_COMPILER)
+#    pragma warning pop
+#elif defined(_MSC_VER)
+#    pragma warning(pop)
 #elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#  pragma GCC diagnostic pop
+#    pragma GCC diagnostic pop
 #endif
