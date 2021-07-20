@@ -7,6 +7,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#if defined(__INTEL_COMPILER)
+#    pragma warning push
+#    pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
+#endif
+
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
@@ -62,10 +67,6 @@ void bind_ConstructorStats(py::module_ &m) {
         ;
 }
 
-#if defined(__INTEL_COMPILER)
-#    pragma warning push
-#    pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
-#endif
 PYBIND11_MODULE(pybind11_tests, m) {
     m.doc() = "pybind11 test module";
 
@@ -93,6 +94,7 @@ PYBIND11_MODULE(pybind11_tests, m) {
     for (const auto &initializer : initializers())
         initializer(m);
 }
+
 #if defined(__INTEL_COMPILER)
 #    pragma warning pop
 #endif
