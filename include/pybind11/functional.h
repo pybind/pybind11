@@ -60,6 +60,11 @@ public:
                     }
                     rec = rec->next;
                 }
+            } else {
+#if            defined(PYPY_VERSION)
+               // PyPy will segfault otherwise when passing in raw builtin functions.
+               pybind11_fail("Passing raw builtin functions not supported with PyPy. Wrap in function.")
+#endif
             }
         }
 
