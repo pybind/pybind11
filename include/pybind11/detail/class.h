@@ -209,7 +209,7 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
         internals.direct_conversions.erase(tindex);
 
         if (tinfo->module_local)
-            get_local_internals().registered_local_types_cpp.erase(tindex);
+            get_local_internals().registered_types_cpp.erase(tindex);
         else
             internals.registered_types_cpp.erase(tindex);
         internals.registered_types_py.erase(tinfo->type);
