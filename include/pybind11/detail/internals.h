@@ -320,7 +320,7 @@ PYBIND11_NOINLINE inline internals &get_internals() {
 
 // the internals struct (above) is shared between all the modules. local_internals are only
 // for a single module. Any changes made to internals may require an update to
-// PYBIND11_INTERNALS_VERSION, breaking backwards compatiblity. local_internals is, by design,
+// PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
 // restricted to a single module. Whether a module has local internals or not should not
 // impact any other modules, because the only things accessing the local internals is the
 // module that contains them.
