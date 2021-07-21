@@ -61,9 +61,10 @@ public:
                     rec = rec->next;
                 }
             } else {
+			   // Usually indicates that it is a builtin function.
 #if            defined(PYPY_VERSION)
                // PyPy will segfault otherwise when passing in raw builtin functions.
-               pybind11_fail("Passing raw builtin functions not supported with PyPy. Wrap in function.")
+               pybind11_fail("Passing raw builtin functions not supported with PyPy. Wrap in function.");
 #endif
             }
         }
