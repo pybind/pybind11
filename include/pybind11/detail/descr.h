@@ -11,8 +11,8 @@
 
 #include "common.h"
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if !defined(_MSC_VER)
 #  define PYBIND11_DESCR_CONSTEXPR static constexpr
@@ -23,9 +23,9 @@ NAMESPACE_BEGIN(detail)
 /* Concatenate type signatures at compile time */
 template <size_t N, typename... Ts>
 struct descr {
-    char text[N + 1];
+    char text[N + 1]{'\0'};
 
-    constexpr descr() : text{'\0'} { }
+    constexpr descr() = default;
     constexpr descr(char const (&s)[N+1]) : descr(s, make_index_sequence<N>()) { }
 
     template <size_t... Is>
@@ -96,5 +96,5 @@ constexpr descr<N + 2, Ts...> type_descr(const descr<N, Ts...> &descr) {
     return _("{") + descr + _("}");
 }
 
-NAMESPACE_END(detail)
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

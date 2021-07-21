@@ -54,6 +54,14 @@ template <class Map> Map *times_ten(int n) {
     return m;
 }
 
+template <class NestMap> NestMap *times_hundred(int n) {
+    auto m = new NestMap();
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= n; j++)
+            (*m)[i].emplace(int(j*10), E_nc(100*j));
+    return m;
+}
+
 TEST_SUBMODULE(stl_binders, m) {
     // test_vector_int
     py::bind_vector<std::vector<unsigned int>>(m, "VectorInt", py::buffer_protocol());
@@ -78,13 +86,27 @@ TEST_SUBMODULE(stl_binders, m) {
 
     // test_noncopyable_containers
     py::bind_vector<std::vector<E_nc>>(m, "VectorENC");
-    m.def("get_vnc", &one_to_n<std::vector<E_nc>>, py::return_value_policy::reference);
+    m.def("get_vnc", &one_to_n<std::vector<E_nc>>);
     py::bind_vector<std::deque<E_nc>>(m, "DequeENC");
-    m.def("get_dnc", &one_to_n<std::deque<E_nc>>, py::return_value_policy::reference);
+    m.def("get_dnc", &one_to_n<std::deque<E_nc>>);
     py::bind_map<std::map<int, E_nc>>(m, "MapENC");
-    m.def("get_mnc", &times_ten<std::map<int, E_nc>>, py::return_value_policy::reference);
+    m.def("get_mnc", &times_ten<std::map<int, E_nc>>);
     py::bind_map<std::unordered_map<int, E_nc>>(m, "UmapENC");
-    m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>, py::return_value_policy::reference);
+    m.def("get_umnc", &times_ten<std::unordered_map<int, E_nc>>);
+    // Issue #1885: binding nested std::map<X, Container<E>> with E non-copyable
+    py::bind_map<std::map<int, std::vector<E_nc>>>(m, "MapVecENC");
+    m.def("get_nvnc", [](int n)
+        {
+            auto m = new std::map<int, std::vector<E_nc>>();
+            for (int i = 1; i <= n; i++)
+                for (int j = 1; j <= n; j++)
+                    (*m)[i].emplace_back(j);
+            return m;
+        });
+    py::bind_map<std::map<int, std::map<int, E_nc>>>(m, "MapMapENC");
+    m.def("get_nmnc", &times_hundred<std::map<int, std::map<int, E_nc>>>);
+    py::bind_map<std::unordered_map<int, std::unordered_map<int, E_nc>>>(m, "UmapUmapENC");
+    m.def("get_numnc", &times_hundred<std::unordered_map<int, std::unordered_map<int, E_nc>>>);
 
     // test_vector_buffer
     py::bind_vector<std::vector<unsigned char>>(m, "VectorUChar", py::buffer_protocol());
@@ -95,7 +117,7 @@ TEST_SUBMODULE(stl_binders, m) {
     });
 
     // The rest depends on numpy:
-    try { py::module::import("numpy"); }
+    try { py::module_::import("numpy"); }
     catch (...) { return; }
 
     // test_vector_buffer_numpy
@@ -103,5 +125,7 @@ TEST_SUBMODULE(stl_binders, m) {
     PYBIND11_NUMPY_DTYPE(VStruct, w, x, y, z);
     py::class_<VStruct>(m, "VStruct").def_readwrite("x", &VStruct::x);
     py::bind_vector<std::vector<VStruct>>(m, "VectorStruct", py::buffer_protocol());
-    m.def("get_vectorstruct", [] {return std::vector<VStruct> {{0, 5, 3.0, 1}, {1, 30, -1e4, 0}};});
+    m.def("get_vectorstruct", [] {
+        return std::vector<VStruct>{{false, 5, 3.0, true}, {true, 30, -1e4, false}};
+    });
 }
