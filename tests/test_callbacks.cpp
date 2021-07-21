@@ -158,7 +158,7 @@ TEST_SUBMODULE(callbacks, m) {
 
     // This checks that builtin functions can be passed as callbacks
     // rather than throwing RuntimeError due to trying to extract as capsule
-    m.def("test_sum_builtin", [](std::function<double(py::iterable)> sum_builtin, py::iterable i) {
+    m.def("test_sum_builtin", [](std::function<double(py::iterable)> &sum_builtin, py::iterable &i) {
       return sum_builtin(i);
     });
 
