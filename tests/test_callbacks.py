@@ -3,6 +3,7 @@ import pytest
 from pybind11_tests import callbacks as m
 from threading import Thread
 import time
+import env  # NOQA: F401
 
 
 def test_callbacks():
