@@ -124,7 +124,11 @@ def test_movable_object():
     assert m.callback_with_movable(lambda _: None) is True
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail(
+    "env.PYPY",
+    reason="We raise an error to avoid a segfault in PyPy.",
+    raises=RuntimeError,
+)
 def test_python_builtins():
     """Test if python builtins like sum() can be used as callbacks"""
     assert m.test_sum_builtin(sum, [1, 2, 3]) == 6
