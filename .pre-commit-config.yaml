@@ -32,13 +32,13 @@ repos:
     exclude: ^noxfile.py$
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v2.21.0
+  rev: v2.21.2
   hooks:
   - id: pyupgrade
 
 # Black, the code formatter, natively supports pre-commit
 - repo: https://github.com/psf/black
-  rev: 21.6b0
+  rev: 21.7b0
   hooks:
   - id: black
     # By default, this ignores pyi files, though black supports them
@@ -53,7 +53,7 @@ repos:
     exclude: (^docs/.*|\.patch)?$
 
 # Flake8 also supports pre-commit natively (same author)
-- repo: https://gitlab.com/pycqa/flake8
+- repo: https://github.com/PyCQA/flake8
   rev: 3.9.2
   hooks:
   - id: flake8
