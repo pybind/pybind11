@@ -7,16 +7,16 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#if defined(__INTEL_COMPILER)
-#    pragma warning push
-#    pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
-#endif
-
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 
 #include <functional>
 #include <list>
+
+#if defined(__INTEL_COMPILER)
+#    pragma warning push
+#    pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
+#endif
 
 /*
 For testing purposes, we define a static global variable here in a function that each individual
