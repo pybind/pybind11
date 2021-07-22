@@ -73,7 +73,6 @@ public:
         // ensure GIL is held during functor destruction
         struct func_handle {
             function f;
-            func_handle(function f_) : f(std::move(f_)) {}
             func_handle(function &&f_) noexcept : f(std::forward<function>(f_)) {}
             func_handle(const func_handle& f_) {
                 gil_scoped_acquire acq;
