@@ -145,9 +145,8 @@ public:
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             else
                 return false;
-        } else if (PyFloat_Check(src.ptr())) {
-            return false;
-        } else if (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr())) {
+        } else if (PyFloat_Check(src.ptr())
+                   || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
             return false;
         } else {
             handle src_or_index = src;
@@ -263,7 +262,7 @@ public:
         }
 
         /* Check if this is a C++ type */
-        auto &bases = all_type_info((PyTypeObject *) type::handle_of(h).ptr());
+        const auto &bases = all_type_info((PyTypeObject *) type::handle_of(h).ptr());
         if (bases.size() == 1) { // Only allowing loading from a single-value type
             value = values_and_holders(reinterpret_cast<instance *>(h.ptr())).begin()->value_ptr();
             return true;
@@ -315,7 +314,7 @@ public:
             #else
             // Alternate approach for CPython: this does the same as the above, but optimized
             // using the CPython API so as to avoid an unneeded attribute lookup.
-            else if (auto tp_as_number = src.ptr()->ob_type->tp_as_number) {
+            else if (auto *tp_as_number = src.ptr()->ob_type->tp_as_number) {
                 if (PYBIND11_NB_BOOL(tp_as_number)) {
                     res = (*PYBIND11_NB_BOOL(tp_as_number))(src.ptr());
                 }

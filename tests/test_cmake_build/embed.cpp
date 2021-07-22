@@ -8,7 +8,7 @@ PYBIND11_EMBEDDED_MODULE(test_cmake_build, m) {
 int main(int argc, char *argv[]) {
     if (argc != 2)
         throw std::runtime_error("Expected test.py file as the first argument");
-    auto test_py_file = argv[1];
+    auto *test_py_file = argv[1];
 
     py::scoped_interpreter guard{};
 

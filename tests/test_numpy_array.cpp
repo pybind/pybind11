@@ -89,7 +89,7 @@ template<typename... Ix> arr data_t(const arr_t& a, Ix... index) {
 }
 
 template<typename... Ix> arr& mutate_data(arr& a, Ix... index) {
-    auto ptr = (uint8_t *) a.mutable_data(index...);
+    auto *ptr = (uint8_t *) a.mutable_data(index...);
     for (py::ssize_t i = 0; i < a.nbytes() - a.offset_at(index...); i++)
         ptr[i] = (uint8_t) (ptr[i] * 2);
     return a;

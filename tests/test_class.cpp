@@ -19,6 +19,7 @@
 #include "local_bindings.h"
 #include <pybind11/stl.h>
 
+#include <memory>
 #include <utility>
 
 #if defined(_MSC_VER)
@@ -186,15 +187,11 @@ TEST_SUBMODULE(class_, m) {
     // test_override_static
     // #511: problem with inheritance + overwritten def_static
     struct MyBase {
-        static std::unique_ptr<MyBase> make() {
-            return std::unique_ptr<MyBase>(new MyBase());
-        }
+        static std::unique_ptr<MyBase> make() { return std::make_unique<MyBase>(); }
     };
 
     struct MyDerived : MyBase {
-        static std::unique_ptr<MyDerived> make() {
-            return std::unique_ptr<MyDerived>(new MyDerived());
-        }
+        static std::unique_ptr<MyDerived> make() { return std::make_unique<MyDerived>(); }
     };
 
     py::class_<MyBase>(m, "MyBase")
@@ -234,7 +231,7 @@ TEST_SUBMODULE(class_, m) {
             return py::str().release().ptr();
         };
 
-        auto def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
+        auto *def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
         py::capsule def_capsule(def, [](void *ptr) { delete reinterpret_cast<PyMethodDef *>(ptr); });
         return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, def_capsule.ptr(), m.ptr()));
     }());

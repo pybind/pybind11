@@ -39,6 +39,8 @@ TEST_SUBMODULE(buffers, m) {
             delete[] m_data;
         }
 
+        // TODO fix this later
+        // NOLINTNEXTLINE(bugprone-unhandled-self-assignment)
         Matrix &operator=(const Matrix &s) {
             print_copy_assigned(this, std::to_string(m_rows) + "x" + std::to_string(m_cols) + " matrix");
             delete[] m_data;
@@ -84,7 +86,7 @@ TEST_SUBMODULE(buffers, m) {
             if (info.format != py::format_descriptor<float>::format() || info.ndim != 2)
                 throw std::runtime_error("Incompatible buffer format!");
 
-            auto v = new Matrix(info.shape[0], info.shape[1]);
+            auto *v = new Matrix(info.shape[0], info.shape[1]);
             memcpy(v->data(), info.ptr, sizeof(float) * (size_t) (v->rows() * v->cols()));
             return v;
         }))

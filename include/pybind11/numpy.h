@@ -1064,7 +1064,7 @@ public:
     static constexpr int value = values[detail::is_fmt_numeric<T>::index];
 
     static pybind11::dtype dtype() {
-        if (auto ptr = npy_api::get().PyArray_DescrFromType_(value))
+        if (auto *ptr = npy_api::get().PyArray_DescrFromType_(value))
             return reinterpret_steal<pybind11::dtype>(ptr);
         pybind11_fail("Unsupported buffer format!");
     }
@@ -1131,7 +1131,7 @@ inline PYBIND11_NOINLINE void register_structured_dtype(
         formats.append(field.descr);
         offsets.append(pybind11::int_(field.offset));
     }
-    auto dtype_ptr = pybind11::dtype(names, formats, offsets, itemsize).release().ptr();
+    auto *dtype_ptr = pybind11::dtype(names, formats, offsets, itemsize).release().ptr();
 
     // There is an existing bug in NumPy (as of v1.11): trailing bytes are
     // not encoded explicitly into the format string. This will supposedly
@@ -1549,7 +1549,8 @@ private:
 
 public:
     template <typename T>
-    explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) { }
+    // NOLINTNEXTLINE(bugprone-forwarding-reference-overload)
+    explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) {}
 
     object operator()(typename vectorize_arg<Args>::type... args) {
         return run(args...,
@@ -1607,7 +1608,7 @@ private:
         if (size == 0) return std::move(result);
 
         /* Call the function */
-        auto mutable_data = returned_array::mutable_data(result);
+        auto *mutable_data = returned_array::mutable_data(result);
         if (trivial == broadcast_trivial::non_trivial)
             apply_broadcast(buffers, params, mutable_data, size, shape, i_seq, vi_seq, bi_seq);
         else

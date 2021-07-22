@@ -44,7 +44,7 @@ public:
          */
         if (auto cfunc = func.cpp_function()) {
             auto c = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(cfunc.ptr()));
-            auto rec = (function_record *) c;
+            auto *rec = (function_record *) c;
 
             while (rec != nullptr) {
                 if (rec->is_stateless

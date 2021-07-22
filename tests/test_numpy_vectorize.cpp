@@ -59,7 +59,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         .def(py::init<int>())
         .def_readwrite("value", &NonPODClass::value);
     m.def("vec_passthrough",
-          py::vectorize([](double *a,
+          py::vectorize([](const double *a,
                            double b,
                            // Changing this broke things
                            // NOLINTNEXTLINE(performance-unnecessary-value-param)
