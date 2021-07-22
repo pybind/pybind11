@@ -1,6 +1,7 @@
 FormatStyle: file
 
 Checks: '
+bugprone-use-after-move,
 cppcoreguidelines-init-variables,
 clang-analyzer-optin.cplusplus.VirtualCall,
 llvm-namespace-comment,

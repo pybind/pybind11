@@ -64,8 +64,8 @@ public:
                // Usually indicates that it is a builtin function.
 #if            defined(PYPY_VERSION)
                // PyPy will segfault otherwise when passing in raw builtin functions.
-               return false;
-               //pybind11_fail("Passing raw builtin functions not supported with PyPy. Wrap in function.");
+               // This will lead to a TypeError instead.
+               //return false;
 #endif
             }
         }
@@ -96,7 +96,7 @@ public:
             }
         };
 
-        value = func_wrapper(func_handle(std::move(func)));
+        value = func_wrapper(func_handle((func)));
         return true;
     }
 
