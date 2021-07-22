@@ -73,7 +73,7 @@ public:
         // ensure GIL is held during functor destruction
         struct func_handle {
             function f;
-            func_handle(function&& f_) : f(std::move(f_)) {}
+            func_handle(function &&f_) noexcept : f(std::forward<function>(f_)) {}
             func_handle(const func_handle& f_) {
                 gil_scoped_acquire acq;
                 f = f_.f;
@@ -87,7 +87,7 @@ public:
         // to emulate 'move initialization capture' in C++11
         struct func_wrapper {
             func_handle hfunc;
-            func_wrapper(func_handle&& hf): hfunc(std::move(hf)) {}
+            func_wrapper(func_handle &&hf) noexcept : hfunc(std::forward<func_handle>(hf)) {}
             Return operator()(Args... args) const {
                 gil_scoped_acquire acq;
                 object retval(hfunc.f(std::forward<Args>(args)...));
@@ -96,7 +96,7 @@ public:
             }
         };
 
-        value = func_wrapper(func_handle((func)));
+        value = func_wrapper(func_handle(std::move(func)));
         return true;
     }
 
