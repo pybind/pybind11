@@ -13,11 +13,6 @@
 #include <functional>
 #include <list>
 
-#if defined(__INTEL_COMPILER)
-#    pragma warning push
-#    pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
-#endif
-
 /*
 For testing purposes, we define a static global variable here in a function that each individual
 test .cpp calls with its initialization lambda.  It's convenient here because we can just not
@@ -94,7 +89,3 @@ PYBIND11_MODULE(pybind11_tests, m) {
     for (const auto &initializer : initializers())
         initializer(m);
 }
-
-#if defined(__INTEL_COMPILER)
-#    pragma warning pop
-#endif

@@ -10,9 +10,6 @@
 // We get some really long type names here which causes MSVC 2015 to emit warnings
 #    pragma warning(                                                                              \
         disable : 4503) // warning C4503: decorated name length exceeded, name was truncated
-#elif defined(__INTEL_COMPILER)
-#    pragma warning push
-#    pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
 #endif
 
 namespace py = pybind11;
@@ -90,9 +87,3 @@ void ignoreOldStyleInitWarnings(F &&body) {
         body()
     )", py::dict(py::arg("body") = py::cpp_function(body)));
 }
-
-#if defined(_MSC_VER) && _MSC_VER < 1910
-#    pragma warning(pop)
-#elif defined(__INTEL_COMPILER)
-#    pragma warning pop
-#endif

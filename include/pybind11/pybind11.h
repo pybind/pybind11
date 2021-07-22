@@ -13,10 +13,7 @@
 //
 // THE `push` HERE NEED TO BE KEPT IN SYNC WITH THE CORRESPONDING `pop` AT THE BOTTOM OF THIS FILE.
 //
-#if defined(__INTEL_COMPILER)
-#  pragma warning push
-#  pragma warning disable 2196  // warning #2196: routine is both "inline" and "noinline"
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
@@ -2381,9 +2378,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 //
 // THE `pop` HERE NEED TO BE KEPT IN SYNC WITH THE CORRESPONDING `push` AT THE TOP OF THIS FILE.
 //
-#if defined(__INTEL_COMPILER)
-#    pragma warning pop
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #    pragma warning(pop)
 #elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #    pragma GCC diagnostic pop

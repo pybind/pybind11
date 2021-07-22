@@ -70,11 +70,6 @@ inspection/testing in python) by using the functions with `print_` replaced with
 #include <typeindex>
 #include <sstream>
 
-#if defined(__INTEL_COMPILER)
-#    pragma warning push
-#    pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
-#endif
-
 class ConstructorStats {
 protected:
     std::unordered_map<void*, int> _instances; // Need a map rather than set because members can shared address with parents
@@ -278,7 +273,3 @@ template <class T, typename... Values> void print_values(T *inst, Values &&...va
     print_constr_details(inst, ":", values...);
     track_values(inst, values...);
 }
-
-#if defined(__INTEL_COMPILER)
-#    pragma warning pop
-#endif
