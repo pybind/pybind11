@@ -65,7 +65,7 @@ public:
 #if            defined(PYPY_VERSION)
                // PyPy will segfault otherwise when passing in raw builtin functions.
                // This will lead to a TypeError instead.
-               //return false;
+               return false;
 #endif
             }
         }
@@ -97,7 +97,7 @@ public:
             }
         };
 
-        value = func_wrapper(func_handle((func)));
+        value = func_wrapper(func_handle(std::move(func)));
         return true;
     }
 
