@@ -78,14 +78,9 @@ inline bool apply_exception_translators(std::forward_list<ExceptionTranslator>& 
 }
 
 #if defined(_MSC_VER)
-#    pragma warning(push)
-#    pragma warning(disable : 4996) // warning C4996: The POSIX name for this item is deprecated.
-#endif
-
-inline char *strdup_helper(const char *s) { return strdup(s); }
-
-#if defined(_MSC_VER)
-#    pragma warning(pop)
+#    define PYBIND11_COMPAT_STRDUP _strdup
+#else
+#    define PYBIND11_COMPAT_STRDUP strdup
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
@@ -287,7 +282,7 @@ protected:
                 std::free(s);
         }
         char *operator()(const char *s) {
-            auto t = detail::strdup_helper(s);
+            auto t = PYBIND11_COMPAT_STRDUP(s);
             strings.push_back(t);
             return t;
         }
@@ -532,7 +527,7 @@ protected:
         std::free(const_cast<char *>(func->m_ml->ml_doc));
         // Install docstring if it's non-empty (when at least one option is enabled)
         func->m_ml->ml_doc
-            = signatures.empty() ? nullptr : detail::strdup_helper(signatures.c_str());
+            = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
@@ -1537,7 +1532,7 @@ public:
            detail::process_attributes<Extra...>::init(extra..., rec_fget);
            if (rec_fget->doc && rec_fget->doc != doc_prev) {
               free(doc_prev);
-              rec_fget->doc = detail::strdup_helper(rec_fget->doc);
+              rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
            }
         }
         if (rec_fset) {
@@ -1545,7 +1540,7 @@ public:
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
                 free(doc_prev);
-                rec_fset->doc = detail::strdup_helper(rec_fset->doc);
+                rec_fset->doc = PYBIND11_COMPAT_STRDUP(rec_fset->doc);
             }
             if (! rec_active) rec_active = rec_fset;
         }
