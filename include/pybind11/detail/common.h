@@ -265,6 +265,10 @@ extern "C" {
 #define PYBIND11_ENSURE_INTERNALS_READY \
     pybind11::detail::get_internals();
 
+// Paying tribute to MSVC 2015 warning
+// C4800: 'int': forcing value to bool 'true' or 'false' (performance warning)
+#define PYBIND11_COMPAT_BOOL_CAST(...) ((__VA_ARGS__) ? true : false)
+
 #define PYBIND11_CHECK_PYTHON_VERSION \
     {                                                                          \
         const char *compiled_ver = PYBIND11_TOSTRING(PY_MAJOR_VERSION)         \

@@ -231,7 +231,7 @@ struct value_and_holder {
         return reinterpret_cast<V *&>(vh[0]);
     }
     // True if this `value_and_holder` has a non-null value pointer
-    explicit operator bool() const { return value_ptr(); }
+    explicit operator bool() const { return value_ptr() != nullptr; }
 
     template <typename H> H &holder() const {
         return reinterpret_cast<H &>(vh[1]);
@@ -252,7 +252,8 @@ struct value_and_holder {
     bool instance_registered() const {
         return inst->simple_layout
             ? inst->simple_instance_registered
-            : inst->nonsimple.status[index] & instance::status_instance_registered;
+            : PYBIND11_COMPAT_BOOL_CAST(
+                  inst->nonsimple.status[index] & instance::status_instance_registered);
     }
     void set_instance_registered(bool v = true) const {
         if (inst->simple_layout)

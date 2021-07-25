@@ -83,7 +83,7 @@ struct buffer_info {
             view->strides
             ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
             : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
-            view->readonly) {
+            PYBIND11_COMPAT_BOOL_CAST(view->readonly)) {
         this->m_view = view;
         this->ownview = ownview;
     }
