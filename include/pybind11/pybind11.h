@@ -18,7 +18,7 @@
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #  pragma warning(disable: 4505) // warning C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
-#elif defined(__GNUG__) && !defined(__clang__)
+#elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #  pragma GCC diagnostic ignored "-Wattributes"
@@ -2379,7 +2379,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 // THE `pop` HERE NEED TO BE KEPT IN SYNC WITH THE CORRESPONDING `push` AT THE TOP OF THIS FILE.
 //
 #if defined(_MSC_VER)
-#    pragma warning(pop)
+#  pragma warning(pop)
 #elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#    pragma GCC diagnostic pop
+#  pragma GCC diagnostic pop
 #endif
