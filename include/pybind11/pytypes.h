@@ -532,6 +532,10 @@ object object_or_cast(T &&o);
 // Match a PyObject*, which we want to convert directly to handle via its converting constructor
 inline handle object_or_cast(PyObject *ptr) { return ptr; }
 
+#if defined(_MSC_VER) && _MSC_VER < 1920
+#  pragma warning(push)
+#  pragma warning(disable: 4522) // warning C4522: multiple assignment operators specified
+#endif
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
     using key_type = typename Policy::key_type;
@@ -580,6 +584,9 @@ private:
     key_type key;
     mutable object cache;
 };
+#if defined(_MSC_VER) && _MSC_VER < 1920
+#  pragma warning(pop)
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(accessor_policies)
 struct obj_attr {
