@@ -322,7 +322,7 @@ public:
             }
             #endif
             if (res == 0 || res == 1) {
-                value = PYBIND11_COMPAT_BOOL_CAST(res);
+                value = (res != 0);
                 return true;
             }
             PyErr_Clear();

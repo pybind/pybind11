@@ -252,8 +252,7 @@ struct value_and_holder {
     bool instance_registered() const {
         return inst->simple_layout
             ? inst->simple_instance_registered
-            : PYBIND11_COMPAT_BOOL_CAST(
-                  inst->nonsimple.status[index] & instance::status_instance_registered);
+            : (inst->nonsimple.status[index] & instance::status_instance_registered != 0);
     }
     void set_instance_registered(bool v = true) const {
         if (inst->simple_layout)

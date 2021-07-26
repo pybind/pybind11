@@ -368,7 +368,7 @@ public:
     /// subclass thereof).  May also be passed a tuple to search for any exception class matches in
     /// the given tuple.
     bool matches(handle exc) const {
-        return PYBIND11_COMPAT_BOOL_CAST(PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()));
+        return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
     }
 
     const object& type() const { return m_type; }
@@ -855,7 +855,7 @@ PYBIND11_NAMESPACE_END(detail)
         Name(handle h, borrowed_t) : Parent(h, borrowed_t{}) { } \
         Name(handle h, stolen_t) : Parent(h, stolen_t{}) { } \
         PYBIND11_DEPRECATED("Use py::isinstance<py::python_type>(obj) instead") \
-        bool check() const { return m_ptr != nullptr && PYBIND11_COMPAT_BOOL_CAST(CheckFun(m_ptr)); } \
+        bool check() const { return m_ptr != nullptr && (CheckFun(m_ptr) != 0); } \
         static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); } \
         template <typename Policy_> \
         Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
