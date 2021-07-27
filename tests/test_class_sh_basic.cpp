@@ -43,7 +43,7 @@ std::string pass_mref(atyp& obj)       { return "pass_mref:" + obj.mtxt; }
 std::string pass_cptr(atyp const* obj) { return "pass_cptr:" + obj->mtxt; }
 std::string pass_mptr(atyp* obj)       { return "pass_mptr:" + obj->mtxt; }
 
-std::shared_ptr<atyp>       rtrn_shmp() { return std::shared_ptr<atyp      >(new atyp{"rtrn_shmp"}); }
+std::shared_ptr<atyp>       rtrn_shmp() { return std::make_shared<atyp>("rtrn_shmp"); }
 std::shared_ptr<atyp const> rtrn_shcp() { return std::shared_ptr<atyp const>(new atyp{"rtrn_shcp"}); }
 
 std::string pass_shmp(std::shared_ptr<atyp>       obj) { return "pass_shmp:" + obj->mtxt; } // NOLINT

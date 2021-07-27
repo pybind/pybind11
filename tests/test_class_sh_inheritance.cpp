@@ -34,8 +34,8 @@ inline base *rtrn_mptr_drvd_up_cast() { return new drvd; }
 inline int pass_cptr_base(base const *b) { return b->id() + 11; }
 inline int pass_cptr_drvd(drvd const *d) { return d->id() + 12; }
 
-inline std::shared_ptr<drvd> rtrn_shmp_drvd()         { return std::shared_ptr<drvd>(new drvd); }
-inline std::shared_ptr<base> rtrn_shmp_drvd_up_cast() { return std::shared_ptr<drvd>(new drvd); }
+inline std::shared_ptr<drvd> rtrn_shmp_drvd()         { return std::make_shared<drvd>(); }
+inline std::shared_ptr<base> rtrn_shmp_drvd_up_cast() { return std::make_shared<drvd>(); }
 
 inline int pass_shcp_base(const std::shared_ptr<base const>& b) { return b->id() + 21; }
 inline int pass_shcp_drvd(const std::shared_ptr<drvd const>& d) { return d->id() + 22; }

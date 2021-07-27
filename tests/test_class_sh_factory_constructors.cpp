@@ -40,7 +40,7 @@ atyp_mref&       rtrn_mref() { static atyp_mref obj; obj.mtxt = "Mref"; return o
 atyp_cptr const* rtrn_cptr() { return new atyp_cptr{"Cptr"}; }
 atyp_mptr*       rtrn_mptr() { return new atyp_mptr{"Mptr"}; }
 
-std::shared_ptr<atyp_shmp>       rtrn_shmp() { return std::shared_ptr<atyp_shmp      >(new atyp_shmp{"Shmp"}); }
+std::shared_ptr<atyp_shmp>       rtrn_shmp() { return std::make_shared<atyp_shmp>(atyp_shmp{"Shmp"}); }
 std::shared_ptr<atyp_shcp const> rtrn_shcp() { return std::shared_ptr<atyp_shcp const>(new atyp_shcp{"Shcp"}); }
 
 std::unique_ptr<atyp_uqmp>       rtrn_uqmp() { return std::unique_ptr<atyp_uqmp      >(new atyp_uqmp{"Uqmp"}); }
@@ -164,7 +164,7 @@ TEST_SUBMODULE(class_sh_factory_constructors, m) {
             return p;
         }))
         .def(py::init([](int i, int j, int k) {
-            auto p = std::shared_ptr<with_alias_alias>(new with_alias_alias);
+            auto p = std::make_shared<with_alias_alias>();
             p->val = i * 100 + j * 10 + k;
             return p;
         }))
