@@ -60,20 +60,13 @@ public:
                     }
                     rec = rec->next;
                 }
-            } else {
-               // Usually indicates that it is a builtin function.
-#if            defined(PYPY_VERSION)
-               // PyPy will segfault otherwise when passing in raw builtin functions.
-               // This will lead to a TypeError instead.
-               return false;
-#endif
             }
         }
 
         // ensure GIL is held during functor destruction
         struct func_handle {
             function f;
-            func_handle(function &&f_) noexcept : f(std::forward<function>(f_)) {}
+            func_handle(function &&f_) noexcept : f(std::move(f_)) {}
             func_handle(const func_handle& f_) {
                 gil_scoped_acquire acq;
                 f = f_.f;
@@ -87,7 +80,7 @@ public:
         // to emulate 'move initialization capture' in C++11
         struct func_wrapper {
             func_handle hfunc;
-            func_wrapper(func_handle &&hf) noexcept : hfunc(std::forward<func_handle>(hf)) {}
+            func_wrapper(func_handle &&hf) noexcept : hfunc(std::move(hf)) {}
             Return operator()(Args... args) const {
                 gil_scoped_acquire acq;
                 object retval(hfunc.f(std::forward<Args>(args)...));
