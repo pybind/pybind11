@@ -10,9 +10,6 @@
 
 #pragma once
 
-//
-// THE `push` HERE NEED TO BE KEPT IN SYNC WITH THE CORRESPONDING `pop` AT THE BOTTOM OF THIS FILE.
-//
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(push)
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
@@ -2375,9 +2372,6 @@ inline function get_overload(const T *this_ptr, const char *name) {
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
-//
-// THE `pop` HERE NEED TO BE KEPT IN SYNC WITH THE CORRESPONDING `push` AT THE TOP OF THIS FILE.
-//
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(pop)
 #elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
