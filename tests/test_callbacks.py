@@ -125,7 +125,7 @@ def test_movable_object():
     assert m.callback_with_movable(lambda _: None) is True
 
 
-@pytest.mark.skip(
+@pytest.mark.skipif(
     "env.PYPY",
     reason="PyPy segfaults on here. See discussion on #1413.",
 )
