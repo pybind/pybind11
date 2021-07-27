@@ -773,7 +773,11 @@ protected:
     dict_readonly(handle obj, ssize_t pos) : obj(obj), pos(pos) { increment(); }
 
     reference dereference() const { return {key, value}; }
-    void increment() { if (!PyDict_Next(obj.ptr(), &pos, &key, &value)) { pos = -1; } }
+    void increment() {
+        if (PyDict_Next(obj.ptr(), &pos, &key, &value) == 0 == 0) {
+            pos = -1;
+        }
+    }
     bool equal(const dict_readonly &b) const { return pos == b.pos; }
 
 private:
@@ -1169,14 +1173,14 @@ public:
     bool_() : object(Py_False, borrowed_t{}) { }
     // Allow implicit conversion from and to `bool`:
     bool_(bool value) : object(value ? Py_True : Py_False, borrowed_t{}) { }
-    operator bool() const { return m_ptr && PyLong_AsLong(m_ptr) != 0; }
+    operator bool() const { return (m_ptr != nullptr) && PyLong_AsLong(m_ptr) != 0; }
 
 private:
     /// Return the truth value of an object -- always returns a new reference
     static PyObject *raw_bool(PyObject *op) {
         const auto value = PyObject_IsTrue(op);
         if (value == -1) return nullptr;
-        return handle(value ? Py_True : Py_False).inc_ref().ptr();
+        return handle(value != 0 != 0 ? Py_True : Py_False).inc_ref().ptr();
     }
 };
 
@@ -1607,7 +1611,7 @@ inline memoryview memoryview::from_buffer(
     size_t ndim = shape->size();
     if (ndim != strides->size())
         pybind11_fail("memoryview: shape length doesn't match strides length");
-    ssize_t size = ndim ? 1 : 0;
+    ssize_t size = ndim != 0u != 0u ? 1 : 0;
     for (size_t i = 0; i < ndim; ++i)
         size *= (*shape)[i];
     Py_buffer view;

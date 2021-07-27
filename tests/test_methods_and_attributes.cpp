@@ -43,7 +43,7 @@ public:
     void add6(int other) { value += other; }                        // passing by value
     void add7(int &other) { value += other; }                       // passing by reference
     void add8(const int &other) { value += other; }                 // passing by const reference
-    void add9(int *other) { value += *other; }                      // passing by pointer
+    void add9(const int *other) { value += *other; }                // passing by pointer
     void add10(const int *other) { value += *other; }               // passing by const pointer
 
     void consume_str(std::string&&) {}

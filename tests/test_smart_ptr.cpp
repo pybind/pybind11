@@ -101,7 +101,7 @@ private:
 // test_unique_nodelete
 // Object with a private destructor
 class MyObject4;
-static std::unordered_set<MyObject4 *> myobject4_instances;
+std::unordered_set<MyObject4 *> myobject4_instances;
 class MyObject4 {
 public:
     MyObject4(int value) : value{value} {
@@ -127,7 +127,7 @@ private:
 // Object with std::unique_ptr<T, D> where D is not matching the base class
 // Object with a protected destructor
 class MyObject4a;
-static std::unordered_set<MyObject4a *> myobject4a_instances;
+std::unordered_set<MyObject4a *> myobject4a_instances;
 class MyObject4a {
 public:
     MyObject4a(int i) {
