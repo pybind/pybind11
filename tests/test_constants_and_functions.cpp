@@ -133,7 +133,14 @@ TEST_SUBMODULE(constants_and_functions, m) {
         ;
     m.def("f1", f1);
     m.def("f2", f2);
+#if defined(__INTEL_COMPILER)
+#    pragma warning push
+#    pragma warning disable 878 // incompatible exception specifications
+#endif
     m.def("f3", f3);
+#if defined(__INTEL_COMPILER)
+#    pragma warning pop
+#endif
     m.def("f4", f4);
 
     // test_function_record_leaks
