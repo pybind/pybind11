@@ -321,7 +321,7 @@ public:
             }
             #endif
             if (res == 0 || res == 1) {
-                value = (bool) res;
+                value = (res != 0);
                 return true;
             }
             PyErr_Clear();
