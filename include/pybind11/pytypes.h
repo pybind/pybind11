@@ -1335,7 +1335,7 @@ public:
     /// Get the pointer the capsule holds.
     template<typename T = void>
     T* get_pointer() const {
-        const auto *name = this->name();
+        auto name = this->name();
         T *result = static_cast<T *>(PyCapsule_GetPointer(m_ptr, name));
         if (!result) pybind11_fail("Unable to extract capsule contents!");
         return result;

@@ -222,9 +222,9 @@ public:
 
     void enter() {
         if (do_stdout_)
-            redirect_stdout = std::make_unique<scoped_ostream_redirect>();
+            redirect_stdout.reset(new scoped_ostream_redirect());
         if (do_stderr_)
-            redirect_stderr = std::make_unique<scoped_estream_redirect>();
+            redirect_stderr.reset(new scoped_estream_redirect());
     }
 
     void exit() {

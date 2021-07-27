@@ -279,7 +279,7 @@ struct type_record {
     bool is_final : 1;
 
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *)) {
-        auto *base_info = detail::get_type_info(base, false);
+        auto base_info = detail::get_type_info(base, false);
         if (!base_info) {
             std::string tname(base.name());
             detail::clean_type_id(tname);

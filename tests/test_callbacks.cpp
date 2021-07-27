@@ -104,7 +104,7 @@ TEST_SUBMODULE(callbacks, m) {
     }, py::arg("f"), py::arg("expect_none")=false);
     m.def("test_dummy_function", [](const std::function<int(int)> &f) -> std::string {
         using fn_type = int (*)(int);
-        const auto *result = f.target<fn_type>();
+        auto result = f.target<fn_type>();
         if (!result) {
             auto r = f(1);
             return "can't convert to function pointer: eval(1) = " + std::to_string(r);

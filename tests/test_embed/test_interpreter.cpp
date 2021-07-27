@@ -172,8 +172,8 @@ TEST_CASE("Subinterpreter") {
     REQUIRE(has_pybind11_internals_static());
 
     /// Create and switch to a subinterpreter.
-    auto *main_tstate = PyThreadState_Get();
-    auto *sub_tstate = Py_NewInterpreter();
+    auto main_tstate = PyThreadState_Get();
+    auto sub_tstate = Py_NewInterpreter();
 
     // Subinterpreters get their own copy of builtins. detail::get_internals() still
     // works by returning from the static variable, i.e. all interpreters share a single

@@ -135,7 +135,7 @@ public:
         const auto &internals = detail::get_internals();
         tstate = PyEval_SaveThread();
         if (disassoc) {
-            auto *key = internals.tstate;
+            auto key = internals.tstate;
             PYBIND11_TLS_DELETE_VALUE(key);
         }
     }
@@ -156,7 +156,7 @@ public:
         if (active)
             PyEval_RestoreThread(tstate);
         if (disassoc) {
-            auto *key = detail::get_internals().tstate;
+            auto key = detail::get_internals().tstate;
             PYBIND11_TLS_REPLACE_VALUE(key, tstate);
         }
     }

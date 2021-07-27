@@ -156,7 +156,7 @@ template <typename S>
 py::array_t<S, 0> create_recarray(size_t n) {
     auto arr = mkarray_via_buffer<S>(n);
     auto req = arr.request();
-    auto *ptr = static_cast<S *>(req.ptr);
+    auto ptr = static_cast<S*>(req.ptr);
     for (size_t i = 0; i < n; i++) {
         SET_TEST_VALS(ptr[i], i);
     }
@@ -166,7 +166,7 @@ py::array_t<S, 0> create_recarray(size_t n) {
 template <typename S>
 py::list print_recarray(py::array_t<S, 0> arr) {
     const auto req = arr.request();
-    auto *const ptr = static_cast<S *>(req.ptr);
+    const auto ptr = static_cast<S*>(req.ptr);
     auto l = py::list();
     for (py::ssize_t i = 0; i < req.size; i++) {
         std::stringstream ss;
@@ -183,8 +183,8 @@ py::array_t<int32_t, 0> test_array_ctors(int i) {
     std::vector<py::ssize_t> shape { 3, 2 };
     std::vector<py::ssize_t> strides { 8, 4 };
 
-    auto *ptr = data.data();
-    auto *vptr = (void *) ptr;
+    auto ptr = data.data();
+    auto vptr = (void *) ptr;
     auto dtype = py::dtype("int32");
 
     py::buffer_info buf_ndim1(vptr, 4, "i", 6);
@@ -317,7 +317,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("create_rec_nested", [](size_t n) { // test_signature
         py::array_t<NestedStruct, 0> arr = mkarray_via_buffer<NestedStruct>(n);
         auto req = arr.request();
-        auto *ptr = static_cast<NestedStruct *>(req.ptr);
+        auto ptr = static_cast<NestedStruct*>(req.ptr);
         for (size_t i = 0; i < n; i++) {
             SET_TEST_VALS(ptr[i].a, i);
             SET_TEST_VALS(ptr[i].b, i + 1);
@@ -328,7 +328,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("create_rec_partial_nested", [](size_t n) {
         py::array_t<PartialNestedStruct, 0> arr = mkarray_via_buffer<PartialNestedStruct>(n);
         auto req = arr.request();
-        auto *ptr = static_cast<PartialNestedStruct *>(req.ptr);
+        auto ptr = static_cast<PartialNestedStruct*>(req.ptr);
         for (size_t i = 0; i < n; i++) {
             SET_TEST_VALS(ptr[i].a, i);
         }
@@ -387,13 +387,13 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     m.def("test_dtype_ctors", &test_dtype_ctors);
     m.def("test_dtype_kind", [dtype_names]() {
         py::list list;
-        for (const auto &dt_name : dtype_names)
+        for (auto& dt_name : dtype_names)
             list.append(py::dtype(dt_name).kind());
         return list;
     });
     m.def("test_dtype_char_", [dtype_names]() {
         py::list list;
-        for (const auto &dt_name : dtype_names)
+        for (auto& dt_name : dtype_names)
             list.append(py::dtype(dt_name).char_());
         return list;
     });
@@ -418,7 +418,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         py::array_t<StringStruct, 0> arr = mkarray_via_buffer<StringStruct>(non_empty ? 4 : 0);
         if (non_empty) {
             auto req = arr.request();
-            auto *ptr = static_cast<StringStruct *>(req.ptr);
+            auto ptr = static_cast<StringStruct*>(req.ptr);
             for (py::ssize_t i = 0; i < req.size * req.itemsize; i++)
                 static_cast<char*>(req.ptr)[i] = 0;
             ptr[1].a[0] = 'a'; ptr[1].b[0] = 'a';
@@ -437,7 +437,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // test_array_array
     m.def("create_array_array", [](size_t n) {
         py::array_t<ArrayStruct, 0> arr = mkarray_via_buffer<ArrayStruct>(n);
-        auto *ptr = (ArrayStruct *) arr.mutable_data();
+        auto ptr = (ArrayStruct *) arr.mutable_data();
         for (size_t i = 0; i < n; i++) {
             for (size_t j = 0; j < 3; j++)
                 for (size_t k = 0; k < 4; k++)
@@ -457,7 +457,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // test_enum_array
     m.def("create_enum_array", [](size_t n) {
         py::array_t<EnumStruct, 0> arr = mkarray_via_buffer<EnumStruct>(n);
-        auto *ptr = (EnumStruct *) arr.mutable_data();
+        auto ptr = (EnumStruct *) arr.mutable_data();
         for (size_t i = 0; i < n; i++) {
             ptr[i].e1 = static_cast<E1>(-1 + ((int) i % 2) * 2);
             ptr[i].e2 = static_cast<E2>(1 + (i % 2));
@@ -469,7 +469,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     // test_complex_array
     m.def("create_complex_array", [](size_t n) {
         py::array_t<ComplexStruct, 0> arr = mkarray_via_buffer<ComplexStruct>(n);
-        auto *ptr = (ComplexStruct *) arr.mutable_data();
+        auto ptr = (ComplexStruct *) arr.mutable_data();
         for (size_t i = 0; i < n; i++) {
             ptr[i].cflt.real(float(i));
             ptr[i].cflt.imag(float(i) + 0.25f);

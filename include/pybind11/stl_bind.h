@@ -444,7 +444,7 @@ class_<Vector, holder_type> bind_vector(handle scope, std::string const &name, A
     // If the value_type is unregistered (e.g. a converting type) or is itself registered
     // module-local then make the vector binding module-local as well:
     using vtype = typename Vector::value_type;
-    auto *vtype_info = detail::get_type_info(typeid(vtype));
+    auto vtype_info = detail::get_type_info(typeid(vtype));
     bool local = !vtype_info || vtype_info->module_local;
 
     Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
@@ -607,7 +607,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args&&.
     // If either type is a non-module-local bound type then make the map binding non-local as well;
     // otherwise (e.g. both types are either module-local or converting) the map will be
     // module-local.
-    auto *tinfo = detail::get_type_info(typeid(MappedType));
+    auto tinfo = detail::get_type_info(typeid(MappedType));
     bool local = !tinfo || tinfo->module_local;
     if (local) {
         tinfo = detail::get_type_info(typeid(KeyType));
