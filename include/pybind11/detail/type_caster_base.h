@@ -239,7 +239,7 @@ struct value_and_holder {
     bool holder_constructed() const {
         return inst->simple_layout
                    ? inst->simple_holder_constructed
-                   : (inst->nonsimple.status[index] & instance::status_holder_constructed) != 0;
+                   : (inst->nonsimple.status[index] & instance::status_holder_constructed) != 0u;
     }
     void set_holder_constructed(bool v = true) const {
         if (inst->simple_layout)
