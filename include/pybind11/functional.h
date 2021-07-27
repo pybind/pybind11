@@ -63,8 +63,7 @@ public:
             }
             // PYPY segfaults here when passing builtin function like sum.
             // Raising an fail exception here works to prevent the segfault, but only on gcc.
-            // TODO debug PyPy segfault or figure out a way to raise an error on PyPy on all platforms,.
-            // See PR #1413
+            // See PR #1413 for full details
         }
 
         // ensure GIL is held during functor destruction
