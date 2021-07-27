@@ -125,6 +125,11 @@
 #  endif
 #endif
 
+// https://en.cppreference.com/w/c/chrono/localtime
+#if defined(__STDC_LIB_EXT1__) && !defined(__STDC_WANT_LIB_EXT1__)
+#    define __STDC_WANT_LIB_EXT1__
+#endif
+
 #include <Python.h>
 #include <frameobject.h>
 #include <pythread.h>
