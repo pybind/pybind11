@@ -501,12 +501,14 @@ public:
         // can fit into a single char value.
         if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
             auto v0 = static_cast<unsigned char>(value[0]);
-            size_t char0_bytes = (v0 & 0x80) == 0 ? 1 : // low bits only: 0-127
-                                     (v0 & 0xE0) == 0xC0 ? 2
-                                                         : // 0b110xxxxx - start of 2-byte sequence
-                                     (v0 & 0xF0) == 0xE0 ? 3
-                                                         : // 0b1110xxxx - start of 3-byte sequence
-                                     4;                    // 0b11110xxx - start of 4-byte sequence
+            // low bits only: 0-127
+            // 0b110xxxxx - start of 2-byte sequence
+            // 0b1110xxxx - start of 3-byte sequence
+            // 0b11110xxx - start of 4-byte sequence
+            size_t char0_bytes = (v0 & 0x80) == 0      ? 1
+                                 : (v0 & 0xE0) == 0xC0 ? 2
+                                 : (v0 & 0xF0) == 0xE0 ? 3
+                                                       : 4;
 
             if (char0_bytes == str_len) {
                 // If we have a 128-255 value, we can decode it into a single char:
