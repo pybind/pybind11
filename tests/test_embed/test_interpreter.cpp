@@ -103,7 +103,7 @@ bool has_pybind11_internals_builtin() {
 
 bool has_pybind11_internals_static() {
     auto **&ipp = py::detail::get_internals_pp();
-    return ipp && *ipp;
+    return (ipp != nullptr) && (*ipp != nullptr);
 }
 
 TEST_CASE("Restart the interpreter") {
