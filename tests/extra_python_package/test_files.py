@@ -146,6 +146,16 @@ def test_build_sdist(monkeypatch, tmpdir):
         ) as f:
             pyproject_toml = f.read()
 
+        with contextlib.closing(
+            tar.extractfile(
+                tar.getmember(
+                    start + "pybind11/share/cmake/pybind11/pybind11Config.cmake"
+                )
+            )
+        ) as f:
+            contents = f.read().decode("utf8")
+        assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in contents
+
     files = {"pybind11/{}".format(n) for n in all_files}
     files |= sdist_files
     files |= {"pybind11{}".format(n) for n in local_sdist_files}
@@ -159,11 +169,11 @@ def test_build_sdist(monkeypatch, tmpdir):
             .substitute(version=version, extra_cmd="")
             .encode()
         )
-        assert setup_py == contents
+    assert setup_py == contents
 
     with open(os.path.join(MAIN_DIR, "tools", "pyproject.toml"), "rb") as f:
         contents = f.read()
-        assert pyproject_toml == contents
+    assert pyproject_toml == contents
 
 
 def test_build_global_dist(monkeypatch, tmpdir):

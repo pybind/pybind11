@@ -203,7 +203,7 @@ public:
         // Signed/unsigned checks happen elsewhere
         if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) && py_value != (py_type) (T) py_value)) {
             PyErr_Clear();
-            if (py_err && convert && PyNumber_Check(src.ptr())) {
+            if (py_err && convert && (PyNumber_Check(src.ptr()) != 0)) {
                 auto tmp = reinterpret_steal<object>(std::is_floating_point<T>::value
                                                      ? PyNumber_Float(src.ptr())
                                                      : PyNumber_Long(src.ptr()));
@@ -322,7 +322,7 @@ public:
             value = false;
             return true;
         }
-        if (convert || !std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
+        if (convert || (std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name) == 0)) {
             // (allow non-implicit conversion for numpy booleans)
 
             Py_ssize_t res = -1;
@@ -523,10 +523,14 @@ public:
         // can fit into a single char value.
         if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
             auto v0 = static_cast<unsigned char>(value[0]);
-            size_t char0_bytes = !(v0 & 0x80) ? 1 : // low bits only: 0-127
-                (v0 & 0xE0) == 0xC0 ? 2 : // 0b110xxxxx - start of 2-byte sequence
-                (v0 & 0xF0) == 0xE0 ? 3 : // 0b1110xxxx - start of 3-byte sequence
-                4; // 0b11110xxx - start of 4-byte sequence
+            // low bits only: 0-127
+            // 0b110xxxxx - start of 2-byte sequence
+            // 0b1110xxxx - start of 3-byte sequence
+            // 0b11110xxx - start of 4-byte sequence
+            size_t char0_bytes = (v0 & 0x80) == 0      ? 1
+                                 : (v0 & 0xE0) == 0xC0 ? 2
+                                 : (v0 & 0xF0) == 0xE0 ? 3
+                                                       : 4;
 
             if (char0_bytes == str_len) {
                 // If we have a 128-255 value, we can decode it into a single char:

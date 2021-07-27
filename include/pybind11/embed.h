@@ -76,7 +76,7 @@ struct embedded_module {
     using init_t = void (*)();
 #endif
     embedded_module(const char *name, init_t init) {
-        if (Py_IsInitialized())
+        if (Py_IsInitialized() != 0)
             pybind11_fail("Can't add new modules after the interpreter has been initialized");
 
         auto result = PyImport_AppendInittab(name, init);
@@ -101,7 +101,7 @@ PYBIND11_NAMESPACE_END(detail)
     .. _Python documentation: https://docs.python.org/3/c-api/init.html#c.Py_InitializeEx
  \endrst */
 inline void initialize_interpreter(bool init_signal_handlers = true) {
-    if (Py_IsInitialized())
+    if (Py_IsInitialized() != 0)
         pybind11_fail("The interpreter is already running");
 
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
