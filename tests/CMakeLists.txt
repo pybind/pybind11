@@ -310,13 +310,8 @@ function(pybind11_enable_warnings target_name)
         ${target_name}
         PRIVATE
           -Werror-all
-          # 2196: routine is both "inline" and "noinline" (no way to `pop` and not get the warning:
-          #       https://community.intel.com/t5/Intel-C-Compiler/Inline-and-no-inline-warning/td-p/1216764)
-          # 11074: Inlining inhibited by limit max-size
-          # 11074: Inlining inhibited by limit max-total-size
-          # 11076: To get full report use -qopt-report=4 -qopt-report-phase ipo
-          -diag-disable
-          2196,11074,11076)
+          # "Inlining inhibited by limit max-size", "Inlining inhibited by limit max-total-size"
+          -diag-disable 11074,11076)
     endif()
   endif()
 
