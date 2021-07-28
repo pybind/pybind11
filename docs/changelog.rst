@@ -6,8 +6,13 @@ Changelog
 Starting with version 1.8.0, pybind11 releases use a `semantic versioning
 <http://semver.org>`_ policy.
 
-v2.7.0 (TBA, not yet released)
-------------------------------
+Next version (WIP)
+------------------
+
+
+
+v2.7.0 (Jul 16, 2021)
+---------------------
 
 New features:
 
@@ -29,6 +34,10 @@ New features:
   3.6+, converts ``std::filesystem::path`` to ``pathlib.Path`` and any
   ``os.PathLike`` to ``std::filesystem::path``.
   `#2730 <https://github.com/pybind/pybind11/pull/2730>`_
+
+* A ``PYBIND11_VERSION_HEX`` define was added, similar to ``PY_VERSION_HEX``.
+  `#3120 <https://github.com/pybind/pybind11/pull/3120>`_
+
 
 
 Changes:
@@ -101,6 +110,10 @@ Fixes:
   from a ``shared_from_this`` class.
   `#2819 <https://github.com/pybind/pybind11/pull/2819>`_
 
+* Allow the codec's exception to be raised instead of :code:`RuntimeError` when
+  casting from :code:`py::str` to :code:`std::string`.
+  `#2903 <https://github.com/pybind/pybind11/pull/2903>`_
+
 
 Build system improvements:
 
@@ -121,6 +134,10 @@ Build system improvements:
 * Clang on Windows: do not pass ``/MP`` (ignored flag).
   `#2824 <https://github.com/pybind/pybind11/pull/2824>`_
 
+* ``pybind11.setup_helpers.intree_extensions`` can be used to generate
+  ``Pybind11Extension`` instances from cpp files placed in the Python package
+  source tree.
+  `#2831 <https://github.com/pybind/pybind11/pull/2831>`_
 
 Backend and tidying up:
 
@@ -129,8 +146,10 @@ Backend and tidying up:
   `#3046 <https://github.com/pybind/pybind11/pull/3046>`_,
   `#3049 <https://github.com/pybind/pybind11/pull/3049>`_,
   `#3051 <https://github.com/pybind/pybind11/pull/3051>`_,
-  `#3052 <https://github.com/pybind/pybind11/pull/3052>`_, and
-  `#3080 <https://github.com/pybind/pybind11/pull/3080>`_
+  `#3052 <https://github.com/pybind/pybind11/pull/3052>`_,
+  `#3080 <https://github.com/pybind/pybind11/pull/3080>`_, and
+  `#3094 <https://github.com/pybind/pybind11/pull/3094>`_
+
 
 * Checks for common misspellings were added to the pre-commit hooks.
   `#3076 <https://github.com/pybind/pybind11/pull/3076>`_
@@ -143,7 +162,14 @@ Backend and tidying up:
   `#2956 <https://github.com/pybind/pybind11/pull/2956>`_
 
 * Added nox support for easier local testing and linting of contributions.
-  `#3101 <https://github.com/pybind/pybind11/pull/3101>`_
+  `#3101 <https://github.com/pybind/pybind11/pull/3101>`_ and
+  `#3121 <https://github.com/pybind/pybind11/pull/3121>`_
+
+* Avoid RTD style issue with docutils 0.17+.
+  `#3119 <https://github.com/pybind/pybind11/pull/3119>`_
+
+* Support pipx run, such as ``pipx run pybind11 --include`` for a quick compile.
+  `#3117 <https://github.com/pybind/pybind11/pull/3117>`_
 
 
 

@@ -10,8 +10,12 @@
 #pragma once
 
 #define PYBIND11_VERSION_MAJOR 2
-#define PYBIND11_VERSION_MINOR 6
-#define PYBIND11_VERSION_PATCH 3.dev1
+#define PYBIND11_VERSION_MINOR 7
+#define PYBIND11_VERSION_PATCH 1.dev1
+
+// Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
+// Additional convention: 0xD = dev
+#define PYBIND11_VERSION_HEX 0x020701D1
 
 #define PYBIND11_NAMESPACE_BEGIN(name) namespace name {
 #define PYBIND11_NAMESPACE_END(name) }
@@ -52,6 +56,9 @@
 #  elif __INTEL_COMPILER < 1900 && defined(PYBIND11_CPP14)
 #    error pybind11 supports only C++11 with Intel C++ compiler v18. Use v19 or newer for C++14.
 #  endif
+/* The following pragma cannot be pop'ed:
+   https://community.intel.com/t5/Intel-C-Compiler/Inline-and-no-inline-warning/td-p/1216764 */
+#  pragma warning disable 2196 // warning #2196: routine is both "inline" and "noinline"
 #elif defined(__clang__) && !defined(__apple_build_version__)
 #  if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 3)
 #    error pybind11 requires clang 3.3 or newer
@@ -119,6 +126,11 @@
 #    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
 #  endif
+#endif
+
+// https://en.cppreference.com/w/c/chrono/localtime
+#if defined(__STDC_LIB_EXT1__) && !defined(__STDC_WANT_LIB_EXT1__)
+#    define __STDC_WANT_LIB_EXT1__
 #endif
 
 #include <Python.h>

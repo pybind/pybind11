@@ -29,16 +29,30 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     bind_local<ExternalType2>(m, "ExternalType2", py::module_local());
 
     // test_exceptions.py
+    py::register_local_exception<LocalSimpleException>(m, "LocalSimpleException");
     m.def("raise_runtime_error", []() { PyErr_SetString(PyExc_RuntimeError, "My runtime error"); throw py::error_already_set(); });
     m.def("raise_value_error", []() { PyErr_SetString(PyExc_ValueError, "My value error"); throw py::error_already_set(); });
     m.def("throw_pybind_value_error", []() { throw py::value_error("pybind11 value error"); });
     m.def("throw_pybind_type_error", []() { throw py::type_error("pybind11 type error"); });
     m.def("throw_stop_iteration", []() { throw py::stop_iteration(); });
+    m.def("throw_local_error", []() { throw LocalException("just local"); });
+    m.def("throw_local_simple_error", []() { throw LocalSimpleException("external mod"); });
     py::register_exception_translator([](std::exception_ptr p) {
       try {
           if (p) std::rethrow_exception(p);
       } catch (const shared_exception &e) {
           PyErr_SetString(PyExc_KeyError, e.what());
+      }
+    });
+
+    // translate the local exception into a key error but only in this module
+    py::register_local_exception_translator([](std::exception_ptr p) {
+      try {
+          if (p) {
+            std::rethrow_exception(p);
+          }
+      } catch (const LocalException &e) {
+        PyErr_SetString(PyExc_KeyError, e.what());
       }
     });
 
@@ -94,7 +108,7 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m) {
     m.def("get_mixed_lg", [](int i) { return MixedLocalGlobal(i); });
 
     // test_internal_locals_differ
-    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::registered_local_types_cpp(); });
+    m.def("local_cpp_types_addr", []() { return (uintptr_t) &py::detail::get_local_internals().registered_types_cpp; });
 
     // test_stl_caster_vs_stl_bind
     py::bind_vector<std::vector<int>>(m, "VectorInt");

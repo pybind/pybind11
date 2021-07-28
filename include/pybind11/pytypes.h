@@ -367,7 +367,9 @@ public:
     /// Check if the currently trapped error type matches the given Python exception class (or a
     /// subclass thereof).  May also be passed a tuple to search for any exception class matches in
     /// the given tuple.
-    bool matches(handle exc) const { return PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()); }
+    bool matches(handle exc) const {
+        return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
+    }
 
     const object& type() const { return m_type; }
     const object& value() const { return m_value; }
@@ -532,6 +534,10 @@ object object_or_cast(T &&o);
 // Match a PyObject*, which we want to convert directly to handle via its converting constructor
 inline handle object_or_cast(PyObject *ptr) { return ptr; }
 
+#if defined(_MSC_VER) && _MSC_VER < 1920
+#  pragma warning(push)
+#  pragma warning(disable: 4522) // warning C4522: multiple assignment operators specified
+#endif
 template <typename Policy>
 class accessor : public object_api<accessor<Policy>> {
     using key_type = typename Policy::key_type;
@@ -580,6 +586,9 @@ private:
     key_type key;
     mutable object cache;
 };
+#if defined(_MSC_VER) && _MSC_VER < 1920
+#  pragma warning(pop)
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(accessor_policies)
 struct obj_attr {
@@ -764,7 +773,11 @@ protected:
     dict_readonly(handle obj, ssize_t pos) : obj(obj), pos(pos) { increment(); }
 
     reference dereference() const { return {key, value}; }
-    void increment() { if (!PyDict_Next(obj.ptr(), &pos, &key, &value)) { pos = -1; } }
+    void increment() {
+        if (PyDict_Next(obj.ptr(), &pos, &key, &value) == 0) {
+            pos = -1;
+        }
+    }
     bool equal(const dict_readonly &b) const { return pos == b.pos; }
 
 private:
@@ -846,7 +859,7 @@ PYBIND11_NAMESPACE_END(detail)
         Name(handle h, borrowed_t) : Parent(h, borrowed_t{}) { } \
         Name(handle h, stolen_t) : Parent(h, stolen_t{}) { } \
         PYBIND11_DEPRECATED("Use py::isinstance<py::python_type>(obj) instead") \
-        bool check() const { return m_ptr != nullptr && (bool) CheckFun(m_ptr); } \
+        bool check() const { return m_ptr != nullptr && (CheckFun(m_ptr) != 0); } \
         static bool check_(handle h) { return h.ptr() != nullptr && CheckFun(h.ptr()); } \
         template <typename Policy_> \
         Name(const ::pybind11::detail::accessor<Policy_> &a) : Name(object(a)) { }
@@ -1160,14 +1173,14 @@ public:
     bool_() : object(Py_False, borrowed_t{}) { }
     // Allow implicit conversion from and to `bool`:
     bool_(bool value) : object(value ? Py_True : Py_False, borrowed_t{}) { }
-    operator bool() const { return m_ptr && PyLong_AsLong(m_ptr) != 0; }
+    operator bool() const { return (m_ptr != nullptr) && PyLong_AsLong(m_ptr) != 0; }
 
 private:
     /// Return the truth value of an object -- always returns a new reference
     static PyObject *raw_bool(PyObject *op) {
         const auto value = PyObject_IsTrue(op);
         if (value == -1) return nullptr;
-        return handle(value ? Py_True : Py_False).inc_ref().ptr();
+        return handle(value != 0 ? Py_True : Py_False).inc_ref().ptr();
     }
 };
 
@@ -1598,7 +1611,7 @@ inline memoryview memoryview::from_buffer(
     size_t ndim = shape->size();
     if (ndim != strides->size())
         pybind11_fail("memoryview: shape length doesn't match strides length");
-    ssize_t size = ndim ? 1 : 0;
+    ssize_t size = ndim != 0u ? 1 : 0;
     for (size_t i = 0; i < ndim; ++i)
         size *= (*shape)[i];
     Py_buffer view;

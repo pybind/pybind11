@@ -57,16 +57,16 @@ clean, well written patch would likely be accepted to solve them.
 Python 3.9.0 warning
 ^^^^^^^^^^^^^^^^^^^^
 
-Combining older versions of pybind11 (< 2.6.0) with Python on 3.9.0 will
-trigger undefined behavior that typically manifests as crashes during
+Combining older versions of pybind11 (< 2.6.0) with Python on exactly 3.9.0
+will trigger undefined behavior that typically manifests as crashes during
 interpreter shutdown (but could also destroy your data. **You have been
 warned**).
 
-This issue has been
-`fixed in Python <https://github.com/python/cpython/pull/22670>`_.  As a
-mitigation until 3.9.1 is released and commonly used, pybind11 (2.6.0 or newer)
-includes a temporary workaround specifically when Python 3.9.0 is detected at
-runtime, leaking about 50 bytes of memory when a callback function is garbage
-collected. For reference; the pybind11 test suite has about 2,000 such
-callbacks, but only 49 are garbage collected before the end-of-process. Wheels
-built with Python 3.9.0 will correctly avoid the leak when run in Python 3.9.1.
+This issue was `fixed in Python <https://github.com/python/cpython/pull/22670>`_.
+As a mitigation for this bug, pybind11 2.6.0 or newer includes a workaround
+specifically when Python 3.9.0 is detected at runtime, leaking about 50 bytes
+of memory when a callback function is garbage collected.  For reference, the
+pybind11 test suite has about 2,000 such callbacks, but only 49 are garbage
+collected before the end-of-process. Wheels (even if built with Python 3.9.0)
+will correctly avoid the leak when run in Python 3.9.1, and this does not
+affect other 3.X versions.

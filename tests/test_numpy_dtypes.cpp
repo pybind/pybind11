@@ -108,9 +108,11 @@ PYBIND11_PACKED(struct EnumStruct {
 
 std::ostream& operator<<(std::ostream& os, const StringStruct& v) {
     os << "a='";
-    for (size_t i = 0; i < 3 && v.a[i]; i++) os << v.a[i];
+    for (size_t i = 0; i < 3 && (v.a[i] != 0); i++)
+        os << v.a[i];
     os << "',b='";
-    for (size_t i = 0; i < 3 && v.b[i]; i++) os << v.b[i];
+    for (size_t i = 0; i < 3 && (v.b[i] != 0); i++)
+        os << v.b[i];
     return os << "'";
 }
 

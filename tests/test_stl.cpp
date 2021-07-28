@@ -102,7 +102,7 @@ TEST_SUBMODULE(stl, m) {
     // test_set
     m.def("cast_set", []() { return std::set<std::string>{"key1", "key2"}; });
     m.def("load_set", [](const std::set<std::string> &set) {
-        return set.count("key1") && set.count("key2") && set.count("key3");
+        return (set.count("key1") != 0u) && (set.count("key2") != 0u) && (set.count("key3") != 0u);
     });
 
     // test_recursive_casting
@@ -196,9 +196,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("double_or_zero", [](const opt_int& x) -> int {
         return x.value_or(0) * 2;
     });
-    m.def("half_or_none", [](int x) -> opt_int {
-        return x ? opt_int(x / 2) : opt_int();
-    });
+    m.def("half_or_none", [](int x) -> opt_int { return x != 0 ? opt_int(x / 2) : opt_int(); });
     m.def("test_nullopt", [](opt_int x) {
         return x.value_or(42);
     }, py::arg_v("x", std::nullopt, "None"));

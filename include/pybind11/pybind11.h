@@ -10,31 +10,14 @@
 
 #pragma once
 
-#if defined(__INTEL_COMPILER)
-#  pragma warning push
-#  pragma warning disable 68    // integer conversion resulted in a change of sign
-#  pragma warning disable 186   // pointless comparison of unsigned integer with zero
-#  pragma warning disable 878   // incompatible exception specifications
-#  pragma warning disable 1334  // the "template" keyword used for syntactic disambiguation may only be used within a template
-#  pragma warning disable 1682  // implicit conversion of a 64-bit integral type to a smaller integral type (potential portability problem)
-#  pragma warning disable 1786  // function "strdup" was declared deprecated
-#  pragma warning disable 1875  // offsetof applied to non-POD (Plain Old Data) types is nonstandard
-#  pragma warning disable 2196  // warning #2196: routine is both "inline" and "noinline"
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(push)
 #  pragma warning(disable: 4100) // warning C4100: Unreferenced formal parameter
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#  pragma warning(disable: 4512) // warning C4512: Assignment operator was implicitly defined as deleted
-#  pragma warning(disable: 4800) // warning C4800: 'int': forcing value to bool 'true' or 'false' (performance warning)
-#  pragma warning(disable: 4996) // warning C4996: The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name
-#  pragma warning(disable: 4702) // warning C4702: unreachable code
-#  pragma warning(disable: 4522) // warning C4522: multiple assignment operators specified
 #  pragma warning(disable: 4505) // warning C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
-#elif defined(__GNUG__) && !defined(__clang__)
+#elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
-#  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #  pragma GCC diagnostic ignored "-Wattributes"
 #  if __GNUC__ >= 7
 #    pragma GCC diagnostic ignored "-Wnoexcept-type"
@@ -53,6 +36,8 @@
 #include <string>
 #include <utility>
 
+#include <string.h>
+
 #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
 #  define PYBIND11_STD_LAUNDER std::launder
 #  define PYBIND11_HAS_STD_LAUNDER 1
@@ -65,6 +50,34 @@
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Apply all the extensions translators from a list
+// Return true if one of the translators completed without raising an exception
+// itself. Return of false indicates that if there are other translators
+// available, they should be tried.
+inline bool apply_exception_translators(std::forward_list<ExceptionTranslator>& translators) {
+    auto last_exception = std::current_exception();
+
+    for (auto &translator : translators) {
+        try {
+            translator(last_exception);
+            return true;
+        } catch (...) {
+            last_exception = std::current_exception();
+        }
+    }
+    return false;
+}
+
+#if defined(_MSC_VER)
+#    define PYBIND11_COMPAT_STRDUP _strdup
+#else
+#    define PYBIND11_COMPAT_STRDUP strdup
+#endif
+
+PYBIND11_NAMESPACE_END(detail)
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
 class cpp_function : public function {
@@ -263,7 +276,7 @@ protected:
                 std::free(s);
         }
         char *operator()(const char *s) {
-            auto t = strdup(s);
+            auto t = PYBIND11_COMPAT_STRDUP(s);
             strings.push_back(t);
             return t;
         }
@@ -301,7 +314,8 @@ protected:
                 a.descr = guarded_strdup(repr(a.value).cast<std::string>().c_str());
         }
 
-        rec->is_constructor = !strcmp(rec->name, "__init__") || !strcmp(rec->name, "__setstate__");
+        rec->is_constructor
+            = (strcmp(rec->name, "__init__") == 0) || (strcmp(rec->name, "__setstate__") == 0);
 
 #if !defined(NDEBUG) && !defined(PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING)
         if (rec->is_constructor && !rec->is_new_style_constructor) {
@@ -507,7 +521,8 @@ protected:
         auto *func = (PyCFunctionObject *) m_ptr;
         std::free(const_cast<char *>(func->m_ml->ml_doc));
         // Install docstring if it's non-empty (when at least one option is enabled)
-        func->m_ml->ml_doc = signatures.empty() ? nullptr : strdup(signatures.c_str());
+        func->m_ml->ml_doc
+            = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
 
         if (rec->is_method) {
             m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
@@ -559,6 +574,7 @@ protected:
             rec = next;
         }
     }
+
 
     /// Main dispatch logic for calls to functions bound using pybind11
     static PyObject *dispatcher(PyObject *self, PyObject *args_in, PyObject *kwargs_in) {
@@ -840,8 +856,12 @@ protected:
 #endif
         } catch (...) {
             /* When an exception is caught, give each registered exception
-               translator a chance to translate it to a Python exception
-               in reverse order of registration.
+               translator a chance to translate it to a Python exception. First
+               all module-local translators will be tried in reverse order of
+               registration. If none of the module-locale translators handle
+               the exception (or there are no module-locale translators) then
+               the global translators will be tried, also in reverse order of
+               registration.
 
                A translator may choose to do one of the following:
 
@@ -850,17 +870,15 @@ protected:
                 - do nothing and let the exception fall through to the next translator, or
                 - delegate translation to the next translator by throwing a new type of exception. */
 
-            auto last_exception = std::current_exception();
-            auto &registered_exception_translators = get_internals().registered_exception_translators;
-            for (auto& translator : registered_exception_translators) {
-                try {
-                    translator(last_exception);
-                } catch (...) {
-                    last_exception = std::current_exception();
-                    continue;
-                }
+            auto &local_exception_translators = get_local_internals().registered_exception_translators;
+            if (detail::apply_exception_translators(local_exception_translators)) {
                 return nullptr;
             }
+            auto &exception_translators = get_internals().registered_exception_translators;
+            if (detail::apply_exception_translators(exception_translators)) {
+                return nullptr;
+            }
+
             PyErr_SetString(PyExc_SystemError, "Exception escaped from default exception translator!");
             return nullptr;
         }
@@ -960,6 +978,7 @@ protected:
         return result.ptr();
     }
 };
+
 
 /// Wrapper for Python extension modules
 class module_ : public object {
@@ -1109,7 +1128,8 @@ protected:
             pybind11_fail("generic_type: cannot initialize type \"" + std::string(rec.name) +
                           "\": an object with that name is already defined");
 
-        if (rec.module_local ? get_local_type_info(*rec.type) : get_global_type_info(*rec.type))
+        if ((rec.module_local ? get_local_type_info(*rec.type) : get_global_type_info(*rec.type))
+            != nullptr)
             pybind11_fail("generic_type: type \"" + std::string(rec.name) +
                           "\" is already registered!");
 
@@ -1134,7 +1154,7 @@ protected:
         auto tindex = std::type_index(*rec.type);
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
         if (rec.module_local)
-            registered_local_types_cpp()[tindex] = tinfo;
+            get_local_internals().registered_types_cpp[tindex] = tinfo;
         else
             internals.registered_types_cpp[tindex] = tinfo;
         internals.registered_types_py[(PyTypeObject *) m_ptr] = { tinfo };
@@ -1187,8 +1207,9 @@ protected:
     void def_property_static_impl(const char *name,
                                   handle fget, handle fset,
                                   detail::function_record *rec_func) {
-        const auto is_static = rec_func && !(rec_func->is_method && rec_func->scope);
-        const auto has_doc = rec_func && rec_func->doc && pybind11::options::show_user_defined_docstrings();
+        const auto is_static = (rec_func != nullptr) && !(rec_func->is_method && rec_func->scope);
+        const auto has_doc = (rec_func != nullptr) && (rec_func->doc != nullptr)
+                             && pybind11::options::show_user_defined_docstrings();
         auto property = handle((PyObject *) (is_static ? get_internals().static_property_type
                                                        : &PyProperty_Type));
         attr(name) = property(fget.ptr() ? fget : none(),
@@ -1320,7 +1341,7 @@ public:
         generic_type::initialize(record);
 
         if (has_alias) {
-            auto &instances = record.module_local ? registered_local_types_cpp() : get_internals().registered_types_cpp;
+            auto &instances = record.module_local ? get_local_internals().registered_types_cpp : get_internals().registered_types_cpp;
             instances[std::type_index(typeid(type_alias))] = instances[std::type_index(typeid(type))];
         }
     }
@@ -1508,7 +1529,7 @@ public:
            detail::process_attributes<Extra...>::init(extra..., rec_fget);
            if (rec_fget->doc && rec_fget->doc != doc_prev) {
               free(doc_prev);
-              rec_fget->doc = strdup(rec_fget->doc);
+              rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
            }
         }
         if (rec_fset) {
@@ -1516,7 +1537,7 @@ public:
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
                 free(doc_prev);
-                rec_fset->doc = strdup(rec_fset->doc);
+                rec_fset->doc = PYBIND11_COMPAT_STRDUP(rec_fset->doc);
             }
             if (! rec_active) rec_active = rec_fset;
         }
@@ -2020,9 +2041,21 @@ template <typename InputType, typename OutputType> void implicitly_convertible()
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
 }
 
-template <typename ExceptionTranslator>
-void register_exception_translator(ExceptionTranslator&& translator) {
+
+inline void register_exception_translator(ExceptionTranslator &&translator) {
     detail::get_internals().registered_exception_translators.push_front(
+        std::forward<ExceptionTranslator>(translator));
+}
+
+
+/**
+  * Add a new module-local exception translator. Locally registered functions
+  * will be tried before any globally registered exception translators, which
+  * will only be invoked if the module-local handlers do not deal with
+  * the exception.
+  */
+inline void register_local_exception_translator(ExceptionTranslator &&translator) {
+    detail::get_local_internals().registered_exception_translators.push_front(
         std::forward<ExceptionTranslator>(translator));
 }
 
@@ -2059,22 +2092,20 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // directly in register_exception, but that makes clang <3.5 segfault - issue #1349).
 template <typename CppException>
 exception<CppException> &get_exception_object() { static exception<CppException> ex; return ex; }
-PYBIND11_NAMESPACE_END(detail)
 
-/**
- * Registers a Python exception in `m` of the given `name` and installs an exception translator to
- * translate the C++ exception to the created Python exception using the exceptions what() method.
- * This is intended for simple exception translations; for more complex translation, register the
- * exception object and translator directly.
- */
+// Helper function for register_exception and register_local_exception
 template <typename CppException>
-exception<CppException> &register_exception(handle scope,
-                                            const char *name,
-                                            handle base = PyExc_Exception) {
+exception<CppException> &register_exception_impl(handle scope,
+                                                const char *name,
+                                                handle base,
+                                                bool isLocal) {
     auto &ex = detail::get_exception_object<CppException>();
     if (!ex) ex = exception<CppException>(scope, name, base);
 
-    register_exception_translator([](std::exception_ptr p) {
+    auto register_func = isLocal ? &register_local_exception_translator
+                                 : &register_exception_translator;
+
+    register_func([](std::exception_ptr p) {
         if (!p) return;
         try {
             std::rethrow_exception(p);
@@ -2083,6 +2114,36 @@ exception<CppException> &register_exception(handle scope,
         }
     });
     return ex;
+}
+
+PYBIND11_NAMESPACE_END(detail)
+
+/**
+ * Registers a Python exception in `m` of the given `name` and installs a translator to
+ * translate the C++ exception to the created Python exception using the what() method.
+ * This is intended for simple exception translations; for more complex translation, register the
+ * exception object and translator directly.
+ */
+template <typename CppException>
+exception<CppException> &register_exception(handle scope,
+                                            const char *name,
+                                            handle base = PyExc_Exception) {
+    return detail::register_exception_impl<CppException>(scope, name, base, false /* isLocal */);
+}
+
+/**
+ * Registers a Python exception in `m` of the given `name` and installs a translator to
+ * translate the C++ exception to the created Python exception using the what() method.
+ * This translator will only be used for exceptions that are thrown in this module and will be
+ * tried before global exception translators, including those registered with register_exception.
+ * This is intended for simple exception translations; for more complex translation, register the
+ * exception object and translator directly.
+ */
+template <typename CppException>
+exception<CppException> &register_local_exception(handle scope,
+                                                  const char *name,
+                                                  handle base = PyExc_Exception) {
+    return detail::register_exception_impl<CppException>(scope, name, base, true /* isLocal */);
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2158,8 +2219,8 @@ inline function get_type_override(const void *this_ptr, const type_info *this_ty
        Unfortunately this doesn't work on PyPy. */
 #if !defined(PYPY_VERSION)
     PyFrameObject *frame = PyThreadState_Get()->frame;
-    if (frame && (std::string) str(frame->f_code->co_name) == name &&
-        frame->f_code->co_argcount > 0) {
+    if (frame != nullptr && (std::string) str(frame->f_code->co_name) == name
+        && frame->f_code->co_argcount > 0) {
         PyFrame_FastToLocals(frame);
         PyObject *self_caller = dict_getitem(
             frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));

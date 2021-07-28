@@ -129,8 +129,9 @@ extern "C" inline int pybind11_meta_setattro(PyObject* obj, PyObject* name, PyOb
     //   2. `Type.static_prop = other_static_prop` --> setattro:  replace existing `static_prop`
     //   3. `Type.regular_attribute = value`       --> setattro:  regular attribute assignment
     const auto static_prop = (PyObject *) get_internals().static_property_type;
-    const auto call_descr_set = descr && value && PyObject_IsInstance(descr, static_prop)
-                                && !PyObject_IsInstance(value, static_prop);
+    const auto call_descr_set = (descr != nullptr) && (value != nullptr)
+                                && (PyObject_IsInstance(descr, static_prop) != 0)
+                                && (PyObject_IsInstance(value, static_prop) == 0);
     if (call_descr_set) {
         // Call `static_property.__set__()` instead of replacing the `static_property`.
 #if !defined(PYPY_VERSION)
@@ -209,7 +210,7 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
         internals.direct_conversions.erase(tindex);
 
         if (tinfo->module_local)
-            registered_local_types_cpp().erase(tindex);
+            get_local_internals().registered_types_cpp.erase(tindex);
         else
             internals.registered_types_cpp.erase(tindex);
         internals.registered_types_py.erase(tinfo->type);
@@ -562,7 +563,7 @@ extern "C" inline int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int fla
     view->len = view->itemsize;
     for (auto s : info->shape)
         view->len *= s;
-    view->readonly = info->readonly;
+    view->readonly = static_cast<int>(info->readonly);
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
         view->format = const_cast<char *>(info->format.c_str());
     if ((flags & PyBUF_STRIDES) == PyBUF_STRIDES) {

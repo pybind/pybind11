@@ -156,6 +156,12 @@ TEST_SUBMODULE(callbacks, m) {
         .def(py::init<>())
         .def("triple", [](CppBoundMethodTest &, int val) { return 3 * val; });
 
+    // This checks that builtin functions can be passed as callbacks
+    // rather than throwing RuntimeError due to trying to extract as capsule
+    m.def("test_sum_builtin", [](const std::function<double(py::iterable)> &sum_builtin, const py::iterable &i) {
+      return sum_builtin(i);
+    });
+
     // test async Python callbacks
     using callback_f = std::function<void(int)>;
     m.def("test_async_callback", [](const callback_f &f, const py::list &work) {
