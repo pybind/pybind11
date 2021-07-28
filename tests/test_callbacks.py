@@ -199,6 +199,5 @@ def test_full_func_return_ptr():
     m.full_func_return_ptr()
 
 
-@pytest.mark.xfail(reason="Currently auto policy is not inherited")
 def test_full_func_return_ptr_inherit():
     m.func_return_ptr()
