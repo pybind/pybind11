@@ -41,7 +41,7 @@ double apply_custom_transform(const py::object &src, double value) {
 } // namespace test_callbacks
 
 struct TestNotCopyable{
-    TestNotCopyable() {};
+    TestNotCopyable() = default;
     TestNotCopyable(const TestNotCopyable &obj) = delete;
 };
 
