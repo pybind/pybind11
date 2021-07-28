@@ -891,7 +891,7 @@ T cast(const handle &handle) { return T(reinterpret_borrow<object>(handle)); }
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
 object cast(T &&value, return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
-    return reinterpret_steal<object>(detail::make_caster<T>::cast(value, policy, parent));
+    return reinterpret_steal<object>(detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));
 }
 
 template <typename T> T handle::cast() const { return pybind11::cast<T>(*this); }
