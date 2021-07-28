@@ -913,11 +913,12 @@ inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_fro
 #endif
 }
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && _MSC_VER <= 1916
 inline constexpr void workaround_incorrect_msvc_c4100(...) {}
-#define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...) detail::workaround_incorrect_msvc_c4100(__VA_ARGS__)
+#    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)                                         \
+        detail::workaround_incorrect_msvc_c4100(__VA_ARGS__)
 #else
-#define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
+#    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
