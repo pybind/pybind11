@@ -407,6 +407,7 @@ TEST_SUBMODULE(numpy_array, sm) {
 
     sm.def("array_view1", [](py::array_t<unsigned char> a, std::string dtype) {
         return a.view(dtype);
+    });
 
     sm.def("array_reshape1", [](py::array_t<double> a, size_t N) {
         return a.reshape({N, N, N});
