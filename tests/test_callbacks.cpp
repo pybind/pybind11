@@ -13,7 +13,7 @@
 #include <thread>
 
 struct TestNotCopyable{
-    TestNotCopyable() {};
+    TestNotCopyable() = default;
     TestNotCopyable(const TestNotCopyable &obj) = delete;
 };
 
