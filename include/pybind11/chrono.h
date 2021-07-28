@@ -101,7 +101,7 @@ public:
 };
 
 inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
-#if defined(__STDC_WANT_LIB_EXT1__) || defined(_MSC_VER)
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || defined(_MSC_VER)
     if (localtime_s(buf, time))
         return nullptr;
     return buf;
