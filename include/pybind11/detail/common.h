@@ -914,11 +914,14 @@ inline static std::shared_ptr<T> try_get_shared_from_this(std::enable_shared_fro
 }
 
 #if defined(_MSC_VER) && _MSC_VER <= 1916
+
 // warning C4100: Unreferenced formal parameter
 template <typename... Args>
 inline constexpr void workaround_incorrect_msvc_c4100(Args &&...) {}
+
 #    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)                                         \
         detail::workaround_incorrect_msvc_c4100(__VA_ARGS__)
+
 #else
 #    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
 #endif
