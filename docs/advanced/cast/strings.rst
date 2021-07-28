@@ -58,7 +58,9 @@ Passing bytes to C++
 --------------------
 
 A Python ``bytes`` object will be passed to C++ functions that accept
-``std::string`` or ``char*`` *without* conversion.
+``std::string`` or ``char*`` *without* conversion.  On Python 3, in order to
+make a function *only* accept ``bytes`` (and not ``str``), declare it as taking
+a ``py::bytes`` argument.
 
 
 Returning C++ strings to Python

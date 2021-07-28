@@ -7,13 +7,39 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#if defined(__INTEL_COMPILER) && __cplusplus >= 201703L
+// Intel compiler requires a separate header file to support aligned new operators
+// and does not set the __cpp_aligned_new feature macro.
+// This header needs to be included before pybind11.
+#include <aligned_new>
+#endif
+
 #include "pybind11_tests.h"
 #include "constructor_stats.h"
 #include "local_bindings.h"
+#include <pybind11/stl.h>
+
+#include <utility>
+
+#if defined(_MSC_VER)
+#  pragma warning(disable: 4324) // warning C4324: structure was padded due to alignment specifier
+#endif
+
+// test_brace_initialization
+struct NoBraceInitialization {
+    NoBraceInitialization(std::vector<int> v) : vec{std::move(v)} {}
+    template <typename T>
+    NoBraceInitialization(std::initializer_list<T> l) : vec(l) {}
+
+    std::vector<int> vec;
+};
 
 TEST_SUBMODULE(class_, m) {
     // test_instance
     struct NoConstructor {
+        NoConstructor() = default;
+        NoConstructor(const NoConstructor &) = default;
+        NoConstructor(NoConstructor &&) = default;
         static NoConstructor *new_instance() {
             auto *ptr = new NoConstructor();
             print_created(ptr, "via new_instance");
@@ -82,7 +108,12 @@ TEST_SUBMODULE(class_, m) {
     m.def("dog_bark", [](const Dog &dog) { return dog.bark(); });
 
     // test_automatic_upcasting
-    struct BaseClass { virtual ~BaseClass() {} };
+    struct BaseClass {
+        BaseClass() = default;
+        BaseClass(const BaseClass &) = default;
+        BaseClass(BaseClass &&) = default;
+        virtual ~BaseClass() = default;
+    };
     struct DerivedClass1 : BaseClass { };
     struct DerivedClass2 : BaseClass { };
 
@@ -100,7 +131,7 @@ TEST_SUBMODULE(class_, m) {
     m.def("return_none", []() -> BaseClass* { return nullptr; });
 
     // test_isinstance
-    m.def("check_instances", [](py::list l) {
+    m.def("check_instances", [](const py::list &l) {
         return py::make_tuple(
             py::isinstance<py::tuple>(l[0]),
             py::isinstance<py::dict>(l[1]),
@@ -112,6 +143,27 @@ TEST_SUBMODULE(class_, m) {
         );
     });
 
+    struct Invalid {};
+
+    // test_type
+    m.def("check_type", [](int category) {
+        // Currently not supported (via a fail at compile time)
+        // See https://github.com/pybind/pybind11/issues/2486
+        // if (category == 2)
+        //     return py::type::of<int>();
+        if (category == 1)
+            return py::type::of<DerivedClass1>();
+        return py::type::of<Invalid>();
+    });
+
+    m.def("get_type_of", [](py::object ob) { return py::type::of(std::move(ob)); });
+
+    m.def("get_type_classic", [](py::handle h) {
+        return h.get_type();
+    });
+
+    m.def("as_type", [](const py::object &ob) { return py::type(ob); });
+
     // test_mismatched_holder
     struct MismatchBase1 { };
     struct MismatchDerived1 : MismatchBase1 { };
@@ -120,12 +172,12 @@ TEST_SUBMODULE(class_, m) {
     struct MismatchDerived2 : MismatchBase2 { };
 
     m.def("mismatched_holder_1", []() {
-        auto mod = py::module::import("__main__");
+        auto mod = py::module_::import("__main__");
         py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(mod, "MismatchBase1");
         py::class_<MismatchDerived1, MismatchBase1>(mod, "MismatchDerived1");
     });
     m.def("mismatched_holder_2", []() {
-        auto mod = py::module::import("__main__");
+        auto mod = py::module_::import("__main__");
         py::class_<MismatchBase2>(mod, "MismatchBase2");
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>,
                    MismatchBase2>(mod, "MismatchDerived2");
@@ -164,7 +216,7 @@ TEST_SUBMODULE(class_, m) {
     py::implicitly_convertible<UserType, ConvertibleFromUserType>();
 
     m.def("implicitly_convert_argument", [](const ConvertibleFromUserType &r) { return r.i; });
-    m.def("implicitly_convert_variable", [](py::object o) {
+    m.def("implicitly_convert_variable", [](const py::object &o) {
         // `o` is `UserType` and `r` is a reference to a temporary created by implicit
         // conversion. This is valid when called inside a bound function because the temp
         // object is attached to the same life support system as the arguments.
@@ -183,7 +235,8 @@ TEST_SUBMODULE(class_, m) {
         };
 
         auto def = new PyMethodDef{"f", f, METH_VARARGS, nullptr};
-        return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, nullptr, m.ptr()));
+        py::capsule def_capsule(def, [](void *ptr) { delete reinterpret_cast<PyMethodDef *>(ptr); });
+        return py::reinterpret_steal<py::object>(PyCFunction_NewEx(def, def_capsule.ptr(), m.ptr()));
     }());
 
     // test_operator_new_delete
@@ -205,6 +258,8 @@ TEST_SUBMODULE(class_, m) {
         static void *operator new(size_t s, void *ptr) { py::print("C placement-new", s); return ptr; }
         static void operator delete(void *p, size_t s) { py::print("C delete", s); return ::operator delete(p); }
         virtual ~AliasedHasOpNewDelSize() = default;
+        AliasedHasOpNewDelSize() = default;
+        AliasedHasOpNewDelSize(const AliasedHasOpNewDelSize&) = delete;
     };
     struct PyAliasedHasOpNewDelSize : AliasedHasOpNewDelSize {
         PyAliasedHasOpNewDelSize() = default;
@@ -229,19 +284,214 @@ TEST_SUBMODULE(class_, m) {
     // This test is actually part of test_local_bindings (test_duplicate_local), but we need a
     // definition in a different compilation unit within the same module:
     bind_local<LocalExternal, 17>(m, "LocalExternal", py::module_local());
+
+    // test_bind_protected_functions
+    class ProtectedA {
+    protected:
+        int foo() const { return value; }
+
+    private:
+        int value = 42;
+    };
+
+    class PublicistA : public ProtectedA {
+    public:
+        using ProtectedA::foo;
+    };
+
+    py::class_<ProtectedA>(m, "ProtectedA")
+        .def(py::init<>())
+#if !defined(_MSC_VER) || _MSC_VER >= 1910
+        .def("foo", &PublicistA::foo);
+#else
+        .def("foo", static_cast<int (ProtectedA::*)() const>(&PublicistA::foo));
+#endif
+
+    class ProtectedB {
+    public:
+        virtual ~ProtectedB() = default;
+        ProtectedB() = default;
+        ProtectedB(const ProtectedB &) = delete;
+
+    protected:
+        virtual int foo() const { return value; }
+
+    private:
+        int value = 42;
+    };
+
+    class TrampolineB : public ProtectedB {
+    public:
+        int foo() const override { PYBIND11_OVERRIDE(int, ProtectedB, foo, ); }
+    };
+
+    class PublicistB : public ProtectedB {
+    public:
+        // [workaround(intel)] = default does not work here
+        // Removing or defaulting this destructor results in linking errors with the Intel compiler
+        // (in Debug builds only, tested with icpc (ICC) 2021.1 Beta 20200827)
+        ~PublicistB() override {};  // NOLINT(modernize-use-equals-default)
+        using ProtectedB::foo;
+    };
+
+    py::class_<ProtectedB, TrampolineB>(m, "ProtectedB")
+        .def(py::init<>())
+#if !defined(_MSC_VER) || _MSC_VER >= 1910
+        .def("foo", &PublicistB::foo);
+#else
+        .def("foo", static_cast<int (ProtectedB::*)() const>(&PublicistB::foo));
+#endif
+
+    // test_brace_initialization
+    struct BraceInitialization {
+        int field1;
+        std::string field2;
+    };
+
+    py::class_<BraceInitialization>(m, "BraceInitialization")
+        .def(py::init<int, const std::string &>())
+        .def_readwrite("field1", &BraceInitialization::field1)
+        .def_readwrite("field2", &BraceInitialization::field2);
+    // We *don't* want to construct using braces when the given constructor argument maps to a
+    // constructor, because brace initialization could go to the wrong place (in particular when
+    // there is also an `initializer_list<T>`-accept constructor):
+    py::class_<NoBraceInitialization>(m, "NoBraceInitialization")
+        .def(py::init<std::vector<int>>())
+        .def_readonly("vec", &NoBraceInitialization::vec);
+
+    // test_reentrant_implicit_conversion_failure
+    // #1035: issue with runaway reentrant implicit conversion
+    struct BogusImplicitConversion {
+        BogusImplicitConversion(const BogusImplicitConversion &) = default;
+    };
+
+    py::class_<BogusImplicitConversion>(m, "BogusImplicitConversion")
+        .def(py::init<const BogusImplicitConversion &>());
+
+    py::implicitly_convertible<int, BogusImplicitConversion>();
+
+    // test_qualname
+    // #1166: nested class docstring doesn't show nested name
+    // Also related: tests that __qualname__ is set properly
+    struct NestBase {};
+    struct Nested {};
+    py::class_<NestBase> base(m, "NestBase");
+    base.def(py::init<>());
+    py::class_<Nested>(base, "Nested")
+        .def(py::init<>())
+        .def("fn", [](Nested &, int, NestBase &, Nested &) {})
+        .def("fa", [](Nested &, int, NestBase &, Nested &) {},
+                "a"_a, "b"_a, "c"_a);
+    base.def("g", [](NestBase &, Nested &) {});
+    base.def("h", []() { return NestBase(); });
+
+    // test_error_after_conversion
+    // The second-pass path through dispatcher() previously didn't
+    // remember which overload was used, and would crash trying to
+    // generate a useful error message
+
+    struct NotRegistered {};
+    struct StringWrapper { std::string str; };
+    m.def("test_error_after_conversions", [](int) {});
+    m.def("test_error_after_conversions",
+          [](const StringWrapper &) -> NotRegistered { return {}; });
+    py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
+    py::implicitly_convertible<std::string, StringWrapper>();
+
+    #if defined(PYBIND11_CPP17)
+        struct alignas(1024) Aligned {
+            std::uintptr_t ptr() const { return (uintptr_t) this; }
+        };
+        py::class_<Aligned>(m, "Aligned")
+            .def(py::init<>())
+            .def("ptr", &Aligned::ptr);
+    #endif
+
+    // test_final
+    struct IsFinal final {};
+    py::class_<IsFinal>(m, "IsFinal", py::is_final());
+
+    // test_non_final_final
+    struct IsNonFinalFinal {};
+    py::class_<IsNonFinalFinal>(m, "IsNonFinalFinal", py::is_final());
+
+    // test_exception_rvalue_abort
+    struct PyPrintDestructor {
+        PyPrintDestructor() = default;
+        ~PyPrintDestructor() {
+            py::print("Print from destructor");
+        }
+        void throw_something() { throw std::runtime_error("error"); }
+    };
+    py::class_<PyPrintDestructor>(m, "PyPrintDestructor")
+        .def(py::init<>())
+        .def("throw_something", &PyPrintDestructor::throw_something);
+
+    // test_multiple_instances_with_same_pointer
+    struct SamePointer {};
+    static SamePointer samePointer;
+    py::class_<SamePointer, std::unique_ptr<SamePointer, py::nodelete>>(m, "SamePointer")
+        .def(py::init([]() { return &samePointer; }));
+
+    struct Empty {};
+    py::class_<Empty>(m, "Empty")
+        .def(py::init<>());
+
+    // test_base_and_derived_nested_scope
+    struct BaseWithNested {
+        struct Nested {};
+    };
+
+    struct DerivedWithNested : BaseWithNested {
+        struct Nested {};
+    };
+
+    py::class_<BaseWithNested> baseWithNested_class(m, "BaseWithNested");
+    py::class_<DerivedWithNested, BaseWithNested> derivedWithNested_class(m, "DerivedWithNested");
+    py::class_<BaseWithNested::Nested>(baseWithNested_class, "Nested")
+        .def_static("get_name", []() { return "BaseWithNested::Nested"; });
+    py::class_<DerivedWithNested::Nested>(derivedWithNested_class, "Nested")
+        .def_static("get_name", []() { return "DerivedWithNested::Nested"; });
+
+    // test_register_duplicate_class
+    struct Duplicate {};
+    struct OtherDuplicate {};
+    struct DuplicateNested {};
+    struct OtherDuplicateNested {};
+
+    m.def("register_duplicate_class_name", [](const py::module_ &m) {
+        py::class_<Duplicate>(m, "Duplicate");
+        py::class_<OtherDuplicate>(m, "Duplicate");
+    });
+    m.def("register_duplicate_class_type", [](const py::module_ &m) {
+        py::class_<OtherDuplicate>(m, "OtherDuplicate");
+        py::class_<OtherDuplicate>(m, "YetAnotherDuplicate");
+    });
+    m.def("register_duplicate_nested_class_name", [](const py::object &gt) {
+        py::class_<DuplicateNested>(gt, "DuplicateNested");
+        py::class_<OtherDuplicateNested>(gt, "DuplicateNested");
+    });
+    m.def("register_duplicate_nested_class_type", [](const py::object &gt) {
+        py::class_<OtherDuplicateNested>(gt, "OtherDuplicateNested");
+        py::class_<OtherDuplicateNested>(gt, "YetAnotherDuplicateNested");
+    });
 }
 
-template <int N> class BreaksBase {};
+template <int N> class BreaksBase { public:
+    virtual ~BreaksBase() = default;
+    BreaksBase() = default;
+    BreaksBase(const BreaksBase&) = delete;
+};
 template <int N> class BreaksTramp : public BreaksBase<N> {};
 // These should all compile just fine:
-typedef py::class_<BreaksBase<1>, std::unique_ptr<BreaksBase<1>>, BreaksTramp<1>> DoesntBreak1;
-typedef py::class_<BreaksBase<2>, BreaksTramp<2>, std::unique_ptr<BreaksBase<2>>> DoesntBreak2;
-typedef py::class_<BreaksBase<3>, std::unique_ptr<BreaksBase<3>>> DoesntBreak3;
-typedef py::class_<BreaksBase<4>, BreaksTramp<4>> DoesntBreak4;
-typedef py::class_<BreaksBase<5>> DoesntBreak5;
-typedef py::class_<BreaksBase<6>, std::shared_ptr<BreaksBase<6>>, BreaksTramp<6>> DoesntBreak6;
-typedef py::class_<BreaksBase<7>, BreaksTramp<7>, std::shared_ptr<BreaksBase<7>>> DoesntBreak7;
-typedef py::class_<BreaksBase<8>, std::shared_ptr<BreaksBase<8>>> DoesntBreak8;
+using DoesntBreak1 = py::class_<BreaksBase<1>, std::unique_ptr<BreaksBase<1>>, BreaksTramp<1>>;
+using DoesntBreak2 = py::class_<BreaksBase<2>, BreaksTramp<2>, std::unique_ptr<BreaksBase<2>>>;
+using DoesntBreak3 = py::class_<BreaksBase<3>, std::unique_ptr<BreaksBase<3>>>;
+using DoesntBreak4 = py::class_<BreaksBase<4>, BreaksTramp<4>>;
+using DoesntBreak5 = py::class_<BreaksBase<5>>;
+using DoesntBreak6 = py::class_<BreaksBase<6>, std::shared_ptr<BreaksBase<6>>, BreaksTramp<6>>;
+using DoesntBreak7 = py::class_<BreaksBase<7>, BreaksTramp<7>, std::shared_ptr<BreaksBase<7>>>;
+using DoesntBreak8 = py::class_<BreaksBase<8>, std::shared_ptr<BreaksBase<8>>>;
 #define CHECK_BASE(N) static_assert(std::is_same<typename DoesntBreak##N::type, BreaksBase<N>>::value, \
         "DoesntBreak" #N " has wrong type!")
 CHECK_BASE(1); CHECK_BASE(2); CHECK_BASE(3); CHECK_BASE(4); CHECK_BASE(5); CHECK_BASE(6); CHECK_BASE(7); CHECK_BASE(8);

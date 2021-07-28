@@ -13,11 +13,13 @@ TEST_SUBMODULE(enums, m) {
     // test_unscoped_enum
     enum UnscopedEnum {
         EOne = 1,
-        ETwo
+        ETwo,
+        EThree
     };
-    py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic())
-        .value("EOne", EOne)
-        .value("ETwo", ETwo)
+    py::enum_<UnscopedEnum>(m, "UnscopedEnum", py::arithmetic(), "An unscoped enumeration")
+        .value("EOne", EOne, "Docstring for EOne")
+        .value("ETwo", ETwo, "Docstring for ETwo")
+        .value("EThree", EThree, "Docstring for EThree")
         .export_values();
 
     // test_scoped_enum
@@ -68,4 +70,18 @@ TEST_SUBMODULE(enums, m) {
     m.def("test_enum_to_int", [](int) { });
     m.def("test_enum_to_uint", [](uint32_t) { });
     m.def("test_enum_to_long_long", [](long long) { });
+
+    // test_duplicate_enum_name
+    enum SimpleEnum
+    {
+        ONE, TWO, THREE
+    };
+
+    m.def("register_bad_enum", [m]() {
+        py::enum_<SimpleEnum>(m, "SimpleEnum")
+            .value("ONE", SimpleEnum::ONE)          //NOTE: all value function calls are called with the same first parameter value
+            .value("ONE", SimpleEnum::TWO)
+            .value("ONE", SimpleEnum::THREE)
+            .export_values();
+    });
 }

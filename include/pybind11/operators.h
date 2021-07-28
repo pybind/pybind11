@@ -18,8 +18,8 @@
 #  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
 #endif
 
-NAMESPACE_BEGIN(pybind11)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Enumeration with all supported operator types
 enum op_id : int {
@@ -28,7 +28,7 @@ enum op_id : int {
     op_int, op_long, op_float, op_str, op_cmp, op_gt, op_ge, op_lt, op_le,
     op_eq, op_ne, op_iadd, op_isub, op_imul, op_idiv, op_imod, op_ilshift,
     op_irshift, op_iand, op_ixor, op_ior, op_complex, op_bool, op_nonzero,
-    op_repr, op_truediv, op_itruediv
+    op_repr, op_truediv, op_itruediv, op_hash
 };
 
 enum op_type : int {
@@ -147,7 +147,11 @@ PYBIND11_INPLACE_OPERATOR(ixor,     operator^=,   l ^= r)
 PYBIND11_INPLACE_OPERATOR(ior,      operator|=,   l |= r)
 PYBIND11_UNARY_OPERATOR(neg,        operator-,    -l)
 PYBIND11_UNARY_OPERATOR(pos,        operator+,    +l)
+// WARNING: This usage of `abs` should only be done for existing STL overloads.
+// Adding overloads directly in to the `std::` namespace is advised against:
+// https://en.cppreference.com/w/cpp/language/extending_std
 PYBIND11_UNARY_OPERATOR(abs,        abs,          std::abs(l))
+PYBIND11_UNARY_OPERATOR(hash,       hash,         std::hash<L>()(l))
 PYBIND11_UNARY_OPERATOR(invert,     operator~,    (~l))
 PYBIND11_UNARY_OPERATOR(bool,       operator!,    !!l)
 PYBIND11_UNARY_OPERATOR(int,        int_,         (int) l)
@@ -156,11 +160,13 @@ PYBIND11_UNARY_OPERATOR(float,      float_,       (double) l)
 #undef PYBIND11_BINARY_OPERATOR
 #undef PYBIND11_INPLACE_OPERATOR
 #undef PYBIND11_UNARY_OPERATOR
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 using detail::self;
+// Add named operators so that they are accessible via `py::`.
+using detail::hash;
 
-NAMESPACE_END(pybind11)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #if defined(_MSC_VER)
 #  pragma warning(pop)

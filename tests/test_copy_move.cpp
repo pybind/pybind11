@@ -19,14 +19,14 @@ struct empty {
 };
 
 struct lacking_copy_ctor : public empty<lacking_copy_ctor> {
-    lacking_copy_ctor() {}
+    lacking_copy_ctor() = default;
     lacking_copy_ctor(const lacking_copy_ctor& other) = delete;
 };
 
 template <> lacking_copy_ctor empty<lacking_copy_ctor>::instance_ = {};
 
 struct lacking_move_ctor : public empty<lacking_move_ctor> {
-    lacking_move_ctor() {}
+    lacking_move_ctor() = default;
     lacking_move_ctor(const lacking_move_ctor& other) = delete;
     lacking_move_ctor(lacking_move_ctor&& other) = delete;
 };
@@ -37,9 +37,16 @@ template <> lacking_move_ctor empty<lacking_move_ctor>::instance_ = {};
 class MoveOnlyInt {
 public:
     MoveOnlyInt() { print_default_created(this); }
-    MoveOnlyInt(int v) : value{std::move(v)} { print_created(this, value); }
-    MoveOnlyInt(MoveOnlyInt &&m) { print_move_created(this, m.value); std::swap(value, m.value); }
-    MoveOnlyInt &operator=(MoveOnlyInt &&m) { print_move_assigned(this, m.value); std::swap(value, m.value); return *this; }
+    MoveOnlyInt(int v) : value{v} { print_created(this, value); }
+    MoveOnlyInt(MoveOnlyInt &&m) noexcept {
+        print_move_created(this, m.value);
+        std::swap(value, m.value);
+    }
+    MoveOnlyInt &operator=(MoveOnlyInt &&m) noexcept {
+        print_move_assigned(this, m.value);
+        std::swap(value, m.value);
+        return *this;
+    }
     MoveOnlyInt(const MoveOnlyInt &) = delete;
     MoveOnlyInt &operator=(const MoveOnlyInt &) = delete;
     ~MoveOnlyInt() { print_destroyed(this); }
@@ -49,9 +56,16 @@ public:
 class MoveOrCopyInt {
 public:
     MoveOrCopyInt() { print_default_created(this); }
-    MoveOrCopyInt(int v) : value{std::move(v)} { print_created(this, value); }
-    MoveOrCopyInt(MoveOrCopyInt &&m) { print_move_created(this, m.value); std::swap(value, m.value); }
-    MoveOrCopyInt &operator=(MoveOrCopyInt &&m) { print_move_assigned(this, m.value); std::swap(value, m.value); return *this; }
+    MoveOrCopyInt(int v) : value{v} { print_created(this, value); }
+    MoveOrCopyInt(MoveOrCopyInt &&m) noexcept {
+        print_move_created(this, m.value);
+        std::swap(value, m.value);
+    }
+    MoveOrCopyInt &operator=(MoveOrCopyInt &&m) noexcept {
+        print_move_assigned(this, m.value);
+        std::swap(value, m.value);
+        return *this;
+    }
     MoveOrCopyInt(const MoveOrCopyInt &c) { print_copy_created(this, c.value); value = c.value; }
     MoveOrCopyInt &operator=(const MoveOrCopyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~MoveOrCopyInt() { print_destroyed(this); }
@@ -61,15 +75,15 @@ public:
 class CopyOnlyInt {
 public:
     CopyOnlyInt() { print_default_created(this); }
-    CopyOnlyInt(int v) : value{std::move(v)} { print_created(this, value); }
+    CopyOnlyInt(int v) : value{v} { print_created(this, value); }
     CopyOnlyInt(const CopyOnlyInt &c) { print_copy_created(this, c.value); value = c.value; }
     CopyOnlyInt &operator=(const CopyOnlyInt &c) { print_copy_assigned(this, c.value); value = c.value; return *this; }
     ~CopyOnlyInt() { print_destroyed(this); }
 
     int value;
 };
-NAMESPACE_BEGIN(pybind11)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(pybind11)
+PYBIND11_NAMESPACE_BEGIN(detail)
 template <> struct type_caster<MoveOnlyInt> {
     PYBIND11_TYPE_CASTER(MoveOnlyInt, _("MoveOnlyInt"));
     bool load(handle src, bool) { value = MoveOnlyInt(src.cast<int>()); return true; }
@@ -86,7 +100,7 @@ template <> struct type_caster<CopyOnlyInt> {
 protected:
     CopyOnlyInt value;
 public:
-    static PYBIND11_DESCR name() { return _("CopyOnlyInt"); }
+    static constexpr auto name = _("CopyOnlyInt");
     bool load(handle src, bool) { value = CopyOnlyInt(src.cast<int>()); return true; }
     static handle cast(const CopyOnlyInt &m, return_value_policy r, handle p) { return pybind11::cast(m.value, r, p); }
     static handle cast(const CopyOnlyInt *src, return_value_policy policy, handle parent) {
@@ -97,8 +111,8 @@ public:
     operator CopyOnlyInt&() { return value; }
     template <typename T> using cast_op_type = pybind11::detail::cast_op_type<T>;
 };
-NAMESPACE_END(detail)
-NAMESPACE_END(pybind11)
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(pybind11)
 
 TEST_SUBMODULE(copy_move_policies, m) {
     // test_lacking_copy_ctor
@@ -111,14 +125,15 @@ TEST_SUBMODULE(copy_move_policies, m) {
                     py::return_value_policy::move);
 
     // test_move_and_copy_casts
-    m.def("move_and_copy_casts", [](py::object o) {
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    m.def("move_and_copy_casts", [](const py::object &o) {
         int r = 0;
         r += py::cast<MoveOrCopyInt>(o).value; /* moves */
         r += py::cast<MoveOnlyInt>(o).value; /* moves */
         r += py::cast<CopyOnlyInt>(o).value; /* copies */
-        MoveOrCopyInt m1(py::cast<MoveOrCopyInt>(o)); /* moves */
-        MoveOnlyInt m2(py::cast<MoveOnlyInt>(o)); /* moves */
-        CopyOnlyInt m3(py::cast<CopyOnlyInt>(o)); /* copies */
+        auto m1(py::cast<MoveOrCopyInt>(o)); /* moves */
+        auto m2(py::cast<MoveOnlyInt>(o)); /* moves */
+        auto m3(py::cast<CopyOnlyInt>(o)); /* copies */
         r += m1.value + m2.value + m3.value;
 
         return r;
@@ -126,7 +141,11 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     // test_move_and_copy_loads
     m.def("move_only", [](MoveOnlyInt m) { return m.value; });
+    // Changing this breaks the existing test: needs careful review.
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("move_or_copy", [](MoveOrCopyInt m) { return m.value; });
+    // Changing this breaks the existing test: needs careful review.
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     m.def("copy_only", [](CopyOnlyInt m) { return m.value; });
     m.def("move_pair", [](std::pair<MoveOnlyInt, MoveOrCopyInt> p) {
         return p.first.value + p.second.value;
@@ -175,14 +194,19 @@ TEST_SUBMODULE(copy_move_policies, m) {
     m.attr("has_optional") = false;
 #endif
 
-    // #70 compilation issue if operator new is not public
+    // #70 compilation issue if operator new is not public - simple body added
+    // but not needed on most compilers; MSVC and nvcc don't like a local
+    // struct not having a method defined when declared, since it can not be
+    // added later.
     struct PrivateOpNew {
         int value = 1;
     private:
-#if defined(_MSC_VER)
-#  pragma warning(disable: 4822) // warning C4822: local class member function does not have a body
-#endif
-        void *operator new(size_t bytes);
+        void *operator new(size_t bytes) {
+            void *ptr = std::malloc(bytes);
+            if (ptr)
+                return ptr;
+            throw std::bad_alloc{};
+        }
     };
     py::class_<PrivateOpNew>(m, "PrivateOpNew").def_readonly("value", &PrivateOpNew::value);
     m.def("private_op_new_value", []() { return PrivateOpNew(); });
@@ -208,6 +232,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
     };
     py::class_<MoveIssue2>(m, "MoveIssue2").def(py::init<int>()).def_readwrite("value", &MoveIssue2::v);
 
-    m.def("get_moveissue1", [](int i) { return new MoveIssue1(i); }, py::return_value_policy::move);
+    // #2742: Don't expect ownership of raw pointer to `new`ed object to be transferred with `py::return_value_policy::move`
+    m.def("get_moveissue1", [](int i) { return std::unique_ptr<MoveIssue1>(new MoveIssue1(i)); }, py::return_value_policy::move);
     m.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
 }

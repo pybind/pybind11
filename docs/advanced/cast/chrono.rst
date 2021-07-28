@@ -59,7 +59,7 @@ Provided conversions
 
 .. rubric:: Python to C++
 
-- ``datetime.datetime`` → ``std::chrono::system_clock::time_point``
+- ``datetime.datetime`` or ``datetime.date`` or ``datetime.time`` → ``std::chrono::system_clock::time_point``
     Date/time objects are converted into system clock timepoints. Any
     timezone information is ignored and the type is treated as a naive
     object.

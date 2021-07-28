@@ -9,6 +9,8 @@
 Reference
 #########
 
+.. _macros:
+
 Macros
 ======
 
@@ -44,11 +46,22 @@ With reference counting
 Convenience classes for specific Python types
 =============================================
 
-.. doxygenclass:: module
+.. doxygenclass:: module_
     :members:
 
 .. doxygengroup:: pytypes
     :members:
+
+Convenience functions converting to Python types
+================================================
+
+.. doxygenfunction:: make_tuple(Args&&...)
+
+.. doxygenfunction:: make_iterator(Iterator, Sentinel, Extra &&...)
+.. doxygenfunction:: make_iterator(Type &, Extra&&...)
+
+.. doxygenfunction:: make_key_iterator(Iterator, Sentinel, Extra &&...)
+.. doxygenfunction:: make_key_iterator(Type &, Extra&&...)
 
 .. _extras:
 
@@ -69,11 +82,35 @@ Embedding the interpreter
 
 .. doxygenclass:: scoped_interpreter
 
-Python build-in functions
+Redirecting C++ streams
+=======================
+
+.. doxygenclass:: scoped_ostream_redirect
+
+.. doxygenclass:: scoped_estream_redirect
+
+.. doxygenfunction:: add_ostream_redirect
+
+Python built-in functions
 =========================
 
 .. doxygengroup:: python_builtins
     :members:
+
+Inheritance
+===========
+
+See :doc:`/classes` and :doc:`/advanced/classes` for more detail.
+
+.. doxygendefine:: PYBIND11_OVERRIDE
+
+.. doxygendefine:: PYBIND11_OVERRIDE_PURE
+
+.. doxygendefine:: PYBIND11_OVERRIDE_NAME
+
+.. doxygendefine:: PYBIND11_OVERRIDE_PURE_NAME
+
+.. doxygenfunction:: get_override
 
 Exceptions
 ==========
@@ -83,7 +120,6 @@ Exceptions
 
 .. doxygenclass:: builtin_exception
     :members:
-
 
 Literals
 ========

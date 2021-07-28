@@ -1,24 +1,25 @@
-.. only: not latex
+.. only:: latex
 
-    .. image:: pybind11-logo.png
+   Intro
+   =====
 
-pybind11 --- Seamless operability between C++11 and Python
-==========================================================
+.. include:: readme.rst
 
-.. only: not latex
+.. only:: not latex
 
     Contents:
 
 .. toctree::
    :maxdepth: 1
 
-   intro
    changelog
+   upgrade
 
 .. toctree::
    :caption: The Basics
    :maxdepth: 2
 
+   installing
    basics
    classes
    compiling
@@ -44,3 +45,4 @@ pybind11 --- Seamless operability between C++11 and Python
    benchmark
    limitations
    reference
+   cmake/index
