@@ -94,6 +94,7 @@ void construct(...) {
 // construct an Alias from the returned base instance.
 template <typename Class>
 void construct(value_and_holder &v_h, Cpp<Class> *ptr, bool need_alias) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     no_nullptr(ptr);
     if (Class::has_alias && need_alias && !is_alias<Class>(ptr)) {
         // We're going to try to construct an alias by moving the cpp type.  Whether or not
@@ -131,6 +132,7 @@ void construct(value_and_holder &v_h, Alias<Class> *alias_ptr, bool) {
 // derived type (through those holder's implicit conversion from derived class holder constructors).
 template <typename Class>
 void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = holder_helper<Holder<Class>>::get(holder);
     no_nullptr(ptr);
     // If we need an alias, check that the held pointer is actually an alias instance
@@ -148,6 +150,7 @@ void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
 // need it, we simply move-construct the cpp value into a new instance.
 template <typename Class>
 void construct(value_and_holder &v_h, Cpp<Class> &&result, bool need_alias) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     static_assert(std::is_move_constructible<Cpp<Class>>::value,
         "pybind11::init() return-by-value factory function requires a movable class");
     if (Class::has_alias && need_alias)
