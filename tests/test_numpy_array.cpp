@@ -415,7 +415,7 @@ TEST_SUBMODULE(numpy_array, sm) {
         std::fill(a.mutable_data(), a.mutable_data() + a.size(), 42.);
         return a.reshape({N, M, O});
     });
-    sm.def("reshape_tuple", [](py::array_t<double> a, std::vector<int> new_shape) {
+    sm.def("reshape_tuple", [](py::array_t<double> a, const std::vector<int> &new_shape) {
         return a.reshape(new_shape);
     });
     sm.def("index_using_ellipsis",
