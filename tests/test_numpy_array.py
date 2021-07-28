@@ -483,6 +483,7 @@ def test_array_reshape(msg):
     assert x.shape == (10, 10, 10)
 
 
+@pytest.mark.xfail("env.PYPY")
 def test_create_and_reshape(msg):
     x = m.create_and_reshape(10, 20, 30)
     assert x.shape == (10, 20, 30)
