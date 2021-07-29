@@ -516,18 +516,22 @@ template <size_t Nurse, size_t Patient> struct process_attribute<keep_alive<Nurs
 /// Recursively iterate over variadic template arguments
 template <typename... Args> struct process_attributes {
     static void init(const Args&... args, function_record *r) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
         ignore_unused(unused);
     }
     static void init(const Args&... args, type_record *r) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(r);
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::init(args, r), 0) ... };
         ignore_unused(unused);
     }
     static void precall(function_call &call) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call);
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::precall(call), 0) ... };
         ignore_unused(unused);
     }
     static void postcall(function_call &call, handle fn_ret) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(call, fn_ret);
         int unused[] = { 0, (process_attribute<typename std::decay<Args>::type>::postcall(call, fn_ret), 0) ... };
         ignore_unused(unused);
     }
@@ -545,6 +549,7 @@ template <typename... Extra,
           size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
           size_t self  = constexpr_sum(std::is_same<is_method, Extra>::value...)>
 constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(nargs, has_args, has_kwargs);
     return named == 0 || (self + named + size_t(has_args) + size_t(has_kwargs)) == nargs;
 }
 
