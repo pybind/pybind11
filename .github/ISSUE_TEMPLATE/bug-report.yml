@@ -3,6 +3,10 @@ description: File an issue about a bug
 title: "[BUG]: "
 labels: [triage]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Maintainers will only make a best effort to triage PRs. Please do your best to make the issue as easy to act on as possible, and only open if clearly a problem with pybind11 (ask first if unsure).
   - type: checkboxes
     id: steps
     attributes:
