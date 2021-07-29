@@ -930,6 +930,7 @@ protected:
        does not have a private operator new implementation. */
     template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
     static auto make_copy_constructor(const T *x) -> decltype(new T(*x), Constructor{}) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(x);
         return [](const void *arg) -> void * {
             return new T(*reinterpret_cast<const T *>(arg));
         };
@@ -937,6 +938,7 @@ protected:
 
     template <typename T, typename = enable_if_t<std::is_move_constructible<T>::value>>
     static auto make_move_constructor(const T *x) -> decltype(new T(std::move(*const_cast<T *>(x))), Constructor{}) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(x);
         return [](const void *arg) -> void * {
             return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
         };
