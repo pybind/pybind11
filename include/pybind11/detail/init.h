@@ -180,6 +180,7 @@ template <
     typename D = std::default_delete<Cpp<Class>>,
     detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
 void construct(value_and_holder &v_h, std::unique_ptr<Cpp<Class>, D> &&unq_ptr, bool need_alias) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = unq_ptr.get();
     no_nullptr(ptr);
     if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
@@ -215,6 +216,7 @@ template <
     typename Class,
     detail::enable_if_t<detail::type_uses_smart_holder_type_caster<Cpp<Class>>::value, int> = 0>
 void construct(value_and_holder &v_h, std::shared_ptr<Cpp<Class>> &&shd_ptr, bool need_alias) {
+    PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     auto *ptr = shd_ptr.get();
     no_nullptr(ptr);
     if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
