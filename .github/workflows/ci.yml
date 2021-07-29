@@ -859,3 +859,34 @@ jobs:
 
     - name: Run all checks
       run: cmake --build build -t check
+
+  mingw:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-python-pip
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-make
+          mingw-w64-x86_64-python-pytest
+          mingw-w64-x86_64-eigen3
+          mingw-w64-x86_64-boost
+          mingw-w64-x86_64-catch
+
+    - uses: actions/checkout@v1
+
+    - name: Configure
+      # LTO leads to many undefined reference like
+      # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
+      run: cmake -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -G "MinGW Makefiles" -S . -B build
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest
