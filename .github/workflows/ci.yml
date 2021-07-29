@@ -883,7 +883,7 @@ jobs:
     - name: Configure
       # LTO leads to many undefined reference like
       # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
-      run: cmake -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -G "MinGW Makefiles" -S . -B build
+      run: cmake -G "MinGW Makefiles" -S . -B build
 
     - name: Build
       run: cmake --build build -j 2
