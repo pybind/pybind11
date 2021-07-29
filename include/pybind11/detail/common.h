@@ -941,5 +941,8 @@ inline constexpr void workaround_incorrect_msvc_c4100(Args &&...) {}
 #    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
 #endif
 
+// Suppresses MSVC warning C4127: Conditional expression is constant
+constexpr inline bool constexpr_bool(bool cond) { return cond; }
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

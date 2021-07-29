@@ -384,7 +384,7 @@ template <typename StringType, bool IsView = false> struct string_caster {
 
         const auto *buffer = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
         size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
-        if (UTF_N > 8) { buffer++; length--; } // Skip BOM for UTF-16/32
+        if (constexpr_bool(UTF_N > 8)) { buffer++; length--; } // Skip BOM for UTF-16/32
         value = StringType(buffer, length);
 
         // If we're loading a string_view we need to keep the encoded Python object alive:
@@ -499,7 +499,7 @@ public:
         // out how long the first encoded character is in bytes to distinguish between these two
         // errors.  We also allow want to allow unicode characters U+0080 through U+00FF, as those
         // can fit into a single char value.
-        if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
+        if (constexpr_bool(StringCaster::UTF_N == 8) && str_len > 1 && str_len <= 4) {
             auto v0 = static_cast<unsigned char>(value[0]);
             // low bits only: 0-127
             // 0b110xxxxx - start of 2-byte sequence
@@ -524,7 +524,7 @@ public:
         // UTF-16 is much easier: we can only have a surrogate pair for values above U+FFFF, thus a
         // surrogate pair with total length 2 instantly indicates a range error (but not a "your
         // string was too long" error).
-        else if (StringCaster::UTF_N == 16 && str_len == 2) {
+        else if (constexpr_bool(StringCaster::UTF_N == 16) && str_len == 2) {
             one_char = static_cast<CharT>(value[0]);
             if (one_char >= 0xD800 && one_char < 0xE000)
                 throw value_error("Character code point not in range(0x10000)");
