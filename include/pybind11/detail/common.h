@@ -941,5 +941,16 @@ inline constexpr void workaround_incorrect_msvc_c4100(Args &&...) {}
 #    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
 #endif
 
+#if defined(_MSC_VER) // All versions (as of July 2021).
+
+// warning C4127: Conditional expression is constant
+constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
+
+#    define PYBIND11_SILENCE_MSVC_C4127(...) detail::silence_msvc_c4127(__VA_ARGS__)
+
+#else
+#    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
+#endif
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

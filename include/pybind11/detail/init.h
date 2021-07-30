@@ -96,7 +96,7 @@ template <typename Class>
 void construct(value_and_holder &v_h, Cpp<Class> *ptr, bool need_alias) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     no_nullptr(ptr);
-    if (Class::has_alias && need_alias && !is_alias<Class>(ptr)) {
+    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr)) {
         // We're going to try to construct an alias by moving the cpp type.  Whether or not
         // that succeeds, we still need to destroy the original cpp pointer (either the
         // moved away leftover, if the alias construction works, or the value itself if we
@@ -136,7 +136,7 @@ void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
     auto *ptr = holder_helper<Holder<Class>>::get(holder);
     no_nullptr(ptr);
     // If we need an alias, check that the held pointer is actually an alias instance
-    if (Class::has_alias && need_alias && !is_alias<Class>(ptr))
+    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr))
         throw type_error("pybind11::init(): construction failed: returned holder-wrapped instance "
                          "is not an alias instance");
 
@@ -153,7 +153,7 @@ void construct(value_and_holder &v_h, Cpp<Class> &&result, bool need_alias) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     static_assert(std::is_move_constructible<Cpp<Class>>::value,
         "pybind11::init() return-by-value factory function requires a movable class");
-    if (Class::has_alias && need_alias)
+    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias)
         construct_alias_from_cpp<Class>(is_alias_constructible<Class>{}, v_h, std::move(result));
     else
         v_h.value_ptr() = new Cpp<Class>(std::move(result));

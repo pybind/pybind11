@@ -10,10 +10,7 @@
 
 #pragma once
 
-#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-#  pragma warning(push)
-#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
-#elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #  pragma GCC diagnostic ignored "-Wattributes"
@@ -166,7 +163,7 @@ protected:
         auto rec = unique_rec.get();
 
         /* Store the capture object directly in the function record if there is enough space */
-        if (sizeof(capture) <= sizeof(rec->data)) {
+        if (PYBIND11_SILENCE_MSVC_C4127(sizeof(capture) <= sizeof(rec->data))) {
             /* Without these pragmas, GCC warns that there might not be
                enough space to use the placement new operator. However, the
                'if' statement above ensures that this is the case. */
@@ -2388,8 +2385,6 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #    pragma GCC diagnostic pop // -Wnoexcept-type
 #endif
 
-#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-#  pragma warning(pop)
-#elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
