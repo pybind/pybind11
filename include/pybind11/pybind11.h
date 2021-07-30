@@ -163,7 +163,7 @@ protected:
         auto rec = unique_rec.get();
 
         /* Store the capture object directly in the function record if there is enough space */
-        if (constexpr_bool(sizeof(capture) <= sizeof(rec->data))) {
+        if (PYBIND11_SILENCE_MSVC_C4127(sizeof(capture) <= sizeof(rec->data))) {
             /* Without these pragmas, GCC warns that there might not be
                enough space to use the placement new operator. However, the
                'if' statement above ensures that this is the case. */

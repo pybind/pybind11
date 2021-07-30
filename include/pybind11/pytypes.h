@@ -1191,9 +1191,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // unsigned type: (A)-1 != (B)-1 when A and B are unsigned types of different sizes).
 template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
-    if (constexpr_bool(sizeof(Unsigned) <= sizeof(unsigned long))
+    if (PYBIND11_SILENCE_MSVC_C4127(sizeof(Unsigned) <= sizeof(unsigned long))
 #if PY_VERSION_HEX < 0x03000000
-            || PyInt_Check(o)
+        || PyInt_Check(o)
 #endif
     ) {
         unsigned long v = PyLong_AsUnsignedLong(o);
@@ -1212,7 +1212,7 @@ public:
     template <typename T,
               detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     int_(T value) {
-        if (detail::constexpr_bool(sizeof(T) <= sizeof(long))) {
+        if (PYBIND11_SILENCE_MSVC_C4127(sizeof(T) <= sizeof(long))) {
             if (std::is_signed<T>::value)
                 m_ptr = PyLong_FromLong((long) value);
             else
