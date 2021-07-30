@@ -89,13 +89,27 @@
 #  endif
 #endif
 
+#if !defined(PYBIND11_EXPORT_EXCEPTION)
+#  ifdef __MINGW32__
+// workaround for:
+// error: 'dllexport' implies default visibility, but xxx has already been declared with a different visibility
+#    define PYBIND11_EXPORT_EXCEPTION
+#  else
+#    define PYBIND11_EXPORT_EXCEPTION PYBIND11_EXPORT
+#  endif
+#endif
+
 #if defined(_MSC_VER)
 #  define PYBIND11_NOINLINE __declspec(noinline)
 #else
 #  define PYBIND11_NOINLINE __attribute__ ((noinline))
 #endif
 
-#if defined(PYBIND11_CPP14)
+#if defined(__MINGW32__)
+// For unknown reasons all PYBIND11_DEPRECATED member trigger a warning when declared
+// whether it is used or not
+#  define PYBIND11_DEPRECATED(reason)
+#elif defined(PYBIND11_CPP14)
 #  define PYBIND11_DEPRECATED(reason) [[deprecated(reason)]]
 #else
 #  define PYBIND11_DEPRECATED(reason) __attribute__((deprecated(reason)))
@@ -121,7 +135,8 @@
 #    define HAVE_ROUND 1
 #  endif
 #  pragma warning(push)
-#  pragma warning(disable: 4510 4610 4512 4005)
+// C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
+#  pragma warning(disable: 4505)
 #  if defined(_DEBUG) && !defined(Py_DEBUG)
 #    define PYBIND11_DEBUG_MARKER
 #    undef _DEBUG
@@ -740,7 +755,7 @@ PYBIND11_NAMESPACE_END(detail)
 #  pragma warning(disable: 4275) // warning C4275: An exported class was derived from a class that wasn't exported. Can be ignored when derived from a STL class.
 #endif
 /// C++ bindings of builtin Python exceptions
-class PYBIND11_EXPORT builtin_exception : public std::runtime_error {
+class PYBIND11_EXPORT_EXCEPTION builtin_exception : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
     /// Set the error using the Python C API
@@ -751,7 +766,7 @@ public:
 #endif
 
 #define PYBIND11_RUNTIME_EXCEPTION(name, type) \
-    class PYBIND11_EXPORT name : public builtin_exception { public: \
+    class PYBIND11_EXPORT_EXCEPTION name : public builtin_exception { public: \
         using builtin_exception::builtin_exception; \
         name() : name("") { } \
         void set_error() const override { PyErr_SetString(type, what()); } \
@@ -924,6 +939,17 @@ inline constexpr void workaround_incorrect_msvc_c4100(Args &&...) {}
 
 #else
 #    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
+#endif
+
+#if defined(_MSC_VER) // All versions (as of July 2021).
+
+// warning C4127: Conditional expression is constant
+constexpr inline bool silence_msvc_c4127(bool cond) { return cond; }
+
+#    define PYBIND11_SILENCE_MSVC_C4127(...) detail::silence_msvc_c4127(__VA_ARGS__)
+
+#else
+#    define PYBIND11_SILENCE_MSVC_C4127(...) __VA_ARGS__
 #endif
 
 PYBIND11_NAMESPACE_END(detail)

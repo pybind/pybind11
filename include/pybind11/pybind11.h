@@ -41,6 +41,18 @@
 #  include <cxxabi.h>
 #endif
 
+/* https://stackoverflow.com/questions/46798456/handling-gccs-noexcept-type-warning
+   This warning is about ABI compatibility, not code health.
+   It is only actually needed in a couple places, but apparently GCC 7 "generates this warning if
+   and only if the first template instantiation ... involves noexcept" [stackoverflow], therefore
+   it could get triggered from seemingly random places, depending on user code.
+   No other GCC version generates this warning.
+ */
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wnoexcept-type"
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -151,7 +163,7 @@ protected:
         auto rec = unique_rec.get();
 
         /* Store the capture object directly in the function record if there is enough space */
-        if (sizeof(capture) <= sizeof(rec->data)) {
+        if (PYBIND11_SILENCE_MSVC_C4127(sizeof(capture) <= sizeof(rec->data))) {
             /* Without these pragmas, GCC warns that there might not be
                enough space to use the placement new operator. However, the
                'if' statement above ensures that this is the case. */
@@ -2481,8 +2493,10 @@ inline function get_overload(const T *this_ptr, const char *name) {
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
-#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-#  pragma warning(pop)
-#elif defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic pop // -Wnoexcept-type
+#endif
+
+#if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 #  pragma GCC diagnostic pop
 #endif
