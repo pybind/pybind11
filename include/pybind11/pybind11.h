@@ -45,6 +45,20 @@
 #  include <cxxabi.h>
 #endif
 
+/* https://stackoverflow.com/questions/46798456/handling-gccs-noexcept-type-warning
+   This warning is about ABI compatibility, not code health.
+   It is only actually needed in a couple places, but apparently GCC 7 "generates this warning if
+   and only if the first template instantiation ... involves noexcept" [stackoverflow], therefore
+   it could get triggered from seemingly random places, depending on user code.
+   It seems very unlikely that this warning will be useful to anyone (no other GCC version
+   generates it), but to be maximally accommodating we turn it off here instead of using a
+   command line option.
+ */
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wnoexcept-type"
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -991,10 +1005,6 @@ public:
 #endif
     }
 
-#if defined(__GNUC__) && __GNUC__ == 7
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wnoexcept-type"
-#endif
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
         can be a plain C++ function, a function pointer, or a lambda function. For
@@ -1009,9 +1019,6 @@ public:
         add_object(name_, func, true /* overwrite */);
         return *this;
     }
-#if defined(__GNUC__) && __GNUC__ == 7
-#    pragma GCC diagnostic pop
-#endif
 
     /** \rst
         Create and return a new Python submodule with the given name and docstring.
@@ -1359,10 +1366,6 @@ public:
     template <typename Base, detail::enable_if_t<!is_base<Base>::value, int> = 0>
     static void add_base(detail::type_record &) { }
 
-#if defined(__GNUC__) && __GNUC__ == 7
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wnoexcept-type"
-#endif
     template <typename Func, typename... Extra>
     class_ &def(const char *name_, Func&& f, const Extra&... extra) {
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)), name(name_), is_method(*this),
@@ -1370,9 +1373,6 @@ public:
         add_class_method(*this, name_, cf);
         return *this;
     }
-#if defined(__GNUC__) && __GNUC__ == 7
-#    pragma GCC diagnostic pop
-#endif
 
     template <typename Func, typename... Extra> class_ &
     def_static(const char *name_, Func &&f, const Extra&... extra) {
@@ -2386,6 +2386,10 @@ inline function get_overload(const T *this_ptr, const char *name) {
     PYBIND11_OVERRIDE_PURE(PYBIND11_TYPE(ret_type), PYBIND11_TYPE(cname), fn, __VA_ARGS__);
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic pop // -Wnoexcept-type
+#endif
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #  pragma warning(pop)
