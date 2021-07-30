@@ -18,9 +18,6 @@
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 #  pragma GCC diagnostic ignored "-Wattributes"
-#  if __GNUC__ >= 7
-#    pragma GCC diagnostic ignored "-Wnoexcept-type"
-#  endif
 #endif
 
 #include "attr.h"
@@ -1355,6 +1352,10 @@ public:
     template <typename Base, detail::enable_if_t<!is_base<Base>::value, int> = 0>
     static void add_base(detail::type_record &) { }
 
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wnoexcept-type"
+#endif
     template <typename Func, typename... Extra>
     class_ &def(const char *name_, Func&& f, const Extra&... extra) {
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)), name(name_), is_method(*this),
@@ -1362,6 +1363,9 @@ public:
         add_class_method(*this, name_, cf);
         return *this;
     }
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic pop
+#endif
 
     template <typename Func, typename... Extra> class_ &
     def_static(const char *name_, Func &&f, const Extra&... extra) {
