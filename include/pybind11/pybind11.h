@@ -991,6 +991,10 @@ public:
 #endif
     }
 
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wnoexcept-type"
+#endif
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
         can be a plain C++ function, a function pointer, or a lambda function. For
@@ -1005,6 +1009,9 @@ public:
         add_object(name_, func, true /* overwrite */);
         return *this;
     }
+#if defined(__GNUC__) && __GNUC__ == 7
+#    pragma GCC diagnostic pop
+#endif
 
     /** \rst
         Create and return a new Python submodule with the given name and docstring.
