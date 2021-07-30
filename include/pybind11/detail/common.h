@@ -121,11 +121,7 @@
 #    define HAVE_ROUND 1
 #  endif
 #  pragma warning(push)
-// C4005: TODO
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed (PyPy only)
-// C4510: TODO
-// C4512: TODO
-// C4610: TODO
 #  pragma warning(disable: 4505)
 #  if defined(_DEBUG) && !defined(Py_DEBUG)
 #    define PYBIND11_DEBUG_MARKER
