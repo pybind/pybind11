@@ -59,8 +59,7 @@ except ImportError:
 import distutils.errors
 import distutils.ccompiler
 
-
-WIN = sys.platform.startswith("win32") and sysconfig.get_platform() != "mingw"
+WIN = sys.platform.startswith("win32") and "mingw" not in sysconfig.get_platform()
 PY2 = sys.version_info[0] < 3
 MACOS = sys.platform.startswith("darwin")
 STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
