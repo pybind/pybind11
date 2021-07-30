@@ -50,9 +50,7 @@
    It is only actually needed in a couple places, but apparently GCC 7 "generates this warning if
    and only if the first template instantiation ... involves noexcept" [stackoverflow], therefore
    it could get triggered from seemingly random places, depending on user code.
-   It seems very unlikely that this warning will be useful to anyone (no other GCC version
-   generates it), but to be maximally accommodating we turn it off here instead of using a
-   command line option.
+   No other GCC version generates this warning.
  */
 #if defined(__GNUC__) && __GNUC__ == 7
 #    pragma GCC diagnostic push
