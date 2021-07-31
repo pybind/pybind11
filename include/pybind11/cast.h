@@ -181,7 +181,7 @@ public:
         // Signed/unsigned checks happen elsewhere
         if (py_err || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T) && py_value != (py_type) (T) py_value)) {
             PyErr_Clear();
-            if (py_err && convert && PyNumber_Check(src.ptr())) {
+            if (py_err && convert && (PyNumber_Check(src.ptr()) != 0)) {
                 auto tmp = reinterpret_steal<object>(std::is_floating_point<T>::value
                                                      ? PyNumber_Float(src.ptr())
                                                      : PyNumber_Long(src.ptr()));
@@ -300,7 +300,7 @@ public:
             value = false;
             return true;
         }
-        if (convert || !std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name)) {
+        if (convert || (std::strcmp("numpy.bool_", Py_TYPE(src.ptr())->tp_name) == 0)) {
             // (allow non-implicit conversion for numpy booleans)
 
             Py_ssize_t res = -1;
@@ -384,7 +384,11 @@ template <typename StringType, bool IsView = false> struct string_caster {
 
         const auto *buffer = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
         size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
-        if (UTF_N > 8) { buffer++; length--; } // Skip BOM for UTF-16/32
+        // Skip BOM for UTF-16/32
+        if (PYBIND11_SILENCE_MSVC_C4127(UTF_N > 8)) {
+            buffer++;
+            length--;
+        }
         value = StringType(buffer, length);
 
         // If we're loading a string_view we need to keep the encoded Python object alive:
@@ -499,12 +503,16 @@ public:
         // out how long the first encoded character is in bytes to distinguish between these two
         // errors.  We also allow want to allow unicode characters U+0080 through U+00FF, as those
         // can fit into a single char value.
-        if (StringCaster::UTF_N == 8 && str_len > 1 && str_len <= 4) {
+        if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 8) && str_len > 1 && str_len <= 4) {
             auto v0 = static_cast<unsigned char>(value[0]);
-            size_t char0_bytes = !(v0 & 0x80) ? 1 : // low bits only: 0-127
-                (v0 & 0xE0) == 0xC0 ? 2 : // 0b110xxxxx - start of 2-byte sequence
-                (v0 & 0xF0) == 0xE0 ? 3 : // 0b1110xxxx - start of 3-byte sequence
-                4; // 0b11110xxx - start of 4-byte sequence
+            // low bits only: 0-127
+            // 0b110xxxxx - start of 2-byte sequence
+            // 0b1110xxxx - start of 3-byte sequence
+            // 0b11110xxx - start of 4-byte sequence
+            size_t char0_bytes = (v0 & 0x80) == 0      ? 1
+                                 : (v0 & 0xE0) == 0xC0 ? 2
+                                 : (v0 & 0xF0) == 0xE0 ? 3
+                                                       : 4;
 
             if (char0_bytes == str_len) {
                 // If we have a 128-255 value, we can decode it into a single char:
@@ -520,7 +528,7 @@ public:
         // UTF-16 is much easier: we can only have a surrogate pair for values above U+FFFF, thus a
         // surrogate pair with total length 2 instantly indicates a range error (but not a "your
         // string was too long" error).
-        else if (StringCaster::UTF_N == 16 && str_len == 2) {
+        else if (PYBIND11_SILENCE_MSVC_C4127(StringCaster::UTF_N == 16) && str_len == 2) {
             one_char = static_cast<CharT>(value[0]);
             if (one_char >= 0xD800 && one_char < 0xE000)
                 throw value_error("Character code point not in range(0x10000)");
@@ -601,6 +609,7 @@ protected:
     /* Implementation: Convert a C++ tuple into a Python tuple */
     template <typename T, size_t... Is>
     static handle cast_impl(T &&src, return_value_policy policy, handle parent, index_sequence<Is...>) {
+        PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(src, policy, parent);
         std::array<object, size> entries{{
             reinterpret_steal<object>(make_caster<Ts>::cast(std::get<Is>(std::forward<T>(src)), policy, parent))...
         }};
@@ -773,7 +782,7 @@ struct pyobject_caster {
         // For Python 2, without this implicit conversion, Python code would
         // need to be cluttered with six.ensure_text() or similar, only to be
         // un-cluttered later after Python 2 support is dropped.
-        if (std::is_same<T, str>::value && isinstance<bytes>(src)) {
+        if (PYBIND11_SILENCE_MSVC_C4127(std::is_same<T, str>::value) && isinstance<bytes>(src)) {
             PyObject *str_from_bytes = PyUnicode_FromEncodedObject(src.ptr(), "utf-8", nullptr);
             if (!str_from_bytes) throw error_already_set();
             value = reinterpret_steal<type>(str_from_bytes);

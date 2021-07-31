@@ -3,6 +3,7 @@ import pytest
 from pybind11_tests import callbacks as m
 from threading import Thread
 import time
+import env  # NOQA: F401
 
 
 def test_callbacks():
@@ -122,6 +123,16 @@ def test_function_signatures(doc):
 
 def test_movable_object():
     assert m.callback_with_movable(lambda _: None) is True
+
+
+@pytest.mark.skipif(
+    "env.PYPY",
+    reason="PyPy segfaults on here. See discussion on #1413.",
+)
+def test_python_builtins():
+    """Test if python builtins like sum() can be used as callbacks"""
+    assert m.test_sum_builtin(sum, [1, 2, 3]) == 6
+    assert m.test_sum_builtin(sum, []) == 0
 
 
 def test_async_callbacks():

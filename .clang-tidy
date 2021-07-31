@@ -6,13 +6,13 @@ cppcoreguidelines-init-variables,
 clang-analyzer-optin.cplusplus.VirtualCall,
 llvm-namespace-comment,
 misc-misplaced-const,
+misc-non-copyable-objects,
 misc-static-assert,
 misc-throw-by-value-catch-by-reference,
 misc-uniqueptr-reset-release,
 misc-unused-parameters,
 modernize-avoid-bind,
 modernize-make-shared,
-modernize-make-unique,
 modernize-redundant-void-arg,
 modernize-replace-auto-ptr,
 modernize-replace-disallow-copy-and-assign-macro,
@@ -32,6 +32,7 @@ readability-avoid-const-params-in-decls,
 readability-container-size-empty,
 readability-else-after-return,
 readability-delete-null-pointer,
+readability-implicit-bool-conversion,
 readability-make-member-function-const,
 readability-misplaced-array-index,
 readability-non-const-parameter,
@@ -53,6 +54,8 @@ CheckOptions:
   value:           true
 - key:             performance-unnecessary-value-param.AllowedTypes
   value:           'exception_ptr$;'
+- key:             readability-implicit-bool-conversion.AllowPointerConditions
+  value:           true
 
 HeaderFilterRegex: 'pybind11/.*h'
 

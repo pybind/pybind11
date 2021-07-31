@@ -7,13 +7,13 @@
 
 cmake_minimum_required(VERSION 3.4)
 
-# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.4...3.21)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.18)
+if(${CMAKE_VERSION} VERSION_LESS 3.21)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.18)
+  cmake_policy(VERSION 3.21)
 endif()
 
 # Extract project version from source
@@ -202,6 +202,12 @@ if(PYBIND11_INSTALL)
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
       "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
       CACHE STRING "install path for pybind11Config.cmake")
+
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+    set(pybind11_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+  else()
+    set(pybind11_INCLUDEDIR "\$\{PACKAGE_PREFIX_DIR\}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
 
   configure_package_config_file(
     tools/${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
